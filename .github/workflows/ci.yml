@@ -25,21 +25,35 @@ jobs:
       - uses: actions/checkout@v7
 
       # canvas_mojo (this package's own dependency) links directly
-      # against system libfontconfig/libfreetype at runtime for text
-      # rendering -- not bundled, not satisfied by the conda-forge
-      # fontconfig/freetype packages canvas_mojo's own [package.run-
-      # dependencies] pulls in (those provide headers/dev libs for the
-      # build, not what canvas_mojo's own FFI actually dlopens at
-      # runtime). Every example here draws real text (axis/tick labels,
-      # legends, titles), so this is a real runtime requirement for
-      # this package's own CI too, not just canvas_mojo's.
-      - name: Install libfontconfig and libfreetype (Linux)
+      # against system libfontconfig at runtime for text rendering --
+      # not bundled, not satisfied by the conda-forge fontconfig
+      # package canvas_mojo's own [package.run-dependencies] pulls in
+      # (that provides headers/dev libs for the build, not what
+      # canvas_mojo's own FFI actually dlopens at runtime). Every
+      # example here draws real text (axis/tick labels, legends,
+      # titles), so this is a real runtime requirement for this
+      # package's own CI too, not just canvas_mojo's. libfreetype used
+      # to be installed here too, but canvas_mojo v0.1.0 (this
+      # package's now-tagged dependency, see pixi.toml) replaced its
+      # own FreeType FFI binding with a native TrueType parser
+      # (canvas_mojo/text/ttf.mojo) -- fontconfig (font *discovery*,
+      # resolving a family name to an actual installed file) is the
+      # only system library left linked, the same fix canvas_mojo's
+      # own CI already made for the identical reason.
+      #
+      # fonts-dejavu-core is a real runtime dependency too, not
+      # cosmetic: no example/test here passes an explicit font family
+      # to draw_text()/measure_text(), so every one resolves canvas_
+      # mojo's own default ("Sans") through fontconfig -- DejaVu Sans
+      # on a bare Ubuntu runner image, which ships libfontconfig
+      # without any actual font files installed.
+      - name: Install libfontconfig (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libfontconfig1 libfreetype6 fonts-dejavu-core
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1 fonts-dejavu-core
 
-      - name: Install libfontconfig and libfreetype (macOS)
+      - name: Install libfontconfig (macOS)
         if: runner.os == 'macOS'
-        run: brew install fontconfig freetype && brew install --cask font-dejavu && fc-cache -f
+        run: brew install fontconfig && brew install --cask font-dejavu && fc-cache -f
 
       # Pinned to match the pixi version pixi.lock (v7 format) was
       # generated with locally -- see canvas_mojo's own CI for why.
