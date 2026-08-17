@@ -1,8 +1,8 @@
 """Demo: a basic scatter plot -- Mark.POINT, default theme, axes and
 gridlines computed automatically from the data's own domain.
 
-Supersampled 3x -- every example here is, now (see dataviz_mojo/ROADMAP.md's
-own Theme.scale/canvas_mojo.resize.downsample entries): rendered at 3x this
+Supersampled 3x -- every example here is, now (see the wiki's
+Changelog, its own Theme.scale/canvas_mojo.resize.downsample entries): rendered at 3x this
 file's own target size (Theme.scale=3.0 on a canvas 3x as wide/tall),
 then shrunk back down to that target size via downsample() -- each
 final pixel is the averaged, rounded mean of a real 3x3 block of
@@ -11,7 +11,7 @@ aliasing into the output file itself, at its original dimensions, not
 a trick that depends on whatever later displays or rescales it (a
 larger file that merely *looks* sharper in one particular viewer,
 because that viewer happens to scale it back down to fit some pane,
-was tried and rejected -- see the ROADMAP entry for why).
+was tried and rejected -- see the wiki entry for why).
 
 Run with:
     pixi run example

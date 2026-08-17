@@ -16,7 +16,7 @@ without changing what any individual field means at scale=1.0. Meant
 for rendering the exact same chart at a higher pixel density (pair
 `Theme(scale=2.0)` with a Canvas twice the width/height) so text and
 strokes stay crisp when a viewer displays the output larger than its
-native pixel size -- see dataviz_mojo/ROADMAP.md for the concrete case
+native pixel size -- see the wiki for the concrete case
 that motivated this (a small raster canvas, viewed upscaled in an
 Electron/webview-based image preview, loses sharpness to the
 viewer's own interpolation; more native pixels per glyph is the fix

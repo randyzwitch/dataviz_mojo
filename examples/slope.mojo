@@ -10,10 +10,10 @@ continuous (`encode()`, not `encode_categorical()`), so the two x
 positions here (0.0 and 1.0) get numeric tick labels ("0", "1"), not
 the "Before"/"After"-style category labels a slope chart's own x-axis
 conventionally shows -- that needs categorical-x support on Mark.LINE,
-not built yet (see dataviz_mojo/ROADMAP.md). A real slope chart also
+not built yet (see the wiki's Backlog). A real slope chart also
 usually compares *several* entities' own slopes on shared axes at
 once, which needs the multi-series layering this whole phase's plan
-builds next (see dataviz_mojo/ROADMAP.md's own Phase 1 entry) -- this
+builds next (see the wiki's Changelog, its own Phase 1 entry) -- this
 example is deliberately the single-series, numeric-axis case that's
 already possible today, not a claim that the full chart type is done.
 
