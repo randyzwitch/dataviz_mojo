@@ -1,20 +1,26 @@
 name: Docs
 
-# Regenerates docs/ (see pixi.toml's own `docs` task, modo.yaml) and
-# commits the result back to main whenever something that actually
-# feeds it changes -- dataviz_mojo/'s own docstrings, examples/ (both
-# the code and its rendered output, which `docs` copies rather than
-# re-rendering), the hand-written pages in docs/_src/, or the doc-
-# generation config/tooling itself. Keeps the committed docs/ (served
-# directly via GitHub Pages, main:/docs -- see README.md) from
-# drifting out of sync with its own sources, without needing a
-# separate build+deploy pipeline: this workflow's own commit, made
-# with the default GITHUB_TOKEN, is what's actually served.
+# Builds docs/ (see pixi.toml's own `docs` task, modo.yaml) on both a
+# pull request (so its status is visible as a check before merging --
+# deliberately not a required one, see the repo's own branch
+# protection settings) and a push to main, but only actually commits
+# the result on the latter: committing from a PR run would mean a fork
+# or feature branch's own Actions run pushing straight to main, which
+# is exactly the thing PRs exist to review first. On push to main,
+# commits docs/ back with the default GITHUB_TOKEN if (and only if) it
+# changed -- no separate build+deploy pipeline, since the committed
+# docs/ is what GitHub Pages already serves (main:/docs).
+#
+# Triggers whenever something that actually feeds docs/ changes --
+# dataviz_mojo/'s own docstrings, examples/ (both the code and its
+# rendered output, which `docs` copies rather than re-rendering), the
+# hand-written pages in docs/_src/, or the doc-generation config/
+# tooling itself.
 
 on:
   push:
     branches: [main]
-    paths:
+    paths: &docs-paths
       - "dataviz_mojo/**"
       - "examples/**"
       - "docs/_src/**"
@@ -22,14 +28,16 @@ on:
       - "pixi.toml"
       - "scripts/install-modo.sh"
       - ".github/workflows/docs.yml"
+  pull_request:
+    paths: *docs-paths
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  regenerate:
-    name: Regenerate docs/
+  build:
+    name: Build docs
     runs-on: ubuntu-latest
     # Mojo compiles here are heavy -- pixi run example alone has taken
     # several minutes per file in this repo before; see ci.yml's own
@@ -58,6 +66,7 @@ jobs:
         run: pixi run docs
 
       - name: Commit and push docs/ if it changed
+        if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
