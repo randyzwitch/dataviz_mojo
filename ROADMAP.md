@@ -1630,6 +1630,43 @@ calls, won out.
   fix above, the line layer unaffected) before considering this done.
   All 125 tests passing.
 
+- **`test_plot.mojo` split into one file per Mark type** — the single
+  2743-line, 125-test file this section's own entries above kept
+  growing was, by itself, most of `pixi run test`'s wall-clock cost:
+  Mojo compiles it as one translation unit, so touching one mark's own
+  test (say, a single `Mark.BULLET` assertion) forced a full recompile
+  of all 125 tests, not just that mark's own handful. Split into 21
+  files -- one per `Mark` type (`test_point.mojo`, `test_line.mojo`,
+  `test_bar.mojo`, `test_area.mojo`, `test_arc.mojo`,
+  `test_lollipop.mojo`, `test_waterfall.mojo`, `test_box.mojo`,
+  `test_candlestick.mojo`, `test_bullet.mojo`, `test_gantt.mojo`,
+  `test_grouped_bar.mojo`, `test_stacked_bar.mojo`,
+  `test_histogram.mojo`) plus files for mechanics that cut across marks
+  rather than belonging to one (`test_legends.mojo`, `test_margins.mojo`
+  -- the dynamic-left-margin tests, `test_facets.mojo`,
+  `test_layers.mojo`, `test_labels.mojo`, `test_theme.mojo` -- the
+  `Theme.scale` tests, and `test_core.mojo` for generic
+  `Plot.encode()`/`render()` validation and the `_unique_categories`/
+  `_index_of` utility-function tests) -- plus `tests/_test_helpers.mojo`
+  for the two small cross-file helpers (`_count_color`, `_assert_color`,
+  and the shared `BG` constant) every split file needs.
+  `tests/`/`examples/` still deliberately aren't real Mojo packages (no
+  `__init__.mojo` -- see this file's package-declaration mechanics,
+  above, and `pixi.toml`'s own comments for why: a package directory
+  can't contain a `main()` anywhere under it, and every test/example
+  file here has its own `main()`), so a plain `from _test_helpers
+  import ...` needs an extra `-I tests` alongside every split file's
+  usual `-I .` -- confirmed empirically (not assumed) that Mojo
+  resolves single-file, non-package imports this way before committing
+  to the design; wired into every `test_*.mojo` line of `pixi.toml`'s
+  own `test` task chain, not just added to `dataviz_mojo`'s own build
+  config. Purely a file reorganization -- no test body's own assertions
+  changed, every one of the original 125 tests still exists, unchanged,
+  in its new file. Confirmed via the full `pixi run test` chain: 142
+  tests (125 from the split files + the 17 pre-existing `test_scale.
+  mojo`/`test_color_scale.mojo`/`test_ordinal_scale.mojo` tests these
+  never touched), all passing.
+
 ## Removed
 
 - **Table: a named-column data source** — built (a `Table` struct
