@@ -1,0 +1,116 @@
+"""Tests for Mark.BULLET: qualitative range bands, measure, and target
+(raster + SVG) -- split out of what used to be one big test_plot.mojo.
+"""
+
+from std.testing import assert_equal, assert_true, assert_raises, TestSuite
+
+from canvas_mojo.color import Color
+from canvas_mojo.buffer import Canvas
+from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
+from canvas_mojo.vector.svg import SvgCanvas
+from dataviz_mojo.color_scale import default_categorical_palette
+from dataviz_mojo.plot import (
+    Plot,
+    render,
+    render_facets,
+    render_facets_svg,
+    render_layers,
+    render_layers_svg,
+    render_svg,
+    _build_line_path,
+    _index_of,
+    _unique_categories,
+)
+from dataviz_mojo.theme import Theme
+
+from _test_helpers import BG, _count_color, _assert_color
+
+
+def test_render_bullet_matches_hand_derived_bands_measure_and_target() raises:
+    # 2 categories, canvas 400x300, default margins (plot area x:[60,
+    # 380], y:[20,250]), show_gridlines=False. "A" = ranges=[40,70,100],
+    # measure=55, target=65; "B" = ranges=[30,60,90], measure=75,
+    # target=50. Domain data = {0, range-top, measure, target} per
+    # category = [0,100,55,65, 0,90,75,50] -> _zero_baseline_y_extent
+    # gives lo=min(0,0)=0 (unpadded, already at zero), hi=max(0,100)=100
+    # padded 5% of the 100-span to 105 -- domain [0, 105]. Same
+    # 2-category OrdinalScale over [60,380] every other categorical test
+    # already established (bands at x=76/236, width 128, centers
+    # 140/300). Every pixel below independently computed via python3
+    # from LinearScale's own slope/intercept formula (scale=(20-250)/
+    # 105=-2.190476.., translate=250), then confirmed against a real
+    # render() run before trusting it.
+    var cats: List[String] = ["A", "B"]
+    var measures: List[Float64] = [55.0, 75.0]
+    var targets: List[Float64] = [65.0, 50.0]
+    var ranges: List[List[Float64]] = [[40.0, 70.0, 100.0], [30.0, 60.0, 90.0]]
+    var t = Theme(show_gridlines=False)
+    var plot = Plot().mark_bullet().encode_bullet(cats, measures, targets, ranges).theme(t)
+    var c = Canvas(400, 300, BG)
+    render(c, plot)
+
+    _assert_color(c, 90, 200, Color(224, 224, 224), "A: lightest range band [0,40], off the measure bar")
+    _assert_color(c, 90, 130, Color(172, 172, 172), "A: middle range band [40,70], off the measure bar")
+    _assert_color(c, 90, 60, Color(120, 120, 120), "A: darkest range band [70,100], off the measure bar")
+    _assert_color(c, 140, 200, t.mark_color, "A: inside the measure bar (0 to 55), over the bands")
+    _assert_color(c, 90, 108, t.axis_color, "A: the target tick (65), off the measure bar")
+    _assert_color(c, 140, 10, BG, "A: above every band -- background")
+    _assert_color(c, 300, 150, t.mark_color, "B: inside the measure bar (0 to 75)")
+    _assert_color(c, 250, 140, t.axis_color, "B: the target tick (50), off the measure bar")
+    _assert_color(c, 220, 150, BG, "the gap between A's and B's own bands -- background")
+
+
+def test_render_bullet_svg_matches_confirmed_bands_measure_and_target() raises:
+    var cats: List[String] = ["A", "B"]
+    var measures: List[Float64] = [55.0, 75.0]
+    var targets: List[Float64] = [65.0, 50.0]
+    var ranges: List[List[Float64]] = [[40.0, 70.0, 100.0], [30.0, 60.0, 90.0]]
+    var svg = SvgCanvas(400, 300)
+    var plot = Plot().mark_bullet().encode_bullet(cats, measures, targets, ranges).theme(
+        Theme(show_gridlines=False)
+    )
+    render_svg(svg, plot)
+    var s = svg.to_string()
+    assert_true('<rect x="76" y="162" width="128" height="88" fill="#e0e0e0"/>' in s, "A's lightest band [0,40]")
+    assert_true('<rect x="76" y="97" width="128" height="65" fill="#acacac"/>' in s, "A's middle band [40,70]")
+    assert_true('<rect x="76" y="31" width="128" height="66" fill="#787878"/>' in s, "A's darkest band [70,100]")
+    assert_true('<rect x="118" y="130" width="45" height="120" fill="#1e64b4"/>' in s, "A's own measure bar")
+    assert_true(
+        '<line x1="76" y1="108" x2="204" y2="108" stroke="#505050" stroke-width="1.000"'
+        ' stroke-linecap="round"/>' in s,
+        "A's own target tick, full band width",
+    )
+
+
+def test_render_bullet_raises_on_mismatched_category_length() raises:
+    var cats: List[String] = ["a", "b", "c"]
+    var one: List[Float64] = [1.0, 2.0]
+    var ranges: List[List[Float64]] = [[1.0], [1.0]]
+    var plot = Plot().mark_bullet().encode_bullet(cats, one, one, ranges)
+    var c = Canvas(200, 150, BG)
+    with assert_raises():
+        render(c, plot)
+
+
+def test_render_bullet_raises_on_empty_range_thresholds() raises:
+    var cats: List[String] = ["a", "b"]
+    var one: List[Float64] = [1.0, 2.0]
+    var ranges: List[List[Float64]] = [[1.0], List[Float64]()]
+    var plot = Plot().mark_bullet().encode_bullet(cats, one, one, ranges)
+    var c = Canvas(200, 150, BG)
+    with assert_raises():
+        render(c, plot)
+
+
+def test_render_bullet_raises_on_non_ascending_range_thresholds() raises:
+    var cats: List[String] = ["a"]
+    var one: List[Float64] = [1.0]
+    var ranges: List[List[Float64]] = [[50.0, 30.0, 100.0]]
+    var plot = Plot().mark_bullet().encode_bullet(cats, one, one, ranges)
+    var c = Canvas(200, 150, BG)
+    with assert_raises():
+        render(c, plot)
+
+
+def main() raises:
+    TestSuite.discover_tests[__functions_in_module()]().run()
