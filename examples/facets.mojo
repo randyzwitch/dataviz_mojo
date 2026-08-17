@@ -28,6 +28,7 @@ Run with:
 from canvas_mojo.color import Color
 from canvas_mojo.buffer import Canvas
 from canvas_mojo.io.bmp import write_bmp
+from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import Plot, render_facets
@@ -72,4 +73,5 @@ def main() raises:
     var out = downsample(c, _SUPERSAMPLE)
 
     write_bmp(out, "examples/out_facets.bmp")
-    print("wrote examples/out_facets.bmp")
+    write_png(out, "examples/out_facets.png")
+    print("wrote examples/out_facets.bmp and .png")

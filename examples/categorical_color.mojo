@@ -15,6 +15,7 @@ Run with:
 from canvas_mojo.color import Color
 from canvas_mojo.buffer import Canvas
 from canvas_mojo.io.bmp import write_bmp
+from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from dataviz_mojo.plot import Plot, render
 from dataviz_mojo.theme import Theme
@@ -38,4 +39,5 @@ def main() raises:
     var out = downsample(c, _SUPERSAMPLE)
 
     write_bmp(out, "examples/out_categorical_color.bmp")
-    print("wrote examples/out_categorical_color.bmp")
+    write_png(out, "examples/out_categorical_color.png")
+    print("wrote examples/out_categorical_color.bmp and .png")
