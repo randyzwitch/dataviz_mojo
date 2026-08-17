@@ -1,3 +1,20 @@
+# Dynamic Left Margin
+
+A line chart with large y-values.
+
+![Dynamic Left Margin](out_dynamic_margin.png)
+
+## Run it
+
+```sh
+mojo run -I . examples/dynamic_margin.mojo
+```
+
+(Or `pixi run example`, which runs every example in this directory in one go.)
+
+## Source
+
+```mojo
 """Demo: a line chart with large y-values -- the y-axis tick labels
 ("1000000", "1500000", ...) are wide enough that Theme's default 60px
 left margin would clip or crowd them. render() sizes the left margin
@@ -39,3 +56,6 @@ def main() raises:
     write_bmp(out, "examples/out_dynamic_margin.bmp")
     write_png(out, "examples/out_dynamic_margin.png")
     print("wrote examples/out_dynamic_margin.bmp and .png")
+```
+
+[View `dynamic_margin.mojo` on GitHub](https://github.com/randyzwitch/dataviz_mojo/blob/main/examples/dynamic_margin.mojo)

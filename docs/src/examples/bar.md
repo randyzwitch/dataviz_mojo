@@ -1,3 +1,20 @@
+# Bar
+
+A bar chart.
+
+![Bar](out_bar.png)
+
+## Run it
+
+```sh
+mojo run -I . examples/bar.mojo
+```
+
+(Or `pixi run example`, which runs every example in this directory in one go.)
+
+## Source
+
+```mojo
 """Demo: a bar chart -- Mark.BAR, a categorical x-axis (OrdinalScale)
 and a y-axis that always includes a zero baseline. Includes one
 negative value to show bars extending below the baseline correctly,
@@ -35,3 +52,6 @@ def main() raises:
     write_bmp(out, "examples/out_bar.bmp")
     write_png(out, "examples/out_bar.png")
     print("wrote examples/out_bar.bmp and .png")
+```
+
+[View `bar.mojo` on GitHub](https://github.com/randyzwitch/dataviz_mojo/blob/main/examples/bar.mojo)

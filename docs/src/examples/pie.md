@@ -1,3 +1,20 @@
+# Pie
+
+A pie chart.
+
+![Pie](out_pie.png)
+
+## Run it
+
+```sh
+mojo run -I . examples/pie.mojo
+```
+
+(Or `pixi run example`, which runs every example in this directory in one go.)
+
+## Source
+
+```mojo
 """Demo: a pie chart -- Mark.ARC, one wedge per category, angular span
 proportional to its value, colored via the same default_categorical_
 palette() a categorical-color scatter plot uses. A legend (Theme.
@@ -36,3 +53,6 @@ def main() raises:
     write_bmp(out, "examples/out_pie.bmp")
     write_png(out, "examples/out_pie.png")
     print("wrote examples/out_pie.bmp and .png")
+```
+
+[View `pie.mojo` on GitHub](https://github.com/randyzwitch/dataviz_mojo/blob/main/examples/pie.mojo)

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+<rect x="0" y="0" width="640" height="420" fill="#ffffff"/>
+<rect x="0" y="0" width="640" height="420" fill="#ffffff"/>
+<line x1="60" y1="354" x2="620" y2="354" stroke="#e1e1e1" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="60" y1="261" x2="620" y2="261" stroke="#e1e1e1" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="60" y1="167" x2="620" y2="167" stroke="#e1e1e1" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="60" y1="73" x2="620" y2="73" stroke="#e1e1e1" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="60" y1="370" x2="620" y2="370" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="60" y1="20" x2="60" y2="370" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="55" y1="354" x2="60" y2="354" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="55" y1="261" x2="60" y2="261" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="55" y1="167" x2="60" y2="167" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="55" y1="73" x2="60" y2="73" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="95" y1="370" x2="95" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="165" y1="370" x2="165" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="235" y1="370" x2="235" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="305" y1="370" x2="305" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="375" y1="370" x2="375" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="445" y1="370" x2="445" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="515" y1="370" x2="515" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="585" y1="370" x2="585" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="95" y1="148" x2="95" y2="298" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<rect x="67" y="186" width="56" height="75" fill="#1e64b4"/>
+<line x1="165" y1="167" x2="165" y2="279" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<rect x="137" y="186" width="56" height="56" fill="#c83c3c"/>
+<line x1="235" y1="204" x2="235" y2="354" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<rect x="207" y="242" width="56" height="75" fill="#c83c3c"/>
+<line x1="305" y1="111" x2="305" y2="335" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<rect x="277" y="129" width="56" height="188" fill="#1e64b4"/>
+<line x1="375" y1="36" x2="375" y2="167" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<rect x="347" y="73" width="56" height="56" fill="#1e64b4"/>
+<line x1="445" y1="55" x2="445" y2="223" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<rect x="417" y="73" width="56" height="131" fill="#c83c3c"/>
+<line x1="515" y1="92" x2="515" y2="242" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<rect x="487" y="111" width="56" height="93" fill="#1e64b4"/>
+<line x1="585" y1="73" x2="585" y2="186" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<rect x="557" y="111" width="56" height="56" fill="#c83c3c"/>
+<text x="51" y="358" font-size="12.000" fill="#282828" text-anchor="end">95</text>
+<text x="51" y="265" font-size="12.000" fill="#282828" text-anchor="end">100</text>
+<text x="51" y="171" font-size="12.000" fill="#282828" text-anchor="end">105</text>
+<text x="51" y="77" font-size="12.000" fill="#282828" text-anchor="end">110</text>
+<text x="95" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Day 1</text>
+<text x="165" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Day 2</text>
+<text x="235" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Day 3</text>
+<text x="305" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Day 4</text>
+<text x="375" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Day 5</text>
+<text x="445" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Day 6</text>
+<text x="515" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Day 7</text>
+<text x="585" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Day 8</text>
+</svg>

@@ -1,0 +1,27 @@
+# Modo config -- generates docs/site/content (a Hugo site, built by
+# `hugo -s docs/site` into docs/site/public, then deployed straight to
+# GitHub Pages via Actions -- neither ever committed, see pixi.toml's
+# own `docs` task and .github/workflows/docs.yml) from dataviz_mojo/'s
+# own docstrings (via `mojo doc`) plus the hand-written pages in
+# docs/src/. Hugo format specifically (not plain markdown, this
+# repo's original choice) because GitHub's Actions-based Pages
+# deployment -- needed to avoid committing generated output to git at
+# all -- doesn't run Jekyll (or anything) on what it's given, just
+# serves it as-is: no free markdown-to-HTML rendering the way classic
+# branch-deploy Pages provided. Hugo also understands Modo's own
+# `_index.md` convention (a section's landing page) natively -- it's
+# where Modo borrowed the convention from -- so none of the Jekyll-
+# compatibility work an earlier version of this file did (renaming
+# `_index.md` -> `index.md` post-build) is needed anymore.
+# See https://github.com/mlange-42/modo.
+input:
+  - docs/src/
+source-url:
+  dataviz_mojo: https://github.com/randyzwitch/dataviz_mojo/blob/main/dataviz_mojo
+output: docs/site/content
+tests: ""
+format: hugo
+exports: false
+short-links: true
+report-missing: false
+strict: false

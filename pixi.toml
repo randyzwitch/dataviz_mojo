@@ -8,10 +8,25 @@ version = "0.1.0"
 [dependencies]
 mojo = ">=1.0.0,<2"
 canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.1.0" }
+hugo = ">=0.164.0,<0.165"
+go = ">=1.26.6,<2"
 
 [tasks]
 example = "mojo run -I . examples/scatter.mojo && mojo run -I . examples/line.mojo && mojo run -I . examples/bubble.mojo && mojo run -I . examples/bar.mojo && mojo run -I . examples/categorical_color.mojo && mojo run -I . examples/area.mojo && mojo run -I . examples/pie.mojo && mojo run -I . examples/dynamic_margin.mojo && mojo run -I . examples/facets.mojo && mojo run -I . examples/scatter_svg.mojo && mojo run -I . examples/facets_svg.mojo && mojo run -I . examples/donut.mojo && mojo run -I . examples/histogram.mojo && mojo run -I . examples/diverging_bar.mojo && mojo run -I . examples/slope.mojo && mojo run -I . examples/layers.mojo && mojo run -I . examples/lollipop.mojo && mojo run -I . examples/waterfall.mojo && mojo run -I . examples/box.mojo && mojo run -I . examples/candlestick.mojo && mojo run -I . examples/bullet.mojo && mojo run -I . examples/gantt.mojo && mojo run -I . examples/line_smoothing.mojo && mojo run -I . examples/titles.mojo && mojo run -I . examples/grouped_bar.mojo && mojo run -I . examples/stacked_bar.mojo && mojo run -I . examples/area_smoothing.mojo"
 test = "mojo run -I . tests/test_scale.mojo && mojo run -I . tests/test_color_scale.mojo && mojo run -I . tests/test_ordinal_scale.mojo && mojo run -I . -I tests tests/test_core.mojo && mojo run -I . -I tests tests/test_point.mojo && mojo run -I . -I tests tests/test_line.mojo && mojo run -I . -I tests tests/test_bar.mojo && mojo run -I . -I tests tests/test_area.mojo && mojo run -I . -I tests tests/test_arc.mojo && mojo run -I . -I tests tests/test_legends.mojo && mojo run -I . -I tests tests/test_margins.mojo && mojo run -I . -I tests tests/test_facets.mojo && mojo run -I . -I tests tests/test_theme.mojo && mojo run -I . -I tests tests/test_labels.mojo && mojo run -I . -I tests tests/test_histogram.mojo && mojo run -I . -I tests tests/test_layers.mojo && mojo run -I . -I tests tests/test_lollipop.mojo && mojo run -I . -I tests tests/test_waterfall.mojo && mojo run -I . -I tests tests/test_box.mojo && mojo run -I . -I tests tests/test_candlestick.mojo && mojo run -I . -I tests tests/test_bullet.mojo && mojo run -I . -I tests tests/test_gantt.mojo && mojo run -I . -I tests tests/test_grouped_bar.mojo && mojo run -I . -I tests tests/test_stacked_bar.mojo"
+# Builds the docs site into docs/site/public -- neither that nor
+# docs/site/content (Modo's own output) is committed; both are
+# deployed straight to GitHub Pages by .github/workflows/docs.yml's
+# own Actions-based deploy, regenerated fresh each time. Only
+# docs/src/ (hand-written pages) and docs/site/'s own Hugo project
+# files (hugo.yaml, go.mod/go.sum) are real, committed source -- see
+# modo.yaml's own comments for the Hugo-over-plain-markdown reasoning.
+# Assumes `pixi run example` has already been run at least once
+# (copies its output images into docs/src/examples/ rather than
+# re-rendering them itself, the same "separate, independently-invoked
+# task" split this file's own example/test tasks already have).
+docs-install = "bash scripts/install-modo.sh"
+docs = "pixi run docs-install && rm -rf docs/site/content docs/site/public && mojo doc -I . -o docs/src/dataviz_mojo.json dataviz_mojo && cp examples/out_*.png examples/out_*.svg docs/src/examples/ && .tools/modo build && hugo -s docs/site"
 
 # --- Package declaration -----------------------------------------------
 [package]

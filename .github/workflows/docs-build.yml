@@ -1,0 +1,60 @@
+name: Docs build (reusable)
+
+# The actual build logic (mojo doc -> modo build -> hugo), shared by
+# both callers below rather than duplicated: docs.yml (pull_request,
+# status-only) and docs-deploy.yml (push to main, builds then
+# deploys). A `workflow_call` reusable workflow, not a job either
+# caller could just copy-paste, specifically so the two callers'
+# actual trigger conditions can differ -- see docs.yml's own comment
+# for why that split exists at all (a job merely skipped on PRs still
+# shows up as an always-"skipped" check, which is worse than no check).
+# Always uploads the Pages artifact (cheap, not itself a publish step
+# -- deploy-pages, in docs-deploy.yml only, is the one that actually
+# goes live) so docs-deploy.yml can deploy it without rebuilding.
+
+on:
+  workflow_call:
+
+# Just enough to checkout + upload a build artifact -- actions/upload-
+# pages-artifact doesn't need Pages-specific permissions itself, it's
+# a plain workflow artifact under the hood. pages:write/id-token:write
+# belong specifically to the deploy-pages step, in docs-deploy.yml's
+# own deploy job, not here.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build docs
+    runs-on: ubuntu-latest
+    # Mojo compiles here are heavy -- pixi run example alone has taken
+    # several minutes per file in this repo before; see ci.yml's own
+    # identical comment.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      # Same runtime requirement as ci.yml's own identical step --
+      # see its comment for the full "why fontconfig, not freetype"
+      # story. pixi run docs itself only needs mojo (for `mojo doc`)
+      # and hugo/go (for the Hugo build), but pixi run example (below)
+      # draws real text same as the test suite does.
+      - name: Install libfontconfig and test fonts (Linux)
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1 fonts-dejavu-core
+
+      - uses: prefix-dev/setup-pixi@v0.9.0
+        with:
+          pixi-version: v0.76.2
+          cache: true
+
+      - name: Render examples
+        run: pixi run example
+
+      - name: Build docs site
+        run: pixi run docs
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/site/public

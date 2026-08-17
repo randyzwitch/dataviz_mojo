@@ -1,3 +1,20 @@
+# Categorical Color
+
+A scatter plot colored by category.
+
+![Categorical Color](out_categorical_color.png)
+
+## Run it
+
+```sh
+mojo run -I . examples/categorical_color.mojo
+```
+
+(Or `pixi run example`, which runs every example in this directory in one go.)
+
+## Source
+
+```mojo
 """Demo: a scatter plot colored by category -- Plot.encode(color_
 categories=...), mapping discrete group names through
 default_categorical_palette() instead of a continuous ColorScale. A
@@ -41,3 +58,6 @@ def main() raises:
     write_bmp(out, "examples/out_categorical_color.bmp")
     write_png(out, "examples/out_categorical_color.png")
     print("wrote examples/out_categorical_color.bmp and .png")
+```
+
+[View `categorical_color.mojo` on GitHub](https://github.com/randyzwitch/dataviz_mojo/blob/main/examples/categorical_color.mojo)

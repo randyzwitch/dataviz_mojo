@@ -1,3 +1,20 @@
+# Facets
+
+Facets / small multiples.
+
+![Facets](out_facets.png)
+
+## Run it
+
+```sh
+mojo run -I . examples/facets.mojo
+```
+
+(Or `pixi run example`, which runs every example in this directory in one go.)
+
+## Source
+
+```mojo
 """Demo: facets / small multiples -- one independently-laid-out Plot
 per region, arranged in a shared grid via render_facets() rather than
 one render() call per canvas. Four regions' quarterly revenue, each
@@ -75,3 +92,6 @@ def main() raises:
     write_bmp(out, "examples/out_facets.bmp")
     write_png(out, "examples/out_facets.png")
     print("wrote examples/out_facets.bmp and .png")
+```
+
+[View `facets.mojo` on GitHub](https://github.com/randyzwitch/dataviz_mojo/blob/main/examples/facets.mojo)

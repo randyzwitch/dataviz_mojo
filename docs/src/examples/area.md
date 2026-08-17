@@ -1,3 +1,20 @@
+# Area
+
+An area chart.
+
+![Area](out_area.png)
+
+## Run it
+
+```sh
+mojo run -I . examples/area.mojo
+```
+
+(Or `pixi run example`, which runs every example in this directory in one go.)
+
+## Source
+
+```mojo
 """Demo: an area chart -- Mark.AREA, the same continuous (x, y) data
 mark_line() draws, filled down to a zero baseline instead of stroked.
 
@@ -39,3 +56,6 @@ def main() raises:
     write_bmp(out, "examples/out_area.bmp")
     write_png(out, "examples/out_area.png")
     print("wrote examples/out_area.bmp and .png")
+```
+
+[View `area.mojo` on GitHub](https://github.com/randyzwitch/dataviz_mojo/blob/main/examples/area.mojo)

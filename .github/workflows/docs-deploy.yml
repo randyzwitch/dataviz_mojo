@@ -1,0 +1,52 @@
+name: Docs deploy
+
+# Builds (via docs-build.yml) and deploys the docs site on every push
+# to main -- see docs.yml's own comment for why deploying is split
+# into its own workflow file rather than a same-file job gated by
+# `if: github.event_name == 'push'`. Never runs on a pull_request, so
+# it only ever shows up as a check on main's own commits, not on a PR
+# a feature branch's own Actions run has no business publishing from.
+#
+# Path filter kept identical to docs.yml's own -- see that file's
+# comment for why it's duplicated rather than shared.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dataviz_mojo/**"
+      - "examples/**"
+      - "docs/src/**"
+      - "docs/site/hugo.yaml"
+      - "docs/site/go.mod"
+      - "docs/site/go.sum"
+      - "modo.yaml"
+      - "pixi.toml"
+      - "scripts/install-modo.sh"
+      - ".github/workflows/docs-build.yml"
+      - ".github/workflows/docs-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/docs-build.yml
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

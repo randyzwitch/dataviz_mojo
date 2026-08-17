@@ -1,3 +1,20 @@
+# Line
+
+A basic line plot.
+
+![Line](out_line.png)
+
+## Run it
+
+```sh
+mojo run -I . examples/line.mojo
+```
+
+(Or `pixi run example`, which runs every example in this directory in one go.)
+
+## Source
+
+```mojo
 """Demo: a basic line plot -- Mark.LINE, a custom Theme (different
 mark color, thicker line, gridlines off) to show that's actually
 wired through render(), not just the default look.
@@ -45,3 +62,6 @@ def main() raises:
     write_bmp(out, "examples/out_line.bmp")
     write_png(out, "examples/out_line.png")
     print("wrote examples/out_line.bmp and .png")
+```
+
+[View `line.mojo` on GitHub](https://github.com/randyzwitch/dataviz_mojo/blob/main/examples/line.mojo)

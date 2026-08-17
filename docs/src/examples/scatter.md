@@ -1,3 +1,20 @@
+# Scatter
+
+A basic scatter plot.
+
+![Scatter](out_scatter.png)
+
+## Run it
+
+```sh
+mojo run -I . examples/scatter.mojo
+```
+
+(Or `pixi run example`, which runs every example in this directory in one go.)
+
+## Source
+
+```mojo
 """Demo: a basic scatter plot -- Mark.POINT, default theme, axes and
 gridlines computed automatically from the data's own domain.
 
@@ -40,3 +57,6 @@ def main() raises:
     write_bmp(out, "examples/out_scatter.bmp")
     write_png(out, "examples/out_scatter.png")
     print("wrote examples/out_scatter.bmp and .png")
+```
+
+[View `scatter.mojo` on GitHub](https://github.com/randyzwitch/dataviz_mojo/blob/main/examples/scatter.mojo)
