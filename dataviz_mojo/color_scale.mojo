@@ -1,0 +1,77 @@
+"""ColorScale -- maps a continuous data domain onto a color gradient,
+for data-driven color encoding (`Plot.encode(color=...)`). Shares its
+stop-interpolation logic with `canvas_mojo.gradient`'s `LinearGradient`/
+`RadialGradient` via that module's own `_color_at_t`/`_GradientStop`
+-- identical math (bracket the two nearest stops, linearly
+interpolate), only the projection differs: those two project a pixel
+position (an axis, or a radial distance) onto [0, 1]; this one
+projects a *data value* onto [0, 1] via a plain domain, the same
+domain-to-[0,1] idea `LinearScale` uses for position, generalized to
+color instead of a pixel coordinate.
+"""
+
+from canvas_mojo.color import Color
+from canvas_mojo.gradient import _GradientStop, _color_at_t
+
+
+struct ColorScale(Movable):
+    """A linear color gradient over [domain_min, domain_max] -- no
+    "pixel range" the way LinearScale has, since a color has no
+    spatial position to map onto; `color_at(value)` is the whole
+    interface. A zero-span domain (every value identical) always
+    projects to t=0.0 -- the lowest-offset stop's color (not
+    necessarily whichever was added first; see _color_at_t's own
+    bracketing-by-offset-value search), not a crash -- the same
+    degenerate-domain handling LinearScale's own `scale()` gives (see
+    that struct's own docstring).
+    """
+
+    var domain_min: Float64
+    var domain_max: Float64
+    var stops: List[_GradientStop]
+
+    def __init__(out self, domain_min: Float64, domain_max: Float64):
+        self.domain_min = domain_min
+        self.domain_max = domain_max
+        self.stops = List[_GradientStop]()
+
+    def add_stop(mut self, offset: Float64, color: Color):
+        self.stops.append(_GradientStop(offset, color))
+
+    def color_at(self, value: Float64) -> Color:
+        var span = self.domain_max - self.domain_min
+        var t = 0.0
+        if span != 0.0:
+            t = (value - self.domain_min) / span
+        return _color_at_t(self.stops, t)
+
+
+def default_categorical_palette() -> List[Color]:
+    """A default qualitative (discrete, unordered) color palette for
+    categorical color encoding -- 8 colors chosen to read as visually
+    distinct from each other (the same well-known "tab10"-style set
+    most charting libraries ship a version of), cycled via modulo if a
+    column has more unique categories than this (see
+    `Plot.encode`'s own docstring).
+
+    Deliberately a plain function, not a `Theme` field: adding a
+    `List` field to `Theme` would break its `ImplicitlyCopyable`
+    conformance (confirmed directly by probe -- Mojo can't synthesize
+    an implicit copy constructor once a struct holds a `List`), which
+    every existing `var theme = plot._theme`-style copy throughout
+    this package already depends on. The same reasoning
+    `canvas_mojo.Color`'s own history gives for keeping named palettes out
+    of the core `Color` type applies here: a fixed default is enough
+    until per-Theme palette customization is an actual, concrete need,
+    not a reason to change how `Theme` itself copies today.
+    """
+    return [
+        Color(31, 119, 180),
+        Color(255, 127, 14),
+        Color(44, 160, 44),
+        Color(214, 39, 40),
+        Color(148, 103, 189),
+        Color(140, 86, 75),
+        Color(227, 119, 194),
+        Color(127, 127, 127),
+    ]

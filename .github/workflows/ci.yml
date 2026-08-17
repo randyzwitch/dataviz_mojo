@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    # Mojo compiles here are heavy (some individual test/example files
+    # take several minutes) -- generous timeout rather than a flaky
+    # default.
+    timeout-minutes: 60
+    steps:
+      # v7 specifically, not just "latest v4" -- v4 is built against
+      # Node.js 20, which GitHub Actions runners now force onto Node 24
+      # instead. v7 is built against Node 24 natively, no forced-compat
+      # warning -- see canvas_mojo's own CI for the fuller writeup.
+      - uses: actions/checkout@v7
+
+      # canvas_mojo (this package's own dependency) links directly
+      # against system libfontconfig/libfreetype at runtime for text
+      # rendering -- not bundled, not satisfied by the conda-forge
+      # fontconfig/freetype packages canvas_mojo's own [package.run-
+      # dependencies] pulls in (those provide headers/dev libs for the
+      # build, not what canvas_mojo's own FFI actually dlopens at
+      # runtime). Every example here draws real text (axis/tick labels,
+      # legends, titles), so this is a real runtime requirement for
+      # this package's own CI too, not just canvas_mojo's.
+      - name: Install libfontconfig and libfreetype (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1 libfreetype6 fonts-dejavu-core
+
+      - name: Install libfontconfig and libfreetype (macOS)
+        if: runner.os == 'macOS'
+        run: brew install fontconfig freetype && brew install --cask font-dejavu && fc-cache -f
+
+      # Pinned to match the pixi version pixi.lock (v7 format) was
+      # generated with locally -- see canvas_mojo's own CI for why.
+      - uses: prefix-dev/setup-pixi@v0.9.0
+        with:
+          pixi-version: v0.76.2
+          cache: true
+
+      - name: Run tests
+        run: pixi run test
+
+      - name: Run examples
+        run: pixi run example

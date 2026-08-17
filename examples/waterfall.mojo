@@ -1,0 +1,62 @@
+"""Demo: a waterfall chart -- Mark.WATERFALL, one floating bar per
+category running from the previous category's own cumulative total to
+the next (Plot.encode_waterfall(), a category + a *signed delta* --
+see that method's own docstring for the running-total bookkeeping it
+does immediately). Each plain delta bar is colored by its own delta's
+sign unconditionally (mark_color for an increase, mark_color_negative
+for a decrease -- see Theme.mark_color_negative's own docstring for
+why this one mark colors by sign without needing Theme.color_by_sign,
+unlike Mark.BAR), narrower than a total bar so the two read as
+distinct at a glance, with a thin connector line between consecutive
+bars at the pixel height where one bar's own running total hands off
+to the next.
+
+A quarterly profit bridge: a starting-balance total, several line
+items that add to or subtract from it, and an ending-balance total --
+the classic start-then-deltas-then-end shape `encode_waterfall()`'s own
+`is_total` parameter exists for (both totals draw full band width, in
+Theme.waterfall_total_color, a third color distinct from the
+rising/falling pair -- see that field's own docstring for why). The
+starting total's own delta (50.0) *is* the starting balance itself
+(still added to the running sum, just displayed 0 -> 50 instead of
+floating); the ending total's own delta is 0.0 (adds nothing further,
+just displays 0 -> whatever the running sum already reached).
+
+Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
+from the same data -- see examples/donut.mojo's own docstring for why
+every new chart-type example does this from here on.
+
+Run with:
+    pixi run example
+"""
+
+from canvas_mojo.color import Color
+from canvas_mojo.buffer import Canvas
+from canvas_mojo.io.bmp import write_bmp
+from canvas_mojo.resize import downsample
+from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from dataviz_mojo.plot import Plot, render, render_svg
+from dataviz_mojo.theme import Theme
+
+comptime _SUPERSAMPLE = 3
+
+
+def main() raises:
+    var stages: List[String] = ["Starting", "Revenue", "COGS", "Opex", "Tax", "One-off", "Ending"]
+    var deltas: List[Float64] = [50.0, 32.0, -18.0, -12.0, -6.0, 4.0, 0.0]
+    var is_total: List[Bool] = [True, False, False, False, False, False, True]
+
+    var c = Canvas(640 * _SUPERSAMPLE, 420 * _SUPERSAMPLE, Color(255, 255, 255))
+    var raster_plot = Plot().mark_waterfall().encode_waterfall(stages, deltas, is_total).theme(
+        Theme(scale=Float64(_SUPERSAMPLE))
+    )
+    render(c, raster_plot)
+    var out = downsample(c, _SUPERSAMPLE)
+    write_bmp(out, "examples/out_waterfall.bmp")
+
+    var svg = SvgCanvas(640, 420)
+    var svg_plot = Plot().mark_waterfall().encode_waterfall(stages, deltas, is_total).theme(Theme())
+    render_svg(svg, svg_plot)
+    write_svg(svg, "examples/out_waterfall.svg")
+
+    print("wrote examples/out_waterfall.bmp and out_waterfall.svg")
