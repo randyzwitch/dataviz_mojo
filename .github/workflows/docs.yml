@@ -1,21 +1,22 @@
 name: Docs
 
-# Builds docs/ (see pixi.toml's own `docs` task, modo.yaml) on both a
-# pull request (so its status is visible as a check before merging --
-# deliberately not a required one, see the repo's own branch
-# protection settings) and a push to main, but only actually commits
-# the result on the latter: committing from a PR run would mean a fork
-# or feature branch's own Actions run pushing straight to main, which
-# is exactly the thing PRs exist to review first. On push to main,
-# commits docs/ back with the default GITHUB_TOKEN if (and only if) it
-# changed -- no separate build+deploy pipeline, since the committed
-# docs/ is what GitHub Pages already serves (main:/docs).
+# Builds the docs site (see pixi.toml's own `docs` task, modo.yaml)
+# and deploys it straight to GitHub Pages via Actions -- no branch
+# ever holds the generated output; deploy-pages publishes the build
+# artifact directly to Pages' own hosting. Runs on both a pull request
+# (so its status is visible as a check before merging -- deliberately
+# not a required one, see the repo's own branch protection settings)
+# and a push to main, but the actual `deploy-pages` step only runs on
+# the latter: deploying from a PR run would mean a feature branch's
+# own Actions run publishing the live site before review, exactly the
+# thing PRs exist to prevent.
 #
-# Triggers whenever something that actually feeds docs/ changes --
+# Triggers whenever something that actually feeds the site changes --
 # dataviz_mojo/'s own docstrings, examples/ (both the code and its
 # rendered output, which `docs` copies rather than re-rendering), the
-# hand-written pages in docs/_src/, or the doc-generation config/
-# tooling itself.
+# hand-written pages in docs/src/, the Hugo project itself
+# (docs/site/*.yaml, go.mod/go.sum), or the doc-generation config/
+# tooling.
 
 on:
   push:
@@ -23,7 +24,10 @@ on:
     paths: &docs-paths
       - "dataviz_mojo/**"
       - "examples/**"
-      - "docs/_src/**"
+      - "docs/src/**"
+      - "docs/site/hugo.yaml"
+      - "docs/site/go.mod"
+      - "docs/site/go.sum"
       - "modo.yaml"
       - "pixi.toml"
       - "scripts/install-modo.sh"
@@ -33,7 +37,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -48,9 +58,9 @@ jobs:
 
       # Same runtime requirement as ci.yml's own identical step --
       # see its comment for the full "why fontconfig, not freetype"
-      # story. pixi run docs itself only needs mojo (for `mojo doc`),
-      # but pixi run example (below) draws real text same as the test
-      # suite does.
+      # story. pixi run docs itself only needs mojo (for `mojo doc`)
+      # and hugo/go (for the Hugo build), but pixi run example (below)
+      # draws real text same as the test suite does.
       - name: Install libfontconfig and test fonts (Linux)
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1 fonts-dejavu-core
 
@@ -62,18 +72,25 @@ jobs:
       - name: Render examples
         run: pixi run example
 
-      - name: Regenerate docs
+      - name: Build docs site
         run: pixi run docs
 
-      - name: Commit and push docs/ if it changed
-        if: github.event_name == 'push'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/
-          if git diff --staged --quiet; then
-            echo "docs/ unchanged, nothing to commit"
-          else
-            git commit -m "docs: regenerate (automated)"
-            git push origin HEAD:main
-          fi
+      - if: github.event_name == 'push'
+        uses: actions/configure-pages@v5
+
+      - if: github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/site/public
+
+  deploy:
+    if: github.event_name == 'push'
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

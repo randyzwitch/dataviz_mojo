@@ -1,44 +1,27 @@
-# Modo config -- generates docs/ (served via GitHub Pages) from
-# dataviz_mojo/'s own docstrings (via `mojo doc`, run separately --
-# see pixi.toml's `docs` task) plus the hand-written pages in
-# docs/_src/. Both input and output nest under one docs/ directory
-# (not scattered across the repo root) -- input specifically at
-# docs/_src/, not docs/src/, so Jekyll's own "ignore anything
-# underscore-prefixed" default keeps it out of the served site with no
-# Jekyll config of our own needed (see the post-build script, below,
-# for the one further place that same default bites). See
-# https://github.com/mlange-42/modo.
+# Modo config -- generates docs/site/content (a Hugo site, built by
+# `hugo -s docs/site` into docs/site/public, then deployed straight to
+# GitHub Pages via Actions -- neither ever committed, see pixi.toml's
+# own `docs` task and .github/workflows/docs.yml) from dataviz_mojo/'s
+# own docstrings (via `mojo doc`) plus the hand-written pages in
+# docs/src/. Hugo format specifically (not plain markdown, this
+# repo's original choice) because GitHub's Actions-based Pages
+# deployment -- needed to avoid committing generated output to git at
+# all -- doesn't run Jekyll (or anything) on what it's given, just
+# serves it as-is: no free markdown-to-HTML rendering the way classic
+# branch-deploy Pages provided. Hugo also understands Modo's own
+# `_index.md` convention (a section's landing page) natively -- it's
+# where Modo borrowed the convention from -- so none of the Jekyll-
+# compatibility work an earlier version of this file did (renaming
+# `_index.md` -> `index.md` post-build) is needed anymore.
+# See https://github.com/mlange-42/modo.
 input:
-  - docs/_src/
+  - docs/src/
 source-url:
   dataviz_mojo: https://github.com/randyzwitch/dataviz_mojo/blob/main/dataviz_mojo
-output: docs/
+output: docs/site/content
 tests: ""
-format: plain
+format: hugo
 exports: false
 short-links: true
 report-missing: false
 strict: false
-
-# GitHub Pages' default Jekyll build (jekyll-optional-front-matter,
-# jekyll-relative-links) renders plain .md files with no config of our
-# own -- except Modo's own `_index.md` convention (borrowed from Hugo,
-# where it's a section's landing page), which Jekyll has no equivalent
-# special-case for: `_index.md` is neither treated as a directory's
-# index page, nor even scanned by default (Jekyll ignores every
-# underscore-prefixed file/dir out of the box, docs/_src/ above
-# included). Renaming every *output* `_index.md` to `index.md` --
-# and rewriting the identical string wherever Modo's own generated
-# links reference it -- sidesteps both problems with zero Jekyll
-# config of our own required. Explicitly excludes docs/_src/ itself
-# (input, nested inside the output tree, not part of it): renaming
-# our own hand-written docs/_src/_index.md would stop Modo recognizing
-# it as that directory's own index page on the *next* build -- Modo's
-# input-side convention for "this is a section's landing page" is the
-# same literal `_index.md` name as its output-side one.
-post-build:
-  - |
-    find docs -path "docs/_src" -prune -o -name "_index.md" -print | while read -r f; do
-      mv "$f" "$(dirname "$f")/index.md"
-    done
-    grep -rl "_index.md" docs --include="*.md" | grep -v "^docs/_src/" | xargs -r sed -i "s/_index\.md/index.md/g"

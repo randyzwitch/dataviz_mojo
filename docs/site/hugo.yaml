@@ -1,0 +1,42 @@
+baseURL: https://randyzwitch.com/dataviz_mojo/
+locale: en-US
+title: dataviz_mojo
+disablePathToLower: true
+
+author:
+  name: Randy Zwitch
+  email: rzwitch@gmail.com
+
+markup:
+  highlight:
+    style: github-dark
+
+module:
+  imports:
+    - path: github.com/imfing/hextra
+
+menu:
+  main:
+    - name: Search
+      weight: 1
+      params:
+        type: search
+    - name: Wiki
+      weight: 2
+      url: "https://github.com/randyzwitch/dataviz_mojo/wiki"
+    - name: GitHub
+      weight: 3
+      url: "https://github.com/randyzwitch/dataviz_mojo"
+      params:
+        icon: github
+
+params:
+  search:
+    enable: true
+    type: flexsearch
+    flexsearch:
+      # index page by: content | summary | heading | title
+      index: content
+  navbar:
+    displayTitle: true
+    displayLogo: false
