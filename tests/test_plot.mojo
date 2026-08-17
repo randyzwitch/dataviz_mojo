@@ -820,15 +820,19 @@ def test_render_point_continuous_legends_are_off_by_default_theme_setting() rais
 
 
 def test_render_point_legend_width_grows_to_fit_long_category_names() raises:
-    # "Southeast Region Sales" measures 141.0px at the default 12pt
+    # "Southeast Region Sales" measures 140.4px at the default 12pt
     # font (confirmed by probe against this environment's real "Sans"
     # font metrics, the same "locked in, confirmed by probe" convention
     # test_render_left_margin_grows_to_fit_wide_y_axis_labels's own
-    # wide y-axis label test already uses). _dynamic_legend_width =
-    # max(130, 14+4+141+8) = max(130, 167) = 167, wider than Theme's
-    # own default 130px legend column -- so plot_x1 becomes
-    # 400-20-167=213, not 400-20-130=250. Legend swatch row 0 at
-    # x=plot_x1+margin_right=213+20=233, y=plot_y0=20.
+    # wide y-axis label test already uses -- re-probed after canvas_
+    # mojo v0.1.0's FreeType-to-native-TTF-parser swap, which is
+    # deliberately unhinted and so measures every glyph slightly
+    # differently than the old FreeType-hinted values this test used
+    # to lock in). _dynamic_legend_width = max(130, 14+4+140+8) =
+    # max(130, 166) = 166, wider than Theme's own default 130px legend
+    # column -- so plot_x1 becomes 400-20-166=214, not 400-20-130=250.
+    # Legend swatch row 0 at x=plot_x1+margin_right=214+20=234, y=
+    # plot_y0=20.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
     var cats: List[String] = ["Cat1", "Southeast Region Sales"]
@@ -839,19 +843,19 @@ def test_render_point_legend_width_grows_to_fit_long_category_names() raises:
     render_svg(svg, plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="233" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
+        '<rect x="234" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
         "legend column shifted left to make room for the long label",
     )
     assert_true(
-        '<rect x="233" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
+        '<rect x="234" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
         "the long label's own legend swatch",
     )
 
 
 def test_render_grouped_bar_legend_width_grows_to_fit_long_series_names() raises:
-    # Same 141.0px-wide "Southeast Region Sales" label, same math as
-    # the Mark.POINT test just above -- dynamic_legend_width=167,
-    # plot_x1=400-167-20=213, legend swatch row 0 at x=213+20=233.
+    # Same 140.4px-wide "Southeast Region Sales" label, same math as
+    # the Mark.POINT test just above -- dynamic_legend_width=166,
+    # plot_x1=400-166-20=214, legend swatch row 0 at x=214+20=234.
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "Southeast Region Sales"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
@@ -862,11 +866,11 @@ def test_render_grouped_bar_legend_width_grows_to_fit_long_series_names() raises
     render_svg(svg, plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="233" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
+        '<rect x="234" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
         "North's own legend swatch, shifted left to make room for the wider label",
     )
     assert_true(
-        '<rect x="233" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
+        '<rect x="234" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
         "the long label's own legend swatch",
     )
 
@@ -880,10 +884,14 @@ def test_render_left_margin_grows_to_fit_wide_y_axis_labels() raises:
     # default 12pt font -- confirmed by probe against this
     # environment's real "Sans" font metrics, the same "locked in,
     # confirmed by probe" convention canvas_mojo/tests/test_text.mojo's own
-    # glyph-extent tests already use -- max out at 55.0px (the
-    # "2000000" label). dynamic_left_margin = Int(55.0) + _TICK_LENGTH
-    # (5) + _LABEL_GAP(4) + _MARGIN_BUFFER(8) = 72, wider than Theme's
-    # default 60px margin, so plot_x0 becomes 72, not 60 -- checked
+    # glyph-extent tests already use, re-probed after canvas_mojo
+    # v0.1.0's FreeType-to-native-TTF-parser swap (deliberately
+    # unhinted, so it measures every glyph slightly differently than
+    # the old FreeType-hinted values this test used to lock in) -- max
+    # out at 51.8px (the "2000000" label, down from the pre-repin
+    # 55.0px). dynamic_left_margin = Int(51.8) + _TICK_LENGTH(5) +
+    # _LABEL_GAP(4) + _MARGIN_BUFFER(8) = 68, wider than Theme's
+    # default 60px margin, so plot_x0 becomes 68, not 60 -- checked
     # directly against where the y-axis line itself actually is (drawn
     # at exactly plot_x0), not an indirect proxy for it.
     var x: List[Float64] = [0.0, 10.0]
@@ -893,16 +901,18 @@ def test_render_left_margin_grows_to_fit_wide_y_axis_labels() raises:
     var c = Canvas(400, 300, BG)
     render(c, plot)
 
-    _assert_color(c, 72, 135, t.axis_color, "y-axis line moved to the dynamic margin")
+    _assert_color(c, 68, 135, t.axis_color, "y-axis line moved to the dynamic margin")
 
     # The wide label's own ink extends left of the *old* fixed 60px
     # margin (confirmed by probe: real, non-background pixels sit at
-    # x=56, part of the "2000000" label's glyphs) -- exactly why it
-    # needed, and got, more room than the old fixed margin would have
-    # given it; a plain "x=60 is background" check would be wrong
-    # here, since covering that space with real label ink is the
-    # entire point of this feature, not an absence to assert on.
-    var left_of_old_margin = c.get_pixel(56, 135)
+    # x=57, part of the "2000000" label's glyphs -- x=56 itself is a
+    # gap between glyphs under the new, narrower metrics, unlike the
+    # pre-repin render) -- exactly why it needed, and got, more room
+    # than the old fixed margin would have given it; a plain "x=60 is
+    # background" check would be wrong here, since covering that space
+    # with real label ink is the entire point of this feature, not an
+    # absence to assert on.
+    var left_of_old_margin = c.get_pixel(57, 135)
     assert_true(
         left_of_old_margin.r != 255 or left_of_old_margin.g != 255 or left_of_old_margin.b != 255,
         "wide tick label's own ink reaches left of the old fixed margin",
@@ -935,13 +945,16 @@ def test_render_bar_left_margin_also_grows_to_fit_wide_y_axis_labels() raises:
     # y=[1000000,2000000] through _zero_baseline_y_extent (BAR's own
     # always-include-zero y-domain, not _data_extent's) gives nice
     # ticks [0,500000,1000000,1500000,2000000] -- confirmed by probe
-    # this lands on the identical dynamic_left_margin=72 the
-    # continuous-path test above got (the widest label's width happens
-    # to match closely enough that both round to the same margin), so
-    # the same pixel checks apply: the y-axis line at x=72, and real
-    # label ink reaching left of the old fixed 60px margin (x=57 here,
-    # not 56 -- a different label set than the continuous test's,
-    # confirmed separately by probe, not assumed identical).
+    # (re-probed after canvas_mojo v0.1.0's FreeType-to-native-TTF-
+    # parser swap, see test_render_left_margin_grows_to_fit_wide_y_
+    # axis_labels's own comment) this lands on the identical dynamic_
+    # left_margin=68 the continuous-path test above got (the widest
+    # label's width happens to match closely enough that both round to
+    # the same margin), so the same pixel checks apply: the y-axis
+    # line at x=68, and real label ink reaching left of the old fixed
+    # 60px margin (x=57 -- confirmed separately by probe, not assumed
+    # identical, though it now happens to coincide with the continuous
+    # test's own x=57 too, unlike before the repin).
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1000000.0, 2000000.0]
     var t = Theme(show_gridlines=False)
@@ -949,7 +962,7 @@ def test_render_bar_left_margin_also_grows_to_fit_wide_y_axis_labels() raises:
     var c = Canvas(400, 300, BG)
     render(c, plot)
 
-    _assert_color(c, 72, 135, t.axis_color, "bar chart y-axis line moved to the dynamic margin")
+    _assert_color(c, 68, 135, t.axis_color, "bar chart y-axis line moved to the dynamic margin")
     var left_of_old_margin = c.get_pixel(57, 135)
     assert_true(
         left_of_old_margin.r != 255 or left_of_old_margin.g != 255 or left_of_old_margin.b != 255,
@@ -1230,14 +1243,14 @@ def test_render_svg_title_centers_on_inner_plot_rect_not_outer_bounds() raises:
     # Direct regression test for the "Plot.labels() precise centering"
     # fix: same long-category-name legend setup as test_render_point_
     # legend_width_grows_to_fit_long_category_names above (_dynamic_
-    # legend_width=167, plot_x1=400-20-167=213; plot_x0 stays the
+    # legend_width=166, plot_x1=400-20-166=214; plot_x0 stays the
     # default margin_left=60 -- y=[0.0,0.0] pads to a short-labeled
     # domain, no dynamic-left-margin growth here), now with a chart
     # title too. Before this fix, the title centered on the full outer
     # canvas width ((0+400)//2=200, what test_render_svg_labels_matches_
     # hand_derived_title_and_axis_titles's own "My Title" case would
     # have used pre-fix); after it, the title centers on the *inner*
-    # plot rect instead -- (60+213)//2=136 -- correctly shifted left of
+    # plot rect instead -- (60+214)//2=137 -- correctly shifted left of
     # the legend-narrowed data area's own true center, not the
     # legend-oblivious canvas center.
     var x: List[Float64] = [0.0, 10.0]
@@ -1254,9 +1267,9 @@ def test_render_svg_title_centers_on_inner_plot_rect_not_outer_bounds() raises:
     render_svg(svg, plot)
     var s = svg.to_string()
     assert_true(
-        '<text x="136" y="14" font-size="18.000" fill="#282828"'
+        '<text x="137" y="14" font-size="18.000" fill="#282828"'
         ' text-anchor="middle">Sales by Region</text>' in s,
-        "title centers on the legend-narrowed inner plot rect (136), not the full outer width (200)",
+        "title centers on the legend-narrowed inner plot rect (137), not the full outer width (200)",
     )
 
 
