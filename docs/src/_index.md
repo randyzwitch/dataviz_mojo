@@ -1,3 +1,9 @@
+---
+title: Home
+type: docs
+weight: 100
+---
+
 # dataviz_mojo
 
 Grammar-of-graphics-flavored chart building for Mojo — a fluent `Plot`

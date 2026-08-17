@@ -17,15 +17,21 @@ module:
 
 menu:
   main:
-    - name: Search
+    - name: Examples
       weight: 1
+      url: "/examples/"
+    - name: API Reference
+      weight: 2
+      url: "/dataviz_mojo/"
+    - name: Search
+      weight: 3
       params:
         type: search
     - name: Wiki
-      weight: 2
+      weight: 4
       url: "https://github.com/randyzwitch/dataviz_mojo/wiki"
     - name: GitHub
-      weight: 3
+      weight: 5
       url: "https://github.com/randyzwitch/dataviz_mojo"
       params:
         icon: github
