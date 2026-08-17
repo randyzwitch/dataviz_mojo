@@ -43,8 +43,14 @@ automatically, no `-I` flag needed for either package.
 ```sh
 pixi run test      # tests/*.mojo
 pixi run example   # examples/*.mojo, writes examples/out_*.{bmp,png,svg}
-pixi run docs       # regenerates docs/ (served via GitHub Pages) -- run `example` first
+pixi run docs      # regenerates docs/ (served via GitHub Pages) -- run `example` first
 ```
+
+`docs/` also regenerates itself automatically (`.github/workflows/docs.yml`,
+committed straight back to `main`) whenever a push touches
+`dataviz_mojo/`, `examples/`, or `docs/_src/` -- manual `pixi run docs`
+is for previewing locally before you push, not required to keep the
+site in sync.
 
 ## License
 

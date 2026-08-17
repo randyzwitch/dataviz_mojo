@@ -1,0 +1,70 @@
+name: Docs
+
+# Regenerates docs/ (see pixi.toml's own `docs` task, modo.yaml) and
+# commits the result back to main whenever something that actually
+# feeds it changes -- dataviz_mojo/'s own docstrings, examples/ (both
+# the code and its rendered output, which `docs` copies rather than
+# re-rendering), the hand-written pages in docs/_src/, or the doc-
+# generation config/tooling itself. Keeps the committed docs/ (served
+# directly via GitHub Pages, main:/docs -- see README.md) from
+# drifting out of sync with its own sources, without needing a
+# separate build+deploy pipeline: this workflow's own commit, made
+# with the default GITHUB_TOKEN, is what's actually served.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dataviz_mojo/**"
+      - "examples/**"
+      - "docs/_src/**"
+      - "modo.yaml"
+      - "pixi.toml"
+      - "scripts/install-modo.sh"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    name: Regenerate docs/
+    runs-on: ubuntu-latest
+    # Mojo compiles here are heavy -- pixi run example alone has taken
+    # several minutes per file in this repo before; see ci.yml's own
+    # identical comment.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      # Same runtime requirement as ci.yml's own identical step --
+      # see its comment for the full "why fontconfig, not freetype"
+      # story. pixi run docs itself only needs mojo (for `mojo doc`),
+      # but pixi run example (below) draws real text same as the test
+      # suite does.
+      - name: Install libfontconfig and test fonts (Linux)
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1 fonts-dejavu-core
+
+      - uses: prefix-dev/setup-pixi@v0.9.0
+        with:
+          pixi-version: v0.76.2
+          cache: true
+
+      - name: Render examples
+        run: pixi run example
+
+      - name: Regenerate docs
+        run: pixi run docs
+
+      - name: Commit and push docs/ if it changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          if git diff --staged --quiet; then
+            echo "docs/ unchanged, nothing to commit"
+          else
+            git commit -m "docs: regenerate (automated)"
+            git push origin HEAD:main
+          fi
