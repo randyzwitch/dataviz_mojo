@@ -12,6 +12,12 @@ guarantee consistency, logic, or design decisions matching any
 particular reference library. If you know what you're doing and want
 to contribute, let's chat!
 
+**[Docs & examples](https://randyzwitch.com/dataviz_mojo/)** --
+every example's source next to its actual rendered output, plus the
+full `dataviz_mojo` API reference (generated from this repo's own
+docstrings via [modo](https://github.com/mlange-42/modo), see
+`modo.yaml`/`pixi run docs`).
+
 See the [wiki](https://github.com/randyzwitch/dataviz_mojo/wiki) for
 exactly what's built ([Changelog](https://github.com/randyzwitch/dataviz_mojo/wiki/Changelog))
 vs. still open ([Backlog](https://github.com/randyzwitch/dataviz_mojo/wiki/Backlog)).
@@ -36,7 +42,8 @@ automatically, no `-I` flag needed for either package.
 
 ```sh
 pixi run test      # tests/*.mojo
-pixi run example   # examples/*.mojo, writes examples/out_*.{bmp,svg}
+pixi run example   # examples/*.mojo, writes examples/out_*.{bmp,png,svg}
+pixi run docs       # regenerates docs/ (served via GitHub Pages) -- run `example` first
 ```
 
 ## License

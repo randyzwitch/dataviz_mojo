@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+<rect x="0" y="0" width="640" height="420" fill="#ffffff"/>
+<rect x="0" y="0" width="640" height="420" fill="#ffffff"/>
+<line x1="60" y1="335" x2="620" y2="335" stroke="#e1e1e1" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="60" y1="242" x2="620" y2="242" stroke="#e1e1e1" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="60" y1="148" x2="620" y2="148" stroke="#e1e1e1" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="60" y1="55" x2="620" y2="55" stroke="#e1e1e1" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="60" y1="370" x2="620" y2="370" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="60" y1="20" x2="60" y2="370" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="55" y1="335" x2="60" y2="335" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="55" y1="242" x2="60" y2="242" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="55" y1="148" x2="60" y2="148" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="55" y1="55" x2="60" y2="55" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="107" y1="370" x2="107" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="200" y1="370" x2="200" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="293" y1="370" x2="293" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="387" y1="370" x2="387" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="480" y1="370" x2="480" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="573" y1="370" x2="573" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<rect x="69" y="101" width="75" height="141" fill="#1e64b4"/>
+<rect x="163" y="242" width="75" height="75" fill="#c83c3c"/>
+<rect x="256" y="36" width="75" height="206" fill="#1e64b4"/>
+<rect x="349" y="242" width="75" height="28" fill="#c83c3c"/>
+<rect x="443" y="148" width="75" height="94" fill="#1e64b4"/>
+<rect x="536" y="242" width="75" height="112" fill="#c83c3c"/>
+<text x="51" y="339" font-size="12.000" fill="#282828" text-anchor="end">-10</text>
+<text x="51" y="246" font-size="12.000" fill="#282828" text-anchor="end">0</text>
+<text x="51" y="152" font-size="12.000" fill="#282828" text-anchor="end">10</text>
+<text x="51" y="59" font-size="12.000" fill="#282828" text-anchor="end">20</text>
+<text x="107" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Q1</text>
+<text x="200" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Q2</text>
+<text x="293" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Q3</text>
+<text x="387" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Q4</text>
+<text x="480" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Q5</text>
+<text x="573" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Q6</text>
+</svg>

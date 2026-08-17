@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+<rect x="0" y="0" width="640" height="420" fill="#ffffff"/>
+<rect x="0" y="0" width="640" height="420" fill="#ffffff"/>
+<line x1="60" y1="370" x2="620" y2="370" stroke="#e1e1e1" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="60" y1="203" x2="620" y2="203" stroke="#e1e1e1" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="60" y1="37" x2="620" y2="37" stroke="#e1e1e1" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="60" y1="370" x2="620" y2="370" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="60" y1="20" x2="60" y2="370" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="55" y1="370" x2="60" y2="370" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="55" y1="203" x2="60" y2="203" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="55" y1="37" x2="60" y2="37" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="130" y1="370" x2="130" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="270" y1="370" x2="270" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="410" y1="370" x2="410" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<line x1="550" y1="370" x2="550" y2="375" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<rect x="74" y="203" width="112" height="167" fill="#e0e0e0"/>
+<rect x="74" y="120" width="112" height="83" fill="#acacac"/>
+<rect x="74" y="37" width="112" height="83" fill="#787878"/>
+<rect x="110" y="130" width="39" height="240" fill="#1e64b4"/>
+<line x1="74" y1="103" x2="186" y2="103" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<rect x="214" y="237" width="112" height="133" fill="#e0e0e0"/>
+<rect x="214" y="137" width="112" height="100" fill="#acacac"/>
+<rect x="214" y="37" width="112" height="100" fill="#787878"/>
+<rect x="250" y="177" width="39" height="193" fill="#1e64b4"/>
+<line x1="214" y1="153" x2="326" y2="153" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<rect x="354" y="270" width="112" height="100" fill="#e0e0e0"/>
+<rect x="354" y="170" width="112" height="100" fill="#acacac"/>
+<rect x="354" y="37" width="112" height="133" fill="#787878"/>
+<rect x="390" y="87" width="39" height="283" fill="#1e64b4"/>
+<line x1="354" y1="137" x2="466" y2="137" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<rect x="494" y="170" width="112" height="200" fill="#e0e0e0"/>
+<rect x="494" y="87" width="112" height="83" fill="#acacac"/>
+<rect x="494" y="37" width="112" height="50" fill="#787878"/>
+<rect x="530" y="110" width="39" height="260" fill="#1e64b4"/>
+<line x1="494" y1="70" x2="606" y2="70" stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>
+<text x="51" y="374" font-size="12.000" fill="#282828" text-anchor="end">0</text>
+<text x="51" y="207" font-size="12.000" fill="#282828" text-anchor="end">50</text>
+<text x="51" y="41" font-size="12.000" fill="#282828" text-anchor="end">100</text>
+<text x="130" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Revenue</text>
+<text x="270" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Profit</text>
+<text x="410" y="391" font-size="12.000" fill="#282828" text-anchor="middle">New Customers</text>
+<text x="550" y="391" font-size="12.000" fill="#282828" text-anchor="middle">Satisfaction</text>
+</svg>

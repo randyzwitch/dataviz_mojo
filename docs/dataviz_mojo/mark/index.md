@@ -1,0 +1,93 @@
+Mojo module [🡭](https://github.com/randyzwitch/dataviz_mojo/blob/main/dataviz_mojo/mark.mojo)
+
+# `mark`
+
+The geometric primitive a data row becomes -- the grammar-of- graphics `mark` concept. Follows the same small-struct-with-comptime- constants-and-`__eq__` pattern canvas_mojo.FillRule/canvas_mojo.TextAlign already established, not a distinct enum mechanism.
+
+POINT (scatter) and LINE were this package's first vertical slice
+(see the wiki). LINE's own `Theme.line_smoothing` (default
+0.0, plain straight segments) optionally curves it through a Catmull-
+Rom-derived spline instead -- see that field's own docstring and
+`plot.mojo`'s `_build_line_path`. BAR is the first mark with a categorical
+axis -- see ordinal_scale.mojo and Plot.encode_categorical(). AREA
+shares LINE's continuous x/y encoding but fills to a zero baseline the
+way BAR does. ARC (pie/donut wedges) shares BAR's `encode_categorical`
+data shape (category + value) -- a pie chart is the same underlying
+data as a bar chart, wrapped around a circle instead of laid out
+linearly -- but has no x/y axis frame at all, so it renders through
+its own, fully separate path (see plot.mojo's `_render_arc`).
+
+LOLLIPOP, WATERFALL, and BOX ("Phase 2a" of the broader chart-type
+survey, see the wiki) are three more categorical-x-axis
+marks alongside BAR: LOLLIPOP reuses BAR's own `encode_categorical`
+data shape unchanged (a stem + point instead of a filled rect is
+purely a rendering difference); WATERFALL has its own `encode_
+waterfall` (a category + a *signed delta*, not a plain value -- see
+that method's own docstring for the running-total bookkeeping this
+does, including its optional `is_total` running-total-checkpoint rows,
+drawn full band width in `Theme.waterfall_total_color` instead of a
+narrower rising/falling delta bar); BOX has its own `encode_boxplot`
+(a category + a whole
+*distribution* of raw values, not one number -- see that method's own
+docstring for the quartile/whisker/outlier computation it does up
+front). All four now share one axis-frame layout core (`_draw_
+categorical_axis_frame`) rather than each duplicating it -- see that
+function's own docstring for why sharing became the right call once a
+third and fourth mark type needed the identical layout.
+
+CANDLESTICK and BULLET ("Phase 2b", the marks that need their own new
+shape rather than building on BAR's data directly -- see
+the wiki) are a fifth and sixth categorical-x-axis mark
+sharing that same axis-frame core. CANDLESTICK's own `encode_
+candlestick` (a category plus four values -- open/high/low/close, not
+BAR's single value) draws a high-low wick plus an open-close body per
+category, colored by whether the category closed up or down -- see
+`_render_candlestick`'s own docstring for the drawing order and why it
+reuses `Theme.mark_color`/`mark_color_negative` unconditionally rather
+than adding dedicated bullish/bearish fields. BULLET's own `encode_
+bullet` (a category plus a measure, a target, and a whole *list* of
+qualitative-range thresholds -- the most values any `encode_*` here
+takes) draws Stephen Few's bullet-chart composite: shaded background
+range bands, a narrower measure bar, and a target tick -- see
+`_render_bullet`'s own docstring for the drawing order and why, unlike
+CANDLESTICK/WATERFALL, its measure bar is never colored by sign.
+
+GANTT (the last of "Phase 2b") is the first mark whose categories run
+along a *horizontal* axis instead of a vertical one -- a project-
+schedule/span chart, one floating horizontal bar per category from a
+start value to an end value (`encode_gantt`, deliberately no Date/Time
+type of its own -- see that method's own docstring). Shares nothing
+structurally with `_draw_categorical_axis_frame` (`x`/`y`'s roles are
+swapped throughout: the continuous scale is now `x`, the categorical
+one now `y`) -- see its own mirror-image core, `_draw_horizontal_
+categorical_axis_frame`, and its docstring for why this stayed a
+separate function rather than a generalized, orientation-flagged
+version of the vertical one.
+
+GROUPED_BAR is BAR generalized from one value per category to *several*
+(`encode_grouped_bar`: categories, a name per series, and a value per
+(series, category) pair) -- back on `_draw_categorical_axis_frame`'s
+own shared vertical axis-frame core (categories still run one way, the
+same as BAR/LOLLIPOP/etc.), just subdividing each category's own band
+into one sub-bar per series instead of drawing a single bar across the
+whole band. The one other new thing: a legend (series name -> color),
+which no other categorical-x-axis mark needs -- see `_render_grouped_
+bar`'s own docstring for the palette/legend-reservation details.
+
+STACKED_BAR reuses `encode_grouped_bar`'s own data shape completely
+unchanged (`Plot.mark_stacked_bar().encode_grouped_bar(...)`, the exact
+same call LOLLIPOP's own reuse of BAR's `encode_categorical` already
+established the precedent for -- identical data, purely a rendering
+difference) -- each category's own series stack vertically instead of
+sitting side by side: full band width per segment, one segment on top
+of the previous one's own running total instead of `GROUPED_BAR`'s
+divided sub-bars. See `_render_stacked_bar`'s own docstring for the
+mixed-sign running-total bookkeeping (positive and negative values
+stack in their own direction from zero, independently) and why no
+extra pixel-boundary-rounding trick is needed here the way `GROUPED_
+BAR`'s own sub-bar division needed one.
+
+## Structs
+
+- [`Mark`](Mark.md)
+
