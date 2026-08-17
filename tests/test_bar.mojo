@@ -1,0 +1,171 @@
+"""Tests for Mark.BAR: rectangles, negative values, dynamic left margin,
+color-by-sign -- split out of what used to be one big test_plot.mojo.
+"""
+
+from std.testing import assert_equal, assert_true, assert_raises, TestSuite
+
+from canvas_mojo.color import Color
+from canvas_mojo.buffer import Canvas
+from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
+from canvas_mojo.vector.svg import SvgCanvas
+from dataviz_mojo.color_scale import default_categorical_palette
+from dataviz_mojo.plot import (
+    Plot,
+    render,
+    render_facets,
+    render_facets_svg,
+    render_layers,
+    render_layers_svg,
+    render_svg,
+    _build_line_path,
+    _index_of,
+    _unique_categories,
+)
+from dataviz_mojo.theme import Theme
+
+from _test_helpers import BG, _count_color, _assert_color
+
+
+def test_render_bar_mark_matches_hand_derived_bar_rectangles() raises:
+    # 3 categories, y=[10,20,15], canvas 400x300 with default margins
+    # (plot area x:[60,380], y:[20,250]). _bar_y_extent pads [0,20] up
+    # to [0,21.0] (5% of the 20-span, only on the non-zero end -- see
+    # that function's own docstring), giving baseline pixel y=250 and
+    # tops at y=140/31/86 for values 10/20/15 respectively.
+    # OrdinalScale's default 0.2 padding over range [60,380] (step
+    # 106.667, bandwidth 85.333) puts each band's left edge at
+    # x=71/177/284, all solved directly from LinearScale/OrdinalScale's
+    # own formulas (cross-checked in Python), not read off the code's
+    # own output. Gridlines off to keep the checked pixels unambiguous.
+    var x: List[String] = ["a", "b", "c"]
+    var y: List[Float64] = [10.0, 20.0, 15.0]
+    var t = Theme(show_gridlines=False)
+    var plot = Plot().mark_bar().encode_categorical(x=x, y=y).theme(t)
+    var c = Canvas(400, 300, BG)
+    render(c, plot)
+
+    var mark_color = t.mark_color
+
+    # Inside each bar (well within both its x-span and its height).
+    _assert_color(c, 113, 200, mark_color, "inside bar 0 (value 10)")
+    _assert_color(c, 220, 50, mark_color, "inside bar 1 (value 20)")
+    _assert_color(c, 327, 200, mark_color, "inside bar 2 (value 15)")
+
+    # Above bar 0's own top (y=140) -- outside the bar, background.
+    _assert_color(c, 113, 100, BG, "above bar 0's top -- background")
+
+    # Between bar 0 (ends x=156) and bar 1 (starts x=177) -- the
+    # padding gap, background.
+    _assert_color(c, 165, 200, BG, "gap between bar 0 and bar 1")
+
+
+def test_render_bar_raises_on_mismatched_category_length() raises:
+    var x: List[String] = ["a", "b", "c"]
+    var y: List[Float64] = [1.0, 2.0]
+    var plot = Plot().mark_bar().encode_categorical(x=x, y=y)
+    var c = Canvas(200, 150, BG)
+    with assert_raises():
+        render(c, plot)
+
+
+def test_render_bar_empty_data_only_fills_background() raises:
+    var plot = Plot().mark_bar()  # no encode_categorical() call
+    var c = Canvas(50, 40, Color(10, 20, 30))
+    render(c, plot)
+    var expected = Theme.default().background
+    for y in range(c.height):
+        for x in range(c.width):
+            var p = c.get_pixel(x, y)
+            assert_equal(p.r, expected.r)
+            assert_equal(p.g, expected.g)
+            assert_equal(p.b, expected.b)
+
+
+def test_render_bar_negative_values_extend_below_the_baseline() raises:
+    # A single negative bar -- _bar_y_extent's domain is [lo-pad, 0]
+    # (hi stays exactly 0, unpadded, since no value is above zero --
+    # see that function's own docstring), so the baseline sits at the
+    # *top* of the bar's own drawn rectangle, not its bottom the way
+    # every positive-only bar in the test above has it.
+    var x: List[String] = ["a"]
+    var y: List[Float64] = [-10.0]
+    var t = Theme(show_gridlines=False)
+    var plot = Plot().mark_bar().encode_categorical(x=x, y=y).theme(t)
+    var c = Canvas(400, 300, BG)
+    render(c, plot)
+
+    # Baseline (value 0) is the domain's own unpadded top edge, so it
+    # lands exactly at the plot area's own top, pixel y=20 -- a
+    # pixel just below that, well inside the bar's single wide band,
+    # must already be the mark color.
+    _assert_color(c, 220, 25, t.mark_color, "just below the zero baseline, inside the bar")
+    # Well above the plot area entirely -- background regardless.
+    _assert_color(c, 220, 5, BG, "above the plot area")
+
+
+def test_render_svg_bar_mark_matches_confirmed_rect() raises:
+    # Same 3-category/[10,20,15] data test_render_bar_mark_matches_
+    # hand_derived_bar_rectangles already hand-solved (bar 1's own
+    # rect: x=177, y=31, width=85, height=219) -- confirmed here via a
+    # real render_svg() run first, the same cross-check discipline the
+    # LINE test above used, before trusting it in this assertion.
+    var cats: List[String] = ["a", "b", "c"]
+    var vals: List[Float64] = [10.0, 20.0, 15.0]
+    var svg = SvgCanvas(400, 300)
+    var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).theme(Theme(show_gridlines=False))
+    render_svg(svg, plot)
+    assert_true(
+        '<rect x="177" y="31" width="85" height="219" fill="#1e64b4"/>' in svg.to_string(),
+        "BAR mark's own middle bar, same rectangle render()'s own hand-derived test finds",
+    )
+
+
+def test_render_bar_color_by_sign_colors_negative_bars_differently() raises:
+    # The exact single-negative-bar setup test_render_bar_negative_
+    # values_extend_below_the_baseline already hand-solved (canvas
+    # 400x300, no gridlines, single category "a" at value -10 -- the
+    # baseline sits at the plot area's own top, pixel y=20, so (220,25)
+    # is just inside the bar). Theme.color_by_sign=True switches that
+    # exact pixel from mark_color to mark_color_negative -- confirming
+    # the flag is actually read, not just accepted and ignored.
+    var x: List[String] = ["a"]
+    var y: List[Float64] = [-10.0]
+    var t = Theme(show_gridlines=False, color_by_sign=True)
+    var plot = Plot().mark_bar().encode_categorical(x=x, y=y).theme(t)
+    var c = Canvas(400, 300, BG)
+    render(c, plot)
+    _assert_color(c, 220, 25, t.mark_color_negative, "negative bar uses mark_color_negative")
+
+
+def test_render_bar_color_by_sign_leaves_positive_bars_at_mark_color() raises:
+    # Same setup, value flipped positive (+10, not -10) -- baseline
+    # now sits at the plot area's own *bottom* (see the sibling
+    # positive-values test this data shape matches), so the well-
+    # inside-the-bar pixel is (220, 245), just above the baseline
+    # (250) instead of just below the top (20).
+    var x: List[String] = ["a"]
+    var y: List[Float64] = [10.0]
+    var t = Theme(show_gridlines=False, color_by_sign=True)
+    var plot = Plot().mark_bar().encode_categorical(x=x, y=y).theme(t)
+    var c = Canvas(400, 300, BG)
+    render(c, plot)
+    _assert_color(c, 220, 245, t.mark_color, "positive bar stays mark_color even with color_by_sign on")
+
+
+def test_render_bar_color_by_sign_defaults_off() raises:
+    # color_by_sign's own default (False) must reproduce the exact
+    # pre-existing single-negative-bar test's own assertion -- a
+    # negative bar still just mark_color, not mark_color_negative,
+    # when the flag is never set. Purely additive, confirmed the same
+    # way every other Theme addition in this file has been.
+    var x: List[String] = ["a"]
+    var y: List[Float64] = [-10.0]
+    var t = Theme(show_gridlines=False)
+    var plot = Plot().mark_bar().encode_categorical(x=x, y=y).theme(t)
+    var c = Canvas(400, 300, BG)
+    render(c, plot)
+    _assert_color(c, 220, 25, t.mark_color, "color_by_sign defaults off: still mark_color")
+
+
+def main() raises:
+    TestSuite.discover_tests[__functions_in_module()]().run()
