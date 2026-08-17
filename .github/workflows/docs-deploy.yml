@@ -23,6 +23,7 @@ on:
       - "modo.yaml"
       - "pixi.toml"
       - "scripts/install-modo.sh"
+      - "scripts/gen_example_docs.mojo"
       - ".github/workflows/docs-build.yml"
       - ".github/workflows/docs-deploy.yml"
   workflow_dispatch:
