@@ -12,7 +12,9 @@ guarantee consistency, logic, or design decisions matching any
 particular reference library. If you know what you're doing and want
 to contribute, let's chat!
 
-See `ROADMAP.md` for exactly what's built vs. still open.
+See the [wiki](https://github.com/randyzwitch/dataviz_mojo/wiki) for
+exactly what's built ([Changelog](https://github.com/randyzwitch/dataviz_mojo/wiki/Changelog))
+vs. still open ([Backlog](https://github.com/randyzwitch/dataviz_mojo/wiki/Backlog)).
 
 ## Install
 

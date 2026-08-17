@@ -11,11 +11,11 @@ Deliberately Mark.GROUPED_BAR here, not a plain Mark.BAR -- its own
 series-name legend reserves a column on the right, narrowing the
 actual data area. The chart title still centers precisely over that
 narrowed area, not the full canvas width, which is exactly what
-dataviz_mojo/ROADMAP.md's own "Plot.labels() precise centering" entry
+the wiki's Changelog, its own "Plot.labels() precise centering" entry
 fixed: before it, a title/x_title centered on the full outer bounds
 regardless of how much room a legend (or a wide dynamic left margin)
 took away from the actual plot area, visibly off-center whenever
-either was wide enough to matter -- see that ROADMAP entry, and
+either was wide enough to matter -- see that wiki entry, and
 test_render_svg_title_centers_on_inner_plot_rect_not_outer_bounds
 (tests/test_plot.mojo), for the concrete before/after.
 

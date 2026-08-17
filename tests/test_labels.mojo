@@ -47,8 +47,8 @@ def test_render_svg_labels_matches_hand_derived_title_and_axis_titles() raises:
     # exercise _apply_labels' own shrunk-rect math at all.
     #
     # Title/x_title/y_title all center on the *inner* plot rect
-    # (_RenderResult's own px0/py0/px1/py1 -- see dataviz_mojo/ROADMAP.md's
-    # own "Plot.labels() precise centering" Done entry), not the full
+    # (_RenderResult's own px0/py0/px1/py1 -- see the wiki's Changelog,
+    # its own "Plot.labels() precise centering" entry), not the full
     # outer bounds -- confirmed here via the LINE mark's own already-
     # hand-solved endpoints just below: plot_x0=78 (frame.ox0=18 +
     # margin_left=60, no dynamic left-margin growth -- short y=5 tick

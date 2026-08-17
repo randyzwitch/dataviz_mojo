@@ -11,16 +11,16 @@ system, so one shared title is the only reading that makes sense here --
 contrast examples/facets.mojo's own per-cell titles).
 
 The forecast checkpoints use Plot.encode(color_categories=...) too --
-render_layers's own per-point encoding + legend support (dataviz_mojo/
-ROADMAP.md's own "render_layers per-point encoding and legends" Done
+render_layers's own per-point encoding + legend support (the wiki's
+Changelog, its own "render_layers per-point encoding and legends"
 entry): a Mark.POINT layer can use color/color_categories/size exactly
 like a standalone Mark.POINT plot, drawing its own legend section --
 here, each checkpoint colored by whether that month's actual revenue
 met or missed its own forecast ("Ahead"/"Behind"), the same per-point
 encoding a single-plot scatter already supports.
 
-Honest limitations, not silently glossed over (see dataviz_mojo/ROADMAP.md's
-own "Explicitly still open" section): only Mark.POINT/LINE/AREA can be
+Honest limitations, not silently glossed over (see the wiki's Backlog,
+its own "Explicitly still open" section): only Mark.POINT/LINE/AREA can be
 layered (not BAR/ARC, which have different domain shapes); no per-
 *series* name/label concept yet for a "which layer is which" legend
 built from several flat-colored layers (a separate feature from the

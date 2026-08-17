@@ -14,7 +14,7 @@ to search the domain by string equality to answer "where does this
 category go." `Plot`'s own `x_categories` list *is* this scale's
 domain, index for index; a caller wanting repeated categories
 (grouped/stacked bars) needs a different, not-yet-built encoding --
-see dataviz_mojo/ROADMAP.md.
+see the wiki.
 """
 
 

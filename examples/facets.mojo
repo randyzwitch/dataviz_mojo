@@ -4,8 +4,8 @@ one render() call per canvas. Four regions' quarterly revenue, each
 its own line chart with its own axes, its own color (so it's visually
 obvious where one plot ends and the next begins), and now its own
 Plot.labels() title too -- render_facets()'s own per-cell title
-support (dataviz_mojo/ROADMAP.md's own "Plot.labels() reaches
-render_facets/render_layers" Done entry): each region's own name
+support (the wiki's Changelog, its own "Plot.labels() reaches
+render_facets/render_layers" entry): each region's own name
 captions its own cell, using that cell's own inner plot rect, not one
 shared title for the whole grid (see render_facets's own docstring for
 why a per-cell title is the reading that makes sense here, unlike

@@ -3,7 +3,7 @@ basic X-Y plots (scatter via Mark.POINT, line via Mark.LINE). Data is
 plain columnar `List[Float64]`/`List[String]`, passed to `encode()`/
 `encode_categorical()` directly -- a 1-D array is all any chart type
 here needs; a named-column `Table` abstraction was built and then
-removed (see dataviz_mojo/ROADMAP.md) once it turned out to add a second
+removed (see the wiki's Changelog) once it turned out to add a second
 way to do the same thing without a concrete need for named-column
 lookup driving it.
 
@@ -52,7 +52,7 @@ lines these are, and one consistent default is simpler to reason about
 than an exception that has to be re-justified every time someone reads
 this file. `SvgCanvas` has no equivalent AA choice to make at all --
 an SVG renderer handles that itself, at whatever resolution it's
-displayed at (see dataviz_mojo/ROADMAP.md's own entry for the concrete
+displayed at (see the wiki's Changelog, its own entry for the concrete
 problem that motivated adding it).
 """
 
@@ -456,7 +456,7 @@ struct Plot(Movable):
         One bar per entry in `x`, in the order given -- `x` is treated
         as already being the axis's category order, not deduplicated
         or re-sorted; repeated categories (grouped/stacked bars) is a
-        different, not-yet-built feature (see dataviz_mojo/ROADMAP.md), not
+        different, not-yet-built feature (see the wiki's Backlog), not
         silently merged.
         """
         self.x_categories = x.copy()
@@ -1436,8 +1436,8 @@ def _apply_labels(plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> 
     makes a title/x_title land pixel-precisely over the inner plot rect
     instead of the full outer width/height (a wide legend or long
     y-axis tick labels no longer throws it off-center the way it used
-    to -- see dataviz_mojo/ROADMAP.md's own "Plot.labels() precise
-    centering" Done entry for the full before/after). `_label_text_
+    to -- see the wiki's Changelog, its own "Plot.labels() precise
+    centering" entry for the full before/after). `_label_text_
     requests`, called by `render()`/`render_svg()` right after
     `_render_generic` returns, is phase two.
 
@@ -3212,7 +3212,7 @@ def _render_gantt[
     convention) -- out of scope for this first version, the same way
     `Mark.WATERFALL`'s own first version had no "total" bars: `encode_
     gantt()`'s data shape has no notion of one task depending on another
-    to begin with, and inventing one wasn't part of what ROADMAP.md's
+    to begin with, and inventing one wasn't part of what the wiki's
     own "Phase 2b" item asked for (a horizontal-bar orientation, which
     this provides).
     """
@@ -3435,8 +3435,8 @@ def _render_facets_generic[
     for the whole grid: each cell is its own independent small
     multiple, with its own data and potentially its own mark type, so a
     per-cell caption is the only reading that makes sense here (see
-    dataviz_mojo/ROADMAP.md's own "Plot.labels() reaches render_facets/
-    render_layers" Done entry for why `render_layers`, sharing one
+    the wiki's Changelog, its own "Plot.labels() reaches render_facets/
+    render_layers" entry for why `render_layers`, sharing one
     combined domain across every layer, reads differently). `_render_
     generic`'s own `ox0`/`oy0`/`ox1`/`oy1` bounds are simply pointed at
     one cell's own *label-shrunk* rect instead of the whole target per
@@ -3505,7 +3505,7 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     Restricted to `Mark.POINT`/`LINE`/`AREA` for this first version --
     `Mark.BAR`'s categorical x-axis and `Mark.ARC`'s lack of one don't
     share a domain shape with continuous marks or each other; layering
-    those in is real, separate, deferred work (see dataviz_mojo/ROADMAP.md).
+    those in is real, separate, deferred work (see the wiki's Backlog).
     Raises if any layered plot uses a different mark.
 
     A layer whose own mark is `Mark.POINT` can use `color`/`color_
@@ -3523,7 +3523,7 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     facets.mojo` already uses, just overlaid here instead of laid out
     in a grid) -- `render_layers` still has no per-*series* name/label
     concept for a "which layer is which" legend built from several
-    flat-colored layers (see dataviz_mojo/ROADMAP.md's own "Explicitly
+    flat-colored layers (see the wiki's Backlog, its own "Explicitly
     still open" section); that's a separate feature from per-point
     encoding within a single layer, which this one now supports.
 
@@ -3637,7 +3637,7 @@ def _render_layers_generic[
         ):
             raise Error(
                 "render_layers(): only Mark.POINT/Mark.LINE/Mark.AREA can be layered"
-                " (got a different mark -- see dataviz_mojo/ROADMAP.md for why Mark.BAR/"
+                " (got a different mark -- see the wiki's Backlog for why Mark.BAR/"
                 "Mark.ARC aren't supported here yet)"
             )
         if len(plots[i].x_data) != len(plots[i].y_data):

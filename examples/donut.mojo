@@ -9,7 +9,7 @@ Writes both a raster (.bmp, 3x supersampled -- see examples/
 scatter.mojo's own docstring for why) and a vector (.svg) file from
 the same Plot, the pattern every new chart-type example uses from here
 on rather than a separate file per backend -- both backends are
-first-class (see dataviz_mojo/ROADMAP.md), so both get exercised by every
+first-class (see the wiki), so both get exercised by every
 example without doubling the file count.
 
 Run with:

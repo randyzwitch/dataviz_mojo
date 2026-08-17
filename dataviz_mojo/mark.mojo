@@ -4,7 +4,7 @@ constants-and-`__eq__` pattern canvas_mojo.FillRule/canvas_mojo.TextAlign
 already established, not a distinct enum mechanism.
 
 POINT (scatter) and LINE were this package's first vertical slice
-(see dataviz_mojo/ROADMAP.md). LINE's own `Theme.line_smoothing` (default
+(see the wiki). LINE's own `Theme.line_smoothing` (default
 0.0, plain straight segments) optionally curves it through a Catmull-
 Rom-derived spline instead -- see that field's own docstring and
 `plot.mojo`'s `_build_line_path`. BAR is the first mark with a categorical
@@ -17,7 +17,7 @@ linearly -- but has no x/y axis frame at all, so it renders through
 its own, fully separate path (see plot.mojo's `_render_arc`).
 
 LOLLIPOP, WATERFALL, and BOX ("Phase 2a" of the broader chart-type
-survey, see dataviz_mojo/ROADMAP.md) are three more categorical-x-axis
+survey, see the wiki) are three more categorical-x-axis
 marks alongside BAR: LOLLIPOP reuses BAR's own `encode_categorical`
 data shape unchanged (a stem + point instead of a filled rect is
 purely a rendering difference); WATERFALL has its own `encode_
@@ -36,7 +36,7 @@ third and fourth mark type needed the identical layout.
 
 CANDLESTICK and BULLET ("Phase 2b", the marks that need their own new
 shape rather than building on BAR's data directly -- see
-dataviz_mojo/ROADMAP.md) are a fifth and sixth categorical-x-axis mark
+the wiki) are a fifth and sixth categorical-x-axis mark
 sharing that same axis-frame core. CANDLESTICK's own `encode_
 candlestick` (a category plus four values -- open/high/low/close, not
 BAR's single value) draws a high-low wick plus an open-close body per
