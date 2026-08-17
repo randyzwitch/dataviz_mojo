@@ -78,8 +78,8 @@ def test_render_layers_svg_title_from_plots0_centers_on_shared_inner_rect() rais
     # Same LINE+POINT layered setup as the test just above, now with
     # plots[0] (the LINE plot) setting a chart title via .labels() --
     # confirming render_layers()'s own Plot.labels() support
-    # (dataviz_mojo/ROADMAP.md's own "Plot.labels() reaches
-    # render_facets/render_layers" Done entry): the title comes from
+    # (the wiki's Changelog, its own "Plot.labels() reaches
+    # render_facets/render_layers" entry): the title comes from
     # plots[0] only (the same "shared chrome from plots[0]" convention
     # Theme already follows here -- see render_layers()'s own
     # docstring), and its own extra_top=Int(18.0)+4=22 reservation
@@ -128,8 +128,8 @@ def test_render_layers_svg_title_from_plots0_centers_on_shared_inner_rect() rais
 def test_render_layers_svg_point_layer_color_categories_matches_hand_derived_legend() raises:
     # A single Mark.POINT layer (no other layers) with color_categories
     # encoding -- confirming render_layers()'s own per-point encoding +
-    # legend support (dataviz_mojo/ROADMAP.md's own "render_layers
-    # per-point encoding and legends" Done entry). x=[0,10], y=[0.0,0.0]
+    # legend support (the wiki's Changelog, its own "render_layers
+    # per-point encoding and legends" entry). x=[0,10], y=[0.0,0.0]
     # (constant -- zero-span domain, padded to [-1,1], the same pattern
     # test_render_color_encoding_matches_hand_derived_colors above
     # already establishes), color_categories=["A","B"] -- short labels,

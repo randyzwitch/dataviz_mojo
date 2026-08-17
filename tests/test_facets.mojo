@@ -147,8 +147,8 @@ def test_render_facets_svg_each_cell_gets_its_own_independent_title() raises:
     # Same two-cell 800x300 layout (cols=2) as the test just above, but
     # cell 0's own Plot sets a title (via .labels()) and cell 1's
     # doesn't -- confirming render_facets()'s own per-cell Plot.labels()
-    # support (dataviz_mojo/ROADMAP.md's own "Plot.labels() reaches
-    # render_facets/render_layers" Done entry): the title reserves space
+    # support (the wiki's Changelog, its own "Plot.labels() reaches
+    # render_facets/render_layers" entry): the title reserves space
     # *only* in cell 0 -- its own point shifts from (220,135), the
     # no-title baseline the test above already established, down to
     # (220,146) (extra_top=Int(18.0)+4=22 pushes plot_y0 from 20 to 42,

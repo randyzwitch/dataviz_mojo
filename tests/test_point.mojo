@@ -68,7 +68,7 @@ def test_render_color_encoding_matches_hand_derived_colors() raises:
     # points must land on exactly black and exactly white.
     # show_legend=False: this test is about the color-scale math, not
     # legend layout -- has_color now draws a continuous legend by
-    # default (see the "Continuous color/size legends" ROADMAP entry),
+    # default (see the "Continuous color/size legends" wiki entry),
     # which would reserve horizontal space and shift these hand-derived
     # pixel positions. Legend layout itself is covered separately by
     # test_render_svg_continuous_color_legend_matches_hand_derived_strips.
