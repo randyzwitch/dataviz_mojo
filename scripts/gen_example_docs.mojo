@@ -396,8 +396,6 @@ def _build_page(name: String, title: String) raises -> String:
     page.append("title: " + title)
     page.append("---")
     page.append("")
-    page.append("# " + title)
-    page.append("")
     page.append(hook)
     page.append("")
     page.append("![" + title + "](" + image + ")")
@@ -448,8 +446,6 @@ def main() raises:
     idx.append("cascade:")
     idx.append("  type: docs")
     idx.append("---")
-    idx.append("")
-    idx.append("# Examples")
     idx.append("")
     idx.append(
         "Every example below is a complete, runnable `.mojo` file in this "
