@@ -9,7 +9,9 @@ docstring for both). Unlike Mark.BAR/LOLLIPOP/WATERFALL, the y-axis
 doesn't force in a zero baseline -- the same reasoning Mark.BOX already
 established: a candlestick chart's whole point is showing fine detail
 in a price range nowhere near zero, so forcing zero into view would
-flatten exactly the detail the chart exists to show.
+flatten exactly the detail the chart exists to show. Built via
+dataviz_mojo.quickplot.candlestick() -- see examples/scatter.mojo's
+own docstring for what that trades away.
 
 Eight trading days of a single (fictional) stock -- a realistic mix of
 up and down days, including one wide-range day (Day 4) and one narrow-
@@ -17,19 +19,19 @@ range day (Day 8), the kind of variety that actually exercises both
 wick lengths and both body colors.
 
 Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
-from the same data -- see examples/donut.mojo's own docstring for why
-every new chart-type example does this from here on.
+from the same data -- see examples/donut.mojo's own docstring for why,
+and for why the docs page only shows the quickplot call above.
 
 Run with:
     pixi run example
 """
 
-from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.io.bmp import write_bmp
+from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
-from dataviz_mojo.plot import Plot, render, render_svg
+from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.quickplot import candlestick
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3
@@ -44,17 +46,23 @@ def main() raises:
     var low: List[Float64] = [98.0, 99.0, 95.0, 96.0, 105.0, 102.0, 101.0, 104.0]
     var close: List[Float64] = [104.0, 101.0, 97.0, 107.0, 110.0, 103.0, 108.0, 105.0]
 
-    var c = Canvas(640 * _SUPERSAMPLE, 420 * _SUPERSAMPLE, Color(255, 255, 255))
-    var raster_plot = Plot().mark_candlestick().encode_candlestick(days, open, high, low, close).theme(
-        Theme(scale=Float64(_SUPERSAMPLE))
+    var c = candlestick(
+        days,
+        open,
+        high,
+        low,
+        close,
+        theme=Theme(scale=Float64(_SUPERSAMPLE)),
+        width=640 * _SUPERSAMPLE,
+        height=420 * _SUPERSAMPLE,
     )
-    render(c, raster_plot)
     var out = downsample(c, _SUPERSAMPLE)
     write_bmp(out, "examples/out_candlestick.bmp")
+    write_png(out, "examples/out_candlestick.png")
 
     var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_candlestick().encode_candlestick(days, open, high, low, close).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_candlestick.svg")
 
-    print("wrote examples/out_candlestick.bmp and out_candlestick.svg")
+    print("wrote examples/out_candlestick.bmp, .png, and .svg")

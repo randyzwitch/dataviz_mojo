@@ -9,10 +9,7 @@ builder (`Plot().mark_point().encode(x=..., y=...)`), scales, themes,
 and a growing set of mark types (scatter, line, bar, area, pie/donut,
 lollipop, waterfall, box, candlestick, bullet, gantt, grouped bar,
 stacked bar) across both a raster and an SVG backend, plus facets and
-multi-series layering. Built entirely on
-[`canvas_mojo`](https://github.com/randyzwitch/canvas_mojo)'s public
-API — no chart-specific code lives in `canvas_mojo`, and no raw pixel/
-raster code lives here.
+multi-series layering. 
 
 Please note that this is heavily Claude-influenced, so I do not
 guarantee consistency, logic, or design decisions matching any

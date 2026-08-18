@@ -9,22 +9,25 @@ splitting into one sub-bar per series (default_categorical_palette(),
 the same cycling convention Mark.POINT's categorical color encoding and
 Mark.ARC's own wedge coloring already use) plus a legend, reserved via
 Theme.show_legend the same way Mark.POINT's own categorical-color
-legend is.
+legend is. Built via dataviz_mojo.quickplot.grouped_bar() -- see
+examples/scatter.mojo's own docstring for what that trades away;
+title=/x_title=/y_title= are quickplot's own equivalent of Plot.
+labels()'s three parameters.
 
 Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
-from the same data -- see examples/donut.mojo's own docstring for why
-every new example does this from here on.
+from the same data -- see examples/donut.mojo's own docstring for why,
+and for why the docs page only shows the quickplot call above.
 
 Run with:
     pixi run example
 """
 
-from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.io.bmp import write_bmp
+from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
-from dataviz_mojo.plot import Plot, render, render_svg
+from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.quickplot import grouped_bar
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3
@@ -39,17 +42,20 @@ def main() raises:
         [55.0, 50.0, 58.0, 66.0],
     ]
 
-    var c = Canvas(640 * _SUPERSAMPLE, 420 * _SUPERSAMPLE, Color(255, 255, 255))
-    var raster_plot = (
-        Plot()
-        .mark_grouped_bar()
-        .encode_grouped_bar(quarters, series_names, values)
-        .labels(title="Quarterly Revenue by Region", x_title="Quarter", y_title="Revenue ($M)")
-        .theme(Theme(scale=Float64(_SUPERSAMPLE)))
+    var c = grouped_bar(
+        quarters,
+        series_names,
+        values,
+        title="Quarterly Revenue by Region",
+        x_title="Quarter",
+        y_title="Revenue ($M)",
+        theme=Theme(scale=Float64(_SUPERSAMPLE)),
+        width=640 * _SUPERSAMPLE,
+        height=420 * _SUPERSAMPLE,
     )
-    render(c, raster_plot)
     var out = downsample(c, _SUPERSAMPLE)
     write_bmp(out, "examples/out_grouped_bar.bmp")
+    write_png(out, "examples/out_grouped_bar.png")
 
     var svg = SvgCanvas(640, 420)
     var svg_plot = (
@@ -62,4 +68,4 @@ def main() raises:
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_grouped_bar.svg")
 
-    print("wrote examples/out_grouped_bar.bmp and out_grouped_bar.svg")
+    print("wrote examples/out_grouped_bar.bmp, .png, and .svg")

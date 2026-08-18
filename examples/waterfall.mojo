@@ -9,7 +9,8 @@ why this one mark colors by sign without needing Theme.color_by_sign,
 unlike Mark.BAR), narrower than a total bar so the two read as
 distinct at a glance, with a thin connector line between consecutive
 bars at the pixel height where one bar's own running total hands off
-to the next.
+to the next. Built via dataviz_mojo.quickplot.waterfall() -- see
+examples/scatter.mojo's own docstring for what that trades away.
 
 A quarterly profit bridge: a starting-balance total, several line
 items that add to or subtract from it, and an ending-balance total --
@@ -23,19 +24,19 @@ floating); the ending total's own delta is 0.0 (adds nothing further,
 just displays 0 -> whatever the running sum already reached).
 
 Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
-from the same data -- see examples/donut.mojo's own docstring for why
-every new chart-type example does this from here on.
+from the same data -- see examples/donut.mojo's own docstring for why,
+and for why the docs page only shows the quickplot call above.
 
 Run with:
     pixi run example
 """
 
-from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.io.bmp import write_bmp
+from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
-from dataviz_mojo.plot import Plot, render, render_svg
+from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.quickplot import waterfall
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3
@@ -46,17 +47,21 @@ def main() raises:
     var deltas: List[Float64] = [50.0, 32.0, -18.0, -12.0, -6.0, 4.0, 0.0]
     var is_total: List[Bool] = [True, False, False, False, False, False, True]
 
-    var c = Canvas(640 * _SUPERSAMPLE, 420 * _SUPERSAMPLE, Color(255, 255, 255))
-    var raster_plot = Plot().mark_waterfall().encode_waterfall(stages, deltas, is_total).theme(
-        Theme(scale=Float64(_SUPERSAMPLE))
+    var c = waterfall(
+        stages,
+        deltas,
+        is_total=is_total,
+        theme=Theme(scale=Float64(_SUPERSAMPLE)),
+        width=640 * _SUPERSAMPLE,
+        height=420 * _SUPERSAMPLE,
     )
-    render(c, raster_plot)
     var out = downsample(c, _SUPERSAMPLE)
     write_bmp(out, "examples/out_waterfall.bmp")
+    write_png(out, "examples/out_waterfall.png")
 
     var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_waterfall().encode_waterfall(stages, deltas, is_total).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_waterfall.svg")
 
-    print("wrote examples/out_waterfall.bmp and out_waterfall.svg")
+    print("wrote examples/out_waterfall.bmp, .png, and .svg")

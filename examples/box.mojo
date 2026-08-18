@@ -4,7 +4,9 @@ a category + a *list* of values -- see that method's own docstring for
 the quartile/whisker/outlier computation it does immediately, via
 _box_stats()). Unlike Mark.BAR/LOLLIPOP/WATERFALL, the y-axis doesn't
 force in a zero baseline -- a distribution's own spread has no inherent
-reason to include zero (see _render_box's own docstring).
+reason to include zero (see _render_box's own docstring). Built via
+dataviz_mojo.quickplot.box() -- see examples/scatter.mojo's own
+docstring for what that trades away.
 
 Four groups' exam scores, each a real (not perfectly symmetric)
 distribution, one of them (Group C) with a genuine low outlier -- the
@@ -13,19 +15,20 @@ summary number (a bar chart's job), but each group's own spread, and
 whether any individual value falls unusually far from the rest.
 
 Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
-from the same data -- see examples/donut.mojo's own docstring for why
-every new chart-type example does this from here on.
+from the same data -- see examples/donut.mojo's own docstring for why,
+and for why the docs page only shows the quickplot call above.
 
 Run with:
     pixi run example
 """
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.io.bmp import write_bmp
+from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
-from dataviz_mojo.plot import Plot, render, render_svg
+from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.quickplot import box
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3
@@ -40,12 +43,16 @@ def main() raises:
         [82.0, 84.0, 85.0, 86.0, 87.0, 88.0, 89.0, 91.0, 93.0],
     ]
 
-    var c = Canvas(640 * _SUPERSAMPLE, 420 * _SUPERSAMPLE, Color(255, 255, 255))
-    var raster_theme = Theme(mark_color=Color(70, 110, 190), scale=Float64(_SUPERSAMPLE))
-    var raster_plot = Plot().mark_box().encode_boxplot(groups, scores).theme(raster_theme)
-    render(c, raster_plot)
+    var c = box(
+        groups,
+        scores,
+        theme=Theme(mark_color=Color(70, 110, 190), scale=Float64(_SUPERSAMPLE)),
+        width=640 * _SUPERSAMPLE,
+        height=420 * _SUPERSAMPLE,
+    )
     var out = downsample(c, _SUPERSAMPLE)
     write_bmp(out, "examples/out_box.bmp")
+    write_png(out, "examples/out_box.png")
 
     var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_box().encode_boxplot(groups, scores).theme(
@@ -54,4 +61,4 @@ def main() raises:
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_box.svg")
 
-    print("wrote examples/out_box.bmp and out_box.svg")
+    print("wrote examples/out_box.bmp, .png, and .svg")
