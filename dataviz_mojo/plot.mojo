@@ -1,4 +1,5 @@
-"""Plot -- the fluent builder for this package's first vertical slice:
+"""Plot -- the [fluent](https://martinfowler.com/bliki/FluentInterface.html)
+builder for this package's first vertical slice:
 basic X-Y plots (scatter via Mark.POINT, line via Mark.LINE). Data is
 plain columnar `List[Float64]`/`List[String]`, passed to `encode()`/
 `encode_categorical()` directly -- a 1-D array is all any chart type
