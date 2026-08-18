@@ -12,3 +12,18 @@ from dataviz_mojo.plot import (
     render_layers_svg,
     render_svg,
 )
+from dataviz_mojo.quickplot import (
+    area,
+    bar,
+    box,
+    bullet,
+    candlestick,
+    gantt,
+    grouped_bar,
+    line,
+    lollipop,
+    pie,
+    scatter,
+    stacked_bar,
+    waterfall,
+)

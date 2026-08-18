@@ -3,26 +3,37 @@ part of `pixi run docs` (see pixi.toml), before `mojo doc`/`modo
 build`, so a new example file automatically gets a docs page without
 anyone hand-writing one.
 
-Each page shows the actual grammar-of-graphics pattern (Plot/Theme/
-render), not this docs site's own supersampling/file-writing
-plumbing every example also needs (see docs/src/_index.md's own
-"A first chart" section, and examples/scatter.mojo's own docstring,
-for why every example renders at 3x and shrinks back down). Extraction
-strategy:
+Each page shows the actual grammar-of-graphics pattern -- a
+quickplot.mojo one-call function where the example has one (`bar()`,
+`scatter()`, ...), the fuller Plot/Theme/render builder otherwise --
+not this docs site's own supersampling/file-writing plumbing every
+example also needs (see docs/src/_index.md's own "A first chart"
+section, and examples/scatter.mojo's own docstring, for why every
+example renders at 3x and shrinks back down). Extraction strategy:
 
-- If the example writes both raster and SVG output (most of them,
-  from examples/donut.mojo's own docstring onward), the SVG-path
-  construction is used as-is: unlike the raster path, it was never
-  supersampled to begin with, so it's already the clean pattern -- no
-  stripping needed, just cut the whole raster-specific block out.
-- If an example is raster-only (no SVG), the raster block's own
-  supersampling is stripped back out in place instead: `Canvas(w *
-  _SUPERSAMPLE, h * _SUPERSAMPLE, ...)` -> `Canvas(w, h, ...)`,
-  `scale=Float64(_SUPERSAMPLE)` (or a `var s = Float64(_SUPERSAMPLE)`
-  local some examples reuse across several Theme(...) calls instead of
-  repeating the inline form) removed from every Theme(...) it appears
-  in, downsample()'s own output variable removed once write_bmp/
-  write_png (which needed it) are also gone.
+- If the example builds its raster output via a `dataviz_mojo.
+  quickplot` function (`var c = bar(...)`, `var c = scatter(...)`,
+  ...), that call is always the snippet shown -- it's already the
+  cleanest possible reconstruction of "how would I actually write
+  this," cleaner than any hand-rolled Plot/Theme/Canvas/render() the
+  same file might also build for its own SVG output alongside it (see
+  `_quickplot_call_start()`/`_strip_quickplot_line()`). Everything
+  after that call's own closing `)` -- write_bmp/png, downsample()'s
+  output variable, any separate SvgCanvas/render_svg() block -- is cut
+  entirely, not shown.
+- Otherwise, if the example writes both raster and SVG output via the
+  full builder (most of the marks quickplot doesn't cover yet), the
+  SVG-path construction is used as-is: unlike the raster path, it was
+  never supersampled to begin with, so it's already the clean pattern
+  -- no stripping needed, just cut the whole raster-specific block out.
+- Otherwise (raster-only, no quickplot call, no SVG path), the raster
+  block's own supersampling is stripped back out in place instead:
+  `Canvas(w * _SUPERSAMPLE, h * _SUPERSAMPLE, ...)` -> `Canvas(w, h,
+  ...)`, `scale=Float64(_SUPERSAMPLE)` (or a `var s = Float64(
+  _SUPERSAMPLE)` local some examples reuse across several Theme(...)
+  calls instead of repeating the inline form) removed from every
+  Theme(...) it appears in, downsample()'s own output variable removed
+  once write_bmp/write_png (which needed it) are also gone.
 
 A Mojo script, not Python -- this repo's own tooling stays in the
 language it's showcasing, string-matching primitives (`.strip()`,
@@ -50,19 +61,14 @@ comptime _WORD_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123
 def _titles() -> Dict[String, String]:
     var d = Dict[String, String]()
     d["scatter"] = "Scatter"
-    d["scatter_svg"] = "Scatter (SVG)"
     d["line"] = "Line"
-    d["line_smoothing"] = "Line Smoothing"
     d["bar"] = "Bar"
     d["diverging_bar"] = "Diverging Bar"
     d["grouped_bar"] = "Grouped Bar"
     d["stacked_bar"] = "Stacked Bar"
     d["area"] = "Area"
-    d["area_smoothing"] = "Area Smoothing"
     d["pie"] = "Pie"
     d["donut"] = "Donut"
-    d["categorical_color"] = "Categorical Color"
-    d["bubble"] = "Bubble Chart"
     d["lollipop"] = "Lollipop"
     d["waterfall"] = "Waterfall"
     d["box"] = "Box Plot"
@@ -71,11 +77,6 @@ def _titles() -> Dict[String, String]:
     d["gantt"] = "Gantt"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
-    d["facets"] = "Facets"
-    d["facets_svg"] = "Facets (SVG)"
-    d["layers"] = "Layers"
-    d["titles"] = "Titles & Axis Labels"
-    d["dynamic_margin"] = "Dynamic Left Margin"
     return d^
 
 
@@ -91,34 +92,25 @@ struct Category(Copyable, Movable):
 
 
 def _categories() -> List[Category]:
+    # Every example here is a distinct, recognizable chart type -- no
+    # feature demos (facets, layers, titles, dynamic margins, color/
+    # size encoding, line/area smoothing, a bare SVG-backend page)
+    # mixed in among them; those are real dataviz_mojo capabilities,
+    # just not chart types of their own, so they live in the wiki/API
+    # reference instead of the Examples gallery.
     var cats = List[Category]()
     cats.append(Category(
-        "Basic marks", "The core chart types -- one mark, default theme.",
-        ["scatter", "line", "bar", "area", "pie"],
+        "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
+        ["scatter", "line", "bar", "area", "pie", "donut"],
     ))
     cats.append(Category(
-        "Data-driven encoding", "Mapping a data column onto color and/or size, not just position.",
-        ["categorical_color", "bubble", "donut"],
-    ))
-    cats.append(Category(
-        "Smoothing", "Catmull-Rom curve smoothing for LINE and AREA marks.",
-        ["line_smoothing", "area_smoothing"],
-    ))
-    cats.append(Category(
-        "Categorical business charts", "Chart types built for a categorical x-axis: rankings, timelines, progress.",
-        ["lollipop", "waterfall", "gantt", "bullet", "diverging_bar", "grouped_bar", "stacked_bar"],
+        "Categorical business charts",
+        "Chart types built for a categorical x-axis: rankings, timelines, progress, period-over-period comparisons.",
+        ["lollipop", "waterfall", "gantt", "bullet", "diverging_bar", "grouped_bar", "stacked_bar", "slope"],
     ))
     cats.append(Category(
         "Statistical & financial", "Distributions, binned counts, and OHLC price data.",
         ["box", "histogram", "candlestick"],
-    ))
-    cats.append(Category(
-        "Layout & composition", "Multiple plots, titles, and margin behavior beyond a single chart.",
-        ["facets", "layers", "titles", "dynamic_margin", "slope"],
-    ))
-    cats.append(Category(
-        "SVG backend", "The same charts rendered through SvgCanvas instead of Canvas.",
-        ["scatter_svg", "facets_svg"],
     ))
     return cats^
 
@@ -230,6 +222,80 @@ def _word_in(text: String, word: String) -> Bool:
         start = idx + 1
 
 
+def _quickplot_names() -> List[String]:
+    """Every dataviz_mojo.quickplot function name -- kept as one list
+    both `_quickplot_call_start()` (does this example build its raster
+    output via one of these?) and `_imports_for()` (does the clean
+    snippet need `from dataviz_mojo.quickplot import <name>`?) share,
+    so a 14th quickplot function only needs adding here."""
+    return [
+        "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
+        "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
+    ]
+
+
+def _quickplot_call_start(body: List[String]) -> Int:
+    """The line index of `var c = <quickplot fn>(`, or -1 if this
+    example doesn't build its raster output that way. Every quickplot-
+    based example here writes that call in the same multi-line shape
+    (the opening line ends `(`, one argument per line, a lone `)`
+    closes it -- see any of examples/bar.mojo/scatter.mojo/etc.), so
+    matching the opening line alone is enough; `_quickplot_call_end()`
+    finds the matching close."""
+    var names = _quickplot_names()
+    for i in range(len(body)):
+        var stripped = body[i].strip()
+        if not stripped.startswith("var c = ") or not stripped.endswith("("):
+            continue
+        var after = String(stripped[byte=8:])  # 8 == len("var c = ")
+        var name = String(after[byte = 0 : after.byte_length() - 1])  # drop trailing "("
+        if name in names:
+            return i
+    return -1
+
+
+def _quickplot_call_end(body: List[String], start: Int) -> Int:
+    for i in range(start + 1, len(body)):
+        if body[i].strip() == ")":
+            return i
+    return -1
+
+
+def _strip_quickplot_line(line: String) -> List[String]:
+    """Per-line cleanup for a quickplot call's own argument lines,
+    same 0-length-means-drop/1-length-means-keep convention as
+    `_strip_supersample()` (which this wraps for everything but two
+    new patterns that only ever appear inside a quickplot call, never
+    the old Canvas/Theme-built-by-hand pattern that function already
+    covers):
+
+    - `width=640 * _SUPERSAMPLE,`/`height=420 * _SUPERSAMPLE,` -- the
+      library's own defaults (quickplot.mojo's own `width: Int = 640`/
+      `height: Int = 420`) once desupersampled, so passing them
+      explicitly is pure noise -- dropped outright, the same as
+      `_strip_supersample()`'s own bare `scale=...,` line. A non-
+      default size (e.g. examples/pie.mojo's `400 * _SUPERSAMPLE`)
+      isn't dropped, just desupersampled by `_strip_supersample()`'s
+      own generic ` * _SUPERSAMPLE` removal below.
+    - `theme=Theme(),` -- what's left once `_strip_supersample()`
+      removes `scale` from a `theme=Theme(scale=Float64(_SUPERSAMPLE))`
+      argument that had no other kwarg: an empty `Theme()` is a no-op,
+      the keyword-argument-call equivalent of the `.theme(Theme())`
+      method-call `_extract_clean_body()` already drops elsewhere for
+      the non-quickplot builder pattern.
+    """
+    var stripped = line.strip()
+    if stripped == "width=640 * _SUPERSAMPLE," or stripped == "height=420 * _SUPERSAMPLE,":
+        return List[String]()
+
+    var result = _strip_supersample(line)
+    if len(result) == 0:
+        return result^
+    if String(result[0].strip()) == "theme=Theme(),":
+        return List[String]()
+    return result^
+
+
 def _strip_supersample(line: String) -> List[String]:
     """Returns a 0-length list to mean "drop this line entirely", or a
     1-length list holding the (possibly rewritten) line to keep --
@@ -250,6 +316,17 @@ def _strip_supersample(line: String) -> List[String]:
 
 def _extract_clean_body(source: String) -> List[String]:
     var body = _main_body_lines(source)
+
+    var qp_start = _quickplot_call_start(body)
+    if qp_start != -1:
+        var qp_end = _quickplot_call_end(body, qp_start)
+        var qp_clean = List[String]()
+        for i in range(0, qp_start):
+            qp_clean.append(body[i])
+        for i in range(qp_start, qp_end + 1):
+            for l in _strip_quickplot_line(body[i]):
+                qp_clean.append(l)
+        return _finish_clean_body(qp_clean)
 
     var has_svg = False
     for l in body:
@@ -306,6 +383,16 @@ def _extract_clean_body(source: String) -> List[String]:
     else:
         clean = body^
 
+    return _finish_clean_body(clean)
+
+
+def _finish_clean_body(clean: List[String]) -> List[String]:
+    """The cleanup every extraction path (quickplot call, SVG-path
+    cut, in-place raster desupersampling) shares once its own
+    mark-specific work is done: drop leftover write_bmp/write_png/
+    write_svg/print() I/O lines, drop a now-empty `.theme(Theme())`
+    method call, collapse the blank lines that leaves behind, and undo
+    `def main()`'s own 4-space indent."""
     var without_io = List[String]()
     for l in clean:
         var stripped = l.strip()
@@ -365,6 +452,13 @@ def _imports_for(body_text: String) -> List[String]:
     if len(used) > 0:
         lines.append("from dataviz_mojo.plot import " + String(", ").join(used))
 
+    var used_qp = List[String]()
+    for n in _quickplot_names():
+        if _word_in(body_text, n):
+            used_qp.append(n)
+    if len(used_qp) > 0:
+        lines.append("from dataviz_mojo.quickplot import " + String(", ").join(used_qp))
+
     if _word_in(body_text, "Theme"):
         lines.append("from dataviz_mojo.theme import Theme")
     if _word_in(body_text, "default_categorical_palette"):
@@ -376,7 +470,17 @@ def _build_page(name: String, title: String) raises -> String:
     var source = _read_file(_EXAMPLES_DIR + "/" + name + ".mojo")
     var docstring = _extract_docstring(source)
     var hook = _first_sentence(docstring)
-    var image = "out_" + name + ".svg" if _has_call(source, "write_svg") else "out_" + name + ".png"
+
+    # A quickplot-built example always shows its .png -- the snippet
+    # below constructs a raster Canvas, so showing the .svg this same
+    # file may *also* write (for its own render_svg() backend
+    # coverage, cut from the displayed snippet entirely -- see
+    # _extract_clean_body()'s own docstring) would show an image the
+    # snippet doesn't actually produce.
+    var uses_quickplot = _quickplot_call_start(_main_body_lines(source)) != -1
+    var image = "out_" + name + ".png" if uses_quickplot else (
+        "out_" + name + ".svg" if _has_call(source, "write_svg") else "out_" + name + ".png"
+    )
 
     var clean_body = _extract_clean_body(source)
     var body_text = String("\n").join(clean_body)
@@ -455,9 +559,11 @@ def main() raises:
     )
     idx.append("")
     idx.append(
-        "All of them share one pattern: build a `Plot`, `.encode()` your "
-        "data onto it, optionally `.theme()`/`.labels()` it, then hand it "
-        "to `render()` (raster) or `render_svg()` (vector)."
+        "Most reach for a single `dataviz_mojo.quickplot` function -- "
+        "`bar(categories, values)`, `scatter(x, y)`, and so on, one per "
+        "mark -- built on top of the fuller `Plot` builder (`.encode()`/"
+        "`.theme()`/`.labels()`, then `render()`) that the rest still use "
+        "directly, for whatever quickplot doesn't cover yet."
     )
     idx.append("")
     for cat in categories:
