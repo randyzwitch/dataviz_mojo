@@ -100,7 +100,7 @@ def _render_candlestick[
         var center_px = _round_to_int(frame.x_scale.center(i))
         var high_py = _axis_pixel(frame.y_scale, plot._candle_high[i])
         var low_py = _axis_pixel(frame.y_scale, plot._candle_low[i])
-        target.draw_line_aa(center_px, high_py, center_px, low_py, theme.axis_color)
+        target.draw_line_aa(center_px, high_py, center_px, low_py, theme.axis_color, width=theme.scale)
 
         var open_py = _axis_pixel(frame.y_scale, plot._candle_open[i])
         var close_py = _axis_pixel(frame.y_scale, plot._candle_close[i])

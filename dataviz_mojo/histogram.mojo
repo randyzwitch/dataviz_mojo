@@ -1,4 +1,8 @@
+from canvas_mojo.buffer import Canvas
+
+from dataviz_mojo.plot import Plot, _rendered
 from dataviz_mojo.scale import _format_fixed, _min_max
+from dataviz_mojo.theme import Theme
 
 
 struct _HistogramBins(Movable):
@@ -54,3 +58,26 @@ def _bin_histogram(data: List[Float64], bins: Int) raises -> _HistogramBins:
         labels.append(_format_fixed(lo, 1) + "-" + _format_fixed(hi, 1))
 
     return _HistogramBins(labels^, counts^)
+
+
+def histogram(
+    data: List[Float64],
+    bins: Int = 10,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A histogram -- `Mark.BAR` fed binned counts via `Plot.
+    encode_histogram()` (see that method's own docstring for the
+    binning itself: equal-width intervals, half-open except the last).
+    Named after what it plots, not the mark underneath, the same way
+    `pie()`/`donut` share `Mark.ARC` -- see this module's own
+    `_bin_histogram()` docstring, and plot.mojo's module docstring
+    (its "one-call convenience functions" section) for the shared
+    `theme`/`width`/`height`/`title`/`x_title`/`y_title` parameters
+    every function there takes, this one included."""
+    var plot = Plot().mark_bar().encode_histogram(data, bins=bins)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title)

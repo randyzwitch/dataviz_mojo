@@ -1,10 +1,24 @@
 """Tests for the one-call convenience functions: every one is checked
-pixel-for-pixel against the exact Plot/Theme/Canvas/render() call it
-wraps -- not a second hand-derived pixel check (that's already covered
-per-mark in test_point.mojo/test_bar.mojo/test_waterfall.mojo/etc.),
-so these tests catch a wrapper drifting out of sync with Plot's own
-builder (a renamed encode_*() kwarg, a dropped .labels()/.theme()
-call, a wrong default), not Plot's own rendering math.
+pixel-for-pixel against `_rendered()` -- the private helper every one
+of them calls internally (see plot.mojo's own docstring) -- fed the
+identical `Plot`/`theme`/`width`/`height`/`title`/`x_title`/`y_title`
+a caller would pass building the same chart by hand. Not a second
+hand-derived pixel check (that's already covered per-mark in
+test_point.mojo/test_bar.mojo/test_waterfall.mojo/etc.), so these
+tests catch a wrapper drifting out of sync with Plot's own builder (a
+renamed encode_*() kwarg, a dropped .labels()/.theme() call, a wrong
+default), not Plot's own rendering math.
+
+This no longer compares against a raw `Canvas` + `render()` call at
+the same size: `_rendered()` now supersamples its own output before
+handing it back (see its own docstring), so a quickplot call and an
+unsupersampled `render()` at the identical size are no longer
+pixel-identical by construction -- only genuinely different anymore,
+not a bug in either. Comparing against `_rendered()` itself instead
+keeps exactly what this file was always for (a wrapper built the right
+`Plot`, not that `Plot`'s own rendering math is correct) without
+needing to re-derive the supersampling math by hand in every test
+here too.
 
 These all lived in one dataviz_mojo/quickplot.mojo when this file was
 written; each now sits in its own mark's file instead (see plot.mojo's
@@ -26,7 +40,7 @@ from std.testing import assert_equal, TestSuite
 
 from canvas_mojo.color import Color
 from canvas_mojo.buffer import Canvas
-from dataviz_mojo.plot import Plot, render
+from dataviz_mojo.plot import Plot, _rendered
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import (
     area,
@@ -63,9 +77,8 @@ def test_scatter_matches_manual_plot() raises:
     var t = Theme(mark_color=Color(10, 20, 30))
     var got = scatter(x, y, theme=t, width=300, height=200, title="T", x_title="X", y_title="Y")
 
-    var want_c = Canvas(300, 200, t.background)
-    var want_plot = Plot().mark_point().encode(x=x, y=y).labels(title="T", x_title="X", y_title="Y").theme(t)
-    render(want_c, want_plot)
+    var want_plot = Plot().mark_point().encode(x=x, y=y)
+    var want_c = _rendered(want_plot^, t, 300, 200, "T", "X", "Y")
     _assert_canvas_equal(got, want_c, "scatter")
 
 
@@ -75,9 +88,8 @@ def test_line_matches_manual_plot() raises:
     var t = Theme(line_width=4.0)
     var got = line(x, y, theme=t, width=300, height=200)
 
-    var want_c = Canvas(300, 200, t.background)
-    var want_plot = Plot().mark_line().encode(x=x, y=y).theme(t)
-    render(want_c, want_plot)
+    var want_plot = Plot().mark_line().encode(x=x, y=y)
+    var want_c = _rendered(want_plot^, t, 300, 200, "", "", "")
     _assert_canvas_equal(got, want_c, "line")
 
 
@@ -87,9 +99,8 @@ def test_area_matches_manual_plot() raises:
     var t = Theme(mark_color=Color(5, 6, 7))
     var got = area(x, y, theme=t, width=300, height=200)
 
-    var want_c = Canvas(300, 200, t.background)
-    var want_plot = Plot().mark_area().encode(x=x, y=y).theme(t)
-    render(want_c, want_plot)
+    var want_plot = Plot().mark_area().encode(x=x, y=y)
+    var want_c = _rendered(want_plot^, t, 300, 200, "", "", "")
     _assert_canvas_equal(got, want_c, "area")
 
 
@@ -99,9 +110,8 @@ def test_bar_matches_manual_plot() raises:
     var t = Theme(mark_color=Color(40, 130, 90))
     var got = bar(cats, values, theme=t)
 
-    var want_c = Canvas(640, 420, t.background)
-    var want_plot = Plot().mark_bar().encode_categorical(x=cats, y=values).theme(t)
-    render(want_c, want_plot)
+    var want_plot = Plot().mark_bar().encode_categorical(x=cats, y=values)
+    var want_c = _rendered(want_plot^, t, 640, 420, "", "", "")
     _assert_canvas_equal(got, want_c, "bar")
 
 
@@ -111,9 +121,8 @@ def test_pie_matches_manual_plot() raises:
     var t = Theme(donut_inner_radius_fraction=0.5)
     var got = pie(cats, values, theme=t, width=300, height=300)
 
-    var want_c = Canvas(300, 300, t.background)
-    var want_plot = Plot().mark_arc().encode_categorical(x=cats, y=values).theme(t)
-    render(want_c, want_plot)
+    var want_plot = Plot().mark_arc().encode_categorical(x=cats, y=values)
+    var want_c = _rendered(want_plot^, t, 300, 300, "", "", "")
     _assert_canvas_equal(got, want_c, "pie")
 
 
@@ -123,9 +132,8 @@ def test_lollipop_matches_manual_plot() raises:
     var t = Theme(point_radius=6.0)
     var got = lollipop(cats, values, theme=t, width=300, height=200)
 
-    var want_c = Canvas(300, 200, t.background)
-    var want_plot = Plot().mark_lollipop().encode_categorical(x=cats, y=values).theme(t)
-    render(want_c, want_plot)
+    var want_plot = Plot().mark_lollipop().encode_categorical(x=cats, y=values)
+    var want_c = _rendered(want_plot^, t, 300, 200, "", "", "")
     _assert_canvas_equal(got, want_c, "lollipop")
 
 
@@ -136,11 +144,8 @@ def test_waterfall_matches_manual_plot() raises:
     var t = Theme(waterfall_total_color=Color(1, 2, 3))
     var got = waterfall(cats, deltas, is_total=is_total, theme=t, width=300, height=200)
 
-    var want_c = Canvas(300, 200, t.background)
-    var want_plot = (
-        Plot().mark_waterfall().encode_waterfall(categories=cats, deltas=deltas, is_total=is_total).theme(t)
-    )
-    render(want_c, want_plot)
+    var want_plot = Plot().mark_waterfall().encode_waterfall(categories=cats, deltas=deltas, is_total=is_total)
+    var want_c = _rendered(want_plot^, t, 300, 200, "", "", "")
     _assert_canvas_equal(got, want_c, "waterfall")
 
 
@@ -150,9 +155,8 @@ def test_box_matches_manual_plot() raises:
     var t = Theme(mark_color=Color(9, 9, 9))
     var got = box(cats, values, theme=t, width=300, height=200)
 
-    var want_c = Canvas(300, 200, t.background)
-    var want_plot = Plot().mark_box().encode_boxplot(categories=cats, values=values).theme(t)
-    render(want_c, want_plot)
+    var want_plot = Plot().mark_box().encode_boxplot(categories=cats, values=values)
+    var want_c = _rendered(want_plot^, t, 300, 200, "", "", "")
     _assert_canvas_equal(got, want_c, "box")
 
 
@@ -165,11 +169,10 @@ def test_candlestick_matches_manual_plot() raises:
     var t = Theme(mark_color_negative=Color(1, 1, 1))
     var got = candlestick(cats, open, high, low, close, theme=t, width=300, height=200)
 
-    var want_c = Canvas(300, 200, t.background)
     var want_plot = (
-        Plot().mark_candlestick().encode_candlestick(categories=cats, open=open, high=high, low=low, close=close).theme(t)
+        Plot().mark_candlestick().encode_candlestick(categories=cats, open=open, high=high, low=low, close=close)
     )
-    render(want_c, want_plot)
+    var want_c = _rendered(want_plot^, t, 300, 200, "", "", "")
     _assert_canvas_equal(got, want_c, "candlestick")
 
 
@@ -181,11 +184,10 @@ def test_bullet_matches_manual_plot() raises:
     var t = Theme(bullet_range_color_dark=Color(11, 12, 13))
     var got = bullet(cats, measures, targets, ranges, theme=t, width=300, height=200)
 
-    var want_c = Canvas(300, 200, t.background)
     var want_plot = (
-        Plot().mark_bullet().encode_bullet(categories=cats, measures=measures, targets=targets, ranges=ranges).theme(t)
+        Plot().mark_bullet().encode_bullet(categories=cats, measures=measures, targets=targets, ranges=ranges)
     )
-    render(want_c, want_plot)
+    var want_c = _rendered(want_plot^, t, 300, 200, "", "", "")
     _assert_canvas_equal(got, want_c, "bullet")
 
 
@@ -196,9 +198,8 @@ def test_gantt_matches_manual_plot() raises:
     var t = Theme(mark_color=Color(3, 4, 5))
     var got = gantt(cats, start, end, theme=t, width=300, height=200)
 
-    var want_c = Canvas(300, 200, t.background)
-    var want_plot = Plot().mark_gantt().encode_gantt(categories=cats, start=start, end=end).theme(t)
-    render(want_c, want_plot)
+    var want_plot = Plot().mark_gantt().encode_gantt(categories=cats, start=start, end=end)
+    var want_c = _rendered(want_plot^, t, 300, 200, "", "", "")
     _assert_canvas_equal(got, want_c, "gantt")
 
 
@@ -209,11 +210,10 @@ def test_grouped_bar_matches_manual_plot() raises:
     var t = Theme(show_legend=False)
     var got = grouped_bar(cats, series, values, theme=t, width=300, height=200)
 
-    var want_c = Canvas(300, 200, t.background)
     var want_plot = (
-        Plot().mark_grouped_bar().encode_grouped_bar(categories=cats, series_names=series, values=values).theme(t)
+        Plot().mark_grouped_bar().encode_grouped_bar(categories=cats, series_names=series, values=values)
     )
-    render(want_c, want_plot)
+    var want_c = _rendered(want_plot^, t, 300, 200, "", "", "")
     _assert_canvas_equal(got, want_c, "grouped_bar")
 
 
@@ -224,11 +224,10 @@ def test_stacked_bar_matches_manual_plot() raises:
     var t = Theme(show_legend=False)
     var got = stacked_bar(cats, series, values, theme=t, width=300, height=200)
 
-    var want_c = Canvas(300, 200, t.background)
     var want_plot = (
-        Plot().mark_stacked_bar().encode_grouped_bar(categories=cats, series_names=series, values=values).theme(t)
+        Plot().mark_stacked_bar().encode_grouped_bar(categories=cats, series_names=series, values=values)
     )
-    render(want_c, want_plot)
+    var want_c = _rendered(want_plot^, t, 300, 200, "", "", "")
     _assert_canvas_equal(got, want_c, "stacked_bar")
 
 
@@ -237,9 +236,8 @@ def test_bar_defaults_to_theme_default_and_640x420() raises:
     var values: List[Float64] = [1.0, 2.0]
     var got = bar(cats, values)  # no theme/width/height/labels given
 
-    var want_c = Canvas(640, 420, Theme().background)
-    var want_plot = Plot().mark_bar().encode_categorical(x=cats, y=values).theme(Theme())
-    render(want_c, want_plot)
+    var want_plot = Plot().mark_bar().encode_categorical(x=cats, y=values)
+    var want_c = _rendered(want_plot^, Theme(), 640, 420, "", "", "")
     _assert_canvas_equal(got, want_c, "bar defaults")
 
 

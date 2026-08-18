@@ -8,13 +8,13 @@ pie() -- see examples/scatter.mojo's own docstring for what that
 trades away; the donut_inner_radius_fraction=0.55 kwarg is the only
 thing distinguishing this file from examples/pie.mojo's own call.
 
-Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
-from the same Plot -- both backends are first-class (see the wiki), so
-both get exercised by every example without doubling the file count.
-The docs page for this example (see scripts/gen_example_docs.mojo)
-shows only the quickplot call above, not the render_svg() block below
--- both produce the identical chart, and the quickplot one is the
-cleaner reconstruction of "how would I actually write this."
+Writes both a raster (.bmp) and a vector (.svg) file from the same
+Plot -- both backends are first-class (see the wiki), so both get
+exercised by every example without doubling the file count. The docs
+page for this example (see scripts/gen_example_docs.mojo) shows only
+the quickplot call above, not the render_svg() block below -- both
+produce the identical chart, and the quickplot one is the cleaner
+reconstruction of "how would I actually write this."
 
 Run with:
     pixi run example
@@ -22,13 +22,10 @@ Run with:
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import pie
 from dataviz_mojo.theme import Theme
-
-comptime _SUPERSAMPLE = 3
 
 
 def main() raises:
@@ -38,13 +35,12 @@ def main() raises:
     var c = pie(
         browsers,
         share,
-        theme=Theme(donut_inner_radius_fraction=0.55, scale=Float64(_SUPERSAMPLE)),
-        width=400 * _SUPERSAMPLE,
-        height=300 * _SUPERSAMPLE,
+        theme=Theme(donut_inner_radius_fraction=0.55),
+        width=400,
+        height=300,
     )
-    var out = downsample(c, _SUPERSAMPLE)
-    write_bmp(out, "examples/out_donut.bmp")
-    write_png(out, "examples/out_donut.png")
+    write_bmp(c, "examples/out_donut.bmp")
+    write_png(c, "examples/out_donut.png")
 
     var svg = SvgCanvas(400, 300)
     var svg_plot = Plot().mark_arc().encode_categorical(x=browsers, y=share).theme(

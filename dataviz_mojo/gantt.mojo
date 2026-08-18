@@ -155,16 +155,16 @@ def _draw_horizontal_categorical_axis_frame[
     if theme.show_gridlines:
         for i in range(len(x_ticks.values)):
             var px = _axis_pixel(out_x_scale, x_ticks.values[i])
-            target.draw_line_aa(px, plot_y0, px, plot_y1, theme.gridline_color)
+            target.draw_line_aa(px, plot_y0, px, plot_y1, theme.gridline_color, width=sc.scale)
 
-    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color)
-    target.draw_line_aa(plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color)
+    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale)
+    target.draw_line_aa(plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale)
 
     var text_requests = List[_TextRequest]()
 
     for i in range(len(x_ticks.values)):
         var px = _axis_pixel(out_x_scale, x_ticks.values[i])
-        target.draw_line_aa(px, plot_y1, px, plot_y1 + sc.tick_length, theme.axis_color)
+        target.draw_line_aa(px, plot_y1, px, plot_y1 + sc.tick_length, theme.axis_color, width=sc.scale)
         text_requests.append(
             _TextRequest(
                 px,
@@ -179,7 +179,7 @@ def _draw_horizontal_categorical_axis_frame[
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for i in range(len(categories)):
         var center_py = _round_to_int(y_scale.center(i))
-        target.draw_line_aa(plot_x0 - sc.tick_length, center_py, plot_x0, center_py, theme.axis_color)
+        target.draw_line_aa(plot_x0 - sc.tick_length, center_py, plot_x0, center_py, theme.axis_color, width=sc.scale)
         text_requests.append(
             _TextRequest(
                 plot_x0 - sc.tick_length - sc.label_gap,

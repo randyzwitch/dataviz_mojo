@@ -74,14 +74,23 @@ def test_render_respects_custom_theme_colors() raises:
 
 
 def test_render_gridlines_flag_actually_controls_gridline_pixels() raises:
+    # Built via Plot/Canvas/render() directly, not scatter() -- an
+    # exact-zero pixel count is sensitive to any anti-aliasing detail,
+    # and scatter()'s own output is supersampled-then-downsampled
+    # internally now (see dataviz_mojo.plot._rendered's own docstring),
+    # which can coincidentally blend an edge pixel to this exact gray
+    # even with gridlines off. render() itself stays unsupersampled --
+    # see its own docstring -- so this exact check still holds there.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var gridline_color = Color(225, 225, 225)
 
-    var c_on = scatter(x, y, theme=Theme(show_gridlines=True), width=400, height=300)
+    var c_on = Canvas(400, 300, BG)
+    render(c_on, Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=True)))
     assert_true(_count_color(c_on, gridline_color) > 0)
 
-    var c_off = scatter(x, y, theme=Theme(show_gridlines=False), width=400, height=300)
+    var c_off = Canvas(400, 300, BG)
+    render(c_off, Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=False)))
     assert_equal(_count_color(c_off, gridline_color), 0)
 
 

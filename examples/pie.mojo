@@ -5,13 +5,9 @@ show_legend, on by default for Mark.ARC) labels each wedge. Built via
 dataviz_mojo.pie() -- see examples/scatter.mojo's own
 docstring for what that trades away.
 
-Supersampled 3x -- see examples/scatter.mojo's own docstring for why
-every example here now renders this way (and why it isn't just "a
-bigger canvas").
-
-Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
-from the same data -- see examples/donut.mojo's own docstring for why,
-and for why the docs page only shows the quickplot call above.
+Writes both a raster (.bmp) and a vector (.svg) file from the same
+data -- see examples/donut.mojo's own docstring for why, and for why
+the docs page only shows the quickplot call above.
 
 Run with:
     pixi run example
@@ -19,30 +15,20 @@ Run with:
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import pie
 from dataviz_mojo.theme import Theme
-
-comptime _SUPERSAMPLE = 3
 
 
 def main() raises:
     var browsers: List[String] = ["Chrome", "Safari", "Edge", "Firefox", "Other"]
     var share: List[Float64] = [65.0, 18.0, 5.0, 7.0, 5.0]
 
-    var c = pie(
-        browsers,
-        share,
-        theme=Theme(scale=Float64(_SUPERSAMPLE)),
-        width=400 * _SUPERSAMPLE,
-        height=300 * _SUPERSAMPLE,
-    )
-    var out = downsample(c, _SUPERSAMPLE)
+    var c = pie(browsers, share, width=400, height=300)
 
-    write_bmp(out, "examples/out_pie.bmp")
-    write_png(out, "examples/out_pie.png")
+    write_bmp(c, "examples/out_pie.bmp")
+    write_png(c, "examples/out_pie.png")
 
     var svg = SvgCanvas(400, 300)
     var svg_plot = Plot().mark_arc().encode_categorical(x=browsers, y=share).theme(Theme())

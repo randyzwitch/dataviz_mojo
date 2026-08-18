@@ -18,9 +18,9 @@ up and down days, including one wide-range day (Day 4) and one narrow-
 range day (Day 8), the kind of variety that actually exercises both
 wick lengths and both body colors.
 
-Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
-from the same data -- see examples/donut.mojo's own docstring for why,
-and for why the docs page only shows the quickplot call above.
+Writes both a raster (.bmp) and a vector (.svg) file from the same
+data -- see examples/donut.mojo's own docstring for why, and for why
+the docs page only shows the quickplot call above.
 
 Run with:
     pixi run example
@@ -28,13 +28,10 @@ Run with:
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import candlestick
 from dataviz_mojo.theme import Theme
-
-comptime _SUPERSAMPLE = 3
 
 
 def main() raises:
@@ -46,19 +43,9 @@ def main() raises:
     var low: List[Float64] = [98.0, 99.0, 95.0, 96.0, 105.0, 102.0, 101.0, 104.0]
     var close: List[Float64] = [104.0, 101.0, 97.0, 107.0, 110.0, 103.0, 108.0, 105.0]
 
-    var c = candlestick(
-        days,
-        open,
-        high,
-        low,
-        close,
-        theme=Theme(scale=Float64(_SUPERSAMPLE)),
-        width=640 * _SUPERSAMPLE,
-        height=420 * _SUPERSAMPLE,
-    )
-    var out = downsample(c, _SUPERSAMPLE)
-    write_bmp(out, "examples/out_candlestick.bmp")
-    write_png(out, "examples/out_candlestick.png")
+    var c = candlestick(days, open, high, low, close)
+    write_bmp(c, "examples/out_candlestick.bmp")
+    write_png(c, "examples/out_candlestick.png")
 
     var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_candlestick().encode_candlestick(days, open, high, low, close).theme(Theme())

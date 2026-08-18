@@ -14,9 +14,9 @@ kind of comparison a box plot is for: not each group's own single
 summary number (a bar chart's job), but each group's own spread, and
 whether any individual value falls unusually far from the rest.
 
-Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
-from the same data -- see examples/donut.mojo's own docstring for why,
-and for why the docs page only shows the quickplot call above.
+Writes both a raster (.bmp) and a vector (.svg) file from the same
+data -- see examples/donut.mojo's own docstring for why, and for why
+the docs page only shows the quickplot call above.
 
 Run with:
     pixi run example
@@ -25,13 +25,10 @@ Run with:
 from canvas_mojo.color import Color
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import box
 from dataviz_mojo.theme import Theme
-
-comptime _SUPERSAMPLE = 3
 
 
 def main() raises:
@@ -43,16 +40,9 @@ def main() raises:
         [82.0, 84.0, 85.0, 86.0, 87.0, 88.0, 89.0, 91.0, 93.0],
     ]
 
-    var c = box(
-        groups,
-        scores,
-        theme=Theme(mark_color=Color(70, 110, 190), scale=Float64(_SUPERSAMPLE)),
-        width=640 * _SUPERSAMPLE,
-        height=420 * _SUPERSAMPLE,
-    )
-    var out = downsample(c, _SUPERSAMPLE)
-    write_bmp(out, "examples/out_box.bmp")
-    write_png(out, "examples/out_box.png")
+    var c = box(groups, scores, theme=Theme(mark_color=Color(70, 110, 190)))
+    write_bmp(c, "examples/out_box.bmp")
+    write_png(c, "examples/out_box.png")
 
     var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_box().encode_boxplot(groups, scores).theme(

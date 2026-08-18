@@ -176,14 +176,15 @@ def _render_box[
         var high_py = frame.y_scale.to_pixel(plot._box_high[i])
 
         var center_i = _round_to_int(center)
-        target.draw_line_aa(center_i, _round_to_int(high_py), center_i, _round_to_int(q3_py), theme.axis_color)
-        target.draw_line_aa(center_i, _round_to_int(q1_py), center_i, _round_to_int(low_py), theme.axis_color)
+        target.draw_line_aa(center_i, _round_to_int(high_py), center_i, _round_to_int(q3_py), theme.axis_color, width=theme.scale)
+        target.draw_line_aa(center_i, _round_to_int(q1_py), center_i, _round_to_int(low_py), theme.axis_color, width=theme.scale)
         target.draw_line_aa(
             _round_to_int(center - cap_half_w),
             _round_to_int(high_py),
             _round_to_int(center + cap_half_w),
             _round_to_int(high_py),
             theme.axis_color,
+            width=theme.scale,
         )
         target.draw_line_aa(
             _round_to_int(center - cap_half_w),
@@ -191,6 +192,7 @@ def _render_box[
             _round_to_int(center + cap_half_w),
             _round_to_int(low_py),
             theme.axis_color,
+            width=theme.scale,
         )
 
         var box_x = _round_to_int(center - half_w)
@@ -200,7 +202,7 @@ def _render_box[
 
         target.draw_line_aa(
             _round_to_int(center - half_w), _round_to_int(median_py), _round_to_int(center + half_w),
-            _round_to_int(median_py), theme.axis_color,
+            _round_to_int(median_py), theme.axis_color, width=theme.scale,
         )
 
     for j in range(len(plot._box_outlier_value)):
