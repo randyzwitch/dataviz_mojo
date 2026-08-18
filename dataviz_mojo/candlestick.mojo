@@ -131,12 +131,7 @@ def candlestick(
     """A candlestick chart -- `Mark.CANDLESTICK`, one open/high/low/
     close bar per category. See plot.mojo's own module docstring for the
     shared parameters every function here takes."""
-    return _rendered(
-        Plot().mark_candlestick().encode_candlestick(categories=categories, open=open, high=high, low=low, close=close),
-        theme,
-        width,
-        height,
-        title,
-        x_title,
-        y_title,
+    var plot = Plot().mark_candlestick().encode_candlestick(
+        categories=categories, open=open, high=high, low=low, close=close
     )
+    return _rendered(plot^, theme, width, height, title, x_title, y_title)

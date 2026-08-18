@@ -2827,7 +2827,8 @@ def scatter(
     this module's own docstring for the shared `theme`/`width`/
     `height`/`title`/`x_title`/`y_title` parameters every function
     here takes."""
-    return _rendered(Plot().mark_point().encode(x=x, y=y), theme, width, height, title, x_title, y_title)
+    var plot = Plot().mark_point().encode(x=x, y=y)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title)
 
 
 def line(
@@ -2843,7 +2844,8 @@ def line(
     """A line chart -- `Mark.LINE` over continuous `x`/`y`, connected
     in data order. See this module's own docstring for the shared
     parameters every function here takes."""
-    return _rendered(Plot().mark_line().encode(x=x, y=y), theme, width, height, title, x_title, y_title)
+    var plot = Plot().mark_line().encode(x=x, y=y)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title)
 
 
 def area(
@@ -2859,4 +2861,5 @@ def area(
     """An area chart -- `Mark.AREA` over continuous `x`/`y`, filled
     down to a zero baseline. See this module's own docstring for the
     shared parameters every function here takes."""
-    return _rendered(Plot().mark_area().encode(x=x, y=y), theme, width, height, title, x_title, y_title)
+    var plot = Plot().mark_area().encode(x=x, y=y)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title)
