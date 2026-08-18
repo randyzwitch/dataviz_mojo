@@ -22,6 +22,7 @@ from dataviz_mojo.plot import (
     _unique_categories,
 )
 from dataviz_mojo.theme import Theme
+from dataviz_mojo import candlestick
 
 from _test_helpers import BG, _count_color, _assert_color
 
@@ -45,9 +46,7 @@ def test_render_candlestick_matches_hand_derived_wicks_and_bodies() raises:
     var low: List[Float64] = [8.0, 16.0]
     var close: List[Float64] = [13.0, 17.0]
     var t = Theme(show_gridlines=False)
-    var plot = Plot().mark_candlestick().encode_candlestick(cats, open, high, low, close).theme(t)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var c = candlestick(cats, open, high, low, close, theme=t, width=400, height=300)
 
     _assert_color(c, 140, 200, t.mark_color, "A: inside the body (open=210 to close=165), closed up")
     _assert_color(c, 140, 150, t.axis_color, "A: the wick, above the body (between high=135 and the body top)")
@@ -92,10 +91,8 @@ def test_render_candlestick_raises_on_mismatched_category_length() raises:
     var high: List[Float64] = [1.0, 2.0]
     var low: List[Float64] = [1.0, 2.0]
     var close: List[Float64] = [1.0, 2.0]
-    var plot = Plot().mark_candlestick().encode_candlestick(cats, open, high, low, close)
-    var c = Canvas(200, 150, BG)
     with assert_raises():
-        render(c, plot)
+        _ = candlestick(cats, open, high, low, close, width=200, height=150)
 
 
 def test_render_candlestick_raises_on_mismatched_ohlc_length() raises:
@@ -104,10 +101,8 @@ def test_render_candlestick_raises_on_mismatched_ohlc_length() raises:
     var high: List[Float64] = [1.0, 2.0]
     var low: List[Float64] = [1.0, 2.0]
     var close: List[Float64] = [1.0]
-    var plot = Plot().mark_candlestick().encode_candlestick(cats, open, high, low, close)
-    var c = Canvas(200, 150, BG)
     with assert_raises():
-        render(c, plot)
+        _ = candlestick(cats, open, high, low, close, width=200, height=150)
 
 
 def main() raises:

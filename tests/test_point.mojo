@@ -23,6 +23,7 @@ from dataviz_mojo.plot import (
     _unique_categories,
 )
 from dataviz_mojo.theme import Theme
+from dataviz_mojo import scatter
 
 from _test_helpers import BG, _count_color, _assert_color
 
@@ -39,12 +40,13 @@ def test_render_point_mark_centers_on_the_hand_derived_pixel() raises:
     # ambiguity to worry about). Default point_radius=3.5 rounds
     # (round-half-away-from-zero) to a 4px radius, so (220,135) is
     # deep in the disk's fully-covered interior -- exact color match,
-    # not just "some ink present".
+    # not just "some ink present". Built via scatter() (matches Plot().
+    # mark_point().encode(x=x, y=y) + Canvas(400,300,BG) + render()
+    # exactly -- see test_quickplot.mojo's own test_scatter_matches_
+    # manual_plot) rather than the fluent builder spelled out by hand.
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
-    var plot = Plot().mark_point().encode(x=x, y=y)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var c = scatter(x, y, width=400, height=300)
 
     var p = c.get_pixel(220, 135)
     var expected = Theme.default().mark_color

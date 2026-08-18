@@ -24,6 +24,7 @@ from dataviz_mojo.plot import (
     _unique_categories,
 )
 from dataviz_mojo.theme import Theme
+from dataviz_mojo import scatter
 
 from _test_helpers import BG, _count_color, _assert_color
 
@@ -58,9 +59,7 @@ def test_render_respects_custom_theme_colors() raises:
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
     var custom = Theme(background=Color(20, 20, 20), mark_color=Color(255, 0, 0))
-    var plot = Plot().mark_point().encode(x=x, y=y).theme(custom)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var c = scatter(x, y, theme=custom, width=400, height=300)
 
     # Far corner, untouched by any mark/axis/gridline -- pure background.
     var corner = c.get_pixel(399, 0)
@@ -79,12 +78,10 @@ def test_render_gridlines_flag_actually_controls_gridline_pixels() raises:
     var y: List[Float64] = [0.0, 10.0]
     var gridline_color = Color(225, 225, 225)
 
-    var c_on = Canvas(400, 300, BG)
-    render(c_on, Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=True)))
+    var c_on = scatter(x, y, theme=Theme(show_gridlines=True), width=400, height=300)
     assert_true(_count_color(c_on, gridline_color) > 0)
 
-    var c_off = Canvas(400, 300, BG)
-    render(c_off, Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=False)))
+    var c_off = scatter(x, y, theme=Theme(show_gridlines=False), width=400, height=300)
     assert_equal(_count_color(c_off, gridline_color), 0)
 
 

@@ -22,6 +22,7 @@ from dataviz_mojo.plot import (
     _unique_categories,
 )
 from dataviz_mojo.theme import Theme
+from dataviz_mojo import lollipop
 
 from _test_helpers import BG, _count_color, _assert_color
 
@@ -40,9 +41,7 @@ def test_render_lollipop_matches_hand_derived_stem_and_point() raises:
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [10.0, 20.0, 15.0]
     var t = Theme(show_gridlines=False)
-    var plot = Plot().mark_lollipop().encode_categorical(x=x, y=y).theme(t)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var c = lollipop(x, y, theme=t, width=400, height=300)
 
     _assert_color(c, 220, 31, t.mark_color, "circle center, category b's own value pixel")
     _assert_color(c, 220, 150, t.mark_color, "stem midpoint, well within the 2px-wide stroke")
@@ -68,10 +67,8 @@ def test_render_lollipop_svg_matches_confirmed_stem_and_point() raises:
 def test_render_lollipop_raises_on_mismatched_category_length() raises:
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0]
-    var plot = Plot().mark_lollipop().encode_categorical(x=x, y=y)
-    var c = Canvas(200, 150, BG)
     with assert_raises():
-        render(c, plot)
+        _ = lollipop(x, y, width=200, height=150)
 
 
 def main() raises:

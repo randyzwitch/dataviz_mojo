@@ -22,6 +22,7 @@ from dataviz_mojo.plot import (
     _unique_categories,
 )
 from dataviz_mojo.theme import Theme
+from dataviz_mojo import area
 
 from _test_helpers import BG, _count_color, _assert_color
 
@@ -42,9 +43,7 @@ def test_render_area_mark_matches_hand_derived_fill_region() raises:
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var t = Theme(show_gridlines=False)
-    var plot = Plot().mark_area().encode(x=x, y=y).theme(t)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var c = area(x, y, theme=t, width=400, height=300)
 
     _assert_color(c, 220, 200, t.mark_color, "inside the filled area")
     _assert_color(c, 220, 50, BG, "above the area's top edge -- background")
@@ -87,10 +86,8 @@ def test_render_area_smoothing_default_matches_straight_output_exactly() raises:
     # an explicit Theme(line_smoothing=0.0).
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [2.0, 10.0, 4.0]
-    var c_default = Canvas(400, 300, BG)
-    render(c_default, Plot().mark_area().encode(x=x, y=y))
-    var c_explicit = Canvas(400, 300, BG)
-    render(c_explicit, Plot().mark_area().encode(x=x, y=y).theme(Theme(line_smoothing=0.0)))
+    var c_default = area(x, y, width=400, height=300)
+    var c_explicit = area(x, y, theme=Theme(line_smoothing=0.0), width=400, height=300)
 
     for yy in range(c_default.height):
         for xx in range(c_default.width):
@@ -104,11 +101,10 @@ def test_render_area_smoothing_default_matches_straight_output_exactly() raises:
 def test_render_area_raises_on_out_of_range_smoothing() raises:
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
-    var c = Canvas(200, 150, BG)
     with assert_raises():
-        render(c, Plot().mark_area().encode(x=x, y=y).theme(Theme(line_smoothing=-0.1)))
+        _ = area(x, y, theme=Theme(line_smoothing=-0.1), width=200, height=150)
     with assert_raises():
-        render(c, Plot().mark_area().encode(x=x, y=y).theme(Theme(line_smoothing=1.1)))
+        _ = area(x, y, theme=Theme(line_smoothing=1.1), width=200, height=150)
 
 
 def main() raises:

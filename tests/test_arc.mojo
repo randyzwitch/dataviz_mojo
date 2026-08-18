@@ -23,6 +23,7 @@ from dataviz_mojo.plot import (
     _unique_categories,
 )
 from dataviz_mojo.theme import Theme
+from dataviz_mojo import pie
 
 from _test_helpers import BG, _count_color, _assert_color
 
@@ -45,9 +46,7 @@ def test_render_arc_mark_matches_hand_derived_wedge_colors() raises:
     # well inside that.
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1.0, 1.0]
-    var plot = Plot().mark_arc().encode_categorical(x=x, y=y)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var c = pie(x, y, width=400, height=300)
 
     var palette = default_categorical_palette()
     _assert_color(c, 205, 135, palette[0], "right of center -- wedge 0 (a)")
@@ -57,28 +56,22 @@ def test_render_arc_mark_matches_hand_derived_wedge_colors() raises:
 def test_render_arc_raises_on_negative_value() raises:
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1.0, -1.0]
-    var plot = Plot().mark_arc().encode_categorical(x=x, y=y)
-    var c = Canvas(200, 150, BG)
     with assert_raises():
-        render(c, plot)
+        _ = pie(x, y, width=200, height=150)
 
 
 def test_render_arc_raises_on_all_zero_values() raises:
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [0.0, 0.0]
-    var plot = Plot().mark_arc().encode_categorical(x=x, y=y)
-    var c = Canvas(200, 150, BG)
     with assert_raises():
-        render(c, plot)
+        _ = pie(x, y, width=200, height=150)
 
 
 def test_render_arc_raises_on_mismatched_category_length() raises:
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0]
-    var plot = Plot().mark_arc().encode_categorical(x=x, y=y)
-    var c = Canvas(200, 150, BG)
     with assert_raises():
-        render(c, plot)
+        _ = pie(x, y, width=200, height=150)
 
 
 def test_render_svg_arc_mark_matches_confirmed_wedge_paths() raises:
@@ -126,11 +119,9 @@ def test_render_donut_leaves_the_center_unfilled_and_fills_the_ring() raises:
     # would make an exact color match unreliable.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var c = Canvas(400, 300, BG)
-    var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).theme(
-        Theme(show_legend=False, donut_inner_radius_fraction=0.5)
+    var c = pie(
+        cats, vals, theme=Theme(show_legend=False, donut_inner_radius_fraction=0.5), width=400, height=300
     )
-    render(c, plot)
 
     _assert_color(c, 220, 135, BG, "donut hole: the exact center stays background")
     _assert_color(
@@ -167,21 +158,10 @@ def test_render_donut_svg_matches_confirmed_ring_sector_paths() raises:
 def test_render_donut_raises_on_out_of_range_inner_radius_fraction() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 1.0]
-    var c = Canvas(400, 300, BG)
     with assert_raises():
-        render(
-            c,
-            Plot().mark_arc().encode_categorical(x=cats, y=vals).theme(
-                Theme(donut_inner_radius_fraction=1.0)
-            ),
-        )
+        _ = pie(cats, vals, theme=Theme(donut_inner_radius_fraction=1.0), width=400, height=300)
     with assert_raises():
-        render(
-            c,
-            Plot().mark_arc().encode_categorical(x=cats, y=vals).theme(
-                Theme(donut_inner_radius_fraction=-0.1)
-            ),
-        )
+        _ = pie(cats, vals, theme=Theme(donut_inner_radius_fraction=-0.1), width=400, height=300)
 
 
 def main() raises:

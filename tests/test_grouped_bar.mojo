@@ -22,6 +22,7 @@ from dataviz_mojo.plot import (
     _unique_categories,
 )
 from dataviz_mojo.theme import Theme
+from dataviz_mojo import grouped_bar
 
 from _test_helpers import BG, _count_color, _assert_color
 
@@ -60,9 +61,7 @@ def test_render_grouped_bar_matches_hand_derived_rectangles() raises:
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
     var t = Theme(show_gridlines=False)
-    var plot = Plot().mark_grouped_bar().encode_grouped_bar(cats, names, values).theme(t)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var c = grouped_bar(cats, names, values, theme=t, width=400, height=300)
 
     var palette = default_categorical_palette()
     # A, North (series 0, value 10): x:[70,108), y:[140,250)
@@ -115,9 +114,7 @@ def test_render_grouped_bar_zero_length_categories_only_fills_background() raise
     var cats = List[String]()
     var names: List[String] = ["North"]
     var values: List[List[Float64]] = [List[Float64]()]
-    var plot = Plot().mark_grouped_bar().encode_grouped_bar(cats, names, values)
-    var c = Canvas(200, 150, BG)
-    render(c, plot)
+    var c = grouped_bar(cats, names, values, width=200, height=150)
     _assert_color(c, 100, 75, BG, "no categories -- just the background fill")
 
 
@@ -125,20 +122,16 @@ def test_render_grouped_bar_raises_on_mismatched_series_names_and_values_length(
     var cats: List[String] = ["a", "b"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[1.0, 2.0]]
-    var plot = Plot().mark_grouped_bar().encode_grouped_bar(cats, names, values)
-    var c = Canvas(200, 150, BG)
     with assert_raises():
-        render(c, plot)
+        _ = grouped_bar(cats, names, values, width=200, height=150)
 
 
 def test_render_grouped_bar_raises_on_mismatched_value_series_length() raises:
     var cats: List[String] = ["a", "b", "c"]
     var names: List[String] = ["North"]
     var values: List[List[Float64]] = [[1.0, 2.0]]
-    var plot = Plot().mark_grouped_bar().encode_grouped_bar(cats, names, values)
-    var c = Canvas(200, 150, BG)
     with assert_raises():
-        render(c, plot)
+        _ = grouped_bar(cats, names, values, width=200, height=150)
 
 
 def main() raises:
