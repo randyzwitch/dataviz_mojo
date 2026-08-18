@@ -479,16 +479,22 @@ def _build_page(name: String, title: String) raises -> String:
     var docstring = _extract_docstring(source)
     var hook = _first_sentence(docstring)
 
-    # A quickplot-built example always shows its .png -- the snippet
-    # below constructs a raster Canvas, so showing the .svg this same
-    # file may *also* write (for its own render_svg() backend
-    # coverage, cut from the displayed snippet entirely -- see
-    # _extract_clean_body()'s own docstring) would show an image the
-    # snippet doesn't actually produce.
-    var uses_quickplot = _quickplot_call_start(_main_body_lines(source)) != -1
-    var image = "out_" + name + ".png" if uses_quickplot else (
-        "out_" + name + ".svg" if _has_call(source, "write_svg") else "out_" + name + ".png"
-    )
+    # SVG is the preferred display format -- a vector image stays crisp
+    # at any zoom/pane size a browser puts it in, unlike a fixed-
+    # resolution raster snapshot, and every example now writes one (see
+    # examples/*.mojo's own "Writes both a raster ... and a vector ..."
+    # docstring paragraph). This holds even for a quickplot-built
+    # example, whose *shown* snippet only constructs the raster Canvas
+    # (that separate SvgCanvas/render_svg() block is cut from the
+    # snippet entirely -- see _extract_clean_body()'s own docstring):
+    # the two backends render the identical chart from the identical
+    # data, so the .svg is still an accurate picture of what the shown
+    # snippet's quickplot call produces, just via the file's other
+    # (unshown) render path. Falls back to .png only for an example
+    # that doesn't write an .svg at all -- none do today, but a future
+    # one demoing raster-only output (PNG/BMP specifically) would land
+    # here instead of being forced into a vector image it never builds.
+    var image = "out_" + name + ".svg" if _has_call(source, "write_svg") else "out_" + name + ".png"
 
     var clean_body = _extract_clean_body(source)
     var body_text = String("\n").join(clean_body)

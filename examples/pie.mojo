@@ -9,6 +9,10 @@ Supersampled 3x -- see examples/scatter.mojo's own docstring for why
 every example here now renders this way (and why it isn't just "a
 bigger canvas").
 
+Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
+from the same data -- see examples/donut.mojo's own docstring for why,
+and for why the docs page only shows the quickplot call above.
+
 Run with:
     pixi run example
 """
@@ -16,6 +20,8 @@ Run with:
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
+from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import pie
 from dataviz_mojo.theme import Theme
 
@@ -37,4 +43,10 @@ def main() raises:
 
     write_bmp(out, "examples/out_pie.bmp")
     write_png(out, "examples/out_pie.png")
-    print("wrote examples/out_pie.bmp and .png")
+
+    var svg = SvgCanvas(400, 300)
+    var svg_plot = Plot().mark_arc().encode_categorical(x=browsers, y=share).theme(Theme())
+    render_svg(svg, svg_plot)
+    write_svg(svg, "examples/out_pie.svg")
+
+    print("wrote examples/out_pie.bmp, .png, and .svg")
