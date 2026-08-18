@@ -5,7 +5,7 @@ zero baseline for negative values already works with no changes
 needed (see examples/bar.mojo's own negative-value bar); color_by_sign
 is the one further thing a genuinely *diverging* bar chart adds, so
 the sign reads at a glance, not just from which direction the bar
-points. Raster output built via dataviz_mojo.quickplot.bar() -- see
+points. Raster output built via dataviz_mojo.bar() -- see
 examples/scatter.mojo's own docstring for what that trades away; the
 color_by_sign=True kwarg is the only thing distinguishing this file
 from examples/bar.mojo's own call.
@@ -23,7 +23,7 @@ from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.quickplot import bar
+from dataviz_mojo import bar
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3

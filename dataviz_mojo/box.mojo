@@ -1,14 +1,6 @@
-"""Mark.BOX's own rendering -- see Plot.mark_box()'s own docstring
-(plot.mojo) for what the mark means; `_render_box` is what `_render_
-generic` (plot.mojo) dispatches to. Also holds `_box_stats()` -- the
-quartile/whisker/outlier computation `Plot.encode_boxplot()` (plot.
-mojo) calls immediately, not deferred to render() time (see that
-method's own docstring) -- and `_percentile()`, used only by `_box_
-stats()`.
-"""
-
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
+from canvas_mojo.buffer import Canvas
 
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -18,7 +10,9 @@ from dataviz_mojo.plot import (
     _data_extent,
     _draw_categorical_axis_frame,
     _empty_result,
+    _rendered,
 )
+from dataviz_mojo.theme import Theme
 
 
 def _percentile(sorted_values: List[Float64], p: Float64) -> Float64:
@@ -216,3 +210,30 @@ def _render_box[
         target.fill_circle_aa(center_px, value_py, _round_to_int(frame.sc.point_radius), theme.mark_color)
 
     return frame.result()
+
+
+def box(
+    categories: List[String],
+    values: List[List[Float64]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A box plot -- `Mark.BOX`, one box-and-whiskers per category
+    summarizing a whole distribution of raw values (`values[i]`, not
+    a single number). See `Plot.encode_boxplot()`'s own docstring
+    (plot.mojo) for the quartile/whisker/outlier computation, and
+    plot.mojo's own module docstring for the shared parameters every
+    function here takes."""
+    return _rendered(
+        Plot().mark_box().encode_boxplot(categories=categories, values=values),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
+    )

@@ -77,6 +77,64 @@ unchanged -- so it holds only the binning calculation). These import
 `Plot`/the shared machinery back from this file, and this file imports
 each mark's own `_render_*`/calculation function back from theirs --
 a real circular import, which Mojo resolves fine within one package.
+
+## The one-call convenience functions
+
+Alongside its own rendering, each of those files also holds that
+mark's own one-call convenience function -- `bar()` in bar.mojo,
+`pie()` in arc.mojo, `waterfall()` in waterfall.mojo, and so on --
+with `scatter()`/`line()`/`area()` here in this file, beside the
+`Mark.POINT`/`LINE`/`AREA` rendering they wrap. One rule, no
+exceptions: a mark's convenience function lives with that mark's own
+code. (These were all one `quickplot.mojo` module before; see the
+wiki's Changelog for the move.) Import them from the package itself --
+`from dataviz_mojo import bar, scatter` -- not from the mark file
+they happen to live in.
+
+Each wraps `Plot`/`Theme`/`Canvas`/`render()` for the common case: a
+single chart, one mark, sane defaults for everything that isn't the
+data itself. Every one does exactly what `examples/bar.mojo`'s own
+`main()` used to do by hand -- build a `Theme`, build a `Canvas` sized
+to match, build a `Plot`, `encode*()` the data onto it, `render()`
+into the canvas -- collapsed into one call (`_rendered()` below is the
+shared tail all thirteen delegate that to).
+
+Not a replacement for the fluent `Plot` builder -- facets, layering,
+`color`/`size` encoding, and the SVG backend all still need `Plot`
+built directly, the same way `examples/` already shows for each. They
+sit *on top of* that builder, not instead of it: every one still ends
+up calling `Plot`/`render()` itself, so dropping down to the full
+builder later (a second series, a facet grid) is a rewrite of one
+call, not a different mental model.
+
+Named after the mark, not the `Plot.mark_*()` method each wraps
+(`bar`, not `mark_bar`) -- they're meant to be the first thing a
+caller reaches for, not a shorthand for people who already know the
+builder's vocabulary. Each takes exactly the data shape its own
+`encode*()` counterpart needs (a plain `(x, y)` pair for the
+continuous marks, `(categories, values)` for the categorical ones,
+and each mark-specific shape beyond that -- `waterfall()`'s `deltas`,
+`box()`'s per-category value lists, `candlestick()`'s OHLC columns,
+`bullet()`'s measure/target/ranges, `gantt()`'s start/end,
+`grouped_bar()`/`stacked_bar()`'s per-series values), plus five
+parameters shared across all of them:
+
+- `theme`: a full `Theme`, for every knob these don't surface as
+  their own parameter (colors beyond `mark_color`, margins, font
+  sizes, gridlines, `line_smoothing`, ...) --
+  `Theme(mark_color=Color(40, 130, 90))` works exactly as it does
+  building a `Plot` by hand; only how it's handed in differs (an
+  argument here, instead of a chained `.theme(...)`).
+- `width`/`height`: the returned `Canvas`'s pixel size, defaulting to
+  640x420 -- the size every example renders at before its own
+  supersampling.
+- `title`/`x_title`/`y_title`: forwarded to `Plot.labels()` as-is.
+
+Every one returns a `Canvas`, already rendered -- call
+`.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) on the
+result. There's no SVG equivalent yet -- build a `Plot` and call
+`render_svg()` into an `SvgCanvas` directly for that (see
+`examples/scatter_svg.mojo`), same as for any mark these don't cover.
 """
 
 from std.collections import Dict
@@ -2719,3 +2777,86 @@ def _render_layers_generic[
             _draw_area_layer(target, plots[j], frame.x_scale, frame.y_scale)
 
     return _RenderResult(text_requests^, frame.px0, frame.py0, frame.px1, frame.py1)
+
+
+def _rendered(
+    var plot: Plot,
+    theme: Theme,
+    width: Int,
+    height: Int,
+    title: String,
+    x_title: String,
+    y_title: String,
+) raises -> Canvas:
+    """Everything every function in this module does once its own mark
+    and data are chosen: apply the shared `title`/`x_title`/`y_title`
+    and `theme` to the half-built `plot`, size a `Canvas` to match, and
+    render into it.
+
+    All thirteen functions here used to carry a verbatim copy of these
+    four lines, which is most of what each one *was* -- the two chained
+    builder calls that pick the mark and encode the data are the only
+    part that ever differed. `.labels()`/`.theme()` are applied here
+    rather than at each call site for the same reason: nothing about
+    them varies by mark.
+
+    Takes `plot` as `var` (owned) because `Plot`'s own builder methods
+    consume and return `Self` -- see plot.mojo's own module docstring
+    for that convention -- and so the chain below needs an explicit
+    `plot^` transfer into the first of them: `Plot` deliberately isn't
+    `ImplicitlyCopyable` (it owns every data column), so without the
+    `^` the compiler rejects the call outright rather than silently
+    copying the columns.
+    """
+    var c = Canvas(width, height, theme.background)
+    render(c, plot^.labels(title=title, x_title=x_title, y_title=y_title).theme(theme))
+    return c^
+
+
+def scatter(
+    x: List[Float64],
+    y: List[Float64],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A scatter plot -- `Mark.POINT` over continuous `x`/`y`. See
+    this module's own docstring for the shared `theme`/`width`/
+    `height`/`title`/`x_title`/`y_title` parameters every function
+    here takes."""
+    return _rendered(Plot().mark_point().encode(x=x, y=y), theme, width, height, title, x_title, y_title)
+
+
+def line(
+    x: List[Float64],
+    y: List[Float64],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A line chart -- `Mark.LINE` over continuous `x`/`y`, connected
+    in data order. See this module's own docstring for the shared
+    parameters every function here takes."""
+    return _rendered(Plot().mark_line().encode(x=x, y=y), theme, width, height, title, x_title, y_title)
+
+
+def area(
+    x: List[Float64],
+    y: List[Float64],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """An area chart -- `Mark.AREA` over continuous `x`/`y`, filled
+    down to a zero baseline. See this module's own docstring for the
+    shared parameters every function here takes."""
+    return _rendered(Plot().mark_area().encode(x=x, y=y), theme, width, height, title, x_title, y_title)

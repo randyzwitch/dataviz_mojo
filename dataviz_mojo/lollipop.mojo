@@ -1,11 +1,7 @@
-"""Mark.LOLLIPOP's own rendering -- see Plot.mark_lollipop()'s own
-docstring (plot.mojo) for what the mark means; `_render_lollipop` is
-what `_render_generic` (plot.mojo) dispatches to.
-"""
-
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.path import Path
 from canvas_mojo.vector.draw_target import DrawTarget
+from canvas_mojo.buffer import Canvas
 
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -14,6 +10,7 @@ from dataviz_mojo.plot import (
     _axis_pixel,
     _draw_categorical_axis_frame,
     _empty_result,
+    _rendered,
     _zero_baseline_y_extent,
 )
 from dataviz_mojo.theme import Theme
@@ -72,3 +69,28 @@ def _render_lollipop[
         )
 
     return frame.result()
+
+
+def lollipop(
+    categories: List[String],
+    values: List[Float64],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A lollipop chart -- `Mark.LOLLIPOP`, the same `(categories,
+    values)` shape `bar()` takes (a thin stem plus a point instead of
+    a filled rect per category). See plot.mojo's own module docstring for
+    the shared parameters every function here takes."""
+    return _rendered(
+        Plot().mark_lollipop().encode_categorical(x=categories, y=values),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
+    )

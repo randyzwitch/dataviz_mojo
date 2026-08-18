@@ -2,7 +2,7 @@
 proportional to its value, colored via the same default_categorical_
 palette() a categorical-color scatter plot uses. A legend (Theme.
 show_legend, on by default for Mark.ARC) labels each wedge. Built via
-dataviz_mojo.quickplot.pie() -- see examples/scatter.mojo's own
+dataviz_mojo.pie() -- see examples/scatter.mojo's own
 docstring for what that trades away.
 
 Supersampled 3x -- see examples/scatter.mojo's own docstring for why
@@ -16,7 +16,7 @@ Run with:
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
-from dataviz_mojo.quickplot import pie
+from dataviz_mojo import pie
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3

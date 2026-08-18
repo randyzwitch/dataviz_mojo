@@ -1,10 +1,6 @@
-"""Mark.BAR's own rendering -- see Plot.mark_bar()'s own docstring
-(plot.mojo) for what the mark means; `_render_bar` is what `_render_
-generic` (plot.mojo) dispatches to.
-"""
-
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
+from canvas_mojo.buffer import Canvas
 
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.ordinal_scale import OrdinalScale
@@ -15,6 +11,7 @@ from dataviz_mojo.plot import (
     _data_extent,
     _draw_categorical_axis_frame,
     _empty_result,
+    _rendered,
     _zero_baseline_y_extent,
 )
 from dataviz_mojo.theme import Theme
@@ -99,3 +96,29 @@ def _render_bar[
     # trade for not having to hand-unpack every field `_CategoricalFrame`
     # carries just to satisfy this.
     return frame.result()
+
+
+def bar(
+    categories: List[String],
+    values: List[Float64],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A bar chart -- `Mark.BAR` over a categorical `x` and continuous
+    `y` (see `Plot.encode_categorical()`'s own docstring; one bar per
+    entry, negative values extend below the zero baseline
+    automatically). See plot.mojo's own module docstring for the shared
+    parameters every function here takes."""
+    return _rendered(
+        Plot().mark_bar().encode_categorical(x=categories, y=values),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
+    )

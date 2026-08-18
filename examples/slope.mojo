@@ -4,7 +4,7 @@ No new dataviz code: this is exactly the same LINE mark examples/
 line.mojo draws, at the specific two-point data shape a slope chart
 always is -- already fully supported, so this example exists to
 demonstrate and hand-verify the pattern, not a new feature. Built via
-dataviz_mojo.quickplot.line() -- see examples/scatter.mojo's own
+dataviz_mojo.line() -- see examples/scatter.mojo's own
 docstring for what that trades away.
 
 Honest limitation, not silently glossed over: `Mark.LINE`'s x-axis is
@@ -33,7 +33,7 @@ from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.quickplot import line
+from dataviz_mojo import line
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3

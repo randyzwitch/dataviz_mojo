@@ -1,15 +1,6 @@
-"""Mark.WATERFALL's own rendering -- see Plot.mark_waterfall()'s own
-docstring (plot.mojo) for what the mark means; `_render_waterfall` is
-what `_render_generic` (plot.mojo) dispatches to. Also holds
-`_waterfall_running_totals()` -- the running-cumulative-sum
-computation `Plot.encode_waterfall()` (plot.mojo) calls immediately,
-not deferred to render() time (see that method's own docstring for
-why), extracted out of the method body itself so this file holds
-everything specific to Mark.WATERFALL, not just its drawing.
-"""
-
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
+from canvas_mojo.buffer import Canvas
 
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -18,6 +9,7 @@ from dataviz_mojo.plot import (
     _axis_pixel,
     _draw_categorical_axis_frame,
     _empty_result,
+    _rendered,
     _zero_baseline_y_extent,
 )
 from dataviz_mojo.theme import Theme
@@ -240,3 +232,30 @@ def _render_waterfall[
             target.draw_line_aa(prev_x1, prev_end_py, bar_x, prev_end_py, theme.axis_color)
 
     return frame.result()
+
+
+def waterfall(
+    categories: List[String],
+    deltas: List[Float64],
+    is_total: List[Bool] = List[Bool](),
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A waterfall chart -- `Mark.WATERFALL`, floating bars from a
+    running total. See `Plot.encode_waterfall()`'s own docstring
+    (plot.mojo) for what `deltas`/`is_total` mean, and this module's
+    own docstring for the shared parameters every function here
+    takes."""
+    return _rendered(
+        Plot().mark_waterfall().encode_waterfall(categories=categories, deltas=deltas, is_total=is_total),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
+    )

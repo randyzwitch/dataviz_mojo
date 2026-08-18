@@ -1,10 +1,6 @@
-"""Mark.BULLET's own rendering (Stephen Few's design) -- see Plot.
-mark_bullet()'s own docstring (plot.mojo) for what the mark means;
-`_render_bullet` is what `_render_generic` (plot.mojo) dispatches to.
-"""
-
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
+from canvas_mojo.buffer import Canvas
 
 from dataviz_mojo.color_scale import ColorScale
 from dataviz_mojo.mark import Mark
@@ -14,6 +10,7 @@ from dataviz_mojo.plot import (
     _axis_pixel,
     _draw_categorical_axis_frame,
     _empty_result,
+    _rendered,
     _zero_baseline_y_extent,
 )
 from dataviz_mojo.theme import Theme
@@ -174,3 +171,32 @@ def _render_bullet[
         target.draw_line_aa(band_x, target_py, band_end, target_py, theme.axis_color)
 
     return frame.result()
+
+
+def bullet(
+    categories: List[String],
+    measures: List[Float64],
+    targets: List[Float64],
+    ranges: List[List[Float64]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A bullet chart -- `Mark.BULLET` (Stephen Few's design): a
+    measure bar, a target tick, and shaded qualitative-range bands
+    per category. See `Plot.encode_bullet()`'s own docstring
+    (plot.mojo) for what `measures`/`targets`/`ranges` mean, and this
+    module's own docstring for the shared parameters every function
+    here takes."""
+    return _rendered(
+        Plot().mark_bullet().encode_bullet(categories=categories, measures=measures, targets=targets, ranges=ranges),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
+    )

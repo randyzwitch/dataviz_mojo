@@ -1,10 +1,20 @@
-"""Tests for dataviz_mojo.quickplot: every convenience function is
-checked pixel-for-pixel against the exact Plot/Theme/Canvas/render()
-call it wraps -- not a second hand-derived pixel check (that's already
-covered per-mark in test_point.mojo/test_bar.mojo/test_waterfall.mojo/
-etc.), so these tests catch quickplot.mojo drifting out of sync with
-Plot's own builder (a renamed encode_*() kwarg, a dropped .labels()/
-.theme() call, a wrong default), not Plot's own rendering math.
+"""Tests for the one-call convenience functions: every one is checked
+pixel-for-pixel against the exact Plot/Theme/Canvas/render() call it
+wraps -- not a second hand-derived pixel check (that's already covered
+per-mark in test_point.mojo/test_bar.mojo/test_waterfall.mojo/etc.),
+so these tests catch a wrapper drifting out of sync with Plot's own
+builder (a renamed encode_*() kwarg, a dropped .labels()/.theme()
+call, a wrong default), not Plot's own rendering math.
+
+These all lived in one dataviz_mojo/quickplot.mojo when this file was
+written; each now sits in its own mark's file instead (see plot.mojo's
+own module docstring for the rule). They stay tested together here
+because what they share -- the builder contract and the documented
+defaults -- is exactly what these tests check, and that's a property of
+the group, not of any one mark. Imported from the package itself, the
+way a caller is meant to (see dataviz_mojo/__init__.mojo's own
+docstring), which is also what keeps this file indifferent to which
+mark file any given one ends up in.
 
 One "matches the manual builder, non-default theme/size/labels"
 test per mark (proves the escape hatch and the shared parameters all
@@ -18,7 +28,7 @@ from canvas_mojo.color import Color
 from canvas_mojo.buffer import Canvas
 from dataviz_mojo.plot import Plot, render
 from dataviz_mojo.theme import Theme
-from dataviz_mojo.quickplot import (
+from dataviz_mojo import (
     area,
     bar,
     box,
