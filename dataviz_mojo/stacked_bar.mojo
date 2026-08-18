@@ -109,9 +109,9 @@ def _render_stacked_bar[
 
     var palette = default_categorical_palette()
 
+    var band_width = _round_to_int(frame.x_scale.bandwidth())
     for i in range(len(plot.x_categories)):
         var band_x = _round_to_int(frame.x_scale.band_start(i))
-        var band_width = _round_to_int(frame.x_scale.bandwidth())
         var pos_running = 0.0
         var neg_running = 0.0
         for j in range(n_series):

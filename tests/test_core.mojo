@@ -19,6 +19,7 @@ from dataviz_mojo.plot import (
     render_layers_svg,
     render_svg,
     _build_line_path,
+    _categorical_indices,
     _index_of,
     _unique_categories,
 )
@@ -114,6 +115,36 @@ def test_unique_categories_preserves_first_seen_order() raises:
     assert_equal(unique[0], "b")
     assert_equal(unique[1], "a")
     assert_equal(unique[2], "c")
+
+
+def test_categorical_indices_agrees_with_unique_categories_and_index_of() raises:
+    # _categorical_indices replaces a _unique_categories pass plus a
+    # per-point _index_of search with one hashed pass. Its whole
+    # contract is that it produces exactly what those two did, so this
+    # asserts equivalence against both directly rather than against
+    # hand-written expected values -- if the fast path ever disagrees
+    # with the slow one it's wrong by definition.
+    var data: List[String] = ["b", "a", "b", "c", "a", "c", "c"]
+    var cat = _categorical_indices(data)
+
+    var expected_domain = _unique_categories(data)
+    assert_equal(len(cat.domain), len(expected_domain))
+    for i in range(len(expected_domain)):
+        assert_equal(cat.domain[i], expected_domain[i])
+
+    assert_equal(len(cat.indices), len(data))
+    for i in range(len(data)):
+        assert_equal(cat.indices[i], _index_of(expected_domain, data[i]))
+        # ...and the index really does address the right category.
+        assert_equal(cat.domain[cat.indices[i]], data[i])
+
+
+def test_categorical_indices_on_an_empty_column_is_empty() raises:
+    # The unencoded-channel case _PointChannels takes when no
+    # categorical color column was given.
+    var cat = _categorical_indices(List[String]())
+    assert_equal(len(cat.domain), 0)
+    assert_equal(len(cat.indices), 0)
 
 
 def test_index_of_finds_positions_and_reports_missing_as_negative_one() raises:

@@ -183,11 +183,18 @@ def _render_waterfall[
     # have anything to distinguish.
     var using_totals = len(plot._waterfall_is_total) > 0
 
+    # Only recorded when is_total is actually in use -- that's the only
+    # case the connector pass below reads them back (a delta bar can be
+    # narrower than its own band then, so a connector has to ask the
+    # previous bar what it actually drew). With no total rows the
+    # connector re-derives the edge from the band directly, for the
+    # byte-compatibility reason its own comment gives, and these two
+    # lists would just be filled and never read.
     var bar_x_list = List[Int]()
     var bar_width_list = List[Int]()
+    var bandwidth = frame.x_scale.bandwidth()
     for i in range(len(plot.x_categories)):
         var band_start = frame.x_scale.band_start(i)
-        var bandwidth = frame.x_scale.bandwidth()
         var row_is_total = plot._waterfall_is_total[i] if i < len(plot._waterfall_is_total) else False
         var bar_x: Int
         var bar_width: Int
@@ -199,8 +206,9 @@ def _render_waterfall[
             var inset = (bandwidth - narrow_width) / 2.0
             bar_x = _round_to_int(band_start + inset)
             bar_width = _round_to_int(band_start + inset + narrow_width) - bar_x
-        bar_x_list.append(bar_x)
-        bar_width_list.append(bar_width)
+        if using_totals:
+            bar_x_list.append(bar_x)
+            bar_width_list.append(bar_width)
 
         var y0_py = _axis_pixel(frame.y_scale, plot._waterfall_y0[i])
         var y1_py = _axis_pixel(frame.y_scale, plot._waterfall_y1[i])
