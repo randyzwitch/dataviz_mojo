@@ -71,10 +71,10 @@ def scatter(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A scatter plot in one call -- `Mark.POINT` over continuous
-    `x`/`y`. See this module's own docstring for the shared
-    `theme`/`width`/`height`/`title`/`x_title`/`y_title` parameters
-    every function here takes."""
+    """A scatter plot -- `Mark.POINT` over continuous `x`/`y`. See
+    this module's own docstring for the shared `theme`/`width`/
+    `height`/`title`/`x_title`/`y_title` parameters every function
+    here takes."""
     var c = Canvas(width, height, theme.background)
     var plot = (
         Plot()
@@ -97,9 +97,9 @@ def line(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A line chart in one call -- `Mark.LINE` over continuous `x`/
-    `y`, connected in data order. See this module's own docstring for
-    the shared parameters every function here takes."""
+    """A line chart -- `Mark.LINE` over continuous `x`/`y`, connected
+    in data order. See this module's own docstring for the shared
+    parameters every function here takes."""
     var c = Canvas(width, height, theme.background)
     var plot = (
         Plot()
@@ -122,9 +122,9 @@ def area(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """An area chart in one call -- `Mark.AREA` over continuous `x`/
-    `y`, filled down to a zero baseline. See this module's own
-    docstring for the shared parameters every function here takes."""
+    """An area chart -- `Mark.AREA` over continuous `x`/`y`, filled
+    down to a zero baseline. See this module's own docstring for the
+    shared parameters every function here takes."""
     var c = Canvas(width, height, theme.background)
     var plot = (
         Plot()
@@ -147,11 +147,11 @@ def bar(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A bar chart in one call -- `Mark.BAR` over a categorical `x`
-    and continuous `y` (see `Plot.encode_categorical()`'s own
-    docstring; one bar per entry, negative values extend below the
-    zero baseline automatically). See this module's own docstring for
-    the shared parameters every function here takes."""
+    """A bar chart -- `Mark.BAR` over a categorical `x` and continuous
+    `y` (see `Plot.encode_categorical()`'s own docstring; one bar per
+    entry, negative values extend below the zero baseline
+    automatically). See this module's own docstring for the shared
+    parameters every function here takes."""
     var c = Canvas(width, height, theme.background)
     var plot = (
         Plot()
@@ -174,13 +174,13 @@ def pie(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A pie chart in one call -- `Mark.ARC` over a categorical `x`
-    and continuous `y` (the same shape `bar()` takes; every value
-    must be non-negative, and at least one positive). Pass `theme=
-    Theme(donut_inner_radius_fraction=0.55)` (or any value in
-    `[0.0, 1.0)`) for a donut instead -- see `Theme`'s own docstring.
-    See this module's own docstring for the shared parameters every
-    function here takes."""
+    """A pie chart -- `Mark.ARC` over a categorical `x` and continuous
+    `y` (the same shape `bar()` takes; every value must be
+    non-negative, and at least one positive). Pass `theme=Theme(
+    donut_inner_radius_fraction=0.55)` (or any value in `[0.0, 1.0)`)
+    for a donut instead -- see `Theme`'s own docstring. See this
+    module's own docstring for the shared parameters every function
+    here takes."""
     var c = Canvas(width, height, theme.background)
     var plot = (
         Plot()
@@ -203,11 +203,10 @@ def lollipop(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A lollipop chart in one call -- `Mark.LOLLIPOP`, the same
-    `(categories, values)` shape `bar()` takes (a thin stem plus a
-    point instead of a filled rect per category). See this module's
-    own docstring for the shared parameters every function here
-    takes."""
+    """A lollipop chart -- `Mark.LOLLIPOP`, the same `(categories,
+    values)` shape `bar()` takes (a thin stem plus a point instead of
+    a filled rect per category). See this module's own docstring for
+    the shared parameters every function here takes."""
     var c = Canvas(width, height, theme.background)
     var plot = (
         Plot()
@@ -231,11 +230,11 @@ def waterfall(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A waterfall chart in one call -- `Mark.WATERFALL`, floating
-    bars from a running total. See `Plot.encode_waterfall()`'s own
-    docstring (plot.mojo) for what `deltas`/`is_total` mean, and this
-    module's own docstring for the shared parameters every function
-    here takes."""
+    """A waterfall chart -- `Mark.WATERFALL`, floating bars from a
+    running total. See `Plot.encode_waterfall()`'s own docstring
+    (plot.mojo) for what `deltas`/`is_total` mean, and this module's
+    own docstring for the shared parameters every function here
+    takes."""
     var c = Canvas(width, height, theme.background)
     var plot = (
         Plot()
@@ -258,12 +257,12 @@ def box(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A box plot in one call -- `Mark.BOX`, one box-and-whiskers per
-    category summarizing a whole distribution of raw values (`values
-    [i]`, not a single number). See `Plot.encode_boxplot()`'s own
-    docstring (plot.mojo) for the quartile/whisker/outlier
-    computation, and this module's own docstring for the shared
-    parameters every function here takes."""
+    """A box plot -- `Mark.BOX`, one box-and-whiskers per category
+    summarizing a whole distribution of raw values (`values[i]`, not
+    a single number). See `Plot.encode_boxplot()`'s own docstring
+    (plot.mojo) for the quartile/whisker/outlier computation, and
+    this module's own docstring for the shared parameters every
+    function here takes."""
     var c = Canvas(width, height, theme.background)
     var plot = (
         Plot()
@@ -289,9 +288,9 @@ def candlestick(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A candlestick chart in one call -- `Mark.CANDLESTICK`, one
-    open/high/low/close bar per category. See this module's own
-    docstring for the shared parameters every function here takes."""
+    """A candlestick chart -- `Mark.CANDLESTICK`, one open/high/low/
+    close bar per category. See this module's own docstring for the
+    shared parameters every function here takes."""
     var c = Canvas(width, height, theme.background)
     var plot = (
         Plot()
@@ -316,12 +315,12 @@ def bullet(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A bullet chart in one call -- `Mark.BULLET` (Stephen Few's
-    design): a measure bar, a target tick, and shaded qualitative-
-    range bands per category. See `Plot.encode_bullet()`'s own
-    docstring (plot.mojo) for what `measures`/`targets`/`ranges`
-    mean, and this module's own docstring for the shared parameters
-    every function here takes."""
+    """A bullet chart -- `Mark.BULLET` (Stephen Few's design): a
+    measure bar, a target tick, and shaded qualitative-range bands
+    per category. See `Plot.encode_bullet()`'s own docstring
+    (plot.mojo) for what `measures`/`targets`/`ranges` mean, and this
+    module's own docstring for the shared parameters every function
+    here takes."""
     var c = Canvas(width, height, theme.background)
     var plot = (
         Plot()
@@ -345,10 +344,9 @@ def gantt(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A gantt/span chart in one call -- `Mark.GANTT`, one horizontal
-    bar per category from `start[i]` to `end[i]`. See this module's
-    own docstring for the shared parameters every function here
-    takes."""
+    """A gantt/span chart -- `Mark.GANTT`, one horizontal bar per
+    category from `start[i]` to `end[i]`. See this module's own
+    docstring for the shared parameters every function here takes."""
     var c = Canvas(width, height, theme.background)
     var plot = (
         Plot()
@@ -372,9 +370,9 @@ def grouped_bar(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A grouped bar chart in one call -- `Mark.GROUPED_BAR`, several
-    bars side by side per category, one per series (`values[j]` is
-    series `series_names[j]`'s own value per category). See `Plot.
+    """A grouped bar chart -- `Mark.GROUPED_BAR`, several bars side
+    by side per category, one per series (`values[j]` is series
+    `series_names[j]`'s own value per category). See `Plot.
     encode_grouped_bar()`'s own docstring (plot.mojo) for the exact
     shape, and this module's own docstring for the shared parameters
     every function here takes."""
@@ -401,11 +399,11 @@ def stacked_bar(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A stacked bar chart in one call -- `Mark.STACKED_BAR`, the
-    exact same `(categories, series_names, values)` shape `grouped_
-    bar()` takes, each series drawn as a stacked segment instead of a
-    side-by-side sub-bar. See this module's own docstring for the
-    shared parameters every function here takes."""
+    """A stacked bar chart -- `Mark.STACKED_BAR`, the exact same
+    `(categories, series_names, values)` shape `grouped_bar()` takes,
+    each series drawn as a stacked segment instead of a side-by-side
+    sub-bar. See this module's own docstring for the shared
+    parameters every function here takes."""
     var c = Canvas(width, height, theme.background)
     var plot = (
         Plot()
