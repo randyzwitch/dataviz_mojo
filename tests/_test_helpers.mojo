@@ -16,7 +16,9 @@ from canvas_mojo.color import Color
 from canvas_mojo.buffer import Canvas
 from std.testing import assert_equal
 
-comptime BG = Color(255, 255, 255)
+from dataviz_mojo.colors import WHITE
+
+comptime BG = WHITE
 
 
 def _count_color(c: Canvas, color: Color) -> Int:

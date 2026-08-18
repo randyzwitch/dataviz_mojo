@@ -5,7 +5,6 @@ what used to be one big test_plot.mojo.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from canvas_mojo.color import Color
 from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
 from canvas_mojo.vector.svg import SvgCanvas
@@ -24,6 +23,7 @@ from dataviz_mojo.plot import (
 )
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import scatter
+from dataviz_mojo.colors import BLACK, WHITE
 
 from _test_helpers import BG, _count_color, _assert_color
 
@@ -78,7 +78,7 @@ def test_render_color_encoding_matches_hand_derived_colors() raises:
     var y: List[Float64] = [0.0, 0.0]
     var color: List[Float64] = [0.0, 10.0]
     var t = Theme(
-        color_scale_low=Color(0, 0, 0), color_scale_high=Color(255, 255, 255), show_legend=False
+        color_scale_low=BLACK, color_scale_high=WHITE, show_legend=False
     )
     var plot = Plot().mark_point().encode(x=x, y=y, color=color).theme(t)
     var c = Canvas(400, 300, BG)

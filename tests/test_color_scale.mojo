@@ -10,14 +10,14 @@ directly technique canvas_mojo/tests/test_gradient.mojo's own tests use).
 
 from std.testing import assert_equal, TestSuite
 
-from canvas_mojo.color import Color
 from dataviz_mojo.color_scale import ColorScale
+from dataviz_mojo.colors import BLACK, BLUE, RED, WHITE
 
 
 def test_color_scale_matches_hand_computed_values() raises:
     var s = ColorScale(0.0, 10.0)
-    s.add_stop(0.0, Color(0, 0, 0, 255))
-    s.add_stop(1.0, Color(255, 255, 255, 255))
+    s.add_stop(0.0, BLACK)
+    s.add_stop(1.0, WHITE)
 
     var lo = s.color_at(0.0)
     assert_equal(lo.r, 0)
@@ -37,8 +37,8 @@ def test_color_scale_matches_hand_computed_values() raises:
 
 def test_color_scale_clamps_beyond_the_domain() raises:
     var s = ColorScale(0.0, 10.0)
-    s.add_stop(0.0, Color(0, 0, 0))
-    s.add_stop(1.0, Color(255, 255, 255))
+    s.add_stop(0.0, BLACK)
+    s.add_stop(1.0, WHITE)
 
     var below = s.color_at(-50.0)
     assert_equal(below.r, 0)
@@ -57,8 +57,8 @@ def test_color_scale_zero_span_domain_returns_the_lowest_offset_stop() raises:
     # offset stop's color (blue here), not a crash from dividing by
     # the zero span.
     var s = ColorScale(5.0, 5.0)
-    s.add_stop(0.0, Color(0, 0, 255))
-    s.add_stop(1.0, Color(255, 0, 0))
+    s.add_stop(0.0, BLUE)
+    s.add_stop(1.0, RED)
 
     var a = s.color_at(5.0)
     var b = s.color_at(999.0)

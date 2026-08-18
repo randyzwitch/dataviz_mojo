@@ -25,6 +25,7 @@ from dataviz_mojo.plot import (
 )
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import scatter
+from dataviz_mojo.colors import RED
 
 from _test_helpers import BG, _count_color, _assert_color
 
@@ -58,7 +59,7 @@ def test_render_empty_data_only_fills_background() raises:
 def test_render_respects_custom_theme_colors() raises:
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
-    var custom = Theme(background=Color(20, 20, 20), mark_color=Color(255, 0, 0))
+    var custom = Theme(background=Color(20, 20, 20), mark_color=RED)
     var c = scatter(x, y, theme=custom, width=400, height=300)
 
     # Far corner, untouched by any mark/axis/gridline -- pure background.

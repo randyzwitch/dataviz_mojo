@@ -23,6 +23,7 @@ from dataviz_mojo.plot import (
     _unique_categories,
 )
 from dataviz_mojo.theme import Theme
+from dataviz_mojo.colors import MAGENTA, RED
 
 from _test_helpers import BG, _count_color, _assert_color
 
@@ -43,7 +44,7 @@ def test_render_facets_lays_out_independent_plots_side_by_side() raises:
     # one plot's output bleeding into or overwriting the other's cell.
     var xy: List[Float64] = [5.0]
     var plot0 = Plot().mark_point().encode(x=xy, y=xy)
-    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=Color(255, 0, 0)))
+    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED))
     var plots = List[Plot]()
     plots.append(plot0^)
     plots.append(plot1^)
@@ -52,7 +53,7 @@ def test_render_facets_lays_out_independent_plots_side_by_side() raises:
     render_facets(c, plots, cols=2)
 
     _assert_color(c, 220, 135, Theme.default().mark_color, "cell 0's own point, unshifted")
-    _assert_color(c, 620, 135, Color(255, 0, 0), "cell 1's own point, +400px shifted")
+    _assert_color(c, 620, 135, RED, "cell 1's own point, +400px shifted")
 
 
 def test_render_facets_leaves_trailing_cells_blank_when_plots_dont_fill_the_grid() raises:
@@ -124,7 +125,7 @@ def test_render_facets_svg_lays_out_independent_plots_side_by_side() raises:
     # the other.
     var xy: List[Float64] = [5.0]
     var plot0 = Plot().mark_point().encode(x=xy, y=xy)
-    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=Color(255, 0, 0)))
+    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED))
     var plots = List[Plot]()
     plots.append(plot0^)
     plots.append(plot1^)
@@ -160,7 +161,7 @@ def test_render_facets_svg_each_cell_gets_its_own_independent_title() raises:
     # unaffected by cell 1's own layout.
     var xy: List[Float64] = [5.0]
     var plot0 = Plot().mark_point().encode(x=xy, y=xy).labels(title="Left")
-    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=Color(255, 0, 0)))
+    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED))
     var plots = List[Plot]()
     plots.append(plot0^)
     plots.append(plot1^)
@@ -209,7 +210,7 @@ def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() r
     var plots = List[Plot]()
     plots.append(Plot().mark_point().encode(x=xy, y=xy).labels(title="Titled"))
 
-    var c = Canvas(400, 300, Color(255, 0, 255))
+    var c = Canvas(400, 300, MAGENTA)
     render_facets(c, plots, 1)
     _assert_color(c, 2, 2, BG, "a titled cell's own reserved title strip")
 
@@ -218,7 +219,7 @@ def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() r
     # the new fill covers the ordinary case too, not just the titled one.
     var untitled = List[Plot]()
     untitled.append(Plot().mark_point().encode(x=xy, y=xy))
-    var c2 = Canvas(400, 300, Color(255, 0, 255))
+    var c2 = Canvas(400, 300, MAGENTA)
     render_facets(c2, untitled, 1)
     _assert_color(c2, 2, 2, BG, "an untitled cell's own top-left corner")
 
