@@ -1,14 +1,3 @@
-"""Mark.BAR's own histogram data-prep -- see Plot.encode_histogram()'s
-own docstring (plot.mojo) for what it means and why it raises
-immediately rather than deferring to render() time. A histogram has no
-`_render_histogram` of its own: `encode_histogram()` bins continuous
-data into the exact categorical-x/continuous-y shape `encode_
-categorical()` produces, so `Mark.BAR`'s own `_render_bar` (see
-bar.mojo) draws it unchanged -- this file holds only the binning math
-itself, extracted out of `Plot.encode_histogram()`'s own body so it
-lives somewhere findable by name rather than inline in a Plot method.
-"""
-
 from dataviz_mojo.scale import _format_fixed, _min_max
 
 

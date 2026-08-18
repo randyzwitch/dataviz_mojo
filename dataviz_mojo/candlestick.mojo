@@ -1,10 +1,6 @@
-"""Mark.CANDLESTICK's own rendering -- see Plot.mark_candlestick()'s
-own docstring (plot.mojo) for what the mark means; `_render_
-candlestick` is what `_render_generic` (plot.mojo) dispatches to.
-"""
-
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
+from canvas_mojo.buffer import Canvas
 
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -14,6 +10,7 @@ from dataviz_mojo.plot import (
     _data_extent,
     _draw_categorical_axis_frame,
     _empty_result,
+    _rendered,
 )
 from dataviz_mojo.theme import Theme
 
@@ -116,3 +113,30 @@ def _render_candlestick[
         target.fill_rect(body_x, body_y, body_width, body_height, body_color)
 
     return frame.result()
+
+
+def candlestick(
+    categories: List[String],
+    open: List[Float64],
+    high: List[Float64],
+    low: List[Float64],
+    close: List[Float64],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A candlestick chart -- `Mark.CANDLESTICK`, one open/high/low/
+    close bar per category. See plot.mojo's own module docstring for the
+    shared parameters every function here takes."""
+    return _rendered(
+        Plot().mark_candlestick().encode_candlestick(categories=categories, open=open, high=high, low=low, close=close),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
+    )

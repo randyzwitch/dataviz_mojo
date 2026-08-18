@@ -1,17 +1,7 @@
-"""Mark.GANTT's own rendering -- see Plot.mark_gantt()'s own
-docstring (plot.mojo) for what the mark means; `_render_gantt` is what
-`_render_generic` (plot.mojo) dispatches to. The first (and, so far,
-only) mark whose categories run along the *y*-axis instead of the
-x-axis, so it needs its own `_HorizontalCategoricalFrame`/`_draw_
-horizontal_categorical_axis_frame` -- the mirror image of `plot.mojo`'s
-own `_CategoricalFrame`/`_draw_categorical_axis_frame`, kept here
-rather than in core since no other mark uses it (confirmed: this is
-its only call site).
-"""
-
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.text.render import TextAlign
 from canvas_mojo.vector.draw_target import DrawTarget
+from canvas_mojo.buffer import Canvas
 
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.ordinal_scale import OrdinalScale
@@ -26,6 +16,7 @@ from dataviz_mojo.plot import (
     _draw_categorical_axis_frame,
     _empty_result,
     _max_label_width,
+    _rendered,
 )
 from dataviz_mojo.scale import LinearScale
 from dataviz_mojo.theme import Theme
@@ -284,3 +275,28 @@ def _render_gantt[
         target.fill_rect(bar_x, row_y, bar_width, row_height, theme.mark_color)
 
     return frame.result()
+
+
+def gantt(
+    categories: List[String],
+    start: List[Float64],
+    end: List[Float64],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A gantt/span chart -- `Mark.GANTT`, one horizontal bar per
+    category from `start[i]` to `end[i]`. See this module's own
+    docstring for the shared parameters every function here takes."""
+    return _rendered(
+        Plot().mark_gantt().encode_gantt(categories=categories, start=start, end=end),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
+    )

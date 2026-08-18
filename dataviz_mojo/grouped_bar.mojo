@@ -1,10 +1,6 @@
-"""Mark.GROUPED_BAR's own rendering -- see Plot.mark_grouped_bar()'s
-own docstring (plot.mojo) for what the mark means; `_render_grouped_
-bar` is what `_render_generic` (plot.mojo) dispatches to.
-"""
-
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
+from canvas_mojo.buffer import Canvas
 
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.mark import Mark
@@ -17,6 +13,7 @@ from dataviz_mojo.plot import (
     _draw_legend,
     _dynamic_legend_width,
     _empty_result,
+    _rendered,
     _zero_baseline_y_extent,
 )
 from dataviz_mojo.theme import Theme
@@ -161,3 +158,31 @@ def _render_grouped_bar[
         )
 
     return frame.result()
+
+
+def grouped_bar(
+    categories: List[String],
+    series_names: List[String],
+    values: List[List[Float64]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A grouped bar chart -- `Mark.GROUPED_BAR`, several bars side
+    by side per category, one per series (`values[j]` is series
+    `series_names[j]`'s own value per category). See `Plot.
+    encode_grouped_bar()`'s own docstring (plot.mojo) for the exact
+    shape, and plot.mojo's own module docstring for the shared parameters
+    every function here takes."""
+    return _rendered(
+        Plot().mark_grouped_bar().encode_grouped_bar(categories=categories, series_names=series_names, values=values),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
+    )

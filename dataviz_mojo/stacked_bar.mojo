@@ -1,12 +1,6 @@
-"""Mark.STACKED_BAR's own rendering -- see Plot.mark_stacked_bar()'s
-own docstring (plot.mojo) for what the mark means; `_render_stacked_
-bar` is what `_render_generic` (plot.mojo) dispatches to. Shares
-`Plot.encode_grouped_bar()`'s own data shape with Mark.GROUPED_BAR
-(see grouped_bar.mojo) -- only the drawing differs.
-"""
-
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
+from canvas_mojo.buffer import Canvas
 
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.grouped_bar import _series_legend_reserve, _validate_grouped_bar_series
@@ -19,8 +13,10 @@ from dataviz_mojo.plot import (
     _draw_categorical_axis_frame,
     _draw_legend,
     _empty_result,
+    _rendered,
     _zero_baseline_y_extent,
 )
+from dataviz_mojo.theme import Theme
 
 
 def _render_stacked_bar[
@@ -144,3 +140,30 @@ def _render_stacked_bar[
         )
 
     return frame.result()
+
+
+def stacked_bar(
+    categories: List[String],
+    series_names: List[String],
+    values: List[List[Float64]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A stacked bar chart -- `Mark.STACKED_BAR`, the exact same
+    `(categories, series_names, values)` shape `grouped_bar()` takes,
+    each series drawn as a stacked segment instead of a side-by-side
+    sub-bar. See plot.mojo's own module docstring for the shared
+    parameters every function here takes."""
+    return _rendered(
+        Plot().mark_stacked_bar().encode_grouped_bar(categories=categories, series_names=series_names, values=values),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
+    )

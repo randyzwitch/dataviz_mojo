@@ -1,12 +1,8 @@
-"""Mark.ARC's own rendering (pie/donut) -- see Plot.mark_arc()'s own
-docstring (plot.mojo) for what the mark means; `_render_arc` is what
-`_render_generic` (plot.mojo) dispatches to.
-"""
-
 from std.math import pi
 
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.vector.svg import SvgCanvas
+from canvas_mojo.buffer import Canvas
 
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.mark import Mark
@@ -18,6 +14,7 @@ from dataviz_mojo.plot import (
     _draw_legend,
     _dynamic_legend_width,
     _empty_result,
+    _rendered,
 )
 from dataviz_mojo.theme import Theme
 
@@ -144,3 +141,31 @@ def _render_arc[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def pie(
+    categories: List[String],
+    values: List[Float64],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A pie chart -- `Mark.ARC` over a categorical `x` and continuous
+    `y` (the same shape `bar()` takes; every value must be
+    non-negative, and at least one positive). Pass `theme=Theme(
+    donut_inner_radius_fraction=0.55)` (or any value in `[0.0, 1.0)`)
+    for a donut instead -- see `Theme`'s own docstring. See this
+    module's own docstring for the shared parameters every function
+    here takes."""
+    return _rendered(
+        Plot().mark_arc().encode_categorical(x=categories, y=values),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
+    )
