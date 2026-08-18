@@ -11,9 +11,9 @@ from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
     Plot,
     _RenderResult,
-    _TextRequest,
     _axis_pixel,
     _draw_categorical_axis_frame,
+    _empty_result,
     _zero_baseline_y_extent,
 )
 from dataviz_mojo.theme import Theme
@@ -51,11 +51,8 @@ def _render_lollipop[
         )
 
     var theme = plot._theme
-    target.fill_rect(ox0, oy0, ox1 - ox0, oy1 - oy0, theme.background)
-
-    var text_requests = List[_TextRequest]()
     if len(plot.x_categories) == 0:
-        return _RenderResult(text_requests^, ox0, oy0, ox1, oy1)
+        return _empty_result(ox0, oy0, ox1, oy1)
 
     var y_scale = _zero_baseline_y_extent(plot.y_data)
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
@@ -74,4 +71,4 @@ def _render_lollipop[
             _round_to_int(center), _round_to_int(value_py), _round_to_int(frame.sc.point_radius), theme.mark_color
         )
 
-    return _RenderResult(frame.text_requests.copy(), frame.px0, frame.py0, frame.px1, frame.py1)
+    return frame.result()

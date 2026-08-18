@@ -11,9 +11,9 @@ from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
     Plot,
     _RenderResult,
-    _TextRequest,
     _axis_pixel,
     _draw_categorical_axis_frame,
+    _empty_result,
     _zero_baseline_y_extent,
 )
 from dataviz_mojo.theme import Theme
@@ -121,11 +121,8 @@ def _render_bullet[
                 )
 
     var theme = plot._theme
-    target.fill_rect(ox0, oy0, ox1 - ox0, oy1 - oy0, theme.background)
-
-    var text_requests = List[_TextRequest]()
     if len(plot.x_categories) == 0:
-        return _RenderResult(text_requests^, ox0, oy0, ox1, oy1)
+        return _empty_result(ox0, oy0, ox1, oy1)
 
     var domain_data = List[Float64]()
     for i in range(len(plot.x_categories)):
@@ -169,4 +166,4 @@ def _render_bullet[
         var band_end = band_x + band_width
         target.draw_line_aa(band_x, target_py, band_end, target_py, theme.axis_color)
 
-    return _RenderResult(frame.text_requests.copy(), frame.px0, frame.py0, frame.px1, frame.py1)
+    return frame.result()

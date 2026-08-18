@@ -24,6 +24,7 @@ from dataviz_mojo.plot import (
     _axis_pixel,
     _data_extent,
     _draw_categorical_axis_frame,
+    _empty_result,
     _max_label_width,
 )
 from dataviz_mojo.scale import LinearScale
@@ -69,6 +70,13 @@ struct _HorizontalCategoricalFrame(Movable):
         self.py0 = py0
         self.px1 = px1
         self.py1 = py1
+
+    def result(self) -> _RenderResult:
+        """This frame as the `_RenderResult` `_render_gantt` returns --
+        see `_CategoricalFrame.result`'s own docstring (plot.mojo),
+        which this mirrors exactly, including why the `text_requests`
+        list is copied rather than moved."""
+        return _RenderResult(self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1)
 
 
 def _draw_horizontal_categorical_axis_frame[
@@ -252,11 +260,8 @@ def _render_gantt[
         )
 
     var theme = plot._theme
-    target.fill_rect(ox0, oy0, ox1 - ox0, oy1 - oy0, theme.background)
-
-    var text_requests = List[_TextRequest]()
     if len(plot.x_categories) == 0:
-        return _RenderResult(text_requests^, ox0, oy0, ox1, oy1)
+        return _empty_result(ox0, oy0, ox1, oy1)
 
     var domain_data = List[Float64]()
     for v in plot._gantt_start:
@@ -278,4 +283,4 @@ def _render_gantt[
         var bar_width = max(1, max(start_px, end_px) - min(start_px, end_px))
         target.fill_rect(bar_x, row_y, bar_width, row_height, theme.mark_color)
 
-    return _RenderResult(frame.text_requests.copy(), frame.px0, frame.py0, frame.px1, frame.py1)
+    return frame.result()

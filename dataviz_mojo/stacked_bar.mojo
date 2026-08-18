@@ -9,16 +9,16 @@ from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
 
 from dataviz_mojo.color_scale import default_categorical_palette
+from dataviz_mojo.grouped_bar import _series_legend_reserve, _validate_grouped_bar_series
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
     Plot,
     _RenderResult,
     _Scaled,
-    _TextRequest,
     _axis_pixel,
     _draw_categorical_axis_frame,
     _draw_legend,
-    _dynamic_legend_width,
+    _empty_result,
     _zero_baseline_y_extent,
 )
 
@@ -68,43 +68,21 @@ def _render_stacked_bar[
     the "round the boundary once, reuse it" technique and this one
     doesn't.
 
-    Same legend as `Mark.GROUPED_BAR` (series name -> color, reserved by
-    shrinking the outer `ox1` before calling `_draw_categorical_axis_
-    frame` -- see that function's own docstring for why this stays
-    duplicated across the two rather than factored into a shared
-    helper: two call sites sharing a little duplication is this
-    codebase's own established tolerance, extract once a third needs
-    it). No sign-coloring -- like `GROUPED_BAR`, a stacked bar chart's
-    whole point is telling series apart by color, not sign.
+    Same legend as `Mark.GROUPED_BAR` (series name -> color, reserved
+    by shrinking the outer `ox1` before calling `_draw_categorical_
+    axis_frame`) -- and now literally the same code: `_series_legend_
+    reserve`, imported from grouped_bar.mojo alongside `_validate_
+    grouped_bar_series`, rather than the verbatim copies of both these
+    two used to carry. See `_validate_grouped_bar_series`'s own
+    docstring for why sharing beat duplicating here. No sign-coloring
+    -- like `GROUPED_BAR`, a stacked bar chart's whole point is telling
+    series apart by color, not sign.
     """
-    if len(plot._grouped_bar_series_names) != len(plot._grouped_bar_values):
-        raise Error(
-            "Plot.encode_grouped_bar(): series_names and values must have"
-            " the same length (got "
-            + String(len(plot._grouped_bar_series_names))
-            + " and "
-            + String(len(plot._grouped_bar_values))
-            + ")"
-        )
-    for j in range(len(plot._grouped_bar_values)):
-        if len(plot._grouped_bar_values[j]) != len(plot.x_categories):
-            raise Error(
-                "Plot.encode_grouped_bar(): every series' own values must"
-                " have the same length as categories (series "
-                + String(j)
-                + " has "
-                + String(len(plot._grouped_bar_values[j]))
-                + ", categories has "
-                + String(len(plot.x_categories))
-                + ")"
-            )
+    _validate_grouped_bar_series(plot)
 
     var theme = plot._theme
-    target.fill_rect(ox0, oy0, ox1 - ox0, oy1 - oy0, theme.background)
-
-    var text_requests = List[_TextRequest]()
     if len(plot.x_categories) == 0:
-        return _RenderResult(text_requests^, ox0, oy0, ox1, oy1)
+        return _empty_result(ox0, oy0, ox1, oy1)
 
     var n_series = len(plot._grouped_bar_series_names)
     var domain_data = List[Float64]()
@@ -123,9 +101,7 @@ def _render_stacked_bar[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = (
-        _dynamic_legend_width(plot._grouped_bar_series_names, sc.legend_swatch_size, sc) if show_legend else 0
-    )
+    var legend_reserve = _series_legend_reserve(plot, sc)
 
     var frame = _draw_categorical_axis_frame(
         target, plot.x_categories, y_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
@@ -167,4 +143,4 @@ def _render_stacked_bar[
             theme,
         )
 
-    return _RenderResult(frame.text_requests.copy(), frame.px0, frame.py0, frame.px1, frame.py1)
+    return frame.result()

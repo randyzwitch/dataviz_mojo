@@ -191,5 +191,37 @@ def test_render_facets_svg_raises_on_non_positive_cols() raises:
         render_facets_svg(svg, plots, cols=0)
 
 
+def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() raises:
+    # render_facets never filled a background of its own -- it relied on
+    # _render_generic filling the cell rect it was handed, which is the
+    # rect *after* _apply_labels already shrank it to reserve room for
+    # a title. So a titled cell's own top band was never painted, and
+    # showed whatever the canvas happened to hold beforehand. render()
+    # has always documented the opposite contract ("the whole original
+    # rect is filled ... so a title's own reserved margin strip gets
+    # painted too"); facets now fills each cell's full rect to match.
+    #
+    # One cell (cols=1) on a deliberately non-background canvas: with
+    # title_font_size=18.0 and label_gap=4, extra_top is 22, so y=2 sits
+    # inside the reserved strip and above the plot area entirely. Before
+    # this fill existed that pixel stayed magenta.
+    var xy: List[Float64] = [5.0]
+    var plots = List[Plot]()
+    plots.append(Plot().mark_point().encode(x=xy, y=xy).labels(title="Titled"))
+
+    var c = Canvas(400, 300, Color(255, 0, 255))
+    render_facets(c, plots, 1)
+    _assert_color(c, 2, 2, BG, "a titled cell's own reserved title strip")
+
+    # ...and the same for an untitled cell, where the strip doesn't
+    # exist but the corner is still outside the plot area -- confirming
+    # the new fill covers the ordinary case too, not just the titled one.
+    var untitled = List[Plot]()
+    untitled.append(Plot().mark_point().encode(x=xy, y=xy))
+    var c2 = Canvas(400, 300, Color(255, 0, 255))
+    render_facets(c2, untitled, 1)
+    _assert_color(c2, 2, 2, BG, "an untitled cell's own top-left corner")
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
