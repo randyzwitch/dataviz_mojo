@@ -225,8 +225,6 @@ def box(
     """A box plot -- `Mark.BOX`, one box-and-whiskers per category
     summarizing a whole distribution of raw values (`values[i]`, not
     a single number). See `Plot.encode_boxplot()`'s own docstring
-    (plot.mojo) for the quartile/whisker/outlier computation, and
-    plot.mojo's own module docstring for the shared parameters every
-    function here takes."""
+    (plot.mojo) for the quartile/whisker/outlier computation."""
     var plot = Plot().mark_box().encode_boxplot(categories=categories, values=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title)

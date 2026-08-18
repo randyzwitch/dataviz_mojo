@@ -157,8 +157,6 @@ def pie(
     `y` (the same shape `bar()` takes; every value must be
     non-negative, and at least one positive). Pass `theme=Theme(
     donut_inner_radius_fraction=0.55)` (or any value in `[0.0, 1.0)`)
-    for a donut instead -- see `Theme`'s own docstring. See this
-    module's own docstring for the shared parameters every function
-    here takes."""
+    for a donut instead -- see `Theme`'s own docstring."""
     var plot = Plot().mark_arc().encode_categorical(x=categories, y=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title)

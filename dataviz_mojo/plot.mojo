@@ -2823,10 +2823,7 @@ def scatter(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A scatter plot -- `Mark.POINT` over continuous `x`/`y`. See
-    this module's own docstring for the shared `theme`/`width`/
-    `height`/`title`/`x_title`/`y_title` parameters every function
-    here takes."""
+    """A scatter plot -- `Mark.POINT` over continuous `x`/`y`."""
     var plot = Plot().mark_point().encode(x=x, y=y)
     return _rendered(plot^, theme, width, height, title, x_title, y_title)
 
@@ -2842,8 +2839,7 @@ def line(
     y_title: String = "",
 ) raises -> Canvas:
     """A line chart -- `Mark.LINE` over continuous `x`/`y`, connected
-    in data order. See this module's own docstring for the shared
-    parameters every function here takes."""
+    in data order."""
     var plot = Plot().mark_line().encode(x=x, y=y)
     return _rendered(plot^, theme, width, height, title, x_title, y_title)
 
@@ -2859,7 +2855,6 @@ def area(
     y_title: String = "",
 ) raises -> Canvas:
     """An area chart -- `Mark.AREA` over continuous `x`/`y`, filled
-    down to a zero baseline. See this module's own docstring for the
-    shared parameters every function here takes."""
+    down to a zero baseline."""
     var plot = Plot().mark_area().encode(x=x, y=y)
     return _rendered(plot^, theme, width, height, title, x_title, y_title)
