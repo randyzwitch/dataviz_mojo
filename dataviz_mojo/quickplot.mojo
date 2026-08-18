@@ -61,6 +61,40 @@ from dataviz_mojo.theme import Theme
 from dataviz_mojo.plot import Plot, render
 
 
+def _rendered(
+    var plot: Plot,
+    theme: Theme,
+    width: Int,
+    height: Int,
+    title: String,
+    x_title: String,
+    y_title: String,
+) raises -> Canvas:
+    """Everything every function in this module does once its own mark
+    and data are chosen: apply the shared `title`/`x_title`/`y_title`
+    and `theme` to the half-built `plot`, size a `Canvas` to match, and
+    render into it.
+
+    All thirteen functions here used to carry a verbatim copy of these
+    four lines, which is most of what each one *was* -- the two chained
+    builder calls that pick the mark and encode the data are the only
+    part that ever differed. `.labels()`/`.theme()` are applied here
+    rather than at each call site for the same reason: nothing about
+    them varies by mark.
+
+    Takes `plot` as `var` (owned) because `Plot`'s own builder methods
+    consume and return `Self` -- see plot.mojo's own module docstring
+    for that convention -- and so the chain below needs an explicit
+    `plot^` transfer into the first of them: `Plot` deliberately isn't
+    `ImplicitlyCopyable` (it owns every data column), so without the
+    `^` the compiler rejects the call outright rather than silently
+    copying the columns.
+    """
+    var c = Canvas(width, height, theme.background)
+    render(c, plot^.labels(title=title, x_title=x_title, y_title=y_title).theme(theme))
+    return c^
+
+
 def scatter(
     x: List[Float64],
     y: List[Float64],
@@ -75,16 +109,7 @@ def scatter(
     this module's own docstring for the shared `theme`/`width`/
     `height`/`title`/`x_title`/`y_title` parameters every function
     here takes."""
-    var c = Canvas(width, height, theme.background)
-    var plot = (
-        Plot()
-        .mark_point()
-        .encode(x=x, y=y)
-        .labels(title=title, x_title=x_title, y_title=y_title)
-        .theme(theme)
-    )
-    render(c, plot)
-    return c^
+    return _rendered(Plot().mark_point().encode(x=x, y=y), theme, width, height, title, x_title, y_title)
 
 
 def line(
@@ -100,16 +125,7 @@ def line(
     """A line chart -- `Mark.LINE` over continuous `x`/`y`, connected
     in data order. See this module's own docstring for the shared
     parameters every function here takes."""
-    var c = Canvas(width, height, theme.background)
-    var plot = (
-        Plot()
-        .mark_line()
-        .encode(x=x, y=y)
-        .labels(title=title, x_title=x_title, y_title=y_title)
-        .theme(theme)
-    )
-    render(c, plot)
-    return c^
+    return _rendered(Plot().mark_line().encode(x=x, y=y), theme, width, height, title, x_title, y_title)
 
 
 def area(
@@ -125,16 +141,7 @@ def area(
     """An area chart -- `Mark.AREA` over continuous `x`/`y`, filled
     down to a zero baseline. See this module's own docstring for the
     shared parameters every function here takes."""
-    var c = Canvas(width, height, theme.background)
-    var plot = (
-        Plot()
-        .mark_area()
-        .encode(x=x, y=y)
-        .labels(title=title, x_title=x_title, y_title=y_title)
-        .theme(theme)
-    )
-    render(c, plot)
-    return c^
+    return _rendered(Plot().mark_area().encode(x=x, y=y), theme, width, height, title, x_title, y_title)
 
 
 def bar(
@@ -152,16 +159,15 @@ def bar(
     entry, negative values extend below the zero baseline
     automatically). See this module's own docstring for the shared
     parameters every function here takes."""
-    var c = Canvas(width, height, theme.background)
-    var plot = (
-        Plot()
-        .mark_bar()
-        .encode_categorical(x=categories, y=values)
-        .labels(title=title, x_title=x_title, y_title=y_title)
-        .theme(theme)
+    return _rendered(
+        Plot().mark_bar().encode_categorical(x=categories, y=values),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
     )
-    render(c, plot)
-    return c^
 
 
 def pie(
@@ -181,16 +187,15 @@ def pie(
     for a donut instead -- see `Theme`'s own docstring. See this
     module's own docstring for the shared parameters every function
     here takes."""
-    var c = Canvas(width, height, theme.background)
-    var plot = (
-        Plot()
-        .mark_arc()
-        .encode_categorical(x=categories, y=values)
-        .labels(title=title, x_title=x_title, y_title=y_title)
-        .theme(theme)
+    return _rendered(
+        Plot().mark_arc().encode_categorical(x=categories, y=values),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
     )
-    render(c, plot)
-    return c^
 
 
 def lollipop(
@@ -207,16 +212,15 @@ def lollipop(
     values)` shape `bar()` takes (a thin stem plus a point instead of
     a filled rect per category). See this module's own docstring for
     the shared parameters every function here takes."""
-    var c = Canvas(width, height, theme.background)
-    var plot = (
-        Plot()
-        .mark_lollipop()
-        .encode_categorical(x=categories, y=values)
-        .labels(title=title, x_title=x_title, y_title=y_title)
-        .theme(theme)
+    return _rendered(
+        Plot().mark_lollipop().encode_categorical(x=categories, y=values),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
     )
-    render(c, plot)
-    return c^
 
 
 def waterfall(
@@ -235,16 +239,15 @@ def waterfall(
     (plot.mojo) for what `deltas`/`is_total` mean, and this module's
     own docstring for the shared parameters every function here
     takes."""
-    var c = Canvas(width, height, theme.background)
-    var plot = (
-        Plot()
-        .mark_waterfall()
-        .encode_waterfall(categories=categories, deltas=deltas, is_total=is_total)
-        .labels(title=title, x_title=x_title, y_title=y_title)
-        .theme(theme)
+    return _rendered(
+        Plot().mark_waterfall().encode_waterfall(categories=categories, deltas=deltas, is_total=is_total),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
     )
-    render(c, plot)
-    return c^
 
 
 def box(
@@ -263,16 +266,15 @@ def box(
     (plot.mojo) for the quartile/whisker/outlier computation, and
     this module's own docstring for the shared parameters every
     function here takes."""
-    var c = Canvas(width, height, theme.background)
-    var plot = (
-        Plot()
-        .mark_box()
-        .encode_boxplot(categories=categories, values=values)
-        .labels(title=title, x_title=x_title, y_title=y_title)
-        .theme(theme)
+    return _rendered(
+        Plot().mark_box().encode_boxplot(categories=categories, values=values),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
     )
-    render(c, plot)
-    return c^
 
 
 def candlestick(
@@ -291,16 +293,15 @@ def candlestick(
     """A candlestick chart -- `Mark.CANDLESTICK`, one open/high/low/
     close bar per category. See this module's own docstring for the
     shared parameters every function here takes."""
-    var c = Canvas(width, height, theme.background)
-    var plot = (
-        Plot()
-        .mark_candlestick()
-        .encode_candlestick(categories=categories, open=open, high=high, low=low, close=close)
-        .labels(title=title, x_title=x_title, y_title=y_title)
-        .theme(theme)
+    return _rendered(
+        Plot().mark_candlestick().encode_candlestick(categories=categories, open=open, high=high, low=low, close=close),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
     )
-    render(c, plot)
-    return c^
 
 
 def bullet(
@@ -321,16 +322,15 @@ def bullet(
     (plot.mojo) for what `measures`/`targets`/`ranges` mean, and this
     module's own docstring for the shared parameters every function
     here takes."""
-    var c = Canvas(width, height, theme.background)
-    var plot = (
-        Plot()
-        .mark_bullet()
-        .encode_bullet(categories=categories, measures=measures, targets=targets, ranges=ranges)
-        .labels(title=title, x_title=x_title, y_title=y_title)
-        .theme(theme)
+    return _rendered(
+        Plot().mark_bullet().encode_bullet(categories=categories, measures=measures, targets=targets, ranges=ranges),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
     )
-    render(c, plot)
-    return c^
 
 
 def gantt(
@@ -347,16 +347,15 @@ def gantt(
     """A gantt/span chart -- `Mark.GANTT`, one horizontal bar per
     category from `start[i]` to `end[i]`. See this module's own
     docstring for the shared parameters every function here takes."""
-    var c = Canvas(width, height, theme.background)
-    var plot = (
-        Plot()
-        .mark_gantt()
-        .encode_gantt(categories=categories, start=start, end=end)
-        .labels(title=title, x_title=x_title, y_title=y_title)
-        .theme(theme)
+    return _rendered(
+        Plot().mark_gantt().encode_gantt(categories=categories, start=start, end=end),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
     )
-    render(c, plot)
-    return c^
 
 
 def grouped_bar(
@@ -376,16 +375,15 @@ def grouped_bar(
     encode_grouped_bar()`'s own docstring (plot.mojo) for the exact
     shape, and this module's own docstring for the shared parameters
     every function here takes."""
-    var c = Canvas(width, height, theme.background)
-    var plot = (
-        Plot()
-        .mark_grouped_bar()
-        .encode_grouped_bar(categories=categories, series_names=series_names, values=values)
-        .labels(title=title, x_title=x_title, y_title=y_title)
-        .theme(theme)
+    return _rendered(
+        Plot().mark_grouped_bar().encode_grouped_bar(categories=categories, series_names=series_names, values=values),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
     )
-    render(c, plot)
-    return c^
 
 
 def stacked_bar(
@@ -404,13 +402,12 @@ def stacked_bar(
     each series drawn as a stacked segment instead of a side-by-side
     sub-bar. See this module's own docstring for the shared
     parameters every function here takes."""
-    var c = Canvas(width, height, theme.background)
-    var plot = (
-        Plot()
-        .mark_stacked_bar()
-        .encode_grouped_bar(categories=categories, series_names=series_names, values=values)
-        .labels(title=title, x_title=x_title, y_title=y_title)
-        .theme(theme)
+    return _rendered(
+        Plot().mark_stacked_bar().encode_grouped_bar(categories=categories, series_names=series_names, values=values),
+        theme,
+        width,
+        height,
+        title,
+        x_title,
+        y_title,
     )
-    render(c, plot)
-    return c^

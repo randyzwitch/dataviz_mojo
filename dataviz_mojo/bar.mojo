@@ -11,10 +11,10 @@ from dataviz_mojo.ordinal_scale import OrdinalScale
 from dataviz_mojo.plot import (
     Plot,
     _RenderResult,
-    _TextRequest,
     _axis_pixel,
     _data_extent,
     _draw_categorical_axis_frame,
+    _empty_result,
     _zero_baseline_y_extent,
 )
 from dataviz_mojo.theme import Theme
@@ -63,11 +63,8 @@ def _render_bar[
         )
 
     var theme = plot._theme
-    target.fill_rect(ox0, oy0, ox1 - ox0, oy1 - oy0, theme.background)
-
-    var text_requests = List[_TextRequest]()
     if len(plot.x_categories) == 0:
-        return _RenderResult(text_requests^, ox0, oy0, ox1, oy1)
+        return _empty_result(ox0, oy0, ox1, oy1)
 
     # y-domain computed before the frame's own dynamic left margin is
     # finalized -- see _draw_categorical_axis_frame's own docstring for
@@ -97,4 +94,4 @@ def _render_bar[
     # destruction, not a partial one. A small List copy here is a cheap
     # trade for not having to hand-unpack every field `_CategoricalFrame`
     # carries just to satisfy this.
-    return _RenderResult(frame.text_requests.copy(), frame.px0, frame.py0, frame.px1, frame.py1)
+    return frame.result()

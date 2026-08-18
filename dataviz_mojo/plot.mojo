@@ -1247,7 +1247,7 @@ struct _RenderResult(Movable):
     `len(plot.x_categories) == 0` check), `px0`..`py1` fall back to the
     full outer bounds it was given: there's no narrower rect to report,
     and the outer bounds are exactly what `_label_text_requests` would
-    otherwise center on anyway."""
+    otherwise center on anyway -- that case is `_empty_result` below."""
 
     var text_requests: List[_TextRequest]
     var px0: Int
@@ -1263,6 +1263,17 @@ struct _RenderResult(Movable):
         self.py0 = py0
         self.px1 = px1
         self.py1 = py1
+
+
+def _empty_result(ox0: Int, oy0: Int, ox1: Int, oy1: Int) -> _RenderResult:
+    """The `_RenderResult` every `_render_*` function returns when it
+    has nothing to draw (no categories, no points) -- no text requests,
+    and the full outer bounds as the inner rect, for the reason
+    `_RenderResult`'s own docstring gives. One helper rather than the
+    same three lines (`var text_requests = List[_TextRequest]()`, the
+    length check, the constructor call) opening all eleven of them.
+    """
+    return _RenderResult(List[_TextRequest](), ox0, oy0, ox1, oy1)
 
 
 def _apply_labels(plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _LabelsFrame:
@@ -1426,10 +1437,22 @@ def render(
 
     The whole *original* `(ox0, oy0)`-`(cx1, cy1)` rect is filled with
     `theme.background` before anything else -- not just the shrunk
-    inner rect `_render_generic` goes on to fill again itself -- so a
-    title's own reserved margin strip gets painted too, rather than
-    showing whatever `canvas` held before this call (which usually
-    happens to match anyway, but isn't guaranteed to).
+    inner rect handed downstream -- so a title's own reserved margin
+    strip gets painted too, rather than showing whatever `canvas` held
+    before this call (which usually happens to match anyway, but isn't
+    guaranteed to).
+
+    This is now the *only* background fill on this path. `_render_
+    generic` and every mark-specific `_render_*` used to open by
+    filling their own rect a second time -- always a strict subset of
+    this one, in the same color, so always pure waste: one whole extra
+    full-target fill per render (at `examples/bar.mojo`'s own
+    640x420-at-_SUPERSAMPLE=3, about 2.4M redundant pixel writes per
+    chart -- arithmetic, not a measured speedup; nothing here has been
+    benchmarked). Painting the background is the *entry point's* job
+    now, once, and each of the four entry points does it: here,
+    `render_svg()`, `_render_facets_generic` (per cell -- see its own
+    comment) and `render_layers()`/`render_layers_svg()`.
     """
     var cx1 = ox1 if ox1 >= 0 else canvas.width
     var cy1 = oy1 if oy1 >= 0 else canvas.height
@@ -1693,6 +1716,12 @@ struct _ContinuousFrame(Movable):
         self.py0 = py0
         self.px1 = px1
         self.py1 = py1
+
+    def result(self) -> _RenderResult:
+        """This frame as the `_RenderResult` its caller returns -- see
+        `_CategoricalFrame.result`'s own docstring, which this mirrors
+        exactly."""
+        return _RenderResult(self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1)
 
 
 def _draw_continuous_axis_frame[
@@ -2025,11 +2054,8 @@ def _render_generic[
     _validate_continuous_encoding(plot, "Plot.encode()")
 
     var theme = plot._theme
-    target.fill_rect(ox0, oy0, ox1 - ox0, oy1 - oy0, theme.background)
-
-    var text_requests = List[_TextRequest]()
     if len(plot.x_data) == 0:
-        return _RenderResult(text_requests^, ox0, oy0, ox1, oy1)
+        return _empty_result(ox0, oy0, ox1, oy1)
 
     # Every pixel-sized Theme/module-constant quantity below, scaled
     # once by theme.scale -- see _Scaled's own docstring.
@@ -2072,10 +2098,7 @@ def _render_generic[
     elif plot._mark == Mark.AREA:
         _draw_area_layer(target, plot, frame.x_scale, frame.y_scale)
 
-    # A `.copy()`, not a `^` transfer -- see _render_bar's own comment
-    # (bar.mojo) for why Mojo's ownership checker rejects moving a
-    # single field out of a frame struct here.
-    return _RenderResult(frame.text_requests.copy(), frame.px0, frame.py0, frame.px1, frame.py1)
+    return frame.result()
 
 
 struct _CategoricalFrame(Movable):
@@ -2121,6 +2144,26 @@ struct _CategoricalFrame(Movable):
         self.py0 = py0
         self.px1 = px1
         self.py1 = py1
+
+    def result(self) -> _RenderResult:
+        """This frame as the `_RenderResult` its caller returns -- the
+        line every mark's own `_render_*` ends with, once it has drawn
+        whatever per-category shape it exists to draw.
+
+        A `.copy()` of `text_requests`, not a `^` transfer: Mojo's
+        ownership checker rejects moving a single field out of a struct
+        ("field 'self.text_requests' destroyed out of the middle of a
+        value"), since the rest of the frame still owns `x_scale`/
+        `y_scale`/`sc` and needs its own normal end-of-scope
+        destruction. Re-confirmed directly against the current compiler
+        when this method was extracted, including with an owned `var
+        self` and with every field consumed in turn -- Mojo has no
+        piecewise-destructuring form that satisfies it, so the copy
+        isn't a workaround for a borrow that could have been avoided by
+        restructuring. It's a small `List` either way, and it now
+        happens in exactly one place instead of eleven.
+        """
+        return _RenderResult(self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1)
 
 
 def _draw_categorical_axis_frame[
@@ -2335,6 +2378,16 @@ def _render_facets_generic[
         var cell_x1 = width * (col + 1) // cols
         var cell_y0 = height * row // rows
         var cell_y1 = height * (row + 1) // rows
+        # Each cell's own *full* rect, filled from that cell's own
+        # Plot's background before anything else -- the same "the whole
+        # original rect gets painted, including the strip a title's
+        # margin reserved" contract render()/render_svg() already
+        # document. Cells used to rely on _render_generic filling its
+        # own (label-shrunk) rect instead, which left a titled cell's
+        # top band showing whatever the canvas held before the call.
+        target.fill_rect(
+            cell_x0, cell_y0, cell_x1 - cell_x0, cell_y1 - cell_y0, plots[i]._theme.background
+        )
         var frame = _apply_labels(plots[i], cell_x0, cell_y0, cell_x1, cell_y1)
         var cell_result = _render_generic(target, plots[i], frame.ox0, frame.oy0, frame.ox1, frame.oy1)
         var label_requests = _label_text_requests(
@@ -2430,6 +2483,7 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     if len(plots) == 0:
         _ = _render_layers_generic(canvas, plots, ox0, oy0, cx1, cy1)
         return
+    canvas.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plots[0]._theme.background)
     var frame = _apply_labels(plots[0], ox0, oy0, cx1, cy1)
     var result = _render_layers_generic(canvas, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1)
     var label_requests = _label_text_requests(
@@ -2454,6 +2508,7 @@ def render_layers_svg(mut svg: SvgCanvas, plots: List[Plot], ox0: Int = 0, oy0: 
     if len(plots) == 0:
         _ = _render_layers_generic(svg, plots, ox0, oy0, cx1, cy1)
         return
+    svg.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plots[0]._theme.background)
     var frame = _apply_labels(plots[0], ox0, oy0, cx1, cy1)
     var result = _render_layers_generic(svg, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1)
     var label_requests = _label_text_requests(
@@ -2519,7 +2574,6 @@ def _render_layers_generic[
         _validate_continuous_encoding(plots[i], "render_layers(): layer " + String(i))
 
     var theme = plots[0]._theme
-    target.fill_rect(ox0, oy0, ox1 - ox0, oy1 - oy0, theme.background)
 
     var combined_x = List[Float64]()
     var combined_y = List[Float64]()

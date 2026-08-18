@@ -17,6 +17,7 @@ from dataviz_mojo.plot import (
     _TextRequest,
     _draw_legend,
     _dynamic_legend_width,
+    _empty_result,
 )
 from dataviz_mojo.theme import Theme
 
@@ -79,11 +80,10 @@ def _render_arc[
         )
 
     var theme = plot._theme
-    target.fill_rect(ox0, oy0, ox1 - ox0, oy1 - oy0, theme.background)
+    if len(plot.x_categories) == 0:
+        return _empty_result(ox0, oy0, ox1, oy1)
 
     var text_requests = List[_TextRequest]()
-    if len(plot.x_categories) == 0:
-        return _RenderResult(text_requests^, ox0, oy0, ox1, oy1)
 
     for v in plot.y_data:
         if v < 0.0:
