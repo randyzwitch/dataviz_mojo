@@ -129,7 +129,9 @@ parameters shared across all of them:
 - `theme`: a full `Theme`, for every knob these don't surface as
   their own parameter (colors beyond `mark_color`, margins, font
   sizes, gridlines, `line_smoothing`, ...) --
-  `Theme(mark_color=Color(40, 130, 90))` works exactly as it does
+  `Theme(mark_color=SEAGREEN)` (see `dataviz_mojo.colors`'s own
+  docstring for that constant and every other CSS-named one alongside
+  it, or `Color(40, 130, 90)` directly) works exactly as it does
   building a `Plot` by hand; only how it's handed in differs (an
   argument here, instead of a chained `.theme(...)`).
 - `width`/`height`: the returned `Canvas`'s pixel size, defaulting to

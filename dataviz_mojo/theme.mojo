@@ -8,6 +8,11 @@ appropriate here specifically because a theme isn't part of the data
 grammar (it doesn't change what a mark or scale *means*), just how it
 looks.
 
+Every field below typed `Color` takes a `dataviz_mojo.colors` named
+constant exactly as it does a hand-built `Color(r, g, b)` -- `Theme(
+mark_color=CORNFLOWERBLUE)` instead of `Theme(mark_color=Color(100,
+149, 237))` -- see that module's own docstring for the full list.
+
 `scale` (default 1.0, purely multiplicative, so every existing Theme
 keeps rendering exactly as it always has) uniformly multiplies every
 *other* pixel-sized quantity render() computes -- font size, margins,
@@ -141,6 +146,8 @@ mark's own shape).
 
 from canvas_mojo.color import Color
 
+from dataviz_mojo.colors import WHITE
+
 
 struct Theme(ImplicitlyCopyable, Movable):
     var background: Color
@@ -174,7 +181,7 @@ struct Theme(ImplicitlyCopyable, Movable):
 
     def __init__(
         out self,
-        background: Color = Color(255, 255, 255),
+        background: Color = WHITE,
         mark_color: Color = Color(30, 100, 180),
         axis_color: Color = Color(80, 80, 80),
         gridline_color: Color = Color(225, 225, 225),

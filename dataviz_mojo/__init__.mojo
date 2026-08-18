@@ -11,12 +11,23 @@ and why), so their real module paths -- `dataviz_mojo.bar.bar`,
 `dataviz_mojo.arc.pie` -- are an internal layout detail that would be
 noisy and surprising to import directly. Import them from the package,
 not from the file.
+
+Every name below is listed explicitly -- a deliberate, considered
+addition to this package's own public surface -- with one exception:
+`colors.mojo`'s ~148 CSS-named `Color` constants (`from dataviz_mojo.
+colors import *`, the one wildcard import in this file). Those aren't
+individually-designed features to enumerate one by one, just a single
+fixed, already-standard vocabulary (see that file's own docstring) --
+listing `RED`, `BLUE`, `CORNFLOWERBLUE`, ... by hand here would be
+pure noise a spec already settled, not documentation of a real choice
+made in this package.
 """
 
 from dataviz_mojo.theme import Theme
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.scale import LinearScale, MinMax, Ticks
 from dataviz_mojo.color_scale import ColorScale, default_categorical_palette
+from dataviz_mojo.colors import *
 from dataviz_mojo.ordinal_scale import OrdinalScale
 from dataviz_mojo.plot import (
     Plot,

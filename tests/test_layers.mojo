@@ -24,6 +24,7 @@ from dataviz_mojo.plot import (
     _unique_categories,
 )
 from dataviz_mojo.theme import Theme
+from dataviz_mojo.colors import RED
 
 from _test_helpers import BG, _count_color, _assert_color
 
@@ -46,7 +47,7 @@ def test_render_layers_shares_one_domain_across_a_line_and_a_point() raises:
     var point_y: List[Float64] = [5.0]
     var plot_a = Plot().mark_line().encode(x=line_x, y=line_y).theme(Theme(show_gridlines=False))
     var plot_b = Plot().mark_point().encode(x=point_x, y=point_y).theme(
-        Theme(mark_color=Color(255, 0, 0), point_radius=5.0)
+        Theme(mark_color=RED, point_radius=5.0)
     )
     var plots = List[Plot]()
     plots.append(plot_a^)
@@ -54,14 +55,14 @@ def test_render_layers_shares_one_domain_across_a_line_and_a_point() raises:
 
     var c = Canvas(400, 300, BG)
     render_layers(c, plots)
-    _assert_color(c, 220, 135, Color(255, 0, 0), "the layered point, at the shared domain's own pixel")
+    _assert_color(c, 220, 135, RED, "the layered point, at the shared domain's own pixel")
 
     var svg = SvgCanvas(400, 300)
     var svg_plots = List[Plot]()
     svg_plots.append(Plot().mark_line().encode(x=line_x, y=line_y).theme(Theme(show_gridlines=False)))
     svg_plots.append(
         Plot().mark_point().encode(x=point_x, y=point_y).theme(
-            Theme(mark_color=Color(255, 0, 0), point_radius=5.0)
+            Theme(mark_color=RED, point_radius=5.0)
         )
     )
     render_layers_svg(svg, svg_plots)
@@ -103,7 +104,7 @@ def test_render_layers_svg_title_from_plots0_centers_on_shared_inner_rect() rais
     )
     plots.append(
         Plot().mark_point().encode(x=point_x, y=point_y).theme(
-            Theme(mark_color=Color(255, 0, 0), point_radius=5.0)
+            Theme(mark_color=RED, point_radius=5.0)
         )
     )
     render_layers_svg(svg, plots)

@@ -22,12 +22,12 @@ Run with:
     pixi run example
 """
 
-from canvas_mojo.color import Color
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import box
+from dataviz_mojo.colors import ROYALBLUE
 from dataviz_mojo.theme import Theme
 
 
@@ -40,13 +40,13 @@ def main() raises:
         [82.0, 84.0, 85.0, 86.0, 87.0, 88.0, 89.0, 91.0, 93.0],
     ]
 
-    var c = box(groups, scores, theme=Theme(mark_color=Color(70, 110, 190)))
+    var c = box(groups, scores, theme=Theme(mark_color=ROYALBLUE))
     write_bmp(c, "examples/out_box.bmp")
     write_png(c, "examples/out_box.png")
 
     var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_box().encode_boxplot(groups, scores).theme(
-        Theme(mark_color=Color(70, 110, 190))
+        Theme(mark_color=ROYALBLUE)
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_box.svg")

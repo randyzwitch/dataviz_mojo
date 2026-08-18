@@ -15,12 +15,12 @@ Run with:
     pixi run example
 """
 
-from canvas_mojo.color import Color
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import histogram
+from dataviz_mojo.colors import REBECCAPURPLE
 from dataviz_mojo.theme import Theme
 
 
@@ -33,13 +33,13 @@ def main() raises:
         85.0, 86.0, 87.0, 88.0, 89.0, 90.0, 91.0, 93.0, 95.0, 98.0,
     ]
 
-    var c = histogram(scores, bins=8, theme=Theme(mark_color=Color(90, 60, 160)))
+    var c = histogram(scores, bins=8, theme=Theme(mark_color=REBECCAPURPLE))
     write_bmp(c, "examples/out_histogram.bmp")
     write_png(c, "examples/out_histogram.png")
 
     var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_bar().encode_histogram(scores, bins=8).theme(
-        Theme(mark_color=Color(90, 60, 160))
+        Theme(mark_color=REBECCAPURPLE)
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_histogram.svg")

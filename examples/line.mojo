@@ -14,12 +14,12 @@ Run with:
 
 from std.math import sin
 
-from canvas_mojo.color import Color
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import line
+from dataviz_mojo.colors import BROWN
 from dataviz_mojo.theme import Theme
 
 
@@ -35,7 +35,7 @@ def main() raises:
         x,
         y,
         theme=Theme(
-            mark_color=Color(180, 60, 40),
+            mark_color=BROWN,
             line_width=3.0,
             show_gridlines=False,
         ),
@@ -46,7 +46,7 @@ def main() raises:
 
     var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_line().encode(x=x, y=y).theme(
-        Theme(mark_color=Color(180, 60, 40), line_width=3.0, show_gridlines=False)
+        Theme(mark_color=BROWN, line_width=3.0, show_gridlines=False)
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_line.svg")

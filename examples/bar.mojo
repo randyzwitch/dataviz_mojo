@@ -13,12 +13,12 @@ Run with:
     pixi run example
 """
 
-from canvas_mojo.color import Color
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import bar
+from dataviz_mojo.colors import SEAGREEN
 from dataviz_mojo.theme import Theme
 
 
@@ -26,14 +26,14 @@ def main() raises:
     var categories: List[String] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     var values: List[Float64] = [12.0, 19.0, 8.0, 15.0, 22.0, -4.0, 6.0]
 
-    var c = bar(categories, values, theme=Theme(mark_color=Color(40, 130, 90)))
+    var c = bar(categories, values, theme=Theme(mark_color=SEAGREEN))
 
     write_bmp(c, "examples/out_bar.bmp")
     write_png(c, "examples/out_bar.png")
 
     var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_bar().encode_categorical(x=categories, y=values).theme(
-        Theme(mark_color=Color(40, 130, 90))
+        Theme(mark_color=SEAGREEN)
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_bar.svg")
