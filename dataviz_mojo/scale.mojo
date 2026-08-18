@@ -41,7 +41,23 @@ struct MinMax(ImplicitlyCopyable, Movable):
         self.max = max
 
 
-def _min_max(data: List[Float64]) -> MinMax:
+def _min_max(data: List[Float64]) raises -> MinMax:
+    """`data`'s own [min, max]. Raises on an empty list rather than
+    indexing out of bounds, which is what it used to do -- `data[0]`
+    with no length check at all.
+
+    No caller can currently reach that (every one guards on its own
+    data being non-empty first, and the render paths return early
+    before this on an empty plot), so this raises rather than
+    inventing a fallback: there is no honest [min, max] of nothing, and
+    a silent `MinMax(0.0, 0.0)` would hand back a degenerate domain
+    that renders as a real axis, which is exactly the "silently
+    misrepresent the data" failure this package's own encode/render
+    checks exist to prevent. A clear error at the boundary beats a
+    plausible-looking wrong chart.
+    """
+    if len(data) == 0:
+        raise Error("_min_max(): can't take the min/max of an empty column")
     var lo = data[0]
     var hi = data[0]
     for v in data:

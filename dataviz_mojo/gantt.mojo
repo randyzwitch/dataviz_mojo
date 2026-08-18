@@ -274,9 +274,9 @@ def _render_gantt[
         target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
     )
 
+    var row_height = _round_to_int(frame.y_scale.bandwidth())
     for i in range(len(plot.x_categories)):
         var row_y = _round_to_int(frame.y_scale.band_start(i))
-        var row_height = _round_to_int(frame.y_scale.bandwidth())
         var start_px = _axis_pixel(frame.x_scale, plot._gantt_start[i])
         var end_px = _axis_pixel(frame.x_scale, plot._gantt_end[i])
         var bar_x = min(start_px, end_px)

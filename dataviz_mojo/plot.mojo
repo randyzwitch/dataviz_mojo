@@ -79,6 +79,7 @@ each mark's own `_render_*`/calculation function back from theirs --
 a real circular import, which Mojo resolves fine within one package.
 """
 
+from std.collections import Dict
 from std.math import pi
 
 from canvas_mojo.buffer import Canvas
@@ -814,6 +815,7 @@ def _unique_categories(data: List[String]) -> List[String]:
         for existing in result:
             if existing == v:
                 found = True
+                break
         if not found:
             result.append(v)
     return result^
@@ -824,6 +826,62 @@ def _index_of(data: List[String], value: String) -> Int:
         if data[i] == value:
             return i
     return -1
+
+
+struct _CategoricalIndex(Movable):
+    """`_categorical_indices`'s own result: a categorical column's
+    `domain` (its distinct values in first-seen order, exactly what
+    `_unique_categories` returns) *plus* `indices`, that domain's own
+    position for every row of the original column -- `indices[i]` is
+    where `data[i]` sits in `domain`, so a caller never has to search
+    the domain by string equality again."""
+
+    var domain: List[String]
+    var indices: List[Int]
+
+    def __init__(out self, var domain: List[String], var indices: List[Int]):
+        self.domain = domain^
+        self.indices = indices^
+
+
+def _categorical_indices(data: List[String]) raises -> _CategoricalIndex:
+    """A categorical column's domain and its per-row indices into that
+    domain, resolved together in one pass through a `Dict` -- what
+    `Mark.POINT`'s own categorical color channel actually needs (see
+    `_PointChannels`, its only caller).
+
+    Replaces a pair of nested-loop scans that were quadratic in the
+    column's own distinct-value count: `_unique_categories` compared
+    each row against every domain entry found so far, and then the
+    per-point draw loop called `_index_of` -- another full domain scan
+    -- once *per point*. For a scatter of `n` points over `k`
+    categories that was O(n*k) twice over; hashing each row once makes
+    it O(n) on average, and the draw loop a plain `indices[i]` lookup.
+
+    `_unique_categories` itself stays (it's this module's own
+    documented, separately tested first-seen-order helper, and the
+    domain half of this function agrees with it exactly by
+    construction) -- this just also keeps the answer to "and where did
+    each row land," which every caller previously threw away and then
+    recomputed the expensive way.
+
+    First-seen order comes from `domain`'s own append order, not from
+    the `Dict` (whose iteration order this never relies on) -- the same
+    order `_unique_categories` guarantees, and the order a categorical
+    palette is indexed in.
+    """
+    var seen = Dict[String, Int]()
+    var domain = List[String]()
+    var indices = List[Int](capacity=len(data))
+    for v in data:
+        if v in seen:
+            indices.append(seen[v])
+        else:
+            var idx = len(domain)
+            seen[v] = idx
+            domain.append(v)
+            indices.append(idx)
+    return _CategoricalIndex(domain^, indices^)
 
 
 def _axis_pixel(scale: LinearScale, value: Float64) -> Int:
@@ -1157,7 +1215,7 @@ def _draw_continuous_size_legend[T: DrawTarget](
     return top_y
 
 
-def _data_extent(data: List[Float64]) -> LinearScale:
+def _data_extent(data: List[Float64]) raises -> LinearScale:
     """The [min, max] of `data` (via scale.mojo's shared `_min_max`),
     padded 5% on each side for visual breathing room (points/lines
     exactly on the plot edge would otherwise look clipped) -- returned
@@ -1178,7 +1236,7 @@ def _data_extent(data: List[Float64]) -> LinearScale:
     return LinearScale(mm.min - pad, mm.max + pad, 0.0, 1.0)
 
 
-def _zero_baseline_y_extent(data: List[Float64]) -> LinearScale:
+def _zero_baseline_y_extent(data: List[Float64]) raises -> LinearScale:
     """The y-domain for any mark whose fill/height encodes magnitude
     from a baseline (`Mark.BAR`, `Mark.AREA`) -- always includes a
     zero baseline, not optional the way `_data_extent`'s padding is:
@@ -1525,19 +1583,33 @@ struct _PointChannels(Movable):
     var has_color: Bool
     var has_color_categories: Bool
     var has_size: Bool
-    var domain: List[String]
+    # The categorical color column's own domain *and* each row's index
+    # into it, resolved once here rather than searched per point at
+    # draw time -- see `_categorical_indices`' own docstring. Held as
+    # the whole `_CategoricalIndex` rather than unpacked into two
+    # fields: Mojo won't let a returned struct's fields be moved out
+    # individually (the same rule `_CategoricalFrame.result` documents),
+    # so unpacking would mean copying the per-row index list on every
+    # render -- the exact O(n) work this is here to avoid. Both halves
+    # are empty when the channel isn't encoded.
+    var cat: _CategoricalIndex
     var palette: List[Color]
     var color_scale: ColorScale
     var size_mm: MinMax
     var size_scale: LinearScale
 
-    def __init__(out self, plot: Plot, sc: _Scaled):
+    def __init__(out self, plot: Plot, sc: _Scaled) raises:
         self.has_color = len(plot.color_data) > 0
         self.has_color_categories = len(plot.color_categories) > 0
         self.has_size = len(plot.size_data) > 0
-        self.domain = (
-            _unique_categories(plot.color_categories) if self.has_color_categories else List[String]()
-        )
+        # Branch rather than resolving an empty column: `plot` is
+        # borrowed, so feeding `color_categories` through a ternary
+        # would need a full copy of it just to hand back an empty
+        # result on the unencoded path.
+        if self.has_color_categories:
+            self.cat = _categorical_indices(plot.color_categories)
+        else:
+            self.cat = _CategoricalIndex(List[String](), List[Int]())
         self.palette = default_categorical_palette() if self.has_color_categories else List[Color]()
         var color_mm = _min_max(plot.color_data) if self.has_color else MinMax(0.0, 1.0)
         self.color_scale = ColorScale(color_mm.min, color_mm.max)
@@ -1660,7 +1732,7 @@ def _legend_reserve_for(plot: Plot, ch: _PointChannels, sc: _Scaled) raises -> I
 
     var reserve = 0
     if ch.has_color_categories:
-        reserve = max(reserve, _dynamic_legend_width(ch.domain, sc.legend_swatch_size, sc))
+        reserve = max(reserve, _dynamic_legend_width(ch.cat.domain, sc.legend_swatch_size, sc))
     elif ch.has_color:
         var color_labels = List[String]()
         color_labels.append(_format_fixed(ch.color_scale.domain_max, 1))
@@ -1901,8 +1973,10 @@ def _draw_point_layer[
         if ch.has_color:
             color = ch.color_scale.color_at(plot.color_data[i])
         elif ch.has_color_categories:
-            var idx = _index_of(ch.domain, plot.color_categories[i])
-            color = ch.palette[idx % len(ch.palette)]
+            # A plain lookup, not a search: _PointChannels resolved
+            # every row's own domain index up front (see _categorical_
+            # indices' own docstring for what this used to cost here).
+            color = ch.palette[ch.cat.indices[i] % len(ch.palette)]
         else:
             color = theme.mark_color
         var radius = (
@@ -1919,8 +1993,8 @@ def _draw_point_layer[
 
     var next_y = legend_y
     if ch.has_color_categories:
-        _draw_legend(target, text_requests, ch.domain, ch.palette, legend_x, next_y, theme)
-        next_y += len(ch.domain) * (sc.legend_swatch_size + sc.legend_row_gap)
+        _draw_legend(target, text_requests, ch.cat.domain, ch.palette, legend_x, next_y, theme)
+        next_y += len(ch.cat.domain) * (sc.legend_swatch_size + sc.legend_row_gap)
     elif ch.has_color:
         next_y = _draw_continuous_color_legend(
             target, text_requests, ch.color_scale, legend_x, next_y, theme

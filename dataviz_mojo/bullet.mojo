@@ -138,9 +138,18 @@ def _render_bullet[
     range_color_scale.add_stop(0.0, theme.bullet_range_color_light)
     range_color_scale.add_stop(1.0, theme.bullet_range_color_dark)
 
+    # Every one of these depends only on the scale and theme, never on
+    # the category index -- this loop used to recompute all four per
+    # category, calling bandwidth() three separate times (plus a fourth
+    # inside center(i)) on every pass.
+    var bandwidth = frame.x_scale.bandwidth()
+    var band_width = _round_to_int(bandwidth)
+    var measure_width = _round_to_int(bandwidth * _BULLET_MEASURE_WIDTH_FRACTION)
+    var measure_inset = bandwidth * _BULLET_MEASURE_WIDTH_FRACTION / 2.0
+    var baseline_py = _axis_pixel(frame.y_scale, 0.0)
+
     for i in range(len(plot.x_categories)):
         var band_x = _round_to_int(frame.x_scale.band_start(i))
-        var band_width = _round_to_int(frame.x_scale.bandwidth())
         var band_count = len(plot._bullet_ranges[i])
 
         var prev_threshold = 0.0
@@ -154,9 +163,7 @@ def _render_bullet[
             target.fill_rect(band_x, rect_y, band_width, rect_h, band_color)
             prev_threshold = plot._bullet_ranges[i][j]
 
-        var measure_width = _round_to_int(frame.x_scale.bandwidth() * _BULLET_MEASURE_WIDTH_FRACTION)
-        var measure_x = _round_to_int(frame.x_scale.center(i) - frame.x_scale.bandwidth() * _BULLET_MEASURE_WIDTH_FRACTION / 2.0)
-        var baseline_py = _axis_pixel(frame.y_scale, 0.0)
+        var measure_x = _round_to_int(frame.x_scale.center(i) - measure_inset)
         var measure_py = _axis_pixel(frame.y_scale, plot._bullet_measure[i])
         var measure_y = min(baseline_py, measure_py)
         var measure_h = max(baseline_py, measure_py) - min(baseline_py, measure_py)

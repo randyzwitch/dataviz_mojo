@@ -98,6 +98,7 @@ def _render_candlestick[
 
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
+    var body_width = _round_to_int(frame.x_scale.bandwidth())
     for i in range(len(plot.x_categories)):
         var center_px = _round_to_int(frame.x_scale.center(i))
         var high_py = _axis_pixel(frame.y_scale, plot._candle_high[i])
@@ -107,7 +108,6 @@ def _render_candlestick[
         var open_py = _axis_pixel(frame.y_scale, plot._candle_open[i])
         var close_py = _axis_pixel(frame.y_scale, plot._candle_close[i])
         var body_x = _round_to_int(frame.x_scale.band_start(i))
-        var body_width = _round_to_int(frame.x_scale.bandwidth())
         var body_y = min(open_py, close_py)
         var body_height = max(1, max(open_py, close_py) - min(open_py, close_py))
         var body_color = (

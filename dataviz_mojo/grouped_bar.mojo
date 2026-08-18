@@ -138,10 +138,9 @@ def _render_grouped_bar[
     var n_series = len(plot._grouped_bar_series_names)
     var baseline_py = _axis_pixel(frame.y_scale, 0.0)
 
+    var sub_width = frame.x_scale.bandwidth() / Float64(n_series)
     for i in range(len(plot.x_categories)):
         var band_start = frame.x_scale.band_start(i)
-        var bandwidth = frame.x_scale.bandwidth()
-        var sub_width = bandwidth / Float64(n_series)
         for j in range(n_series):
             var left = _round_to_int(band_start + Float64(j) * sub_width)
             var right = _round_to_int(band_start + Float64(j + 1) * sub_width)

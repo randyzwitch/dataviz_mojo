@@ -169,9 +169,9 @@ def _render_box[
 
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
+    var band_w = frame.x_scale.bandwidth()
     for i in range(len(plot.x_categories)):
         var center = frame.x_scale.center(i)
-        var band_w = frame.x_scale.bandwidth()
         var half_w = band_w / 2.0
         var cap_half_w = band_w / 4.0
 

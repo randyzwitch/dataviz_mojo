@@ -73,9 +73,13 @@ def _render_bar[
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
     var baseline_py = _axis_pixel(frame.y_scale, 0.0)
+    # bandwidth() depends only on the scale's own domain length and
+    # pixel range, never on the category index -- hoisted here (and in
+    # every other mark's own loop) rather than recomputing its division
+    # once per category.
+    var bar_width = _round_to_int(frame.x_scale.bandwidth())
     for i in range(len(plot.x_categories)):
         var bar_x = _round_to_int(frame.x_scale.band_start(i))
-        var bar_width = _round_to_int(frame.x_scale.bandwidth())
         var top_py = _axis_pixel(frame.y_scale, plot.y_data[i])
         var bar_y = min(baseline_py, top_py)
         var bar_height = max(baseline_py, top_py) - min(baseline_py, top_py)

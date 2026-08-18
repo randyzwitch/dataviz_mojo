@@ -4,9 +4,9 @@ computed by hand (see scale.mojo's own module docstring) before
 trusting the Mojo implementation.
 """
 
-from std.testing import assert_equal, assert_true, TestSuite
+from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from dataviz_mojo.scale import LinearScale, Ticks, _nice_step, _format_fixed
+from dataviz_mojo.scale import LinearScale, Ticks, _format_fixed, _min_max, _nice_step
 
 
 def _assert_ticks_equal(actual: List[Float64], expected: List[Float64], label: String) raises:
@@ -131,6 +131,25 @@ def test_ticks_labels_uses_format_fixed_per_tick() raises:
     assert_equal(labels[0], "0.000")
     assert_equal(labels[1], "0.002")
     assert_equal(labels[len(labels) - 1], "0.010")
+
+
+def test_min_max_over_a_plain_column() raises:
+    var data: List[Float64] = [3.0, -1.0, 7.5, 0.0]
+    var mm = _min_max(data)
+    assert_equal(mm.min, -1.0)
+    assert_equal(mm.max, 7.5)
+
+
+def test_min_max_raises_on_an_empty_column() raises:
+    # _min_max used to read data[0] with no length check at all -- out
+    # of bounds on an empty column. No caller can currently reach it
+    # (every render path returns early on empty data first), so this
+    # raises rather than inventing a fallback: a silent MinMax(0, 0)
+    # would hand back a degenerate domain that still renders as a real
+    # axis, which is the "silently misrepresent the data" failure this
+    # package's own encode/render checks exist to prevent.
+    with assert_raises():
+        _ = _min_max(List[Float64]())
 
 
 def main() raises:
