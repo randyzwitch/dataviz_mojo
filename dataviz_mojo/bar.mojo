@@ -111,7 +111,6 @@ def bar(
     """A bar chart -- `Mark.BAR` over a categorical `x` and continuous
     `y` (see `Plot.encode_categorical()`'s own docstring; one bar per
     entry, negative values extend below the zero baseline
-    automatically). See plot.mojo's own module docstring for the shared
-    parameters every function here takes."""
+    automatically)."""
     var plot = Plot().mark_bar().encode_categorical(x=categories, y=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title)

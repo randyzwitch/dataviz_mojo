@@ -175,8 +175,7 @@ def grouped_bar(
     by side per category, one per series (`values[j]` is series
     `series_names[j]`'s own value per category). See `Plot.
     encode_grouped_bar()`'s own docstring (plot.mojo) for the exact
-    shape, and plot.mojo's own module docstring for the shared parameters
-    every function here takes."""
+    shape."""
     var plot = Plot().mark_grouped_bar().encode_grouped_bar(
         categories=categories, series_names=series_names, values=values
     )

@@ -188,9 +188,7 @@ def bullet(
     """A bullet chart -- `Mark.BULLET` (Stephen Few's design): a
     measure bar, a target tick, and shaded qualitative-range bands
     per category. See `Plot.encode_bullet()`'s own docstring
-    (plot.mojo) for what `measures`/`targets`/`ranges` mean, and this
-    module's own docstring for the shared parameters every function
-    here takes."""
+    (plot.mojo) for what `measures`/`targets`/`ranges` mean."""
     var plot = Plot().mark_bullet().encode_bullet(
         categories=categories, measures=measures, targets=targets, ranges=ranges
     )

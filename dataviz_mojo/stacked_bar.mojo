@@ -156,8 +156,7 @@ def stacked_bar(
     """A stacked bar chart -- `Mark.STACKED_BAR`, the exact same
     `(categories, series_names, values)` shape `grouped_bar()` takes,
     each series drawn as a stacked segment instead of a side-by-side
-    sub-bar. See plot.mojo's own module docstring for the shared
-    parameters every function here takes."""
+    sub-bar."""
     var plot = Plot().mark_stacked_bar().encode_grouped_bar(
         categories=categories, series_names=series_names, values=values
     )
