@@ -27,12 +27,12 @@ Run with:
     pixi run example
 """
 
-from canvas_mojo.color import Color
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import line
+from dataviz_mojo.colors import SEAGREEN
 from dataviz_mojo.theme import Theme
 
 
@@ -45,7 +45,7 @@ def main() raises:
         x,
         revenue,
         theme=Theme(
-            mark_color=Color(30, 140, 90),
+            mark_color=SEAGREEN,
             line_width=3.0,
             show_gridlines=False,
         ),
@@ -57,7 +57,7 @@ def main() raises:
 
     var svg = SvgCanvas(320, 420)
     var svg_plot = Plot().mark_line().encode(x=x, y=revenue).theme(
-        Theme(mark_color=Color(30, 140, 90), line_width=3.0, show_gridlines=False)
+        Theme(mark_color=SEAGREEN, line_width=3.0, show_gridlines=False)
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_slope.svg")

@@ -17,12 +17,12 @@ Run with:
     pixi run example
 """
 
-from canvas_mojo.color import Color
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import lollipop
+from dataviz_mojo.colors import TEAL
 from dataviz_mojo.theme import Theme
 
 
@@ -33,13 +33,13 @@ def main() raises:
     ]
     var gdp: List[Float64] = [27.4, 17.8, 4.2, 4.1, 3.7, 3.3, 3.0, 2.2, 2.1, 2.1]
 
-    var c = lollipop(countries, gdp, theme=Theme(mark_color=Color(20, 130, 110)))
+    var c = lollipop(countries, gdp, theme=Theme(mark_color=TEAL))
     write_bmp(c, "examples/out_lollipop.bmp")
     write_png(c, "examples/out_lollipop.png")
 
     var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_lollipop().encode_categorical(x=countries, y=gdp).theme(
-        Theme(mark_color=Color(20, 130, 110))
+        Theme(mark_color=TEAL)
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_lollipop.svg")

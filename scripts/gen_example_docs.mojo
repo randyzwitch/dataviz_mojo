@@ -229,6 +229,29 @@ def _quickplot_names() -> List[String]:
     ]
 
 
+def _color_constant_names() raises -> List[String]:
+    """Every `dataviz_mojo.colors` constant's own name, parsed directly
+    out of colors.mojo itself (`comptime NAME = Color(...)`) rather
+    than hardcoded a second time here the way `_quickplot_names()`
+    is -- that list is short and hand-curated on purpose (a 14th
+    quickplot function is a real, deliberate addition worth a line of
+    its own); colors.mojo's own ~148 names are a fixed, already-
+    standard vocabulary sourced from the CSS spec once (see that
+    file's own docstring), and re-typing all of them a second time
+    here would just be a second place they could drift out of sync.
+    """
+    var names = List[String]()
+    var source = _read_file("dataviz_mojo/colors.mojo")
+    for line in source.split("\n"):
+        var stripped = String(line.strip())
+        if stripped.startswith("comptime "):
+            var after = String(stripped[byte=9:])  # 9 == len("comptime ")
+            var eq = after.find(" = ")
+            if eq != -1:
+                names.append(String(after[byte=0:eq]))
+    return names^
+
+
 def _quickplot_call_start(body: List[String]) -> Int:
     """The line index of `var c = <quickplot fn>(...`, or -1 if this
     example doesn't build its raster output that way. Written either
@@ -347,7 +370,7 @@ def _finish_clean_body(clean: List[String]) -> List[String]:
     return _strip_indent(collapsed)
 
 
-def _imports_for(body_text: String) -> List[String]:
+def _imports_for(body_text: String) raises -> List[String]:
     var lines = List[String]()
     if _word_in(body_text, "Color"):
         lines.append("from canvas_mojo.color import Color")
@@ -378,6 +401,14 @@ def _imports_for(body_text: String) -> List[String]:
         lines.append("from dataviz_mojo.theme import Theme")
     if _word_in(body_text, "default_categorical_palette"):
         lines.append("from dataviz_mojo.color_scale import default_categorical_palette")
+
+    var used_colors = List[String]()
+    for n in _color_constant_names():
+        if _word_in(body_text, n):
+            used_colors.append(n)
+    if len(used_colors) > 0:
+        lines.append("from dataviz_mojo.colors import " + String(", ").join(used_colors))
+
     return lines^
 
 
