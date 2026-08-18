@@ -348,5 +348,97 @@ def test_render_layers_raises_when_a_stacked_bar_plot_is_included() raises:
         render_layers(c, plots)
 
 
+def test_render_layers_line_honors_theme_line_smoothing() raises:
+    # render_layers used to build a layered Mark.LINE's own Path
+    # inline, with a plain move_to plus one line_to per point -- so a
+    # layer's own Theme.line_smoothing was silently ignored, always
+    # drawing straight segments no matter what it asked for, while the
+    # identical plot through render() curved. Both paths now go through
+    # _draw_line_layer/_build_line_path, so a single-layer
+    # render_layers() must match render() of that same plot exactly.
+    #
+    # Exactly test_render_line_smoothing_bows_the_curve_away_from_the_
+    # straight_path's own setup (test_line.mojo -- see its comment for
+    # where (147,135) comes from): one layer means the combined domain
+    # is just that plot's own, so every pixel it hand-derived applies
+    # here unchanged.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [0.0, 10.0, 0.0]
+    var theme = Theme(line_smoothing=1.0, show_gridlines=False)
+
+    var c_layered = Canvas(400, 300, BG)
+    var plots = List[Plot]()
+    plots.append(Plot().mark_line().encode(x=x, y=y).theme(theme))
+    render_layers(c_layered, plots)
+
+    var c_standalone = Canvas(400, 300, BG)
+    render(c_standalone, Plot().mark_line().encode(x=x, y=y).theme(theme))
+
+    for yy in range(c_layered.height):
+        for xx in range(c_layered.width):
+            var p_layered = c_layered.get_pixel(xx, yy)
+            var p_standalone = c_standalone.get_pixel(xx, yy)
+            assert_equal(p_layered.r, p_standalone.r)
+            assert_equal(p_layered.g, p_standalone.g)
+            assert_equal(p_layered.b, p_standalone.b)
+
+    # ...and that the shared output is genuinely the *curved* one, not
+    # two identically-straight renders agreeing with each other: the
+    # straight path's own segment midpoint is background under a fully
+    # smoothed curve.
+    var mid = c_layered.get_pixel(147, 135)
+    assert_equal(mid.r, BG.r)
+    assert_equal(mid.g, BG.g)
+    assert_equal(mid.b, BG.b)
+
+
+def test_render_layers_area_honors_theme_line_smoothing() raises:
+    # test_render_layers_line_honors_theme_line_smoothing's own case
+    # for Mark.AREA, which had the identical inline-Path problem (and
+    # whose y-domain, unlike LINE's, is forced through zero -- so this
+    # also confirms the shared _zero_baseline_y_extent rule survives
+    # the single-layer round trip).
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [0.0, 10.0, 0.0]
+    var theme = Theme(line_smoothing=1.0, show_gridlines=False)
+
+    var c_layered = Canvas(400, 300, BG)
+    var plots = List[Plot]()
+    plots.append(Plot().mark_area().encode(x=x, y=y).theme(theme))
+    render_layers(c_layered, plots)
+
+    var c_standalone = Canvas(400, 300, BG)
+    render(c_standalone, Plot().mark_area().encode(x=x, y=y).theme(theme))
+
+    for yy in range(c_layered.height):
+        for xx in range(c_layered.width):
+            var p_layered = c_layered.get_pixel(xx, yy)
+            var p_standalone = c_standalone.get_pixel(xx, yy)
+            assert_equal(p_layered.r, p_standalone.r)
+            assert_equal(p_layered.g, p_standalone.g)
+            assert_equal(p_layered.b, p_standalone.b)
+
+
+def test_render_layers_raises_on_out_of_range_smoothing() raises:
+    # The same [0.0, 1.0] guard test_render_line_raises_on_out_of_range_
+    # smoothing (test_line.mojo) already confirms for render() -- the
+    # layered path never checked at all before _draw_line_layer shared
+    # it, silently accepting a value Theme.line_smoothing's own
+    # docstring assigns no meaning to.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [0.0, 10.0, 0.0]
+
+    var c = Canvas(400, 300, BG)
+    var low = List[Plot]()
+    low.append(Plot().mark_line().encode(x=x, y=y).theme(Theme(line_smoothing=-0.1)))
+    with assert_raises():
+        render_layers(c, low)
+
+    var high = List[Plot]()
+    high.append(Plot().mark_area().encode(x=x, y=y).theme(Theme(line_smoothing=1.1)))
+    with assert_raises():
+        render_layers(c, high)
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

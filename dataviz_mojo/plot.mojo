@@ -1471,6 +1471,500 @@ def render_svg(
         svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, rotation=req.rotation)
 
 
+struct _PointChannels(Movable):
+    """Every derived value `Mark.POINT`'s own three optional data-driven
+    channels (categorical color, continuous color, continuous size --
+    see `Plot.encode`'s own docstring) need: which of the three are
+    actually encoded, the categorical domain and palette a discrete
+    color column indexes into, and the `ColorScale`/`LinearScale` a
+    continuous color/size column maps through.
+
+    Built unconditionally, even for a plot encoding none of the three
+    (every `has_*` False, both lists empty, both scales built over a
+    placeholder `[0, 1]` domain and never queried) -- the same "one code
+    path, not a branch duplicated per combination" convention the
+    single-plot render path already documented for these values
+    individually, back when it computed each of them inline.
+
+    A struct rather than five separate locals because these are needed
+    at *two* different points in one render, either side of a step that
+    happens in between: once before the plot rect is finalized, to size
+    the legend column around the labels that will actually go in it
+    (`_legend_reserve_for`), and once after, to color/size each point
+    and draw those same legend sections (`_draw_point_layer`). Computing
+    them once and handing the same value to both is what keeps the two
+    provably consistent -- a column sized for one palette and then drawn
+    with another would be a silent layout bug, and the two used to be
+    independent recomputations in `_render_layers_generic`, agreeing
+    only by inspection.
+    """
+
+    var has_color: Bool
+    var has_color_categories: Bool
+    var has_size: Bool
+    var domain: List[String]
+    var palette: List[Color]
+    var color_scale: ColorScale
+    var size_mm: MinMax
+    var size_scale: LinearScale
+
+    def __init__(out self, plot: Plot, sc: _Scaled):
+        self.has_color = len(plot.color_data) > 0
+        self.has_color_categories = len(plot.color_categories) > 0
+        self.has_size = len(plot.size_data) > 0
+        self.domain = (
+            _unique_categories(plot.color_categories) if self.has_color_categories else List[String]()
+        )
+        self.palette = default_categorical_palette() if self.has_color_categories else List[Color]()
+        var color_mm = _min_max(plot.color_data) if self.has_color else MinMax(0.0, 1.0)
+        self.color_scale = ColorScale(color_mm.min, color_mm.max)
+        self.color_scale.add_stop(0.0, plot._theme.color_scale_low)
+        self.color_scale.add_stop(1.0, plot._theme.color_scale_high)
+        self.size_mm = _min_max(plot.size_data) if self.has_size else MinMax(0.0, 1.0)
+        self.size_scale = LinearScale(
+            self.size_mm.min, self.size_mm.max, sc.size_range_min, sc.size_range_max
+        )
+
+
+def _validate_continuous_encoding(plot: Plot, context: String) raises:
+    """Every check `Plot.encode()`'s own x/y/color/color_categories/size
+    channels need before a continuous-axis render can start -- shared
+    verbatim by the single-plot path (`_render_generic`) and the layered
+    one (`_render_layers_generic`), which used to carry two independent
+    copies of this list differing only in their error strings.
+
+    `context` prefixes every message so each caller still reports the
+    thing a caller can actually act on: `"Plot.encode()"` for a
+    standalone plot, `"render_layers(): layer 2"` for one layer of a
+    stack (strictly more locating than the old layered wording, which
+    said "a layered plot's own x and y" without ever naming which one).
+
+    Deliberately *not* the `Mark.POINT`/`LINE`/`AREA` allow-list
+    `render_layers()` also enforces -- that one is genuinely specific to
+    layering (a standalone `Mark.BAR` plot is perfectly legal, a layered
+    one isn't), so it stays at its own call site rather than becoming a
+    flag threaded through here.
+    """
+    if len(plot.x_data) != len(plot.y_data):
+        raise Error(
+            context
+            + ": x and y must have the same length (got "
+            + String(len(plot.x_data))
+            + " and "
+            + String(len(plot.y_data))
+            + ")"
+        )
+    var has_color = len(plot.color_data) > 0
+    var has_color_categories = len(plot.color_categories) > 0
+    var has_size = len(plot.size_data) > 0
+    if has_color and len(plot.color_data) != len(plot.x_data):
+        raise Error(
+            context
+            + ": color must be the same length as x/y (got "
+            + String(len(plot.color_data))
+            + " and "
+            + String(len(plot.x_data))
+            + ")"
+        )
+    if has_color_categories and len(plot.color_categories) != len(plot.x_data):
+        raise Error(
+            context
+            + ": color_categories must be the same length as x/y (got "
+            + String(len(plot.color_categories))
+            + " and "
+            + String(len(plot.x_data))
+            + ")"
+        )
+    if has_color and has_color_categories:
+        raise Error(
+            context
+            + ": color and color_categories are mutually exclusive -- pass"
+            " one or the other, not both"
+        )
+    if has_size and len(plot.size_data) != len(plot.x_data):
+        raise Error(
+            context
+            + ": size must be the same length as x/y (got "
+            + String(len(plot.size_data))
+            + " and "
+            + String(len(plot.x_data))
+            + ")"
+        )
+    if (has_color or has_color_categories or has_size) and not (plot._mark == Mark.POINT):
+        raise Error(context + ": color/size encoding is only supported for Mark.POINT today")
+
+
+def _check_line_smoothing(theme: Theme) raises:
+    """`Theme.line_smoothing`'s own `[0.0, 1.0]` range check -- see that
+    field's own docstring (theme.mojo) for why anything outside that
+    range has no assigned meaning here rather than being clamped.
+    Called by `_draw_line_layer`/`_draw_area_layer`, so it now covers
+    the layered render path too; that path built its own `Path` inline
+    and never checked (nor applied) smoothing at all before those two
+    functions existed.
+    """
+    if theme.line_smoothing < 0.0 or theme.line_smoothing > 1.0:
+        raise Error(
+            "Theme.line_smoothing must be in [0.0, 1.0] (got " + String(theme.line_smoothing) + ")"
+        )
+
+
+def _legend_reserve_for(plot: Plot, ch: _PointChannels, sc: _Scaled) raises -> Int:
+    """How much width `plot`'s own legend column needs, or `0` when it
+    has no legend at all (`Theme.show_legend` off, a non-`Mark.POINT`
+    mark, or no data-driven channel encoded -- every other mark either
+    has its own separate legend logic or none).
+
+    A plot can combine continuous color *and* size (a real, existing
+    case -- see `examples/bubble.mojo`), stacking both sections in one
+    column -- so the width is whichever section needs more room, not a
+    sum (they stack vertically, not side by side). Categorical color and
+    continuous color are mutually exclusive already
+    (`_validate_continuous_encoding`), so at most one of the first two
+    ever contributes.
+
+    Called *before* the plot rect is finalized, the same "measure the
+    real labels before sizing the margin around them" ordering the
+    y-axis's own dynamic left margin already requires -- see
+    `_dynamic_legend_width`'s own docstring.
+    """
+    if not plot._theme.show_legend:
+        return 0
+    if not (plot._mark == Mark.POINT):
+        return 0
+    if not (ch.has_color_categories or ch.has_color or ch.has_size):
+        return 0
+
+    var reserve = 0
+    if ch.has_color_categories:
+        reserve = max(reserve, _dynamic_legend_width(ch.domain, sc.legend_swatch_size, sc))
+    elif ch.has_color:
+        var color_labels = List[String]()
+        color_labels.append(_format_fixed(ch.color_scale.domain_max, 1))
+        color_labels.append(_format_fixed(ch.color_scale.domain_min, 1))
+        reserve = max(
+            reserve, _dynamic_legend_width(color_labels, sc.continuous_legend_bar_width, sc)
+        )
+    if ch.has_size:
+        var size_labels = List[String]()
+        size_labels.append(_format_fixed(ch.size_mm.max, 1))
+        size_labels.append(_format_fixed((ch.size_mm.min + ch.size_mm.max) / 2.0, 1))
+        size_labels.append(_format_fixed(ch.size_mm.min, 1))
+        var circle_content_width = 2 * _round_to_int(sc.size_range_max)
+        reserve = max(reserve, _dynamic_legend_width(size_labels, circle_content_width, sc))
+    return reserve
+
+
+struct _ContinuousFrame(Movable):
+    """`_draw_continuous_axis_frame`'s own finished layout -- the
+    continuous-x counterpart to `_CategoricalFrame` (see its own
+    docstring), with a `LinearScale` on both axes instead of an
+    `OrdinalScale` on one.
+
+    `px0`/`py0`/`px1`/`py1` are the finished inner plot rect, carried
+    through unchanged for the caller's own `_RenderResult` -- same
+    contract, same reasoning as `_CategoricalFrame`'s."""
+
+    var x_scale: LinearScale
+    var y_scale: LinearScale
+    var sc: _Scaled
+    var text_requests: List[_TextRequest]
+    var px0: Int
+    var py0: Int
+    var px1: Int
+    var py1: Int
+
+    def __init__(
+        out self,
+        var x_scale: LinearScale,
+        var y_scale: LinearScale,
+        var sc: _Scaled,
+        var text_requests: List[_TextRequest],
+        px0: Int,
+        py0: Int,
+        px1: Int,
+        py1: Int,
+    ):
+        self.x_scale = x_scale^
+        self.y_scale = y_scale^
+        self.sc = sc^
+        self.text_requests = text_requests^
+        self.px0 = px0
+        self.py0 = py0
+        self.px1 = px1
+        self.py1 = py1
+
+
+def _draw_continuous_axis_frame[
+    T: DrawTarget
+](
+    mut target: T,
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+    theme: Theme,
+    legend_reserve: Int,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+) raises -> _ContinuousFrame:
+    """The layout and axis-frame-drawing core every continuous-x render
+    path shares -- `_draw_categorical_axis_frame`'s own direct
+    counterpart (see its docstring for the shared reasoning) for a plot
+    whose x-axis is a continuous `LinearScale` rather than
+    `OrdinalScale` bands: computes the dynamic left margin from
+    `y_scale`'s own ticks, resolves both scales' pixel ranges against
+    the resulting plot rect, and draws gridlines, both axis lines, and
+    every x/y tick mark plus its label.
+
+    Extracted for exactly the reason its categorical sibling was: a
+    *second* caller needed the identical ~90 lines. `_render_generic`'s
+    own continuous path and `_render_layers_generic` had carried
+    near-verbatim copies of this since layering was added, and they had
+    already drifted apart in a user-visible way (see
+    `_draw_line_layer`'s own docstring for the specific behavior the
+    layered copy silently lost).
+
+    Both scales' *domains* must already be decided (their ranges are the
+    usual `[0, 1]` placeholder `_data_extent`/`_zero_baseline_y_extent`
+    return) -- deliberately parameters, not computed in here, since the
+    two callers decide them differently: one plot's own data for a
+    standalone render, every layered plot's data combined for a stacked
+    one, with the zero-baseline rule keyed off `Mark.AREA` in each case.
+    That is the entire difference between the two paths, which is
+    exactly why it's the only thing left at their own call sites.
+
+    `legend_reserve` is subtracted from the right edge before the rect
+    is finalized (`0` when there's no legend) -- the same "shrink the
+    rect from outside, don't thread a flag through the shared core"
+    pattern `_apply_labels` and `_render_grouped_bar` both already use.
+    """
+    var sc = _Scaled(theme)
+
+    # y-domain ticks computed before plot_x0 is finalized -- a scale's
+    # own tick *values* (and so their formatted label text) depend only
+    # on domain_min/domain_max, never on range_min/range_max (see
+    # LinearScale.ticks()'s own docstring), so its labels can be
+    # measured and the left margin sized to actually fit them, `max`'d
+    # against Theme's own configured minimum so no existing plot's
+    # layout ever gets *narrower* than it already was -- purely
+    # additive, only ever growing the margin for labels wide enough to
+    # actually need it (see _max_label_width's own docstring).
+    var y_ticks = y_scale.ticks()
+    var y_labels = y_ticks.labels()
+    var dynamic_left_margin = (
+        Int(_max_label_width(y_labels, sc.font_size)) + sc.tick_length + sc.label_gap + sc.margin_buffer
+    )
+
+    var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
+    var plot_y0 = oy0 + sc.margin_top
+    var plot_x1 = ox1 - sc.margin_right - legend_reserve
+    var plot_y1 = oy1 - sc.margin_bottom
+
+    var out_x_scale = x_scale
+    out_x_scale.range_min = Float64(plot_x0)
+    out_x_scale.range_max = Float64(plot_x1)
+
+    # y range is reversed: domain_min (smallest data value) lands at
+    # the *bottom* of the plot area (the larger pixel y), domain_max
+    # at the top -- see LinearScale's own docstring.
+    var out_y_scale = y_scale
+    out_y_scale.range_min = Float64(plot_y1)
+    out_y_scale.range_max = Float64(plot_y0)
+
+    var x_ticks = out_x_scale.ticks()
+    var x_labels = x_ticks.labels()
+
+    if theme.show_gridlines:
+        for i in range(len(x_ticks.values)):
+            var px = _axis_pixel(out_x_scale, x_ticks.values[i])
+            target.draw_line_aa(px, plot_y0, px, plot_y1, theme.gridline_color)
+        for i in range(len(y_ticks.values)):
+            var py = _axis_pixel(out_y_scale, y_ticks.values[i])
+            target.draw_line_aa(plot_x0, py, plot_x1, py, theme.gridline_color)
+
+    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color)
+    target.draw_line_aa(plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color)
+
+    var text_requests = List[_TextRequest]()
+
+    for i in range(len(x_ticks.values)):
+        var px = _axis_pixel(out_x_scale, x_ticks.values[i])
+        target.draw_line_aa(px, plot_y1, px, plot_y1 + sc.tick_length, theme.axis_color)
+        text_requests.append(
+            _TextRequest(
+                px,
+                plot_y1 + sc.tick_length + sc.label_gap + Int(sc.font_size),
+                x_labels[i],
+                theme.text_color,
+                sc.font_size,
+                TextAlign.CENTER,
+            )
+        )
+
+    # Baseline offset so a label's glyphs sit roughly vertically
+    # centered on its tick, not hanging entirely below it --
+    # draw_text's y is the text baseline (see text.mojo's own
+    # docstring), so without this every y-axis label would appear
+    # shifted upward relative to its tick mark.
+    var y_label_baseline_offset = Int(sc.font_size * 0.35)
+    for i in range(len(y_ticks.values)):
+        var py = _axis_pixel(out_y_scale, y_ticks.values[i])
+        target.draw_line_aa(plot_x0 - sc.tick_length, py, plot_x0, py, theme.axis_color)
+        text_requests.append(
+            _TextRequest(
+                plot_x0 - sc.tick_length - sc.label_gap,
+                py + y_label_baseline_offset,
+                y_labels[i],
+                theme.text_color,
+                sc.font_size,
+                TextAlign.RIGHT,
+            )
+        )
+
+    return _ContinuousFrame(
+        out_x_scale, out_y_scale, sc^, text_requests^, plot_x0, plot_y0, plot_x1, plot_y1
+    )
+
+
+def _draw_point_layer[
+    T: DrawTarget
+](
+    mut target: T,
+    mut text_requests: List[_TextRequest],
+    plot: Plot,
+    ch: _PointChannels,
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+    legend_x: Int,
+    legend_y: Int,
+) raises -> Int:
+    """Draw one `Mark.POINT` plot's own points into an already-laid-out
+    continuous axis frame, plus whatever legend sections its encoded
+    channels call for -- the whole of what a `Mark.POINT` mark
+    contributes to a render, shared by the standalone path and by each
+    `Mark.POINT` layer of a stacked one.
+
+    Legend sections stack top to bottom in one column, each returning
+    the y just below it for the next to start at -- categorical-or-
+    continuous color first (mutually exclusive), then size, matching the
+    order `_legend_reserve_for` sized them in. `legend_y` in / the next
+    free y out, so a caller drawing several layers into one shared
+    column just threads the return value through as a running cursor;
+    a standalone caller ignores it.
+
+    `legend_x` is the caller's, not computed here: a layered render
+    shares one column x across every layer (from the *combined* plot
+    rect), which this function has no way to know on its own.
+
+    Everything else comes from `plot`'s own `Theme` -- row height, font
+    size, colors, point radius -- so a layer styled differently from its
+    neighbors draws its own section correctly rather than being forced
+    through the shared chrome's styling.
+    """
+    var theme = plot._theme
+    var sc = _Scaled(theme)
+
+    for i in range(len(plot.x_data)):
+        var px = _axis_pixel(x_scale, plot.x_data[i])
+        var py = _axis_pixel(y_scale, plot.y_data[i])
+        var color: Color
+        if ch.has_color:
+            color = ch.color_scale.color_at(plot.color_data[i])
+        elif ch.has_color_categories:
+            var idx = _index_of(ch.domain, plot.color_categories[i])
+            color = ch.palette[idx % len(ch.palette)]
+        else:
+            color = theme.mark_color
+        var radius = (
+            _round_to_int(ch.size_scale.to_pixel(plot.size_data[i]))
+            if ch.has_size
+            else _round_to_int(sc.point_radius)
+        )
+        target.fill_circle_aa(px, py, radius, color)
+
+    if not theme.show_legend:
+        return legend_y
+    if not (ch.has_color_categories or ch.has_color or ch.has_size):
+        return legend_y
+
+    var next_y = legend_y
+    if ch.has_color_categories:
+        _draw_legend(target, text_requests, ch.domain, ch.palette, legend_x, next_y, theme)
+        next_y += len(ch.domain) * (sc.legend_swatch_size + sc.legend_row_gap)
+    elif ch.has_color:
+        next_y = _draw_continuous_color_legend(
+            target, text_requests, ch.color_scale, legend_x, next_y, theme
+        )
+    if ch.has_size:
+        next_y = _draw_continuous_size_legend(
+            target, text_requests, ch.size_mm, ch.size_scale, legend_x, next_y, theme
+        )
+    return next_y
+
+
+def _draw_line_layer[
+    T: DrawTarget
+](mut target: T, plot: Plot, x_scale: LinearScale, y_scale: LinearScale) raises:
+    """Draw one `Mark.LINE` plot's own stroked path into an already-
+    laid-out continuous axis frame -- `Theme.line_smoothing` included
+    (`_build_line_path`, see its own docstring).
+
+    Shared by the standalone and layered paths, which is the point:
+    `_render_layers_generic` used to build its own `Path` inline with a
+    plain `move_to` plus one `line_to` per point, so a layered
+    `Mark.LINE` silently ignored `Theme.line_smoothing` entirely and
+    never range-checked it either -- a straight drift from what
+    `Theme.line_smoothing`'s own docstring (theme.mojo) documents, and
+    exactly the kind of thing two near-identical copies of the same
+    drawing code are for. Routing both through one function fixes it by
+    construction rather than by remembering to.
+    """
+    var theme = plot._theme
+    var sc = _Scaled(theme)
+    _check_line_smoothing(theme)
+    var px = List[Float64](capacity=len(plot.x_data))
+    var py = List[Float64](capacity=len(plot.x_data))
+    for i in range(len(plot.x_data)):
+        px.append(x_scale.to_pixel(plot.x_data[i]))
+        py.append(y_scale.to_pixel(plot.y_data[i]))
+    var path = _build_line_path(px, py, theme.line_smoothing)
+    target.stroke_path_aa(path, theme.mark_color, width=sc.line_width)
+
+
+def _draw_area_layer[
+    T: DrawTarget
+](mut target: T, plot: Plot, x_scale: LinearScale, y_scale: LinearScale) raises:
+    """Draw one `Mark.AREA` plot's own filled region into an already-
+    laid-out continuous axis frame: the same curve `_draw_line_layer`
+    strokes (`_build_line_path`, `Theme.line_smoothing` included), but
+    closed down to the zero baseline (`y_scale`'s own domain already
+    guarantees zero is a real point in range -- see
+    `_zero_baseline_y_extent`) and filled instead of stroked.
+
+    Only the *top* edge (through the data points) smooths; the bottom
+    edge (the two `line_to`s down to and along baseline) is always
+    straight -- baseline is a fixed reference line, not data, so there's
+    nothing for it to curve through, the same reasoning a real chart
+    library's own smoothed-area fill never bends its own flat baseline
+    either. Shared by the standalone and layered paths for the same
+    reason -- and with the same drift fixed -- as `_draw_line_layer`.
+    """
+    var theme = plot._theme
+    _check_line_smoothing(theme)
+    var baseline_py = y_scale.to_pixel(0.0)
+    var px = List[Float64](capacity=len(plot.x_data))
+    var py = List[Float64](capacity=len(plot.x_data))
+    for i in range(len(plot.x_data)):
+        px.append(x_scale.to_pixel(plot.x_data[i]))
+        py.append(y_scale.to_pixel(plot.y_data[i]))
+    var path = _build_line_path(px, py, theme.line_smoothing)
+    path.line_to(px[len(px) - 1], baseline_py)
+    path.line_to(px[0], baseline_py)
+    path.close()
+    target.fill_path_aa(path, theme.mark_color)
+
+
 def _render_generic[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
@@ -1495,6 +1989,17 @@ def _render_generic[
     all, so threading any of them through nearly every line below would
     be far less readable than each staying its own function (see
     `_render_bar`/`_render_arc`'s own docstrings).
+
+    What's left after the dispatch -- the `Mark.POINT`/`LINE`/`AREA`
+    continuous-axis path -- is itself now just a short assembly of
+    shared pieces, in the same shape every categorical `_render_*`
+    already had: decide the two domains (the only genuinely per-path
+    decision, see `_draw_continuous_axis_frame`'s own docstring), size
+    the legend column (`_legend_reserve_for`), draw the axis frame
+    (`_draw_continuous_axis_frame`), then draw the one mark
+    (`_draw_point_layer`/`_draw_line_layer`/`_draw_area_layer`). Every
+    one of those is shared with `_render_layers_generic`, which used to
+    carry its own near-verbatim copy of all of it.
     """
     if plot._mark == Mark.BAR:
         return _render_bar(target, plot, ox0, oy0, ox1, oy1)
@@ -1517,52 +2022,7 @@ def _render_generic[
     if plot._mark == Mark.ARC:
         return _render_arc(target, plot, ox0, oy0, ox1, oy1)
 
-    if len(plot.x_data) != len(plot.y_data):
-        raise Error(
-            "Plot.encode(): x and y must have the same length (got "
-            + String(len(plot.x_data))
-            + " and "
-            + String(len(plot.y_data))
-            + ")"
-        )
-    var has_color = len(plot.color_data) > 0
-    var has_color_categories = len(plot.color_categories) > 0
-    var has_size = len(plot.size_data) > 0
-    if has_color and len(plot.color_data) != len(plot.x_data):
-        raise Error(
-            "Plot.encode(): color must be the same length as x/y (got "
-            + String(len(plot.color_data))
-            + " and "
-            + String(len(plot.x_data))
-            + ")"
-        )
-    if has_color_categories and len(plot.color_categories) != len(plot.x_data):
-        raise Error(
-            "Plot.encode(): color_categories must be the same length as"
-            " x/y (got "
-            + String(len(plot.color_categories))
-            + " and "
-            + String(len(plot.x_data))
-            + ")"
-        )
-    if has_color and has_color_categories:
-        raise Error(
-            "Plot.encode(): color and color_categories are mutually"
-            " exclusive -- pass one or the other, not both"
-        )
-    if has_size and len(plot.size_data) != len(plot.x_data):
-        raise Error(
-            "Plot.encode(): size must be the same length as x/y (got "
-            + String(len(plot.size_data))
-            + " and "
-            + String(len(plot.x_data))
-            + ")"
-        )
-    if (has_color or has_color_categories or has_size) and not (plot._mark == Mark.POINT):
-        raise Error(
-            "Plot: color/size encoding is only supported for"
-            " Mark.POINT today"
-        )
+    _validate_continuous_encoding(plot, "Plot.encode()")
 
     var theme = plot._theme
     target.fill_rect(ox0, oy0, ox1 - ox0, oy1 - oy0, theme.background)
@@ -1575,235 +2035,47 @@ def _render_generic[
     # once by theme.scale -- see _Scaled's own docstring.
     var sc = _Scaled(theme)
 
-    # Reserve a legend column on the right only when there's actually
-    # something to put in it -- any of the three Mark.POINT-only
-    # encodings (categorical color, continuous color, continuous size;
-    # every other mark either has its own separate legend logic --
-    # Mark.GROUPED_BAR/STACKED_BAR/ARC -- or none at all).
-    var show_legend = theme.show_legend and plot._mark == Mark.POINT and (
-        has_color_categories or has_color or has_size
-    )
-    # Every one of these built unconditionally (even when its own
-    # channel isn't encoded, or show_legend is False) so there's one
-    # code path, not a branch duplicated per combination -- matching
-    # color_scale/size_scale's own existing "built unconditionally,
-    # queried only when actually used" convention just below. All
-    # computed *before* plot_x1 is finalized, the same "measure the
-    # real labels/content before sizing the margin around them"
-    # ordering the y-axis's own dynamic left margin already requires --
-    # see _dynamic_legend_width's own docstring.
-    var color_categories_domain = (
-        _unique_categories(plot.color_categories) if has_color_categories else List[String]()
-    )
-    var color_mm = _min_max(plot.color_data) if has_color else MinMax(0.0, 1.0)
-    var color_scale = ColorScale(color_mm.min, color_mm.max)
-    color_scale.add_stop(0.0, theme.color_scale_low)
-    color_scale.add_stop(1.0, theme.color_scale_high)
-    var size_mm = _min_max(plot.size_data) if has_size else MinMax(0.0, 1.0)
-    var size_scale = LinearScale(size_mm.min, size_mm.max, sc.size_range_min, sc.size_range_max)
+    # Built once and handed to both _legend_reserve_for (which sizes
+    # the legend column before the plot rect is final) and _draw_point_
+    # layer (which colors/sizes each point afterward) -- see
+    # _PointChannels' own docstring for why the two have to agree.
+    var ch = _PointChannels(plot, sc)
+    var legend_reserve = _legend_reserve_for(plot, ch, sc)
 
-    # A plot can combine continuous color *and* size (a real, existing
-    # case -- see examples/bubble.mojo), stacking both sections in one
-    # legend column -- the column's own width is whichever section
-    # needs more room, not a sum (they stack vertically, not side by
-    # side). Categorical color and continuous color are mutually
-    # exclusive already (Plot.encode()'s own validation, above), so at
-    # most one of the first two ever contributes.
-    var legend_reserve = 0
-    if show_legend:
-        if has_color_categories:
-            legend_reserve = max(
-                legend_reserve, _dynamic_legend_width(color_categories_domain, sc.legend_swatch_size, sc)
-            )
-        elif has_color:
-            var color_labels = List[String]()
-            color_labels.append(_format_fixed(color_scale.domain_max, 1))
-            color_labels.append(_format_fixed(color_scale.domain_min, 1))
-            legend_reserve = max(
-                legend_reserve,
-                _dynamic_legend_width(color_labels, sc.continuous_legend_bar_width, sc),
-            )
-        if has_size:
-            var size_labels = List[String]()
-            size_labels.append(_format_fixed(size_mm.max, 1))
-            size_labels.append(_format_fixed((size_mm.min + size_mm.max) / 2.0, 1))
-            size_labels.append(_format_fixed(size_mm.min, 1))
-            var circle_content_width = 2 * _round_to_int(sc.size_range_max)
-            legend_reserve = max(
-                legend_reserve, _dynamic_legend_width(size_labels, circle_content_width, sc)
-            )
-
-    # y-domain computed before plot_x0 is finalized -- a scale's own
-    # tick *values* (and so their formatted label text) depend only on
-    # domain_min/domain_max, never on range_min/range_max (see
-    # LinearScale.ticks()'s own docstring), so its labels can be
-    # measured and the left margin sized to actually fit them,
-    # `max`'d against Theme's own configured minimum so no existing
-    # plot's layout ever gets *narrower* than it already was -- purely
-    # additive, only ever growing the margin for labels wide enough to
-    # actually need it (see _max_label_width's own docstring).
+    # The one thing that differs between this path and the layered one:
+    # whose data the two domains are computed over (see _draw_
+    # continuous_axis_frame's own docstring). Mark.AREA forces a zero
+    # baseline into the y-domain, every other continuous mark just pads
+    # around its own data.
     var y_scale = (
         _zero_baseline_y_extent(plot.y_data) if plot._mark == Mark.AREA else _data_extent(plot.y_data)
     )
-    var y_ticks = y_scale.ticks()
-    var y_labels = y_ticks.labels()
-    var dynamic_left_margin = (
-        Int(_max_label_width(y_labels, sc.font_size)) + sc.tick_length + sc.label_gap + sc.margin_buffer
+    var x_scale = _data_extent(plot.x_data)
+
+    var frame = _draw_continuous_axis_frame(
+        target, x_scale, y_scale, theme, legend_reserve, ox0, oy0, ox1, oy1
     )
 
-    var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
-    var plot_y0 = oy0 + sc.margin_top
-    var plot_x1 = ox1 - sc.margin_right - legend_reserve
-    var plot_y1 = oy1 - sc.margin_bottom
-
-    var x_scale = _data_extent(plot.x_data)
-    x_scale.range_min = Float64(plot_x0)
-    x_scale.range_max = Float64(plot_x1)
-
-    # y range is reversed: domain_min (smallest data value) lands at
-    # the *bottom* of the plot area (the larger pixel y), domain_max
-    # at the top -- see LinearScale's own docstring.
-    y_scale.range_min = Float64(plot_y1)
-    y_scale.range_max = Float64(plot_y0)
-
-    var x_ticks = x_scale.ticks()
-    var x_labels = x_ticks.labels()
-
-    if theme.show_gridlines:
-        for i in range(len(x_ticks.values)):
-            var px = _axis_pixel(x_scale, x_ticks.values[i])
-            target.draw_line_aa(px, plot_y0, px, plot_y1, theme.gridline_color)
-        for i in range(len(y_ticks.values)):
-            var py = _axis_pixel(y_scale, y_ticks.values[i])
-            target.draw_line_aa(plot_x0, py, plot_x1, py, theme.gridline_color)
-
-    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color)
-    target.draw_line_aa(plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color)
-
-    for i in range(len(x_ticks.values)):
-        var px = _axis_pixel(x_scale, x_ticks.values[i])
-        target.draw_line_aa(px, plot_y1, px, plot_y1 + sc.tick_length, theme.axis_color)
-        text_requests.append(
-            _TextRequest(
-                px,
-                plot_y1 + sc.tick_length + sc.label_gap + Int(sc.font_size),
-                x_labels[i],
-                theme.text_color,
-                sc.font_size,
-                TextAlign.CENTER,
-            )
-        )
-
-    # Baseline offset so a label's glyphs sit roughly vertically
-    # centered on its tick, not hanging entirely below it --
-    # draw_text's y is the text baseline (see text.mojo's own
-    # docstring), so without this every y-axis label would appear
-    # shifted upward relative to its tick mark.
-    var y_label_baseline_offset = Int(sc.font_size * 0.35)
-    for i in range(len(y_ticks.values)):
-        var py = _axis_pixel(y_scale, y_ticks.values[i])
-        target.draw_line_aa(plot_x0 - sc.tick_length, py, plot_x0, py, theme.axis_color)
-        text_requests.append(
-            _TextRequest(
-                plot_x0 - sc.tick_length - sc.label_gap,
-                py + y_label_baseline_offset,
-                y_labels[i],
-                theme.text_color,
-                sc.font_size,
-                TextAlign.RIGHT,
-            )
-        )
-
     if plot._mark == Mark.POINT:
-        # color_categories_domain/color_mm/color_scale/size_mm/
-        # size_scale are all computed earlier now (see this function's
-        # own top, before legend_reserve) -- reused here unchanged, not
-        # recomputed. color_scale/size_scale stay unused (never queried
-        # below) when their own channel wasn't encoded -- built
-        # unconditionally anyway so there's one code path per point,
-        # not a branch duplicated for "has both" / "has neither" /
-        # every combination in between.
-        var palette = default_categorical_palette() if has_color_categories else List[Color]()
-
-        for i in range(len(plot.x_data)):
-            var px = _axis_pixel(x_scale, plot.x_data[i])
-            var py = _axis_pixel(y_scale, plot.y_data[i])
-            var color: Color
-            if has_color:
-                color = color_scale.color_at(plot.color_data[i])
-            elif has_color_categories:
-                var idx = _index_of(color_categories_domain, plot.color_categories[i])
-                color = palette[idx % len(palette)]
-            else:
-                color = theme.mark_color
-            var radius = (
-                _round_to_int(size_scale.to_pixel(plot.size_data[i]))
-                if has_size
-                else _round_to_int(sc.point_radius)
-            )
-            target.fill_circle_aa(px, py, radius, color)
-
-        if show_legend:
-            # Sections stack top to bottom in one column, each one's
-            # own draw function returning the y just below it for the
-            # next to start at -- categorical-or-continuous color
-            # first (mutually exclusive, see legend_reserve's own
-            # computation above), then size, matching the same order
-            # legend_reserve considered them in.
-            var legend_x = plot_x1 + sc.margin_right
-            var legend_y = plot_y0
-            if has_color_categories:
-                _draw_legend(target, text_requests, color_categories_domain, palette, legend_x, legend_y, theme)
-                legend_y += len(color_categories_domain) * (sc.legend_swatch_size + sc.legend_row_gap)
-            elif has_color:
-                legend_y = _draw_continuous_color_legend(target, text_requests, color_scale, legend_x, legend_y, theme)
-            if has_size:
-                _ = _draw_continuous_size_legend(target, text_requests, size_mm, size_scale, legend_x, legend_y, theme)
+        _ = _draw_point_layer(
+            target,
+            frame.text_requests,
+            plot,
+            ch,
+            frame.x_scale,
+            frame.y_scale,
+            frame.px1 + sc.margin_right,
+            frame.py0,
+        )
     elif plot._mark == Mark.LINE:
-        if theme.line_smoothing < 0.0 or theme.line_smoothing > 1.0:
-            raise Error(
-                "Theme.line_smoothing must be in [0.0, 1.0] (got "
-                + String(theme.line_smoothing)
-                + ")"
-            )
-        var px = List[Float64](capacity=len(plot.x_data))
-        var py = List[Float64](capacity=len(plot.x_data))
-        for i in range(len(plot.x_data)):
-            px.append(x_scale.to_pixel(plot.x_data[i]))
-            py.append(y_scale.to_pixel(plot.y_data[i]))
-        var path = _build_line_path(px, py, theme.line_smoothing)
-        target.stroke_path_aa(path, theme.mark_color, width=sc.line_width)
+        _draw_line_layer(target, plot, frame.x_scale, frame.y_scale)
     elif plot._mark == Mark.AREA:
-        # The same curve mark_line() draws (_build_line_path, `Theme.
-        # line_smoothing` included -- no longer LINE-only, see that
-        # field's own docstring), but closed down to the zero baseline
-        # (y_scale's own domain already guarantees zero is a real point
-        # in range -- see _zero_baseline_y_extent) and filled instead
-        # of stroked. Only the *top* edge (through the data points)
-        # smooths; the bottom edge (the two line_to()s down to and
-        # along baseline) is always straight -- baseline is a fixed
-        # reference line, not data, so there's nothing for it to curve
-        # through, the same reasoning a real chart library's own
-        # smoothed-area fill never bends its own flat baseline either.
-        if theme.line_smoothing < 0.0 or theme.line_smoothing > 1.0:
-            raise Error(
-                "Theme.line_smoothing must be in [0.0, 1.0] (got "
-                + String(theme.line_smoothing)
-                + ")"
-            )
-        var baseline_py = y_scale.to_pixel(0.0)
-        var px = List[Float64](capacity=len(plot.x_data))
-        var py = List[Float64](capacity=len(plot.x_data))
-        for i in range(len(plot.x_data)):
-            px.append(x_scale.to_pixel(plot.x_data[i]))
-            py.append(y_scale.to_pixel(plot.y_data[i]))
-        var path = _build_line_path(px, py, theme.line_smoothing)
-        path.line_to(px[len(px) - 1], baseline_py)
-        path.line_to(px[0], baseline_py)
-        path.close()
-        target.fill_path_aa(path, theme.mark_color)
+        _draw_area_layer(target, plot, frame.x_scale, frame.y_scale)
 
-    return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+    # A `.copy()`, not a `^` transfer -- see _render_bar's own comment
+    # (bar.mojo) for why Mojo's ownership checker rejects moving a
+    # single field out of a frame struct here.
+    return _RenderResult(frame.text_requests.copy(), frame.px0, frame.py0, frame.px1, frame.py1)
 
 
 struct _CategoricalFrame(Movable):
@@ -2113,9 +2385,16 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     Shared chrome -- background, gridlines, axis colors, margins, font
     size, tick spacing -- comes from `plots[0]`'s own `Theme`; every
     other layered plot's own `Theme` only governs its own mark's
-    appearance (`mark_color`, `point_radius`, `line_width`, each still
-    scaled by that plot's own `Theme.scale` -- see `_Scaled`'s own
-    docstring). Each encoding-using `Mark.POINT` layer draws its own
+    appearance (`mark_color`, `point_radius`, `line_width`, and --
+    since every render path now builds its curve through the same
+    `_build_line_path`, see `_draw_line_layer`'s own docstring -- `line_
+    smoothing`, each still scaled by that plot's own `Theme.scale`; see
+    `_Scaled`'s own docstring). A layered `Mark.LINE`/`AREA` used to
+    ignore `line_smoothing` entirely, always drawing straight segments
+    no matter what its own `Theme` asked for; it now curves exactly the
+    way the identical plot rendered standalone through `render()`
+    already did, and rejects an out-of-`[0.0, 1.0]` value there the
+    same way too, instead of silently accepting it. Each encoding-using `Mark.POINT` layer draws its own
     legend section(s) (gated by that layer's own `Theme.show_legend`,
     not `plots[0]`'s), stacked in one shared column in layer order --
     the same categorical/continuous-color/size section types and
@@ -2192,17 +2471,27 @@ def _render_layers_generic[
     """The shared-domain layout/draw core `render_layers()`/
     `render_layers_svg()` both delegate to -- generic over any
     `DrawTarget`, the same `_render_generic`/`render()`/`render_svg()`
-    split (see that function's own docstring). Deliberately a
-    standalone function, not `_render_generic` itself made to accept
-    a list -- the domain/margin/axis logic below is structurally the
-    same shape as `_render_generic`'s own continuous-x path, but
-    computed across *all* layered plots' data at once rather than
-    one plot's own, different enough in where each value comes from
-    that threading both through one function would read as two
-    functions wearing a trenchcoat; duplicated here instead, matching
-    this codebase's general tolerance for a little duplication between
-    two near-identical paths over a premature shared abstraction (see
-    `_render_bar`'s own docstring for the same reasoning elsewhere).
+    split (see that function's own docstring). Still a standalone
+    function, not `_render_generic` itself made to accept a list --
+    "one plot, one target" and "many plots, one shared coordinate
+    system" stay two contracts, not one function with a mode flag --
+    but no longer a standalone *copy* of it: the domain/margin/axis
+    layout and every mark's own drawing are the same shared functions
+    the single-plot path calls (`_draw_continuous_axis_frame`,
+    `_draw_point_layer`/`_draw_line_layer`/`_draw_area_layer`), leaving
+    only what's genuinely different here -- domains computed across
+    *all* layered plots' data at once, a legend column sized across
+    every layer, and a legend-y cursor threaded through them in order.
+
+    That used to be a near-verbatim copy of `_render_generic`'s own
+    continuous-x path, justified as "a little duplication over a
+    premature shared abstraction." It didn't hold up: the copies drifted,
+    and a layered `Mark.LINE`/`AREA` silently stopped honoring
+    `Theme.line_smoothing` (see `_draw_line_layer`'s own docstring).
+    Roughly 200 lines of the two paths were identical by then -- well
+    past the two-call-sites tolerance `_render_bar`'s own docstring
+    describes, and the same threshold `_draw_categorical_axis_frame`
+    was extracted at.
 
     Returns a `_RenderResult`, like every other `_render_*` function
     (see its own docstring) -- `render_layers()`/`render_layers_svg()`
@@ -2215,6 +2504,10 @@ def _render_layers_generic[
         return _RenderResult(text_requests^, ox0, oy0, ox1, oy1)
 
     for i in range(len(plots)):
+        # The one check that's genuinely layering-specific and so stays
+        # here rather than moving into the shared validator: a
+        # standalone Mark.BAR plot is perfectly legal, a layered one
+        # isn't (see _validate_continuous_encoding's own docstring).
         if not (
             plots[i]._mark == Mark.POINT or plots[i]._mark == Mark.LINE or plots[i]._mark == Mark.AREA
         ):
@@ -2223,65 +2516,7 @@ def _render_layers_generic[
                 " (got a different mark -- see the wiki's Backlog for why Mark.BAR/"
                 "Mark.ARC aren't supported here yet)"
             )
-        if len(plots[i].x_data) != len(plots[i].y_data):
-            raise Error(
-                "render_layers(): a layered plot's own x and y must have the same"
-                " length (got "
-                + String(len(plots[i].x_data))
-                + " and "
-                + String(len(plots[i].y_data))
-                + ")"
-            )
-        var has_color_i = len(plots[i].color_data) > 0
-        var has_color_categories_i = len(plots[i].color_categories) > 0
-        var has_size_i = len(plots[i].size_data) > 0
-        if (has_color_i or has_color_categories_i or has_size_i) and not (plots[i]._mark == Mark.POINT):
-            raise Error(
-                "render_layers(): color/color_categories/size encoding is only"
-                " supported for a layer whose own mark is Mark.POINT (layer "
-                + String(i)
-                + " uses a different mark)"
-            )
-        if has_color_i and len(plots[i].color_data) != len(plots[i].x_data):
-            raise Error(
-                "render_layers(): a layer's own color must be the same length as"
-                " its own x/y (layer "
-                + String(i)
-                + ", got "
-                + String(len(plots[i].color_data))
-                + " and "
-                + String(len(plots[i].x_data))
-                + ")"
-            )
-        if has_color_categories_i and len(plots[i].color_categories) != len(plots[i].x_data):
-            raise Error(
-                "render_layers(): a layer's own color_categories must be the same"
-                " length as its own x/y (layer "
-                + String(i)
-                + ", got "
-                + String(len(plots[i].color_categories))
-                + " and "
-                + String(len(plots[i].x_data))
-                + ")"
-            )
-        if has_color_i and has_color_categories_i:
-            raise Error(
-                "render_layers(): a layer's own color and color_categories are"
-                " mutually exclusive -- pass one or the other, not both (layer "
-                + String(i)
-                + ")"
-            )
-        if has_size_i and len(plots[i].size_data) != len(plots[i].x_data):
-            raise Error(
-                "render_layers(): a layer's own size must be the same length as"
-                " its own x/y (layer "
-                + String(i)
-                + ", got "
-                + String(len(plots[i].size_data))
-                + " and "
-                + String(len(plots[i].x_data))
-                + ")"
-            )
+        _validate_continuous_encoding(plots[i], "render_layers(): layer " + String(i))
 
     var theme = plots[0]._theme
     target.fill_rect(ox0, oy0, ox1 - ox0, oy1 - oy0, theme.background)
@@ -2305,191 +2540,54 @@ def _render_layers_generic[
     # own docstring.
     var sc = _Scaled(theme)
 
+    # The one thing that differs from the single-plot path: both
+    # domains span *every* layer's data at once, rather than one plot's
+    # own (see _draw_continuous_axis_frame's own docstring). A single
+    # Mark.AREA layer anywhere in the stack forces the zero baseline in
+    # for the whole shared y-axis, the same rule Mark.AREA follows on
+    # its own.
     var y_scale = _zero_baseline_y_extent(combined_y) if any_area else _data_extent(combined_y)
-    var y_ticks = y_scale.ticks()
-    var y_labels = y_ticks.labels()
-    var dynamic_left_margin = (
-        Int(_max_label_width(y_labels, sc.font_size)) + sc.tick_length + sc.label_gap + sc.margin_buffer
-    )
+    var x_scale = _data_extent(combined_x)
 
     # legend_reserve, computed across every encoding-using Mark.POINT
-    # layer before plot_x1 is finalized -- the same "measure the real
-    # content before sizing the margin around it" ordering _render_
-    # generic's own single-plot legend_reserve already established (see
-    # that function's own comment). Each layer's own section width
-    # measured with that layer's own _Scaled (font size, swatch size
-    # all independently scaled, matching every other per-layer style
-    # choice here), `max`'d together into one shared column width --
-    # sections stack vertically in one column, so the column's own
+    # layer before the plot rect is finalized. Each layer's own section
+    # width measured with that layer's own _Scaled (font size, swatch
+    # size all independently scaled, matching every other per-layer
+    # style choice here), `max`'d together into one shared column width
+    # -- sections stack vertically in one column, so the column's own
     # width is whichever section needs the most room, not a sum.
     var legend_reserve = 0
     for j in range(len(plots)):
-        if not (plots[j]._mark == Mark.POINT):
-            continue
-        var p_theme_j = plots[j]._theme
-        if not p_theme_j.show_legend:
-            continue
-        var p_sc_j = _Scaled(p_theme_j)
-        var has_color_j = len(plots[j].color_data) > 0
-        var has_color_categories_j = len(plots[j].color_categories) > 0
-        var has_size_j = len(plots[j].size_data) > 0
-        if has_color_categories_j:
-            var domain_j = _unique_categories(plots[j].color_categories)
-            legend_reserve = max(
-                legend_reserve, _dynamic_legend_width(domain_j, p_sc_j.legend_swatch_size, p_sc_j)
-            )
-        elif has_color_j:
-            var color_mm_j = _min_max(plots[j].color_data)
-            var color_labels_j = List[String]()
-            color_labels_j.append(_format_fixed(color_mm_j.max, 1))
-            color_labels_j.append(_format_fixed(color_mm_j.min, 1))
-            legend_reserve = max(
-                legend_reserve,
-                _dynamic_legend_width(color_labels_j, p_sc_j.continuous_legend_bar_width, p_sc_j),
-            )
-        if has_size_j:
-            var size_mm_j = _min_max(plots[j].size_data)
-            var size_labels_j = List[String]()
-            size_labels_j.append(_format_fixed(size_mm_j.max, 1))
-            size_labels_j.append(_format_fixed((size_mm_j.min + size_mm_j.max) / 2.0, 1))
-            size_labels_j.append(_format_fixed(size_mm_j.min, 1))
-            var circle_content_width_j = 2 * _round_to_int(p_sc_j.size_range_max)
-            legend_reserve = max(
-                legend_reserve, _dynamic_legend_width(size_labels_j, circle_content_width_j, p_sc_j)
-            )
+        var p_sc_j = _Scaled(plots[j]._theme)
+        var ch_j = _PointChannels(plots[j], p_sc_j)
+        legend_reserve = max(legend_reserve, _legend_reserve_for(plots[j], ch_j, p_sc_j))
 
-    var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
-    var plot_y0 = oy0 + sc.margin_top
-    var plot_x1 = ox1 - sc.margin_right - legend_reserve
-    var plot_y1 = oy1 - sc.margin_bottom
+    var frame = _draw_continuous_axis_frame(
+        target, x_scale, y_scale, theme, legend_reserve, ox0, oy0, ox1, oy1
+    )
+    for req in frame.text_requests:
+        text_requests.append(req.copy())
 
-    var x_scale = _data_extent(combined_x)
-    x_scale.range_min = Float64(plot_x0)
-    x_scale.range_max = Float64(plot_x1)
-
-    y_scale.range_min = Float64(plot_y1)
-    y_scale.range_max = Float64(plot_y0)
-
-    var x_ticks = x_scale.ticks()
-    var x_labels = x_ticks.labels()
-
-    if theme.show_gridlines:
-        for i in range(len(x_ticks.values)):
-            var px = _axis_pixel(x_scale, x_ticks.values[i])
-            target.draw_line_aa(px, plot_y0, px, plot_y1, theme.gridline_color)
-        for i in range(len(y_ticks.values)):
-            var py = _axis_pixel(y_scale, y_ticks.values[i])
-            target.draw_line_aa(plot_x0, py, plot_x1, py, theme.gridline_color)
-
-    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color)
-    target.draw_line_aa(plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color)
-
-    for i in range(len(x_ticks.values)):
-        var px = _axis_pixel(x_scale, x_ticks.values[i])
-        target.draw_line_aa(px, plot_y1, px, plot_y1 + sc.tick_length, theme.axis_color)
-        text_requests.append(
-            _TextRequest(
-                px,
-                plot_y1 + sc.tick_length + sc.label_gap + Int(sc.font_size),
-                x_labels[i],
-                theme.text_color,
-                sc.font_size,
-                TextAlign.CENTER,
-            )
-        )
-
-    var y_label_baseline_offset = Int(sc.font_size * 0.35)
-    for i in range(len(y_ticks.values)):
-        var py = _axis_pixel(y_scale, y_ticks.values[i])
-        target.draw_line_aa(plot_x0 - sc.tick_length, py, plot_x0, py, theme.axis_color)
-        text_requests.append(
-            _TextRequest(
-                plot_x0 - sc.tick_length - sc.label_gap,
-                py + y_label_baseline_offset,
-                y_labels[i],
-                theme.text_color,
-                sc.font_size,
-                TextAlign.RIGHT,
-            )
-        )
-
-    # legend_y is a running cursor, shared across every encoding-using
-    # layer's own section(s) -- the same "each section returns the y
-    # just below it for the next to start at" stacking `_render_
-    # generic`'s own single-plot legend already uses (see its own
-    # comment), just walked once per encoding-using layer here instead
-    # of once per plot.
-    var legend_y = plot_y0
+    # The legend column's own x is shared (every section starts at the
+    # identical x, from the combined plot rect), while legend_y is a
+    # running cursor threaded through every encoding-using layer's own
+    # section(s) -- the same "each section returns the y just below it
+    # for the next to start at" stacking a single plot's own legend
+    # uses, just walked once per layer here instead of once per plot.
+    var legend_x = frame.px1 + sc.margin_right
+    var legend_y = frame.py0
     for j in range(len(plots)):
         if len(plots[j].x_data) == 0:
             continue
-        var p_theme = plots[j]._theme
-        var p_sc = _Scaled(p_theme)
         if plots[j]._mark == Mark.POINT:
-            var has_color_j = len(plots[j].color_data) > 0
-            var has_color_categories_j = len(plots[j].color_categories) > 0
-            var has_size_j = len(plots[j].size_data) > 0
-            var palette_j = default_categorical_palette() if has_color_categories_j else List[Color]()
-            var color_categories_domain_j = (
-                _unique_categories(plots[j].color_categories) if has_color_categories_j else List[String]()
+            var p_sc = _Scaled(plots[j]._theme)
+            var ch_j = _PointChannels(plots[j], p_sc)
+            legend_y = _draw_point_layer(
+                target, text_requests, plots[j], ch_j, frame.x_scale, frame.y_scale, legend_x, legend_y
             )
-            var color_mm_j = _min_max(plots[j].color_data) if has_color_j else MinMax(0.0, 1.0)
-            var color_scale_j = ColorScale(color_mm_j.min, color_mm_j.max)
-            color_scale_j.add_stop(0.0, p_theme.color_scale_low)
-            color_scale_j.add_stop(1.0, p_theme.color_scale_high)
-            var size_mm_j = _min_max(plots[j].size_data) if has_size_j else MinMax(0.0, 1.0)
-            var size_scale_j = LinearScale(size_mm_j.min, size_mm_j.max, p_sc.size_range_min, p_sc.size_range_max)
-
-            for i in range(len(plots[j].x_data)):
-                var px = _axis_pixel(x_scale, plots[j].x_data[i])
-                var py = _axis_pixel(y_scale, plots[j].y_data[i])
-                var color: Color
-                if has_color_j:
-                    color = color_scale_j.color_at(plots[j].color_data[i])
-                elif has_color_categories_j:
-                    var idx = _index_of(color_categories_domain_j, plots[j].color_categories[i])
-                    color = palette_j[idx % len(palette_j)]
-                else:
-                    color = p_theme.mark_color
-                var radius = (
-                    _round_to_int(size_scale_j.to_pixel(plots[j].size_data[i]))
-                    if has_size_j
-                    else _round_to_int(p_sc.point_radius)
-                )
-                target.fill_circle_aa(px, py, radius, color)
-
-            if p_theme.show_legend and (has_color_categories_j or has_color_j or has_size_j):
-                var legend_x = plot_x1 + sc.margin_right
-                if has_color_categories_j:
-                    _draw_legend(
-                        target, text_requests, color_categories_domain_j, palette_j, legend_x, legend_y, p_theme
-                    )
-                    legend_y += len(color_categories_domain_j) * (p_sc.legend_swatch_size + p_sc.legend_row_gap)
-                elif has_color_j:
-                    legend_y = _draw_continuous_color_legend(
-                        target, text_requests, color_scale_j, legend_x, legend_y, p_theme
-                    )
-                if has_size_j:
-                    legend_y = _draw_continuous_size_legend(
-                        target, text_requests, size_mm_j, size_scale_j, legend_x, legend_y, p_theme
-                    )
         elif plots[j]._mark == Mark.LINE:
-            var path = Path()
-            path.move_to(x_scale.to_pixel(plots[j].x_data[0]), y_scale.to_pixel(plots[j].y_data[0]))
-            for i in range(1, len(plots[j].x_data)):
-                path.line_to(x_scale.to_pixel(plots[j].x_data[i]), y_scale.to_pixel(plots[j].y_data[i]))
-            target.stroke_path_aa(path, p_theme.mark_color, width=p_sc.line_width)
+            _draw_line_layer(target, plots[j], frame.x_scale, frame.y_scale)
         elif plots[j]._mark == Mark.AREA:
-            var baseline_py = y_scale.to_pixel(0.0)
-            var path = Path()
-            path.move_to(x_scale.to_pixel(plots[j].x_data[0]), y_scale.to_pixel(plots[j].y_data[0]))
-            for i in range(1, len(plots[j].x_data)):
-                path.line_to(x_scale.to_pixel(plots[j].x_data[i]), y_scale.to_pixel(plots[j].y_data[i]))
-            path.line_to(
-                x_scale.to_pixel(plots[j].x_data[len(plots[j].x_data) - 1]), baseline_py
-            )
-            path.line_to(x_scale.to_pixel(plots[j].x_data[0]), baseline_py)
-            path.close()
-            target.fill_path_aa(path, p_theme.mark_color)
+            _draw_area_layer(target, plots[j], frame.x_scale, frame.y_scale)
 
-    return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+    return _RenderResult(text_requests^, frame.px0, frame.py0, frame.px1, frame.py1)
