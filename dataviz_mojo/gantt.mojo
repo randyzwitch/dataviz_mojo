@@ -291,12 +291,5 @@ def gantt(
     """A gantt/span chart -- `Mark.GANTT`, one horizontal bar per
     category from `start[i]` to `end[i]`. See this module's own
     docstring for the shared parameters every function here takes."""
-    return _rendered(
-        Plot().mark_gantt().encode_gantt(categories=categories, start=start, end=end),
-        theme,
-        width,
-        height,
-        title,
-        x_title,
-        y_title,
-    )
+    var plot = Plot().mark_gantt().encode_gantt(categories=categories, start=start, end=end)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title)

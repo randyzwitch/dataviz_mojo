@@ -191,12 +191,7 @@ def bullet(
     (plot.mojo) for what `measures`/`targets`/`ranges` mean, and this
     module's own docstring for the shared parameters every function
     here takes."""
-    return _rendered(
-        Plot().mark_bullet().encode_bullet(categories=categories, measures=measures, targets=targets, ranges=ranges),
-        theme,
-        width,
-        height,
-        title,
-        x_title,
-        y_title,
+    var plot = Plot().mark_bullet().encode_bullet(
+        categories=categories, measures=measures, targets=targets, ranges=ranges
     )
+    return _rendered(plot^, theme, width, height, title, x_title, y_title)

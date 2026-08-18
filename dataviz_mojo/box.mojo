@@ -228,12 +228,5 @@ def box(
     (plot.mojo) for the quartile/whisker/outlier computation, and
     plot.mojo's own module docstring for the shared parameters every
     function here takes."""
-    return _rendered(
-        Plot().mark_box().encode_boxplot(categories=categories, values=values),
-        theme,
-        width,
-        height,
-        title,
-        x_title,
-        y_title,
-    )
+    var plot = Plot().mark_box().encode_boxplot(categories=categories, values=values)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title)

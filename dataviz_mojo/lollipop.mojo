@@ -85,12 +85,5 @@ def lollipop(
     values)` shape `bar()` takes (a thin stem plus a point instead of
     a filled rect per category). See plot.mojo's own module docstring for
     the shared parameters every function here takes."""
-    return _rendered(
-        Plot().mark_lollipop().encode_categorical(x=categories, y=values),
-        theme,
-        width,
-        height,
-        title,
-        x_title,
-        y_title,
-    )
+    var plot = Plot().mark_lollipop().encode_categorical(x=categories, y=values)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title)

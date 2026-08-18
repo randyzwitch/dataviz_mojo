@@ -177,12 +177,7 @@ def grouped_bar(
     encode_grouped_bar()`'s own docstring (plot.mojo) for the exact
     shape, and plot.mojo's own module docstring for the shared parameters
     every function here takes."""
-    return _rendered(
-        Plot().mark_grouped_bar().encode_grouped_bar(categories=categories, series_names=series_names, values=values),
-        theme,
-        width,
-        height,
-        title,
-        x_title,
-        y_title,
+    var plot = Plot().mark_grouped_bar().encode_grouped_bar(
+        categories=categories, series_names=series_names, values=values
     )
+    return _rendered(plot^, theme, width, height, title, x_title, y_title)

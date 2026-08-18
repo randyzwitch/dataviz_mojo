@@ -250,12 +250,5 @@ def waterfall(
     (plot.mojo) for what `deltas`/`is_total` mean, and this module's
     own docstring for the shared parameters every function here
     takes."""
-    return _rendered(
-        Plot().mark_waterfall().encode_waterfall(categories=categories, deltas=deltas, is_total=is_total),
-        theme,
-        width,
-        height,
-        title,
-        x_title,
-        y_title,
-    )
+    var plot = Plot().mark_waterfall().encode_waterfall(categories=categories, deltas=deltas, is_total=is_total)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title)

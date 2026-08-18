@@ -160,12 +160,5 @@ def pie(
     for a donut instead -- see `Theme`'s own docstring. See this
     module's own docstring for the shared parameters every function
     here takes."""
-    return _rendered(
-        Plot().mark_arc().encode_categorical(x=categories, y=values),
-        theme,
-        width,
-        height,
-        title,
-        x_title,
-        y_title,
-    )
+    var plot = Plot().mark_arc().encode_categorical(x=categories, y=values)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title)
