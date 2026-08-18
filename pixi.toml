@@ -20,10 +20,10 @@ test = "mojo run -I . tests/test_scale.mojo && mojo run -I . tests/test_color_sc
 # copied images). Everything deployed by docs/docs-serve below is
 # deployed straight to GitHub Pages by .github/workflows/docs.yml's
 # own Actions-based deploy, regenerated fresh each time. Only
-# docs/src/_index.md (the hand-written landing page) and docs/site/'s
-# own Hugo project files (hugo.yaml, go.mod/go.sum) are real,
-# committed source -- see modo.yaml's own comments for the
-# Hugo-over-plain-markdown reasoning, and gen_example_docs.mojo's own
+# docs/src/_index.md (the hand-written landing page), docs/modo.yaml,
+# and docs/site/'s own Hugo project files (hugo.yaml, go.mod/go.sum)
+# are real, committed source -- see docs/modo.yaml's own comments for
+# the Hugo-over-plain-markdown reasoning, and gen_example_docs.mojo's own
 # docstring for how it turns examples/*.mojo into docs/src/examples/
 # pages (a Mojo script, not Python -- this repo's own tooling stays in
 # the language it's showcasing). Assumes `pixi run example` has
@@ -41,7 +41,7 @@ test = "mojo run -I . tests/test_scale.mojo && mojo run -I . tests/test_color_sc
 # script of its own -- see gen_example_docs.mojo's own docstring for
 # why anything with real logic in this pipeline is Mojo, not shell.
 docs-install = "bash scripts/install-modo.sh"
-docs-build = { cmd = "rm -rf docs/site/content docs/site/public docs/src/examples && mkdir -p docs/src/examples && mojo run -I . scripts/gen_example_docs.mojo && cp examples/out_*.png examples/out_*.svg docs/src/examples/ && mojo doc -I . -o docs/src/dataviz_mojo.json dataviz_mojo && .tools/modo build && sed -i 's/^weight: 400$/weight: 150/' docs/site/content/dataviz_mojo/_index.md", depends-on = [
+docs-build = { cmd = "rm -rf docs/site/content docs/site/public docs/src/examples && mkdir -p docs/src/examples && mojo run -I . scripts/gen_example_docs.mojo && cp examples/out_*.png examples/out_*.svg docs/src/examples/ && mojo doc -I . -o docs/src/dataviz_mojo.json dataviz_mojo && .tools/modo build docs -c modo.yaml && sed -i 's/^weight: 400$/weight: 150/' docs/site/content/dataviz_mojo/_index.md", depends-on = [
     "docs-install",
 ] }
 # One-shot build into docs/site/public -- what docs-deploy.yml
