@@ -1,6 +1,6 @@
 """Demo: an area chart -- Mark.AREA, the same continuous (x, y) data
 mark_line() draws, filled down to a zero baseline instead of stroked.
-Built via dataviz_mojo.quickplot.area() -- see examples/scatter.mojo's
+Built via dataviz_mojo.area() -- see examples/scatter.mojo's
 own docstring for what that trades away.
 
 Supersampled 3x -- see examples/scatter.mojo's own docstring for why
@@ -17,7 +17,7 @@ from canvas_mojo.color import Color
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
-from dataviz_mojo.quickplot import area
+from dataviz_mojo import area
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3

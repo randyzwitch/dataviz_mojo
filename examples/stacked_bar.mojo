@@ -8,7 +8,7 @@ examples/grouped_bar.mojo uses, so the two examples read as a direct
 before/after comparison of the same numbers under each mark's own
 convention: grouped answers "how do the regions compare to each other
 each quarter," stacked answers "what's the total, and how is it
-composed." Built via dataviz_mojo.quickplot.stacked_bar() -- see
+composed." Built via dataviz_mojo.stacked_bar() -- see
 examples/scatter.mojo's own docstring for what that trades away.
 
 Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
@@ -24,7 +24,7 @@ from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.quickplot import stacked_bar
+from dataviz_mojo import stacked_bar
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3

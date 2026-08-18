@@ -1,7 +1,7 @@
 """Demo: a bar chart -- Mark.BAR, a categorical x-axis (OrdinalScale)
 and a y-axis that always includes a zero baseline. Includes one
 negative value to show bars extending below the baseline correctly,
-not just the all-positive case. Built via dataviz_mojo.quickplot.bar()
+not just the all-positive case. Built via dataviz_mojo.bar()
 -- see examples/scatter.mojo's own docstring for what that trades
 away.
 
@@ -17,7 +17,7 @@ from canvas_mojo.color import Color
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
-from dataviz_mojo.quickplot import bar
+from dataviz_mojo import bar
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3

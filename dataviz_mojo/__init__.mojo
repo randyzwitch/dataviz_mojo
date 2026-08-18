@@ -1,4 +1,4 @@
-"""dataviz_mojo's own public surface -- everything a caller is meant to
+"""This package's own public surface: everything a caller is meant to
 import, re-exported here so `from dataviz_mojo import bar, Plot, Theme`
 works without anyone needing to know which file inside the package a
 given name actually lives in.

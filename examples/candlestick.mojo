@@ -10,7 +10,7 @@ doesn't force in a zero baseline -- the same reasoning Mark.BOX already
 established: a candlestick chart's whole point is showing fine detail
 in a price range nowhere near zero, so forcing zero into view would
 flatten exactly the detail the chart exists to show. Built via
-dataviz_mojo.quickplot.candlestick() -- see examples/scatter.mojo's
+dataviz_mojo.candlestick() -- see examples/scatter.mojo's
 own docstring for what that trades away.
 
 Eight trading days of a single (fictional) stock -- a realistic mix of
@@ -31,7 +31,7 @@ from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.quickplot import candlestick
+from dataviz_mojo import candlestick
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3

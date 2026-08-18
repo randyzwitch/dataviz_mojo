@@ -9,7 +9,7 @@ splitting into one sub-bar per series (default_categorical_palette(),
 the same cycling convention Mark.POINT's categorical color encoding and
 Mark.ARC's own wedge coloring already use) plus a legend, reserved via
 Theme.show_legend the same way Mark.POINT's own categorical-color
-legend is. Built via dataviz_mojo.quickplot.grouped_bar() -- see
+legend is. Built via dataviz_mojo.grouped_bar() -- see
 examples/scatter.mojo's own docstring for what that trades away;
 title=/x_title=/y_title= are quickplot's own equivalent of Plot.
 labels()'s three parameters.
@@ -27,7 +27,7 @@ from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.quickplot import grouped_bar
+from dataviz_mojo import grouped_bar
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3

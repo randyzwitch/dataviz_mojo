@@ -5,7 +5,7 @@ mark whose categories run along the *y*-axis instead of the x-axis
 (`_draw_horizontal_categorical_axis_frame`, the mirror image of every
 other categorical mark here's own vertical axis frame -- see its own
 docstring for why this needed a dedicated function rather than
-generalizing the vertical one). Built via dataviz_mojo.quickplot.
+generalizing the vertical one). Built via dataviz_mojo.
 gantt() -- see examples/scatter.mojo's own docstring for what that
 trades away.
 
@@ -28,7 +28,7 @@ from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.quickplot import gantt
+from dataviz_mojo import gantt
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3

@@ -4,9 +4,9 @@ switched from a full wedge to a ring segment (canvas_mojo.primitives.
 fill_ring_sector_aa on the raster path, SvgCanvas.fill_ring_sector_aa
 on the vector one -- see plot.mojo's own _render_arc docstring for
 where that switch happens). Raster output built via dataviz_mojo.
-quickplot.pie() -- see examples/scatter.mojo's own docstring for what
-that trades away; the donut_inner_radius_fraction=0.55 kwarg is the
-only thing distinguishing this file from examples/pie.mojo's own call.
+pie() -- see examples/scatter.mojo's own docstring for what that
+trades away; the donut_inner_radius_fraction=0.55 kwarg is the only
+thing distinguishing this file from examples/pie.mojo's own call.
 
 Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
 from the same Plot -- both backends are first-class (see the wiki), so
@@ -25,7 +25,7 @@ from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.quickplot import pie
+from dataviz_mojo import pie
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3

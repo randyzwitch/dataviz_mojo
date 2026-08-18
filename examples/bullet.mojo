@@ -9,7 +9,7 @@ bar (mark_color, deliberately never colored by sign -- see
 _render_bullet's own docstring for why, unlike Mark.CANDLESTICK/
 WATERFALL), and a target tick (axis_color, full band width, matching
 Mark.BOX's own median-line convention). Built via dataviz_mojo.
-quickplot.bullet() -- see examples/scatter.mojo's own docstring for
+bullet() -- see examples/scatter.mojo's own docstring for
 what that trades away.
 
 Four KPIs on a quarterly dashboard -- a realistic mix of "beat target"
@@ -32,7 +32,7 @@ from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.quickplot import bullet
+from dataviz_mojo import bullet
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3

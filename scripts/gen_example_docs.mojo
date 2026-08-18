@@ -3,17 +3,20 @@ part of `pixi run docs` (see pixi.toml), before `mojo doc`/`modo
 build`, so a new example file automatically gets a docs page without
 anyone hand-writing one.
 
-Each page shows the actual grammar-of-graphics pattern -- a
-quickplot.mojo one-call function where the example has one (`bar()`,
-`scatter()`, ...), the fuller Plot/Theme/render builder otherwise --
-not this docs site's own supersampling/file-writing plumbing every
-example also needs (see docs/src/_index.md's own "A first chart"
-section, and examples/scatter.mojo's own docstring, for why every
-example renders at 3x and shrinks back down). Extraction strategy:
+Each page shows the actual grammar-of-graphics pattern -- a one-call
+convenience function where the example has one (`bar()`, `scatter()`,
+...; see plot.mojo's own module docstring for what these are, and
+dataviz_mojo/__init__.mojo's own docstring for why every one is
+imported from the package itself rather than the mark file it happens
+to live in), the fuller Plot/Theme/render builder otherwise -- not
+this docs site's own supersampling/file-writing plumbing every example
+also needs (see docs/src/_index.md's own "A first chart" section, and
+examples/scatter.mojo's own docstring, for why every example renders
+at 3x and shrinks back down). Extraction strategy:
 
-- If the example builds its raster output via a `dataviz_mojo.
-  quickplot` function (`var c = bar(...)`, `var c = scatter(...)`,
-  ...), that call is always the snippet shown -- it's already the
+- If the example builds its raster output via a one-call convenience
+  function (`var c = bar(...)`, `var c = scatter(...)`, ...), that
+  call is always the snippet shown -- it's already the
   cleanest possible reconstruction of "how would I actually write
   this," cleaner than any hand-rolled Plot/Theme/Canvas/render() the
   same file might also build for its own SVG output alongside it (see
@@ -223,11 +226,16 @@ def _word_in(text: String, word: String) -> Bool:
 
 
 def _quickplot_names() -> List[String]:
-    """Every dataviz_mojo.quickplot function name -- kept as one list
-    both `_quickplot_call_start()` (does this example build its raster
-    output via one of these?) and `_imports_for()` (does the clean
-    snippet need `from dataviz_mojo.quickplot import <name>`?) share,
-    so a 14th quickplot function only needs adding here."""
+    """Every one-call convenience function's own name -- each lives in
+    its own mark's file now (see plot.mojo's own module docstring), not
+    one shared quickplot.mojo, but every one is still imported the same
+    way (`from dataviz_mojo import <name>`, see dataviz_mojo/__init__.
+    mojo's own docstring), which is all this list-of-names approach
+    ever needed to be true. Kept as one list both `_quickplot_call_
+    start()` (does this example build its raster output via one of
+    these?) and `_imports_for()` (does the clean snippet need `from
+    dataviz_mojo import <name>`?) share, so a 14th one only needs adding
+    here."""
     return [
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
@@ -270,8 +278,8 @@ def _strip_quickplot_line(line: String) -> List[String]:
     covers):
 
     - `width=640 * _SUPERSAMPLE,`/`height=420 * _SUPERSAMPLE,` -- the
-      library's own defaults (quickplot.mojo's own `width: Int = 640`/
-      `height: Int = 420`) once desupersampled, so passing them
+      library's own defaults (every one-call convenience function's own
+      `width: Int = 640`/`height: Int = 420`) once desupersampled, so passing them
       explicitly is pure noise -- dropped outright, the same as
       `_strip_supersample()`'s own bare `scale=...,` line. A non-
       default size (e.g. examples/pie.mojo's `400 * _SUPERSAMPLE`)
@@ -457,7 +465,7 @@ def _imports_for(body_text: String) -> List[String]:
         if _word_in(body_text, n):
             used_qp.append(n)
     if len(used_qp) > 0:
-        lines.append("from dataviz_mojo.quickplot import " + String(", ").join(used_qp))
+        lines.append("from dataviz_mojo import " + String(", ").join(used_qp))
 
     if _word_in(body_text, "Theme"):
         lines.append("from dataviz_mojo.theme import Theme")
@@ -559,11 +567,12 @@ def main() raises:
     )
     idx.append("")
     idx.append(
-        "Most reach for a single `dataviz_mojo.quickplot` function -- "
+        "Most reach for a single one-call convenience function -- "
         "`bar(categories, values)`, `scatter(x, y)`, and so on, one per "
-        "mark -- built on top of the fuller `Plot` builder (`.encode()`/"
-        "`.theme()`/`.labels()`, then `render()`) that the rest still use "
-        "directly, for whatever quickplot doesn't cover yet."
+        "mark, imported straight from `dataviz_mojo` -- built on top of "
+        "the fuller `Plot` builder (`.encode()`/`.theme()`/`.labels()`, "
+        "then `render()`) that the rest still use directly, for whatever "
+        "these don't cover yet."
     )
     idx.append("")
     for cat in categories:

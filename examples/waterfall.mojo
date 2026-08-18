@@ -9,7 +9,7 @@ why this one mark colors by sign without needing Theme.color_by_sign,
 unlike Mark.BAR), narrower than a total bar so the two read as
 distinct at a glance, with a thin connector line between consecutive
 bars at the pixel height where one bar's own running total hands off
-to the next. Built via dataviz_mojo.quickplot.waterfall() -- see
+to the next. Built via dataviz_mojo.waterfall() -- see
 examples/scatter.mojo's own docstring for what that trades away.
 
 A quarterly profit bridge: a starting-balance total, several line
@@ -36,7 +36,7 @@ from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.quickplot import waterfall
+from dataviz_mojo import waterfall
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3

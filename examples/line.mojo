@@ -1,7 +1,7 @@
 """Demo: a basic line plot -- Mark.LINE, a custom Theme (different
 mark color, thicker line, gridlines off) to show that's actually
 wired through quickplot's own theme= parameter, not just the default
-look. Built via dataviz_mojo.quickplot.line() -- see examples/
+look. Built via dataviz_mojo.line() -- see examples/
 scatter.mojo's own docstring for what that trades away.
 
 Supersampled 3x -- see examples/scatter.mojo's own docstring for why
@@ -18,7 +18,7 @@ from canvas_mojo.color import Color
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
-from dataviz_mojo.quickplot import line
+from dataviz_mojo import line
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3

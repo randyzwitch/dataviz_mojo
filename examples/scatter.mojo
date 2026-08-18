@@ -1,10 +1,11 @@
 """Demo: a basic scatter plot -- Mark.POINT, default theme, axes and
 gridlines computed automatically from the data's own domain. Built via
-dataviz_mojo.quickplot.scatter() -- the one-call convenience wrapper
+dataviz_mojo.scatter() -- the one-call convenience wrapper
 around Plot().mark_point().encode(...).theme(...) + Canvas + render()
--- rather than the builder spelled out by hand; see quickplot.mojo's
-own module docstring for what it trades away (facets, layering,
-color/size encoding, the SVG backend all still need Plot directly).
+-- rather than the builder spelled out by hand; see plot.mojo's own
+module docstring (its "one-call convenience functions" section) for
+what it trades away (facets, layering, color/size encoding, the SVG
+backend all still need Plot directly).
 
 Supersampled 3x -- every example here is, now (see the wiki's
 Changelog, its own Theme.scale/canvas_mojo.resize.downsample entries): rendered at 3x this
@@ -30,7 +31,7 @@ Run with:
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
-from dataviz_mojo.quickplot import scatter
+from dataviz_mojo import scatter
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3

@@ -5,7 +5,7 @@ the quartile/whisker/outlier computation it does immediately, via
 _box_stats()). Unlike Mark.BAR/LOLLIPOP/WATERFALL, the y-axis doesn't
 force in a zero baseline -- a distribution's own spread has no inherent
 reason to include zero (see _render_box's own docstring). Built via
-dataviz_mojo.quickplot.box() -- see examples/scatter.mojo's own
+dataviz_mojo.box() -- see examples/scatter.mojo's own
 docstring for what that trades away.
 
 Four groups' exam scores, each a real (not perfectly symmetric)
@@ -28,7 +28,7 @@ from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.quickplot import box
+from dataviz_mojo import box
 from dataviz_mojo.theme import Theme
 
 comptime _SUPERSAMPLE = 3
