@@ -22,6 +22,7 @@ from dataviz_mojo.plot import (
     _unique_categories,
 )
 from dataviz_mojo.theme import Theme
+from dataviz_mojo import bullet
 
 from _test_helpers import BG, _count_color, _assert_color
 
@@ -45,9 +46,7 @@ def test_render_bullet_matches_hand_derived_bands_measure_and_target() raises:
     var targets: List[Float64] = [65.0, 50.0]
     var ranges: List[List[Float64]] = [[40.0, 70.0, 100.0], [30.0, 60.0, 90.0]]
     var t = Theme(show_gridlines=False)
-    var plot = Plot().mark_bullet().encode_bullet(cats, measures, targets, ranges).theme(t)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var c = bullet(cats, measures, targets, ranges, theme=t, width=400, height=300)
 
     _assert_color(c, 90, 200, Color(224, 224, 224), "A: lightest range band [0,40], off the measure bar")
     _assert_color(c, 90, 130, Color(172, 172, 172), "A: middle range band [40,70], off the measure bar")
@@ -86,30 +85,24 @@ def test_render_bullet_raises_on_mismatched_category_length() raises:
     var cats: List[String] = ["a", "b", "c"]
     var one: List[Float64] = [1.0, 2.0]
     var ranges: List[List[Float64]] = [[1.0], [1.0]]
-    var plot = Plot().mark_bullet().encode_bullet(cats, one, one, ranges)
-    var c = Canvas(200, 150, BG)
     with assert_raises():
-        render(c, plot)
+        _ = bullet(cats, one, one, ranges, width=200, height=150)
 
 
 def test_render_bullet_raises_on_empty_range_thresholds() raises:
     var cats: List[String] = ["a", "b"]
     var one: List[Float64] = [1.0, 2.0]
     var ranges: List[List[Float64]] = [[1.0], List[Float64]()]
-    var plot = Plot().mark_bullet().encode_bullet(cats, one, one, ranges)
-    var c = Canvas(200, 150, BG)
     with assert_raises():
-        render(c, plot)
+        _ = bullet(cats, one, one, ranges, width=200, height=150)
 
 
 def test_render_bullet_raises_on_non_ascending_range_thresholds() raises:
     var cats: List[String] = ["a"]
     var one: List[Float64] = [1.0]
     var ranges: List[List[Float64]] = [[50.0, 30.0, 100.0]]
-    var plot = Plot().mark_bullet().encode_bullet(cats, one, one, ranges)
-    var c = Canvas(200, 150, BG)
     with assert_raises():
-        render(c, plot)
+        _ = bullet(cats, one, one, ranges, width=200, height=150)
 
 
 def main() raises:

@@ -5,7 +5,6 @@ default -- split out of what used to be one big test_plot.mojo.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
 from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
@@ -22,8 +21,9 @@ from dataviz_mojo.plot import (
     _unique_categories,
 )
 from dataviz_mojo.theme import Theme
+from dataviz_mojo import scatter
 
-from _test_helpers import BG, _count_color, _assert_color
+from _test_helpers import _count_color, _assert_color
 
 
 def test_render_theme_scale_uniformly_scales_the_whole_layout() raises:
@@ -43,9 +43,7 @@ def test_render_theme_scale_uniformly_scales_the_whole_layout() raises:
     # not assumed to "just carry over" from the 1x case).
     var xy: List[Float64] = [5.0]
     var t = Theme(scale=2.0)
-    var plot = Plot().mark_point().encode(x=xy, y=xy).theme(t)
-    var c = Canvas(800, 600, BG)
-    render(c, plot)
+    var c = scatter(xy, xy, theme=t, width=800, height=600)
 
     _assert_color(c, 440, 270, t.mark_color, "scale=2.0's point, exactly 2x the scale=1.0 pixel")
     # The y-axis line itself, confirming the *margin* scaled (not just
@@ -63,10 +61,8 @@ def test_render_theme_scale_default_matches_unscaled_output_exactly() raises:
     # single-point setup, compared pixel-for-pixel between an explicit
     # Theme(scale=1.0) and Theme's own bare default.
     var xy: List[Float64] = [5.0]
-    var c_default = Canvas(400, 300, BG)
-    render(c_default, Plot().mark_point().encode(x=xy, y=xy))
-    var c_explicit = Canvas(400, 300, BG)
-    render(c_explicit, Plot().mark_point().encode(x=xy, y=xy).theme(Theme(scale=1.0)))
+    var c_default = scatter(xy, xy, width=400, height=300)
+    var c_explicit = scatter(xy, xy, theme=Theme(scale=1.0), width=400, height=300)
 
     for y in range(c_default.height):
         for x in range(c_default.width):

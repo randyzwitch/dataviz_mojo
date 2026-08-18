@@ -23,6 +23,7 @@ from dataviz_mojo.plot import (
     _unique_categories,
 )
 from dataviz_mojo.theme import Theme
+from dataviz_mojo import box
 
 from _test_helpers import BG, _count_color, _assert_color
 
@@ -46,9 +47,7 @@ def test_render_boxplot_matches_hand_derived_box_whiskers_and_outlier() raises:
         [10.0, 12.0, 14.0, 15.0, 18.0],
     ]
     var t = Theme(show_gridlines=False)
-    var plot = Plot().mark_box().encode_boxplot(cats, values).theme(t)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var c = box(cats, values, theme=t, width=400, height=300)
 
     _assert_color(c, 140, 200, t.mark_color, "A: inside the box (between q1 and q3)")
     _assert_color(c, 140, 205, t.axis_color, "A: the median line, drawn over the box fill")
@@ -80,14 +79,14 @@ def test_encode_boxplot_raises_on_mismatched_length() raises:
     var cats: List[String] = ["A", "B"]
     var values: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        _ = Plot().mark_box().encode_boxplot(cats, values)
+        _ = box(cats, values)
 
 
 def test_encode_boxplot_raises_on_empty_category_values() raises:
     var cats: List[String] = ["A", "B"]
     var values: List[List[Float64]] = [[1.0, 2.0], List[Float64]()]
     with assert_raises():
-        _ = Plot().mark_box().encode_boxplot(cats, values)
+        _ = box(cats, values)
 
 
 def main() raises:

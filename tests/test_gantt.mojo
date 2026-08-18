@@ -22,6 +22,7 @@ from dataviz_mojo.plot import (
     _unique_categories,
 )
 from dataviz_mojo.theme import Theme
+from dataviz_mojo import gantt
 
 from _test_helpers import BG, _count_color, _assert_color
 
@@ -45,9 +46,7 @@ def test_render_gantt_matches_hand_derived_bars() raises:
     var start: List[Float64] = [10.0, 50.0]
     var end: List[Float64] = [40.0, 90.0]
     var t = Theme(show_gridlines=False)
-    var plot = Plot().mark_gantt().encode_gantt(cats, start, end).theme(t)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var c = gantt(cats, start, end, theme=t, width=400, height=300)
 
     _assert_color(c, 100, 60, t.mark_color, "A's own bar (x:[75,184), y:[32,124)), well inside")
     _assert_color(c, 250, 180, t.mark_color, "B's own bar (x:[220,365), y:[147,239)), well inside")
@@ -87,18 +86,14 @@ def test_render_gantt_zero_length_span_floors_to_one_pixel() raises:
 def test_render_gantt_raises_on_mismatched_category_length() raises:
     var cats: List[String] = ["a", "b", "c"]
     var one: List[Float64] = [1.0, 2.0]
-    var plot = Plot().mark_gantt().encode_gantt(cats, one, one)
-    var c = Canvas(200, 150, BG)
     with assert_raises():
-        render(c, plot)
+        _ = gantt(cats, one, one, width=200, height=150)
 
 
 def test_render_gantt_empty_data_only_fills_background() raises:
     var cats = List[String]()
     var empty = List[Float64]()
-    var plot = Plot().mark_gantt().encode_gantt(cats, empty, empty)
-    var c = Canvas(200, 150, BG)
-    render(c, plot)
+    var c = gantt(cats, empty, empty, width=200, height=150)
     _assert_color(c, 100, 75, BG, "no categories -- just the background fill")
 
 
