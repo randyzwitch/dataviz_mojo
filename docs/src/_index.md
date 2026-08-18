@@ -1,10 +1,8 @@
 ---
-title: Home
+title: dataviz_mojo
 type: docs
 weight: 100
 ---
-
-# dataviz_mojo
 
 Grammar-of-graphics-flavored chart building for Mojo — a fluent `Plot`
 builder (`Plot().mark_point().encode(x=..., y=...)`), scales, themes,

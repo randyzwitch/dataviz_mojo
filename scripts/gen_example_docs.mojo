@@ -391,13 +391,10 @@ def _build_page(name: String, title: String) raises -> String:
         snippet += "\n\n"
     snippet += "def main() raises:\n" + String("\n").join(indented)
 
-    var src_url = "https://github.com/randyzwitch/dataviz_mojo/blob/main/examples/" + name + ".mojo"
     var page = List[String]()
     page.append("---")
     page.append("title: " + title)
     page.append("---")
-    page.append("")
-    page.append("# " + title)
     page.append("")
     page.append(hook)
     page.append("")
@@ -408,14 +405,6 @@ def _build_page(name: String, title: String) raises -> String:
     page.append("```mojo")
     page.append(snippet)
     page.append("```")
-    page.append("")
-    page.append(
-        "The snippet above is the actual grammar-of-graphics pattern -- "
-        "stripped of this docs site's own supersampling/file-writing "
-        "plumbing (every example here also writes its own output "
-        "image, which is how the render above was produced). "
-        "[View the complete, runnable `" + name + ".mojo` on GitHub](" + src_url + ")."
-    )
     page.append("")
     return String("\n").join(page)
 
@@ -457,8 +446,6 @@ def main() raises:
     idx.append("cascade:")
     idx.append("  type: docs")
     idx.append("---")
-    idx.append("")
-    idx.append("# Examples")
     idx.append("")
     idx.append(
         "Every example below is a complete, runnable `.mojo` file in this "
