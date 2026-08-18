@@ -14,11 +14,20 @@
 # compatibility work an earlier version of this file did (renaming
 # `_index.md` -> `index.md` post-build) is needed anymore.
 # See https://github.com/mlange-42/modo.
+#
+# Lives here (docs/modo.yaml), not the repo root, so every docs-only
+# file sits under one directory -- modo requires its own config file
+# to live inside whatever directory it's pointed at (`modo build docs
+# -c modo.yaml`, see pixi.toml's own docs-build task), which is also
+# what every path below is resolved relative to -- `src/`/`site/
+# content` here are `docs/src/`/`docs/site/content` from the repo
+# root (what the prose above, and every other file in this repo,
+# calls them).
 input:
-  - docs/src/
+  - src/
 source-url:
   dataviz_mojo: https://github.com/randyzwitch/dataviz_mojo/blob/main/dataviz_mojo
-output: docs/site/content
+output: site/content
 tests: ""
 format: hugo
 exports: false

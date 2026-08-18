@@ -20,7 +20,7 @@ on:
       - "docs/site/hugo.yaml"
       - "docs/site/go.mod"
       - "docs/site/go.sum"
-      - "modo.yaml"
+      - "docs/modo.yaml"
       - "pixi.toml"
       - "scripts/install-modo.sh"
       - "scripts/gen_example_docs.mojo"

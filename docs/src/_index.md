@@ -4,7 +4,8 @@ type: docs
 weight: 100
 ---
 
-Grammar-of-graphics-flavored chart building for Mojo — a fluent `Plot`
+Grammar-of-graphics-flavored chart building for Mojo — a
+[fluent](https://martinfowler.com/bliki/FluentInterface.html) `Plot`
 builder (`Plot().mark_point().encode(x=..., y=...)`), scales, themes,
 and a growing set of mark types (scatter, line, bar, area, pie/donut,
 lollipop, waterfall, box, candlestick, bullet, gantt, grouped bar,
