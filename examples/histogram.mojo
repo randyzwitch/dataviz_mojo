@@ -16,6 +16,7 @@ Run with:
 from canvas_mojo.color import Color
 from canvas_mojo.buffer import Canvas
 from canvas_mojo.io.bmp import write_bmp
+from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render, render_svg
@@ -39,6 +40,7 @@ def main() raises:
     render(c, raster_plot)
     var out = downsample(c, _SUPERSAMPLE)
     write_bmp(out, "examples/out_histogram.bmp")
+    write_png(out, "examples/out_histogram.png")
 
     var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_bar().encode_histogram(scores, bins=8).theme(
@@ -47,4 +49,4 @@ def main() raises:
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_histogram.svg")
 
-    print("wrote examples/out_histogram.bmp and out_histogram.svg")
+    print("wrote examples/out_histogram.bmp, .png, and .svg")

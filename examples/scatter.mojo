@@ -4,8 +4,12 @@ dataviz_mojo.scatter() -- the one-call convenience wrapper
 around Plot().mark_point().encode(...).theme(...) + Canvas + render()
 -- rather than the builder spelled out by hand; see plot.mojo's own
 module docstring (its "one-call convenience functions" section) for
-what it trades away (facets, layering, color/size encoding, the SVG
-backend all still need Plot directly).
+what it trades away (facets, layering, color/size encoding still need
+Plot directly).
+
+Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
+from the same data -- see examples/donut.mojo's own docstring for why,
+and for why the docs page only shows the quickplot call above.
 
 Supersampled 3x -- every example here is, now (see the wiki's
 Changelog, its own Theme.scale/canvas_mojo.resize.downsample entries): rendered at 3x this
@@ -31,6 +35,8 @@ Run with:
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
+from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import scatter
 from dataviz_mojo.theme import Theme
 
@@ -52,4 +58,10 @@ def main() raises:
 
     write_bmp(out, "examples/out_scatter.bmp")
     write_png(out, "examples/out_scatter.png")
-    print("wrote examples/out_scatter.bmp and .png")
+
+    var svg = SvgCanvas(640, 420)
+    var svg_plot = Plot().mark_point().encode(x=x, y=y).theme(Theme())
+    render_svg(svg, svg_plot)
+    write_svg(svg, "examples/out_scatter.svg")
+
+    print("wrote examples/out_scatter.bmp, .png, and .svg")
