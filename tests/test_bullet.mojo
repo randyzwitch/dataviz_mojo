@@ -41,12 +41,18 @@ def test_render_bullet_matches_hand_derived_bands_measure_and_target() raises:
     # from LinearScale's own slope/intercept formula (scale=(20-250)/
     # 105=-2.190476.., translate=250), then confirmed against a real
     # render() run before trusting it.
+    # Built via Plot/Canvas/render() directly, not bullet() -- see
+    # test_render_boxplot_matches_hand_derived_box_whiskers_and_
+    # outlier's own comment for why an exact hand-derived pixel check
+    # uses render() itself rather than the (now internally
+    # supersampled) quickplot wrapper.
     var cats: List[String] = ["A", "B"]
     var measures: List[Float64] = [55.0, 75.0]
     var targets: List[Float64] = [65.0, 50.0]
     var ranges: List[List[Float64]] = [[40.0, 70.0, 100.0], [30.0, 60.0, 90.0]]
     var t = Theme(show_gridlines=False)
-    var c = bullet(cats, measures, targets, ranges, theme=t, width=400, height=300)
+    var c = Canvas(400, 300, BG)
+    render(c, Plot().mark_bullet().encode_bullet(cats, measures, targets, ranges).theme(t))
 
     _assert_color(c, 90, 200, Color(224, 224, 224), "A: lightest range band [0,40], off the measure bar")
     _assert_color(c, 90, 130, Color(172, 172, 172), "A: middle range band [40,70], off the measure bar")

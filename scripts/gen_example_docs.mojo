@@ -3,40 +3,26 @@ part of `pixi run docs` (see pixi.toml), before `mojo doc`/`modo
 build`, so a new example file automatically gets a docs page without
 anyone hand-writing one.
 
-Each page shows the actual grammar-of-graphics pattern -- a one-call
-convenience function where the example has one (`bar()`, `scatter()`,
-...; see plot.mojo's own module docstring for what these are, and
-dataviz_mojo/__init__.mojo's own docstring for why every one is
-imported from the package itself rather than the mark file it happens
-to live in), the fuller Plot/Theme/render builder otherwise -- not
-this docs site's own supersampling/file-writing plumbing every example
-also needs (see docs/src/_index.md's own "A first chart" section, and
-examples/scatter.mojo's own docstring, for why every example renders
-at 3x and shrinks back down). Extraction strategy:
+Each page shows the actual grammar-of-graphics pattern -- every
+example's raster output is built via a one-call convenience function
+now (`bar()`, `scatter()`, ...; see plot.mojo's own module docstring
+for what these are, and dataviz_mojo/__init__.mojo's own docstring for
+why every one is imported from the package itself rather than the
+mark file it happens to live in), each already the cleanest possible
+reconstruction of "how would I actually write this" -- not this docs
+site's own file-writing plumbing every example also needs, and not
+even the supersampling every one of these functions bakes into its
+own output now (see dataviz_mojo.plot._rendered's own docstring):
+there's nothing left to strip out of the shown snippet on that front
+at all, unlike when every example spelled its own `_SUPERSAMPLE`
+handling out by hand. Extraction strategy:
 
-- If the example builds its raster output via a one-call convenience
-  function (`var c = bar(...)`, `var c = scatter(...)`, ...), that
-  call is always the snippet shown -- it's already the
-  cleanest possible reconstruction of "how would I actually write
-  this," cleaner than any hand-rolled Plot/Theme/Canvas/render() the
-  same file might also build for its own SVG output alongside it (see
-  `_quickplot_call_start()`/`_strip_quickplot_line()`). Everything
-  after that call's own closing `)` -- write_bmp/png, downsample()'s
-  output variable, any separate SvgCanvas/render_svg() block -- is cut
-  entirely, not shown.
-- Otherwise, if the example writes both raster and SVG output via the
-  full builder (most of the marks quickplot doesn't cover yet), the
-  SVG-path construction is used as-is: unlike the raster path, it was
-  never supersampled to begin with, so it's already the clean pattern
-  -- no stripping needed, just cut the whole raster-specific block out.
-- Otherwise (raster-only, no quickplot call, no SVG path), the raster
-  block's own supersampling is stripped back out in place instead:
-  `Canvas(w * _SUPERSAMPLE, h * _SUPERSAMPLE, ...)` -> `Canvas(w, h,
-  ...)`, `scale=Float64(_SUPERSAMPLE)` (or a `var s = Float64(
-  _SUPERSAMPLE)` local some examples reuse across several Theme(...)
-  calls instead of repeating the inline form) removed from every
-  Theme(...) it appears in, downsample()'s own output variable removed
-  once write_bmp/write_png (which needed it) are also gone.
+- The example's raster output is always built via a one-call
+  convenience function (`var c = bar(...)`, `var c = scatter(...)`,
+  ...) -- that call is the snippet shown, verbatim (see
+  `_quickplot_call_start()`). Everything after that call's own closing
+  `)` -- write_bmp/png, any separate SvgCanvas/render_svg() block -- is
+  cut entirely, not shown.
 
 A Mojo script, not Python -- this repo's own tooling stays in the
 language it's showcasing, string-matching primitives (`.strip()`,
@@ -239,159 +225,80 @@ def _quickplot_names() -> List[String]:
     return [
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
+        "histogram",
     ]
 
 
 def _quickplot_call_start(body: List[String]) -> Int:
-    """The line index of `var c = <quickplot fn>(`, or -1 if this
-    example doesn't build its raster output that way. Every quickplot-
-    based example here writes that call in the same multi-line shape
-    (the opening line ends `(`, one argument per line, a lone `)`
-    closes it -- see any of examples/bar.mojo/scatter.mojo/etc.), so
-    matching the opening line alone is enough; `_quickplot_call_end()`
-    finds the matching close."""
+    """The line index of `var c = <quickplot fn>(...`, or -1 if this
+    example doesn't build its raster output that way. Written either
+    as one line (`var c = scatter(x, y)`, whenever the call is short
+    enough) or, once there's enough kwargs to want one per line, the
+    multi-line shape (the opening line ends `(`, one argument per
+    line, a lone `)` closes it -- see any of examples/bar.mojo/
+    scatter.mojo/etc. for either). Either way the call's own function
+    name sits right after `var c = ` and before its own first `(`, so
+    matching that is enough regardless of which shape follows;
+    `_quickplot_call_end()` finds wherever the call itself actually
+    closes."""
     var names = _quickplot_names()
     for i in range(len(body)):
         var stripped = body[i].strip()
-        if not stripped.startswith("var c = ") or not stripped.endswith("("):
+        if not stripped.startswith("var c = "):
             continue
         var after = String(stripped[byte=8:])  # 8 == len("var c = ")
-        var name = String(after[byte = 0 : after.byte_length() - 1])  # drop trailing "("
+        var paren = after.find("(")
+        if paren == -1:
+            continue
+        var name = String(after[byte=0:paren])
         if name in names:
             return i
     return -1
 
 
 def _quickplot_call_end(body: List[String], start: Int) -> Int:
+    """`start`'s own line already closes the call (a single-line
+    `var c = scatter(x, y)`) if it ends with `)` -- checked before
+    scanning further, since a multi-line call's own opening line never
+    does (it always ends `(`, per `_quickplot_call_start`'s own
+    docstring). Otherwise, the matching close is the first line below
+    `start` that's a lone `)` with nothing else on it."""
+    if body[start].strip().endswith(")"):
+        return start
     for i in range(start + 1, len(body)):
         if body[i].strip() == ")":
             return i
     return -1
 
 
-def _strip_quickplot_line(line: String) -> List[String]:
-    """Per-line cleanup for a quickplot call's own argument lines,
-    same 0-length-means-drop/1-length-means-keep convention as
-    `_strip_supersample()` (which this wraps for everything but two
-    new patterns that only ever appear inside a quickplot call, never
-    the old Canvas/Theme-built-by-hand pattern that function already
-    covers):
-
-    - `width=640 * _SUPERSAMPLE,`/`height=420 * _SUPERSAMPLE,` -- the
-      library's own defaults (every one-call convenience function's own
-      `width: Int = 640`/`height: Int = 420`) once desupersampled, so passing them
-      explicitly is pure noise -- dropped outright, the same as
-      `_strip_supersample()`'s own bare `scale=...,` line. A non-
-      default size (e.g. examples/pie.mojo's `400 * _SUPERSAMPLE`)
-      isn't dropped, just desupersampled by `_strip_supersample()`'s
-      own generic ` * _SUPERSAMPLE` removal below.
-    - `theme=Theme(),` -- what's left once `_strip_supersample()`
-      removes `scale` from a `theme=Theme(scale=Float64(_SUPERSAMPLE))`
-      argument that had no other kwarg: an empty `Theme()` is a no-op,
-      the keyword-argument-call equivalent of the `.theme(Theme())`
-      method-call `_extract_clean_body()` already drops elsewhere for
-      the non-quickplot builder pattern.
+def _extract_clean_body(source: String) raises -> List[String]:
+    """Every example's raster output is built via a one-call
+    convenience function now (see this file's own module docstring),
+    so this has exactly one shape to extract: the `var c = <fn>(...)`
+    call verbatim, shown as-is with nothing left to strip out of it --
+    everything before it (data setup) kept, everything from its own
+    closing `)` onward (write_bmp/png, any separate SvgCanvas/
+    render_svg() block) cut. Raises rather than silently falling back
+    to showing the whole file (which used to be `_extract_clean_body`'s
+    own fallback, back when a raster-only-no-quickplot example was a
+    real, expected shape) -- a future example that doesn't fit this
+    pattern needs a real decision about how its own page should look,
+    not a silently-wrong one.
     """
-    var stripped = line.strip()
-    if stripped == "width=640 * _SUPERSAMPLE," or stripped == "height=420 * _SUPERSAMPLE,":
-        return List[String]()
-
-    var result = _strip_supersample(line)
-    if len(result) == 0:
-        return result^
-    if String(result[0].strip()) == "theme=Theme(),":
-        return List[String]()
-    return result^
-
-
-def _strip_supersample(line: String) -> List[String]:
-    """Returns a 0-length list to mean "drop this line entirely", or a
-    1-length list holding the (possibly rewritten) line to keep --
-    Mojo has no Optional[String] convenience used elsewhere in this
-    file, and this reads just as clearly at each call site.
-    """
-    var stripped = line.strip()
-    if stripped == "scale=Float64(_SUPERSAMPLE)," or stripped == "scale=s,":
-        return List[String]()
-
-    var l = line.replace(" * _SUPERSAMPLE", "")
-    l = l.replace(", scale=Float64(_SUPERSAMPLE))", ")")
-    l = l.replace(", scale=s)", ")")
-    l = l.replace("(scale=Float64(_SUPERSAMPLE))", "()")
-    l = l.replace("(scale=s)", "()")
-    return [l]
-
-
-def _extract_clean_body(source: String) -> List[String]:
     var body = _main_body_lines(source)
 
     var qp_start = _quickplot_call_start(body)
-    if qp_start != -1:
-        var qp_end = _quickplot_call_end(body, qp_start)
-        var qp_clean = List[String]()
-        for i in range(0, qp_start):
-            qp_clean.append(body[i])
-        for i in range(qp_start, qp_end + 1):
-            for l in _strip_quickplot_line(body[i]):
-                qp_clean.append(l)
-        return _finish_clean_body(qp_clean)
-
-    var has_svg = False
-    for l in body:
-        if l.strip().startswith("var svg = SvgCanvas("):
-            has_svg = True
-            break
-
-    # The raster-specific zone to strip (fully, if a clean SVG-path
-    # reconstruction exists below to use instead; in place, if this
-    # example has no SVG path at all and the raster block is the only
-    # rendering to show). Starts at the earliest line that either
-    # builds the supersampled Canvas or references _SUPERSAMPLE at
-    # all (covering both the inline `scale=Float64(_SUPERSAMPLE)` and
-    # `var s = Float64(_SUPERSAMPLE)` forms -- the latter can precede
-    # `var c = Canvas(...)` by several lines, e.g. when it's shared
-    # across a facet grid's own several Theme(...) calls). Ends at the
-    # last write_bmp/write_png call, which is always this zone's own
-    # final line in every example that has one.
-    var raster_start = -1
-    for i in range(len(body)):
-        if body[i].strip().startswith("var c = Canvas(") or "_SUPERSAMPLE" in body[i]:
-            raster_start = i
-            break
-
-    var raster_end = -1
-    if raster_start != -1:
-        for i in range(raster_start, len(body)):
-            var stripped = body[i].strip()
-            if stripped.startswith("write_bmp(") or stripped.startswith("write_png("):
-                raster_end = i
-
-    var clean = List[String]()
-    if has_svg and raster_start != -1 and raster_end != -1:
-        for i in range(0, raster_start):
-            clean.append(body[i])
-        for i in range(raster_end + 1, len(body)):
-            clean.append(body[i])
-    elif raster_start != -1 and raster_end != -1:
-        # Raster-only example -- clean the zone in place instead of
-        # cutting it, since it's the only rendering this page has to
-        # show: downsample()'s own output variable removed (nothing
-        # downstream needs it once write_bmp/write_png are gone too).
-        for i in range(len(body)):
-            if i < raster_start or i > raster_end:
-                clean.append(body[i])
-                continue
-            var stripped = body[i].strip()
-            if stripped.startswith("var out = downsample(") or stripped.startswith(
-                "var s = Float64(_SUPERSAMPLE)"
-            ):
-                continue
-            for l in _strip_supersample(body[i]):
-                clean.append(l)
-    else:
-        clean = body^
-
-    return _finish_clean_body(clean)
+    if qp_start == -1:
+        raise Error(
+            "gen_example_docs: no one-call convenience function call"
+            " (`var c = <fn>(...)`) found -- every example's raster"
+            " output is expected to be built that way now"
+        )
+    var qp_end = _quickplot_call_end(body, qp_start)
+    var qp_clean = List[String]()
+    for i in range(0, qp_end + 1):
+        qp_clean.append(body[i])
+    return _finish_clean_body(qp_clean)
 
 
 def _finish_clean_body(clean: List[String]) -> List[String]:

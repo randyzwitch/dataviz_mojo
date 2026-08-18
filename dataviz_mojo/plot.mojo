@@ -56,6 +56,13 @@ an SVG renderer handles that itself, at whatever resolution it's
 displayed at (see the wiki's Changelog, its own entry for the concrete
 problem that motivated adding it).
 
+Per-primitive AA is one layer of that; whole-canvas supersampling is
+the other, coarser one -- rendering everything above at several times
+its final size, then shrinking back down (see `canvas_mojo.resize.
+downsample`'s own docstring for the mechanism). `render()` itself
+never does this on its own -- see its own docstring, and `_rendered`'s,
+for exactly where it does and doesn't happen and why.
+
 This file holds only what every mark shares: the `Plot` struct itself
 (its methods can't be split across files -- a Mojo struct's own
 methods all have to live with its definition -- so `encode_histogram(
@@ -126,8 +133,10 @@ parameters shared across all of them:
   building a `Plot` by hand; only how it's handed in differs (an
   argument here, instead of a chained `.theme(...)`).
 - `width`/`height`: the returned `Canvas`'s pixel size, defaulting to
-  640x420 -- the size every example renders at before its own
-  supersampling.
+  640x420 -- the final size of the returned `Canvas`; see `_rendered`'s
+  own docstring for the internal supersampling every one of these
+  functions now bakes in before handing that `Canvas` back, invisibly
+  to the caller.
 - `title`/`x_title`/`y_title`: forwarded to `Plot.labels()` as-is.
 
 Every one returns a `Canvas`, already rendered -- call
@@ -142,6 +151,7 @@ from std.math import pi
 
 from canvas_mojo.buffer import Canvas
 from canvas_mojo.color import Color
+from canvas_mojo.resize import downsample
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.path import Path
@@ -207,6 +217,20 @@ comptime _CONTINUOUS_LEGEND_BAR_STEPS = 20
 # computation in render()/_render_bar.
 comptime _MARGIN_BUFFER = 8
 
+# The fixed internal supersampling factor `_rendered()` renders every
+# one-call convenience function's raster output at before shrinking it
+# back down -- see that function's own docstring for the mechanism and
+# why it lives only there, not in `render()` itself. Not a `Theme`
+# field and not exposed as a parameter anywhere: unlike `Theme.scale`
+# (a real, user-visible choice -- render genuinely larger, for a
+# viewer that upscales), this one exists purely so quickplot's output
+# doesn't look worse than it has to, which isn't a decision a caller
+# should need to make or even know is happening. 3x was picked the
+# same way every example here used to hardcode it -- clearly enough
+# finer-grained to matter, not so large that a 640x420 chart's own
+# scratch canvas becomes wasteful; not benchmarked against 2x/4x.
+comptime _QUICKPLOT_SUPERSAMPLE = 3
+
 
 struct _Scaled(Movable):
     """Every pixel-sized quantity render()/_render_bar/_render_arc/
@@ -216,8 +240,23 @@ struct _Scaled(Movable):
     it (see Theme.scale's own docstring for what this is for). Built
     fresh from a Theme at the top of each of those functions; cheap
     (a handful of Float64/Int multiplies), not cached anywhere.
+
+    `scale` itself (the raw multiplier, not multiplied by anything --
+    every other field here already *is* the scaled quantity) exists
+    for the one place that needs the bare factor rather than something
+    pre-multiplied by it: every axis line/gridline/tick mark
+    (`draw_line_aa(..., theme.axis_color)`/`(..., theme.gridline_
+    color)`) is drawn `width=sc.scale` pixels wide, not the
+    library-wide implicit default of a flat 1.0 -- these are the one
+    kind of stroke this package draws whose own width has no `Theme`
+    field of its own to already be scaled by `_Scaled.__init__` above
+    (unlike `line_width`, `point_radius`, ...), so without this they'd
+    stay exactly 1 raw pixel wide at any `scale`, visibly thinner than
+    everything else in a `scale=2.0` render, not "the same chart at
+    higher density" the way `Theme.scale`'s own docstring promises.
     """
 
+    var scale: Float64
     var font_size: Float64
     var point_radius: Float64
     var line_width: Float64
@@ -240,6 +279,7 @@ struct _Scaled(Movable):
 
     def __init__(out self, theme: Theme):
         var s = theme.scale
+        self.scale = s
         self.font_size = theme.font_size * s
         self.point_radius = theme.point_radius * s
         self.line_width = theme.line_width * s
@@ -1562,13 +1602,26 @@ def render(
     generic` and every mark-specific `_render_*` used to open by
     filling their own rect a second time -- always a strict subset of
     this one, in the same color, so always pure waste: one whole extra
-    full-target fill per render (at `examples/bar.mojo`'s own
-    640x420-at-_SUPERSAMPLE=3, about 2.4M redundant pixel writes per
-    chart -- arithmetic, not a measured speedup; nothing here has been
+    full-target fill per render (at a 640x420 chart's own
+    quickplot-supersampled 1920x1260 scratch canvas -- see `_rendered`'s
+    own docstring -- about 2.4M redundant pixel writes per chart --
+    arithmetic, not a measured speedup; nothing here has been
     benchmarked). Painting the background is the *entry point's* job
     now, once, and each of the four entry points does it: here,
     `render_svg()`, `_render_facets_generic` (per cell -- see its own
     comment) and `render_layers()`/`render_layers_svg()`.
+
+    Never supersampled on its own -- every pixel-sized quantity here
+    scales only by `plot._theme.scale` (see `Theme`'s own docstring),
+    exactly the value the caller set, nothing added silently. This is
+    the precise, pixel-for-pixel entry point real HiDPI export and
+    this whole test suite's own hand-verified pixel assertions rely
+    on; `_rendered()` -- what every one-call convenience function
+    (`bar()`, `scatter()`, ...) calls instead of this directly -- is
+    the one place a fixed supersample factor gets applied
+    automatically, invisibly to its own caller, precisely because nothing
+    there needs that precision (see its own docstring for why the two
+    entry points draw that line differently).
     """
     var cx1 = ox1 if ox1 >= 0 else canvas.width
     var cy1 = oy1 if oy1 >= 0 else canvas.height
@@ -1937,19 +1990,19 @@ def _draw_continuous_axis_frame[
     if theme.show_gridlines:
         for i in range(len(x_ticks.values)):
             var px = _axis_pixel(out_x_scale, x_ticks.values[i])
-            target.draw_line_aa(px, plot_y0, px, plot_y1, theme.gridline_color)
+            target.draw_line_aa(px, plot_y0, px, plot_y1, theme.gridline_color, width=sc.scale)
         for i in range(len(y_ticks.values)):
             var py = _axis_pixel(out_y_scale, y_ticks.values[i])
-            target.draw_line_aa(plot_x0, py, plot_x1, py, theme.gridline_color)
+            target.draw_line_aa(plot_x0, py, plot_x1, py, theme.gridline_color, width=sc.scale)
 
-    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color)
-    target.draw_line_aa(plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color)
+    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale)
+    target.draw_line_aa(plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale)
 
     var text_requests = List[_TextRequest]()
 
     for i in range(len(x_ticks.values)):
         var px = _axis_pixel(out_x_scale, x_ticks.values[i])
-        target.draw_line_aa(px, plot_y1, px, plot_y1 + sc.tick_length, theme.axis_color)
+        target.draw_line_aa(px, plot_y1, px, plot_y1 + sc.tick_length, theme.axis_color, width=sc.scale)
         text_requests.append(
             _TextRequest(
                 px,
@@ -1969,7 +2022,7 @@ def _draw_continuous_axis_frame[
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for i in range(len(y_ticks.values)):
         var py = _axis_pixel(out_y_scale, y_ticks.values[i])
-        target.draw_line_aa(plot_x0 - sc.tick_length, py, plot_x0, py, theme.axis_color)
+        target.draw_line_aa(plot_x0 - sc.tick_length, py, plot_x0, py, theme.axis_color, width=sc.scale)
         text_requests.append(
             _TextRequest(
                 plot_x0 - sc.tick_length - sc.label_gap,
@@ -2374,17 +2427,17 @@ def _draw_categorical_axis_frame[
     if theme.show_gridlines:
         for i in range(len(y_ticks.values)):
             var py = _axis_pixel(out_y_scale, y_ticks.values[i])
-            target.draw_line_aa(plot_x0, py, plot_x1, py, theme.gridline_color)
+            target.draw_line_aa(plot_x0, py, plot_x1, py, theme.gridline_color, width=sc.scale)
 
-    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color)
-    target.draw_line_aa(plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color)
+    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale)
+    target.draw_line_aa(plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale)
 
     var text_requests = List[_TextRequest]()
 
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for i in range(len(y_ticks.values)):
         var py = _axis_pixel(out_y_scale, y_ticks.values[i])
-        target.draw_line_aa(plot_x0 - sc.tick_length, py, plot_x0, py, theme.axis_color)
+        target.draw_line_aa(plot_x0 - sc.tick_length, py, plot_x0, py, theme.axis_color, width=sc.scale)
         text_requests.append(
             _TextRequest(
                 plot_x0 - sc.tick_length - sc.label_gap,
@@ -2398,7 +2451,7 @@ def _draw_categorical_axis_frame[
 
     for i in range(len(categories)):
         var center_px = _round_to_int(x_scale.center(i))
-        target.draw_line_aa(center_px, plot_y1, center_px, plot_y1 + sc.tick_length, theme.axis_color)
+        target.draw_line_aa(center_px, plot_y1, center_px, plot_y1 + sc.tick_length, theme.axis_color, width=sc.scale)
         text_requests.append(
             _TextRequest(
                 center_px,
@@ -2790,8 +2843,15 @@ def _rendered(
 ) raises -> Canvas:
     """Everything every function in this module does once its own mark
     and data are chosen: apply the shared `title`/`x_title`/`y_title`
-    and `theme` to the half-built `plot`, size a `Canvas` to match, and
-    render into it.
+    and `theme` to the half-built `plot`, then render it -- at
+    `_QUICKPLOT_SUPERSAMPLE` times `width`/`height`, into a scratch
+    `Canvas` that size, immediately shrunk back down via
+    `canvas_mojo.resize.downsample` -- and return the result, a
+    `Canvas` of exactly `width`x`height` with genuinely finer-grained
+    anti-aliasing baked in than a direct `render()` at that same size
+    would produce (see `downsample()`'s own docstring for why this,
+    not a single-resolution render, is what "finer AA" actually means
+    here).
 
     All thirteen functions here used to carry a verbatim copy of these
     four lines, which is most of what each one *was* -- the two chained
@@ -2799,6 +2859,36 @@ def _rendered(
     part that ever differed. `.labels()`/`.theme()` are applied here
     rather than at each call site for the same reason: nothing about
     them varies by mark.
+
+    The supersampling itself used to live here too, spelled out by
+    hand in every example instead: a `comptime _SUPERSAMPLE = 3`, `
+    width`/`height` multiplied by it, `scale=Float64(_SUPERSAMPLE)`
+    threaded into `Theme`, and the caller's own `downsample()` call on
+    the far end. Every one of those five moving parts was pure
+    implementation detail -- nothing about *what chart to draw*, only
+    *how not to make its edges look worse than they have to* -- and
+    every example carried an identical copy of it, which is the tell
+    that it belonged here instead: this is now the one place that
+    logic exists at all, not the cleaned-up version of a pattern
+    every caller still has to write for themselves. A caller who wants
+    that control back still has it, just spelled explicitly rather
+    than defaulted invisibly: build the `Canvas`/`Plot` by hand and
+    call `render()` directly, whose own `Theme.scale` is exactly the
+    same multiplicative knob this function uses internally (see its
+    own docstring) -- `render()` itself stays exactly as un-
+    supersampled as it always was, deliberately: it's the precise,
+    pixel-for-pixel entry point real HiDPI export and this whole test
+    suite's own hand-verified pixel assertions depend on, so hiding
+    this mechanism inside quickplot's own convenience layer doesn't
+    touch it at all.
+
+    A caller who renders the same `plot` through this function twice
+    at different sizes sees no leftover effect of one call on the
+    next -- `theme` is never mutated in place, only copied into a
+    fresh, larger-`scale` `Theme` each time, since `Theme` is a plain
+    value type and `theme.scale` here is always relative to the
+    caller's own untouched `theme.scale`, not something this function
+    remembers between calls.
 
     Takes `plot` as `var` (owned) because `Plot`'s own builder methods
     consume and return `Self` -- see plot.mojo's own module docstring
@@ -2808,9 +2898,12 @@ def _rendered(
     `^` the compiler rejects the call outright rather than silently
     copying the columns.
     """
-    var c = Canvas(width, height, theme.background)
-    render(c, plot^.labels(title=title, x_title=x_title, y_title=y_title).theme(theme))
-    return c^
+    var factor = _QUICKPLOT_SUPERSAMPLE
+    var scaled_theme = theme
+    scaled_theme.scale = theme.scale * Float64(factor)
+    var scratch = Canvas(width * factor, height * factor, scaled_theme.background)
+    render(scratch, plot^.labels(title=title, x_title=x_title, y_title=y_title).theme(scaled_theme))
+    return downsample(scratch, factor)
 
 
 def scatter(

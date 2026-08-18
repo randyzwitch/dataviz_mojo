@@ -19,9 +19,9 @@ builds next (see the wiki's Changelog, its own Phase 1 entry) -- this
 example is deliberately the single-series, numeric-axis case that's
 already possible today, not a claim that the full chart type is done.
 
-Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
-from the same data -- see examples/donut.mojo's own docstring for why,
-and for why the docs page only shows the quickplot call above.
+Writes both a raster (.bmp) and a vector (.svg) file from the same
+data -- see examples/donut.mojo's own docstring for why, and for why
+the docs page only shows the quickplot call above.
 
 Run with:
     pixi run example
@@ -30,13 +30,10 @@ Run with:
 from canvas_mojo.color import Color
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import line
 from dataviz_mojo.theme import Theme
-
-comptime _SUPERSAMPLE = 3
 
 
 def main() raises:
@@ -51,14 +48,12 @@ def main() raises:
             mark_color=Color(30, 140, 90),
             line_width=3.0,
             show_gridlines=False,
-            scale=Float64(_SUPERSAMPLE),
         ),
-        width=320 * _SUPERSAMPLE,
-        height=420 * _SUPERSAMPLE,
+        width=320,
+        height=420,
     )
-    var out = downsample(c, _SUPERSAMPLE)
-    write_bmp(out, "examples/out_slope.bmp")
-    write_png(out, "examples/out_slope.png")
+    write_bmp(c, "examples/out_slope.bmp")
+    write_png(c, "examples/out_slope.png")
 
     var svg = SvgCanvas(320, 420)
     var svg_plot = Plot().mark_line().encode(x=x, y=revenue).theme(

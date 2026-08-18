@@ -25,6 +25,20 @@ crop/zoom -- the plot's own logical layout (data domain, tick
 positions, legend contents) is identical at every scale, only the
 pixel measurements of everything drawn change.
 
+A distinct thing from the supersample-then-shrink-back-down
+anti-aliasing every one-call convenience function (`bar()`,
+`scatter()`, ...) now bakes into its own output automatically (see
+`dataviz_mojo.plot._rendered`'s own docstring) -- that one always
+returns a `Canvas` at the exact size asked for, `scale` untouched by
+it from the caller's own point of view; internally it composes with
+whatever `scale` the caller already set (a real HiDPI export that
+also wants quickplot's own smoother edges gets both, multiplied
+together), it just isn't a knob a caller sets to get supersampling in
+the first place -- `render()`, `Plot`'s own direct entry point, has no
+such hidden factor at all, so a `Theme(scale=3.0)` built by hand and
+handed to `render()` is exactly, only, three times the pixels, with
+none of `_rendered`'s own automatic multiplication on top.
+
 `donut_inner_radius_fraction` (default 0.0 -- an ordinary pie, `Mark.
 ARC` unchanged) is a *fraction* of the outer radius `_render_arc`
 already computes from the plot area, not a pixel value -- the outer

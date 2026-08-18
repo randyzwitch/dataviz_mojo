@@ -40,13 +40,19 @@ def test_render_candlestick_matches_hand_derived_wicks_and_bodies() raises:
     # pixel below independently computed via python3 from LinearScale's
     # own slope/intercept formula, then confirmed against a real
     # render() run before trusting it.
+    # Built via Plot/Canvas/render() directly, not candlestick() -- see
+    # test_render_boxplot_matches_hand_derived_box_whiskers_and_
+    # outlier's own comment for why an exact hand-derived pixel check
+    # uses render() itself rather than the (now internally
+    # supersampled) quickplot wrapper.
     var cats: List[String] = ["A", "B"]
     var open: List[Float64] = [10.0, 20.0]
     var high: List[Float64] = [15.0, 22.0]
     var low: List[Float64] = [8.0, 16.0]
     var close: List[Float64] = [13.0, 17.0]
     var t = Theme(show_gridlines=False)
-    var c = candlestick(cats, open, high, low, close, theme=t, width=400, height=300)
+    var c = Canvas(400, 300, BG)
+    render(c, Plot().mark_candlestick().encode_candlestick(cats, open, high, low, close).theme(t))
 
     _assert_color(c, 140, 200, t.mark_color, "A: inside the body (open=210 to close=165), closed up")
     _assert_color(c, 140, 150, t.axis_color, "A: the wick, above the body (between high=135 and the body top)")

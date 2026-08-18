@@ -168,7 +168,7 @@ def _render_bullet[
 
         var target_py = _axis_pixel(frame.y_scale, plot._bullet_target[i])
         var band_end = band_x + band_width
-        target.draw_line_aa(band_x, target_py, band_end, target_py, theme.axis_color)
+        target.draw_line_aa(band_x, target_py, band_end, target_py, theme.axis_color, width=theme.scale)
 
     return frame.result()
 

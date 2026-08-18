@@ -41,13 +41,22 @@ def test_render_boxplot_matches_hand_derived_box_whiskers_and_outlier() raises:
     # ([2,9,10,18,20]) = [1.1, 20.9], 2 categories over [60,380] (band
     # centers 140/300, bandwidth 128, half-width 64, cap half-width 32)
     # -- every pixel below confirmed via a real render() run first.
+    # Built via Plot/Canvas/render() directly, not box() -- these are
+    # exact hand-derived pixel positions (see this function's own
+    # comment above), and box()'s own output is supersampled-then-
+    # downsampled internally now (see dataviz_mojo.plot._rendered's
+    # own docstring), which can shift a thin axis-color line's exact
+    # footprint by a pixel or so relative to this hand-derived math.
+    # render() itself stays unsupersampled -- see its own docstring --
+    # so this exact check still holds there.
     var cats: List[String] = ["A", "B"]
     var values: List[List[Float64]] = [
         [2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0, 20.0],
         [10.0, 12.0, 14.0, 15.0, 18.0],
     ]
     var t = Theme(show_gridlines=False)
-    var c = box(cats, values, theme=t, width=400, height=300)
+    var c = Canvas(400, 300, BG)
+    render(c, Plot().mark_box().encode_boxplot(cats, values).theme(t))
 
     _assert_color(c, 140, 200, t.mark_color, "A: inside the box (between q1 and q3)")
     _assert_color(c, 140, 205, t.axis_color, "A: the median line, drawn over the box fill")

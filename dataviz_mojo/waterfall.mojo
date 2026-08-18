@@ -229,7 +229,7 @@ def _render_waterfall[
                 if using_totals
                 else _round_to_int(frame.x_scale.band_start(i - 1) + frame.x_scale.bandwidth())
             )
-            target.draw_line_aa(prev_x1, prev_end_py, bar_x, prev_end_py, theme.axis_color)
+            target.draw_line_aa(prev_x1, prev_end_py, bar_x, prev_end_py, theme.axis_color, width=theme.scale)
 
     return frame.result()
 

@@ -19,9 +19,9 @@ the kind of at-a-glance comparison a bullet chart is for: not just
 to both a specific goal and a qualitative sense of poor/satisfactory/
 good."
 
-Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
-from the same data -- see examples/donut.mojo's own docstring for why,
-and for why the docs page only shows the quickplot call above.
+Writes both a raster (.bmp) and a vector (.svg) file from the same
+data -- see examples/donut.mojo's own docstring for why, and for why
+the docs page only shows the quickplot call above.
 
 Run with:
     pixi run example
@@ -29,13 +29,10 @@ Run with:
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import bullet
 from dataviz_mojo.theme import Theme
-
-comptime _SUPERSAMPLE = 3
 
 
 def main() raises:
@@ -49,18 +46,9 @@ def main() raises:
         [60.0, 85.0, 100.0],
     ]
 
-    var c = bullet(
-        kpis,
-        measures,
-        targets,
-        ranges,
-        theme=Theme(scale=Float64(_SUPERSAMPLE)),
-        width=640 * _SUPERSAMPLE,
-        height=420 * _SUPERSAMPLE,
-    )
-    var out = downsample(c, _SUPERSAMPLE)
-    write_bmp(out, "examples/out_bullet.bmp")
-    write_png(out, "examples/out_bullet.png")
+    var c = bullet(kpis, measures, targets, ranges)
+    write_bmp(c, "examples/out_bullet.bmp")
+    write_png(c, "examples/out_bullet.png")
 
     var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_bullet().encode_bullet(kpis, measures, targets, ranges).theme(Theme())

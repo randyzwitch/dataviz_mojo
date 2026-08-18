@@ -23,9 +23,9 @@ starting total's own delta (50.0) *is* the starting balance itself
 floating); the ending total's own delta is 0.0 (adds nothing further,
 just displays 0 -> whatever the running sum already reached).
 
-Writes both a raster (.bmp, 3x supersampled) and a vector (.svg) file
-from the same data -- see examples/donut.mojo's own docstring for why,
-and for why the docs page only shows the quickplot call above.
+Writes both a raster (.bmp) and a vector (.svg) file from the same
+data -- see examples/donut.mojo's own docstring for why, and for why
+the docs page only shows the quickplot call above.
 
 Run with:
     pixi run example
@@ -33,13 +33,10 @@ Run with:
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.resize import downsample
 from canvas_mojo.vector.svg import SvgCanvas, write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import waterfall
 from dataviz_mojo.theme import Theme
-
-comptime _SUPERSAMPLE = 3
 
 
 def main() raises:
@@ -47,17 +44,9 @@ def main() raises:
     var deltas: List[Float64] = [50.0, 32.0, -18.0, -12.0, -6.0, 4.0, 0.0]
     var is_total: List[Bool] = [True, False, False, False, False, False, True]
 
-    var c = waterfall(
-        stages,
-        deltas,
-        is_total=is_total,
-        theme=Theme(scale=Float64(_SUPERSAMPLE)),
-        width=640 * _SUPERSAMPLE,
-        height=420 * _SUPERSAMPLE,
-    )
-    var out = downsample(c, _SUPERSAMPLE)
-    write_bmp(out, "examples/out_waterfall.bmp")
-    write_png(out, "examples/out_waterfall.png")
+    var c = waterfall(stages, deltas, is_total=is_total)
+    write_bmp(c, "examples/out_waterfall.bmp")
+    write_png(c, "examples/out_waterfall.png")
 
     var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_waterfall().encode_waterfall(stages, deltas, is_total).theme(Theme())
