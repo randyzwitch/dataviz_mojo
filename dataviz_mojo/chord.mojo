@@ -30,32 +30,35 @@ from dataviz_mojo.theme import Theme
 # WIDTH`/every other module-level pixel constant here already follows).
 comptime _CHORD_RING_FRACTION = 0.08
 
-# One straight line_to segment per this many degrees of a node's own
-# rim -- flattening a circular arc into a polygon edge the same way
-# canvas_mojo.path's own curve flattening does (see that module's
-# docstring), just done here (not inside Path itself, which has no
-# arc-to command) since only a chord ribbon's own rim segments need it.
-comptime _CHORD_RIM_DEGREES_PER_STEP = 8.0
-
-
-def _chord_rim_steps(span: Float64) -> Int:
-    var deg = (span if span >= 0.0 else -span) * 180.0 / pi
-    return max(1, Int(deg / _CHORD_RIM_DEGREES_PER_STEP) + 1)
-
-
 def _draw_chord_ribbon[
     T: DrawTarget
 ](mut target: T, cx: Float64, cy: Float64, r: Float64, a0: Float64, a1: Float64, b0: Float64, b1: Float64, color: Color) raises:
     """One ribbon: a filled shape bounded by two node-rim arcs (`a0`
     ->`a1` at node A's own inner radius, `b0`->`b1` at node B's) and
     two curved "cross" connections between them -- the classic chord-
-    diagram ribbon shape. Each rim arc is flattened into straight
-    `line_to` segments (`_chord_rim_steps`, since `Path` has no arc-to
-    command of its own -- see that constant's own docstring); each
-    cross connection is a single `quad_curve_to` pulled toward the
-    circle's own center `(cx, cy)`, which bows every ribbon inward
-    through the middle the way a real chord diagram's ribbons do,
-    without needing per-ribbon control-point math of its own.
+    diagram ribbon shape. Each rim arc is a real `Path.arc_to` segment
+    now (`canvas_mojo`'s own center/radius/angle convention matches
+    this file's `cos`/`sin` rim-point math exactly, confirmed directly
+    against `canvas_mojo`'s own `arc_to` docstring before relying on
+    it -- no angle conversion needed at the call site); each cross
+    connection is a single `quad_curve_to` pulled toward the circle's
+    own center `(cx, cy)`, which bows every ribbon inward through the
+    middle the way a real chord diagram's ribbons do, without needing
+    per-ribbon control-point math of its own. `a0 <= a1`/`b0 <= b1`
+    always hold here (`_render_chord`'s own angles only ever advance
+    forward around the circle), matching `arc_to`'s own `start_angle <=
+    end_angle` expectation.
+
+    An earlier version of this function flattened each rim arc into
+    short straight `line_to` segments by hand (`Path` had no arc-to
+    command yet) -- see the git history/PR #25 for that version, and
+    canvas_mojo's own PR #25 (`Path.arc_to`) for why it's gone. The
+    ribbon's own visible shape is unchanged (`arc_to` traces the exact
+    curve those segments were already approximating); the SVG backend
+    gets a real payoff, though -- `SvgCanvas`'s own path output now
+    emits a true elliptical-arc command for the rim instead of a
+    polyline, so a chord diagram's own vector output is a real curve
+    now, not a many-segment approximation of one.
 
     `r` is the *inner* radius of the node ring (`_render_chord`'s own
     `inner_radius`) -- ribbons visually originate from just inside the
@@ -63,15 +66,9 @@ def _draw_chord_ribbon[
     """
     var path = Path()
     path.move_to(cx + r * cos(a0), cy + r * sin(a0))
-    var steps_a = _chord_rim_steps(a1 - a0)
-    for s in range(1, steps_a + 1):
-        var t = a0 + (a1 - a0) * Float64(s) / Float64(steps_a)
-        path.line_to(cx + r * cos(t), cy + r * sin(t))
+    path.arc_to(cx, cy, r, a0, a1)
     path.quad_curve_to(cx, cy, cx + r * cos(b0), cy + r * sin(b0))
-    var steps_b = _chord_rim_steps(b1 - b0)
-    for s in range(1, steps_b + 1):
-        var t = b0 + (b1 - b0) * Float64(s) / Float64(steps_b)
-        path.line_to(cx + r * cos(t), cy + r * sin(t))
+    path.arc_to(cx, cy, r, b0, b1)
     path.quad_curve_to(cx, cy, cx + r * cos(a0), cy + r * sin(a0))
     path.close()
     target.fill_path_aa(path, color)

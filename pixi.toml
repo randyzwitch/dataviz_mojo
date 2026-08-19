@@ -7,7 +7,7 @@ version = "0.1.0"
 
 [dependencies]
 mojo = ">=1.0.0,<2"
-canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.1.0" }
+canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", branch = "arc-to-path-primitive" }
 hugo = ">=0.164.0,<0.165"
 go = ">=1.26.6,<2"
 
@@ -71,8 +71,8 @@ path = "dataviz_mojo"
 
 [package.host-dependencies]
 mojo = ">=1.0.0,<2"
-canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.1.0" }
+canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", branch = "arc-to-path-primitive" }
 
 [package.run-dependencies]
 mojo = ">=1.0.0,<2"
-canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.1.0" }
+canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", branch = "arc-to-path-primitive" }
