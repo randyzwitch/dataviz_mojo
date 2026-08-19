@@ -177,6 +177,7 @@ from dataviz_mojo.grouped_bar import _render_grouped_bar
 from dataviz_mojo.heatmap import _render_heatmap
 from dataviz_mojo.histogram import _bin_histogram
 from dataviz_mojo.lollipop import _render_lollipop
+from dataviz_mojo.single_axis import _render_single_axis
 from dataviz_mojo.population_pyramid import _render_population_pyramid
 from dataviz_mojo.stacked_bar import _render_stacked_bar
 from dataviz_mojo.waterfall import _render_waterfall, _waterfall_running_totals
@@ -567,6 +568,14 @@ struct Plot(Movable):
         No x/y axis frame at all, the same as `Mark.ARC`, whose ring-
         sector conventions this reuses directly."""
         self._mark = Mark.CHORD
+        return self^
+
+    def mark_single_axis(var self) -> Self:
+        """A single-axis chart: every value plotted along one
+        horizontal axis, no y-axis at all -- encoded via `encode_
+        single_axis()`. Supports the same optional `color`/`color_
+        categories`/`size` channels `Mark.POINT` does."""
+        self._mark = Mark.SINGLE_AXIS
         return self^
 
     def encode(
@@ -1007,6 +1016,33 @@ struct Plot(Movable):
         self._chord_from = from_categories.copy()
         self._chord_to = to_categories.copy()
         self._chord_value = values.copy()
+        return self^
+
+    def encode_single_axis(
+        var self,
+        x: List[Float64],
+        color: List[Float64] = List[Float64](),
+        color_categories: List[String] = List[String](),
+        size: List[Float64] = List[Float64](),
+    ) -> Self:
+        """Map one continuous column plus the usual optional `color`/
+        `color_categories`/`size` channels onto `Mark.SINGLE_AXIS`'s own
+        one-axis shape -- the same three optional channels `encode()`
+        itself takes, just without a `y`. `y_data` is filled with one
+        placeholder `0.0` per row (never read as a real value -- see
+        `_render_single_axis`'s own docstring for why) purely so this
+        mark can reuse `_validate_continuous_encoding`'s existing x/y-
+        length-match check and `Mark.POINT`'s own `_draw_point_layer`
+        unchanged, instead of duplicating either.
+        """
+        self.x_data = x.copy()
+        self.x_categories = List[String]()
+        self.y_data = List[Float64]()
+        for _ in range(len(x)):
+            self.y_data.append(0.0)
+        self.color_data = color.copy()
+        self.color_categories = color_categories.copy()
+        self.size_data = size.copy()
         return self^
 
     def theme(var self, t: Theme) -> Self:
@@ -1951,8 +1987,10 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             + String(len(plot.x_data))
             + ")"
         )
-    if (has_color or has_color_categories or has_size) and not (plot._mark == Mark.POINT):
-        raise Error(context + ": color/size encoding is only supported for Mark.POINT today")
+    if (has_color or has_color_categories or has_size) and not (
+        plot._mark == Mark.POINT or plot._mark == Mark.SINGLE_AXIS
+    ):
+        raise Error(context + ": color/size encoding is only supported for Mark.POINT/SINGLE_AXIS today")
 
 
 def _check_line_smoothing(theme: Theme) raises:
@@ -1991,7 +2029,7 @@ def _legend_reserve_for(plot: Plot, ch: _PointChannels, sc: _Scaled) raises -> I
     """
     if not plot._theme.show_legend:
         return 0
-    if not (plot._mark == Mark.POINT):
+    if not (plot._mark == Mark.POINT or plot._mark == Mark.SINGLE_AXIS):
         return 0
     if not (ch.has_color_categories or ch.has_color or ch.has_size):
         return 0
@@ -2394,6 +2432,8 @@ def _render_generic[
         return _render_heatmap(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.CHORD:
         return _render_chord(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.SINGLE_AXIS:
+        return _render_single_axis(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.ARC:
         return _render_arc(target, plot, ox0, oy0, ox1, oy1)
 

@@ -128,6 +128,15 @@ fill_path_aa`. See
 chord.mojo's own docstrings for the per-node running-angle bookkeeping
 (`_render_chord`) and the ribbon geometry itself (`_draw_chord_
 ribbon`).
+
+SINGLE_AXIS ("Phase 2", the ECharts-parity gap-closing marks that
+build on existing infrastructure at low cost -- see the wiki) is the
+first mark with only *one* axis drawn at all: `encode_single_axis`'s
+own `x` (plus the usual optional `color`/`color_categories`/`size`
+channels `Mark.POINT` already supports), one point per row, all placed
+at a single fixed pixel row via a degenerate zero-span `y_scale` --
+reuses `Mark.POINT`'s own `_draw_point_layer` completely unchanged.
+Its own one-axis frame, `_draw_single_axis_frame` (single_axis.mojo).
 """
 
 
@@ -150,6 +159,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime POPULATION_PYRAMID = Self(13)
     comptime HEATMAP = Self(14)
     comptime CHORD = Self(15)
+    comptime SINGLE_AXIS = Self(16)
 
     def __init__(out self, value: Int):
         self._value = value
