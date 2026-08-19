@@ -137,6 +137,17 @@ channels `Mark.POINT` already supports), one point per row, all placed
 at a single fixed pixel row via a degenerate zero-span `y_scale` --
 reuses `Mark.POINT`'s own `_draw_point_layer` completely unchanged.
 Its own one-axis frame, `_draw_single_axis_frame` (single_axis.mojo).
+
+EFFECT_SCATTER needs no new file, no new `encode_*` method, and no new
+axis frame at all -- it's `Mark.POINT`'s own continuous x/y encoding
+and channels, unchanged, through the exact same `_draw_point_layer`,
+with one flag flipped (`draw_halo=True`): a lighter, larger circle
+drawn under each point first. A static stand-in for ECharts' own real
+effect-scatter behavior (an animated ripple around each point), which
+a raster/SVG renderer with no animation concept has no way to
+reproduce -- see `_draw_point_layer`'s own `draw_halo` paragraph and
+`_lighten`'s docstring (plot.mojo) for why this uses `Color.blend_over`
+rather than real alpha transparency.
 """
 
 
@@ -160,6 +171,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime HEATMAP = Self(14)
     comptime CHORD = Self(15)
     comptime SINGLE_AXIS = Self(16)
+    comptime EFFECT_SCATTER = Self(17)
 
     def __init__(out self, value: Int):
         self._value = value
