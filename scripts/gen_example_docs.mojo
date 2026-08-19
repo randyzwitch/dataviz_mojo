@@ -69,6 +69,7 @@ def _titles() -> Dict[String, String]:
     d["chord"] = "Chord"
     d["single_axis"] = "Single Axis"
     d["effect_scatter"] = "Effect Scatter"
+    d["funnel"] = "Funnel"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     return d^
@@ -99,10 +100,11 @@ def _categories() -> List[Category]:
     ))
     cats.append(Category(
         "Categorical business charts",
-        "Chart types built for a categorical x-axis: rankings, timelines, progress, period-over-period comparisons.",
+        "Chart types built around one categorical dimension: rankings, timelines, progress,"
+        " period-over-period comparisons, and process stages.",
         [
             "lollipop", "waterfall", "gantt", "population_pyramid", "bullet", "diverging_bar",
-            "grouped_bar", "stacked_bar", "slope",
+            "grouped_bar", "stacked_bar", "slope", "funnel",
         ],
     ))
     cats.append(Category(
@@ -238,6 +240,7 @@ def _quickplot_names() -> List[String]:
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
         "histogram", "population_pyramid", "heatmap", "chord", "single_axis", "effect_scatter",
+        "funnel",
     ]
 
 
