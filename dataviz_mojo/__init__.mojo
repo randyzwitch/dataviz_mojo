@@ -64,5 +64,6 @@ from dataviz_mojo.population_pyramid import population_pyramid
 from dataviz_mojo.single_axis import single_axis
 from dataviz_mojo.stacked_bar import stacked_bar
 from dataviz_mojo.streamgraph import streamgraph
+from dataviz_mojo.ridgeline import ridgeline
 from dataviz_mojo.violin import violin
 from dataviz_mojo.waterfall import waterfall

@@ -170,6 +170,7 @@ from dataviz_mojo.theme import Theme
 from dataviz_mojo.arc import _render_arc
 from dataviz_mojo.bar import _render_bar
 from dataviz_mojo.beeswarm import _render_beeswarm
+from dataviz_mojo.ridgeline import _render_ridgeline
 from dataviz_mojo.violin import _render_violin
 from dataviz_mojo.box import _box_stats, _render_box
 from dataviz_mojo.bullet import _render_bullet
@@ -635,6 +636,14 @@ struct Plot(Movable):
         silhouette per category -- encoded via `encode_distribution()`,
         the same data `mark_beeswarm()`/`mark_ridgeline()` use."""
         self._mark = Mark.VIOLIN
+        return self^
+
+    def mark_ridgeline(var self) -> Self:
+        """A ridgeline plot: one overlapping kernel-density-estimate
+        row per category, top to bottom -- encoded via `encode_
+        distribution()`, the same data `mark_beeswarm()`/`mark_violin()`
+        use."""
+        self._mark = Mark.RIDGELINE
         return self^
 
     def encode(
@@ -2583,6 +2592,8 @@ def _render_generic[
         return _render_beeswarm(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.VIOLIN:
         return _render_violin(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.RIDGELINE:
+        return _render_ridgeline(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.ARC:
         return _render_arc(target, plot, ox0, oy0, ox1, oy1)
 

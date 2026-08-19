@@ -74,6 +74,7 @@ def _titles() -> Dict[String, String]:
     d["streamgraph"] = "Streamgraph"
     d["beeswarm"] = "Beeswarm"
     d["violin"] = "Violin"
+    d["ridgeline"] = "Ridgeline"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     return d^
@@ -113,7 +114,7 @@ def _categories() -> List[Category]:
     ))
     cats.append(Category(
         "Statistical & financial", "Distributions, binned counts, grid/matrix data, and OHLC price data.",
-        ["box", "histogram", "heatmap", "candlestick", "beeswarm", "violin"],
+        ["box", "histogram", "heatmap", "candlestick", "beeswarm", "violin", "ridgeline"],
     ))
     cats.append(Category(
         "Relationships & flows", "Weighted connections between entities, not a value per category.",
@@ -244,7 +245,7 @@ def _quickplot_names() -> List[String]:
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
         "histogram", "population_pyramid", "heatmap", "chord", "single_axis", "effect_scatter",
-        "funnel", "bump", "streamgraph", "beeswarm", "violin",
+        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline",
     ]
 
 
