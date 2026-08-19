@@ -206,6 +206,17 @@ bandwidth, sampled at `_KDE_SAMPLES` points across each category's own
 `_VIOLIN_WIDTH_FRACTION` of its own band width (ggplot2's own default
 `scale = "width"`, not `scale = "area"` -- see `_render_violin`'s own
 docstring for why). Reuses `_draw_categorical_axis_frame` unchanged.
+
+RIDGELINE (the last of Phase 3) reuses `VIOLIN`'s own `_kde_bandwidth`/
+`_kde_density`/`_KDE_SAMPLES` completely unchanged, but on `GANTT`'s
+own horizontal categorical frame instead of the vertical one: each
+category's own curve rises upward from its own row's bottom edge
+(`_RIDGE_OVERLAP` times the row's own height, deliberately more than
+one row tall, so a tall peak overlaps into the row above -- the
+defining ridgeline look), drawn top to bottom in `x_categories`' own
+given order so a lower row's own curve sits on top of an upper row's
+wherever they overlap. See ridgeline.mojo's own docstring for the full
+reasoning.
 """
 
 
@@ -235,6 +246,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime STREAMGRAPH = Self(20)
     comptime BEESWARM = Self(21)
     comptime VIOLIN = Self(22)
+    comptime RIDGELINE = Self(23)
 
     def __init__(out self, value: Int):
         self._value = value
