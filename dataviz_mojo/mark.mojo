@@ -85,6 +85,19 @@ mixed-sign running-total bookkeeping (positive and negative values
 stack in their own direction from zero, independently) and why no
 extra pixel-boundary-rounding trick is needed here the way `GROUPED_
 BAR`'s own sub-bar division needed one.
+
+POPULATION_PYRAMID ("Phase 3" of the broader chart-type survey, the
+first of the ECharts-parity gap-closing marks) is `GANTT`'s own
+horizontal categorical axis frame (`_draw_horizontal_categorical_axis_
+frame`, reused unchanged) with two magnitude bars per row instead of
+one start/end span: `encode_population_pyramid`'s `left_values`/
+`right_values` each grow outward from a shared, always-centered zero
+baseline instead of floating between two arbitrary endpoints the way
+`GANTT`'s span does -- see that method's own docstring, and `_render_
+population_pyramid`'s for the symmetric domain this forces (so equal
+magnitudes on each side draw visually equal-length bars) and the
+two-color legend (`left_name`/`right_name`), the one other new thing
+no other horizontal mark needs.
 """
 
 
@@ -104,6 +117,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime GANTT = Self(10)
     comptime GROUPED_BAR = Self(11)
     comptime STACKED_BAR = Self(12)
+    comptime POPULATION_PYRAMID = Self(13)
 
     def __init__(out self, value: Int):
         self._value = value

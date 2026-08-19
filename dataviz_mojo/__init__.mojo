@@ -54,5 +54,6 @@ from dataviz_mojo.gantt import gantt
 from dataviz_mojo.grouped_bar import grouped_bar
 from dataviz_mojo.histogram import histogram
 from dataviz_mojo.lollipop import lollipop
+from dataviz_mojo.population_pyramid import population_pyramid
 from dataviz_mojo.stacked_bar import stacked_bar
 from dataviz_mojo.waterfall import waterfall

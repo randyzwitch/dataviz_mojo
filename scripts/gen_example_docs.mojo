@@ -64,6 +64,7 @@ def _titles() -> Dict[String, String]:
     d["candlestick"] = "Candlestick"
     d["bullet"] = "Bullet"
     d["gantt"] = "Gantt"
+    d["population_pyramid"] = "Population Pyramid"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     return d^
@@ -95,7 +96,10 @@ def _categories() -> List[Category]:
     cats.append(Category(
         "Categorical business charts",
         "Chart types built for a categorical x-axis: rankings, timelines, progress, period-over-period comparisons.",
-        ["lollipop", "waterfall", "gantt", "bullet", "diverging_bar", "grouped_bar", "stacked_bar", "slope"],
+        [
+            "lollipop", "waterfall", "gantt", "population_pyramid", "bullet", "diverging_bar",
+            "grouped_bar", "stacked_bar", "slope",
+        ],
     ))
     cats.append(Category(
         "Statistical & financial", "Distributions, binned counts, and OHLC price data.",
@@ -225,7 +229,7 @@ def _quickplot_names() -> List[String]:
     return [
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
-        "histogram",
+        "histogram", "population_pyramid",
     ]
 
 
