@@ -182,6 +182,7 @@ from dataviz_mojo.lollipop import _render_lollipop
 from dataviz_mojo.single_axis import _render_single_axis
 from dataviz_mojo.population_pyramid import _render_population_pyramid
 from dataviz_mojo.stacked_bar import _render_stacked_bar
+from dataviz_mojo.streamgraph import _render_streamgraph
 from dataviz_mojo.waterfall import _render_waterfall, _waterfall_running_totals
 
 # Pixel length of an axis tick mark, and the gap between a tick mark
@@ -604,6 +605,16 @@ struct Plot(Movable):
         value -- encoded via `encode_grouped_bar()`, the exact same data
         `mark_grouped_bar()`/`mark_stacked_bar()` use."""
         self._mark = Mark.BUMP
+        return self^
+
+    def mark_streamgraph(var self) -> Self:
+        """A streamgraph: `mark_stacked_bar()`'s own running-total
+        stack, floated centered around zero instead of sitting on a
+        fixed baseline, drawn as flowing bands instead of discrete
+        rects -- encoded via `encode_grouped_bar()`, the exact same
+        data `mark_grouped_bar()`/`mark_stacked_bar()`/`mark_bump()`
+        use."""
+        self._mark = Mark.STREAMGRAPH
         return self^
 
     def encode(
@@ -2505,6 +2516,8 @@ def _render_generic[
         return _render_funnel(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.BUMP:
         return _render_bump(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.STREAMGRAPH:
+        return _render_streamgraph(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.ARC:
         return _render_arc(target, plot, ox0, oy0, ox1, oy1)
 

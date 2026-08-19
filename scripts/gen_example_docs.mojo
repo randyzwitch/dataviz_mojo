@@ -71,6 +71,7 @@ def _titles() -> Dict[String, String]:
     d["effect_scatter"] = "Effect Scatter"
     d["funnel"] = "Funnel"
     d["bump"] = "Bump"
+    d["streamgraph"] = "Streamgraph"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     return d^
@@ -105,7 +106,7 @@ def _categories() -> List[Category]:
         " period-over-period comparisons, and process stages.",
         [
             "lollipop", "waterfall", "gantt", "population_pyramid", "bullet", "diverging_bar",
-            "grouped_bar", "stacked_bar", "slope", "funnel", "bump",
+            "grouped_bar", "stacked_bar", "slope", "funnel", "bump", "streamgraph",
         ],
     ))
     cats.append(Category(
@@ -241,7 +242,7 @@ def _quickplot_names() -> List[String]:
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
         "histogram", "population_pyramid", "heatmap", "chord", "single_axis", "effect_scatter",
-        "funnel", "bump",
+        "funnel", "bump", "streamgraph",
     ]
 
 
