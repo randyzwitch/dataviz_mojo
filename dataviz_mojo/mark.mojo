@@ -158,6 +158,16 @@ other categorical mark here keeps), each row's own bottom width equal
 to the *next* row's own top width for a continuous taper. See
 `_render_funnel`'s own docstring for the row-height/palette-by-
 display-position rules.
+
+BUMP reuses `Mark.GROUPED_BAR`/`STACKED_BAR`'s own `encode_grouped_bar`
+data shape unchanged (categories, one name and one value per series) --
+but plots each series' own *rank* at each category (1 = highest value
+among every series there, via `_descending_value_order`, reused from
+funnel.mojo -- one sort per category) instead of its raw value, as one
+line per series (`Mark.LINE`'s own `_build_line_path`, smoothing
+included). Its own hand-rolled rank axis, `_draw_bump_axis_frame`
+(bump.mojo) -- see that function's own docstring for why a real
+`LinearScale` doesn't work for "rank 1 at the top."
 """
 
 
@@ -183,6 +193,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime SINGLE_AXIS = Self(16)
     comptime EFFECT_SCATTER = Self(17)
     comptime FUNNEL = Self(18)
+    comptime BUMP = Self(19)
 
     def __init__(out self, value: Int):
         self._value = value
