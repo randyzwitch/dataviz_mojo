@@ -29,21 +29,38 @@ struct ColorScale(Movable):
     var domain_min: Float64
     var domain_max: Float64
     var stops: List[_GradientStop]
+    # The smallest-/largest-offset stop so far -- tracked incrementally
+    # here instead of scanned from `stops` by _color_at_t on every
+    # call, matching LinearGradient/RadialGradient's own pattern (see
+    # canvas_mojo.gradient's own docstring for why _color_at_t takes
+    # these pre-found rather than scanning itself).
+    var _lowest: _GradientStop
+    var _highest: _GradientStop
 
     def __init__(out self, domain_min: Float64, domain_max: Float64):
         self.domain_min = domain_min
         self.domain_max = domain_max
         self.stops = List[_GradientStop]()
+        # Overwritten by the first real add_stop() call; _color_at_t
+        # never reads these unless len(stops) >= 2, so this placeholder
+        # (transparent black at offset 0.0) is never actually observed.
+        self._lowest = _GradientStop(0.0, Color(0, 0, 0, 0))
+        self._highest = self._lowest
 
     def add_stop(mut self, offset: Float64, color: Color):
-        self.stops.append(_GradientStop(offset, color))
+        var stop = _GradientStop(offset, color)
+        if len(self.stops) == 0 or offset < self._lowest.offset:
+            self._lowest = stop
+        if len(self.stops) == 0 or offset > self._highest.offset:
+            self._highest = stop
+        self.stops.append(stop)
 
     def color_at(self, value: Float64) -> Color:
         var span = self.domain_max - self.domain_min
         var t = 0.0
         if span != 0.0:
             t = (value - self.domain_min) / span
-        return _color_at_t(self.stops, t)
+        return _color_at_t(self.stops, self._lowest, self._highest, t)
 
 
 def default_categorical_palette() -> List[Color]:
