@@ -71,24 +71,31 @@ def test_render_legend_disabled_restores_the_full_plot_width() raises:
     _assert_color(c, 277, 27, BG, "no legend drawn when show_legend=False")
 
 
-def test_render_svg_continuous_color_legend_matches_hand_derived_strips() raises:
+def test_render_svg_continuous_color_legend_matches_hand_derived_gradient() raises:
     # x=[0,10], y=[0,10], color=[0.0,10.0] (continuous, no size) --
     # canvas 400x300, default theme, show_gridlines=False. "10.0"/"0.0"
     # (26.0px/19.0px at the default 12pt font, confirmed by probe)
     # both stay well under the 130px default legend width, so
     # legend_reserve stays at that default, unchanged -- plot_x1=
-    # 400-20-130=250, legend anchor (x=270, y=20).
+    # 400-20-130=250, legend anchor (x=270, y=20), bar 14 wide, 100
+    # tall (x:[270,284], y:[20,120]).
     #
-    # The gradient bar approximates ColorScale's own continuous
-    # interpolation as 20 solid strips, each colored at its own
-    # vertical *midpoint* value (not its edge) -- strip 0 (the very
-    # top, height=100/20=5px exactly) sits at value 9.75 (very close to
-    # the domain max, 10.0, so very close to color_scale_high); strip
-    # 19 (the very bottom) sits at value 0.25 (very close to color_
-    # scale_low). Both colors and every position independently re-
-    # derived via python3 (ColorScale's own linear-interpolation
-    # formula, not read off the code's output), then confirmed against
-    # a real render_svg() run before trusting it here.
+    # A real DrawTarget.fill_rect_gradient bar now (canvas_mojo
+    # >=0.3.0), not the many-thin-strip approximation an earlier
+    # version of this test covered -- built from ColorScale's own two
+    # stops (add_stop(0.0, color_scale_low)/add_stop(1.0, color_scale_
+    # high), see _PointChannels' own construction), each one's own
+    # gradient offset flipped (1.0 - stop.offset, see _draw_continuous_
+    # color_legend's own docstring for why: the bar's top has to be the
+    # *high* value, but ColorScale's own offset 1.0 already means
+    # high) -- so the emitted gradient axis (270, 20) -> (270, 120)
+    # carries stop offset 1.0 = color_scale_low (#3c6ec8, Color(60,
+    # 110,200)) and stop offset 0.0 = color_scale_high (#dc5a28, Color
+    # (220,90,40)), in that order (ColorScale's own stops list is
+    # built low-then-high, and this loop doesn't reorder them, just
+    # flips each one's own offset in place). Confirmed against a real
+    # render_svg() run before trusting it here, not just derived from
+    # the two Theme color fields by hand.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var color: List[Float64] = [0.0, 10.0]
@@ -98,12 +105,14 @@ def test_render_svg_continuous_color_legend_matches_hand_derived_strips() raises
     var s = svg.to_string()
 
     assert_true(
-        '<rect x="270" y="20" width="14" height="5" fill="#d85b2c"/>' in s,
-        "gradient bar's own top strip (value 9.75, close to color_scale_high)",
+        '<linearGradient id="grad1" gradientUnits="userSpaceOnUse" x1="270.000" y1="20.000"'
+        ' x2="270.000" y2="120.000"><stop offset="1.000" stop-color="#3c6ec8" stop-opacity="1.000"/>'
+        '<stop offset="0.000" stop-color="#dc5a28" stop-opacity="1.000"/></linearGradient>' in s,
+        "the gradient definition: low color at the bottom (offset 1.0), high color at the top (offset 0.0)",
     )
     assert_true(
-        '<rect x="270" y="115" width="14" height="5" fill="#406ec4"/>' in s,
-        "gradient bar's own bottom strip (value 0.25, close to color_scale_low)",
+        '<rect x="270" y="20" width="14" height="100" fill="url(#grad1)"/>' in s,
+        "the gradient bar itself, filled by reference to that gradient",
     )
     assert_true(
         '<text x="288" y="24" font-size="12.000" fill="#282828" text-anchor="start">10.0</text>' in s,

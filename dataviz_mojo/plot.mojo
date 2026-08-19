@@ -153,6 +153,7 @@ from std.math import pi
 
 from canvas_mojo.buffer import Canvas
 from canvas_mojo.color import Color
+from canvas_mojo.gradient import LinearGradient
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.geometry import _round_to_int
@@ -209,18 +210,14 @@ comptime _LEGEND_ROW_GAP = 8
 
 # A continuous color legend's own gradient bar -- _LEGEND_SWATCH_SIZE
 # wide (matching a categorical legend's own swatch width, for visual
-# consistency between the two), _CONTINUOUS_LEGEND_BAR_HEIGHT tall,
-# approximated as _CONTINUOUS_LEGEND_BAR_STEPS thin solid-colored
-# strips rather than a true smooth gradient -- DrawTarget (see its own
-# docstring) has no gradient-fill method at all, only fill_rect, so
-# this is the one construct available that works identically on both
-# the raster and SVG backends; see _draw_continuous_color_legend's own
-# docstring for why that's the right tradeoff here. 20 steps is dense
-# enough that individual strip boundaries aren't visually obvious at
-# this bar's own size.
+# consistency between the two), _CONTINUOUS_LEGEND_BAR_HEIGHT tall.
+# A real DrawTarget.fill_rect_gradient call now (canvas_mojo >=0.3.0)
+# -- this used to be approximated as many thin solid-colored fill_rect
+# strips, back when DrawTarget had no gradient-fill method at all; see
+# _draw_continuous_color_legend's own docstring for how the real
+# gradient is built from ColorScale's own stops.
 comptime _CONTINUOUS_LEGEND_BAR_WIDTH = _LEGEND_SWATCH_SIZE
 comptime _CONTINUOUS_LEGEND_BAR_HEIGHT = 100
-comptime _CONTINUOUS_LEGEND_BAR_STEPS = 20
 
 # Small breathing-room buffer beyond a dynamically measured label's
 # own width -- see _max_label_width/the dynamic left-margin
@@ -1484,17 +1481,26 @@ def _draw_continuous_color_legend[T: DrawTarget](
     y: Int,
     theme: Theme,
 ) raises -> Int:
-    """A continuous color legend: a vertical gradient bar approximated
-    as `_CONTINUOUS_LEGEND_BAR_STEPS` thin solid strips (see that
-    constant's own docstring for why a true smooth gradient isn't
-    available here), `color_scale`'s own high value at the top,
-    low at the bottom -- the same "more/bigger is up" convention a
-    y-axis itself already uses. Each strip colored at its own vertical
-    *midpoint* value, not its top or bottom edge, so the visible band
-    of color represents that strip's own value range symmetrically.
-    Two labels (`_format_fixed`, one decimal place, matching `encode_
-    histogram()`'s own bin-label convention): the domain max at the
-    bar's own top, the domain min at its own bottom.
+    """A continuous color legend: a real vertical gradient bar
+    (`DrawTarget.fill_rect_gradient`, canvas_mojo >=0.3.0 -- see that
+    method's own docstring; before it existed, this was approximated
+    as many thin solid-colored `fill_rect` strips), `color_scale`'s
+    own high value at the top, low at the bottom -- the same "more/
+    bigger is up" convention a y-axis itself already uses. Two labels
+    (`_format_fixed`, one decimal place, matching `encode_histogram()`'s
+    own bin-label convention): the domain max at the bar's own top, the
+    domain min at its own bottom.
+
+    The `LinearGradient` is built directly from `color_scale`'s own
+    `stops` (each already an `(offset, color)` pair over `color_scale`'s
+    own `[domain_min, domain_max]`, `add_stop(0.0, ...)`/`add_stop(1.0,
+    ...)` in every caller so far -- see `_PointChannels`'/`_render_
+    heatmap`'s own construction), not re-derived from `color_at()`
+    sampled at many points the way the old strip approximation had to:
+    `color_scale`'s own offsets run low (0.0) to high (1.0), but the
+    bar's own gradient axis runs top (`y`) to bottom (`y + bar_height`)
+    -- top has to be the *high* value, so each stop's own gradient
+    offset is `1.0 - stop.offset`, not `stop.offset` directly.
 
     Returns the y-coordinate just below this section (bar height plus
     one row gap) -- where `_draw_continuous_size_legend` starts if a
@@ -1505,16 +1511,10 @@ def _draw_continuous_color_legend[T: DrawTarget](
     var sc = _Scaled(theme)
     var bar_width = sc.continuous_legend_bar_width
     var bar_height = sc.continuous_legend_bar_height
-    var steps = _CONTINUOUS_LEGEND_BAR_STEPS
-    for i in range(steps):
-        var t0 = Float64(i) / Float64(steps)
-        var t1 = Float64(i + 1) / Float64(steps)
-        var mid_t = (t0 + t1) / 2.0
-        var value = color_scale.domain_max - mid_t * (color_scale.domain_max - color_scale.domain_min)
-        var color = color_scale.color_at(value)
-        var strip_y0 = y + _round_to_int(t0 * Float64(bar_height))
-        var strip_y1 = y + _round_to_int(t1 * Float64(bar_height))
-        target.fill_rect(x, strip_y0, bar_width, strip_y1 - strip_y0, color)
+    var gradient = LinearGradient(Float64(x), Float64(y), Float64(x), Float64(y + bar_height))
+    for stop in color_scale.stops:
+        gradient.add_stop(1.0 - stop.offset, stop.color)
+    target.fill_rect_gradient(x, y, bar_width, bar_height, gradient)
 
     var label_baseline_offset = Int(sc.font_size * 0.35)
     text_requests.append(
@@ -2342,10 +2342,9 @@ def _lighten(color: Color) -> Color:
     itself: `SvgCanvas` has no opacity concept at all (only `Canvas`,
     the raster backend, would actually blend a translucent fill), so a
     genuinely translucent halo would render solid in one backend and
-    see-through in the other -- exactly the cross-backend-inconsistency
-    this package avoids elsewhere too (see `_draw_continuous_color_
-    legend`'s own thin-strip gradient approximation, for the same
-    reason applied to a different primitive `DrawTarget` doesn't have).
+    see-through in the other -- the same cross-backend-consistency
+    concern `DrawTarget`'s own docstring raises for why it stays
+    narrow, just for a primitive (real alpha) that still isn't there.
     """
     return Color(color.r, color.g, color.b, _HALO_ALPHA).blend_over(Color(255, 255, 255))
 
