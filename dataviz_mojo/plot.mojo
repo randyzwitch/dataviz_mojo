@@ -175,6 +175,7 @@ from dataviz_mojo.gantt import _render_gantt
 from dataviz_mojo.grouped_bar import _render_grouped_bar
 from dataviz_mojo.histogram import _bin_histogram
 from dataviz_mojo.lollipop import _render_lollipop
+from dataviz_mojo.population_pyramid import _render_population_pyramid
 from dataviz_mojo.stacked_bar import _render_stacked_bar
 from dataviz_mojo.waterfall import _render_waterfall, _waterfall_running_totals
 
@@ -352,6 +353,13 @@ struct Plot(Movable):
     # (series, category) pair. See encode_grouped_bar()'s own docstring.
     var _grouped_bar_series_names: List[String]
     var _grouped_bar_values: List[List[Float64]]
+    # Mark.POPULATION_PYRAMID only -- one magnitude per side per
+    # category, plus each side's own legend name. See encode_
+    # population_pyramid()'s own docstring.
+    var _pyramid_left: List[Float64]
+    var _pyramid_right: List[Float64]
+    var _pyramid_left_name: String
+    var _pyramid_right_name: String
     # Chart/axis title text, set via .labels() -- see that method's own
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
@@ -389,6 +397,10 @@ struct Plot(Movable):
         self._gantt_end = List[Float64]()
         self._grouped_bar_series_names = List[String]()
         self._grouped_bar_values = List[List[Float64]]()
+        self._pyramid_left = List[Float64]()
+        self._pyramid_right = List[Float64]()
+        self._pyramid_left_name = ""
+        self._pyramid_right_name = ""
         self._title = ""
         self._x_title = ""
         self._y_title = ""
@@ -511,6 +523,16 @@ struct Plot(Movable):
         the rendering differs, the same relationship `Mark.LOLLIPOP`
         already has to `Mark.BAR`'s own `encode_categorical()`)."""
         self._mark = Mark.STACKED_BAR
+        return self^
+
+    def mark_population_pyramid(var self) -> Self:
+        """A population pyramid: two magnitude bars per category,
+        growing outward left/right from a shared, always-centered zero
+        baseline -- encoded via `encode_population_pyramid()`. `Mark.
+        GANTT`'s own horizontal-categories-along-y layout, reused
+        unchanged; only the bars themselves (two, mirrored, instead of
+        one floating span) differ."""
+        self._mark = Mark.POPULATION_PYRAMID
         return self^
 
     def encode(
@@ -854,6 +876,48 @@ struct Plot(Movable):
         self.y_data = List[Float64]()
         self._grouped_bar_series_names = series_names.copy()
         self._grouped_bar_values = values.copy()
+        return self^
+
+    def encode_population_pyramid(
+        var self,
+        categories: List[String],
+        left_values: List[Float64],
+        right_values: List[Float64],
+        left_name: String = "",
+        right_name: String = "",
+    ) -> Self:
+        """Map a category column plus two magnitude columns onto
+        `Mark.POPULATION_PYRAMID`'s own mirrored-bars shape --
+        `left_values[i]`/`right_values[i]` are each drawn as a bar
+        growing outward from a shared, always-centered zero baseline
+        for `categories[i]` (the classic age-band-by-sex layout, but
+        generic: any two magnitudes worth comparing side by side per
+        category). Both are read as non-negative magnitudes regardless
+        of sign (`_render_population_pyramid` takes `max(v, -v)`, the
+        same "use the shape that makes sense rather than raise over a
+        likely data-convention difference" tolerance `Mark.GANTT`'s own
+        `start > end` handling already has) -- a caller with genuinely
+        signed data should decide which side each value belongs on
+        before calling this, not rely on sign to pick a side here.
+
+        `left_name`/`right_name` label the two-entry legend `_render_
+        population_pyramid` draws when `Theme.show_legend` is on and at
+        least one name is given -- empty strings (the default) fall
+        back to "Left"/"Right" at render time rather than needing every
+        caller who doesn't care about the legend to name both sides.
+
+        Nothing needs computing up front, so length checking
+        (`categories`/`left_values`/`right_values` all the same length)
+        is deferred to `render()` time, the same as every other
+        categorical `encode_*` here.
+        """
+        self.x_categories = categories.copy()
+        self.x_data = List[Float64]()
+        self.y_data = List[Float64]()
+        self._pyramid_left = left_values.copy()
+        self._pyramid_right = right_values.copy()
+        self._pyramid_left_name = left_name
+        self._pyramid_right_name = right_name
         return self^
 
     def theme(var self, t: Theme) -> Self:
@@ -2235,6 +2299,8 @@ def _render_generic[
         return _render_stacked_bar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.GANTT:
         return _render_gantt(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.POPULATION_PYRAMID:
+        return _render_population_pyramid(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.ARC:
         return _render_arc(target, plot, ox0, oy0, ox1, oy1)
 
