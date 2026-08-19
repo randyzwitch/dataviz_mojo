@@ -172,6 +172,7 @@ from dataviz_mojo.box import _box_stats, _render_box
 from dataviz_mojo.bullet import _render_bullet
 from dataviz_mojo.candlestick import _render_candlestick
 from dataviz_mojo.gantt import _render_gantt
+from dataviz_mojo.chord import _render_chord
 from dataviz_mojo.grouped_bar import _render_grouped_bar
 from dataviz_mojo.heatmap import _render_heatmap
 from dataviz_mojo.histogram import _bin_histogram
@@ -366,6 +367,11 @@ struct Plot(Movable):
     var _heatmap_x: List[String]
     var _heatmap_y: List[String]
     var _heatmap_value: List[Float64]
+    # Mark.CHORD only -- one (from node, to node, value) flow per row.
+    # See encode_chord()'s own docstring.
+    var _chord_from: List[String]
+    var _chord_to: List[String]
+    var _chord_value: List[Float64]
     # Chart/axis title text, set via .labels() -- see that method's own
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
@@ -410,6 +416,9 @@ struct Plot(Movable):
         self._heatmap_x = List[String]()
         self._heatmap_y = List[String]()
         self._heatmap_value = List[Float64]()
+        self._chord_from = List[String]()
+        self._chord_to = List[String]()
+        self._chord_value = List[Float64]()
         self._title = ""
         self._x_title = ""
         self._y_title = ""
@@ -549,6 +558,15 @@ struct Plot(Movable):
         encoded via `encode_heatmap()` -- two categorical axes and no
         continuous one at all, unlike every other mark here."""
         self._mark = Mark.HEATMAP
+        return self^
+
+    def mark_chord(var self) -> Self:
+        """A chord diagram: ring sectors for every distinct node across
+        an edge list's own `from`/`to` columns, connected by ribbons
+        sized by each flow's own value -- encoded via `encode_chord()`.
+        No x/y axis frame at all, the same as `Mark.ARC`, whose ring-
+        sector conventions this reuses directly."""
+        self._mark = Mark.CHORD
         return self^
 
     def encode(
@@ -962,6 +980,33 @@ struct Plot(Movable):
         self._heatmap_x = x.copy()
         self._heatmap_y = y.copy()
         self._heatmap_value = value.copy()
+        return self^
+
+    def encode_chord(
+        var self, from_categories: List[String], to_categories: List[String], values: List[Float64]
+    ) -> Self:
+        """Map an edge list onto `Mark.CHORD`'s own ring-sectors-plus-
+        ribbons shape: one row per flow (`from_categories[i]` to `to_
+        categories[i]`, magnitude `values[i]`) -- every distinct name
+        across *both* columns becomes one node (`_unique_categories`
+        over the two concatenated at render() time, first-seen order,
+        `from_categories` first), not a separate node list; the same
+        "the data already says what's needed" shape `encode_heatmap()`'s
+        own two-categorical-axis domain derivation already established,
+        generalized from a grid to a graph.
+
+        `values` must be non-negative (checked at render() time, along
+        with the usual length match, the same as every other categorical
+        `encode_*` here) -- a negative flow has no ribbon-width meaning,
+        the same reasoning `encode_categorical()`'s own `Mark.ARC` path
+        already gives for rejecting negative wedge values.
+        """
+        self.x_categories = List[String]()
+        self.x_data = List[Float64]()
+        self.y_data = List[Float64]()
+        self._chord_from = from_categories.copy()
+        self._chord_to = to_categories.copy()
+        self._chord_value = values.copy()
         return self^
 
     def theme(var self, t: Theme) -> Self:
@@ -2347,6 +2392,8 @@ def _render_generic[
         return _render_population_pyramid(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.HEATMAP:
         return _render_heatmap(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.CHORD:
+        return _render_chord(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.ARC:
         return _render_arc(target, plot, ox0, oy0, ox1, oy1)
 
