@@ -66,6 +66,7 @@ def _titles() -> Dict[String, String]:
     d["gantt"] = "Gantt"
     d["population_pyramid"] = "Population Pyramid"
     d["heatmap"] = "Heatmap"
+    d["chord"] = "Chord"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     return d^
@@ -105,6 +106,10 @@ def _categories() -> List[Category]:
     cats.append(Category(
         "Statistical & financial", "Distributions, binned counts, grid/matrix data, and OHLC price data.",
         ["box", "histogram", "heatmap", "candlestick"],
+    ))
+    cats.append(Category(
+        "Relationships & flows", "Weighted connections between entities, not a value per category.",
+        ["chord"],
     ))
     return cats^
 
@@ -230,7 +235,7 @@ def _quickplot_names() -> List[String]:
     return [
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
-        "histogram", "population_pyramid", "heatmap",
+        "histogram", "population_pyramid", "heatmap", "chord",
     ]
 
 

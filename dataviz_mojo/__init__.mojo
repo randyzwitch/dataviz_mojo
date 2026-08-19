@@ -50,6 +50,7 @@ from dataviz_mojo.bar import bar
 from dataviz_mojo.box import box
 from dataviz_mojo.bullet import bullet
 from dataviz_mojo.candlestick import candlestick
+from dataviz_mojo.chord import chord
 from dataviz_mojo.gantt import gantt
 from dataviz_mojo.grouped_bar import grouped_bar
 from dataviz_mojo.heatmap import heatmap

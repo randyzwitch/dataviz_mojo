@@ -112,6 +112,22 @@ generalization of either existing categorical-axis core -- see that
 function's own docstring for why, and for the `padding=0.0` choice
 that makes cells tile edge-to-edge instead of `Mark.BAR`'s own
 separated bands.
+
+CHORD (the third and, so far, last of the gap-closing marks -- not
+"Arc Diagram" in the network-node-link-over-a-line sense, a genuinely
+different chart type that happens to share a name with this package's
+own pre-existing `ARC`) is the first mark drawn from an *edge list*
+(`encode_chord`'s `from_categories`/`to_categories`/`values`, one row
+per flow) rather than one row per category. Its nodes reuse `Mark.
+ARC`'s own start-at-12-o'clock, sweep-clockwise ring-sector convention
+(sized by each node's total flow, not one value), connected by curved
+ribbons (`_draw_chord_ribbon`, chord.mojo -- flattened rim segments
+plus a `Path.quad_curve_to` pulled toward the circle's own center for
+each cross connection, since `canvas_mojo.path.Path` has no arc-to
+command of its own) drawn through `DrawTarget.fill_path_aa`. See
+chord.mojo's own docstrings for the per-node running-angle bookkeeping
+(`_render_chord`) and the ribbon geometry itself (`_draw_chord_
+ribbon`).
 """
 
 
@@ -133,6 +149,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime STACKED_BAR = Self(12)
     comptime POPULATION_PYRAMID = Self(13)
     comptime HEATMAP = Self(14)
+    comptime CHORD = Self(15)
 
     def __init__(out self, value: Int):
         self._value = value
