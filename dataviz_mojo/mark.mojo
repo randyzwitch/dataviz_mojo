@@ -98,6 +98,20 @@ population_pyramid`'s for the symmetric domain this forces (so equal
 magnitudes on each side draw visually equal-length bars) and the
 two-color legend (`left_name`/`right_name`), the one other new thing
 no other horizontal mark needs.
+
+HEATMAP (the second gap-closing mark) is the first mark with *two*
+categorical axes and no continuous one at all: `encode_heatmap`'s `x`/
+`y`/`value` (one row per grid cell, `x`/`y` deduplicated into each
+axis's own domain via `_categorical_indices`, the same helper `Mark.
+POINT`'s own categorical color channel already uses) draws a filled
+cell per row, colored through a continuous `ColorScale` spanning
+`value`'s own [min, max] -- `Theme.color_scale_low`/`color_scale_high`,
+the exact gradient `Mark.POINT`'s own continuous `color=` channel
+already uses. Its own `_draw_grid_axis_frame` (heatmap.mojo), not a
+generalization of either existing categorical-axis core -- see that
+function's own docstring for why, and for the `padding=0.0` choice
+that makes cells tile edge-to-edge instead of `Mark.BAR`'s own
+separated bands.
 """
 
 
@@ -118,6 +132,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime GROUPED_BAR = Self(11)
     comptime STACKED_BAR = Self(12)
     comptime POPULATION_PYRAMID = Self(13)
+    comptime HEATMAP = Self(14)
 
     def __init__(out self, value: Int):
         self._value = value
