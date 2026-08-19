@@ -121,10 +121,10 @@ own pre-existing `ARC`) is the first mark drawn from an *edge list*
 per flow) rather than one row per category. Its nodes reuse `Mark.
 ARC`'s own start-at-12-o'clock, sweep-clockwise ring-sector convention
 (sized by each node's total flow, not one value), connected by curved
-ribbons (`_draw_chord_ribbon`, chord.mojo -- flattened rim segments
-plus a `Path.quad_curve_to` pulled toward the circle's own center for
-each cross connection, since `canvas_mojo.path.Path` has no arc-to
-command of its own) drawn through `DrawTarget.fill_path_aa`. See
+ribbons (`_draw_chord_ribbon`, chord.mojo -- a real `Path.arc_to` for
+each rim, plus a `Path.quad_curve_to` pulled toward the circle's own
+center for each cross connection) drawn through `DrawTarget.
+fill_path_aa`. See
 chord.mojo's own docstrings for the per-node running-angle bookkeeping
 (`_render_chord`) and the ribbon geometry itself (`_draw_chord_
 ribbon`).
