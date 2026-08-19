@@ -68,6 +68,7 @@ def _titles() -> Dict[String, String]:
     d["heatmap"] = "Heatmap"
     d["chord"] = "Chord"
     d["single_axis"] = "Single Axis"
+    d["effect_scatter"] = "Effect Scatter"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     return d^
@@ -94,7 +95,7 @@ def _categories() -> List[Category]:
     var cats = List[Category]()
     cats.append(Category(
         "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
-        ["scatter", "line", "bar", "area", "pie", "donut", "single_axis"],
+        ["scatter", "line", "bar", "area", "pie", "donut", "single_axis", "effect_scatter"],
     ))
     cats.append(Category(
         "Categorical business charts",
@@ -236,7 +237,7 @@ def _quickplot_names() -> List[String]:
     return [
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
-        "histogram", "population_pyramid", "heatmap", "chord", "single_axis",
+        "histogram", "population_pyramid", "heatmap", "chord", "single_axis", "effect_scatter",
     ]
 
 

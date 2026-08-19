@@ -578,6 +578,16 @@ struct Plot(Movable):
         self._mark = Mark.SINGLE_AXIS
         return self^
 
+    def mark_effect_scatter(var self) -> Self:
+        """A scatter plot with a halo drawn under each point -- the
+        static equivalent of ECharts' own animated-ripple effect
+        scatter (see `_draw_point_layer`'s own `draw_halo` paragraph in
+        plot.mojo). Encoded exactly like `Mark.POINT`, via `encode()` --
+        no dedicated `encode_*` method, same continuous `x`/`y` plus the
+        same optional `color`/`color_categories`/`size` channels."""
+        self._mark = Mark.EFFECT_SCATTER
+        return self^
+
     def encode(
         var self,
         x: List[Float64],
@@ -1988,9 +1998,12 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             + ")"
         )
     if (has_color or has_color_categories or has_size) and not (
-        plot._mark == Mark.POINT or plot._mark == Mark.SINGLE_AXIS
+        plot._mark == Mark.POINT or plot._mark == Mark.SINGLE_AXIS or plot._mark == Mark.EFFECT_SCATTER
     ):
-        raise Error(context + ": color/size encoding is only supported for Mark.POINT/SINGLE_AXIS today")
+        raise Error(
+            context + ": color/size encoding is only supported for"
+            " Mark.POINT/SINGLE_AXIS/EFFECT_SCATTER today"
+        )
 
 
 def _check_line_smoothing(theme: Theme) raises:
@@ -2029,7 +2042,9 @@ def _legend_reserve_for(plot: Plot, ch: _PointChannels, sc: _Scaled) raises -> I
     """
     if not plot._theme.show_legend:
         return 0
-    if not (plot._mark == Mark.POINT or plot._mark == Mark.SINGLE_AXIS):
+    if not (
+        plot._mark == Mark.POINT or plot._mark == Mark.SINGLE_AXIS or plot._mark == Mark.EFFECT_SCATTER
+    ):
         return 0
     if not (ch.has_color_categories or ch.has_color or ch.has_size):
         return 0
@@ -2232,6 +2247,26 @@ def _draw_continuous_axis_frame[
     )
 
 
+comptime _HALO_ALPHA: UInt8 = 90
+
+
+def _lighten(color: Color) -> Color:
+    """`color` blended toward opaque white by a fixed amount -- `Mark.
+    EFFECT_SCATTER`'s own halo tint (see `_draw_point_layer`'s own
+    `draw_halo` paragraph). Built via `Color.blend_over` (give `color`
+    a reduced alpha, composite it over white, keep the fully-opaque
+    result) rather than real alpha transparency on the halo circle
+    itself: `SvgCanvas` has no opacity concept at all (only `Canvas`,
+    the raster backend, would actually blend a translucent fill), so a
+    genuinely translucent halo would render solid in one backend and
+    see-through in the other -- exactly the cross-backend-inconsistency
+    this package avoids elsewhere too (see `_draw_continuous_color_
+    legend`'s own thin-strip gradient approximation, for the same
+    reason applied to a different primitive `DrawTarget` doesn't have).
+    """
+    return Color(color.r, color.g, color.b, _HALO_ALPHA).blend_over(Color(255, 255, 255))
+
+
 def _draw_point_layer[
     T: DrawTarget
 ](
@@ -2243,12 +2278,15 @@ def _draw_point_layer[
     y_scale: LinearScale,
     legend_x: Int,
     legend_y: Int,
+    draw_halo: Bool = False,
 ) raises -> Int:
     """Draw one `Mark.POINT` plot's own points into an already-laid-out
     continuous axis frame, plus whatever legend sections its encoded
     channels call for -- the whole of what a `Mark.POINT` mark
     contributes to a render, shared by the standalone path and by each
-    `Mark.POINT` layer of a stacked one.
+    `Mark.POINT` layer of a stacked one. Also `Mark.EFFECT_SCATTER`'s
+    entire render (`draw_halo=True`) -- see this function's own halo
+    paragraph below.
 
     Legend sections stack top to bottom in one column, each returning
     the y just below it for the next to start at -- categorical-or-
@@ -2266,6 +2304,15 @@ def _draw_point_layer[
     size, colors, point radius -- so a layer styled differently from its
     neighbors draws its own section correctly rather than being forced
     through the shared chrome's styling.
+
+    `draw_halo`, when set, draws one extra circle *underneath* each
+    point first -- `_lighten`ed toward white, ~2x the radius -- a
+    static stand-in for `Mark.EFFECT_SCATTER`'s own real ECharts
+    behavior (an animated ripple), which a raster/SVG renderer with no
+    animation concept can't reproduce; see `_lighten`'s own docstring
+    for why this uses `Color.blend_over` rather than real alpha
+    transparency (`SvgCanvas` doesn't support it, so a translucent halo
+    would look different on the two backends).
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
@@ -2288,6 +2335,8 @@ def _draw_point_layer[
             if ch.has_size
             else _round_to_int(sc.point_radius)
         )
+        if draw_halo:
+            target.fill_circle_aa(px, py, _round_to_int(Float64(radius) * 2.2), _lighten(color))
         target.fill_circle_aa(px, py, radius, color)
 
     if not theme.show_legend:
@@ -2468,7 +2517,7 @@ def _render_generic[
         target, x_scale, y_scale, theme, legend_reserve, ox0, oy0, ox1, oy1
     )
 
-    if plot._mark == Mark.POINT:
+    if plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER:
         _ = _draw_point_layer(
             target,
             frame.text_requests,
@@ -2478,6 +2527,7 @@ def _render_generic[
             frame.y_scale,
             frame.px1 + sc.margin_right,
             frame.py0,
+            draw_halo=plot._mark == Mark.EFFECT_SCATTER,
         )
     elif plot._mark == Mark.LINE:
         _draw_line_layer(target, plot, frame.x_scale, frame.y_scale)
