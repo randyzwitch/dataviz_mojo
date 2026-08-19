@@ -172,6 +172,7 @@ from dataviz_mojo.box import _box_stats, _render_box
 from dataviz_mojo.bullet import _render_bullet
 from dataviz_mojo.candlestick import _render_candlestick
 from dataviz_mojo.gantt import _render_gantt
+from dataviz_mojo.bump import _render_bump
 from dataviz_mojo.chord import _render_chord
 from dataviz_mojo.funnel import _render_funnel
 from dataviz_mojo.grouped_bar import _render_grouped_bar
@@ -595,6 +596,14 @@ struct Plot(Movable):
         category+value shape `mark_bar()`/`mark_arc()` use. No x/y axis
         frame at all, the same as `mark_arc()`."""
         self._mark = Mark.FUNNEL
+        return self^
+
+    def mark_bump(var self) -> Self:
+        """A bump chart: one line per series tracking its own rank (1 =
+        highest value) among every series at each category, not its raw
+        value -- encoded via `encode_grouped_bar()`, the exact same data
+        `mark_grouped_bar()`/`mark_stacked_bar()` use."""
+        self._mark = Mark.BUMP
         return self^
 
     def encode(
@@ -2494,6 +2503,8 @@ def _render_generic[
         return _render_single_axis(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.FUNNEL:
         return _render_funnel(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.BUMP:
+        return _render_bump(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.ARC:
         return _render_arc(target, plot, ox0, oy0, ox1, oy1)
 
