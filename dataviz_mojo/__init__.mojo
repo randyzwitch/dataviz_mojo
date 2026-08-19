@@ -52,6 +52,7 @@ from dataviz_mojo.bullet import bullet
 from dataviz_mojo.candlestick import candlestick
 from dataviz_mojo.chord import chord
 from dataviz_mojo.effect_scatter import effect_scatter
+from dataviz_mojo.funnel import funnel
 from dataviz_mojo.gantt import gantt
 from dataviz_mojo.grouped_bar import grouped_bar
 from dataviz_mojo.heatmap import heatmap

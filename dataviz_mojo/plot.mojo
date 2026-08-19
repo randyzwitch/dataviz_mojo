@@ -173,6 +173,7 @@ from dataviz_mojo.bullet import _render_bullet
 from dataviz_mojo.candlestick import _render_candlestick
 from dataviz_mojo.gantt import _render_gantt
 from dataviz_mojo.chord import _render_chord
+from dataviz_mojo.funnel import _render_funnel
 from dataviz_mojo.grouped_bar import _render_grouped_bar
 from dataviz_mojo.heatmap import _render_heatmap
 from dataviz_mojo.histogram import _bin_histogram
@@ -586,6 +587,14 @@ struct Plot(Movable):
         no dedicated `encode_*` method, same continuous `x`/`y` plus the
         same optional `color`/`color_categories`/`size` channels."""
         self._mark = Mark.EFFECT_SCATTER
+        return self^
+
+    def mark_funnel(var self) -> Self:
+        """A funnel chart: one tapering trapezoid per category, largest
+        value first, encoded via `encode_categorical()` -- the same
+        category+value shape `mark_bar()`/`mark_arc()` use. No x/y axis
+        frame at all, the same as `mark_arc()`."""
+        self._mark = Mark.FUNNEL
         return self^
 
     def encode(
@@ -2483,6 +2492,8 @@ def _render_generic[
         return _render_chord(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.SINGLE_AXIS:
         return _render_single_axis(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.FUNNEL:
+        return _render_funnel(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.ARC:
         return _render_arc(target, plot, ox0, oy0, ox1, oy1)
 

@@ -148,6 +148,16 @@ a raster/SVG renderer with no animation concept has no way to
 reproduce -- see `_draw_point_layer`'s own `draw_halo` paragraph and
 `_lighten`'s docstring (plot.mojo) for why this uses `Color.blend_over`
 rather than real alpha transparency.
+
+FUNNEL reuses `Mark.BAR`/`ARC`'s own `encode_categorical` data shape
+unchanged (category + value) -- like `ARC`, it has no axis frame at
+all, drawing one trapezoid per category top to bottom, largest value
+first (`_descending_value_order`, funnel.mojo -- ECharts' own default
+"highest to lowest" ordering, not the caller's own row order every
+other categorical mark here keeps), each row's own bottom width equal
+to the *next* row's own top width for a continuous taper. See
+`_render_funnel`'s own docstring for the row-height/palette-by-
+display-position rules.
 """
 
 
@@ -172,6 +182,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime CHORD = Self(15)
     comptime SINGLE_AXIS = Self(16)
     comptime EFFECT_SCATTER = Self(17)
+    comptime FUNNEL = Self(18)
 
     def __init__(out self, value: Int):
         self._value = value
