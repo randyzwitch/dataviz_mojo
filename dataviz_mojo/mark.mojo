@@ -180,6 +180,21 @@ instead), so the whole picture floats centered around zero -- the
 across every category (straight `line_to` between category centers,
 `DrawTarget.fill_path_aa`) instead of `STACKED_BAR`'s own discrete
 rects. Reuses `_draw_categorical_axis_frame` unchanged.
+
+BEESWARM (the first of "Phase 3", the distribution-shape family --
+see the wiki) has its own new `encode_distribution` (categories, one
+*list* of raw values per category, kept unsummarized -- the same
+outer-list-indexes-categories shape `encode_boxplot` already
+established, but `Mark.BOX` immediately reduces each list to a five-
+number summary, discarding the raw values; `VIOLIN`/`RIDGELINE` share
+this same new encode method, since both need the raw values too, for a
+density estimate). One point per raw value, jittered sideways within
+its own category's band to avoid overlap (`_beeswarm_offsets`,
+beeswarm.mojo -- a deterministic row-clustering swarm, not a full
+physics-style one; see that function's own docstring for why).
+Reuses `_draw_categorical_axis_frame` unchanged, `_data_extent` (not
+zero-forced) over every value across every category -- the same
+domain reasoning `Mark.BOX` already gives for this same data shape.
 """
 
 
@@ -207,6 +222,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime FUNNEL = Self(18)
     comptime BUMP = Self(19)
     comptime STREAMGRAPH = Self(20)
+    comptime BEESWARM = Self(21)
 
     def __init__(out self, value: Int):
         self._value = value
