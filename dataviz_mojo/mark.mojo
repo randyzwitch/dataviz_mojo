@@ -168,6 +168,18 @@ line per series (`Mark.LINE`'s own `_build_line_path`, smoothing
 included). Its own hand-rolled rank axis, `_draw_bump_axis_frame`
 (bump.mojo) -- see that function's own docstring for why a real
 `LinearScale` doesn't work for "rank 1 at the top."
+
+STREAMGRAPH (the last of Phase 2) reuses `Mark.STACKED_BAR`'s own
+running-total stacking over `encode_grouped_bar`'s data, but each
+category's own stack starts from `-total_i / 2` instead of a shared
+zero (`_symmetric_zero_baseline_y_extent`, streamgraph.mojo -- the
+same "forced symmetric" reasoning `POPULATION_PYRAMID`'s own x-domain
+helper already established, applied to a per-category stacked total
+instead), so the whole picture floats centered around zero -- the
+"silhouette" look -- and each series draws as one flowing filled band
+across every category (straight `line_to` between category centers,
+`DrawTarget.fill_path_aa`) instead of `STACKED_BAR`'s own discrete
+rects. Reuses `_draw_categorical_axis_frame` unchanged.
 """
 
 
@@ -194,6 +206,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime EFFECT_SCATTER = Self(17)
     comptime FUNNEL = Self(18)
     comptime BUMP = Self(19)
+    comptime STREAMGRAPH = Self(20)
 
     def __init__(out self, value: Int):
         self._value = value
