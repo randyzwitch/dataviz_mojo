@@ -47,6 +47,7 @@ from dataviz_mojo.plot import (
 # rather than imported from there directly.
 from dataviz_mojo.arc import pie
 from dataviz_mojo.bar import bar
+from dataviz_mojo.beeswarm import beeswarm
 from dataviz_mojo.box import box
 from dataviz_mojo.bullet import bullet
 from dataviz_mojo.candlestick import candlestick

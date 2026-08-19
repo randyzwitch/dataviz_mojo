@@ -169,6 +169,7 @@ from dataviz_mojo.theme import Theme
 
 from dataviz_mojo.arc import _render_arc
 from dataviz_mojo.bar import _render_bar
+from dataviz_mojo.beeswarm import _render_beeswarm
 from dataviz_mojo.box import _box_stats, _render_box
 from dataviz_mojo.bullet import _render_bullet
 from dataviz_mojo.candlestick import _render_candlestick
@@ -373,6 +374,11 @@ struct Plot(Movable):
     var _chord_from: List[String]
     var _chord_to: List[String]
     var _chord_value: List[Float64]
+    # Mark.BEESWARM/VIOLIN/RIDGELINE only -- one *list* of raw values
+    # per category, kept unsummarized (unlike Mark.BOX's own encode_
+    # boxplot, which reduces each category's own list to a five-number
+    # summary immediately). See encode_distribution()'s own docstring.
+    var _distribution_values: List[List[Float64]]
     # Chart/axis title text, set via .labels() -- see that method's own
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
@@ -420,6 +426,7 @@ struct Plot(Movable):
         self._chord_from = List[String]()
         self._chord_to = List[String]()
         self._chord_value = List[Float64]()
+        self._distribution_values = List[List[Float64]]()
         self._title = ""
         self._x_title = ""
         self._y_title = ""
@@ -612,6 +619,14 @@ struct Plot(Movable):
         data `mark_grouped_bar()`/`mark_stacked_bar()`/`mark_bump()`
         use."""
         self._mark = Mark.STREAMGRAPH
+        return self^
+
+    def mark_beeswarm(var self) -> Self:
+        """A beeswarm plot: one point per raw value, jittered sideways
+        within its own category's band to avoid overlap -- encoded via
+        `encode_distribution()`, the same data `mark_violin()`/`mark_
+        ridgeline()` will use."""
+        self._mark = Mark.BEESWARM
         return self^
 
     def encode(
@@ -1052,6 +1067,45 @@ struct Plot(Movable):
         self._chord_from = from_categories.copy()
         self._chord_to = to_categories.copy()
         self._chord_value = values.copy()
+        return self^
+
+    def encode_distribution(var self, categories: List[String], values: List[List[Float64]]) raises -> Self:
+        """Map a category column and, per category, a *list* of raw
+        values onto the shape `Mark.BEESWARM`/`VIOLIN`/`RIDGELINE` all
+        share -- the same "outer list indexes categories, inner list is
+        that category's own distribution" shape `encode_boxplot()`
+        already established, but kept as the raw values themselves,
+        not immediately reduced to a five-number summary the way `Mark.
+        BOX` needs: a swarm plot draws every individual point, and a
+        density estimate needs the raw values to estimate from, neither
+        of which a quartile summary alone could reconstruct.
+
+        Raises immediately (the same "can't produce a coherent result
+        at all" reasoning `encode_boxplot()`'s own checks already give)
+        on a `categories`/`values` length mismatch, or any category
+        whose own value list is empty.
+        """
+        if len(categories) != len(values):
+            raise Error(
+                "Plot.encode_distribution(): categories and values must"
+                " have the same length (got "
+                + String(len(categories))
+                + " and "
+                + String(len(values))
+                + ")"
+            )
+        for i in range(len(values)):
+            if len(values[i]) == 0:
+                raise Error(
+                    "Plot.encode_distribution(): category '"
+                    + categories[i]
+                    + "' has no values -- can't draw a distribution for"
+                    " an empty one"
+                )
+        self.x_categories = categories.copy()
+        self.x_data = List[Float64]()
+        self.y_data = List[Float64]()
+        self._distribution_values = values.copy()
         return self^
 
     def encode_single_axis(
@@ -2517,6 +2571,8 @@ def _render_generic[
         return _render_bump(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.STREAMGRAPH:
         return _render_streamgraph(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.BEESWARM:
+        return _render_beeswarm(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.ARC:
         return _render_arc(target, plot, ox0, oy0, ox1, oy1)
 
