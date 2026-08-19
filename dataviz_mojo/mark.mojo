@@ -180,6 +180,43 @@ instead), so the whole picture floats centered around zero -- the
 across every category (straight `line_to` between category centers,
 `DrawTarget.fill_path_aa`) instead of `STACKED_BAR`'s own discrete
 rects. Reuses `_draw_categorical_axis_frame` unchanged.
+
+BEESWARM (the first of "Phase 3", the distribution-shape family --
+see the wiki) has its own new `encode_distribution` (categories, one
+*list* of raw values per category, kept unsummarized -- the same
+outer-list-indexes-categories shape `encode_boxplot` already
+established, but `Mark.BOX` immediately reduces each list to a five-
+number summary, discarding the raw values; `VIOLIN`/`RIDGELINE` share
+this same new encode method, since both need the raw values too, for a
+density estimate). One point per raw value, jittered sideways within
+its own category's band to avoid overlap (`_beeswarm_offsets`,
+beeswarm.mojo -- a deterministic row-clustering swarm, not a full
+physics-style one; see that function's own docstring for why).
+Reuses `_draw_categorical_axis_frame` unchanged, `_data_extent` (not
+zero-forced) over every value across every category -- the same
+domain reasoning `Mark.BOX` already gives for this same data shape.
+
+VIOLIN reuses `BEESWARM`'s own `encode_distribution` unchanged, drawing
+a symmetric kernel-density-estimate silhouette per category instead of
+individual jittered points -- Silverman's rule of thumb (std-only, a
+deliberate simplification of the fuller IQR-adjusted version -- see
+`_kde_bandwidth`'s own docstring, violin.mojo) for the KDE's own
+bandwidth, sampled at `_KDE_SAMPLES` points across each category's own
+`[min, max]`, each violin's own peak density independently scaled to
+`_VIOLIN_WIDTH_FRACTION` of its own band width (ggplot2's own default
+`scale = "width"`, not `scale = "area"` -- see `_render_violin`'s own
+docstring for why). Reuses `_draw_categorical_axis_frame` unchanged.
+
+RIDGELINE (the last of Phase 3) reuses `VIOLIN`'s own `_kde_bandwidth`/
+`_kde_density`/`_KDE_SAMPLES` completely unchanged, but on `GANTT`'s
+own horizontal categorical frame instead of the vertical one: each
+category's own curve rises upward from its own row's bottom edge
+(`_RIDGE_OVERLAP` times the row's own height, deliberately more than
+one row tall, so a tall peak overlaps into the row above -- the
+defining ridgeline look), drawn top to bottom in `x_categories`' own
+given order so a lower row's own curve sits on top of an upper row's
+wherever they overlap. See ridgeline.mojo's own docstring for the full
+reasoning.
 """
 
 
@@ -207,6 +244,9 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime FUNNEL = Self(18)
     comptime BUMP = Self(19)
     comptime STREAMGRAPH = Self(20)
+    comptime BEESWARM = Self(21)
+    comptime VIOLIN = Self(22)
+    comptime RIDGELINE = Self(23)
 
     def __init__(out self, value: Int):
         self._value = value

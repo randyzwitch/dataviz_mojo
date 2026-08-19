@@ -47,6 +47,7 @@ from dataviz_mojo.plot import (
 # rather than imported from there directly.
 from dataviz_mojo.arc import pie
 from dataviz_mojo.bar import bar
+from dataviz_mojo.beeswarm import beeswarm
 from dataviz_mojo.box import box
 from dataviz_mojo.bullet import bullet
 from dataviz_mojo.candlestick import candlestick
@@ -63,4 +64,6 @@ from dataviz_mojo.population_pyramid import population_pyramid
 from dataviz_mojo.single_axis import single_axis
 from dataviz_mojo.stacked_bar import stacked_bar
 from dataviz_mojo.streamgraph import streamgraph
+from dataviz_mojo.ridgeline import ridgeline
+from dataviz_mojo.violin import violin
 from dataviz_mojo.waterfall import waterfall
