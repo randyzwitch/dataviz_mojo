@@ -73,7 +73,7 @@ def test_render_color_encoding_matches_hand_derived_colors() raises:
     # default (see the "Continuous color/size legends" wiki entry),
     # which would reserve horizontal space and shift these hand-derived
     # pixel positions. Legend layout itself is covered separately by
-    # test_render_svg_continuous_color_legend_matches_hand_derived_strips.
+    # test_render_svg_continuous_color_legend_matches_hand_derived_gradient.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
     var color: List[Float64] = [0.0, 10.0]
