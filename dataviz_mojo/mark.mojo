@@ -195,6 +195,17 @@ physics-style one; see that function's own docstring for why).
 Reuses `_draw_categorical_axis_frame` unchanged, `_data_extent` (not
 zero-forced) over every value across every category -- the same
 domain reasoning `Mark.BOX` already gives for this same data shape.
+
+VIOLIN reuses `BEESWARM`'s own `encode_distribution` unchanged, drawing
+a symmetric kernel-density-estimate silhouette per category instead of
+individual jittered points -- Silverman's rule of thumb (std-only, a
+deliberate simplification of the fuller IQR-adjusted version -- see
+`_kde_bandwidth`'s own docstring, violin.mojo) for the KDE's own
+bandwidth, sampled at `_KDE_SAMPLES` points across each category's own
+`[min, max]`, each violin's own peak density independently scaled to
+`_VIOLIN_WIDTH_FRACTION` of its own band width (ggplot2's own default
+`scale = "width"`, not `scale = "area"` -- see `_render_violin`'s own
+docstring for why). Reuses `_draw_categorical_axis_frame` unchanged.
 """
 
 
@@ -223,6 +234,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime BUMP = Self(19)
     comptime STREAMGRAPH = Self(20)
     comptime BEESWARM = Self(21)
+    comptime VIOLIN = Self(22)
 
     def __init__(out self, value: Int):
         self._value = value

@@ -170,6 +170,7 @@ from dataviz_mojo.theme import Theme
 from dataviz_mojo.arc import _render_arc
 from dataviz_mojo.bar import _render_bar
 from dataviz_mojo.beeswarm import _render_beeswarm
+from dataviz_mojo.violin import _render_violin
 from dataviz_mojo.box import _box_stats, _render_box
 from dataviz_mojo.bullet import _render_bullet
 from dataviz_mojo.candlestick import _render_candlestick
@@ -627,6 +628,13 @@ struct Plot(Movable):
         `encode_distribution()`, the same data `mark_violin()`/`mark_
         ridgeline()` will use."""
         self._mark = Mark.BEESWARM
+        return self^
+
+    def mark_violin(var self) -> Self:
+        """A violin plot: a symmetric kernel-density-estimate
+        silhouette per category -- encoded via `encode_distribution()`,
+        the same data `mark_beeswarm()`/`mark_ridgeline()` use."""
+        self._mark = Mark.VIOLIN
         return self^
 
     def encode(
@@ -2573,6 +2581,8 @@ def _render_generic[
         return _render_streamgraph(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.BEESWARM:
         return _render_beeswarm(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.VIOLIN:
+        return _render_violin(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.ARC:
         return _render_arc(target, plot, ox0, oy0, ox1, oy1)
 
