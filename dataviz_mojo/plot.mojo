@@ -173,6 +173,7 @@ from dataviz_mojo.bullet import _render_bullet
 from dataviz_mojo.candlestick import _render_candlestick
 from dataviz_mojo.gantt import _render_gantt
 from dataviz_mojo.grouped_bar import _render_grouped_bar
+from dataviz_mojo.heatmap import _render_heatmap
 from dataviz_mojo.histogram import _bin_histogram
 from dataviz_mojo.lollipop import _render_lollipop
 from dataviz_mojo.population_pyramid import _render_population_pyramid
@@ -360,6 +361,11 @@ struct Plot(Movable):
     var _pyramid_right: List[Float64]
     var _pyramid_left_name: String
     var _pyramid_right_name: String
+    # Mark.HEATMAP only -- one (x category, y category, value) row per
+    # grid cell. See encode_heatmap()'s own docstring.
+    var _heatmap_x: List[String]
+    var _heatmap_y: List[String]
+    var _heatmap_value: List[Float64]
     # Chart/axis title text, set via .labels() -- see that method's own
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
@@ -401,6 +407,9 @@ struct Plot(Movable):
         self._pyramid_right = List[Float64]()
         self._pyramid_left_name = ""
         self._pyramid_right_name = ""
+        self._heatmap_x = List[String]()
+        self._heatmap_y = List[String]()
+        self._heatmap_value = List[Float64]()
         self._title = ""
         self._x_title = ""
         self._y_title = ""
@@ -533,6 +542,13 @@ struct Plot(Movable):
         unchanged; only the bars themselves (two, mirrored, instead of
         one floating span) differ."""
         self._mark = Mark.POPULATION_PYRAMID
+        return self^
+
+    def mark_heatmap(var self) -> Self:
+        """A heatmap: one colored grid cell per (x, y) category pair,
+        encoded via `encode_heatmap()` -- two categorical axes and no
+        continuous one at all, unlike every other mark here."""
+        self._mark = Mark.HEATMAP
         return self^
 
     def encode(
@@ -918,6 +934,34 @@ struct Plot(Movable):
         self._pyramid_right = right_values.copy()
         self._pyramid_left_name = left_name
         self._pyramid_right_name = right_name
+        return self^
+
+    def encode_heatmap(var self, x: List[String], y: List[String], value: List[Float64]) -> Self:
+        """Map two category columns plus a continuous value column onto
+        `Mark.HEATMAP`'s own grid-cell shape -- one row per cell (`x[i]`,
+        `y[i]`, `value[i]`), not a separate axis-category list: each
+        axis's own domain is derived from `x`/`y` themselves (their
+        distinct values in first-seen order, via `_categorical_indices`
+        at render() time -- the same helper `Plot.encode()`'s own
+        `color_categories` channel already resolves its domain through),
+        the same "the data already says what the axis needs" shape
+        `encode_categorical()` established for a single categorical
+        axis, generalized to two.
+
+        A caller need not give every (x, y) combination -- a missing
+        cell simply isn't drawn (see `_render_heatmap`'s own docstring
+        for why that's not treated as an error or a zero).
+
+        Nothing needs computing up front, so length checking (`x`/`y`/
+        `value` all the same length) is deferred to `render()` time,
+        the same as every other categorical `encode_*` here.
+        """
+        self.x_categories = List[String]()
+        self.x_data = List[Float64]()
+        self.y_data = List[Float64]()
+        self._heatmap_x = x.copy()
+        self._heatmap_y = y.copy()
+        self._heatmap_value = value.copy()
         return self^
 
     def theme(var self, t: Theme) -> Self:
@@ -2301,6 +2345,8 @@ def _render_generic[
         return _render_gantt(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.POPULATION_PYRAMID:
         return _render_population_pyramid(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.HEATMAP:
+        return _render_heatmap(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.ARC:
         return _render_arc(target, plot, ox0, oy0, ox1, oy1)
 
