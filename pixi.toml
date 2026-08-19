@@ -21,8 +21,32 @@ go = ">=1.26.6,<2"
 # not real work -- exactly what running the independent, unrelated
 # files in parallel fixes. Same script both tasks share (see its own
 # docstring for why one script, not two, works for both).
-example = "bash scripts/run_parallel.sh examples/scatter.mojo examples/line.mojo examples/bar.mojo examples/area.mojo examples/pie.mojo examples/donut.mojo examples/histogram.mojo examples/diverging_bar.mojo examples/slope.mojo examples/lollipop.mojo examples/waterfall.mojo examples/box.mojo examples/candlestick.mojo examples/bullet.mojo examples/gantt.mojo examples/grouped_bar.mojo examples/stacked_bar.mojo examples/population_pyramid.mojo examples/heatmap.mojo examples/chord.mojo examples/single_axis.mojo examples/effect_scatter.mojo examples/funnel.mojo examples/bump.mojo examples/streamgraph.mojo"
-test = "bash scripts/run_parallel.sh tests/test_scale.mojo tests/test_color_scale.mojo tests/test_ordinal_scale.mojo tests/test_core.mojo tests/test_point.mojo tests/test_line.mojo tests/test_bar.mojo tests/test_area.mojo tests/test_arc.mojo tests/test_legends.mojo tests/test_margins.mojo tests/test_facets.mojo tests/test_theme.mojo tests/test_labels.mojo tests/test_histogram.mojo tests/test_layers.mojo tests/test_lollipop.mojo tests/test_waterfall.mojo tests/test_box.mojo tests/test_candlestick.mojo tests/test_bullet.mojo tests/test_gantt.mojo tests/test_grouped_bar.mojo tests/test_stacked_bar.mojo tests/test_population_pyramid.mojo tests/test_heatmap.mojo tests/test_chord.mojo tests/test_single_axis.mojo tests/test_effect_scatter.mojo tests/test_funnel.mojo tests/test_bump.mojo tests/test_streamgraph.mojo tests/test_quickplot.mojo tests/test_colors.mojo"
+#
+# `test`'s own file order is deliberately NOT alphabetical -- most-
+# expensive-first, the same "longest job first" scheduling heuristic
+# canvas_mojo's own pixi.toml already uses (this repo built on that
+# one, see the wiki): on a CPU-constrained CI runner (fewer cores than
+# files), xargs -P starts jobs in list order as slots free up, so a
+# slow file sitting at the *end* of the list starts late and finishes
+# alone after every fast one's already done -- put first instead, it
+# runs the whole time alongside everything else, and the fast files
+# backfill the freed-up slots around it. Ranked by real measured cost,
+# not a guess: each test file's own `pixi run test` Summary line (its
+# own total assertion time, not `mojo run`'s shared, roughly-constant
+# per-file compile overhead) from a real run on this machine --
+# re-measure and re-sort if the ranking ever drifts far enough to
+# matter (a new test file added at the end is always at least
+# functionally correct, just not optimally placed). `example`'s own
+# order mirrors the same ranking, by each file's own equivalent test
+# file (`examples/bar.mojo`/`diverging_bar.mojo` both follow test_bar.
+# mojo's own rank, etc.) -- examples don't print their own per-file
+# timing the way test's own Summary lines do, so this is a reasonable
+# proxy (the same render code, same cost profile), not independently
+# measured. Matters far less locally (this machine's own core count
+# comfortably exceeds either file count), but costs nothing to get
+# right for CI too.
+example = "bash scripts/run_parallel.sh examples/line.mojo examples/slope.mojo examples/scatter.mojo examples/bar.mojo examples/diverging_bar.mojo examples/area.mojo examples/waterfall.mojo examples/effect_scatter.mojo examples/stacked_bar.mojo examples/grouped_bar.mojo examples/lollipop.mojo examples/heatmap.mojo examples/streamgraph.mojo examples/population_pyramid.mojo examples/box.mojo examples/gantt.mojo examples/histogram.mojo examples/single_axis.mojo examples/bullet.mojo examples/pie.mojo examples/donut.mojo examples/candlestick.mojo examples/bump.mojo examples/chord.mojo examples/funnel.mojo"
+test = "bash scripts/run_parallel.sh tests/test_quickplot.mojo tests/test_facets.mojo tests/test_line.mojo tests/test_layers.mojo tests/test_legends.mojo tests/test_point.mojo tests/test_theme.mojo tests/test_labels.mojo tests/test_bar.mojo tests/test_area.mojo tests/test_core.mojo tests/test_margins.mojo tests/test_waterfall.mojo tests/test_effect_scatter.mojo tests/test_stacked_bar.mojo tests/test_grouped_bar.mojo tests/test_lollipop.mojo tests/test_heatmap.mojo tests/test_streamgraph.mojo tests/test_population_pyramid.mojo tests/test_box.mojo tests/test_gantt.mojo tests/test_histogram.mojo tests/test_single_axis.mojo tests/test_bullet.mojo tests/test_arc.mojo tests/test_colors.mojo tests/test_candlestick.mojo tests/test_bump.mojo tests/test_chord.mojo tests/test_funnel.mojo tests/test_scale.mojo tests/test_ordinal_scale.mojo tests/test_color_scale.mojo"
 # Regenerates docs/site/content (nothing docs-build itself produces is
 # committed -- not that, not docs/site/public further downstream, not
 # docs/src/examples/, scripts/gen_example_docs.mojo's own output +
