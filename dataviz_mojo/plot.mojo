@@ -172,6 +172,7 @@ from dataviz_mojo.nightingale import _render_nightingale
 from dataviz_mojo.polar import _render_polar
 from dataviz_mojo.polar_bar import _render_polar_bar
 from dataviz_mojo.gauge import _render_gauge
+from dataviz_mojo.parallel import _render_parallel
 from dataviz_mojo.radar import _render_radar
 from dataviz_mojo.bar import _render_bar
 from dataviz_mojo.beeswarm import _render_beeswarm
@@ -406,6 +407,12 @@ struct Plot(Movable):
     var _gauge_value: Float64
     var _gauge_min: Float64
     var _gauge_max: Float64
+    # Mark.PARALLEL only -- one named axis per dimension, one named
+    # row per observation, one value per (row, dimension) pair. See
+    # encode_parallel()'s own docstring.
+    var _parallel_dims: List[String]
+    var _parallel_row_names: List[String]
+    var _parallel_data: List[List[Float64]]
     # Chart/axis title text, set via .labels() -- see that method's own
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
@@ -464,6 +471,9 @@ struct Plot(Movable):
         self._gauge_value = 0.0
         self._gauge_min = 0.0
         self._gauge_max = 100.0
+        self._parallel_dims = List[String]()
+        self._parallel_row_names = List[String]()
+        self._parallel_data = List[List[Float64]]()
         self._title = ""
         self._x_title = ""
         self._y_title = ""
@@ -569,6 +579,15 @@ struct Plot(Movable):
         `encode()`/`encode_categorical()` (see that method's own
         docstring for the full shape)."""
         self._mark = Mark.GAUGE
+        return self^
+
+    def mark_parallel(var self) -> Self:
+        """A parallel-coordinates chart: one row drawn as a polyline
+        across evenly spaced, independently scaled vertical axes, one
+        per dimension -- encoded via `encode_parallel()`, not
+        `encode()`/`encode_categorical()` (see that method's own
+        docstring for the full shape)."""
+        self._mark = Mark.PARALLEL
         return self^
 
     def mark_lollipop(var self) -> Self:
@@ -1271,6 +1290,51 @@ struct Plot(Movable):
         self._gauge_value = value
         self._gauge_min = min_value
         self._gauge_max = max_value
+        return self^
+
+    def encode_parallel(
+        var self, dims: List[String], row_names: List[String], data: List[List[Float64]]
+    ) raises -> Self:
+        """Map `Mark.PARALLEL`'s own shape onto its three channels:
+        `dims` (one vertical axis per name, each independently scaled
+        to its own column's own `[min, max]` -- see `_render_parallel`'s
+        own docstring for why there's no per-dimension max parameter
+        the way `encode_radar()`'s own `max_values` is), `row_names`
+        (one polyline per name), and `data` (one list per row, one
+        value per dimension -- the same "outer list indexes named
+        things, inner list is that thing's own numbers" shape `encode_
+        radar()`'s own `series_values` already established, generalized
+        from "one value per named indicator" to "one value per named
+        dimension").
+
+        Raises immediately (the same up-front "can't produce a
+        coherent result at all" reasoning `encode_radar()`'s own
+        checks already give) on a `row_names`/`data` length mismatch,
+        or any individual row whose own value count doesn't match
+        `dims`'s own count.
+        """
+        if len(row_names) != len(data):
+            raise Error(
+                "Plot.encode_parallel(): row_names and data must have the same length"
+                " (got "
+                + String(len(row_names))
+                + " and "
+                + String(len(data))
+                + ")"
+            )
+        for row in data:
+            if len(row) != len(dims):
+                raise Error(
+                    "Plot.encode_parallel(): every row in data must have one value per"
+                    " dimension (expected "
+                    + String(len(dims))
+                    + ", got "
+                    + String(len(row))
+                    + ")"
+                )
+        self._parallel_dims = dims.copy()
+        self._parallel_row_names = row_names.copy()
+        self._parallel_data = data.copy()
         return self^
 
     def encode_distribution(var self, categories: List[String], values: List[List[Float64]]) raises -> Self:
@@ -2793,6 +2857,8 @@ def _render_generic[
         return _render_radar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.GAUGE:
         return _render_gauge(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.PARALLEL:
+        return _render_parallel(target, plot, ox0, oy0, ox1, oy1)
 
     _validate_continuous_encoding(plot, "Plot.encode()")
 

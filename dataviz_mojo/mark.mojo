@@ -283,6 +283,18 @@ both the needle tip and the band boundaries, `ARC`'s own `fill_ring_
 sector_aa` primitive for the bands themselves. No axis frame, no
 legend -- a single value has no categories to key one by. See
 gauge.mojo's own `_render_gauge` docstring for the full reasoning.
+
+PARALLEL ("Phase 5" of the broader chart-type survey, its own new
+N-axis core) is a cartesian, not polar, multi-axis mark: `encode_
+parallel()`'s own `dims` (one vertical axis per name, evenly spaced
+left to right, each independently scaled to its own column's own
+`[min, max]` -- unlike `RADAR`'s caller-supplied per-indicator max)
+and `row_names`/`data` (one polyline per named row, one value per
+dimension -- the same "outer list indexes named things" shape `RADAR`'s
+own `series_values` already established). No axis tick labels beyond
+each dimension's own name -- the same deliberate v1 simplification
+`POLAR`'s own grid already documents. See parallel.mojo's own
+`_render_parallel` docstring for the full reasoning.
 """
 
 
@@ -318,6 +330,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime POLAR = Self(26)
     comptime RADAR = Self(27)
     comptime GAUGE = Self(28)
+    comptime PARALLEL = Self(29)
 
     def __init__(out self, value: Int):
         self._value = value
