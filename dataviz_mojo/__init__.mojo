@@ -61,6 +61,7 @@ from dataviz_mojo.heatmap import heatmap
 from dataviz_mojo.histogram import histogram
 from dataviz_mojo.lollipop import lollipop
 from dataviz_mojo.nightingale import nightingale
+from dataviz_mojo.polar_bar import polarbar
 from dataviz_mojo.population_pyramid import population_pyramid
 from dataviz_mojo.single_axis import single_axis
 from dataviz_mojo.stacked_bar import stacked_bar

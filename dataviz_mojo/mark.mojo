@@ -229,6 +229,17 @@ scales linearly; `True`/`"area"` mode scales by `sqrt(value / max)`
 instead, so a wedge's own *area*, not just its radius, is proportional
 to its value -- ECharts' own second `rose_type`). See nightingale.
 mojo's own `_render_nightingale` docstring for the full reasoning.
+
+POLAR_BAR reuses `NIGHTINGALE`'s own equal-angle-slot, radius-by-
+`value/max` geometry, palette, legend, and validation, but carves a
+small gap out of each bar's own angular slot (`_POLAR_BAR_PADDING`,
+polar_bar.mojo -- the same "separated bands vs. edge-to-edge cells"
+distinction `HEATMAP`'s own docstring already draws against `BAR`,
+applied here against `NIGHTINGALE`'s own touching sectors) so bars
+read as separated columns radiating from the center instead of pie-
+like wedges. Always linear (`value/max`) -- no `NIGHTINGALE`-style
+`rose_type="area"` equivalent; ECharts' own `polarbar` has no such
+mode. See polar_bar.mojo's own `_render_polar_bar` docstring.
 """
 
 
@@ -260,6 +271,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime VIOLIN = Self(22)
     comptime RIDGELINE = Self(23)
     comptime NIGHTINGALE = Self(24)
+    comptime POLAR_BAR = Self(25)
 
     def __init__(out self, value: Int):
         self._value = value
