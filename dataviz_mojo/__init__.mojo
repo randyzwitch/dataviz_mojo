@@ -62,6 +62,7 @@ from dataviz_mojo.heatmap import heatmap
 from dataviz_mojo.calendar_heatmap import calendar_heatmap
 from dataviz_mojo.corrplot import corrplot
 from dataviz_mojo.punchcard import punchcard
+from dataviz_mojo.marimekko import marimekko
 from dataviz_mojo.histogram import histogram
 from dataviz_mojo.lollipop import lollipop
 from dataviz_mojo.nightingale import nightingale

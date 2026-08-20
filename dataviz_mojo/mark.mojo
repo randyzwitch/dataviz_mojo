@@ -347,6 +347,23 @@ the underlying count is large. A repeated `(x, y)` pair draws its own
 independent bubble rather than merging, and there's no legend (no
 categorical color channel to key one by). See punchcard.mojo's own
 `_render_punchcard` docstring for the full reasoning.
+
+MARIMEKKO (fourth and last of Phase 6) generalizes `STACKED_BAR`'s
+own "one stacked column per category" idea to two dimensions at once:
+`encode_marimekko()`'s own `categories` (columns) and `subcategories`
+(stacked segments) both carry real proportions -- column *widths* are
+each category's own share of the grand total, and each column's own
+segment *heights* are that column's own subcategory composition (a
+0-100% stack), not `STACKED_BAR`'s own equal-width columns with a
+stacked absolute magnitude. No shared `OrdinalScale` x-axis -- column
+positions come directly from cumulative share-of-total math. Every
+rect boundary (column edges and segment edges alike) rounds a
+*cumulative* continuous position rather than an independently-rounded
+width/height, the same "round the boundaries, not the size" pattern
+`STACKED_BAR`'s own `_axis_pixel`-per-running-total approach already
+uses, so adjacent columns/segments never show a hairline gap. See
+marimekko.mojo's own `_render_marimekko` docstring for the full
+reasoning.
 """
 
 
@@ -387,6 +404,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime CALENDAR_HEATMAP = Self(31)
     comptime CORRPLOT = Self(32)
     comptime PUNCHCARD = Self(33)
+    comptime MARIMEKKO = Self(34)
 
     def __init__(out self, value: Int):
         self._value = value

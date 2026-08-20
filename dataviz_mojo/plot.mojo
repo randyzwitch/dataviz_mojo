@@ -191,6 +191,7 @@ from dataviz_mojo.heatmap import _render_heatmap
 from dataviz_mojo.calendar_heatmap import _render_calendar_heatmap
 from dataviz_mojo.corrplot import _render_corrplot
 from dataviz_mojo.punchcard import _render_punchcard
+from dataviz_mojo.marimekko import _render_marimekko
 from dataviz_mojo.histogram import _bin_histogram
 from dataviz_mojo.lollipop import _render_lollipop
 from dataviz_mojo.single_axis import _render_single_axis
@@ -436,6 +437,12 @@ struct Plot(Movable):
     var _punchcard_y: List[String]
     var _punchcard_sizes: List[Float64]
     var _punchcard_scale: Float64
+    # Mark.MARIMEKKO only -- categories (columns), subcategories
+    # (stacked rows), and a value per (subcategory, category) pair.
+    # See encode_marimekko()'s own docstring.
+    var _marimekko_categories: List[String]
+    var _marimekko_subcategories: List[String]
+    var _marimekko_values: List[List[Float64]]
     # Chart/axis title text, set via .labels() -- see that method's own
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
@@ -508,6 +515,9 @@ struct Plot(Movable):
         self._punchcard_y = List[String]()
         self._punchcard_sizes = List[Float64]()
         self._punchcard_scale = 10.0
+        self._marimekko_categories = List[String]()
+        self._marimekko_subcategories = List[String]()
+        self._marimekko_values = List[List[Float64]]()
         self._title = ""
         self._x_title = ""
         self._y_title = ""
@@ -727,6 +737,16 @@ struct Plot(Movable):
         the way `mark_corrplot()`'s own bubbles are."""
         self._mark = Mark.PUNCHCARD
         self._punchcard_scale = scale
+        return self^
+
+    def mark_marimekko(var self) -> Self:
+        """A Marimekko/mosaic chart: column widths proportional to
+        each category's own share of the grand total, stacked segment
+        heights showing each column's own subcategory composition --
+        encoded via `encode_marimekko()`, not `encode()`/`encode_
+        categorical()`/`encode_grouped_bar()` (see that method's own
+        docstring for the full shape)."""
+        self._mark = Mark.MARIMEKKO
         return self^
 
     def mark_grouped_bar(var self) -> Self:
@@ -1310,6 +1330,31 @@ struct Plot(Movable):
         self._punchcard_x = x.copy()
         self._punchcard_y = y.copy()
         self._punchcard_sizes = sizes.copy()
+        return self^
+
+    def encode_marimekko(
+        var self, categories: List[String], subcategories: List[String], values: List[List[Float64]]
+    ) -> Self:
+        """Map `Mark.MARIMEKKO`'s own shape onto its three channels:
+        `categories` (one column each), `subcategories` (one stacked
+        segment each), and `values` -- `values[i][j]` is `subcategories
+        [i]`'s own value for `categories[j]` (rows are subcategories,
+        columns are categories, matching ECharts.jl's own `marimekko()`
+        matrix convention -- the opposite orientation from `encode_
+        grouped_bar()`'s own `series_values[series][category]`, kept
+        deliberately matched to the reference library here rather than
+        this package's own usual convention, since there's no data-
+        shape reason to prefer one over the other and matching the
+        library callers may already know reduces surprise more).
+
+        Length checking (`values` has one row per subcategory, each
+        row one value per category, every value non-negative) is
+        deferred to render() time, the same as every other categorical
+        `encode_*` here.
+        """
+        self._marimekko_categories = categories.copy()
+        self._marimekko_subcategories = subcategories.copy()
+        self._marimekko_values = values.copy()
         return self^
 
     def encode_chord(
@@ -2978,6 +3023,8 @@ def _render_generic[
         return _render_corrplot(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.PUNCHCARD:
         return _render_punchcard(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.MARIMEKKO:
+        return _render_marimekko(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.CHORD:
         return _render_chord(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.SINGLE_AXIS:
