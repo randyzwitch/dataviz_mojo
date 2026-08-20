@@ -59,6 +59,7 @@ from dataviz_mojo.gantt import gantt
 from dataviz_mojo.span_chart import span_chart
 from dataviz_mojo.grouped_bar import grouped_bar
 from dataviz_mojo.heatmap import heatmap
+from dataviz_mojo.calendar_heatmap import calendar_heatmap
 from dataviz_mojo.histogram import histogram
 from dataviz_mojo.lollipop import lollipop
 from dataviz_mojo.nightingale import nightingale

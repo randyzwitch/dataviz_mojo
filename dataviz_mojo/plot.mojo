@@ -188,6 +188,7 @@ from dataviz_mojo.chord import _render_chord
 from dataviz_mojo.funnel import _render_funnel
 from dataviz_mojo.grouped_bar import _render_grouped_bar
 from dataviz_mojo.heatmap import _render_heatmap
+from dataviz_mojo.calendar_heatmap import _render_calendar_heatmap
 from dataviz_mojo.histogram import _bin_histogram
 from dataviz_mojo.lollipop import _render_lollipop
 from dataviz_mojo.single_axis import _render_single_axis
@@ -414,6 +415,10 @@ struct Plot(Movable):
     var _parallel_dims: List[String]
     var _parallel_row_names: List[String]
     var _parallel_data: List[List[Float64]]
+    # Mark.CALENDAR_HEATMAP only -- one ("YYYY-MM-DD" date, value) row
+    # per day. See encode_calendar()'s own docstring.
+    var _calendar_dates: List[String]
+    var _calendar_values: List[Float64]
     # Chart/axis title text, set via .labels() -- see that method's own
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
@@ -475,6 +480,8 @@ struct Plot(Movable):
         self._parallel_dims = List[String]()
         self._parallel_row_names = List[String]()
         self._parallel_data = List[List[Float64]]()
+        self._calendar_dates = List[String]()
+        self._calendar_values = List[Float64]()
         self._title = ""
         self._x_title = ""
         self._y_title = ""
@@ -659,6 +666,16 @@ struct Plot(Movable):
         precedent `mark_stacked_bar()`'s own reuse of `encode_grouped_
         bar()` already established)."""
         self._mark = Mark.SPAN_CHART
+        return self^
+
+    def mark_calendar_heatmap(var self) -> Self:
+        """A calendar heatmap: daily values laid out in a GitHub-
+        contributions-style calendar grid, colored through a
+        continuous gradient -- encoded via `encode_calendar()`, not
+        `encode()`/`encode_categorical()` (see that method's own
+        docstring for the exact shape, including the plain
+        `"YYYY-MM-DD"` date format)."""
+        self._mark = Mark.CALENDAR_HEATMAP
         return self^
 
     def mark_grouped_bar(var self) -> Self:
@@ -1184,6 +1201,30 @@ struct Plot(Movable):
         self._heatmap_x = x.copy()
         self._heatmap_y = y.copy()
         self._heatmap_value = value.copy()
+        return self^
+
+    def encode_calendar(var self, dates: List[String], values: List[Float64]) -> Self:
+        """Map a date column and a continuous value column onto `Mark.
+        CALENDAR_HEATMAP`'s own shape: one row per day (`dates[i]`, a
+        plain `"YYYY-MM-DD"` string -- this package deliberately has
+        no Date/Time type of its own, the same stance `encode_gantt()`
+        already takes; parsed only for calendar-grid placement math,
+        see calendar_heatmap.mojo's own `_parse_date`/`_days_from_
+        civil`) and `values[i]`, colored through the same continuous
+        gradient `encode_heatmap()`'s own `value` channel uses.
+
+        Every date must fall in the same calendar year -- checked at
+        render() time (inferred from the first date, not a separate
+        `year` parameter), along with the usual `dates`/`values`
+        length match. See `_render_calendar_heatmap`'s own docstring
+        for why this differs from ECharts.jl's own explicit `year`
+        argument.
+        """
+        self.x_categories = List[String]()
+        self.x_data = List[Float64]()
+        self.y_data = List[Float64]()
+        self._calendar_dates = dates.copy()
+        self._calendar_values = values.copy()
         return self^
 
     def encode_chord(
@@ -2846,6 +2887,8 @@ def _render_generic[
         return _render_population_pyramid(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.HEATMAP:
         return _render_heatmap(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.CALENDAR_HEATMAP:
+        return _render_calendar_heatmap(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.CHORD:
         return _render_chord(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.SINGLE_AXIS:

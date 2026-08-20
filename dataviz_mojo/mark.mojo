@@ -301,6 +301,22 @@ horizontal one -- ECharts.jl's own `spanchart`, useful for a range
 that isn't anchored to zero (confidence intervals, daily temperature
 highs/lows). See span_chart.mojo's own `_render_span_chart` docstring
 for the full reasoning.
+
+CALENDAR_HEATMAP ("Phase 6" of the broader chart-type survey, the
+grid/matrix family that extends `HEATMAP`'s own grid-cell idea) lays
+`encode_calendar()`'s own `dates`/`values` out in a GitHub-
+contributions-style calendar grid -- one column per week, one row per
+day of the week, colored through the exact same continuous `ColorScale`
+gradient `HEATMAP` already uses. Its own bespoke layout (calendar_
+heatmap.mojo), not `_draw_grid_axis_frame` -- a calendar's row domain
+is a fixed 7-day week and its column domain is a *computed* week
+index, not two caller-given category domains. Includes a small, self-
+contained proleptic-Gregorian date calculation (`_days_from_civil`/
+`_day_of_week`, Howard Hinnant's well-known public-domain algorithm)
+purely for grid placement -- not a general Date/Time type, which this
+package deliberately still doesn't have (see `GANTT`'s own docstring).
+See calendar_heatmap.mojo's own `_render_calendar_heatmap` docstring
+for the full reasoning.
 """
 
 
@@ -338,6 +354,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime GAUGE = Self(28)
     comptime PARALLEL = Self(29)
     comptime SPAN_CHART = Self(30)
+    comptime CALENDAR_HEATMAP = Self(31)
 
     def __init__(out self, value: Int):
         self._value = value

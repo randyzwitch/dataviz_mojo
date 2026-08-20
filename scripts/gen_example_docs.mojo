@@ -82,6 +82,7 @@ def _titles() -> Dict[String, String]:
     d["gauge"] = "Gauge"
     d["parallel"] = "Parallel Coordinates"
     d["span_chart"] = "Span Chart"
+    d["calendar_heatmap"] = "Calendar Heatmap"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     return d^
@@ -136,6 +137,11 @@ def _categories() -> List[Category]:
         "Multivariate",
         "Several numeric dimensions compared at once on one shared layout, not a single value per category.",
         ["parallel"],
+    ))
+    cats.append(Category(
+        "Grid & matrix",
+        "Two categorical dimensions laid out as a grid, extending Mark.HEATMAP's own grid-cell idea.",
+        ["calendar_heatmap"],
     ))
     return cats^
 
@@ -262,7 +268,7 @@ def _quickplot_names() -> List[String]:
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
         "histogram", "population_pyramid", "heatmap", "chord", "single_axis", "effect_scatter",
-        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "polar", "radar", "gauge", "parallel", "span_chart",
+        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "polar", "radar", "gauge", "parallel", "span_chart", "calendar_heatmap",
     ]
 
 
