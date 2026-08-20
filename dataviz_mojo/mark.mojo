@@ -267,6 +267,18 @@ grid`, radar.mojo) draws straight-edged polygon "web" rings, not
 `POLAR`'s circles -- a radar's own axes are discrete, so there's no
 meaningful position between two spokes for a circle to pass through.
 See radar.mojo's own `_render_radar` docstring for the full reasoning.
+
+GAUGE closes out Phase 4: a single `value` (`encode_gauge()`, clamped
+to `[min_value, max_value]` rather than rejected out of range -- a
+gauge's whole point is a live reading that can legitimately exceed
+its expected range) shown as a needle over a 270-degree color-banded
+dial (green/blue/red at ECharts' own default 20%/80%/100%
+breakpoints, fixed constants for now -- see gauge.mojo's own
+docstring). Reuses `POLAR`/`RADAR`'s own shared `_polar_point` for
+both the needle tip and the band boundaries, `ARC`'s own `fill_ring_
+sector_aa` primitive for the bands themselves. No axis frame, no
+legend -- a single value has no categories to key one by. See
+gauge.mojo's own `_render_gauge` docstring for the full reasoning.
 """
 
 
@@ -301,6 +313,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime POLAR_BAR = Self(25)
     comptime POLAR = Self(26)
     comptime RADAR = Self(27)
+    comptime GAUGE = Self(28)
 
     def __init__(out self, value: Int):
         self._value = value
