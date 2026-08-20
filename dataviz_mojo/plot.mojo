@@ -197,6 +197,7 @@ from dataviz_mojo.tree import _render_tree
 from dataviz_mojo.treemap import _render_treemap
 from dataviz_mojo.arc_diagram import _render_arc_diagram
 from dataviz_mojo.graph import _render_graph
+from dataviz_mojo.sankey import _render_sankey
 from dataviz_mojo.histogram import _bin_histogram
 from dataviz_mojo.lollipop import _render_lollipop
 from dataviz_mojo.single_axis import _render_single_axis
@@ -849,6 +850,15 @@ struct Plot(Movable):
         `encode_chord()`, the exact same shape (see that method's own
         docstring)."""
         self._mark = Mark.GRAPH
+        return self^
+
+    def mark_sankey(var self) -> Self:
+        """A Sankey diagram: `mark_chord()`'s own edge list, laid out
+        left-to-right by column and drawn as proportionally sized flow
+        ribbons instead of a circular ribbon diagram -- encoded via
+        `encode_chord()`, the exact same shape (see that method's own
+        docstring). The edges must form a DAG (no cycles)."""
+        self._mark = Mark.SANKEY
         return self^
 
     def mark_single_axis(var self) -> Self:
@@ -3116,6 +3126,8 @@ def _render_generic[
         return _render_arc_diagram(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.GRAPH:
         return _render_graph(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.SANKEY:
+        return _render_sankey(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.SINGLE_AXIS:
         return _render_single_axis(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.FUNNEL:
