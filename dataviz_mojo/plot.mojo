@@ -171,6 +171,7 @@ from dataviz_mojo.arc import _render_arc
 from dataviz_mojo.nightingale import _render_nightingale
 from dataviz_mojo.polar import _render_polar
 from dataviz_mojo.polar_bar import _render_polar_bar
+from dataviz_mojo.gauge import _render_gauge
 from dataviz_mojo.radar import _render_radar
 from dataviz_mojo.bar import _render_bar
 from dataviz_mojo.beeswarm import _render_beeswarm
@@ -400,6 +401,11 @@ struct Plot(Movable):
     var _radar_max: List[Float64]
     var _radar_series_names: List[String]
     var _radar_series_values: List[List[Float64]]
+    # Mark.GAUGE only -- a single value plus its own dial range. See
+    # encode_gauge()'s own docstring.
+    var _gauge_value: Float64
+    var _gauge_min: Float64
+    var _gauge_max: Float64
     # Chart/axis title text, set via .labels() -- see that method's own
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
@@ -455,6 +461,9 @@ struct Plot(Movable):
         self._radar_max = List[Float64]()
         self._radar_series_names = List[String]()
         self._radar_series_values = List[List[Float64]]()
+        self._gauge_value = 0.0
+        self._gauge_min = 0.0
+        self._gauge_max = 100.0
         self._title = ""
         self._x_title = ""
         self._y_title = ""
@@ -552,6 +561,14 @@ struct Plot(Movable):
         `encode()`/`encode_categorical()` (see that method's own
         docstring for the full shape)."""
         self._mark = Mark.RADAR
+        return self^
+
+    def mark_gauge(var self) -> Self:
+        """A gauge chart: a single value shown as a needle over a
+        color-banded dial -- encoded via `encode_gauge()`, not
+        `encode()`/`encode_categorical()` (see that method's own
+        docstring for the full shape)."""
+        self._mark = Mark.GAUGE
         return self^
 
     def mark_lollipop(var self) -> Self:
@@ -1239,6 +1256,21 @@ struct Plot(Movable):
         self._radar_max = max_values.copy()
         self._radar_series_names = series_names.copy()
         self._radar_series_values = series_values.copy()
+        return self^
+
+    def encode_gauge(var self, value: Float64, min_value: Float64 = 0.0, max_value: Float64 = 100.0) -> Self:
+        """Map a single reading onto `Mark.GAUGE`'s own dial: `value`
+        (clamped to `[min_value, max_value]` at render() time, not
+        rejected -- see `_render_gauge`'s own docstring for why an
+        out-of-range value pins visibly at the end of the dial instead
+        of raising) against a `[min_value, max_value]` range (default
+        `[0, 100]`, a plain percentage-style gauge -- ECharts.jl's own
+        default too). `min_value < max_value` is checked at render()
+        time, the same deferred-validation stance every other encode
+        method here takes."""
+        self._gauge_value = value
+        self._gauge_min = min_value
+        self._gauge_max = max_value
         return self^
 
     def encode_distribution(var self, categories: List[String], values: List[List[Float64]]) raises -> Self:
@@ -2759,6 +2791,8 @@ def _render_generic[
         return _render_polar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.RADAR:
         return _render_radar(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.GAUGE:
+        return _render_gauge(target, plot, ox0, oy0, ox1, oy1)
 
     _validate_continuous_encoding(plot, "Plot.encode()")
 

@@ -1,0 +1,40 @@
+"""Demo: a gauge chart -- Mark.GAUGE, a single value (Plot.
+encode_gauge(), clamped to [min_value, max_value] rather than rejected
+out of range) shown as a needle over a 270-degree color-banded dial
+(green/blue/red at the default 20%/80%/100% breakpoints -- see
+gauge.mojo's own docstring). Built via dataviz_mojo.gauge() -- see
+examples/scatter.mojo's own docstring for what that trades away.
+
+Server CPU usage -- ECharts.jl's own gauge() example, the chart
+type's own classic use (a single live metric against a known-good/
+known-bad range, read at a glance the way a real analog dial is).
+
+Writes both a raster (.bmp) and a vector (.svg) file from the same
+data -- see examples/donut.mojo's own docstring for why, and for why
+the docs page only shows the quickplot call above.
+
+Run with:
+    pixi run example
+"""
+
+from canvas_mojo.io.bmp import write_bmp
+from canvas_mojo.io.png import write_png
+from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo import gauge
+from dataviz_mojo.theme import Theme
+
+
+def main() raises:
+    var cpu_usage = 67.0
+
+    var c = gauge(cpu_usage)
+    write_bmp(c, "examples/out_gauge.bmp")
+    write_png(c, "examples/out_gauge.png")
+
+    var svg = SvgCanvas(640, 420)
+    var svg_plot = Plot().mark_gauge().encode_gauge(value=cpu_usage).theme(Theme())
+    render_svg(svg, svg_plot)
+    write_svg(svg, "examples/out_gauge.svg")
+
+    print("wrote examples/out_gauge.bmp, .png, and .svg")
