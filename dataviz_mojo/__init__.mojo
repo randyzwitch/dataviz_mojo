@@ -64,6 +64,7 @@ from dataviz_mojo.nightingale import nightingale
 from dataviz_mojo.polar import polar
 from dataviz_mojo.polar_bar import polarbar
 from dataviz_mojo.gauge import gauge
+from dataviz_mojo.parallel import parallel
 from dataviz_mojo.radar import radar
 from dataviz_mojo.population_pyramid import population_pyramid
 from dataviz_mojo.single_axis import single_axis

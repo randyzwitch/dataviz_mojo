@@ -80,6 +80,7 @@ def _titles() -> Dict[String, String]:
     d["polar"] = "Polar"
     d["radar"] = "Radar"
     d["gauge"] = "Gauge"
+    d["parallel"] = "Parallel Coordinates"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     return d^
@@ -129,6 +130,11 @@ def _categories() -> List[Category]:
         "Radial & polar",
         "Chart types built on a polar (angle + radius) coordinate system instead of a cartesian one.",
         ["nightingale", "polarbar", "polar", "radar", "gauge"],
+    ))
+    cats.append(Category(
+        "Multivariate",
+        "Several numeric dimensions compared at once on one shared layout, not a single value per category.",
+        ["parallel"],
     ))
     return cats^
 
@@ -255,7 +261,7 @@ def _quickplot_names() -> List[String]:
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
         "histogram", "population_pyramid", "heatmap", "chord", "single_axis", "effect_scatter",
-        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "polar", "radar", "gauge",
+        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "polar", "radar", "gauge", "parallel",
     ]
 
 
