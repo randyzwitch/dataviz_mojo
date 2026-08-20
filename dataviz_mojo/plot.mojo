@@ -195,6 +195,10 @@ from dataviz_mojo.marimekko import _render_marimekko
 from dataviz_mojo.sunburst import _render_sunburst
 from dataviz_mojo.tree import _render_tree
 from dataviz_mojo.treemap import _render_treemap
+from dataviz_mojo.arc_diagram import _render_arc_diagram
+from dataviz_mojo.graph import _render_graph
+from dataviz_mojo.sankey import _render_sankey
+from dataviz_mojo.radialbar import _render_radialbar
 from dataviz_mojo.histogram import _bin_histogram
 from dataviz_mojo.lollipop import _render_lollipop
 from dataviz_mojo.single_axis import _render_single_axis
@@ -610,6 +614,20 @@ struct Plot(Movable):
         self._mark = Mark.POLAR_BAR
         return self^
 
+    def mark_radialbar(var self) -> Self:
+        """A radial (multi-ring) progress chart: one full concentric
+        ring per category, swept clockwise from 12 o'clock over a
+        light-gray track to `value / max(values)` of the way around --
+        the "activity rings" shape, unlike `mark_polar_bar()`'s own
+        bars radiating outward from a shared center. Encoded via
+        `encode_categorical()`, the same category + value data shape
+        `mark_polar_bar()`/`mark_arc()`/`mark_nightingale()` use. The
+        first category draws as the outermost ring. Every value must
+        be non-negative, and at least one must be positive -- checked
+        at render() time, the same as `mark_polar_bar()`."""
+        self._mark = Mark.RADIALBAR
+        return self^
+
     def mark_polar(var self) -> Self:
         """A polar-coordinate line plot: (angle, radius) pairs
         connected in row order, drawn over a polar grid -- encoded via
@@ -830,6 +848,32 @@ struct Plot(Movable):
         No x/y axis frame at all, the same as `Mark.ARC`, whose ring-
         sector conventions this reuses directly."""
         self._mark = Mark.CHORD
+        return self^
+
+    def mark_arc_diagram(var self) -> Self:
+        """An arc diagram: `mark_chord()`'s own edge list, drawn as
+        nodes on one line connected by semicircular arcs instead of a
+        circular ribbon diagram -- encoded via `encode_chord()`, the
+        exact same shape (see that method's own docstring)."""
+        self._mark = Mark.ARC_DIAGRAM
+        return self^
+
+    def mark_graph(var self) -> Self:
+        """A network graph: `mark_chord()`'s own edge list, drawn as
+        nodes evenly spaced around a circle connected by straight
+        lines instead of a circular ribbon diagram -- encoded via
+        `encode_chord()`, the exact same shape (see that method's own
+        docstring)."""
+        self._mark = Mark.GRAPH
+        return self^
+
+    def mark_sankey(var self) -> Self:
+        """A Sankey diagram: `mark_chord()`'s own edge list, laid out
+        left-to-right by column and drawn as proportionally sized flow
+        ribbons instead of a circular ribbon diagram -- encoded via
+        `encode_chord()`, the exact same shape (see that method's own
+        docstring). The edges must form a DAG (no cycles)."""
+        self._mark = Mark.SANKEY
         return self^
 
     def mark_single_axis(var self) -> Self:
@@ -3093,6 +3137,12 @@ def _render_generic[
         return _render_treemap(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.CHORD:
         return _render_chord(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.ARC_DIAGRAM:
+        return _render_arc_diagram(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.GRAPH:
+        return _render_graph(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.SANKEY:
+        return _render_sankey(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.SINGLE_AXIS:
         return _render_single_axis(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.FUNNEL:
@@ -3113,6 +3163,8 @@ def _render_generic[
         return _render_nightingale(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.POLAR_BAR:
         return _render_polar_bar(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.RADIALBAR:
+        return _render_radialbar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.POLAR:
         return _render_polar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.RADAR:

@@ -411,6 +411,70 @@ the background); an internal node draws nothing of its own, just
 partitions space for its children. The same "one color per top-level
 branch" convention `SUNBURST`/`TREE` already establish. See treemap.
 mojo's own `_render_treemap` docstring for the full reasoning.
+
+ARC_DIAGRAM (first of Phase 7's edge-list sub-family) reuses `CHORD`'s
+own `encode_chord()` edge-list data completely unchanged (the same
+"identical data, purely a rendering difference" precedent `STACKED_
+BAR`'s own reuse of `GROUPED_BAR` already established) -- not this
+package's own pre-existing `ARC` (pie/donut wedges), a genuinely
+different chart type that happens to share a name, the same naming
+collision `CHORD`'s own docstring already notes. Every distinct node
+sits on one straight line instead of `CHORD`'s own circle, edges drawn
+as semicircular arcs bulging upward -- nodes far apart get tall arcs,
+close nodes get shallow ones, deliberately not scaled to fit any
+particular height. Edge stroke width scales with `value/max(values)`;
+edge and node marker color both follow the edge's own `from` node's
+palette color, the same convention `CHORD`'s own ribbons already use.
+Every node is labeled directly beneath its own marker -- no legend,
+unlike `CHORD` (which needs one since its own ring sectors are often
+too thin to label directly). See arc_diagram.mojo's own `_render_arc_
+diagram` docstring for the full reasoning.
+
+GRAPH (third of Phase 7's edge-list sub-family) reuses `CHORD`'s own edge-list data too, a
+third genuinely different network layout: nodes evenly spaced around
+a circle (`ARC`'s own start-at-12-o'clock convention, reused for
+position only), edges drawn as straight lines cutting across the
+interior instead of `CHORD`'s own ring-sectors-plus-ribbons or `ARC_
+DIAGRAM`'s own nodes-on-a-line-plus-arcs. A deliberately simple,
+deterministic circular layout, not a real force-directed simulation --
+the same "not a full physics simulation" scope choice `BEESWARM`'s
+own docstring already makes for a completely different layout
+problem, for the identical reason (this package's test methodology
+needs exact, hand-verifiable positions). Labels align by which side
+of center they fall on, the same rule `RADAR`'s own axis labels
+already use. See graph.mojo's own `_render_graph` docstring for the
+full reasoning.
+
+SANKEY (fourth and last of Phase 7's edge-list sub-family, and the
+last mark of Phase 7 overall) reuses `CHORD`'s own edge-list data one
+more time, laid out left-to-right by column -- a node's own column is
+the length of the *longest* path reaching it from any source,
+computed via one Kahn's-algorithm topological pass (which also
+detects a cycle and raises, since a real Sankey's own flow data must
+be a DAG). Each node is a thin bar, height proportional to `max(total
+inflow, total outflow)`; nodes sharing a column stack via the same
+"round the cumulative boundary" pattern `MARIMEKKO`/`TREEMAP` already
+establish. Each flow draws as a filled quadrilateral ("ribbon")
+between a slice of its own `from` node's right edge and its own `to`
+node's left edge -- straight edges, not a smooth curve, the same
+"straight, not curved" simplification `CHORD`'s own straight-rim
+ribbons already are. A self-loop is dropped before layout entirely
+(no meaningful column-distance to lay out). See sankey.mojo's own
+`_render_sankey` docstring for the full reasoning.
+
+RADIALBAR (the `polarbar` gap item scoped out of Phase 4, closed once
+Phase 7 wrapped) reuses `POLAR_BAR`'s own `encode_categorical` data
+shape and always-linear-against-`max(values)` normalization
+unchanged, but is a genuinely different geometry from it: one full
+concentric *ring* per category, swept clockwise from 12 o'clock over
+a light-gray track, instead of `POLAR_BAR`'s own bars radiating
+outward from a shared center -- the "multi-ring progress indicator"
+shape (Apple Watch's own activity rings, GitHub's own contribution-
+ring widgets), not a circular column chart. The first category's own
+ring draws outermost, each later one nesting further in -- display
+prominence, not `SUNBURST`'s own hierarchy-depth ordering (there's no
+hierarchy here). See radialbar.mojo's own `_render_radialbar`
+docstring for the full reasoning.
 """
 
 
@@ -455,6 +519,10 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime SUNBURST = Self(35)
     comptime TREE = Self(36)
     comptime TREEMAP = Self(37)
+    comptime ARC_DIAGRAM = Self(38)
+    comptime GRAPH = Self(39)
+    comptime SANKEY = Self(40)
+    comptime RADIALBAR = Self(41)
 
     def __init__(out self, value: Int):
         self._value = value

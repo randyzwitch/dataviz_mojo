@@ -52,6 +52,9 @@ from dataviz_mojo.box import box
 from dataviz_mojo.bullet import bullet
 from dataviz_mojo.candlestick import candlestick
 from dataviz_mojo.chord import chord
+from dataviz_mojo.arc_diagram import arc_diagram
+from dataviz_mojo.graph import graph
+from dataviz_mojo.sankey import sankey
 from dataviz_mojo.effect_scatter import effect_scatter
 from dataviz_mojo.bump import bump
 from dataviz_mojo.funnel import funnel
@@ -71,6 +74,7 @@ from dataviz_mojo.lollipop import lollipop
 from dataviz_mojo.nightingale import nightingale
 from dataviz_mojo.polar import polar
 from dataviz_mojo.polar_bar import polarbar
+from dataviz_mojo.radialbar import radialbar
 from dataviz_mojo.gauge import gauge
 from dataviz_mojo.parallel import parallel
 from dataviz_mojo.radar import radar
