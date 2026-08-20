@@ -411,6 +411,24 @@ the background); an internal node draws nothing of its own, just
 partitions space for its children. The same "one color per top-level
 branch" convention `SUNBURST`/`TREE` already establish. See treemap.
 mojo's own `_render_treemap` docstring for the full reasoning.
+
+ARC_DIAGRAM (first of Phase 7's edge-list sub-family) reuses `CHORD`'s
+own `encode_chord()` edge-list data completely unchanged (the same
+"identical data, purely a rendering difference" precedent `STACKED_
+BAR`'s own reuse of `GROUPED_BAR` already established) -- not this
+package's own pre-existing `ARC` (pie/donut wedges), a genuinely
+different chart type that happens to share a name, the same naming
+collision `CHORD`'s own docstring already notes. Every distinct node
+sits on one straight line instead of `CHORD`'s own circle, edges drawn
+as semicircular arcs bulging upward -- nodes far apart get tall arcs,
+close nodes get shallow ones, deliberately not scaled to fit any
+particular height. Edge stroke width scales with `value/max(values)`;
+edge and node marker color both follow the edge's own `from` node's
+palette color, the same convention `CHORD`'s own ribbons already use.
+Every node is labeled directly beneath its own marker -- no legend,
+unlike `CHORD` (which needs one since its own ring sectors are often
+too thin to label directly). See arc_diagram.mojo's own `_render_arc_
+diagram` docstring for the full reasoning.
 """
 
 
@@ -455,6 +473,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime SUNBURST = Self(35)
     comptime TREE = Self(36)
     comptime TREEMAP = Self(37)
+    comptime ARC_DIAGRAM = Self(38)
 
     def __init__(out self, value: Int):
         self._value = value
