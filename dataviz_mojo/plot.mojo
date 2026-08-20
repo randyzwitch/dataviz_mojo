@@ -193,6 +193,7 @@ from dataviz_mojo.corrplot import _render_corrplot
 from dataviz_mojo.punchcard import _render_punchcard
 from dataviz_mojo.marimekko import _render_marimekko
 from dataviz_mojo.sunburst import _render_sunburst
+from dataviz_mojo.tree import _render_tree
 from dataviz_mojo.histogram import _bin_histogram
 from dataviz_mojo.lollipop import _render_lollipop
 from dataviz_mojo.single_axis import _render_single_axis
@@ -767,6 +768,14 @@ struct Plot(Movable):
         categorical()` (see that method's own docstring for the exact
         shape)."""
         self._mark = Mark.SUNBURST
+        return self^
+
+    def mark_tree(var self) -> Self:
+        """A tree diagram: a hierarchy laid out top-to-bottom as a
+        node-link diagram -- encoded via `encode_hierarchy()`, the
+        same shape `mark_sunburst()` uses (see that method's own
+        docstring)."""
+        self._mark = Mark.TREE
         return self^
 
     def mark_grouped_bar(var self) -> Self:
@@ -3069,6 +3078,8 @@ def _render_generic[
         return _render_marimekko(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.SUNBURST:
         return _render_sunburst(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.TREE:
+        return _render_tree(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.CHORD:
         return _render_chord(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.SINGLE_AXIS:

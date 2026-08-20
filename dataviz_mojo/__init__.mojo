@@ -64,6 +64,7 @@ from dataviz_mojo.corrplot import corrplot
 from dataviz_mojo.punchcard import punchcard
 from dataviz_mojo.marimekko import marimekko
 from dataviz_mojo.sunburst import sunburst
+from dataviz_mojo.tree import tree
 from dataviz_mojo.histogram import histogram
 from dataviz_mojo.lollipop import lollipop
 from dataviz_mojo.nightingale import nightingale
