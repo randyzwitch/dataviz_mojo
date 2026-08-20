@@ -192,6 +192,7 @@ from dataviz_mojo.calendar_heatmap import _render_calendar_heatmap
 from dataviz_mojo.corrplot import _render_corrplot
 from dataviz_mojo.punchcard import _render_punchcard
 from dataviz_mojo.marimekko import _render_marimekko
+from dataviz_mojo.sunburst import _render_sunburst
 from dataviz_mojo.histogram import _bin_histogram
 from dataviz_mojo.lollipop import _render_lollipop
 from dataviz_mojo.single_axis import _render_single_axis
@@ -443,6 +444,12 @@ struct Plot(Movable):
     var _marimekko_categories: List[String]
     var _marimekko_subcategories: List[String]
     var _marimekko_values: List[List[Float64]]
+    # Mark.SUNBURST/TREE/TREEMAP only -- a flattened hierarchy, one
+    # (id, parent_id, value) row per node. See encode_hierarchy()'s
+    # own docstring.
+    var _hierarchy_ids: List[String]
+    var _hierarchy_parent_ids: List[String]
+    var _hierarchy_values: List[Float64]
     # Chart/axis title text, set via .labels() -- see that method's own
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
@@ -518,6 +525,9 @@ struct Plot(Movable):
         self._marimekko_categories = List[String]()
         self._marimekko_subcategories = List[String]()
         self._marimekko_values = List[List[Float64]]()
+        self._hierarchy_ids = List[String]()
+        self._hierarchy_parent_ids = List[String]()
+        self._hierarchy_values = List[Float64]()
         self._title = ""
         self._x_title = ""
         self._y_title = ""
@@ -747,6 +757,16 @@ struct Plot(Movable):
         categorical()`/`encode_grouped_bar()` (see that method's own
         docstring for the full shape)."""
         self._mark = Mark.MARIMEKKO
+        return self^
+
+    def mark_sunburst(var self) -> Self:
+        """A sunburst chart: a hierarchy laid out as concentric rings,
+        one ring per depth level, each node's own angular span
+        proportional to its own share of its parent's own total --
+        encoded via `encode_hierarchy()`, not `encode()`/`encode_
+        categorical()` (see that method's own docstring for the exact
+        shape)."""
+        self._mark = Mark.SUNBURST
         return self^
 
     def mark_grouped_bar(var self) -> Self:
@@ -1355,6 +1375,28 @@ struct Plot(Movable):
         self._marimekko_categories = categories.copy()
         self._marimekko_subcategories = subcategories.copy()
         self._marimekko_values = values.copy()
+        return self^
+
+    def encode_hierarchy(var self, ids: List[String], parent_ids: List[String], values: List[Float64]) -> Self:
+        """Map a flattened hierarchy onto `Mark.SUNBURST`/`TREE`/
+        `TREEMAP`'s own shared shape: one row per node, `ids[i]` its
+        own name, `parent_ids[i]` its own parent's `id` (empty string
+        `""` for the single root -- the same `d3.stratify()`-style
+        flattening `hierarchy.mojo`'s own module docstring explains),
+        `values[i]` its own magnitude if it's a leaf (an internal
+        node's own displayed value is always its descendant leaves'
+        own sum instead, computed at render() time -- see `_build_
+        hierarchy_index`'s own docstring).
+
+        Length checking (`ids`/`parent_ids`/`values` all the same
+        length), the single-root/no-duplicate-id/every-parent-id-
+        resolves validation, and the non-negative-values check are all
+        deferred to render() time, the same as every other categorical
+        `encode_*` here.
+        """
+        self._hierarchy_ids = ids.copy()
+        self._hierarchy_parent_ids = parent_ids.copy()
+        self._hierarchy_values = values.copy()
         return self^
 
     def encode_chord(
@@ -3025,6 +3067,8 @@ def _render_generic[
         return _render_punchcard(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.MARIMEKKO:
         return _render_marimekko(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.SUNBURST:
+        return _render_sunburst(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.CHORD:
         return _render_chord(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.SINGLE_AXIS:
