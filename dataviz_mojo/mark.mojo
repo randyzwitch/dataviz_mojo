@@ -255,6 +255,18 @@ point` (angle/radius -> pixel) is the one primitive `RADAR`/`GAUGE`
 (below) both reuse too. See polar.mojo's own `_render_polar` docstring
 for the full reasoning, including the deliberate v1 scope cuts (no
 axis tick labels, single unlabeled series only).
+
+RADAR is the polar-axis family's own categorical mark: one spoke per
+named indicator (`encode_radar()`'s own `indicators`, each with its
+own `max_values[i]` -- unlike `POLAR`'s single shared radius domain,
+a radar chart's whole point is comparing differently-scaled
+dimensions on one shared-looking grid), one closed, filled-and-
+stroked polygon per named series (`series_names`/`series_values`).
+Reuses `POLAR`'s own `_polar_point`, but its own grid (`_draw_radar_
+grid`, radar.mojo) draws straight-edged polygon "web" rings, not
+`POLAR`'s circles -- a radar's own axes are discrete, so there's no
+meaningful position between two spokes for a circle to pass through.
+See radar.mojo's own `_render_radar` docstring for the full reasoning.
 """
 
 
@@ -288,6 +300,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime NIGHTINGALE = Self(24)
     comptime POLAR_BAR = Self(25)
     comptime POLAR = Self(26)
+    comptime RADAR = Self(27)
 
     def __init__(out self, value: Int):
         self._value = value
