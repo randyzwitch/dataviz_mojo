@@ -461,6 +461,20 @@ node's left edge -- straight edges, not a smooth curve, the same
 ribbons already are. A self-loop is dropped before layout entirely
 (no meaningful column-distance to lay out). See sankey.mojo's own
 `_render_sankey` docstring for the full reasoning.
+
+RADIALBAR (the `polarbar` gap item scoped out of Phase 4, closed once
+Phase 7 wrapped) reuses `POLAR_BAR`'s own `encode_categorical` data
+shape and always-linear-against-`max(values)` normalization
+unchanged, but is a genuinely different geometry from it: one full
+concentric *ring* per category, swept clockwise from 12 o'clock over
+a light-gray track, instead of `POLAR_BAR`'s own bars radiating
+outward from a shared center -- the "multi-ring progress indicator"
+shape (Apple Watch's own activity rings, GitHub's own contribution-
+ring widgets), not a circular column chart. The first category's own
+ring draws outermost, each later one nesting further in -- display
+prominence, not `SUNBURST`'s own hierarchy-depth ordering (there's no
+hierarchy here). See radialbar.mojo's own `_render_radialbar`
+docstring for the full reasoning.
 """
 
 
@@ -508,6 +522,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime ARC_DIAGRAM = Self(38)
     comptime GRAPH = Self(39)
     comptime SANKEY = Self(40)
+    comptime RADIALBAR = Self(41)
 
     def __init__(out self, value: Int):
         self._value = value

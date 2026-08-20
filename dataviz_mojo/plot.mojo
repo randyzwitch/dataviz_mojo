@@ -198,6 +198,7 @@ from dataviz_mojo.treemap import _render_treemap
 from dataviz_mojo.arc_diagram import _render_arc_diagram
 from dataviz_mojo.graph import _render_graph
 from dataviz_mojo.sankey import _render_sankey
+from dataviz_mojo.radialbar import _render_radialbar
 from dataviz_mojo.histogram import _bin_histogram
 from dataviz_mojo.lollipop import _render_lollipop
 from dataviz_mojo.single_axis import _render_single_axis
@@ -611,6 +612,20 @@ struct Plot(Movable):
         non-negative, and at least one must be positive -- checked at
         render() time, the same as `mark_arc()`/`mark_nightingale()`."""
         self._mark = Mark.POLAR_BAR
+        return self^
+
+    def mark_radialbar(var self) -> Self:
+        """A radial (multi-ring) progress chart: one full concentric
+        ring per category, swept clockwise from 12 o'clock over a
+        light-gray track to `value / max(values)` of the way around --
+        the "activity rings" shape, unlike `mark_polar_bar()`'s own
+        bars radiating outward from a shared center. Encoded via
+        `encode_categorical()`, the same category + value data shape
+        `mark_polar_bar()`/`mark_arc()`/`mark_nightingale()` use. The
+        first category draws as the outermost ring. Every value must
+        be non-negative, and at least one must be positive -- checked
+        at render() time, the same as `mark_polar_bar()`."""
+        self._mark = Mark.RADIALBAR
         return self^
 
     def mark_polar(var self) -> Self:
@@ -3148,6 +3163,8 @@ def _render_generic[
         return _render_nightingale(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.POLAR_BAR:
         return _render_polar_bar(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.RADIALBAR:
+        return _render_radialbar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.POLAR:
         return _render_polar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.RADAR:
