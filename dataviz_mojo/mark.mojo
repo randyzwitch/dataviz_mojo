@@ -321,6 +321,19 @@ purely for grid placement -- not a general Date/Time type, which this
 package deliberately still doesn't have (see `GANTT`'s own docstring).
 See calendar_heatmap.mojo's own `_render_calendar_heatmap` docstring
 for the full reasoning.
+
+CORRPLOT (second of Phase 6) reuses `HEATMAP`'s own `_draw_grid_axis_
+frame` directly -- unlike `HEATMAP`'s two independent category
+domains, `encode_corrplot()`'s own `variables` list labels *both*
+axes (a correlation matrix is always square). One bubble per
+surviving cell, radius scaling with `abs(matrix[row][col])`, color
+through `HEATMAP`'s own continuous gradient but spanning the fixed
+`[-1.0, 1.0]` correlation domain, not a data-derived one. `Plot.
+mark_corrplot(layout=..., diag=..., labels=...)` controls which
+cells draw and whether each one's own value is labeled -- the same
+lower/upper-triangle convention ECharts.jl's own `corrplot()` uses.
+See corrplot.mojo's own `_render_corrplot` docstring for the full
+reasoning.
 """
 
 
@@ -359,6 +372,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime PARALLEL = Self(29)
     comptime SPAN_CHART = Self(30)
     comptime CALENDAR_HEATMAP = Self(31)
+    comptime CORRPLOT = Self(32)
 
     def __init__(out self, value: Int):
         self._value = value
