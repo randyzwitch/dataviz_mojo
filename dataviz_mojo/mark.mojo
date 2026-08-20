@@ -334,6 +334,19 @@ cells draw and whether each one's own value is labeled -- the same
 lower/upper-triangle convention ECharts.jl's own `corrplot()` uses.
 See corrplot.mojo's own `_render_corrplot` docstring for the full
 reasoning.
+
+PUNCHCARD (third of Phase 6) reuses `HEATMAP`'s own `_draw_grid_axis_
+frame` and `_categorical_indices` domain derivation unchanged -- a
+"scatter plot on a categorical grid" (ECharts.jl's own description),
+one bubble per row instead of `HEATMAP`'s own filled cell, magnitude
+read from bubble *size* (`sizes[i] / scale`, a plain pixel-space
+divisor, `Plot.mark_punchcard(scale=10.0)`'s own default) rather than
+color -- unlike `CORRPLOT`'s own cell-normalized bubble sizing, a
+punchcard's bubbles are meant to visually overflow a small cell when
+the underlying count is large. A repeated `(x, y)` pair draws its own
+independent bubble rather than merging, and there's no legend (no
+categorical color channel to key one by). See punchcard.mojo's own
+`_render_punchcard` docstring for the full reasoning.
 """
 
 
@@ -373,6 +386,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime SPAN_CHART = Self(30)
     comptime CALENDAR_HEATMAP = Self(31)
     comptime CORRPLOT = Self(32)
+    comptime PUNCHCARD = Self(33)
 
     def __init__(out self, value: Int):
         self._value = value
