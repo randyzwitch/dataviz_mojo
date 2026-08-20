@@ -209,14 +209,18 @@ docstring for why). Reuses `_draw_categorical_axis_frame` unchanged.
 
 RIDGELINE (the last of Phase 3) reuses `VIOLIN`'s own `_kde_bandwidth`/
 `_kde_density`/`_KDE_SAMPLES` completely unchanged, but on `GANTT`'s
-own horizontal categorical frame instead of the vertical one: each
-category's own curve rises upward from its own row's bottom edge
-(`_RIDGE_OVERLAP` times the row's own height, deliberately more than
-one row tall, so a tall peak overlaps into the row above -- the
-defining ridgeline look), drawn top to bottom in `x_categories`' own
-given order so a lower row's own curve sits on top of an upper row's
-wherever they overlap. See ridgeline.mojo's own docstring for the full
-reasoning.
+own horizontal categorical frame instead of the vertical one -- called
+with `padding=0.0` (that function's own default is 0.2, right for
+`GANTT`'s own separated floating bars but not this: rows need to sit
+edge-to-edge so `_RIDGE_OVERLAP` alone controls overlap, not an
+incidental padding gap -- see `_draw_horizontal_categorical_axis_
+frame`'s own docstring for the bug this fixed): each category's own
+curve rises upward from its own row's bottom edge (`_RIDGE_OVERLAP`
+times the row's own height, deliberately more than one row tall, so a
+tall peak overlaps into the row above -- the defining ridgeline look),
+drawn top to bottom in `x_categories`' own given order so a lower
+row's own curve sits on top of an upper row's wherever they overlap.
+See ridgeline.mojo's own docstring for the full reasoning.
 
 NIGHTINGALE ("Phase 4" of the broader chart-type survey, the polar-
 axis family -- see the wiki) reuses `ARC`'s own `encode_categorical`
