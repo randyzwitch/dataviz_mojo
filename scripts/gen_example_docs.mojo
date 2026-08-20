@@ -89,6 +89,7 @@ def _titles() -> Dict[String, String]:
     d["sunburst"] = "Sunburst"
     d["tree"] = "Tree"
     d["treemap"] = "Treemap"
+    d["arc_diagram"] = "Arc Diagram"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     return d^
@@ -132,7 +133,7 @@ def _categories() -> List[Category]:
     ))
     cats.append(Category(
         "Relationships & flows", "Weighted connections between entities, not a value per category.",
-        ["chord"],
+        ["chord", "arc_diagram"],
     ))
     cats.append(Category(
         "Radial & polar",
@@ -150,8 +151,9 @@ def _categories() -> List[Category]:
         ["calendar_heatmap", "corrplot", "punchcard", "marimekko"],
     ))
     cats.append(Category(
-        "Hierarchical & network",
-        "A tree or a graph, not a value per category -- see Plot.encode_hierarchy()/encode_chord().",
+        "Hierarchical data",
+        "A tree, not a value per category -- one flattened id/parent_id/value row per node,"
+        " see Plot.encode_hierarchy().",
         ["sunburst", "tree", "treemap"],
     ))
     return cats^
@@ -279,7 +281,7 @@ def _quickplot_names() -> List[String]:
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
         "histogram", "population_pyramid", "heatmap", "chord", "single_axis", "effect_scatter",
-        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "polar", "radar", "gauge", "parallel", "span_chart", "calendar_heatmap", "corrplot", "punchcard", "marimekko", "sunburst", "tree", "treemap",
+        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "polar", "radar", "gauge", "parallel", "span_chart", "calendar_heatmap", "corrplot", "punchcard", "marimekko", "sunburst", "tree", "treemap", "arc_diagram",
     ]
 
 

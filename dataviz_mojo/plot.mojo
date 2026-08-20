@@ -195,6 +195,7 @@ from dataviz_mojo.marimekko import _render_marimekko
 from dataviz_mojo.sunburst import _render_sunburst
 from dataviz_mojo.tree import _render_tree
 from dataviz_mojo.treemap import _render_treemap
+from dataviz_mojo.arc_diagram import _render_arc_diagram
 from dataviz_mojo.histogram import _bin_histogram
 from dataviz_mojo.lollipop import _render_lollipop
 from dataviz_mojo.single_axis import _render_single_axis
@@ -830,6 +831,14 @@ struct Plot(Movable):
         No x/y axis frame at all, the same as `Mark.ARC`, whose ring-
         sector conventions this reuses directly."""
         self._mark = Mark.CHORD
+        return self^
+
+    def mark_arc_diagram(var self) -> Self:
+        """An arc diagram: `mark_chord()`'s own edge list, drawn as
+        nodes on one line connected by semicircular arcs instead of a
+        circular ribbon diagram -- encoded via `encode_chord()`, the
+        exact same shape (see that method's own docstring)."""
+        self._mark = Mark.ARC_DIAGRAM
         return self^
 
     def mark_single_axis(var self) -> Self:
@@ -3093,6 +3102,8 @@ def _render_generic[
         return _render_treemap(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.CHORD:
         return _render_chord(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.ARC_DIAGRAM:
+        return _render_arc_diagram(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.SINGLE_AXIS:
         return _render_single_axis(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.FUNNEL:
