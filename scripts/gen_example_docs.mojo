@@ -91,6 +91,7 @@ def _titles() -> Dict[String, String]:
     d["treemap"] = "Treemap"
     d["arc_diagram"] = "Arc Diagram"
     d["graph"] = "Graph"
+    d["sankey"] = "Sankey"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     return d^
@@ -134,7 +135,7 @@ def _categories() -> List[Category]:
     ))
     cats.append(Category(
         "Relationships & flows", "Weighted connections between entities, not a value per category.",
-        ["chord", "arc_diagram", "graph"],
+        ["chord", "arc_diagram", "graph", "sankey"],
     ))
     cats.append(Category(
         "Radial & polar",
@@ -282,7 +283,7 @@ def _quickplot_names() -> List[String]:
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
         "histogram", "population_pyramid", "heatmap", "chord", "single_axis", "effect_scatter",
-        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "polar", "radar", "gauge", "parallel", "span_chart", "calendar_heatmap", "corrplot", "punchcard", "marimekko", "sunburst", "tree", "treemap", "arc_diagram", "graph",
+        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "polar", "radar", "gauge", "parallel", "span_chart", "calendar_heatmap", "corrplot", "punchcard", "marimekko", "sunburst", "tree", "treemap", "arc_diagram", "graph", "sankey",
     ]
 
 

@@ -430,7 +430,7 @@ unlike `CHORD` (which needs one since its own ring sectors are often
 too thin to label directly). See arc_diagram.mojo's own `_render_arc_
 diagram` docstring for the full reasoning.
 
-GRAPH (last of Phase 7) reuses `CHORD`'s own edge-list data too, a
+GRAPH (third of Phase 7's edge-list sub-family) reuses `CHORD`'s own edge-list data too, a
 third genuinely different network layout: nodes evenly spaced around
 a circle (`ARC`'s own start-at-12-o'clock convention, reused for
 position only), edges drawn as straight lines cutting across the
@@ -444,6 +444,23 @@ needs exact, hand-verifiable positions). Labels align by which side
 of center they fall on, the same rule `RADAR`'s own axis labels
 already use. See graph.mojo's own `_render_graph` docstring for the
 full reasoning.
+
+SANKEY (fourth and last of Phase 7's edge-list sub-family, and the
+last mark of Phase 7 overall) reuses `CHORD`'s own edge-list data one
+more time, laid out left-to-right by column -- a node's own column is
+the length of the *longest* path reaching it from any source,
+computed via one Kahn's-algorithm topological pass (which also
+detects a cycle and raises, since a real Sankey's own flow data must
+be a DAG). Each node is a thin bar, height proportional to `max(total
+inflow, total outflow)`; nodes sharing a column stack via the same
+"round the cumulative boundary" pattern `MARIMEKKO`/`TREEMAP` already
+establish. Each flow draws as a filled quadrilateral ("ribbon")
+between a slice of its own `from` node's right edge and its own `to`
+node's left edge -- straight edges, not a smooth curve, the same
+"straight, not curved" simplification `CHORD`'s own straight-rim
+ribbons already are. A self-loop is dropped before layout entirely
+(no meaningful column-distance to lay out). See sankey.mojo's own
+`_render_sankey` docstring for the full reasoning.
 """
 
 
@@ -490,6 +507,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime TREEMAP = Self(37)
     comptime ARC_DIAGRAM = Self(38)
     comptime GRAPH = Self(39)
+    comptime SANKEY = Self(40)
 
     def __init__(out self, value: Int):
         self._value = value
