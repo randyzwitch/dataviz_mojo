@@ -1,7 +1,6 @@
-from std.math import cos, pi, sin
+from std.math import pi
 
 from canvas_mojo.color import Color
-from canvas_mojo.path import Path
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.vector.svg import SvgCanvas
 from canvas_mojo.buffer import Canvas
@@ -25,47 +24,29 @@ from dataviz_mojo.theme import Theme
 def _fill_ring_sector[
     T: DrawTarget
 ](mut target: T, cx: Float64, cy: Float64, inner: Float64, outer: Float64, a0: Float64, a1: Float64, color: Color) raises:
-    """A ring sector filled via a real `Path` (outer arc forward,
-    straight edge in, inner arc backward, close) and `fill_path_aa`,
-    *not* `DrawTarget.fill_ring_sector_aa` directly -- a real,
-    confirmed bug in that primitive's own raster implementation
-    (canvas_mojo's `_arc_bounds`, the bounding-box shortcut it scans
-    only within): its own docstring claims "the inner arc's own bounds
-    are always a subset of the outer arc's," which is false for a
-    wedge that doesn't cross a cardinal angle (0/pi/2/pi/3pi/2) --
-    the *straight radial edge* connecting the two arcs at the wedge's
-    own end angle can reach a coordinate more extreme than anything on
-    the outer arc itself (confirmed by hand: for a wedge from -pi/2 to
-    -pi/6, the inner arc's own end point has a *larger* y than the
-    outer arc's own computed max_y, since the two arcs' y-values move
-    in opposite directions relative to center along that edge). The
-    raster scan then never visits the pixels between the outer arc's
-    own (too-small) computed bound and the wedge's own true extent,
-    leaving them background -- a rectangular notch, not a clean
-    angular gap, exactly what a two-branch sunburst rendered and
-    looked at (not just pixel-asserted) showed before this fix. The
-    SVG backend has no such bug (`SvgCanvas.fill_ring_sector_aa` emits
-    real arc/line path commands with no bounding-box shortcut at all,
-    confirmed by comparing its own output against this exact case),
-    which is why only the raster path needed a workaround.
+    """A ring sector, or -- when `inner == 0.0` -- a real wedge (the
+    innermost ring of a sunburst touches the center, so it isn't a
+    true "ring" with a hole at all): `fill_arc_aa` for the wedge case,
+    `fill_ring_sector_aa` once there's a real inner radius, the same
+    pie-vs-donut split `Mark.ARC`'s own docstring already establishes.
 
-    `Path.arc_to`'s own docstring says `start_angle <= end_angle`
-    "expected," but empirically traces a correct backward arc when
-    given the reverse order too (confirmed directly against a real
-    render before relying on it here, the same discipline this
-    package always uses for an assumption about someone else's code)
-    -- used for the inner arc's own return sweep, `a1` to `a0`.
-    `inner == 0.0` (a real wedge, not a ring) works fine through this
-    same path construction too, degenerating to a single point rather
-    than a zero-length arc.
+    Called through `DrawTarget.fill_ring_sector_aa` directly again as
+    of canvas_mojo v0.4.1 -- earlier versions had a real, confirmed
+    bug in that primitive's own raster bounding-box shortcut
+    (`_arc_bounds`, fixed upstream in canvas_mojo#33/PR #34) that
+    clipped a rectangular notch off a ring sector whenever its own
+    wedge didn't cross a cardinal angle. This function briefly built
+    each ring sector as a real `Path` instead (`fill_path_aa`,
+    sidestepping the buggy primitive entirely) as a workaround; gone
+    now that the pinned canvas_mojo version has the real fix -- see
+    this file's own git history (the PR that added, then the PR that
+    reverted, this workaround) for the full incident if this ever
+    needs revisiting.
     """
-    var path = Path()
-    path.move_to(cx + outer * cos(a0), cy + outer * sin(a0))
-    path.arc_to(cx, cy, outer, a0, a1)
-    path.line_to(cx + inner * cos(a1), cy + inner * sin(a1))
-    path.arc_to(cx, cy, inner, a1, a0)
-    path.close()
-    target.fill_path_aa(path, color)
+    if inner <= 0.0:
+        target.fill_arc_aa(cx, cy, outer, a0, a1, color)
+    else:
+        target.fill_ring_sector_aa(cx, cy, inner, outer, a0, a1, color)
 
 
 def _draw_sunburst_node[
