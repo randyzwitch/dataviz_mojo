@@ -171,6 +171,7 @@ from dataviz_mojo.arc import _render_arc
 from dataviz_mojo.nightingale import _render_nightingale
 from dataviz_mojo.polar import _render_polar
 from dataviz_mojo.polar_bar import _render_polar_bar
+from dataviz_mojo.radar import _render_radar
 from dataviz_mojo.bar import _render_bar
 from dataviz_mojo.beeswarm import _render_beeswarm
 from dataviz_mojo.ridgeline import _render_ridgeline
@@ -392,6 +393,13 @@ struct Plot(Movable):
     # encode_polar()'s own docstring.
     var _polar_angle: List[Float64]
     var _polar_radius: List[Float64]
+    # Mark.RADAR only -- one named indicator (axis) per entry, each
+    # with its own max, plus one or more named series each with a
+    # value per indicator. See encode_radar()'s own docstring.
+    var _radar_indicators: List[String]
+    var _radar_max: List[Float64]
+    var _radar_series_names: List[String]
+    var _radar_series_values: List[List[Float64]]
     # Chart/axis title text, set via .labels() -- see that method's own
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
@@ -443,6 +451,10 @@ struct Plot(Movable):
         self._nightingale_area = False
         self._polar_angle = List[Float64]()
         self._polar_radius = List[Float64]()
+        self._radar_indicators = List[String]()
+        self._radar_max = List[Float64]()
+        self._radar_series_names = List[String]()
+        self._radar_series_values = List[List[Float64]]()
         self._title = ""
         self._x_title = ""
         self._y_title = ""
@@ -532,6 +544,14 @@ struct Plot(Movable):
         own docstring for the full reasoning, including why `angle`
         is never wrapped `mod 2*pi`."""
         self._mark = Mark.POLAR
+        return self^
+
+    def mark_radar(var self) -> Self:
+        """A radar/spider chart: one spoke per named indicator, one
+        polygon per named series -- encoded via `encode_radar()`, not
+        `encode()`/`encode_categorical()` (see that method's own
+        docstring for the full shape)."""
+        self._mark = Mark.RADAR
         return self^
 
     def mark_lollipop(var self) -> Self:
@@ -1158,6 +1178,67 @@ struct Plot(Movable):
         """
         self._polar_angle = angle.copy()
         self._polar_radius = radius.copy()
+        return self^
+
+    def encode_radar(
+        var self,
+        indicators: List[String],
+        max_values: List[Float64],
+        series_names: List[String],
+        series_values: List[List[Float64]],
+    ) raises -> Self:
+        """Map `Mark.RADAR`'s own shape onto its four channels: one
+        named axis per `indicators` entry (each with its own
+        `max_values[i]`, since a radar chart's whole point is
+        comparing differently-scaled dimensions on one shared-looking
+        grid -- unlike `encode_polar()`'s single shared radius domain),
+        and one named series per `series_names` entry, each a *list*
+        of values in `series_values` -- one value per indicator, the
+        same "outer list indexes categories, inner list is that
+        category's own numbers" shape `encode_distribution()` already
+        established, but here the inner list's own length is fixed
+        (one value per indicator) rather than an arbitrary raw
+        distribution.
+
+        Raises immediately (the same "can't produce a coherent result
+        at all" reasoning `encode_distribution()`'s own checks already
+        give, generalized to four lists instead of two) on any length
+        mismatch: `indicators`/`max_values`, `series_names`/`series_
+        values`, or any individual series whose own value count
+        doesn't match `indicators`'s own count.
+        """
+        if len(indicators) != len(max_values):
+            raise Error(
+                "Plot.encode_radar(): indicators and max_values must have the same length"
+                " (got "
+                + String(len(indicators))
+                + " and "
+                + String(len(max_values))
+                + ")"
+            )
+        if len(series_names) != len(series_values):
+            raise Error(
+                "Plot.encode_radar(): series_names and series_values must have the same length"
+                " (got "
+                + String(len(series_names))
+                + " and "
+                + String(len(series_values))
+                + ")"
+            )
+        for values in series_values:
+            if len(values) != len(indicators):
+                raise Error(
+                    "Plot.encode_radar(): every series in series_values must have one value per"
+                    " indicator (expected "
+                    + String(len(indicators))
+                    + ", got "
+                    + String(len(values))
+                    + ")"
+                )
+        self._radar_indicators = indicators.copy()
+        self._radar_max = max_values.copy()
+        self._radar_series_names = series_names.copy()
+        self._radar_series_values = series_values.copy()
         return self^
 
     def encode_distribution(var self, categories: List[String], values: List[List[Float64]]) raises -> Self:
@@ -2676,6 +2757,8 @@ def _render_generic[
         return _render_polar_bar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.POLAR:
         return _render_polar(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.RADAR:
+        return _render_radar(target, plot, ox0, oy0, ox1, oy1)
 
     _validate_continuous_encoding(plot, "Plot.encode()")
 
