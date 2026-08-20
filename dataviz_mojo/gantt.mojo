@@ -81,6 +81,7 @@ def _draw_horizontal_categorical_axis_frame[
     oy0: Int,
     ox1: Int,
     oy1: Int,
+    padding: Float64 = 0.2,
 ) raises -> _HorizontalCategoricalFrame:
     """`_draw_categorical_axis_frame`'s own mirror image: categories run
     along a horizontal `OrdinalScale` y-axis (top-to-bottom, category
@@ -131,6 +132,26 @@ def _draw_horizontal_categorical_axis_frame[
     gridlines do. Vertical gridlines at each of `x_scale`'s own ticks
     are drawn instead, the direct mirror of the vertical frame's
     horizontal ones.
+
+    `padding` (default 0.2, `OrdinalScale`'s own default) is forwarded
+    straight through to the `OrdinalScale` this builds -- `Mark.GANTT`/
+    `POPULATION_PYRAMID` (this function's two original callers) both
+    want real visual separation between rows, the default's own job.
+    `Mark.RIDGELINE` (added later) passes `padding=0.0` instead: the
+    same `padding=0.0` choice `Mark.HEATMAP`'s own `_draw_grid_axis_
+    frame` already makes for edge-to-edge cells, needed here for the
+    same underlying reason -- a nonzero gap between adjacent bands left
+    a real sliver of background between one row's own baseline and the
+    next row's own top, only sometimes covered by the row below's own
+    curve rising into it (however much its own density happened to be
+    at that x), which showed up as a spurious notch cut into the
+    row above wherever it wasn't -- not `_RIDGE_OVERLAP`'s own doing,
+    a padding-vs-baseline mismatch this function's own default left
+    unaccounted for. `padding=0.0` makes each row's own baseline land
+    exactly on the next row's own top edge, so only `_RIDGE_OVERLAP`
+    itself controls whether/how far one row's peak crosses into
+    another's -- confirmed by rendering a two-category ridgeline case
+    before and after this fix, not assumed from the formula alone.
     """
     var sc = _Scaled(theme)
 
@@ -147,7 +168,7 @@ def _draw_horizontal_categorical_axis_frame[
     out_x_scale.range_min = Float64(plot_x0)
     out_x_scale.range_max = Float64(plot_x1)
 
-    var y_scale = OrdinalScale(categories.copy(), Float64(plot_y0), Float64(plot_y1))
+    var y_scale = OrdinalScale(categories.copy(), Float64(plot_y0), Float64(plot_y1), padding)
 
     var x_ticks = out_x_scale.ticks()
     var x_labels = x_ticks.labels()
