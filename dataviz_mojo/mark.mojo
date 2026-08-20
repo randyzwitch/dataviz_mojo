@@ -240,6 +240,21 @@ read as separated columns radiating from the center instead of pie-
 like wedges. Always linear (`value/max`) -- no `NIGHTINGALE`-style
 `rose_type="area"` equivalent; ECharts' own `polarbar` has no such
 mode. See polar_bar.mojo's own `_render_polar_bar` docstring.
+
+POLAR is the odd one out among the polar-axis family: not a
+categorical mark at all, but the polar equivalent of `LINE` -- its own
+new `encode_polar()` maps a continuous `angle` (radians, used exactly
+as given, never wrapped `mod 2*pi` -- so a caller plotting angle
+values past a full turn gets a real spiral, ECharts.jl's own "spiral"
+example) and a continuous `radius` (linearly scaled from `[0,
+max(radius)]`, always zero-anchored at the chart's own center) onto
+one stroked polyline plus point markers, drawn over a new polar grid
+(`_draw_polar_grid`, polar.mojo -- concentric rings via a real `Path.
+arc_to` sweep, plus straight angular spokes). Its own shared `_polar_
+point` (angle/radius -> pixel) is the one primitive `RADAR`/`GAUGE`
+(below) both reuse too. See polar.mojo's own `_render_polar` docstring
+for the full reasoning, including the deliberate v1 scope cuts (no
+axis tick labels, single unlabeled series only).
 """
 
 
@@ -272,6 +287,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime RIDGELINE = Self(23)
     comptime NIGHTINGALE = Self(24)
     comptime POLAR_BAR = Self(25)
+    comptime POLAR = Self(26)
 
     def __init__(out self, value: Int):
         self._value = value

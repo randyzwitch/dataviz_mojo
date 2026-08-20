@@ -169,6 +169,7 @@ from dataviz_mojo.theme import Theme
 
 from dataviz_mojo.arc import _render_arc
 from dataviz_mojo.nightingale import _render_nightingale
+from dataviz_mojo.polar import _render_polar
 from dataviz_mojo.polar_bar import _render_polar_bar
 from dataviz_mojo.bar import _render_bar
 from dataviz_mojo.beeswarm import _render_beeswarm
@@ -387,6 +388,10 @@ struct Plot(Movable):
     # formulas each wedge uses (False = "radius", True = "area"). See
     # mark_nightingale()'s own docstring.
     var _nightingale_area: Bool
+    # Mark.POLAR only -- one (angle, radius) pair per row. See
+    # encode_polar()'s own docstring.
+    var _polar_angle: List[Float64]
+    var _polar_radius: List[Float64]
     # Chart/axis title text, set via .labels() -- see that method's own
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
@@ -436,6 +441,8 @@ struct Plot(Movable):
         self._chord_value = List[Float64]()
         self._distribution_values = List[List[Float64]]()
         self._nightingale_area = False
+        self._polar_angle = List[Float64]()
+        self._polar_radius = List[Float64]()
         self._title = ""
         self._x_title = ""
         self._y_title = ""
@@ -514,6 +521,17 @@ struct Plot(Movable):
         non-negative, and at least one must be positive -- checked at
         render() time, the same as `mark_arc()`/`mark_nightingale()`."""
         self._mark = Mark.POLAR_BAR
+        return self^
+
+    def mark_polar(var self) -> Self:
+        """A polar-coordinate line plot: (angle, radius) pairs
+        connected in row order, drawn over a polar grid -- encoded via
+        `encode_polar()`, not `encode()`/`encode_categorical()` (a
+        polar plot's own two channels are an angle and a radius, not
+        an x/y position or a category + value). See `_render_polar`'s
+        own docstring for the full reasoning, including why `angle`
+        is never wrapped `mod 2*pi`."""
+        self._mark = Mark.POLAR
         return self^
 
     def mark_lollipop(var self) -> Self:
@@ -1122,6 +1140,24 @@ struct Plot(Movable):
         self._chord_from = from_categories.copy()
         self._chord_to = to_categories.copy()
         self._chord_value = values.copy()
+        return self^
+
+    def encode_polar(var self, angle: List[Float64], radius: List[Float64]) -> Self:
+        """Map an angle column (radians) and a radius column onto
+        `Mark.POLAR`'s own two channels -- one point per row, connected
+        in the given row order (not sorted by angle -- the same "the
+        caller's own order is the order drawn" stance `mark_line()`'s
+        own docstring already takes, and the only order that lets a
+        spiral -- `angle` values beyond `2*pi` -- draw correctly at
+        all).
+
+        `angle`/`radius` length match and `radius`'s own non-negative
+        requirement are both checked at render() time, not here -- the
+        same "encode() itself can't raise partway through a fluent
+        chain" reasoning `encode()`'s own docstring gives.
+        """
+        self._polar_angle = angle.copy()
+        self._polar_radius = radius.copy()
         return self^
 
     def encode_distribution(var self, categories: List[String], values: List[List[Float64]]) raises -> Self:
@@ -2638,6 +2674,8 @@ def _render_generic[
         return _render_nightingale(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.POLAR_BAR:
         return _render_polar_bar(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.POLAR:
+        return _render_polar(target, plot, ox0, oy0, ox1, oy1)
 
     _validate_continuous_encoding(plot, "Plot.encode()")
 

@@ -77,6 +77,7 @@ def _titles() -> Dict[String, String]:
     d["ridgeline"] = "Ridgeline"
     d["nightingale"] = "Nightingale Rose"
     d["polarbar"] = "Polar Bar"
+    d["polar"] = "Polar"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     return d^
@@ -125,7 +126,7 @@ def _categories() -> List[Category]:
     cats.append(Category(
         "Radial & polar",
         "Chart types built on a polar (angle + radius) coordinate system instead of a cartesian one.",
-        ["nightingale", "polarbar"],
+        ["nightingale", "polarbar", "polar"],
     ))
     return cats^
 
@@ -252,7 +253,7 @@ def _quickplot_names() -> List[String]:
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
         "histogram", "population_pyramid", "heatmap", "chord", "single_axis", "effect_scatter",
-        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar",
+        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "polar",
     ]
 
 
