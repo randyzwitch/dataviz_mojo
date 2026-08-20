@@ -381,6 +381,21 @@ descendant of one of the root's own direct children shares that
 child's own palette color, so one glance shows which top-level branch
 a deeply nested ring segment belongs to. See sunburst.mojo's own
 `_render_sunburst` docstring for the full reasoning.
+
+TREE (second of Phase 7) reuses the exact same `_build_hierarchy_
+index` `encode_hierarchy()` data `SUNBURST` does, but as a classic
+top-to-bottom node-link diagram instead of a radial one: `depth`
+picks each node's own row, `_assign_leaf_positions` (tree.mojo -- a
+deliberately simplified layout, *not* a real Reingold-Tilford
+algorithm, see its own docstring) picks each node's own column (every
+leaf gets the next sequential slot, left to right; an internal node
+sits at the plain average of its own children's own slots). The same
+"one color per top-level branch, shared by every descendant" idea
+`SUNBURST` already establishes, computed once up front here (`_assign_
+branch_colors`) rather than threaded through a recursive draw call,
+since `TREE` draws every edge first, then every node marker on top,
+two separate passes rather than one recursive one. See tree.mojo's
+own `_render_tree` docstring for the full reasoning.
 """
 
 
@@ -423,6 +438,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime PUNCHCARD = Self(33)
     comptime MARIMEKKO = Self(34)
     comptime SUNBURST = Self(35)
+    comptime TREE = Self(36)
 
     def __init__(out self, value: Int):
         self._value = value

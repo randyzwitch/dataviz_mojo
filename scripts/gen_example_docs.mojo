@@ -87,6 +87,7 @@ def _titles() -> Dict[String, String]:
     d["punchcard"] = "Punchcard"
     d["marimekko"] = "Marimekko"
     d["sunburst"] = "Sunburst"
+    d["tree"] = "Tree"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     return d^
@@ -150,7 +151,7 @@ def _categories() -> List[Category]:
     cats.append(Category(
         "Hierarchical & network",
         "A tree or a graph, not a value per category -- see Plot.encode_hierarchy()/encode_chord().",
-        ["sunburst"],
+        ["sunburst", "tree"],
     ))
     return cats^
 
@@ -277,7 +278,7 @@ def _quickplot_names() -> List[String]:
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
         "histogram", "population_pyramid", "heatmap", "chord", "single_axis", "effect_scatter",
-        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "polar", "radar", "gauge", "parallel", "span_chart", "calendar_heatmap", "corrplot", "punchcard", "marimekko", "sunburst",
+        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "polar", "radar", "gauge", "parallel", "span_chart", "calendar_heatmap", "corrplot", "punchcard", "marimekko", "sunburst", "tree",
     ]
 
 
