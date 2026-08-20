@@ -26,22 +26,24 @@ comptime _GAUGE_SWEEP = 3.0 * pi / 2.0
 
 def _gauge_breakpoints() -> List[Float64]:
     """ECharts' own default breakpoints (a gauge's value range split
-    into low/mid/high bands at 20%/80%/100%) -- fixed here rather than
-    exposed through `encode_gauge()`'s own parameters, a real v1 scope
-    choice (the same kind `Mark.CHORD`'s straight-rim ribbons or `Mark.
-    RADAR`'s fixed grid-ring count already are): worth making
-    configurable if a concrete caller needs different bands, not built
-    as a knob speculatively now. A plain function, not a `Theme` field
-    -- the same `List`-breaks-`ImplicitlyCopyable` reasoning `default_
-    categorical_palette()`'s own docstring already gives for keeping a
-    fixed default list out of `Theme` itself."""
+    into low/mid/high bands at 20%/80%/100%) -- the fallback `_render_
+    gauge` draws when `Plot.encode_gauge()`'s own `breakpoints` is left
+    at its default empty list (see that method's own docstring for the
+    "empty means use this default" sentinel convention, and the render-
+    time validation once a caller *does* supply their own). A plain
+    function, not a `Theme` field -- the same `List`-breaks-
+    `ImplicitlyCopyable` reasoning `default_categorical_palette()`'s
+    own docstring already gives for keeping a fixed default list out of
+    `Theme` itself."""
     return [0.2, 0.8, 1.0]
 
 
 def _gauge_band_colors() -> List[Color]:
     """The three breakpoint bands' own colors -- green/blue/red,
-    ECharts' own default. See `_gauge_breakpoints()`'s own docstring
-    for why this is a plain function, not a `Theme` field."""
+    ECharts' own default, drawn whenever `Plot.encode_gauge()`'s own
+    `band_colors` is left at its default empty list. See `_gauge_
+    breakpoints()`'s own docstring for why this is a plain function,
+    not a `Theme` field."""
     return [Color(46, 139, 87), Color(30, 144, 255), Color(220, 20, 60)]
 
 
@@ -62,16 +64,24 @@ def _render_gauge[
     of-range value, not an error the way most other value validation
     in this package is; a gauge's whole point is a live reading that
     can legitimately go out of its expected range) as a needle
-    (`draw_line_aa`, `theme.mark_color`) over `_GAUGE_BREAKPOINTS`'
-    own three colored ring-sector bands (`fill_ring_sector_aa`, the
-    same primitive `Mark.ARC`'s own donut mode uses), plus a small
-    pivot circle at the center and the value itself as a centered
-    text label below it.
+    (`draw_line_aa`, `theme.mark_color`) over `breakpoints`/`band_
+    colors`' own colored ring-sector bands (`fill_ring_sector_aa`, the
+    same primitive `Mark.ARC`'s own donut mode uses -- falling back to
+    `_gauge_breakpoints()`/`_gauge_band_colors()`'s own fixed 20%/80%/
+    100% green/blue/red default when `encode_gauge()`'s own `breakpoints`/
+    `band_colors` were left empty, see that method's own docstring),
+    plus a small pivot circle at the center and the value itself as a
+    centered text label below it.
 
     `min_value` must be strictly less than `max_value` (checked at
     render() time) -- a zero-or-negative span has no dial to sweep.
-    No axis frame, no legend -- a gauge has exactly one value and no
-    categories to key either by.
+    A non-default `breakpoints`/`band_colors` pair must be the same
+    length, non-empty, strictly ascending, and stay within `(0, 1]` --
+    each entry is a fraction of the full dial sweep, so anything
+    outside that range (or a non-ascending order, which would draw a
+    band backwards) has no dial position to mean. No axis frame, no
+    legend -- a gauge has exactly one value and no categories to key
+    either by.
     """
     var theme = plot._theme
     if plot._gauge_min >= plot._gauge_max:
@@ -82,6 +92,29 @@ def _render_gauge[
             + String(plot._gauge_max)
             + ")"
         )
+
+    var breakpoints = plot._gauge_breakpoints.copy() if len(plot._gauge_breakpoints) > 0 else _gauge_breakpoints()
+    var colors = plot._gauge_band_colors.copy() if len(plot._gauge_band_colors) > 0 else _gauge_band_colors()
+    if len(breakpoints) != len(colors):
+        raise Error(
+            "Plot.encode_gauge(): breakpoints and band_colors must be the same length (got "
+            + String(len(breakpoints))
+            + " and "
+            + String(len(colors))
+            + ")"
+        )
+    var prev = 0.0
+    for i in range(len(breakpoints)):
+        var b = breakpoints[i]
+        if b <= prev or b > 1.0:
+            raise Error(
+                "Plot.encode_gauge(): breakpoints must be strictly ascending and within (0, 1] (got "
+                + String(b)
+                + " after "
+                + String(prev)
+                + ")"
+            )
+        prev = b
 
     var text_requests = List[_TextRequest]()
     var sc = _Scaled(theme)
@@ -95,9 +128,7 @@ def _render_gauge[
     var inner_radius = max_radius * _GAUGE_BAND_INNER_FRACTION
 
     var band_start = _GAUGE_START
-    var breakpoints = _gauge_breakpoints()
-    var colors = _gauge_band_colors()
-    for i in range(3):
+    for i in range(len(breakpoints)):
         var band_end = _GAUGE_START + _GAUGE_SWEEP * breakpoints[i]
         target.fill_ring_sector_aa(cx, cy, inner_radius, max_radius, band_start, band_end, colors[i])
         band_start = band_end
@@ -131,6 +162,8 @@ def gauge(
     value: Float64,
     min_value: Float64 = 0.0,
     max_value: Float64 = 100.0,
+    breakpoints: List[Float64] = List[Float64](),
+    band_colors: List[Color] = List[Color](),
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -141,7 +174,11 @@ def gauge(
     """A gauge chart -- `Mark.GAUGE`, a single `value` (clamped to
     `[min_value, max_value]`) shown as a needle over a 270-degree
     color-banded dial (green/blue/red at the default 20%/80%/100%
-    breakpoints). See `_render_gauge`'s own docstring for the full
-    reasoning."""
-    var plot = Plot().mark_gauge().encode_gauge(value=value, min_value=min_value, max_value=max_value)
+    breakpoints, or `breakpoints`/`band_colors`' own custom bands --
+    see `Plot.encode_gauge()`'s own docstring for the sentinel-empty-
+    means-default convention and validation). See `_render_gauge`'s
+    own docstring for the full reasoning."""
+    var plot = Plot().mark_gauge().encode_gauge(
+        value=value, min_value=min_value, max_value=max_value, breakpoints=breakpoints, band_colors=band_colors
+    )
     return _rendered(plot^, theme, width, height, title, x_title, y_title)

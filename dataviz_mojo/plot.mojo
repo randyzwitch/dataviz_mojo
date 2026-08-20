@@ -414,11 +414,16 @@ struct Plot(Movable):
     var _radar_max: List[Float64]
     var _radar_series_names: List[String]
     var _radar_series_values: List[List[Float64]]
-    # Mark.GAUGE only -- a single value plus its own dial range. See
-    # encode_gauge()'s own docstring.
+    # Mark.GAUGE only -- a single value plus its own dial range, plus
+    # the optional custom breakpoint bands (empty means "use ECharts'
+    # own 20%/80%/100% default", the same empty-list-is-a-sentinel
+    # convention `encode()`'s own `color`/`size` channels already use).
+    # See encode_gauge()'s own docstring.
     var _gauge_value: Float64
     var _gauge_min: Float64
     var _gauge_max: Float64
+    var _gauge_breakpoints: List[Float64]
+    var _gauge_band_colors: List[Color]
     # Mark.PARALLEL only -- one named axis per dimension, one named
     # row per observation, one value per (row, dimension) pair. See
     # encode_parallel()'s own docstring.
@@ -514,6 +519,8 @@ struct Plot(Movable):
         self._gauge_value = 0.0
         self._gauge_min = 0.0
         self._gauge_max = 100.0
+        self._gauge_breakpoints = List[Float64]()
+        self._gauge_band_colors = List[Color]()
         self._parallel_dims = List[String]()
         self._parallel_row_names = List[String]()
         self._parallel_data = List[List[Float64]]()
@@ -649,8 +656,9 @@ struct Plot(Movable):
 
     def mark_gauge(var self) -> Self:
         """A gauge chart: a single value shown as a needle over a
-        color-banded dial -- encoded via `encode_gauge()`, not
-        `encode()`/`encode_categorical()` (see that method's own
+        color-banded dial (bands customizable via `encode_gauge()`'s
+        own `breakpoints`/`band_colors`) -- encoded via `encode_gauge()`,
+        not `encode()`/`encode_categorical()` (see that method's own
         docstring for the full shape)."""
         self._mark = Mark.GAUGE
         return self^
@@ -1567,7 +1575,14 @@ struct Plot(Movable):
         self._radar_series_values = series_values.copy()
         return self^
 
-    def encode_gauge(var self, value: Float64, min_value: Float64 = 0.0, max_value: Float64 = 100.0) -> Self:
+    def encode_gauge(
+        var self,
+        value: Float64,
+        min_value: Float64 = 0.0,
+        max_value: Float64 = 100.0,
+        breakpoints: List[Float64] = List[Float64](),
+        band_colors: List[Color] = List[Color](),
+    ) -> Self:
         """Map a single reading onto `Mark.GAUGE`'s own dial: `value`
         (clamped to `[min_value, max_value]` at render() time, not
         rejected -- see `_render_gauge`'s own docstring for why an
@@ -1576,10 +1591,28 @@ struct Plot(Movable):
         `[0, 100]`, a plain percentage-style gauge -- ECharts.jl's own
         default too). `min_value < max_value` is checked at render()
         time, the same deferred-validation stance every other encode
-        method here takes."""
+        method here takes.
+
+        `breakpoints`/`band_colors` together replace the dial's own
+        color-banded background -- `breakpoints` an ascending list of
+        fractions of the full `[min_value, max_value]` span (e.g.
+        `[0.5, 1.0]` for a two-band low/high split), `band_colors` one
+        color per band, same length. Left at their defaults (both
+        empty -- the same empty-list-is-a-sentinel convention `encode()`'s
+        own `color`/`size` channels already use), this reproduces
+        ECharts' own fixed 20%/80%/100% green/blue/red default exactly,
+        unchanged (see `_gauge_breakpoints()`/`_gauge_band_colors()` in
+        gauge.mojo, still what every default call ultimately draws) --
+        the same "purely additive" guarantee every other optional
+        feature in this package makes. Length-matching and ascending-
+        order validation (when non-default) is deferred to render()
+        time, the same as everything else here.
+        """
         self._gauge_value = value
         self._gauge_min = min_value
         self._gauge_max = max_value
+        self._gauge_breakpoints = breakpoints.copy()
+        self._gauge_band_colors = band_colors.copy()
         return self^
 
     def encode_parallel(
