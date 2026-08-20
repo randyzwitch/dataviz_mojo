@@ -217,6 +217,18 @@ defining ridgeline look), drawn top to bottom in `x_categories`' own
 given order so a lower row's own curve sits on top of an upper row's
 wherever they overlap. See ridgeline.mojo's own docstring for the full
 reasoning.
+
+NIGHTINGALE ("Phase 4" of the broader chart-type survey, the polar-
+axis family -- see the wiki) reuses `ARC`'s own `encode_categorical`
+data shape, start-at-12-o'clock/sweep-clockwise convention, and value
+validation, but gives every wedge the *same* angular width (`2*pi / N`)
+instead of `ARC`'s value-proportional one -- a wedge's own magnitude is
+encoded by its radius instead, scaled against the data's own largest
+value (`Plot.mark_nightingale(area=...)`'s own `False`/`"radius"` mode
+scales linearly; `True`/`"area"` mode scales by `sqrt(value / max)`
+instead, so a wedge's own *area*, not just its radius, is proportional
+to its value -- ECharts' own second `rose_type`). See nightingale.
+mojo's own `_render_nightingale` docstring for the full reasoning.
 """
 
 
@@ -247,6 +259,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime BEESWARM = Self(21)
     comptime VIOLIN = Self(22)
     comptime RIDGELINE = Self(23)
+    comptime NIGHTINGALE = Self(24)
 
     def __init__(out self, value: Int):
         self._value = value

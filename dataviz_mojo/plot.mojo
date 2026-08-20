@@ -168,6 +168,7 @@ from dataviz_mojo.scale import LinearScale, MinMax, _format_fixed, _min_max
 from dataviz_mojo.theme import Theme
 
 from dataviz_mojo.arc import _render_arc
+from dataviz_mojo.nightingale import _render_nightingale
 from dataviz_mojo.bar import _render_bar
 from dataviz_mojo.beeswarm import _render_beeswarm
 from dataviz_mojo.ridgeline import _render_ridgeline
@@ -381,6 +382,10 @@ struct Plot(Movable):
     # boxplot, which reduces each category's own list to a five-number
     # summary immediately). See encode_distribution()'s own docstring.
     var _distribution_values: List[List[Float64]]
+    # Mark.NIGHTINGALE only -- which of ECharts' two `rose_type` radius
+    # formulas each wedge uses (False = "radius", True = "area"). See
+    # mark_nightingale()'s own docstring.
+    var _nightingale_area: Bool
     # Chart/axis title text, set via .labels() -- see that method's own
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
@@ -429,6 +434,7 @@ struct Plot(Movable):
         self._chord_to = List[String]()
         self._chord_value = List[Float64]()
         self._distribution_values = List[List[Float64]]()
+        self._nightingale_area = False
         self._title = ""
         self._x_title = ""
         self._y_title = ""
@@ -476,6 +482,23 @@ struct Plot(Movable):
         the same "raise, don't silently misrepresent the data" stance
         `_zero_baseline_y_extent` takes for BAR/AREA's own baseline."""
         self._mark = Mark.ARC
+        return self^
+
+    def mark_nightingale(var self, area: Bool = False) -> Self:
+        """A rose/coxcomb chart: one wedge per category, all wedges the
+        same angular width -- magnitude encoded by radius instead of
+        angle (unlike `mark_arc()`) -- encoded via `encode_categorical()`,
+        the same category + value data shape `mark_arc()`/`mark_bar()`
+        use. `area=True` scales each wedge's own radius by
+        `sqrt(value / max)` (ECharts' `rose_type="area"`, wedge *area*
+        proportional to value) instead of the default `area=False`
+        linear `value / max` scaling (`rose_type="radius"`) -- see
+        `_render_nightingale`'s own docstring for why the two modes
+        read differently. Every value must be non-negative, and at
+        least one must be positive -- checked at render() time, the
+        same as `mark_arc()`."""
+        self._mark = Mark.NIGHTINGALE
+        self._nightingale_area = area
         return self^
 
     def mark_lollipop(var self) -> Self:
@@ -2596,6 +2619,8 @@ def _render_generic[
         return _render_ridgeline(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.ARC:
         return _render_arc(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.NIGHTINGALE:
+        return _render_nightingale(target, plot, ox0, oy0, ox1, oy1)
 
     _validate_continuous_encoding(plot, "Plot.encode()")
 
