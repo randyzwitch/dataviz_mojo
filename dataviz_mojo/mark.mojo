@@ -429,6 +429,21 @@ Every node is labeled directly beneath its own marker -- no legend,
 unlike `CHORD` (which needs one since its own ring sectors are often
 too thin to label directly). See arc_diagram.mojo's own `_render_arc_
 diagram` docstring for the full reasoning.
+
+GRAPH (last of Phase 7) reuses `CHORD`'s own edge-list data too, a
+third genuinely different network layout: nodes evenly spaced around
+a circle (`ARC`'s own start-at-12-o'clock convention, reused for
+position only), edges drawn as straight lines cutting across the
+interior instead of `CHORD`'s own ring-sectors-plus-ribbons or `ARC_
+DIAGRAM`'s own nodes-on-a-line-plus-arcs. A deliberately simple,
+deterministic circular layout, not a real force-directed simulation --
+the same "not a full physics simulation" scope choice `BEESWARM`'s
+own docstring already makes for a completely different layout
+problem, for the identical reason (this package's test methodology
+needs exact, hand-verifiable positions). Labels align by which side
+of center they fall on, the same rule `RADAR`'s own axis labels
+already use. See graph.mojo's own `_render_graph` docstring for the
+full reasoning.
 """
 
 
@@ -474,6 +489,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime TREE = Self(36)
     comptime TREEMAP = Self(37)
     comptime ARC_DIAGRAM = Self(38)
+    comptime GRAPH = Self(39)
 
     def __init__(out self, value: Int):
         self._value = value
