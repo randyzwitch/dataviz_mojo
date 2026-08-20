@@ -34,11 +34,16 @@ def _render_ridgeline[
     `_kde_density`, reused unchanged from violin.mojo), but drawn as
     one row per category on a *horizontal* categorical frame instead
     of a vertical one -- `_draw_horizontal_categorical_axis_frame`
-    (`Mark.GANTT`'s own core, reused unchanged: categories along `y`,
-    top to bottom; a continuous `x` for the value domain along the
-    bottom), each category's own curve rising *upward* from its own
-    row's bottom edge (the baseline) instead of `Mark.VIOLIN`'s
-    left-right-symmetric silhouette.
+    (`Mark.GANTT`'s own core: categories along `y`, top to bottom; a
+    continuous `x` for the value domain along the bottom), each
+    category's own curve rising *upward* from its own row's bottom
+    edge (the baseline) instead of `Mark.VIOLIN`'s left-right-symmetric
+    silhouette. Called with `padding=0.0`, *not* that function's own
+    0.2 default -- see its own docstring for why a ridgeline plot
+    needs rows to sit edge-to-edge (a real bug this package shipped
+    with initially: a nonzero gap left a sliver of background between
+    rows, only inconsistently covered by `_RIDGE_OVERLAP`'s own rise,
+    which showed up as a spurious notch).
 
     Each row's own curve may rise up to `_RIDGE_OVERLAP` times the
     row's own height above its own baseline -- deliberately more than
@@ -70,7 +75,7 @@ def _render_ridgeline[
     var x_scale = _data_extent(all_values)
 
     var frame = _draw_horizontal_categorical_axis_frame(
-        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
+        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1, padding=0.0
     )
 
     var row_height = frame.y_scale.bandwidth()
