@@ -364,6 +364,23 @@ width/height, the same "round the boundaries, not the size" pattern
 uses, so adjacent columns/segments never show a hairline gap. See
 marimekko.mojo's own `_render_marimekko` docstring for the full
 reasoning.
+
+SUNBURST ("Phase 7" of the broader chart-type survey, the
+hierarchical/network family -- see the wiki) is the first mark built
+on the new shared `_build_hierarchy_index` (hierarchy.mojo) -- a
+`d3.stratify()`-style flattened tree (`encode_hierarchy()`'s own
+`ids`/`parent_ids`/`values`), the same "the data already says what's
+needed" precedent `encode_chord()`'s own edge list already set for
+graphs, generalized to trees. Drawn as concentric `fill_ring_sector_
+aa` rings (`ARC`'s own primitive, reused directly) -- one ring per
+depth level, each node's own angular span proportional to its own
+share of its *parent's* own subtree total (not the grand total the
+way `NIGHTINGALE`'s wedges are), so a sunburst is a multi-level
+generalization of `NIGHTINGALE`'s own single-level rose. Every
+descendant of one of the root's own direct children shares that
+child's own palette color, so one glance shows which top-level branch
+a deeply nested ring segment belongs to. See sunburst.mojo's own
+`_render_sunburst` docstring for the full reasoning.
 """
 
 
@@ -405,6 +422,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime CORRPLOT = Self(32)
     comptime PUNCHCARD = Self(33)
     comptime MARIMEKKO = Self(34)
+    comptime SUNBURST = Self(35)
 
     def __init__(out self, value: Int):
         self._value = value
