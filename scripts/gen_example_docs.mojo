@@ -84,6 +84,7 @@ def _titles() -> Dict[String, String]:
     d["span_chart"] = "Span Chart"
     d["calendar_heatmap"] = "Calendar Heatmap"
     d["corrplot"] = "Correlation Plot"
+    d["punchcard"] = "Punchcard"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     return d^
@@ -142,7 +143,7 @@ def _categories() -> List[Category]:
     cats.append(Category(
         "Grid & matrix",
         "Two categorical dimensions laid out as a grid, extending Mark.HEATMAP's own grid-cell idea.",
-        ["calendar_heatmap", "corrplot"],
+        ["calendar_heatmap", "corrplot", "punchcard"],
     ))
     return cats^
 
@@ -269,7 +270,7 @@ def _quickplot_names() -> List[String]:
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
         "histogram", "population_pyramid", "heatmap", "chord", "single_axis", "effect_scatter",
-        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "polar", "radar", "gauge", "parallel", "span_chart", "calendar_heatmap", "corrplot",
+        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "polar", "radar", "gauge", "parallel", "span_chart", "calendar_heatmap", "corrplot", "punchcard",
     ]
 
 

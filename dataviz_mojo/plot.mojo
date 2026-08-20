@@ -190,6 +190,7 @@ from dataviz_mojo.grouped_bar import _render_grouped_bar
 from dataviz_mojo.heatmap import _render_heatmap
 from dataviz_mojo.calendar_heatmap import _render_calendar_heatmap
 from dataviz_mojo.corrplot import _render_corrplot
+from dataviz_mojo.punchcard import _render_punchcard
 from dataviz_mojo.histogram import _bin_histogram
 from dataviz_mojo.lollipop import _render_lollipop
 from dataviz_mojo.single_axis import _render_single_axis
@@ -428,6 +429,13 @@ struct Plot(Movable):
     var _corrplot_layout: String
     var _corrplot_diag: Bool
     var _corrplot_labels: Bool
+    # Mark.PUNCHCARD only -- one (x category, y category, bubble size)
+    # row per cell, plus the size->radius divisor. See encode_
+    # punchcard()'s own docstring.
+    var _punchcard_x: List[String]
+    var _punchcard_y: List[String]
+    var _punchcard_sizes: List[Float64]
+    var _punchcard_scale: Float64
     # Chart/axis title text, set via .labels() -- see that method's own
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
@@ -496,6 +504,10 @@ struct Plot(Movable):
         self._corrplot_layout = "full"
         self._corrplot_diag = True
         self._corrplot_labels = True
+        self._punchcard_x = List[String]()
+        self._punchcard_y = List[String]()
+        self._punchcard_sizes = List[Float64]()
+        self._punchcard_scale = 10.0
         self._title = ""
         self._x_title = ""
         self._y_title = ""
@@ -703,6 +715,18 @@ struct Plot(Movable):
         self._corrplot_layout = layout
         self._corrplot_diag = diag
         self._corrplot_labels = labels
+        return self^
+
+    def mark_punchcard(var self, scale: Float64 = 10.0) -> Self:
+        """A punchcard: a scatter plot on a categorical grid where
+        bubble size encodes a third variable -- encoded via `encode_
+        punchcard()`. `scale` (default 10.0, matching ECharts.jl's own
+        keyword) is the plain pixel-space divisor each bubble's own
+        radius comes from (`size / scale`) -- see `_render_punchcard`'s
+        own docstring for why this isn't normalized to the cell size
+        the way `mark_corrplot()`'s own bubbles are."""
+        self._mark = Mark.PUNCHCARD
+        self._punchcard_scale = scale
         return self^
 
     def mark_grouped_bar(var self) -> Self:
@@ -1264,6 +1288,28 @@ struct Plot(Movable):
         `encode_*` here takes)."""
         self._corrplot_variables = variables.copy()
         self._corrplot_matrix = matrix.copy()
+        return self^
+
+    def encode_punchcard(var self, x: List[String], y: List[String], sizes: List[Float64]) -> Self:
+        """Map two category columns plus a continuous size column onto
+        `Mark.PUNCHCARD`'s own grid-cell-plus-bubble shape -- the same
+        `x`/`y` domain-derivation `encode_heatmap()` already
+        establishes (`_categorical_indices` at render() time, first-
+        seen order), `sizes` in place of that method's own `value`.
+        Unlike `encode_heatmap()`, a repeated `(x, y)` pair is not
+        deduplicated or merged -- each row draws its own independent
+        bubble (see `_render_punchcard`'s own docstring).
+
+        Length checking (`x`/`y`/`sizes` all the same length, `sizes`
+        all non-negative) is deferred to render() time, the same as
+        every other categorical `encode_*` here.
+        """
+        self.x_categories = List[String]()
+        self.x_data = List[Float64]()
+        self.y_data = List[Float64]()
+        self._punchcard_x = x.copy()
+        self._punchcard_y = y.copy()
+        self._punchcard_sizes = sizes.copy()
         return self^
 
     def encode_chord(
@@ -2930,6 +2976,8 @@ def _render_generic[
         return _render_calendar_heatmap(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.CORRPLOT:
         return _render_corrplot(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.PUNCHCARD:
+        return _render_punchcard(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.CHORD:
         return _render_chord(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.SINGLE_AXIS:
