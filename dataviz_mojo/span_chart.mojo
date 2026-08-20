@@ -1,0 +1,107 @@
+from canvas_mojo.geometry import _round_to_int
+from canvas_mojo.vector.draw_target import DrawTarget
+from canvas_mojo.buffer import Canvas
+
+from dataviz_mojo.mark import Mark
+from dataviz_mojo.plot import (
+    Plot,
+    _RenderResult,
+    _axis_pixel,
+    _data_extent,
+    _draw_categorical_axis_frame,
+    _empty_result,
+    _rendered,
+)
+from dataviz_mojo.theme import Theme
+
+
+def _render_span_chart[
+    T: DrawTarget
+](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+    """Render a `Mark.SPAN_CHART` plot: `Mark.GANTT`'s own mirror
+    image -- one floating bar per category from `plot._gantt_start[i]`
+    (the low end) to `plot._gantt_end[i]` (the high end), but *vertical*
+    on the normal `_draw_categorical_axis_frame` (categories along `x`,
+    a continuous `y` for the value domain) instead of `Mark.GANTT`'s
+    own horizontal frame -- ECharts.jl's own `spanchart`, "an invisible
+    spacer bar extends from 0 to lows[i], and the visible span bar
+    extends from lows[i] to highs[i]," the same "a range with no
+    anchor to zero" reading `Mark.CANDLESTICK`'s own high-low wick
+    already gives, generalized to a filled bar instead of a thin line.
+
+    Deliberately reuses `encode_gantt()`'s own data shape completely
+    unchanged (`Plot.mark_span_chart().encode_gantt(categories=...,
+    start=lows, end=highs)`) rather than a new `encode_*` method --
+    the same "identical data, purely an orientation/rendering
+    difference" precedent `Mark.STACKED_BAR`'s own reuse of `Mark.
+    GROUPED_BAR`'s `encode_grouped_bar()` already established (see
+    that mark's own docstring in mark.mojo). `_gantt_start`/`_gantt_
+    end` don't need `start[i] <= end[i]` -- same as `Mark.GANTT`'s own
+    lack of that requirement, this draws from `min`/`max` of the two,
+    not literally `start` to `end` in that order.
+
+    Bar width comes from `frame.x_scale.bandwidth()` (the ordinal
+    x-axis's own per-category band, full width -- `Mark.BAR`'s own
+    convention, not narrowed the way `Mark.WATERFALL`'s delta bars
+    are), bar height floored to at least 1 pixel (`max(1, ...)`, the
+    same "a zero-length span is real, visible data, not nothing to
+    show" reasoning `Mark.GANTT`'s own docstring already gives for its
+    own zero-width case).
+    """
+    if len(plot.x_categories) != len(plot._gantt_start) or len(plot._gantt_end) != len(plot._gantt_start):
+        raise Error(
+            "Plot.encode_gantt(): categories, start, and end must all have"
+            " the same length (got "
+            + String(len(plot.x_categories))
+            + " categories, "
+            + String(len(plot._gantt_start))
+            + " start values, "
+            + String(len(plot._gantt_end))
+            + " end values)"
+        )
+
+    var theme = plot._theme
+    if len(plot.x_categories) == 0:
+        return _empty_result(ox0, oy0, ox1, oy1)
+
+    var domain_data = List[Float64]()
+    for v in plot._gantt_start:
+        domain_data.append(v)
+    for v in plot._gantt_end:
+        domain_data.append(v)
+    var y_scale = _data_extent(domain_data)
+
+    var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
+
+    var bandwidth = frame.x_scale.bandwidth()
+    for i in range(len(plot.x_categories)):
+        var band_start = frame.x_scale.band_start(i)
+        var bar_x = _round_to_int(band_start)
+        var bar_width = _round_to_int(bandwidth)
+        var low_py = _axis_pixel(frame.y_scale, plot._gantt_start[i])
+        var high_py = _axis_pixel(frame.y_scale, plot._gantt_end[i])
+        var bar_y = min(low_py, high_py)
+        var bar_height = max(1, max(low_py, high_py) - min(low_py, high_py))
+        target.fill_rect(bar_x, bar_y, bar_width, bar_height, theme.mark_color)
+
+    return frame.result()
+
+
+def span_chart(
+    categories: List[String],
+    low: List[Float64],
+    high: List[Float64],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A span chart -- `Mark.SPAN_CHART`, one floating vertical bar per
+    category from `low[i]` to `high[i]` (`Mark.GANTT`'s own mirror
+    image; ECharts.jl's own `spanchart`, useful for confidence
+    intervals, error bounds, or a range like a daily temperature
+    high/low that isn't anchored to zero the way `bar()` assumes)."""
+    var plot = Plot().mark_span_chart().encode_gantt(categories=categories, start=low, end=high)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title)

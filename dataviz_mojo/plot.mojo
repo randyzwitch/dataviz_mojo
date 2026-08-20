@@ -182,6 +182,7 @@ from dataviz_mojo.box import _box_stats, _render_box
 from dataviz_mojo.bullet import _render_bullet
 from dataviz_mojo.candlestick import _render_candlestick
 from dataviz_mojo.gantt import _render_gantt
+from dataviz_mojo.span_chart import _render_span_chart
 from dataviz_mojo.bump import _render_bump
 from dataviz_mojo.chord import _render_chord
 from dataviz_mojo.funnel import _render_funnel
@@ -639,11 +640,25 @@ struct Plot(Movable):
         return self^
 
     def mark_gantt(var self) -> Self:
-        """A gantt/span chart: one horizontal bar per category, from a
+        """A gantt chart: one horizontal bar per category, from a
         start value to an end value, encoded via `encode_gantt()` --
         the first mark whose categories run along the *y*-axis instead
-        of the x-axis (see that method's own docstring)."""
+        of the x-axis (see that method's own docstring). See `mark_
+        span_chart()` for the same data, drawn vertically instead."""
         self._mark = Mark.GANTT
+        return self^
+
+    def mark_span_chart(var self) -> Self:
+        """A span chart: `mark_gantt()`'s own mirror image -- one
+        floating *vertical* bar per category, from a low value to a
+        high value, on the normal categorical x-axis instead of
+        `Mark.GANTT`'s horizontal one. Encoded via `encode_gantt()`,
+        the exact same category + start + end shape, completely
+        unchanged -- only the orientation this renders it in differs
+        (the same "identical data, purely a rendering difference"
+        precedent `mark_stacked_bar()`'s own reuse of `encode_grouped_
+        bar()` already established)."""
+        self._mark = Mark.SPAN_CHART
         return self^
 
     def mark_grouped_bar(var self) -> Self:
@@ -2825,6 +2840,8 @@ def _render_generic[
         return _render_stacked_bar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.GANTT:
         return _render_gantt(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.SPAN_CHART:
+        return _render_span_chart(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.POPULATION_PYRAMID:
         return _render_population_pyramid(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.HEATMAP:
