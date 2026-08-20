@@ -396,6 +396,21 @@ branch_colors`) rather than threaded through a recursive draw call,
 since `TREE` draws every edge first, then every node marker on top,
 two separate passes rather than one recursive one. See tree.mojo's
 own `_render_tree` docstring for the full reasoning.
+
+TREEMAP (third and last of Phase 7's hierarchy sub-family) reuses the
+same `encode_hierarchy()` data `SUNBURST`/`TREE` do, laid out as
+nested, area-proportional rectangles via slice-and-dice (`_draw_
+treemap_node`, treemap.mojo -- alternating split axis by depth, each
+child's own share of a split proportional to its own `subtree_value`
+share of its parent's total) -- a deliberately simplified layout, not
+a real squarified algorithm (see that function's own docstring, the
+same "simpler, still genuinely correct" tolerance `TREE`'s own layout
+already takes). Every leaf draws filled and labeled in white (the one
+mark in this package whose label sits *over* a solid fill rather than
+the background); an internal node draws nothing of its own, just
+partitions space for its children. The same "one color per top-level
+branch" convention `SUNBURST`/`TREE` already establish. See treemap.
+mojo's own `_render_treemap` docstring for the full reasoning.
 """
 
 
@@ -439,6 +454,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime MARIMEKKO = Self(34)
     comptime SUNBURST = Self(35)
     comptime TREE = Self(36)
+    comptime TREEMAP = Self(37)
 
     def __init__(out self, value: Int):
         self._value = value
