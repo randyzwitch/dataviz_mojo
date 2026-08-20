@@ -189,6 +189,7 @@ from dataviz_mojo.funnel import _render_funnel
 from dataviz_mojo.grouped_bar import _render_grouped_bar
 from dataviz_mojo.heatmap import _render_heatmap
 from dataviz_mojo.calendar_heatmap import _render_calendar_heatmap
+from dataviz_mojo.corrplot import _render_corrplot
 from dataviz_mojo.histogram import _bin_histogram
 from dataviz_mojo.lollipop import _render_lollipop
 from dataviz_mojo.single_axis import _render_single_axis
@@ -419,6 +420,14 @@ struct Plot(Movable):
     # per day. See encode_calendar()'s own docstring.
     var _calendar_dates: List[String]
     var _calendar_values: List[Float64]
+    # Mark.CORRPLOT only -- a square correlation matrix over a shared
+    # variable list, plus display options. See encode_corrplot()'s own
+    # docstring.
+    var _corrplot_variables: List[String]
+    var _corrplot_matrix: List[List[Float64]]
+    var _corrplot_layout: String
+    var _corrplot_diag: Bool
+    var _corrplot_labels: Bool
     # Chart/axis title text, set via .labels() -- see that method's own
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
@@ -482,6 +491,11 @@ struct Plot(Movable):
         self._parallel_data = List[List[Float64]]()
         self._calendar_dates = List[String]()
         self._calendar_values = List[Float64]()
+        self._corrplot_variables = List[String]()
+        self._corrplot_matrix = List[List[Float64]]()
+        self._corrplot_layout = "full"
+        self._corrplot_diag = True
+        self._corrplot_labels = True
         self._title = ""
         self._x_title = ""
         self._y_title = ""
@@ -676,6 +690,19 @@ struct Plot(Movable):
         docstring for the exact shape, including the plain
         `"YYYY-MM-DD"` date format)."""
         self._mark = Mark.CALENDAR_HEATMAP
+        return self^
+
+    def mark_corrplot(var self, layout: String = "full", diag: Bool = True, labels: Bool = True) -> Self:
+        """A correlation plot: one bubble per cell of a square
+        correlation matrix, sized/colored by strength and sign --
+        encoded via `encode_corrplot()`, not `encode()`/`encode_
+        categorical()`. `layout` ("full"/"lower"/"upper") and `diag`
+        control which cells draw at all -- see `_render_corrplot`'s
+        own docstring for what each means."""
+        self._mark = Mark.CORRPLOT
+        self._corrplot_layout = layout
+        self._corrplot_diag = diag
+        self._corrplot_labels = labels
         return self^
 
     def mark_grouped_bar(var self) -> Self:
@@ -1225,6 +1252,18 @@ struct Plot(Movable):
         self.y_data = List[Float64]()
         self._calendar_dates = dates.copy()
         self._calendar_values = values.copy()
+        return self^
+
+    def encode_corrplot(var self, variables: List[String], matrix: List[List[Float64]]) -> Self:
+        """Map a variable-name list and a square correlation `matrix`
+        onto `Mark.CORRPLOT`'s own shape: `matrix[row][col]` is the
+        correlation between `variables[row]` and `variables[col]` --
+        one row per variable, one value per variable within each row
+        (checked at render() time, along with every value falling in
+        `[-1.0, 1.0]`, the same deferred-validation stance every other
+        `encode_*` here takes)."""
+        self._corrplot_variables = variables.copy()
+        self._corrplot_matrix = matrix.copy()
         return self^
 
     def encode_chord(
@@ -2889,6 +2928,8 @@ def _render_generic[
         return _render_heatmap(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.CALENDAR_HEATMAP:
         return _render_calendar_heatmap(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.CORRPLOT:
+        return _render_corrplot(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.CHORD:
         return _render_chord(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.SINGLE_AXIS:
