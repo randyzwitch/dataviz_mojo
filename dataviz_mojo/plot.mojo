@@ -169,6 +169,7 @@ from dataviz_mojo.theme import Theme
 
 from dataviz_mojo.arc import _render_arc
 from dataviz_mojo.nightingale import _render_nightingale
+from dataviz_mojo.polar_bar import _render_polar_bar
 from dataviz_mojo.bar import _render_bar
 from dataviz_mojo.beeswarm import _render_beeswarm
 from dataviz_mojo.ridgeline import _render_ridgeline
@@ -499,6 +500,20 @@ struct Plot(Movable):
         same as `mark_arc()`."""
         self._mark = Mark.NIGHTINGALE
         self._nightingale_area = area
+        return self^
+
+    def mark_polar_bar(var self) -> Self:
+        """A circular column chart: bars radiate outward from the
+        chart's own center, one equal-width angular slot per category
+        (like `mark_nightingale()`'s wedges, but with a small gap
+        between bars instead of edge-to-edge sectors) -- encoded via
+        `encode_categorical()`, the same category + value data shape
+        `mark_arc()`/`mark_bar()`/`mark_nightingale()` use. Bar length
+        always scales linearly by `value / max(values)` -- no `area`
+        mode the way `mark_nightingale()` has. Every value must be
+        non-negative, and at least one must be positive -- checked at
+        render() time, the same as `mark_arc()`/`mark_nightingale()`."""
+        self._mark = Mark.POLAR_BAR
         return self^
 
     def mark_lollipop(var self) -> Self:
@@ -2621,6 +2636,8 @@ def _render_generic[
         return _render_arc(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.NIGHTINGALE:
         return _render_nightingale(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.POLAR_BAR:
+        return _render_polar_bar(target, plot, ox0, oy0, ox1, oy1)
 
     _validate_continuous_encoding(plot, "Plot.encode()")
 
