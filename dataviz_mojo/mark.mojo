@@ -291,6 +291,16 @@ own `series_values` already established). No axis tick labels beyond
 each dimension's own name -- the same deliberate v1 simplification
 `POLAR`'s own grid already documents. See parallel.mojo's own
 `_render_parallel` docstring for the full reasoning.
+
+SPAN_CHART (investigated during Phase 2, built later once the polar
+family and Phase 5 were done) is `GANTT`'s own mirror image: the exact
+same `encode_gantt()` data (category + start + end) completely
+unchanged, but drawn as a floating *vertical* bar per category on the
+normal `_draw_categorical_axis_frame` instead of `GANTT`'s own
+horizontal one -- ECharts.jl's own `spanchart`, useful for a range
+that isn't anchored to zero (confidence intervals, daily temperature
+highs/lows). See span_chart.mojo's own `_render_span_chart` docstring
+for the full reasoning.
 """
 
 
@@ -327,6 +337,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime RADAR = Self(27)
     comptime GAUGE = Self(28)
     comptime PARALLEL = Self(29)
+    comptime SPAN_CHART = Self(30)
 
     def __init__(out self, value: Int):
         self._value = value

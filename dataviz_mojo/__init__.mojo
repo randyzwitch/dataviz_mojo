@@ -56,6 +56,7 @@ from dataviz_mojo.effect_scatter import effect_scatter
 from dataviz_mojo.bump import bump
 from dataviz_mojo.funnel import funnel
 from dataviz_mojo.gantt import gantt
+from dataviz_mojo.span_chart import span_chart
 from dataviz_mojo.grouped_bar import grouped_bar
 from dataviz_mojo.heatmap import heatmap
 from dataviz_mojo.histogram import histogram
