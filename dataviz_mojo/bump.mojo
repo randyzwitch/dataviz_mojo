@@ -145,6 +145,7 @@ def _draw_bump_axis_frame[
                 theme.text_color,
                 sc.font_size,
                 TextAlign.RIGHT,
+                theme.font_family,
             )
         )
 
@@ -159,6 +160,7 @@ def _draw_bump_axis_frame[
                 theme.text_color,
                 sc.font_size,
                 TextAlign.CENTER,
+                theme.font_family,
             )
         )
 

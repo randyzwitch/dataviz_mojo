@@ -117,7 +117,7 @@ def _render_parallel[
             text_requests.append(
                 _TextRequest(
                     x, plot_y1 + sc.label_gap + Int(sc.font_size), plot._parallel_dims[d],
-                    theme.text_color, sc.font_size, TextAlign.CENTER,
+                    theme.text_color, sc.font_size, TextAlign.CENTER, theme.font_family,
                 )
             )
 

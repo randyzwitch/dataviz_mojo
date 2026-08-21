@@ -144,7 +144,7 @@ def _render_arc_diagram[
         text_requests.append(
             _TextRequest(
                 px, py + sc.tick_length + sc.label_gap + Int(sc.font_size), nodes[i], theme.text_color,
-                sc.font_size, TextAlign.CENTER,
+                sc.font_size, TextAlign.CENTER, theme.font_family,
             )
         )
 

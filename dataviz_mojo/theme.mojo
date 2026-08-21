@@ -142,6 +142,37 @@ width vs. `_WATERFALL_DELTA_WIDTH_FRACTION`, a plain module constant
 in plot.mojo, not a `Theme` field, since nothing about it is a color/
 size a caller would plausibly want to retheme independently of the
 mark's own shape).
+
+`font_family` (default `"sans-serif"`) is every `_TextRequest`'s own
+typeface -- tick/legend labels, axis titles, the chart title, all of
+it, baked into each `_TextRequest` at the point it's built (the same
+"read straight off `theme`, per construction site" convention every
+other `_TextRequest` field -- `color`, `size` -- already follows,
+*not* a single value read once by `render()`/`render_svg()`'s own
+final draw loop: `render_facets()`/`render_layers()` combine several
+independently themed `Plot`s into one shared draw pass, so a family
+read once, globally, would silently apply the wrong plot's own choice
+to every other plot sharing that canvas). `"sans-serif"` is
+deliberately a value valid in *both* worlds a caller's chosen family
+ends up in -- `canvas_mojo.text.draw_text`'s own raster path resolves
+it as a fontconfig family/alias (fontconfig ships `sans-serif` as a
+recognized generic alias, the same generic-substitution concept CSS's
+own `sans-serif` keyword is, alongside its older capitalized `Sans`
+form), while `SvgCanvas.draw_text`'s own `family` parameter is a
+literal CSS `font-family` value the SVG viewer interprets directly --
+two genuinely different value spaces (a fontconfig alias resolves to
+one concrete font *file*; a CSS value is interpreted by whatever's
+rendering the SVG, with no file resolution on this package's own side
+at all), which happen to agree on this one generic keyword. A caller
+naming a *specific* installed font instead (`"Georgia"`, `"Helvetica
+Neue"`) gets that request honored identically by both backends too,
+as long as it's a real, installed font name -- but a real CSS fallback
+*stack* (`"Helvetica Neue, Arial, sans-serif"`) only means anything to
+the SVG side; fontconfig has no comma-separated-list syntax of its
+own, so a raster render would treat the whole string as one (almost
+certainly unmatched) family name. Threading a stack through safely for
+both backends is a real, separate feature, not something this single
+string field takes on implicitly.
 """
 
 from canvas_mojo.color import Color
@@ -178,6 +209,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     var title_font_size: Float64
     var axis_title_font_size: Float64
     var waterfall_total_color: Color
+    var font_family: String
 
     def __init__(
         out self,
@@ -209,6 +241,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         title_font_size: Float64 = 18.0,
         axis_title_font_size: Float64 = 14.0,
         waterfall_total_color: Color = Color(100, 100, 100),
+        font_family: String = "sans-serif",
     ):
         self.background = background
         self.mark_color = mark_color
@@ -238,6 +271,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.title_font_size = title_font_size
         self.axis_title_font_size = axis_title_font_size
         self.waterfall_total_color = waterfall_total_color
+        self.font_family = font_family
 
     @staticmethod
     def default() -> Self:

@@ -158,7 +158,9 @@ def _render_radar[
         elif c < -0.3:
             align = TextAlign.RIGHT
         text_requests.append(
-            _TextRequest(Int(tip.x), Int(tip.y), plot._radar_indicators[i], theme.text_color, sc.font_size, align)
+            _TextRequest(
+                Int(tip.x), Int(tip.y), plot._radar_indicators[i], theme.text_color, sc.font_size, align, theme.font_family
+            )
         )
 
     if show_legend:
