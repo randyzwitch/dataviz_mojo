@@ -111,7 +111,7 @@ def test_render_layers_svg_title_from_plots0_centers_on_shared_inner_rect() rais
     var s = svg.to_string()
 
     assert_true(
-        '<text x="220" y="14" font-size="18.000" font-family="sans-serif" fill="#282828"'
+        '<text x="220" y="14" font-size="18.000" font-family="sans-serif" font-weight="bold" fill="#282828"'
         ' text-anchor="middle">Combined</text>' in s,
         "layered chart title, from plots[0], centered on the shared inner rect",
     )

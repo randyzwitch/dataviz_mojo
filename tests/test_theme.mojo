@@ -1,7 +1,8 @@
 """Tests for Theme.scale (uniform layout scaling and its purely-additive
-default) and Theme.font_family (threaded into every _TextRequest at
-construction time, both backends) -- split out of what used to be one
-big test_plot.mojo.
+default), Theme.font_family (threaded into every _TextRequest at
+construction time, both backends), and Theme.title_bold (the one
+Theme default that deliberately changes prior behavior rather than
+reproducing it) -- split out of what used to be one big test_plot.mojo.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -141,6 +142,67 @@ def test_render_theme_font_family_actually_changes_raster_glyphs() raises:
             if p1.r != p2.r or p1.g != p2.g or p1.b != p2.b:
                 diff_count += 1
     assert_true(diff_count > 0, "monospace vs sans-serif must render visibly different glyphs")
+
+
+def test_render_theme_title_bold_default_emits_font_weight_bold() raises:
+    # title_bold's own default (True) emits a literal font-weight="bold"
+    # attribute on the title's own <text> element -- confirmed via a
+    # real render_svg() run first. Single point, canvas 400x300,
+    # title "Hi" -- the same no-legend geometry test_render_theme_
+    # scale_uniformly_scales_the_whole_layout's own 1x case already
+    # establishes, so the title lands at the same (220, 14) that
+    # case's own math implies for this canvas size.
+    var xy: List[Float64] = [5.0]
+    var svg = SvgCanvas(400, 300)
+    var plot = Plot().mark_point().encode(x=xy, y=xy).labels(title="Hi")
+    render_svg(svg, plot)
+    var s = svg.to_string()
+    assert_true(
+        '<text x="220" y="14" font-size="18.000" font-family="sans-serif" font-weight="bold"'
+        ' fill="#282828" text-anchor="middle">Hi</text>' in s,
+        "the title, bold by default",
+    )
+
+
+def test_render_theme_title_bold_false_reproduces_the_old_no_bold_output() raises:
+    # title_bold=False must reproduce the exact pre-existing (pre-
+    # this-feature) title output -- no font-weight attribute at all,
+    # not font-weight="normal" -- confirmed via a real render_svg()
+    # run first. Same setup as the default-bold test above.
+    var xy: List[Float64] = [5.0]
+    var svg = SvgCanvas(400, 300)
+    var plot = Plot().mark_point().encode(x=xy, y=xy).labels(title="Hi").theme(Theme(title_bold=False))
+    render_svg(svg, plot)
+    var s = svg.to_string()
+    assert_true(
+        '<text x="220" y="14" font-size="18.000" font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">Hi</text>' in s,
+        "the title, title_bold=False reproduces the old un-bolded output",
+    )
+
+
+def test_render_theme_title_bold_only_affects_the_title() raises:
+    # Bold is scoped to the chart title alone -- x_title/y_title (and
+    # every other _TextRequest) stay normal weight regardless of
+    # title_bold, matching Theme.title_bold's own docstring ("one
+    # deliberate exception, not a general knob"). Confirmed by
+    # checking a real render_svg() output with both an x_title and a
+    # title present: exactly one font-weight="bold" attribute in the
+    # whole document.
+    var xy: List[Float64] = [5.0]
+    var svg = SvgCanvas(400, 300)
+    var plot = Plot().mark_point().encode(x=xy, y=xy).labels(title="Hi", x_title="X")
+    render_svg(svg, plot)
+    var s = svg.to_string()
+    var count = 0
+    var search_from = 0
+    while True:
+        var idx = s.find('font-weight="bold"', search_from)
+        if idx == -1:
+            break
+        count += 1
+        search_from = idx + 1
+    assert_equal(count, 1, "exactly one bold text element -- the title, not x_title")
 
 
 def main() raises:
