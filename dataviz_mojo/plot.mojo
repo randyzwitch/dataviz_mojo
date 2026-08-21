@@ -500,6 +500,13 @@ struct Plot(Movable):
     # wanting both an "average" and a "target" line just calls it twice.
     var _annotation_line_values: List[Float64]
     var _annotation_line_labels: List[String]
+    # A shaded horizontal band per (y0, y1, label) triple, set via
+    # .annotate_area() -- see that method's own docstring. Same
+    # parallel-lists shape as the annotation-line fields just above,
+    # for the same reason (additive, callable more than once).
+    var _annotation_area_y0: List[Float64]
+    var _annotation_area_y1: List[Float64]
+    var _annotation_area_labels: List[String]
     # Set via .secondary_axis() -- render_layers()/render_layers_svg()
     # only (see that method's own docstring): this layer's own y
     # values scale against a second, independent y-domain drawn on the
@@ -592,6 +599,9 @@ struct Plot(Movable):
         self._y_title = ""
         self._annotation_line_values = List[Float64]()
         self._annotation_line_labels = List[String]()
+        self._annotation_area_y0 = List[Float64]()
+        self._annotation_area_y1 = List[Float64]()
+        self._annotation_area_labels = List[String]()
         self._secondary_axis = False
         self._mark = Mark.POINT
         self._theme = Theme.default()
@@ -1953,6 +1963,64 @@ struct Plot(Movable):
         self._annotation_line_labels.append(label)
         return self^
 
+    def annotate_area(var self, y0: Float64, y1: Float64, label: String = "") -> Self:
+        """Add a shaded horizontal band from `y0` to `y1` on the y-axis
+        -- ECharts' own `markArea` (a fixed, explicit `(y0, y1)` pair
+        only; not its other "between two series"/auto-computed-range
+        modes, the same deliberate v1 scope cut `annotate_line()`'s own
+        docstring already explains for `markLine`). Callable more than
+        once -- each call *adds* a band. `label`, when non-empty, draws
+        inside the band near its own top edge, in `Theme.annotation_
+        color` (the same ink `annotate_line()`'s own label uses -- see
+        `Theme.annotation_area_color`'s own docstring for why the fill
+        and the label ink are two separate fields). `y0`/`y1` don't need
+        to be given low-to-high -- whichever is smaller becomes the
+        band's own bottom edge.
+
+        Unlike `annotate_line()`'s all-or-nothing value, a band that
+        only *partially* overlaps the mark's own (padded) y-domain
+        clips to the visible portion instead of disappearing entirely
+        -- an area has real width, so showing the part that's actually
+        in range is what every other chart library's own shaded-region
+        feature does; hiding all of it just because one edge overshoots
+        would throw away real, valid information the caller asked for.
+        A band with *no* overlap at all still draws nothing, the same
+        as `annotate_line()`'s own out-of-range case.
+
+        A real, documented limitation, not an oversight: canvas_mojo's
+        `fill_rect` has no true alpha compositing on either backend, so
+        this draws as a fully opaque rectangle *on top of* whatever the
+        mark itself drew in that band -- see `Theme.annotation_area_
+        color`'s own docstring for the full story (the same gap
+        `_lighten()`'s own docstring already documents for `Mark.
+        EFFECT_SCATTER`'s halo) and why its own default stays
+        deliberately pale. Confirmed by actually rendering both cases,
+        not just reasoned about: on `Mark.POINT`/`LINE`/`EFFECT_SCATTER`
+        this reads well (a thin stroke/dot only loses the small stretch
+        that falls inside the band, the rest is untouched), but on
+        `Mark.BAR`/`WATERFALL`/`STACKED_BAR`/any other solid-fill mark, a
+        bar whose own height *enters* the band has that whole entering
+        portion overwritten by the band's own color -- it can read as if
+        the bar's height changed, not just that a band was drawn behind
+        it. Not broken, just something to know before combining the two;
+        this method still works there (the raise below is only about
+        having a continuous y-axis at all, not about this), but a line/
+        point/area-family mark is where it actually looks right today.
+
+        Same mark-support rule as `annotate_line()` -- raises the
+        identical clear error rather than silently drawing nothing or
+        somewhere wrong on a mark with no genuine continuous y-axis; see
+        that method's own docstring for the exact supported list and why
+        (both reuse the identical `_RenderResult.y_scale`/`has_y_scale`
+        mechanism). Also, like `annotate_line()`, only wired into
+        `render()`/`render_svg()` so far -- not `render_facets()`/
+        `render_layers()`.
+        """
+        self._annotation_area_y0.append(y0)
+        self._annotation_area_y1.append(y1)
+        self._annotation_area_labels.append(label)
+        return self^
+
     def secondary_axis(var self) -> Self:
         """Draw this layer's own y values against a second, independent
         y-domain on the plot's right edge, instead of `render_layers()`'s
@@ -2724,6 +2792,89 @@ def _label_text_requests(
     return text_requests^
 
 
+def _draw_annotation_areas[
+    T: DrawTarget
+](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises -> List[_TextRequest]:
+    """Draws every `Plot.annotate_area()` shaded band directly (a plain
+    `fill_rect` needs no font/glyph machinery, the same reasoning
+    `_draw_annotation_lines`'s own docstring gives for why *that*
+    doesn't need deferring either), and returns each one's own optional
+    label as a `_TextRequest` for the caller to draw afterward.
+
+    Called by `render()`/`render_svg()` right after `_render_generic`
+    returns, *before* `_draw_annotation_lines` -- areas are the
+    bottom-most annotation layer (a reference line or its label drawn
+    on top of a band still needs to read clearly), matching every real
+    chart library's own markArea-under-markLine stacking order. Reuses
+    the identical `result.y_scale`/`has_y_scale` mechanism `_draw_
+    annotation_lines` does (see its own docstring, and `_RenderResult`'s,
+    for why that's the *real* scale object, not one recomputed here).
+    Raises the identical clear error if any bands were requested but
+    `result.has_y_scale` is `False`.
+
+    Each band spans the *inner* plot rect's own full width (`result.px0`
+    to `result.px1`), filled in `Theme.annotation_area_color` -- see
+    that field's own docstring for the real, documented "no true alpha"
+    limitation this draws under (a fully opaque rectangle, not a
+    translucent overlay). Its own label, when non-empty, draws inside
+    the band near its own top edge, in `Theme.annotation_color` (not
+    `annotation_area_color` -- ink and fill are different jobs, see
+    that field's own docstring).
+
+    Unlike `_draw_annotation_lines`'s own all-or-nothing skip, a band
+    that only partially overlaps the mark's own (padded) y-domain draws
+    the clipped, visible portion instead of disappearing entirely --
+    see `Plot.annotate_area()`'s own docstring for why an area's real
+    width makes that the right call where a single-row value's
+    can't-partially-exist case made an outright skip the right one
+    there. A band with zero overlap still draws nothing.
+    """
+    var text_requests = List[_TextRequest]()
+    if len(plot._annotation_area_y0) == 0:
+        return text_requests^
+    if not result.has_y_scale:
+        raise Error(
+            "Plot.annotate_area(): this mark has no continuous y-axis to place a shaded band"
+            " against. Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER and every mark sharing"
+            " _CategoricalFrame (BAR/LOLLIPOP/WATERFALL/BOX/CANDLESTICK/BULLET/GROUPED_BAR/"
+            "STACKED_BAR/STREAMGRAPH)"
+        )
+
+    var sc = _Scaled(theme)
+    var plot_top = min(result.py0, result.py1)
+    var plot_bottom = max(result.py0, result.py1)
+    for i in range(len(plot._annotation_area_y0)):
+        var py_a = _axis_pixel(result.y_scale, plot._annotation_area_y0[i])
+        var py_b = _axis_pixel(result.y_scale, plot._annotation_area_y1[i])
+        var band_top = min(py_a, py_b)
+        var band_bottom = max(py_a, py_b)
+        # Clip to the visible plot rect rather than skip outright --
+        # see this function's own docstring for why an area's real
+        # width makes clipping the right call here, unlike a reference
+        # line's single-row value.
+        var draw_top = max(band_top, plot_top)
+        var draw_bottom = min(band_bottom, plot_bottom)
+        if draw_top >= draw_bottom:
+            continue
+        target.fill_rect(
+            result.px0, draw_top, result.px1 - result.px0, draw_bottom - draw_top, theme.annotation_area_color
+        )
+        var label = plot._annotation_area_labels[i]
+        if label.byte_length() > 0:
+            text_requests.append(
+                _TextRequest(
+                    result.px1 - sc.label_gap,
+                    draw_top + Int(sc.font_size),
+                    label,
+                    theme.annotation_color,
+                    sc.font_size,
+                    TextAlign.RIGHT,
+                    theme.font_family,
+                )
+            )
+    return text_requests^
+
+
 def _draw_annotation_lines[
     T: DrawTarget
 ](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises -> List[_TextRequest]:
@@ -2886,8 +3037,22 @@ def render(
     var label_requests = _label_text_requests(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
+    var area_annotation_requests = _draw_annotation_areas(canvas, plot, result, plot._theme)
     var annotation_requests = _draw_annotation_lines(canvas, plot, result, plot._theme)
     for req in label_requests:
+        draw_text(
+            canvas,
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            align=req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
+    for req in area_annotation_requests:
         draw_text(
             canvas,
             req.x,
@@ -2948,8 +3113,21 @@ def render_svg(
     var label_requests = _label_text_requests(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
+    var area_annotation_requests = _draw_annotation_areas(svg, plot, result, plot._theme)
     var annotation_requests = _draw_annotation_lines(svg, plot, result, plot._theme)
     for req in label_requests:
+        svg.draw_text(
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
+    for req in area_annotation_requests:
         svg.draw_text(
             req.x,
             req.y,

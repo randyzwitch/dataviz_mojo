@@ -97,6 +97,7 @@ def _titles() -> Dict[String, String]:
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     d["annotate_line"] = "Reference Line"
+    d["annotate_area"] = "Reference Band"
     d["dual_axis"] = "Dual Y-Axis"
     return d^
 
@@ -118,18 +119,22 @@ def _categories() -> List[Category]:
     # size encoding, line/area smoothing, a bare SVG-backend page)
     # mixed in among them; those are real dataviz_mojo capabilities,
     # just not chart types of their own, so they live in the wiki/API
-    # reference instead of the Examples gallery. annotate_line and
-    # dual_axis are the two exceptions: unlike facets/layers/titles,
-    # neither has a simpler existing example to piggyback on -- neither
-    # Plot.annotate_line() nor Plot.secondary_axis() is exposed on any
-    # quickplot function (see each method's own docstring), so there's
-    # no other "how do I use this" page anywhere else in these docs.
-    # Each is filed under the category it demos on (bar-chart-family,
-    # area+line-family) rather than getting a category of its own.
+    # reference instead of the Examples gallery. annotate_line,
+    # annotate_area, and dual_axis are the three exceptions: unlike
+    # facets/layers/titles, none has a simpler existing example to
+    # piggyback on -- none of Plot.annotate_line(), Plot.annotate_area(),
+    # or Plot.secondary_axis() is exposed on any quickplot function (see
+    # each method's own docstring), so there's no other "how do I use
+    # this" page anywhere else in these docs. Each is filed under
+    # whichever category its own example's mark belongs to instead --
+    # "Categorical business charts" for annotate_line (Mark.BAR),
+    # "Basic marks" for annotate_area (Mark.LINE), "Multivariate" for
+    # dual_axis (a layered Mark.AREA + Mark.LINE combo) -- rather than
+    # getting a category of its own.
     var cats = List[Category]()
     cats.append(Category(
         "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
-        ["scatter", "line", "bar", "area", "pie", "donut", "single_axis", "effect_scatter"],
+        ["scatter", "line", "bar", "area", "pie", "donut", "single_axis", "effect_scatter", "annotate_area"],
     ))
     cats.append(Category(
         "Categorical business charts",
