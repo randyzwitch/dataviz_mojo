@@ -154,6 +154,7 @@ def _render_marimekko[
                 theme.text_color,
                 sc.font_size,
                 TextAlign.CENTER,
+                theme.font_family,
             )
         )
 

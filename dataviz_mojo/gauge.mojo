@@ -152,6 +152,7 @@ def _render_gauge[
             theme.text_color,
             sc.title_font_size,
             TextAlign.CENTER,
+            theme.font_family,
         )
     )
 

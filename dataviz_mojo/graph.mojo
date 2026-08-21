@@ -142,7 +142,7 @@ def _render_graph[
         text_requests.append(
             _TextRequest(
                 _round_to_int(label_x), _round_to_int(label_y) + Int(sc.font_size * 0.35), nodes[i],
-                theme.text_color, sc.font_size, align,
+                theme.text_color, sc.font_size, align, theme.font_family,
             )
         )
 

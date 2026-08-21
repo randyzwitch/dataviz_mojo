@@ -287,7 +287,9 @@ def _render_sankey[
         target.fill_rect(x, y0, _round_to_int(node_width), h, palette[i % len(palette)])
         var label_x = x + _round_to_int(node_width) + sc.label_gap
         var label_y = y0 + h // 2 + Int(sc.font_size * 0.35)
-        text_requests.append(_TextRequest(label_x, label_y, nodes[i], theme.text_color, sc.font_size, TextAlign.LEFT))
+        text_requests.append(
+            _TextRequest(label_x, label_y, nodes[i], theme.text_color, sc.font_size, TextAlign.LEFT, theme.font_family)
+        )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 

@@ -112,6 +112,7 @@ def _draw_single_axis_frame[
                 theme.text_color,
                 sc.font_size,
                 TextAlign.CENTER,
+                theme.font_family,
             )
         )
 

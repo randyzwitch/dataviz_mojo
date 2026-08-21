@@ -208,7 +208,7 @@ def _render_tree[
         text_requests.append(
             _TextRequest(
                 px, py + sc.tick_length + sc.label_gap + Int(sc.font_size), plot._hierarchy_ids[row],
-                theme.text_color, sc.font_size, TextAlign.CENTER,
+                theme.text_color, sc.font_size, TextAlign.CENTER, theme.font_family,
             )
         )
 

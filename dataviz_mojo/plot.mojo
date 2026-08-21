@@ -2085,6 +2085,14 @@ struct _TextRequest(Copyable, Movable):
     -- `canvas_mojo.text.draw_text` for the former, `SvgCanvas.draw_text`
     for the latter -- once the shared generic pass that collected them
     returns; see either function's own body for exactly where.
+
+    `family` is baked in here, at construction time, from whichever
+    `Theme` built this particular request -- read once and stored,
+    the same way `color`/`size` already are, *not* a single value the
+    final draw loop reads once from one outer `Theme` -- see `Theme.
+    font_family`'s own docstring for why that distinction matters
+    (`render_facets()`/`render_layers()` combine several independently
+    themed `Plot`s' own `_TextRequest`s into one shared draw pass).
     """
 
     var x: Int
@@ -2093,6 +2101,7 @@ struct _TextRequest(Copyable, Movable):
     var color: Color
     var size: Float64
     var align: TextAlign
+    var family: String
     var rotation: Float64
 
     def __init__(
@@ -2103,6 +2112,7 @@ struct _TextRequest(Copyable, Movable):
         color: Color,
         size: Float64,
         align: TextAlign,
+        family: String,
         rotation: Float64 = 0.0,
     ):
         self.x = x
@@ -2111,6 +2121,7 @@ struct _TextRequest(Copyable, Movable):
         self.color = color
         self.size = size
         self.align = align
+        self.family = family
         self.rotation = rotation
 
 
@@ -2156,6 +2167,7 @@ def _draw_legend[T: DrawTarget](
                 theme.text_color,
                 sc.font_size,
                 TextAlign.LEFT,
+                theme.font_family,
             )
         )
 
@@ -2212,6 +2224,7 @@ def _draw_continuous_color_legend[T: DrawTarget](
             theme.text_color,
             sc.font_size,
             TextAlign.LEFT,
+            theme.font_family,
         )
     )
     text_requests.append(
@@ -2222,6 +2235,7 @@ def _draw_continuous_color_legend[T: DrawTarget](
             theme.text_color,
             sc.font_size,
             TextAlign.LEFT,
+            theme.font_family,
         )
     )
     return y + bar_height + sc.legend_row_gap
@@ -2278,6 +2292,7 @@ def _draw_continuous_size_legend[T: DrawTarget](
                 theme.text_color,
                 sc.font_size,
                 TextAlign.LEFT,
+                theme.font_family,
             )
         )
         top_y = center_y + radius + sc.legend_row_gap
@@ -2493,6 +2508,7 @@ def _label_text_requests(
                 theme.text_color,
                 sc.title_font_size,
                 TextAlign.CENTER,
+                theme.font_family,
             )
         )
 
@@ -2505,6 +2521,7 @@ def _label_text_requests(
                 theme.text_color,
                 sc.axis_title_font_size,
                 TextAlign.CENTER,
+                theme.font_family,
             )
         )
 
@@ -2517,6 +2534,7 @@ def _label_text_requests(
                 theme.text_color,
                 sc.axis_title_font_size,
                 TextAlign.CENTER,
+                theme.font_family,
                 rotation=-pi / 2.0,
             )
         )
@@ -2603,9 +2621,13 @@ def render(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
     for req in label_requests:
-        draw_text(canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, rotation=req.rotation)
+        draw_text(
+            canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, family=req.family, rotation=req.rotation
+        )
     for req in result.text_requests:
-        draw_text(canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, rotation=req.rotation)
+        draw_text(
+            canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, family=req.family, rotation=req.rotation
+        )
 
 
 def render_svg(
@@ -2629,9 +2651,9 @@ def render_svg(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
     for req in label_requests:
-        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, rotation=req.rotation)
+        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, family=req.family, rotation=req.rotation)
     for req in result.text_requests:
-        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, rotation=req.rotation)
+        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, family=req.family, rotation=req.rotation)
 
 
 struct _PointChannels(Movable):
@@ -2989,6 +3011,7 @@ def _draw_continuous_axis_frame[
                 theme.text_color,
                 sc.font_size,
                 TextAlign.CENTER,
+                theme.font_family,
             )
         )
 
@@ -3009,6 +3032,7 @@ def _draw_continuous_axis_frame[
                 theme.text_color,
                 sc.font_size,
                 TextAlign.RIGHT,
+                theme.font_family,
             )
         )
 
@@ -3514,6 +3538,7 @@ def _draw_categorical_axis_frame[
                 theme.text_color,
                 sc.font_size,
                 TextAlign.RIGHT,
+                theme.font_family,
             )
         )
 
@@ -3528,6 +3553,7 @@ def _draw_categorical_axis_frame[
                 theme.text_color,
                 sc.font_size,
                 TextAlign.CENTER,
+                theme.font_family,
             )
         )
 
@@ -3544,7 +3570,9 @@ def render_facets(mut canvas: Canvas, plots: List[Plot], cols: Int) raises:
     """
     var text_requests = _render_facets_generic(canvas, canvas.width, canvas.height, plots, cols)
     for req in text_requests:
-        draw_text(canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, rotation=req.rotation)
+        draw_text(
+            canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, family=req.family, rotation=req.rotation
+        )
 
 
 def render_facets_svg(mut svg: SvgCanvas, plots: List[Plot], cols: Int) raises:
@@ -3556,7 +3584,7 @@ def render_facets_svg(mut svg: SvgCanvas, plots: List[Plot], cols: Int) raises:
     """
     var text_requests = _render_facets_generic(svg, svg.width, svg.height, plots, cols)
     for req in text_requests:
-        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, rotation=req.rotation)
+        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, family=req.family, rotation=req.rotation)
 
 
 def _render_facets_generic[
@@ -3743,9 +3771,13 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
         plots[0], ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
     for req in label_requests:
-        draw_text(canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, rotation=req.rotation)
+        draw_text(
+            canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, family=req.family, rotation=req.rotation
+        )
     for req in result.text_requests:
-        draw_text(canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, rotation=req.rotation)
+        draw_text(
+            canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, family=req.family, rotation=req.rotation
+        )
 
 
 def render_layers_svg(mut svg: SvgCanvas, plots: List[Plot], ox0: Int = 0, oy0: Int = 0, ox1: Int = -1, oy1: Int = -1) raises:
@@ -3768,9 +3800,9 @@ def render_layers_svg(mut svg: SvgCanvas, plots: List[Plot], ox0: Int = 0, oy0: 
         plots[0], ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
     for req in label_requests:
-        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, rotation=req.rotation)
+        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, family=req.family, rotation=req.rotation)
     for req in result.text_requests:
-        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, rotation=req.rotation)
+        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, family=req.family, rotation=req.rotation)
 
 
 def _render_layers_generic[

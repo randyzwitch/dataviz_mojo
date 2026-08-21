@@ -217,6 +217,7 @@ def _render_calendar_heatmap[
                 theme.text_color,
                 sc.font_size,
                 TextAlign.RIGHT,
+                theme.font_family,
             )
         )
 
@@ -227,7 +228,7 @@ def _render_calendar_heatmap[
         text_requests.append(
             _TextRequest(
                 cx, plot_y0 - sc.label_gap, month_labels[month - 1], theme.text_color, sc.font_size,
-                TextAlign.LEFT,
+                TextAlign.LEFT, theme.font_family,
             )
         )
 

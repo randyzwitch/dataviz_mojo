@@ -80,7 +80,7 @@ def _draw_treemap_node[
         text_requests.append(
             _TextRequest(
                 (x0 + x1) // 2, (y0 + y1) // 2 + Int(sc.font_size * 0.35), ids[node], _TREEMAP_LABEL_COLOR,
-                sc.font_size, TextAlign.CENTER,
+                sc.font_size, TextAlign.CENTER, theme.font_family,
             )
         )
         return

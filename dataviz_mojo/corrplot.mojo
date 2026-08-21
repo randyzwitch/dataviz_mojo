@@ -132,7 +132,7 @@ def _render_corrplot[
                 frame.text_requests.append(
                     _TextRequest(
                         cx, cy + Int(sc.font_size * 0.35), _format_fixed(value, 2), theme.text_color,
-                        sc.font_size, TextAlign.CENTER,
+                        sc.font_size, TextAlign.CENTER, theme.font_family,
                     )
                 )
 
