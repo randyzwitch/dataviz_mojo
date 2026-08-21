@@ -11,6 +11,7 @@ def effect_scatter(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -22,4 +23,4 @@ def effect_scatter(
     directly for those, the same relationship `scatter()`'s own
     minimal signature already has to `Mark.POINT`'s full one."""
     var plot = Plot().mark_effect_scatter().encode(x=x, y=y)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

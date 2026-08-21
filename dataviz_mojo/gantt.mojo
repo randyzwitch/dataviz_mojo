@@ -308,10 +308,11 @@ def gantt(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
     """A gantt/span chart -- `Mark.GANTT`, one horizontal bar per
     category from `start[i]` to `end[i]`."""
     var plot = Plot().mark_gantt().encode_gantt(categories=categories, start=start, end=end)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

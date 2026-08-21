@@ -194,6 +194,7 @@ def treemap(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -202,4 +203,4 @@ def treemap(
     as nested, area-proportional rectangles via slice-and-dice. See
     `_draw_treemap_node`'s own docstring for the full reasoning."""
     var plot = Plot().mark_treemap().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

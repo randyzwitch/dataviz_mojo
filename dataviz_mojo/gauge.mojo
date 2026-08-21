@@ -169,6 +169,7 @@ def gauge(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -182,4 +183,4 @@ def gauge(
     var plot = Plot().mark_gauge().encode_gauge(
         value=value, min_value=min_value, max_value=max_value, breakpoints=breakpoints, band_colors=band_colors
     )
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

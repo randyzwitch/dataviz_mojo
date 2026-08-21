@@ -105,6 +105,7 @@ def bar(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -113,4 +114,4 @@ def bar(
     entry, negative values extend below the zero baseline
     automatically)."""
     var plot = Plot().mark_bar().encode_categorical(x=categories, y=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

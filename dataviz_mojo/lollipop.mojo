@@ -78,6 +78,7 @@ def lollipop(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -85,4 +86,4 @@ def lollipop(
     values)` shape `bar()` takes (a thin stem plus a point instead of
     a filled rect per category)."""
     var plot = Plot().mark_lollipop().encode_categorical(x=categories, y=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

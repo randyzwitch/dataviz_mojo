@@ -150,6 +150,7 @@ def pie(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -159,4 +160,4 @@ def pie(
     donut_inner_radius_fraction=0.55)` (or any value in `[0.0, 1.0)`)
     for a donut instead -- see `Theme`'s own docstring."""
     var plot = Plot().mark_arc().encode_categorical(x=categories, y=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

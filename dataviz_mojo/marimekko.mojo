@@ -174,6 +174,7 @@ def marimekko(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -187,4 +188,4 @@ def marimekko(
     var plot = Plot().mark_marimekko().encode_marimekko(
         categories=categories, subcategories=subcategories, values=values
     )
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

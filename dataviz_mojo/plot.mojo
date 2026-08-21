@@ -300,6 +300,7 @@ struct _Scaled(Movable):
     var legend_row_gap: Int
     var margin_buffer: Int
     var title_font_size: Float64
+    var subtitle_font_size: Float64
     var axis_title_font_size: Float64
     var continuous_legend_bar_width: Int
     var continuous_legend_bar_height: Int
@@ -323,6 +324,7 @@ struct _Scaled(Movable):
         self.legend_row_gap = Int(Float64(_LEGEND_ROW_GAP) * s)
         self.margin_buffer = Int(Float64(_MARGIN_BUFFER) * s)
         self.title_font_size = theme.title_font_size * s
+        self.subtitle_font_size = theme.subtitle_font_size * s
         self.axis_title_font_size = theme.axis_title_font_size * s
         self.continuous_legend_bar_width = Int(Float64(_CONTINUOUS_LEGEND_BAR_WIDTH) * s)
         self.continuous_legend_bar_height = Int(Float64(_CONTINUOUS_LEGEND_BAR_HEIGHT) * s)
@@ -487,6 +489,7 @@ struct Plot(Movable):
     # docstring. Empty string means "not set", the same "absent means
     # absent" convention every other optional feature here follows.
     var _title: String
+    var _subtitle: String
     var _x_title: String
     var _y_title: String
     var _mark: Mark
@@ -568,6 +571,7 @@ struct Plot(Movable):
         self._hierarchy_parent_ids = List[String]()
         self._hierarchy_values = List[Float64]()
         self._title = ""
+        self._subtitle = ""
         self._x_title = ""
         self._y_title = ""
         self._mark = Mark.POINT
@@ -1826,23 +1830,36 @@ struct Plot(Movable):
         self._theme = t
         return self^
 
-    def labels(var self, title: String = "", x_title: String = "", y_title: String = "") -> Self:
-        """Set the chart title and/or axis titles -- text captions, not
-        data. Named `x_title`/`y_title`, not `x`/`y`, so a call site
-        reading `.labels(x_title=..., y_title=...)` next to `.encode(x=
-        ..., y=...)` never reads as if it's setting data columns; the
-        two mean completely different things (a caption string vs. a
-        `List[Float64]`) despite the visual similarity.
+    def labels(
+        var self, title: String = "", subtitle: String = "", x_title: String = "", y_title: String = ""
+    ) -> Self:
+        """Set the chart title/subtitle and/or axis titles -- text
+        captions, not data. Named `x_title`/`y_title`, not `x`/`y`, so a
+        call site reading `.labels(x_title=..., y_title=...)` next to
+        `.encode(x=..., y=...)` never reads as if it's setting data
+        columns; the two mean completely different things (a caption
+        string vs. a `List[Float64]`) despite the visual similarity.
 
-        Each of the three is independent and defaults to `""` (not
+        Each of the four is independent and defaults to `""` (not
         set) -- call with only the ones actually wanted, e.g. `.labels
-        (title="Quarterly Revenue")` alone, with no axis titles at all.
-        `render()`/`render_svg()` reserve layout space for exactly the
-        ones that are non-empty and no others (see their own docstring
-        for the margin math) -- an unset title costs nothing, the same
-        "absent means absent" rule this file's other optional features
-        (`Theme.line_smoothing`, `donut_inner_radius_fraction`, etc.)
-        already follow.
+        (title="Quarterly Revenue")` alone, with no subtitle or axis
+        titles at all. `render()`/`render_svg()` reserve layout space
+        for exactly the ones that are non-empty and no others (see
+        their own docstring for the margin math) -- an unset title
+        costs nothing, the same "absent means absent" rule this file's
+        other optional features (`Theme.line_smoothing`, `donut_inner_
+        radius_fraction`, etc.) already follow.
+
+        `subtitle` draws as its own line directly beneath `title`,
+        smaller and in `Theme.subtitle_color`'s own muted tone rather
+        than `title`'s bold `text_color` -- the classic editorial two-
+        tier headline (a bold, short title plus a longer, quieter
+        subtitle giving context or a source note). Independent of
+        `title`: a `subtitle` set with no `title` still draws, at the
+        same top position `title` would have used, just with no title
+        line above it -- the same "each of the four is independent"
+        rule every other field here follows, not "subtitle only means
+        something once title is set."
 
         `x_title`/`y_title` caption whatever's drawn along the bottom/
         left edge respectively -- which axis that actually *is*
@@ -1856,12 +1873,13 @@ struct Plot(Movable):
 
         `Mark.ARC` has no x/y axes at all (see `_render_arc`'s own
         docstring) -- `x_title`/`y_title` raise at render() time if set
-        on an `Mark.ARC` plot (only `title` applies there), the same
-        "raise on a setting that can't apply, don't silently drop it"
-        rule `Plot.encode`'s own color/size-on-a-non-POINT-mark check
-        already follows.
+        on an `Mark.ARC` plot (only `title`/`subtitle` apply there), the
+        same "raise on a setting that can't apply, don't silently drop
+        it" rule `Plot.encode`'s own color/size-on-a-non-POINT-mark
+        check already follows.
         """
         self._title = title
+        self._subtitle = subtitle
         self._x_title = x_title
         self._y_title = y_title
         return self^
@@ -2478,6 +2496,7 @@ def _apply_labels(plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> 
 
     var sc = _Scaled(plot._theme)
     var extra_top = Int(sc.title_font_size) + sc.label_gap if plot._title.byte_length() > 0 else 0
+    extra_top += Int(sc.subtitle_font_size) + sc.label_gap if plot._subtitle.byte_length() > 0 else 0
     var extra_bottom = (
         Int(sc.axis_title_font_size) + sc.label_gap if plot._x_title.byte_length() > 0 else 0
     )
@@ -2520,6 +2539,25 @@ def _label_text_requests(
                 TextAlign.CENTER,
                 theme.font_family,
                 bold=theme.title_bold,
+            )
+        )
+
+    if plot._subtitle.byte_length() > 0:
+        # Stacks directly below title's own reserved band -- 0 when
+        # title itself is absent, the same "each of the four is
+        # independent" semantics Plot.labels()'s own docstring
+        # establishes (a lone subtitle draws at the very top, not
+        # floating below a title that isn't there).
+        var title_band = Int(sc.title_font_size) + sc.label_gap if plot._title.byte_length() > 0 else 0
+        text_requests.append(
+            _TextRequest(
+                (px0 + px1) // 2,
+                oy0 + title_band + Int(sc.subtitle_font_size * 0.8),
+                plot._subtitle,
+                theme.subtitle_color,
+                sc.subtitle_font_size,
+                TextAlign.CENTER,
+                theme.font_family,
             )
         )
 
@@ -4046,10 +4084,11 @@ def _rendered(
     title: String,
     x_title: String,
     y_title: String,
+    subtitle: String = "",
 ) raises -> Canvas:
     """Everything every function in this module does once its own mark
-    and data are chosen: apply the shared `title`/`x_title`/`y_title`
-    and `theme` to the half-built `plot`, then render it -- at
+    and data are chosen: apply the shared `title`/`subtitle`/`x_title`/
+    `y_title` and `theme` to the half-built `plot`, then render it -- at
     `_QUICKPLOT_SUPERSAMPLE` times `width`/`height`, into a scratch
     `Canvas` that size, immediately shrunk back down via
     `canvas_mojo.resize.downsample` -- and return the result, a
@@ -4108,7 +4147,10 @@ def _rendered(
     var scaled_theme = theme
     scaled_theme.scale = theme.scale * Float64(factor)
     var scratch = Canvas(width * factor, height * factor, scaled_theme.background)
-    render(scratch, plot^.labels(title=title, x_title=x_title, y_title=y_title).theme(scaled_theme))
+    render(
+        scratch,
+        plot^.labels(title=title, subtitle=subtitle, x_title=x_title, y_title=y_title).theme(scaled_theme),
+    )
     return downsample(scratch, factor)
 
 

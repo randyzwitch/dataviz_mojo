@@ -221,6 +221,7 @@ def box(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -229,4 +230,4 @@ def box(
     a single number). See `Plot.encode_boxplot()`'s own docstring
     (plot.mojo) for the quartile/whisker/outlier computation."""
     var plot = Plot().mark_box().encode_boxplot(categories=categories, values=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

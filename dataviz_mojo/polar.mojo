@@ -258,6 +258,7 @@ def polar(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -268,7 +269,7 @@ def polar(
     center; every value must be non-negative). See `_render_polar`'s
     own docstring for the full reasoning."""
     var plot = Plot().mark_polar().encode_polar(angle=angle, radius=radius)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
 
 def polar_series(
@@ -279,6 +280,7 @@ def polar_series(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -294,4 +296,4 @@ def polar_series(
     var plot = Plot().mark_polar().encode_polar_series(
         angle=angle, series_names=series_names, series_values=series_values
     )
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

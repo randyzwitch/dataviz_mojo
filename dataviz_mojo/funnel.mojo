@@ -170,6 +170,7 @@ def funnel(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -180,4 +181,4 @@ def funnel(
     accepted for signature consistency with every other quickplot here
     but have no axis to label, the same as `pie()`'s own two."""
     var plot = Plot().mark_funnel().encode_categorical(x=categories, y=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

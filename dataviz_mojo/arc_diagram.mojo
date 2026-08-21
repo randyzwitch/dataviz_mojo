@@ -159,6 +159,7 @@ def arc_diagram(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -170,4 +171,4 @@ def arc_diagram(
     var plot = Plot().mark_arc_diagram().encode_chord(
         from_categories=from_categories, to_categories=to_categories, values=values
     )
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

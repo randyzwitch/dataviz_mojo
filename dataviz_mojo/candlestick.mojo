@@ -125,6 +125,7 @@ def candlestick(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -133,4 +134,4 @@ def candlestick(
     var plot = Plot().mark_candlestick().encode_candlestick(
         categories=categories, open=open, high=high, low=low, close=close
     )
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

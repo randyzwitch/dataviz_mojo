@@ -129,6 +129,7 @@ def polarbar(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -140,4 +141,4 @@ def polarbar(
     max(values)` -- see `_render_polar_bar`'s own docstring for how
     this differs from `nightingale()`'s edge-to-edge wedges."""
     var plot = Plot().mark_polar_bar().encode_categorical(x=categories, y=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

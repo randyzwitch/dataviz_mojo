@@ -130,6 +130,7 @@ def nightingale(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -140,4 +141,4 @@ def nightingale(
     default `"radius"` mode -- see `_render_nightingale`'s own
     docstring for what each mode means."""
     var plot = Plot().mark_nightingale(area=area).encode_categorical(x=categories, y=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

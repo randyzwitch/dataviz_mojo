@@ -143,6 +143,7 @@ def ridgeline(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -157,4 +158,4 @@ def ridgeline(
     var plot = Plot().mark_ridgeline(bandwidth=bandwidth, scale_by_count=scale_by_count).encode_distribution(
         categories=categories, values=values
     )
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
