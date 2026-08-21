@@ -98,6 +98,7 @@ def _titles() -> Dict[String, String]:
     d["slope"] = "Slope"
     d["annotate_line"] = "Reference Line"
     d["svg_accessibility"] = "SVG Accessibility"
+    d["dual_axis"] = "Dual Y-Axis"
     return d^
 
 
@@ -118,18 +119,21 @@ def _categories() -> List[Category]:
     # size encoding, line/area smoothing, a bare SVG-backend page)
     # mixed in among them; those are real dataviz_mojo capabilities,
     # just not chart types of their own, so they live in the wiki/API
-    # reference instead of the Examples gallery. annotate_line and
-    # svg_accessibility are the two exceptions: unlike those, neither
-    # has a simpler existing example to piggyback on -- annotate_line()
-    # isn't exposed on any quickplot function, and accessible_svg_
+    # reference instead of the Examples gallery. annotate_line,
+    # svg_accessibility, and dual_axis are the three exceptions: unlike
+    # facets/layers/titles, none has a simpler existing example to
+    # piggyback on -- Plot.annotate_line() and Plot.secondary_axis()
+    # aren't exposed on any quickplot function, and accessible_svg_
     # string()/write_accessible_svg() are a standalone SVG-writing
     # utility with no Plot method of their own at all (see each one's
     # own docstring) -- so there's no other "how do I use this" page
-    # anywhere else in these docs. svg_accessibility's own bar-chart
-    # data is incidental (the feature works with any mark) -- it's
-    # filed under "Basic marks" (the mark it happens to demo on) rather
-    # than a category of its own, the same reasoning annotate_line's
-    # own placement under "Categorical business charts" already used.
+    # anywhere else in these docs. Each is filed under whichever
+    # category its own example's mark belongs to instead --
+    # "Categorical business charts" for annotate_line (Mark.BAR),
+    # "Basic marks" for svg_accessibility (its own bar-chart data is
+    # incidental -- the feature works with any mark), "Multivariate"
+    # for dual_axis (a layered Mark.AREA + Mark.LINE combo) -- rather
+    # than getting a category of its own.
     var cats = List[Category]()
     cats.append(Category(
         "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
@@ -160,7 +164,7 @@ def _categories() -> List[Category]:
     cats.append(Category(
         "Multivariate",
         "Several numeric dimensions compared at once on one shared layout, not a single value per category.",
-        ["parallel"],
+        ["parallel", "dual_axis"],
     ))
     cats.append(Category(
         "Grid & matrix",
@@ -368,14 +372,15 @@ def _quickplot_call_end(body: List[String], start: Int) -> Int:
 
 
 def _bare_render_call_index(body: List[String]) -> Int:
-    """The line index of the bare `render(c, ...)` call, or -- for the
-    one example where it's the genuinely interesting line instead of
-    boilerplate to cut -- a `write_accessible_svg(...)` call. The non-
-    quickplot equivalent of `_quickplot_call_start()`/`_quickplot_call_
-    end()`, for an example built by hand via `Plot()` directly because
-    no one-call convenience function covers what it demos (e.g. Plot.
-    annotate_line(), not exposed on any quickplot function -- see
-    examples/annotate_line.mojo's own docstring).
+    """The line index of the bare `render(c, ...)` or `render_layers(c,
+    ...)` call, or -- for the one example where it's the genuinely
+    interesting line instead of boilerplate to cut -- a `write_
+    accessible_svg(...)` call. The non-quickplot equivalent of
+    `_quickplot_call_start()`/`_quickplot_call_end()`, for an example
+    built by hand via `Plot()` directly because no one-call convenience
+    function covers what it demos (e.g. `Plot.annotate_line()`/`Plot.
+    secondary_axis()`, neither exposed on any quickplot function -- see
+    examples/annotate_line.mojo's/dual_axis.mojo's own docstrings).
 
     `write_accessible_svg(` is a deliberate, narrow exception to this
     file's own "the render call is the interesting part, everything
@@ -383,14 +388,23 @@ def _bare_render_call_index(body: List[String]) -> Int:
     accessibility.mojo's *whole point* is that call's own title/
     description arguments, not the render_svg() line just above it --
     cutting there the way every other example cuts at its own render
-    call would throw away the one line the page exists to show. `.
-    strip().startswith("render(")` alone is enough to tell that prefix
-    apart from `render_svg(`/`render_facets(`/`render_layers(` -- each
-    of those has a different character right after "render", never "(".
-    -1 if this example calls none of the three at all."""
+    call would throw away the one line the page exists to show.
+
+    Checked as three explicit prefixes, not one substring test, so a
+    future example calling `render_svg(`/`render_facets(`/`render_
+    layers_svg(` instead doesn't silently match the wrong one (each has
+    a different character right after "render"/"render_layers", never
+    "(" -- so `startswith("render(")` alone would correctly skip
+    `render_svg(` too, but `render_layers(` needs its own explicit check
+    since nothing about the first shape's own prefix rules it out or
+    in). -1 if this example calls none of the three at all."""
     for i in range(len(body)):
         var stripped = body[i].strip()
-        if stripped.startswith("render(") or stripped.startswith("write_accessible_svg("):
+        if (
+            stripped.startswith("render(")
+            or stripped.startswith("render_layers(")
+            or stripped.startswith("write_accessible_svg(")
+        ):
             return i
     return -1
 
