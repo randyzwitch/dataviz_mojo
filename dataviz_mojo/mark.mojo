@@ -466,13 +466,22 @@ detects a cycle and raises, since a real Sankey's own flow data must
 be a DAG). Each node is a thin bar, height proportional to `max(total
 inflow, total outflow)`; nodes sharing a column stack via the same
 "round the cumulative boundary" pattern `MARIMEKKO`/`TREEMAP` already
-establish. Each flow draws as a filled quadrilateral ("ribbon")
-between a slice of its own `from` node's right edge and its own `to`
-node's left edge -- straight edges, not a smooth curve, the same
-"straight, not curved" simplification `CHORD`'s own straight-rim
-ribbons already are. A self-loop is dropped before layout entirely
-(no meaningful column-distance to lay out). See sankey.mojo's own
-`_render_sankey` docstring for the full reasoning.
+establish. Each flow draws as one or more filled quadrilaterals
+("ribbon" segments) between a slice of its own `from` node's right
+edge and its own `to` node's left edge -- straight edges, not a
+smooth curve, the same "straight, not curved" simplification `CHORD`'s
+own straight-rim ribbons already are. A "skip" edge (spanning more
+than one column) is spliced into a chain through one invisible pass-
+through node per intermediate column -- each competing for that
+column's own vertical space exactly like a real node, so real nodes
+sharing the column get pushed to make room for it instead of the flow
+just cutting straight through them (originally a real v1 scope limit,
+closed once a real reason showed up; every segment in one flow's own
+chain still colors by that flow's own original source, not whichever
+pass-through node a given segment starts from). A self-loop is
+dropped before layout entirely (no meaningful column-distance to lay
+out). See sankey.mojo's own `_render_sankey` docstring for the full
+reasoning.
 
 RADIALBAR (the `polarbar` gap item scoped out of Phase 4, closed once
 Phase 7 wrapped) reuses `POLAR_BAR`'s own `encode_categorical` data
