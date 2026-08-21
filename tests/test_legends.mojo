@@ -115,11 +115,11 @@ def test_render_svg_continuous_color_legend_matches_hand_derived_gradient() rais
         "the gradient bar itself, filled by reference to that gradient",
     )
     assert_true(
-        '<text x="288" y="24" font-size="12.000" fill="#282828" text-anchor="start">10.0</text>' in s,
+        '<text x="288" y="24" font-size="12.000" font-family="sans-serif" fill="#282828" text-anchor="start">10.0</text>' in s,
         "domain max label, at the bar's own top",
     )
     assert_true(
-        '<text x="288" y="124" font-size="12.000" fill="#282828" text-anchor="start">0.0</text>' in s,
+        '<text x="288" y="124" font-size="12.000" font-family="sans-serif" fill="#282828" text-anchor="start">0.0</text>' in s,
         "domain min label, at the bar's own bottom",
     )
 
@@ -150,15 +150,15 @@ def test_render_svg_continuous_size_legend_matches_hand_derived_circles() raises
     assert_true('<circle cx="285" cy="67" r="9" fill="#1e64b4"/>' in s, "midpoint (5.0) -> radius 9")
     assert_true('<circle cx="285" cy="87" r="3" fill="#1e64b4"/>' in s, "min (2.0) -> radius 3")
     assert_true(
-        '<text x="304" y="39" font-size="12.000" fill="#282828" text-anchor="start">8.0</text>' in s,
+        '<text x="304" y="39" font-size="12.000" font-family="sans-serif" fill="#282828" text-anchor="start">8.0</text>' in s,
         "max circle's own label",
     )
     assert_true(
-        '<text x="298" y="71" font-size="12.000" fill="#282828" text-anchor="start">5.0</text>' in s,
+        '<text x="298" y="71" font-size="12.000" font-family="sans-serif" fill="#282828" text-anchor="start">5.0</text>' in s,
         "midpoint circle's own label",
     )
     assert_true(
-        '<text x="292" y="91" font-size="12.000" fill="#282828" text-anchor="start">2.0</text>' in s,
+        '<text x="292" y="91" font-size="12.000" font-family="sans-serif" fill="#282828" text-anchor="start">2.0</text>' in s,
         "min circle's own label",
     )
 

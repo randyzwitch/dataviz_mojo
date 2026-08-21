@@ -171,7 +171,7 @@ def test_render_facets_svg_each_cell_gets_its_own_independent_title() raises:
     var s = svg.to_string()
 
     assert_true(
-        '<text x="220" y="14" font-size="18.000" fill="#282828"'
+        '<text x="220" y="14" font-size="18.000" font-family="sans-serif" fill="#282828"'
         ' text-anchor="middle">Left</text>' in s,
         "cell 0's own title, centered on its own inner plot rect",
     )
