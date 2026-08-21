@@ -97,6 +97,7 @@ def _titles() -> Dict[String, String]:
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     d["annotate_line"] = "Reference Line"
+    d["annotate_area"] = "Reference Band"
     return d^
 
 
@@ -117,17 +118,18 @@ def _categories() -> List[Category]:
     # size encoding, line/area smoothing, a bare SVG-backend page)
     # mixed in among them; those are real dataviz_mojo capabilities,
     # just not chart types of their own, so they live in the wiki/API
-    # reference instead of the Examples gallery. annotate_line is the
-    # one exception: unlike those, it has no simpler existing example
-    # to piggyback on -- it isn't exposed on any quickplot function
-    # (see Plot.annotate_line()'s own docstring), so there's no other
-    # "how do I use markLine-style reference lines" page anywhere else
-    # in these docs. It's filed under the bar-chart category it demos
-    # on rather than getting a category of its own.
+    # reference instead of the Examples gallery. annotate_line and
+    # annotate_area are the two exceptions: unlike those, neither has a
+    # simpler existing example to piggyback on -- neither Plot.
+    # annotate_line() nor Plot.annotate_area() is exposed on any
+    # quickplot function (see each method's own docstring), so there's
+    # no other "how do I use this" page anywhere else in these docs.
+    # Each is filed under the category it demos on (bar-chart-family,
+    # line-chart-family) rather than getting a category of its own.
     var cats = List[Category]()
     cats.append(Category(
         "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
-        ["scatter", "line", "bar", "area", "pie", "donut", "single_axis", "effect_scatter"],
+        ["scatter", "line", "bar", "area", "pie", "donut", "single_axis", "effect_scatter", "annotate_area"],
     ))
     cats.append(Category(
         "Categorical business charts",

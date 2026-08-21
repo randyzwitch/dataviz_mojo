@@ -173,6 +173,28 @@ to share a similar visual weight today, not a promise they'll always
 share a value; each gets its own field so retheming one doesn't
 silently retheme the other.
 
+`annotation_area_color` (default a pale blue-gray, `Color(224, 236,
+246)`) is `Plot.annotate_area()`'s own fill -- a genuinely separate
+field from `annotation_color`, not that same gray reused, because a
+*filled* rectangle needs to read very differently from a *line*: solid
+medium gray as a fill would read as an opaque, obtrusive block, while a
+1px stroke in the same gray reads as a thin, unobtrusive mark. `Plot.
+annotate_area()`'s own label text still uses `annotation_color`, not
+this field -- ink and fill are two different jobs even on the same
+annotation, the same split `mark_color`/`text_color` already have
+everywhere else. A real, documented limitation this default exists to
+soften: canvas_mojo's `fill_rect` has no true alpha compositing on
+either backend (`Canvas`'s own pixel buffer stores no per-pixel alpha
+at all; `SvgCanvas.fill_rect` emits a plain `fill="#rrggbb"`, no `fill-
+opacity`) -- the same real gap `_lighten()`'s own docstring already
+documents for `Mark.EFFECT_SCATTER`'s halo, not a new one. A real
+translucent overlay (ECharts' own `markArea` default) would let
+whatever the mark drew underneath stay visible through it; this can
+only draw a fully opaque rectangle over it instead, so the default
+stays deliberately pale specifically to minimize how much that
+obscures -- not a substitute for real translucency, just the softest
+version of "opaque" gets to be until canvas_mojo can do better.
+
 `font_family` (default `"sans-serif"`) is every `_TextRequest`'s own
 typeface -- tick/legend labels, axis titles, the chart title, all of
 it, baked into each `_TextRequest` at the point it's built (the same
@@ -261,6 +283,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     var axis_title_font_size: Float64
     var waterfall_total_color: Color
     var annotation_color: Color
+    var annotation_area_color: Color
     var font_family: String
     var title_bold: Bool
 
@@ -297,6 +320,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         axis_title_font_size: Float64 = 14.0,
         waterfall_total_color: Color = Color(100, 100, 100),
         annotation_color: Color = Color(150, 150, 150),
+        annotation_area_color: Color = Color(224, 236, 246),
         font_family: String = "sans-serif",
         title_bold: Bool = True,
     ):
@@ -331,6 +355,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.axis_title_font_size = axis_title_font_size
         self.waterfall_total_color = waterfall_total_color
         self.annotation_color = annotation_color
+        self.annotation_area_color = annotation_area_color
         self.font_family = font_family
         self.title_bold = title_bold
 
