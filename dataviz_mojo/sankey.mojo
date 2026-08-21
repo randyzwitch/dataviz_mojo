@@ -53,22 +53,37 @@ def _render_sankey[
     `TREEMAP` already establish, so adjacent nodes in a column never
     show a hairline gap.
 
-    Each flow draws as a filled quadrilateral ("ribbon") between a
-    slice of its own `from` node's right edge and a slice of its own
-    `to` node's left edge -- straight edges, not a smooth curve (the
-    same "straight, not curved" simplification `Mark.CHORD`'s own
-    straight-rim ribbons already are, for the identical reason: a
-    smooth Bezier ribbon whose own top and bottom edges both curve
-    independently is real, added geometric complexity a straight
-    trapezoid sidesteps while keeping the same essential "value ->
-    proportional width" reading). Ribbons connect straight to their
-    own target column's own x, regardless of how many columns apart
-    the two nodes are -- a "skip" edge (source column 0 directly to a
-    column-2 node) draws straight through whatever's visually in
-    column 1, not rerouted around it, a real v1 scope limit. Multiple
-    flows in or out of one node stack in the given row order, each
-    claiming its own proportional slice of that node's own side --
-    exactly how a real Sankey's own additive-flow reading works.
+    Each flow draws as one or more filled quadrilaterals ("ribbon"
+    segments) between a slice of its own `from` node's right edge and
+    a slice of its own `to` node's left edge -- straight edges, not a
+    smooth curve (the same "straight, not curved" simplification
+    `Mark.CHORD`'s own straight-rim ribbons already are, for the
+    identical reason: a smooth Bezier ribbon whose own top and bottom
+    edges both curve independently is real, added geometric complexity
+    a straight trapezoid sidesteps while keeping the same essential
+    "value -> proportional width" reading). A "skip" edge (source
+    column 0 to a column-2 node, say) is spliced into a *chain* of
+    segments through one invisible pass-through node per intermediate
+    column, instead of one long ribbon drawn straight through whatever
+    else occupies those columns -- each pass-through node competes for
+    vertical space in its own column exactly like a real node does
+    (proportional to the one flow value passing through it), so real
+    nodes sharing that column get pushed to make room for it, the same
+    way a real Sankey routes a long flow *around* other nodes instead
+    of through them. Every ribbon segment in one flow's own chain
+    still colors by that flow's own original source node (not
+    whichever pass-through node a given segment happens to start from)
+    so the whole chain reads as one flow. Each skip edge gets its own
+    dedicated pass-through nodes, never shared with another skip edge
+    passing through the same column -- a real, deliberate v1
+    simplification (a real Sankey layout would bundle same-direction
+    pass-throughs into shared lanes to save vertical space; this
+    doesn't, trading some extra column height for a much simpler
+    layout pass with no lane-bundling logic of its own). Multiple
+    flows in or out of one node (real or pass-through) stack in the
+    given row order, each claiming its own proportional slice of that
+    node's own side -- exactly how a real Sankey's own additive-flow
+    reading works.
 
     A self-loop (`from[i] == to[i]`) is dropped before layout entirely
     (not just left undrawn the way `Mark.ARC_DIAGRAM`/`GRAPH` handle
@@ -151,16 +166,54 @@ def _render_sankey[
         if c > max_column:
             max_column = c
 
-    var total_in = List[Float64](capacity=n)
-    var total_out = List[Float64](capacity=n)
-    for _ in range(n):
+    # Splice every skip edge (target column more than one past source
+    # column) into a chain through one pass-through node per
+    # intermediate column -- see this function's own docstring for the
+    # full reasoning. `all_column` extends `column` with one entry per
+    # pass-through node (indices `n..n_total-1`); `edge_origin` tracks
+    # each final-edge-list segment's own *original* source node (for
+    # coloring -- a chain's own middle segments start from a pass-
+    # through node, not the flow's own real source).
+    var final_from = List[Int]()
+    var final_to = List[Int]()
+    var final_value = List[Float64]()
+    var edge_origin = List[Int]()
+    var all_column = column.copy()
+    for e in range(len(from_idx)):
+        var fi = from_idx[e]
+        var ti = to_idx[e]
+        var gap = column[ti] - column[fi]
+        if gap <= 1:
+            final_from.append(fi)
+            final_to.append(ti)
+            final_value.append(edge_value[e])
+            edge_origin.append(fi)
+        else:
+            var prev = fi
+            for step in range(1, gap):
+                var dummy_idx = len(all_column)
+                all_column.append(column[fi] + step)
+                final_from.append(prev)
+                final_to.append(dummy_idx)
+                final_value.append(edge_value[e])
+                edge_origin.append(fi)
+                prev = dummy_idx
+            final_from.append(prev)
+            final_to.append(ti)
+            final_value.append(edge_value[e])
+            edge_origin.append(fi)
+    var n_total = len(all_column)
+
+    var total_in = List[Float64](capacity=n_total)
+    var total_out = List[Float64](capacity=n_total)
+    for _ in range(n_total):
         total_in.append(0.0)
         total_out.append(0.0)
-    for e in range(len(from_idx)):
-        total_out[from_idx[e]] += edge_value[e]
-        total_in[to_idx[e]] += edge_value[e]
-    var node_value = List[Float64](capacity=n)
-    for i in range(n):
+    for e in range(len(final_from)):
+        total_out[final_from[e]] += final_value[e]
+        total_in[final_to[e]] += final_value[e]
+    var node_value = List[Float64](capacity=n_total)
+    for i in range(n_total):
         node_value.append(max(total_in[i], total_out[i]))
 
     var sc = _Scaled(theme)
@@ -178,12 +231,12 @@ def _render_sankey[
     var nodes_in_column = List[List[Int]]()
     for _ in range(max_column + 1):
         nodes_in_column.append(List[Int]())
-    for i in range(n):
-        nodes_in_column[column[i]].append(i)
+    for i in range(n_total):
+        nodes_in_column[all_column[i]].append(i)
 
-    var node_y0 = List[Float64](capacity=n)
-    var node_y1 = List[Float64](capacity=n)
-    for _ in range(n):
+    var node_y0 = List[Float64](capacity=n_total)
+    var node_y1 = List[Float64](capacity=n_total)
+    for _ in range(n_total):
         node_y0.append(0.0)
         node_y1.append(0.0)
     for c in range(max_column + 1):
@@ -202,21 +255,21 @@ def _render_sankey[
     var palette = default_categorical_palette()
     var out_cursor = node_y0.copy()
     var in_cursor = node_y0.copy()
-    for e in range(len(from_idx)):
-        var fi = from_idx[e]
-        var ti = to_idx[e]
-        var src_h = (edge_value[e] / node_value[fi]) * (node_y1[fi] - node_y0[fi]) if node_value[fi] > 0.0 else 0.0
+    for e in range(len(final_from)):
+        var fi = final_from[e]
+        var ti = final_to[e]
+        var src_h = (final_value[e] / node_value[fi]) * (node_y1[fi] - node_y0[fi]) if node_value[fi] > 0.0 else 0.0
         var src_top = out_cursor[fi]
         var src_bottom = src_top + src_h
         out_cursor[fi] = src_bottom
 
-        var tgt_h = (edge_value[e] / node_value[ti]) * (node_y1[ti] - node_y0[ti]) if node_value[ti] > 0.0 else 0.0
+        var tgt_h = (final_value[e] / node_value[ti]) * (node_y1[ti] - node_y0[ti]) if node_value[ti] > 0.0 else 0.0
         var tgt_top = in_cursor[ti]
         var tgt_bottom = tgt_top + tgt_h
         in_cursor[ti] = tgt_bottom
 
-        var src_x = col_x[column[fi]] + node_width
-        var tgt_x = col_x[column[ti]]
+        var src_x = col_x[all_column[fi]] + node_width
+        var tgt_x = col_x[all_column[ti]]
 
         var path = Path()
         path.move_to(src_x, src_top)
@@ -224,7 +277,7 @@ def _render_sankey[
         path.line_to(tgt_x, tgt_bottom)
         path.line_to(tgt_x, tgt_top)
         path.close()
-        target.fill_path_aa(path, palette[fi % len(palette)])
+        target.fill_path_aa(path, palette[edge_origin[e] % len(palette)])
 
     var text_requests = List[_TextRequest]()
     for i in range(n):
