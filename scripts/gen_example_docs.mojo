@@ -96,6 +96,7 @@ def _titles() -> Dict[String, String]:
     d["sankey"] = "Sankey"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
+    d["annotate_line"] = "Reference Line"
     return d^
 
 
@@ -116,7 +117,13 @@ def _categories() -> List[Category]:
     # size encoding, line/area smoothing, a bare SVG-backend page)
     # mixed in among them; those are real dataviz_mojo capabilities,
     # just not chart types of their own, so they live in the wiki/API
-    # reference instead of the Examples gallery.
+    # reference instead of the Examples gallery. annotate_line is the
+    # one exception: unlike those, it has no simpler existing example
+    # to piggyback on -- it isn't exposed on any quickplot function
+    # (see Plot.annotate_line()'s own docstring), so there's no other
+    # "how do I use markLine-style reference lines" page anywhere else
+    # in these docs. It's filed under the bar-chart category it demos
+    # on rather than getting a category of its own.
     var cats = List[Category]()
     cats.append(Category(
         "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
@@ -128,7 +135,7 @@ def _categories() -> List[Category]:
         " period-over-period comparisons, and process stages.",
         [
             "lollipop", "waterfall", "gantt", "span_chart", "population_pyramid", "bullet", "diverging_bar",
-            "grouped_bar", "stacked_bar", "slope", "funnel", "bump", "streamgraph",
+            "grouped_bar", "stacked_bar", "slope", "funnel", "bump", "streamgraph", "annotate_line",
         ],
     ))
     cats.append(Category(
@@ -354,34 +361,63 @@ def _quickplot_call_end(body: List[String], start: Int) -> Int:
     return -1
 
 
+def _bare_render_call_index(body: List[String]) -> Int:
+    """The line index of the bare `render(c, ...)` call -- the non-
+    quickplot equivalent of `_quickplot_call_start()`/`_quickplot_call_
+    end()`, for an example built by hand via `Plot()` directly because
+    no one-call convenience function covers what it demos (e.g. Plot.
+    annotate_line(), not exposed on any quickplot function -- see
+    examples/annotate_line.mojo's own docstring). `.strip().startswith(
+    "render(")` alone is enough to tell this apart from `render_svg(`/
+    `render_facets(`/`render_layers(` -- each of those has a different
+    character right after "render", never "(". -1 if this example never
+    calls bare `render(...)` at all."""
+    for i in range(len(body)):
+        if body[i].strip().startswith("render("):
+            return i
+    return -1
+
+
 def _extract_clean_body(source: String) raises -> List[String]:
-    """Every example's raster output is built via a one-call
-    convenience function now (see this file's own module docstring),
-    so this has exactly one shape to extract: the `var c = <fn>(...)`
-    call verbatim, shown as-is with nothing left to strip out of it --
-    everything before it (data setup) kept, everything from its own
-    closing `)` onward (write_bmp/png, any separate SvgCanvas/
-    render_svg() block) cut. Raises rather than silently falling back
-    to showing the whole file (which used to be `_extract_clean_body`'s
+    """Most examples build their raster output via a one-call
+    convenience function (see this file's own module docstring): the
+    `var c = <fn>(...)` call verbatim, shown as-is with nothing left to
+    strip out of it -- everything before it (data setup) kept,
+    everything from its own closing `)` onward (write_bmp/png, any
+    separate SvgCanvas/render_svg() block) cut. A second, rarer shape
+    (currently just examples/annotate_line.mojo) has no quickplot
+    function to call at all -- built by hand via `Plot()` + bare
+    `render(c, plot)` instead; `_bare_render_call_index()` finds that
+    call's own equivalent stopping point, and everything through it is
+    kept the same way. Raises rather than silently falling back to
+    showing the whole file (which used to be `_extract_clean_body`'s
     own fallback, back when a raster-only-no-quickplot example was a
-    real, expected shape) -- a future example that doesn't fit this
-    pattern needs a real decision about how its own page should look,
-    not a silently-wrong one.
+    real, expected shape) -- a future example that fits neither shape
+    needs a real decision about how its own page should look, not a
+    silently-wrong one.
     """
     var body = _main_body_lines(source)
 
     var qp_start = _quickplot_call_start(body)
-    if qp_start == -1:
+    if qp_start != -1:
+        var qp_end = _quickplot_call_end(body, qp_start)
+        var qp_clean = List[String]()
+        for i in range(0, qp_end + 1):
+            qp_clean.append(body[i])
+        return _finish_clean_body(qp_clean)
+
+    var render_idx = _bare_render_call_index(body)
+    if render_idx == -1:
         raise Error(
             "gen_example_docs: no one-call convenience function call"
-            " (`var c = <fn>(...)`) found -- every example's raster"
-            " output is expected to be built that way now"
+            " (`var c = <fn>(...)`) and no bare `render(c, ...)` call"
+            " found -- every example's raster output is expected to be"
+            " built one of these two ways"
         )
-    var qp_end = _quickplot_call_end(body, qp_start)
-    var qp_clean = List[String]()
-    for i in range(0, qp_end + 1):
-        qp_clean.append(body[i])
-    return _finish_clean_body(qp_clean)
+    var clean = List[String]()
+    for i in range(0, render_idx + 1):
+        clean.append(body[i])
+    return _finish_clean_body(clean)
 
 
 def _finish_clean_body(clean: List[String]) -> List[String]:

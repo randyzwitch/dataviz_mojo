@@ -159,6 +159,20 @@ in plot.mojo, not a `Theme` field, since nothing about it is a color/
 size a caller would plausibly want to retheme independently of the
 mark's own shape).
 
+`annotation_color` (default a plain medium gray, `Color(150, 150,
+150)`) is `Plot.annotate_line()`'s own color -- both the reference
+line itself and its optional label share this one color, reading as
+one cohesive annotation rather than two independently colored pieces.
+Distinct from `mark_color` (a reference line is explicitly *not* data,
+so borrowing the data's own color would blur that distinction) and
+from `axis_color`/`gridline_color` (this needs to read as more present
+than either -- a reference line is meant to be noticed, not recede
+into the chrome). Not `subtitle_color` reused either, even though both
+default to a similarly muted gray -- two different roles that happen
+to share a similar visual weight today, not a promise they'll always
+share a value; each gets its own field so retheming one doesn't
+silently retheme the other.
+
 `font_family` (default `"sans-serif"`) is every `_TextRequest`'s own
 typeface -- tick/legend labels, axis titles, the chart title, all of
 it, baked into each `_TextRequest` at the point it's built (the same
@@ -246,6 +260,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     var subtitle_color: Color
     var axis_title_font_size: Float64
     var waterfall_total_color: Color
+    var annotation_color: Color
     var font_family: String
     var title_bold: Bool
 
@@ -281,6 +296,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         subtitle_color: Color = Color(110, 110, 110),
         axis_title_font_size: Float64 = 14.0,
         waterfall_total_color: Color = Color(100, 100, 100),
+        annotation_color: Color = Color(150, 150, 150),
         font_family: String = "sans-serif",
         title_bold: Bool = True,
     ):
@@ -314,6 +330,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.subtitle_color = subtitle_color
         self.axis_title_font_size = axis_title_font_size
         self.waterfall_total_color = waterfall_total_color
+        self.annotation_color = annotation_color
         self.font_family = font_family
         self.title_bold = title_bold
 

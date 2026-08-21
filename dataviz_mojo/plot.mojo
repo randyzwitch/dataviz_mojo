@@ -492,6 +492,14 @@ struct Plot(Movable):
     var _subtitle: String
     var _x_title: String
     var _y_title: String
+    # A horizontal reference line per (value, label) pair, set via
+    # .annotate_line() -- see that method's own docstring. Parallel
+    # lists, the same "outer list indexes named things" shape RADAR's
+    # own series_names/series_values already establish -- callable
+    # more than once (each call appends, doesn't replace), so a caller
+    # wanting both an "average" and a "target" line just calls it twice.
+    var _annotation_line_values: List[Float64]
+    var _annotation_line_labels: List[String]
     var _mark: Mark
     var _theme: Theme
 
@@ -574,6 +582,8 @@ struct Plot(Movable):
         self._subtitle = ""
         self._x_title = ""
         self._y_title = ""
+        self._annotation_line_values = List[Float64]()
+        self._annotation_line_labels = List[String]()
         self._mark = Mark.POINT
         self._theme = Theme.default()
 
@@ -1884,6 +1894,56 @@ struct Plot(Movable):
         self._y_title = y_title
         return self^
 
+    def annotate_line(var self, value: Float64, label: String = "") -> Self:
+        """Add a horizontal reference line at `value` on the y-axis --
+        ECharts' own `markLine` (a fixed, explicit value only; not its
+        other "average"/"max"/"min" auto-computed modes, a real,
+        deliberate v1 scope cut). Callable more than once -- each call
+        *adds* a line, doesn't replace the previous one, so `.annotate_
+        line(target).annotate_line(average, label="avg")` draws both.
+        `label`, when non-empty, draws to the right of the line, in
+        `Theme.annotation_color`'s own muted tone; the line itself
+        spans the full plot width, solid (not dashed -- canvas_mojo has
+        no dashed-stroke primitive at all yet, a real, separate gap,
+        not something this feature works around). A `value` outside
+        the mark's own (padded) y-domain draws nothing at all -- not
+        clamped to an edge, not extrapolated off-plot into the chrome
+        above -- see `_draw_annotation_lines`'s own docstring for the
+        real, rendering-caught bug that discipline exists to avoid.
+
+        Only meaningful on a mark whose y-axis is a genuine continuous
+        `LinearScale` -- checked at render() time (`_RenderResult`'s
+        own `has_y_scale`, see its docstring), raising a clear error
+        rather than silently drawing nothing or drawing somewhere
+        wrong, the same "raise on a setting that can't apply" rule
+        `x_title`/`y_title`-on-`Mark.ARC` already follows. Supported
+        today: `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER` (the shared
+        continuous path) and every mark sharing `_CategoricalFrame`
+        (`BAR`/`LOLLIPOP`/`WATERFALL`/`BOX`/`CANDLESTICK`/`BULLET`/
+        `GROUPED_BAR`/`STACKED_BAR`/`STREAMGRAPH`) -- the two places
+        `_RenderResult` actually gets a real y-scale from today. Every
+        other mark (categorical-only axes, polar coordinates,
+        hierarchy/edge-list layouts, `Mark.ARC`'s own no-axes-at-all
+        shape, `Mark.BUMP`'s own rank-not-value y-axis, ...) has no
+        y *value* domain a reference line could mean anything against
+        -- a real, deliberate v1 scope limit, not an oversight; growing
+        this list only needs a call site update, not new machinery
+        (see `_CategoricalFrame.result`'s own docstring for how the
+        first nine got it "for free").
+
+        Only wired into `render()`/`render_svg()` so far -- `render_
+        facets()`/`render_layers()` don't draw annotation lines yet,
+        even though `render_layers`'s own shared `_ContinuousFrame`
+        already exposes the right y-scale for it (a real, separate
+        follow-up: which layer's own annotations should draw, and
+        whether facets want one shared line across every cell or a
+        per-cell one, are both real design questions this method
+        doesn't answer yet).
+        """
+        self._annotation_line_values.append(value)
+        self._annotation_line_labels.append(label)
+        return self^
+
 
 def _unique_categories(data: List[String]) -> List[String]:
     """Every distinct value in `data`, in first-seen order -- the
@@ -2417,22 +2477,50 @@ struct _RenderResult(Movable):
     `len(plot.x_categories) == 0` check), `px0`..`py1` fall back to the
     full outer bounds it was given: there's no narrower rect to report,
     and the outer bounds are exactly what `_label_text_requests` would
-    otherwise center on anyway -- that case is `_empty_result` below."""
+    otherwise center on anyway -- that case is `_empty_result` below.
+
+    `y_scale`/`has_y_scale` are `Plot.annotate_line()`'s own consumer
+    (see `_draw_annotation_lines`'s own docstring): the *real* finished
+    `LinearScale` a mark's own y-axis used to place its data, exposed
+    here for a `render()`/`render_svg()`-level annotation pass to reuse
+    directly (`LinearScale.to_pixel(annotation_value)`) rather than
+    independently recomputing whatever domain math that particular
+    mark happened to use internally -- a recomputed-elsewhere version
+    could silently drift out of sync with the real one if either ever
+    changed without the other; reusing the actual object can't.
+    `has_y_scale` defaults `False` (`y_scale` itself defaults to an
+    inert `LinearScale(0, 0, 0, 0)`, never read when the flag is
+    `False`) so every pre-existing `_RenderResult(...)` call keeps
+    compiling, and thus rendering, completely unchanged -- only the
+    handful of `_render_*` functions `annotate_line()` actually
+    supports (see that method's own docstring for which, and why not
+    every mark type yet) pass a real one."""
 
     var text_requests: List[_TextRequest]
     var px0: Int
     var py0: Int
     var px1: Int
     var py1: Int
+    var y_scale: LinearScale
+    var has_y_scale: Bool
 
     def __init__(
-        out self, var text_requests: List[_TextRequest], px0: Int, py0: Int, px1: Int, py1: Int
+        out self,
+        var text_requests: List[_TextRequest],
+        px0: Int,
+        py0: Int,
+        px1: Int,
+        py1: Int,
+        y_scale: LinearScale = LinearScale(0.0, 0.0, 0.0, 0.0),
+        has_y_scale: Bool = False,
     ):
         self.text_requests = text_requests^
         self.px0 = px0
         self.py0 = py0
         self.px1 = px1
         self.py1 = py1
+        self.y_scale = y_scale
+        self.has_y_scale = has_y_scale
 
 
 def _empty_result(ox0: Int, oy0: Int, ox1: Int, oy1: Int) -> _RenderResult:
@@ -2591,6 +2679,90 @@ def _label_text_requests(
     return text_requests^
 
 
+def _draw_annotation_lines[
+    T: DrawTarget
+](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises -> List[_TextRequest]:
+    """Draws every `Plot.annotate_line()` reference line directly (a
+    plain horizontal `draw_line_aa` needs no font/glyph machinery, so
+    unlike a label it doesn't need to be deferred -- see `_TextRequest`'s
+    own docstring for why *that* has to be), and returns each one's own
+    optional label as a `_TextRequest` for the caller to draw afterward,
+    the same split every other text-producing render step here uses.
+
+    Called by `render()`/`render_svg()` right after `_render_generic`
+    returns, using `result`'s own real `y_scale` (see `_RenderResult`'s
+    own docstring for why that's the *real* scale object the mark
+    itself used, not one independently recomputed here) to place each
+    line's own data `value` at the exact same pixel row the mark's own
+    data would land on. Raises immediately if any lines were requested
+    but `result.has_y_scale` is `False` -- see `Plot.annotate_line()`'s
+    own docstring for exactly which mark types that covers today.
+
+    Each line spans the *inner* plot rect's own full width (`result.px0`
+    to `result.px1`), solid, in `Theme.annotation_color`. Its own label,
+    when non-empty, right-aligns just above the line's own right end
+    (`result.px1 - sc.label_gap`, `py - sc.label_gap`) -- a fixed,
+    deterministic position, not collision-avoided against the mark's
+    own data or another annotation line landing nearby, the same
+    "simple, not force-directed" scope this package's own layout code
+    already accepts elsewhere (`Mark.GRAPH`/`BEESWARM`) when a fully
+    general placement solver would be real, separate, unbuilt work.
+
+    A `value` outside the mark's own (padded) domain is silently
+    skipped, not drawn wherever `LinearScale.to_pixel`'s own unclamped
+    linear extrapolation puts it -- a real bug caught by actually
+    rendering this feature's own example before trusting it (not a
+    theoretical concern): an out-of-range annotation drew well up into
+    the title/subtitle band above the plot, `Theme.scale`-independent
+    of anything about the mark itself. Not a raise -- an out-of-range
+    target is a legitimate reading (the data just hasn't reached it
+    yet), not a caller mistake the way an invalid `Theme` value would
+    be, so it disappears quietly rather than erroring the whole render.
+    """
+    var text_requests = List[_TextRequest]()
+    if len(plot._annotation_line_values) == 0:
+        return text_requests^
+    if not result.has_y_scale:
+        raise Error(
+            "Plot.annotate_line(): this mark has no continuous y-axis to place a reference line"
+            " against. Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER and every mark sharing"
+            " _CategoricalFrame (BAR/LOLLIPOP/WATERFALL/BOX/CANDLESTICK/BULLET/GROUPED_BAR/"
+            "STACKED_BAR/STREAMGRAPH)"
+        )
+
+    var sc = _Scaled(theme)
+    var py_top = min(result.py0, result.py1)
+    var py_bottom = max(result.py0, result.py1)
+    for i in range(len(plot._annotation_line_values)):
+        var py = _axis_pixel(result.y_scale, plot._annotation_line_values[i])
+        # A value outside the mark's own (padded) domain maps to a
+        # pixel outside the visible plot rect entirely -- silently
+        # skipped, not drawn wherever the unclamped linear math lands
+        # (which can be well up into the title/subtitle band above the
+        # plot, a real, confirmed-by-rendering visual break, not a
+        # theoretical one). Not a raise: an out-of-range annotation
+        # value is a legitimate state (the caller's own "target" simply
+        # isn't reached by the visible range yet), not a caller mistake
+        # the way an invalid Theme parameter would be.
+        if py < py_top or py > py_bottom:
+            continue
+        target.draw_line_aa(result.px0, py, result.px1, py, theme.annotation_color, width=sc.scale)
+        var label = plot._annotation_line_labels[i]
+        if label.byte_length() > 0:
+            text_requests.append(
+                _TextRequest(
+                    result.px1 - sc.label_gap,
+                    py - sc.label_gap,
+                    label,
+                    theme.annotation_color,
+                    sc.font_size,
+                    TextAlign.RIGHT,
+                    theme.font_family,
+                )
+            )
+    return text_requests^
+
+
 def render(
     mut canvas: Canvas, plot: Plot, ox0: Int = 0, oy0: Int = 0, ox1: Int = -1, oy1: Int = -1
 ) raises:
@@ -2669,7 +2841,21 @@ def render(
     var label_requests = _label_text_requests(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
+    var annotation_requests = _draw_annotation_lines(canvas, plot, result, plot._theme)
     for req in label_requests:
+        draw_text(
+            canvas,
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            align=req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
+    for req in annotation_requests:
         draw_text(
             canvas,
             req.x,
@@ -2717,7 +2903,20 @@ def render_svg(
     var label_requests = _label_text_requests(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
+    var annotation_requests = _draw_annotation_lines(svg, plot, result, plot._theme)
     for req in label_requests:
+        svg.draw_text(
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
+    for req in annotation_requests:
         svg.draw_text(
             req.x,
             req.y,
@@ -2990,8 +3189,13 @@ struct _ContinuousFrame(Movable):
     def result(self) -> _RenderResult:
         """This frame as the `_RenderResult` its caller returns -- see
         `_CategoricalFrame.result`'s own docstring, which this mirrors
-        exactly."""
-        return _RenderResult(self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1)
+        exactly (including passing `self.y_scale` through for `Plot.
+        annotate_line()`, covering `Mark.POINT`/`LINE`/`AREA`/`EFFECT_
+        SCATTER` -- and, since `_render_layers_generic` shares this
+        exact frame, every layered plot too)."""
+        return _RenderResult(
+            self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1, self.y_scale, True
+        )
 
 
 def _draw_continuous_axis_frame[
@@ -3526,8 +3730,19 @@ struct _CategoricalFrame(Movable):
         isn't a workaround for a borrow that could have been avoided by
         restructuring. It's a small `List` either way, and it now
         happens in exactly one place instead of eleven.
+
+        Passes `self.y_scale` through as `_RenderResult`'s own real
+        y-scale (`has_y_scale=True`) -- every mark sharing this frame
+        (`BAR`/`LOLLIPOP`/`WATERFALL`/`BOX`/`CANDLESTICK`/`BULLET`/
+        `GROUPED_BAR`/`STACKED_BAR`/`STREAMGRAPH`) gets `Plot.annotate_
+        line()` support this way, for free, from this one change --
+        see `_RenderResult`'s own docstring for why exposing the real
+        scale object here (not a value independently recomputed later)
+        is the point.
         """
-        return _RenderResult(self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1)
+        return _RenderResult(
+            self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1, self.y_scale, True
+        )
 
 
 def _draw_categorical_axis_frame[
