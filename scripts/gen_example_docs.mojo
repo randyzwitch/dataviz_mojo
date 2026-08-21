@@ -79,6 +79,7 @@ def _titles() -> Dict[String, String]:
     d["polarbar"] = "Polar Bar"
     d["radialbar"] = "Radial Bar"
     d["polar"] = "Polar"
+    d["polar_series"] = "Polar (Multi-Series)"
     d["radar"] = "Radar"
     d["gauge"] = "Gauge"
     d["parallel"] = "Parallel Coordinates"
@@ -141,7 +142,7 @@ def _categories() -> List[Category]:
     cats.append(Category(
         "Radial & polar",
         "Chart types built on a polar (angle + radius) coordinate system instead of a cartesian one.",
-        ["nightingale", "polarbar", "radialbar", "polar", "radar", "gauge"],
+        ["nightingale", "polarbar", "radialbar", "polar", "polar_series", "radar", "gauge"],
     ))
     cats.append(Category(
         "Multivariate",
@@ -284,7 +285,7 @@ def _quickplot_names() -> List[String]:
         "scatter", "line", "area", "bar", "pie", "lollipop", "waterfall",
         "box", "candlestick", "bullet", "gantt", "grouped_bar", "stacked_bar",
         "histogram", "population_pyramid", "heatmap", "chord", "single_axis", "effect_scatter",
-        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "radialbar", "polar", "radar", "gauge", "parallel", "span_chart", "calendar_heatmap", "corrplot", "punchcard", "marimekko", "sunburst", "tree", "treemap", "arc_diagram", "graph", "sankey",
+        "funnel", "bump", "streamgraph", "beeswarm", "violin", "ridgeline", "nightingale", "polarbar", "radialbar", "polar", "polar_series", "radar", "gauge", "parallel", "span_chart", "calendar_heatmap", "corrplot", "punchcard", "marimekko", "sunburst", "tree", "treemap", "arc_diagram", "graph", "sankey",
     ]
 
 

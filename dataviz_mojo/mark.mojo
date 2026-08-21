@@ -256,9 +256,16 @@ one stroked polyline plus point markers, drawn over a new polar grid
 (`_draw_polar_grid`, polar.mojo -- concentric rings via a real `Path.
 arc_to` sweep, plus straight angular spokes). Its own shared `_polar_
 point` (angle/radius -> pixel) is the one primitive `RADAR`/`GAUGE`
-(below) both reuse too. See polar.mojo's own `_render_polar` docstring
-for the full reasoning, including the deliberate v1 scope cuts (no
-axis tick labels, single unlabeled series only).
+(below) both reuse too. Originally single-unnamed-series only (a
+documented v1 scope cut); `encode_polar_series()` later generalized
+it to several named series sharing one `angle` domain and one radius
+scale, palette-colored with a legend -- the same "a generalized
+version gets its own encode method" precedent `encode_grouped_bar()`
+set alongside `encode_categorical()`, `polar()`/`polar_series()` then
+mirroring `pie()`/`donut()`'s own "one mark, two quickplot entry
+points" split. See polar.mojo's own `_render_polar` docstring for the
+full reasoning, including the remaining deliberate v1 scope cut (no
+axis tick labels).
 
 RADAR is the polar-axis family's own categorical mark: one spoke per
 named indicator (`encode_radar()`'s own `indicators`, each with its
@@ -435,7 +442,7 @@ unlike `CHORD` (which needs one since its own ring sectors are often
 too thin to label directly). See arc_diagram.mojo's own `_render_arc_
 diagram` docstring for the full reasoning.
 
-GRAPH (third of Phase 7's edge-list sub-family) reuses `CHORD`'s own edge-list data too, a
+GRAPH (second of Phase 7's edge-list sub-family) reuses `CHORD`'s own edge-list data too, a
 third genuinely different network layout: nodes evenly spaced around
 a circle (`ARC`'s own start-at-12-o'clock convention, reused for
 position only), edges drawn as straight lines cutting across the
@@ -450,7 +457,7 @@ of center they fall on, the same rule `RADAR`'s own axis labels
 already use. See graph.mojo's own `_render_graph` docstring for the
 full reasoning.
 
-SANKEY (fourth and last of Phase 7's edge-list sub-family, and the
+SANKEY (third and last of Phase 7's edge-list sub-family, and the
 last mark of Phase 7 overall) reuses `CHORD`'s own edge-list data one
 more time, laid out left-to-right by column -- a node's own column is
 the length of the *longest* path reaching it from any source,
