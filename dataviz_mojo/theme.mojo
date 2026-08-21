@@ -173,7 +173,26 @@ own, so a raster render would treat the whole string as one (almost
 certainly unmatched) family name. Threading a stack through safely for
 both backends is a real, separate feature, not something this single
 string field takes on implicitly.
-"""
+
+`title_bold` (default `True`) bolds `Plot.labels()`'s own chart
+title -- and only the title: `x_title`/`y_title` and every other
+`_TextRequest` (tick/legend labels) stay normal weight always, not
+configurable here, the same "one deliberate exception, not a general
+knob" scope this field itself is. The one default in this whole
+struct that flips a prior behavior rather than reproducing it --
+every other field's own default reproduces exactly what render()
+already did before that field existed (see `font_family`'s own
+docstring for why that one does); this one instead exists specifically
+*because* the old, only-ever-normal-weight title no longer reads as
+polished enough on its own -- the one place a caller-visible aesthetic
+default, not just a new capability, changed. Still overridable
+(`Theme(title_bold=False)` reproduces the old look exactly) for a
+caller who wants it. Threaded the identical way `font_family` is --
+`_TextRequest`'s own `bold: Bool = False` field, left untouched at
+every construction site except the title's own in `_label_text_
+requests` (`bold=theme.title_bold`) -- rather than baked in
+everywhere `font_family` needed to be, since nothing else ever wants
+`True`."""
 
 from canvas_mojo.color import Color
 
@@ -210,6 +229,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     var axis_title_font_size: Float64
     var waterfall_total_color: Color
     var font_family: String
+    var title_bold: Bool
 
     def __init__(
         out self,
@@ -242,6 +262,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         axis_title_font_size: Float64 = 14.0,
         waterfall_total_color: Color = Color(100, 100, 100),
         font_family: String = "sans-serif",
+        title_bold: Bool = True,
     ):
         self.background = background
         self.mark_color = mark_color
@@ -272,6 +293,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.axis_title_font_size = axis_title_font_size
         self.waterfall_total_color = waterfall_total_color
         self.font_family = font_family
+        self.title_bold = title_bold
 
     @staticmethod
     def default() -> Self:

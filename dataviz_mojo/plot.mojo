@@ -159,7 +159,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.path import Path
 from canvas_mojo.vector.svg import SvgCanvas
-from canvas_mojo.text.render import draw_text, measure_text, TextAlign
+from canvas_mojo.text.render import draw_text, measure_text, FontWeight, TextAlign
 
 from dataviz_mojo.color_scale import ColorScale, default_categorical_palette
 from dataviz_mojo.mark import Mark
@@ -2093,6 +2093,13 @@ struct _TextRequest(Copyable, Movable):
     font_family`'s own docstring for why that distinction matters
     (`render_facets()`/`render_layers()` combine several independently
     themed `Plot`s' own `_TextRequest`s into one shared draw pass).
+
+    `bold` (default `False`) is the opposite shape from `family` --
+    left at its default everywhere except `_label_text_requests`'s
+    own chart-title request (`bold=theme.title_bold`), rather than
+    baked in from `theme` at every one of this struct's own
+    construction sites, since nothing else here ever wants `True` --
+    see `Theme.title_bold`'s own docstring.
     """
 
     var x: Int
@@ -2102,6 +2109,7 @@ struct _TextRequest(Copyable, Movable):
     var size: Float64
     var align: TextAlign
     var family: String
+    var bold: Bool
     var rotation: Float64
 
     def __init__(
@@ -2113,6 +2121,7 @@ struct _TextRequest(Copyable, Movable):
         size: Float64,
         align: TextAlign,
         family: String,
+        bold: Bool = False,
         rotation: Float64 = 0.0,
     ):
         self.x = x
@@ -2122,6 +2131,7 @@ struct _TextRequest(Copyable, Movable):
         self.size = size
         self.align = align
         self.family = family
+        self.bold = bold
         self.rotation = rotation
 
 
@@ -2509,6 +2519,7 @@ def _label_text_requests(
                 sc.title_font_size,
                 TextAlign.CENTER,
                 theme.font_family,
+                bold=theme.title_bold,
             )
         )
 
@@ -2622,11 +2633,29 @@ def render(
     )
     for req in label_requests:
         draw_text(
-            canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, family=req.family, rotation=req.rotation
+            canvas,
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            align=req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
         )
     for req in result.text_requests:
         draw_text(
-            canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, family=req.family, rotation=req.rotation
+            canvas,
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            align=req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
         )
 
 
@@ -2651,9 +2680,29 @@ def render_svg(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
     for req in label_requests:
-        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, family=req.family, rotation=req.rotation)
+        svg.draw_text(
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
     for req in result.text_requests:
-        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, family=req.family, rotation=req.rotation)
+        svg.draw_text(
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
 
 
 struct _PointChannels(Movable):
@@ -3571,7 +3620,16 @@ def render_facets(mut canvas: Canvas, plots: List[Plot], cols: Int) raises:
     var text_requests = _render_facets_generic(canvas, canvas.width, canvas.height, plots, cols)
     for req in text_requests:
         draw_text(
-            canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, family=req.family, rotation=req.rotation
+            canvas,
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            align=req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
         )
 
 
@@ -3584,7 +3642,17 @@ def render_facets_svg(mut svg: SvgCanvas, plots: List[Plot], cols: Int) raises:
     """
     var text_requests = _render_facets_generic(svg, svg.width, svg.height, plots, cols)
     for req in text_requests:
-        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, family=req.family, rotation=req.rotation)
+        svg.draw_text(
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
 
 
 def _render_facets_generic[
@@ -3772,11 +3840,29 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     )
     for req in label_requests:
         draw_text(
-            canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, family=req.family, rotation=req.rotation
+            canvas,
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            align=req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
         )
     for req in result.text_requests:
         draw_text(
-            canvas, req.x, req.y, req.text, req.color, req.size, align=req.align, family=req.family, rotation=req.rotation
+            canvas,
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            align=req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
         )
 
 
@@ -3800,9 +3886,29 @@ def render_layers_svg(mut svg: SvgCanvas, plots: List[Plot], ox0: Int = 0, oy0: 
         plots[0], ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
     for req in label_requests:
-        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, family=req.family, rotation=req.rotation)
+        svg.draw_text(
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
     for req in result.text_requests:
-        svg.draw_text(req.x, req.y, req.text, req.color, req.size, req.align, family=req.family, rotation=req.rotation)
+        svg.draw_text(
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
 
 
 def _render_layers_generic[
