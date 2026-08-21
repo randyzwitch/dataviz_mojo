@@ -399,6 +399,22 @@ struct Plot(Movable):
     # boxplot, which reduces each category's own list to a five-number
     # summary immediately). See encode_distribution()'s own docstring.
     var _distribution_values: List[List[Float64]]
+    # Mark.VIOLIN/RIDGELINE only -- a caller's own kernel-density-
+    # estimate bandwidth, overriding each category's own Silverman's-
+    # rule default (0.0 is the sentinel for "use the default", the
+    # same empty-means-default convention `encode()`'s own optional
+    # channels already use, just a scalar 0.0 here since a real
+    # bandwidth is never zero or negative). See mark_violin()'s/mark_
+    # ridgeline()'s own docstrings.
+    var _kde_bandwidth_override: Float64
+    # Mark.VIOLIN/RIDGELINE only -- ggplot2's own `scale = "area"` mode
+    # (False = the default `scale = "width"`: every category's own
+    # peak density maps to the same maximum width/rise, regardless of
+    # its own sample count; True additionally scales that maximum by
+    # `sqrt(n_i / max(n))`, so a category built from fewer points draws
+    # visibly narrower/shorter). See mark_violin()'s/mark_ridgeline()'s
+    # own docstrings.
+    var _kde_scale_by_count: Bool
     # Mark.NIGHTINGALE only -- which of ECharts' two `rose_type` radius
     # formulas each wedge uses (False = "radius", True = "area"). See
     # mark_nightingale()'s own docstring.
@@ -515,6 +531,8 @@ struct Plot(Movable):
         self._chord_to = List[String]()
         self._chord_value = List[Float64]()
         self._distribution_values = List[List[Float64]]()
+        self._kde_bandwidth_override = 0.0
+        self._kde_scale_by_count = False
         self._nightingale_area = False
         self._polar_angle = List[Float64]()
         self._polar_radius = List[Float64]()
@@ -946,19 +964,50 @@ struct Plot(Movable):
         self._mark = Mark.BEESWARM
         return self^
 
-    def mark_violin(var self) -> Self:
+    def mark_violin(var self, bandwidth: Float64 = 0.0, scale_by_count: Bool = False) -> Self:
         """A violin plot: a symmetric kernel-density-estimate
         silhouette per category -- encoded via `encode_distribution()`,
-        the same data `mark_beeswarm()`/`mark_ridgeline()` use."""
+        the same data `mark_beeswarm()`/`mark_ridgeline()` use.
+
+        `bandwidth` overrides every category's own kernel-density-
+        estimate bandwidth (left at its default `0.0`, each category
+        gets its own Silverman's-rule bandwidth computed from its own
+        std/n -- see `_kde_bandwidth()` in violin.mojo). A caller-given
+        `bandwidth` applies identically to every category instead --
+        useful for comparing several categories' *shapes* without a
+        wider- or narrower-spread category also reading as smoother or
+        spikier purely from Silverman's rule reacting to its own
+        sample size, not the underlying distribution. Must be positive
+        (checked at render() time, the same deferred-validation stance
+        every other value-validated mark here takes) -- zero or
+        negative has no kernel width to mean.
+
+        `scale_by_count` (default `False`, ggplot2's own `scale =
+        "width"`) additionally scales each category's own maximum
+        width by `sqrt(n_i / max(n))` when `True` (ggplot2's own
+        `scale = "area"`) -- a category built from fewer raw values
+        draws visibly narrower, instead of every category's own peak
+        mapping to the identical maximum width regardless of how many
+        points went into it. The same `mark_nightingale(area=...)`
+        boolean-toggle precedent, applied here to sample size instead
+        of `NIGHTINGALE`'s own value magnitude."""
         self._mark = Mark.VIOLIN
+        self._kde_bandwidth_override = bandwidth
+        self._kde_scale_by_count = scale_by_count
         return self^
 
-    def mark_ridgeline(var self) -> Self:
+    def mark_ridgeline(var self, bandwidth: Float64 = 0.0, scale_by_count: Bool = False) -> Self:
         """A ridgeline plot: one overlapping kernel-density-estimate
         row per category, top to bottom -- encoded via `encode_
         distribution()`, the same data `mark_beeswarm()`/`mark_violin()`
-        use."""
+        use. `bandwidth`/`scale_by_count` are the same optional
+        Silverman's-rule override / ggplot2 `scale = "area"` toggle
+        `mark_violin()`'s own parameters of the same names are (applied
+        to each row's own maximum rise instead of width) -- see that
+        method's own docstring."""
         self._mark = Mark.RIDGELINE
+        self._kde_bandwidth_override = bandwidth
+        self._kde_scale_by_count = scale_by_count
         return self^
 
     def encode(
