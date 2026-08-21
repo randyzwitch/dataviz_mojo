@@ -72,7 +72,7 @@ from dataviz_mojo.treemap import treemap
 from dataviz_mojo.histogram import histogram
 from dataviz_mojo.lollipop import lollipop
 from dataviz_mojo.nightingale import nightingale
-from dataviz_mojo.polar import polar
+from dataviz_mojo.polar import polar, polar_series
 from dataviz_mojo.polar_bar import polarbar
 from dataviz_mojo.radialbar import radialbar
 from dataviz_mojo.gauge import gauge

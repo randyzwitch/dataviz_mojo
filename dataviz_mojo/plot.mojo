@@ -403,10 +403,16 @@ struct Plot(Movable):
     # formulas each wedge uses (False = "radius", True = "area"). See
     # mark_nightingale()'s own docstring.
     var _nightingale_area: Bool
-    # Mark.POLAR only -- one (angle, radius) pair per row. See
-    # encode_polar()'s own docstring.
+    # Mark.POLAR only -- one (angle, radius) pair per row (encode_
+    # polar()), or a shared `angle` domain plus one or more named
+    # series (encode_polar_series(), `_polar_series_names` non-empty
+    # is what `_render_polar` actually branches on -- the legacy
+    # `_polar_radius` field stays empty in that case). See both
+    # methods' own docstrings.
     var _polar_angle: List[Float64]
     var _polar_radius: List[Float64]
+    var _polar_series_names: List[String]
+    var _polar_series_radius: List[List[Float64]]
     # Mark.RADAR only -- one named indicator (axis) per entry, each
     # with its own max, plus one or more named series each with a
     # value per indicator. See encode_radar()'s own docstring.
@@ -512,6 +518,8 @@ struct Plot(Movable):
         self._nightingale_area = False
         self._polar_angle = List[Float64]()
         self._polar_radius = List[Float64]()
+        self._polar_series_names = List[String]()
+        self._polar_series_radius = List[List[Float64]]()
         self._radar_indicators = List[String]()
         self._radar_max = List[Float64]()
         self._radar_series_names = List[String]()
@@ -638,11 +646,13 @@ struct Plot(Movable):
     def mark_polar(var self) -> Self:
         """A polar-coordinate line plot: (angle, radius) pairs
         connected in row order, drawn over a polar grid -- encoded via
-        `encode_polar()`, not `encode()`/`encode_categorical()` (a
-        polar plot's own two channels are an angle and a radius, not
-        an x/y position or a category + value). See `_render_polar`'s
-        own docstring for the full reasoning, including why `angle`
-        is never wrapped `mod 2*pi`."""
+        `encode_polar()` (one unnamed series) or `encode_polar_series()`
+        (several named series sharing one angle domain), not
+        `encode()`/`encode_categorical()` (a polar plot's own two
+        channels are an angle and a radius, not an x/y position or a
+        category + value). See `_render_polar`'s own docstring for the
+        full reasoning, including why `angle` is never wrapped `mod
+        2*pi`."""
         self._mark = Mark.POLAR
         return self^
 
@@ -1503,7 +1513,9 @@ struct Plot(Movable):
         caller's own order is the order drawn" stance `mark_line()`'s
         own docstring already takes, and the only order that lets a
         spiral -- `angle` values beyond `2*pi` -- draw correctly at
-        all).
+        all). A single, unnamed series -- no legend, since there's
+        nothing to key one by (see `encode_polar_series()` for several
+        named series sharing one polar grid instead).
 
         `angle`/`radius` length match and `radius`'s own non-negative
         requirement are both checked at render() time, not here -- the
@@ -1512,6 +1524,41 @@ struct Plot(Movable):
         """
         self._polar_angle = angle.copy()
         self._polar_radius = radius.copy()
+        self._polar_series_names = List[String]()
+        self._polar_series_radius = List[List[Float64]]()
+        return self^
+
+    def encode_polar_series(
+        var self, angle: List[Float64], series_names: List[String], series_values: List[List[Float64]]
+    ) -> Self:
+        """Map a shared angle column (radians) plus one or more named
+        series onto `Mark.POLAR`'s own two channels -- the multi-series
+        generalization of `encode_polar()` (which stays the plain
+        single-unnamed-series entry point, exactly the same "a
+        generalized version gets its own encode method" precedent
+        `encode_grouped_bar()` already set alongside `encode_
+        categorical()`), for comparing several traces on one shared
+        polar grid instead of drawing just one.
+
+        Every series shares the same `angle` domain and the same
+        radius scale (`max(radius)` computed across *every* series
+        together, not each independently -- so equal-magnitude points
+        in different series draw at the same radius, the comparison a
+        multi-series chart is for) -- unlike `Mark.RADAR`'s own
+        per-indicator independent max, since a polar angle axis (unlike
+        radar's discrete named indicators) is one continuous domain
+        every series is a reading *of*, not a separate dimension with
+        its own natural scale.
+
+        `series_values[i]` must be the same length as `angle` for every
+        series, and every value non-negative -- both checked at
+        render() time, the same deferred-validation stance every other
+        encode method here takes.
+        """
+        self._polar_angle = angle.copy()
+        self._polar_radius = List[Float64]()
+        self._polar_series_names = series_names.copy()
+        self._polar_series_radius = series_values.copy()
         return self^
 
     def encode_radar(
