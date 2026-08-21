@@ -507,6 +507,14 @@ struct Plot(Movable):
     var _annotation_area_y0: List[Float64]
     var _annotation_area_y1: List[Float64]
     var _annotation_area_labels: List[String]
+    # Set via .secondary_axis() -- render_layers()/render_layers_svg()
+    # only (see that method's own docstring): this layer's own y
+    # values scale against a second, independent y-domain drawn on the
+    # plot's right edge, instead of the shared left-axis domain every
+    # other layer's data is combined into. Meaningless on a standalone
+    # plot (render()/render_svg() raise if it's set -- there's only one
+    # series, nothing for a second axis to pair against).
+    var _secondary_axis: Bool
     var _mark: Mark
     var _theme: Theme
 
@@ -594,6 +602,7 @@ struct Plot(Movable):
         self._annotation_area_y0 = List[Float64]()
         self._annotation_area_y1 = List[Float64]()
         self._annotation_area_labels = List[String]()
+        self._secondary_axis = False
         self._mark = Mark.POINT
         self._theme = Theme.default()
 
@@ -2010,6 +2019,42 @@ struct Plot(Movable):
         self._annotation_area_y0.append(y0)
         self._annotation_area_y1.append(y1)
         self._annotation_area_labels.append(label)
+        return self^
+
+    def secondary_axis(var self) -> Self:
+        """Draw this layer's own y values against a second, independent
+        y-domain on the plot's right edge, instead of `render_layers()`'s
+        usual shared left-axis domain -- ECharts' own `yAxisIndex: 1`,
+        simplified to a boolean since dataviz_mojo only ever draws two
+        y-axes (left/right), never a third. The real, common pattern
+        this exists for: a revenue-bars-plus-growth-rate-line combo
+        chart, where the two series' own units/scales are too different
+        to share one axis without one of them going flat -- see
+        `_render_layers_generic`'s own docstring for the full mechanics.
+
+        `render_layers()`/`render_layers_svg()` only -- meaningless on a
+        standalone plot (there's only ever one series, so nothing for a
+        second axis to pair against); `render()`/`render_svg()` raise a
+        clear error if a plot with this set reaches them directly,
+        rather than silently ignoring it, the same "raise on a setting
+        that can't apply" rule `annotate_line()`/`x_title`/`y_title`-on-
+        `Mark.ARC` already follow.
+
+        At least one layer in the list must stay on the primary axis --
+        `render_layers()` raises if *every* layer calls this (there'd be
+        nothing left for "secondary" to mean relative to). No gridlines
+        draw for the secondary axis (only the primary domain's gridlines
+        show -- two independent grids overlaid would just look like
+        visual noise, the same convention ECharts/Vega/matplotlib's own
+        twin-axis charts all follow); it still gets its own axis line,
+        ticks, and tick labels, mirrored onto the plot's right edge.
+
+        No secondary-axis caption yet -- `Plot.labels()`'s own `y_title`
+        still only ever describes the primary (left) axis; a second
+        caption would need a new field of its own, a real, deliberate
+        v1 scope cut, not an oversight.
+        """
+        self._secondary_axis = True
         return self^
 
 
@@ -3718,7 +3763,20 @@ def _render_generic[
     (`_draw_point_layer`/`_draw_line_layer`/`_draw_area_layer`). Every
     one of those is shared with `_render_layers_generic`, which used to
     carry its own near-verbatim copy of all of it.
+
+    `Plot.secondary_axis()` only means anything inside `render_layers()`/
+    `render_layers_svg()` (a second series to pair its own y-domain
+    against) -- raises here rather than silently ignoring it on a
+    standalone plot, the same "raise on a setting that can't apply"
+    rule `annotate_line()`/`x_title`/`y_title`-on-`Mark.ARC` already
+    follow.
     """
+    if plot._secondary_axis:
+        raise Error(
+            "Plot.secondary_axis() only applies inside render_layers()/"
+            "render_layers_svg() -- a standalone plot has only one"
+            " series, nothing for a second y-axis to pair against"
+        )
     if plot._mark == Mark.BAR:
         return _render_bar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.LOLLIPOP:
@@ -4196,6 +4254,15 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     those in is real, separate, deferred work (see the wiki's Backlog).
     Raises if any layered plot uses a different mark.
 
+    A layer built via `Plot.secondary_axis()` scales its own y values
+    against a second, independent y-domain drawn on the plot's right
+    edge instead of the shared (primary/left) one every other layer's
+    data combines into -- a revenue-bars-and-growth-rate-line combo
+    chart, where the two series' own units are too different to share
+    one axis without one going flat. See that method's own docstring
+    for the full mechanics (no gridlines of its own, no caption yet, at
+    least one layer must stay on the primary axis).
+
     A layer whose own mark is `Mark.POINT` can use `color`/`color_
     categories`/`size` encoding exactly like a standalone `Mark.POINT`
     plot (see `Plot.encode`'s own docstring) -- each such layer's own
@@ -4375,6 +4442,23 @@ def _render_layers_generic[
     use the inner rect it carries to center `Plot.labels()`'s own
     title/x_title/y_title (sourced from `plots[0]`, see their own
     docstrings) on the real, shared plot area.
+
+    `Plot.secondary_axis()`: a layer with it set is excluded from the
+    combined (primary) y-domain and instead gets its own, built the
+    same way -- `_zero_baseline_y_extent`/`_data_extent` over just its
+    own group's data, the identical `Mark.AREA`-forces-zero-baseline
+    rule applied independently within each group. The secondary axis
+    draws mirrored onto the plot's right edge (its own axis line, ticks,
+    tick labels -- measured and reserved the same "measure the domain's
+    own ticks, size the margin to fit them" way `_draw_continuous_axis_
+    frame` already sizes the *left* margin, just inlined here since it's
+    the only caller), with no gridlines of its own (see `Plot.secondary_
+    axis()`'s own docstring for why). Its reserved width sits between
+    the plot's own inner rect and the legend column -- `legend_x` shifts
+    right by exactly that amount so a legend and a secondary axis never
+    overlap; `0` (and so an unchanged `legend_x`) whenever no layer uses
+    one, keeping every pre-existing single-axis render byte-for-byte
+    unchanged.
     """
     var text_requests = List[_TextRequest]()
     if len(plots) == 0:
@@ -4395,18 +4479,40 @@ def _render_layers_generic[
             )
         _validate_continuous_encoding(plots[i], "render_layers(): layer " + String(i))
 
+    var has_secondary = False
+    var has_primary = False
+    for i in range(len(plots)):
+        if plots[i]._secondary_axis:
+            has_secondary = True
+        else:
+            has_primary = True
+    if has_secondary and not has_primary:
+        raise Error(
+            "render_layers(): at least one layer must stay on the primary y-axis"
+            " (every layer calling .secondary_axis() leaves nothing for"
+            " \"secondary\" to mean relative to)"
+        )
+
     var theme = plots[0]._theme
 
     var combined_x = List[Float64]()
     var combined_y = List[Float64]()
+    var combined_y2 = List[Float64]()
     var any_area = False
+    var any_area2 = False
     for i in range(len(plots)):
         for v in plots[i].x_data:
             combined_x.append(v)
-        for v in plots[i].y_data:
-            combined_y.append(v)
-        if plots[i]._mark == Mark.AREA:
-            any_area = True
+        if plots[i]._secondary_axis:
+            for v in plots[i].y_data:
+                combined_y2.append(v)
+            if plots[i]._mark == Mark.AREA:
+                any_area2 = True
+        else:
+            for v in plots[i].y_data:
+                combined_y.append(v)
+            if plots[i]._mark == Mark.AREA:
+                any_area = True
 
     if len(combined_x) == 0:
         return _RenderResult(text_requests^, ox0, oy0, ox1, oy1)
@@ -4417,13 +4523,37 @@ def _render_layers_generic[
     var sc = _Scaled(theme)
 
     # The one thing that differs from the single-plot path: both
-    # domains span *every* layer's data at once, rather than one plot's
-    # own (see _draw_continuous_axis_frame's own docstring). A single
-    # Mark.AREA layer anywhere in the stack forces the zero baseline in
-    # for the whole shared y-axis, the same rule Mark.AREA follows on
-    # its own.
+    # domains span *every* primary-axis layer's data at once, rather
+    # than one plot's own (see _draw_continuous_axis_frame's own
+    # docstring). A single Mark.AREA layer anywhere in the primary group
+    # forces the zero baseline in for the whole primary y-axis, the same
+    # rule Mark.AREA follows on its own -- and independently again for
+    # the secondary group, if there is one.
     var y_scale = _zero_baseline_y_extent(combined_y) if any_area else _data_extent(combined_y)
     var x_scale = _data_extent(combined_x)
+
+    var has_secondary_data = has_secondary and len(combined_y2) > 0
+    var y_scale2 = LinearScale(0.0, 0.0, 0.0, 1.0)
+    if has_secondary_data:
+        y_scale2 = _zero_baseline_y_extent(combined_y2) if any_area2 else _data_extent(combined_y2)
+
+    # secondary_axis_reserve, sized the same way _draw_continuous_axis_
+    # frame sizes the dynamic *left* margin for the primary axis: measure
+    # the secondary domain's own tick labels (depends only on the
+    # domain, decided above, never on pixel range -- see _max_label_
+    # width's own docstring), then tick_length + label_gap + margin_
+    # buffer beyond that. 0 when no layer uses a secondary axis, so
+    # legend_x below is unchanged from before this feature existed.
+    var secondary_axis_reserve = 0
+    if has_secondary_data:
+        var y2_ticks_for_margin = y_scale2.ticks()
+        var y2_labels_for_margin = y2_ticks_for_margin.labels()
+        secondary_axis_reserve = (
+            Int(_max_label_width(y2_labels_for_margin, sc.font_size))
+            + sc.tick_length
+            + sc.label_gap
+            + sc.margin_buffer
+        )
 
     # legend_reserve, computed across every encoding-using Mark.POINT
     # layer before the plot rect is finalized. Each layer's own section
@@ -4439,32 +4569,66 @@ def _render_layers_generic[
         legend_reserve = max(legend_reserve, _legend_reserve_for(plots[j], ch_j, p_sc_j))
 
     var frame = _draw_continuous_axis_frame(
-        target, x_scale, y_scale, theme, legend_reserve, ox0, oy0, ox1, oy1
+        target, x_scale, y_scale, theme, legend_reserve + secondary_axis_reserve, ox0, oy0, ox1, oy1
     )
     for req in frame.text_requests:
         text_requests.append(req.copy())
 
+    # The secondary axis line/ticks/labels -- drawn at the plot rect's
+    # own right edge (frame.px1), the mirror image of the primary axis
+    # already drawn at frame.px0 by _draw_continuous_axis_frame above:
+    # ticks point right instead of left, labels sit left-aligned just
+    # past them instead of right-aligned just before. No gridlines (see
+    # Plot.secondary_axis()'s own docstring for why).
+    var out_y_scale2 = y_scale2
+    out_y_scale2.range_min = Float64(frame.py1)
+    out_y_scale2.range_max = Float64(frame.py0)
+    if has_secondary_data:
+        var y2_ticks = out_y_scale2.ticks()
+        var y2_labels = y2_ticks.labels()
+        var y2_label_baseline_offset = Int(sc.font_size * 0.35)
+        target.draw_line_aa(frame.px1, frame.py0, frame.px1, frame.py1, theme.axis_color, width=sc.scale)
+        for i in range(len(y2_ticks.values)):
+            var py = _axis_pixel(out_y_scale2, y2_ticks.values[i])
+            target.draw_line_aa(
+                frame.px1, py, frame.px1 + sc.tick_length, py, theme.axis_color, width=sc.scale
+            )
+            text_requests.append(
+                _TextRequest(
+                    frame.px1 + sc.tick_length + sc.label_gap,
+                    py + y2_label_baseline_offset,
+                    y2_labels[i],
+                    theme.text_color,
+                    sc.font_size,
+                    TextAlign.LEFT,
+                    theme.font_family,
+                )
+            )
+
     # The legend column's own x is shared (every section starts at the
-    # identical x, from the combined plot rect), while legend_y is a
-    # running cursor threaded through every encoding-using layer's own
-    # section(s) -- the same "each section returns the y just below it
-    # for the next to start at" stacking a single plot's own legend
-    # uses, just walked once per layer here instead of once per plot.
-    var legend_x = frame.px1 + sc.margin_right
+    # identical x, from the combined plot rect, shifted past the
+    # secondary axis's own reserved width when one is drawn), while
+    # legend_y is a running cursor threaded through every encoding-using
+    # layer's own section(s) -- the same "each section returns the y
+    # just below it for the next to start at" stacking a single plot's
+    # own legend uses, just walked once per layer here instead of once
+    # per plot.
+    var legend_x = frame.px1 + secondary_axis_reserve + sc.margin_right
     var legend_y = frame.py0
     for j in range(len(plots)):
         if len(plots[j].x_data) == 0:
             continue
+        var layer_y_scale = out_y_scale2 if plots[j]._secondary_axis else frame.y_scale
         if plots[j]._mark == Mark.POINT:
             var p_sc = _Scaled(plots[j]._theme)
             var ch_j = _PointChannels(plots[j], p_sc)
             legend_y = _draw_point_layer(
-                target, text_requests, plots[j], ch_j, frame.x_scale, frame.y_scale, legend_x, legend_y
+                target, text_requests, plots[j], ch_j, frame.x_scale, layer_y_scale, legend_x, legend_y
             )
         elif plots[j]._mark == Mark.LINE:
-            _draw_line_layer(target, plots[j], frame.x_scale, frame.y_scale)
+            _draw_line_layer(target, plots[j], frame.x_scale, layer_y_scale)
         elif plots[j]._mark == Mark.AREA:
-            _draw_area_layer(target, plots[j], frame.x_scale, frame.y_scale)
+            _draw_area_layer(target, plots[j], frame.x_scale, layer_y_scale)
 
     return _RenderResult(text_requests^, frame.px0, frame.py0, frame.px1, frame.py1)
 

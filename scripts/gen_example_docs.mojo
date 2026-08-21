@@ -98,6 +98,7 @@ def _titles() -> Dict[String, String]:
     d["slope"] = "Slope"
     d["annotate_line"] = "Reference Line"
     d["annotate_area"] = "Reference Band"
+    d["dual_axis"] = "Dual Y-Axis"
     return d^
 
 
@@ -118,14 +119,18 @@ def _categories() -> List[Category]:
     # size encoding, line/area smoothing, a bare SVG-backend page)
     # mixed in among them; those are real dataviz_mojo capabilities,
     # just not chart types of their own, so they live in the wiki/API
-    # reference instead of the Examples gallery. annotate_line and
-    # annotate_area are the two exceptions: unlike those, neither has a
-    # simpler existing example to piggyback on -- neither Plot.
-    # annotate_line() nor Plot.annotate_area() is exposed on any
-    # quickplot function (see each method's own docstring), so there's
-    # no other "how do I use this" page anywhere else in these docs.
-    # Each is filed under the category it demos on (bar-chart-family,
-    # line-chart-family) rather than getting a category of its own.
+    # reference instead of the Examples gallery. annotate_line,
+    # annotate_area, and dual_axis are the three exceptions: unlike
+    # facets/layers/titles, none has a simpler existing example to
+    # piggyback on -- none of Plot.annotate_line(), Plot.annotate_area(),
+    # or Plot.secondary_axis() is exposed on any quickplot function (see
+    # each method's own docstring), so there's no other "how do I use
+    # this" page anywhere else in these docs. Each is filed under
+    # whichever category its own example's mark belongs to instead --
+    # "Categorical business charts" for annotate_line (Mark.BAR),
+    # "Basic marks" for annotate_area (Mark.LINE), "Multivariate" for
+    # dual_axis (a layered Mark.AREA + Mark.LINE combo) -- rather than
+    # getting a category of its own.
     var cats = List[Category]()
     cats.append(Category(
         "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
@@ -156,7 +161,7 @@ def _categories() -> List[Category]:
     cats.append(Category(
         "Multivariate",
         "Several numeric dimensions compared at once on one shared layout, not a single value per category.",
-        ["parallel"],
+        ["parallel", "dual_axis"],
     ))
     cats.append(Category(
         "Grid & matrix",
@@ -364,18 +369,24 @@ def _quickplot_call_end(body: List[String], start: Int) -> Int:
 
 
 def _bare_render_call_index(body: List[String]) -> Int:
-    """The line index of the bare `render(c, ...)` call -- the non-
-    quickplot equivalent of `_quickplot_call_start()`/`_quickplot_call_
-    end()`, for an example built by hand via `Plot()` directly because
-    no one-call convenience function covers what it demos (e.g. Plot.
-    annotate_line(), not exposed on any quickplot function -- see
-    examples/annotate_line.mojo's own docstring). `.strip().startswith(
-    "render(")` alone is enough to tell this apart from `render_svg(`/
-    `render_facets(`/`render_layers(` -- each of those has a different
-    character right after "render", never "(". -1 if this example never
-    calls bare `render(...)` at all."""
+    """The line index of the bare `render(c, ...)` or `render_layers(c,
+    ...)` call -- the non-quickplot equivalent of `_quickplot_call_
+    start()`/`_quickplot_call_end()`, for an example built by hand via
+    `Plot()` directly because no one-call convenience function covers
+    what it demos (e.g. `Plot.annotate_line()`/`Plot.secondary_axis()`,
+    neither exposed on any quickplot function -- see examples/
+    annotate_line.mojo's/dual_axis.mojo's own docstrings). Checked as
+    two explicit prefixes, not one substring test, so a future example
+    calling `render_svg(`/`render_facets(`/`render_layers_svg(` instead
+    doesn't silently match the wrong one (each has a different
+    character right after "render"/"render_layers", never "(" -- so
+    `startswith("render(")` alone would correctly skip `render_svg(`
+    too, but `render_layers(` needs its own explicit check since
+    nothing about the first shape's own prefix rules it out or in).
+    -1 if this example calls neither at all."""
     for i in range(len(body)):
-        if body[i].strip().startswith("render("):
+        var stripped = body[i].strip()
+        if stripped.startswith("render(") or stripped.startswith("render_layers("):
             return i
     return -1
 
