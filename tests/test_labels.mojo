@@ -91,17 +91,17 @@ def test_render_svg_labels_matches_hand_derived_title_and_axis_titles() raises:
     var s = svg.to_string()
 
     assert_true(
-        '<text x="229" y="14" font-size="18.000" fill="#282828"'
+        '<text x="229" y="14" font-size="18.000" font-family="sans-serif" fill="#282828"'
         ' text-anchor="middle">My Title</text>' in s,
         "chart title -- centered over the inner plot rect, no rotation",
     )
     assert_true(
-        '<text x="229" y="297" font-size="14.000" fill="#282828"'
+        '<text x="229" y="297" font-size="14.000" font-family="sans-serif" fill="#282828"'
         ' text-anchor="middle">X Axis</text>' in s,
         "x_title -- centered over the inner plot rect, near the bottom edge",
     )
     assert_true(
-        '<text x="11" y="137" font-size="14.000" fill="#282828"'
+        '<text x="11" y="137" font-size="14.000" font-family="sans-serif" fill="#282828"'
         ' text-anchor="middle" transform="rotate(-90.000 11 137)">Y Axis</text>' in s,
         "y_title -- rotated -90 degrees (reads bottom-to-top), vertically centered on the inner rect",
     )
@@ -141,7 +141,7 @@ def test_render_svg_title_centers_on_inner_plot_rect_not_outer_bounds() raises:
     render_svg(svg, plot)
     var s = svg.to_string()
     assert_true(
-        '<text x="137" y="14" font-size="18.000" fill="#282828"'
+        '<text x="137" y="14" font-size="18.000" font-family="sans-serif" fill="#282828"'
         ' text-anchor="middle">Sales by Region</text>' in s,
         "title centers on the legend-narrowed inner plot rect (137), not the full outer width (200)",
     )
