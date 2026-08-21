@@ -97,6 +97,7 @@ def _titles() -> Dict[String, String]:
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     d["annotate_line"] = "Reference Line"
+    d["svg_accessibility"] = "SVG Accessibility"
     return d^
 
 
@@ -117,17 +118,22 @@ def _categories() -> List[Category]:
     # size encoding, line/area smoothing, a bare SVG-backend page)
     # mixed in among them; those are real dataviz_mojo capabilities,
     # just not chart types of their own, so they live in the wiki/API
-    # reference instead of the Examples gallery. annotate_line is the
-    # one exception: unlike those, it has no simpler existing example
-    # to piggyback on -- it isn't exposed on any quickplot function
-    # (see Plot.annotate_line()'s own docstring), so there's no other
-    # "how do I use markLine-style reference lines" page anywhere else
-    # in these docs. It's filed under the bar-chart category it demos
-    # on rather than getting a category of its own.
+    # reference instead of the Examples gallery. annotate_line and
+    # svg_accessibility are the two exceptions: unlike those, neither
+    # has a simpler existing example to piggyback on -- annotate_line()
+    # isn't exposed on any quickplot function, and accessible_svg_
+    # string()/write_accessible_svg() are a standalone SVG-writing
+    # utility with no Plot method of their own at all (see each one's
+    # own docstring) -- so there's no other "how do I use this" page
+    # anywhere else in these docs. svg_accessibility's own bar-chart
+    # data is incidental (the feature works with any mark) -- it's
+    # filed under "Basic marks" (the mark it happens to demo on) rather
+    # than a category of its own, the same reasoning annotate_line's
+    # own placement under "Categorical business charts" already used.
     var cats = List[Category]()
     cats.append(Category(
         "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
-        ["scatter", "line", "bar", "area", "pie", "donut", "single_axis", "effect_scatter"],
+        ["scatter", "line", "bar", "area", "pie", "donut", "single_axis", "effect_scatter", "svg_accessibility"],
     ))
     cats.append(Category(
         "Categorical business charts",
@@ -362,18 +368,29 @@ def _quickplot_call_end(body: List[String], start: Int) -> Int:
 
 
 def _bare_render_call_index(body: List[String]) -> Int:
-    """The line index of the bare `render(c, ...)` call -- the non-
+    """The line index of the bare `render(c, ...)` call, or -- for the
+    one example where it's the genuinely interesting line instead of
+    boilerplate to cut -- a `write_accessible_svg(...)` call. The non-
     quickplot equivalent of `_quickplot_call_start()`/`_quickplot_call_
     end()`, for an example built by hand via `Plot()` directly because
     no one-call convenience function covers what it demos (e.g. Plot.
     annotate_line(), not exposed on any quickplot function -- see
-    examples/annotate_line.mojo's own docstring). `.strip().startswith(
-    "render(")` alone is enough to tell this apart from `render_svg(`/
-    `render_facets(`/`render_layers(` -- each of those has a different
-    character right after "render", never "(". -1 if this example never
-    calls bare `render(...)` at all."""
+    examples/annotate_line.mojo's own docstring).
+
+    `write_accessible_svg(` is a deliberate, narrow exception to this
+    file's own "the render call is the interesting part, everything
+    after it is I/O boilerplate to cut" rule: examples/svg_
+    accessibility.mojo's *whole point* is that call's own title/
+    description arguments, not the render_svg() line just above it --
+    cutting there the way every other example cuts at its own render
+    call would throw away the one line the page exists to show. `.
+    strip().startswith("render(")` alone is enough to tell that prefix
+    apart from `render_svg(`/`render_facets(`/`render_layers(` -- each
+    of those has a different character right after "render", never "(".
+    -1 if this example calls none of the three at all."""
     for i in range(len(body)):
-        if body[i].strip().startswith("render("):
+        var stripped = body[i].strip()
+        if stripped.startswith("render(") or stripped.startswith("write_accessible_svg("):
             return i
     return -1
 
@@ -410,12 +427,17 @@ def _extract_clean_body(source: String) raises -> List[String]:
     if render_idx == -1:
         raise Error(
             "gen_example_docs: no one-call convenience function call"
-            " (`var c = <fn>(...)`) and no bare `render(c, ...)` call"
-            " found -- every example's raster output is expected to be"
-            " built one of these two ways"
+            " (`var c = <fn>(...)`) and no bare `render(c, ...)`/write_"
+            "accessible_svg(...) call found -- every example's own shown"
+            " snippet is expected to be built one of these ways"
         )
+    # Reuses _quickplot_call_end's own single-line-vs-multi-line closing
+    # logic -- write_accessible_svg(...) (examples/svg_accessibility.
+    # mojo) is a real multi-line call needing it, unlike every render(c,
+    # plot) call so far, which has always closed on its own start line.
+    var render_end = _quickplot_call_end(body, render_idx)
     var clean = List[String]()
-    for i in range(0, render_idx + 1):
+    for i in range(0, render_end + 1):
         clean.append(body[i])
     return _finish_clean_body(clean)
 
@@ -477,7 +499,7 @@ def _imports_for(body_text: String) raises -> List[String]:
 
     var plot_symbols: List[String] = [
         "Plot", "render", "render_svg", "render_facets", "render_facets_svg",
-        "render_layers", "render_layers_svg",
+        "render_layers", "render_layers_svg", "accessible_svg_string", "write_accessible_svg",
     ]
     var used = List[String]()
     for s in plot_symbols:
@@ -528,7 +550,14 @@ def _build_page(name: String, title: String) raises -> String:
     # that doesn't write an .svg at all -- none do today, but a future
     # one demoing raster-only output (PNG/BMP specifically) would land
     # here instead of being forced into a vector image it never builds.
-    var image = "out_" + name + ".svg" if _has_call(source, "write_svg") else "out_" + name + ".png"
+    # `write_accessible_svg(` also counts as "writes an .svg" -- examples/
+    # svg_accessibility.mojo writes only that (an accessible SVG has no
+    # raster equivalent at all -- role/aria-label/title/desc are SVG-only
+    # concepts, see that function's own docstring), and a plain substring
+    # check for "write_svg(" alone doesn't match it (`write_accessible_
+    # svg(` never contains that exact substring).
+    var writes_svg = _has_call(source, "write_svg") or _has_call(source, "write_accessible_svg")
+    var image = "out_" + name + ".svg" if writes_svg else "out_" + name + ".png"
 
     var clean_body = _extract_clean_body(source)
     var body_text = String("\n").join(clean_body)

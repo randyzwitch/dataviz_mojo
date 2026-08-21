@@ -158,7 +158,7 @@ from canvas_mojo.resize import downsample
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.path import Path
-from canvas_mojo.vector.svg import SvgCanvas
+from canvas_mojo.vector.svg import SvgCanvas, _escape_xml_text, _escape_xml_attr
 from canvas_mojo.text.render import draw_text, measure_text, FontWeight, TextAlign
 
 from dataviz_mojo.color_scale import ColorScale, default_categorical_palette
@@ -2940,6 +2940,91 @@ def render_svg(
             weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
             rotation=req.rotation,
         )
+
+
+def accessible_svg_string(svg: SvgCanvas, title: String, description: String = "") raises -> String:
+    """`svg.to_string()`, with real SVG accessibility markup added:
+    `role="img"` and `aria-label` on the root `<svg>` element, plus a
+    `<title>` (and, when `description` is non-empty, a `<desc>`) as its
+    very first child elements -- exactly what the SVG accessibility
+    spec, and every screen reader that supports SVG at all, looks for:
+    `<title>` becomes the element's own accessible name, `<desc>` its
+    longer description, `aria-label` a redundant fallback for tools
+    that only read attributes and never walk into child elements at
+    all.
+
+    `title` is required (there's no sensible fallback text a chart's
+    own data could supply on its own -- unlike `Plot.labels()`'s own
+    `title`, which is optional chrome, an *accessible* name is the one
+    piece of text a screen reader user gets in place of seeing the
+    chart, so silently shipping a blank one would be strictly worse
+    than raising). Reasonable text is often the same string already
+    passed to `.labels(title=...)` -- this function doesn't read `Plot`
+    at all, so nothing stops a caller from just passing that same
+    variable to both.
+
+    A thin post-processing wrapper around `svg.to_string()`, not a
+    canvas_mojo change: reuses that package's own (leading-underscore,
+    so importable -- see the wiki's Mojo-conventions entry) `_escape_
+    xml_text`/`_escape_xml_attr` helpers rather than duplicating XML-
+    escaping logic here, and depends on `to_string()`'s own exact,
+    currently-stable output shape (`<svg ...>` as the literal first
+    four bytes, its own opening tag's first `>` therefore always the
+    very first `>` in the whole string) to find where to splice new
+    markup in -- there's no public seam in `SvgCanvas` today for
+    attaching root-element attributes or leading child elements, so
+    this reconstructs the opening tag itself around the original one
+    rather than asking canvas_mojo to grow one; if `SvgCanvas.to_string`
+    ever changes shape, this needs revisiting too.
+
+    A real, honest scope note: this only helps when the SVG's own
+    accessible tree actually gets walked -- inline `<svg>...</svg>`
+    markup in an HTML page, a standalone `.svg` opened directly, or an
+    `<object data="...">`/`<iframe>` embed all expose it. A plain `<img
+    src="chart.svg">` -- which is exactly how this project's own docs
+    site embeds every example (see gen_example_docs.mojo's own
+    docstring) -- does not: a browser treats an `<img>`-embedded SVG as
+    an opaque image and never parses its inner markup into the
+    accessible tree at all, so a screen reader there reads the `<img>`
+    tag's own `alt` text instead (which the docs site already gets, for
+    free, from Markdown's own `![alt](url)` syntax -- see gen_example_
+    docs.mojo's own page-building code -- a separate, pre-existing
+    mechanism this function doesn't touch). Nothing about that makes
+    this function pointless -- inline/standalone/object embedding are
+    all real, common ways an SVG chart ends up on a page -- just know
+    which category a given embedding falls into before expecting this
+    to be what makes it accessible there.
+    """
+    var s = svg.to_string()
+    var tag_end = s.find(">")
+    if tag_end == -1:
+        raise Error(
+            "accessible_svg_string: svg.to_string() produced no root element to attach"
+            " accessibility markup to"
+        )
+    var opening_tag = String(s[byte=0:tag_end])
+    var rest = String(s[byte=tag_end:])
+
+    var escaped_title_attr = _escape_xml_attr(title)
+    var accessible_tag = opening_tag + ' role="img" aria-label="' + escaped_title_attr + '"'
+
+    var children = "<title>" + _escape_xml_text(title) + "</title>\n"
+    if description.byte_length() > 0:
+        children += "<desc>" + _escape_xml_text(description) + "</desc>\n"
+
+    return accessible_tag + String(rest[byte=0:1]) + children + String(rest[byte=1:])
+
+
+def write_accessible_svg(svg: SvgCanvas, path: String, title: String, description: String = "") raises:
+    """`accessible_svg_string()`, written to `path` -- the same
+    relationship `canvas_mojo.vector.svg.write_svg` has to `SvgCanvas.
+    to_string()`. See that function's own docstring for what gets
+    added and why, including its own honest scope note about which
+    embedding contexts actually benefit from any of this.
+    """
+    var f = open(path, "w")
+    f.write(accessible_svg_string(svg, title, description))
+    f.close()
 
 
 struct _PointChannels(Movable):
