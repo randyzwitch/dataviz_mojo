@@ -109,24 +109,40 @@ nothing to curve through. See `_build_line_path`'s own docstring
 (plot.mojo) for the control-point formula, shared unchanged by both
 marks.
 
-`title_font_size`/`axis_title_font_size` are the two new sizes `Plot.
-labels()` needs (see that method's own docstring for the three strings
-themselves -- `title`/`x_title`/`y_title` -- and the layout math that
-uses these): a chart title reads as a heading, so it defaults larger
-than everything else on the plot (18.0, vs. `font_size`'s own 12.0 for
-tick/legend labels); an axis title (a caption under the x-axis or
-rotated alongside the y-axis, e.g. "Revenue ($)") reads as a
-subordinate label, not body text or a heading, so it defaults between
-the two (14.0). Both are plain `Float64` points, scaled by `Theme.
-scale` the same as `font_size` itself -- see `_Scaled`'s own docstring
+`title_font_size`/`subtitle_font_size`/`axis_title_font_size` are the
+three sizes `Plot.labels()` needs (see that method's own docstring for
+the four strings themselves -- `title`/`subtitle`/`x_title`/`y_title`
+-- and the layout math that uses these): a chart title reads as a
+heading, so it defaults larger than everything else on the plot (18.0,
+vs. `font_size`'s own 12.0 for tick/legend labels); an axis title (a
+caption under the x-axis or rotated alongside the y-axis, e.g.
+"Revenue ($)") reads as a subordinate label, not body text or a
+heading, so it defaults between the two (14.0); `subtitle` shares that
+same 14.0 default -- the classic editorial two-tier headline reads
+title-then-subtitle as "heading, then a smaller supporting line," the
+identical size relationship an axis title already has to the title,
+not a fourth distinct size this package would need to separately
+justify. All three are plain `Float64` points, scaled by `Theme.scale`
+the same as `font_size` itself -- see `_Scaled`'s own docstring
 (plot.mojo) for why every pixel-sized quantity goes through that one
 struct rather than each render path applying `* scale` itself. No
-titles are drawn by default (`Plot._title`/`_x_title`/`_y_title` all
-default to `""`), so these two sizes only ever matter once a caller
-actually calls `.labels(...)` -- an empty string never reserves layout
-space or emits a `_TextRequest`, the same "absent means absent, not a
-zero-size version of present" rule `Plot.encode_gantt`'s own start/end
+titles are drawn by default (`Plot._title`/`_subtitle`/`_x_title`/
+`_y_title` all default to `""`), so these three sizes only ever matter
+once a caller actually calls `.labels(...)` -- an empty string never
+reserves layout space or emits a `_TextRequest`, the same "absent
+means absent, not a zero-size version of present" rule `Plot.encode_
+gantt`'s own start/end
 pair and every other optional feature in this file already follow.
+
+`subtitle_color` (default a muted gray, `Color(110, 110, 110)`,
+distinct from `text_color`'s own default `Color(40, 40, 40)`) is
+`subtitle`'s own dedicated color, not `text_color` reused -- the
+second half of the two-tier-headline reading `title_bold`'s own
+docstring already establishes for the title itself: a subtitle is
+supporting context, not body text or a heading, so it recedes rather
+than competing with either -- the same "a genuinely distinct visual
+role gets its own color, not a borrowed one" reasoning `waterfall_
+total_color` below already gives.
 
 `waterfall_total_color` is `Mark.WATERFALL`'s own third color, for a
 row `encode_waterfall()`'s own `is_total` marks as a running-total
@@ -226,6 +242,8 @@ struct Theme(ImplicitlyCopyable, Movable):
     var bullet_range_color_dark: Color
     var line_smoothing: Float64
     var title_font_size: Float64
+    var subtitle_font_size: Float64
+    var subtitle_color: Color
     var axis_title_font_size: Float64
     var waterfall_total_color: Color
     var font_family: String
@@ -259,6 +277,8 @@ struct Theme(ImplicitlyCopyable, Movable):
         bullet_range_color_dark: Color = Color(120, 120, 120),
         line_smoothing: Float64 = 0.0,
         title_font_size: Float64 = 18.0,
+        subtitle_font_size: Float64 = 14.0,
+        subtitle_color: Color = Color(110, 110, 110),
         axis_title_font_size: Float64 = 14.0,
         waterfall_total_color: Color = Color(100, 100, 100),
         font_family: String = "sans-serif",
@@ -290,6 +310,8 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.bullet_range_color_dark = bullet_range_color_dark
         self.line_smoothing = line_smoothing
         self.title_font_size = title_font_size
+        self.subtitle_font_size = subtitle_font_size
+        self.subtitle_color = subtitle_color
         self.axis_title_font_size = axis_title_font_size
         self.waterfall_total_color = waterfall_total_color
         self.font_family = font_family

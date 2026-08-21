@@ -169,6 +169,7 @@ def single_axis(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
 ) raises -> Canvas:
     """A single-axis chart -- `Mark.SINGLE_AXIS`, every value in `x`
@@ -179,4 +180,4 @@ def single_axis(
     var plot = Plot().mark_single_axis().encode_single_axis(
         x=x, color=color, color_categories=color_categories, size=size
     )
-    return _rendered(plot^, theme, width, height, title, x_title, "")
+    return _rendered(plot^, theme, width, height, title, x_title, "", subtitle=subtitle)

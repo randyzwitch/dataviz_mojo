@@ -146,6 +146,7 @@ def streamgraph(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
 ) raises -> Canvas:
     """A streamgraph -- `Mark.STREAMGRAPH`, `Mark.STACKED_BAR`'s own
@@ -156,4 +157,4 @@ def streamgraph(
     var plot = Plot().mark_streamgraph().encode_grouped_bar(
         categories=categories, series_names=series_names, values=values
     )
-    return _rendered(plot^, theme, width, height, title, x_title, "")
+    return _rendered(plot^, theme, width, height, title, x_title, "", subtitle=subtitle)

@@ -182,6 +182,7 @@ def bullet(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -192,4 +193,4 @@ def bullet(
     var plot = Plot().mark_bullet().encode_bullet(
         categories=categories, measures=measures, targets=targets, ranges=ranges
     )
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

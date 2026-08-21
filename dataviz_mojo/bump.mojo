@@ -248,6 +248,7 @@ def bump(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
 ) raises -> Canvas:
     """A bump chart -- `Mark.BUMP`, one line per series tracking its own
@@ -257,4 +258,4 @@ def bump(
     var plot = Plot().mark_bump().encode_grouped_bar(
         categories=categories, series_names=series_names, values=values
     )
-    return _rendered(plot^, theme, width, height, title, x_title, "Rank")
+    return _rendered(plot^, theme, width, height, title, x_title, "Rank", subtitle=subtitle)

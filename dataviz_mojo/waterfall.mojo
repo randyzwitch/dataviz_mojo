@@ -242,6 +242,7 @@ def waterfall(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -249,4 +250,4 @@ def waterfall(
     running total. See `Plot.encode_waterfall()`'s own docstring
     (plot.mojo) for what `deltas`/`is_total` mean."""
     var plot = Plot().mark_waterfall().encode_waterfall(categories=categories, deltas=deltas, is_total=is_total)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

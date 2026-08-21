@@ -1,6 +1,7 @@
-"""Tests for Plot.labels(): title/axis-title rendering and positioning
-(raster + SVG), including precise centering on the legend-narrowed inner
-plot rect -- split out of what used to be one big test_plot.mojo.
+"""Tests for Plot.labels(): title/subtitle/axis-title rendering and
+positioning (raster + SVG), including precise centering on the legend-
+narrowed inner plot rect -- split out of what used to be one big
+test_plot.mojo.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -190,6 +191,105 @@ def test_render_title_draws_ink_in_its_own_reserved_top_band() raises:
             if p.r != BG.r or p.g != BG.g or p.b != BG.b:
                 found_ink = True
     assert_true(found_ink, "the title's own ink, somewhere in its reserved top band")
+
+
+def test_render_svg_subtitle_matches_hand_derived_position() raises:
+    # Same setup as test_render_svg_labels_matches_hand_derived_title_
+    # and_axis_titles above, plus a subtitle -- confirming subtitle's
+    # own reserved band shifts everything below it (the line mark
+    # itself included) without disturbing title/x_title/y_title's own
+    # positions, all confirmed via a real render_svg() run first.
+    #
+    # _apply_labels now reserves extra_top=Int(18.0)+4 (title) +
+    # Int(14.0)+4 (subtitle) = 22+18 = 40 (was 22 with no subtitle),
+    # so the inner rect shrinks to (18, 40, 400, 282) -- shifting the
+    # LINE mark's own flat y=137.000 down to y=146.000 (the new
+    # vertical midpoint of plot_y0=42+18=60.. wait, re-derived
+    # directly against the real render instead: plot_y0=60, plot_y1=
+    # 232, midpoint 146). Title stays at its own unaffected (229, 14)
+    # -- only its cross-axis position depends on the inner rect, and
+    # that didn't change (still legend-less, same horizontal center).
+    # Subtitle sits directly below it, at y=oy0+title_band+Int(14.0*
+    # 0.8)=0+22+11=33, in Theme.subtitle_color's own default muted
+    # gray (#6e6e6e = Color(110,110,110)), normal weight (no font-
+    # weight attribute).
+    var x: List[Float64] = [0.0, 10.0]
+    var y: List[Float64] = [5.0, 5.0]
+    var svg = SvgCanvas(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .labels(title="My Title", subtitle="A subtitle", x_title="X Axis", y_title="Y Axis")
+        .theme(Theme(show_gridlines=False))
+    )
+    render_svg(svg, plot)
+    var s = svg.to_string()
+
+    assert_true(
+        '<text x="229" y="14" font-size="18.000" font-family="sans-serif" font-weight="bold" fill="#282828"'
+        ' text-anchor="middle">My Title</text>' in s,
+        "title -- unaffected by the subtitle's own reserved band",
+    )
+    assert_true(
+        '<text x="229" y="33" font-size="14.000" font-family="sans-serif" fill="#6e6e6e"'
+        ' text-anchor="middle">A subtitle</text>' in s,
+        "subtitle -- directly below the title, muted gray, normal weight",
+    )
+    assert_true(
+        '<path d="M91.727,146.000 L366.273,146.000" fill="none"'
+        ' stroke="#1e64b4" stroke-width="2.000" stroke-linecap="round"'
+        ' stroke-linejoin="round"/>' in s,
+        "the LINE mark itself, shifted down by the subtitle's own reserved band",
+    )
+
+
+def test_render_svg_subtitle_without_title_draws_at_the_top() raises:
+    # Plot.labels()'s own "each of the four is independent" rule --
+    # a subtitle with no title still draws, at the same top position a
+    # title alone would have used (y=Int(14.0*0.8)=11, not floating
+    # below a nonexistent title's own reserved band) -- confirmed via
+    # a real render_svg() run first.
+    var x: List[Float64] = [0.0, 10.0]
+    var y: List[Float64] = [5.0, 5.0]
+    var svg = SvgCanvas(400, 300)
+    var plot = Plot().mark_line().encode(x=x, y=y).labels(subtitle="Only a subtitle").theme(
+        Theme(show_gridlines=False)
+    )
+    render_svg(svg, plot)
+    var s = svg.to_string()
+    assert_true(
+        '<text x="220" y="11" font-size="14.000" font-family="sans-serif" fill="#6e6e6e"'
+        ' text-anchor="middle">Only a subtitle</text>' in s,
+        "a lone subtitle draws at the top, no title above it to make room for",
+    )
+
+
+def test_render_labels_subtitle_default_matches_unlabeled_output_exactly() raises:
+    # subtitle's own default ("", not set) must reproduce the exact
+    # pre-existing title-only render byte-for-byte -- the same
+    # "purely additive" bar test_render_labels_default_matches_
+    # unlabeled_output_exactly already clears for labels() as a whole,
+    # narrowed here to subtitle specifically (title/x_title/y_title
+    # both set, subtitle left at its own default either implicitly or
+    # explicitly).
+    var x: List[Float64] = [0.0, 10.0]
+    var y: List[Float64] = [5.0, 5.0]
+    var c_no_subtitle = Canvas(400, 300, BG)
+    render(c_no_subtitle, Plot().mark_line().encode(x=x, y=y).labels(title="T", x_title="X", y_title="Y"))
+    var c_explicit_empty = Canvas(400, 300, BG)
+    render(
+        c_explicit_empty,
+        Plot().mark_line().encode(x=x, y=y).labels(title="T", subtitle="", x_title="X", y_title="Y"),
+    )
+
+    for yy in range(c_no_subtitle.height):
+        for xx in range(c_no_subtitle.width):
+            var p1 = c_no_subtitle.get_pixel(xx, yy)
+            var p2 = c_explicit_empty.get_pixel(xx, yy)
+            assert_equal(p1.r, p2.r)
+            assert_equal(p1.g, p2.g)
+            assert_equal(p1.b, p2.b)
 
 
 def test_render_labels_raises_x_title_or_y_title_on_arc() raises:

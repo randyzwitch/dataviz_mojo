@@ -188,6 +188,7 @@ def sunburst(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -196,4 +197,4 @@ def sunburst(
     concentric ring sectors, one ring per depth level. See `_render_
     sunburst`'s own docstring for the full reasoning."""
     var plot = Plot().mark_sunburst().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

@@ -102,6 +102,7 @@ def punchcard(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -110,4 +111,4 @@ def punchcard(
     variable, GitHub-style. See `_render_punchcard`'s own docstring for
     the full reasoning."""
     var plot = Plot().mark_punchcard(scale=scale).encode_punchcard(x=x, y=y, sizes=sizes)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

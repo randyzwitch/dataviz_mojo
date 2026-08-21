@@ -143,6 +143,7 @@ def radialbar(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -156,4 +157,4 @@ def radialbar(
     reasoning, including how this differs from `polarbar()`'s radiating
     bars."""
     var plot = Plot().mark_radialbar().encode_categorical(x=categories, y=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

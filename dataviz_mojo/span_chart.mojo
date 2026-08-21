@@ -95,6 +95,7 @@ def span_chart(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -104,4 +105,4 @@ def span_chart(
     intervals, error bounds, or a range like a daily temperature
     high/low that isn't anchored to zero the way `bar()` assumes)."""
     var plot = Plot().mark_span_chart().encode_gantt(categories=categories, start=low, end=high)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

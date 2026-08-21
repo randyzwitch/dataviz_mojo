@@ -67,6 +67,7 @@ def histogram(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -80,4 +81,4 @@ def histogram(
     `theme`/`width`/`height`/`title`/`x_title`/`y_title` parameters
     every function there takes, this one included."""
     var plot = Plot().mark_bar().encode_histogram(data, bins=bins)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

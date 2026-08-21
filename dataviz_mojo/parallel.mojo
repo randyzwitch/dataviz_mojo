@@ -151,6 +151,7 @@ def parallel(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -164,4 +165,4 @@ def parallel(
     than generating them, and this stays consistent with that. See
     `_render_parallel`'s own docstring for the full reasoning."""
     var plot = Plot().mark_parallel().encode_parallel(dims=dims, row_names=row_names, data=data)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

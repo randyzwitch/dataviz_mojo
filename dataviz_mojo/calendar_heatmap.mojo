@@ -254,6 +254,7 @@ def calendar_heatmap(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -263,4 +264,4 @@ def calendar_heatmap(
     strings, all in the same year (inferred from the first one -- see
     `_render_calendar_heatmap`'s own docstring)."""
     var plot = Plot().mark_calendar_heatmap().encode_calendar(dates=dates, values=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

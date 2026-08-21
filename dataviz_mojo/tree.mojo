@@ -226,6 +226,7 @@ def tree(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -234,4 +235,4 @@ def tree(
     a top-to-bottom node-link diagram. See `_render_tree`'s own
     docstring for the full reasoning."""
     var plot = Plot().mark_tree().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

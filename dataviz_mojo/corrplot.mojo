@@ -159,6 +159,7 @@ def corrplot(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -171,4 +172,4 @@ def corrplot(
     var plot = Plot().mark_corrplot(layout=layout, diag=diag, labels=labels).encode_corrplot(
         variables=variables, matrix=matrix
     )
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

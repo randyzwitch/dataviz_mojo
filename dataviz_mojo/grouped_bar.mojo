@@ -168,6 +168,7 @@ def grouped_bar(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -179,4 +180,4 @@ def grouped_bar(
     var plot = Plot().mark_grouped_bar().encode_grouped_bar(
         categories=categories, series_names=series_names, values=values
     )
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

@@ -255,6 +255,7 @@ def heatmap(
     width: Int = 640,
     height: Int = 420,
     title: String = "",
+    subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
@@ -262,4 +263,4 @@ def heatmap(
     pair, colored by `value` through a continuous gradient. See `Plot.
     encode_heatmap()`'s own docstring (plot.mojo) for the exact shape."""
     var plot = Plot().mark_heatmap().encode_heatmap(x=x, y=y, value=value)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
