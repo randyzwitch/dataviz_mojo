@@ -1,3 +1,5 @@
+from std.math import sqrt
+
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.path import Path
 from canvas_mojo.vector.draw_target import DrawTarget
@@ -58,18 +60,35 @@ def _render_ridgeline[
     Each category's own density is still independently scaled to its
     own peak (not a shared cross-category maximum) -- the same
     `scale = "width"`-style reasoning `Mark.VIOLIN`'s own docstring
-    gives, applied to height instead of width here.
+    gives, applied to height instead of width here. `mark_ridgeline()`'s
+    own `scale_by_count=True` switches to `scale = "area"` the same way
+    `mark_violin()`'s own does -- see that method's own docstring.
 
     Reuses `Mark.VIOLIN`'s own `_kde_bandwidth`/`_kde_density` and
     `_KDE_SAMPLES` sample count completely unchanged -- only the axis
     orientation and the curve's own baseline/direction differ.
+
+    `mark_ridgeline()`'s own `bandwidth`, when given (checked positive
+    at render() time), replaces every category's own Silverman's-rule
+    `_kde_bandwidth(values)` with one shared value instead -- the same
+    override `Mark.VIOLIN` shares, see `mark_violin()`'s own docstring.
     """
     var theme = plot._theme
     if len(plot.x_categories) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
+    if plot._kde_bandwidth_override < 0.0:
+        raise Error(
+            "Plot.mark_ridgeline(): bandwidth must be positive (got "
+            + String(plot._kde_bandwidth_override)
+            + ")"
+        )
+
     var all_values = List[Float64]()
+    var max_n = 0
     for series in plot._distribution_values:
+        if len(series) > max_n:
+            max_n = len(series)
         for v in series:
             all_values.append(v)
     var x_scale = _data_extent(all_values)
@@ -84,7 +103,12 @@ def _render_ridgeline[
     for i in range(len(plot.x_categories)):
         var values = plot._distribution_values[i].copy()
         var baseline_y = frame.y_scale.band_start(i) + row_height
-        var bandwidth = _kde_bandwidth(values)
+        var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
+            plot._kde_scale_by_count and max_n > 0
+        ) else 1.0
+        var bandwidth = plot._kde_bandwidth_override if plot._kde_bandwidth_override > 0.0 else _kde_bandwidth(
+            values
+        )
         var mm = _min_max(values)
 
         var xs = List[Int](capacity=_KDE_SAMPLES)
@@ -98,7 +122,7 @@ def _render_ridgeline[
             densities.append(d)
             max_density = max(max_density, d)
 
-        var scale = max_rise / max_density if max_density > 0.0 else 0.0
+        var scale = (max_rise * count_factor) / max_density if max_density > 0.0 else 0.0
         var path = Path()
         path.move_to(Float64(xs[0]), baseline_y)
         for s in range(_KDE_SAMPLES):
@@ -113,6 +137,8 @@ def _render_ridgeline[
 def ridgeline(
     categories: List[String],
     values: List[List[Float64]],
+    bandwidth: Float64 = 0.0,
+    scale_by_count: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -121,8 +147,14 @@ def ridgeline(
     y_title: String = "",
 ) raises -> Canvas:
     """A ridgeline plot -- `Mark.RIDGELINE`, one overlapping density-
-    estimate row per category, top to bottom. See `Plot.encode_
-    distribution()`'s own docstring (plot.mojo) for the exact shape
-    (the same one `beeswarm()`/`violin()` take)."""
-    var plot = Plot().mark_ridgeline().encode_distribution(categories=categories, values=values)
+    estimate row per category, top to bottom (`bandwidth`, left at its
+    default `0.0`, overrides every category's own Silverman's-rule
+    bandwidth with one shared value; `scale_by_count`, left at its
+    default `False`, switches from ggplot2's own `scale = "width"` to
+    `scale = "area"` -- see `Plot.mark_violin()`'s own docstring for
+    both). See `Plot.encode_distribution()`'s own docstring (plot.mojo)
+    for the exact shape (the same one `beeswarm()`/`violin()` take)."""
+    var plot = Plot().mark_ridgeline(bandwidth=bandwidth, scale_by_count=scale_by_count).encode_distribution(
+        categories=categories, values=values
+    )
     return _rendered(plot^, theme, width, height, title, x_title, y_title)

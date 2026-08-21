@@ -77,6 +77,84 @@ def test_render_violin_identical_values_does_not_raise() raises:
     _assert_color(c, 220, 20, BG, "well above the collapsed row -- background")
 
 
+def test_render_violin_custom_bandwidth_widens_the_tapered_edge() raises:
+    # Same category/values/canvas as test_render_violin_matches_hand_
+    # derived_silhouette above -- Silverman's own default bandwidth for
+    # this data is ~0.9225, tapering the y=1.0/y=5.0 tail samples down
+    # to a ~74px half-width (the point (300, 235) sits just past that,
+    # background under the default). A caller-given bandwidth=3.0 (a
+    # much wider kernel) makes every point's own Gaussian spread out
+    # further, so the tails taper far less relative to the peak --
+    # confirmed via a real render() run: (300, 235) now falls *inside*
+    # the wider silhouette, and the interior/exterior sanity points
+    # from the default-bandwidth test still hold (a wider bandwidth
+    # doesn't change *where* the peak or the far background are).
+    var cats: List[String] = ["A"]
+    var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
+    var t = Theme(show_gridlines=False)
+    var c = violin(cats, vals, bandwidth=3.0, theme=t, width=400, height=300)
+    _assert_color(c, 300, 235, t.mark_color, "bandwidth=3.0 widens the tail -- now inside the silhouette")
+    _assert_color(c, 220, 135, t.mark_color, "still inside near the peak")
+    _assert_color(c, 10, 10, BG, "still background, well outside the plot area")
+
+
+def test_render_violin_explicit_zero_bandwidth_matches_default() raises:
+    # bandwidth=0.0 explicitly passed must reproduce the exact same
+    # output as omitting it entirely -- the same "purely additive,
+    # empty/zero is a sentinel for the default" guarantee Plot.encode_
+    # gauge()'s own breakpoints/band_colors make, exercised through the
+    # actual sentinel-check code path rather than just relying on the
+    # parameter's own default value.
+    var cats: List[String] = ["A"]
+    var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
+    var t = Theme(show_gridlines=False)
+    var c = violin(cats, vals, bandwidth=0.0, theme=t, width=400, height=300)
+    _assert_color(c, 220, 135, t.mark_color, "near the peak (y~=3), dead center -- well inside")
+    _assert_color(c, 280, 235, t.mark_color, "near the bottom edge (y=1), still inside the ~74px half-width there")
+    _assert_color(c, 300, 235, BG, "near the bottom edge (y=1), past the ~74px half-width there -- outside")
+
+
+def test_render_violin_scale_by_count_narrows_the_smaller_category() raises:
+    # Two categories: "A" (5 values, [1..5]) and "B" (2 values, [2,4]) --
+    # "A" has the larger sample count, so it sets max_n=5 and its own
+    # count_factor stays 1.0 (unaffected either way); "B"'s own
+    # count_factor is sqrt(2/5) ~= 0.6325 under scale_by_count=True.
+    # Canvas 400x300, show_gridlines=False, default margins: 2-category
+    # OrdinalScale step=160, bandwidth=128, "B"'s own center_x=300.
+    # Sampling row y=135 (near "B"'s own peak density, wherever exactly
+    # that peak's own y sits doesn't matter here -- confirmed via a
+    # real render() run first): under the default (False), "B"'s own
+    # silhouette spans x=[256,343]; under scale_by_count=True, the same
+    # row narrows to x=[272,327] (ratio 55/87 ~= 0.632, matching the
+    # predicted sqrt(2/5) factor). Point (260,135) sits inside the
+    # default silhouette but outside the narrowed one.
+    var cats: List[String] = ["A", "B"]
+    var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 4.0]]
+    var t = Theme(show_gridlines=False)
+    var c = violin(cats, vals, scale_by_count=True, theme=t, width=400, height=300)
+    _assert_color(c, 260, 135, BG, "scale_by_count narrows category B -- now outside")
+    _assert_color(c, 300, 135, t.mark_color, "category B's own center, still inside even narrowed")
+
+
+def test_render_violin_scale_by_count_false_matches_default() raises:
+    # scale_by_count=False explicitly passed must reproduce the exact
+    # same output as omitting it -- the same explicit-default-value
+    # guarantee test_render_violin_explicit_zero_bandwidth_matches_
+    # default proves for bandwidth.
+    var cats: List[String] = ["A", "B"]
+    var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 4.0]]
+    var t = Theme(show_gridlines=False)
+    var c = violin(cats, vals, scale_by_count=False, theme=t, width=400, height=300)
+    _assert_color(c, 260, 135, t.mark_color, "unscaled -- category B still reaches its own full half-width here")
+
+
+def test_render_violin_raises_on_negative_bandwidth() raises:
+    var cats: List[String] = ["A"]
+    var vals: List[List[Float64]] = [[1.0, 2.0, 3.0]]
+    with assert_raises():
+        _ = violin(cats, vals, bandwidth=-1.0, width=200, height=150)
+
+
 def test_render_violin_raises_on_mismatched_category_length() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[List[Float64]] = [[1.0]]

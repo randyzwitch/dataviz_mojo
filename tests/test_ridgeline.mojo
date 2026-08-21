@@ -67,6 +67,83 @@ def test_render_ridgeline_svg_matches_confirmed_path_points() raises:
     assert_true('<path d="M75.000,250.000 L75.000,178.289' in s, "row C's own baseline and left-edge rise")
 
 
+def test_render_ridgeline_custom_bandwidth_widens_the_tail() raises:
+    # Single category ("A"), values [1,2,3,4,5], canvas 400x300 --
+    # Silverman's own default bandwidth tapers the curve's own rise
+    # near x=1.0 (the left tail, pixel column x=75) enough that
+    # (75, 25) sits above the curve's own top (background); a caller-
+    # given bandwidth=3.0 (much wider than Silverman's ~0.9225) spreads
+    # every sample's own Gaussian further, so the tail's own rise no
+    # longer tapers away -- confirmed via a real render() run: (75, 25)
+    # falls inside the wider curve, while a point near the row's own
+    # peak (x~=220, near value 3) and one well outside the whole plot
+    # area stay unaffected either way.
+    var cats: List[String] = ["A"]
+    var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
+    var t = Theme(show_gridlines=False)
+    var c = ridgeline(cats, vals, bandwidth=3.0, theme=t, width=400, height=300)
+    _assert_color(c, 75, 25, t.mark_color, "bandwidth=3.0 widens the tail -- now inside the curve")
+    _assert_color(c, 220, 25, t.mark_color, "still inside near the peak")
+    _assert_color(c, 10, 10, BG, "still background, well outside the plot area")
+
+
+def test_render_ridgeline_explicit_zero_bandwidth_matches_default() raises:
+    # bandwidth=0.0 explicitly passed must reproduce the exact same
+    # output as omitting it entirely -- the same sentinel-is-the-
+    # default guarantee test_render_violin_explicit_zero_bandwidth_
+    # matches_default proves for Mark.VIOLIN.
+    var cats: List[String] = ["A"]
+    var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
+    var t = Theme(show_gridlines=False)
+    var c = ridgeline(cats, vals, bandwidth=0.0, theme=t, width=400, height=300)
+    _assert_color(c, 75, 25, BG, "default bandwidth still tapers away at the tail -- background")
+    _assert_color(c, 220, 25, t.mark_color, "still inside near the peak")
+
+
+def test_render_ridgeline_scale_by_count_shortens_the_smaller_row() raises:
+    # Two categories: "A" (5 values, [1..5], the larger sample count --
+    # sets max_n=5, so its own count_factor stays 1.0) and "B" (2
+    # values, [2,4], count_factor sqrt(2/5) ~= 0.6325 under scale_by_
+    # count=True). Canvas 400x300, show_gridlines=False -- row B (the
+    # second, bottom row) has its own baseline at y=250 and never rises
+    # below its own baseline, but row A (baseline y=135) never draws
+    # *below* its own baseline either, so any filled pixel at y > 135
+    # can only be row B's own curve, letting this test isolate row B's
+    # own rise without the two rows' overlap (`_RIDGE_OVERLAP`) making
+    # a taller row A ambiguous with a shorter row B. At x=220 (near
+    # value 3, row B's own peak-density region), row B's own curve
+    # top sits at y=136 under the default (right at this test's own
+    # zone boundary -- tall), and only y=169 under scale_by_count=True
+    # (visibly shorter) -- confirmed via a real render() run first.
+    # (220, 150) sits inside the default rise but above the narrowed
+    # one's own top.
+    var cats: List[String] = ["A", "B"]
+    var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 4.0]]
+    var t = Theme(show_gridlines=False)
+    var c = ridgeline(cats, vals, scale_by_count=True, theme=t, width=400, height=300)
+    _assert_color(c, 220, 150, BG, "scale_by_count shortens row B's own rise -- now above its own curve")
+    _assert_color(c, 220, 200, t.mark_color, "still inside row B's own (shorter) curve, closer to its baseline")
+
+
+def test_render_ridgeline_scale_by_count_false_matches_default() raises:
+    # scale_by_count=False explicitly passed must reproduce the exact
+    # same output as omitting it -- the same explicit-default-value
+    # guarantee test_render_ridgeline_explicit_zero_bandwidth_matches_
+    # default proves for bandwidth.
+    var cats: List[String] = ["A", "B"]
+    var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 4.0]]
+    var t = Theme(show_gridlines=False)
+    var c = ridgeline(cats, vals, scale_by_count=False, theme=t, width=400, height=300)
+    _assert_color(c, 220, 150, t.mark_color, "unscaled -- row B still reaches this height")
+
+
+def test_render_ridgeline_raises_on_negative_bandwidth() raises:
+    var cats: List[String] = ["A"]
+    var vals: List[List[Float64]] = [[1.0, 2.0, 3.0]]
+    with assert_raises():
+        _ = ridgeline(cats, vals, bandwidth=-1.0, width=200, height=150)
+
+
 def test_render_ridgeline_raises_on_mismatched_category_length() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[List[Float64]] = [[1.0]]

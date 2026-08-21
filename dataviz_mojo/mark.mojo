@@ -201,14 +201,27 @@ a symmetric kernel-density-estimate silhouette per category instead of
 individual jittered points -- Silverman's rule of thumb (std-only, a
 deliberate simplification of the fuller IQR-adjusted version -- see
 `_kde_bandwidth`'s own docstring, violin.mojo) for the KDE's own
-bandwidth, sampled at `_KDE_SAMPLES` points across each category's own
-`[min, max]`, each violin's own peak density independently scaled to
-`_VIOLIN_WIDTH_FRACTION` of its own band width (ggplot2's own default
-`scale = "width"`, not `scale = "area"` -- see `_render_violin`'s own
-docstring for why). Reuses `_draw_categorical_axis_frame` unchanged.
+bandwidth by default, or `mark_violin()`'s own optional `bandwidth`
+applied identically to every category instead (originally a fixed
+per-category-only computation, a documented v1 scope cut, made
+configurable once a real reason showed up -- comparing several
+categories' *shapes* without a wider- or narrower-spread category also
+reading as smoother or spikier purely from Silverman's rule reacting
+to its own sample size), sampled at `_KDE_SAMPLES` points across each
+category's own `[min, max]`, each violin's own peak density
+independently scaled to `_VIOLIN_WIDTH_FRACTION` of its own band width
+by default (ggplot2's own `scale = "width"`), or `mark_violin()`'s own
+`scale_by_count=True` for ggplot2's own `scale = "area"` instead
+(multiplying that width by `sqrt(n_i / max(n))`, so a category built
+from fewer raw values draws visibly narrower -- another documented v1
+scope cut made configurable, the same `mark_nightingale(area=...)`
+boolean-toggle precedent applied to sample size here). Reuses `_draw_
+categorical_axis_frame` unchanged.
 
 RIDGELINE (the last of Phase 3) reuses `VIOLIN`'s own `_kde_bandwidth`/
-`_kde_density`/`_KDE_SAMPLES` completely unchanged, but on `GANTT`'s
+`_kde_density`/`_KDE_SAMPLES` completely unchanged (including its own
+optional `bandwidth`/`scale_by_count` overrides, `mark_ridgeline()`'s
+own parameters of the same names), but on `GANTT`'s
 own horizontal categorical frame instead of the vertical one -- called
 with `padding=0.0` (that function's own default is 0.2, right for
 `GANTT`'s own separated floating bars but not this: rows need to sit
