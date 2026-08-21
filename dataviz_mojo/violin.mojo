@@ -98,23 +98,39 @@ def _render_violin[
     width, not a shared cross-category maximum -- matching ggplot2's
     own default `scale = "width"` behavior (every violin the same
     maximum width, regardless of how many points went into it) rather
-    than `scale = "area"` (equal area, proportional peak width). Picked
-    for being the simpler of the two, not because area-scaling is
-    wrong -- revisit if a real use ever wants relative sample-size to
-    read visually.
+    than `scale = "area"` (equal area, proportional peak width). The
+    default; `mark_violin()`'s own `scale_by_count=True` switches to
+    the `scale = "area"` behavior instead, multiplying each category's
+    own maximum width by `sqrt(n_i / max(n))` -- see that method's own
+    docstring for why.
 
     Reuses `_draw_categorical_axis_frame` (the same vertical-
     categorical-x/continuous-y core `Mark.BAR`/`BOX`/`BEESWARM` share),
     with `_data_extent` over every value across every category for the
     shared axis domain -- the same domain reasoning `Mark.BOX`/
     `BEESWARM` already established for this data shape.
+
+    `mark_violin()`'s own `bandwidth`, when given (checked positive at
+    render() time), replaces every category's own Silverman's-rule
+    `_kde_bandwidth(values)` with one shared value instead -- see that
+    method's own docstring for why.
     """
     var theme = plot._theme
     if len(plot.x_categories) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
+    if plot._kde_bandwidth_override < 0.0:
+        raise Error(
+            "Plot.mark_violin(): bandwidth must be positive (got "
+            + String(plot._kde_bandwidth_override)
+            + ")"
+        )
+
     var all_values = List[Float64]()
+    var max_n = 0
     for series in plot._distribution_values:
+        if len(series) > max_n:
+            max_n = len(series)
         for v in series:
             all_values.append(v)
     var y_scale = _data_extent(all_values)
@@ -126,7 +142,12 @@ def _render_violin[
     for i in range(len(plot.x_categories)):
         var values = plot._distribution_values[i].copy()
         var center_x = frame.x_scale.center(i)
-        var bandwidth = _kde_bandwidth(values)
+        var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
+            plot._kde_scale_by_count and max_n > 0
+        ) else 1.0
+        var bandwidth = plot._kde_bandwidth_override if plot._kde_bandwidth_override > 0.0 else _kde_bandwidth(
+            values
+        )
         var mm = _min_max(values)
 
         var densities = List[Float64](capacity=_KDE_SAMPLES)
@@ -141,7 +162,7 @@ def _render_violin[
             max_density = max(max_density, d)
 
         var path = Path()
-        var scale = half_width / max_density if max_density > 0.0 else 0.0
+        var scale = (half_width * count_factor) / max_density if max_density > 0.0 else 0.0
         path.move_to(center_x + densities[0] * scale, Float64(_axis_pixel(frame.y_scale, y_values[0])))
         for s in range(1, _KDE_SAMPLES):
             path.line_to(
@@ -160,6 +181,8 @@ def _render_violin[
 def violin(
     categories: List[String],
     values: List[List[Float64]],
+    bandwidth: Float64 = 0.0,
+    scale_by_count: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -168,8 +191,14 @@ def violin(
     y_title: String = "",
 ) raises -> Canvas:
     """A violin plot -- `Mark.VIOLIN`, a symmetric kernel-density-
-    estimate silhouette per category. See `Plot.encode_distribution()`'s
-    own docstring (plot.mojo) for the exact shape (the same one
-    `beeswarm()`/`ridgeline()` take)."""
-    var plot = Plot().mark_violin().encode_distribution(categories=categories, values=values)
+    estimate silhouette per category (`bandwidth`, left at its default
+    `0.0`, overrides every category's own Silverman's-rule bandwidth
+    with one shared value; `scale_by_count`, left at its default
+    `False`, switches from ggplot2's own `scale = "width"` to `scale =
+    "area"` -- see `Plot.mark_violin()`'s own docstring for both). See
+    `Plot.encode_distribution()`'s own docstring (plot.mojo) for the
+    exact shape (the same one `beeswarm()`/`ridgeline()` take)."""
+    var plot = Plot().mark_violin(bandwidth=bandwidth, scale_by_count=scale_by_count).encode_distribution(
+        categories=categories, values=values
+    )
     return _rendered(plot^, theme, width, height, title, x_title, y_title)
