@@ -276,13 +276,18 @@ GAUGE closes out Phase 4: a single `value` (`encode_gauge()`, clamped
 to `[min_value, max_value]` rather than rejected out of range -- a
 gauge's whole point is a live reading that can legitimately exceed
 its expected range) shown as a needle over a 270-degree color-banded
-dial (green/blue/red at ECharts' own default 20%/80%/100%
-breakpoints, fixed constants for now -- see gauge.mojo's own
-docstring). Reuses `POLAR`/`RADAR`'s own shared `_polar_point` for
-both the needle tip and the band boundaries, `ARC`'s own `fill_ring_
-sector_aa` primitive for the bands themselves. No axis frame, no
-legend -- a single value has no categories to key one by. See
-gauge.mojo's own `_render_gauge` docstring for the full reasoning.
+dial -- green/blue/red at ECharts' own default 20%/80%/100%
+breakpoints, or a caller's own `breakpoints`/`band_colors` (an
+ascending list of dial-span fractions plus one color per band, same
+length; empty means "use the default", the same sentinel convention
+`encode()`'s own optional `color`/`size` channels already use --
+originally fixed constants, made configurable once a real reason
+showed up, see gauge.mojo's own docstring). Reuses `POLAR`/`RADAR`'s
+own shared `_polar_point` for both the needle tip and the band
+boundaries, `ARC`'s own `fill_ring_sector_aa` primitive for the bands
+themselves. No axis frame, no legend -- a single value has no
+categories to key one by. See gauge.mojo's own `_render_gauge`
+docstring for the full reasoning.
 
 PARALLEL ("Phase 5" of the broader chart-type survey, its own new
 N-axis core) is a cartesian, not polar, multi-axis mark: `encode_

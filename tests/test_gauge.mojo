@@ -1,6 +1,6 @@
 """Tests for Mark.GAUGE: the needle's own angle, the three color-band
 sectors, out-of-range value clamping, encode_gauge()'s own min/max
-validation.
+validation, and custom breakpoints/band_colors.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -78,6 +78,65 @@ def test_render_gauge_raises_when_min_value_is_not_less_than_max_value() raises:
         _ = gauge(5.0, min_value=10.0, max_value=10.0, width=200, height=150)
     with assert_raises():
         _ = gauge(5.0, min_value=10.0, max_value=0.0, width=200, height=150)
+
+
+def test_render_gauge_custom_breakpoints_matches_hand_derived_band_colors() raises:
+    # Same center (220,135)/radius (103.5 outer, 72.45 inner) as every
+    # other test above -- breakpoints/band_colors only change which
+    # color a given angle falls under, not the dial's own geometry, so
+    # the same three test points reused: (132,135) and (137,105) sit at
+    # fractions 0.167/0.241 (both test_render_gauge_matches_hand_
+    # derived_band_colors' own green/blue bands under the *default*
+    # split), which a two-band [0.5, 1.0] split now both place in band
+    # 0; (304,162) sits at fraction 0.9, in band 1 either way. All three
+    # confirmed via a real render() run first.
+    var bps: List[Float64] = [0.5, 1.0]
+    var cols: List[Color] = [Color(10, 20, 30), Color(200, 100, 50)]
+    var c = gauge(50.0, width=400, height=300, breakpoints=bps, band_colors=cols)
+    _assert_color(c, 132, 135, cols[0], "band 0, fraction 0.167")
+    _assert_color(c, 137, 105, cols[0], "band 0, fraction 0.241")
+    _assert_color(c, 304, 162, cols[1], "band 1, fraction 0.9")
+
+
+def test_render_gauge_custom_breakpoints_default_empty_matches_original() raises:
+    # Leaving breakpoints/band_colors at their default (empty lists)
+    # must reproduce the fixed 20%/80%/100% green/blue/red default
+    # exactly -- the same "purely additive" guarantee every other
+    # optional feature in this package makes. Same test points/colors
+    # as test_render_gauge_matches_hand_derived_band_colors, called
+    # through the explicit-empty-list form instead of omitting the
+    # parameters, so this exercises the actual sentinel-check code path.
+    var empty_bps = List[Float64]()
+    var empty_cols = List[Color]()
+    var c = gauge(50.0, width=400, height=300, breakpoints=empty_bps, band_colors=empty_cols)
+    var breakpoint_colors = [Color(46, 139, 87), Color(30, 144, 255), Color(220, 20, 60)]
+    _assert_color(c, 132, 135, breakpoint_colors[0], "green band, fraction 0.167")
+    _assert_color(c, 137, 105, breakpoint_colors[1], "blue band, fraction 0.241")
+    _assert_color(c, 304, 162, breakpoint_colors[2], "red band, fraction 0.9")
+
+
+def test_render_gauge_raises_on_mismatched_breakpoints_and_band_colors_length() raises:
+    var bps: List[Float64] = [0.5, 1.0]
+    var cols: List[Color] = [Color(10, 20, 30)]
+    with assert_raises():
+        _ = gauge(50.0, width=200, height=150, breakpoints=bps, band_colors=cols)
+
+
+def test_render_gauge_raises_on_non_ascending_breakpoints() raises:
+    var bps: List[Float64] = [0.5, 0.3]
+    var cols: List[Color] = [Color(10, 20, 30), Color(200, 100, 50)]
+    with assert_raises():
+        _ = gauge(50.0, width=200, height=150, breakpoints=bps, band_colors=cols)
+
+
+def test_render_gauge_raises_on_out_of_range_breakpoint() raises:
+    var too_high: List[Float64] = [0.5, 1.5]
+    var cols: List[Color] = [Color(10, 20, 30), Color(200, 100, 50)]
+    with assert_raises():
+        _ = gauge(50.0, width=200, height=150, breakpoints=too_high, band_colors=cols)
+    var zero_start: List[Float64] = [0.0, 1.0]
+    with assert_raises():
+        _ = gauge(50.0, width=200, height=150, breakpoints=zero_start, band_colors=cols)
 
 
 def main() raises:
