@@ -167,11 +167,11 @@ def _render_heatmap[
     """Render a `Mark.HEATMAP` plot: `_draw_grid_axis_frame`'s own two-
     categorical-axis grid, one filled cell per `encode_heatmap()` row,
     colored through a continuous `ColorScale` spanning `value`'s own
-    [min, max] (`Theme.color_scale_low`/`color_scale_high` -- the exact
-    same two-stop gradient `Mark.POINT`'s own continuous `color=`
-    channel already uses, see `_PointChannels`' own construction of
-    one, so a heatmap and a continuous-color scatter plot read with the
-    same color vocabulary).
+    [min, max] (`ColorScale.from_theme` -- the exact same three-stop
+    gradient `Mark.POINT`'s own continuous `color=` channel already
+    uses, see `_PointChannels`' own construction of one, so a heatmap
+    and a continuous-color scatter plot read with the same color
+    vocabulary).
 
     `x`/`y` are deduplicated into each axis's own domain via
     `_categorical_indices` (first-seen order, the same helper `Mark.
@@ -211,9 +211,7 @@ def _render_heatmap[
 
     var sc = _Scaled(theme)
     var value_mm = _min_max(plot._heatmap_value)
-    var color_scale = ColorScale(value_mm.min, value_mm.max)
-    color_scale.add_stop(0.0, theme.color_scale_low)
-    color_scale.add_stop(1.0, theme.color_scale_high)
+    var color_scale = ColorScale.from_theme(theme, value_mm.min, value_mm.max)
 
     var legend_reserve = 0
     if theme.show_legend:

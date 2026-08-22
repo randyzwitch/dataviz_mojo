@@ -114,9 +114,8 @@ def _render_calendar_heatmap[
     calendar grid -- one column per week, one row per day of the week
     (`_calendar_day_labels()`, Sunday at the top), colored through a
     continuous `ColorScale` spanning `values`' own [min, max] --
-    exactly `Mark.HEATMAP`'s own gradient vocabulary (`Theme.color_
-    scale_low`/`color_scale_high`), reused here rather than
-    reinvented.
+    exactly `Mark.HEATMAP`'s own gradient vocabulary (`ColorScale.
+    from_theme`), reused here rather than reinvented.
 
     Every date must fall in the same calendar year (inferred from the
     first date, not a separate caller-supplied `year` parameter the
@@ -185,9 +184,7 @@ def _render_calendar_heatmap[
     )
 
     var value_mm = _min_max(plot._calendar_values)
-    var color_scale = ColorScale(value_mm.min, value_mm.max)
-    color_scale.add_stop(0.0, theme.color_scale_low)
-    color_scale.add_stop(1.0, theme.color_scale_high)
+    var color_scale = ColorScale.from_theme(theme, value_mm.min, value_mm.max)
 
     var legend_reserve = 0
     if theme.show_legend:

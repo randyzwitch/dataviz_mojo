@@ -36,13 +36,21 @@ def test_render_calendar_heatmap_matches_hand_derived_cells() raises:
     # 0, col 1) -> rect(75,36,15,31); Dec 31 (Tue, row 2, col 52) ->
     # rect(865,97,15,31). Interior points sampled well inside each
     # rect's own bounds, not on an edge.
+    #
+    # value=2.0 sits at the color domain's own exact midpoint (t=0.5)
+    # -- lands on Theme's own color_scale_mid exactly, not an
+    # interpolated blend: ColorScale.from_theme() adds that as a real
+    # stop at offset 0.5 (see its own docstring), and _color_at_t
+    # brackets an exact-offset match to itself (before == after), no
+    # RGB-space interpolation involved at all. Read directly off Theme
+    # the same way the min/max cells already are, not hand-derived.
     var dates: List[String] = ["2024-01-01", "2024-01-07", "2024-12-31"]
     var values: List[Float64] = [1.0, 2.0, 3.0]
     var t = Theme(show_legend=False)
     var c = calendar_heatmap(dates, values, theme=t, width=900, height=300)
 
     _assert_color(c, 67, 82, t.color_scale_low, "Jan 1 (Mon), value 1.0 -- the color domain's own min")
-    _assert_color(c, 82, 51, Color(140, 100, 120), "Jan 7 (Sun), value 2.0 -- the domain's own midpoint")
+    _assert_color(c, 82, 51, t.color_scale_mid, "Jan 7 (Sun), value 2.0 -- the domain's own exact midpoint")
     _assert_color(c, 872, 112, t.color_scale_high, "Dec 31 (Tue), value 3.0 -- the color domain's own max")
     _assert_color(c, 10, 10, BG, "well outside the whole plot area -- background")
 
@@ -57,7 +65,7 @@ def test_render_calendar_heatmap_svg_matches_confirmed_rects() raises:
     render_svg(svg, plot)
     var s = svg.to_string()
     assert_true('<rect x="60" y="67" width="15" height="31" fill="#3c6ec8"/>' in s, "Jan 1 (Mon), col 0")
-    assert_true('<rect x="75" y="36" width="15" height="31" fill="#8c6478"/>' in s, "Jan 7 (Sun), col 1")
+    assert_true('<rect x="75" y="36" width="15" height="31" fill="#ebebeb"/>' in s, "Jan 7 (Sun), col 1")
     assert_true('<rect x="865" y="97" width="15" height="31" fill="#dc5a28"/>' in s, "Dec 31 (Tue), col 52")
 
 

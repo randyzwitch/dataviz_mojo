@@ -88,6 +88,36 @@ with `mark_color`: the measure bar itself. Unlike `mark_color_negative`,
 `Mark.BULLET`'s measure bar is never colored by sign -- see
 `_render_bullet`'s own docstring for why.
 
+`color_scale_low`/`color_scale_mid`/`color_scale_high` are `Plot.encode(
+color=...)`'s own continuous channel (and every mark built directly on
+`dataviz_mojo.color_scale.ColorScale` over its own data domain --
+`Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`, see each one's own
+`_render_*` docstring) -- three stops, not two: a real, rendering-
+caught readability bug, not a hypothetical one. Two stops alone (the
+low/high colors directly, no `color_scale_mid`) linearly interpolate
+in plain RGB space, and the *midpoint* of two saturated, hue-opposite
+colors (the default low/high pair is blue/orange, chosen for
+contrast) in RGB space is a desaturated, muddy brownish-grey -- not a
+blend a viewer reads as "partway between blue and orange" at all. A
+mark whose own data happens to sit near the domain's extremes never
+shows this (heatmap/corrplot examples originally shipped with data
+that never landed near the midpoint, hiding it entirely), but the
+*legend* always spans the full domain end to end, so that muddy
+middle dominated most of its own length -- reading as "one flat color"
+even though the underlying gradient math was working correctly the
+whole time. `color_scale_mid` (default a light neutral grey, `Color(
+235, 235, 235)`) is the fix every real diverging colormap (matplotlib's
+`coolwarm`, ColorBrewer's `RdBu`, ...) already uses: route the
+transition through a genuine third, deliberately desaturated color
+instead of letting linear RGB interpolation pick an accidental one.
+Added at gradient offset `0.5` alongside the existing `0.0`/`1.0`
+stops everywhere a `ColorScale` gets built from `Theme` (see `dataviz_
+mojo.color_scale.ColorScale.from_theme`'s own docstring) -- a caller
+who genuinely wants a plain two-hue transition (a sequential, not
+diverging, scale) can still set `color_scale_mid` to whatever reads
+right for that specific pair, the same way every other color field
+here is a real, overridable default, not a hardcoded internal.
+
 `line_smoothing` (default `0.0` -- `Mark.LINE`/`Mark.AREA` draw exactly
 the straight point-to-point segments they always have) controls how
 much `_build_line_path` curves a line (or an area's own top edge)
@@ -266,6 +296,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     var margin_bottom: Int
     var show_gridlines: Bool
     var color_scale_low: Color
+    var color_scale_mid: Color
     var color_scale_high: Color
     var size_range_min: Float64
     var size_range_max: Float64
@@ -303,6 +334,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         margin_bottom: Int = 50,
         show_gridlines: Bool = True,
         color_scale_low: Color = Color(60, 110, 200),
+        color_scale_mid: Color = Color(235, 235, 235),
         color_scale_high: Color = Color(220, 90, 40),
         size_range_min: Float64 = 3.0,
         size_range_max: Float64 = 15.0,
@@ -338,6 +370,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.margin_bottom = margin_bottom
         self.show_gridlines = show_gridlines
         self.color_scale_low = color_scale_low
+        self.color_scale_mid = color_scale_mid
         self.color_scale_high = color_scale_high
         self.size_range_min = size_range_min
         self.size_range_max = size_range_max

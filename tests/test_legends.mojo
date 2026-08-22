@@ -82,20 +82,24 @@ def test_render_svg_continuous_color_legend_matches_hand_derived_gradient() rais
     #
     # A real DrawTarget.fill_rect_gradient bar now (canvas_mojo
     # >=0.3.0), not the many-thin-strip approximation an earlier
-    # version of this test covered -- built from ColorScale's own two
-    # stops (add_stop(0.0, color_scale_low)/add_stop(1.0, color_scale_
-    # high), see _PointChannels' own construction), each one's own
-    # gradient offset flipped (1.0 - stop.offset, see _draw_continuous_
-    # color_legend's own docstring for why: the bar's top has to be the
-    # *high* value, but ColorScale's own offset 1.0 already means
-    # high) -- so the emitted gradient axis (270, 20) -> (270, 120)
-    # carries stop offset 1.0 = color_scale_low (#3c6ec8, Color(60,
-    # 110,200)) and stop offset 0.0 = color_scale_high (#dc5a28, Color
-    # (220,90,40)), in that order (ColorScale's own stops list is
-    # built low-then-high, and this loop doesn't reorder them, just
+    # version of this test covered -- built from ColorScale's own
+    # three stops (ColorScale.from_theme: color_scale_low/mid/high at
+    # 0.0/0.5/1.0, see that method's own docstring for why a middle
+    # stop exists at all -- Theme.color_scale_mid's own docstring has
+    # the real, rendering-caught readability bug it fixes), each one's
+    # own gradient offset flipped (1.0 - stop.offset, see _draw_
+    # continuous_color_legend's own docstring for why: the bar's top
+    # has to be the *high* value, but ColorScale's own offset 1.0
+    # already means high) -- so the emitted gradient axis (270, 20) ->
+    # (270, 120) carries stop offset 1.0 = color_scale_low (#3c6ec8,
+    # Color(60,110,200)), stop offset 0.5 = color_scale_mid (#ebebeb,
+    # Color(235,235,235)) unchanged by the flip (0.5 maps to itself),
+    # and stop offset 0.0 = color_scale_high (#dc5a28, Color(220,90,
+    # 40)), in that order (ColorScale's own stops list is built low-
+    # then-mid-then-high, and this loop doesn't reorder them, just
     # flips each one's own offset in place). Confirmed against a real
     # render_svg() run before trusting it here, not just derived from
-    # the two Theme color fields by hand.
+    # the three Theme color fields by hand.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var color: List[Float64] = [0.0, 10.0]
@@ -107,8 +111,10 @@ def test_render_svg_continuous_color_legend_matches_hand_derived_gradient() rais
     assert_true(
         '<linearGradient id="grad1" gradientUnits="userSpaceOnUse" x1="270.000" y1="20.000"'
         ' x2="270.000" y2="120.000"><stop offset="1.000" stop-color="#3c6ec8" stop-opacity="1.000"/>'
+        '<stop offset="0.500" stop-color="#ebebeb" stop-opacity="1.000"/>'
         '<stop offset="0.000" stop-color="#dc5a28" stop-opacity="1.000"/></linearGradient>' in s,
-        "the gradient definition: low color at the bottom (offset 1.0), high color at the top (offset 0.0)",
+        "the gradient definition: low color at the bottom (offset 1.0), mid at the middle (offset"
+        " 0.5), high color at the top (offset 0.0)",
     )
     assert_true(
         '<rect x="270" y="20" width="14" height="100" fill="url(#grad1)"/>' in s,
