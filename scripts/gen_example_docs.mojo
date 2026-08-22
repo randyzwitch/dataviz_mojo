@@ -98,6 +98,7 @@ def _titles() -> Dict[String, String]:
     d["slope"] = "Slope"
     d["annotate_line"] = "Reference Line"
     d["svg_accessibility"] = "SVG Accessibility"
+    d["annotate_area"] = "Reference Band"
     d["dual_axis"] = "Dual Y-Axis"
     return d^
 
@@ -120,24 +121,28 @@ def _categories() -> List[Category]:
     # mixed in among them; those are real dataviz_mojo capabilities,
     # just not chart types of their own, so they live in the wiki/API
     # reference instead of the Examples gallery. annotate_line,
-    # svg_accessibility, and dual_axis are the three exceptions: unlike
-    # facets/layers/titles, none has a simpler existing example to
-    # piggyback on -- Plot.annotate_line() and Plot.secondary_axis()
-    # aren't exposed on any quickplot function, and accessible_svg_
-    # string()/write_accessible_svg() are a standalone SVG-writing
-    # utility with no Plot method of their own at all (see each one's
-    # own docstring) -- so there's no other "how do I use this" page
-    # anywhere else in these docs. Each is filed under whichever
-    # category its own example's mark belongs to instead --
-    # "Categorical business charts" for annotate_line (Mark.BAR),
-    # "Basic marks" for svg_accessibility (its own bar-chart data is
-    # incidental -- the feature works with any mark), "Multivariate"
-    # for dual_axis (a layered Mark.AREA + Mark.LINE combo) -- rather
-    # than getting a category of its own.
+    # svg_accessibility, annotate_area, and dual_axis are the four
+    # exceptions: unlike facets/layers/titles, none has a simpler
+    # existing example to piggyback on -- none of Plot.annotate_line(),
+    # Plot.annotate_area(), or Plot.secondary_axis() is exposed on any
+    # quickplot function, and accessible_svg_string()/write_accessible_
+    # svg() are a standalone SVG-writing utility with no Plot method of
+    # their own at all (see each one's own docstring) -- so there's no
+    # other "how do I use this" page anywhere else in these docs. Each
+    # is filed under whichever category its own example's mark belongs
+    # to instead -- "Categorical business charts" for annotate_line
+    # (Mark.BAR), "Basic marks" for svg_accessibility (its own bar-chart
+    # data is incidental -- the feature works with any mark) and
+    # annotate_area (Mark.LINE), "Multivariate" for dual_axis (a layered
+    # Mark.AREA + Mark.LINE combo) -- rather than getting a category of
+    # its own.
     var cats = List[Category]()
     cats.append(Category(
         "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
-        ["scatter", "line", "bar", "area", "pie", "donut", "single_axis", "effect_scatter", "svg_accessibility"],
+        [
+            "scatter", "line", "bar", "area", "pie", "donut", "single_axis", "effect_scatter",
+            "svg_accessibility", "annotate_area",
+        ],
     ))
     cats.append(Category(
         "Categorical business charts",
