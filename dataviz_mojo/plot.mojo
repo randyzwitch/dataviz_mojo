@@ -1950,14 +1950,14 @@ struct Plot(Movable):
         (see `_CategoricalFrame.result`'s own docstring for how the
         first nine got it "for free").
 
-        Only wired into `render()`/`render_svg()` so far -- `render_
-        facets()`/`render_layers()` don't draw annotation lines yet,
-        even though `render_layers`'s own shared `_ContinuousFrame`
-        already exposes the right y-scale for it (a real, separate
-        follow-up: which layer's own annotations should draw, and
-        whether facets want one shared line across every cell or a
-        per-cell one, are both real design questions this method
-        doesn't answer yet).
+        Also wired into `render_facets()` (each cell's own annotations
+        draw against that cell's own real y-scale, exactly like a
+        standalone render) and `render_layers()` (each layer's own
+        annotations draw against that layer's own y-scale -- primary or
+        secondary, whichever `Plot.secondary_axis()` put it on -- not
+        some other layer's) -- see `_render_facets_generic`'s and
+        `_render_layers_generic`'s own docstrings for the full mechanics
+        of each.
         """
         self._annotation_line_values.append(value)
         self._annotation_line_labels.append(label)
@@ -2012,9 +2012,9 @@ struct Plot(Movable):
         somewhere wrong on a mark with no genuine continuous y-axis; see
         that method's own docstring for the exact supported list and why
         (both reuse the identical `_RenderResult.y_scale`/`has_y_scale`
-        mechanism). Also, like `annotate_line()`, only wired into
-        `render()`/`render_svg()` so far -- not `render_facets()`/
-        `render_layers()`.
+        mechanism). Also wired into `render_facets()`/`render_layers()`
+        the same way `annotate_line()` is -- see that method's own
+        docstring for the mechanics, which this shares exactly.
         """
         self._annotation_area_y0.append(y0)
         self._annotation_area_y1.append(y1)
@@ -4286,6 +4286,15 @@ def _render_facets_generic[
     relationship `_render_bar`/`_render_arc` have to `_render_generic`'s
     own continuous-x path (composition, not a mode flag threaded
     through one function).
+
+    Each cell's own `Plot.annotate_area()`/`annotate_line()` draw too
+    (`render()`/`render_svg()`'s own scope note about this not being
+    wired up yet was for `render_facets()`/`render_layers()` both --
+    this closes the `render_facets()` half): one cell, one independent
+    `Plot`, so a cell's own annotations mean exactly what they'd mean
+    rendered standalone, no shared-coordinate-system ambiguity to
+    resolve the way `render_layers()`'s single combined domain has (see
+    `_render_layers_generic`'s own docstring for that one instead).
     """
     var text_requests = List[_TextRequest]()
     if cols <= 0:
@@ -4316,7 +4325,22 @@ def _render_facets_generic[
         var label_requests = _label_text_requests(
             plots[i], cell_x0, cell_y0, cell_x1, cell_y1, cell_result.px0, cell_result.py0, cell_result.px1, cell_result.py1
         )
+        # Each cell's own Plot.annotate_area()/annotate_line() draw
+        # against that cell's own real y_scale, exactly the way a
+        # standalone render()/render_svg() call already does -- one
+        # cell, one independent Plot, so there's no "which cell's own
+        # annotations should draw" ambiguity the way render_layers()'s
+        # shared coordinate system has (see _render_layers_generic's
+        # own docstring for how that one's handled instead). Areas
+        # drawn before lines, the same per-plot stacking order render()/
+        # render_svg() already use.
+        var cell_area_requests = _draw_annotation_areas(target, plots[i], cell_result, plots[i]._theme)
+        var cell_line_requests = _draw_annotation_lines(target, plots[i], cell_result, plots[i]._theme)
         for req in label_requests:
+            text_requests.append(req.copy())
+        for req in cell_area_requests:
+            text_requests.append(req.copy())
+        for req in cell_line_requests:
             text_requests.append(req.copy())
         for req in cell_result.text_requests:
             text_requests.append(req.copy())
@@ -4544,6 +4568,21 @@ def _render_layers_generic[
     overlap; `0` (and so an unchanged `legend_x`) whenever no layer uses
     one, keeping every pre-existing single-axis render byte-for-byte
     unchanged.
+
+    Each layer's own `Plot.annotate_area()`/`annotate_line()` draw too
+    (closing the `render_layers()` half of the "not wired into render_
+    facets()/render_layers() yet" scope note both methods' own
+    docstrings used to carry -- `_render_facets_generic`'s own docstring
+    covers the other half). Unlike `render_facets()`'s "one cell, one
+    Plot" case, several layers share one coordinate system here, so
+    which layer's own annotations mean what against which axis needed
+    an actual answer: each layer's own annotations draw against *that
+    layer's own* y_scale (primary or secondary, whichever `Plot.
+    secondary_axis()` put it on) -- the identical scale that layer's
+    own mark just drew against, not the combined domain some other
+    layer might be using. Drawn last, on top of every layer's own mark,
+    the same "annotations after the mark" order `render()`/`render_svg()`
+    already use.
     """
     var text_requests = List[_TextRequest]()
     if len(plots) == 0:
@@ -4714,6 +4753,31 @@ def _render_layers_generic[
             _draw_line_layer(target, plots[j], frame.x_scale, layer_y_scale)
         elif plots[j]._mark == Mark.AREA:
             _draw_area_layer(target, plots[j], frame.x_scale, layer_y_scale)
+
+    # Each layer's own Plot.annotate_area()/annotate_line() draw last,
+    # on top of every layer's own mark (the same "annotations drawn
+    # after the mark itself" order render()/render_svg() already use) --
+    # against *that layer's own* y_scale (primary or secondary,
+    # whichever `Plot.secondary_axis()` put it on), not render_facets()'s
+    # simpler "one cell, one Plot" case: a layered render shares one
+    # coordinate system across several Plots, so which layer's own
+    # annotations mean what against which axis needed an actual answer,
+    # not just reusing render_facets()'s own approach unchanged. A
+    # throwaway `_RenderResult` per layer, built from the shared plot
+    # rect plus that one layer's own y_scale, is enough to reuse `_draw_
+    # annotation_areas`/`_draw_annotation_lines` unmodified -- neither
+    # function needs anything else `_RenderResult` carries.
+    for j in range(len(plots)):
+        var layer_y_scale = out_y_scale2 if plots[j]._secondary_axis else frame.y_scale
+        var layer_result = _RenderResult(
+            List[_TextRequest](), frame.px0, frame.py0, frame.px1, frame.py1, layer_y_scale, True
+        )
+        var layer_area_requests = _draw_annotation_areas(target, plots[j], layer_result, plots[j]._theme)
+        var layer_line_requests = _draw_annotation_lines(target, plots[j], layer_result, plots[j]._theme)
+        for req in layer_area_requests:
+            text_requests.append(req.copy())
+        for req in layer_line_requests:
+            text_requests.append(req.copy())
 
     return _RenderResult(text_requests^, frame.px0, frame.py0, frame.px1, frame.py1)
 
