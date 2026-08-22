@@ -507,6 +507,22 @@ struct Plot(Movable):
     var _annotation_area_y0: List[Float64]
     var _annotation_area_y1: List[Float64]
     var _annotation_area_labels: List[String]
+    # A vertical reference line per (value, label) pair, set via
+    # .annotate_vline() -- see that method's own docstring. Same
+    # parallel-lists shape as the annotation-line fields above; a
+    # separate field, not a shared one with .annotate_line()'s own
+    # (which is horizontal, an x-independent y value) -- the two aren't
+    # interchangeable data, so mixing them into one list would need a
+    # separate "which axis" flag per entry instead of the type system
+    # already keeping them apart.
+    var _annotation_vline_values: List[Float64]
+    var _annotation_vline_labels: List[String]
+    # A single labeled point per (x, y, label) triple, set via
+    # .annotate_point() -- see that method's own docstring. Same
+    # parallel-lists shape again, for the same additive reason.
+    var _annotation_point_x: List[Float64]
+    var _annotation_point_y: List[Float64]
+    var _annotation_point_labels: List[String]
     # Set via .secondary_axis() -- render_layers()/render_layers_svg()
     # only (see that method's own docstring): this layer's own y
     # values scale against a second, independent y-domain drawn on the
@@ -602,6 +618,11 @@ struct Plot(Movable):
         self._annotation_area_y0 = List[Float64]()
         self._annotation_area_y1 = List[Float64]()
         self._annotation_area_labels = List[String]()
+        self._annotation_vline_values = List[Float64]()
+        self._annotation_vline_labels = List[String]()
+        self._annotation_point_x = List[Float64]()
+        self._annotation_point_y = List[Float64]()
+        self._annotation_point_labels = List[String]()
         self._secondary_axis = False
         self._mark = Mark.POINT
         self._theme = Theme.default()
@@ -2021,6 +2042,66 @@ struct Plot(Movable):
         self._annotation_area_labels.append(label)
         return self^
 
+    def annotate_vline(var self, value: Float64, label: String = "") -> Self:
+        """Add a vertical reference line at `value` on the x-axis --
+        `annotate_line()`'s own mirror image, for the other axis. Same
+        fixed-value-only v1 scope, same additive/repeatable behavior,
+        same solid `Theme.annotation_color` styling, same silent skip
+        on an out-of-(padded)-domain value (see `annotate_line()`'s own
+        docstring for the full reasoning behind each of those, which
+        this repeats exactly, just transposed to the other axis).
+
+        Narrower mark support than `annotate_line()`/`annotate_area()`,
+        though: a categorical x-axis (`Mark.BAR`/`LOLLIPOP`/`WATERFALL`/
+        `BOX`/`CANDLESTICK`/`BULLET`/`GROUPED_BAR`/`STACKED_BAR`/
+        `STREAMGRAPH`) has no numeric x *value* a vertical line could
+        mean anything against -- only `Mark.POINT`/`LINE`/`AREA`/
+        `EFFECT_SCATTER`, the marks with a genuine continuous x-axis,
+        support this (see `_RenderResult`'s own docstring for exactly
+        why the two annotation families diverge here). Raises the same
+        "no axis to place this against" error `annotate_line()` does if
+        called on an unsupported mark.
+
+        Only wired into `render()`/`render_svg()` so far, the same
+        `render_facets()`/`render_layers()` scope cut every annotation
+        method here currently has.
+        """
+        self._annotation_vline_values.append(value)
+        self._annotation_vline_labels.append(label)
+        return self^
+
+    def annotate_point(var self, x: Float64, y: Float64, label: String = "") -> Self:
+        """Add a single labeled point at `(x, y)` -- ECharts' own
+        `markPoint` (a fixed, explicit coordinate only; not its other
+        "max"/"min"/"average" auto-computed modes, the same deliberate
+        v1 scope cut `annotate_line()`'s own docstring already explains
+        for `markLine`). Draws a small filled marker at the data
+        coordinate, in `Theme.annotation_color`, with `label` (when
+        non-empty) just above it. Additive/repeatable -- each call adds
+        one more point.
+
+        Needs a genuine coordinate on *both* axes, so it's the narrowest
+        of the four annotation methods here: only `Mark.POINT`/`LINE`/
+        `AREA`/`EFFECT_SCATTER` support it, the same set `annotate_
+        vline()` does and for the identical reason (see that method's
+        own docstring, and `_RenderResult`'s, for why a categorical
+        x-axis rules the other nine marks out). Raises the same clear
+        error on an unsupported mark.
+
+        A point outside the mark's own (padded) domain on *either* axis
+        draws nothing at all, the same silent-skip-not-clamp rule
+        `annotate_line()`'s own docstring explains and the real bug that
+        discipline exists to avoid.
+
+        Only wired into `render()`/`render_svg()` so far -- not `render_
+        facets()`/`render_layers()`, the same scope cut every annotation
+        method here currently has.
+        """
+        self._annotation_point_x.append(x)
+        self._annotation_point_y.append(y)
+        self._annotation_point_labels.append(label)
+        return self^
+
     def secondary_axis(var self) -> Self:
         """Draw this layer's own y values against a second, independent
         y-domain on the plot's right edge, instead of `render_layers()`'s
@@ -2610,7 +2691,19 @@ struct _RenderResult(Movable):
     compiling, and thus rendering, completely unchanged -- only the
     handful of `_render_*` functions `annotate_line()` actually
     supports (see that method's own docstring for which, and why not
-    every mark type yet) pass a real one."""
+    every mark type yet) pass a real one.
+
+    `x_scale`/`has_x_scale` are the identical mechanism, mirrored for
+    the x-axis -- `Plot.annotate_vline()`'s and `Plot.annotate_point()`'s
+    own consumer (see `_draw_annotation_vlines`'/`_draw_annotation_
+    points`'s own docstrings). Set only by `_ContinuousFrame.result()`,
+    never `_CategoricalFrame.result()`: a categorical x-axis has no
+    genuine numeric domain a vertical line or a point's own x coordinate
+    could mean anything against (see `_CategoricalFrame`'s own
+    docstring), so `annotate_vline()`/`annotate_point()` support a
+    narrower mark list than `annotate_line()`/`annotate_area()` do --
+    `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER` only, not the nine
+    marks sharing `_CategoricalFrame` too."""
 
     var text_requests: List[_TextRequest]
     var px0: Int
@@ -2619,6 +2712,8 @@ struct _RenderResult(Movable):
     var py1: Int
     var y_scale: LinearScale
     var has_y_scale: Bool
+    var x_scale: LinearScale
+    var has_x_scale: Bool
 
     def __init__(
         out self,
@@ -2629,6 +2724,8 @@ struct _RenderResult(Movable):
         py1: Int,
         y_scale: LinearScale = LinearScale(0.0, 0.0, 0.0, 0.0),
         has_y_scale: Bool = False,
+        x_scale: LinearScale = LinearScale(0.0, 0.0, 0.0, 0.0),
+        has_x_scale: Bool = False,
     ):
         self.text_requests = text_requests^
         self.px0 = px0
@@ -2637,6 +2734,8 @@ struct _RenderResult(Movable):
         self.py1 = py1
         self.y_scale = y_scale
         self.has_y_scale = has_y_scale
+        self.x_scale = x_scale
+        self.has_x_scale = has_x_scale
 
 
 def _empty_result(ox0: Int, oy0: Int, ox1: Int, oy1: Int) -> _RenderResult:
@@ -2962,6 +3061,136 @@ def _draw_annotation_lines[
     return text_requests^
 
 
+def _draw_annotation_vlines[
+    T: DrawTarget
+](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises -> List[_TextRequest]:
+    """`_draw_annotation_lines`'s own mirror image for `Plot.annotate_
+    vline()` -- a vertical line at a given x `value` instead of a
+    horizontal one at a y `value`. Same mechanics throughout, just
+    transposed to the other axis: uses `result.x_scale`/`has_x_scale`
+    instead of `y_scale`/`has_y_scale` (raises the identical kind of
+    error if a vline was requested on a mark with no continuous x-axis
+    -- see `Plot.annotate_vline()`'s own docstring for exactly which
+    marks that is), spans the *inner* plot rect's own full height
+    (`result.py0` to `result.py1`) instead of its full width, and
+    silently skips (never clamps) a `value` outside the mark's own
+    (padded) x-domain the same way.
+
+    The one real difference is label placement, since the line itself
+    is now vertical: right-aligned-just-above-the-line (`annotate_
+    line()`'s own choice, sized to avoid the line's own right end)
+    becomes left-aligned-just-right-of-the-line here (`px + label_gap,
+    py0 + font_size`, sized to avoid the line's own top end instead) --
+    the same "hug the line, stay inside the plot rect" idea, just
+    rotated 90 degrees with it.
+    """
+    var text_requests = List[_TextRequest]()
+    if len(plot._annotation_vline_values) == 0:
+        return text_requests^
+    if not result.has_x_scale:
+        raise Error(
+            "Plot.annotate_vline(): this mark has no continuous x-axis to place a reference line"
+            " against. Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
+        )
+
+    var sc = _Scaled(theme)
+    var px_left = min(result.px0, result.px1)
+    var px_right = max(result.px0, result.px1)
+    var py_top = min(result.py0, result.py1)
+    var py_bottom = max(result.py0, result.py1)
+    for i in range(len(plot._annotation_vline_values)):
+        var px = _axis_pixel(result.x_scale, plot._annotation_vline_values[i])
+        if px < px_left or px > px_right:
+            continue
+        target.draw_line_aa(px, py_top, px, py_bottom, theme.annotation_color, width=sc.scale)
+        var label = plot._annotation_vline_labels[i]
+        if label.byte_length() > 0:
+            text_requests.append(
+                _TextRequest(
+                    px + sc.label_gap,
+                    py_top + Int(sc.font_size),
+                    label,
+                    theme.annotation_color,
+                    sc.font_size,
+                    TextAlign.LEFT,
+                    theme.font_family,
+                )
+            )
+    return text_requests^
+
+
+def _draw_annotation_points[
+    T: DrawTarget
+](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises -> List[_TextRequest]:
+    """Draws every `Plot.annotate_point()` marker directly (a plain
+    `fill_circle_aa` needs no font/glyph machinery, the same reasoning
+    `_draw_annotation_lines`'s own docstring gives), and returns each
+    one's own optional label as a `_TextRequest` for the caller to draw
+    afterward.
+
+    Called by `render()`/`render_svg()` last among the four annotation
+    passes (areas, then vlines/lines, then points) -- a point is meant
+    to call out one specific spot, so it draws on top of every other
+    annotation layer, not underneath any of them. Needs *both*
+    `result.x_scale` and `result.y_scale` (raises if either is missing
+    -- see `Plot.annotate_point()`'s own docstring for exactly which
+    marks supply both), unlike every other annotation method here,
+    which only ever needed one.
+
+    A point outside the mark's own (padded) domain on *either* axis is
+    silently skipped, the same "an out-of-range annotation is a
+    legitimate reading, not a caller mistake" rule `annotate_line()`'s
+    own docstring explains -- checked against the *inner* plot rect
+    (`result.px0`..`py1`) exactly the way every other annotation method
+    here already does.
+
+    The marker itself is a plain filled circle, `sc.point_radius` (the
+    same radius a standalone `Mark.POINT` plot's own points use), in
+    `Theme.annotation_color` -- not a distinct "pin" glyph the way
+    ECharts' own `markPoint` defaults to (canvas_mojo has no such shape
+    primitive to draw one with; a circle is what `_draw_point_layer`
+    already has, and reusing it keeps this consistent with everything
+    else `Theme.annotation_color` already marks). Its own label, when
+    non-empty, centers just above the marker (`px`, `py - radius -
+    label_gap`).
+    """
+    var text_requests = List[_TextRequest]()
+    if len(plot._annotation_point_x) == 0:
+        return text_requests^
+    if not result.has_x_scale or not result.has_y_scale:
+        raise Error(
+            "Plot.annotate_point(): this mark has no continuous x/y axes to place a point"
+            " against. Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
+        )
+
+    var sc = _Scaled(theme)
+    var px_left = min(result.px0, result.px1)
+    var px_right = max(result.px0, result.px1)
+    var py_top = min(result.py0, result.py1)
+    var py_bottom = max(result.py0, result.py1)
+    var radius = _round_to_int(sc.point_radius)
+    for i in range(len(plot._annotation_point_x)):
+        var px = _axis_pixel(result.x_scale, plot._annotation_point_x[i])
+        var py = _axis_pixel(result.y_scale, plot._annotation_point_y[i])
+        if px < px_left or px > px_right or py < py_top or py > py_bottom:
+            continue
+        target.fill_circle_aa(px, py, radius, theme.annotation_color)
+        var label = plot._annotation_point_labels[i]
+        if label.byte_length() > 0:
+            text_requests.append(
+                _TextRequest(
+                    px,
+                    py - radius - sc.label_gap,
+                    label,
+                    theme.annotation_color,
+                    sc.font_size,
+                    TextAlign.CENTER,
+                    theme.font_family,
+                )
+            )
+    return text_requests^
+
+
 def render(
     mut canvas: Canvas, plot: Plot, ox0: Int = 0, oy0: Int = 0, ox1: Int = -1, oy1: Int = -1
 ) raises:
@@ -3041,7 +3270,9 @@ def render(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
     var area_annotation_requests = _draw_annotation_areas(canvas, plot, result, plot._theme)
+    var vline_annotation_requests = _draw_annotation_vlines(canvas, plot, result, plot._theme)
     var annotation_requests = _draw_annotation_lines(canvas, plot, result, plot._theme)
+    var point_annotation_requests = _draw_annotation_points(canvas, plot, result, plot._theme)
     for req in label_requests:
         draw_text(
             canvas,
@@ -3068,7 +3299,33 @@ def render(
             weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
             rotation=req.rotation,
         )
+    for req in vline_annotation_requests:
+        draw_text(
+            canvas,
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            align=req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
     for req in annotation_requests:
+        draw_text(
+            canvas,
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            align=req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
+    for req in point_annotation_requests:
         draw_text(
             canvas,
             req.x,
@@ -3117,7 +3374,9 @@ def render_svg(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
     var area_annotation_requests = _draw_annotation_areas(svg, plot, result, plot._theme)
+    var vline_annotation_requests = _draw_annotation_vlines(svg, plot, result, plot._theme)
     var annotation_requests = _draw_annotation_lines(svg, plot, result, plot._theme)
+    var point_annotation_requests = _draw_annotation_points(svg, plot, result, plot._theme)
     for req in label_requests:
         svg.draw_text(
             req.x,
@@ -3142,7 +3401,31 @@ def render_svg(
             weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
             rotation=req.rotation,
         )
+    for req in vline_annotation_requests:
+        svg.draw_text(
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
     for req in annotation_requests:
+        svg.draw_text(
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
+    for req in point_annotation_requests:
         svg.draw_text(
             req.x,
             req.y,
@@ -3503,9 +3786,21 @@ struct _ContinuousFrame(Movable):
         exactly (including passing `self.y_scale` through for `Plot.
         annotate_line()`, covering `Mark.POINT`/`LINE`/`AREA`/`EFFECT_
         SCATTER` -- and, since `_render_layers_generic` shares this
-        exact frame, every layered plot too)."""
+        exact frame, every layered plot too). Also passes `self.x_scale`
+        through, unlike `_CategoricalFrame.result()` -- this is the one
+        frame with a genuine continuous x-axis, so it's the only one
+        `Plot.annotate_vline()`/`annotate_point()` can support (see
+        `_RenderResult`'s own docstring)."""
         return _RenderResult(
-            self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1, self.y_scale, True
+            self.text_requests.copy(),
+            self.px0,
+            self.py0,
+            self.px1,
+            self.py1,
+            self.y_scale,
+            True,
+            self.x_scale,
+            True,
         )
 
 
