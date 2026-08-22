@@ -100,6 +100,7 @@ def _titles() -> Dict[String, String]:
     d["svg_accessibility"] = "SVG Accessibility"
     d["annotate_area"] = "Reference Band"
     d["dual_axis"] = "Dual Y-Axis"
+    d["annotate_vline_point"] = "Vertical Line & Point"
     return d^
 
 
@@ -121,10 +122,11 @@ def _categories() -> List[Category]:
     # mixed in among them; those are real dataviz_mojo capabilities,
     # just not chart types of their own, so they live in the wiki/API
     # reference instead of the Examples gallery. annotate_line,
-    # svg_accessibility, annotate_area, and dual_axis are the four
-    # exceptions: unlike facets/layers/titles, none has a simpler
-    # existing example to piggyback on -- none of Plot.annotate_line(),
-    # Plot.annotate_area(), or Plot.secondary_axis() is exposed on any
+    # svg_accessibility, annotate_area, dual_axis, and annotate_vline_
+    # point are the five exceptions: unlike facets/layers/titles, none
+    # has a simpler existing example to piggyback on -- none of Plot.
+    # annotate_line(), Plot.annotate_area(), Plot.annotate_vline(),
+    # Plot.annotate_point(), or Plot.secondary_axis() is exposed on any
     # quickplot function, and accessible_svg_string()/write_accessible_
     # svg() are a standalone SVG-writing utility with no Plot method of
     # their own at all (see each one's own docstring) -- so there's no
@@ -132,16 +134,16 @@ def _categories() -> List[Category]:
     # is filed under whichever category its own example's mark belongs
     # to instead -- "Categorical business charts" for annotate_line
     # (Mark.BAR), "Basic marks" for svg_accessibility (its own bar-chart
-    # data is incidental -- the feature works with any mark) and
-    # annotate_area (Mark.LINE), "Multivariate" for dual_axis (a layered
-    # Mark.AREA + Mark.LINE combo) -- rather than getting a category of
-    # its own.
+    # data is incidental -- the feature works with any mark), annotate_
+    # area, and annotate_vline_point (both Mark.LINE), "Multivariate"
+    # for dual_axis (a layered Mark.AREA + Mark.LINE combo) -- rather
+    # than getting a category of its own.
     var cats = List[Category]()
     cats.append(Category(
         "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
         [
             "scatter", "line", "bar", "area", "pie", "donut", "single_axis", "effect_scatter",
-            "svg_accessibility", "annotate_area",
+            "svg_accessibility", "annotate_area", "annotate_vline_point",
         ],
     ))
     cats.append(Category(
