@@ -95,9 +95,7 @@ def _render_corrplot[
                 )
 
     var sc = _Scaled(theme)
-    var color_scale = ColorScale(-1.0, 1.0)
-    color_scale.add_stop(0.0, theme.color_scale_low)
-    color_scale.add_stop(1.0, theme.color_scale_high)
+    var color_scale = ColorScale.from_theme(theme, -1.0, 1.0)
 
     var legend_reserve = 0
     if theme.show_legend:

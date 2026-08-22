@@ -34,10 +34,14 @@ def test_render_heatmap_matches_hand_derived_cells() raises:
     # color_scale_low, Color(60,110,200); value=4.0 is the max ->
     # exactly color_scale_high, Color(220,90,40) -- both read directly
     # off Theme, not re-derived. The two in-between cells' own colors
-    # (t=1/3 and t=2/3 through the gradient) aren't hand-derived here
-    # -- ColorScale's own interpolation is already covered by test_
-    # color_scale.mojo -- just confirmed once against a real render()
-    # run before trusting them: Color(113,103,147) and Color(167,97,93).
+    # (t=1/3 and t=2/3 through the now-three-stop gradient -- low at
+    # 0.0, color_scale_mid at 0.5, high at 1.0, see Theme.color_scale_
+    # mid's own docstring for why a middle stop exists at all) aren't
+    # hand-derived here -- ColorScale's own interpolation is already
+    # covered by test_color_scale.mojo -- just confirmed once against a
+    # real render() run before trusting them: Color(177,193,223) (t=1/3,
+    # bracketed between low and mid) and Color(230,187,170) (t=2/3,
+    # bracketed between mid and high).
     var x: List[String] = ["Mon", "Mon", "Tue", "Tue"]
     var y: List[String] = ["AM", "PM", "AM", "PM"]
     var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
@@ -45,8 +49,8 @@ def test_render_heatmap_matches_hand_derived_cells() raises:
     var c = heatmap(x, y, v, theme=t, width=400, height=300)
 
     _assert_color(c, 100, 60, Color(60, 110, 200), "(Mon, AM) = 1.0, the color domain's own min")
-    _assert_color(c, 100, 180, Color(113, 103, 147), "(Mon, PM) = 2.0")
-    _assert_color(c, 300, 60, Color(167, 97, 93), "(Tue, AM) = 3.0")
+    _assert_color(c, 100, 180, Color(177, 193, 223), "(Mon, PM) = 2.0")
+    _assert_color(c, 300, 60, Color(230, 187, 170), "(Tue, AM) = 3.0")
     _assert_color(c, 300, 180, Color(220, 90, 40), "(Tue, PM) = 4.0, the color domain's own max")
     _assert_color(c, 10, 10, BG, "outside the plot area entirely -- background")
 
@@ -62,8 +66,8 @@ def test_render_heatmap_svg_matches_confirmed_rects() raises:
     render_svg(svg, plot)
     var s = svg.to_string()
     assert_true('<rect x="60" y="20" width="160" height="115" fill="#3c6ec8"/>' in s, "(Mon, AM)")
-    assert_true('<rect x="60" y="135" width="160" height="115" fill="#716793"/>' in s, "(Mon, PM)")
-    assert_true('<rect x="220" y="20" width="160" height="115" fill="#a7615d"/>' in s, "(Tue, AM)")
+    assert_true('<rect x="60" y="135" width="160" height="115" fill="#b1c1df"/>' in s, "(Mon, PM)")
+    assert_true('<rect x="220" y="20" width="160" height="115" fill="#e6bbaa"/>' in s, "(Tue, AM)")
     assert_true('<rect x="220" y="135" width="160" height="115" fill="#dc5a28"/>' in s, "(Tue, PM)")
 
 

@@ -28,7 +28,9 @@ def test_render_corrplot_matches_hand_derived_bubbles() raises:
     # 24, color exactly Theme's own color_scale_high (the domain's own
     # max). Cell (A,B) [row 0, col 1, value -0.5]: center (300, 78),
     # radius round(24.15*0.5)=12, color at t=0.25 through the [-1,1]
-    # gradient -- (100,105,160), confirmed via a real render_svg() run
+    # gradient -- (148,173,218), bracketed between color_scale_low and
+    # color_scale_mid (Theme's own now-three-stop gradient, see that
+    # field's own docstring), confirmed via a real render_svg() run
     # first (see this file's own SVG test), not re-derived from
     # ColorScale's own interpolation math again (already covered by
     # test_color_scale.mojo).
@@ -38,8 +40,8 @@ def test_render_corrplot_matches_hand_derived_bubbles() raises:
     var c = corrplot(vars, m, labels=False, theme=t, width=400, height=300)
 
     _assert_color(c, 140, 78, t.color_scale_high, "(A, A) = 1.0, the color domain's own max")
-    _assert_color(c, 300, 78, Color(100, 105, 160), "(A, B) = -0.5, t=0.25 through the gradient")
-    _assert_color(c, 140, 193, Color(100, 105, 160), "(B, A) = -0.5, symmetric with (A, B)")
+    _assert_color(c, 300, 78, Color(148, 173, 218), "(A, B) = -0.5, t=0.25 through the gradient")
+    _assert_color(c, 140, 193, Color(148, 173, 218), "(B, A) = -0.5, symmetric with (A, B)")
     _assert_color(c, 300, 193, t.color_scale_high, "(B, B) = 1.0, the color domain's own max")
     _assert_color(c, 200, 78, BG, "between the two bubbles on row A -- no bubble reaches that far")
 
@@ -54,8 +56,8 @@ def test_render_corrplot_svg_matches_confirmed_circles() raises:
     render_svg(svg, plot)
     var s = svg.to_string()
     assert_true('<circle cx="140" cy="78" r="24" fill="#dc5a28"/>' in s, "(A, A)")
-    assert_true('<circle cx="300" cy="78" r="12" fill="#6469a0"/>' in s, "(A, B)")
-    assert_true('<circle cx="140" cy="193" r="12" fill="#6469a0"/>' in s, "(B, A)")
+    assert_true('<circle cx="300" cy="78" r="12" fill="#94adda"/>' in s, "(A, B)")
+    assert_true('<circle cx="140" cy="193" r="12" fill="#94adda"/>' in s, "(B, A)")
     assert_true('<circle cx="300" cy="193" r="24" fill="#dc5a28"/>' in s, "(B, B)")
 
 
@@ -71,7 +73,7 @@ def test_render_corrplot_lower_layout_without_diag_keeps_only_below_diagonal() r
 
     _assert_color(c, 140, 78, BG, "(A, A) -- diagonal, dropped by diag=False")
     _assert_color(c, 300, 78, BG, "(A, B) -- upper triangle, dropped by layout=\"lower\"")
-    _assert_color(c, 140, 193, Color(100, 105, 160), "(B, A) -- the one surviving cell")
+    _assert_color(c, 140, 193, Color(148, 173, 218), "(B, A) -- the one surviving cell")
     _assert_color(c, 300, 193, BG, "(B, B) -- diagonal, dropped by diag=False")
 
 

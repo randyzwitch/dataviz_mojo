@@ -2477,9 +2477,10 @@ def _draw_continuous_color_legend[T: DrawTarget](
 
     The `LinearGradient` is built directly from `color_scale`'s own
     `stops` (each already an `(offset, color)` pair over `color_scale`'s
-    own `[domain_min, domain_max]`, `add_stop(0.0, ...)`/`add_stop(1.0,
-    ...)` in every caller so far -- see `_PointChannels`'/`_render_
-    heatmap`'s own construction), not re-derived from `color_at()`
+    own `[domain_min, domain_max]`, three of them -- `ColorScale.
+    from_theme`'s own low/mid/high at `0.0`/`0.5`/`1.0` -- in every
+    caller so far, see that method's own docstring for why a middle
+    stop matters here specifically), not re-derived from `color_at()`
     sampled at many points the way the old strip approximation had to:
     `color_scale`'s own offsets run low (0.0) to high (1.0), but the
     bar's own gradient axis runs top (`y`) to bottom (`y + bar_height`)
@@ -3596,9 +3597,7 @@ struct _PointChannels(Movable):
             self.cat = _CategoricalIndex(List[String](), List[Int]())
         self.palette = default_categorical_palette() if self.has_color_categories else List[Color]()
         var color_mm = _min_max(plot.color_data) if self.has_color else MinMax(0.0, 1.0)
-        self.color_scale = ColorScale(color_mm.min, color_mm.max)
-        self.color_scale.add_stop(0.0, plot._theme.color_scale_low)
-        self.color_scale.add_stop(1.0, plot._theme.color_scale_high)
+        self.color_scale = ColorScale.from_theme(plot._theme, color_mm.min, color_mm.max)
         self.size_mm = _min_max(plot.size_data) if self.has_size else MinMax(0.0, 1.0)
         self.size_scale = LinearScale(
             self.size_mm.min, self.size_mm.max, sc.size_range_min, sc.size_range_max

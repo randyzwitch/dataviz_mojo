@@ -12,6 +12,7 @@ color instead of a pixel coordinate.
 
 from canvas_mojo.color import Color
 from canvas_mojo.gradient import _GradientStop, _color_at_t
+from dataviz_mojo.theme import Theme
 
 
 struct ColorScale(Movable):
@@ -61,6 +62,33 @@ struct ColorScale(Movable):
         if span != 0.0:
             t = (value - self.domain_min) / span
         return _color_at_t(self.stops, self._lowest, self._highest, t)
+
+    @staticmethod
+    def from_theme(theme: Theme, domain_min: Float64, domain_max: Float64) -> Self:
+        """The one, shared way every continuous color-encoded mark in
+        this package (`Plot.encode(color=...)`'s own point channel,
+        `Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`) builds its own
+        `ColorScale` from `theme`'s three color-scale stops -- `low` at
+        offset `0.0`, `mid` at `0.5`, `high` at `1.0` -- rather than
+        each of those four call sites adding two stops by hand (which
+        is exactly what they used to do, independently, before this
+        existed: `add_stop(0.0, theme.color_scale_low)`/`add_stop(1.0,
+        theme.color_scale_high)`, no middle stop at all -- see `Theme.
+        color_scale_mid`'s own docstring for the real, rendering-caught
+        readability bug that was, not just a style cleanup).
+
+        A plain `@staticmethod`, not a change to `__init__` itself --
+        `ColorScale(domain_min, domain_max)` alone (no stops) stays a
+        real, valid, if empty, starting point (`tests/test_color_scale.
+        mojo`'s own hand-built black/white and blue/red scales, for
+        instance, have nothing to do with any `Theme` at all and
+        shouldn't need one just to construct a `ColorScale`).
+        """
+        var scale = Self(domain_min, domain_max)
+        scale.add_stop(0.0, theme.color_scale_low)
+        scale.add_stop(0.5, theme.color_scale_mid)
+        scale.add_stop(1.0, theme.color_scale_high)
+        return scale^
 
 
 def default_categorical_palette() -> List[Color]:
