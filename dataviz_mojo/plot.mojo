@@ -2130,10 +2130,13 @@ struct Plot(Movable):
         twin-axis charts all follow); it still gets its own axis line,
         ticks, and tick labels, mirrored onto the plot's right edge.
 
-        No secondary-axis caption yet -- `Plot.labels()`'s own `y_title`
-        still only ever describes the primary (left) axis; a second
-        caption would need a new field of its own, a real, deliberate
-        v1 scope cut, not an oversight.
+        A secondary-axis layer's own `Plot.labels()`'s `y_title` captions
+        this axis specifically -- set it on *this* layer (the one
+        calling `.secondary_axis()`), not `plots[0]`: `render_layers()`
+        reads it from whichever layer actually has `.secondary_axis()`
+        set, not from shared chrome (see `_secondary_axis_y_title`'s own
+        docstring for the mechanics). Leave it unset for no caption at
+        all, the same as the primary axis's own `y_title`.
         """
         self._secondary_axis = True
         return self^
@@ -4643,6 +4646,25 @@ def _render_facets_generic[
     return text_requests^
 
 
+def _secondary_axis_y_title(plots: List[Plot]) -> String:
+    """`render_layers()`'s own secondary (right) y-axis caption -- the
+    first layer's own `Plot.labels()`'s `y_title` where that layer also
+    called `.secondary_axis()`, read per-layer the same way `mark_color`/
+    `line_smoothing`/`annotate_line()` already are there, not shared
+    chrome sourced from `plots[0]` the way `title`/`x_title`/the *primary*
+    `y_title` are. No new field or builder method needed for this --
+    `Plot.secondary_axis()`'s own docstring flagged a caption as
+    deferred, real work; reusing the `y_title` every layer already has,
+    read from whichever layer actually owns the secondary axis, turned
+    out to be enough. Empty (the common case, and every pre-existing
+    render_layers() call's own case) when no secondary-axis layer set
+    one, or there's no secondary-axis layer at all."""
+    for i in range(len(plots)):
+        if plots[i]._secondary_axis and plots[i]._y_title.byte_length() > 0:
+            return plots[i]._y_title
+    return ""
+
+
 def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int = 0, ox1: Int = -1, oy1: Int = -1) raises:
     """Render every `Plot` in `plots` onto *one shared* coordinate
     system on `canvas` -- one combined x/y domain (computed across
@@ -4664,8 +4686,8 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     data combines into -- a revenue-bars-and-growth-rate-line combo
     chart, where the two series' own units are too different to share
     one axis without one going flat. See that method's own docstring
-    for the full mechanics (no gridlines of its own, no caption yet, at
-    least one layer must stay on the primary axis).
+    for the full mechanics (no gridlines of its own, at least one layer
+    must stay on the primary axis).
 
     A layer whose own mark is `Mark.POINT` can use `color`/`color_
     categories`/`size` encoding exactly like a standalone `Mark.POINT`
@@ -4720,6 +4742,12 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     docstring). The same `_apply_labels`/`_label_text_requests`
     two-phase split `render()`/`render_svg()` use.
 
+    The one exception: a secondary-axis layer's own `y_title` captions
+    the secondary axis itself, mirrored onto the plot's right edge (see
+    `_secondary_axis_y_title`'s own docstring for why this reads per-
+    layer rather than only from `plots[0]`) -- absent whenever no
+    secondary-axis layer sets one, which is every pre-existing call.
+
     `ox0`/`oy0`/`ox1`/`oy1` are the exact same sentinel-bounds
     convention `render()` itself uses (see that function's own
     docstring) -- default to the whole canvas.
@@ -4735,11 +4763,39 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
         _ = _render_layers_generic(canvas, plots, ox0, oy0, cx1, cy1)
         return
     canvas.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plots[0]._theme.background)
+    var sc = _Scaled(plots[0]._theme)
+    var y2_title = _secondary_axis_y_title(plots)
     var frame = _apply_labels(plots[0], ox0, oy0, cx1, cy1)
+    if y2_title.byte_length() > 0:
+        # Mirrors _apply_labels's own extra_left reservation for the
+        # primary y_title exactly, just on the right edge instead --
+        # see _secondary_axis_y_title's own docstring for why this
+        # isn't inside _apply_labels itself (that function only ever
+        # sees plots[0], never the full layer list a secondary-axis
+        # caption has to be found in).
+        frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
     var result = _render_layers_generic(canvas, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1)
     var label_requests = _label_text_requests(
         plots[0], ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
+    if y2_title.byte_length() > 0:
+        # The mirror image of _label_text_requests's own primary y_title
+        # block: rotated the opposite way (+pi/2 instead of -pi/2, the
+        # standard "read top-to-bottom" convention a right-side axis
+        # caption uses, vs. the left side's own "read bottom-to-top"),
+        # anchored to the outer right edge instead of the outer left one.
+        label_requests.append(
+            _TextRequest(
+                cx1 - Int(sc.axis_title_font_size * 0.8),
+                (result.py0 + result.py1) // 2,
+                y2_title,
+                plots[0]._theme.text_color,
+                sc.axis_title_font_size,
+                TextAlign.CENTER,
+                plots[0]._theme.font_family,
+                rotation=pi / 2.0,
+            )
+        )
     for req in label_requests:
         draw_text(
             canvas,
@@ -4782,11 +4838,28 @@ def render_layers_svg(mut svg: SvgCanvas, plots: List[Plot], ox0: Int = 0, oy0: 
         _ = _render_layers_generic(svg, plots, ox0, oy0, cx1, cy1)
         return
     svg.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plots[0]._theme.background)
+    var sc = _Scaled(plots[0]._theme)
+    var y2_title = _secondary_axis_y_title(plots)
     var frame = _apply_labels(plots[0], ox0, oy0, cx1, cy1)
+    if y2_title.byte_length() > 0:
+        frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
     var result = _render_layers_generic(svg, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1)
     var label_requests = _label_text_requests(
         plots[0], ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
+    if y2_title.byte_length() > 0:
+        label_requests.append(
+            _TextRequest(
+                cx1 - Int(sc.axis_title_font_size * 0.8),
+                (result.py0 + result.py1) // 2,
+                y2_title,
+                plots[0]._theme.text_color,
+                sc.axis_title_font_size,
+                TextAlign.CENTER,
+                plots[0]._theme.font_family,
+                rotation=pi / 2.0,
+            )
+        )
     for req in label_requests:
         svg.draw_text(
             req.x,
