@@ -10,6 +10,11 @@ growth rate (Mark.LINE, right/secondary axis via .secondary_axis()) --
 built by hand via render_layers() (not a one-call quickplot -- layering
 itself isn't exposed on one; see examples/annotate_line.mojo's own
 docstring for the same reasoning applied to a different Plot feature).
+Each axis captioned via that same layer's own .labels(y_title=...) --
+the secondary layer's own caption mirrors onto the plot's right edge
+(see Plot.secondary_axis()'s own docstring for why this reads from the
+layer itself, not a title shared from plots[0] the way the chart's own
+title/x_title are).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
 data -- see examples/donut.mojo's own docstring for why.
@@ -34,13 +39,14 @@ def main() raises:
 
     var revenue_layer = Plot().mark_area().encode(x=months, y=revenue).theme(
         Theme(mark_color=Color(70, 130, 180))
-    )
+    ).labels(title="Revenue & Growth", x_title="Month", y_title="Revenue ($M)")
     var growth_layer = (
         Plot()
         .mark_line()
         .encode(x=months, y=growth)
         .theme(Theme(mark_color=Color(220, 80, 60)))
         .secondary_axis()
+        .labels(y_title="Growth (%)")
     )
     var plots = List[Plot]()
     plots.append(revenue_layer^)
@@ -53,13 +59,14 @@ def main() raises:
 
     var svg_revenue_layer = Plot().mark_area().encode(x=months, y=revenue).theme(
         Theme(mark_color=Color(70, 130, 180))
-    )
+    ).labels(title="Revenue & Growth", x_title="Month", y_title="Revenue ($M)")
     var svg_growth_layer = (
         Plot()
         .mark_line()
         .encode(x=months, y=growth)
         .theme(Theme(mark_color=Color(220, 80, 60)))
         .secondary_axis()
+        .labels(y_title="Growth (%)")
     )
     var svg_plots = List[Plot]()
     svg_plots.append(svg_revenue_layer^)
