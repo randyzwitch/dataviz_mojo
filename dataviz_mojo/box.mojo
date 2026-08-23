@@ -124,7 +124,7 @@ def _render_box[
     to include zero the way `Mark.BAR`/`LOLLIPOP`/`WATERFALL`'s domains
     are; a box plot shows a distribution's own spread, which has no
     inherent reason to include zero) over each category's own whiskers
-    and outliers (`_box_low`/`_box_high`/`_box_outlier_value` --
+    and outliers (`_box`'s own `low`/`high`/`outlier_value` --
     exactly the values this function goes on to draw, so the domain is
     guaranteed to fit every one of them with no separate pass over the
     original raw data `encode_boxplot()` already reduced away).
@@ -138,13 +138,13 @@ def _render_box[
     whiskers, not interleaved per category -- so one category's own
     outlier point is never occluded by a neighboring category's box.
     """
-    if len(plot.x_categories) != len(plot._box_q1):
+    if len(plot.x_categories) != len(plot._box.q1):
         raise Error(
             "Plot.encode_boxplot(): categories and values must have the"
             " same length (got "
             + String(len(plot.x_categories))
             + " and "
-            + String(len(plot._box_q1))
+            + String(len(plot._box.q1))
             + ")"
         )
 
@@ -153,11 +153,11 @@ def _render_box[
         return _empty_result(ox0, oy0, ox1, oy1)
 
     var domain_data = List[Float64]()
-    for v in plot._box_low:
+    for v in plot._box.low:
         domain_data.append(v)
-    for v in plot._box_high:
+    for v in plot._box.high:
         domain_data.append(v)
-    for v in plot._box_outlier_value:
+    for v in plot._box.outlier_value:
         domain_data.append(v)
     var y_scale = _data_extent(domain_data)
 
@@ -169,11 +169,11 @@ def _render_box[
         var half_w = band_w / 2.0
         var cap_half_w = band_w / 4.0
 
-        var q1_py = frame.y_scale.to_pixel(plot._box_q1[i])
-        var q3_py = frame.y_scale.to_pixel(plot._box_q3[i])
-        var median_py = frame.y_scale.to_pixel(plot._box_median[i])
-        var low_py = frame.y_scale.to_pixel(plot._box_low[i])
-        var high_py = frame.y_scale.to_pixel(plot._box_high[i])
+        var q1_py = frame.y_scale.to_pixel(plot._box.q1[i])
+        var q3_py = frame.y_scale.to_pixel(plot._box.q3[i])
+        var median_py = frame.y_scale.to_pixel(plot._box.median[i])
+        var low_py = frame.y_scale.to_pixel(plot._box.low[i])
+        var high_py = frame.y_scale.to_pixel(plot._box.high[i])
 
         var center_i = _round_to_int(center)
         target.draw_line_aa(center_i, _round_to_int(high_py), center_i, _round_to_int(q3_py), theme.axis_color, width=theme.scale)
@@ -205,10 +205,10 @@ def _render_box[
             _round_to_int(median_py), theme.axis_color, width=theme.scale,
         )
 
-    for j in range(len(plot._box_outlier_value)):
-        var cat_i = plot._box_outlier_cat[j]
+    for j in range(len(plot._box.outlier_value)):
+        var cat_i = plot._box.outlier_cat[j]
         var center_px = _round_to_int(frame.x_scale.center(cat_i))
-        var value_py = _axis_pixel(frame.y_scale, plot._box_outlier_value[j])
+        var value_py = _axis_pixel(frame.y_scale, plot._box.outlier_value[j])
         target.fill_circle_aa(center_px, value_py, _round_to_int(frame.sc.point_radius), theme.mark_color)
 
     return frame.result()

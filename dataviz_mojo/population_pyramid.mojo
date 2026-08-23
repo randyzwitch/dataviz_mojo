@@ -75,15 +75,15 @@ def _render_population_pyramid[
     draws with its "Left"/"Right" fallback rather than being suppressed
     for lack of one).
     """
-    if len(plot.x_categories) != len(plot._pyramid_left) or len(plot._pyramid_right) != len(plot._pyramid_left):
+    if len(plot.x_categories) != len(plot._pyramid.left) or len(plot._pyramid.right) != len(plot._pyramid.left):
         raise Error(
             "Plot.encode_population_pyramid(): categories, left_values, and"
             " right_values must all have the same length (got "
             + String(len(plot.x_categories))
             + " categories, "
-            + String(len(plot._pyramid_left))
+            + String(len(plot._pyramid.left))
             + " left_values, "
-            + String(len(plot._pyramid_right))
+            + String(len(plot._pyramid.right))
             + " right_values)"
         )
 
@@ -94,11 +94,11 @@ def _render_population_pyramid[
     var sc = _Scaled(theme)
     var legend_names = List[String]()
     if theme.show_legend:
-        legend_names.append(plot._pyramid_left_name if plot._pyramid_left_name.byte_length() > 0 else "Left")
-        legend_names.append(plot._pyramid_right_name if plot._pyramid_right_name.byte_length() > 0 else "Right")
+        legend_names.append(plot._pyramid.left_name if plot._pyramid.left_name.byte_length() > 0 else "Left")
+        legend_names.append(plot._pyramid.right_name if plot._pyramid.right_name.byte_length() > 0 else "Right")
     var legend_reserve = _dynamic_legend_width(legend_names, sc.legend_swatch_size, sc) if theme.show_legend else 0
 
-    var x_scale = _symmetric_zero_baseline_x_extent(plot._pyramid_left, plot._pyramid_right)
+    var x_scale = _symmetric_zero_baseline_x_extent(plot._pyramid.left, plot._pyramid.right)
     var frame = _draw_horizontal_categorical_axis_frame(
         target, plot.x_categories, x_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
     )
@@ -109,13 +109,13 @@ def _render_population_pyramid[
     for i in range(len(plot.x_categories)):
         var row_y = _round_to_int(frame.y_scale.band_start(i))
 
-        var left_edge_px = _axis_pixel(frame.x_scale, -max(plot._pyramid_left[i], -plot._pyramid_left[i]))
+        var left_edge_px = _axis_pixel(frame.x_scale, -max(plot._pyramid.left[i], -plot._pyramid.left[i]))
         var left_x = min(left_edge_px, center_px)
         var left_w = max(left_edge_px, center_px) - min(left_edge_px, center_px)
         if left_w > 0:
             target.fill_rect(left_x, row_y, left_w, row_height, palette[0])
 
-        var right_edge_px = _axis_pixel(frame.x_scale, max(plot._pyramid_right[i], -plot._pyramid_right[i]))
+        var right_edge_px = _axis_pixel(frame.x_scale, max(plot._pyramid.right[i], -plot._pyramid.right[i]))
         var right_x = min(center_px, right_edge_px)
         var right_w = max(center_px, right_edge_px) - min(center_px, right_edge_px)
         if right_w > 0:

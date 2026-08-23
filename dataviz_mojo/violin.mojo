@@ -119,16 +119,16 @@ def _render_violin[
     if len(plot.x_categories) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    if plot._kde_bandwidth_override < 0.0:
+    if plot._distribution.kde_bandwidth_override < 0.0:
         raise Error(
             "Plot.mark_violin(): bandwidth must be positive (got "
-            + String(plot._kde_bandwidth_override)
+            + String(plot._distribution.kde_bandwidth_override)
             + ")"
         )
 
     var all_values = List[Float64]()
     var max_n = 0
-    for series in plot._distribution_values:
+    for series in plot._distribution.values:
         if len(series) > max_n:
             max_n = len(series)
         for v in series:
@@ -140,12 +140,12 @@ def _render_violin[
     var half_width = frame.x_scale.bandwidth() * _VIOLIN_WIDTH_FRACTION
 
     for i in range(len(plot.x_categories)):
-        var values = plot._distribution_values[i].copy()
+        var values = plot._distribution.values[i].copy()
         var center_x = frame.x_scale.center(i)
         var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
-            plot._kde_scale_by_count and max_n > 0
+            plot._distribution.kde_scale_by_count and max_n > 0
         ) else 1.0
-        var bandwidth = plot._kde_bandwidth_override if plot._kde_bandwidth_override > 0.0 else _kde_bandwidth(
+        var bandwidth = plot._distribution.kde_bandwidth_override if plot._distribution.kde_bandwidth_override > 0.0 else _kde_bandwidth(
             values
         )
         var mm = _min_max(values)

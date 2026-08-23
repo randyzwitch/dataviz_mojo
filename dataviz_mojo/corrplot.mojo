@@ -64,31 +64,31 @@ def _render_corrplot[
     outside it means the caller handed this something that isn't
     actually a correlation matrix.
     """
-    if len(plot._corrplot_matrix) != len(plot._corrplot_variables):
+    if len(plot._corrplot.matrix) != len(plot._corrplot.variables):
         raise Error(
             "Plot.encode_corrplot(): matrix must have one row per variable"
             " (expected "
-            + String(len(plot._corrplot_variables))
+            + String(len(plot._corrplot.variables))
             + " rows, got "
-            + String(len(plot._corrplot_matrix))
+            + String(len(plot._corrplot.matrix))
             + ")"
         )
-    for row in plot._corrplot_matrix:
-        if len(row) != len(plot._corrplot_variables):
+    for row in plot._corrplot.matrix:
+        if len(row) != len(plot._corrplot.variables):
             raise Error(
                 "Plot.encode_corrplot(): matrix must be square, one value per"
                 " variable in every row (expected "
-                + String(len(plot._corrplot_variables))
+                + String(len(plot._corrplot.variables))
                 + ", got "
                 + String(len(row))
                 + ")"
             )
 
     var theme = plot._theme
-    if len(plot._corrplot_variables) == 0:
+    if len(plot._corrplot.variables) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    for row in plot._corrplot_matrix:
+    for row in plot._corrplot.matrix:
         for v in row:
             if v < -1.0 or v > 1.0:
                 raise Error(
@@ -112,29 +112,29 @@ def _render_corrplot[
         )
 
     var frame = _draw_grid_axis_frame(
-        target, plot._corrplot_variables, plot._corrplot_variables, theme, ox0, oy0,
+        target, plot._corrplot.variables, plot._corrplot.variables, theme, ox0, oy0,
         ox1 - legend_reserve, oy1, cache=measure_cache
     )
 
     var cell_width = frame.x_scale.bandwidth()
     var cell_height = frame.y_scale.bandwidth()
     var max_radius = min(cell_width, cell_height) / 2.0 * _CORRPLOT_BUBBLE_FRACTION
-    var n = len(plot._corrplot_variables)
+    var n = len(plot._corrplot.variables)
 
     for row in range(n):
         for col in range(n):
-            if row == col and not plot._corrplot_diag:
+            if row == col and not plot._corrplot.diag:
                 continue
-            if plot._corrplot_layout == "lower" and col > row:
+            if plot._corrplot.layout == "lower" and col > row:
                 continue
-            if plot._corrplot_layout == "upper" and col < row:
+            if plot._corrplot.layout == "upper" and col < row:
                 continue
-            var value = plot._corrplot_matrix[row][col]
+            var value = plot._corrplot.matrix[row][col]
             var cx = _round_to_int(frame.x_scale.center(col))
             var cy = _round_to_int(frame.y_scale.center(row))
             var radius = _round_to_int(max_radius * abs(value))
             target.fill_circle_aa(cx, cy, radius, color_scale.color_at(value))
-            if plot._corrplot_labels:
+            if plot._corrplot.labels:
                 frame.text_requests.append(
                     _TextRequest(
                         cx, cy + Int(sc.font_size * 0.35), _format_fixed(value, 2), theme.text_color,

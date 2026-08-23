@@ -261,15 +261,15 @@ def _render_gantt[
     own "Phase 2b" item asked for (a horizontal-bar orientation, which
     this provides).
     """
-    if len(plot.x_categories) != len(plot._gantt_start) or len(plot._gantt_end) != len(plot._gantt_start):
+    if len(plot.x_categories) != len(plot._gantt.start) or len(plot._gantt.end) != len(plot._gantt.start):
         raise Error(
             "Plot.encode_gantt(): categories, start, and end must all have"
             " the same length (got "
             + String(len(plot.x_categories))
             + " categories, "
-            + String(len(plot._gantt_start))
+            + String(len(plot._gantt.start))
             + " start values, "
-            + String(len(plot._gantt_end))
+            + String(len(plot._gantt.end))
             + " end values)"
         )
 
@@ -278,9 +278,9 @@ def _render_gantt[
         return _empty_result(ox0, oy0, ox1, oy1)
 
     var domain_data = List[Float64]()
-    for v in plot._gantt_start:
+    for v in plot._gantt.start:
         domain_data.append(v)
-    for v in plot._gantt_end:
+    for v in plot._gantt.end:
         domain_data.append(v)
     var x_scale = _data_extent(domain_data)
 
@@ -291,8 +291,8 @@ def _render_gantt[
     var row_height = _round_to_int(frame.y_scale.bandwidth())
     for i in range(len(plot.x_categories)):
         var row_y = _round_to_int(frame.y_scale.band_start(i))
-        var start_px = _axis_pixel(frame.x_scale, plot._gantt_start[i])
-        var end_px = _axis_pixel(frame.x_scale, plot._gantt_end[i])
+        var start_px = _axis_pixel(frame.x_scale, plot._gantt.start[i])
+        var end_px = _axis_pixel(frame.x_scale, plot._gantt.end[i])
         var bar_x = min(start_px, end_px)
         var bar_width = max(1, max(start_px, end_px) - min(start_px, end_px))
         target.fill_rect(bar_x, row_y, bar_width, row_height, theme.mark_color)

@@ -77,7 +77,7 @@ def _render_parallel[
     row -- the same "`Theme.show_legend` is the only real toggle"
     convention every other legend-bearing mark here follows).
     """
-    if len(plot._parallel_dims) == 0:
+    if len(plot._parallel.dims) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
     var theme = plot._theme
@@ -86,7 +86,7 @@ def _render_parallel[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend_reserve = (
-        _dynamic_legend_width(plot._parallel_row_names, sc.legend_swatch_size, sc) if show_legend else 0
+        _dynamic_legend_width(plot._parallel.row_names, sc.legend_swatch_size, sc) if show_legend else 0
     )
 
     var plot_x0 = ox0 + sc.margin_left
@@ -94,7 +94,7 @@ def _render_parallel[
     var plot_x1 = ox1 - sc.margin_right - legend_reserve
     var plot_y1 = oy1 - sc.margin_bottom
 
-    var n = len(plot._parallel_dims)
+    var n = len(plot._parallel.dims)
 
     # Each dimension's own [min, max] across every row -- one _min_max
     # per column, not per row (the whole point of a parallel-
@@ -104,7 +104,7 @@ def _render_parallel[
     var dim_max = List[Float64]()
     for d in range(n):
         var column = List[Float64]()
-        for row in plot._parallel_data:
+        for row in plot._parallel.data:
             column.append(row[d])
         var mm = _min_max(column)
         dim_min.append(mm.min)
@@ -116,14 +116,14 @@ def _render_parallel[
             target.draw_line_aa(x, plot_y0, x, plot_y1, theme.axis_color)
             text_requests.append(
                 _TextRequest(
-                    x, plot_y1 + sc.label_gap + Int(sc.font_size), plot._parallel_dims[d],
+                    x, plot_y1 + sc.label_gap + Int(sc.font_size), plot._parallel.dims[d],
                     theme.text_color, sc.font_size, TextAlign.CENTER, theme.font_family,
                 )
             )
 
     var palette = default_categorical_palette()
-    for r in range(len(plot._parallel_data)):
-        var row = plot._parallel_data[r].copy()
+    for r in range(len(plot._parallel.data)):
+        var row = plot._parallel.data[r].copy()
         var color = palette[r % len(palette)]
         var path = Path()
         for d in range(n):
@@ -137,7 +137,7 @@ def _render_parallel[
 
     if show_legend:
         _draw_legend(
-            target, text_requests, plot._parallel_row_names, palette, plot_x1 + sc.margin_right, plot_y0, theme
+            target, text_requests, plot._parallel.row_names, palette, plot_x1 + sc.margin_right, plot_y0, theme
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)

@@ -193,27 +193,27 @@ def _render_heatmap[
     "shrink the rect from outside" way every other categorical mark's
     own legend already does.
     """
-    if len(plot._heatmap_x) != len(plot._heatmap_y) or len(plot._heatmap_value) != len(plot._heatmap_x):
+    if len(plot._heatmap.x) != len(plot._heatmap.y) or len(plot._heatmap.value) != len(plot._heatmap.x):
         raise Error(
             "Plot.encode_heatmap(): x, y, and value must all have the same"
             " length (got "
-            + String(len(plot._heatmap_x))
+            + String(len(plot._heatmap.x))
             + " x values, "
-            + String(len(plot._heatmap_y))
+            + String(len(plot._heatmap.y))
             + " y values, "
-            + String(len(plot._heatmap_value))
+            + String(len(plot._heatmap.value))
             + " values)"
         )
 
     var theme = plot._theme
-    if len(plot._heatmap_x) == 0:
+    if len(plot._heatmap.x) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    var x_idx = _categorical_indices(plot._heatmap_x)
-    var y_idx = _categorical_indices(plot._heatmap_y)
+    var x_idx = _categorical_indices(plot._heatmap.x)
+    var y_idx = _categorical_indices(plot._heatmap.y)
 
     var sc = _Scaled(theme)
-    var value_mm = _min_max(plot._heatmap_value)
+    var value_mm = _min_max(plot._heatmap.value)
     var color_scale = ColorScale.from_theme(theme, value_mm.min, value_mm.max)
 
     # One FontCache for both measurements this render makes -- the
@@ -238,10 +238,10 @@ def _render_heatmap[
 
     var cell_width = _round_to_int(frame.x_scale.bandwidth())
     var cell_height = _round_to_int(frame.y_scale.bandwidth())
-    for i in range(len(plot._heatmap_x)):
+    for i in range(len(plot._heatmap.x)):
         var cell_x = _round_to_int(frame.x_scale.band_start(x_idx.indices[i]))
         var cell_y = _round_to_int(frame.y_scale.band_start(y_idx.indices[i]))
-        var color = color_scale.color_at(plot._heatmap_value[i])
+        var color = color_scale.color_at(plot._heatmap.value[i])
         target.fill_rect(cell_x, cell_y, cell_width, cell_height, color)
 
     if theme.show_legend:

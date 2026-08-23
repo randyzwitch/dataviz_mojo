@@ -80,10 +80,10 @@ def _render_streamgraph[
     if len(plot.x_categories) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    var n_series = len(plot._grouped_bar_series_names)
+    var n_series = len(plot._grouped_bar.series_names)
     var n_categories = len(plot.x_categories)
 
-    for series in plot._grouped_bar_values:
+    for series in plot._grouped_bar.values:
         for v in series:
             if v < 0.0:
                 raise Error("Plot: Mark.STREAMGRAPH values must be non-negative (got " + String(v) + ")")
@@ -91,10 +91,10 @@ def _render_streamgraph[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend_reserve = (
-        _dynamic_legend_width(plot._grouped_bar_series_names, sc.legend_swatch_size, sc) if show_legend else 0
+        _dynamic_legend_width(plot._grouped_bar.series_names, sc.legend_swatch_size, sc) if show_legend else 0
     )
 
-    var y_scale = _symmetric_zero_baseline_y_extent(plot._grouped_bar_values, n_categories)
+    var y_scale = _symmetric_zero_baseline_y_extent(plot._grouped_bar.values, n_categories)
     var frame = _draw_categorical_axis_frame(
         target, plot.x_categories, y_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
     )
@@ -107,7 +107,7 @@ def _render_streamgraph[
     var running = List[Float64]()
     for i in range(n_categories):
         var total = 0.0
-        for series in plot._grouped_bar_values:
+        for series in plot._grouped_bar.values:
             total += series[i]
         running.append(-total / 2.0)
 
@@ -118,7 +118,7 @@ def _render_streamgraph[
         var bottom = List[Float64](capacity=n_categories)
         for i in range(n_categories):
             bottom.append(running[i])
-            running[i] += plot._grouped_bar_values[j][i]
+            running[i] += plot._grouped_bar.values[j][i]
             top.append(running[i])
 
         path.move_to(frame.x_scale.center(0), Float64(_axis_pixel(frame.y_scale, top[0])))
@@ -131,7 +131,7 @@ def _render_streamgraph[
 
     if show_legend:
         _draw_legend(
-            target, frame.text_requests, plot._grouped_bar_series_names, palette,
+            target, frame.text_requests, plot._grouped_bar.series_names, palette,
             _round_to_int(frame.x_scale.range_max) + sc.margin_right, _round_to_int(frame.y_scale.range_max), theme,
         )
 

@@ -80,13 +80,13 @@ def _render_stacked_bar[
     if len(plot.x_categories) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    var n_series = len(plot._grouped_bar_series_names)
+    var n_series = len(plot._grouped_bar.series_names)
     var domain_data = List[Float64]()
     for i in range(len(plot.x_categories)):
         var pos_total = 0.0
         var neg_total = 0.0
         for j in range(n_series):
-            var v = plot._grouped_bar_values[j][i]
+            var v = plot._grouped_bar.values[j][i]
             if v >= 0.0:
                 pos_total += v
             else:
@@ -111,7 +111,7 @@ def _render_stacked_bar[
         var pos_running = 0.0
         var neg_running = 0.0
         for j in range(n_series):
-            var v = plot._grouped_bar_values[j][i]
+            var v = plot._grouped_bar.values[j][i]
             var seg_bottom: Float64
             var seg_top: Float64
             if v >= 0.0:
@@ -132,7 +132,7 @@ def _render_stacked_bar[
         _draw_legend(
             target,
             frame.text_requests,
-            plot._grouped_bar_series_names,
+            plot._grouped_bar.series_names,
             palette,
             _round_to_int(frame.x_scale.range_max) + sc.margin_right,
             _round_to_int(frame.y_scale.range_max),

@@ -189,12 +189,12 @@ def _render_bump[
     _validate_grouped_bar_series(plot)
 
     var theme = plot._theme
-    if len(plot.x_categories) == 0 or len(plot._grouped_bar_series_names) == 0:
+    if len(plot.x_categories) == 0 or len(plot._grouped_bar.series_names) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
     _check_line_smoothing(theme)
 
-    var n_series = len(plot._grouped_bar_series_names)
+    var n_series = len(plot._grouped_bar.series_names)
     var n_categories = len(plot.x_categories)
 
     var sc = _Scaled(theme)
@@ -206,7 +206,7 @@ def _render_bump[
 
     var legend_reserve = (
         _dynamic_legend_width(
-            plot._grouped_bar_series_names, sc.legend_swatch_size, sc, cache=measure_cache
+            plot._grouped_bar.series_names, sc.legend_swatch_size, sc, cache=measure_cache
         )
         if show_legend
         else 0
@@ -224,7 +224,7 @@ def _render_bump[
     for i in range(n_categories):
         var values_at_i = List[Float64]()
         for j in range(n_series):
-            values_at_i.append(plot._grouped_bar_values[j][i])
+            values_at_i.append(plot._grouped_bar.values[j][i])
         var order = _descending_value_order(values_at_i)
         var rank_at_i = List[Int]()
         for _ in range(n_series):
@@ -246,7 +246,7 @@ def _render_bump[
 
     if show_legend:
         _draw_legend(
-            target, frame.text_requests, plot._grouped_bar_series_names, palette,
+            target, frame.text_requests, plot._grouped_bar.series_names, palette,
             frame.px1 + sc.margin_right, frame.py0, theme,
         )
 
