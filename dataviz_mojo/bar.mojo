@@ -13,6 +13,7 @@ from dataviz_mojo.plot import (
     _empty_result,
     _rendered,
     _zero_baseline_y_extent,
+    _validate_categorical_encoding,
 )
 from dataviz_mojo.theme import Theme
 
@@ -49,15 +50,7 @@ def _render_bar[
     categories, so a vertical gridline per bar wouldn't add
     information the way it does for a continuous scatter/line axis.
     """
-    if len(plot.x_categories) != len(plot.y_data):
-        raise Error(
-            "Plot.encode_categorical(): x and y must have the same length"
-            " (got "
-            + String(len(plot.x_categories))
-            + " and "
-            + String(len(plot.y_data))
-            + ")"
-        )
+    _validate_categorical_encoding(plot)
 
     var theme = plot._theme
     if len(plot.x_categories) == 0:

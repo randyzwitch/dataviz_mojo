@@ -3825,6 +3825,96 @@ struct _PointChannels(Movable):
         )
 
 
+def _validate_categorical_encoding(plot: Plot) raises:
+    """`Plot.encode_categorical()`'s own length check -- the categorical
+    counterpart to `_validate_continuous_encoding` below, and extracted
+    for exactly the reason that one was: every `Mark` reading a
+    category/value pair carried a verbatim copy of it, differing in
+    nothing at all.
+    """
+    if len(plot.x_categories) != len(plot.y_data):
+        raise Error(
+            "Plot.encode_categorical(): x and y must have the same length"
+            " (got "
+            + String(len(plot.x_categories))
+            + " and "
+            + String(len(plot.y_data))
+            + ")"
+        )
+
+
+def _require_non_negative(values: List[Float64], mark_name: String) raises:
+    """Every value non-negative, or raise naming `mark_name`.
+
+    A negative value has no meaningful width/radius/area for any of the
+    marks that call this, so they all refuse to draw rather than
+    silently misrepresent the data -- see `mark_arc()`'s own docstring
+    for that stance stated in full.
+    """
+    for v in values:
+        if v < 0.0:
+            raise Error(
+                "Plot: " + mark_name + " values must be non-negative (got " + String(v) + ")"
+            )
+
+
+def _require_some_positive(values: List[Float64], mark_name: String) raises -> Float64:
+    """The largest of `values`, having checked at least one is strictly
+    positive -- the companion to `_require_non_negative` for the marks
+    whose geometry divides by the maximum (`value / max` for a rose's
+    own radius, a polar bar's own length, a ring's own sweep), where
+    all-zero input has no defined layout at all rather than merely a
+    degenerate one.
+
+    Returns that maximum rather than just raising on a bad one, because
+    every caller needs it immediately afterwards as the divisor -- and
+    computing it twice (once to check, once to use) is exactly the
+    split that let the check and the value drift apart in the first
+    place.
+    """
+    var largest = 0.0
+    for v in values:
+        if v > largest:
+            largest = v
+    if largest <= 0.0:
+        raise Error(
+            "Plot: "
+            + mark_name
+            + " requires at least one positive value (largest value was "
+            + String(largest)
+            + ")"
+        )
+    return largest
+
+
+def _validate_edge_encoding(plot: Plot, mark_name: String) raises:
+    """`Plot.encode_chord()`'s own length check plus its non-negative
+    rule -- everything `Mark.CHORD`/`ARC_DIAGRAM`/`GRAPH`/`SANKEY` each
+    need before laying out an edge list.
+
+    All four carried this as twenty-one byte-identical lines apiece,
+    differing only in the mark named in the second error message. That
+    is the same duplication `_validate_continuous_encoding` was
+    extracted to remove for the continuous family, and the same one
+    `_edge_node_index` removed for these four marks' node resolution --
+    this is the validation half of that.
+    """
+    if len(plot._chord_from) != len(plot._chord_to) or len(plot._chord_value) != len(
+        plot._chord_from
+    ):
+        raise Error(
+            "Plot.encode_chord(): from_categories, to_categories, and"
+            " values must all have the same length (got "
+            + String(len(plot._chord_from))
+            + " from_categories, "
+            + String(len(plot._chord_to))
+            + " to_categories, "
+            + String(len(plot._chord_value))
+            + " values)"
+        )
+    _require_non_negative(plot._chord_value, mark_name)
+
+
 def _validate_continuous_encoding(plot: Plot, context: String) raises:
     """Every check `Plot.encode()`'s own x/y/color/color_categories/size
     channels need before a continuous-axis render can start -- shared

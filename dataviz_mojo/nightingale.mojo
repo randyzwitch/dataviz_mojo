@@ -15,6 +15,9 @@ from dataviz_mojo.plot import (
     _dynamic_legend_width,
     _empty_result,
     _rendered,
+    _validate_categorical_encoding,
+    _require_non_negative,
+    _require_some_positive,
 )
 from dataviz_mojo.theme import Theme
 
@@ -55,15 +58,7 @@ def _render_nightingale[
     inside `_render_arc` itself: the per-wedge angle/radius formula
     genuinely differs, not just a flag flip.
     """
-    if len(plot.x_categories) != len(plot.y_data):
-        raise Error(
-            "Plot.encode_categorical(): x and y must have the same length"
-            " (got "
-            + String(len(plot.x_categories))
-            + " and "
-            + String(len(plot.y_data))
-            + ")"
-        )
+    _validate_categorical_encoding(plot)
 
     var theme = plot._theme
     if len(plot.x_categories) == 0:
@@ -71,24 +66,8 @@ def _render_nightingale[
 
     var text_requests = List[_TextRequest]()
 
-    for v in plot.y_data:
-        if v < 0.0:
-            raise Error(
-                "Plot: Mark.NIGHTINGALE values must be non-negative (got "
-                + String(v)
-                + ")"
-            )
-    var max_v = 0.0
-    for v in plot.y_data:
-        if v > max_v:
-            max_v = v
-    if max_v <= 0.0:
-        raise Error(
-            "Plot: Mark.NIGHTINGALE requires at least one positive value"
-            " (largest value was "
-            + String(max_v)
-            + ")"
-        )
+    _require_non_negative(plot.y_data, "Mark.NIGHTINGALE")
+    var max_v = _require_some_positive(plot.y_data, "Mark.NIGHTINGALE")
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend

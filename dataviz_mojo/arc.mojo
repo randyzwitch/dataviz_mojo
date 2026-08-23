@@ -15,6 +15,8 @@ from dataviz_mojo.plot import (
     _dynamic_legend_width,
     _empty_result,
     _rendered,
+    _validate_categorical_encoding,
+    _require_non_negative,
 )
 from dataviz_mojo.theme import Theme
 
@@ -66,15 +68,7 @@ def _render_arc[
     and why it's relative to the outer radius rather than a fixed
     pixel value.
     """
-    if len(plot.x_categories) != len(plot.y_data):
-        raise Error(
-            "Plot.encode_categorical(): x and y must have the same length"
-            " (got "
-            + String(len(plot.x_categories))
-            + " and "
-            + String(len(plot.y_data))
-            + ")"
-        )
+    _validate_categorical_encoding(plot)
 
     var theme = plot._theme
     if len(plot.x_categories) == 0:
@@ -82,13 +76,7 @@ def _render_arc[
 
     var text_requests = List[_TextRequest]()
 
-    for v in plot.y_data:
-        if v < 0.0:
-            raise Error(
-                "Plot: Mark.ARC values must be non-negative (got "
-                + String(v)
-                + ")"
-            )
+    _require_non_negative(plot.y_data, "Mark.ARC")
     var total = 0.0
     for v in plot.y_data:
         total += v
