@@ -184,10 +184,40 @@ same chart (where things stand, not what just changed), so it reads
 clearest with its own color rather than borrowing meaning from the
 rising/falling pair. See `_render_waterfall`'s own docstring for the
 full total-bar drawing story (also wider than a delta bar -- full band
-width vs. `_WATERFALL_DELTA_WIDTH_FRACTION`, a plain module constant
-in plot.mojo, not a `Theme` field, since nothing about it is a color/
-size a caller would plausibly want to retheme independently of the
-mark's own shape).
+width vs. `waterfall_delta_width_fraction` below).
+
+`waterfall_delta_width_fraction` (default 0.6) is how much of its own
+band a rising/falling delta bar occupies; a total bar always spans the
+full band, so this is what visually separates the two. It was a fixed
+module constant until this became a real knob -- the "fixed until a
+concrete need shows up" reasoning several constants here still follow,
+resolved in this case.
+
+`bullet_measure_width_fraction` (default 0.35) is how thick `Mark.
+BULLET`'s own measure bar is relative to its band, and
+`chord_ring_fraction` (default 0.08) how thick `Mark.CHORD`'s node ring
+is relative to the outer radius -- the same *fraction of something the
+layout already computed* shape `donut_inner_radius_fraction` has, and
+for the same reason: a fixed pixel value would look right at one canvas
+size and wrong at every other.
+
+`radialbar_track_color` (default a light grey) is the unfilled track
+`Mark.RADIALBAR` sweeps its rings over, and `treemap_label_color`
+(default white) the label drawn on a `Mark.TREEMAP` leaf rect -- both
+sit on top of palette-colored shapes, so both are real contrast
+choices a caller may need to change rather than internal details.
+
+`halo_alpha` (default 90) is the opacity `Mark.EFFECT_SCATTER` blends
+each point's own halo at, before flattening it against white -- see
+`_lighten`'s own docstring for why it is flattened rather than drawn
+translucent. `radar_fill_alpha` (also 90) is the same treatment for
+`Mark.RADAR`'s own filled series polygons.
+
+Two fields rather than one shared "tint alpha", even though both
+default to 90: they were a single module constant before, which
+silently coupled a scatter halo to a radar polygon fill. Nothing
+connects those two beyond the number having happened to suit both, so
+retheming one should not move the other.
 
 `annotation_color` (default a plain medium gray, `Color(150, 150,
 150)`) is `Plot.annotate_line()`'s own color -- both the reference
@@ -317,6 +347,13 @@ struct Theme(ImplicitlyCopyable, Movable):
     var annotation_area_color: Color
     var font_family: String
     var title_bold: Bool
+    var waterfall_delta_width_fraction: Float64
+    var bullet_measure_width_fraction: Float64
+    var chord_ring_fraction: Float64
+    var radialbar_track_color: Color
+    var treemap_label_color: Color
+    var halo_alpha: UInt8
+    var radar_fill_alpha: UInt8
 
     def __init__(
         out self,
@@ -355,6 +392,13 @@ struct Theme(ImplicitlyCopyable, Movable):
         annotation_area_color: Color = Color(224, 236, 246),
         font_family: String = "sans-serif",
         title_bold: Bool = True,
+        waterfall_delta_width_fraction: Float64 = 0.6,
+        bullet_measure_width_fraction: Float64 = 0.35,
+        chord_ring_fraction: Float64 = 0.08,
+        radialbar_track_color: Color = Color(230, 230, 230),
+        treemap_label_color: Color = Color(255, 255, 255),
+        halo_alpha: UInt8 = 90,
+        radar_fill_alpha: UInt8 = 90,
     ):
         self.background = background
         self.mark_color = mark_color
@@ -391,6 +435,13 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.annotation_area_color = annotation_area_color
         self.font_family = font_family
         self.title_bold = title_bold
+        self.waterfall_delta_width_fraction = waterfall_delta_width_fraction
+        self.bullet_measure_width_fraction = bullet_measure_width_fraction
+        self.chord_ring_fraction = chord_ring_fraction
+        self.radialbar_track_color = radialbar_track_color
+        self.treemap_label_color = treemap_label_color
+        self.halo_alpha = halo_alpha
+        self.radar_fill_alpha = radar_fill_alpha
 
     @staticmethod
     def default() -> Self:

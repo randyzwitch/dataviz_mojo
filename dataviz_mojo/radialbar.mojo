@@ -22,13 +22,6 @@ from dataviz_mojo.plot import (
 )
 from dataviz_mojo.theme import Theme
 
-# A light neutral gray for each ring's own full-circle "track" -- drawn
-# first, underneath the value arc, the same "unfilled background the
-# filled portion reads against" role a real progress bar's own track
-# plays. Fixed here rather than a `Theme` field, the same "not worth a
-# knob until something concrete needs one" reasoning every other
-# module-level layout constant in this package already follows.
-comptime _RADIALBAR_TRACK_COLOR = Color(230, 230, 230)
 
 # The radial gap between adjacent rings, as a fraction of each ring's
 # own equal-thickness slot -- split evenly off both the inner and outer
@@ -102,7 +95,7 @@ def _render_radialbar[
         var outer = max_radius - ring_slot * Float64(i) - gap / 2.0
         var inner = max_radius - ring_slot * Float64(i + 1) + gap / 2.0
         var color = palette[i % len(palette)]
-        target.fill_ring_sector_aa(cx, cy, inner, outer, start_angle, start_angle + 2.0 * pi, _RADIALBAR_TRACK_COLOR)
+        target.fill_ring_sector_aa(cx, cy, inner, outer, start_angle, start_angle + 2.0 * pi, theme.radialbar_track_color)
         var frac = plot.y_data[i] / max_v
         if frac > 0.0:
             target.fill_ring_sector_aa(cx, cy, inner, outer, start_angle, start_angle + 2.0 * pi * frac, color)

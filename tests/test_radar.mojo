@@ -42,7 +42,9 @@ def test_render_radar_matches_hand_derived_polygon_fill() raises:
         theme=Theme(show_legend=False), width=400, height=300,
     )
 
-    var fill = _lighten(default_categorical_palette()[0])
+    # Theme.radar_fill_alpha's own default -- the same tint the render
+    # path uses, now passed explicitly rather than baked into _lighten.
+    var fill = _lighten(default_categorical_palette()[0], Theme().radar_fill_alpha)
     _assert_color(c, 220, 135, fill, "centroid of the fully-maxed triangle -- inside")
     _assert_color(c, 220, 85, fill, "median from center toward the -90 degree vertex -- inside")
     _assert_color(c, 220, 235, BG, "angle 90, radius 100 -- beyond the triangle's own 51.75 apothem, outside")

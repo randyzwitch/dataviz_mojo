@@ -23,7 +23,7 @@ comptime _KDE_SAMPLES = 30
 # Each violin's own max half-width, as a fraction of its category's own
 # band width -- fixed, not a Theme field, the same "no concrete need
 # for a knob yet" reasoning every other fixed layout constant here
-# already follows (_LEGEND_WIDTH, _CHORD_RING_FRACTION, ...).
+# already follows (_LEGEND_WIDTH, _POLAR_BAR_PADDING, ...).
 comptime _VIOLIN_WIDTH_FRACTION = 0.4
 
 

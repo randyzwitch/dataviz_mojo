@@ -36,14 +36,6 @@ struct _BulletData(Movable):
 
 
 
-comptime _BULLET_MEASURE_WIDTH_FRACTION = 0.35
-"""Mark.BULLET's own measure bar, as a fraction of the category's full
-band width -- roughly matching Stephen Few's own bullet-chart
-convention (a measure bar visibly narrower than the qualitative range
-bands it sits inside, so the two read as distinct layers, not one bar
-redrawn twice) -- see `_render_bullet`'s own docstring."""
-
-
 def _render_bullet[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
@@ -161,8 +153,8 @@ def _render_bullet[
     # inside center(i)) on every pass.
     var bandwidth = frame.x_scale.bandwidth()
     var band_width = _round_to_int(bandwidth)
-    var measure_width = _round_to_int(bandwidth * _BULLET_MEASURE_WIDTH_FRACTION)
-    var measure_inset = bandwidth * _BULLET_MEASURE_WIDTH_FRACTION / 2.0
+    var measure_width = _round_to_int(bandwidth * theme.bullet_measure_width_fraction)
+    var measure_inset = bandwidth * theme.bullet_measure_width_fraction / 2.0
     var baseline_py = _axis_pixel(frame.y_scale, 0.0)
 
     for i in range(len(plot.x_categories)):

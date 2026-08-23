@@ -22,15 +22,6 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 from dataviz_mojo.tree import _assign_branch_colors
 
-comptime _TREEMAP_LABEL_COLOR = Color(255, 255, 255)
-"""Every leaf's own label draws in plain white, not `Theme.text_color`
--- the one label in this whole package drawn *over* a solid fill
-rather than over the background, so `text_color`'s own default (a
-near-black, chosen to read against `Theme.background`) would be
-exactly the wrong contrast direction here. Fixed, not a new `Theme`
-field, the same "no concrete need for a knob yet" reasoning every
-other fixed layout/color constant in this package already follows."""
-
 
 def _draw_treemap_node[
     T: DrawTarget
@@ -53,8 +44,7 @@ def _draw_treemap_node[
     """Fill `node`'s own rect `(x0, y0, x1, y1)` if it's a leaf
     (colored by `branch[node]`'s own top-level-ancestor palette entry,
     the same convention `Mark.SUNBURST`/`TREE` already establish, plus
-    a centered white label -- see `_TREEMAP_LABEL_COLOR`'s own
-    docstring), otherwise slice-and-dice that rect among its own
+    a centered label in `Theme.treemap_label_color`), otherwise slice-and-dice that rect among its own
     children and recurse: alternating axis by `depth` (even splits the
     *width*, into side-by-side vertical strips; odd splits the
     *height*, into stacked horizontal strips), each child's own share
@@ -80,7 +70,7 @@ def _draw_treemap_node[
         target.fill_rect(x0, y0, x1 - x0, y1 - y0, color)
         text_requests.append(
             _TextRequest(
-                (x0 + x1) // 2, (y0 + y1) // 2 + Int(sc.font_size * 0.35), ids[node], _TREEMAP_LABEL_COLOR,
+                (x0 + x1) // 2, (y0 + y1) // 2 + Int(sc.font_size * 0.35), ids[node], theme.treemap_label_color,
                 sc.font_size, TextAlign.CENTER, theme.font_family,
             )
         )
