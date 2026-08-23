@@ -1,6 +1,6 @@
 """Demo: a donut chart -- Mark.ARC with Theme.donut_inner_radius_
 fraction set, the same browser-share data examples/pie.mojo draws,
-switched from a full wedge to a ring segment (canvas_mojo.primitives.
+switched from a full wedge to a ring segment (canvas_mojo.shapes.arcs.
 fill_ring_sector_aa on the raster path, SvgCanvas.fill_ring_sector_aa
 on the vector one -- see plot.mojo's own _render_arc docstring for
 where that switch happens). Raster output built via dataviz_mojo.
