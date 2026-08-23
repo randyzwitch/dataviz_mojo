@@ -4129,13 +4129,14 @@ def _draw_continuous_axis_frame[
     )
 
 
-comptime _HALO_ALPHA: UInt8 = 90
-
-
-def _lighten(color: Color) -> Color:
-    """`color` blended toward opaque white by a fixed amount -- `Mark.
+def _lighten(color: Color, alpha: UInt8) -> Color:
+    """`color` blended toward opaque white by `alpha` -- `Mark.
     EFFECT_SCATTER`'s own halo tint (see `_draw_point_layer`'s own
-    `draw_halo` paragraph). Built via `Color.blend_over` (give `color`
+    `draw_halo` paragraph) and `Mark.RADAR`'s own series-polygon fill,
+    which pass `Theme.halo_alpha` and `Theme.radar_fill_alpha`
+    respectively. `alpha` is a parameter rather than the fixed constant
+    it used to be precisely because those two callers are unrelated:
+    one shared number silently tied a scatter halo to a radar fill. Built via `Color.blend_over` (give `color`
     a reduced alpha, composite it over white, keep the fully-opaque
     result) rather than real alpha transparency on the halo circle
     itself: `SvgCanvas` has no opacity concept at all (only `Canvas`,
@@ -4145,7 +4146,7 @@ def _lighten(color: Color) -> Color:
     concern `DrawTarget`'s own docstring raises for why it stays
     narrow, just for a primitive (real alpha) that still isn't there.
     """
-    return Color(color.r, color.g, color.b, _HALO_ALPHA).blend_over(Color(255, 255, 255))
+    return Color(color.r, color.g, color.b, alpha).blend_over(Color(255, 255, 255))
 
 
 def _draw_point_layer[
@@ -4217,7 +4218,7 @@ def _draw_point_layer[
             else _round_to_int(sc.point_radius)
         )
         if draw_halo:
-            target.fill_circle_aa(px, py, _round_to_int(Float64(radius) * 2.2), _lighten(color))
+            target.fill_circle_aa(px, py, _round_to_int(Float64(radius) * 2.2), _lighten(color, theme.halo_alpha))
         target.fill_circle_aa(px, py, radius, color)
 
     if not theme.show_legend:

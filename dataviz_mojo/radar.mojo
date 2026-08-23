@@ -163,7 +163,7 @@ def _render_radar[
             else:
                 poly.line_to(pt.x, pt.y)
         poly.close()
-        target.fill_path_aa(poly, _lighten(color))
+        target.fill_path_aa(poly, _lighten(color, theme.radar_fill_alpha))
         target.stroke_path_aa(poly, color, sc.line_width)
 
     # Axis labels, placed just outside each spoke's own tip -- aligned

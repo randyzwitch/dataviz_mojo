@@ -23,8 +23,9 @@ from dataviz_mojo.plot import (
     _index_of,
     _unique_categories,
 )
+from dataviz_mojo.colors import RED
 from dataviz_mojo.theme import Theme
-from dataviz_mojo import scatter
+from dataviz_mojo import scatter, waterfall, bullet, treemap, radialbar
 
 from _test_helpers import _count_color, _assert_color
 
@@ -203,6 +204,80 @@ def test_render_theme_title_bold_only_affects_the_title() raises:
         count += 1
         search_from = idx + 1
     assert_equal(count, 1, "exactly one bold text element -- the title, not x_title")
+
+
+def test_theme_mark_style_fields_actually_change_output() raises:
+    # Each of these was a compile-time constant until it became a Theme
+    # field. A default-vs-overridden render must differ somewhere, or
+    # the field is wired to nothing -- which is the only way this
+    # change could silently fail, since every default reproduces the
+    # old constant exactly and the rest of the suite would still pass.
+    # A total row is required: the narrow-delta width only applies when
+    # the chart actually has totals to contrast against (see
+    # _render_waterfall -- with no totals every bar spans its full
+    # band, and this fraction is correctly ignored). Getting that wrong
+    # is what made a first version of this test pass against a field
+    # wired to nothing.
+    var cats: List[String] = ["a", "b", "total"]
+    var vals: List[Float64] = [3.0, -2.0, 1.0]
+    var totals: List[Bool] = [False, False, True]
+
+    var base = waterfall(cats, vals, totals, theme=Theme(), width=200, height=150)
+    var wide = waterfall(
+        cats, vals, totals,
+        theme=Theme(waterfall_delta_width_fraction=0.95), width=200, height=150,
+    )
+    assert_true(
+        _count_color(base, Theme().mark_color) != _count_color(wide, Theme().mark_color),
+        "waterfall_delta_width_fraction changes how much band a delta bar covers",
+    )
+
+    var measure: List[Float64] = [7.0]
+    var target: List[Float64] = [8.0]
+    var ranges: List[List[Float64]] = [[4.0, 6.0, 10.0]]
+    var b_thin = bullet(cats0(), measure, target, ranges, theme=Theme(), width=200, height=150)
+    var b_fat = bullet(
+        cats0(), measure, target, ranges,
+        theme=Theme(bullet_measure_width_fraction=0.9), width=200, height=150,
+    )
+    assert_true(
+        _count_color(b_thin, Theme().mark_color) != _count_color(b_fat, Theme().mark_color),
+        "bullet_measure_width_fraction changes the measure bar's thickness",
+    )
+
+
+def cats0() -> List[String]:
+    return ["only"]
+
+
+def test_theme_mark_colors_are_actually_used() raises:
+    # treemap_label_color and radialbar_track_color are pure color
+    # swaps -- assert the overridden color appears at all, which the
+    # default palette would never produce on its own.
+    var ids: List[String] = ["root", "a", "b"]
+    var parents: List[String] = ["", "root", "root"]
+    var values: List[Float64] = [0.0, 5.0, 3.0]
+    # Counted as "reddish" rather than exactly RED: quickplot renders
+    # supersampled and downsamples, so an antialiased glyph keeps no
+    # pixel at the pure source color. The label is unmistakably red
+    # either way, which is what this asserts.
+    var t = treemap(ids, parents, values, theme=Theme(treemap_label_color=RED), width=300, height=200)
+    var reddish = 0
+    for y in range(t.height):
+        for x in range(t.width):
+            var px = t.get_pixel(x, y)
+            if px.r > 180 and px.g < 90 and px.b < 90:
+                reddish += 1
+    assert_true(reddish > 0, "treemap_label_color reaches the label")
+
+    # Values must sit well below the maximum, or every ring sweeps a
+    # full turn and there is no unfilled track left to color at all.
+    var rb_cats: List[String] = ["x", "y"]
+    var rb_vals: List[Float64] = [1.0, 8.0]
+    var r = radialbar(
+        rb_cats, rb_vals, theme=Theme(radialbar_track_color=RED), width=300, height=220
+    )
+    assert_true(_count_color(r, RED) > 0, "radialbar_track_color reaches the unfilled track")
 
 
 def main() raises:

@@ -34,12 +34,6 @@ struct _WaterfallData(Movable):
         self.is_total = List[Bool]()
 
 
-comptime _WATERFALL_DELTA_WIDTH_FRACTION = 0.6
-"""A Mark.WATERFALL delta bar's own fraction of its band's full width --
-narrower than a total bar (full band width, Mark.BAR's own
-convention) so the two read as visually distinct at a glance, the
-"wider" half of Theme.waterfall_total_color's own docstring."""
-
 
 struct _WaterfallBars(Movable):
     """The two running-total bounds `_render_waterfall` draws each bar
@@ -214,7 +208,7 @@ def _render_waterfall[
             bar_x = _round_to_int(band_start)
             bar_width = _round_to_int(bandwidth)
         else:
-            var narrow_width = bandwidth * _WATERFALL_DELTA_WIDTH_FRACTION
+            var narrow_width = bandwidth * theme.waterfall_delta_width_fraction
             var inset = (bandwidth - narrow_width) / 2.0
             bar_x = _round_to_int(band_start + inset)
             bar_width = _round_to_int(band_start + inset + narrow_width) - bar_x

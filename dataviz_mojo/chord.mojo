@@ -20,14 +20,6 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.edges import _edge_node_index, _validate_edge_encoding
 from dataviz_mojo.theme import Theme
 
-# The node ring's own thickness, as a fraction of the outer radius --
-# fixed, not a Theme field: unlike Mark.ARC's donut_inner_radius_
-# fraction (a real pie-vs-donut user choice), a chord diagram's ring
-# is always a thin band the ribbons visually originate from, not a
-# meaningful style choice with no concrete customization need yet
-# (the same "fixed until a real need shows up" reasoning `_LEGEND_
-# WIDTH`/every other module-level pixel constant here already follows).
-comptime _CHORD_RING_FRACTION = 0.08
 
 def _draw_chord_ribbon[
     T: DrawTarget
@@ -154,7 +146,7 @@ def _render_chord[
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
     var radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
-    var inner_radius = radius * (1.0 - _CHORD_RING_FRACTION)
+    var inner_radius = radius * (1.0 - theme.chord_ring_fraction)
 
     var palette = default_categorical_palette()
 
