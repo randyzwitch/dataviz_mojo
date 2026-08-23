@@ -14,6 +14,26 @@ from dataviz_mojo.plot import (
 )
 from dataviz_mojo.theme import Theme
 
+
+struct _WaterfallData(Movable):
+    """
+    Mark.WATERFALL only -- the running-total bounds encode_waterfall()
+    computes from each category's own signed delta (y_data), see that
+    method's own docstring.
+
+    Grouped onto `Plot._waterfall` -- see `Plot`'s own docstring.
+    """
+
+    var y0: List[Float64]
+    var y1: List[Float64]
+    var is_total: List[Bool]
+
+    def __init__(out self):
+        self.y0 = List[Float64]()
+        self.y1 = List[Float64]()
+        self.is_total = List[Bool]()
+
+
 comptime _WATERFALL_DELTA_WIDTH_FRACTION = 0.6
 """A Mark.WATERFALL delta bar's own fraction of its band's full width --
 narrower than a total bar (full band width, Mark.BAR's own

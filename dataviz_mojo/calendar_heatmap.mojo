@@ -21,6 +21,23 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.scale import _format_fixed
 from dataviz_mojo.theme import Theme
 
+
+struct _CalendarData(Movable):
+    """
+    Mark.CALENDAR_HEATMAP only -- one ("YYYY-MM-DD" date, value) row per
+    day. See encode_calendar()'s own docstring.
+
+    Grouped onto `Plot._calendar` -- see `Plot`'s own docstring.
+    """
+
+    var dates: List[String]
+    var values: List[Float64]
+
+    def __init__(out self):
+        self.dates = List[String]()
+        self.values = List[Float64]()
+
+
 def _calendar_day_labels() -> List[String]:
     """The 7 row labels, Sunday first -- the same top-to-bottom order
     every GitHub-style contribution calendar (and ECharts' own

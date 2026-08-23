@@ -16,6 +16,26 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 
 
+struct _BulletData(Movable):
+    """
+    Mark.BULLET only -- one measure/target pair, plus a whole list of
+    ascending qualitative-range thresholds, per category. See
+    encode_bullet()'s own docstring.
+
+    Grouped onto `Plot._bullet` -- see `Plot`'s own docstring.
+    """
+
+    var measure: List[Float64]
+    var target: List[Float64]
+    var ranges: List[List[Float64]]
+
+    def __init__(out self):
+        self.measure = List[Float64]()
+        self.target = List[Float64]()
+        self.ranges = List[List[Float64]]()
+
+
+
 comptime _BULLET_MEASURE_WIDTH_FRACTION = 0.35
 """Mark.BULLET's own measure bar, as a fraction of the category's full
 band width -- roughly matching Stephen Few's own bullet-chart

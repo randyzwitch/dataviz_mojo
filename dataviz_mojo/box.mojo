@@ -15,6 +15,39 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 
 
+struct _BoxData(Movable):
+    """
+    Mark.WATERFALL only -- which rows are running-total checkpoints
+    (drawn full-band-width in Theme.waterfall_total_color) rather than
+    rising/falling deltas. Empty means "no total rows" -- see
+    encode_waterfall()'s own docstring. Mark.BOX only -- the five-number
+    summary encode_boxplot() computes per category up front, plus every
+    outlier tagged with which category (by index into x_categories) it
+    belongs to. See that method's own docstring for the
+    quartile/whisker/outlier math.
+
+    Grouped onto `Plot._box` -- see `Plot`'s own docstring.
+    """
+
+    var q1: List[Float64]
+    var median: List[Float64]
+    var q3: List[Float64]
+    var low: List[Float64]
+    var high: List[Float64]
+    var outlier_cat: List[Int]
+    var outlier_value: List[Float64]
+
+    def __init__(out self):
+        self.q1 = List[Float64]()
+        self.median = List[Float64]()
+        self.q3 = List[Float64]()
+        self.low = List[Float64]()
+        self.high = List[Float64]()
+        self.outlier_cat = List[Int]()
+        self.outlier_value = List[Float64]()
+
+
+
 def _percentile(sorted_values: List[Float64], p: Float64) -> Float64:
     """The `p`-th percentile (`p` in `[0, 1]`) of `sorted_values`
     (already sorted ascending -- callers, not this function, own that,

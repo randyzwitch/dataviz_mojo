@@ -179,6 +179,20 @@ from dataviz_mojo.bar import _render_bar
 from dataviz_mojo.beeswarm import _render_beeswarm
 from dataviz_mojo.ridgeline import _render_ridgeline
 from dataviz_mojo.violin import _render_violin
+from dataviz_mojo.waterfall import _WaterfallData
+from dataviz_mojo.box import _BoxData
+from dataviz_mojo.candlestick import _CandleData
+from dataviz_mojo.bullet import _BulletData
+from dataviz_mojo.population_pyramid import _PyramidData
+from dataviz_mojo.heatmap import _HeatmapData
+from dataviz_mojo.polar import _PolarData
+from dataviz_mojo.radar import _RadarData
+from dataviz_mojo.gauge import _GaugeData
+from dataviz_mojo.parallel import _ParallelData
+from dataviz_mojo.calendar_heatmap import _CalendarData
+from dataviz_mojo.corrplot import _CorrplotData
+from dataviz_mojo.punchcard import _PunchcardData
+from dataviz_mojo.marimekko import _MarimekkoData
 from dataviz_mojo.edges import _EdgeData
 from dataviz_mojo.hierarchy import _HierarchyData
 from dataviz_mojo.box import _box_stats, _render_box
@@ -333,96 +347,6 @@ struct _Scaled(Movable):
         self.continuous_legend_bar_height = Int(Float64(_CONTINUOUS_LEGEND_BAR_HEIGHT) * s)
 
 
-struct _WaterfallData(Movable):
-    """
-    Mark.WATERFALL only -- the running-total bounds encode_waterfall()
-    computes from each category's own signed delta (y_data), see that
-    method's own docstring.
-
-    Grouped onto `Plot._waterfall` -- see `Plot`'s own docstring.
-    """
-
-    var y0: List[Float64]
-    var y1: List[Float64]
-    var is_total: List[Bool]
-
-    def __init__(out self):
-        self.y0 = List[Float64]()
-        self.y1 = List[Float64]()
-        self.is_total = List[Bool]()
-
-
-struct _BoxData(Movable):
-    """
-    Mark.WATERFALL only -- which rows are running-total checkpoints
-    (drawn full-band-width in Theme.waterfall_total_color) rather than
-    rising/falling deltas. Empty means "no total rows" -- see
-    encode_waterfall()'s own docstring. Mark.BOX only -- the five-number
-    summary encode_boxplot() computes per category up front, plus every
-    outlier tagged with which category (by index into x_categories) it
-    belongs to. See that method's own docstring for the
-    quartile/whisker/outlier math.
-
-    Grouped onto `Plot._box` -- see `Plot`'s own docstring.
-    """
-
-    var q1: List[Float64]
-    var median: List[Float64]
-    var q3: List[Float64]
-    var low: List[Float64]
-    var high: List[Float64]
-    var outlier_cat: List[Int]
-    var outlier_value: List[Float64]
-
-    def __init__(out self):
-        self.q1 = List[Float64]()
-        self.median = List[Float64]()
-        self.q3 = List[Float64]()
-        self.low = List[Float64]()
-        self.high = List[Float64]()
-        self.outlier_cat = List[Int]()
-        self.outlier_value = List[Float64]()
-
-
-struct _CandleData(Movable):
-    """
-    Mark.CANDLESTICK only -- one open/high/low/close value per category,
-    from encode_candlestick(). See that method's own docstring.
-
-    Grouped onto `Plot._candle` -- see `Plot`'s own docstring.
-    """
-
-    var open_price: List[Float64]
-    var high: List[Float64]
-    var low: List[Float64]
-    var close_price: List[Float64]
-
-    def __init__(out self):
-        self.open_price = List[Float64]()
-        self.high = List[Float64]()
-        self.low = List[Float64]()
-        self.close_price = List[Float64]()
-
-
-struct _BulletData(Movable):
-    """
-    Mark.BULLET only -- one measure/target pair, plus a whole list of
-    ascending qualitative-range thresholds, per category. See
-    encode_bullet()'s own docstring.
-
-    Grouped onto `Plot._bullet` -- see `Plot`'s own docstring.
-    """
-
-    var measure: List[Float64]
-    var target: List[Float64]
-    var ranges: List[List[Float64]]
-
-    def __init__(out self):
-        self.measure = List[Float64]()
-        self.target = List[Float64]()
-        self.ranges = List[List[Float64]]()
-
-
 struct _GanttData(Movable):
     """
     Mark.GANTT only -- one start/end span per category. See
@@ -453,45 +377,6 @@ struct _GroupedBarData(Movable):
     def __init__(out self):
         self.series_names = List[String]()
         self.values = List[List[Float64]]()
-
-
-struct _PyramidData(Movable):
-    """
-    Mark.POPULATION_PYRAMID only -- one magnitude per side per category,
-    plus each side's own legend name. See encode_ population_pyramid()'s
-    own docstring.
-
-    Grouped onto `Plot._pyramid` -- see `Plot`'s own docstring.
-    """
-
-    var left: List[Float64]
-    var right: List[Float64]
-    var left_name: String
-    var right_name: String
-
-    def __init__(out self):
-        self.left = List[Float64]()
-        self.right = List[Float64]()
-        self.left_name = ""
-        self.right_name = ""
-
-
-struct _HeatmapData(Movable):
-    """
-    Mark.HEATMAP only -- one (x category, y category, value) row per
-    grid cell. See encode_heatmap()'s own docstring.
-
-    Grouped onto `Plot._heatmap` -- see `Plot`'s own docstring.
-    """
-
-    var x: List[String]
-    var y: List[String]
-    var value: List[Float64]
-
-    def __init__(out self):
-        self.x = List[String]()
-        self.y = List[String]()
-        self.value = List[Float64]()
 
 
 struct _DistributionData(Movable):
@@ -525,173 +410,6 @@ struct _DistributionData(Movable):
         self.values = List[List[Float64]]()
         self.kde_bandwidth_override = 0.0
         self.kde_scale_by_count = False
-
-
-struct _PolarData(Movable):
-    """
-    Mark.POLAR only -- one (angle, radius) pair per row (encode_
-    polar()), or a shared `angle` domain plus one or more named series
-    (encode_polar_series(), `_polar.series_names` non-empty is what
-    `_render_polar` actually branches on -- the legacy `_polar.radius`
-    field stays empty in that case). See both methods' own docstrings.
-
-    Grouped onto `Plot._polar` -- see `Plot`'s own docstring.
-    """
-
-    var angle: List[Float64]
-    var radius: List[Float64]
-    var series_names: List[String]
-    var series_radius: List[List[Float64]]
-
-    def __init__(out self):
-        self.angle = List[Float64]()
-        self.radius = List[Float64]()
-        self.series_names = List[String]()
-        self.series_radius = List[List[Float64]]()
-
-
-struct _RadarData(Movable):
-    """
-    Mark.RADAR only -- one named indicator (axis) per entry, each with
-    its own max, plus one or more named series each with a value per
-    indicator. See encode_radar()'s own docstring.
-
-    Grouped onto `Plot._radar` -- see `Plot`'s own docstring.
-    """
-
-    var indicators: List[String]
-    var max_values: List[Float64]
-    var series_names: List[String]
-    var series_values: List[List[Float64]]
-
-    def __init__(out self):
-        self.indicators = List[String]()
-        self.max_values = List[Float64]()
-        self.series_names = List[String]()
-        self.series_values = List[List[Float64]]()
-
-
-struct _GaugeData(Movable):
-    """
-    Mark.GAUGE only -- a single value plus its own dial range, plus the
-    optional custom breakpoint bands (empty means "use ECharts' own
-    20%/80%/100% default", the same empty-list-is-a-sentinel convention
-    `encode()`'s own `color`/`size` channels already use). See
-    encode_gauge()'s own docstring.
-
-    Grouped onto `Plot._gauge` -- see `Plot`'s own docstring.
-    """
-
-    var value: Float64
-    var min_value: Float64
-    var max_value: Float64
-    var breakpoints: List[Float64]
-    var band_colors: List[Color]
-
-    def __init__(out self):
-        self.value = 0.0
-        self.min_value = 0.0
-        self.max_value = 0.0
-        self.breakpoints = List[Float64]()
-        self.band_colors = List[Color]()
-
-
-struct _ParallelData(Movable):
-    """
-    Mark.PARALLEL only -- one named axis per dimension, one named row
-    per observation, one value per (row, dimension) pair. See
-    encode_parallel()'s own docstring.
-
-    Grouped onto `Plot._parallel` -- see `Plot`'s own docstring.
-    """
-
-    var dims: List[String]
-    var row_names: List[String]
-    var data: List[List[Float64]]
-
-    def __init__(out self):
-        self.dims = List[String]()
-        self.row_names = List[String]()
-        self.data = List[List[Float64]]()
-
-
-struct _CalendarData(Movable):
-    """
-    Mark.CALENDAR_HEATMAP only -- one ("YYYY-MM-DD" date, value) row per
-    day. See encode_calendar()'s own docstring.
-
-    Grouped onto `Plot._calendar` -- see `Plot`'s own docstring.
-    """
-
-    var dates: List[String]
-    var values: List[Float64]
-
-    def __init__(out self):
-        self.dates = List[String]()
-        self.values = List[Float64]()
-
-
-struct _CorrplotData(Movable):
-    """
-    Mark.CORRPLOT only -- a square correlation matrix over a shared
-    variable list, plus display options. See encode_corrplot()'s own
-    docstring.
-
-    Grouped onto `Plot._corrplot` -- see `Plot`'s own docstring.
-    """
-
-    var variables: List[String]
-    var matrix: List[List[Float64]]
-    var layout: String
-    var diag: Bool
-    var labels: Bool
-
-    def __init__(out self):
-        self.variables = List[String]()
-        self.matrix = List[List[Float64]]()
-        self.layout = ""
-        self.diag = False
-        self.labels = False
-
-
-struct _PunchcardData(Movable):
-    """
-    Mark.PUNCHCARD only -- one (x category, y category, bubble size) row
-    per cell, plus the size->radius divisor. See encode_ punchcard()'s
-    own docstring.
-
-    Grouped onto `Plot._punchcard` -- see `Plot`'s own docstring.
-    """
-
-    var x: List[String]
-    var y: List[String]
-    var sizes: List[Float64]
-    var scale: Float64
-
-    def __init__(out self):
-        self.x = List[String]()
-        self.y = List[String]()
-        self.sizes = List[Float64]()
-        self.scale = 0.0
-
-
-struct _MarimekkoData(Movable):
-    """
-    Mark.MARIMEKKO only -- categories (columns), subcategories (stacked
-    rows), and a value per (subcategory, category) pair. See
-    encode_marimekko()'s own docstring.
-
-    Grouped onto `Plot._marimekko` -- see `Plot`'s own docstring.
-    """
-
-    var categories: List[String]
-    var subcategories: List[String]
-    var values: List[List[Float64]]
-
-    def __init__(out self):
-        self.categories = List[String]()
-        self.subcategories = List[String]()
-        self.values = List[List[Float64]]()
 
 
 struct _LabelData(Movable):

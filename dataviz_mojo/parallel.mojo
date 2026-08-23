@@ -21,6 +21,26 @@ from dataviz_mojo.scale import _min_max
 from dataviz_mojo.theme import Theme
 
 
+struct _ParallelData(Movable):
+    """
+    Mark.PARALLEL only -- one named axis per dimension, one named row
+    per observation, one value per (row, dimension) pair. See
+    encode_parallel()'s own docstring.
+
+    Grouped onto `Plot._parallel` -- see `Plot`'s own docstring.
+    """
+
+    var dims: List[String]
+    var row_names: List[String]
+    var data: List[List[Float64]]
+
+    def __init__(out self):
+        self.dims = List[String]()
+        self.row_names = List[String]()
+        self.data = List[List[Float64]]()
+
+
+
 def _axis_x(plot_x0: Int, plot_x1: Int, n: Int, d: Int) -> Float64:
     """The pixel x of dimension `d`'s own vertical axis -- `n` axes
     evenly spaced with the first pinned to `plot_x0` and the last to

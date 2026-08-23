@@ -24,6 +24,25 @@ from dataviz_mojo.scale import _format_fixed
 from dataviz_mojo.theme import Theme
 
 
+struct _HeatmapData(Movable):
+    """
+    Mark.HEATMAP only -- one (x category, y category, value) row per
+    grid cell. See encode_heatmap()'s own docstring.
+
+    Grouped onto `Plot._heatmap` -- see `Plot`'s own docstring.
+    """
+
+    var x: List[String]
+    var y: List[String]
+    var value: List[Float64]
+
+    def __init__(out self):
+        self.x = List[String]()
+        self.y = List[String]()
+        self.value = List[Float64]()
+
+
+
 struct _GridFrame(Movable):
     """`_draw_grid_axis_frame`'s own finished layout -- the two-
     categorical-axis analog of `_CategoricalFrame`/`_HorizontalCategoricalFrame`

@@ -20,6 +20,30 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.scale import _format_fixed
 from dataviz_mojo.theme import Theme
 
+
+struct _CorrplotData(Movable):
+    """
+    Mark.CORRPLOT only -- a square correlation matrix over a shared
+    variable list, plus display options. See encode_corrplot()'s own
+    docstring.
+
+    Grouped onto `Plot._corrplot` -- see `Plot`'s own docstring.
+    """
+
+    var variables: List[String]
+    var matrix: List[List[Float64]]
+    var layout: String
+    var diag: Bool
+    var labels: Bool
+
+    def __init__(out self):
+        self.variables = List[String]()
+        self.matrix = List[List[Float64]]()
+        self.layout = ""
+        self.diag = False
+        self.labels = False
+
+
 # A bubble's own max radius, as a fraction of its cell's own smaller
 # dimension -- a correlation of exactly +-1.0 fills this much of the
 # cell, everything weaker scales down from there. Fixed, not a Theme

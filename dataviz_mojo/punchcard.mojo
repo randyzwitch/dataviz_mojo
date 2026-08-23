@@ -15,6 +15,28 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 
 
+struct _PunchcardData(Movable):
+    """
+    Mark.PUNCHCARD only -- one (x category, y category, bubble size) row
+    per cell, plus the size->radius divisor. See encode_ punchcard()'s
+    own docstring.
+
+    Grouped onto `Plot._punchcard` -- see `Plot`'s own docstring.
+    """
+
+    var x: List[String]
+    var y: List[String]
+    var sizes: List[Float64]
+    var scale: Float64
+
+    def __init__(out self):
+        self.x = List[String]()
+        self.y = List[String]()
+        self.sizes = List[Float64]()
+        self.scale = 0.0
+
+
+
 def _render_punchcard[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:

@@ -19,6 +19,28 @@ from dataviz_mojo.scale import LinearScale
 from dataviz_mojo.theme import Theme
 
 
+struct _PyramidData(Movable):
+    """
+    Mark.POPULATION_PYRAMID only -- one magnitude per side per category,
+    plus each side's own legend name. See encode_ population_pyramid()'s
+    own docstring.
+
+    Grouped onto `Plot._pyramid` -- see `Plot`'s own docstring.
+    """
+
+    var left: List[Float64]
+    var right: List[Float64]
+    var left_name: String
+    var right_name: String
+
+    def __init__(out self):
+        self.left = List[Float64]()
+        self.right = List[Float64]()
+        self.left_name = ""
+        self.right_name = ""
+
+
+
 def _symmetric_zero_baseline_x_extent(left: List[Float64], right: List[Float64]) raises -> LinearScale:
     """The x-domain for `Mark.POPULATION_PYRAMID`: always `[-bound,
     bound]`, `bound` the largest magnitude across *both* sides (plus a

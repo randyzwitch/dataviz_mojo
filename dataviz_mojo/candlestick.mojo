@@ -15,6 +15,27 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 
 
+struct _CandleData(Movable):
+    """
+    Mark.CANDLESTICK only -- one open/high/low/close value per category,
+    from encode_candlestick(). See that method's own docstring.
+
+    Grouped onto `Plot._candle` -- see `Plot`'s own docstring.
+    """
+
+    var open_price: List[Float64]
+    var high: List[Float64]
+    var low: List[Float64]
+    var close_price: List[Float64]
+
+    def __init__(out self):
+        self.open_price = List[Float64]()
+        self.high = List[Float64]()
+        self.low = List[Float64]()
+        self.close_price = List[Float64]()
+
+
+
 def _render_candlestick[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:

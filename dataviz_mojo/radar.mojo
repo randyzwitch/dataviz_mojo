@@ -23,6 +23,28 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.polar import _polar_point
 from dataviz_mojo.theme import Theme
 
+
+struct _RadarData(Movable):
+    """
+    Mark.RADAR only -- one named indicator (axis) per entry, each with
+    its own max, plus one or more named series each with a value per
+    indicator. See encode_radar()'s own docstring.
+
+    Grouped onto `Plot._radar` -- see `Plot`'s own docstring.
+    """
+
+    var indicators: List[String]
+    var max_values: List[Float64]
+    var series_names: List[String]
+    var series_values: List[List[Float64]]
+
+    def __init__(out self):
+        self.indicators = List[String]()
+        self.max_values = List[Float64]()
+        self.series_names = List[String]()
+        self.series_values = List[List[Float64]]()
+
+
 # How many evenly-spaced "web" rings the polygon grid draws -- the
 # same fixed-constant reasoning `polar.mojo`'s own `_POLAR_GRID_RINGS`
 # already gives, unrelated to it only because a radar grid is

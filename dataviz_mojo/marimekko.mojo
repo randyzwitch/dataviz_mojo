@@ -18,6 +18,26 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 
 
+struct _MarimekkoData(Movable):
+    """
+    Mark.MARIMEKKO only -- categories (columns), subcategories (stacked
+    rows), and a value per (subcategory, category) pair. See
+    encode_marimekko()'s own docstring.
+
+    Grouped onto `Plot._marimekko` -- see `Plot`'s own docstring.
+    """
+
+    var categories: List[String]
+    var subcategories: List[String]
+    var values: List[List[Float64]]
+
+    def __init__(out self):
+        self.categories = List[String]()
+        self.subcategories = List[String]()
+        self.values = List[List[Float64]]()
+
+
+
 def _render_marimekko[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:

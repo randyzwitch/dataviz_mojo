@@ -12,6 +12,32 @@ from dataviz_mojo.polar import _polar_point
 from dataviz_mojo.scale import _format_fixed
 from dataviz_mojo.theme import Theme
 
+
+struct _GaugeData(Movable):
+    """
+    Mark.GAUGE only -- a single value plus its own dial range, plus the
+    optional custom breakpoint bands (empty means "use ECharts' own
+    20%/80%/100% default", the same empty-list-is-a-sentinel convention
+    `encode()`'s own `color`/`size` channels already use). See
+    encode_gauge()'s own docstring.
+
+    Grouped onto `Plot._gauge` -- see `Plot`'s own docstring.
+    """
+
+    var value: Float64
+    var min_value: Float64
+    var max_value: Float64
+    var breakpoints: List[Float64]
+    var band_colors: List[Color]
+
+    def __init__(out self):
+        self.value = 0.0
+        self.min_value = 0.0
+        self.max_value = 0.0
+        self.breakpoints = List[Float64]()
+        self.band_colors = List[Color]()
+
+
 # The dial's own sweep: a 270-degree (3*pi/2) arc starting at 135
 # degrees (bottom-left, past `_polar_point`'s own east-is-zero/
 # clockwise convention -- see that function's own docstring) and

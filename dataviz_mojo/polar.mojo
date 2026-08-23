@@ -20,6 +20,30 @@ from dataviz_mojo.plot import (
 )
 from dataviz_mojo.theme import Theme
 
+
+struct _PolarData(Movable):
+    """
+    Mark.POLAR only -- one (angle, radius) pair per row (encode_
+    polar()), or a shared `angle` domain plus one or more named series
+    (encode_polar_series(), `_polar.series_names` non-empty is what
+    `_render_polar` actually branches on -- the legacy `_polar.radius`
+    field stays empty in that case). See both methods' own docstrings.
+
+    Grouped onto `Plot._polar` -- see `Plot`'s own docstring.
+    """
+
+    var angle: List[Float64]
+    var radius: List[Float64]
+    var series_names: List[String]
+    var series_radius: List[List[Float64]]
+
+    def __init__(out self):
+        self.angle = List[Float64]()
+        self.radius = List[Float64]()
+        self.series_names = List[String]()
+        self.series_radius = List[List[Float64]]()
+
+
 # How many evenly-spaced concentric grid rings/angular spokes the polar
 # grid draws -- fixed constants, not `Theme` fields, the same
 # "not worth a knob until something concrete needs one" reasoning
