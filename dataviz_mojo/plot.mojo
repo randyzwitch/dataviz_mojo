@@ -2698,7 +2698,11 @@ def _draw_continuous_color_legend[T: DrawTarget](
     `color_scale`'s own offsets run low (0.0) to high (1.0), but the
     bar's own gradient axis runs top (`y`) to bottom (`y + bar_height`)
     -- top has to be the *high* value, so each stop's own gradient
-    offset is `1.0 - stop.offset`, not `stop.offset` directly.
+    offset is `1.0 - stop.offset`, not `stop.offset` directly. Because
+    that flip reverses their order, the stops are then sorted back into
+    ascending offset order before being added -- SVG requires it, and
+    emitting them descending rendered the bar as one flat color; see
+    the body's own comment for the full story.
 
     Returns the y-coordinate just below this section (bar height plus
     one row gap) -- where `_draw_continuous_size_legend` starts if a
@@ -2710,8 +2714,49 @@ def _draw_continuous_color_legend[T: DrawTarget](
     var bar_width = sc.continuous_legend_bar_width
     var bar_height = sc.continuous_legend_bar_height
     var gradient = LinearGradient(Float64(x), Float64(y), Float64(x), Float64(y + bar_height))
+
+    # Stops are emitted in ascending offset order, which SVG requires
+    # and the raster backend does not care about.
+    #
+    # SVG's own <linearGradient> clamps each <stop>'s offset to be no
+    # less than the previous one's. Emitting `1.0 - offset` straight
+    # off an ascending ColorScale runs *descending* (1.0, 0.5, 0.0), so
+    # every stop after the first got clamped up to 1.0, collapsing all
+    # three onto one offset -- and the legend bar rendered as a single
+    # flat color with no gradient at all.
+    #
+    # The raster path was always correct, which is exactly why this
+    # survived: `_color_at_t` scans for the bracketing pair rather than
+    # assuming sorted input (see canvas_mojo/gradient.mojo), so the
+    # same code produced a correct .png and a broken .svg from one
+    # render. Only the vector output was ever wrong.
+    #
+    # Sorted rather than simply iterating `color_scale.stops` backwards:
+    # `ColorScale.add_stop` deliberately accepts stops in any order (it
+    # tracks its own `_lowest`/`_highest` incrementally for precisely
+    # the same reason `LinearGradient` does), so "the reverse of
+    # ascending" is only ascending for the scales `from_theme` happens
+    # to build. Sorting is correct for any `ColorScale`, including the
+    # hand-built ones in tests/test_color_scale.mojo. Insertion sort
+    # because the list is three stops long.
+    var offsets = List[Float64](capacity=len(color_scale.stops))
+    var colors = List[Color](capacity=len(color_scale.stops))
     for stop in color_scale.stops:
-        gradient.add_stop(1.0 - stop.offset, stop.color)
+        offsets.append(1.0 - stop.offset)
+        colors.append(stop.color)
+    for a in range(1, len(offsets)):
+        var key_offset = offsets[a]
+        var key_color = colors[a]
+        var b = a - 1
+        while b >= 0 and offsets[b] > key_offset:
+            offsets[b + 1] = offsets[b]
+            colors[b + 1] = colors[b]
+            b -= 1
+        offsets[b + 1] = key_offset
+        colors[b + 1] = key_color
+    for i in range(len(offsets)):
+        gradient.add_stop(offsets[i], colors[i])
+
     target.fill_rect_gradient(x, y, bar_width, bar_height, gradient)
 
     var label_baseline_offset = Int(sc.font_size * 0.35)
