@@ -3192,6 +3192,74 @@ def _draw_annotation_points[
     return text_requests^
 
 
+def _replay_text_requests(mut canvas: Canvas, requests: List[_TextRequest]) raises:
+    """Draw every `_TextRequest` in `requests` into `canvas` via
+    `canvas_mojo.text.draw_text` -- the raster half of replaying the
+    deferred labels `_render_generic` and friends hand back (see
+    `_TextRequest`'s own docstring for why they're deferred at all).
+
+    Every raster entry point (`render()`, `render_facets()`,
+    `render_layers()`) used to carry its own verbatim copy of this
+    loop, one per request list it had to draw -- nine copies of the
+    same nine-argument `draw_text` call between them, differing only
+    in which list they iterated. That is exactly the shape a helper
+    exists for, and keeping it as one function is what makes the
+    argument list a single place to change rather than nine places to
+    keep in sync (see `_replay_text_requests_svg` for the vector
+    mirror of the same collapse).
+    """
+    for req in requests:
+        draw_text(
+            canvas,
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            align=req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
+
+
+def _replay_text_requests_svg(mut svg: SvgCanvas, requests: List[_TextRequest]) raises:
+    """`_replay_text_requests`' exact counterpart for `SvgCanvas` --
+    same deferred-label replay, `SvgCanvas.draw_text` (plain markup
+    emission, no glyph machinery) in place of `canvas_mojo.text.
+    draw_text`, the same relationship `render_svg()` has to `render()`.
+    Kept a separate function rather than folded into one `DrawTarget`-
+    generic helper because `DrawTarget` deliberately has no `draw_text`
+    method to dispatch through -- see canvas_mojo/draw_target.mojo's
+    own docstring for why text is the one thing that never crosses
+    that trait boundary.
+    """
+    for req in requests:
+        svg.draw_text(
+            req.x,
+            req.y,
+            req.text,
+            req.color,
+            req.size,
+            req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
+
+
+def _extend_text_requests(mut dst: List[_TextRequest], src: List[_TextRequest]):
+    """Append a copy of every `_TextRequest` in `src` onto `dst` -- the
+    accumulate-side counterpart to the replay helpers above, collapsing
+    the same `for req in ...: dst.append(req.copy())` loop that
+    `_render_facets_generic`/`_render_layers_generic` each carried
+    several copies of while gathering their per-cell/per-layer labels
+    into one combined list.
+    """
+    for req in src:
+        dst.append(req.copy())
+
+
 def render(
     mut canvas: Canvas, plot: Plot, ox0: Int = 0, oy0: Int = 0, ox1: Int = -1, oy1: Int = -1
 ) raises:
@@ -3274,84 +3342,12 @@ def render(
     var vline_annotation_requests = _draw_annotation_vlines(canvas, plot, result, plot._theme)
     var annotation_requests = _draw_annotation_lines(canvas, plot, result, plot._theme)
     var point_annotation_requests = _draw_annotation_points(canvas, plot, result, plot._theme)
-    for req in label_requests:
-        draw_text(
-            canvas,
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            align=req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
-    for req in area_annotation_requests:
-        draw_text(
-            canvas,
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            align=req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
-    for req in vline_annotation_requests:
-        draw_text(
-            canvas,
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            align=req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
-    for req in annotation_requests:
-        draw_text(
-            canvas,
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            align=req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
-    for req in point_annotation_requests:
-        draw_text(
-            canvas,
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            align=req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
-    for req in result.text_requests:
-        draw_text(
-            canvas,
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            align=req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
+    _replay_text_requests(canvas, label_requests)
+    _replay_text_requests(canvas, area_annotation_requests)
+    _replay_text_requests(canvas, vline_annotation_requests)
+    _replay_text_requests(canvas, annotation_requests)
+    _replay_text_requests(canvas, point_annotation_requests)
+    _replay_text_requests(canvas, result.text_requests)
 
 
 def render_svg(
@@ -3378,78 +3374,12 @@ def render_svg(
     var vline_annotation_requests = _draw_annotation_vlines(svg, plot, result, plot._theme)
     var annotation_requests = _draw_annotation_lines(svg, plot, result, plot._theme)
     var point_annotation_requests = _draw_annotation_points(svg, plot, result, plot._theme)
-    for req in label_requests:
-        svg.draw_text(
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
-    for req in area_annotation_requests:
-        svg.draw_text(
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
-    for req in vline_annotation_requests:
-        svg.draw_text(
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
-    for req in annotation_requests:
-        svg.draw_text(
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
-    for req in point_annotation_requests:
-        svg.draw_text(
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
-    for req in result.text_requests:
-        svg.draw_text(
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
+    _replay_text_requests_svg(svg, label_requests)
+    _replay_text_requests_svg(svg, area_annotation_requests)
+    _replay_text_requests_svg(svg, vline_annotation_requests)
+    _replay_text_requests_svg(svg, annotation_requests)
+    _replay_text_requests_svg(svg, point_annotation_requests)
+    _replay_text_requests_svg(svg, result.text_requests)
 
 
 def accessible_svg_string(svg: SvgCanvas, title: String, description: String = "") raises -> String:
@@ -4489,19 +4419,7 @@ def render_facets(mut canvas: Canvas, plots: List[Plot], cols: Int) raises:
     it returns via `canvas_mojo.text.draw_text`.
     """
     var text_requests = _render_facets_generic(canvas, canvas.width, canvas.height, plots, cols)
-    for req in text_requests:
-        draw_text(
-            canvas,
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            align=req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
+    _replay_text_requests(canvas, text_requests)
 
 
 def render_facets_svg(mut svg: SvgCanvas, plots: List[Plot], cols: Int) raises:
@@ -4512,18 +4430,7 @@ def render_facets_svg(mut svg: SvgCanvas, plots: List[Plot], cols: Int) raises:
     own docstring).
     """
     var text_requests = _render_facets_generic(svg, svg.width, svg.height, plots, cols)
-    for req in text_requests:
-        svg.draw_text(
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
+    _replay_text_requests_svg(svg, text_requests)
 
 
 def _render_facets_generic[
@@ -4633,14 +4540,10 @@ def _render_facets_generic[
         # render_svg() already use.
         var cell_area_requests = _draw_annotation_areas(target, plots[i], cell_result, plots[i]._theme)
         var cell_line_requests = _draw_annotation_lines(target, plots[i], cell_result, plots[i]._theme)
-        for req in label_requests:
-            text_requests.append(req.copy())
-        for req in cell_area_requests:
-            text_requests.append(req.copy())
-        for req in cell_line_requests:
-            text_requests.append(req.copy())
-        for req in cell_result.text_requests:
-            text_requests.append(req.copy())
+        _extend_text_requests(text_requests, label_requests)
+        _extend_text_requests(text_requests, cell_area_requests)
+        _extend_text_requests(text_requests, cell_line_requests)
+        _extend_text_requests(text_requests, cell_result.text_requests)
 
     return text_requests^
 
@@ -4795,32 +4698,8 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
                 rotation=pi / 2.0,
             )
         )
-    for req in label_requests:
-        draw_text(
-            canvas,
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            align=req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
-    for req in result.text_requests:
-        draw_text(
-            canvas,
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            align=req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
+    _replay_text_requests(canvas, label_requests)
+    _replay_text_requests(canvas, result.text_requests)
 
 
 def render_layers_svg(mut svg: SvgCanvas, plots: List[Plot], ox0: Int = 0, oy0: Int = 0, ox1: Int = -1, oy1: Int = -1) raises:
@@ -4859,30 +4738,8 @@ def render_layers_svg(mut svg: SvgCanvas, plots: List[Plot], ox0: Int = 0, oy0: 
                 rotation=pi / 2.0,
             )
         )
-    for req in label_requests:
-        svg.draw_text(
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
-    for req in result.text_requests:
-        svg.draw_text(
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
+    _replay_text_requests_svg(svg, label_requests)
+    _replay_text_requests_svg(svg, result.text_requests)
 
 
 def _render_layers_generic[
@@ -5062,8 +4919,7 @@ def _render_layers_generic[
     var frame = _draw_continuous_axis_frame(
         target, x_scale, y_scale, theme, legend_reserve + secondary_axis_reserve, ox0, oy0, ox1, oy1
     )
-    for req in frame.text_requests:
-        text_requests.append(req.copy())
+    _extend_text_requests(text_requests, frame.text_requests)
 
     # The secondary axis line/ticks/labels -- drawn at the plot rect's
     # own right edge (frame.px1), the mirror image of the primary axis
@@ -5141,10 +4997,8 @@ def _render_layers_generic[
         )
         var layer_area_requests = _draw_annotation_areas(target, plots[j], layer_result, plots[j]._theme)
         var layer_line_requests = _draw_annotation_lines(target, plots[j], layer_result, plots[j]._theme)
-        for req in layer_area_requests:
-            text_requests.append(req.copy())
-        for req in layer_line_requests:
-            text_requests.append(req.copy())
+        _extend_text_requests(text_requests, layer_area_requests)
+        _extend_text_requests(text_requests, layer_line_requests)
 
     return _RenderResult(text_requests^, frame.px0, frame.py0, frame.px1, frame.py1)
 
