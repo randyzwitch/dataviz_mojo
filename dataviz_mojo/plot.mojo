@@ -2512,20 +2512,29 @@ def _max_label_width(labels: List[String], font_size: Float64) raises -> Float64
     label text, depend only on the data domain, never on the pixel
     range they'll eventually be drawn into, so measuring them this
     early is exact, not a guess to be corrected later).
+
+    Resolves its font fresh (one `FontCache` for this call's own label
+    list). A caller that measures *twice* in one render -- a y-axis
+    tick list and then a legend's labels, which several marks do --
+    should use the `cache=` overload below and share one cache between
+    the two instead, since a fresh cache re-pays canvas_mojo's font
+    resolution and TTF parse: measured at 0.44ms for a 5-label call
+    against 0.056ms once the cache is warm. Two overloads rather than
+    one required parameter deliberately mirrors canvas_mojo's own
+    `measure_text`/`draw_text` pair, and keeps the two dozen
+    single-measurement call sites in this package untouched.
+    """
+    var cache = FontCache()
+    return _max_label_width(labels, font_size, cache=cache)
+
+
+def _max_label_width(
+    labels: List[String], font_size: Float64, *, mut cache: FontCache
+) raises -> Float64:
+    """`_max_label_width` resolving fonts through `cache` instead of
+    fresh -- see the overload above for when to reach for this.
     """
     var max_width = 0.0
-    # One FontCache for the whole list rather than the fresh, uncached
-    # font resolution every bare measure_text() call does -- see
-    # canvas_mojo/text/font_cache.mojo's own docstring, which names
-    # exactly this case ("a chart's axis ticks and legend") as what
-    # the cache= overload exists for. Created here rather than
-    # threaded in as a parameter deliberately: this function is called
-    # from two dozen mark modules, and the reuse that actually matters
-    # is *within* one call (every label in one axis's tick list shares
-    # one font), so a local cache captures nearly all of it without
-    # putting a `mut cache` argument through every call site in the
-    # package.
-    var cache = FontCache()
     for label in labels:
         var m = measure_text(label, font_size, cache=cache)
         if m.width > max_width:
@@ -2557,10 +2566,26 @@ def _dynamic_legend_width(labels: List[String], content_width: Int, sc: _Scaled)
     the margin second" ordering the y-axis's own tick labels already
     require -- see each call site's own comment for where that
     reordering was needed.
+
+    Has a `cache=` overload for the same reason `_max_label_width`
+    does -- a mark sizing both an axis and a legend in one render
+    shares one cache across the two.
     """
+    var cache = FontCache()
+    return _dynamic_legend_width(labels, content_width, sc, cache=cache)
+
+
+def _dynamic_legend_width(
+    labels: List[String], content_width: Int, sc: _Scaled, *, mut cache: FontCache
+) raises -> Int:
+    """`_dynamic_legend_width` resolving fonts through `cache` instead
+    of fresh -- see the overload above."""
     return max(
         sc.legend_width,
-        content_width + sc.label_gap + Int(_max_label_width(labels, sc.font_size)) + sc.margin_buffer,
+        content_width
+        + sc.label_gap
+        + Int(_max_label_width(labels, sc.font_size, cache=cache))
+        + sc.margin_buffer,
     )
 
 
@@ -3906,7 +3931,22 @@ def _legend_reserve_for(plot: Plot, ch: _PointChannels, sc: _Scaled) raises -> I
     real labels before sizing the margin around them" ordering the
     y-axis's own dynamic left margin already requires -- see
     `_dynamic_legend_width`'s own docstring.
+
+    Has a `cache=` overload, for the same reason `_max_label_width`
+    does -- `_render_generic` shares one cache between this and the
+    axis frame's own tick measurement.
     """
+    var cache = FontCache()
+    return _legend_reserve_for(plot, ch, sc, cache=cache)
+
+
+def _legend_reserve_for(
+    plot: Plot, ch: _PointChannels, sc: _Scaled, *, mut cache: FontCache
+) raises -> Int:
+    """`_legend_reserve_for` measuring through `cache` instead of
+    fresh -- see the overload above. A plot combining continuous color
+    *and* size measures twice in here alone, so even a single call
+    benefits from sharing."""
     if not plot._theme.show_legend:
         return 0
     if not (
@@ -3918,13 +3958,16 @@ def _legend_reserve_for(plot: Plot, ch: _PointChannels, sc: _Scaled) raises -> I
 
     var reserve = 0
     if ch.has_color_categories:
-        reserve = max(reserve, _dynamic_legend_width(ch.cat.domain, sc.legend_swatch_size, sc))
+        reserve = max(
+            reserve, _dynamic_legend_width(ch.cat.domain, sc.legend_swatch_size, sc, cache=cache)
+        )
     elif ch.has_color:
         var color_labels = List[String]()
         color_labels.append(_format_fixed(ch.color_scale.domain_max, 1))
         color_labels.append(_format_fixed(ch.color_scale.domain_min, 1))
         reserve = max(
-            reserve, _dynamic_legend_width(color_labels, sc.continuous_legend_bar_width, sc)
+            reserve,
+            _dynamic_legend_width(color_labels, sc.continuous_legend_bar_width, sc, cache=cache),
         )
     if ch.has_size:
         var size_labels = List[String]()
@@ -3932,7 +3975,9 @@ def _legend_reserve_for(plot: Plot, ch: _PointChannels, sc: _Scaled) raises -> I
         size_labels.append(_format_fixed((ch.size_mm.min + ch.size_mm.max) / 2.0, 1))
         size_labels.append(_format_fixed(ch.size_mm.min, 1))
         var circle_content_width = 2 * _round_to_int(sc.size_range_max)
-        reserve = max(reserve, _dynamic_legend_width(size_labels, circle_content_width, sc))
+        reserve = max(
+            reserve, _dynamic_legend_width(size_labels, circle_content_width, sc, cache=cache)
+        )
     return reserve
 
 
@@ -4011,6 +4056,8 @@ def _draw_continuous_axis_frame[
     oy0: Int,
     ox1: Int,
     oy1: Int,
+    *,
+    mut cache: FontCache,
 ) raises -> _ContinuousFrame:
     """The layout and axis-frame-drawing core every continuous-x render
     path shares -- `_draw_categorical_axis_frame`'s own direct
@@ -4057,7 +4104,10 @@ def _draw_continuous_axis_frame[
     var y_ticks = y_scale.ticks()
     var y_labels = y_ticks.labels()
     var dynamic_left_margin = (
-        Int(_max_label_width(y_labels, sc.font_size)) + sc.tick_length + sc.label_gap + sc.margin_buffer
+        Int(_max_label_width(y_labels, sc.font_size, cache=cache))
+        + sc.tick_length
+        + sc.label_gap
+        + sc.margin_buffer
     )
 
     var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
@@ -4454,7 +4504,15 @@ def _render_generic[
     # layer (which colors/sizes each point afterward) -- see
     # _PointChannels' own docstring for why the two have to agree.
     var ch = _PointChannels(plot, sc)
-    var legend_reserve = _legend_reserve_for(plot, ch, sc)
+
+    # One FontCache for every measurement this render makes. Both the
+    # legend sizing below and the axis frame's own tick-label
+    # measurement resolve the same font; a fresh cache per call re-pays
+    # canvas_mojo's font resolution *and* its TTF parse (0.44ms for a
+    # 5-label call, against 0.056ms once warm), which is pure waste
+    # when the two calls are microseconds apart in the same render.
+    var measure_cache = FontCache()
+    var legend_reserve = _legend_reserve_for(plot, ch, sc, cache=measure_cache)
 
     # The one thing that differs between this path and the layered one:
     # whose data the two domains are computed over (see _draw_
@@ -4467,7 +4525,7 @@ def _render_generic[
     var x_scale = _data_extent(plot.x_data)
 
     var frame = _draw_continuous_axis_frame(
-        target, x_scale, y_scale, theme, legend_reserve, ox0, oy0, ox1, oy1
+        target, x_scale, y_scale, theme, legend_reserve, ox0, oy0, ox1, oy1, cache=measure_cache
     )
 
     if plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER:
@@ -5169,12 +5227,20 @@ def _render_layers_generic[
     # width's own docstring), then tick_length + label_gap + margin_
     # buffer beyond that. 0 when no layer uses a secondary axis, so
     # legend_x below is unchanged from before this feature existed.
+    # One FontCache for every measurement this layered render makes --
+    # see _render_generic's own. This path benefits most: the secondary
+    # axis measures here, then the loop below sizes one legend section
+    # per layer, so an N-layer chart was building N+2 separate caches
+    # (re-resolving and re-parsing the same font each time) where one
+    # now serves the whole render.
+    var measure_cache = FontCache()
+
     var secondary_axis_reserve = 0
     if has_secondary_data:
         var y2_ticks_for_margin = y_scale2.ticks()
         var y2_labels_for_margin = y2_ticks_for_margin.labels()
         secondary_axis_reserve = (
-            Int(_max_label_width(y2_labels_for_margin, sc.font_size))
+            Int(_max_label_width(y2_labels_for_margin, sc.font_size, cache=measure_cache))
             + sc.tick_length
             + sc.label_gap
             + sc.margin_buffer
@@ -5191,10 +5257,21 @@ def _render_layers_generic[
     for j in range(len(plots)):
         var p_sc_j = _Scaled(plots[j]._theme)
         var ch_j = _PointChannels(plots[j], p_sc_j)
-        legend_reserve = max(legend_reserve, _legend_reserve_for(plots[j], ch_j, p_sc_j))
+        legend_reserve = max(
+            legend_reserve, _legend_reserve_for(plots[j], ch_j, p_sc_j, cache=measure_cache)
+        )
 
     var frame = _draw_continuous_axis_frame(
-        target, x_scale, y_scale, theme, legend_reserve + secondary_axis_reserve, ox0, oy0, ox1, oy1
+        target,
+        x_scale,
+        y_scale,
+        theme,
+        legend_reserve + secondary_axis_reserve,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=measure_cache,
     )
     _extend_text_requests(text_requests, frame.text_requests)
 

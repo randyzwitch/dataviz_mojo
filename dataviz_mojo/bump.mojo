@@ -6,6 +6,7 @@ from canvas_mojo.buffer import Canvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.funnel import _descending_value_order
 from dataviz_mojo.grouped_bar import _validate_grouped_bar_series
+from canvas_mojo.text.font_cache import FontCache
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.ordinal_scale import OrdinalScale
 from dataviz_mojo.plot import (
@@ -89,6 +90,8 @@ def _draw_bump_axis_frame[
     oy0: Int,
     ox1: Int,
     oy1: Int,
+    *,
+    mut cache: FontCache,
 ) raises -> _BumpFrame:
     """`Mark.BUMP`'s own axis frame: `_draw_categorical_axis_frame`'s
     familiar vertical-categorical-`x`-plus-continuous-`y` shape, but the
@@ -113,7 +116,7 @@ def _draw_bump_axis_frame[
     for r in range(1, n_series + 1):
         rank_labels.append(String(r))
     var dynamic_left_margin = (
-        Int(_max_label_width(rank_labels, sc.font_size)) + sc.tick_length + sc.label_gap + sc.margin_buffer
+        Int(_max_label_width(rank_labels, sc.font_size, cache=cache)) + sc.tick_length + sc.label_gap + sc.margin_buffer
     )
 
     var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
@@ -196,12 +199,22 @@ def _render_bump[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
+
+    # One FontCache for both measurements -- the legend's series names
+    # here, then the rank-axis labels inside _draw_bump_axis_frame.
+    var measure_cache = FontCache()
+
     var legend_reserve = (
-        _dynamic_legend_width(plot._grouped_bar_series_names, sc.legend_swatch_size, sc) if show_legend else 0
+        _dynamic_legend_width(
+            plot._grouped_bar_series_names, sc.legend_swatch_size, sc, cache=measure_cache
+        )
+        if show_legend
+        else 0
     )
 
     var frame = _draw_bump_axis_frame(
-        target, plot.x_categories, n_series, theme, ox0, oy0, ox1 - legend_reserve, oy1
+        target, plot.x_categories, n_series, theme, ox0, oy0, ox1 - legend_reserve, oy1,
+        cache=measure_cache
     )
 
     # rank[j][i]: series j's own rank (1 = highest value) at category i.
