@@ -17,6 +17,7 @@ from dataviz_mojo.plot import (
     _dynamic_legend_width,
     _empty_result,
     _rendered,
+    _require_non_negative,
 )
 from dataviz_mojo.theme import Theme
 
@@ -133,9 +134,7 @@ def _render_sunburst[
     if len(plot._hierarchy_ids) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    for v in plot._hierarchy_values:
-        if v < 0.0:
-            raise Error("Plot: Mark.SUNBURST values must be non-negative (got " + String(v) + ")")
+    _require_non_negative(plot._hierarchy_values, "Mark.SUNBURST")
 
     var idx = _build_hierarchy_index(plot._hierarchy_ids, plot._hierarchy_parent_ids, plot._hierarchy_values)
     if idx.subtree_value[idx.root] <= 0.0:

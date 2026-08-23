@@ -14,6 +14,8 @@ from dataviz_mojo.plot import (
     _dynamic_legend_width,
     _empty_result,
     _rendered,
+    _validate_categorical_encoding,
+    _require_non_negative,
 )
 from dataviz_mojo.theme import Theme
 
@@ -95,23 +97,13 @@ def _render_funnel[
     the legend below is drawn in that same sorted order, not the
     caller's original one.
     """
-    if len(plot.x_categories) != len(plot.y_data):
-        raise Error(
-            "Plot.encode_categorical(): x and y must have the same length"
-            " (got "
-            + String(len(plot.x_categories))
-            + " and "
-            + String(len(plot.y_data))
-            + ")"
-        )
+    _validate_categorical_encoding(plot)
 
     var theme = plot._theme
     if len(plot.x_categories) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    for v in plot.y_data:
-        if v < 0.0:
-            raise Error("Plot: Mark.FUNNEL values must be non-negative (got " + String(v) + ")")
+    _require_non_negative(plot.y_data, "Mark.FUNNEL")
 
     var order = _descending_value_order(plot.y_data)
     var n = len(order)

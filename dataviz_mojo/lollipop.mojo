@@ -12,6 +12,7 @@ from dataviz_mojo.plot import (
     _empty_result,
     _rendered,
     _zero_baseline_y_extent,
+    _validate_categorical_encoding,
 )
 from dataviz_mojo.theme import Theme
 
@@ -37,15 +38,7 @@ def _render_lollipop[
     see canvas_mojo/draw_target.mojo), gets rounded, matching `Mark.POINT`'s
     own `_axis_pixel` convention.
     """
-    if len(plot.x_categories) != len(plot.y_data):
-        raise Error(
-            "Plot.encode_categorical(): x and y must have the same length"
-            " (got "
-            + String(len(plot.x_categories))
-            + " and "
-            + String(len(plot.y_data))
-            + ")"
-        )
+    _validate_categorical_encoding(plot)
 
     var theme = plot._theme
     if len(plot.x_categories) == 0:

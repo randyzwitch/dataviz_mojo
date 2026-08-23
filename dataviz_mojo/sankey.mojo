@@ -14,6 +14,7 @@ from dataviz_mojo.plot import (
     _Scaled,
     _TextRequest,
     _edge_node_index,
+    _validate_edge_encoding,
     _empty_result,
     _rendered,
 )
@@ -89,25 +90,11 @@ def _render_sankey[
     it) -- a self-loop has no meaningful column-distance to lay out in
     the first place. Every value must be non-negative.
     """
-    if len(plot._chord_from) != len(plot._chord_to) or len(plot._chord_value) != len(plot._chord_from):
-        raise Error(
-            "Plot.encode_chord(): from_categories, to_categories, and"
-            " values must all have the same length (got "
-            + String(len(plot._chord_from))
-            + " from_categories, "
-            + String(len(plot._chord_to))
-            + " to_categories, "
-            + String(len(plot._chord_value))
-            + " values)"
-        )
+    _validate_edge_encoding(plot, "Mark.SANKEY")
 
     var theme = plot._theme
     if len(plot._chord_from) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
-
-    for v in plot._chord_value:
-        if v < 0.0:
-            raise Error("Plot: Mark.SANKEY values must be non-negative (got " + String(v) + ")")
 
     var edges = _edge_node_index(plot._chord_from, plot._chord_to)
     ref nodes = edges.nodes
