@@ -90,16 +90,32 @@ def test_render_svg_continuous_color_legend_matches_hand_derived_gradient() rais
     # own gradient offset flipped (1.0 - stop.offset, see _draw_
     # continuous_color_legend's own docstring for why: the bar's top
     # has to be the *high* value, but ColorScale's own offset 1.0
-    # already means high) -- so the emitted gradient axis (270, 20) ->
-    # (270, 120) carries stop offset 1.0 = color_scale_low (#3c6ec8,
-    # Color(60,110,200)), stop offset 0.5 = color_scale_mid (#ebebeb,
-    # Color(235,235,235)) unchanged by the flip (0.5 maps to itself),
-    # and stop offset 0.0 = color_scale_high (#dc5a28, Color(220,90,
-    # 40)), in that order (ColorScale's own stops list is built low-
-    # then-mid-then-high, and this loop doesn't reorder them, just
-    # flips each one's own offset in place). Confirmed against a real
-    # render_svg() run before trusting it here, not just derived from
-    # the three Theme color fields by hand.
+    # already means high).
+    #
+    # The flip reverses their order, so they are sorted back into
+    # ASCENDING offset order before being emitted: offset 0.0 =
+    # color_scale_high (#dc5a28, Color(220,90,40)) at the bar's top,
+    # offset 0.5 = color_scale_mid (#ebebeb, Color(235,235,235)), and
+    # offset 1.0 = color_scale_low (#3c6ec8, Color(60,110,200)) at its
+    # bottom.
+    #
+    # That ordering is the whole point of this assertion, and this test
+    # previously had it backwards -- it asserted the descending order
+    # (1.0, 0.5, 0.0) the code emitted at the time. SVG clamps every
+    # <stop> offset to be no less than the previous one's, so those
+    # three all collapsed onto 1.0 and the legend bar rendered as a
+    # single flat color in any real SVG viewer, with no gradient at
+    # all. The raster backend was unaffected throughout (_color_at_t
+    # scans for the bracketing pair rather than assuming sorted input),
+    # so the .png was correct while the .svg beside it was not.
+    #
+    # The old comment said it was "confirmed against a real render_svg()
+    # run" -- and it was. That only ever confirmed the markup matched
+    # what the code produced, never that the markup was *valid SVG*.
+    # An assertion written by reading the output back cannot catch a
+    # bug that lives in the output. Hence the explicit ascending-order
+    # check below, which is about the format's requirement rather than
+    # about this particular render.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var color: List[Float64] = [0.0, 10.0]
@@ -110,11 +126,24 @@ def test_render_svg_continuous_color_legend_matches_hand_derived_gradient() rais
 
     assert_true(
         '<linearGradient id="grad1" gradientUnits="userSpaceOnUse" x1="270.000" y1="20.000"'
-        ' x2="270.000" y2="120.000"><stop offset="1.000" stop-color="#3c6ec8" stop-opacity="1.000"/>'
+        ' x2="270.000" y2="120.000"><stop offset="0.000" stop-color="#dc5a28" stop-opacity="1.000"/>'
         '<stop offset="0.500" stop-color="#ebebeb" stop-opacity="1.000"/>'
-        '<stop offset="0.000" stop-color="#dc5a28" stop-opacity="1.000"/></linearGradient>' in s,
-        "the gradient definition: low color at the bottom (offset 1.0), mid at the middle (offset"
-        " 0.5), high color at the top (offset 0.0)",
+        '<stop offset="1.000" stop-color="#3c6ec8" stop-opacity="1.000"/></linearGradient>' in s,
+        "the gradient definition: high color at the top (offset 0.0), mid at the middle (offset"
+        " 0.5), low color at the bottom (offset 1.0) -- in ascending offset order, as SVG requires",
+    )
+    # The ordering requirement on its own, independent of these three
+    # particular colors: a future change to the palette or to the stop
+    # count must not be able to reintroduce descending offsets.
+    var at_0 = s.find('offset="0.000"')
+    var at_half = s.find('offset="0.500"')
+    var at_1 = s.find('offset="1.000"')
+    assert_true(at_0 >= 0 and at_half >= 0 and at_1 >= 0, "all three stops reach the SVG")
+    assert_true(
+        at_0 < at_half and at_half < at_1,
+        "SVG gradient stop offsets must be emitted in ascending order -- SVG clamps each one to be"
+        " no less than the previous, so a descending list collapses the whole gradient into a"
+        " single flat color",
     )
     assert_true(
         '<rect x="270" y="20" width="14" height="100" fill="url(#grad1)"/>' in s,
