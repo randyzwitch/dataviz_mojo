@@ -110,5 +110,30 @@ def test_render_sunburst_empty_data_only_fills_background() raises:
     _assert_color(c, 50, 40, BG, "no hierarchy: nothing drawn but the background")
 
 
+def test_render_sunburst_raises_on_a_cycle() raises:
+    # "a" and "b" are each other's parent. Every other check passes --
+    # no duplicate ids, both parent_ids resolve, exactly one empty-
+    # parent root -- so nothing but a reachability check catches this.
+    # Before that check existed, the traversal simply never reached
+    # either row and both silently vanished from the chart, taking 16
+    # of the 21 total value with them.
+    var ids: List[String] = ["root", "leaf", "a", "b"]
+    var parents: List[String] = ["", "root", "b", "a"]
+    var values: List[Float64] = [0.0, 5.0, 7.0, 9.0]
+    with assert_raises():
+        _ = sunburst(ids, parents, values, width=200, height=150)
+
+
+def test_render_sunburst_raises_on_a_disconnected_component() raises:
+    # A self-parented row: "orphan" is its own parent, so it resolves
+    # and is never reachable. The degenerate one-node case of the same
+    # cycle bug above, caught by the same check.
+    var ids: List[String] = ["root", "orphan"]
+    var parents: List[String] = ["", "orphan"]
+    var values: List[Float64] = [0.0, 3.0]
+    with assert_raises():
+        _ = sunburst(ids, parents, values, width=200, height=150)
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
