@@ -224,42 +224,6 @@ from dataviz_mojo.stacked_bar import _render_stacked_bar
 from dataviz_mojo.streamgraph import _render_streamgraph
 from dataviz_mojo.waterfall import _render_waterfall, _waterfall_running_totals
 
-# Pixel length of an axis tick mark, and the gap between a tick mark
-# and its label -- small, fixed layout constants rather than Theme
-# fields, since nothing built so far has needed them configurable
-# (Theme's own fields are all things a real chart visibly varies:
-# colors, sizes, margins; these two are just spacing).
-comptime _TICK_LENGTH = 5
-comptime _LABEL_GAP = 4
-
-# Minimum pixel width reserved on the right for a legend (when one is
-# shown -- see Theme.show_legend) -- the actual reservation grows
-# beyond this to fit a real legend's own widest label (see _dynamic_
-# legend_width), the same "fixed value is a floor, not the whole
-# story" relationship Theme.margin_left has to the dynamic left
-# margin. Also the layout of each legend row (a small colored square,
-# then a gap, then the category label). Fixed rather than a Theme
-# field for the same reason _TICK_LENGTH/_LABEL_GAP are: nothing built
-# so far has needed the row layout itself configurable.
-comptime _LEGEND_WIDTH = 130
-comptime _LEGEND_SWATCH_SIZE = 14
-comptime _LEGEND_ROW_GAP = 8
-
-# A continuous color legend's own gradient bar -- _LEGEND_SWATCH_SIZE
-# wide (matching a categorical legend's own swatch width, for visual
-# consistency between the two), _CONTINUOUS_LEGEND_BAR_HEIGHT tall.
-# A real DrawTarget.fill_rect_gradient call now (canvas_mojo >=0.3.0)
-# -- this used to be approximated as many thin solid-colored fill_rect
-# strips, back when DrawTarget had no gradient-fill method at all; see
-# _draw_continuous_color_legend's own docstring for how the real
-# gradient is built from ColorScale's own stops.
-comptime _CONTINUOUS_LEGEND_BAR_WIDTH = _LEGEND_SWATCH_SIZE
-comptime _CONTINUOUS_LEGEND_BAR_HEIGHT = 100
-
-# Small breathing-room buffer beyond a dynamically measured label's
-# own width -- see _max_label_width/the dynamic left-margin
-# computation in render()/_render_bar.
-comptime _MARGIN_BUFFER = 8
 
 # The fixed internal supersampling factor `_rendered()` renders every
 # one-call convenience function's raster output at before shrinking it
@@ -334,17 +298,17 @@ struct _Scaled(Movable):
         self.margin_right = Int(Float64(theme.margin_right) * s)
         self.margin_top = Int(Float64(theme.margin_top) * s)
         self.margin_bottom = Int(Float64(theme.margin_bottom) * s)
-        self.tick_length = Int(Float64(_TICK_LENGTH) * s)
-        self.label_gap = Int(Float64(_LABEL_GAP) * s)
-        self.legend_width = Int(Float64(_LEGEND_WIDTH) * s)
-        self.legend_swatch_size = Int(Float64(_LEGEND_SWATCH_SIZE) * s)
-        self.legend_row_gap = Int(Float64(_LEGEND_ROW_GAP) * s)
-        self.margin_buffer = Int(Float64(_MARGIN_BUFFER) * s)
+        self.tick_length = Int(Float64(theme.tick_length) * s)
+        self.label_gap = Int(Float64(theme.label_gap) * s)
+        self.legend_width = Int(Float64(theme.legend_width) * s)
+        self.legend_swatch_size = Int(Float64(theme.legend_swatch_size) * s)
+        self.legend_row_gap = Int(Float64(theme.legend_row_gap) * s)
+        self.margin_buffer = Int(Float64(theme.margin_buffer) * s)
         self.title_font_size = theme.title_font_size * s
         self.subtitle_font_size = theme.subtitle_font_size * s
         self.axis_title_font_size = theme.axis_title_font_size * s
-        self.continuous_legend_bar_width = Int(Float64(_CONTINUOUS_LEGEND_BAR_WIDTH) * s)
-        self.continuous_legend_bar_height = Int(Float64(_CONTINUOUS_LEGEND_BAR_HEIGHT) * s)
+        self.continuous_legend_bar_width = Int(Float64(theme.continuous_legend_bar_width) * s)
+        self.continuous_legend_bar_height = Int(Float64(theme.continuous_legend_bar_height) * s)
 
 
 struct _GanttData(Movable):

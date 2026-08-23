@@ -145,8 +145,8 @@ def _render_gauge[
     if value > plot._gauge.max_value:
         value = plot._gauge.max_value
     var frac = (value - plot._gauge.min_value) / (plot._gauge.max_value - plot._gauge.min_value)
-    var needle_angle = _GAUGE_START + _GAUGE_SWEEP * frac
-    var tip = _polar_point(cx, cy, needle_angle, max_radius * _GAUGE_NEEDLE_FRACTION)
+    var needle_angle = theme.gauge_start_angle + theme.gauge_sweep_angle * frac
+    var tip = _polar_point(cx, cy, needle_angle, max_radius * theme.gauge_needle_fraction)
     target.draw_line_aa(Int(cx), Int(cy), Int(tip.x), Int(tip.y), theme.mark_color, sc.line_width * 2.0)
     target.fill_circle_aa(Int(cx), Int(cy), Int(sc.point_radius), theme.mark_color)
 

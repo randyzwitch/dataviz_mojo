@@ -368,6 +368,15 @@ struct Theme(ImplicitlyCopyable, Movable):
     var radar_grid_rings: Int
     var gauge_start_angle: Float64
     var gauge_sweep_angle: Float64
+    var tick_length: Int
+    var label_gap: Int
+    var legend_width: Int
+    var legend_swatch_size: Int
+    var legend_row_gap: Int
+    var continuous_legend_bar_width: Int
+    var continuous_legend_bar_height: Int
+    var margin_buffer: Int
+    var sankey_node_width: Float64
 
     def __init__(
         out self,
@@ -425,6 +434,15 @@ struct Theme(ImplicitlyCopyable, Movable):
         radar_grid_rings: Int = 4,
         gauge_start_angle: Float64 = 3.0 * pi / 4.0,
         gauge_sweep_angle: Float64 = 3.0 * pi / 2.0,
+        tick_length: Int = 5,
+        label_gap: Int = 4,
+        legend_width: Int = 130,
+        legend_swatch_size: Int = 14,
+        legend_row_gap: Int = 8,
+        continuous_legend_bar_width: Int = 14,
+        continuous_legend_bar_height: Int = 100,
+        margin_buffer: Int = 8,
+        sankey_node_width: Float64 = 12.0,
     ):
         self.background = background
         self.mark_color = mark_color
@@ -480,6 +498,15 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.radar_grid_rings = radar_grid_rings
         self.gauge_start_angle = gauge_start_angle
         self.gauge_sweep_angle = gauge_sweep_angle
+        self.tick_length = tick_length
+        self.label_gap = label_gap
+        self.legend_width = legend_width
+        self.legend_swatch_size = legend_swatch_size
+        self.legend_row_gap = legend_row_gap
+        self.continuous_legend_bar_width = continuous_legend_bar_width
+        self.continuous_legend_bar_height = continuous_legend_bar_height
+        self.margin_buffer = margin_buffer
+        self.sankey_node_width = sankey_node_width
 
     @staticmethod
     def default() -> Self:

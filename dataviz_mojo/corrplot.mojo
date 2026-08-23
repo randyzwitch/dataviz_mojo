@@ -134,7 +134,7 @@ def _render_corrplot[
 
     var cell_width = frame.x_scale.bandwidth()
     var cell_height = frame.y_scale.bandwidth()
-    var max_radius = min(cell_width, cell_height) / 2.0 * _CORRPLOT_BUBBLE_FRACTION
+    var max_radius = min(cell_width, cell_height) / 2.0 * theme.corrplot_bubble_fraction
     var n = len(plot._corrplot.variables)
 
     for row in range(n):
