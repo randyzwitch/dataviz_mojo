@@ -83,7 +83,7 @@ environments:
       - conda: https://conda.modular.com/max/linux-64/mojo-compiler-1.0.0-release.conda
       - conda: https://conda.modular.com/max/noarch/mblack-26.5.0-release.conda
       - conda: https://conda.modular.com/max/noarch/mojo-python-1.0.0-release.conda
-      - conda_source: canvas_mojo[d5064f35] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.6.1#8b26cc73c4e39501b227fafc9176d82d0b9a1e5d
+      - conda_source: canvas_mojo[ab55f9c7] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.7.0#3958e5314880581f703831ed76c65449b3c1b6e3
       osx-arm64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/_python_abi3_support-1.0-hd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.7.22-hbd8a1cb_0.conda
@@ -149,7 +149,7 @@ environments:
       - conda: https://conda.modular.com/max/noarch/mojo-python-1.0.0-release.conda
       - conda: https://conda.modular.com/max/osx-arm64/mojo-1.0.0-release.conda
       - conda: https://conda.modular.com/max/osx-arm64/mojo-compiler-1.0.0-release.conda
-      - conda_source: canvas_mojo[8a43da73] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.6.1#8b26cc73c4e39501b227fafc9176d82d0b9a1e5d
+      - conda_source: canvas_mojo[8f129fba] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.7.0#3958e5314880581f703831ed76c65449b3c1b6e3
 packages:
 - conda: https://conda.anaconda.org/conda-forge/linux-64/_go_select-2.3.0-cgo.tar.bz2
   sha256: d86836d4f3094b4ac149dcdc55f1f12be6e84ed1206a4234404a024e49769832
@@ -1503,8 +1503,8 @@ packages:
   run_exports: {}
   size: 61221085
   timestamp: 1786294690001
-- conda_source: canvas_mojo[8a43da73] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.6.1#8b26cc73c4e39501b227fafc9176d82d0b9a1e5d
-  version: 0.6.1
+- conda_source: canvas_mojo[8f129fba] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.7.0#3958e5314880581f703831ed76c65449b3c1b6e3
+  version: 0.7.0
   build: h60d57d3_0
   subdir: osx-arm64
   variants:
@@ -1568,8 +1568,8 @@ packages:
   - conda: https://conda.modular.com/max/noarch/mojo-python-1.0.0-release.conda
   - conda: https://conda.modular.com/max/osx-arm64/mojo-1.0.0-release.conda
   - conda: https://conda.modular.com/max/osx-arm64/mojo-compiler-1.0.0-release.conda
-- conda_source: canvas_mojo[d5064f35] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.6.1#8b26cc73c4e39501b227fafc9176d82d0b9a1e5d
-  version: 0.6.1
+- conda_source: canvas_mojo[ab55f9c7] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.7.0#3958e5314880581f703831ed76c65449b3c1b6e3
+  version: 0.7.0
   build: hb0f4dca_0
   subdir: linux-64
   variants:
