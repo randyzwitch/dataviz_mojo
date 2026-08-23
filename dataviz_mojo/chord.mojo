@@ -14,11 +14,10 @@ from dataviz_mojo.plot import (
     _TextRequest,
     _draw_legend,
     _dynamic_legend_width,
-    _edge_node_index,
-    _validate_edge_encoding,
     _empty_result,
     _rendered,
 )
+from dataviz_mojo.edges import _edge_node_index, _validate_edge_encoding
 from dataviz_mojo.theme import Theme
 
 # The node ring's own thickness, as a fraction of the outer radius --

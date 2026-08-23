@@ -22,6 +22,25 @@ of value to hold one.
 from std.collections import Dict
 
 
+struct _HierarchyData(Movable):
+    """
+    Mark.SUNBURST/TREE/TREEMAP only -- a flattened hierarchy, one (id,
+    parent_id, value) row per node. See encode_hierarchy()'s own
+    docstring.
+
+    Grouped onto `Plot._hierarchy` -- see `Plot`'s own docstring.
+    """
+
+    var ids: List[String]
+    var parent_ids: List[String]
+    var values: List[Float64]
+
+    def __init__(out self):
+        self.ids = List[String]()
+        self.parent_ids = List[String]()
+        self.values = List[Float64]()
+
+
 struct _HierarchyIndex(Movable):
     """`_build_hierarchy_index`'s own finished result -- see that
     function's own docstring for what each field means."""

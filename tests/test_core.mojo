@@ -20,11 +20,11 @@ from dataviz_mojo.plot import (
     render_svg,
     _build_line_path,
     _categorical_indices,
-    _edge_node_index,
     _decimate_to_pixel_columns,
     _index_of,
     _unique_categories,
 )
+from dataviz_mojo.edges import _edge_node_index
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import scatter
 from dataviz_mojo.colors import RED

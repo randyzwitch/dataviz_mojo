@@ -13,11 +13,10 @@ from dataviz_mojo.plot import (
     _RenderResult,
     _Scaled,
     _TextRequest,
-    _edge_node_index,
-    _validate_edge_encoding,
     _empty_result,
     _rendered,
 )
+from dataviz_mojo.edges import _edge_node_index, _validate_edge_encoding
 from dataviz_mojo.theme import Theme
 
 comptime _SANKEY_NODE_WIDTH = 12.0
