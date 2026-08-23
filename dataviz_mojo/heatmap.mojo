@@ -4,6 +4,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
 from dataviz_mojo.color_scale import ColorScale
+from canvas_mojo.text.font_cache import FontCache
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.ordinal_scale import OrdinalScale
 from dataviz_mojo.plot import (
@@ -81,6 +82,8 @@ def _draw_grid_axis_frame[
     oy0: Int,
     ox1: Int,
     oy1: Int,
+    *,
+    mut cache: FontCache,
 ) raises -> _GridFrame:
     """`Mark.HEATMAP`'s own axis-frame core: two `OrdinalScale` axes,
     `x_categories` left-to-right, `y_categories` top-to-bottom (category
@@ -111,7 +114,7 @@ def _draw_grid_axis_frame[
     var sc = _Scaled(theme)
 
     var dynamic_left_margin = (
-        Int(_max_label_width(y_categories, sc.font_size)) + sc.tick_length + sc.label_gap + sc.margin_buffer
+        Int(_max_label_width(y_categories, sc.font_size, cache=cache)) + sc.tick_length + sc.label_gap + sc.margin_buffer
     )
 
     var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
@@ -213,15 +216,24 @@ def _render_heatmap[
     var value_mm = _min_max(plot._heatmap_value)
     var color_scale = ColorScale.from_theme(theme, value_mm.min, value_mm.max)
 
+    # One FontCache for both measurements this render makes -- the
+    # legend's own labels here, then the y-axis category labels inside
+    # _draw_grid_axis_frame. A fresh cache per call re-pays canvas_
+    # mojo's font resolution and TTF parse for a font already loaded.
+    var measure_cache = FontCache()
+
     var legend_reserve = 0
     if theme.show_legend:
         var legend_labels = List[String]()
         legend_labels.append(_format_fixed(color_scale.domain_max, 1))
         legend_labels.append(_format_fixed(color_scale.domain_min, 1))
-        legend_reserve = _dynamic_legend_width(legend_labels, sc.continuous_legend_bar_width, sc)
+        legend_reserve = _dynamic_legend_width(
+            legend_labels, sc.continuous_legend_bar_width, sc, cache=measure_cache
+        )
 
     var frame = _draw_grid_axis_frame(
-        target, x_idx.domain, y_idx.domain, theme, ox0, oy0, ox1 - legend_reserve, oy1
+        target, x_idx.domain, y_idx.domain, theme, ox0, oy0, ox1 - legend_reserve, oy1,
+        cache=measure_cache
     )
 
     var cell_width = _round_to_int(frame.x_scale.bandwidth())

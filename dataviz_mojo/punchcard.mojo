@@ -2,6 +2,7 @@ from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from canvas_mojo.text.font_cache import FontCache
 from dataviz_mojo.heatmap import _draw_grid_axis_frame
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -82,7 +83,10 @@ def _render_punchcard[
     var x_idx = _categorical_indices(plot._punchcard_x)
     var y_idx = _categorical_indices(plot._punchcard_y)
 
-    var frame = _draw_grid_axis_frame(target, x_idx.domain, y_idx.domain, theme, ox0, oy0, ox1, oy1)
+    var measure_cache = FontCache()
+    var frame = _draw_grid_axis_frame(
+        target, x_idx.domain, y_idx.domain, theme, ox0, oy0, ox1, oy1, cache=measure_cache
+    )
 
     for i in range(len(plot._punchcard_x)):
         var cx = _round_to_int(frame.x_scale.center(x_idx.indices[i]))

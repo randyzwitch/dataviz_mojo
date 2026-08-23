@@ -4,6 +4,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
 from dataviz_mojo.color_scale import ColorScale
+from canvas_mojo.text.font_cache import FontCache
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
     Plot,
@@ -179,8 +180,13 @@ def _render_calendar_heatmap[
     var sc = _Scaled(theme)
     var day_labels = _calendar_day_labels()
     var month_labels = _calendar_month_labels()
+    # One FontCache shared by both measurements this render makes
+    # (the y-axis category labels here, and the legend's own labels
+    # further down) -- a fresh cache per call re-pays canvas_mojo's
+    # font resolution and TTF parse for a font that is already loaded.
+    var measure_cache = FontCache()
     var dynamic_left_margin = (
-        Int(_max_label_width(day_labels, sc.font_size)) + sc.tick_length + sc.label_gap + sc.margin_buffer
+        Int(_max_label_width(day_labels, sc.font_size, cache=measure_cache)) + sc.tick_length + sc.label_gap + sc.margin_buffer
     )
 
     var value_mm = _min_max(plot._calendar_values)
@@ -191,7 +197,7 @@ def _render_calendar_heatmap[
         var legend_labels = List[String]()
         legend_labels.append(_format_fixed(color_scale.domain_max, 1))
         legend_labels.append(_format_fixed(color_scale.domain_min, 1))
-        legend_reserve = _dynamic_legend_width(legend_labels, sc.continuous_legend_bar_width, sc)
+        legend_reserve = _dynamic_legend_width(legend_labels, sc.continuous_legend_bar_width, sc, cache=measure_cache)
 
     var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
     var plot_y0 = oy0 + sc.margin_top + Int(sc.font_size) + sc.label_gap

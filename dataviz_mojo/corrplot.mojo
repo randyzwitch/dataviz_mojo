@@ -4,6 +4,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
 from dataviz_mojo.color_scale import ColorScale
+from canvas_mojo.text.font_cache import FontCache
 from dataviz_mojo.heatmap import _draw_grid_axis_frame
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -97,15 +98,22 @@ def _render_corrplot[
     var sc = _Scaled(theme)
     var color_scale = ColorScale.from_theme(theme, -1.0, 1.0)
 
+    # One FontCache for both measurements -- the legend's labels here,
+    # then the axis category labels inside _draw_grid_axis_frame.
+    var measure_cache = FontCache()
+
     var legend_reserve = 0
     if theme.show_legend:
         var legend_labels = List[String]()
         legend_labels.append(_format_fixed(color_scale.domain_max, 1))
         legend_labels.append(_format_fixed(color_scale.domain_min, 1))
-        legend_reserve = _dynamic_legend_width(legend_labels, sc.continuous_legend_bar_width, sc)
+        legend_reserve = _dynamic_legend_width(
+            legend_labels, sc.continuous_legend_bar_width, sc, cache=measure_cache
+        )
 
     var frame = _draw_grid_axis_frame(
-        target, plot._corrplot_variables, plot._corrplot_variables, theme, ox0, oy0, ox1 - legend_reserve, oy1
+        target, plot._corrplot_variables, plot._corrplot_variables, theme, ox0, oy0,
+        ox1 - legend_reserve, oy1, cache=measure_cache
     )
 
     var cell_width = frame.x_scale.bandwidth()
