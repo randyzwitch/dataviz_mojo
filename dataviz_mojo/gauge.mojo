@@ -38,18 +38,6 @@ struct _GaugeData(Movable):
         self.band_colors = List[Color]()
 
 
-# The dial's own sweep: a 270-degree (3*pi/2) arc starting at 135
-# degrees (bottom-left, past `_polar_point`'s own east-is-zero/
-# clockwise convention -- see that function's own docstring) and
-# ending at 45 degrees (bottom-right), leaving a 90-degree gap at the
-# very bottom -- the standard gauge-chart shape (ECharts' own default
-# startAngle=225/endAngle=-45, the identical sweep expressed the other
-# rotation direction). Fixed constants, not `Theme` fields, matching
-# `Mark.POLAR`/`RADAR`'s own module-level layout constants -- not
-# worth a knob until something concrete needs one.
-comptime _GAUGE_START = 3.0 * pi / 4.0
-comptime _GAUGE_SWEEP = 3.0 * pi / 2.0
-
 def _gauge_breakpoints() -> List[Float64]:
     """ECharts' own default breakpoints (a gauge's value range split
     into low/mid/high bands at 20%/80%/100%) -- the fallback `_render_
@@ -71,14 +59,6 @@ def _gauge_band_colors() -> List[Color]:
     breakpoints()`'s own docstring for why this is a plain function,
     not a `Theme` field."""
     return [Color(46, 139, 87), Color(30, 144, 255), Color(220, 20, 60)]
-
-
-# The color band ring's own inner radius, and the needle's own length,
-# each a fraction of the dial's max radius -- the needle deliberately
-# shorter than the band ring's own outer edge (`max_radius`) so its
-# own tip doesn't visually collide with the band it's pointing into.
-comptime _GAUGE_BAND_INNER_FRACTION = 0.7
-comptime _GAUGE_NEEDLE_FRACTION = 0.9
 
 
 def _render_gauge[
@@ -151,11 +131,11 @@ def _render_gauge[
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
     var max_radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
-    var inner_radius = max_radius * _GAUGE_BAND_INNER_FRACTION
+    var inner_radius = max_radius * theme.gauge_band_inner_fraction
 
-    var band_start = _GAUGE_START
+    var band_start = theme.gauge_start_angle
     for i in range(len(breakpoints)):
-        var band_end = _GAUGE_START + _GAUGE_SWEEP * breakpoints[i]
+        var band_end = theme.gauge_start_angle + theme.gauge_sweep_angle * breakpoints[i]
         target.fill_ring_sector_aa(cx, cy, inner_radius, max_radius, band_start, band_end, colors[i])
         band_start = band_end
 

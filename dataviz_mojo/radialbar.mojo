@@ -23,16 +23,6 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 
 
-# The radial gap between adjacent rings, as a fraction of each ring's
-# own equal-thickness slot -- split evenly off both the inner and outer
-# edge, the same "carve a gap out of an equal-width slot" convention
-# `_POLAR_BAR_PADDING` already uses, just along the radius instead of
-# the angle: `Mark.POLAR_BAR`'s bars are separated *angularly* because
-# they share one radius; `RADIALBAR`'s rings are separated *radially*
-# because they share one full 2*pi sweep instead.
-comptime _RADIALBAR_RING_GAP_FRACTION = 0.25
-
-
 def _render_radialbar[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
@@ -89,7 +79,7 @@ def _render_radialbar[
     var palette = default_categorical_palette()
     var n = len(plot.x_categories)
     var ring_slot = max_radius / Float64(n)
-    var gap = ring_slot * _RADIALBAR_RING_GAP_FRACTION
+    var gap = ring_slot * theme.radialbar_ring_gap_fraction
     var start_angle = -pi / 2.0
     for i in range(n):
         var outer = max_radius - ring_slot * Float64(i) - gap / 2.0

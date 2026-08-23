@@ -209,7 +209,7 @@ categories' *shapes* without a wider- or narrower-spread category also
 reading as smoother or spikier purely from Silverman's rule reacting
 to its own sample size), sampled at `_KDE_SAMPLES` points across each
 category's own `[min, max]`, each violin's own peak density
-independently scaled to `_VIOLIN_WIDTH_FRACTION` of its own band width
+independently scaled to `theme.violin_width_fraction` of its own band width
 by default (ggplot2's own `scale = "width"`), or `mark_violin()`'s own
 `scale_by_count=True` for ggplot2's own `scale = "area"` instead
 (multiplying that width by `sqrt(n_i / max(n))`, so a category built
@@ -225,10 +225,10 @@ own parameters of the same names), but on `GANTT`'s
 own horizontal categorical frame instead of the vertical one -- called
 with `padding=0.0` (that function's own default is 0.2, right for
 `GANTT`'s own separated floating bars but not this: rows need to sit
-edge-to-edge so `_RIDGE_OVERLAP` alone controls overlap, not an
+edge-to-edge so `theme.ridgeline_overlap` alone controls overlap, not an
 incidental padding gap -- see `_draw_horizontal_categorical_axis_
 frame`'s own docstring for the bug this fixed): each category's own
-curve rises upward from its own row's bottom edge (`_RIDGE_OVERLAP`
+curve rises upward from its own row's bottom edge (`theme.ridgeline_overlap`
 times the row's own height, deliberately more than one row tall, so a
 tall peak overlaps into the row above -- the defining ridgeline look),
 drawn top to bottom in `x_categories`' own given order so a lower
@@ -249,7 +249,7 @@ mojo's own `_render_nightingale` docstring for the full reasoning.
 
 POLAR_BAR reuses `NIGHTINGALE`'s own equal-angle-slot, radius-by-
 `value/max` geometry, palette, legend, and validation, but carves a
-small gap out of each bar's own angular slot (`_POLAR_BAR_PADDING`,
+small gap out of each bar's own angular slot (`theme.polar_bar_padding`,
 polar_bar.mojo -- the same "separated bands vs. edge-to-edge cells"
 distinction `HEATMAP`'s own docstring already draws against `BAR`,
 applied here against `NIGHTINGALE`'s own touching sectors) so bars

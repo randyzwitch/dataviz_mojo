@@ -20,12 +20,6 @@ from dataviz_mojo.theme import Theme
 
 comptime _KDE_SAMPLES = 30
 
-# Each violin's own max half-width, as a fraction of its category's own
-# band width -- fixed, not a Theme field, the same "no concrete need
-# for a knob yet" reasoning every other fixed layout constant here
-# already follows (_LEGEND_WIDTH, _POLAR_BAR_PADDING, ...).
-comptime _VIOLIN_WIDTH_FRACTION = 0.4
-
 
 def _kde_bandwidth(values: List[Float64]) -> Float64:
     """Silverman's rule of thumb, the standard default kernel-density-
@@ -94,7 +88,7 @@ def _render_violin[
     a long, visually meaningless near-zero-width sliver).
 
     Each violin's own width is scaled *independently* -- its own peak
-    density maps to `_VIOLIN_WIDTH_FRACTION` of its own category's band
+    density maps to `theme.violin_width_fraction` of its own category's band
     width, not a shared cross-category maximum -- matching ggplot2's
     own default `scale = "width"` behavior (every violin the same
     maximum width, regardless of how many points went into it) rather
@@ -137,7 +131,7 @@ def _render_violin[
 
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
-    var half_width = frame.x_scale.bandwidth() * _VIOLIN_WIDTH_FRACTION
+    var half_width = frame.x_scale.bandwidth() * theme.violin_width_fraction
 
     for i in range(len(plot.x_categories)):
         var values = plot._distribution.values[i].copy()

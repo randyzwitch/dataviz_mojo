@@ -21,17 +21,6 @@ from dataviz_mojo.plot import (
 )
 from dataviz_mojo.theme import Theme
 
-# The angular gap between adjacent bars, as a fraction of each bar's
-# own equal-width angular slot -- split evenly on both sides, the same
-# convention (and the same 0.2 default) `OrdinalScale`'s own `padding`
-# already uses for `Mark.BAR`'s band gap. This is the one real
-# geometric difference from `Mark.NIGHTINGALE`'s own equal-angle
-# wedges (see this module's own docstring below): nightingale's wedges
-# sit edge-to-edge (padding 0.0, pie/rose-like), a polar bar chart's
-# own bars are visually separated columns the same way `Mark.BAR`'s
-# own vertical bars are, not touching sectors.
-comptime _POLAR_BAR_PADDING = 0.2
-
 
 def _render_polar_bar[
     T: DrawTarget
@@ -83,7 +72,7 @@ def _render_polar_bar[
     var palette = default_categorical_palette()
     var n = len(plot.x_categories)
     var slot = 2.0 * pi / Float64(n)
-    var gap = slot * _POLAR_BAR_PADDING
+    var gap = slot * theme.polar_bar_padding
     var slot_start = -pi / 2.0
     for i in range(n):
         var start = slot_start + gap / 2.0

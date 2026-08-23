@@ -306,6 +306,8 @@ requests` (`bold=theme.title_bold`) -- rather than baked in
 everywhere `font_family` needed to be, since nothing else ever wants
 `True`."""
 
+from std.math import pi
+
 from canvas_mojo.color import Color
 
 from dataviz_mojo.colors import WHITE
@@ -354,6 +356,18 @@ struct Theme(ImplicitlyCopyable, Movable):
     var treemap_label_color: Color
     var halo_alpha: UInt8
     var radar_fill_alpha: UInt8
+    var radialbar_ring_gap_fraction: Float64
+    var violin_width_fraction: Float64
+    var corrplot_bubble_fraction: Float64
+    var gauge_band_inner_fraction: Float64
+    var gauge_needle_fraction: Float64
+    var ridgeline_overlap: Float64
+    var polar_bar_padding: Float64
+    var polar_grid_rings: Int
+    var polar_grid_spokes: Int
+    var radar_grid_rings: Int
+    var gauge_start_angle: Float64
+    var gauge_sweep_angle: Float64
 
     def __init__(
         out self,
@@ -399,6 +413,18 @@ struct Theme(ImplicitlyCopyable, Movable):
         treemap_label_color: Color = Color(255, 255, 255),
         halo_alpha: UInt8 = 90,
         radar_fill_alpha: UInt8 = 90,
+        radialbar_ring_gap_fraction: Float64 = 0.25,
+        violin_width_fraction: Float64 = 0.4,
+        corrplot_bubble_fraction: Float64 = 0.42,
+        gauge_band_inner_fraction: Float64 = 0.7,
+        gauge_needle_fraction: Float64 = 0.9,
+        ridgeline_overlap: Float64 = 1.3,
+        polar_bar_padding: Float64 = 0.2,
+        polar_grid_rings: Int = 4,
+        polar_grid_spokes: Int = 12,
+        radar_grid_rings: Int = 4,
+        gauge_start_angle: Float64 = 3.0 * pi / 4.0,
+        gauge_sweep_angle: Float64 = 3.0 * pi / 2.0,
     ):
         self.background = background
         self.mark_color = mark_color
@@ -442,6 +468,18 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.treemap_label_color = treemap_label_color
         self.halo_alpha = halo_alpha
         self.radar_fill_alpha = radar_fill_alpha
+        self.radialbar_ring_gap_fraction = radialbar_ring_gap_fraction
+        self.violin_width_fraction = violin_width_fraction
+        self.corrplot_bubble_fraction = corrplot_bubble_fraction
+        self.gauge_band_inner_fraction = gauge_band_inner_fraction
+        self.gauge_needle_fraction = gauge_needle_fraction
+        self.ridgeline_overlap = ridgeline_overlap
+        self.polar_bar_padding = polar_bar_padding
+        self.polar_grid_rings = polar_grid_rings
+        self.polar_grid_spokes = polar_grid_spokes
+        self.radar_grid_rings = radar_grid_rings
+        self.gauge_start_angle = gauge_start_angle
+        self.gauge_sweep_angle = gauge_sweep_angle
 
     @staticmethod
     def default() -> Self:

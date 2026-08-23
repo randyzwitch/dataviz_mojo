@@ -19,14 +19,6 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 from dataviz_mojo.violin import _KDE_SAMPLES, _kde_bandwidth, _kde_density
 
-# How far a row's own curve may rise above its own baseline, as a
-# multiple of the row's own height -- >1.0 on purpose, the defining
-# ridgeline look: a category's own curve is allowed to overlap into
-# the row above it, not stay confined to its own row the way a bar
-# would. Fixed, not a Theme field, the same "no concrete need for a
-# knob yet" reasoning every other fixed layout constant here follows.
-comptime _RIDGE_OVERLAP = 1.3
-
 
 def _render_ridgeline[
     T: DrawTarget
@@ -44,10 +36,10 @@ def _render_ridgeline[
     0.2 default -- see its own docstring for why a ridgeline plot
     needs rows to sit edge-to-edge (a real bug this package shipped
     with initially: a nonzero gap left a sliver of background between
-    rows, only inconsistently covered by `_RIDGE_OVERLAP`'s own rise,
+    rows, only inconsistently covered by `theme.ridgeline_overlap`'s own rise,
     which showed up as a spurious notch).
 
-    Each row's own curve may rise up to `_RIDGE_OVERLAP` times the
+    Each row's own curve may rise up to `theme.ridgeline_overlap` times the
     row's own height above its own baseline -- deliberately more than
     one row tall, so a tall category's own peak overlaps into the row
     above it. Categories are drawn top to bottom, in `x_categories`'
@@ -98,7 +90,7 @@ def _render_ridgeline[
     )
 
     var row_height = frame.y_scale.bandwidth()
-    var max_rise = row_height * _RIDGE_OVERLAP
+    var max_rise = row_height * theme.ridgeline_overlap
 
     for i in range(len(plot.x_categories)):
         var values = plot._distribution.values[i].copy()
