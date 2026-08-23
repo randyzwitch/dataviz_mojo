@@ -14,10 +14,9 @@ from dataviz_mojo.plot import (
     _TextRequest,
     _draw_legend,
     _dynamic_legend_width,
+    _edge_node_index,
     _empty_result,
-    _index_of,
     _rendered,
-    _unique_categories,
 )
 from dataviz_mojo.theme import Theme
 
@@ -124,26 +123,18 @@ def _render_chord[
         if v < 0.0:
             raise Error("Plot: Mark.CHORD values must be non-negative (got " + String(v) + ")")
 
-    var combined = List[String]()
-    for v in plot._chord_from:
-        combined.append(v)
-    for v in plot._chord_to:
-        combined.append(v)
-    var nodes = _unique_categories(combined)
+    var edges = _edge_node_index(plot._chord_from, plot._chord_to)
+    ref nodes = edges.nodes
+    ref from_idx = edges.from_idx
+    ref to_idx = edges.to_idx
     var n = len(nodes)
 
     var node_total = List[Float64]()
     for _ in range(n):
         node_total.append(0.0)
-    var from_idx = List[Int]()
-    var to_idx = List[Int]()
     for i in range(len(plot._chord_from)):
-        var fi = _index_of(nodes, plot._chord_from[i])
-        var ti = _index_of(nodes, plot._chord_to[i])
-        from_idx.append(fi)
-        to_idx.append(ti)
-        node_total[fi] += plot._chord_value[i]
-        node_total[ti] += plot._chord_value[i]
+        node_total[from_idx[i]] += plot._chord_value[i]
+        node_total[to_idx[i]] += plot._chord_value[i]
 
     var grand_total = 0.0
     for t in node_total:

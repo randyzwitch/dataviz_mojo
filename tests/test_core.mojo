@@ -20,6 +20,7 @@ from dataviz_mojo.plot import (
     render_svg,
     _build_line_path,
     _categorical_indices,
+    _edge_node_index,
     _index_of,
     _unique_categories,
 )
@@ -144,6 +145,54 @@ def test_categorical_indices_agrees_with_unique_categories_and_index_of() raises
         assert_equal(cat.indices[i], _index_of(expected_domain, data[i]))
         # ...and the index really does address the right category.
         assert_equal(cat.domain[cat.indices[i]], data[i])
+
+
+def test_edge_node_index_agrees_with_unique_categories_and_index_of() raises:
+    # _edge_node_index replaces exactly what Mark.CHORD/ARC_DIAGRAM/
+    # GRAPH/SANKEY each did by hand: _unique_categories over the two
+    # endpoint columns concatenated, then _index_of per endpoint per
+    # edge. Same contract as _categorical_indices' own equivalence
+    # test above -- assert against the slow path directly, not against
+    # hand-written values, since disagreeing with it is the definition
+    # of being wrong.
+    var f: List[String] = ["b", "a", "c", "a"]
+    var t: List[String] = ["a", "c", "b", "d"]
+    var edges = _edge_node_index(f, t)
+
+    var combined = List[String]()
+    for v in f:
+        combined.append(v)
+    for v in t:
+        combined.append(v)
+    var expected_nodes = _unique_categories(combined)
+
+    # First-seen order across both columns, `from` first -- the order
+    # every node's palette color and ring position depends on.
+    assert_equal(len(edges.nodes), len(expected_nodes))
+    for i in range(len(expected_nodes)):
+        assert_equal(edges.nodes[i], expected_nodes[i])
+
+    assert_equal(len(edges.from_idx), len(f))
+    assert_equal(len(edges.to_idx), len(t))
+    for i in range(len(f)):
+        assert_equal(edges.from_idx[i], _index_of(expected_nodes, f[i]))
+        assert_equal(edges.to_idx[i], _index_of(expected_nodes, t[i]))
+        # ...and each index really does address the right node.
+        assert_equal(edges.nodes[edges.from_idx[i]], f[i])
+        assert_equal(edges.nodes[edges.to_idx[i]], t[i])
+
+
+def test_edge_node_index_handles_a_node_only_appearing_as_a_target() raises:
+    # "d" above appears only in the `to` column -- the case a naive
+    # split that indexed only the `from` column would miss entirely.
+    var f: List[String] = ["a"]
+    var t: List[String] = ["b"]
+    var edges = _edge_node_index(f, t)
+    assert_equal(len(edges.nodes), 2)
+    assert_equal(edges.nodes[0], "a")
+    assert_equal(edges.nodes[1], "b")
+    assert_equal(edges.from_idx[0], 0)
+    assert_equal(edges.to_idx[0], 1)
 
 
 def test_categorical_indices_on_an_empty_column_is_empty() raises:

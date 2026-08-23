@@ -14,11 +14,10 @@ from dataviz_mojo.plot import (
     _RenderResult,
     _Scaled,
     _TextRequest,
+    _edge_node_index,
     _empty_result,
-    _index_of,
     _min_max,
     _rendered,
-    _unique_categories,
 )
 from dataviz_mojo.theme import Theme
 
@@ -82,12 +81,8 @@ def _render_graph[
         if v < 0.0:
             raise Error("Plot: Mark.GRAPH values must be non-negative (got " + String(v) + ")")
 
-    var combined = List[String]()
-    for v in plot._chord_from:
-        combined.append(v)
-    for v in plot._chord_to:
-        combined.append(v)
-    var nodes = _unique_categories(combined)
+    var edges = _edge_node_index(plot._chord_from, plot._chord_to)
+    ref nodes = edges.nodes
     var n = len(nodes)
 
     var sc = _Scaled(theme)
@@ -111,8 +106,8 @@ def _render_graph[
     var max_value = value_mm.max
 
     for row in range(len(plot._chord_from)):
-        var from_idx = _index_of(nodes, plot._chord_from[row])
-        var to_idx = _index_of(nodes, plot._chord_to[row])
+        var from_idx = edges.from_idx[row]
+        var to_idx = edges.to_idx[row]
         if from_idx == to_idx:
             continue
         var frac = plot._chord_value[row] / max_value if max_value > 0.0 else 0.0
