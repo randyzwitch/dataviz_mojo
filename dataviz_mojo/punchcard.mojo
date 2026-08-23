@@ -15,6 +15,28 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 
 
+struct _PunchcardData(Movable):
+    """
+    Mark.PUNCHCARD only -- one (x category, y category, bubble size) row
+    per cell, plus the size->radius divisor. See encode_ punchcard()'s
+    own docstring.
+
+    Grouped onto `Plot._punchcard` -- see `Plot`'s own docstring.
+    """
+
+    var x: List[String]
+    var y: List[String]
+    var sizes: List[Float64]
+    var scale: Float64
+
+    def __init__(out self):
+        self.x = List[String]()
+        self.y = List[String]()
+        self.sizes = List[Float64]()
+        self.scale = 0.0
+
+
+
 def _render_punchcard[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
@@ -58,40 +80,40 @@ def _render_punchcard[
     ECharts.jl's own `legend=false` default for this chart type too.
     """
     if (
-        len(plot._punchcard_x) != len(plot._punchcard_y)
-        or len(plot._punchcard_sizes) != len(plot._punchcard_x)
+        len(plot._punchcard.x) != len(plot._punchcard.y)
+        or len(plot._punchcard.sizes) != len(plot._punchcard.x)
     ):
         raise Error(
             "Plot.encode_punchcard(): x, y, and sizes must all have the same"
             " length (got "
-            + String(len(plot._punchcard_x))
+            + String(len(plot._punchcard.x))
             + " x values, "
-            + String(len(plot._punchcard_y))
+            + String(len(plot._punchcard.y))
             + " y values, "
-            + String(len(plot._punchcard_sizes))
+            + String(len(plot._punchcard.sizes))
             + " sizes)"
         )
 
     var theme = plot._theme
-    if len(plot._punchcard_x) == 0:
+    if len(plot._punchcard.x) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    for s in plot._punchcard_sizes:
+    for s in plot._punchcard.sizes:
         if s < 0.0:
             raise Error("Plot: Mark.PUNCHCARD sizes must be non-negative (got " + String(s) + ")")
 
-    var x_idx = _categorical_indices(plot._punchcard_x)
-    var y_idx = _categorical_indices(plot._punchcard_y)
+    var x_idx = _categorical_indices(plot._punchcard.x)
+    var y_idx = _categorical_indices(plot._punchcard.y)
 
     var measure_cache = FontCache()
     var frame = _draw_grid_axis_frame(
         target, x_idx.domain, y_idx.domain, theme, ox0, oy0, ox1, oy1, cache=measure_cache
     )
 
-    for i in range(len(plot._punchcard_x)):
+    for i in range(len(plot._punchcard.x)):
         var cx = _round_to_int(frame.x_scale.center(x_idx.indices[i]))
         var cy = _round_to_int(frame.y_scale.center(y_idx.indices[i]))
-        var radius = _round_to_int(plot._punchcard_sizes[i] / plot._punchcard_scale * frame.sc.scale)
+        var radius = _round_to_int(plot._punchcard.sizes[i] / plot._punchcard.scale * frame.sc.scale)
         target.fill_circle_aa(cx, cy, radius, theme.mark_color)
 
     return frame.result()

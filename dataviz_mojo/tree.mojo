@@ -127,28 +127,28 @@ def _render_tree[
     TREEMAP`'s own docstring for the one hierarchy mark that does.
     """
     if (
-        len(plot._hierarchy_parent_ids) != len(plot._hierarchy_ids)
-        or len(plot._hierarchy_values) != len(plot._hierarchy_ids)
+        len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids)
+        or len(plot._hierarchy.values) != len(plot._hierarchy.ids)
     ):
         raise Error(
             "Plot.encode_hierarchy(): ids, parent_ids, and values must all have the"
             " same length (got "
-            + String(len(plot._hierarchy_ids))
+            + String(len(plot._hierarchy.ids))
             + " ids, "
-            + String(len(plot._hierarchy_parent_ids))
+            + String(len(plot._hierarchy.parent_ids))
             + " parent_ids, "
-            + String(len(plot._hierarchy_values))
+            + String(len(plot._hierarchy.values))
             + " values)"
         )
 
     var theme = plot._theme
-    if len(plot._hierarchy_ids) == 0:
+    if len(plot._hierarchy.ids) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    _require_non_negative(plot._hierarchy_values, "Mark.TREE")
+    _require_non_negative(plot._hierarchy.values, "Mark.TREE")
 
-    var idx = _build_hierarchy_index(plot._hierarchy_ids, plot._hierarchy_parent_ids, plot._hierarchy_values)
-    var n = len(plot._hierarchy_ids)
+    var idx = _build_hierarchy_index(plot._hierarchy.ids, plot._hierarchy.parent_ids, plot._hierarchy.values)
+    var n = len(plot._hierarchy.ids)
 
     var parent_row = List[Int](capacity=n)
     for _ in range(n):
@@ -172,7 +172,7 @@ def _render_tree[
     var text_requests = List[_TextRequest]()
     var legend_labels = List[String]()
     for c in root_children:
-        legend_labels.append(plot._hierarchy_ids[c])
+        legend_labels.append(plot._hierarchy.ids[c])
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
@@ -206,7 +206,7 @@ def _render_tree[
         target.fill_circle_aa(px, py, _round_to_int(sc.point_radius), color)
         text_requests.append(
             _TextRequest(
-                px, py + sc.tick_length + sc.label_gap + Int(sc.font_size), plot._hierarchy_ids[row],
+                px, py + sc.tick_length + sc.label_gap + Int(sc.font_size), plot._hierarchy.ids[row],
                 theme.text_color, sc.font_size, TextAlign.CENTER, theme.font_family,
             )
         )

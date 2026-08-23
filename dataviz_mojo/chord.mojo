@@ -14,11 +14,10 @@ from dataviz_mojo.plot import (
     _TextRequest,
     _draw_legend,
     _dynamic_legend_width,
-    _edge_node_index,
-    _validate_edge_encoding,
     _empty_result,
     _rendered,
 )
+from dataviz_mojo.edges import _edge_node_index, _validate_edge_encoding
 from dataviz_mojo.theme import Theme
 
 # The node ring's own thickness, as a fraction of the outer radius --
@@ -107,10 +106,10 @@ def _render_chord[
     _validate_edge_encoding(plot, "Mark.CHORD")
 
     var theme = plot._theme
-    if len(plot._chord_from) == 0:
+    if len(plot._edges.from_categories) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    var edges = _edge_node_index(plot._chord_from, plot._chord_to)
+    var edges = _edge_node_index(plot._edges.from_categories, plot._edges.to_categories)
     ref nodes = edges.nodes
     ref from_idx = edges.from_idx
     ref to_idx = edges.to_idx
@@ -119,9 +118,9 @@ def _render_chord[
     var node_total = List[Float64]()
     for _ in range(n):
         node_total.append(0.0)
-    for i in range(len(plot._chord_from)):
-        node_total[from_idx[i]] += plot._chord_value[i]
-        node_total[to_idx[i]] += plot._chord_value[i]
+    for i in range(len(plot._edges.from_categories)):
+        node_total[from_idx[i]] += plot._edges.values[i]
+        node_total[to_idx[i]] += plot._edges.values[i]
 
     var grand_total = 0.0
     for t in node_total:
@@ -159,10 +158,10 @@ def _render_chord[
 
     var palette = default_categorical_palette()
 
-    for i in range(len(plot._chord_from)):
+    for i in range(len(plot._edges.from_categories)):
         var fi = from_idx[i]
         var ti = to_idx[i]
-        var value = plot._chord_value[i]
+        var value = plot._edges.values[i]
         var f0 = node_cursor[fi]
         var f1 = f0 + (value / grand_total) * 2.0 * pi
         node_cursor[fi] = f1

@@ -13,11 +13,10 @@ from dataviz_mojo.plot import (
     _RenderResult,
     _Scaled,
     _TextRequest,
-    _edge_node_index,
-    _validate_edge_encoding,
     _empty_result,
     _rendered,
 )
+from dataviz_mojo.edges import _edge_node_index, _validate_edge_encoding
 from dataviz_mojo.theme import Theme
 
 comptime _SANKEY_NODE_WIDTH = 12.0
@@ -93,10 +92,10 @@ def _render_sankey[
     _validate_edge_encoding(plot, "Mark.SANKEY")
 
     var theme = plot._theme
-    if len(plot._chord_from) == 0:
+    if len(plot._edges.from_categories) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    var edges = _edge_node_index(plot._chord_from, plot._chord_to)
+    var edges = _edge_node_index(plot._edges.from_categories, plot._edges.to_categories)
     ref nodes = edges.nodes
     var n = len(nodes)
 
@@ -105,22 +104,22 @@ def _render_sankey[
     # its own two index columns are a *subset* of the edge rows, not
     # parallel to them. Only the per-row domain lookup moved -- what
     # was two full scans of `nodes` per row is now two array reads.
-    var from_idx = List[Int](capacity=len(plot._chord_from))
-    var to_idx = List[Int](capacity=len(plot._chord_from))
-    var edge_value = List[Float64](capacity=len(plot._chord_from))
+    var from_idx = List[Int](capacity=len(plot._edges.from_categories))
+    var to_idx = List[Int](capacity=len(plot._edges.from_categories))
+    var edge_value = List[Float64](capacity=len(plot._edges.from_categories))
     var children = List[List[Int]]()
     var in_degree = List[Int]()
     for _ in range(n):
         children.append(List[Int]())
         in_degree.append(0)
-    for row in range(len(plot._chord_from)):
+    for row in range(len(plot._edges.from_categories)):
         var fi = edges.from_idx[row]
         var ti = edges.to_idx[row]
         if fi == ti:
             continue
         from_idx.append(fi)
         to_idx.append(ti)
-        edge_value.append(plot._chord_value[row])
+        edge_value.append(plot._edges.values[row])
         children[fi].append(ti)
         in_degree[ti] += 1
 

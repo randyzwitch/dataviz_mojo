@@ -14,6 +14,26 @@ from dataviz_mojo.plot import (
 )
 from dataviz_mojo.theme import Theme
 
+
+struct _WaterfallData(Movable):
+    """
+    Mark.WATERFALL only -- the running-total bounds encode_waterfall()
+    computes from each category's own signed delta (y_data), see that
+    method's own docstring.
+
+    Grouped onto `Plot._waterfall` -- see `Plot`'s own docstring.
+    """
+
+    var y0: List[Float64]
+    var y1: List[Float64]
+    var is_total: List[Bool]
+
+    def __init__(out self):
+        self.y0 = List[Float64]()
+        self.y1 = List[Float64]()
+        self.is_total = List[Bool]()
+
+
 comptime _WATERFALL_DELTA_WIDTH_FRACTION = 0.6
 """A Mark.WATERFALL delta bar's own fraction of its band's full width --
 narrower than a total bar (full band width, Mark.BAR's own
@@ -79,7 +99,7 @@ def _render_waterfall[
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.WATERFALL` plot: `_draw_categorical_axis_frame`'s
     shared categorical x-axis, but a y-domain spanning every bar's own
-    running-total *bounds* (`_waterfall_y0` union `_waterfall_y1`, not
+    running-total *bounds* (`_waterfall`'s own `y0` union `y1`, not
     `plot.y_data` -- the deltas themselves, not the cumulative totals
     they add up to, would badly understate the actual pixel range a
     running total can reach), still forced to include zero
@@ -97,7 +117,7 @@ def _render_waterfall[
 
     A delta row draws narrower than the full band (`_WATERFALL_DELTA_
     WIDTH_FRACTION`, centered) *only when this plot actually uses total
-    rows at all* (`plot._waterfall_is_total` non-empty) -- if `is_total`
+    rows at all* (`plot._waterfall.is_total` non-empty) -- if `is_total`
     was never passed to `encode_waterfall()` (every existing call from
     before total rows existed), every bar stays full band width,
     unchanged, purely additive; only once a caller actually opts into
@@ -144,11 +164,11 @@ def _render_waterfall[
             + String(len(plot.y_data))
             + ")"
         )
-    if len(plot._waterfall_is_total) > 0 and len(plot._waterfall_is_total) != len(plot.x_categories):
+    if len(plot._waterfall.is_total) > 0 and len(plot._waterfall.is_total) != len(plot.x_categories):
         raise Error(
             "Plot.encode_waterfall(): is_total, if given, must have the"
             " same length as categories (got "
-            + String(len(plot._waterfall_is_total))
+            + String(len(plot._waterfall.is_total))
             + " and "
             + String(len(plot.x_categories))
             + ")"
@@ -159,9 +179,9 @@ def _render_waterfall[
         return _empty_result(ox0, oy0, ox1, oy1)
 
     var combined = List[Float64]()
-    for v in plot._waterfall_y0:
+    for v in plot._waterfall.y0:
         combined.append(v)
-    for v in plot._waterfall_y1:
+    for v in plot._waterfall.y1:
         combined.append(v)
     var y_scale = _zero_baseline_y_extent(combined)
 
@@ -173,7 +193,7 @@ def _render_waterfall[
     # every render from before total rows existed. Only once at least
     # one row is genuinely a total does the narrow-vs-full distinction
     # have anything to distinguish.
-    var using_totals = len(plot._waterfall_is_total) > 0
+    var using_totals = len(plot._waterfall.is_total) > 0
 
     # Only recorded when is_total is actually in use -- that's the only
     # case the connector pass below reads them back (a delta bar can be
@@ -187,7 +207,7 @@ def _render_waterfall[
     var bandwidth = frame.x_scale.bandwidth()
     for i in range(len(plot.x_categories)):
         var band_start = frame.x_scale.band_start(i)
-        var row_is_total = plot._waterfall_is_total[i] if i < len(plot._waterfall_is_total) else False
+        var row_is_total = plot._waterfall.is_total[i] if i < len(plot._waterfall.is_total) else False
         var bar_x: Int
         var bar_width: Int
         if row_is_total or not using_totals:
@@ -202,8 +222,8 @@ def _render_waterfall[
             bar_x_list.append(bar_x)
             bar_width_list.append(bar_width)
 
-        var y0_py = _axis_pixel(frame.y_scale, plot._waterfall_y0[i])
-        var y1_py = _axis_pixel(frame.y_scale, plot._waterfall_y1[i])
+        var y0_py = _axis_pixel(frame.y_scale, plot._waterfall.y0[i])
+        var y1_py = _axis_pixel(frame.y_scale, plot._waterfall.y1[i])
         var bar_y = min(y0_py, y1_py)
         var bar_height = max(y0_py, y1_py) - min(y0_py, y1_py)
         var bar_color = (
@@ -214,7 +234,7 @@ def _render_waterfall[
         target.fill_rect(bar_x, bar_y, bar_width, bar_height, bar_color)
 
         if i > 0:
-            var prev_end_py = _axis_pixel(frame.y_scale, plot._waterfall_y1[i - 1])
+            var prev_end_py = _axis_pixel(frame.y_scale, plot._waterfall.y1[i - 1])
             # using_totals=False reproduces the exact original formula
             # here (band_start+bandwidth, summed then rounded once, not
             # `bar_x[i-1] + bar_width[i-1]`'s own two independently-

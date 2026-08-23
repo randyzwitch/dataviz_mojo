@@ -12,6 +12,32 @@ from dataviz_mojo.polar import _polar_point
 from dataviz_mojo.scale import _format_fixed
 from dataviz_mojo.theme import Theme
 
+
+struct _GaugeData(Movable):
+    """
+    Mark.GAUGE only -- a single value plus its own dial range, plus the
+    optional custom breakpoint bands (empty means "use ECharts' own
+    20%/80%/100% default", the same empty-list-is-a-sentinel convention
+    `encode()`'s own `color`/`size` channels already use). See
+    encode_gauge()'s own docstring.
+
+    Grouped onto `Plot._gauge` -- see `Plot`'s own docstring.
+    """
+
+    var value: Float64
+    var min_value: Float64
+    var max_value: Float64
+    var breakpoints: List[Float64]
+    var band_colors: List[Color]
+
+    def __init__(out self):
+        self.value = 0.0
+        self.min_value = 0.0
+        self.max_value = 0.0
+        self.breakpoints = List[Float64]()
+        self.band_colors = List[Color]()
+
+
 # The dial's own sweep: a 270-degree (3*pi/2) arc starting at 135
 # degrees (bottom-left, past `_polar_point`'s own east-is-zero/
 # clockwise convention -- see that function's own docstring) and
@@ -84,17 +110,17 @@ def _render_gauge[
     either by.
     """
     var theme = plot._theme
-    if plot._gauge_min >= plot._gauge_max:
+    if plot._gauge.min_value >= plot._gauge.max_value:
         raise Error(
             "Plot.encode_gauge(): min_value must be less than max_value (got "
-            + String(plot._gauge_min)
+            + String(plot._gauge.min_value)
             + " and "
-            + String(plot._gauge_max)
+            + String(plot._gauge.max_value)
             + ")"
         )
 
-    var breakpoints = plot._gauge_breakpoints.copy() if len(plot._gauge_breakpoints) > 0 else _gauge_breakpoints()
-    var colors = plot._gauge_band_colors.copy() if len(plot._gauge_band_colors) > 0 else _gauge_band_colors()
+    var breakpoints = plot._gauge.breakpoints.copy() if len(plot._gauge.breakpoints) > 0 else _gauge_breakpoints()
+    var colors = plot._gauge.band_colors.copy() if len(plot._gauge.band_colors) > 0 else _gauge_band_colors()
     if len(breakpoints) != len(colors):
         raise Error(
             "Plot.encode_gauge(): breakpoints and band_colors must be the same length (got "
@@ -133,12 +159,12 @@ def _render_gauge[
         target.fill_ring_sector_aa(cx, cy, inner_radius, max_radius, band_start, band_end, colors[i])
         band_start = band_end
 
-    var value = plot._gauge_value
-    if value < plot._gauge_min:
-        value = plot._gauge_min
-    if value > plot._gauge_max:
-        value = plot._gauge_max
-    var frac = (value - plot._gauge_min) / (plot._gauge_max - plot._gauge_min)
+    var value = plot._gauge.value
+    if value < plot._gauge.min_value:
+        value = plot._gauge.min_value
+    if value > plot._gauge.max_value:
+        value = plot._gauge.max_value
+    var frac = (value - plot._gauge.min_value) / (plot._gauge.max_value - plot._gauge.min_value)
     var needle_angle = _GAUGE_START + _GAUGE_SWEEP * frac
     var tip = _polar_point(cx, cy, needle_angle, max_radius * _GAUGE_NEEDLE_FRACTION)
     target.draw_line_aa(Int(cx), Int(cy), Int(tip.x), Int(tip.y), theme.mark_color, sc.line_width * 2.0)
@@ -148,7 +174,7 @@ def _render_gauge[
         _TextRequest(
             Int(cx),
             Int(cy) + Int(inner_radius * 0.5),
-            _format_fixed(plot._gauge_value, 1),
+            _format_fixed(plot._gauge.value, 1),
             theme.text_color,
             sc.title_font_size,
             TextAlign.CENTER,

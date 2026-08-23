@@ -21,6 +21,23 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.scale import _format_fixed
 from dataviz_mojo.theme import Theme
 
+
+struct _CalendarData(Movable):
+    """
+    Mark.CALENDAR_HEATMAP only -- one ("YYYY-MM-DD" date, value) row per
+    day. See encode_calendar()'s own docstring.
+
+    Grouped onto `Plot._calendar` -- see `Plot`'s own docstring.
+    """
+
+    var dates: List[String]
+    var values: List[Float64]
+
+    def __init__(out self):
+        self.dates = List[String]()
+        self.values = List[Float64]()
+
+
 def _calendar_day_labels() -> List[String]:
     """The 7 row labels, Sunday first -- the same top-to-bottom order
     every GitHub-style contribution calendar (and ECharts' own
@@ -143,22 +160,22 @@ def _render_calendar_heatmap[
     own docstring already gives against reusing either existing
     categorical-axis core.
     """
-    if len(plot._calendar_dates) != len(plot._calendar_values):
+    if len(plot._calendar.dates) != len(plot._calendar.values):
         raise Error(
             "Plot.encode_calendar(): dates and values must have the same length"
             " (got "
-            + String(len(plot._calendar_dates))
+            + String(len(plot._calendar.dates))
             + " and "
-            + String(len(plot._calendar_values))
+            + String(len(plot._calendar.values))
             + ")"
         )
 
     var theme = plot._theme
-    if len(plot._calendar_dates) == 0:
+    if len(plot._calendar.dates) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
     var parsed = List[_Date]()
-    for d in plot._calendar_dates:
+    for d in plot._calendar.dates:
         parsed.append(_parse_date(d))
     var year = parsed[0].year
     for date in parsed:
@@ -189,7 +206,7 @@ def _render_calendar_heatmap[
         Int(_max_label_width(day_labels, sc.font_size, cache=measure_cache)) + sc.tick_length + sc.label_gap + sc.margin_buffer
     )
 
-    var value_mm = _min_max(plot._calendar_values)
+    var value_mm = _min_max(plot._calendar.values)
     var color_scale = ColorScale.from_theme(theme, value_mm.min, value_mm.max)
 
     var legend_reserve = 0
@@ -241,7 +258,7 @@ def _render_calendar_heatmap[
         var row = _day_of_week(days + jan1_days)
         var cell_x = _round_to_int(Float64(plot_x0) + Float64(col) * cell_width)
         var cell_y = _round_to_int(Float64(plot_y0) + Float64(row) * cell_height)
-        var color = color_scale.color_at(plot._calendar_values[i])
+        var color = color_scale.color_at(plot._calendar.values[i])
         target.fill_rect(cell_x, cell_y, _round_to_int(cell_width), _round_to_int(cell_height), color)
 
     if theme.show_legend:

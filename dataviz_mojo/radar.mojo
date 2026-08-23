@@ -23,6 +23,28 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.polar import _polar_point
 from dataviz_mojo.theme import Theme
 
+
+struct _RadarData(Movable):
+    """
+    Mark.RADAR only -- one named indicator (axis) per entry, each with
+    its own max, plus one or more named series each with a value per
+    indicator. See encode_radar()'s own docstring.
+
+    Grouped onto `Plot._radar` -- see `Plot`'s own docstring.
+    """
+
+    var indicators: List[String]
+    var max_values: List[Float64]
+    var series_names: List[String]
+    var series_values: List[List[Float64]]
+
+    def __init__(out self):
+        self.indicators = List[String]()
+        self.max_values = List[Float64]()
+        self.series_names = List[String]()
+        self.series_values = List[List[Float64]]()
+
+
 # How many evenly-spaced "web" rings the polygon grid draws -- the
 # same fixed-constant reasoning `polar.mojo`'s own `_POLAR_GRID_RINGS`
 # already gives, unrelated to it only because a radar grid is
@@ -103,7 +125,7 @@ def _render_radar[
     is the only real toggle" convention every other legend-bearing
     mark here follows).
     """
-    if len(plot._radar_indicators) == 0:
+    if len(plot._radar.indicators) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
     var theme = plot._theme
@@ -112,7 +134,7 @@ def _render_radar[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend_reserve = (
-        _dynamic_legend_width(plot._radar_series_names, sc.legend_swatch_size, sc) if show_legend else 0
+        _dynamic_legend_width(plot._radar.series_names, sc.legend_swatch_size, sc) if show_legend else 0
     )
 
     var plot_x0 = ox0 + sc.margin_left
@@ -123,18 +145,18 @@ def _render_radar[
     var cy = Float64(plot_y0 + plot_y1) / 2.0
     var max_radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
 
-    var n = len(plot._radar_indicators)
+    var n = len(plot._radar.indicators)
     if theme.show_gridlines:
         _draw_radar_grid(target, cx, cy, max_radius, n, theme)
 
     var palette = default_categorical_palette()
-    for s in range(len(plot._radar_series_values)):
-        var values = plot._radar_series_values[s].copy()
+    for s in range(len(plot._radar.series_values)):
+        var values = plot._radar.series_values[s].copy()
         var color = palette[s % len(palette)]
         var poly = Path()
         for i in range(n):
             var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
-            var frac = values[i] / plot._radar_max[i] if plot._radar_max[i] > 0.0 else 0.0
+            var frac = values[i] / plot._radar.max_values[i] if plot._radar.max_values[i] > 0.0 else 0.0
             var pt = _polar_point(cx, cy, angle, max_radius * frac)
             if i == 0:
                 poly.move_to(pt.x, pt.y)
@@ -159,7 +181,7 @@ def _render_radar[
             align = TextAlign.RIGHT
         text_requests.append(
             _TextRequest(
-                Int(tip.x), Int(tip.y), plot._radar_indicators[i], theme.text_color, sc.font_size, align, theme.font_family
+                Int(tip.x), Int(tip.y), plot._radar.indicators[i], theme.text_color, sc.font_size, align, theme.font_family
             )
         )
 
@@ -167,7 +189,7 @@ def _render_radar[
         _draw_legend(
             target,
             text_requests,
-            plot._radar_series_names,
+            plot._radar.series_names,
             palette,
             plot_x1 + sc.margin_right,
             plot_y0,

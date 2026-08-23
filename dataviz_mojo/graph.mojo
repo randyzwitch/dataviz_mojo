@@ -14,12 +14,11 @@ from dataviz_mojo.plot import (
     _RenderResult,
     _Scaled,
     _TextRequest,
-    _edge_node_index,
-    _validate_edge_encoding,
     _empty_result,
     _min_max,
     _rendered,
 )
+from dataviz_mojo.edges import _edge_node_index, _validate_edge_encoding
 from dataviz_mojo.theme import Theme
 
 
@@ -65,10 +64,10 @@ def _render_graph[
     _validate_edge_encoding(plot, "Mark.GRAPH")
 
     var theme = plot._theme
-    if len(plot._chord_from) == 0:
+    if len(plot._edges.from_categories) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    var edges = _edge_node_index(plot._chord_from, plot._chord_to)
+    var edges = _edge_node_index(plot._edges.from_categories, plot._edges.to_categories)
     ref nodes = edges.nodes
     var n = len(nodes)
 
@@ -89,15 +88,15 @@ def _render_graph[
         node_y.append(cy + max_radius * sin(angle))
 
     var palette = default_categorical_palette()
-    var value_mm = _min_max(plot._chord_value)
+    var value_mm = _min_max(plot._edges.values)
     var max_value = value_mm.max
 
-    for row in range(len(plot._chord_from)):
+    for row in range(len(plot._edges.from_categories)):
         var from_idx = edges.from_idx[row]
         var to_idx = edges.to_idx[row]
         if from_idx == to_idx:
             continue
-        var frac = plot._chord_value[row] / max_value if max_value > 0.0 else 0.0
+        var frac = plot._edges.values[row] / max_value if max_value > 0.0 else 0.0
         var width = sc.line_width + sc.line_width * 2.0 * frac
         var color = palette[from_idx % len(palette)]
         target.draw_line_aa(

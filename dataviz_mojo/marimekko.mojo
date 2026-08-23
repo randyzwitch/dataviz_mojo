@@ -18,6 +18,26 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 
 
+struct _MarimekkoData(Movable):
+    """
+    Mark.MARIMEKKO only -- categories (columns), subcategories (stacked
+    rows), and a value per (subcategory, category) pair. See
+    encode_marimekko()'s own docstring.
+
+    Grouped onto `Plot._marimekko` -- see `Plot`'s own docstring.
+    """
+
+    var categories: List[String]
+    var subcategories: List[String]
+    var values: List[List[Float64]]
+
+    def __init__(out self):
+        self.categories = List[String]()
+        self.subcategories = List[String]()
+        self.values = List[List[Float64]]()
+
+
+
 def _render_marimekko[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
@@ -56,43 +76,43 @@ def _render_marimekko[
     bottom, legend keyed by `subcategories` (the same "series name ->
     color" legend `Mark.STACKED_BAR` already draws).
     """
-    if len(plot._marimekko_values) != len(plot._marimekko_subcategories):
+    if len(plot._marimekko.values) != len(plot._marimekko.subcategories):
         raise Error(
             "Plot.encode_marimekko(): values must have one row per subcategory"
             " (expected "
-            + String(len(plot._marimekko_subcategories))
+            + String(len(plot._marimekko.subcategories))
             + " rows, got "
-            + String(len(plot._marimekko_values))
+            + String(len(plot._marimekko.values))
             + ")"
         )
-    for row in plot._marimekko_values:
-        if len(row) != len(plot._marimekko_categories):
+    for row in plot._marimekko.values:
+        if len(row) != len(plot._marimekko.categories):
             raise Error(
                 "Plot.encode_marimekko(): every row in values must have one"
                 " value per category (expected "
-                + String(len(plot._marimekko_categories))
+                + String(len(plot._marimekko.categories))
                 + ", got "
                 + String(len(row))
                 + ")"
             )
 
     var theme = plot._theme
-    if len(plot._marimekko_categories) == 0 or len(plot._marimekko_subcategories) == 0:
+    if len(plot._marimekko.categories) == 0 or len(plot._marimekko.subcategories) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    for row in plot._marimekko_values:
+    for row in plot._marimekko.values:
         for v in row:
             if v < 0.0:
                 raise Error("Plot: Mark.MARIMEKKO values must be non-negative (got " + String(v) + ")")
 
-    var n_cats = len(plot._marimekko_categories)
-    var n_subs = len(plot._marimekko_subcategories)
+    var n_cats = len(plot._marimekko.categories)
+    var n_subs = len(plot._marimekko.subcategories)
     var col_totals = List[Float64]()
     var grand_total = 0.0
     for j in range(n_cats):
         var total = 0.0
         for i in range(n_subs):
-            total += plot._marimekko_values[i][j]
+            total += plot._marimekko.values[i][j]
         col_totals.append(total)
         grand_total += total
     if grand_total <= 0.0:
@@ -106,7 +126,7 @@ def _render_marimekko[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend_reserve = (
-        _dynamic_legend_width(plot._marimekko_subcategories, sc.legend_swatch_size, sc) if show_legend else 0
+        _dynamic_legend_width(plot._marimekko.subcategories, sc.legend_swatch_size, sc) if show_legend else 0
     )
 
     var plot_x0 = ox0 + sc.margin_left
@@ -140,7 +160,7 @@ def _render_marimekko[
             var y_cum = 0.0
             for i in range(n_subs):
                 var seg_bottom = _round_to_int(Float64(plot_y1) - y_cum)
-                y_cum += plot_height * (plot._marimekko_values[i][j] / col_totals[j])
+                y_cum += plot_height * (plot._marimekko.values[i][j] / col_totals[j])
                 var seg_top = _round_to_int(Float64(plot_y1) - y_cum)
                 target.fill_rect(
                     col_x0, seg_top, col_x1 - col_x0, seg_bottom - seg_top, palette[i % len(palette)]
@@ -150,7 +170,7 @@ def _render_marimekko[
             _TextRequest(
                 (col_x0 + col_x1) // 2,
                 plot_y1 + sc.tick_length + sc.label_gap + Int(sc.font_size),
-                plot._marimekko_categories[j],
+                plot._marimekko.categories[j],
                 theme.text_color,
                 sc.font_size,
                 TextAlign.CENTER,
@@ -160,7 +180,7 @@ def _render_marimekko[
 
     if show_legend:
         _draw_legend(
-            target, text_requests, plot._marimekko_subcategories, palette, plot_x1 + sc.margin_right, plot_y0, theme
+            target, text_requests, plot._marimekko.subcategories, palette, plot_x1 + sc.margin_right, plot_y0, theme
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)

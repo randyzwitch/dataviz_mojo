@@ -36,23 +36,23 @@ def _validate_grouped_bar_series(plot: Plot) raises:
     shape; making that a real import keeps the two from drifting the
     way the continuous render paths did.
     """
-    if len(plot._grouped_bar_series_names) != len(plot._grouped_bar_values):
+    if len(plot._grouped_bar.series_names) != len(plot._grouped_bar.values):
         raise Error(
             "Plot.encode_grouped_bar(): series_names and values must have"
             " the same length (got "
-            + String(len(plot._grouped_bar_series_names))
+            + String(len(plot._grouped_bar.series_names))
             + " and "
-            + String(len(plot._grouped_bar_values))
+            + String(len(plot._grouped_bar.values))
             + ")"
         )
-    for j in range(len(plot._grouped_bar_values)):
-        if len(plot._grouped_bar_values[j]) != len(plot.x_categories):
+    for j in range(len(plot._grouped_bar.values)):
+        if len(plot._grouped_bar.values[j]) != len(plot.x_categories):
             raise Error(
                 "Plot.encode_grouped_bar(): every series' own values must"
                 " have the same length as categories (series "
                 + String(j)
                 + " has "
-                + String(len(plot._grouped_bar_values[j]))
+                + String(len(plot._grouped_bar.values[j]))
                 + ", categories has "
                 + String(len(plot.x_categories))
                 + ")"
@@ -71,7 +71,7 @@ def _series_legend_reserve(plot: Plot, sc: _Scaled) raises -> Int:
     """
     if not plot._theme.show_legend:
         return 0
-    return _dynamic_legend_width(plot._grouped_bar_series_names, sc.legend_swatch_size, sc)
+    return _dynamic_legend_width(plot._grouped_bar.series_names, sc.legend_swatch_size, sc)
 
 
 def _render_grouped_bar[
@@ -118,9 +118,9 @@ def _render_grouped_bar[
         return _empty_result(ox0, oy0, ox1, oy1)
 
     var domain_data = List[Float64]()
-    for j in range(len(plot._grouped_bar_values)):
-        for i in range(len(plot._grouped_bar_values[j])):
-            domain_data.append(plot._grouped_bar_values[j][i])
+    for j in range(len(plot._grouped_bar.values)):
+        for i in range(len(plot._grouped_bar.values[j])):
+            domain_data.append(plot._grouped_bar.values[j][i])
     var y_scale = _zero_baseline_y_extent(domain_data)
 
     var sc = _Scaled(theme)
@@ -132,7 +132,7 @@ def _render_grouped_bar[
     )
 
     var palette = default_categorical_palette()
-    var n_series = len(plot._grouped_bar_series_names)
+    var n_series = len(plot._grouped_bar.series_names)
     var baseline_py = _axis_pixel(frame.y_scale, 0.0)
 
     var sub_width = frame.x_scale.bandwidth() / Float64(n_series)
@@ -141,7 +141,7 @@ def _render_grouped_bar[
         for j in range(n_series):
             var left = _round_to_int(band_start + Float64(j) * sub_width)
             var right = _round_to_int(band_start + Float64(j + 1) * sub_width)
-            var top_py = _axis_pixel(frame.y_scale, plot._grouped_bar_values[j][i])
+            var top_py = _axis_pixel(frame.y_scale, plot._grouped_bar.values[j][i])
             var bar_y = min(baseline_py, top_py)
             var bar_height = max(baseline_py, top_py) - min(baseline_py, top_py)
             target.fill_rect(left, bar_y, right - left, bar_height, palette[j % len(palette)])
@@ -150,7 +150,7 @@ def _render_grouped_bar[
         _draw_legend(
             target,
             frame.text_requests,
-            plot._grouped_bar_series_names,
+            plot._grouped_bar.series_names,
             palette,
             _round_to_int(frame.x_scale.range_max) + sc.margin_right,
             _round_to_int(frame.y_scale.range_max),

@@ -15,6 +15,27 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 
 
+struct _CandleData(Movable):
+    """
+    Mark.CANDLESTICK only -- one open/high/low/close value per category,
+    from encode_candlestick(). See that method's own docstring.
+
+    Grouped onto `Plot._candle` -- see `Plot`'s own docstring.
+    """
+
+    var open_price: List[Float64]
+    var high: List[Float64]
+    var low: List[Float64]
+    var close_price: List[Float64]
+
+    def __init__(out self):
+        self.open_price = List[Float64]()
+        self.high = List[Float64]()
+        self.low = List[Float64]()
+        self.close_price = List[Float64]()
+
+
+
 def _render_candlestick[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
@@ -51,30 +72,30 @@ def _render_candlestick[
     candlestick chart shows a doji as a thin flat body -- so body height
     is floored at 1px, not left to `fill_rect`'s own zero-size handling.
     """
-    if len(plot.x_categories) != len(plot._candle_open):
+    if len(plot.x_categories) != len(plot._candle.open_price):
         raise Error(
             "Plot.encode_candlestick(): categories and open/high/low/close"
             " must all have the same length (got "
             + String(len(plot.x_categories))
             + " categories and "
-            + String(len(plot._candle_open))
+            + String(len(plot._candle.open_price))
             + " open values)"
         )
     if (
-        len(plot._candle_high) != len(plot._candle_open)
-        or len(plot._candle_low) != len(plot._candle_open)
-        or len(plot._candle_close) != len(plot._candle_open)
+        len(plot._candle.high) != len(plot._candle.open_price)
+        or len(plot._candle.low) != len(plot._candle.open_price)
+        or len(plot._candle.close_price) != len(plot._candle.open_price)
     ):
         raise Error(
             "Plot.encode_candlestick(): open, high, low, and close must"
             " all have the same length (got "
-            + String(len(plot._candle_open))
+            + String(len(plot._candle.open_price))
             + ", "
-            + String(len(plot._candle_high))
+            + String(len(plot._candle.high))
             + ", "
-            + String(len(plot._candle_low))
+            + String(len(plot._candle.low))
             + ", "
-            + String(len(plot._candle_close))
+            + String(len(plot._candle.close_price))
             + ")"
         )
 
@@ -83,13 +104,13 @@ def _render_candlestick[
         return _empty_result(ox0, oy0, ox1, oy1)
 
     var domain_data = List[Float64]()
-    for v in plot._candle_open:
+    for v in plot._candle.open_price:
         domain_data.append(v)
-    for v in plot._candle_high:
+    for v in plot._candle.high:
         domain_data.append(v)
-    for v in plot._candle_low:
+    for v in plot._candle.low:
         domain_data.append(v)
-    for v in plot._candle_close:
+    for v in plot._candle.close_price:
         domain_data.append(v)
     var y_scale = _data_extent(domain_data)
 
@@ -98,17 +119,17 @@ def _render_candlestick[
     var body_width = _round_to_int(frame.x_scale.bandwidth())
     for i in range(len(plot.x_categories)):
         var center_px = _round_to_int(frame.x_scale.center(i))
-        var high_py = _axis_pixel(frame.y_scale, plot._candle_high[i])
-        var low_py = _axis_pixel(frame.y_scale, plot._candle_low[i])
+        var high_py = _axis_pixel(frame.y_scale, plot._candle.high[i])
+        var low_py = _axis_pixel(frame.y_scale, plot._candle.low[i])
         target.draw_line_aa(center_px, high_py, center_px, low_py, theme.axis_color, width=theme.scale)
 
-        var open_py = _axis_pixel(frame.y_scale, plot._candle_open[i])
-        var close_py = _axis_pixel(frame.y_scale, plot._candle_close[i])
+        var open_py = _axis_pixel(frame.y_scale, plot._candle.open_price[i])
+        var close_py = _axis_pixel(frame.y_scale, plot._candle.close_price[i])
         var body_x = _round_to_int(frame.x_scale.band_start(i))
         var body_y = min(open_py, close_py)
         var body_height = max(1, max(open_py, close_py) - min(open_py, close_py))
         var body_color = (
-            theme.mark_color if plot._candle_close[i] >= plot._candle_open[i] else theme.mark_color_negative
+            theme.mark_color if plot._candle.close_price[i] >= plot._candle.open_price[i] else theme.mark_color_negative
         )
         target.fill_rect(body_x, body_y, body_width, body_height, body_color)
 

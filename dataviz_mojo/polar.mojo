@@ -20,6 +20,30 @@ from dataviz_mojo.plot import (
 )
 from dataviz_mojo.theme import Theme
 
+
+struct _PolarData(Movable):
+    """
+    Mark.POLAR only -- one (angle, radius) pair per row (encode_
+    polar()), or a shared `angle` domain plus one or more named series
+    (encode_polar_series(), `_polar.series_names` non-empty is what
+    `_render_polar` actually branches on -- the legacy `_polar.radius`
+    field stays empty in that case). See both methods' own docstrings.
+
+    Grouped onto `Plot._polar` -- see `Plot`'s own docstring.
+    """
+
+    var angle: List[Float64]
+    var radius: List[Float64]
+    var series_names: List[String]
+    var series_radius: List[List[Float64]]
+
+    def __init__(out self):
+        self.angle = List[Float64]()
+        self.radius = List[Float64]()
+        self.series_names = List[String]()
+        self.series_radius = List[List[Float64]]()
+
+
 # How many evenly-spaced concentric grid rings/angular spokes the polar
 # grid draws -- fixed constants, not `Theme` fields, the same
 # "not worth a knob until something concrete needs one" reasoning
@@ -138,25 +162,25 @@ def _render_polar[
     series together, not each independently, so equal-magnitude points
     in different series land at the same radius.
     """
-    var is_multi = len(plot._polar_series_names) > 0
+    var is_multi = len(plot._polar.series_names) > 0
     if is_multi:
-        if len(plot._polar_series_radius) != len(plot._polar_series_names):
+        if len(plot._polar.series_radius) != len(plot._polar.series_names):
             raise Error(
                 "Plot.encode_polar_series(): series_names and series_values must have the"
                 " same length (got "
-                + String(len(plot._polar_series_names))
+                + String(len(plot._polar.series_names))
                 + " and "
-                + String(len(plot._polar_series_radius))
+                + String(len(plot._polar.series_radius))
                 + ")"
             )
-        for values in plot._polar_series_radius:
-            if len(values) != len(plot._polar_angle):
+        for values in plot._polar.series_radius:
+            if len(values) != len(plot._polar.angle):
                 raise Error(
                     "Plot.encode_polar_series(): every series must have the same length as"
                     " angle (got "
                     + String(len(values))
                     + " and "
-                    + String(len(plot._polar_angle))
+                    + String(len(plot._polar.angle))
                     + ")"
                 )
             for r in values:
@@ -165,27 +189,27 @@ def _render_polar[
                         "Plot: Mark.POLAR radius values must be non-negative (got " + String(r) + ")"
                     )
     else:
-        if len(plot._polar_angle) != len(plot._polar_radius):
+        if len(plot._polar.angle) != len(plot._polar.radius):
             raise Error(
                 "Plot.encode_polar(): angle and radius must have the same length"
                 " (got "
-                + String(len(plot._polar_angle))
+                + String(len(plot._polar.angle))
                 + " and "
-                + String(len(plot._polar_radius))
+                + String(len(plot._polar.radius))
                 + ")"
             )
-        for r in plot._polar_radius:
+        for r in plot._polar.radius:
             if r < 0.0:
                 raise Error("Plot: Mark.POLAR radius values must be non-negative (got " + String(r) + ")")
 
     var theme = plot._theme
-    if len(plot._polar_angle) == 0:
+    if len(plot._polar.angle) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
     var text_requests = List[_TextRequest]()
     var sc = _Scaled(theme)
     var show_legend = is_multi and theme.show_legend
-    var legend_reserve = _dynamic_legend_width(plot._polar_series_names, sc.legend_swatch_size, sc) if show_legend else 0
+    var legend_reserve = _dynamic_legend_width(plot._polar.series_names, sc.legend_swatch_size, sc) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
@@ -200,52 +224,52 @@ def _render_polar[
 
     if is_multi:
         var max_r = 0.0
-        for values in plot._polar_series_radius:
+        for values in plot._polar.series_radius:
             for r in values:
                 if r > max_r:
                     max_r = r
 
         var palette = default_categorical_palette()
-        for s in range(len(plot._polar_series_radius)):
-            var values = plot._polar_series_radius[s].copy()
+        for s in range(len(plot._polar.series_radius)):
+            var values = plot._polar.series_radius[s].copy()
             var color = palette[s % len(palette)]
             var path = Path()
-            for i in range(len(plot._polar_angle)):
+            for i in range(len(plot._polar.angle)):
                 var radius_px = max_radius * (values[i] / max_r) if max_r > 0.0 else 0.0
-                var pt = _polar_point(cx, cy, plot._polar_angle[i], radius_px)
+                var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
                 if i == 0:
                     path.move_to(pt.x, pt.y)
                 else:
                     path.line_to(pt.x, pt.y)
             target.stroke_path_aa(path, color, sc.line_width)
-            for i in range(len(plot._polar_angle)):
+            for i in range(len(plot._polar.angle)):
                 var radius_px = max_radius * (values[i] / max_r) if max_r > 0.0 else 0.0
-                var pt = _polar_point(cx, cy, plot._polar_angle[i], radius_px)
+                var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
                 target.fill_circle_aa(Int(pt.x), Int(pt.y), Int(sc.point_radius), color)
 
         if show_legend:
             _draw_legend(
-                target, text_requests, plot._polar_series_names, palette, plot_x1 + sc.margin_right, plot_y0, theme
+                target, text_requests, plot._polar.series_names, palette, plot_x1 + sc.margin_right, plot_y0, theme
             )
     else:
         var max_r = 0.0
-        for r in plot._polar_radius:
+        for r in plot._polar.radius:
             if r > max_r:
                 max_r = r
 
         var path = Path()
-        for i in range(len(plot._polar_angle)):
-            var radius_px = max_radius * (plot._polar_radius[i] / max_r) if max_r > 0.0 else 0.0
-            var pt = _polar_point(cx, cy, plot._polar_angle[i], radius_px)
+        for i in range(len(plot._polar.angle)):
+            var radius_px = max_radius * (plot._polar.radius[i] / max_r) if max_r > 0.0 else 0.0
+            var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
             if i == 0:
                 path.move_to(pt.x, pt.y)
             else:
                 path.line_to(pt.x, pt.y)
         target.stroke_path_aa(path, theme.mark_color, sc.line_width)
 
-        for i in range(len(plot._polar_angle)):
-            var radius_px = max_radius * (plot._polar_radius[i] / max_r) if max_r > 0.0 else 0.0
-            var pt = _polar_point(cx, cy, plot._polar_angle[i], radius_px)
+        for i in range(len(plot._polar.angle)):
+            var radius_px = max_radius * (plot._polar.radius[i] / max_r) if max_r > 0.0 else 0.0
+            var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
             target.fill_circle_aa(Int(pt.x), Int(pt.y), Int(sc.point_radius), theme.mark_color)
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)

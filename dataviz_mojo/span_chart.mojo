@@ -19,8 +19,8 @@ def _render_span_chart[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.SPAN_CHART` plot: `Mark.GANTT`'s own mirror
-    image -- one floating bar per category from `plot._gantt_start[i]`
-    (the low end) to `plot._gantt_end[i]` (the high end), but *vertical*
+    image -- one floating bar per category from `plot._gantt.start[i]`
+    (the low end) to `plot._gantt.end[i]` (the high end), but *vertical*
     on the normal `_draw_categorical_axis_frame` (categories along `x`,
     a continuous `y` for the value domain) instead of `Mark.GANTT`'s
     own horizontal frame -- ECharts.jl's own `spanchart`, "an invisible
@@ -35,8 +35,8 @@ def _render_span_chart[
     the same "identical data, purely an orientation/rendering
     difference" precedent `Mark.STACKED_BAR`'s own reuse of `Mark.
     GROUPED_BAR`'s `encode_grouped_bar()` already established (see
-    that mark's own docstring in mark.mojo). `_gantt_start`/`_gantt_
-    end` don't need `start[i] <= end[i]` -- same as `Mark.GANTT`'s own
+    that mark's own docstring in mark.mojo). `_gantt`'s own `start`/
+    `end` don't need `start[i] <= end[i]` -- same as `Mark.GANTT`'s own
     lack of that requirement, this draws from `min`/`max` of the two,
     not literally `start` to `end` in that order.
 
@@ -48,15 +48,15 @@ def _render_span_chart[
     show" reasoning `Mark.GANTT`'s own docstring already gives for its
     own zero-width case).
     """
-    if len(plot.x_categories) != len(plot._gantt_start) or len(plot._gantt_end) != len(plot._gantt_start):
+    if len(plot.x_categories) != len(plot._gantt.start) or len(plot._gantt.end) != len(plot._gantt.start):
         raise Error(
             "Plot.encode_gantt(): categories, start, and end must all have"
             " the same length (got "
             + String(len(plot.x_categories))
             + " categories, "
-            + String(len(plot._gantt_start))
+            + String(len(plot._gantt.start))
             + " start values, "
-            + String(len(plot._gantt_end))
+            + String(len(plot._gantt.end))
             + " end values)"
         )
 
@@ -65,9 +65,9 @@ def _render_span_chart[
         return _empty_result(ox0, oy0, ox1, oy1)
 
     var domain_data = List[Float64]()
-    for v in plot._gantt_start:
+    for v in plot._gantt.start:
         domain_data.append(v)
-    for v in plot._gantt_end:
+    for v in plot._gantt.end:
         domain_data.append(v)
     var y_scale = _data_extent(domain_data)
 
@@ -78,8 +78,8 @@ def _render_span_chart[
         var band_start = frame.x_scale.band_start(i)
         var bar_x = _round_to_int(band_start)
         var bar_width = _round_to_int(bandwidth)
-        var low_py = _axis_pixel(frame.y_scale, plot._gantt_start[i])
-        var high_py = _axis_pixel(frame.y_scale, plot._gantt_end[i])
+        var low_py = _axis_pixel(frame.y_scale, plot._gantt.start[i])
+        var high_py = _axis_pixel(frame.y_scale, plot._gantt.end[i])
         var bar_y = min(low_py, high_py)
         var bar_height = max(1, max(low_py, high_py) - min(low_py, high_py))
         target.fill_rect(bar_x, bar_y, bar_width, bar_height, theme.mark_color)

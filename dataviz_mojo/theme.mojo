@@ -156,8 +156,8 @@ justify. All three are plain `Float64` points, scaled by `Theme.scale`
 the same as `font_size` itself -- see `_Scaled`'s own docstring
 (plot.mojo) for why every pixel-sized quantity goes through that one
 struct rather than each render path applying `* scale` itself. No
-titles are drawn by default (`Plot._title`/`_subtitle`/`_x_title`/
-`_y_title` all default to `""`), so these three sizes only ever matter
+titles are drawn by default (`Plot._labels`'s own `title`/`subtitle`/
+`x_title`/`y_title` all default to `""`), so these three sizes only matter
 once a caller actually calls `.labels(...)` -- an empty string never
 reserves layout space or emits a `_TextRequest`, the same "absent
 means absent, not a zero-size version of present" rule `Plot.encode_

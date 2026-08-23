@@ -90,7 +90,7 @@ def _render_beeswarm[
         return _empty_result(ox0, oy0, ox1, oy1)
 
     var all_values = List[Float64]()
-    for series in plot._distribution_values:
+    for series in plot._distribution.values:
         for v in series:
             all_values.append(v)
     var y_scale = _data_extent(all_values)
@@ -104,7 +104,7 @@ def _render_beeswarm[
     for i in range(len(plot.x_categories)):
         var center_x = _round_to_int(frame.x_scale.center(i))
         var y_pixels = List[Int]()
-        for v in plot._distribution_values[i]:
+        for v in plot._distribution.values[i]:
             y_pixels.append(_axis_pixel(frame.y_scale, v))
         var offsets = _beeswarm_offsets(y_pixels, spacing)
         for j in range(len(y_pixels)):

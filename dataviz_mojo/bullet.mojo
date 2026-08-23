@@ -16,6 +16,26 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 
 
+struct _BulletData(Movable):
+    """
+    Mark.BULLET only -- one measure/target pair, plus a whole list of
+    ascending qualitative-range thresholds, per category. See
+    encode_bullet()'s own docstring.
+
+    Grouped onto `Plot._bullet` -- see `Plot`'s own docstring.
+    """
+
+    var measure: List[Float64]
+    var target: List[Float64]
+    var ranges: List[List[Float64]]
+
+    def __init__(out self):
+        self.measure = List[Float64]()
+        self.target = List[Float64]()
+        self.ranges = List[List[Float64]]()
+
+
+
 comptime _BULLET_MEASURE_WIDTH_FRACTION = 0.35
 """Mark.BULLET's own measure bar, as a fraction of the category's full
 band width -- roughly matching Stephen Few's own bullet-chart
@@ -84,32 +104,32 @@ def _render_bullet[
        it.
     """
     if (
-        len(plot.x_categories) != len(plot._bullet_measure)
-        or len(plot._bullet_target) != len(plot._bullet_measure)
-        or len(plot._bullet_ranges) != len(plot._bullet_measure)
+        len(plot.x_categories) != len(plot._bullet.measure)
+        or len(plot._bullet.target) != len(plot._bullet.measure)
+        or len(plot._bullet.ranges) != len(plot._bullet.measure)
     ):
         raise Error(
             "Plot.encode_bullet(): categories, measures, targets, and"
             " ranges must all have the same length (got "
             + String(len(plot.x_categories))
             + " categories, "
-            + String(len(plot._bullet_measure))
+            + String(len(plot._bullet.measure))
             + " measures, "
-            + String(len(plot._bullet_target))
+            + String(len(plot._bullet.target))
             + " targets, "
-            + String(len(plot._bullet_ranges))
+            + String(len(plot._bullet.ranges))
             + " ranges)"
         )
-    for i in range(len(plot._bullet_ranges)):
-        if len(plot._bullet_ranges[i]) == 0:
+    for i in range(len(plot._bullet.ranges)):
+        if len(plot._bullet.ranges[i]) == 0:
             raise Error(
                 "Plot.encode_bullet(): category '"
                 + plot.x_categories[i]
                 + "' has no range thresholds -- a bullet chart needs at"
                 " least one qualitative range"
             )
-        for j in range(1, len(plot._bullet_ranges[i])):
-            if plot._bullet_ranges[i][j] < plot._bullet_ranges[i][j - 1]:
+        for j in range(1, len(plot._bullet.ranges[i])):
+            if plot._bullet.ranges[i][j] < plot._bullet.ranges[i][j - 1]:
                 raise Error(
                     "Plot.encode_bullet(): category '"
                     + plot.x_categories[i]
@@ -124,9 +144,9 @@ def _render_bullet[
     var domain_data = List[Float64]()
     for i in range(len(plot.x_categories)):
         domain_data.append(0.0)
-        domain_data.append(plot._bullet_ranges[i][len(plot._bullet_ranges[i]) - 1])
-        domain_data.append(plot._bullet_measure[i])
-        domain_data.append(plot._bullet_target[i])
+        domain_data.append(plot._bullet.ranges[i][len(plot._bullet.ranges[i]) - 1])
+        domain_data.append(plot._bullet.measure[i])
+        domain_data.append(plot._bullet.target[i])
     var y_scale = _zero_baseline_y_extent(domain_data)
 
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
@@ -147,26 +167,26 @@ def _render_bullet[
 
     for i in range(len(plot.x_categories)):
         var band_x = _round_to_int(frame.x_scale.band_start(i))
-        var band_count = len(plot._bullet_ranges[i])
+        var band_count = len(plot._bullet.ranges[i])
 
         var prev_threshold = 0.0
         for j in range(band_count):
             var t = Float64(j) / Float64(band_count - 1) if band_count > 1 else 0.0
             var band_color = range_color_scale.color_at(t)
-            var top_py = _axis_pixel(frame.y_scale, plot._bullet_ranges[i][j])
+            var top_py = _axis_pixel(frame.y_scale, plot._bullet.ranges[i][j])
             var bottom_py = _axis_pixel(frame.y_scale, prev_threshold)
             var rect_y = min(top_py, bottom_py)
             var rect_h = max(top_py, bottom_py) - min(top_py, bottom_py)
             target.fill_rect(band_x, rect_y, band_width, rect_h, band_color)
-            prev_threshold = plot._bullet_ranges[i][j]
+            prev_threshold = plot._bullet.ranges[i][j]
 
         var measure_x = _round_to_int(frame.x_scale.center(i) - measure_inset)
-        var measure_py = _axis_pixel(frame.y_scale, plot._bullet_measure[i])
+        var measure_py = _axis_pixel(frame.y_scale, plot._bullet.measure[i])
         var measure_y = min(baseline_py, measure_py)
         var measure_h = max(baseline_py, measure_py) - min(baseline_py, measure_py)
         target.fill_rect(measure_x, measure_y, measure_width, measure_h, theme.mark_color)
 
-        var target_py = _axis_pixel(frame.y_scale, plot._bullet_target[i])
+        var target_py = _axis_pixel(frame.y_scale, plot._bullet.target[i])
         var band_end = band_x + band_width
         target.draw_line_aa(band_x, target_py, band_end, target_py, theme.axis_color, width=theme.scale)
 

@@ -179,6 +179,22 @@ from dataviz_mojo.bar import _render_bar
 from dataviz_mojo.beeswarm import _render_beeswarm
 from dataviz_mojo.ridgeline import _render_ridgeline
 from dataviz_mojo.violin import _render_violin
+from dataviz_mojo.waterfall import _WaterfallData
+from dataviz_mojo.box import _BoxData
+from dataviz_mojo.candlestick import _CandleData
+from dataviz_mojo.bullet import _BulletData
+from dataviz_mojo.population_pyramid import _PyramidData
+from dataviz_mojo.heatmap import _HeatmapData
+from dataviz_mojo.polar import _PolarData
+from dataviz_mojo.radar import _RadarData
+from dataviz_mojo.gauge import _GaugeData
+from dataviz_mojo.parallel import _ParallelData
+from dataviz_mojo.calendar_heatmap import _CalendarData
+from dataviz_mojo.corrplot import _CorrplotData
+from dataviz_mojo.punchcard import _PunchcardData
+from dataviz_mojo.marimekko import _MarimekkoData
+from dataviz_mojo.edges import _EdgeData
+from dataviz_mojo.hierarchy import _HierarchyData
 from dataviz_mojo.box import _box_stats, _render_box
 from dataviz_mojo.bullet import _render_bullet
 from dataviz_mojo.candlestick import _render_candlestick
@@ -331,206 +347,213 @@ struct _Scaled(Movable):
         self.continuous_legend_bar_height = Int(Float64(_CONTINUOUS_LEGEND_BAR_HEIGHT) * s)
 
 
+struct _GanttData(Movable):
+    """
+    Mark.GANTT only -- one start/end span per category. See
+    encode_gantt()'s own docstring.
+
+    Grouped onto `Plot._gantt` -- see `Plot`'s own docstring.
+    """
+
+    var start: List[Float64]
+    var end: List[Float64]
+
+    def __init__(out self):
+        self.start = List[Float64]()
+        self.end = List[Float64]()
+
+
+struct _GroupedBarData(Movable):
+    """
+    Mark.GROUPED_BAR only -- one name per series, one value per (series,
+    category) pair. See encode_grouped_bar()'s own docstring.
+
+    Grouped onto `Plot._grouped_bar` -- see `Plot`'s own docstring.
+    """
+
+    var series_names: List[String]
+    var values: List[List[Float64]]
+
+    def __init__(out self):
+        self.series_names = List[String]()
+        self.values = List[List[Float64]]()
+
+
+struct _DistributionData(Movable):
+    """
+    Mark.BEESWARM/VIOLIN/RIDGELINE only -- one *list* of raw values per
+    category, kept unsummarized (unlike Mark.BOX's own encode_ boxplot,
+    which reduces each category's own list to a five-number summary
+    immediately). See encode_distribution()'s own docstring.
+
+    `kde_bandwidth_override` is a caller's own kernel-density-estimate
+    bandwidth, overriding each category's own Silverman's-rule default
+    (0.0 is the sentinel for "use the default", the same
+    empty-means-default convention `encode()`'s own optional channels
+    already use -- a scalar 0.0 here, since a real bandwidth is never
+    zero or negative). `kde_scale_by_count` selects ggplot2's own
+    `scale = "area"` mode: False (the default) is `scale = "width"`,
+    where every category's own peak density maps to the same maximum
+    width/rise regardless of sample count; True additionally scales
+    that maximum by `sqrt(n_i / max(n))`, so a category built from
+    fewer points draws visibly narrower. See mark_violin()'s and
+    mark_ridgeline()'s own docstrings for both.
+
+    Grouped onto `Plot._distribution` -- see `Plot`'s own docstring.
+    """
+
+    var values: List[List[Float64]]
+    var kde_bandwidth_override: Float64
+    var kde_scale_by_count: Bool
+
+    def __init__(out self):
+        self.values = List[List[Float64]]()
+        self.kde_bandwidth_override = 0.0
+        self.kde_scale_by_count = False
+
+
+struct _LabelData(Movable):
+    """
+    Chart/axis title text, set via .labels() -- see that method's own
+    docstring. Empty string means "not set", the same "absent means
+    absent" convention every other optional feature here follows.
+
+    Grouped onto `Plot._labels` -- see `Plot`'s own docstring.
+    """
+
+    var title: String
+    var subtitle: String
+    var x_title: String
+    var y_title: String
+
+    def __init__(out self):
+        self.title = ""
+        self.subtitle = ""
+        self.x_title = ""
+        self.y_title = ""
+
+
+struct _AnnotationData(Movable):
+    """
+    A horizontal reference line per (value, label) pair, set via
+    .annotate_line() -- see that method's own docstring. Parallel lists,
+    the same "outer list indexes named things" shape RADAR's own
+    series_names/series_values already establish -- callable more than
+    once (each call appends, doesn't replace), so a caller wanting both
+    an "average" and a "target" line just calls it twice.
+
+    `area_*` is a shaded horizontal band per (y0, y1, label) triple
+    from .annotate_area(); `vline_*` a vertical reference line per
+    (value, label) pair from .annotate_vline(); `point_*` a single
+    labeled point per (x, y, label) triple from .annotate_point().
+    Every one keeps the same parallel-lists shape, for the same reason:
+    each method is additive and may be called more than once.
+
+    `line_*` (horizontal, an x-independent y value) and `vline_*`
+    stay separate fields rather than sharing one list. They aren't
+    interchangeable data, so merging them would need a "which axis"
+    flag per entry, where separate fields already keep them apart.
+
+    Grouped onto `Plot._annotations` -- see `Plot`'s own docstring.
+    """
+
+    var line_values: List[Float64]
+    var line_labels: List[String]
+    var area_y0: List[Float64]
+    var area_y1: List[Float64]
+    var area_labels: List[String]
+    var vline_values: List[Float64]
+    var vline_labels: List[String]
+    var point_x: List[Float64]
+    var point_y: List[Float64]
+    var point_labels: List[String]
+
+    def __init__(out self):
+        self.line_values = List[Float64]()
+        self.line_labels = List[String]()
+        self.area_y0 = List[Float64]()
+        self.area_y1 = List[Float64]()
+        self.area_labels = List[String]()
+        self.vline_values = List[Float64]()
+        self.vline_labels = List[String]()
+        self.point_x = List[Float64]()
+        self.point_y = List[Float64]()
+        self.point_labels = List[String]()
+
+
 struct Plot(Movable):
+    """One chart's mark, theme, labels and data, built up through the
+    fluent `mark_*()`/`encode_*()`/`labels()`/`theme()` chain and
+    consumed by `render()` (see this module's own docstring for that
+    convention).
+
+    Data columns are grouped one struct per mark family rather than
+    left loose on this type. `Plot` carried ninety-one flat fields
+    before that -- `_box_q1`, `_box_median`, `_box_q3`, and so on --
+    which made three things worse at once: `__init__` was ninety-four
+    lines of `self.x = List[Float64]()`, adding a mark meant editing
+    this struct in several places, and every mark's render function
+    could see every other mark's columns, with nothing but a naming
+    convention keeping them apart.
+
+    The grouping is not a new taxonomy imposed on the data. The
+    per-field comments here were *already* written one block per mark,
+    which is what made the seams obvious; those blocks are now each
+    sub-struct's own docstring, so the documentation sits with the data
+    it describes.
+
+    `_edges` earns its name particularly: `Mark.CHORD`, `ARC_DIAGRAM`,
+    `GRAPH` and `SANKEY` all read the same three columns, a fact
+    previously discoverable only by grepping for `_chord_from` and
+    noticing four unrelated marks in the results. `_edge_node_index`
+    already resolves that shared shape; this names it.
+
+    What stays ungrouped is deliberate: `x_data`/`y_data`/
+    `x_categories`/`color_data`/`color_categories`/`size_data` are the
+    shared encoding channels many marks read, not any one mark's own
+    columns, and `_mark`/`_theme`/`_secondary_axis`/`_nightingale_area`
+    are single settings rather than data.
+    """
+
     var x_data: List[Float64]
     var y_data: List[Float64]
     var x_categories: List[String]
     var color_data: List[Float64]
     var color_categories: List[String]
     var size_data: List[Float64]
-    # Mark.WATERFALL only -- the running-total bounds encode_waterfall()
-    # computes from each category's own signed delta (y_data), see that
-    # method's own docstring.
-    var _waterfall_y0: List[Float64]
-    var _waterfall_y1: List[Float64]
-    # Mark.WATERFALL only -- which rows are running-total checkpoints
-    # (drawn full-band-width in Theme.waterfall_total_color) rather than
-    # rising/falling deltas. Empty means "no total rows" -- see
-    # encode_waterfall()'s own docstring.
-    var _waterfall_is_total: List[Bool]
-    # Mark.BOX only -- the five-number summary encode_boxplot() computes
-    # per category up front, plus every outlier tagged with which
-    # category (by index into x_categories) it belongs to. See that
-    # method's own docstring for the quartile/whisker/outlier math.
-    var _box_q1: List[Float64]
-    var _box_median: List[Float64]
-    var _box_q3: List[Float64]
-    var _box_low: List[Float64]
-    var _box_high: List[Float64]
-    var _box_outlier_cat: List[Int]
-    var _box_outlier_value: List[Float64]
-    # Mark.CANDLESTICK only -- one open/high/low/close value per
-    # category, from encode_candlestick(). See that method's own
-    # docstring.
-    var _candle_open: List[Float64]
-    var _candle_high: List[Float64]
-    var _candle_low: List[Float64]
-    var _candle_close: List[Float64]
-    # Mark.BULLET only -- one measure/target pair, plus a whole list of
-    # ascending qualitative-range thresholds, per category. See
-    # encode_bullet()'s own docstring.
-    var _bullet_measure: List[Float64]
-    var _bullet_target: List[Float64]
-    var _bullet_ranges: List[List[Float64]]
-    # Mark.GANTT only -- one start/end span per category. See
-    # encode_gantt()'s own docstring.
-    var _gantt_start: List[Float64]
-    var _gantt_end: List[Float64]
-    # Mark.GROUPED_BAR only -- one name per series, one value per
-    # (series, category) pair. See encode_grouped_bar()'s own docstring.
-    var _grouped_bar_series_names: List[String]
-    var _grouped_bar_values: List[List[Float64]]
-    # Mark.POPULATION_PYRAMID only -- one magnitude per side per
-    # category, plus each side's own legend name. See encode_
-    # population_pyramid()'s own docstring.
-    var _pyramid_left: List[Float64]
-    var _pyramid_right: List[Float64]
-    var _pyramid_left_name: String
-    var _pyramid_right_name: String
-    # Mark.HEATMAP only -- one (x category, y category, value) row per
-    # grid cell. See encode_heatmap()'s own docstring.
-    var _heatmap_x: List[String]
-    var _heatmap_y: List[String]
-    var _heatmap_value: List[Float64]
-    # Mark.CHORD only -- one (from node, to node, value) flow per row.
-    # See encode_chord()'s own docstring.
-    var _chord_from: List[String]
-    var _chord_to: List[String]
-    var _chord_value: List[Float64]
-    # Mark.BEESWARM/VIOLIN/RIDGELINE only -- one *list* of raw values
-    # per category, kept unsummarized (unlike Mark.BOX's own encode_
-    # boxplot, which reduces each category's own list to a five-number
-    # summary immediately). See encode_distribution()'s own docstring.
-    var _distribution_values: List[List[Float64]]
-    # Mark.VIOLIN/RIDGELINE only -- a caller's own kernel-density-
-    # estimate bandwidth, overriding each category's own Silverman's-
-    # rule default (0.0 is the sentinel for "use the default", the
-    # same empty-means-default convention `encode()`'s own optional
-    # channels already use, just a scalar 0.0 here since a real
-    # bandwidth is never zero or negative). See mark_violin()'s/mark_
-    # ridgeline()'s own docstrings.
-    var _kde_bandwidth_override: Float64
-    # Mark.VIOLIN/RIDGELINE only -- ggplot2's own `scale = "area"` mode
-    # (False = the default `scale = "width"`: every category's own
-    # peak density maps to the same maximum width/rise, regardless of
-    # its own sample count; True additionally scales that maximum by
-    # `sqrt(n_i / max(n))`, so a category built from fewer points draws
-    # visibly narrower/shorter). See mark_violin()'s/mark_ridgeline()'s
-    # own docstrings.
-    var _kde_scale_by_count: Bool
+    var _waterfall: _WaterfallData
+    var _box: _BoxData
+    var _candle: _CandleData
+    var _bullet: _BulletData
+    var _gantt: _GanttData
+    var _grouped_bar: _GroupedBarData
+    var _pyramid: _PyramidData
+    var _heatmap: _HeatmapData
+    var _edges: _EdgeData
+    var _distribution: _DistributionData
     # Mark.NIGHTINGALE only -- which of ECharts' two `rose_type` radius
     # formulas each wedge uses (False = "radius", True = "area"). See
-    # mark_nightingale()'s own docstring.
+    # mark_nightingale()'s own docstring. Ungrouped: a lone mode flag,
+    # not a data column.
     var _nightingale_area: Bool
-    # Mark.POLAR only -- one (angle, radius) pair per row (encode_
-    # polar()), or a shared `angle` domain plus one or more named
-    # series (encode_polar_series(), `_polar_series_names` non-empty
-    # is what `_render_polar` actually branches on -- the legacy
-    # `_polar_radius` field stays empty in that case). See both
-    # methods' own docstrings.
-    var _polar_angle: List[Float64]
-    var _polar_radius: List[Float64]
-    var _polar_series_names: List[String]
-    var _polar_series_radius: List[List[Float64]]
-    # Mark.RADAR only -- one named indicator (axis) per entry, each
-    # with its own max, plus one or more named series each with a
-    # value per indicator. See encode_radar()'s own docstring.
-    var _radar_indicators: List[String]
-    var _radar_max: List[Float64]
-    var _radar_series_names: List[String]
-    var _radar_series_values: List[List[Float64]]
-    # Mark.GAUGE only -- a single value plus its own dial range, plus
-    # the optional custom breakpoint bands (empty means "use ECharts'
-    # own 20%/80%/100% default", the same empty-list-is-a-sentinel
-    # convention `encode()`'s own `color`/`size` channels already use).
-    # See encode_gauge()'s own docstring.
-    var _gauge_value: Float64
-    var _gauge_min: Float64
-    var _gauge_max: Float64
-    var _gauge_breakpoints: List[Float64]
-    var _gauge_band_colors: List[Color]
-    # Mark.PARALLEL only -- one named axis per dimension, one named
-    # row per observation, one value per (row, dimension) pair. See
-    # encode_parallel()'s own docstring.
-    var _parallel_dims: List[String]
-    var _parallel_row_names: List[String]
-    var _parallel_data: List[List[Float64]]
-    # Mark.CALENDAR_HEATMAP only -- one ("YYYY-MM-DD" date, value) row
-    # per day. See encode_calendar()'s own docstring.
-    var _calendar_dates: List[String]
-    var _calendar_values: List[Float64]
-    # Mark.CORRPLOT only -- a square correlation matrix over a shared
-    # variable list, plus display options. See encode_corrplot()'s own
-    # docstring.
-    var _corrplot_variables: List[String]
-    var _corrplot_matrix: List[List[Float64]]
-    var _corrplot_layout: String
-    var _corrplot_diag: Bool
-    var _corrplot_labels: Bool
-    # Mark.PUNCHCARD only -- one (x category, y category, bubble size)
-    # row per cell, plus the size->radius divisor. See encode_
-    # punchcard()'s own docstring.
-    var _punchcard_x: List[String]
-    var _punchcard_y: List[String]
-    var _punchcard_sizes: List[Float64]
-    var _punchcard_scale: Float64
-    # Mark.MARIMEKKO only -- categories (columns), subcategories
-    # (stacked rows), and a value per (subcategory, category) pair.
-    # See encode_marimekko()'s own docstring.
-    var _marimekko_categories: List[String]
-    var _marimekko_subcategories: List[String]
-    var _marimekko_values: List[List[Float64]]
-    # Mark.SUNBURST/TREE/TREEMAP only -- a flattened hierarchy, one
-    # (id, parent_id, value) row per node. See encode_hierarchy()'s
-    # own docstring.
-    var _hierarchy_ids: List[String]
-    var _hierarchy_parent_ids: List[String]
-    var _hierarchy_values: List[Float64]
-    # Chart/axis title text, set via .labels() -- see that method's own
-    # docstring. Empty string means "not set", the same "absent means
-    # absent" convention every other optional feature here follows.
-    var _title: String
-    var _subtitle: String
-    var _x_title: String
-    var _y_title: String
-    # A horizontal reference line per (value, label) pair, set via
-    # .annotate_line() -- see that method's own docstring. Parallel
-    # lists, the same "outer list indexes named things" shape RADAR's
-    # own series_names/series_values already establish -- callable
-    # more than once (each call appends, doesn't replace), so a caller
-    # wanting both an "average" and a "target" line just calls it twice.
-    var _annotation_line_values: List[Float64]
-    var _annotation_line_labels: List[String]
-    # A shaded horizontal band per (y0, y1, label) triple, set via
-    # .annotate_area() -- see that method's own docstring. Same
-    # parallel-lists shape as the annotation-line fields just above,
-    # for the same reason (additive, callable more than once).
-    var _annotation_area_y0: List[Float64]
-    var _annotation_area_y1: List[Float64]
-    var _annotation_area_labels: List[String]
-    # A vertical reference line per (value, label) pair, set via
-    # .annotate_vline() -- see that method's own docstring. Same
-    # parallel-lists shape as the annotation-line fields above; a
-    # separate field, not a shared one with .annotate_line()'s own
-    # (which is horizontal, an x-independent y value) -- the two aren't
-    # interchangeable data, so mixing them into one list would need a
-    # separate "which axis" flag per entry instead of the type system
-    # already keeping them apart.
-    var _annotation_vline_values: List[Float64]
-    var _annotation_vline_labels: List[String]
-    # A single labeled point per (x, y, label) triple, set via
-    # .annotate_point() -- see that method's own docstring. Same
-    # parallel-lists shape again, for the same additive reason.
-    var _annotation_point_x: List[Float64]
-    var _annotation_point_y: List[Float64]
-    var _annotation_point_labels: List[String]
+    var _polar: _PolarData
+    var _radar: _RadarData
+    var _gauge: _GaugeData
+    var _parallel: _ParallelData
+    var _calendar: _CalendarData
+    var _corrplot: _CorrplotData
+    var _punchcard: _PunchcardData
+    var _marimekko: _MarimekkoData
+    var _hierarchy: _HierarchyData
+    var _labels: _LabelData
+    var _annotations: _AnnotationData
     # Set via .secondary_axis() -- render_layers()/render_layers_svg()
-    # only (see that method's own docstring): this layer's own y
-    # values scale against a second, independent y-domain drawn on the
-    # plot's right edge, instead of the shared left-axis domain every
-    # other layer's data is combined into. Meaningless on a standalone
-    # plot (render()/render_svg() raise if it's set -- there's only one
-    # series, nothing for a second axis to pair against).
+    # only: this layer's own y values scale against a second,
+    # independent y-domain drawn on the plot's right edge, instead of
+    # the shared left-axis domain every other layer is combined into.
+    # Meaningless on a standalone plot (render() raises if it's set --
+    # there's only one series, nothing for a second axis to pair
+    # against).
     var _secondary_axis: Bool
     var _mark: Mark
     var _theme: Theme
@@ -542,88 +565,28 @@ struct Plot(Movable):
         self.color_data = List[Float64]()
         self.color_categories = List[String]()
         self.size_data = List[Float64]()
-        self._waterfall_y0 = List[Float64]()
-        self._waterfall_y1 = List[Float64]()
-        self._waterfall_is_total = List[Bool]()
-        self._box_q1 = List[Float64]()
-        self._box_median = List[Float64]()
-        self._box_q3 = List[Float64]()
-        self._box_low = List[Float64]()
-        self._box_high = List[Float64]()
-        self._box_outlier_cat = List[Int]()
-        self._box_outlier_value = List[Float64]()
-        self._candle_open = List[Float64]()
-        self._candle_high = List[Float64]()
-        self._candle_low = List[Float64]()
-        self._candle_close = List[Float64]()
-        self._bullet_measure = List[Float64]()
-        self._bullet_target = List[Float64]()
-        self._bullet_ranges = List[List[Float64]]()
-        self._gantt_start = List[Float64]()
-        self._gantt_end = List[Float64]()
-        self._grouped_bar_series_names = List[String]()
-        self._grouped_bar_values = List[List[Float64]]()
-        self._pyramid_left = List[Float64]()
-        self._pyramid_right = List[Float64]()
-        self._pyramid_left_name = ""
-        self._pyramid_right_name = ""
-        self._heatmap_x = List[String]()
-        self._heatmap_y = List[String]()
-        self._heatmap_value = List[Float64]()
-        self._chord_from = List[String]()
-        self._chord_to = List[String]()
-        self._chord_value = List[Float64]()
-        self._distribution_values = List[List[Float64]]()
-        self._kde_bandwidth_override = 0.0
-        self._kde_scale_by_count = False
+        self._waterfall = _WaterfallData()
+        self._box = _BoxData()
+        self._candle = _CandleData()
+        self._bullet = _BulletData()
+        self._gantt = _GanttData()
+        self._grouped_bar = _GroupedBarData()
+        self._pyramid = _PyramidData()
+        self._heatmap = _HeatmapData()
+        self._edges = _EdgeData()
+        self._distribution = _DistributionData()
         self._nightingale_area = False
-        self._polar_angle = List[Float64]()
-        self._polar_radius = List[Float64]()
-        self._polar_series_names = List[String]()
-        self._polar_series_radius = List[List[Float64]]()
-        self._radar_indicators = List[String]()
-        self._radar_max = List[Float64]()
-        self._radar_series_names = List[String]()
-        self._radar_series_values = List[List[Float64]]()
-        self._gauge_value = 0.0
-        self._gauge_min = 0.0
-        self._gauge_max = 100.0
-        self._gauge_breakpoints = List[Float64]()
-        self._gauge_band_colors = List[Color]()
-        self._parallel_dims = List[String]()
-        self._parallel_row_names = List[String]()
-        self._parallel_data = List[List[Float64]]()
-        self._calendar_dates = List[String]()
-        self._calendar_values = List[Float64]()
-        self._corrplot_variables = List[String]()
-        self._corrplot_matrix = List[List[Float64]]()
-        self._corrplot_layout = "full"
-        self._corrplot_diag = True
-        self._corrplot_labels = True
-        self._punchcard_x = List[String]()
-        self._punchcard_y = List[String]()
-        self._punchcard_sizes = List[Float64]()
-        self._punchcard_scale = 10.0
-        self._marimekko_categories = List[String]()
-        self._marimekko_subcategories = List[String]()
-        self._marimekko_values = List[List[Float64]]()
-        self._hierarchy_ids = List[String]()
-        self._hierarchy_parent_ids = List[String]()
-        self._hierarchy_values = List[Float64]()
-        self._title = ""
-        self._subtitle = ""
-        self._x_title = ""
-        self._y_title = ""
-        self._annotation_line_values = List[Float64]()
-        self._annotation_line_labels = List[String]()
-        self._annotation_area_y0 = List[Float64]()
-        self._annotation_area_y1 = List[Float64]()
-        self._annotation_area_labels = List[String]()
-        self._annotation_vline_values = List[Float64]()
-        self._annotation_vline_labels = List[String]()
-        self._annotation_point_x = List[Float64]()
-        self._annotation_point_y = List[Float64]()
-        self._annotation_point_labels = List[String]()
+        self._polar = _PolarData()
+        self._radar = _RadarData()
+        self._gauge = _GaugeData()
+        self._parallel = _ParallelData()
+        self._calendar = _CalendarData()
+        self._corrplot = _CorrplotData()
+        self._punchcard = _PunchcardData()
+        self._marimekko = _MarimekkoData()
+        self._hierarchy = _HierarchyData()
+        self._labels = _LabelData()
+        self._annotations = _AnnotationData()
         self._secondary_axis = False
         self._mark = Mark.POINT
         self._theme = Theme.default()
@@ -843,9 +806,9 @@ struct Plot(Movable):
         control which cells draw at all -- see `_render_corrplot`'s
         own docstring for what each means."""
         self._mark = Mark.CORRPLOT
-        self._corrplot_layout = layout
-        self._corrplot_diag = diag
-        self._corrplot_labels = labels
+        self._corrplot.layout = layout
+        self._corrplot.diag = diag
+        self._corrplot.labels = labels
         return self^
 
     def mark_punchcard(var self, scale: Float64 = 10.0) -> Self:
@@ -857,7 +820,7 @@ struct Plot(Movable):
         own docstring for why this isn't normalized to the cell size
         the way `mark_corrplot()`'s own bubbles are."""
         self._mark = Mark.PUNCHCARD
-        self._punchcard_scale = scale
+        self._punchcard.scale = scale
         return self^
 
     def mark_marimekko(var self) -> Self:
@@ -1047,8 +1010,8 @@ struct Plot(Movable):
         boolean-toggle precedent, applied here to sample size instead
         of `NIGHTINGALE`'s own value magnitude."""
         self._mark = Mark.VIOLIN
-        self._kde_bandwidth_override = bandwidth
-        self._kde_scale_by_count = scale_by_count
+        self._distribution.kde_bandwidth_override = bandwidth
+        self._distribution.kde_scale_by_count = scale_by_count
         return self^
 
     def mark_ridgeline(var self, bandwidth: Float64 = 0.0, scale_by_count: Bool = False) -> Self:
@@ -1061,8 +1024,8 @@ struct Plot(Movable):
         to each row's own maximum rise instead of width) -- see that
         method's own docstring."""
         self._mark = Mark.RIDGELINE
-        self._kde_bandwidth_override = bandwidth
-        self._kde_scale_by_count = scale_by_count
+        self._distribution.kde_bandwidth_override = bandwidth
+        self._distribution.kde_scale_by_count = scale_by_count
         return self^
 
     def encode(
@@ -1211,10 +1174,10 @@ struct Plot(Movable):
         self.x_categories = categories.copy()
         self.x_data = List[Float64]()
         self.y_data = deltas.copy()
-        self._waterfall_is_total = is_total.copy()
+        self._waterfall.is_total = is_total.copy()
         var bars = _waterfall_running_totals(deltas, is_total)
-        self._waterfall_y0 = bars.y0.copy()
-        self._waterfall_y1 = bars.y1.copy()
+        self._waterfall.y0 = bars.y0.copy()
+        self._waterfall.y1 = bars.y1.copy()
         return self^
 
     def encode_boxplot(var self, categories: List[String], values: List[List[Float64]]) raises -> Self:
@@ -1276,13 +1239,13 @@ struct Plot(Movable):
         self.x_categories = categories.copy()
         self.x_data = List[Float64]()
         self.y_data = List[Float64]()
-        self._box_q1 = q1^
-        self._box_median = median^
-        self._box_q3 = q3^
-        self._box_low = low^
-        self._box_high = high^
-        self._box_outlier_cat = outlier_cat^
-        self._box_outlier_value = outlier_value^
+        self._box.q1 = q1^
+        self._box.median = median^
+        self._box.q3 = q3^
+        self._box.low = low^
+        self._box.high = high^
+        self._box.outlier_cat = outlier_cat^
+        self._box.outlier_value = outlier_value^
         return self^
 
     def encode_candlestick(
@@ -1310,10 +1273,10 @@ struct Plot(Movable):
         self.x_categories = categories.copy()
         self.x_data = List[Float64]()
         self.y_data = List[Float64]()
-        self._candle_open = open.copy()
-        self._candle_high = high.copy()
-        self._candle_low = low.copy()
-        self._candle_close = close.copy()
+        self._candle.open_price = open.copy()
+        self._candle.high = high.copy()
+        self._candle.low = low.copy()
+        self._candle.close_price = close.copy()
         return self^
 
     def encode_bullet(
@@ -1343,9 +1306,9 @@ struct Plot(Movable):
         self.x_categories = categories.copy()
         self.x_data = List[Float64]()
         self.y_data = List[Float64]()
-        self._bullet_measure = measures.copy()
-        self._bullet_target = targets.copy()
-        self._bullet_ranges = ranges.copy()
+        self._bullet.measure = measures.copy()
+        self._bullet.target = targets.copy()
+        self._bullet.ranges = ranges.copy()
         return self^
 
     def encode_gantt(var self, categories: List[String], start: List[Float64], end: List[Float64]) -> Self:
@@ -1377,8 +1340,8 @@ struct Plot(Movable):
         self.x_categories = categories.copy()
         self.x_data = List[Float64]()
         self.y_data = List[Float64]()
-        self._gantt_start = start.copy()
-        self._gantt_end = end.copy()
+        self._gantt.start = start.copy()
+        self._gantt.end = end.copy()
         return self^
 
     def encode_grouped_bar(
@@ -1404,8 +1367,8 @@ struct Plot(Movable):
         self.x_categories = categories.copy()
         self.x_data = List[Float64]()
         self.y_data = List[Float64]()
-        self._grouped_bar_series_names = series_names.copy()
-        self._grouped_bar_values = values.copy()
+        self._grouped_bar.series_names = series_names.copy()
+        self._grouped_bar.values = values.copy()
         return self^
 
     def encode_population_pyramid(
@@ -1444,10 +1407,10 @@ struct Plot(Movable):
         self.x_categories = categories.copy()
         self.x_data = List[Float64]()
         self.y_data = List[Float64]()
-        self._pyramid_left = left_values.copy()
-        self._pyramid_right = right_values.copy()
-        self._pyramid_left_name = left_name
-        self._pyramid_right_name = right_name
+        self._pyramid.left = left_values.copy()
+        self._pyramid.right = right_values.copy()
+        self._pyramid.left_name = left_name
+        self._pyramid.right_name = right_name
         return self^
 
     def encode_heatmap(var self, x: List[String], y: List[String], value: List[Float64]) -> Self:
@@ -1473,9 +1436,9 @@ struct Plot(Movable):
         self.x_categories = List[String]()
         self.x_data = List[Float64]()
         self.y_data = List[Float64]()
-        self._heatmap_x = x.copy()
-        self._heatmap_y = y.copy()
-        self._heatmap_value = value.copy()
+        self._heatmap.x = x.copy()
+        self._heatmap.y = y.copy()
+        self._heatmap.value = value.copy()
         return self^
 
     def encode_calendar(var self, dates: List[String], values: List[Float64]) -> Self:
@@ -1498,8 +1461,8 @@ struct Plot(Movable):
         self.x_categories = List[String]()
         self.x_data = List[Float64]()
         self.y_data = List[Float64]()
-        self._calendar_dates = dates.copy()
-        self._calendar_values = values.copy()
+        self._calendar.dates = dates.copy()
+        self._calendar.values = values.copy()
         return self^
 
     def encode_corrplot(var self, variables: List[String], matrix: List[List[Float64]]) -> Self:
@@ -1510,8 +1473,8 @@ struct Plot(Movable):
         (checked at render() time, along with every value falling in
         `[-1.0, 1.0]`, the same deferred-validation stance every other
         `encode_*` here takes)."""
-        self._corrplot_variables = variables.copy()
-        self._corrplot_matrix = matrix.copy()
+        self._corrplot.variables = variables.copy()
+        self._corrplot.matrix = matrix.copy()
         return self^
 
     def encode_punchcard(var self, x: List[String], y: List[String], sizes: List[Float64]) -> Self:
@@ -1531,9 +1494,9 @@ struct Plot(Movable):
         self.x_categories = List[String]()
         self.x_data = List[Float64]()
         self.y_data = List[Float64]()
-        self._punchcard_x = x.copy()
-        self._punchcard_y = y.copy()
-        self._punchcard_sizes = sizes.copy()
+        self._punchcard.x = x.copy()
+        self._punchcard.y = y.copy()
+        self._punchcard.sizes = sizes.copy()
         return self^
 
     def encode_marimekko(
@@ -1556,9 +1519,9 @@ struct Plot(Movable):
         deferred to render() time, the same as every other categorical
         `encode_*` here.
         """
-        self._marimekko_categories = categories.copy()
-        self._marimekko_subcategories = subcategories.copy()
-        self._marimekko_values = values.copy()
+        self._marimekko.categories = categories.copy()
+        self._marimekko.subcategories = subcategories.copy()
+        self._marimekko.values = values.copy()
         return self^
 
     def encode_hierarchy(var self, ids: List[String], parent_ids: List[String], values: List[Float64]) -> Self:
@@ -1578,9 +1541,9 @@ struct Plot(Movable):
         deferred to render() time, the same as every other categorical
         `encode_*` here.
         """
-        self._hierarchy_ids = ids.copy()
-        self._hierarchy_parent_ids = parent_ids.copy()
-        self._hierarchy_values = values.copy()
+        self._hierarchy.ids = ids.copy()
+        self._hierarchy.parent_ids = parent_ids.copy()
+        self._hierarchy.values = values.copy()
         return self^
 
     def encode_chord(
@@ -1605,9 +1568,9 @@ struct Plot(Movable):
         self.x_categories = List[String]()
         self.x_data = List[Float64]()
         self.y_data = List[Float64]()
-        self._chord_from = from_categories.copy()
-        self._chord_to = to_categories.copy()
-        self._chord_value = values.copy()
+        self._edges.from_categories = from_categories.copy()
+        self._edges.to_categories = to_categories.copy()
+        self._edges.values = values.copy()
         return self^
 
     def encode_polar(var self, angle: List[Float64], radius: List[Float64]) -> Self:
@@ -1626,10 +1589,10 @@ struct Plot(Movable):
         same "encode() itself can't raise partway through a fluent
         chain" reasoning `encode()`'s own docstring gives.
         """
-        self._polar_angle = angle.copy()
-        self._polar_radius = radius.copy()
-        self._polar_series_names = List[String]()
-        self._polar_series_radius = List[List[Float64]]()
+        self._polar.angle = angle.copy()
+        self._polar.radius = radius.copy()
+        self._polar.series_names = List[String]()
+        self._polar.series_radius = List[List[Float64]]()
         return self^
 
     def encode_polar_series(
@@ -1659,10 +1622,10 @@ struct Plot(Movable):
         render() time, the same deferred-validation stance every other
         encode method here takes.
         """
-        self._polar_angle = angle.copy()
-        self._polar_radius = List[Float64]()
-        self._polar_series_names = series_names.copy()
-        self._polar_series_radius = series_values.copy()
+        self._polar.angle = angle.copy()
+        self._polar.radius = List[Float64]()
+        self._polar.series_names = series_names.copy()
+        self._polar.series_radius = series_values.copy()
         return self^
 
     def encode_radar(
@@ -1720,10 +1683,10 @@ struct Plot(Movable):
                     + String(len(values))
                     + ")"
                 )
-        self._radar_indicators = indicators.copy()
-        self._radar_max = max_values.copy()
-        self._radar_series_names = series_names.copy()
-        self._radar_series_values = series_values.copy()
+        self._radar.indicators = indicators.copy()
+        self._radar.max_values = max_values.copy()
+        self._radar.series_names = series_names.copy()
+        self._radar.series_values = series_values.copy()
         return self^
 
     def encode_gauge(
@@ -1759,11 +1722,11 @@ struct Plot(Movable):
         order validation (when non-default) is deferred to render()
         time, the same as everything else here.
         """
-        self._gauge_value = value
-        self._gauge_min = min_value
-        self._gauge_max = max_value
-        self._gauge_breakpoints = breakpoints.copy()
-        self._gauge_band_colors = band_colors.copy()
+        self._gauge.value = value
+        self._gauge.min_value = min_value
+        self._gauge.max_value = max_value
+        self._gauge.breakpoints = breakpoints.copy()
+        self._gauge.band_colors = band_colors.copy()
         return self^
 
     def encode_parallel(
@@ -1806,9 +1769,9 @@ struct Plot(Movable):
                     + String(len(row))
                     + ")"
                 )
-        self._parallel_dims = dims.copy()
-        self._parallel_row_names = row_names.copy()
-        self._parallel_data = data.copy()
+        self._parallel.dims = dims.copy()
+        self._parallel.row_names = row_names.copy()
+        self._parallel.data = data.copy()
         return self^
 
     def encode_distribution(var self, categories: List[String], values: List[List[Float64]]) raises -> Self:
@@ -1847,7 +1810,7 @@ struct Plot(Movable):
         self.x_categories = categories.copy()
         self.x_data = List[Float64]()
         self.y_data = List[Float64]()
-        self._distribution_values = values.copy()
+        self._distribution.values = values.copy()
         return self^
 
     def encode_single_axis(
@@ -1929,10 +1892,10 @@ struct Plot(Movable):
         it" rule `Plot.encode`'s own color/size-on-a-non-POINT-mark
         check already follows.
         """
-        self._title = title
-        self._subtitle = subtitle
-        self._x_title = x_title
-        self._y_title = y_title
+        self._labels.title = title
+        self._labels.subtitle = subtitle
+        self._labels.x_title = x_title
+        self._labels.y_title = y_title
         return self^
 
     def annotate_line(var self, value: Float64, label: String = "") -> Self:
@@ -1981,8 +1944,8 @@ struct Plot(Movable):
         `_render_layers_generic`'s own docstrings for the full mechanics
         of each.
         """
-        self._annotation_line_values.append(value)
-        self._annotation_line_labels.append(label)
+        self._annotations.line_values.append(value)
+        self._annotations.line_labels.append(label)
         return self^
 
     def annotate_area(var self, y0: Float64, y1: Float64, label: String = "") -> Self:
@@ -2038,9 +2001,9 @@ struct Plot(Movable):
         the same way `annotate_line()` is -- see that method's own
         docstring for the mechanics, which this shares exactly.
         """
-        self._annotation_area_y0.append(y0)
-        self._annotation_area_y1.append(y1)
-        self._annotation_area_labels.append(label)
+        self._annotations.area_y0.append(y0)
+        self._annotations.area_y1.append(y1)
+        self._annotations.area_labels.append(label)
         return self^
 
     def annotate_vline(var self, value: Float64, label: String = "") -> Self:
@@ -2067,8 +2030,8 @@ struct Plot(Movable):
         `render_facets()`/`render_layers()` scope cut every annotation
         method here currently has.
         """
-        self._annotation_vline_values.append(value)
-        self._annotation_vline_labels.append(label)
+        self._annotations.vline_values.append(value)
+        self._annotations.vline_labels.append(label)
         return self^
 
     def annotate_point(var self, x: Float64, y: Float64, label: String = "") -> Self:
@@ -2098,9 +2061,9 @@ struct Plot(Movable):
         facets()`/`render_layers()`, the same scope cut every annotation
         method here currently has.
         """
-        self._annotation_point_x.append(x)
-        self._annotation_point_y.append(y)
-        self._annotation_point_labels.append(label)
+        self._annotations.point_x.append(x)
+        self._annotations.point_y.append(y)
+        self._annotations.point_labels.append(label)
         return self^
 
     def secondary_axis(var self) -> Self:
@@ -2224,85 +2187,6 @@ def _categorical_indices(data: List[String]) raises -> _CategoricalIndex:
             domain.append(v)
             indices.append(idx)
     return _CategoricalIndex(domain^, indices^)
-
-
-struct _EdgeNodeIndex(Movable):
-    """`_edge_node_index`'s own result: an edge list's `nodes` (every
-    distinct name across both endpoint columns, in first-seen order --
-    exactly what `_unique_categories` over the two concatenated
-    returns, which is the domain `encode_chord()`'s own docstring
-    promises) plus `from_idx`/`to_idx`, that domain's own position for
-    each edge's two endpoints.
-
-    `from_idx[e]`/`to_idx[e]` are edge `e`'s endpoints, so a caller
-    never searches the node list by string equality at all.
-    """
-
-    var nodes: List[String]
-    var from_idx: List[Int]
-    var to_idx: List[Int]
-
-    def __init__(
-        out self, var nodes: List[String], var from_idx: List[Int], var to_idx: List[Int]
-    ):
-        self.nodes = nodes^
-        self.from_idx = from_idx^
-        self.to_idx = to_idx^
-
-
-def _edge_node_index(
-    from_categories: List[String], to_categories: List[String]
-) raises -> _EdgeNodeIndex:
-    """An edge list's node domain and both endpoint index columns,
-    resolved together in one hashed pass -- what every edge-shaped mark
-    (`Mark.CHORD`/`ARC_DIAGRAM`/`GRAPH`/`SANKEY`, all four sharing
-    `encode_chord()`'s own two-column shape) actually needs.
-
-    Replaces the nested-loop pattern all four carried: `_unique_
-    categories` over the concatenated columns (which compared every
-    row against every domain entry found so far), then `_index_of`
-    twice *per edge* -- another full domain scan each. For `e` edges
-    over `v` distinct nodes that was O(e*v) twice over. Hashing each
-    endpoint once makes it O(e) on average and every later lookup a
-    plain `from_idx[i]`.
-
-    This is exactly the fix `_categorical_indices` already applied to
-    `Mark.POINT`'s own categorical color channel and to
-    `Mark.HEATMAP`/`PUNCHCARD`'s axis domains -- see that function's
-    own docstring. The edge-shaped marks were simply never converted
-    with them, so this reuses it rather than re-deriving it: the two
-    columns concatenate exactly the way `_unique_categories` was
-    already being called on them, and the resulting `indices` split
-    back apart at `len(from_categories)` -- the first half indexes the
-    `from` column, the second the `to` column.
-
-    First-seen order is unchanged (it comes from the domain's own
-    append order, `from_categories` first), so every node's palette
-    color and ring/layer position stays exactly what it was.
-    """
-    var combined = List[String](capacity=len(from_categories) + len(to_categories))
-    for v in from_categories:
-        combined.append(v)
-    for v in to_categories:
-        combined.append(v)
-
-    var idx = _categorical_indices(combined)
-    var split = len(from_categories)
-    var total = len(idx.indices)
-    var from_idx = List[Int](capacity=split)
-    var to_idx = List[Int](capacity=len(to_categories))
-    for i in range(split):
-        from_idx.append(idx.indices[i])
-    for i in range(split, total):
-        to_idx.append(idx.indices[i])
-    # Copied, not transferred: moving `domain` out of `idx` while
-    # `idx.indices` is still being read is a partial move the compiler
-    # rejects ("field destroyed out of the middle of a value"). The
-    # copy is over the *distinct node names* only -- O(v), not the
-    # O(e*v) this function exists to remove -- so it costs nothing the
-    # old `_unique_categories` call didn't already spend building that
-    # same list.
-    return _EdgeNodeIndex(idx.domain.copy(), from_idx^, to_idx^)
 
 
 def _axis_pixel(scale: LinearScale, value: Float64) -> Int:
@@ -3074,7 +2958,7 @@ def _apply_labels(plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> 
     mark type, and works fine for `ARC` too -- a pie chart can
     absolutely have a heading), there's no sensible "axis" to caption.
     """
-    if (plot._x_title.byte_length() > 0 or plot._y_title.byte_length() > 0) and plot._mark == Mark.ARC:
+    if (plot._labels.x_title.byte_length() > 0 or plot._labels.y_title.byte_length() > 0) and plot._mark == Mark.ARC:
         raise Error(
             "Plot.labels(): x_title/y_title don't apply to Mark.ARC (it"
             " has no x/y axes to caption) -- only title applies to a"
@@ -3082,13 +2966,13 @@ def _apply_labels(plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> 
         )
 
     var sc = _Scaled(plot._theme)
-    var extra_top = Int(sc.title_font_size) + sc.label_gap if plot._title.byte_length() > 0 else 0
-    extra_top += Int(sc.subtitle_font_size) + sc.label_gap if plot._subtitle.byte_length() > 0 else 0
+    var extra_top = Int(sc.title_font_size) + sc.label_gap if plot._labels.title.byte_length() > 0 else 0
+    extra_top += Int(sc.subtitle_font_size) + sc.label_gap if plot._labels.subtitle.byte_length() > 0 else 0
     var extra_bottom = (
-        Int(sc.axis_title_font_size) + sc.label_gap if plot._x_title.byte_length() > 0 else 0
+        Int(sc.axis_title_font_size) + sc.label_gap if plot._labels.x_title.byte_length() > 0 else 0
     )
     var extra_left = (
-        Int(sc.axis_title_font_size) + sc.label_gap if plot._y_title.byte_length() > 0 else 0
+        Int(sc.axis_title_font_size) + sc.label_gap if plot._labels.y_title.byte_length() > 0 else 0
     )
 
     return _LabelsFrame(ox0 + extra_left, oy0 + extra_top, ox1, oy1 - extra_bottom)
@@ -3115,12 +2999,12 @@ def _label_text_requests(
     var sc = _Scaled(theme)
     var text_requests = List[_TextRequest]()
 
-    if plot._title.byte_length() > 0:
+    if plot._labels.title.byte_length() > 0:
         text_requests.append(
             _TextRequest(
                 (px0 + px1) // 2,
                 oy0 + Int(sc.title_font_size * 0.8),
-                plot._title,
+                plot._labels.title,
                 theme.text_color,
                 sc.title_font_size,
                 TextAlign.CENTER,
@@ -3129,18 +3013,18 @@ def _label_text_requests(
             )
         )
 
-    if plot._subtitle.byte_length() > 0:
+    if plot._labels.subtitle.byte_length() > 0:
         # Stacks directly below title's own reserved band -- 0 when
         # title itself is absent, the same "each of the four is
         # independent" semantics Plot.labels()'s own docstring
         # establishes (a lone subtitle draws at the very top, not
         # floating below a title that isn't there).
-        var title_band = Int(sc.title_font_size) + sc.label_gap if plot._title.byte_length() > 0 else 0
+        var title_band = Int(sc.title_font_size) + sc.label_gap if plot._labels.title.byte_length() > 0 else 0
         text_requests.append(
             _TextRequest(
                 (px0 + px1) // 2,
                 oy0 + title_band + Int(sc.subtitle_font_size * 0.8),
-                plot._subtitle,
+                plot._labels.subtitle,
                 theme.subtitle_color,
                 sc.subtitle_font_size,
                 TextAlign.CENTER,
@@ -3148,12 +3032,12 @@ def _label_text_requests(
             )
         )
 
-    if plot._x_title.byte_length() > 0:
+    if plot._labels.x_title.byte_length() > 0:
         text_requests.append(
             _TextRequest(
                 (px0 + px1) // 2,
                 oy1 - Int(sc.axis_title_font_size * 0.25),
-                plot._x_title,
+                plot._labels.x_title,
                 theme.text_color,
                 sc.axis_title_font_size,
                 TextAlign.CENTER,
@@ -3161,12 +3045,12 @@ def _label_text_requests(
             )
         )
 
-    if plot._y_title.byte_length() > 0:
+    if plot._labels.y_title.byte_length() > 0:
         text_requests.append(
             _TextRequest(
                 ox0 + Int(sc.axis_title_font_size * 0.8),
                 (py0 + py1) // 2,
-                plot._y_title,
+                plot._labels.y_title,
                 theme.text_color,
                 sc.axis_title_font_size,
                 TextAlign.CENTER,
@@ -3216,7 +3100,7 @@ def _draw_annotation_areas[
     there. A band with zero overlap still draws nothing.
     """
     var text_requests = List[_TextRequest]()
-    if len(plot._annotation_area_y0) == 0:
+    if len(plot._annotations.area_y0) == 0:
         return text_requests^
     if not result.has_y_scale:
         raise Error(
@@ -3229,9 +3113,9 @@ def _draw_annotation_areas[
     var sc = _Scaled(theme)
     var plot_top = min(result.py0, result.py1)
     var plot_bottom = max(result.py0, result.py1)
-    for i in range(len(plot._annotation_area_y0)):
-        var py_a = _axis_pixel(result.y_scale, plot._annotation_area_y0[i])
-        var py_b = _axis_pixel(result.y_scale, plot._annotation_area_y1[i])
+    for i in range(len(plot._annotations.area_y0)):
+        var py_a = _axis_pixel(result.y_scale, plot._annotations.area_y0[i])
+        var py_b = _axis_pixel(result.y_scale, plot._annotations.area_y1[i])
         var band_top = min(py_a, py_b)
         var band_bottom = max(py_a, py_b)
         # Clip to the visible plot rect rather than skip outright --
@@ -3245,7 +3129,7 @@ def _draw_annotation_areas[
         target.fill_rect(
             result.px0, draw_top, result.px1 - result.px0, draw_bottom - draw_top, theme.annotation_area_color
         )
-        var label = plot._annotation_area_labels[i]
+        var label = plot._annotations.area_labels[i]
         if label.byte_length() > 0:
             text_requests.append(
                 _TextRequest(
@@ -3302,7 +3186,7 @@ def _draw_annotation_lines[
     be, so it disappears quietly rather than erroring the whole render.
     """
     var text_requests = List[_TextRequest]()
-    if len(plot._annotation_line_values) == 0:
+    if len(plot._annotations.line_values) == 0:
         return text_requests^
     if not result.has_y_scale:
         raise Error(
@@ -3315,8 +3199,8 @@ def _draw_annotation_lines[
     var sc = _Scaled(theme)
     var py_top = min(result.py0, result.py1)
     var py_bottom = max(result.py0, result.py1)
-    for i in range(len(plot._annotation_line_values)):
-        var py = _axis_pixel(result.y_scale, plot._annotation_line_values[i])
+    for i in range(len(plot._annotations.line_values)):
+        var py = _axis_pixel(result.y_scale, plot._annotations.line_values[i])
         # A value outside the mark's own (padded) domain maps to a
         # pixel outside the visible plot rect entirely -- silently
         # skipped, not drawn wherever the unclamped linear math lands
@@ -3329,7 +3213,7 @@ def _draw_annotation_lines[
         if py < py_top or py > py_bottom:
             continue
         target.draw_line_aa(result.px0, py, result.px1, py, theme.annotation_color, width=sc.scale)
-        var label = plot._annotation_line_labels[i]
+        var label = plot._annotations.line_labels[i]
         if label.byte_length() > 0:
             text_requests.append(
                 _TextRequest(
@@ -3369,7 +3253,7 @@ def _draw_annotation_vlines[
     rotated 90 degrees with it.
     """
     var text_requests = List[_TextRequest]()
-    if len(plot._annotation_vline_values) == 0:
+    if len(plot._annotations.vline_values) == 0:
         return text_requests^
     if not result.has_x_scale:
         raise Error(
@@ -3382,12 +3266,12 @@ def _draw_annotation_vlines[
     var px_right = max(result.px0, result.px1)
     var py_top = min(result.py0, result.py1)
     var py_bottom = max(result.py0, result.py1)
-    for i in range(len(plot._annotation_vline_values)):
-        var px = _axis_pixel(result.x_scale, plot._annotation_vline_values[i])
+    for i in range(len(plot._annotations.vline_values)):
+        var px = _axis_pixel(result.x_scale, plot._annotations.vline_values[i])
         if px < px_left or px > px_right:
             continue
         target.draw_line_aa(px, py_top, px, py_bottom, theme.annotation_color, width=sc.scale)
-        var label = plot._annotation_vline_labels[i]
+        var label = plot._annotations.vline_labels[i]
         if label.byte_length() > 0:
             text_requests.append(
                 _TextRequest(
@@ -3439,7 +3323,7 @@ def _draw_annotation_points[
     label_gap`).
     """
     var text_requests = List[_TextRequest]()
-    if len(plot._annotation_point_x) == 0:
+    if len(plot._annotations.point_x) == 0:
         return text_requests^
     if not result.has_x_scale or not result.has_y_scale:
         raise Error(
@@ -3453,13 +3337,13 @@ def _draw_annotation_points[
     var py_top = min(result.py0, result.py1)
     var py_bottom = max(result.py0, result.py1)
     var radius = _round_to_int(sc.point_radius)
-    for i in range(len(plot._annotation_point_x)):
-        var px = _axis_pixel(result.x_scale, plot._annotation_point_x[i])
-        var py = _axis_pixel(result.y_scale, plot._annotation_point_y[i])
+    for i in range(len(plot._annotations.point_x)):
+        var px = _axis_pixel(result.x_scale, plot._annotations.point_x[i])
+        var py = _axis_pixel(result.y_scale, plot._annotations.point_y[i])
         if px < px_left or px > px_right or py < py_top or py > py_bottom:
             continue
         target.fill_circle_aa(px, py, radius, theme.annotation_color)
-        var label = plot._annotation_point_labels[i]
+        var label = plot._annotations.point_labels[i]
         if label.byte_length() > 0:
             text_requests.append(
                 _TextRequest(
@@ -3885,34 +3769,6 @@ def _require_some_positive(values: List[Float64], mark_name: String) raises -> F
             + ")"
         )
     return largest
-
-
-def _validate_edge_encoding(plot: Plot, mark_name: String) raises:
-    """`Plot.encode_chord()`'s own length check plus its non-negative
-    rule -- everything `Mark.CHORD`/`ARC_DIAGRAM`/`GRAPH`/`SANKEY` each
-    need before laying out an edge list.
-
-    All four carried this as twenty-one byte-identical lines apiece,
-    differing only in the mark named in the second error message. That
-    is the same duplication `_validate_continuous_encoding` was
-    extracted to remove for the continuous family, and the same one
-    `_edge_node_index` removed for these four marks' node resolution --
-    this is the validation half of that.
-    """
-    if len(plot._chord_from) != len(plot._chord_to) or len(plot._chord_value) != len(
-        plot._chord_from
-    ):
-        raise Error(
-            "Plot.encode_chord(): from_categories, to_categories, and"
-            " values must all have the same length (got "
-            + String(len(plot._chord_from))
-            + " from_categories, "
-            + String(len(plot._chord_to))
-            + " to_categories, "
-            + String(len(plot._chord_value))
-            + " values)"
-        )
-    _require_non_negative(plot._chord_value, mark_name)
 
 
 def _validate_continuous_encoding(plot: Plot, context: String) raises:
@@ -4985,8 +4841,8 @@ def _secondary_axis_y_title(plots: List[Plot]) -> String:
     render_layers() call's own case) when no secondary-axis layer set
     one, or there's no secondary-axis layer at all."""
     for i in range(len(plots)):
-        if plots[i]._secondary_axis and plots[i]._y_title.byte_length() > 0:
-            return plots[i]._y_title
+        if plots[i]._secondary_axis and plots[i]._labels.y_title.byte_length() > 0:
+            return plots[i]._labels.y_title
     return ""
 
 
