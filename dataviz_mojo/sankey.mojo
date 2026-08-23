@@ -13,10 +13,9 @@ from dataviz_mojo.plot import (
     _RenderResult,
     _Scaled,
     _TextRequest,
+    _edge_node_index,
     _empty_result,
-    _index_of,
     _rendered,
-    _unique_categories,
 )
 from dataviz_mojo.theme import Theme
 
@@ -110,14 +109,15 @@ def _render_sankey[
         if v < 0.0:
             raise Error("Plot: Mark.SANKEY values must be non-negative (got " + String(v) + ")")
 
-    var combined = List[String]()
-    for v in plot._chord_from:
-        combined.append(v)
-    for v in plot._chord_to:
-        combined.append(v)
-    var nodes = _unique_categories(combined)
+    var edges = _edge_node_index(plot._chord_from, plot._chord_to)
+    ref nodes = edges.nodes
     var n = len(nodes)
 
+    # Kept as its own filtered pass rather than using `edges.from_idx`/
+    # `to_idx` directly: this mark drops self-loops (`fi == ti`), so
+    # its own two index columns are a *subset* of the edge rows, not
+    # parallel to them. Only the per-row domain lookup moved -- what
+    # was two full scans of `nodes` per row is now two array reads.
     var from_idx = List[Int](capacity=len(plot._chord_from))
     var to_idx = List[Int](capacity=len(plot._chord_from))
     var edge_value = List[Float64](capacity=len(plot._chord_from))
@@ -127,8 +127,8 @@ def _render_sankey[
         children.append(List[Int]())
         in_degree.append(0)
     for row in range(len(plot._chord_from)):
-        var fi = _index_of(nodes, plot._chord_from[row])
-        var ti = _index_of(nodes, plot._chord_to[row])
+        var fi = edges.from_idx[row]
+        var ti = edges.to_idx[row]
         if fi == ti:
             continue
         from_idx.append(fi)

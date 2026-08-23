@@ -2226,6 +2226,85 @@ def _categorical_indices(data: List[String]) raises -> _CategoricalIndex:
     return _CategoricalIndex(domain^, indices^)
 
 
+struct _EdgeNodeIndex(Movable):
+    """`_edge_node_index`'s own result: an edge list's `nodes` (every
+    distinct name across both endpoint columns, in first-seen order --
+    exactly what `_unique_categories` over the two concatenated
+    returns, which is the domain `encode_chord()`'s own docstring
+    promises) plus `from_idx`/`to_idx`, that domain's own position for
+    each edge's two endpoints.
+
+    `from_idx[e]`/`to_idx[e]` are edge `e`'s endpoints, so a caller
+    never searches the node list by string equality at all.
+    """
+
+    var nodes: List[String]
+    var from_idx: List[Int]
+    var to_idx: List[Int]
+
+    def __init__(
+        out self, var nodes: List[String], var from_idx: List[Int], var to_idx: List[Int]
+    ):
+        self.nodes = nodes^
+        self.from_idx = from_idx^
+        self.to_idx = to_idx^
+
+
+def _edge_node_index(
+    from_categories: List[String], to_categories: List[String]
+) raises -> _EdgeNodeIndex:
+    """An edge list's node domain and both endpoint index columns,
+    resolved together in one hashed pass -- what every edge-shaped mark
+    (`Mark.CHORD`/`ARC_DIAGRAM`/`GRAPH`/`SANKEY`, all four sharing
+    `encode_chord()`'s own two-column shape) actually needs.
+
+    Replaces the nested-loop pattern all four carried: `_unique_
+    categories` over the concatenated columns (which compared every
+    row against every domain entry found so far), then `_index_of`
+    twice *per edge* -- another full domain scan each. For `e` edges
+    over `v` distinct nodes that was O(e*v) twice over. Hashing each
+    endpoint once makes it O(e) on average and every later lookup a
+    plain `from_idx[i]`.
+
+    This is exactly the fix `_categorical_indices` already applied to
+    `Mark.POINT`'s own categorical color channel and to
+    `Mark.HEATMAP`/`PUNCHCARD`'s axis domains -- see that function's
+    own docstring. The edge-shaped marks were simply never converted
+    with them, so this reuses it rather than re-deriving it: the two
+    columns concatenate exactly the way `_unique_categories` was
+    already being called on them, and the resulting `indices` split
+    back apart at `len(from_categories)` -- the first half indexes the
+    `from` column, the second the `to` column.
+
+    First-seen order is unchanged (it comes from the domain's own
+    append order, `from_categories` first), so every node's palette
+    color and ring/layer position stays exactly what it was.
+    """
+    var combined = List[String](capacity=len(from_categories) + len(to_categories))
+    for v in from_categories:
+        combined.append(v)
+    for v in to_categories:
+        combined.append(v)
+
+    var idx = _categorical_indices(combined)
+    var split = len(from_categories)
+    var total = len(idx.indices)
+    var from_idx = List[Int](capacity=split)
+    var to_idx = List[Int](capacity=len(to_categories))
+    for i in range(split):
+        from_idx.append(idx.indices[i])
+    for i in range(split, total):
+        to_idx.append(idx.indices[i])
+    # Copied, not transferred: moving `domain` out of `idx` while
+    # `idx.indices` is still being read is a partial move the compiler
+    # rejects ("field destroyed out of the middle of a value"). The
+    # copy is over the *distinct node names* only -- O(v), not the
+    # O(e*v) this function exists to remove -- so it costs nothing the
+    # old `_unique_categories` call didn't already spend building that
+    # same list.
+    return _EdgeNodeIndex(idx.domain.copy(), from_idx^, to_idx^)
+
+
 def _axis_pixel(scale: LinearScale, value: Float64) -> Int:
     return _round_to_int(scale.to_pixel(value))
 
