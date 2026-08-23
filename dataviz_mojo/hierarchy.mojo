@@ -123,6 +123,43 @@ def _build_hierarchy_index(
                 max_depth = depth[c]
             order.append(c)
 
+    # Every row must be reachable from the root. The checks above catch
+    # duplicate ids, unresolvable parent_ids, and a wrong root count --
+    # but none of them catches a *cycle*, because every node in one
+    # still has exactly one parent that resolves fine. Given
+    #     ids     = ["root", "leaf", "a", "b"]
+    #     parent_ids = ["",   "root", "b", "a"]
+    # "a" and "b" are each other's parent: a two-node cycle hanging off
+    # nothing. Every existing check passes, the traversal above simply
+    # never reaches either one, and both rows -- with their values --
+    # would silently vanish from the chart.
+    #
+    # This is the same "raise, don't silently misrepresent the data"
+    # stance `mark_arc()`'s own non-negative check already takes: a
+    # chart that quietly drops rows is worse than one that refuses to
+    # draw, because nothing about the result looks wrong. Comparing the
+    # traversal's own reach against `n` catches cycles and disconnected
+    # components alike, without a separate cycle-detection pass.
+    #
+    # It also guarantees the thing tree.mojo's own recursive
+    # `_assign_branch_colors`/`_assign_leaf_positions` quietly depend
+    # on: that the structure they walk really is a tree. A cycle can
+    # never be *reachable* from the root anyway -- each row names
+    # exactly one parent, so a node inside a cycle can't also be some
+    # reachable node's child -- which is why those two functions have
+    # never actually been able to recurse forever, whatever the
+    # compiler's own "self recursive call will cause an infinite loop"
+    # warning on that file suggests (that warning is a false positive:
+    # the recursion is over `children[node]`, which is empty at every
+    # leaf).
+    if len(order) != n:
+        raise Error(
+            "Plot.encode_hierarchy(): "
+            + String(n - len(order))
+            + " row(s) are not reachable from the root -- the parent_id"
+            " graph has a cycle or a disconnected component"
+        )
+
     var subtree_value = List[Float64](capacity=n)
     for _ in range(n):
         subtree_value.append(0.0)
