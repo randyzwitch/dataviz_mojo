@@ -21,6 +21,7 @@ from dataviz_mojo.plot import (
     _build_line_path,
     _categorical_indices,
     _edge_node_index,
+    _decimate_to_pixel_columns,
     _index_of,
     _unique_categories,
 )
@@ -193,6 +194,93 @@ def test_edge_node_index_handles_a_node_only_appearing_as_a_target() raises:
     assert_equal(edges.nodes[1], "b")
     assert_equal(edges.from_idx[0], 0)
     assert_equal(edges.to_idx[0], 1)
+
+
+def test_decimate_declines_when_points_are_individually_resolvable() raises:
+    # 4 points spread over ~100 pixel columns: far below the 2-per-
+    # column budget, so nothing is dropped and the path is byte-for-
+    # byte what it always was. This is the case every chart in this
+    # suite is in, which is why none of their pixel assertions moved.
+    var px: List[Float64] = [0.0, 30.0, 60.0, 90.0]
+    var py: List[Float64] = [10.0, 20.0, 15.0, 25.0]
+    var d = _decimate_to_pixel_columns(px, py)
+    assert_equal(d.applied, False)
+    assert_equal(len(d.px), 4)
+    for i in range(4):
+        assert_equal(d.px[i], px[i])
+        assert_equal(d.py[i], py[i])
+
+
+def test_decimate_declines_on_a_non_monotonic_path() raises:
+    # mark_line() connects points in data order, never sorted by x, so
+    # a path that doubles back is legitimate -- and grouping it by
+    # pixel column would reorder the drawing into a different shape.
+    # 10 points all inside one column, so the density guard alone would
+    # not have saved it: the monotonic check is what declines here.
+    var px = List[Float64]()
+    var py = List[Float64]()
+    for i in range(10):
+        px.append(0.5 if i % 2 == 0 else 0.2)
+        py.append(Float64(i))
+    var d = _decimate_to_pixel_columns(px, py)
+    assert_equal(d.applied, False)
+    assert_equal(len(d.px), 10)
+
+
+def test_decimate_keeps_both_extremes_of_each_column() raises:
+    # 12 points across 3 pixel columns (0, 1, 2), 4 per column -- above
+    # the 2-per-column budget, so decimation engages. Column 1 holds a
+    # spike: y runs 5, 99, 1, 5. Hand-derived expectation: that column
+    # contributes exactly its max (99, at index 5) and its min (1, at
+    # index 6), in that data order -- so the spike survives at full
+    # height instead of being flattened to whatever the column's first
+    # point happened to be.
+    var px = List[Float64]()
+    var py = List[Float64]()
+    var ys: List[Float64] = [5.0, 6.0, 7.0, 8.0, 5.0, 99.0, 1.0, 5.0, 4.0, 3.0, 2.0, 1.5]
+    for i in range(12):
+        px.append(Float64(i // 4))
+        py.append(ys[i])
+    var d = _decimate_to_pixel_columns(px, py)
+    assert_equal(d.applied, True)
+
+    # 3 columns x at most 2 points each.
+    assert_equal(len(d.px), 6)
+    assert_equal(len(d.py), 6)
+
+    # Column 0: ys 5,6,7,8 -> min 5 (index 0), max 8 (index 3), data
+    # order gives 5 then 8.
+    assert_equal(d.px[0], 0.0)
+    assert_equal(d.py[0], 5.0)
+    assert_equal(d.py[1], 8.0)
+
+    # Column 1: the spike, max 99 before min 1 in data order.
+    assert_equal(d.px[2], 1.0)
+    assert_equal(d.py[2], 99.0)
+    assert_equal(d.px[3], 1.0)
+    assert_equal(d.py[3], 1.0)
+
+    # Column 2: ys 4, 3, 2, 1.5 -> strictly descending, so the max
+    # (4.0, index 8) comes first in data order and the min (1.5, index
+    # 11) last.
+    assert_equal(d.px[4], 2.0)
+    assert_equal(d.py[4], 4.0)
+    assert_equal(d.py[5], 1.5)
+
+
+def test_decimate_collapses_a_flat_column_to_one_point() raises:
+    # 8 points over 2 columns, every y identical: min and max are the
+    # same sample, so each column emits one point, not two.
+    var px = List[Float64]()
+    var py = List[Float64]()
+    for i in range(8):
+        px.append(Float64(i // 4))
+        py.append(7.0)
+    var d = _decimate_to_pixel_columns(px, py)
+    assert_equal(d.applied, True)
+    assert_equal(len(d.px), 2)
+    assert_equal(d.py[0], 7.0)
+    assert_equal(d.py[1], 7.0)
 
 
 def test_categorical_indices_on_an_empty_column_is_empty() raises:
