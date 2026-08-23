@@ -160,6 +160,7 @@ from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.path import Path
 from canvas_mojo.vector.svg import SvgCanvas, _escape_xml_text, _escape_xml_attr
 from canvas_mojo.text.render import draw_text, measure_text, FontWeight, TextAlign
+from canvas_mojo.text.font_cache import FontCache
 
 from dataviz_mojo.color_scale import ColorScale, default_categorical_palette
 from dataviz_mojo.mark import Mark
@@ -2313,8 +2314,20 @@ def _max_label_width(labels: List[String], font_size: Float64) raises -> Float64
     early is exact, not a guess to be corrected later).
     """
     var max_width = 0.0
+    # One FontCache for the whole list rather than the fresh, uncached
+    # font resolution every bare measure_text() call does -- see
+    # canvas_mojo/text/font_cache.mojo's own docstring, which names
+    # exactly this case ("a chart's axis ticks and legend") as what
+    # the cache= overload exists for. Created here rather than
+    # threaded in as a parameter deliberately: this function is called
+    # from two dozen mark modules, and the reuse that actually matters
+    # is *within* one call (every label in one axis's tick list shares
+    # one font), so a local cache captures nearly all of it without
+    # putting a `mut cache` argument through every call site in the
+    # package.
+    var cache = FontCache()
     for label in labels:
-        var m = measure_text(label, font_size)
+        var m = measure_text(label, font_size, cache=cache)
         if m.width > max_width:
             max_width = m.width
     return max_width
@@ -3192,7 +3205,7 @@ def _draw_annotation_points[
     return text_requests^
 
 
-def _replay_text_requests(mut canvas: Canvas, requests: List[_TextRequest]) raises:
+def _replay_text_requests(mut canvas: Canvas, requests: List[_TextRequest], mut cache: FontCache) raises:
     """Draw every `_TextRequest` in `requests` into `canvas` via
     `canvas_mojo.text.draw_text` -- the raster half of replaying the
     deferred labels `_render_generic` and friends hand back (see
@@ -3220,6 +3233,7 @@ def _replay_text_requests(mut canvas: Canvas, requests: List[_TextRequest]) rais
             family=req.family,
             weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
             rotation=req.rotation,
+            cache=cache,
         )
 
 
@@ -3342,12 +3356,19 @@ def render(
     var vline_annotation_requests = _draw_annotation_vlines(canvas, plot, result, plot._theme)
     var annotation_requests = _draw_annotation_lines(canvas, plot, result, plot._theme)
     var point_annotation_requests = _draw_annotation_points(canvas, plot, result, plot._theme)
-    _replay_text_requests(canvas, label_requests)
-    _replay_text_requests(canvas, area_annotation_requests)
-    _replay_text_requests(canvas, vline_annotation_requests)
-    _replay_text_requests(canvas, annotation_requests)
-    _replay_text_requests(canvas, point_annotation_requests)
-    _replay_text_requests(canvas, result.text_requests)
+    # One FontCache shared by every label this render draws. Without
+    # it each draw_text() resolves its own font from scratch -- twice,
+    # in fact, since draw_text measures and then renders (see canvas_
+    # mojo/text/font_cache.mojo's own docstring). A chart's labels all
+    # share one font, so resolving it once per render instead of twice
+    # per label is pure saved work, with byte-identical output.
+    var text_cache = FontCache()
+    _replay_text_requests(canvas, label_requests, text_cache)
+    _replay_text_requests(canvas, area_annotation_requests, text_cache)
+    _replay_text_requests(canvas, vline_annotation_requests, text_cache)
+    _replay_text_requests(canvas, annotation_requests, text_cache)
+    _replay_text_requests(canvas, point_annotation_requests, text_cache)
+    _replay_text_requests(canvas, result.text_requests, text_cache)
 
 
 def render_svg(
@@ -4419,7 +4440,9 @@ def render_facets(mut canvas: Canvas, plots: List[Plot], cols: Int) raises:
     it returns via `canvas_mojo.text.draw_text`.
     """
     var text_requests = _render_facets_generic(canvas, canvas.width, canvas.height, plots, cols)
-    _replay_text_requests(canvas, text_requests)
+    # One FontCache for every cell's labels -- see render()'s own.
+    var text_cache = FontCache()
+    _replay_text_requests(canvas, text_requests, text_cache)
 
 
 def render_facets_svg(mut svg: SvgCanvas, plots: List[Plot], cols: Int) raises:
@@ -4698,8 +4721,10 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
                 rotation=pi / 2.0,
             )
         )
-    _replay_text_requests(canvas, label_requests)
-    _replay_text_requests(canvas, result.text_requests)
+    # One FontCache for every layer's labels -- see render()'s own.
+    var text_cache = FontCache()
+    _replay_text_requests(canvas, label_requests, text_cache)
+    _replay_text_requests(canvas, result.text_requests, text_cache)
 
 
 def render_layers_svg(mut svg: SvgCanvas, plots: List[Plot], ox0: Int = 0, oy0: Int = 0, ox1: Int = -1, oy1: Int = -1) raises:
