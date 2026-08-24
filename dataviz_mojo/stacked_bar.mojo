@@ -23,18 +23,16 @@ def _render_stacked_bar[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.STACKED_BAR` plot: the exact same `encode_grouped_
-    bar()` data `Mark.GROUPED_BAR` uses (see `_render_grouped_bar`'s own
-    docstring for the length-checking this function shares unchanged),
-    but each category's own series stack as segments on top of each
+    bar()` data `Mark.GROUPED_BAR` uses (see `_render_grouped_bar`'s docstring for the length-checking this function shares unchanged),
+    but each category's series stack as segments on top of each
     other instead of sitting in divided sub-bars side by side -- full
     band width per segment (`_round_to_int(frame.x_scale.band_start(i))`/
-    `.bandwidth()`, `Mark.BAR`'s own convention), not `GROUPED_BAR`'s
-    own `bandwidth / len(series_names)`.
+    `.bandwidth()`, `Mark.BAR`'s convention), not `GROUPED_BAR`'s `bandwidth / len(series_names)`.
 
     Mixed-sign values stack in two independent running totals per
-    category, not one -- a non-negative value's own segment sits on top
-    of that category's own running *positive* total (then extends it);
-    a negative value's own segment sits below the running *negative*
+    category, not one -- a non-negative value's segment sits on top
+    of that category's running *positive* total (then extends it);
+    a negative value's segment sits below the running *negative*
     total (then extends that instead), the same convention most
     charting libraries use for a mixed-sign stack: positive segments
     build upward from zero, negative segments build downward from zero,
@@ -43,22 +41,22 @@ def _render_stacked_bar[
     back down (visually nonsensical for a composition chart, whose
     whole point is showing how positive parts sum to a positive whole
     and negative parts to a negative one). The y-domain (`_zero_
-    baseline_y_extent`, computed over every category's own *final*
+    baseline_y_extent`, computed over every category's *final*
     positive/negative running total, not the raw per-segment values
     directly -- those final totals are always the most extreme point
     each direction reaches) is computed in a first pass over the data;
     the second, drawing pass recomputes the same running totals again
     (cheap -- at most a handful of series) rather than storing them,
-    since the first pass only needed each category's own *final* total,
+    since the first pass only needed each category's *final* total,
     not the intermediate per-segment values along the way.
 
     No extra pixel-boundary-rounding trick is needed the way `Mark.
-    GROUPED_BAR`'s own sub-bar division needed one: a segment's own top
-    and the segment above it's own bottom are always the *identical*
+    GROUPED_BAR`'s sub-bar division needed one: a segment's top
+    and the segment above it's bottom are always the *identical*
     Float64 running-total value (the running total carries over exactly
     from one segment to the next), so `_axis_pixel` -- a pure,
     deterministic function of its input -- rounds both to the identical
-    pixel automatically. `GROUPED_BAR`'s own sub-bar edges don't have
+    pixel automatically. `GROUPED_BAR`'s sub-bar edges don't have
     that property (each is a genuinely different band-relative offset
     computed independently), which is exactly why *that* function needs
     the "round the boundary once, reuse it" technique and this one
@@ -69,8 +67,7 @@ def _render_stacked_bar[
     axis_frame`) -- and now literally the same code: `_series_legend_
     reserve`, imported from grouped_bar.mojo alongside `_validate_
     grouped_bar_series`, rather than the verbatim copies of both these
-    two used to carry. See `_validate_grouped_bar_series`'s own
-    docstring for why sharing beat duplicating here. No sign-coloring
+    two used to carry. See `_validate_grouped_bar_series`'s docstring for why sharing beat duplicating here. No sign-coloring
     -- like `GROUPED_BAR`, a stacked bar chart's whole point is telling
     series apart by color, not sign.
     """

@@ -41,28 +41,26 @@ def _draw_treemap_node[
     sc: _Scaled,
     mut text_requests: List[_TextRequest],
 ) raises:
-    """Fill `node`'s own rect `(x0, y0, x1, y1)` if it's a leaf
-    (colored by `branch[node]`'s own top-level-ancestor palette entry,
+    """Fill `node`'s rect `(x0, y0, x1, y1)` if it's a leaf
+    (colored by `branch[node]`'s top-level-ancestor palette entry,
     the same convention `Mark.SUNBURST`/`TREE` already establish, plus
-    a centered label in `Theme.treemap_label_color`), otherwise slice-and-dice that rect among its own
-    children and recurse: alternating axis by `depth` (even splits the
+    a centered label in `Theme.treemap_label_color`), otherwise slice-and-dice that rect among its children and recurse: alternating axis by `depth` (even splits the
     *width*, into side-by-side vertical strips; odd splits the
-    *height*, into stacked horizontal strips), each child's own share
-    of the split proportional to its own `subtree_value` share of
-    `node`'s own total -- the standard, simplest real treemap layout
+    *height*, into stacked horizontal strips), each child's share
+    of the split proportional to its `subtree_value` share of
+    `node`'s total -- the standard, simplest real treemap layout
     (*not* a real squarified algorithm, which additionally rebalances
-    each slice's own aspect ratio toward square instead of letting a
+    each slice's aspect ratio toward square instead of letting a
     row of many small children go arbitrarily thin -- a real,
-    documented v1 simplification, the same tolerance `Mark.TREE`'s own
-    `_assign_leaf_positions` docstring already takes over a full
+    documented v1 simplification, the same tolerance `Mark.TREE`'s `_assign_leaf_positions` docstring already takes over a full
     Reingold-Tilford layout).
 
     Every boundary along the split axis comes from rounding a
-    *cumulative* fraction of the rect's own span, never an
+    *cumulative* fraction of the rect's span, never an
     independently-rounded width -- the same "round the boundaries, not
-    the size" pattern `Mark.MARIMEKKO`'s own docstring already
+    the size" pattern `Mark.MARIMEKKO`'s docstring already
     establishes (there for one level of columns; here for every level
-    of the recursion), so adjacent siblings' own rects always share an
+    of the recursion), so adjacent siblings' rects always share an
     exact pixel edge with no hairline gap.
     """
     if len(idx.children[node]) == 0:
@@ -98,18 +96,15 @@ def _draw_treemap_node[
 def _render_treemap[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.TREEMAP` plot: `_build_hierarchy_index`'s own
-    `children`/`subtree_value` (hierarchy.mojo), laid out via `_draw_
-    treemap_node`'s own slice-and-dice recursion starting from the
-    whole inner plot rect at the root. See that function's own
-    docstring for the full layout reasoning, and `Mark.SUNBURST`'s own
-    docstring for the shared "one color per top-level branch" idea
+    """Render a `Mark.TREEMAP` plot: `_build_hierarchy_index`'s `children`/`subtree_value` (hierarchy.mojo), laid out via `_draw_
+    treemap_node`'s slice-and-dice recursion starting from the
+    whole inner plot rect at the root. See that function's docstring for the full layout reasoning, and `Mark.SUNBURST`'s docstring for the shared "one color per top-level branch" idea
     reused here too.
 
-    Every value must be non-negative, and the root's own subtree total
+    Every value must be non-negative, and the root's subtree total
     must be positive -- the same validation `Mark.SUNBURST` already
-    takes for the identical reason (a treemap's own leaf areas are a
-    share-of-a-whole reading, same as a pie wedge's own angle).
+    takes for the identical reason (a treemap's leaf areas are a
+    share-of-a-whole reading, same as a pie wedge's angle).
     """
     if (
         len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids)
@@ -136,7 +131,7 @@ def _render_treemap[
     if idx.subtree_value[idx.root] <= 0.0:
         raise Error(
             "Plot: Mark.TREEMAP requires at least one positive leaf value"
-            " (root's own subtree total was "
+            " (root's subtree total was "
             + String(idx.subtree_value[idx.root])
             + ")"
         )
@@ -188,8 +183,8 @@ def treemap(
     y_title: String = "",
 ) raises -> Canvas:
     """A treemap -- `Mark.TREEMAP`, a hierarchy (`Plot.encode_
-    hierarchy()`'s own flattened `ids`/`parent_ids`/`values`) laid out
+    hierarchy()`'s flattened `ids`/`parent_ids`/`values`) laid out
     as nested, area-proportional rectangles via slice-and-dice. See
-    `_draw_treemap_node`'s own docstring for the full reasoning."""
+    `_draw_treemap_node`'s docstring for the full reasoning."""
     var plot = Plot().mark_treemap().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

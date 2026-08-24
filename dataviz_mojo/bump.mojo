@@ -26,13 +26,13 @@ from dataviz_mojo.theme import Theme
 
 
 def _bump_rank_pixel(rank: Int, n_series: Int, py0: Int, py1: Int) -> Int:
-    """Rank 1 (best) at `py0` (the plot area's own top), rank
+    """Rank 1 (best) at `py0` (the plot area's top), rank
     `n_series` (worst) at `py1` (the bottom), evenly spaced in between
-    -- not a `LinearScale` (see `_draw_bump_axis_frame`'s own docstring
+    -- not a `LinearScale` (see `_draw_bump_axis_frame`'s docstring
     for why a reversed-domain `LinearScale` doesn't work here: `ticks()`
     assumes `domain_min < domain_max`). `n_series == 1` (nothing to
     rank against) is the one degenerate case, floored to the plot
-    area's own vertical center rather than dividing by zero.
+    area's vertical center rather than dividing by zero.
     """
     if n_series <= 1:
         return (py0 + py1) // 2
@@ -40,11 +40,11 @@ def _bump_rank_pixel(rank: Int, n_series: Int, py0: Int, py1: Int) -> Int:
 
 
 struct _BumpFrame(Movable):
-    """`_draw_bump_axis_frame`'s own finished layout: a categorical `x`
+    """`_draw_bump_axis_frame`'s finished layout: a categorical `x`
     (`OrdinalScale`, the same as every other vertical-categorical mark
     here) and an integer rank `y` -- `1`..`n_series`, rank 1 at the
     top -- with no `LinearScale` backing it at all (see `_bump_rank_
-    pixel`'s own docstring)."""
+    pixel`'s docstring)."""
 
     var x_scale: OrdinalScale
     var sc: _Scaled
@@ -93,20 +93,20 @@ def _draw_bump_axis_frame[
     *,
     mut cache: FontCache,
 ) raises -> _BumpFrame:
-    """`Mark.BUMP`'s own axis frame: `_draw_categorical_axis_frame`'s
+    """`Mark.BUMP`'s axis frame: `_draw_categorical_axis_frame`'s
     familiar vertical-categorical-`x`-plus-continuous-`y` shape, but the
     `y` side is hand-rolled instead of a real `LinearScale` -- rank 1
     has to land at the *top* of the plot area, and every other
-    categorical mark's own y-axis gets that "larger value is higher"
+    categorical mark's y-axis gets that "larger value is higher"
     reading by feeding `LinearScale.ticks()` a domain where `domain_min
-    < domain_max` and letting the frame's own range-reversal handle the
+    < domain_max` and letting the frame's range-reversal handle the
     rest. A rank axis needs the opposite mapping (small number = top),
     and simply swapping `domain_min`/`domain_max` to get that breaks
     `ticks()`, which assumes an increasing domain throughout (`_nice_
-    step`'s own step/log10 math goes through a negative span) --
+    step`'s step/log10 math goes through a negative span) --
     confirmed directly, not assumed, before choosing this route instead.
     Since a rank axis only ever needs exactly `n_series` integer ticks
-    (never `LinearScale.ticks()`'s own "nice round numbers" treatment),
+    (never `LinearScale.ticks()`'s "nice round numbers" treatment),
     hand-rolling one tick per rank via `_bump_rank_pixel` sidesteps the
     whole problem rather than working around it.
     """
@@ -173,18 +173,17 @@ def _draw_bump_axis_frame[
 def _render_bump[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.BUMP` plot: `encode_grouped_bar()`'s own data,
+    """Render a `Mark.BUMP` plot: `encode_grouped_bar()`'s data,
     unchanged (categories, one name and one value per series) -- but
-    each series' own *rank* among every series at that same category
+    each series' *rank* among every series at that same category
     (`_descending_value_order`, one sort per category, reused from
     funnel.mojo) is what gets plotted, not its raw value, one line per
     series (`_build_line_path`, the same `Theme.line_smoothing`-aware
-    path builder `Mark.LINE` itself uses) connecting that series' own
-    rank position at each category in turn.
+    path builder `Mark.LINE` itself uses) connecting that series' rank position at each category in turn.
 
     Ranks are precomputed for every (series, category) pair in one pass
     before any line is drawn (one sort per category, not one per (series,
-    category) pair) -- see the loop's own comment.
+    category) pair) -- see the loop's comment.
     """
     _validate_grouped_bar_series(plot)
 
@@ -217,7 +216,7 @@ def _render_bump[
         cache=measure_cache
     )
 
-    # rank[j][i]: series j's own rank (1 = highest value) at category i.
+    # rank[j][i]: series j's rank (1 = highest value) at category i.
     var rank = List[List[Int]]()
     for _ in range(n_series):
         rank.append(List[Int]())
@@ -264,10 +263,9 @@ def bump(
     subtitle: String = "",
     x_title: String = "",
 ) raises -> Canvas:
-    """A bump chart -- `Mark.BUMP`, one line per series tracking its own
-    *rank* (1 = highest value) among every series at each category, not
+    """A bump chart -- `Mark.BUMP`, one line per series tracking its *rank* (1 = highest value) among every series at each category, not
     its raw value. Same data shape `grouped_bar()`/`stacked_bar()` take
-    (`values[j]` is series `series_names[j]`'s own value per category)."""
+    (`values[j]` is series `series_names[j]`'s value per category)."""
     var plot = Plot().mark_bump().encode_grouped_bar(
         categories=categories, series_names=series_names, values=values
     )

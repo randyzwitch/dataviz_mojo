@@ -21,7 +21,7 @@ def test_render_svg_annotate_area_matches_hand_derived_position() raises:
     # roughly [9.5, 20.5] (5% of span 10). annotate_area(12.0, 18.0)'s
     # own band maps to y:[72, 198] -- confirmed against a real
     # render_svg() run first, canvas 400x300, plot area x:[60,380],
-    # y:[20,250]. Its own label sits just inside the band's own top
+    # y:[20,250]. Its own label sits just inside the band's top
     # edge, right-aligned near the plot's right edge.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
@@ -33,19 +33,19 @@ def test_render_svg_annotate_area_matches_hand_derived_position() raises:
     var s = svg.to_string()
     assert_true(
         '<rect x="60" y="72" width="320" height="126" fill="#e0ecf6"/>' in s,
-        "the band's own fill, spanning the full inner plot width",
+        "the band's fill, spanning the full inner plot width",
     )
     assert_true(
         '<text x="376" y="84" font-size="12.000" font-family="sans-serif" fill="#969696"'
         ' text-anchor="end">band</text>' in s,
-        "the band's own label, right-aligned just inside its own top edge",
+        "the band's label, right-aligned just inside its top edge",
     )
 
 
 def test_render_annotate_area_raster_draws_ink_at_the_hand_derived_row() raises:
     # Raster-side companion to the SVG test above -- confirms canvas_
-    # mojo.fill_rect actually painted the band's own fill at a point
-    # well inside it, not just that the SVG backend's own plumbing is
+    # mojo.fill_rect actually painted the band's fill at a point
+    # well inside it, not just that the SVG backend's plumbing is
     # correct.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
@@ -54,11 +54,11 @@ def test_render_annotate_area_raster_draws_ink_at_the_hand_derived_row() raises:
     )
     var c = Canvas(400, 300, BG)
     render(c, plot)
-    _assert_color(c, 200, 150, Color(224, 236, 246), "the band's own fill, well inside the band and away from the line")
+    _assert_color(c, 200, 150, Color(224, 236, 246), "the band's fill, well inside the band and away from the line")
 
 
 def test_render_annotate_area_out_of_range_draws_nothing() raises:
-    # A band with *no* overlap at all against the mark's own (padded)
+    # A band with *no* overlap at all against the mark's (padded)
     # domain ([9.5, 20.5] for this data) draws neither a fill nor a
     # label -- 25.0-30.0 is entirely past the domain's own ~20.5 max.
     var x: List[Float64] = [1.0, 2.0]
@@ -69,9 +69,9 @@ def test_render_annotate_area_out_of_range_draws_nothing() raises:
     )
     render_svg(svg, plot, 0, 0, 400, 300)
     var s = svg.to_string()
-    # ">gone<" (the label's own tag content), not the bare substring
-    # "gone" -- Mark.LINE's own path already emits a literal `fill=
-    # "none"` for its own stroke-only fill, so a bare "none" (or any
+    # ">gone<" (the label's tag content), not the bare substring
+    # "gone" -- Mark.LINE's path already emits a literal `fill=
+    # "none"` for its stroke-only fill, so a bare "none" (or any
     # other substring that happens to collide with real SVG markup)
     # would have been a false negative here.
     assert_true(">gone<" not in s, "a fully out-of-domain band draws no label at all")
@@ -82,8 +82,8 @@ def test_render_annotate_area_partial_overlap_clips_to_visible_portion() raises:
     # A band that only *partially* overlaps the domain (18.0-25.0,
     # against a ~20.5 max) draws the clipped, visible portion instead
     # of disappearing entirely -- confirmed against a real render_svg()
-    # run first: clipped to y:[20, 72] (the plot's own top edge down to
-    # 18.0's own row), not the full, unclipped 18.0-25.0 span.
+    # run first: clipped to y:[20, 72] (the plot's top edge down to
+    # 18.0's row), not the full, unclipped 18.0-25.0 span.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var svg = SvgCanvas(400, 300)
@@ -94,7 +94,7 @@ def test_render_annotate_area_partial_overlap_clips_to_visible_portion() raises:
     var s = svg.to_string()
     assert_true(
         '<rect x="60" y="20" width="320" height="52" fill="#e0ecf6"/>' in s,
-        "the band clips to the plot's own top edge rather than disappearing or drawing unclipped",
+        "the band clips to the plot's top edge rather than disappearing or drawing unclipped",
     )
 
 

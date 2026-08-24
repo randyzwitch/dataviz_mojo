@@ -29,31 +29,31 @@ from _test_helpers import BG, _count_color, _assert_color
 
 def test_render_grouped_bar_matches_hand_derived_rectangles() raises:
     # 2 categories ("A"/"B", short labels -- dynamic left margin stays
-    # at Theme's own default 60, the same short-label convention every
+    # at Theme's default 60, the same short-label convention every
     # other hand-derived test in this file already relies on), 2 series
-    # -- `values[0]` (North) = [10, 20] (North's own value for A, then
-    # B), `values[1]` (South) = [5, 15] (South's own value for A, then
+    # -- `values[0]` (North) = [10, 20] (North's value for A, then
+    # B), `values[1]` (South) = [5, 15] (South's value for A, then
     # B): North_A=10, North_B=20, South_A=5, South_B=15 -- easy to
     # mis-cross with North_A/South_A both "the first number," which is
-    # exactly what a first pass at this test's own hand-derivation got
+    # exactly what a first pass at this test's hand-derivation got
     # wrong before a real render() run caught it; the values below are
     # the corrected, confirmed ones. Canvas 400x300, default margins,
-    # show_gridlines=False, show_legend left at its own default (True)
+    # show_gridlines=False, show_legend left at its default (True)
     # -- grouped bar always reserves a legend column, unlike plain
-    # Mark.BAR, so the OrdinalScale's own range is [60, 250], not
-    # [60, 380] (270 = 400 - Theme's own default 130px legend_width,
+    # Mark.BAR, so the OrdinalScale's range is [60, 250], not
+    # [60, 380] (270 = 400 - Theme's default 130px legend_width,
     # minus margin_right=20).
     #
     # y-domain: _zero_baseline_y_extent over every value (10, 20, 5, 15)
-    # -> [0, 21] (zero already exact, so unpadded; 20's own +5% pad ->
+    # -> [0, 21] (zero already exact, so unpadded; 20's +5% pad ->
     # 21). OrdinalScale over [60, 250], 2 categories, step=95,
     # bandwidth=76 (0.2 padding) -> band_start(A)=69.5, band_start(B)=
-    # 164.5. sub_width = bandwidth/2 = 38. Every sub-bar's own left/
+    # 164.5. sub_width = bandwidth/2 = 38. Every sub-bar's left/
     # right edge computed as a *rounded boundary*, not an independently
-    # rounded width -- see _render_grouped_bar's own docstring for why.
+    # rounded width -- see _render_grouped_bar's docstring for why.
     #
     # Every position independently re-derived via python3 (LinearScale's
-    # own slope/intercept for the y-axis, OrdinalScale's own band
+    # own slope/intercept for the y-axis, OrdinalScale's band
     # formula for x, both re-solved for this shrunk-by-the-legend
     # range), then confirmed against a real render() run before trusting
     # it here.
@@ -72,10 +72,10 @@ def test_render_grouped_bar_matches_hand_derived_rectangles() raises:
     _assert_color(c, 184, 100, palette[0], "B/North bar, well inside")
     # B, South (series 1, value 15): x:[203,241), y:[86,250)
     _assert_color(c, 222, 150, palette[1], "B/South bar, well inside")
-    # The gap between A's own two sub-bars and B's own two sub-bars is
+    # The gap between A's two sub-bars and B's two sub-bars is
     # zero (consecutive-boundary rounding, no gap within a category) --
     # but there IS a real gap *between* categories A and B (OrdinalScale's
-    # own 0.2 padding, band_start(B)=164.5 vs A's own band ending at
+    # own 0.2 padding, band_start(B)=164.5 vs A's band ending at
     # 69.5+76=145.5): x=155 sits in that inter-category gap at any y.
     _assert_color(c, 155, 150, BG, "the inter-category gap between A and B -- background")
 
@@ -96,17 +96,17 @@ def test_render_svg_grouped_bar_matches_confirmed_rects_and_legend() raises:
     assert_true('<rect x="165" y="31" width="38" height="219" fill="#1f77b4"/>' in s, "B/North")
     assert_true('<rect x="203" y="86" width="38" height="164" fill="#ff7f0e"/>' in s, "B/South")
 
-    # Legend: _draw_legend's own row layout (legend_swatch_size=14,
+    # Legend: _draw_legend's row layout (legend_swatch_size=14,
     # legend_row_gap=8) is already covered by Mark.POINT's/Mark.ARC's
     # own hand-derived legend tests -- this only confirms _render_
     # grouped_bar actually calls it with the right labels/palette/
     # starting position: x=plot_x1+margin_right=250+20=270, y=plot_y0=
     # 20 (row 0), row 1 at y=20+(14+8)=42.
     assert_true(
-        '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s, "North's own legend swatch"
+        '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s, "North's legend swatch"
     )
     assert_true(
-        '<rect x="270" y="42" width="14" height="14" fill="#ff7f0e"/>' in s, "South's own legend swatch"
+        '<rect x="270" y="42" width="14" height="14" fill="#ff7f0e"/>' in s, "South's legend swatch"
     )
 
 

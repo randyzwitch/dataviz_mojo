@@ -1,7 +1,7 @@
 """Tests for Mark.POLAR (polar-coordinate line plot): the shared
 `_polar_point` angle/radius -> pixel primitive, the polyline/marker
 geometry it drives, the surrounding polar grid, and encode_polar_
-series()'s own multi-series generalization.
+series()'s multi-series generalization.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -18,11 +18,11 @@ from _test_helpers import BG, _assert_color
 def test_render_polar_matches_hand_derived_line_and_markers() raises:
     # Three points -- angle 0, pi, pi/2 -- radius [2, 2, 9] (max 9).
     # Canvas 400x300, default theme (no legend ever drawn for this
-    # mark -- see _render_polar's own docstring): plot area x:[60,380],
+    # mark -- see _render_polar's docstring): plot area x:[60,380],
     # y:[20,250] (no legend column to subtract, unlike Mark.ARC/
-    # NIGHTINGALE/POLAR_BAR's own margin math), center (220,135), max
+    # NIGHTINGALE/POLAR_BAR's margin math), center (220,135), max
     # radius = min(320,230)/2*0.9 = 103.5 -- the same 103.5 test_arc.
-    # mojo/test_nightingale.mojo's own no-legend SVG tests already
+    # mojo/test_nightingale.mojo's no-legend SVG tests already
     # derive for this exact canvas size.
     #
     # Point 0 (angle 0, value 2): radius_px = 103.5*(2/9) = 23.0 ->
@@ -34,7 +34,7 @@ def test_render_polar_matches_hand_derived_line_and_markers() raises:
     # first (not assumed from the formula alone): both sampled points
     # land squarely on the stroked polyline through the center (points
     # 0 and 1 sit on the same horizontal line as the center), so
-    # either the line stroke or the point's own marker circle explains
+    # either the line stroke or the point's marker circle explains
     # the color -- both paint in the same theme.mark_color, so this
     # doesn't need to distinguish which one.
     var angle: List[Float64] = [0.0, 3.14159265358979, 1.5707963267949]
@@ -51,7 +51,7 @@ def test_render_polar_draws_a_grid_even_with_no_data_on_it() raises:
     # outermost ring (220, 31), which must differ from a plain white
     # background even though AA blending on a 1px stroke makes an
     # *exact* gridline-color match unreliable to assert (see
-    # _render_polar's own docstring: no tick labels, but the rings/
+    # _render_polar's docstring: no tick labels, but the rings/
     # spokes themselves always draw).
     var angle: List[Float64] = [0.0]
     var radius: List[Float64] = [0.0]
@@ -87,20 +87,20 @@ def test_render_polar_empty_data_only_fills_background() raises:
 def test_render_polar_series_matches_hand_derived_line_and_markers() raises:
     # Two series, two single-char names ("A"/"B") -- the identical
     # dynamic-legend-width case test_nightingale.mojo's/test_polar_
-    # bar.mojo's own three-category cases already establish for this
+    # bar.mojo's three-category cases already establish for this
     # exact 400x300 canvas: center (155,135), max radius 85.5 (a short
-    # label never grows the legend column past Theme's own fixed 130px
+    # label never grows the legend column past Theme's fixed 130px
     # default). Three angles 120 degrees apart (0, 2*pi/3, 4*pi/3) --
-    # deliberately *not* the single-series test's own 0/pi pair, which
+    # deliberately *not* the single-series test's 0/pi pair, which
     # would put two points on the same horizontal line through the
-    # center and let one series' own connecting segment fully overpaint
+    # center and let one series' connecting segment fully overpaint
     # the other's identical-y marker; spread around a triangle instead,
-    # so no segment coincides with another series' own sample point.
+    # so no segment coincides with another series' sample point.
     #
     # Series A = [3, 6, 9], series B = [9, 3, 6] -- shared global max 9
     # (each series contains the max once, so both share one radius
-    # scale exactly). Sampling each series' own non-edge fractions
-    # (skipping every point at fraction 1.0 -- the plot's own outer
+    # scale exactly). Sampling each series' non-edge fractions
+    # (skipping every point at fraction 1.0 -- the plot's outer
     # edge, the same AA/clipping risk test_render_polar_matches_hand_
     # derived_line_and_markers already avoids):
     #   A, angle 0, value 3 (frac 1/3): radius_px 28.5 -> (183.5, 135)

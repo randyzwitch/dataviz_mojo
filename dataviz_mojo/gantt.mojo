@@ -23,14 +23,14 @@ from dataviz_mojo.theme import Theme
 
 
 struct _HorizontalCategoricalFrame(Movable):
-    """`_draw_horizontal_categorical_axis_frame`'s own finished layout
+    """`_draw_horizontal_categorical_axis_frame`'s finished layout
     -- the mirror image of `_CategoricalFrame` (`x_scale`/`y_scale`
     swap roles: `x_scale` is the continuous `LinearScale` here,
     `y_scale` the categorical `OrdinalScale`) for `Mark.GANTT`, the one
     mark type so far whose categories run along a horizontal axis
     instead of a vertical one.
 
-    `px0`/`py0`/`px1`/`py1` -- see `_CategoricalFrame`'s own docstring
+    `px0`/`py0`/`px1`/`py1` -- see `_CategoricalFrame`'s docstring
     for what these are and why they're carried through unchanged."""
 
     var x_scale: LinearScale
@@ -64,7 +64,7 @@ struct _HorizontalCategoricalFrame(Movable):
 
     def result(self) -> _RenderResult:
         """This frame as the `_RenderResult` `_render_gantt` returns --
-        see `_CategoricalFrame.result`'s own docstring (plot.mojo),
+        see `_CategoricalFrame.result`'s docstring (plot.mojo),
         which this mirrors exactly, including why the `text_requests`
         list is copied rather than moved."""
         return _RenderResult(self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1)
@@ -83,7 +83,7 @@ def _draw_horizontal_categorical_axis_frame[
     oy1: Int,
     padding: Float64 = 0.2,
 ) raises -> _HorizontalCategoricalFrame:
-    """`_draw_categorical_axis_frame`'s own mirror image: categories run
+    """`_draw_categorical_axis_frame`'s mirror image: categories run
     along a horizontal `OrdinalScale` y-axis (top-to-bottom, category
     index 0 at the top -- see below) instead of a vertical one, and the
     continuous `x_scale` runs left-to-right along the bottom instead of
@@ -91,17 +91,17 @@ def _draw_horizontal_categorical_axis_frame[
     as of this writing, only) mark type whose categories aren't laid out
     vertically.
 
-    Deliberately its own function, not a generalized, orientation-
+    Deliberately its function, not a generalized, orientation-
     flagged version of `_draw_categorical_axis_frame` -- with exactly
     one caller so far, that's the same "a little duplication over a
     premature shared abstraction" tolerance this codebase already
-    applies elsewhere (`_render_bar`'s own docstring, `LinearGradient`/
+    applies elsewhere (`_render_bar`'s docstring, `LinearGradient`/
     `RadialGradient` staying separate structs rather than one generic
     "Gradient" type); a bidirectional version would need an orientation
     branch threaded through nearly every line below (which scale is
     which type, which axis reverses, which margin grows dynamically),
     exactly the kind of "a mark-type branch through nearly every line
-    is worse than each path staying its own function" case that
+    is worse than each path staying its function" case that
     reasoning already warns about. Revisit if a second horizontal mark
     ever needs this.
 
@@ -110,7 +110,7 @@ def _draw_horizontal_categorical_axis_frame[
     no `.ticks()`/`.labels()` step, since `OrdinalScale`'s domain
     already *is* the label text, unlike a `LinearScale`'s numeric
     ticks), not a continuous scale's formatted tick values -- the one
-    piece of `_draw_categorical_axis_frame`'s own dynamic-margin
+    piece of `_draw_categorical_axis_frame`'s dynamic-margin
     computation that has to change shape for the swapped axes, even
     though the *reasoning* (measure the labels that will actually be
     drawn there before finalizing the margin they sit in) is identical.
@@ -118,37 +118,35 @@ def _draw_horizontal_categorical_axis_frame[
     Category index 0 lands at the *top* of the plot area, the last
     category at the bottom -- `OrdinalScale(categories, plot_y0,
     plot_y1)` with `plot_y0 < plot_y1` (unlike the vertical categorical
-    frame's own y-axis, this is *not* reversed, since a plain
+    frame's y-axis, this is *not* reversed, since a plain
     increasing-index-goes-downward mapping already reads top-to-bottom,
     the way a real project schedule conventionally lists its first task
     first) -- confirmed directly, not assumed: see
-    `test_render_gantt_matches_hand_derived_bars`'s own first-vs-second-
+    `test_render_gantt_matches_hand_derived_bars`'s first-vs-second-
     category pixel check.
 
     No horizontal (per-row) gridlines -- the same reasoning `_render_
-    bar`'s own docstring gives for skipping per-bar vertical gridlines:
+    bar`'s docstring gives for skipping per-bar vertical gridlines:
     the rows themselves already visually separate categories, so a
-    gridline per row wouldn't add information a continuous axis's own
-    gridlines do. Vertical gridlines at each of `x_scale`'s own ticks
+    gridline per row wouldn't add information a continuous axis's gridlines do. Vertical gridlines at each of `x_scale`'s ticks
     are drawn instead, the direct mirror of the vertical frame's
     horizontal ones.
 
-    `padding` (default 0.2, `OrdinalScale`'s own default) is forwarded
+    `padding` (default 0.2, `OrdinalScale`'s default) is forwarded
     straight through to the `OrdinalScale` this builds -- `Mark.GANTT`/
     `POPULATION_PYRAMID` (this function's two original callers) both
-    want real visual separation between rows, the default's own job.
+    want real visual separation between rows, the default's job.
     `Mark.RIDGELINE` (added later) passes `padding=0.0` instead: the
-    same `padding=0.0` choice `Mark.HEATMAP`'s own `_draw_grid_axis_
+    same `padding=0.0` choice `Mark.HEATMAP`'s `_draw_grid_axis_
     frame` already makes for edge-to-edge cells, needed here for the
     same underlying reason -- a nonzero gap between adjacent bands left
-    a real sliver of background between one row's own baseline and the
-    next row's own top, only sometimes covered by the row below's own
-    curve rising into it (however much its own density happened to be
+    a real sliver of background between one row's baseline and the
+    next row's top, only sometimes covered by the row below's curve rising into it (however much its density happened to be
     at that x), which showed up as a spurious notch cut into the
-    row above wherever it wasn't -- not `theme.ridgeline_overlap`'s own doing,
-    a padding-vs-baseline mismatch this function's own default left
-    unaccounted for. `padding=0.0` makes each row's own baseline land
-    exactly on the next row's own top edge, so only `theme.ridgeline_overlap`
+    row above wherever it wasn't -- not `theme.ridgeline_overlap`'s doing,
+    a padding-vs-baseline mismatch this function's default left
+    unaccounted for. `padding=0.0` makes each row's baseline land
+    exactly on the next row's top edge, so only `theme.ridgeline_overlap`
     itself controls whether/how far one row's peak crosses into
     another's -- confirmed by rendering a two-category ridgeline case
     before and after this fix, not assumed from the formula alone.
@@ -223,7 +221,7 @@ def _render_gantt[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.GANTT` plot: `_draw_horizontal_categorical_axis_
-    frame`'s own horizontal categorical axis (categories along `y`,
+    frame`'s horizontal categorical axis (categories along `y`,
     top-to-bottom; a continuous `x`-domain along the bottom) -- the
     mirror image of every other categorical mark here, all of which lay
     their categories out vertically.
@@ -249,16 +247,15 @@ def _render_gantt[
     schedule span has no "positive"/"negative" reading). A zero-length
     span (`start[i] == end[i]`, a real milestone/deadline marker, not an
     absent value) is floored to 1px, the same reasoning -- and the same
-    departure from `Mark.BULLET`'s own zero-measure handling -- `Mark.
+    departure from `Mark.BULLET`'s zero-measure handling -- `Mark.
     CANDLESTICK`'s doji case already gives: this is real, informative
     data at a specific point, not "nothing to show."
 
     No dependency-arrow drawing between related bars (a real gantt-chart
     convention) -- out of scope for this first version, the same way
-    `Mark.WATERFALL`'s own first version had no "total" bars: `encode_
+    `Mark.WATERFALL`'s first version had no "total" bars: `encode_
     gantt()`'s data shape has no notion of one task depending on another
-    to begin with, and inventing one wasn't part of what the wiki's
-    own "Phase 2b" item asked for (a horizontal-bar orientation, which
+    to begin with, and inventing one wasn't part of what the wiki's "Phase 2b" item asked for (a horizontal-bar orientation, which
     this provides).
     """
     if len(plot.x_categories) != len(plot._gantt.start) or len(plot._gantt.end) != len(plot._gantt.start):

@@ -20,13 +20,13 @@ struct _BoxData(Movable):
     Mark.WATERFALL only -- which rows are running-total checkpoints
     (drawn full-band-width in Theme.waterfall_total_color) rather than
     rising/falling deltas. Empty means "no total rows" -- see
-    encode_waterfall()'s own docstring. Mark.BOX only -- the five-number
+    encode_waterfall()'s docstring. Mark.BOX only -- the five-number
     summary encode_boxplot() computes per category up front, plus every
     outlier tagged with which category (by index into x_categories) it
-    belongs to. See that method's own docstring for the
+    belongs to. See that method's docstring for the
     quartile/whisker/outlier math.
 
-    Grouped onto `Plot._box` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._box` -- see `Plot`'s docstring.
     """
 
     var q1: List[Float64]
@@ -51,11 +51,10 @@ struct _BoxData(Movable):
 def _percentile(sorted_values: List[Float64], p: Float64) -> Float64:
     """The `p`-th percentile (`p` in `[0, 1]`) of `sorted_values`
     (already sorted ascending -- callers, not this function, own that,
-    since `_box_stats` already needs a sorted copy for its own whisker
+    since `_box_stats` already needs a sorted copy for its whisker
     scan and there's no reason to sort twice) via linear interpolation
-    between the two nearest ranks -- the same method `numpy.percentile`'s
-    own default (`"linear"`) uses. `sorted_values` must be non-empty;
-    `_box_stats`'s own caller (`Plot.encode_boxplot()`) raises before
+    between the two nearest ranks -- the same method `numpy.percentile`'s default (`"linear"`) uses. `sorted_values` must be non-empty;
+    `_box_stats`'s caller (`Plot.encode_boxplot()`) raises before
     this could ever run on an empty list.
     """
     var n = len(sorted_values)
@@ -67,7 +66,7 @@ def _percentile(sorted_values: List[Float64], p: Float64) -> Float64:
 
 
 struct _BoxStats(Movable):
-    """`_box_stats()`'s own result -- a box plot's conventional five-
+    """`_box_stats()`'s result -- a box plot's conventional five-
     number summary (`q1`/`median`/`q3`/`low`/`high`, `low`/`high` being
     the whisker ends, not the raw min/max) plus every value beyond the
     whiskers, kept separately since a box plot draws those as
@@ -101,10 +100,10 @@ def _box_stats(values: List[Float64]) -> _BoxStats:
     """Tukey's five-number summary plus outliers, the conventional box-
     plot algorithm: quartiles via `_percentile`'s linear interpolation,
     then the low/high whisker as the most extreme value still *within*
-    1.5*IQR of the box (not simply `values`' own min/max -- a whisker
+    1.5*IQR of the box (not simply `values`' min/max -- a whisker
     stops at the last real data point inside the fence, the entire
     point of separating "whisker" from "outlier"), and every value
-    beyond that fence as its own outlier. `values` must be non-empty --
+    beyond that fence as its outlier. `values` must be non-empty --
     `Plot.encode_boxplot()`, this function's only caller, raises before
     this could ever run on an empty list.
 
@@ -155,9 +154,9 @@ def _render_box[
     shared categorical x-axis, but a y-domain spanning every point that
     will actually be drawn (`_data_extent` -- padded, but *not* forced
     to include zero the way `Mark.BAR`/`LOLLIPOP`/`WATERFALL`'s domains
-    are; a box plot shows a distribution's own spread, which has no
-    inherent reason to include zero) over each category's own whiskers
-    and outliers (`_box`'s own `low`/`high`/`outlier_value` --
+    are; a box plot shows a distribution's spread, which has no
+    inherent reason to include zero) over each category's whiskers
+    and outliers (`_box`'s `low`/`high`/`outlier_value` --
     exactly the values this function goes on to draw, so the domain is
     guaranteed to fit every one of them with no separate pass over the
     original raw data `encode_boxplot()` already reduced away).
@@ -165,11 +164,10 @@ def _render_box[
     Draws, per category, back to front: the two whiskers (`Q3` up to
     `high`, `Q1` down to `low`) with a small horizontal cap at each end,
     then the box itself (`Q1` to `Q3`, `theme.mark_color`) over the
-    whiskers' own center so the box visually "contains" them, then the
+    whiskers' center so the box visually "contains" them, then the
     median line (`theme.axis_color`) on top of the box fill. Outliers
-    are drawn in one final pass *after* every category's own box/
-    whiskers, not interleaved per category -- so one category's own
-    outlier point is never occluded by a neighboring category's box.
+    are drawn in one final pass *after* every category's box/
+    whiskers, not interleaved per category -- so one category's outlier point is never occluded by a neighboring category's box.
     """
     if len(plot.x_categories) != len(plot._box.q1):
         raise Error(
@@ -260,7 +258,7 @@ def box(
 ) raises -> Canvas:
     """A box plot -- `Mark.BOX`, one box-and-whiskers per category
     summarizing a whole distribution of raw values (`values[i]`, not
-    a single number). See `Plot.encode_boxplot()`'s own docstring
+    a single number). See `Plot.encode_boxplot()`'s docstring
     (plot.mojo) for the quartile/whisker/outlier computation."""
     var plot = Plot().mark_box().encode_boxplot(categories=categories, values=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

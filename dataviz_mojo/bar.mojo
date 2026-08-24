@@ -26,23 +26,19 @@ def _render_bar[
     domain always includes a zero baseline (`_zero_baseline_y_extent`,
     not the padded-around-the-data-only `_data_extent` the continuous marks
     use). Generic over `T: DrawTarget`, returning axis/tick labels as
-    `_TextRequest`s rather than drawing them -- see `_render_generic`'s
-    own docstring for why every render path here works this way.
+    `_TextRequest`s rather than drawing them -- see `_render_generic`'s docstring for why every render path here works this way.
 
-    `ox0`/`oy0`/`ox1`/`oy1` are `render()`'s own already-resolved outer
+    `ox0`/`oy0`/`ox1`/`oy1` are `render()`'s already-resolved outer
     bounds (never the -1 sentinel by the time they reach here -- see
-    `render()`'s own docstring) -- this function never reads a target's
-    own width/height directly, so it lays out relative to whatever
+    `render()`'s docstring) -- this function never reads a target's width/height directly, so it lays out relative to whatever
     rectangle it was given, the whole target or one facet cell alike.
 
     The axis frame itself (`OrdinalScale`, gridlines, axis lines, every
     tick+label) is `_draw_categorical_axis_frame`'s job now, shared
-    with `Mark.LOLLIPOP`/`WATERFALL`/`BOX` -- see that function's own
-    docstring for why sharing became the right call, and for the one
+    with `Mark.LOLLIPOP`/`WATERFALL`/`BOX` -- see that function's docstring for why sharing became the right call, and for the one
     real (harmless) behavioral difference from this function's
     original, fully self-contained body. What's left here is exactly
-    the one genuinely BAR-specific thing: filling each category's own
-    rect from a zero baseline to its value, optionally colored by sign
+    the one genuinely BAR-specific thing: filling each category's rect from a zero baseline to its value, optionally colored by sign
     (`Theme.color_by_sign`).
 
     No x-gridlines (unlike the continuous path's per-tick vertical
@@ -56,16 +52,16 @@ def _render_bar[
     if len(plot.x_categories) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    # y-domain computed before the frame's own dynamic left margin is
-    # finalized -- see _draw_categorical_axis_frame's own docstring for
+    # y-domain computed before the frame's dynamic left margin is
+    # finalized -- see _draw_categorical_axis_frame's docstring for
     # why it takes y_scale as an input rather than computing it itself.
     var y_scale = _zero_baseline_y_extent(plot.y_data)
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
     var baseline_py = _axis_pixel(frame.y_scale, 0.0)
-    # bandwidth() depends only on the scale's own domain length and
+    # bandwidth() depends only on the scale's domain length and
     # pixel range, never on the category index -- hoisted here (and in
-    # every other mark's own loop) rather than recomputing its division
+    # every other mark's loop) rather than recomputing its division
     # once per category.
     var bar_width = _round_to_int(frame.x_scale.bandwidth())
     for i in range(len(plot.x_categories)):
@@ -84,7 +80,7 @@ def _render_bar[
     # rejects moving a single field out of `frame` at all (even here,
     # its last use): "field 'frame.text_requests' destroyed out of the
     # middle of a value" -- `frame` as a whole still owns `x_scale`/
-    # `y_scale`/`sc`, which need their own normal end-of-scope
+    # `y_scale`/`sc`, which need their normal end-of-scope
     # destruction, not a partial one. A small List copy here is a cheap
     # trade for not having to hand-unpack every field `_CategoricalFrame`
     # carries just to satisfy this.
@@ -103,7 +99,7 @@ def bar(
     y_title: String = "",
 ) raises -> Canvas:
     """A bar chart -- `Mark.BAR` over a categorical `x` and continuous
-    `y` (see `Plot.encode_categorical()`'s own docstring; one bar per
+    `y` (see `Plot.encode_categorical()`'s docstring; one bar per
     entry, negative values extend below the zero baseline
     automatically)."""
     var plot = Plot().mark_bar().encode_categorical(x=categories, y=values)

@@ -27,9 +27,9 @@ from dataviz_mojo.theme import Theme
 struct _HeatmapData(Movable):
     """
     Mark.HEATMAP only -- one (x category, y category, value) row per
-    grid cell. See encode_heatmap()'s own docstring.
+    grid cell. See encode_heatmap()'s docstring.
 
-    Grouped onto `Plot._heatmap` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._heatmap` -- see `Plot`'s docstring.
     """
 
     var x: List[String]
@@ -44,14 +44,14 @@ struct _HeatmapData(Movable):
 
 
 struct _GridFrame(Movable):
-    """`_draw_grid_axis_frame`'s own finished layout -- the two-
+    """`_draw_grid_axis_frame`'s finished layout -- the two-
     categorical-axis analog of `_CategoricalFrame`/`_HorizontalCategoricalFrame`
     (both `x_scale`/`y_scale` are `OrdinalScale` here, not one continuous
     `LinearScale` -- `Mark.HEATMAP` is the first mark type with no
-    continuous axis at all). See that function's own docstring for
+    continuous axis at all). See that function's docstring for
     what this computes.
 
-    `px0`/`py0`/`px1`/`py1` -- see `_CategoricalFrame`'s own docstring
+    `px0`/`py0`/`px1`/`py1` -- see `_CategoricalFrame`'s docstring
     for what these are and why they're carried through unchanged."""
 
     var x_scale: OrdinalScale
@@ -85,7 +85,7 @@ struct _GridFrame(Movable):
 
     def result(self) -> _RenderResult:
         """This frame as the `_RenderResult` `_render_heatmap` returns
-        -- see `_CategoricalFrame.result`'s own docstring, which this
+        -- see `_CategoricalFrame.result`'s docstring, which this
         mirrors exactly."""
         return _RenderResult(self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1)
 
@@ -104,29 +104,28 @@ def _draw_grid_axis_frame[
     *,
     mut cache: FontCache,
 ) raises -> _GridFrame:
-    """`Mark.HEATMAP`'s own axis-frame core: two `OrdinalScale` axes,
+    """`Mark.HEATMAP`'s axis-frame core: two `OrdinalScale` axes,
     `x_categories` left-to-right, `y_categories` top-to-bottom (category
     index 0 at the *top* -- the same reading-order convention `_draw_
-    horizontal_categorical_axis_frame`'s own y-axis already establishes
+    horizontal_categorical_axis_frame`'s y-axis already establishes
     for `Mark.GANTT`/`POPULATION_PYRAMID`, not `_draw_categorical_axis_
     frame`'s reversed one, since there's no zero-baseline-at-bottom
     convention to preserve here -- there's no baseline at all). Its own
     function, not a further generalization of either existing frame
     core -- the same "one more real caller doesn't justify a shared,
     orientation-flagged abstraction yet" tolerance `_draw_horizontal_
-    categorical_axis_frame`'s own docstring already gives, and this is
+    categorical_axis_frame`'s docstring already gives, and this is
     the *first* caller of a two-categorical-axis frame, not a second.
 
     Both `OrdinalScale`s are built with `padding=0.0` (unlike every
     other categorical axis in this package, which defaults to `0.2`) --
     a heatmap's cells are meant to tile the grid edge-to-edge with no
     gap between neighbors, the same "no gap" look every real heatmap
-    (a correlation matrix, a calendar heatmap) has, not `Mark.BAR`'s own
-    separated bars.
+    (a correlation matrix, a calendar heatmap) has, not `Mark.BAR`'s separated bars.
 
-    The dynamic left margin grows to fit `y_categories`' own text (the
+    The dynamic left margin grows to fit `y_categories`' text (the
     raw strings, no `.ticks()`/`.labels()` step) -- the same reasoning
-    `_draw_horizontal_categorical_axis_frame`'s own docstring gives for
+    `_draw_horizontal_categorical_axis_frame`'s docstring gives for
     its identical choice, since `y_categories` here is likewise an
     `OrdinalScale` domain, not numeric tick values.
     """
@@ -186,18 +185,17 @@ def _draw_grid_axis_frame[
 def _render_heatmap[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.HEATMAP` plot: `_draw_grid_axis_frame`'s own two-
+    """Render a `Mark.HEATMAP` plot: `_draw_grid_axis_frame`'s two-
     categorical-axis grid, one filled cell per `encode_heatmap()` row,
-    colored through a continuous `ColorScale` spanning `value`'s own
-    [min, max] (`ColorScale.from_theme` -- the exact same three-stop
-    gradient `Mark.POINT`'s own continuous `color=` channel already
-    uses, see `_PointChannels`' own construction of one, so a heatmap
+    colored through a continuous `ColorScale` spanning `value`'s [min, max] (`ColorScale.from_theme` -- the exact same three-stop
+    gradient `Mark.POINT`'s continuous `color=` channel already
+    uses, see `_PointChannels`' construction of one, so a heatmap
     and a continuous-color scatter plot read with the same color
     vocabulary).
 
-    `x`/`y` are deduplicated into each axis's own domain via
+    `x`/`y` are deduplicated into each axis's domain via
     `_categorical_indices` (first-seen order, the same helper `Mark.
-    POINT`'s own categorical color channel resolves its domain through)
+    POINT`'s categorical color channel resolves its domain through)
     -- a caller gives one row per cell, not a separate axis-category
     list, the same "the data already says what the axis needs" shape
     `encode_categorical()` established for a single categorical axis.
@@ -207,10 +205,9 @@ def _render_heatmap[
     not a dense grid.
 
     Draws a continuous color legend (`_draw_continuous_color_legend`,
-    the same one `Mark.POINT`'s own continuous color channel uses) when
+    the same one `Mark.POINT`'s continuous color channel uses) when
     `Theme.show_legend` is on, reserved from the outer `ox1` the same
-    "shrink the rect from outside" way every other categorical mark's
-    own legend already does.
+    "shrink the rect from outside" way every other categorical mark's legend already does.
     """
     if len(plot._heatmap.x) != len(plot._heatmap.y) or len(plot._heatmap.value) != len(plot._heatmap.x):
         raise Error(
@@ -236,7 +233,7 @@ def _render_heatmap[
     var color_scale = ColorScale.from_theme(theme, value_mm.min, value_mm.max)
 
     # One FontCache for both measurements this render makes -- the
-    # legend's own labels here, then the y-axis category labels inside
+    # legend's labels here, then the y-axis category labels inside
     # _draw_grid_axis_frame. A fresh cache per call re-pays canvas_
     # mojo's font resolution and TTF parse for a font already loaded.
     var measure_cache = FontCache()
@@ -290,6 +287,6 @@ def heatmap(
 ) raises -> Canvas:
     """A heatmap -- `Mark.HEATMAP`, one colored grid cell per (x, y)
     pair, colored by `value` through a continuous gradient. See `Plot.
-    encode_heatmap()`'s own docstring (plot.mojo) for the exact shape."""
+    encode_heatmap()`'s docstring (plot.mojo) for the exact shape."""
     var plot = Plot().mark_heatmap().encode_heatmap(x=x, y=y, value=value)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

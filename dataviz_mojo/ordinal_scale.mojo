@@ -2,8 +2,7 @@
 evenly spaced pixel bands, the standard "band scale" every bar-chart-
 style categorical axis needs (matches d3's `scaleBand` in spirit: one
 `padding` fraction, applied as an equal gap on both sides of every
-band, not separate inner/outer padding knobs -- this package's own
-"minimal, not a port of everything a mature library offers" approach,
+band, not separate inner/outer padding knobs -- this package's "minimal, not a port of everything a mature library offers" approach,
 same reasoning `LinearGradient` gives for supporting only "pad" extend
 and not repeat/reflect).
 
@@ -11,7 +10,7 @@ Purely index-based (`band_start(i)`/`center(i)`, not `band_start
 (category_string)`) -- a bar chart's data already gives each row's
 category and its position in that same row, so there's never a need
 to search the domain by string equality to answer "where does this
-category go." `Plot`'s own `x_categories` list *is* this scale's
+category go." `Plot`'s `x_categories` list *is* this scale's
 domain, index for index; a caller wanting repeated categories
 (grouped/stacked bars) needs a different, not-yet-built encoding --
 see the wiki.
@@ -46,13 +45,13 @@ struct OrdinalScale(Movable):
         return (self.range_max - self.range_min) / Float64(len(self.domain))
 
     def bandwidth(self) -> Float64:
-        """The pixel width of the band itself (a bar's own width),
+        """The pixel width of the band itself (a bar's width),
         `step()` minus the padding taken off both sides."""
         return self.step() * (1.0 - self.padding)
 
     def band_start(self, index: Int) -> Float64:
         """The left pixel edge of the band at `index` -- half the
-        step's padding in from that index's own slot start, so the
+        step's padding in from that index's slot start, so the
         padding is split evenly between a band and each of its
         neighbors."""
         var s = self.step()

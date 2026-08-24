@@ -27,34 +27,31 @@ def _render_nightingale[
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.NIGHTINGALE` plot (a rose/coxcomb chart): one
     wedge per category (`encode_categorical`'s `x`), every wedge the
-    *same* angular width (`2*pi / N`) -- unlike `Mark.ARC`'s own
-    value-proportional angle, a nightingale wedge's magnitude is
+    *same* angular width (`2*pi / N`) -- unlike `Mark.ARC`'s value-proportional angle, a nightingale wedge's magnitude is
     always encoded by its radius instead, so categories stay easy to
     compare by eye (equal angular slots) while their values still read
     as a real visual magnitude, not just an angle.
 
-    `Plot.mark_nightingale(area=True)`'s own `plot._nightingale_area`
-    switches which of ECharts' two `rose_type` modes each wedge's own
-    radius uses, both scaled against the *largest* value in the data
-    (not the total the way `Mark.ARC`'s own angle is -- there's no
+    `Plot.mark_nightingale(area=True)`'s `plot._nightingale_area`
+    switches which of ECharts' two `rose_type` modes each wedge's radius uses, both scaled against the *largest* value in the data
+    (not the total the way `Mark.ARC`'s angle is -- there's no
     "share of a whole" reading here, a nightingale answers "how big is
     each category," not "what fraction of the total is each category"):
     `"radius"` (the default) scales radius linearly by `value / max`;
-    `"area"` scales by `sqrt(value / max)` instead, so a wedge's own
-    *area* -- not just its radius -- is proportional to its value.
+    `"area"` scales by `sqrt(value / max)` instead, so a wedge's *area* -- not just its radius -- is proportional to its value.
     Plain radius scaling alone visually exaggerates large values (a
     circle's area grows with the *square* of its radius), which
     `"area"` mode corrects for at the cost of compressing small values
     together near the center.
 
-    Reuses `Mark.ARC`'s own start-at-12-o'clock, sweep-clockwise wedge
-    convention (see `_render_arc`'s own docstring for why that's
+    Reuses `Mark.ARC`'s start-at-12-o'clock, sweep-clockwise wedge
+    convention (see `_render_arc`'s docstring for why that's
     clockwise here) and its identical non-negative/at-least-one-
     positive value validation, `default_categorical_palette()` for
     wedge colors by category index, and the same margin-box/legend
     layout `_render_arc` uses. No axis frame at all -- the same "a
     circle has no x/y axes" reasoning `_render_arc` already documents
-    -- so this is its own fully separate render path, not a branch
+    -- so this is its fully separate render path, not a branch
     inside `_render_arc` itself: the per-wedge angle/radius formula
     genuinely differs, not just a flag flip.
     """
@@ -117,7 +114,6 @@ def nightingale(
     `x` and continuous `y` (the same shape `pie()`/`bar()` take; every
     value must be non-negative, and at least one positive). Pass
     `area=True` for ECharts' `rose_type="area"` mode instead of the
-    default `"radius"` mode -- see `_render_nightingale`'s own
-    docstring for what each mode means."""
+    default `"radius"` mode -- see `_render_nightingale`'s docstring for what each mode means."""
     var plot = Plot().mark_nightingale(area=area).encode_categorical(x=categories, y=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

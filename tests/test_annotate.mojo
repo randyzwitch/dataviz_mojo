@@ -21,12 +21,11 @@ def test_render_svg_annotate_line_matches_hand_derived_position() raises:
     # legend geometry test_render_svg_bar_mark_matches_confirmed_rect's
     # own case establishes for this canvas size: plot area x:[60,380],
     # y:[20,250]. _zero_baseline_y_extent([10,20]) pads to domain
-    # [0, 21.0] (span 20, 5% pad 1.0), so annotate_line(15.0)'s own
-    # pixel row is the *same* one the y=15 tick already lands on --
+    # [0, 21.0] (span 20, 5% pad 1.0), so annotate_line(15.0)'s pixel row is the *same* one the y=15 tick already lands on --
     # confirmed against a real render_svg() run first: y=86 (the
-    # tick's own label sits at y=90, offset by the same +4 baseline
+    # tick's label sits at y=90, offset by the same +4 baseline
     # nudge every y-axis tick label already carries). The line spans
-    # the full inner width (60 to 380); its own label right-aligns
+    # the full inner width (60 to 380); its label right-aligns
     # just inside the right edge, y=86-4=82.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, 20.0]
@@ -48,14 +47,14 @@ def test_render_svg_annotate_line_matches_hand_derived_position() raises:
     assert_true(
         '<text x="376" y="82" font-size="12.000" font-family="sans-serif" fill="#969696"'
         ' text-anchor="end">mid</text>' in s,
-        "the line's own label, right-aligned just above it",
+        "the line's label, right-aligned just above it",
     )
 
 
 def test_render_annotate_line_raster_draws_ink_at_the_hand_derived_row() raises:
     # Raster-side companion to the SVG test above -- confirms canvas_
     # mojo.draw_line_aa actually painted at the same y=86 row, not just
-    # that the SVG backend's own text/line plumbing is correct.
+    # that the SVG backend's text/line plumbing is correct.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, 20.0]
     var c = bar(cats, vals, width=400, height=300, theme=Theme(show_gridlines=False))
@@ -64,16 +63,15 @@ def test_render_annotate_line_raster_draws_ink_at_the_hand_derived_row() raises:
     )
     var c2 = Canvas(400, 300, BG)
     render(c2, plot)
-    _assert_color(c2, 220, 86, Color(150, 150, 150), "the reference line's own ink, well inside the plot width")
+    _assert_color(c2, 220, 86, Color(150, 150, 150), "the reference line's ink, well inside the plot width")
 
 
 def test_render_annotate_line_out_of_range_value_draws_nothing() raises:
-    # A value outside the mark's own padded domain ([0, 21.0] for this
+    # A value outside the mark's padded domain ([0, 21.0] for this
     # data) must draw neither a line nor a label -- not clamped to an
     # edge, not extrapolated off-plot into the chrome above (a real bug
     # this exact scenario caught during development -- see _draw_
-    # annotation_lines's own docstring). 25.0 is past the domain's own
-    # 21.0 max.
+    # annotation_lines's docstring). 25.0 is past the domain's 21.0 max.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, 20.0]
     var svg = SvgCanvas(400, 300)

@@ -1,5 +1,5 @@
 """Tests for Mark.EFFECT_SCATTER: Mark.POINT plus a halo drawn under
-each point (raster + SVG) -- see plot.mojo's own _draw_point_layer
+each point (raster + SVG) -- see plot.mojo's _draw_point_layer
 (`draw_halo`) and `_lighten` docstrings for the geometry/color rules
 verified here.
 """
@@ -19,7 +19,7 @@ from _test_helpers import BG, _assert_color
 def test_render_effect_scatter_matches_hand_derived_halo_and_point() raises:
     # One point (5, 5) -- a constant-valued column on both axes, so
     # _data_extent pads +-1 on each side (span 0 -> the "else 1.0" pad
-    # branch every _data_extent-based mark's own tests already rely
+    # branch every _data_extent-based mark's tests already rely
     # on): domain [4, 6] on both x and y. Canvas 400x300, default
     # margins -> plot area x:[60,380], y:[20,250]; scale_x = 320/2 =
     # 160, scale_y = -230/2 = -115 (y's range is reversed, top of the
@@ -27,10 +27,10 @@ def test_render_effect_scatter_matches_hand_derived_halo_and_point() raises:
     # (220, 135) -- independently computed via python3, then confirmed
     # against a real render() run before trusting it. Default point_
     # radius 3.5 rounds to 4; the halo is 2.2x that (8.8 -> 9), colored
-    # by `_lighten` (Theme.mark_color's own (30,100,180) blended toward
+    # by `_lighten` (Theme.mark_color's (30,100,180) blended toward
     # white at a fixed 90/255 mix -- (175,200,228), also confirmed
     # against a real render rather than hand-derived, since Color.
-    # blend_over's own integer-division rounding isn't the thing this
+    # blend_over's integer-division rounding isn't the thing this
     # test exists to re-verify).
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]

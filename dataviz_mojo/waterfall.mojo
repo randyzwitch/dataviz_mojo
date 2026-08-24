@@ -18,10 +18,10 @@ from dataviz_mojo.theme import Theme
 struct _WaterfallData(Movable):
     """
     Mark.WATERFALL only -- the running-total bounds encode_waterfall()
-    computes from each category's own signed delta (y_data), see that
-    method's own docstring.
+    computes from each category's signed delta (y_data), see that
+    method's docstring.
 
-    Grouped onto `Plot._waterfall` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._waterfall` -- see `Plot`'s docstring.
     """
 
     var y0: List[Float64]
@@ -38,9 +38,9 @@ struct _WaterfallData(Movable):
 struct _WaterfallBars(Movable):
     """The two running-total bounds `_render_waterfall` draws each bar
     between -- `y0[i]`/`y1[i]` are the running total immediately
-    before/after category `i`'s own delta is applied (or `0`/the new
+    before/after category `i`'s delta is applied (or `0`/the new
     running total for a checkpoint row -- see `_waterfall_running_
-    totals()`'s own docstring for the exact rule)."""
+    totals()`'s docstring for the exact rule)."""
 
     var y0: List[Float64]
     var y1: List[Float64]
@@ -51,25 +51,22 @@ struct _WaterfallBars(Movable):
 
 
 def _waterfall_running_totals(deltas: List[Float64], is_total: List[Bool]) -> _WaterfallBars:
-    """Computes each bar's own `y0`/`y1` bounds from a running
+    """Computes each bar's `y0`/`y1` bounds from a running
     cumulative sum over `deltas`, starting at 0.0 (the conventional
     waterfall starting point) -- extracted out of `Plot.encode_
-    waterfall()`'s own body (plot.mojo) so this running-sum math lives
+    waterfall()`'s body (plot.mojo) so this running-sum math lives
     next to `_render_waterfall`, the only other place Mark.WATERFALL-
     specific logic lives.
 
     `is_total[i]` (checked defensively as `False` when `i` falls
-    outside `is_total`'s own length, so a short/empty list never
+    outside `is_total`'s length, so a short/empty list never
     indexes out of bounds -- the actual length-matches-`deltas` check
-    happens at `render()` time, like every other length check `Plot`'s
-    own `encode_*` methods defer) changes only how row `i` draws: a
-    plain delta row floats from the running total *before* its own
-    delta (`y0`) to the total *after* it (`y1`); a total/checkpoint row
-    instead draws from `0` up to the running total *after* its own
-    delta is applied, regardless of what the running total was before.
+    happens at `render()` time, like every other length check `Plot`'s `encode_*` methods defer) changes only how row `i` draws: a
+    plain delta row floats from the running total *before* its delta (`y0`) to the total *after* it (`y1`); a total/checkpoint row
+    instead draws from `0` up to the running total *after* its delta is applied, regardless of what the running total was before.
     `deltas[i]` itself always means the same thing either way, still
     added to the running sum every time -- see `Plot.encode_waterfall(
-    )`'s own docstring (plot.mojo) for the full start-then-deltas-
+    )`'s docstring (plot.mojo) for the full start-then-deltas-
     then-end story this enables.
     """
     var y0 = List[Float64]()
@@ -92,22 +89,21 @@ def _render_waterfall[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.WATERFALL` plot: `_draw_categorical_axis_frame`'s
-    shared categorical x-axis, but a y-domain spanning every bar's own
-    running-total *bounds* (`_waterfall`'s own `y0` union `y1`, not
+    shared categorical x-axis, but a y-domain spanning every bar's running-total *bounds* (`_waterfall`'s `y0` union `y1`, not
     `plot.y_data` -- the deltas themselves, not the cumulative totals
     they add up to, would badly understate the actual pixel range a
     running total can reach), still forced to include zero
-    (`_zero_baseline_y_extent`) since every waterfall's own running
+    (`_zero_baseline_y_extent`) since every waterfall's running
     total conventionally starts there.
 
-    Each category draws a floating rect from its own `y0` to `y1`
-    (`encode_waterfall()`'s own running-sum bookkeeping -- see that
-    method's docstring). A plain delta row colors by its own delta's
+    Each category draws a floating rect from its `y0` to `y1`
+    (`encode_waterfall()`'s running-sum bookkeeping -- see that
+    method's docstring). A plain delta row colors by its delta's
     sign unconditionally (`theme.mark_color_negative`/`mark_color`, not
-    gated by `Theme.color_by_sign` the way `Mark.BAR`'s own diverging
-    coloring is -- see `encode_waterfall()`'s own docstring for why). A
+    gated by `Theme.color_by_sign` the way `Mark.BAR`'s diverging
+    coloring is -- see `encode_waterfall()`'s docstring for why). A
     total row colors `theme.waterfall_total_color` instead and always
-    draws the *full* band width (`Mark.BAR`'s own convention).
+    draws the *full* band width (`Mark.BAR`'s convention).
 
     A delta row draws narrower than the full band (`_WATERFALL_DELTA_
     WIDTH_FRACTION`, centered) *only when this plot actually uses total
@@ -119,32 +115,29 @@ def _render_waterfall[
     anything to distinguish, and only then does it apply. The two
     intentionally read as visually distinct at a glance in that case,
     not just by
-    color (see `Theme.waterfall_total_color`'s own docstring).
+    color (see `Theme.waterfall_total_color`'s docstring).
 
-    Every bar's own actual left/right pixel edges are computed once,
+    Every bar's actual left/right pixel edges are computed once,
     per category, into `bar_x`/`bar_width` lists -- then reused for the
     connector-line pass below, rather than each connector re-deriving
     an edge from the *band's* own boundary directly the way this
     function's original, total-row-unaware body did (correct only
-    because every bar was full band width then; a narrower delta bar's
-    own edges no longer coincide with its band's, so the connector has
+    because every bar was full band width then; a narrower delta bar's edges no longer coincide with its band's, so the connector has
     to ask each bar what it actually drew, not assume). The connector
     itself (`theme.axis_color`, not `gridline_color` -- tried first,
-    but visually indistinguishable from the y-axis's own gridlines once
+    but visually indistinguishable from the y-axis's gridlines once
     actually rendered, defeating the point of a connector at all;
-    caught by viewing `examples/waterfall.mojo`'s own output, not
+    caught by viewing `examples/waterfall.mojo`'s output, not
     assumed) still runs between consecutive bars at the pixel height
     `y1[i-1]` -- always exactly horizontal (a single Y value, drawn from
-    one bar's own actual right edge to the next's own actual left edge).
-    For two plain delta rows in a row, this touches both bars' own
-    shared edge exactly (`y1[i-1] == y0[i]` always, by construction).
-    When row `i` is a total, its own `y0` is fixed at `0`, not `y1
+    one bar's actual right edge to the next's actual left edge).
+    For two plain delta rows in a row, this touches both bars' shared edge exactly (`y1[i-1] == y0[i]` always, by construction).
+    When row `i` is a total, its `y0` is fixed at `0`, not `y1
     [i-1]` -- so the connector still lands at the objectively correct
     height (where the running total stood *entering* this row), but
-    only touches that total bar's own top edge exactly when its own
-    delta is `0` (the common ending-balance case, and every case
+    only touches that total bar's top edge exactly when its delta is `0` (the common ending-balance case, and every case
     `examples/waterfall.mojo` demonstrates) -- a total row with a real
-    nonzero delta of its own would show the connector landing partway
+    nonzero delta of its would show the connector landing partway
     up the bar instead of at an edge, a deliberately accepted rough
     edge for a use case this package hasn't needed yet, not a bug in
     the common case.
@@ -191,10 +184,10 @@ def _render_waterfall[
 
     # Only recorded when is_total is actually in use -- that's the only
     # case the connector pass below reads them back (a delta bar can be
-    # narrower than its own band then, so a connector has to ask the
+    # narrower than its band then, so a connector has to ask the
     # previous bar what it actually drew). With no total rows the
     # connector re-derives the edge from the band directly, for the
-    # byte-compatibility reason its own comment gives, and these two
+    # byte-compatibility reason its comment gives, and these two
     # lists would just be filled and never read.
     var bar_x_list = List[Int]()
     var bar_width_list = List[Int]()
@@ -231,12 +224,12 @@ def _render_waterfall[
             var prev_end_py = _axis_pixel(frame.y_scale, plot._waterfall.y1[i - 1])
             # using_totals=False reproduces the exact original formula
             # here (band_start+bandwidth, summed then rounded once, not
-            # `bar_x[i-1] + bar_width[i-1]`'s own two independently-
+            # `bar_x[i-1] + bar_width[i-1]`'s two independently-
             # rounded pieces) -- purely additive, byte-for-byte
             # unchanged from every render before total rows existed.
             # using_totals=True instead asks the previous bar what it
             # actually drew, needed once a delta bar can be narrower
-            # than its own band -- no backward-compatible formula to
+            # than its band -- no backward-compatible formula to
             # preserve there, since that combination is new.
             var prev_x1 = (
                 bar_x_list[i - 1] + bar_width_list[i - 1]
@@ -261,7 +254,7 @@ def waterfall(
     y_title: String = "",
 ) raises -> Canvas:
     """A waterfall chart -- `Mark.WATERFALL`, floating bars from a
-    running total. See `Plot.encode_waterfall()`'s own docstring
+    running total. See `Plot.encode_waterfall()`'s docstring
     (plot.mojo) for what `deltas`/`is_total` mean."""
     var plot = Plot().mark_waterfall().encode_waterfall(categories=categories, deltas=deltas, is_total=is_total)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

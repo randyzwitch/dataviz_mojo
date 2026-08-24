@@ -1,7 +1,7 @@
 """ColorScale -- maps a continuous data domain onto a color gradient,
 for data-driven color encoding (`Plot.encode(color=...)`). Shares its
 stop-interpolation logic with `canvas_mojo.gradient`'s `LinearGradient`/
-`RadialGradient` via that module's own `_color_at_t`/`_GradientStop`
+`RadialGradient` via that module's `_color_at_t`/`_GradientStop`
 -- identical math (bracket the two nearest stops, linearly
 interpolate), only the projection differs: those two project a pixel
 position (an axis, or a radial distance) onto [0, 1]; this one
@@ -21,10 +21,9 @@ struct ColorScale(Movable):
     spatial position to map onto; `color_at(value)` is the whole
     interface. A zero-span domain (every value identical) always
     projects to t=0.0 -- the lowest-offset stop's color (not
-    necessarily whichever was added first; see _color_at_t's own
-    bracketing-by-offset-value search), not a crash -- the same
-    degenerate-domain handling LinearScale's own `scale()` gives (see
-    that struct's own docstring).
+    necessarily whichever was added first; see _color_at_t's bracketing-by-offset-value search), not a crash -- the same
+    degenerate-domain handling LinearScale's `scale()` gives (see
+    that struct's docstring).
     """
 
     var domain_min: Float64
@@ -32,8 +31,8 @@ struct ColorScale(Movable):
     var stops: List[_GradientStop]
     # The smallest-/largest-offset stop so far -- tracked incrementally
     # here instead of scanned from `stops` by _color_at_t on every
-    # call, matching LinearGradient/RadialGradient's own pattern (see
-    # canvas_mojo.gradient's own docstring for why _color_at_t takes
+    # call, matching LinearGradient/RadialGradient's pattern (see
+    # canvas_mojo.gradient's docstring for why _color_at_t takes
     # these pre-found rather than scanning itself).
     var _lowest: _GradientStop
     var _highest: _GradientStop
@@ -66,21 +65,20 @@ struct ColorScale(Movable):
     @staticmethod
     def from_theme(theme: Theme, domain_min: Float64, domain_max: Float64) -> Self:
         """The one, shared way every continuous color-encoded mark in
-        this package (`Plot.encode(color=...)`'s own point channel,
-        `Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`) builds its own
-        `ColorScale` from `theme`'s three color-scale stops -- `low` at
+        this package (`Plot.encode(color=...)`'s point channel,
+        `Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`) builds its `ColorScale` from `theme`'s three color-scale stops -- `low` at
         offset `0.0`, `mid` at `0.5`, `high` at `1.0` -- rather than
         each of those four call sites adding two stops by hand (which
         is exactly what they used to do, independently, before this
         existed: `add_stop(0.0, theme.color_scale_low)`/`add_stop(1.0,
         theme.color_scale_high)`, no middle stop at all -- see `Theme.
-        color_scale_mid`'s own docstring for the real, rendering-caught
+        color_scale_mid`'s docstring for the real, rendering-caught
         readability bug that was, not just a style cleanup).
 
         A plain `@staticmethod`, not a change to `__init__` itself --
         `ColorScale(domain_min, domain_max)` alone (no stops) stays a
         real, valid, if empty, starting point (`tests/test_color_scale.
-        mojo`'s own hand-built black/white and blue/red scales, for
+        mojo`'s hand-built black/white and blue/red scales, for
         instance, have nothing to do with any `Theme` at all and
         shouldn't need one just to construct a `ColorScale`).
         """
@@ -97,7 +95,7 @@ def default_categorical_palette() -> List[Color]:
     distinct from each other (the same well-known "tab10"-style set
     most charting libraries ship a version of), cycled via modulo if a
     column has more unique categories than this (see
-    `Plot.encode`'s own docstring).
+    `Plot.encode`'s docstring).
 
     Deliberately a plain function, not a `Theme` field: adding a
     `List` field to `Theme` would break its `ImplicitlyCopyable`
@@ -105,7 +103,7 @@ def default_categorical_palette() -> List[Color]:
     an implicit copy constructor once a struct holds a `List`), which
     every existing `var theme = plot._theme`-style copy throughout
     this package already depends on. The same reasoning
-    `canvas_mojo.Color`'s own history gives for keeping named palettes out
+    `canvas_mojo.Color`'s history gives for keeping named palettes out
     of the core `Color` type applies here: a fixed default is enough
     until per-Theme palette customization is an actual, concrete need,
     not a reason to change how `Theme` itself copies today.

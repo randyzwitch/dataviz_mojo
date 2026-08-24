@@ -25,17 +25,15 @@ from dataviz_mojo.theme import Theme
 def _render_graph[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.GRAPH` plot: `Mark.CHORD`'s own edge-list shape
+    """Render a `Mark.GRAPH` plot: `Mark.CHORD`'s edge-list shape
     (`encode_chord()`'s `from`/`to`/`value`), reused completely
-    unchanged (the same reuse precedent `Mark.ARC_DIAGRAM`'s own
-    docstring already establishes for this exact data), drawn as a
+    unchanged (the same reuse precedent `Mark.ARC_DIAGRAM`'s docstring already establishes for this exact data), drawn as a
     third genuinely different network layout: every distinct node
-    evenly spaced *around* a circle (`Mark.ARC`'s own start-at-12-
+    evenly spaced *around* a circle (`Mark.ARC`'s start-at-12-
     o'clock, sweep-clockwise convention, reused for node position only
     -- there's no wedge here), edges drawn as *straight* lines cutting
-    across the interior, rather than `Mark.CHORD`'s own ring sectors
-    plus curved ribbons hugging the rim, or `Mark.ARC_DIAGRAM`'s own
-    nodes-on-a-line-plus-arcs-above.
+    across the interior, rather than `Mark.CHORD`'s ring sectors
+    plus curved ribbons hugging the rim, or `Mark.ARC_DIAGRAM`'s nodes-on-a-line-plus-arcs-above.
 
     A deliberately simple, deterministic circular layout -- not a real
     force-directed simulation (which iteratively repositions nodes to
@@ -43,20 +41,19 @@ def _render_graph[
     graph-drawing tools actually use), a real v1 scope choice: a fixed
     node order around a circle is easy to hand-verify pixel-for-pixel,
     which this package's whole test methodology depends on, while a
-    physics simulation's own settled positions generally aren't (see
-    `Mark.BEESWARM`'s own docstring for the identical "not a full
+    physics simulation's settled positions generally aren't (see
+    `Mark.BEESWARM`'s docstring for the identical "not a full
     physics simulation, a deterministic swarm instead" reasoning
     applied to a completely different layout problem).
 
     Edge stroke width scales with `value/max(values)`, edge and node
-    marker color both follow the edge's own `from` node's palette
+    marker color both follow the edge's `from` node's palette
     color -- the same conventions `Mark.ARC_DIAGRAM` already
     establishes for this identical data shape. A self-loop (`from[i]
-    == to[i]`) draws nothing. Every node is labeled just outside its
-    own position on the circle, aligned by which side of center it
+    == to[i]`) draws nothing. Every node is labeled just outside its position on the circle, aligned by which side of center it
     falls on (left-aligned on the right half, right-aligned on the
     left half, centered at the top/bottom -- the same alignment rule
-    `Mark.RADAR`'s own axis labels already use for the identical
+    `Mark.RADAR`'s axis labels already use for the identical
     "label sits just outside a point on a circle" problem) -- no
     legend, the same "already labeled directly, nothing left for a
     legend to add" reasoning `Mark.ARC_DIAGRAM` already gives.
@@ -142,11 +139,10 @@ def graph(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A network graph -- `Mark.GRAPH`, `Mark.CHORD`'s own edge list
+    """A network graph -- `Mark.GRAPH`, `Mark.CHORD`'s edge list
     (`Plot.encode_chord()`'s `from_categories`/`to_categories`/
     `values`) drawn as nodes evenly spaced around a circle, connected
-    by straight lines cutting across the interior. See `_render_graph`'s
-    own docstring for the full reasoning."""
+    by straight lines cutting across the interior. See `_render_graph`'s docstring for the full reasoning."""
     var plot = Plot().mark_graph().encode_chord(
         from_categories=from_categories, to_categories=to_categories, values=values
     )

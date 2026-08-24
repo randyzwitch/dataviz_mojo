@@ -25,31 +25,28 @@ def _render_arc[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.ARC` plot (a pie chart): one wedge per category
-    (`encode_categorical`'s `x`), its angular span proportional to its
-    own value (`y`) divided by the total. No x/y axis frame at all
+    (`encode_categorical`'s `x`), its angular span proportional to its value (`y`) divided by the total. No x/y axis frame at all
     (no ticks, gridlines, or axis lines) -- a pie chart doesn't have a
     coordinate system the way every other mark here does, so this is a
-    fully separate function, not a branch inside `render()`'s own
-    continuous or `_render_bar`'s categorical path. Generic over
-    `T: DrawTarget`, returning the legend's own labels as
-    `_TextRequest`s rather than drawing them -- see `_render_generic`'s
-    own docstring for why every render path here works this way.
+    fully separate function, not a branch inside `render()`'s continuous or `_render_bar`'s categorical path. Generic over
+    `T: DrawTarget`, returning the legend's labels as
+    `_TextRequest`s rather than drawing them -- see `_render_generic`'s docstring for why every render path here works this way.
 
-    `ox0`/`oy0`/`ox1`/`oy1` are `render()`'s own already-resolved outer
-    bounds (see `_render_bar`'s own docstring for why this function
-    never reads a target's own width/height directly either).
+    `ox0`/`oy0`/`ox1`/`oy1` are `render()`'s already-resolved outer
+    bounds (see `_render_bar`'s docstring for why this function
+    never reads a target's width/height directly either).
 
     Wedges start at the 12-o'clock position and proceed clockwise,
     matching the conventional real-world pie chart reading direction
     -- confirmed directly (not assumed) that increasing angle in
-    `fill_arc_aa`'s own convention sweeps clockwise on screen, since
+    `fill_arc_aa`'s convention sweeps clockwise on screen, since
     pixel y increases downward: starting at `-pi/2` (pointing toward
     -y, i.e. up) and increasing angle sweeps toward +x (3 o'clock),
     then +y (6 o'clock), then -x (9 o'clock), back to 12 -- clockwise
     exactly as a real clock face reads. `SvgCanvas.fill_arc_aa` draws
-    the identical wedge shape through SVG's own arc-path markup, in
+    the identical wedge shape through SVG's arc-path markup, in
     the same y-down coordinate space with no sign flip needed -- see
-    its own docstring for why the two conventions already agree.
+    its docstring for why the two conventions already agree.
 
     Wedge colors reuse `default_categorical_palette()` by category
     index, same as `Plot.encode(color_categories=...)` -- a pie chart
@@ -64,7 +61,7 @@ def _render_arc[
     `theme.donut_inner_radius_fraction > 0.0` switches each wedge from
     `target.fill_arc_aa` to `target.fill_ring_sector_aa` -- a donut
     instead of a pie, everything else (angles, colors, legend)
-    unchanged; see `Theme`'s own docstring for what the fraction means
+    unchanged; see `Theme`'s docstring for what the fraction means
     and why it's relative to the outer radius rather than a fixed
     pixel value.
     """
@@ -95,7 +92,7 @@ def _render_arc[
         )
 
     # Every pixel-sized Theme/module-constant quantity below, scaled
-    # once by theme.scale -- see _Scaled's own docstring.
+    # once by theme.scale -- see _Scaled's docstring.
     var sc = _Scaled(theme)
 
     var show_legend = theme.show_legend
@@ -146,6 +143,6 @@ def pie(
     `y` (the same shape `bar()` takes; every value must be
     non-negative, and at least one positive). Pass `theme=Theme(
     donut_inner_radius_fraction=0.55)` (or any value in `[0.0, 1.0)`)
-    for a donut instead -- see `Theme`'s own docstring."""
+    for a donut instead -- see `Theme`'s docstring."""
     var plot = Plot().mark_arc().encode_categorical(x=categories, y=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

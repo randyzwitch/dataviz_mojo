@@ -15,13 +15,12 @@ from dataviz_mojo.theme import Theme
 
 struct _GaugeData(Movable):
     """
-    Mark.GAUGE only -- a single value plus its own dial range, plus the
-    optional custom breakpoint bands (empty means "use ECharts' own
-    20%/80%/100% default", the same empty-list-is-a-sentinel convention
-    `encode()`'s own `color`/`size` channels already use). See
-    encode_gauge()'s own docstring.
+    Mark.GAUGE only -- a single value plus its dial range, plus the
+    optional custom breakpoint bands (empty means "use ECharts' 20%/80%/100% default", the same empty-list-is-a-sentinel convention
+    `encode()`'s `color`/`size` channels already use). See
+    encode_gauge()'s docstring.
 
-    Grouped onto `Plot._gauge` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._gauge` -- see `Plot`'s docstring.
     """
 
     var value: Float64
@@ -39,24 +38,22 @@ struct _GaugeData(Movable):
 
 
 def _gauge_breakpoints() -> List[Float64]:
-    """ECharts' own default breakpoints (a gauge's value range split
+    """ECharts' default breakpoints (a gauge's value range split
     into low/mid/high bands at 20%/80%/100%) -- the fallback `_render_
-    gauge` draws when `Plot.encode_gauge()`'s own `breakpoints` is left
-    at its default empty list (see that method's own docstring for the
+    gauge` draws when `Plot.encode_gauge()`'s `breakpoints` is left
+    at its default empty list (see that method's docstring for the
     "empty means use this default" sentinel convention, and the render-
     time validation once a caller *does* supply their own). A plain
     function, not a `Theme` field -- the same `List`-breaks-
-    `ImplicitlyCopyable` reasoning `default_categorical_palette()`'s
-    own docstring already gives for keeping a fixed default list out of
+    `ImplicitlyCopyable` reasoning `default_categorical_palette()`'s docstring already gives for keeping a fixed default list out of
     `Theme` itself."""
     return [0.2, 0.8, 1.0]
 
 
 def _gauge_band_colors() -> List[Color]:
-    """The three breakpoint bands' own colors -- green/blue/red,
-    ECharts' own default, drawn whenever `Plot.encode_gauge()`'s own
-    `band_colors` is left at its default empty list. See `_gauge_
-    breakpoints()`'s own docstring for why this is a plain function,
+    """The three breakpoint bands' colors -- green/blue/red,
+    ECharts' default, drawn whenever `Plot.encode_gauge()`'s `band_colors` is left at its default empty list. See `_gauge_
+    breakpoints()`'s docstring for why this is a plain function,
     not a `Theme` field."""
     return [Color(46, 139, 87), Color(30, 144, 255), Color(220, 20, 60)]
 
@@ -64,18 +61,18 @@ def _gauge_band_colors() -> List[Color]:
 def _render_gauge[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.GAUGE` plot: `encode_gauge()`'s own single
+    """Render a `Mark.GAUGE` plot: `encode_gauge()`'s single
     `value` (clamped to `[min_value, max_value]` before drawing -- a
     real, visible "pinned at the end of the dial" reading for an out-
     of-range value, not an error the way most other value validation
     in this package is; a gauge's whole point is a live reading that
     can legitimately go out of its expected range) as a needle
     (`draw_line_aa`, `theme.mark_color`) over `breakpoints`/`band_
-    colors`' own colored ring-sector bands (`fill_ring_sector_aa`, the
-    same primitive `Mark.ARC`'s own donut mode uses -- falling back to
-    `_gauge_breakpoints()`/`_gauge_band_colors()`'s own fixed 20%/80%/
-    100% green/blue/red default when `encode_gauge()`'s own `breakpoints`/
-    `band_colors` were left empty, see that method's own docstring),
+    colors`' colored ring-sector bands (`fill_ring_sector_aa`, the
+    same primitive `Mark.ARC`'s donut mode uses -- falling back to
+    `_gauge_breakpoints()`/`_gauge_band_colors()`'s fixed 20%/80%/
+    100% green/blue/red default when `encode_gauge()`'s `breakpoints`/
+    `band_colors` were left empty, see that method's docstring),
     plus a small pivot circle at the center and the value itself as a
     centered text label below it.
 
@@ -182,10 +179,9 @@ def gauge(
     """A gauge chart -- `Mark.GAUGE`, a single `value` (clamped to
     `[min_value, max_value]`) shown as a needle over a 270-degree
     color-banded dial (green/blue/red at the default 20%/80%/100%
-    breakpoints, or `breakpoints`/`band_colors`' own custom bands --
-    see `Plot.encode_gauge()`'s own docstring for the sentinel-empty-
-    means-default convention and validation). See `_render_gauge`'s
-    own docstring for the full reasoning."""
+    breakpoints, or `breakpoints`/`band_colors`' custom bands --
+    see `Plot.encode_gauge()`'s docstring for the sentinel-empty-
+    means-default convention and validation). See `_render_gauge`'s docstring for the full reasoning."""
     var plot = Plot().mark_gauge().encode_gauge(
         value=value, min_value=min_value, max_value=max_value, breakpoints=breakpoints, band_colors=band_colors
     )

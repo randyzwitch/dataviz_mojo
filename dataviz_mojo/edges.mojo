@@ -8,15 +8,14 @@ columns well-formed, and where does each endpoint sit in the node
 domain.
 
 Deliberately the exact shape `hierarchy.mojo` already has for the
-hierarchy family (`Mark.SUNBURST`/`TREE`/`TREEMAP`) -- a family's own
-shared data type plus the shared index it gets resolved into, in one
+hierarchy family (`Mark.SUNBURST`/`TREE`/`TREEMAP`) -- a family's shared data type plus the shared index it gets resolved into, in one
 module the family's marks import. That module was factored out when a
 third caller needed it; this one had four callers and stayed scattered
 across plot.mojo instead, which is the only reason it looked different.
 
 `_EdgeData` lives here rather than on `Plot` beside each single-mark
 struct for the same reason: four marks read it, so no one mark's file
-is its home, and a shared shape sitting in its family's own module is
+is its home, and a shared shape sitting in its family's module is
 what makes the sharing visible rather than something you discover by
 grepping `from_categories` and noticing four unrelated marks in the
 results.
@@ -30,9 +29,9 @@ from dataviz_mojo.plot import Plot, _categorical_indices, _require_non_negative
 struct _EdgeData(Movable):
     """
     Mark.CHORD only -- one (from node, to node, value) flow per row. See
-    encode_chord()'s own docstring.
+    encode_chord()'s docstring.
 
-    Grouped onto `Plot._edges` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._edges` -- see `Plot`'s docstring.
     """
 
     var from_categories: List[String]
@@ -46,11 +45,11 @@ struct _EdgeData(Movable):
 
 
 struct _EdgeNodeIndex(Movable):
-    """`_edge_node_index`'s own result: an edge list's `nodes` (every
+    """`_edge_node_index`'s result: an edge list's `nodes` (every
     distinct name across both endpoint columns, in first-seen order --
     exactly what `_unique_categories` over the two concatenated
-    returns, which is the domain `encode_chord()`'s own docstring
-    promises) plus `from_idx`/`to_idx`, that domain's own position for
+    returns, which is the domain `encode_chord()`'s docstring
+    promises) plus `from_idx`/`to_idx`, that domain's position for
     each edge's two endpoints.
 
     `from_idx[e]`/`to_idx[e]` are edge `e`'s endpoints, so a caller
@@ -75,7 +74,7 @@ def _edge_node_index(
     """An edge list's node domain and both endpoint index columns,
     resolved together in one hashed pass -- what every edge-shaped mark
     (`Mark.CHORD`/`ARC_DIAGRAM`/`GRAPH`/`SANKEY`, all four sharing
-    `encode_chord()`'s own two-column shape) actually needs.
+    `encode_chord()`'s two-column shape) actually needs.
 
     Replaces the nested-loop pattern all four carried: `_unique_
     categories` over the concatenated columns (which compared every
@@ -86,17 +85,15 @@ def _edge_node_index(
     plain `from_idx[i]`.
 
     This is exactly the fix `_categorical_indices` already applied to
-    `Mark.POINT`'s own categorical color channel and to
-    `Mark.HEATMAP`/`PUNCHCARD`'s axis domains -- see that function's
-    own docstring. The edge-shaped marks were simply never converted
+    `Mark.POINT`'s categorical color channel and to
+    `Mark.HEATMAP`/`PUNCHCARD`'s axis domains -- see that function's docstring. The edge-shaped marks were simply never converted
     with them, so this reuses it rather than re-deriving it: the two
     columns concatenate exactly the way `_unique_categories` was
     already being called on them, and the resulting `indices` split
     back apart at `len(from_categories)` -- the first half indexes the
     `from` column, the second the `to` column.
 
-    First-seen order is unchanged (it comes from the domain's own
-    append order, `from_categories` first), so every node's palette
+    First-seen order is unchanged (it comes from the domain's append order, `from_categories` first), so every node's palette
     color and ring/layer position stays exactly what it was.
     """
     var combined = List[String](capacity=len(from_categories) + len(to_categories))
@@ -125,7 +122,7 @@ def _edge_node_index(
 
 
 def _validate_edge_encoding(plot: Plot, mark_name: String) raises:
-    """`Plot.encode_chord()`'s own length check plus its non-negative
+    """`Plot.encode_chord()`'s length check plus its non-negative
     rule -- everything `Mark.CHORD`/`ARC_DIAGRAM`/`GRAPH`/`SANKEY` each
     need before laying out an edge list.
 

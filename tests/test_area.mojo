@@ -35,9 +35,9 @@ def test_render_area_mark_matches_hand_derived_fill_region() raises:
     # giving domain [0,10.5], baseline pixel y=250, top-right point
     # pixel y=31 -- so the filled region is a right-triangle-ish area
     # from (75,250) up to (365,31) then back down to the baseline
-    # (both solved directly from LinearScale's own formula, cross-
+    # (both solved directly from LinearScale's formula, cross-
     # checked in Python). Interpolating that top edge at pixel x=220
-    # (the plot's own horizontal midpoint) puts it at y=140.5 -- a
+    # (the plot's horizontal midpoint) puts it at y=140.5 -- a
     # point comfortably below that (y=200) must be filled, a point
     # comfortably above it (y=50) must still be background.
     var x: List[Float64] = [0.0, 10.0]
@@ -51,14 +51,14 @@ def test_render_area_mark_matches_hand_derived_fill_region() raises:
 
 def test_render_svg_area_smoothing_matches_hand_derived_curve() raises:
     # x=[0,10,20], y=[2,10,4] (a peak, deliberately not touching zero at
-    # either end -- unlike this data's own y=0 endpoints would, which
+    # either end -- unlike this data's y=0 endpoints would, which
     # would make the closing line_to()s down to baseline degenerate,
-    # zero-length segments landing exactly on the curve's own last
+    # zero-length segments landing exactly on the curve's last
     # point; not wrong, just a less illustrative hand-derivation).
     # Canvas 400x300, default margins, show_gridlines=False.
     # _zero_baseline_y_extent([2,10,4]) -> domain [0, 10.5] (zero
-    # already exact; 10's own +5% pad -> 10.5) -- the *top* edge only
-    # (px/py, the same LinearScale math Mark.LINE's own equivalent test
+    # already exact; 10's +5% pad -> 10.5) -- the *top* edge only
+    # (px/py, the same LinearScale math Mark.LINE's equivalent test
     # already established the technique for) is smoothed; the two
     # line_to()s down to/along baseline (pixel y=250, to_pixel(0.0))
     # stay straight. Every control-point coordinate independently re-
@@ -78,11 +78,11 @@ def test_render_svg_area_smoothing_matches_hand_derived_curve() raises:
 
 
 def test_render_area_smoothing_default_matches_straight_output_exactly() raises:
-    # line_smoothing's own default (0.0) must reproduce the exact pre-
+    # line_smoothing's default (0.0) must reproduce the exact pre-
     # existing straight-edged Mark.AREA render byte-for-byte -- the same
     # "purely additive" bar every optional Theme field has had to clear
-    # (see e.g. Mark.LINE's own equivalent test). Compared pixel-for-
-    # pixel across the whole canvas between Theme's own bare default and
+    # (see e.g. Mark.LINE's equivalent test). Compared pixel-for-
+    # pixel across the whole canvas between Theme's bare default and
     # an explicit Theme(line_smoothing=0.0).
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [2.0, 10.0, 4.0]

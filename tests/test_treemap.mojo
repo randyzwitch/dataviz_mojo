@@ -1,7 +1,7 @@
 """Tests for Mark.TREEMAP (slice-and-dice hierarchy chart): the
 alternating-axis split, boundary-rounding correctness across two
-levels, encode_hierarchy()'s own shared validation (raster + SVG) --
-see treemap.mojo's own docstrings for the rules verified here.
+levels, encode_hierarchy()'s shared validation (raster + SVG) --
+see treemap.mojo's docstrings for the rules verified here.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -23,14 +23,14 @@ def test_render_treemap_matches_hand_derived_rects() raises:
     # x:[60,380], y:[20,250] (the standard no-legend numbers every
     # mark this session derives for this exact canvas size).
     #
-    # depth 0 (root's own children, A/B) splits along x: A gets
+    # depth 0 (root's children, A/B) splits along x: A gets
     # 30/40=75% of the 320px width -> 240px, x:[60,300]; B gets the
-    # remaining 80px, x:[300,380]. depth 1 (A's own children) splits
+    # remaining 80px, x:[300,380]. depth 1 (A's children) splits
     # along y instead (alternating axis): A1 gets 20/30=66.7% of the
     # 230px height -> 153px, y:[20,173]; A2 gets the rest, y:[173,250].
-    # B1, B's only child, gets 100% of B's own rect unchanged. Every
+    # B1, B's only child, gets 100% of B's rect unchanged. Every
     # number confirmed against a real render_svg() run first (see this
-    # file's own SVG test).
+    # file's SVG test).
     var ids: List[String] = ["root", "A", "B", "A1", "A2", "B1"]
     var parents: List[String] = ["", "root", "root", "A", "A", "B"]
     var values: List[Float64] = [0.0, 0.0, 0.0, 20.0, 10.0, 10.0]
@@ -38,9 +38,9 @@ def test_render_treemap_matches_hand_derived_rects() raises:
     var c = treemap(ids, parents, values, theme=t, width=400, height=300)
 
     var palette = default_categorical_palette()
-    _assert_color(c, 150, 80, palette[0], "A1's own rect, well inside its own bounds")
-    _assert_color(c, 150, 220, palette[0], "A2's own rect, well inside its own bounds")
-    _assert_color(c, 340, 100, palette[1], "B1's own rect (all of B's own space), well inside its own bounds")
+    _assert_color(c, 150, 80, palette[0], "A1's rect, well inside its bounds")
+    _assert_color(c, 150, 220, palette[0], "A2's rect, well inside its bounds")
+    _assert_color(c, 340, 100, palette[1], "B1's rect (all of B's space), well inside its bounds")
 
 
 def test_render_treemap_svg_matches_confirmed_rects() raises:

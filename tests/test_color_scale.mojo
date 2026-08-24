@@ -1,11 +1,11 @@
 """Tests for color_scale.mojo: ColorScale.color_at -- shares its
-interpolation math with canvas_mojo.gradient's own LinearGradient/
+interpolation math with canvas_mojo.gradient's LinearGradient/
 RadialGradient (already exhaustively tested there), so these focus on
 what's specific to ColorScale: projecting a data domain (not a pixel
 position) onto [0, 1], and the zero-span-domain degenerate case.
 Expected values independently computed by hand before trusting the
 Mojo implementation (same white-on-black-gives-the-coverage-fraction-
-directly technique canvas_mojo/tests/test_gradient.mojo's own tests use).
+directly technique canvas_mojo/tests/test_gradient.mojo's tests use).
 """
 
 from std.testing import assert_equal, TestSuite

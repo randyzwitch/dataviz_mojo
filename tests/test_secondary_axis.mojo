@@ -1,4 +1,4 @@
-"""Tests for Plot.secondary_axis(): render_layers()'s own dual-y-axis
+"""Tests for Plot.secondary_axis(): render_layers()'s dual-y-axis
 support -- the mirrored right-edge axis line/ticks/labels (SVG + a
 raster ink companion), independent per-axis domains (two very
 differently-shaped series drawing at genuinely different pixel paths,
@@ -25,8 +25,8 @@ def test_render_layers_svg_secondary_axis_matches_hand_derived_position() raises
     # specifically to confirm the *secondary* domain draws none of its
     # own (see the gridline-count assertion below). Two points each,
     # canvas 400x300: primary line rises 10->20 (matches test_layers.
-    # mojo's own no-legend geometry -- plot area x:[60,342], y:[20,250]
-    # before the secondary axis's own reserve shrinks px1 further, to
+    # mojo's no-legend geometry -- plot area x:[60,342], y:[20,250]
+    # before the secondary axis's reserve shrinks px1 further, to
     # 350). Secondary line falls 50->10 -- a deliberately different
     # shape/scale from the primary series, so a wrong implementation
     # that silently reused the primary y_scale would draw a visibly
@@ -47,29 +47,29 @@ def test_render_layers_svg_secondary_axis_matches_hand_derived_position() raises
     assert_true(
         '<path d="M73.182,239.545 L336.818,30.455" fill="none" stroke="#1e64b4" stroke-width="2.000"'
         ' stroke-linecap="round" stroke-linejoin="round"/>' in s,
-        "the primary layer's own rising path, against the primary (left) y-scale",
+        "the primary layer's rising path, against the primary (left) y-scale",
     )
     assert_true(
         '<path d="M73.182,30.455 L336.818,239.545" fill="none" stroke="#1e64b4" stroke-width="2.000"'
         ' stroke-linecap="round" stroke-linejoin="round"/>' in s,
-        "the secondary layer's own falling path -- the opposite slope, against its own"
+        "the secondary layer's falling path -- the opposite slope, against its own"
         " independent (right) y-scale, not the primary one",
     )
     assert_true(
         '<line x1="350" y1="20" x2="350" y2="250" stroke="#505050" stroke-width="1.000"'
         ' stroke-linecap="round"/>' in s,
-        "the secondary axis's own vertical line, mirrored onto the plot's right edge",
+        "the secondary axis's vertical line, mirrored onto the plot's right edge",
     )
     assert_true(
         '<line x1="350" y1="135" x2="355" y2="135" stroke="#505050" stroke-width="1.000"'
         ' stroke-linecap="round"/>' in s,
-        "one of the secondary axis's own ticks, pointing right instead of left",
+        "one of the secondary axis's ticks, pointing right instead of left",
     )
     assert_true(
         '<text x="359" y="139" font-size="12.000" font-family="sans-serif" fill="#282828"'
         ' text-anchor="start">30</text>' in s,
-        "that tick's own label, left-aligned just past it -- the mirror of the primary"
-        " axis's right-aligned labels sitting just before its own ticks",
+        "that tick's label, left-aligned just past it -- the mirror of the primary"
+        " axis's right-aligned labels sitting just before its ticks",
     )
 
 
@@ -77,7 +77,7 @@ def test_render_layers_svg_secondary_axis_draws_no_gridlines_of_its_own() raises
     # Same setup as above -- exactly 6 gridlines expected (3 vertical
     # from the shared x-axis, 3 horizontal from the *primary* y-domain's
     # own 3 ticks: 10/15/20), even though the secondary y-domain has 5
-    # ticks of its own (10/20/30/40/50) -- confirms none of those 5
+    # ticks of its (10/20/30/40/50) -- confirms none of those 5
     # spawn a 4th, 5th, 6th, 7th, 8th gridline of their own.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
@@ -98,14 +98,13 @@ def test_render_layers_svg_secondary_axis_draws_no_gridlines_of_its_own() raises
             break
         count += 1
         search_from = idx + 1
-    assert_equal(count, 6, "only the shared x-axis's and the primary y-axis's own gridlines draw")
+    assert_equal(count, 6, "only the shared x-axis's and the primary y-axis's gridlines draw")
 
 
 def test_render_layers_secondary_axis_raster_draws_ink_at_the_hand_derived_row() raises:
     # Raster-side companion to the SVG tests above -- confirms canvas_
-    # mojo's own draw_line_aa actually painted the secondary axis's own
-    # tick at the same (350, 135) position, not just that the SVG
-    # backend's own line/text plumbing is correct.
+    # mojo's draw_line_aa actually painted the secondary axis's tick at the same (350, 135) position, not just that the SVG
+    # backend's line/text plumbing is correct.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
@@ -116,7 +115,7 @@ def test_render_layers_secondary_axis_raster_draws_ink_at_the_hand_derived_row()
     plots.append(secondary^)
     var c = Canvas(400, 300, BG)
     render_layers(c, plots, 0, 0, 400, 300)
-    _assert_color(c, 352, 135, Color(80, 80, 80), "the secondary axis's own tick, just right of its axis line")
+    _assert_color(c, 352, 135, Color(80, 80, 80), "the secondary axis's tick, just right of its axis line")
 
 
 def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap() raises:
@@ -126,8 +125,7 @@ def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap
     # own reserved tick-label width instead of overlapping it. Confirmed
     # against a real render_layers_svg() run first: the secondary axis's
     # own line lands at x=220 (shrunk further than the no-legend case's
-    # x=350 above, since legend_reserve is now folded in too), its own
-    # widest tick label ("50") ends well before x=270, where the first
+    # x=350 above, since legend_reserve is now folded in too), its widest tick label ("50") ends well before x=270, where the first
     # legend swatch actually starts.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
@@ -144,11 +142,11 @@ def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap
     assert_true(
         '<line x1="220" y1="20" x2="220" y2="250" stroke="#505050" stroke-width="1.000"'
         ' stroke-linecap="round"/>' in s,
-        "the secondary axis's own line, shrunk further left to also make room for the legend",
+        "the secondary axis's line, shrunk further left to also make room for the legend",
     )
     assert_true(
         '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
-        "the legend's own first swatch, starting well clear of the secondary axis's own labels",
+        "the legend's first swatch, starting well clear of the secondary axis's labels",
     )
 
 

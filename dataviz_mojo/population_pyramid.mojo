@@ -22,10 +22,9 @@ from dataviz_mojo.theme import Theme
 struct _PyramidData(Movable):
     """
     Mark.POPULATION_PYRAMID only -- one magnitude per side per category,
-    plus each side's own legend name. See encode_ population_pyramid()'s
-    own docstring.
+    plus each side's legend name. See encode_ population_pyramid()'s docstring.
 
-    Grouped onto `Plot._pyramid` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._pyramid` -- see `Plot`'s docstring.
     """
 
     var left: List[Float64]
@@ -49,10 +48,10 @@ def _symmetric_zero_baseline_x_extent(left: List[Float64], right: List[Float64])
     independent low/high padding, this is forced symmetric on purpose:
     a pyramid's whole point is comparing left vs. right at a glance, so
     both sides have to share one scale, or a longer bar could just mean
-    "this side's own axis happens to be stretched less," not "this
+    "this side's axis happens to be stretched less," not "this
     category is actually bigger." Every value is read as a magnitude
     (`max(v, -v)`) regardless of sign -- see `encode_population_
-    pyramid()`'s own docstring for why."""
+    pyramid()`'s docstring for why."""
     var max_abs = 0.0
     for v in left:
         max_abs = max(max_abs, max(v, -v))
@@ -67,20 +66,19 @@ def _render_population_pyramid[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.POPULATION_PYRAMID` plot: `_draw_horizontal_
-    categorical_axis_frame`'s own horizontal categorical axis (the
+    categorical_axis_frame`'s horizontal categorical axis (the
     exact frame `Mark.GANTT` uses, reused unchanged -- categories along
     `y`, top-to-bottom, a continuous `x`-domain along the bottom), but
-    with `_symmetric_zero_baseline_x_extent`'s own always-centered
+    with `_symmetric_zero_baseline_x_extent`'s always-centered
     domain instead of `Gantt`'s data-extent one, and two mirrored bars
     per row instead of one floating span: `left_values[i]` fills from
     the center leftward, `right_values[i]` from the center rightward,
-    each in its own color from `default_categorical_palette()` (index
-    0/1 -- the same two-color convention `Mark.GROUPED_BAR`'s own
-    per-series coloring establishes, just fixed at two series instead
+    each in its color from `default_categorical_palette()` (index
+    0/1 -- the same two-color convention `Mark.GROUPED_BAR`'s per-series coloring establishes, just fixed at two series instead
     of `n_series`).
 
     A zero-magnitude side draws no bar at all (width 0, skipped) --
-    deliberately *not* `Mark.GANTT`'s own zero-length-span-floors-to-
+    deliberately *not* `Mark.GANTT`'s zero-length-span-floors-to-
     1px rule: a gantt milestone is real, informative data at a single
     point; a population-pyramid category with nothing on one side (no
     data for that side, or a genuine zero count) has nothing to mark

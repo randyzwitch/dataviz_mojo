@@ -35,7 +35,7 @@ def test_render_legend_swatches_match_hand_derived_positions_and_colors() raises
     # 14x14 swatch sits at (270,20); row 1 ("B")'s at (270, 20 +
     # (14+8)) = (270,42) -- both solved directly from _draw_legend's
     # own layout constants, not read off the code's output. Checked at
-    # each swatch's own center (270+7, row_y+7) so a boundary/rounding
+    # each swatch's center (270+7, row_y+7) so a boundary/rounding
     # difference of a pixel or two wouldn't produce a false failure.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
@@ -82,14 +82,13 @@ def test_render_svg_continuous_color_legend_matches_hand_derived_gradient() rais
     #
     # A real DrawTarget.fill_rect_gradient bar now (canvas_mojo
     # >=0.3.0), not the many-thin-strip approximation an earlier
-    # version of this test covered -- built from ColorScale's own
-    # three stops (ColorScale.from_theme: color_scale_low/mid/high at
-    # 0.0/0.5/1.0, see that method's own docstring for why a middle
-    # stop exists at all -- Theme.color_scale_mid's own docstring has
+    # version of this test covered -- built from ColorScale's three stops (ColorScale.from_theme: color_scale_low/mid/high at
+    # 0.0/0.5/1.0, see that method's docstring for why a middle
+    # stop exists at all -- Theme.color_scale_mid's docstring has
     # the real, rendering-caught readability bug it fixes), each one's
     # own gradient offset flipped (1.0 - stop.offset, see _draw_
-    # continuous_color_legend's own docstring for why: the bar's top
-    # has to be the *high* value, but ColorScale's own offset 1.0
+    # continuous_color_legend's docstring for why: the bar's top
+    # has to be the *high* value, but ColorScale's offset 1.0
     # already means high).
     #
     # The flip reverses their order, so they are sorted back into
@@ -151,11 +150,11 @@ def test_render_svg_continuous_color_legend_matches_hand_derived_gradient() rais
     )
     assert_true(
         '<text x="288" y="24" font-size="12.000" font-family="sans-serif" fill="#282828" text-anchor="start">10.0</text>' in s,
-        "domain max label, at the bar's own top",
+        "domain max label, at the bar's top",
     )
     assert_true(
         '<text x="288" y="124" font-size="12.000" font-family="sans-serif" fill="#282828" text-anchor="start">0.0</text>' in s,
-        "domain min label, at the bar's own bottom",
+        "domain min label, at the bar's bottom",
     )
 
 
@@ -167,10 +166,10 @@ def test_render_svg_continuous_size_legend_matches_hand_derived_circles() raises
     # -- also stay under the 130px default). Three circles at max
     # (8.0 -> radius 15), midpoint (5.0 -> radius 9), and min (2.0 ->
     # radius 3) of the *data's* own size domain, left-aligned on
-    # Theme's own configured largest radius (cx = 270 + 15 = 285) so
+    # Theme's configured largest radius (cx = 270 + 15 = 285) so
     # every label lines up regardless of which circle is biggest.
     # Every center/radius/label position independently re-derived via
-    # python3 (LinearScale's own slope/intercept for the size scale),
+    # python3 (LinearScale's slope/intercept for the size scale),
     # then confirmed against a real render_svg() run before trusting it
     # here.
     var x: List[Float64] = [0.0, 10.0]
@@ -186,15 +185,15 @@ def test_render_svg_continuous_size_legend_matches_hand_derived_circles() raises
     assert_true('<circle cx="285" cy="87" r="3" fill="#1e64b4"/>' in s, "min (2.0) -> radius 3")
     assert_true(
         '<text x="304" y="39" font-size="12.000" font-family="sans-serif" fill="#282828" text-anchor="start">8.0</text>' in s,
-        "max circle's own label",
+        "max circle's label",
     )
     assert_true(
         '<text x="298" y="71" font-size="12.000" font-family="sans-serif" fill="#282828" text-anchor="start">5.0</text>' in s,
-        "midpoint circle's own label",
+        "midpoint circle's label",
     )
     assert_true(
         '<text x="292" y="91" font-size="12.000" font-family="sans-serif" fill="#282828" text-anchor="start">2.0</text>' in s,
-        "min circle's own label",
+        "min circle's label",
     )
 
 
@@ -209,7 +208,7 @@ def test_render_point_continuous_legends_are_off_by_default_theme_setting() rais
     var plot = Plot().mark_point().encode(x=x, y=y, color=color).theme(t)
     var c = Canvas(400, 300, BG)
     render(c, plot)
-    _assert_color(c, 365, 135, t.color_scale_high, "point regains the full-width layout's own pixel center")
+    _assert_color(c, 365, 135, t.color_scale_high, "point regains the full-width layout's pixel center")
     _assert_color(c, 277, 27, BG, "no continuous color legend drawn when show_legend=False")
 
 
@@ -217,13 +216,12 @@ def test_render_point_legend_width_grows_to_fit_long_category_names() raises:
     # "Southeast Region Sales" measures 140.4px at the default 12pt
     # font (confirmed by probe against this environment's real "Sans"
     # font metrics, the same "locked in, confirmed by probe" convention
-    # test_render_left_margin_grows_to_fit_wide_y_axis_labels's own
-    # wide y-axis label test already uses -- re-probed after canvas_
+    # test_render_left_margin_grows_to_fit_wide_y_axis_labels's wide y-axis label test already uses -- re-probed after canvas_
     # mojo v0.1.0's FreeType-to-native-TTF-parser swap, which is
     # deliberately unhinted and so measures every glyph slightly
     # differently than the old FreeType-hinted values this test used
     # to lock in). _dynamic_legend_width = max(130, 14+4+140+8) =
-    # max(130, 166) = 166, wider than Theme's own default 130px legend
+    # max(130, 166) = 166, wider than Theme's default 130px legend
     # column -- so plot_x1 becomes 400-20-166=214, not 400-20-130=250.
     # Legend swatch row 0 at x=plot_x1+margin_right=214+20=234, y=
     # plot_y0=20.
@@ -242,7 +240,7 @@ def test_render_point_legend_width_grows_to_fit_long_category_names() raises:
     )
     assert_true(
         '<rect x="234" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
-        "the long label's own legend swatch",
+        "the long label's legend swatch",
     )
 
 
@@ -261,11 +259,11 @@ def test_render_grouped_bar_legend_width_grows_to_fit_long_series_names() raises
     var s = svg.to_string()
     assert_true(
         '<rect x="234" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
-        "North's own legend swatch, shifted left to make room for the wider label",
+        "North's legend swatch, shifted left to make room for the wider label",
     )
     assert_true(
         '<rect x="234" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
-        "the long label's own legend swatch",
+        "the long label's legend swatch",
     )
 
 

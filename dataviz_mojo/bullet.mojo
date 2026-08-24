@@ -20,9 +20,9 @@ struct _BulletData(Movable):
     """
     Mark.BULLET only -- one measure/target pair, plus a whole list of
     ascending qualitative-range thresholds, per category. See
-    encode_bullet()'s own docstring.
+    encode_bullet()'s docstring.
 
-    Grouped onto `Plot._bullet` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._bullet` -- see `Plot`'s docstring.
     """
 
     var measure: List[Float64]
@@ -42,12 +42,11 @@ def _render_bullet[
     """Render a `Mark.BULLET` plot (Stephen Few's bullet-chart design):
     `_draw_categorical_axis_frame`'s shared categorical x-axis, with a
     zero-baseline y-domain (`_zero_baseline_y_extent`, like `Mark.BAR`/
-    `LOLLIPOP`/`WATERFALL` -- not `Mark.BOX`/`CANDLESTICK`'s own
-    padded-around-the-data domain: a bullet chart's whole premise is
+    `LOLLIPOP`/`WATERFALL` -- not `Mark.BOX`/`CANDLESTICK`'s padded-around-the-data domain: a bullet chart's whole premise is
     *progress toward a goal from zero*, the same "magnitude from a
     baseline" meaning a bar's height encodes, so zero has to stay in
     view the same way). The domain spans every value actually drawn per
-    category -- `0.0`, the top of its own `ranges` (the tallest
+    category -- `0.0`, the top of its `ranges` (the tallest
     background band), its `measure`, and its `target` -- the same "the
     domain is guaranteed to fit every one of them" reasoning `Mark.BOX`/
     `WATERFALL` already established, since a measure or target can
@@ -55,18 +54,17 @@ def _render_bullet[
     the "good" threshold).
 
     Draws, per category, back to front (the same layering order `Mark.
-    BOX`'s own whisker-then-box-then-median gives, generalized: context
+    BOX`'s whisker-then-box-then-median gives, generalized: context
     underneath, the headline value over it, a reference mark on top of
     everything):
     1. Every qualitative range band, stacked from `0.0` up through each
-       of `ranges`' own ascending thresholds in turn (`fill_rect`, full
-       band width, matching `Mark.BAR`/`BOX`'s own "no extra narrowing"
+       of `ranges`' ascending thresholds in turn (`fill_rect`, full
+       band width, matching `Mark.BAR`/`BOX`'s "no extra narrowing"
        choice) -- shaded via a small `ColorScale` built once from
        `Theme.bullet_range_color_light`/`bullet_range_color_dark` (the
-       *same* stop-interpolation machinery `Plot.encode(color=...)`'s
-       own continuous channel uses, projecting each band's index
+       *same* stop-interpolation machinery `Plot.encode(color=...)`'s continuous channel uses, projecting each band's index
        fraction onto `[0, 1]` instead of a data value), lightest at
-       index 0 through darkest at the top -- Few's own convention, and
+       index 0 through darkest at the top -- Few's convention, and
        why these are dedicated grayscale `Theme` fields rather than
        reusing `mark_color`-derived shades (a background band should
        read as neutral context, not compete with the measure bar for
@@ -78,8 +76,7 @@ def _render_bullet[
        Deliberately *never* colored by sign (no `mark_color_negative`
        involved at all, unlike `Mark.CANDLESTICK`/`WATERFALL`) -- a
        bullet chart's whole comparison is measure-against-target-and-
-       ranges, conveyed by *position*, not by the measure bar's own
-       color; Few's own design keeps that bar one solid, neutral color
+       ranges, conveyed by *position*, not by the measure bar's color; Few's design keeps that bar one solid, neutral color
        for exactly this reason, and this package follows it rather than
        reusing the sign-coloring convention just because the fields
        already exist. A `measure` of exactly `0.0` draws a genuine
@@ -89,9 +86,9 @@ def _render_bullet[
        specific price; a zero measure means literally "no progress
        yet," which an absent bar already represents correctly.
     3. The target tick (`draw_line_aa`, `theme.axis_color` -- matching
-       `Mark.BOX`'s own whisker/median color, both being "the part of
+       `Mark.BOX`'s whisker/median color, both being "the part of
        the shape that isn't the headline value" -- full band width,
-       exactly `Mark.BOX`'s own median-line convention), drawn last so
+       exactly `Mark.BOX`'s median-line convention), drawn last so
        it's never obscured by either the bands or the measure bar under
        it.
     """
@@ -200,7 +197,7 @@ def bullet(
 ) raises -> Canvas:
     """A bullet chart -- `Mark.BULLET` (Stephen Few's design): a
     measure bar, a target tick, and shaded qualitative-range bands
-    per category. See `Plot.encode_bullet()`'s own docstring
+    per category. See `Plot.encode_bullet()`'s docstring
     (plot.mojo) for what `measures`/`targets`/`ranges` mean."""
     var plot = Plot().mark_bullet().encode_bullet(
         categories=categories, measures=measures, targets=targets, ranges=ranges

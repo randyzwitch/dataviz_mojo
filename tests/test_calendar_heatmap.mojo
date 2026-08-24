@@ -1,7 +1,6 @@
 """Tests for Mark.CALENDAR_HEATMAP: date-to-grid-cell placement
 (day-of-week row, week-of-year column) and color-scale reuse from
-Mark.HEATMAP (raster + SVG) -- see calendar_heatmap.mojo's own
-docstrings for the date-math rules verified here.
+Mark.HEATMAP (raster + SVG) -- see calendar_heatmap.mojo's docstrings for the date-math rules verified here.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -19,10 +18,8 @@ from _test_helpers import BG, _assert_color
 def test_render_calendar_heatmap_matches_hand_derived_cells() raises:
     # 2024-01-01 (a real-world Monday, confirmed independently, not
     # just trusted from the formula), 2024-01-07 (the following
-    # Sunday -- 6 days later, wrapping to the *next* week's own
-    # column since Sunday starts a new week here), and 2024-12-31 (a
-    # real-world Tuesday, the year's own last day, in the year's own
-    # last column). Values [1.0, 2.0, 3.0] -- min/mid/max of the color
+    # Sunday -- 6 days later, wrapping to the *next* week's column since Sunday starts a new week here), and 2024-12-31 (a
+    # real-world Tuesday, the year's last day, in the year's last column). Values [1.0, 2.0, 3.0] -- min/mid/max of the color
     # domain, so the first and third cells read directly off Theme's
     # own color_scale_low/high, no ColorScale interpolation math to
     # trust blindly.
@@ -31,16 +28,16 @@ def test_render_calendar_heatmap_matches_hand_derived_cells() raises:
     # y:[20,250] (top margin grows by one font-size + label-gap for
     # the month-label row above the grid). 2024 is a leap year (366
     # days) -> 53 week-columns. Every rect below confirmed against a
-    # real render_svg() run first (see this file's own SVG test):
+    # real render_svg() run first (see this file's SVG test):
     # Jan 1 (Mon, row 1, col 0) -> rect(60,67,15,31); Jan 7 (Sun, row
     # 0, col 1) -> rect(75,36,15,31); Dec 31 (Tue, row 2, col 52) ->
     # rect(865,97,15,31). Interior points sampled well inside each
-    # rect's own bounds, not on an edge.
+    # rect's bounds, not on an edge.
     #
-    # value=2.0 sits at the color domain's own exact midpoint (t=0.5)
-    # -- lands on Theme's own color_scale_mid exactly, not an
+    # value=2.0 sits at the color domain's exact midpoint (t=0.5)
+    # -- lands on Theme's color_scale_mid exactly, not an
     # interpolated blend: ColorScale.from_theme() adds that as a real
-    # stop at offset 0.5 (see its own docstring), and _color_at_t
+    # stop at offset 0.5 (see its docstring), and _color_at_t
     # brackets an exact-offset match to itself (before == after), no
     # RGB-space interpolation involved at all. Read directly off Theme
     # the same way the min/max cells already are, not hand-derived.
@@ -49,9 +46,9 @@ def test_render_calendar_heatmap_matches_hand_derived_cells() raises:
     var t = Theme(show_legend=False)
     var c = calendar_heatmap(dates, values, theme=t, width=900, height=300)
 
-    _assert_color(c, 67, 82, t.color_scale_low, "Jan 1 (Mon), value 1.0 -- the color domain's own min")
-    _assert_color(c, 82, 51, t.color_scale_mid, "Jan 7 (Sun), value 2.0 -- the domain's own exact midpoint")
-    _assert_color(c, 872, 112, t.color_scale_high, "Dec 31 (Tue), value 3.0 -- the color domain's own max")
+    _assert_color(c, 67, 82, t.color_scale_low, "Jan 1 (Mon), value 1.0 -- the color domain's min")
+    _assert_color(c, 82, 51, t.color_scale_mid, "Jan 7 (Sun), value 2.0 -- the domain's exact midpoint")
+    _assert_color(c, 872, 112, t.color_scale_high, "Dec 31 (Tue), value 3.0 -- the color domain's max")
     _assert_color(c, 10, 10, BG, "well outside the whole plot area -- background")
 
 

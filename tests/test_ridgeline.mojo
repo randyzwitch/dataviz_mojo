@@ -1,5 +1,5 @@
 """Tests for Mark.RIDGELINE: overlapping kernel-density-estimate rows
-(raster + SVG) -- see ridgeline.mojo's own docstrings for the
+(raster + SVG) -- see ridgeline.mojo's docstrings for the
 baseline/overlap rules verified here.
 """
 
@@ -17,21 +17,21 @@ from _test_helpers import BG, _assert_color
 
 def test_render_ridgeline_matches_hand_derived_rows() raises:
     # 3 categories ("A", "B", "C"), all the same symmetric values
-    # [1,2,3,4,5] -- the exact same distribution Mark.VIOLIN's own test
+    # [1,2,3,4,5] -- the exact same distribution Mark.VIOLIN's test
     # uses, so the KDE math itself (bandwidth, per-sample density) is
     # already independently cross-checked there; this test is about
     # the horizontal-frame geometry and row baselines/overlap, not the
     # KDE formula again. Canvas 400x300, show_gridlines=False, default
     # margins (short "A"/"B"/"C" row labels keep the dynamic left
     # margin at 60) -> plot area x:[60,380], y:[20,250].
-    # _draw_horizontal_categorical_axis_frame (Mark.GANTT's own core,
-    # called with padding=0.0 -- see that function's own docstring for
+    # _draw_horizontal_categorical_axis_frame (Mark.GANTT's core,
+    # called with padding=0.0 -- see that function's docstring for
     # why a ridgeline needs edge-to-edge rows, not its 0.2 default):
     # 3-category OrdinalScale y-axis, step=(250-20)/3=76.667,
-    # bandwidth=step (no padding to subtract) -- row A's own baseline
+    # bandwidth=step (no padding to subtract) -- row A's baseline
     # (band_start(0) + row height) = 96.667, row B's = 173.333, row
     # C's = 250.0 -- every number confirmed against a real
-    # render_svg() run before trusting it (see this file's own SVG
+    # render_svg() run before trusting it (see this file's SVG
     # test for the exact path data).
     var cats: List[String] = ["A", "B", "C"]
     var vals: List[List[Float64]] = [
@@ -40,10 +40,10 @@ def test_render_ridgeline_matches_hand_derived_rows() raises:
     var t = Theme(show_gridlines=False)
     var c = ridgeline(cats, vals, theme=t, width=400, height=300)
 
-    _assert_color(c, 220, 50, t.mark_color, "inside row A -- between its own peak (~-3) and baseline (96.667)")
+    _assert_color(c, 220, 50, t.mark_color, "inside row A -- between its peak (~-3) and baseline (96.667)")
     _assert_color(
         c, 220, 98, t.mark_color,
-        "just below row A's own baseline (96.667) -- covered by row B's own peak rising up to ~73.667,"
+        "just below row A's baseline (96.667) -- covered by row B's peak rising up to ~73.667,"
         " the edge-to-edge overlap padding=0.0 fixed (this exact point used to be a background gap)",
     )
     _assert_color(c, 10, 10, BG, "well outside the whole plot area -- background")
@@ -60,23 +60,22 @@ def test_render_ridgeline_svg_matches_confirmed_path_points() raises:
     )
     render_svg(svg, plot)
     var s = svg.to_string()
-    assert_true('<path d="M75.000,96.667 L75.000,24.955' in s, "row A's own baseline and left-edge rise")
-    assert_true('225.000,-3.000' in s, "row A's own peak, at its own two middle samples")
-    assert_true('L365.000,96.667 Z' in s, "row A's own closing edge, back down to baseline")
-    assert_true('<path d="M75.000,173.333 L75.000,101.622' in s, "row B's own baseline and left-edge rise")
-    assert_true('<path d="M75.000,250.000 L75.000,178.289' in s, "row C's own baseline and left-edge rise")
+    assert_true('<path d="M75.000,96.667 L75.000,24.955' in s, "row A's baseline and left-edge rise")
+    assert_true('225.000,-3.000' in s, "row A's peak, at its two middle samples")
+    assert_true('L365.000,96.667 Z' in s, "row A's closing edge, back down to baseline")
+    assert_true('<path d="M75.000,173.333 L75.000,101.622' in s, "row B's baseline and left-edge rise")
+    assert_true('<path d="M75.000,250.000 L75.000,178.289' in s, "row C's baseline and left-edge rise")
 
 
 def test_render_ridgeline_custom_bandwidth_widens_the_tail() raises:
     # Single category ("A"), values [1,2,3,4,5], canvas 400x300 --
-    # Silverman's own default bandwidth tapers the curve's own rise
+    # Silverman's default bandwidth tapers the curve's rise
     # near x=1.0 (the left tail, pixel column x=75) enough that
-    # (75, 25) sits above the curve's own top (background); a caller-
+    # (75, 25) sits above the curve's top (background); a caller-
     # given bandwidth=3.0 (much wider than Silverman's ~0.9225) spreads
-    # every sample's own Gaussian further, so the tail's own rise no
+    # every sample's Gaussian further, so the tail's rise no
     # longer tapers away -- confirmed via a real render() run: (75, 25)
-    # falls inside the wider curve, while a point near the row's own
-    # peak (x~=220, near value 3) and one well outside the whole plot
+    # falls inside the wider curve, while a point near the row's peak (x~=220, near value 3) and one well outside the whole plot
     # area stay unaffected either way.
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
@@ -102,27 +101,26 @@ def test_render_ridgeline_explicit_zero_bandwidth_matches_default() raises:
 
 def test_render_ridgeline_scale_by_count_shortens_the_smaller_row() raises:
     # Two categories: "A" (5 values, [1..5], the larger sample count --
-    # sets max_n=5, so its own count_factor stays 1.0) and "B" (2
+    # sets max_n=5, so its count_factor stays 1.0) and "B" (2
     # values, [2,4], count_factor sqrt(2/5) ~= 0.6325 under scale_by_
     # count=True). Canvas 400x300, show_gridlines=False -- row B (the
-    # second, bottom row) has its own baseline at y=250 and never rises
-    # below its own baseline, but row A (baseline y=135) never draws
-    # *below* its own baseline either, so any filled pixel at y > 135
-    # can only be row B's own curve, letting this test isolate row B's
+    # second, bottom row) has its baseline at y=250 and never rises
+    # below its baseline, but row A (baseline y=135) never draws
+    # *below* its baseline either, so any filled pixel at y > 135
+    # can only be row B's curve, letting this test isolate row B's
     # own rise without the two rows' overlap (`_RIDGE_OVERLAP`) making
     # a taller row A ambiguous with a shorter row B. At x=220 (near
-    # value 3, row B's own peak-density region), row B's own curve
-    # top sits at y=136 under the default (right at this test's own
-    # zone boundary -- tall), and only y=169 under scale_by_count=True
+    # value 3, row B's peak-density region), row B's curve
+    # top sits at y=136 under the default (right at this test's zone boundary -- tall), and only y=169 under scale_by_count=True
     # (visibly shorter) -- confirmed via a real render() run first.
     # (220, 150) sits inside the default rise but above the narrowed
-    # one's own top.
+    # one's top.
     var cats: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 4.0]]
     var t = Theme(show_gridlines=False)
     var c = ridgeline(cats, vals, scale_by_count=True, theme=t, width=400, height=300)
-    _assert_color(c, 220, 150, BG, "scale_by_count shortens row B's own rise -- now above its own curve")
-    _assert_color(c, 220, 200, t.mark_color, "still inside row B's own (shorter) curve, closer to its baseline")
+    _assert_color(c, 220, 150, BG, "scale_by_count shortens row B's rise -- now above its curve")
+    _assert_color(c, 220, 200, t.mark_color, "still inside row B's (shorter) curve, closer to its baseline")
 
 
 def test_render_ridgeline_scale_by_count_false_matches_default() raises:

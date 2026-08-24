@@ -18,10 +18,9 @@ from dataviz_mojo.theme import Theme
 struct _PunchcardData(Movable):
     """
     Mark.PUNCHCARD only -- one (x category, y category, bubble size) row
-    per cell, plus the size->radius divisor. See encode_ punchcard()'s
-    own docstring.
+    per cell, plus the size->radius divisor. See encode_ punchcard()'s docstring.
 
-    Grouped onto `Plot._punchcard` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._punchcard` -- see `Plot`'s docstring.
     """
 
     var x: List[String]
@@ -40,44 +39,41 @@ struct _PunchcardData(Movable):
 def _render_punchcard[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.PUNCHCARD` plot: `encode_punchcard()`'s own `x`/
-    `y` categorical grid (`Mark.HEATMAP`'s own `_draw_grid_axis_frame`
+    """Render a `Mark.PUNCHCARD` plot: `encode_punchcard()`'s `x`/
+    `y` categorical grid (`Mark.HEATMAP`'s `_draw_grid_axis_frame`
     and `_categorical_indices` domain derivation, both reused
-    unchanged) with one bubble per row instead of `HEATMAP`'s own
-    filled cell -- a "scatter plot on a categorical grid" (ECharts.jl's
-    own description), the third-variable magnitude read from bubble
+    unchanged) with one bubble per row instead of `HEATMAP`'s filled cell -- a "scatter plot on a categorical grid" (ECharts.jl's description), the third-variable magnitude read from bubble
     *size*, not color, unlike every other grid mark in this package.
 
     Bubble radius is `sizes[i] / scale` -- a plain pixel-space divisor
-    (`Plot.mark_punchcard(scale=10.0)`'s own default, matching
-    ECharts.jl's own `scale` keyword exactly), *not* normalized
-    against the cell's own dimensions the way `Mark.CORRPLOT`'s own
-    bubble sizing is: a punchcard's own bubbles are meant to visually
+    (`Plot.mark_punchcard(scale=10.0)`'s default, matching
+    ECharts.jl's `scale` keyword exactly), *not* normalized
+    against the cell's dimensions the way `Mark.CORRPLOT`'s bubble sizing is: a punchcard's bubbles are meant to visually
     overflow a small cell when the underlying count is large (real
     activity-heatmap data commonly does), which is the whole point of
     reading magnitude from raw size rather than a bounded fraction.
-    Still multiplied by `frame.sc.scale` (`_Scaled`'s own bare
-    multiplier -- see that struct's own docstring) before use: unlike
-    `Mark.CORRPLOT`'s own radius (derived from `frame.x_scale`/`y_
-    scale`'s own already-scaled pixel ranges, so it tracks `Theme.
+    Still multiplied by `frame.sc.scale` (`_Scaled`'s bare
+    multiplier -- see that struct's docstring) before use: unlike
+    `Mark.CORRPLOT`'s radius (derived from `frame.x_scale`/`y_
+    scale`'s already-scaled pixel ranges, so it tracks `Theme.
     scale` for free), this one starts from a caller-given raw number
-    with no relationship to the plot's own pixel space at all -- a
+    with no relationship to the plot's pixel space at all -- a
     real bug this shipped with initially: an un-scaled radius rendered
     correctly at the SVG backend (no supersampling to interact with)
     but visibly too small through the raster quickplot path (which
     supersamples via a boosted internal `Theme.scale`, then
-    downsamples), caught by checking a bubble's own edge pixel, not
+    downsamples), caught by checking a bubble's edge pixel, not
     just its solid center.
 
     Multiple rows may share the same `(x, y)` cell -- each still draws
-    its own independent bubble (not summed into one), the same
+    its independent bubble (not summed into one), the same
     "multiple bubbles can occupy the same grid intersection" behavior
-    ECharts.jl's own `punchcard()` documents.
+    ECharts.jl's `punchcard()` documents.
 
     No legend -- there's no categorical color channel to key one by
     (size is continuous and read directly off each bubble itself, the
-    same reason `Mark.POLAR`'s own single series draws none), matching
-    ECharts.jl's own `legend=false` default for this chart type too.
+    same reason `Mark.POLAR`'s single series draws none), matching
+    ECharts.jl's `legend=false` default for this chart type too.
     """
     if (
         len(plot._punchcard.x) != len(plot._punchcard.y)
@@ -134,7 +130,7 @@ def punchcard(
 ) raises -> Canvas:
     """A punchcard -- `Mark.PUNCHCARD`, a scatter plot on a categorical
     grid where bubble size (`sizes[i] / scale`) encodes a third
-    variable, GitHub-style. See `_render_punchcard`'s own docstring for
+    variable, GitHub-style. See `_render_punchcard`'s docstring for
     the full reasoning."""
     var plot = Plot().mark_punchcard(scale=scale).encode_punchcard(x=x, y=y, sizes=sizes)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

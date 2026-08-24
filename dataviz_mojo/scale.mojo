@@ -1,12 +1,11 @@
 """LinearScale -- maps a continuous data domain onto a pixel range,
 and picks "nice" tick positions within that domain for axis labeling.
-This is the piece canvas_mojo.geometry.Transform2D's own docstring already
+This is the piece canvas_mojo.geometry.Transform2D's docstring already
 named as deferred here: `scale()`/`translate()` below compute exactly
 the slope/intercept Transform2D's affine map takes, so Plot builds one
 Transform2D from an x-scale and a y-scale (with the y-scale's range
 reversed -- pixel y increases downward, data y conventionally
-increases upward, the same "negative scale_y" trick Transform2D's own
-docstring documents) rather than reimplementing the linear map here.
+increases upward, the same "negative scale_y" trick Transform2D's docstring documents) rather than reimplementing the linear map here.
 
 `ticks()` is the one genuinely new algorithm in this package: Paul
 Heckbert's "nice numbers for graph labels" (Graphics Gems, 1990), the
@@ -14,7 +13,7 @@ same approach d3/matplotlib/most charting libraries use in spirit --
 round the ideal step size for a target tick count up to the nearest
 "nice" multiple (1, 2, 5, or 10 times a power of ten) so labels read
 as 0.2/0.4/0.6, not 0.1934/0.3868/0.5802. Every example in this
-module's own docstring below was independently computed by hand
+module's docstring below was independently computed by hand
 before trusting the Mojo implementation.
 """
 
@@ -30,7 +29,7 @@ struct MinMax(ImplicitlyCopyable, Movable):
     of domain this package computes: `Plot._data_extent` pads it for
     spatial (x/y) axes, `ColorScale`/size encoding use it exactly as-
     is (no padding -- a color/size legend's extremes should mean
-    exactly the data's own extremes, not a padded approximation of
+    exactly the data's extremes, not a padded approximation of
     them)."""
 
     var min: Float64
@@ -42,17 +41,16 @@ struct MinMax(ImplicitlyCopyable, Movable):
 
 
 def _min_max(data: List[Float64]) raises -> MinMax:
-    """`data`'s own [min, max]. Raises on an empty list rather than
+    """`data`'s [min, max]. Raises on an empty list rather than
     indexing out of bounds, which is what it used to do -- `data[0]`
     with no length check at all.
 
-    No caller can currently reach that (every one guards on its own
-    data being non-empty first, and the render paths return early
+    No caller can currently reach that (every one guards on its data being non-empty first, and the render paths return early
     before this on an empty plot), so this raises rather than
     inventing a fallback: there is no honest [min, max] of nothing, and
     a silent `MinMax(0.0, 0.0)` would hand back a degenerate domain
     that renders as a real axis, which is exactly the "silently
-    misrepresent the data" failure this package's own encode/render
+    misrepresent the data" failure this package's encode/render
     checks exist to prevent. A clear error at the boundary beats a
     plausible-looking wrong chart.
     """
@@ -89,9 +87,9 @@ def _nice_step(domain_min: Float64, domain_max: Float64, target_count: Int) -> _
     call afterward: a step of exactly 5.0 needs 0 decimals, but
     -log10(5.0) is positive, not the 0-or-negative value that
     reasoning alone would suggest without tracking the exponent
-    through nice_m's own possible bump to the next power of ten.
+    through nice_m's possible bump to the next power of ten.
 
-    Hand-verified (see this file's own module docstring):
+    Hand-verified (see this file's module docstring):
     domain [0,100], target 5 -> step 20.0 (raw step 20, already nice);
     domain [3,27], target 5 -> step 5.0 (raw step 4.8, rounds up to
     the next nice value, not down); domain [-50,50], target 5 -> step
@@ -123,8 +121,7 @@ def _format_fixed(value: Float64, decimals: Int) -> String:
     """Format `value` to exactly `decimals` decimal places -- plain
     `String(Float64)` isn't usable for tick labels: confirmed by probe
     that e.g. 0.0 + 3*0.1 prints as "0.30000000000000004", ordinary
-    binary-floating-point drift with nothing to do with this module's
-    own math. Rounds to the nearest representable value at `decimals`
+    binary-floating-point drift with nothing to do with this module's math. Rounds to the nearest representable value at `decimals`
     places first (round-half-away-from-zero, via the same
     `_round_to_int` geometry.mojo's pixel rounding uses), then splits
     into integer and fractional parts and builds the string by hand
@@ -164,7 +161,7 @@ struct Ticks(Movable):
 
     def labels(self) -> List[String]:
         """Each tick value formatted via _format_fixed at this
-        Ticks' own `decimals` -- the convenience an axis-drawing
+        Ticks' `decimals` -- the convenience an axis-drawing
         caller actually wants, without needing to know
         _format_fixed exists."""
         var result = List[String](capacity=len(self.values))
@@ -201,7 +198,7 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         (range_max - range_min) / (domain_max - domain_min). Zero
         domain span (a constant-valued column) returns 0.0 rather than
         dividing by zero; every input then maps to range_min via
-        to_pixel's own translate term, a single point/line rather than
+        to_pixel's translate term, a single point/line rather than
         a crash.
         """
         var span = self.domain_max - self.domain_min
@@ -224,9 +221,8 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         """"Nice" tick positions within [domain_min, domain_max] (see
         _nice_step), generated *within* the domain, not extending it
         -- ceil(domain_min/step)*step up to floor(domain_max/step)*step
-        -- so an axis's visible range always matches its scale's own
-        domain exactly; a tick landing exactly on a boundary is
-        included (matches this file's own hand-verified examples,
+        -- so an axis's visible range always matches its scale's domain exactly; a tick landing exactly on a boundary is
+        included (matches this file's hand-verified examples,
         e.g. domain [0,100] includes both the 0 and 100 ticks).
 
         A zero-span domain (every data value identical) returns a

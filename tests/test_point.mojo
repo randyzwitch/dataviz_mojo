@@ -34,7 +34,7 @@ def test_render_point_mark_centers_on_the_hand_derived_pixel() raises:
     # for both axes. Canvas is 400x300 with Theme's default margins
     # (left=60, right=20, top=20, bottom=50), so the plot area is
     # x:[60,380], y:[20,250] -- exact integers throughout, hand-solved
-    # from LinearScale's own slope/intercept formula (not read off the
+    # from LinearScale's slope/intercept formula (not read off the
     # code's output): x_scale.to_pixel(5.0) = 220, y_scale.to_pixel
     # (5.0) = 135 (both land exactly on an integer, no rounding
     # ambiguity to worry about). Default point_radius=3.5 rounds
@@ -42,7 +42,7 @@ def test_render_point_mark_centers_on_the_hand_derived_pixel() raises:
     # deep in the disk's fully-covered interior -- exact color match,
     # not just "some ink present". Built via scatter() (matches Plot().
     # mark_point().encode(x=x, y=y) + Canvas(400,300,BG) + render()
-    # exactly -- see test_quickplot.mojo's own test_scatter_matches_
+    # exactly -- see test_quickplot.mojo's test_scatter_matches_
     # manual_plot) rather than the fluent builder spelled out by hand.
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
@@ -62,11 +62,11 @@ def test_render_color_encoding_matches_hand_derived_colors() raises:
     # test below). x-domain [0,10] pads to [-0.5,10.5], landing the
     # two points at pixel x=75 and x=365 (solved directly from
     # LinearScale's slope/intercept formula, cross-checked in Python,
-    # not read off the code's own output).
+    # not read off the code's output).
     #
     # color_data=[0.0,10.0] over a theme whose color_scale_low/high
     # are pure black/white -- the exact same domain and stops
-    # test_color_scale.mojo's own hand-verified test uses, so the two
+    # test_color_scale.mojo's hand-verified test uses, so the two
     # points must land on exactly black and exactly white.
     # show_legend=False: this test is about the color-scale math, not
     # legend layout -- has_color now draws a continuous legend by
@@ -101,7 +101,7 @@ def test_render_size_encoding_matches_hand_derived_radii() raises:
     # size_range [2.0,10.0] -- point 0 gets radius 2, point 1 gets
     # radius 10 (both round-half-away-from-zero exact, no rounding
     # ambiguity). Checked by coverage at increasing distance from each
-    # center, not by re-deriving fill_circle_aa's own coverage math
+    # center, not by re-deriving fill_circle_aa's coverage math
     # (already exhaustively tested in canvas itself): a pixel 3px from
     # the radius-2 point must be background (outside), the same
     # distance from the radius-10 point must still be the mark color
@@ -134,12 +134,11 @@ def test_render_size_encoding_matches_hand_derived_radii() raises:
 def test_render_categorical_color_matches_hand_derived_palette_entries() raises:
     # Different pixel centers than the continuous color test above --
     # color_categories automatically reserves a 130px legend column on
-    # the right (see render()'s own show_legend/legend_reserve), so
+    # the right (see render()'s show_legend/legend_reserve), so
     # the plot area is narrower here (x range [60,250], not [60,380]):
     # the same x domain [-0.5,10.5] now lands the two points at pixel
-    # x=69/241, not 75/365 -- solved directly from LinearScale's own
-    # formula against the *narrowed* range, cross-checked in Python,
-    # not read off the code's own output. color_categories = ["A","B"]
+    # x=69/241, not 75/365 -- solved directly from LinearScale's formula against the *narrowed* range, cross-checked in Python,
+    # not read off the code's output. color_categories = ["A","B"]
     # -- two distinct categories in first-seen order, so point 0 gets
     # default_categorical_palette()[0], point 1 gets [1], not the
     # theme's continuous color_scale_low/high at all.

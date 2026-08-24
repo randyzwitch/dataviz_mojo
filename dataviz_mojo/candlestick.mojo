@@ -18,9 +18,9 @@ from dataviz_mojo.theme import Theme
 struct _CandleData(Movable):
     """
     Mark.CANDLESTICK only -- one open/high/low/close value per category,
-    from encode_candlestick(). See that method's own docstring.
+    from encode_candlestick(). See that method's docstring.
 
-    Grouped onto `Plot._candle` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._candle` -- see `Plot`'s docstring.
     """
 
     var open_price: List[Float64]
@@ -52,25 +52,24 @@ def _render_candlestick[
     box" order `_render_box` already established, so a wick with a
     short body still reads as one shape, not two disconnected pieces):
     a thin wick (`draw_line_aa`, `theme.axis_color` -- matching `Mark.
-    BOX`'s own whisker color, both being "the part of the shape that
+    BOX`'s whisker color, both being "the part of the shape that
     isn't the headline value") from `high` to `low`, then the body
     itself (`fill_rect`, full band width -- the same "use the whole
     band, no extra narrowing" choice `Mark.BAR`/`BOX` already make) from
     `open` to `close`, colored by `close >= open`: `theme.mark_color`
     (closed up) or `theme.mark_color_negative` (closed down). These are
-    the *same* two fields `Mark.WATERFALL` already reuses for its own
-    unconditional sign coloring, not new dedicated bullish/bearish
+    the *same* two fields `Mark.WATERFALL` already reuses for its unconditional sign coloring, not new dedicated bullish/bearish
     fields -- a candlestick's whole reason for being colored by sign
     *is* the chart, the same "not gated behind an opt-in flag" reasoning
-    `encode_waterfall()`'s own docstring gives (contrast `Mark.BAR`'s
+    `encode_waterfall()`'s docstring gives (contrast `Mark.BAR`'s
     `Theme.color_by_sign`, which stays a real opt-in there since a plain
     bar chart is still a complete, correct chart without it).
 
     A doji (`open == close` exactly) would otherwise draw a zero-height
-    rect -- `fill_rect` treats that as a no-op (see its own tests), which
-    would make the body invisible against its own wick, when a real
+    rect -- `fill_rect` treats that as a no-op (see its tests), which
+    would make the body invisible against its wick, when a real
     candlestick chart shows a doji as a thin flat body -- so body height
-    is floored at 1px, not left to `fill_rect`'s own zero-size handling.
+    is floored at 1px, not left to `fill_rect`'s zero-size handling.
     """
     if len(plot.x_categories) != len(plot._candle.open_price):
         raise Error(

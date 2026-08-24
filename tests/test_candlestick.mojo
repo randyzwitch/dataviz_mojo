@@ -32,7 +32,7 @@ def test_render_candlestick_matches_hand_derived_wicks_and_bodies() raises:
     # 380], y:[20,250]), show_gridlines=False. "A" = O10/H15/L8/C13
     # (closed up, close >= open); "B" = O20/H22/L16/C17 (closed down).
     # Domain = _data_extent over every O/H/L/C value ([8,22]; no zero
-    # baseline, matching Mark.BOX's own reasoning) padded 5% of the
+    # baseline, matching Mark.BOX's reasoning) padded 5% of the
     # 14-span = [7.3, 22.7]. Same 2-category OrdinalScale over [60,380]
     # test_render_boxplot_matches_hand_derived_box_whiskers_and_outlier
     # already worked out (bands at x=76/236, width 128, centers 140/300)
@@ -42,7 +42,7 @@ def test_render_candlestick_matches_hand_derived_wicks_and_bodies() raises:
     # render() run before trusting it.
     # Built via Plot/Canvas/render() directly, not candlestick() -- see
     # test_render_boxplot_matches_hand_derived_box_whiskers_and_
-    # outlier's own comment for why an exact hand-derived pixel check
+    # outlier's comment for why an exact hand-derived pixel check
     # uses render() itself rather than the (now internally
     # supersampled) quickplot wrapper.
     var cats: List[String] = ["A", "B"]
@@ -60,7 +60,7 @@ def test_render_candlestick_matches_hand_derived_wicks_and_bodies() raises:
     _assert_color(c, 300, 80, t.mark_color_negative, "B: inside the body (open=60 to close=105), closed down")
     _assert_color(c, 300, 45, t.axis_color, "B: the wick, above the body (between high=30 and the body top)")
     _assert_color(c, 300, 115, t.axis_color, "B: the wick, below the body (between the body bottom and low=120)")
-    _assert_color(c, 190, 150, BG, "no ink here -- off the wick's own x, above A's own body")
+    _assert_color(c, 190, 150, BG, "no ink here -- off the wick's x, above A's body")
 
 
 def test_render_candlestick_svg_matches_confirmed_wicks_and_bodies() raises:
@@ -78,16 +78,16 @@ def test_render_candlestick_svg_matches_confirmed_wicks_and_bodies() raises:
     assert_true(
         '<line x1="140" y1="135" x2="140" y2="240" stroke="#505050" stroke-width="1.000"'
         ' stroke-linecap="round"/>' in s,
-        "A's own wick, from high=135 to low=240",
+        "A's wick, from high=135 to low=240",
     )
-    assert_true('<rect x="76" y="165" width="128" height="45" fill="#1e64b4"/>' in s, "A's own body, closed up")
+    assert_true('<rect x="76" y="165" width="128" height="45" fill="#1e64b4"/>' in s, "A's body, closed up")
     assert_true(
         '<line x1="300" y1="30" x2="300" y2="120" stroke="#505050" stroke-width="1.000"'
         ' stroke-linecap="round"/>' in s,
-        "B's own wick, from high=30 to low=120",
+        "B's wick, from high=30 to low=120",
     )
     assert_true(
-        '<rect x="236" y="60" width="128" height="45" fill="#c83c3c"/>' in s, "B's own body, closed down"
+        '<rect x="236" y="60" width="128" height="45" fill="#c83c3c"/>' in s, "B's body, closed down"
     )
 
 

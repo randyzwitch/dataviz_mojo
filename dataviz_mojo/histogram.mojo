@@ -20,10 +20,10 @@ struct _HistogramBins(Movable):
 
 def _bin_histogram(data: List[Float64], bins: Int) raises -> _HistogramBins:
     """Bins `data` into `bins` equal-width intervals -- extracted out
-    of `Plot.encode_histogram()`'s own body (plot.mojo); see that
-    method's own docstring for the full contract (raises on empty
+    of `Plot.encode_histogram()`'s body (plot.mojo); see that
+    method's docstring for the full contract (raises on empty
     data, zero span, or non-positive `bins`; half-open bins except the
-    last, which is closed so `data`'s own maximum lands in the last
+    last, which is closed so `data`'s maximum lands in the last
     bin instead of nowhere; labels formatted to one decimal place via
     `_format_fixed`, the same formatter `LinearScale.ticks()` uses for
     axis labels).
@@ -72,11 +72,10 @@ def histogram(
     y_title: String = "",
 ) raises -> Canvas:
     """A histogram -- `Mark.BAR` fed binned counts via `Plot.
-    encode_histogram()` (see that method's own docstring for the
+    encode_histogram()` (see that method's docstring for the
     binning itself: equal-width intervals, half-open except the last).
     Named after what it plots, not the mark underneath, the same way
-    `pie()`/`donut` share `Mark.ARC` -- see this module's own
-    `_bin_histogram()` docstring, and plot.mojo's module docstring
+    `pie()`/`donut` share `Mark.ARC` -- see this module's `_bin_histogram()` docstring, and plot.mojo's module docstring
     (its "one-call convenience functions" section) for the shared
     `theme`/`width`/`height`/`title`/`x_title`/`y_title` parameters
     every function there takes, this one included."""

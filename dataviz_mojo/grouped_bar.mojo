@@ -20,17 +20,16 @@ from dataviz_mojo.theme import Theme
 
 
 def _validate_grouped_bar_series(plot: Plot) raises:
-    """`Plot.encode_grouped_bar()`'s own deferred length checks --
+    """`Plot.encode_grouped_bar()`'s deferred length checks --
     `series_names`/`values` the same length, and every `values[j]` the
-    same length as `categories` (see that method's own docstring in
+    same length as `categories` (see that method's docstring in
     plot.mojo for why they're deferred to render() time rather than
     raised there).
 
-    Lives here, next to `Mark.GROUPED_BAR`'s own rendering, and is
+    Lives here, next to `Mark.GROUPED_BAR`'s rendering, and is
     imported by stacked_bar.mojo rather than duplicated into it: both
     marks are drawn from the exact same `encode_grouped_bar()` data
-    (only the drawing differs -- see `_render_stacked_bar`'s own
-    docstring), so they necessarily have the identical thing to check,
+    (only the drawing differs -- see `_render_stacked_bar`'s docstring), so they necessarily have the identical thing to check,
     and had carried verbatim copies of it. `Mark.STACKED_BAR` already
     depends on `Mark.GROUPED_BAR` conceptually for its whole data
     shape; making that a real import keeps the two from drifting the
@@ -48,7 +47,7 @@ def _validate_grouped_bar_series(plot: Plot) raises:
     for j in range(len(plot._grouped_bar.values)):
         if len(plot._grouped_bar.values[j]) != len(plot.x_categories):
             raise Error(
-                "Plot.encode_grouped_bar(): every series' own values must"
+                "Plot.encode_grouped_bar(): every series' values must"
                 " have the same length as categories (series "
                 + String(j)
                 + " has "
@@ -66,8 +65,7 @@ def _series_legend_reserve(plot: Plot, sc: _Scaled) raises -> Int:
     Subtracted from the *outer* `ox1` before
     `_draw_categorical_axis_frame` is called, the same "shrink the rect
     from outside, don't thread a flag through the shared core" pattern
-    `_apply_labels` established (see `_render_grouped_bar`'s own
-    docstring).
+    `_apply_labels` established (see `_render_grouped_bar`'s docstring).
     """
     if not plot._theme.show_legend:
         return 0
@@ -77,15 +75,15 @@ def _series_legend_reserve(plot: Plot, sc: _Scaled) raises -> Int:
 def _render_grouped_bar[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.GROUPED_BAR` plot: `_render_bar`'s own categorical
+    """Render a `Mark.GROUPED_BAR` plot: `_render_bar`'s categorical
     x-axis / zero-baseline y-axis (`_draw_categorical_axis_frame`,
-    shared -- see its own docstring), but each category's own band is
+    shared -- see its docstring), but each category's band is
     subdivided into `len(series_names)` equal-width sub-bars, one per
     series, side by side, instead of one bar spanning the whole band.
     `default_categorical_palette()` colors each series (cycled `j %
-    len(palette)`, the same convention `Mark.POINT`'s own categorical
-    color encoding and `Mark.ARC`'s own wedge coloring already use) --
-    unlike `Mark.BAR`'s own `Theme.color_by_sign`, there's no sign here
+    len(palette)`, the same convention `Mark.POINT`'s categorical
+    color encoding and `Mark.ARC`'s wedge coloring already use) --
+    unlike `Mark.BAR`'s `Theme.color_by_sign`, there's no sign here
     to color by; the whole point of a *grouped* bar chart is telling
     series apart by color, not telling positive from negative.
 
@@ -93,23 +91,21 @@ def _render_grouped_bar[
     sub_width)` for each `j` from `0` to `len(series_names)` (`len(
     series_names) + 1` boundary points, not `len(series_names)`
     independently-rounded widths) -- rounding each *boundary* once and
-    taking consecutive boundaries as a sub-bar's own left/right edges
+    taking consecutive boundaries as a sub-bar's left/right edges
     guarantees adjacent sub-bars share an exact pixel edge (no 1px gap,
     no 1px overlap), the standard fencepost-safe way to subdivide a
     span into rounded pixel segments; independently rounding each
-    sub-bar's own width instead can accumulate exactly that kind of
+    sub-bar's width instead can accumulate exactly that kind of
     off-by-one drift across a whole band.
 
     The one other new thing no other categorical-x-axis mark needs: a
     legend (series name -> color), reserved via the same `Theme.
-    show_legend` flag and `sc.legend_width` column `Mark.POINT`'s own
-    categorical color legend uses (see `_render_generic`'s own `show_
+    show_legend` flag and `sc.legend_width` column `Mark.POINT`'s categorical color legend uses (see `_render_generic`'s `show_
     legend`/`legend_reserve` logic) -- but subtracted from the *outer*
     `ox1` passed into `_draw_categorical_axis_frame` rather than
     threaded through that shared function as a new parameter, the same
     "shrink the rect from outside, don't touch the shared core" pattern
-    `_apply_labels` already established for `Plot.labels()`'s own
-    title/axis-title margins.
+    `_apply_labels` already established for `Plot.labels()`'s title/axis-title margins.
     """
     _validate_grouped_bar_series(plot)
 
@@ -174,8 +170,8 @@ def grouped_bar(
 ) raises -> Canvas:
     """A grouped bar chart -- `Mark.GROUPED_BAR`, several bars side
     by side per category, one per series (`values[j]` is series
-    `series_names[j]`'s own value per category). See `Plot.
-    encode_grouped_bar()`'s own docstring (plot.mojo) for the exact
+    `series_names[j]`'s value per category). See `Plot.
+    encode_grouped_bar()`'s docstring (plot.mojo) for the exact
     shape."""
     var plot = Plot().mark_grouped_bar().encode_grouped_bar(
         categories=categories, series_names=series_names, values=values

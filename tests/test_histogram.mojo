@@ -31,9 +31,9 @@ def test_encode_histogram_bins_match_hand_derived_counts() raises:
     # 10 values, 5 bins -- bin_width=(9.0-1.0)/5=1.6, counts hand-
     # solved via python3: [3, 3, 2, 0, 2] (bin 3, [5.8,7.4), empty --
     # confirms encode_histogram doesn't skip empty bins, they're a
-    # real 0-count category like any other). 9.0 (data's own max)
+    # real 0-count category like any other). 9.0 (data's max)
     # lands in the last bin (would otherwise compute an out-of-range
-    # index bins itself) -- see this method's own docstring for why.
+    # index bins itself) -- see this method's docstring for why.
     var data: List[Float64] = [1.0, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 8.0, 9.0]
     var plot = Plot().mark_bar().encode_histogram(data, bins=5)
     assert_equal(len(plot.x_categories), 5)
@@ -69,7 +69,7 @@ def test_encode_histogram_raises_on_zero_span_data() raises:
 
 def test_render_histogram_draws_as_an_ordinary_bar_chart() raises:
     # A smoke test confirming the wiring end to end, not re-deriving
-    # Mark.BAR's own rendering math (already exhaustively covered by
+    # Mark.BAR's rendering math (already exhaustively covered by
     # test_render_bar_mark_matches_hand_derived_bar_rectangles and
     # friends -- encode_histogram() feeds the identical render path,
     # just with computed rather than given categories/counts).
@@ -77,13 +77,13 @@ def test_render_histogram_draws_as_an_ordinary_bar_chart() raises:
     var c = Canvas(400, 300, BG)
     var plot = Plot().mark_bar().encode_histogram(data, bins=3).theme(Theme(show_gridlines=False))
     render(c, plot)
-    # Bin 0 ([1.0, 3.667)) holds 3 of the 5 values -- its own bar
+    # Bin 0 ([1.0, 3.667)) holds 3 of the 5 values -- its bar
     # should be the tallest, definitely not still just background at
     # the vertical center of the plot area.
     var mid_of_plot_area = c.get_pixel(113, 135)
     assert_true(
         mid_of_plot_area.r != 255 or mid_of_plot_area.g != 255 or mid_of_plot_area.b != 255,
-        "bin 0's own bar (3 of 5 values) reaches well above the plot area's own midpoint",
+        "bin 0's bar (3 of 5 values) reaches well above the plot area's midpoint",
     )
 
 

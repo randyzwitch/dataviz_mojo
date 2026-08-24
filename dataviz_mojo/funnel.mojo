@@ -21,7 +21,7 @@ from dataviz_mojo.theme import Theme
 
 
 def _descending_value_order(values: List[Float64]) -> List[Int]:
-    """`values`' own indices, sorted largest-first -- a plain selection
+    """`values`' indices, sorted largest-first -- a plain selection
     sort (values are always `Mark.BAR`-sized, a handful to a few dozen
     stages, never large enough to need anything better; the same "a
     simple O(n^2) scan over a small n" tolerance `_unique_categories`
@@ -70,27 +70,25 @@ def _fill_trapezoid[
 def _render_funnel[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.FUNNEL` plot: `encode_categorical()`'s own
-    category+value shape (the same data `Mark.BAR`/`ARC` already take),
+    """Render a `Mark.FUNNEL` plot: `encode_categorical()`'s category+value shape (the same data `Mark.BAR`/`ARC` already take),
     drawn largest-value-first top to bottom (`_descending_value_order`
-    -- matching ECharts' own "highest to lowest" default, not left to
-    the caller's own row order the way every other categorical mark
+    -- matching ECharts' "highest to lowest" default, not left to
+    the caller's row order the way every other categorical mark
     here is) as one trapezoid per row, no axis frame at all (the same
     "no coordinate system" choice `_render_arc` already makes, and for
     the same reason: a funnel's whole point is the taper, not a value
     read off an axis).
 
-    Equal row heights spanning the whole plot rect; each row's own top
+    Equal row heights spanning the whole plot rect; each row's top
     width is `value / largest_value` of the available width (so the
-    largest stage always spans edge to edge) and its own *bottom*
-    width equals the *next* row's own top width -- a continuous taper
-    from stage to stage, the standard funnel look. The last row's own
-    bottom width matches its own top (a flat bottom, not tapering to a
+    largest stage always spans edge to edge) and its *bottom*
+    width equals the *next* row's top width -- a continuous taper
+    from stage to stage, the standard funnel look. The last row's bottom width matches its top (a flat bottom, not tapering to a
     point) -- there's no "next" value to taper into.
 
     Colors cycle `default_categorical_palette()` by *display row*
     (post-sort position), not original category index -- unlike `Mark.
-    ARC`'s own palette-by-category-index, a funnel's row order is
+    ARC`'s palette-by-category-index, a funnel's row order is
     itself data-dependent (`_descending_value_order`), so coloring by
     final position keeps row 0 always the same color across different
     inputs, the same "the picture reads the same way every time" reason
@@ -168,9 +166,8 @@ def funnel(
 ) raises -> Canvas:
     """A funnel chart -- `Mark.FUNNEL` over a categorical `x` and
     continuous `y` (the same shape `bar()`/`pie()` take), drawn
-    largest-value-first as tapering trapezoids. See `_render_funnel`'s
-    own docstring for the taper/ordering rules. `x_title`/`y_title` are
+    largest-value-first as tapering trapezoids. See `_render_funnel`'s docstring for the taper/ordering rules. `x_title`/`y_title` are
     accepted for signature consistency with every other quickplot here
-    but have no axis to label, the same as `pie()`'s own two."""
+    but have no axis to label, the same as `pie()`'s two."""
     var plot = Plot().mark_funnel().encode_categorical(x=categories, y=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

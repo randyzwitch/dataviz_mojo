@@ -25,34 +25,32 @@ def _draw_chord_ribbon[
     T: DrawTarget
 ](mut target: T, cx: Float64, cy: Float64, r: Float64, a0: Float64, a1: Float64, b0: Float64, b1: Float64, color: Color) raises:
     """One ribbon: a filled shape bounded by two node-rim arcs (`a0`
-    ->`a1` at node A's own inner radius, `b0`->`b1` at node B's) and
+    ->`a1` at node A's inner radius, `b0`->`b1` at node B's) and
     two curved "cross" connections between them -- the classic chord-
     diagram ribbon shape. Each rim arc is a real `Path.arc_to` segment
-    now (`canvas_mojo`'s own center/radius/angle convention matches
+    now (`canvas_mojo`'s center/radius/angle convention matches
     this file's `cos`/`sin` rim-point math exactly, confirmed directly
-    against `canvas_mojo`'s own `arc_to` docstring before relying on
+    against `canvas_mojo`'s `arc_to` docstring before relying on
     it -- no angle conversion needed at the call site); each cross
-    connection is a single `quad_curve_to` pulled toward the circle's
-    own center `(cx, cy)`, which bows every ribbon inward through the
+    connection is a single `quad_curve_to` pulled toward the circle's center `(cx, cy)`, which bows every ribbon inward through the
     middle the way a real chord diagram's ribbons do, without needing
     per-ribbon control-point math of its own. `a0 <= a1`/`b0 <= b1`
-    always hold here (`_render_chord`'s own angles only ever advance
-    forward around the circle), matching `arc_to`'s own `start_angle <=
+    always hold here (`_render_chord`'s angles only ever advance
+    forward around the circle), matching `arc_to`'s `start_angle <=
     end_angle` expectation.
 
     An earlier version of this function flattened each rim arc into
     short straight `line_to` segments by hand (`Path` had no arc-to
     command yet) -- see the git history/PR #25 for that version, and
-    canvas_mojo's own PR #25 (`Path.arc_to`) for why it's gone. The
-    ribbon's own visible shape is unchanged (`arc_to` traces the exact
+    canvas_mojo's PR #25 (`Path.arc_to`) for why it's gone. The
+    ribbon's visible shape is unchanged (`arc_to` traces the exact
     curve those segments were already approximating); the SVG backend
-    gets a real payoff, though -- `SvgCanvas`'s own path output now
+    gets a real payoff, though -- `SvgCanvas`'s path output now
     emits a true elliptical-arc command for the rim instead of a
-    polyline, so a chord diagram's own vector output is a real curve
+    polyline, so a chord diagram's vector output is a real curve
     now, not a many-segment approximation of one.
 
-    `r` is the *inner* radius of the node ring (`_render_chord`'s own
-    `inner_radius`) -- ribbons visually originate from just inside the
+    `r` is the *inner* radius of the node ring (`_render_chord`'s `inner_radius`) -- ribbons visually originate from just inside the
     ring, not its outer edge, the standard chord-diagram look.
     """
     var path = Path()
@@ -69,30 +67,29 @@ def _render_chord[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.CHORD` plot: one node per distinct category
-    across `encode_chord()`'s own `from`/`to` columns (`_unique_
+    across `encode_chord()`'s `from`/`to` columns (`_unique_
     categories` over the two concatenated, first-seen order), arranged
-    as ring sectors around a circle (`Mark.ARC`'s own start-at-12-
+    as ring sectors around a circle (`Mark.ARC`'s start-at-12-
     o'clock, sweep-clockwise convention, reused exactly -- see `_render_
-    arc`'s own docstring) sized by each node's own *total* flow (every
+    arc`'s docstring) sized by each node's *total* flow (every
     value where it's the `from` or the `to`, so a node with several
     edges gets one contiguous arc, not several) -- then one ribbon per
-    `from`/`to`/`value` row, connecting a sub-arc of its `from` node's
-    own ring to a sub-arc of its `to` node's, each sub-arc sized `value
-    / node's own total` of that node's full span (`_draw_chord_ribbon`).
+    `from`/`to`/`value` row, connecting a sub-arc of its `from` node's ring to a sub-arc of its `to` node's, each sub-arc sized `value
+    / node's total` of that node's full span (`_draw_chord_ribbon`).
 
     Sub-arcs are allocated in the order rows are given, each one
     advancing a per-node running angular cursor (`node_cursor`, starting
-    at that node's own `node_start`) -- the same running-total
-    bookkeeping style `Mark.WATERFALL`'s own `encode_waterfall` already
-    established, just for angles instead of a bar's own running total.
+    at that node's `node_start`) -- the same running-total
+    bookkeeping style `Mark.WATERFALL`'s `encode_waterfall` already
+    established, just for angles instead of a bar's running total.
     A self-loop (`from[i] == to[i]`) allocates two sub-arcs off the
     same node in sequence rather than one -- not specifically tested,
     but not rejected either, since nothing here assumes `from[i] !=
     to[i]`.
 
-    Ribbons are colored by their own `from` node's palette color
+    Ribbons are colored by their `from` node's palette color
     (`default_categorical_palette()`, the same index-by-node-position
-    convention `Mark.ARC`'s own wedge coloring uses) -- a ribbon reads
+    convention `Mark.ARC`'s wedge coloring uses) -- a ribbon reads
     as "flow leaving this node," not a third, edge-specific color.
     """
     _validate_edge_encoding(plot, "Mark.CHORD")
@@ -186,7 +183,7 @@ def chord(
 ) raises -> Canvas:
     """A chord diagram -- `Mark.CHORD`, ring sectors for every distinct
     node across `from_categories`/`to_categories`, connected by ribbons
-    sized by `values`. See `Plot.encode_chord()`'s own docstring
+    sized by `values`. See `Plot.encode_chord()`'s docstring
     (plot.mojo) for the exact shape."""
     var plot = Plot().mark_chord().encode_chord(
         from_categories=from_categories, to_categories=to_categories, values=values
