@@ -247,7 +247,7 @@ struct _Scaled(Movable):
     (`draw_line_aa(..., theme.axis_color)`/`(..., theme.gridline_
     color)`) is drawn `width=sc.scale` pixels wide, not the
     library-wide implicit default of a flat 1.0 -- these are the one
-    kind of stroke this package draws whose own width has no `Theme`
+    kind of stroke this package draws whose width has no `Theme`
     field of its own to already be scaled by `_Scaled.__init__` above
     (unlike `line_width`, `point_radius`, ...), so without this they'd
     stay exactly 1 raw pixel wide at any `scale`, visibly thinner than
@@ -1123,7 +1123,7 @@ struct Plot(Movable):
         Raises immediately, the same "can't produce a coherent result
         at all, not merely a length mismatch" reasoning `encode_
         histogram()`'s binning raises for: a mismatched `categories`/
-        `values` length, or any category whose own value list is empty
+        `values` length, or any category whose value list is empty
         (quartiles are undefined for zero data points -- there's no
         sensible fallback the way an empty histogram bin's count-of-
         zero is).
@@ -1571,7 +1571,7 @@ struct Plot(Movable):
         at all" reasoning `encode_distribution()`'s checks already
         give, generalized to four lists instead of two) on any length
         mismatch: `indicators`/`max_values`, `series_names`/`series_
-        values`, or any individual series whose own value count
+        values`, or any individual series whose value count
         doesn't match `indicators`'s count.
         """
         if len(indicators) != len(max_values):
@@ -1661,7 +1661,7 @@ struct Plot(Movable):
 
         Raises immediately (the same up-front "can't produce a
         coherent result at all" reasoning `encode_radar()`'s checks already give) on a `row_names`/`data` length mismatch,
-        or any individual row whose own value count doesn't match
+        or any individual row whose value count doesn't match
         `dims`'s count.
         """
         if len(row_names) != len(data):
@@ -1702,7 +1702,7 @@ struct Plot(Movable):
         Raises immediately (the same "can't produce a coherent result
         at all" reasoning `encode_boxplot()`'s checks already give)
         on a `categories`/`values` length mismatch, or any category
-        whose own value list is empty.
+        whose value list is empty.
         """
         if len(categories) != len(values):
             raise Error(
@@ -1892,7 +1892,7 @@ struct Plot(Movable):
         this reads well (a thin stroke/dot only loses the small stretch
         that falls inside the band, the rest is untouched), but on
         `Mark.BAR`/`WATERFALL`/`STACKED_BAR`/any other solid-fill mark, a
-        bar whose own height *enters* the band has that whole entering
+        bar whose height *enters* the band has that whole entering
         portion overwritten by the band's color -- it can read as if
         the bar's height changed, not just that a band was drawn behind
         it. Not broken, just something to know before combining the two;
@@ -4700,7 +4700,7 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     for the full mechanics (no gridlines of its own, at least one layer
     must stay on the primary axis).
 
-    A layer whose own mark is `Mark.POINT` can use `color`/`color_
+    A layer whose mark is `Mark.POINT` can use `color`/`color_
     categories`/`size` encoding exactly like a standalone `Mark.POINT`
     plot (see `Plot.encode`'s docstring) -- each such layer's domain (color scale, size scale, category palette) is independent
     of every other layer's, the same "each layer's `Theme` only

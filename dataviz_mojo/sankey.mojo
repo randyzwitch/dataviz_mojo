@@ -49,7 +49,7 @@ def _render_sankey[
     a slice of its `to` node's left edge -- straight edges, not a
     smooth curve (the same "straight, not curved" simplification
     `Mark.CHORD`'s straight-rim ribbons already are, for the
-    identical reason: a smooth Bezier ribbon whose own top and bottom
+    identical reason: a smooth Bezier ribbon whose top and bottom
     edges both curve independently is real, added geometric complexity
     a straight trapezoid sidesteps while keeping the same essential
     "value -> proportional width" reading). A "skip" edge (source

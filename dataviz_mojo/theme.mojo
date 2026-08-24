@@ -96,10 +96,9 @@ in plain RGB space, and the *midpoint* of two saturated, hue-opposite
 colors (the default low/high pair is blue/orange, chosen for
 contrast) in RGB space is a desaturated, muddy brownish-grey -- not a
 blend a viewer reads as "partway between blue and orange" at all. A
-mark whose own data happens to sit near the domain's extremes never
-shows this (heatmap/corrplot examples originally shipped with data
-that never landed near the midpoint, hiding it entirely), but the
-*legend* always spans the full domain end to end, so that muddy
+mark whose data happens to sit near the domain's extremes never shows
+this, but the *legend* always spans the full domain end to end, so
+that muddy
 middle dominated most of its length -- reading as "one flat color"
 even though the underlying gradient math was working correctly the
 whole time. `color_scale_mid` (default a light neutral grey, `Color(
@@ -183,10 +182,7 @@ full total-bar drawing story (also wider than a delta bar -- full band
 width vs. `waterfall_delta_width_fraction` below).
 
 `waterfall_delta_width_fraction` (default 0.6) is how much of its band a rising/falling delta bar occupies; a total bar always spans the
-full band, so this is what visually separates the two. It was a fixed
-module constant until this became a real knob -- the "fixed until a
-concrete need shows up" reasoning several constants here still follow,
-resolved in this case.
+full band, so this is what visually separates the two.
 
 `bullet_measure_width_fraction` (default 0.35) is how thick `Mark.
 BULLET`'s measure bar is relative to its band, and
@@ -209,10 +205,10 @@ translucent. `radar_fill_alpha` (also 90) is the same treatment for
 `Mark.RADAR`'s filled series polygons.
 
 Two fields rather than one shared "tint alpha", even though both
-default to 90: they were a single module constant before, which
-silently coupled a scatter halo to a radar polygon fill. Nothing
-connects those two beyond the number having happened to suit both, so
-retheming one should not move the other.
+default to 90: a single shared constant would silently couple a
+scatter halo's tint to a radar fill's. Nothing connects those two
+beyond the number having happened to suit both, so retheming one
+should not move the other.
 
 `annotation_color` (default a plain medium gray, `Color(150, 150,
 150)`) is `Plot.annotate_line()`'s color -- both the reference
