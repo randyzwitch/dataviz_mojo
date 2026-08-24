@@ -2,15 +2,15 @@
 encode_gauge(), clamped to [min_value, max_value] rather than rejected
 out of range) shown as a needle over a 270-degree color-banded dial
 (green/blue/red at the default 20%/80%/100% breakpoints -- see
-gauge.mojo's own docstring). Built via dataviz_mojo.gauge() -- see
-examples/scatter.mojo's own docstring for what that trades away.
+gauge.mojo's docstring). Built via dataviz_mojo.gauge() -- see
+examples/scatter.mojo's docstring for what that trades away.
 
-Server CPU usage -- ECharts.jl's own gauge() example, the chart
-type's own classic use (a single live metric against a known-good/
+Server CPU usage -- ECharts.jl's gauge() example, the chart
+type's classic use (a single live metric against a known-good/
 known-bad range, read at a glance the way a real analog dial is).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

@@ -1,6 +1,5 @@
 """Tests for Mark.MARIMEKKO (mosaic chart): proportional column
-widths, 0-100% stacked segment heights, encode_marimekko()'s own
-validation (raster + SVG) -- see marimekko.mojo's own docstrings for
+widths, 0-100% stacked segment heights, encode_marimekko()'s validation (raster + SVG) -- see marimekko.mojo's docstrings for
 the rules verified here.
 """
 
@@ -22,14 +21,14 @@ def test_render_marimekko_matches_hand_derived_columns() raises:
     # [30, 10], values[Y] = [10, 30] -- column A totals 40 (75% X, 25%
     # Y), column B totals 40 too (25% X, 75% Y), grand total 80 -> both
     # columns get exactly half the plot width (equal totals here, not
-    # a coincidence of the chart type -- just this test's own data).
+    # a coincidence of the chart type -- just this test's data).
     # Canvas 400x300, show_gridlines=False, show_legend=False: plot
     # area x:[60,380], y:[20,250] -> each column 160px wide, column A
     # x:[60,220), column B x:[220,380). Column A: X segment (75% of
     # 230px height = 172.5 -> 172) sits at the bottom, y:[78,250);
     # column B: Y segment (75%) sits at the bottom instead, y:[193,
     # 250) -- every number confirmed against a real render_svg() run
-    # first (see this file's own SVG test).
+    # first (see this file's SVG test).
     var cats: List[String] = ["A", "B"]
     var subs: List[String] = ["X", "Y"]
     var values: List[List[Float64]] = [[30.0, 10.0], [10.0, 30.0]]

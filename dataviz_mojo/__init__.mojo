@@ -1,11 +1,11 @@
-"""This package's own public surface: everything a caller is meant to
+"""This package's public surface: everything a caller is meant to
 import, re-exported here so `from dataviz_mojo import bar, Plot, Theme`
 works without anyone needing to know which file inside the package a
 given name actually lives in.
 
 That indirection matters most for the one-call convenience functions
-(`bar`, `scatter`, `pie`, ...): each one lives in its own mark's file,
-next to that mark's own rendering code (see plot.mojo's own module
+(`bar`, `scatter`, `pie`, ...): each one lives in its mark's file,
+next to that mark's rendering code (see plot.mojo's module
 docstring, its "one-call convenience functions" section, for the rule
 and why), so their real module paths -- `dataviz_mojo.bar.bar`,
 `dataviz_mojo.arc.pie` -- are an internal layout detail that would be
@@ -13,11 +13,11 @@ noisy and surprising to import directly. Import them from the package,
 not from the file.
 
 Every name below is listed explicitly -- a deliberate, considered
-addition to this package's own public surface -- with one exception:
+addition to this package's public surface -- with one exception:
 `colors.mojo`'s ~148 CSS-named `Color` constants (`from dataviz_mojo.
 colors import *`, the one wildcard import in this file). Those aren't
 individually-designed features to enumerate one by one, just a single
-fixed, already-standard vocabulary (see that file's own docstring) --
+fixed, already-standard vocabulary (see that file's docstring) --
 listing `RED`, `BLUE`, `CORNFLOWERBLUE`, ... by hand here would be
 pure noise a spec already settled, not documentation of a real choice
 made in this package.
@@ -42,8 +42,8 @@ from dataviz_mojo.plot import (
     scatter,
 )
 
-# The remaining one-call convenience functions, each from its own mark's
-# file -- see this module's own docstring for why these are re-exported
+# The remaining one-call convenience functions, each from its mark's
+# file -- see this module's docstring for why these are re-exported
 # rather than imported from there directly.
 from dataviz_mojo.arc import pie
 from dataviz_mojo.bar import bar

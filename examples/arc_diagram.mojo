@@ -1,18 +1,16 @@
-"""Demo: an arc diagram -- Mark.ARC_DIAGRAM, Mark.CHORD's own edge
+"""Demo: an arc diagram -- Mark.ARC_DIAGRAM, Mark.CHORD's edge
 list (Plot.encode_chord()) drawn as nodes on one line connected by
 semicircular arcs instead of a circular ribbon diagram -- see
-arc_diagram.mojo's own docstring for the naming-collision note versus
-this package's own pre-existing Mark.ARC (pie/donut wedges). Built via
-dataviz_mojo.arc_diagram() -- see examples/scatter.mojo's own
-docstring for what that trades away.
+arc_diagram.mojo's docstring for the naming-collision note versus
+this package's pre-existing Mark.ARC (pie/donut wedges). Built via
+dataviz_mojo.arc_diagram() -- see examples/scatter.mojo's docstring for what that trades away.
 
-Character co-occurrence in a handful of scenes -- the arc diagram's
-own classic use (a network small enough to read as one open row of
-nodes, unlike Mark.CHORD's own circular layout, which reads better
+Character co-occurrence in a handful of scenes -- the arc diagram's classic use (a network small enough to read as one open row of
+nodes, unlike Mark.CHORD's circular layout, which reads better
 once there are enough nodes to fill a ring).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

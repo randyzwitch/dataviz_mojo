@@ -1,22 +1,19 @@
 """Demo: a vertical reference line and a labeled point marker --
 Plot.annotate_vline()/Plot.annotate_point(), the x-axis mirror of
-annotate_line() and ECharts' own markPoint (a fixed coordinate only,
-not its "max"/"min"/"average" auto-computed modes -- see each method's
-own docstring). Narrower mark support than annotate_line()/
+annotate_line() and ECharts' markPoint (a fixed coordinate only,
+not its "max"/"min"/"average" auto-computed modes -- see each method's docstring). Narrower mark support than annotate_line()/
 annotate_area(): only Mark.POINT/LINE/AREA/EFFECT_SCATTER, the marks
-with a genuine continuous x-axis to place a vertical line or a point's
-own x coordinate against.
+with a genuine continuous x-axis to place a vertical line or a point's x coordinate against.
 
 A launch-day marker (annotate_vline) and a peak-value callout
 (annotate_point) on the same response-time series examples/annotate_
-area.mojo's own docstring uses, so the two annotation demos read as a
+area.mojo's docstring uses, so the two annotation demos read as a
 matched pair.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why. Built by hand
+data -- see examples/donut.mojo's docstring for why. Built by hand
 (not a one-call quickplot -- neither method is exposed on quickplot
-functions, the same deliberate scope cut examples/annotate_line.mojo's
-own docstring explains) via Plot() directly.
+functions, the same deliberate scope cut examples/annotate_line.mojo's docstring explains) via Plot() directly.
 
 Run with:
     pixi run example

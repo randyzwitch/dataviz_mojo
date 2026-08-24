@@ -1,33 +1,29 @@
 """Tests for the one-call convenience functions: every one is checked
 pixel-for-pixel against `_rendered()` -- the private helper every one
-of them calls internally (see plot.mojo's own docstring) -- fed the
+of them calls internally (see plot.mojo's docstring) -- fed the
 identical `Plot`/`theme`/`width`/`height`/`title`/`x_title`/`y_title`
 a caller would pass building the same chart by hand. Not a second
 hand-derived pixel check (that's already covered per-mark in
 test_point.mojo/test_bar.mojo/test_waterfall.mojo/etc.), so these
-tests catch a wrapper drifting out of sync with Plot's own builder (a
+tests catch a wrapper drifting out of sync with Plot's builder (a
 renamed encode_*() kwarg, a dropped .labels()/.theme() call, a wrong
-default), not Plot's own rendering math.
+default), not Plot's rendering math.
 
-This no longer compares against a raw `Canvas` + `render()` call at
-the same size: `_rendered()` now supersamples its own output before
-handing it back (see its own docstring), so a quickplot call and an
-unsupersampled `render()` at the identical size are no longer
-pixel-identical by construction -- only genuinely different anymore,
-not a bug in either. Comparing against `_rendered()` itself instead
-keeps exactly what this file was always for (a wrapper built the right
-`Plot`, not that `Plot`'s own rendering math is correct) without
-needing to re-derive the supersampling math by hand in every test
-here too.
+A quickplot call and an unsupersampled `render()` at the identical
+size are never expected to be pixel-identical: `_rendered()`
+supersamples its output before handing it back (see its docstring),
+so the two differ genuinely, not by a bug in either. Comparing against
+`_rendered()` itself instead keeps exactly what this file is for (a
+wrapper built the right `Plot`, not that `Plot`'s rendering math is
+correct) without needing to re-derive the supersampling math by hand
+in every test here too.
 
-These all lived in one dataviz_mojo/quickplot.mojo when this file was
-written; each now sits in its own mark's file instead (see plot.mojo's
-own module docstring for the rule). They stay tested together here
+Each one-call function lives in its own mark's file (see plot.mojo's
+module docstring for the rule). They stay tested together here
 because what they share -- the builder contract and the documented
 defaults -- is exactly what these tests check, and that's a property of
 the group, not of any one mark. Imported from the package itself, the
-way a caller is meant to (see dataviz_mojo/__init__.mojo's own
-docstring), which is also what keeps this file indifferent to which
+way a caller is meant to (see dataviz_mojo/__init__.mojo's docstring), which is also what keeps this file indifferent to which
 mark file any given one ends up in.
 
 One "matches the manual builder, non-default theme/size/labels"

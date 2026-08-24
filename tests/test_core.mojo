@@ -1,6 +1,5 @@
 """Generic Plot.encode()/render() validation and utility-function tests
-that aren't specific to any one Mark type -- split out of what used to
-be one big test_plot.mojo.
+that aren't specific to any one Mark type.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -44,8 +43,8 @@ def test_render_raises_on_mismatched_x_y_lengths() raises:
 def test_render_empty_data_only_fills_background() raises:
     # render() always fills with theme.background regardless of
     # whatever the canvas was constructed with (Plot owns the whole
-    # canvas it's given -- see plot.mojo's own docstring), so the
-    # canvas's own initial fill color (10,20,30) must NOT survive.
+    # canvas it's given -- see plot.mojo's docstring), so the
+    # canvas's initial fill color (10,20,30) must NOT survive.
     var plot = Plot()  # no encode() call -- x_data/y_data both empty
     var c = Canvas(50, 40, Color(10, 20, 30))
     render(c, plot)
@@ -79,11 +78,11 @@ def test_render_respects_custom_theme_colors() raises:
 def test_render_gridlines_flag_actually_controls_gridline_pixels() raises:
     # Built via Plot/Canvas/render() directly, not scatter() -- an
     # exact-zero pixel count is sensitive to any anti-aliasing detail,
-    # and scatter()'s own output is supersampled-then-downsampled
-    # internally now (see dataviz_mojo.plot._rendered's own docstring),
+    # and scatter()'s output is supersampled-then-downsampled
+    # internally now (see dataviz_mojo.plot._rendered's docstring),
     # which can coincidentally blend an edge pixel to this exact gray
     # even with gridlines off. render() itself stays unsupersampled --
-    # see its own docstring -- so this exact check still holds there.
+    # see its docstring -- so this exact check still holds there.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var gridline_color = Color(225, 225, 225)
@@ -144,7 +143,7 @@ def test_categorical_indices_agrees_with_unique_categories_and_index_of() raises
     assert_equal(len(cat.indices), len(data))
     for i in range(len(data)):
         assert_equal(cat.indices[i], _index_of(expected_domain, data[i]))
-        # ...and the index really does address the right category.
+        # .and the index really does address the right category.
         assert_equal(cat.domain[cat.indices[i]], data[i])
 
 
@@ -152,7 +151,7 @@ def test_edge_node_index_agrees_with_unique_categories_and_index_of() raises:
     # _edge_node_index replaces exactly what Mark.CHORD/ARC_DIAGRAM/
     # GRAPH/SANKEY each did by hand: _unique_categories over the two
     # endpoint columns concatenated, then _index_of per endpoint per
-    # edge. Same contract as _categorical_indices' own equivalence
+    # edge. Same contract as _categorical_indices' equivalence
     # test above -- assert against the slow path directly, not against
     # hand-written values, since disagreeing with it is the definition
     # of being wrong.
@@ -178,7 +177,7 @@ def test_edge_node_index_agrees_with_unique_categories_and_index_of() raises:
     for i in range(len(f)):
         assert_equal(edges.from_idx[i], _index_of(expected_nodes, f[i]))
         assert_equal(edges.to_idx[i], _index_of(expected_nodes, t[i]))
-        # ...and each index really does address the right node.
+        # .and each index really does address the right node.
         assert_equal(edges.nodes[edges.from_idx[i]], f[i])
         assert_equal(edges.nodes[edges.to_idx[i]], t[i])
 

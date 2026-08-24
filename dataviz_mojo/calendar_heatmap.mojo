@@ -25,9 +25,9 @@ from dataviz_mojo.theme import Theme
 struct _CalendarData(Movable):
     """
     Mark.CALENDAR_HEATMAP only -- one ("YYYY-MM-DD" date, value) row per
-    day. See encode_calendar()'s own docstring.
+    day. See encode_calendar()'s docstring.
 
-    Grouped onto `Plot._calendar` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._calendar` -- see `Plot`'s docstring.
     """
 
     var dates: List[String]
@@ -40,19 +40,18 @@ struct _CalendarData(Movable):
 
 def _calendar_day_labels() -> List[String]:
     """The 7 row labels, Sunday first -- the same top-to-bottom order
-    every GitHub-style contribution calendar (and ECharts' own
-    calendar component) uses. Fixed, not derived from the data: unlike
-    every other categorical axis in this package, a calendar's own 7
+    every GitHub-style contribution calendar (and ECharts' calendar component) uses. Fixed, not derived from the data: unlike
+    every other categorical axis in this package, a calendar's 7
     rows exist whether or not a given day of the week appears in the
     data. A plain function, not a `Theme` field or a `comptime`
     constant -- `List` isn't `comptime`-constructible, the same reason
-    `default_categorical_palette()`'s own docstring gives for a fixed
+    `default_categorical_palette()`'s docstring gives for a fixed
     default list living as a function instead."""
     return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 
 def _calendar_month_labels() -> List[String]:
-    """See `_calendar_day_labels()`'s own docstring for why this is a
+    """See `_calendar_day_labels()`'s docstring for why this is a
     plain function."""
     return ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
@@ -60,10 +59,9 @@ def _calendar_month_labels() -> List[String]:
 struct _Date(Copyable, Movable):
     """A plain year/month/day triple -- not a general-purpose Date
     type (this package deliberately has none, the same stance `Mark.
-    GANTT`'s own `encode_gantt` docstring already takes for its own
-    start/end values), just enough structure for `_days_from_civil`/
+    GANTT`'s `encode_gantt` docstring already takes for its start/end values), just enough structure for `_days_from_civil`/
     `_day_of_week` below to place one calendar cell. A named struct,
-    not a raw tuple -- this file's own established "always a named
+    not a raw tuple -- this file's established "always a named
     struct for a multi-value return" convention."""
 
     var year: Int
@@ -78,8 +76,8 @@ struct _Date(Copyable, Movable):
 
 def _parse_date(s: String) raises -> _Date:
     """Parse a plain `"YYYY-MM-DD"` string -- the one date format this
-    mark accepts (ISO 8601's own calendar-date form), split on `"-"`
-    and converted with `Int()`. Raises naturally (Mojo's own `Int()`
+    mark accepts (ISO 8601's calendar-date form), split on `"-"`
+    and converted with `Int()`. Raises naturally (Mojo's `Int()`
     conversion, or an out-of-bounds `List` index if the string doesn't
     split into exactly 3 parts) on anything else -- no separate
     validation layer on top of that, the same "let the obvious failure
@@ -96,9 +94,9 @@ def _days_from_civil(date: _Date) -> Int:
     domain, widely used exactly because it's easy to independently
     verify against known reference dates rather than trust blindly:
     confirmed here against 2024-01-01, a real-world Monday -- see
-    `_day_of_week`'s own docstring). Exact for any real Gregorian
+    `_day_of_week`'s docstring). Exact for any real Gregorian
     calendar date; this mark only ever calls it with dates already
-    parsed from a caller's own data, never a negative/pre-Gregorian
+    parsed from a caller's data, never a negative/pre-Gregorian
     year.
     """
     var y = date.year
@@ -127,37 +125,35 @@ def _day_of_week(days_since_epoch: Int) -> Int:
 def _render_calendar_heatmap[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.CALENDAR_HEATMAP` plot: `encode_calendar()`'s
-    own `dates`/`values` laid out in a GitHub-contributions-style
+    """Render a `Mark.CALENDAR_HEATMAP` plot: `encode_calendar()`'s `dates`/`values` laid out in a GitHub-contributions-style
     calendar grid -- one column per week, one row per day of the week
     (`_calendar_day_labels()`, Sunday at the top), colored through a
-    continuous `ColorScale` spanning `values`' own [min, max] --
-    exactly `Mark.HEATMAP`'s own gradient vocabulary (`ColorScale.
+    continuous `ColorScale` spanning `values`' [min, max] --
+    exactly `Mark.HEATMAP`'s gradient vocabulary (`ColorScale.
     from_theme`), reused here rather than reinvented.
 
     Every date must fall in the same calendar year (inferred from the
     first date, not a separate caller-supplied `year` parameter the
-    way ECharts.jl's own `calendarheatmap()` takes -- a real,
+    way ECharts.jl's `calendarheatmap()` takes -- a real,
     deliberate simplification: this package raises on a genuinely
     inconsistent input rather than silently filtering it the way that
-    library's own `year` argument does, the same "raise on
-    inconsistent input" stance `Mark.RADAR`'s own `encode_radar`
-    already takes for its own length-mismatched lists). The first
-    week's own column always starts on the Sunday on/before January
+    library's `year` argument does, the same "raise on
+    inconsistent input" stance `Mark.RADAR`'s `encode_radar`
+    already takes for its length-mismatched lists). The first
+    week's column always starts on the Sunday on/before January
     1st (so January 1st never lands outside the grid even when it
     isn't itself a Sunday) -- `column = (days_since_jan1 + jan1s_own_
     weekday) // 7`, `row = day_of_week`.
 
-    Own bespoke grid layout, not `Mark.HEATMAP`'s own `_draw_grid_
+    Own bespoke grid layout, not `Mark.HEATMAP`'s `_draw_grid_
     axis_frame` -- that function's two axes are both string-labeled
     `OrdinalScale`s over a caller-given domain; this one's row domain
     is a fixed 7-day week and its column domain is a *computed* week
     index with no natural string label of its own (month names label
     the *columns where each month starts*, not one label per column
     the way `_draw_grid_axis_frame` would draw), different enough to
-    need its own layout rather than a forced fit -- the same "own
-    frame when the layout genuinely differs" reasoning `Mark.HEATMAP`'s
-    own docstring already gives against reusing either existing
+    need its layout rather than a forced fit -- the same "own
+    frame when the layout genuinely differs" reasoning `Mark.HEATMAP`'s docstring already gives against reusing either existing
     categorical-axis core.
     """
     if len(plot._calendar.dates) != len(plot._calendar.values):
@@ -198,7 +194,7 @@ def _render_calendar_heatmap[
     var day_labels = _calendar_day_labels()
     var month_labels = _calendar_month_labels()
     # One FontCache shared by both measurements this render makes
-    # (the y-axis category labels here, and the legend's own labels
+    # (the y-axis category labels here, and the legend's labels
     # further down) -- a fresh cache per call re-pays canvas_mojo's
     # font resolution and TTF parse for a font that is already loaded.
     var measure_cache = FontCache()
@@ -282,6 +278,6 @@ def calendar_heatmap(
     laid out in a GitHub-contributions-style calendar grid, colored
     through a continuous gradient. `dates` are plain `"YYYY-MM-DD"`
     strings, all in the same year (inferred from the first one -- see
-    `_render_calendar_heatmap`'s own docstring)."""
+    `_render_calendar_heatmap`'s docstring)."""
     var plot = Plot().mark_calendar_heatmap().encode_calendar(dates=dates, values=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

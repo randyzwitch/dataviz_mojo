@@ -3,15 +3,15 @@ full concentric ring per category (Plot.encode_categorical(), the same
 category + value shape pie()/bar()/polarbar() use), each ring swept
 clockwise from 12 o'clock to value/max(values) of the way around a
 light-gray track. Built via dataviz_mojo.radialbar() -- see examples/
-scatter.mojo's own docstring for what that trades away.
+scatter.mojo's docstring for what that trades away.
 
 Quarterly OKR completion by team -- four teams, each a percentage of
-their own quarter's objectives completed, drawn as nested "activity
-rings" (the first team's own ring outermost) instead of a bar chart,
+their quarter's objectives completed, drawn as nested "activity
+rings" (the first team's ring outermost) instead of a bar chart,
 so all four read together as one shape at a glance.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

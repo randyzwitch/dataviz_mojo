@@ -22,9 +22,9 @@ struct _MarimekkoData(Movable):
     """
     Mark.MARIMEKKO only -- categories (columns), subcategories (stacked
     rows), and a value per (subcategory, category) pair. See
-    encode_marimekko()'s own docstring.
+    encode_marimekko()'s docstring.
 
-    Grouped onto `Plot._marimekko` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._marimekko` -- see `Plot`'s docstring.
     """
 
     var categories: List[String]
@@ -42,15 +42,14 @@ def _render_marimekko[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.MARIMEKKO` plot (a mosaic/Marimekko chart):
-    `encode_marimekko()`'s own `categories` (one column each) and
+    `encode_marimekko()`'s `categories` (one column each) and
     `subcategories` (one stacked segment each, `values[sub][cat]` --
     rows are subcategories, columns are categories, matching ECharts.
-    jl's own matrix convention), where *both* axes carry real
-    proportions -- unlike `Mark.STACKED_BAR`'s own equal-width columns
-    with a stacked absolute magnitude, a Marimekko's own column
-    *widths* are each category's own share of the grand total, and
-    each column's own segment *heights* are that column's own
-    subcategory composition (always summing to the column's full
+    jl's matrix convention), where *both* axes carry real
+    proportions -- unlike `Mark.STACKED_BAR`'s equal-width columns
+    with a stacked absolute magnitude, a Marimekko's column
+    *widths* are each category's share of the grand total, and
+    each column's segment *heights* are that column's subcategory composition (always summing to the column's full
     height, a 0-100% stack -- see below), the two-dimensional
     generalization "every bar chart's width already means something,
     not just its height" the real Marimekko/mosaic-plot convention is
@@ -58,20 +57,19 @@ def _render_marimekko[
 
     No shared `OrdinalScale` x-axis (every other categorical mark
     here has equal-width bands) -- column x-positions/widths are
-    computed directly from each category's own share of `grand_total`
+    computed directly from each category's share of `grand_total`
     (the sum of every value in the matrix). Segment heights are each
-    value's own share of *its own column's total* (not `grand_total`)
-    -- a column with a small share of the grand total still fills its
-    own full height with its own subcategory breakdown, the same
+    value's share of *its column's total* (not `grand_total`)
+    -- a column with a small share of the grand total still fills its full height with its subcategory breakdown, the same
     "always reads as a complete 0-100% stack" property `_render_
-    stacked_bar`'s own docstring would give if it worked in
+    stacked_bar`'s docstring would give if it worked in
     percentages instead of raw magnitudes.
 
     Every value must be non-negative, and `grand_total` must be
     positive -- the same "raise, don't silently misrepresent" stance
-    `Mark.ARC`'s own validation already takes for its own share-of-
+    `Mark.ARC`'s validation already takes for its share-of-
     a-whole data. No numeric y-axis (a real, deliberate v1
-    simplification, the same kind `Mark.POLAR`'s own ungridded numeric
+    simplification, the same kind `Mark.POLAR`'s ungridded numeric
     readout already is) -- category names label each column along the
     bottom, legend keyed by `subcategories` (the same "series name ->
     color" legend `Mark.STACKED_BAR` already draws).
@@ -147,9 +145,9 @@ def _render_marimekko[
     # a "this shape's end," once as the next shape's "start") always
     # lands on the same pixel -- no hairline gap or overlap from
     # rounding twice independently. The same "round the boundaries,
-    # not the width" pattern `Mark.STACKED_BAR`'s own `_render_
+    # not the width" pattern `Mark.STACKED_BAR`'s `_render_
     # stacked_bar` already uses (there via `_axis_pixel` on each
-    # segment's own running total).
+    # segment's running total).
     var x_cum = 0.0
     for j in range(n_cats):
         var col_x0 = _round_to_int(Float64(plot_x0) + x_cum)
@@ -199,12 +197,12 @@ def marimekko(
     y_title: String = "",
 ) raises -> Canvas:
     """A Marimekko/mosaic chart -- `Mark.MARIMEKKO`, column widths
-    proportional to each category's own share of the grand total,
-    stacked segment heights showing each column's own subcategory
-    composition. `values[i][j]` is `subcategories[i]`'s own value for
+    proportional to each category's share of the grand total,
+    stacked segment heights showing each column's subcategory
+    composition. `values[i][j]` is `subcategories[i]`'s value for
     `categories[j]` (rows are subcategories, columns are categories,
-    matching ECharts.jl's own `marimekko()` matrix convention). See
-    `_render_marimekko`'s own docstring for the full reasoning."""
+    matching ECharts.jl's `marimekko()` matrix convention). See
+    `_render_marimekko`'s docstring for the full reasoning."""
     var plot = Plot().mark_marimekko().encode_marimekko(
         categories=categories, subcategories=subcategories, values=values
     )

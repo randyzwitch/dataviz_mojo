@@ -1,7 +1,5 @@
 """Tests for Mark.ARC_DIAGRAM: node line-up positions, semicircular
-edge-arc geometry/width, per-from-node color, encode_chord()'s own
-shared validation (raster + SVG) -- see arc_diagram.mojo's own
-docstrings for the rules verified here.
+edge-arc geometry/width, per-from-node color, encode_chord()'s shared validation (raster + SVG) -- see arc_diagram.mojo's docstrings for the rules verified here.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -19,18 +17,17 @@ from _test_helpers import BG, _assert_color
 
 def test_render_arc_diagram_matches_hand_derived_arcs() raises:
     # 3 nodes (A, B, C -- first-seen order across from-then-to:
-    # "A","B" then "B","C"), edges A->B (value 10, the domain's own
-    # max) and B->C (value 5, half that). Canvas 400x300, default
+    # "A","B" then "B","C"), edges A->B (value 10, the domain's max) and B->C (value 5, half that). Canvas 400x300, default
     # theme: plot area x:[60,380], y:[20,250] -> 3 evenly spaced nodes
     # at x=60/220/380, all on the shared baseline y=250 (the bottom of
     # the inner plot rect).
     #
-    # Edge A->B: center (140,250), radius 80 -- its own peak (the
-    # semicircle's own top point, straight up from center) is (140,
+    # Edge A->B: center (140,250), radius 80 -- its peak (the
+    # semicircle's top point, straight up from center) is (140,
     # 170). Edge B->C: center (300,250), radius 80, peak (300,170).
     # Edge width: A->B at frac 10/10=1.0 -> line_width + line_width*2
     # = 6; B->C at frac 5/10=0.5 -> line_width + line_width = 4 (not
-    # directly asserted here, confirmed in this file's own SVG test
+    # directly asserted here, confirmed in this file's SVG test
     # instead, where the exact stroke-width is visible in the path
     # markup). Every point below confirmed against a real render()
     # run first.
@@ -40,11 +37,11 @@ def test_render_arc_diagram_matches_hand_derived_arcs() raises:
     var c = arc_diagram(from_c, to_c, v, width=400, height=300)
 
     var palette = default_categorical_palette()
-    _assert_color(c, 140, 170, palette[0], "A->B's own arc, at its own peak")
-    _assert_color(c, 300, 170, palette[1], "B->C's own arc, at its own peak")
-    _assert_color(c, 60, 250, palette[0], "node A's own marker")
-    _assert_color(c, 220, 250, palette[1], "node B's own marker")
-    _assert_color(c, 380, 250, palette[2], "node C's own marker")
+    _assert_color(c, 140, 170, palette[0], "A->B's arc, at its peak")
+    _assert_color(c, 300, 170, palette[1], "B->C's arc, at its peak")
+    _assert_color(c, 60, 250, palette[0], "node A's marker")
+    _assert_color(c, 220, 250, palette[1], "node B's marker")
+    _assert_color(c, 380, 250, palette[2], "node C's marker")
 
 
 def test_render_arc_diagram_svg_matches_confirmed_geometry() raises:
@@ -60,12 +57,12 @@ def test_render_arc_diagram_svg_matches_confirmed_geometry() raises:
     assert_true(
         '<path d="M60.000,250.000 A80.000,80.000 0 1,1 220.000,250.000" fill="none" stroke="#1f77b4"'
         ' stroke-width="6.000"' in s,
-        "A->B's own arc: center (140,250), radius 80, width 6 (frac 1.0)",
+        "A->B's arc: center (140,250), radius 80, width 6 (frac 1.0)",
     )
     assert_true(
         '<path d="M220.000,250.000 A80.000,80.000 0 1,1 380.000,250.000" fill="none" stroke="#ff7f0e"'
         ' stroke-width="4.000"' in s,
-        "B->C's own arc: center (300,250), radius 80, width 4 (frac 0.5)",
+        "B->C's arc: center (300,250), radius 80, width 4 (frac 0.5)",
     )
 
 

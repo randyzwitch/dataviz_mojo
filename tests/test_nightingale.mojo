@@ -18,18 +18,18 @@ from _test_helpers import BG, _assert_color
 def test_render_nightingale_matches_hand_derived_wedge_colors() raises:
     # Three equal-value wedges -- each spans exactly 2*pi/3 (120
     # degrees). Wedges start at 12 o'clock (-pi/2) and sweep clockwise
-    # (Mark.ARC's own convention, reused unchanged -- see _render_
-    # nightingale's own docstring): wedge 0 spans -90..30 degrees
-    # (bisector -30), wedge 1 spans 30..150 (bisector 90, straight
-    # down), wedge 2 spans 150..270 (bisector 210). Same center/radius
-    # as test_arc.mojo's own "a"/"b" case (single-char category labels
+    # (Mark.ARC's convention, reused unchanged -- see _render_
+    # nightingale's docstring): wedge 0 spans -90.30 degrees
+    # (bisector -30), wedge 1 spans 30.150 (bisector 90, straight
+    # down), wedge 2 spans 150.270 (bisector 210). Same center/radius
+    # as test_arc.mojo's "a"/"b" case (single-char category labels
     # reserve the same legend width regardless of how many rows, since
     # legend width depends on the widest label, not the row count):
     # canvas 400x300, default margins -> plot area x:[60,250],
     # y:[20,250], center (155,135), max radius 85.5 -- all three
     # wedges reach that same radius here (equal values -> frac=1.0
     # each). Test points at radius 50 (well inside, away from any
-    # edge/AA blending) along each wedge's own bisector, offsets
+    # edge/AA blending) along each wedge's bisector, offsets
     # computed by hand from cos/sin of each bisector angle.
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 1.0, 1.0]
@@ -42,16 +42,15 @@ def test_render_nightingale_matches_hand_derived_wedge_colors() raises:
 
 
 def test_render_nightingale_area_mode_scales_radius_by_sqrt() raises:
-    # Two categories, values [1, 4] (max 4): wedge 0 spans -90..90
+    # Two categories, values [1, 4] (max 4): wedge 0 spans -90.90
     # degrees (bisector 0, straight right of center), wedge 1 spans
-    # 90..270 (bisector 180, straight left). Same center/radius as
+    # 90.270 (bisector 180, straight left). Same center/radius as
     # above (400x300, default margins, single-char labels): center
     # (155,135), max radius 85.5.
     #
-    # rose_type="radius" (area=False, the default): wedge 0's own
-    # radius = 85.5 * (1/4) = 21.375 -- a point at radius 30 along its
+    # rose_type="radius" (area=False, the default): wedge 0's radius = 85.5 * (1/4) = 21.375 -- a point at radius 30 along its
     # bisector (185, 135) falls *outside* it, background.
-    # rose_type="area" (area=True): wedge 0's own radius =
+    # rose_type="area" (area=True): wedge 0's radius =
     # 85.5 * sqrt(1/4) = 85.5 * 0.5 = 42.75 -- that same point (185,
     # 135) now falls *inside* it. This is the one pixel that actually
     # discriminates the two modes; wedge 1 (value equals the max, frac
@@ -71,15 +70,14 @@ def test_render_nightingale_area_mode_scales_radius_by_sqrt() raises:
 
 
 def test_render_nightingale_svg_matches_confirmed_wedge_paths() raises:
-    # Same 2-category [1, 3] data test_arc.mojo's own SVG test uses,
+    # Same 2-category [1, 3] data test_arc.mojo's SVG test uses,
     # default rose_type="radius" mode -- center/radius solved the same
     # way (400x300, no legend): cx=220, cy=135, max radius=103.5.
     # Equal angles this time (not ARC's value-proportional ones):
-    # wedge 0 spans -90..90 degrees at radius 103.5*(1/3)=34.5, wedge 1
-    # spans 90..270 at radius 103.5*(3/3)=103.5. Endpoints confirmed
+    # wedge 0 spans -90.90 degrees at radius 103.5*(1/3)=34.5, wedge 1
+    # spans 90.270 at radius 103.5*(3/3)=103.5. Endpoints confirmed
     # via a real render_svg() run first (same discipline as test_arc.
-    # mojo's own SVG tests), formatted through SvgCanvas's own
-    # 3-decimal `_format_svg_float`.
+    # mojo's SVG tests), formatted through SvgCanvas's 3-decimal `_format_svg_float`.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
     var svg = SvgCanvas(400, 300)
@@ -89,12 +87,12 @@ def test_render_nightingale_svg_matches_confirmed_wedge_paths() raises:
     assert_true(
         '<path d="M220.000,135.000 L220.000,100.500 A34.500,34.500 0 1,1 220.000,169.500'
         ' Z" fill="#1f77b4"/>' in s,
-        "wedge 0 (value 1, frac 1/3, radius 34.5, span -90..90)",
+        "wedge 0 (value 1, frac 1/3, radius 34.5, span -90.90)",
     )
     assert_true(
         '<path d="M220.000,135.000 L220.000,238.500 A103.500,103.500 0 1,1 220.000,31.500'
         ' Z" fill="#ff7f0e"/>' in s,
-        "wedge 1 (value 3, frac 1.0, radius 103.5, span 90..270)",
+        "wedge 1 (value 3, frac 1.0, radius 103.5, span 90.270)",
     )
 
 

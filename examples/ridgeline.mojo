@@ -1,20 +1,20 @@
 """Demo: a ridgeline plot -- Mark.RIDGELINE, one overlapping kernel-
 density-estimate row per category, top to bottom (Plot.encode_
 distribution(), the same category-plus-raw-values shape beeswarm()/
-violin() take -- see ridgeline.mojo's own docstring for the baseline/
-overlap rules). Mark.GANTT's own horizontal categorical axis frame,
-reused unchanged; each row's own curve reuses Mark.VIOLIN's own KDE
+violin() take -- see ridgeline.mojo's docstring for the baseline/
+overlap rules). Mark.GANTT's horizontal categorical axis frame,
+reused unchanged; each row's curve reuses Mark.VIOLIN's KDE
 math exactly, just drawn upward from a row baseline instead of
 left-right-symmetric. Built via dataviz_mojo.ridgeline() -- see
-examples/scatter.mojo's own docstring for what that trades away.
+examples/scatter.mojo's docstring for what that trades away.
 
 Daily temperature distributions across a few months -- the classic
-ridgeline use: several distributions' own shapes, stacked so they're
+ridgeline use: several distributions' shapes, stacked so they're
 easy to compare at a glance, with a little overlap read as "closer to
 the viewer."
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

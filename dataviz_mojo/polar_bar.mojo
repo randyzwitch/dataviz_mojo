@@ -26,23 +26,22 @@ def _render_polar_bar[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.POLAR_BAR` plot: "bars radiate outward from the
-    centre of a circle" (ECharts.jl's own `polarbar` docs) -- one bar
-    per category (`encode_categorical`'s `x`), each its own equal-width
-    angular slot (`2*pi/N`, `Mark.NIGHTINGALE`'s own convention), bar
+    centre of a circle" (ECharts.jl's `polarbar` docs) -- one bar
+    per category (`encode_categorical`'s `x`), each its equal-width
+    angular slot (`2*pi/N`, `Mark.NIGHTINGALE`'s convention), bar
     length (radius) proportional to `value / max(values)` (always
     linear -- unlike `NIGHTINGALE`, there's no `rose_type="area"`
-    equivalent here; ECharts' own polarbar has no such mode). The one
-    real difference from `NIGHTINGALE`'s own wedges: `_POLAR_BAR_
-    PADDING` carves a gap out of each bar's own angular slot (split
+    equivalent here; ECharts' polarbar has no such mode). The one
+    real difference from `NIGHTINGALE`'s wedges: `_POLAR_BAR_
+    PADDING` carves a gap out of each bar's angular slot (split
     evenly on both sides), so bars read as separated columns -- the
     same "separated bands vs. edge-to-edge cells" distinction `Mark.
-    HEATMAP`'s own docstring already draws against `Mark.BAR`, applied
+    HEATMAP`'s docstring already draws against `Mark.BAR`, applied
     here to `NIGHTINGALE`'s edge-to-edge sectors instead.
 
     Shares `NIGHTINGALE`'s identical validation (non-negative values,
     at least one positive), palette, legend, and margin-box layout;
-    see `_render_nightingale`'s own docstring for why this needs its
-    own render path rather than a flag on that one (the padding
+    see `_render_nightingale`'s docstring for why this needs its render path rather than a flag on that one (the padding
     changes the actual angle math, not just which primitive draws the
     result).
     """
@@ -104,9 +103,9 @@ def polarbar(
     """A circular column chart -- `Mark.POLAR_BAR` over a categorical
     `x` and continuous `y` (the same shape `bar()`/`pie()` take; every
     value must be non-negative, and at least one positive). Bars
-    radiate outward from the chart's own center, one equal-width
+    radiate outward from the chart's center, one equal-width
     angular slot per category, length proportional to `value /
-    max(values)` -- see `_render_polar_bar`'s own docstring for how
+    max(values)` -- see `_render_polar_bar`'s docstring for how
     this differs from `nightingale()`'s edge-to-edge wedges."""
     var plot = Plot().mark_polar_bar().encode_categorical(x=categories, y=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

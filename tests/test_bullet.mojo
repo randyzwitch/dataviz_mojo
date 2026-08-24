@@ -1,5 +1,5 @@
 """Tests for Mark.BULLET: qualitative range bands, measure, and target
-(raster + SVG) -- split out of what used to be one big test_plot.mojo.
+(raster + SVG).
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -38,12 +38,11 @@ def test_render_bullet_matches_hand_derived_bands_measure_and_target() raises:
     # 2-category OrdinalScale over [60,380] every other categorical test
     # already established (bands at x=76/236, width 128, centers
     # 140/300). Every pixel below independently computed via python3
-    # from LinearScale's own slope/intercept formula (scale=(20-250)/
-    # 105=-2.190476.., translate=250), then confirmed against a real
-    # render() run before trusting it.
+    # from LinearScale's slope/intercept formula (scale=(20-250)/
+    # 105=-2.190476., translate=250).
     # Built via Plot/Canvas/render() directly, not bullet() -- see
     # test_render_boxplot_matches_hand_derived_box_whiskers_and_
-    # outlier's own comment for why an exact hand-derived pixel check
+    # outlier's comment for why an exact hand-derived pixel check
     # uses render() itself rather than the (now internally
     # supersampled) quickplot wrapper.
     var cats: List[String] = ["A", "B"]
@@ -62,7 +61,7 @@ def test_render_bullet_matches_hand_derived_bands_measure_and_target() raises:
     _assert_color(c, 140, 10, BG, "A: above every band -- background")
     _assert_color(c, 300, 150, t.mark_color, "B: inside the measure bar (0 to 75)")
     _assert_color(c, 250, 140, t.axis_color, "B: the target tick (50), off the measure bar")
-    _assert_color(c, 220, 150, BG, "the gap between A's and B's own bands -- background")
+    _assert_color(c, 220, 150, BG, "the gap between A's and B's bands -- background")
 
 
 def test_render_bullet_svg_matches_confirmed_bands_measure_and_target() raises:
@@ -79,11 +78,11 @@ def test_render_bullet_svg_matches_confirmed_bands_measure_and_target() raises:
     assert_true('<rect x="76" y="162" width="128" height="88" fill="#e0e0e0"/>' in s, "A's lightest band [0,40]")
     assert_true('<rect x="76" y="97" width="128" height="65" fill="#acacac"/>' in s, "A's middle band [40,70]")
     assert_true('<rect x="76" y="31" width="128" height="66" fill="#787878"/>' in s, "A's darkest band [70,100]")
-    assert_true('<rect x="118" y="130" width="45" height="120" fill="#1e64b4"/>' in s, "A's own measure bar")
+    assert_true('<rect x="118" y="130" width="45" height="120" fill="#1e64b4"/>' in s, "A's measure bar")
     assert_true(
         '<line x1="76" y1="108" x2="204" y2="108" stroke="#505050" stroke-width="1.000"'
         ' stroke-linecap="round"/>' in s,
-        "A's own target tick, full band width",
+        "A's target tick, full band width",
     )
 
 

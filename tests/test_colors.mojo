@@ -1,11 +1,11 @@
 """Tests for colors.mojo -- spot checks against the actual CSS Color
 Module Level 3 spec (<https://www.w3.org/TR/css-color-3/#svg-color>),
-not just re-reading colors.mojo's own values back at itself: the three
+not just re-reading colors.mojo's values back at itself: the three
 additive primaries, a representative multi-word name, that both
 spellings CSS itself standardizes for six names resolve to the
 identical color, and that a named constant works exactly like any
 other `Color` literal through a real render (see the "why comptime,
-not a lookup" paragraph in colors.mojo's own docstring -- this is what
+not a lookup" paragraph in colors.mojo's docstring -- this is what
 that buys: no separate integration path to test, just Theme.mark_color
 fed a different value).
 """
@@ -61,7 +61,7 @@ def test_multiword_name_matches_the_css_spec() raises:
 def test_gray_grey_spelling_pairs_are_identical_colors() raises:
     # CSS standardizes both spellings for these six names -- picking
     # one and dropping the other would just be a different, equally
-    # arbitrary standard (see colors.mojo's own docstring), so both
+    # arbitrary standard (see colors.mojo's docstring), so both
     # are provided, and must actually agree with each other.
     _assert_rgb(GREY, Int(GRAY.r), Int(GRAY.g), Int(GRAY.b), "GREY matches GRAY")
     _assert_rgb(DARKGREY, Int(DARKGRAY.r), Int(DARKGRAY.g), Int(DARKGRAY.b), "DARKGREY matches DARKGRAY")
@@ -81,7 +81,7 @@ def test_named_color_works_as_a_theme_mark_color_through_a_real_render() raises:
     # A real render, not just reading the constant back -- confirms a
     # named color reaches the renderer exactly like any other Color
     # literal, with no separate integration path of its own (see
-    # colors.mojo's own "why comptime, not a lookup" paragraph). A
+    # colors.mojo's "why comptime, not a lookup" paragraph). A
     # plain non-zero count, not a specific hand-derived pixel -- bar()
     # layout itself is already exhaustively covered in test_bar.mojo;
     # all this needs to prove is that the fill color a caller asked

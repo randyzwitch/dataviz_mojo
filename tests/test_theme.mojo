@@ -1,8 +1,7 @@
 """Tests for Theme.scale (uniform layout scaling and its purely-additive
 default), Theme.font_family (threaded into every _TextRequest at
 construction time, both backends), and Theme.title_bold (the one
-Theme default that deliberately changes prior behavior rather than
-reproducing it) -- split out of what used to be one big test_plot.mojo.
+Theme default that isn't backward-compatible).
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -36,17 +35,16 @@ def test_render_theme_scale_uniformly_scales_the_whole_layout() raises:
     # Theme.scale=2.0, paired with a canvas twice the width/height, is
     # meant to reproduce the exact same chart at twice the pixel
     # density -- so this reuses (not re-derives) test_render_point_
-    # mark_centers_on_the_hand_derived_pixel's own single-(5.0, 5.0)-
+    # mark_centers_on_the_hand_derived_pixel's single-(5.0, 5.0)-
     # point setup, at 2x: canvas 800x600 (2x of 400x300), default
     # margins doubled by _Scaled (left=120, right=40, top=40,
     # bottom=100), giving a plot area of x:[120,760], y:[40,500] --
     # exactly 2x test_render_point_mark_centers_on_the_hand_derived_
-    # pixel's own x:[60,380], y:[20,250]. The point's own pixel
+    # pixel's x:[60,380], y:[20,250]. The point's pixel
     # (440, 270) is exactly double (220, 135) for the same reason:
-    # LinearScale.to_pixel() of a domain's own midpoint always lands
-    # on the range's own midpoint, and doubling a range's endpoints
-    # doubles its midpoint too (confirmed directly via the formula,
-    # not assumed to "just carry over" from the 1x case).
+    # LinearScale.to_pixel() of a domain's midpoint always lands
+    # on the range's midpoint, and doubling a range's endpoints
+    # doubles its midpoint too.
     var xy: List[Float64] = [5.0]
     var t = Theme(scale=2.0)
     var c = scatter(xy, xy, theme=t, width=800, height=600)
@@ -60,12 +58,12 @@ def test_render_theme_scale_uniformly_scales_the_whole_layout() raises:
 
 
 def test_render_theme_scale_default_matches_unscaled_output_exactly() raises:
-    # scale's own default (1.0) must reproduce the exact pre-existing
+    # scale's default (1.0) must reproduce the exact pre-existing
     # unscaled render byte-for-byte -- not just "close", since every
     # pre-existing hand-derived pixel test in this file already
     # depends on that. Cross-checked directly here too: the identical
     # single-point setup, compared pixel-for-pixel between an explicit
-    # Theme(scale=1.0) and Theme's own bare default.
+    # Theme(scale=1.0) and Theme's bare default.
     var xy: List[Float64] = [5.0]
     var c_default = scatter(xy, xy, width=400, height=300)
     var c_explicit = scatter(xy, xy, theme=Theme(scale=1.0), width=400, height=300)
@@ -82,12 +80,11 @@ def test_render_theme_scale_default_matches_unscaled_output_exactly() raises:
 def test_render_theme_font_family_reaches_svg_output() raises:
     # A custom font_family ("Georgia") shows up as a literal
     # font-family="Georgia" attribute on every <text> element SVG
-    # emits -- confirmed via a real render_svg() run first (not
-    # assumed from the plumbing alone). Single point, canvas 400x300,
+    # emits. Single point, canvas 400x300,
     # default theme otherwise: the same setup test_render_theme_scale_
-    # uniformly_scales_the_whole_layout's own 1x case reuses, so the
+    # uniformly_scales_the_whole_layout's 1x case reuses, so the
     # first tick label ("4.0" on the y-axis) lands at the same (60,
-    # 271) that case's own math already establishes.
+    # 271) that case's math already establishes.
     var xy: List[Float64] = [5.0]
     var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(font_family="Georgia"))
@@ -101,12 +98,12 @@ def test_render_theme_font_family_reaches_svg_output() raises:
 
 
 def test_render_theme_font_family_default_matches_sans_serif_explicit() raises:
-    # font_family's own bare default ("sans-serif") must reproduce the
+    # font_family's bare default ("sans-serif") must reproduce the
     # exact same output as passing that same value explicitly -- the
     # same explicit-default-value guarantee test_render_theme_scale_
     # default_matches_unscaled_output_exactly proves for scale,
     # exercised through the actual construction-time-baked-in code
-    # path rather than just trusting the parameter's own default.
+    # path rather than just trusting the parameter's default.
     var xy: List[Float64] = [5.0]
     var c_default = scatter(xy, xy, width=400, height=300)
     var c_explicit = scatter(xy, xy, theme=Theme(font_family="sans-serif"), width=400, height=300)
@@ -124,15 +121,14 @@ def test_render_theme_font_family_actually_changes_raster_glyphs() raises:
     # A genuinely different family (monospace, vs. the default sans-
     # serif) must change the actual rendered raster glyphs, not just
     # the SVG markup -- proof `family` reaches canvas_mojo.text.
-    # draw_text's own raster path too, not only SvgCanvas.draw_text.
+    # draw_text's raster path too, not only SvgCanvas.draw_text.
     # Sampling a small box around the first y-axis tick label ("4.0"
     # at pixel (60, 271), see the SVG test above) rather than a single
     # pixel: a font-shape difference shows up as *some* pixel in the
-    # glyph's own footprint changing, not necessarily every pixel or
+    # glyph's footprint changing, not necessarily every pixel or
     # any one specific one, so this counts differing pixels in a
     # small region around the label instead of asserting an exact
-    # value -- confirmed via a real render() run first that a real,
-    # nonzero difference exists there before trusting this test.
+    # value -- a real, nonzero difference exists in that region.
     var xy: List[Float64] = [5.0]
     var c_sans = scatter(xy, xy, theme=Theme(font_family="sans-serif"), width=400, height=300)
     var c_mono = scatter(xy, xy, theme=Theme(font_family="monospace"), width=400, height=300)
@@ -148,13 +144,12 @@ def test_render_theme_font_family_actually_changes_raster_glyphs() raises:
 
 
 def test_render_theme_title_bold_default_emits_font_weight_bold() raises:
-    # title_bold's own default (True) emits a literal font-weight="bold"
-    # attribute on the title's own <text> element -- confirmed via a
-    # real render_svg() run first. Single point, canvas 400x300,
+    # title_bold's default (True) emits a literal font-weight="bold"
+    # attribute on the title's <text> element. Single point, canvas 400x300,
     # title "Hi" -- the same no-legend geometry test_render_theme_
-    # scale_uniformly_scales_the_whole_layout's own 1x case already
+    # scale_uniformly_scales_the_whole_layout's 1x case already
     # establishes, so the title lands at the same (220, 14) that
-    # case's own math implies for this canvas size.
+    # case's math implies for this canvas size.
     var xy: List[Float64] = [5.0]
     var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_point().encode(x=xy, y=xy).labels(title="Hi")
@@ -168,10 +163,9 @@ def test_render_theme_title_bold_default_emits_font_weight_bold() raises:
 
 
 def test_render_theme_title_bold_false_reproduces_the_old_no_bold_output() raises:
-    # title_bold=False must reproduce the exact pre-existing (pre-
-    # this-feature) title output -- no font-weight attribute at all,
-    # not font-weight="normal" -- confirmed via a real render_svg()
-    # run first. Same setup as the default-bold test above.
+    # title_bold=False must reproduce the plain title output -- no
+    # font-weight attribute at all, not font-weight="normal". Same
+    # setup as the default-bold test above.
     var xy: List[Float64] = [5.0]
     var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_point().encode(x=xy, y=xy).labels(title="Hi").theme(Theme(title_bold=False))
@@ -187,7 +181,7 @@ def test_render_theme_title_bold_false_reproduces_the_old_no_bold_output() raise
 def test_render_theme_title_bold_only_affects_the_title() raises:
     # Bold is scoped to the chart title alone -- x_title/y_title (and
     # every other _TextRequest) stay normal weight regardless of
-    # title_bold, matching Theme.title_bold's own docstring ("one
+    # title_bold, matching Theme.title_bold's docstring ("one
     # deliberate exception, not a general knob"). Confirmed by
     # checking a real render_svg() output with both an x_title and a
     # title present: exactly one font-weight="bold" attribute in the
@@ -292,7 +286,7 @@ def test_theme_layout_fields_reach_scaled() raises:
     assert_equal(_Scaled(t1).tick_length, 5, "default tick_length reaches _Scaled")
     assert_equal(_Scaled(t2).tick_length, 20, "overridden tick_length reaches _Scaled")
 
-    # ...and still scales. 20 at scale 2.0 is 40, not 20.
+    # .and still scales. 20 at scale 2.0 is 40, not 20.
     assert_equal(
         _Scaled(Theme(tick_length=20, scale=2.0)).tick_length, 40,
         "a themed tick_length is still multiplied by Theme.scale",
@@ -302,16 +296,14 @@ def test_theme_layout_fields_reach_scaled() raises:
         "legend_width scales too",
     )
 
-    # continuous_legend_bar_width used to be defined as
-    # _LEGEND_SWATCH_SIZE, so changing the swatch silently moved the
-    # gradient bar. They are independent fields now; assert that
-    # decoupling explicitly, since it is the one behavioral difference
-    # in this change.
+    # legend_swatch_size and continuous_legend_bar_width are
+    # independent fields, not one defined in terms of the other --
+    # changing the swatch must never silently move the gradient bar.
     var decoupled = _Scaled(Theme(legend_swatch_size=40))
     assert_equal(decoupled.legend_swatch_size, 40, "swatch size changed")
     assert_equal(
         decoupled.continuous_legend_bar_width, 14,
-        "the gradient bar no longer follows the swatch size",
+        "the gradient bar doesn't follow the swatch size",
     )
 
 

@@ -1,22 +1,21 @@
-"""Demo: a reference line annotation -- Plot.annotate_line(), ECharts'
-own markLine (a fixed value only, not its "average"/"max"/"min" auto-
-computed modes -- see that method's own docstring). Draws a solid
+"""Demo: a reference line annotation -- Plot.annotate_line(), ECharts' markLine (a fixed value only, not its "average"/"max"/"min" auto-
+computed modes -- see that method's docstring). Draws a solid
 horizontal line at a given y value across the full plot width, with an
 optional right-aligned label, in Theme.annotation_color. Only meaningful
 on a mark with a genuine continuous y-axis (Mark.BAR here) -- see
-annotate_line()'s own docstring for the full list and why not every
+annotate_line()'s docstring for the full list and why not every
 mark type supports it yet.
 
 Monthly revenue against a target -- a real editorial-chart convention
 (a reference line reads as "how are we doing against a fixed goal,"
 not something a legend/tooltip is needed to explain), built on the
-same data grouped_bar()'s own example uses for a single region.
+same data grouped_bar()'s example uses for a single region.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above. Built by hand (not
 a one-call quickplot -- annotate_line() isn't exposed on quickplot
-functions, a deliberate scope cut; see that method's own docstring)
+functions, a deliberate scope cut; see that method's docstring)
 via Plot() directly, the same way render_layers()/render_facets()
 already have to be.
 

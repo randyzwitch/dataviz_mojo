@@ -1,17 +1,16 @@
 """Demo: a beeswarm plot -- Mark.BEESWARM, one point per raw value,
-jittered sideways within its own category's band to avoid overlap
+jittered sideways within its category's band to avoid overlap
 (Plot.encode_distribution(), a category plus a *list* of raw values --
-see that method's own docstring; the same shape Mark.VIOLIN/RIDGELINE
+see that method's docstring; the same shape Mark.VIOLIN/RIDGELINE
 will take). Reuses the same vertical categorical axis frame Mark.BOX
-does. Built via dataviz_mojo.beeswarm() -- see examples/scatter.mojo's
-own docstring for what that trades away.
+does. Built via dataviz_mojo.beeswarm() -- see examples/scatter.mojo's docstring for what that trades away.
 
 Exam scores by class -- the classic beeswarm use: seeing every
-individual data point's own position within its group, not just a
-box's own five-number summary.
+individual data point's position within its group, not just a
+box's five-number summary.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

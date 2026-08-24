@@ -23,15 +23,15 @@ the same way as any other `Color` literal (works as a Theme keyword
 argument, in a List[Color] palette, anywhere `Color` already does),
 with no runtime string-matching/raises path a name-string lookup would
 need. `CSS`-standard names only, not an invented palette -- an actual
-"agreed-upon standard" (the issue's own phrasing) beats a curated
+"agreed-upon standard" (the issue's phrasing) beats a curated
 subset that someone would eventually ask to extend one color at a
 time.
 
 Deliberately not part of `canvas_mojo.Color` itself (see color_scale.
-mojo's own docstring for that type's existing "keep the core type
+mojo's docstring for that type's existing "keep the core type
 minimal" history) -- this file has no dependency on anything else in
 dataviz_mojo (`Plot`, `Theme`, marks, ...), just `Color` values, so it
-could move to canvas_mojo directly (e.g. as its own `named_colors`
+could move to canvas_mojo directly (e.g. as its `named_colors`
 module, re-exported from here) if another canvas_mojo consumer beyond
 this package ever wants the identical list -- nothing here assumes
 dataviz_mojo-specific machinery.

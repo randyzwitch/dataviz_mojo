@@ -1,15 +1,15 @@
 """Demo: a radar/spider chart -- Mark.RADAR, one spoke per named
-indicator (each its own max), one filled-and-stroked polygon per named
-series (Plot.encode_radar() -- see that method's own docstring). Built
-via dataviz_mojo.radar() -- see examples/scatter.mojo's own docstring
+indicator (each its max), one filled-and-stroked polygon per named
+series (Plot.encode_radar() -- see that method's docstring). Built
+via dataviz_mojo.radar() -- see examples/scatter.mojo's docstring
 for what that trades away.
 
-Two teams compared across five attributes -- ECharts.jl's own radar()
-example, the chart type's own classic use (overlapping polygons make
+Two teams compared across five attributes -- ECharts.jl's radar()
+example, the chart type's classic use (overlapping polygons make
 each team's relative strengths across dimensions immediately visible).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

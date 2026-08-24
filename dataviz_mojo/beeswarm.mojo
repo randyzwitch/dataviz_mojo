@@ -20,21 +20,20 @@ def _beeswarm_offsets(y_pixels: List[Int], spacing: Int) -> List[Int]:
     """One x-offset per entry of `y_pixels` (same order in, same order
     out), spreading points that would otherwise overlap vertically out
     sideways -- the simplest real swarm layout: points within `spacing`
-    pixels of their own neighbor (sorted by `y_pixels`) join one
-    "row," each row's own points alternate `0, +spacing, -spacing,
+    pixels of their neighbor (sorted by `y_pixels`) join one
+    "row," each row's points alternate `0, +spacing, -spacing,
     +2*spacing, -2*spacing, ...` outward from center in the order they
     fall into that row. Not a full physics-style swarm (which would
     consider every nearby point continuously, not just a chain of
     consecutive sorted neighbors) -- this is deterministic and cheap,
-    which matters more here: a real swarm's own point positions depend
+    which matters more here: a real swarm's point positions depend
     on placement order in ways that are hard to predict by hand, and
     this package's whole test methodology depends on hand-derivable
     output (see the wiki).
 
-    A row never checks whether its own alternating spread actually fits
-    inside a category's own band width -- not clipped here, a caller
-    with an unusually dense category may see a swarm wider than its
-    own column. A real, documented v1 scope limit, not an oversight.
+    A row never checks whether its alternating spread actually fits
+    inside a category's band width -- not clipped here, a caller
+    with an unusually dense category may see a swarm wider than its column. A real, documented v1 scope limit, not an oversight.
     """
     var n = len(y_pixels)
     var order = List[Int]()
@@ -71,12 +70,11 @@ def _beeswarm_offsets(y_pixels: List[Int], spacing: Int) -> List[Int]:
 def _render_beeswarm[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.BEESWARM` plot: `encode_distribution()`'s own
-    per-category raw values, one point per value, jittered sideways
-    within its own category's band via `_beeswarm_offsets` so points
+    """Render a `Mark.BEESWARM` plot: `encode_distribution()`'s per-category raw values, one point per value, jittered sideways
+    within its category's band via `_beeswarm_offsets` so points
     at similar values don't sit directly on top of each other -- the
     same "see every individual point, not a summary" reading `Mark.
-    BOX` gives up in exchange for its own five-number-summary shape.
+    BOX` gives up in exchange for its five-number-summary shape.
 
     Reuses `_draw_categorical_axis_frame` (the same vertical-
     categorical-x/continuous-y core `Mark.BAR`/`BOX`/... share), with
@@ -126,7 +124,7 @@ def beeswarm(
 ) raises -> Canvas:
     """A beeswarm plot -- `Mark.BEESWARM`, one point per raw value,
     jittered sideways to avoid overlap, one swarm per category. See
-    `Plot.encode_distribution()`'s own docstring (plot.mojo) for the
+    `Plot.encode_distribution()`'s docstring (plot.mojo) for the
     exact shape (the same one `violin()`/`ridgeline()` take)."""
     var plot = Plot().mark_beeswarm().encode_distribution(categories=categories, values=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

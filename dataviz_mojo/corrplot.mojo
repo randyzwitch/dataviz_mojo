@@ -24,10 +24,9 @@ from dataviz_mojo.theme import Theme
 struct _CorrplotData(Movable):
     """
     Mark.CORRPLOT only -- a square correlation matrix over a shared
-    variable list, plus display options. See encode_corrplot()'s own
-    docstring.
+    variable list, plus display options. See encode_corrplot()'s docstring.
 
-    Grouped onto `Plot._corrplot` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._corrplot` -- see `Plot`'s docstring.
     """
 
     var variables: List[String]
@@ -47,31 +46,31 @@ struct _CorrplotData(Movable):
 def _render_corrplot[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.CORRPLOT` plot: `encode_corrplot()`'s own square
+    """Render a `Mark.CORRPLOT` plot: `encode_corrplot()`'s square
     correlation `matrix` over `variables`, one bubble per surviving
-    cell on `Mark.HEATMAP`'s own `_draw_grid_axis_frame` -- the same
+    cell on `Mark.HEATMAP`'s `_draw_grid_axis_frame` -- the same
     variable list on *both* axes (a correlation matrix is always
-    square), unlike `HEATMAP`'s own two independent category domains.
+    square), unlike `HEATMAP`'s two independent category domains.
     Bubble radius scales linearly with `abs(matrix[row][col])`
-    (`theme.corrplot_bubble_fraction` of the cell's own smaller dimension at
+    (`theme.corrplot_bubble_fraction` of the cell's smaller dimension at
     exactly +-1.0), bubble color through the same continuous
     `ColorScale` vocabulary `HEATMAP` uses, but spanning the fixed
-    `[-1.0, 1.0]` correlation domain (not the data's own [min, max] --
-    a correlation matrix's own domain is always exactly that range by
+    `[-1.0, 1.0]` correlation domain (not the data's [min, max] --
+    a correlation matrix's domain is always exactly that range by
     definition, so there's nothing to derive from the data the way
-    `HEATMAP`'s own value domain has to be).
+    `HEATMAP`'s value domain has to be).
 
     `Plot.mark_corrplot(layout=...)` keeps only the cells a given
     `layout` calls for: `"full"` (every cell, the default), `"lower"`
-    (row index >= col index, into `variables`' own given order), or
+    (row index >= col index, into `variables`' given order), or
     `"upper"` (row index <= col index) -- the same lower/upper-
-    triangle convention ECharts.jl's own `corrplot()` uses, since a
+    triangle convention ECharts.jl's `corrplot()` uses, since a
     correlation matrix is symmetric and showing both triangles is
     often pure redundancy. `diag=False` additionally drops every
     row-equals-col cell (always 1.0 for a real correlation matrix,
     rarely informative). `labels=True` (the default) draws each
-    surviving cell's own value, formatted to two decimal places,
-    centered inside its own bubble.
+    surviving cell's value, formatted to two decimal places,
+    centered inside its bubble.
 
     Every value must be in `[-1.0, 1.0]` -- checked at render() time,
     the same "raise, don't silently misrepresent" stance every other
@@ -189,8 +188,7 @@ def corrplot(
     square correlation `matrix` over `variables`, sized and colored by
     `abs`/sign of each pairwise correlation. `layout` ("full" (the
     default), "lower", or "upper") and `diag` (default True) match
-    ECharts.jl's own `corrplot()` keyword names. See `_render_corrplot`'s
-    own docstring for the full reasoning."""
+    ECharts.jl's `corrplot()` keyword names. See `_render_corrplot`'s docstring for the full reasoning."""
     var plot = Plot().mark_corrplot(layout=layout, diag=diag, labels=labels).encode_corrplot(
         variables=variables, matrix=matrix
     )

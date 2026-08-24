@@ -1,6 +1,6 @@
 """Tests for Mark.CORRPLOT: bubble size/color per correlation cell,
-layout/diag filtering, encode_corrplot()'s own validation (raster +
-SVG) -- see corrplot.mojo's own docstrings for the rules verified
+layout/diag filtering, encode_corrplot()'s validation (raster +
+SVG) -- see corrplot.mojo's docstrings for the rules verified
 here.
 """
 
@@ -25,24 +25,22 @@ def test_render_corrplot_matches_hand_derived_bubbles() raises:
     # 57.5*0.42 = 24.15 -> 24 at |value|=1.0.
     #
     # Cell (A,A) [row 0, col 0, value 1.0]: center (140, 78), radius
-    # 24, color exactly Theme's own color_scale_high (the domain's own
-    # max). Cell (A,B) [row 0, col 1, value -0.5]: center (300, 78),
+    # 24, color exactly Theme's color_scale_high (the domain's max). Cell (A,B) [row 0, col 1, value -0.5]: center (300, 78),
     # radius round(24.15*0.5)=12, color at t=0.25 through the [-1,1]
     # gradient -- (148,173,218), bracketed between color_scale_low and
-    # color_scale_mid (Theme's own now-three-stop gradient, see that
-    # field's own docstring), confirmed via a real render_svg() run
-    # first (see this file's own SVG test), not re-derived from
-    # ColorScale's own interpolation math again (already covered by
-    # test_color_scale.mojo).
+    # color_scale_mid (Theme's three-stop gradient, see that
+    # field's docstring; see this file's SVG test) -- not re-derived
+    # from ColorScale's interpolation math again, already covered by
+    # test_color_scale.mojo.
     var vars: List[String] = ["A", "B"]
     var m: List[List[Float64]] = [[1.0, -0.5], [-0.5, 1.0]]
     var t = Theme(show_gridlines=False, show_legend=False)
     var c = corrplot(vars, m, labels=False, theme=t, width=400, height=300)
 
-    _assert_color(c, 140, 78, t.color_scale_high, "(A, A) = 1.0, the color domain's own max")
+    _assert_color(c, 140, 78, t.color_scale_high, "(A, A) = 1.0, the color domain's max")
     _assert_color(c, 300, 78, Color(148, 173, 218), "(A, B) = -0.5, t=0.25 through the gradient")
     _assert_color(c, 140, 193, Color(148, 173, 218), "(B, A) = -0.5, symmetric with (A, B)")
-    _assert_color(c, 300, 193, t.color_scale_high, "(B, B) = 1.0, the color domain's own max")
+    _assert_color(c, 300, 193, t.color_scale_high, "(B, B) = 1.0, the color domain's max")
     _assert_color(c, 200, 78, BG, "between the two bubbles on row A -- no bubble reaches that far")
 
 

@@ -28,42 +28,38 @@ def _render_ridgeline[
     `_kde_density`, reused unchanged from violin.mojo), but drawn as
     one row per category on a *horizontal* categorical frame instead
     of a vertical one -- `_draw_horizontal_categorical_axis_frame`
-    (`Mark.GANTT`'s own core: categories along `y`, top to bottom; a
+    (`Mark.GANTT`'s core: categories along `y`, top to bottom; a
     continuous `x` for the value domain along the bottom), each
-    category's own curve rising *upward* from its own row's bottom
+    category's curve rising *upward* from its row's bottom
     edge (the baseline) instead of `Mark.VIOLIN`'s left-right-symmetric
-    silhouette. Called with `padding=0.0`, *not* that function's own
-    0.2 default -- see its own docstring for why a ridgeline plot
+    silhouette. Called with `padding=0.0`, *not* that function's 0.2 default -- see its docstring for why a ridgeline plot
     needs rows to sit edge-to-edge (a real bug this package shipped
     with initially: a nonzero gap left a sliver of background between
-    rows, only inconsistently covered by `theme.ridgeline_overlap`'s own rise,
+    rows, only inconsistently covered by `theme.ridgeline_overlap`'s rise,
     which showed up as a spurious notch).
 
-    Each row's own curve may rise up to `theme.ridgeline_overlap` times the
-    row's own height above its own baseline -- deliberately more than
-    one row tall, so a tall category's own peak overlaps into the row
-    above it. Categories are drawn top to bottom, in `x_categories`'
-    own given order (not reordered by value the way `Mark.FUNNEL`
+    Each row's curve may rise up to `theme.ridgeline_overlap` times the
+    row's height above its baseline -- deliberately more than
+    one row tall, so a tall category's peak overlaps into the row
+    above it. Categories are drawn top to bottom, in `x_categories`' given order (not reordered by value the way `Mark.FUNNEL`
     sorts) -- since a later (lower) row is drawn *after* an earlier
-    (higher) one, a lower row's own curve is what's on top wherever
+    (higher) one, a lower row's curve is what's on top wherever
     two overlap, the same "later in the list, closer to the viewer"
     reading real ridgeline/joyplot charts conventionally use.
 
-    Each category's own density is still independently scaled to its
-    own peak (not a shared cross-category maximum) -- the same
-    `scale = "width"`-style reasoning `Mark.VIOLIN`'s own docstring
-    gives, applied to height instead of width here. `mark_ridgeline()`'s
-    own `scale_by_count=True` switches to `scale = "area"` the same way
-    `mark_violin()`'s own does -- see that method's own docstring.
+    Each category's density is still independently scaled to its peak (not a shared cross-category maximum) -- the same
+    `scale = "width"`-style reasoning `Mark.VIOLIN`'s docstring
+    gives, applied to height instead of width here. `mark_ridgeline()`'s `scale_by_count=True` switches to `scale = "area"` the same way
+    `mark_violin()`'s does -- see that method's docstring.
 
-    Reuses `Mark.VIOLIN`'s own `_kde_bandwidth`/`_kde_density` and
+    Reuses `Mark.VIOLIN`'s `_kde_bandwidth`/`_kde_density` and
     `_KDE_SAMPLES` sample count completely unchanged -- only the axis
-    orientation and the curve's own baseline/direction differ.
+    orientation and the curve's baseline/direction differ.
 
-    `mark_ridgeline()`'s own `bandwidth`, when given (checked positive
-    at render() time), replaces every category's own Silverman's-rule
+    `mark_ridgeline()`'s `bandwidth`, when given (checked positive
+    at render() time), replaces every category's Silverman's-rule
     `_kde_bandwidth(values)` with one shared value instead -- the same
-    override `Mark.VIOLIN` shares, see `mark_violin()`'s own docstring.
+    override `Mark.VIOLIN` shares, see `mark_violin()`'s docstring.
     """
     var theme = plot._theme
     if len(plot.x_categories) == 0:
@@ -141,11 +137,11 @@ def ridgeline(
 ) raises -> Canvas:
     """A ridgeline plot -- `Mark.RIDGELINE`, one overlapping density-
     estimate row per category, top to bottom (`bandwidth`, left at its
-    default `0.0`, overrides every category's own Silverman's-rule
+    default `0.0`, overrides every category's Silverman's-rule
     bandwidth with one shared value; `scale_by_count`, left at its
-    default `False`, switches from ggplot2's own `scale = "width"` to
-    `scale = "area"` -- see `Plot.mark_violin()`'s own docstring for
-    both). See `Plot.encode_distribution()`'s own docstring (plot.mojo)
+    default `False`, switches from ggplot2's `scale = "width"` to
+    `scale = "area"` -- see `Plot.mark_violin()`'s docstring for
+    both). See `Plot.encode_distribution()`'s docstring (plot.mojo)
     for the exact shape (the same one `beeswarm()`/`violin()` take)."""
     var plot = Plot().mark_ridgeline(bandwidth=bandwidth, scale_by_count=scale_by_count).encode_distribution(
         categories=categories, values=values

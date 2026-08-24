@@ -23,13 +23,13 @@ from dataviz_mojo.theme import Theme
 
 def _symmetric_zero_baseline_y_extent(values: List[List[Float64]], n_categories: Int) raises -> LinearScale:
     """The y-domain for `Mark.STREAMGRAPH`: symmetric around 0, wide
-    enough for the *tallest* category's own full stack -- `max_total`,
+    enough for the *tallest* category's full stack -- `max_total`,
     the largest per-category sum across every series (`_render_
-    streamgraph`'s own per-category baseline is `-total_i / 2`, so a
-    shorter category's own band just doesn't use the full vertical
+    streamgraph`'s per-category baseline is `-total_i / 2`, so a
+    shorter category's band just doesn't use the full vertical
     span, the "wavy river narrowing" look a streamgraph is for). The
     same "forced symmetric, not independently padded" reasoning `Mark.
-    POPULATION_PYRAMID`'s own `_symmetric_zero_baseline_x_extent`
+    POPULATION_PYRAMID`'s `_symmetric_zero_baseline_x_extent`
     already gives, just for a stacked total instead of two independent
     magnitudes -- both exist so unrelated rows/categories still read on
     one shared, honest scale.
@@ -48,31 +48,29 @@ def _symmetric_zero_baseline_y_extent(values: List[List[Float64]], n_categories:
 def _render_streamgraph[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.STREAMGRAPH` plot: `encode_grouped_bar()`'s own
-    data (categories, one name and one value per series) stacked the
+    """Render a `Mark.STREAMGRAPH` plot: `encode_grouped_bar()`'s data (categories, one name and one value per series) stacked the
     same running-total way `Mark.STACKED_BAR` already does, but two
-    things differ. First, each category's own stack starts from `-total_
-    i / 2` (`_symmetric_zero_baseline_y_extent`'s own per-category
+    things differ. First, each category's stack starts from `-total_
+    i / 2` (`_symmetric_zero_baseline_y_extent`'s per-category
     baseline), not a shared zero, so the whole stack floats centered
     around zero instead of sitting on a fixed baseline -- the
     "silhouette" look. Second, each series is drawn as one *flowing
-    band* connecting every category's own top/bottom edge in turn
+    band* connecting every category's top/bottom edge in turn
     (straight `line_to` segments between category centers, not curved
-    -- deliberately not reusing `Mark.LINE`'s own `Theme.line_
+    -- deliberately not reusing `Mark.LINE`'s `Theme.line_
     smoothing`-aware path builder for this first version, to keep the
     polygon-closing logic here simple; a smoothed variant is a real,
     separate enhancement, not part of what this mark needs to exist at
     all), filled via `DrawTarget.fill_path_aa` -- not `Mark.STACKED_
-    BAR`'s own one-rect-per-category-per-series.
+    BAR`'s one-rect-per-category-per-series.
 
     Every value must be non-negative -- same reasoning `Mark.ARC`/
     `FUNNEL` already give: a negative flow has no meaning as a stacked
-    band's own height.
+    band's height.
 
     Reuses `_draw_categorical_axis_frame` (the vertical-categorical-x/
     continuous-y core `Mark.BAR`/`GROUPED_BAR`/`STACKED_BAR` already
-    share) unchanged, just fed `_symmetric_zero_baseline_y_extent`'s
-    own domain instead of `_zero_baseline_y_extent`'s fixed-at-zero one.
+    share) unchanged, just fed `_symmetric_zero_baseline_y_extent`'s domain instead of `_zero_baseline_y_extent`'s fixed-at-zero one.
     """
     _validate_grouped_bar_series(plot)
 
@@ -99,8 +97,7 @@ def _render_streamgraph[
         target, plot.x_categories, y_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
     )
 
-    # running[i]: each category's own stack cursor, starting at its own
-    # centered baseline (-total_i / 2) and advancing upward series by
+    # running[i]: each category's stack cursor, starting at its centered baseline (-total_i / 2) and advancing upward series by
     # series -- the same running-total bookkeeping style Mark.WATERFALL/
     # STACKED_BAR already use, just per-category here instead of a
     # single shared one.
@@ -149,8 +146,7 @@ def streamgraph(
     subtitle: String = "",
     x_title: String = "",
 ) raises -> Canvas:
-    """A streamgraph -- `Mark.STREAMGRAPH`, `Mark.STACKED_BAR`'s own
-    running-total stack, floated centered around zero instead of
+    """A streamgraph -- `Mark.STREAMGRAPH`, `Mark.STACKED_BAR`'s running-total stack, floated centered around zero instead of
     sitting on a fixed baseline, and drawn as flowing bands instead of
     discrete rects. Same data shape `grouped_bar()`/`stacked_bar()`/
     `bump()` all take."""

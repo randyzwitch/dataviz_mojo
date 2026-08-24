@@ -1,18 +1,18 @@
-"""Demo: a span chart -- Mark.SPAN_CHART, Mark.GANTT's own mirror
+"""Demo: a span chart -- Mark.SPAN_CHART, Mark.GANTT's mirror
 image: one floating vertical bar per category, from a low value to a
 high value, not anchored to zero (Plot.encode_gantt(), the exact same
 category + start + end shape Mark.GANTT itself uses -- see
-span_chart.mojo's own docstring). Built via dataviz_mojo.span_chart()
--- see examples/scatter.mojo's own docstring for what that trades
+span_chart.mojo's docstring). Built via dataviz_mojo.span_chart()
+-- see examples/scatter.mojo's docstring for what that trades
 away.
 
-Monthly temperature range for Beijing -- ECharts.jl's own spanchart
-example, the chart type's own classic use (a daily high/low range
+Monthly temperature range for Beijing -- ECharts.jl's spanchart
+example, the chart type's classic use (a daily high/low range
 that would misrepresent the data if drawn as a bar()`, since a bar
 implies "from zero," not "from the low").
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

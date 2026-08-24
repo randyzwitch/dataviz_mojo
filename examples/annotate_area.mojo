@@ -1,23 +1,22 @@
-"""Demo: a shaded reference band -- Plot.annotate_area(), ECharts' own
-markArea (a fixed (y0, y1) pair only, not its auto-computed-range
-modes -- see that method's own docstring). Draws a solid filled band
+"""Demo: a shaded reference band -- Plot.annotate_area(), ECharts' markArea (a fixed (y0, y1) pair only, not its auto-computed-range
+modes -- see that method's docstring). Draws a solid filled band
 across the full plot width, in Theme.annotation_area_color, with an
-optional label near its own top edge.
+optional label near its top edge.
 
 Response-time samples against an acceptable range -- Mark.LINE, the
-mark this feature actually looks best on: its own thin stroke only
+mark this feature actually looks best on: its thin stroke only
 loses the small stretch that falls inside the band, unlike a solid-
 fill mark (Mark.BAR/WATERFALL/...) where a bar entering the band would
-have that whole portion overwritten by the band's own color instead --
-see annotate_area()'s own docstring for the full story (a real,
+have that whole portion overwritten by the band's color instead --
+see annotate_area()'s docstring for the full story (a real,
 documented canvas_mojo limitation -- no true alpha compositing on
 either backend -- not a bug in this feature).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why. Built by hand
+data -- see examples/donut.mojo's docstring for why. Built by hand
 (not a one-call quickplot -- annotate_area() isn't exposed on
 quickplot functions, the same deliberate scope cut examples/
-annotate_line.mojo's own docstring explains) via Plot() directly.
+annotate_line.mojo's docstring explains) via Plot() directly.
 
 Run with:
     pixi run example

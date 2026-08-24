@@ -1,8 +1,7 @@
 """Tests for accessible_svg_string()/write_accessible_svg(): the
 role="img"/aria-label root attributes, the <title>/<desc> leading
-child elements (and <desc>'s own omission when description is empty),
-XML-escaping of special characters in both, and that the chart's own
-already-rendered body is preserved unchanged underneath the new markup.
+child elements (and <desc>'s omission when description is empty),
+XML-escaping of special characters in both, and that the chart's already-rendered body is preserved unchanged underneath the new markup.
 """
 
 from std.testing import assert_equal, assert_true, TestSuite
@@ -21,7 +20,7 @@ def test_accessible_svg_string_adds_role_and_aria_label_to_root_element() raises
     assert_true(
         '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"'
         ' role="img" aria-label="Widget Sales">' in s,
-        "the root element gains role=\"img\" and aria-label, its own original attributes untouched",
+        "the root element gains role=\"img\" and aria-label, its original attributes untouched",
     )
 
 
@@ -39,7 +38,7 @@ def test_accessible_svg_string_adds_title_and_desc_as_leading_children() raises:
     assert_true(desc_idx != -1, "the <desc> element is present")
     assert_true(
         title_idx < desc_idx < first_rect_idx,
-        "both come before the chart's own first drawn element, not scattered elsewhere",
+        "both come before the chart's first drawn element, not scattered elsewhere",
     )
 
 
@@ -85,7 +84,7 @@ def test_accessible_svg_string_preserves_the_chart_body_unchanged() raises:
     render_svg(svg, plot)
     var original = svg.to_string()
     var accessible = accessible_svg_string(svg, "Widget Sales")
-    # Every line of the original body (everything after its own first
+    # Every line of the original body (everything after its first
     # ">") still appears, unmodified, inside the accessible version.
     var body_start = original.find(">") + 1
     var body = String(original[byte=body_start:])

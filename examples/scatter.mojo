@@ -1,17 +1,15 @@
 """Demo: a basic scatter plot -- Mark.POINT, default theme, axes and
-gridlines computed automatically from the data's own domain. Built via
+gridlines computed automatically from the data's domain. Built via
 dataviz_mojo.scatter() -- the one-call convenience wrapper
 around Plot().mark_point().encode(...).theme(...) + Canvas + render()
--- rather than the builder spelled out by hand; see plot.mojo's own
-module docstring (its "one-call convenience functions" section) for
+-- rather than the builder spelled out by hand; see plot.mojo's module docstring (its "one-call convenience functions" section) for
 what it trades away (facets, layering, color/size encoding still need
 Plot directly).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
-the docs page only shows the quickplot call above. scatter()'s own
-raster output is supersampled internally before it's ever returned
-here (see dataviz_mojo.plot._rendered's own docstring) -- nothing in
+data -- see examples/donut.mojo's docstring for why, and for why
+the docs page only shows the quickplot call above. scatter()'s raster output is supersampled internally before it's ever returned
+here (see dataviz_mojo.plot._rendered's docstring) -- nothing in
 this file, or any other example, has to ask for that.
 
 Run with:

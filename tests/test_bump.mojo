@@ -1,5 +1,5 @@
 """Tests for Mark.BUMP: rank lines over a categorical axis (raster +
-SVG) -- see bump.mojo's own docstrings for the rank-computation/rank-
+SVG) -- see bump.mojo's docstrings for the rank-computation/rank-
 axis rules verified here.
 """
 
@@ -25,27 +25,24 @@ def test_render_bump_matches_hand_derived_rank_lines() raises:
     # left margin, the same short-label convention every other mark's
     # own tests already rely on) -> plot area x:[60,380], y:[20,250].
     # x_scale = OrdinalScale(["X","Y"], 60, 380) (default padding 0.2):
-    # step 160, bandwidth 128, centers 140 (X) and 300 (Y) -- confirmed
-    # against a real render() run before trusting it, along with every
-    # pixel below. n_series=2 -> _bump_rank_pixel(1,2,20,250)=20 (top),
-    # _bump_rank_pixel(2,2,20,250)=250 (bottom): A's own line runs
-    # (140,250)->(300,20) [rank 2 at X, rank 1 at Y], B's own the exact
+    # step 160, bandwidth 128, centers 140 (X) and 300 (Y).
+    # n_series=2 -> _bump_rank_pixel(1,2,20,250)=20 (top),
+    # _bump_rank_pixel(2,2,20,250)=250 (bottom): A's line runs
+    # (140,250)->(300,20) [rank 2 at X, rank 1 at Y], B's the exact
     # mirror, (140,20)->(300,250).
     #
     # Built via a plain Canvas()+render() (not the bump() quickplot
-    # wrapper) -- matching test_line.mojo's own precedent for every
-    # stroked-line pixel check here: quickplot's own supersample-then-
+    # wrapper) -- matching test_line.mojo's precedent for every
+    # stroked-line pixel check here: quickplot's supersample-then-
     # downsample pass measurably shifts a thin diagonal stroke's exact
-    # pixel position (confirmed directly, by comparison, while writing
-    # this test -- a real, if subtle, difference from a plain render()
-    # call, not something to test around by picking a bigger tolerance).
-    # Two of each line's own points sampled: the row-250 endpoint (both
-    # lines reliably get full ink exactly at that one, confirmed
-    # directly) and one interior point roughly a third of the way along
-    # (the row-20 endpoint itself does *not* reliably get ink -- some
-    # rounded-line-cap/clip interaction at the plot area's own top
-    # boundary row, also confirmed directly -- so this test doesn't
-    # rely on it).
+    # pixel position -- a real, if subtle, difference from a plain
+    # render() call, not something to test around by picking a bigger
+    # tolerance. Two of each line's points sampled: the row-250
+    # endpoint (both lines reliably get full ink exactly at that one)
+    # and one interior point roughly a third of the way along (the
+    # row-20 endpoint itself does *not* reliably get ink -- some
+    # rounded-line-cap/clip interaction at the plot area's top
+    # boundary row -- so this test doesn't rely on it).
     var cats: List[String] = ["X", "Y"]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[10.0, 30.0], [20.0, 5.0]]
@@ -55,10 +52,10 @@ def test_render_bump_matches_hand_derived_rank_lines() raises:
     render(c, plot)
 
     var palette = default_categorical_palette()
-    _assert_color(c, 140, 250, palette[0], "A's own rank-2-at-X endpoint")
-    _assert_color(c, 300, 250, palette[1], "B's own rank-2-at-Y endpoint")
-    _assert_color(c, 185, 185, palette[0], "A's own line, partway from X to Y")
-    _assert_color(c, 255, 185, palette[1], "B's own line, partway from X to Y")
+    _assert_color(c, 140, 250, palette[0], "A's rank-2-at-X endpoint")
+    _assert_color(c, 300, 250, palette[1], "B's rank-2-at-Y endpoint")
+    _assert_color(c, 185, 185, palette[0], "A's line, partway from X to Y")
+    _assert_color(c, 255, 185, palette[1], "B's line, partway from X to Y")
 
 
 def test_render_bump_svg_matches_confirmed_paths_and_ticks() raises:
@@ -71,8 +68,8 @@ def test_render_bump_svg_matches_confirmed_paths_and_ticks() raises:
     )
     render_svg(svg, plot)
     var s = svg.to_string()
-    assert_true('<path d="M140.000,250.000 L300.000,20.000"' in s, "A's own line: rank 2 at X, rank 1 at Y")
-    assert_true('<path d="M140.000,20.000 L300.000,250.000"' in s, "B's own line: rank 1 at X, rank 2 at Y")
+    assert_true('<path d="M140.000,250.000 L300.000,20.000"' in s, "A's line: rank 2 at X, rank 1 at Y")
+    assert_true('<path d="M140.000,20.000 L300.000,250.000"' in s, "B's line: rank 1 at X, rank 2 at Y")
     assert_true('text-anchor="end">1<' in s, "the rank-1 tick label")
     assert_true('text-anchor="end">2<' in s, "the rank-2 tick label")
 

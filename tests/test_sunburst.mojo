@@ -1,6 +1,6 @@
 """Tests for Mark.SUNBURST: ring-sector geometry per depth level,
-encode_hierarchy()'s own shared validation (raster + SVG) -- see
-sunburst.mojo's own docstrings for the rules verified here.
+encode_hierarchy()'s shared validation (raster + SVG) -- see
+sunburst.mojo's docstrings for the rules verified here.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -17,20 +17,20 @@ from _test_helpers import BG, _assert_color
 
 
 def test_render_sunburst_matches_hand_derived_ring_sectors() raises:
-    # root -> A (50% of root) -> A1/A2 (50/50 split of A's own span);
-    # root -> B (50% of root) -> B1 (100% of B's own span, B's only
+    # root -> A (50% of root) -> A1/A2 (50/50 split of A's span);
+    # root -> B (50% of root) -> B1 (100% of B's span, B's only
     # child). Canvas 400x300, show_legend=False: plot area x:[60,380],
     # y:[20,250] -> center (220,135), max radius 103.5 (the same no-
     # legend numbers every polar-family test this session already
     # derives for this exact canvas size). max_depth=2 -> ring_width
     # 51.75: ring 1 spans [0,51.75], ring 2 spans [51.75,103.5].
     #
-    # A spans -90..90 degrees (bisector 0, due east); B spans 90..270
-    # (bisector 180, due west). A1 spans -90..0 (bisector -45); A2
-    # spans 0..90 (bisector 45); B1 spans A's own full 90..270 (same
+    # A spans -90.90 degrees (bisector 0, due east); B spans 90.270
+    # (bisector 180, due west). A1 spans -90.0 (bisector -45); A2
+    # spans 0.90 (bisector 45); B1 spans A's full 90.270 (same
     # as B itself, bisector 180). Every one of the 5 points below (2
-    # per branch's own ring 2, 1 more each ring 1, all at a radius
-    # safely inside their own ring, away from any boundary) confirmed
+    # per branch's ring 2, 1 more each ring 1, all at a radius
+    # safely inside their ring, away from any boundary) confirmed
     # against a real render() run first.
     var ids: List[String] = ["root", "A", "B", "A1", "A2", "B1"]
     var parents: List[String] = ["", "root", "root", "A", "A", "B"]
@@ -125,7 +125,7 @@ def test_render_sunburst_raises_on_a_cycle() raises:
 
 
 def test_render_sunburst_raises_on_a_disconnected_component() raises:
-    # A self-parented row: "orphan" is its own parent, so it resolves
+    # A self-parented row: "orphan" is its parent, so it resolves
     # and is never reachable. The degenerate one-node case of the same
     # cycle bug above, caught by the same check.
     var ids: List[String] = ["root", "orphan"]

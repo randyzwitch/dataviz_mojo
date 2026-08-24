@@ -25,9 +25,9 @@ struct _ParallelData(Movable):
     """
     Mark.PARALLEL only -- one named axis per dimension, one named row
     per observation, one value per (row, dimension) pair. See
-    encode_parallel()'s own docstring.
+    encode_parallel()'s docstring.
 
-    Grouped onto `Plot._parallel` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._parallel` -- see `Plot`'s docstring.
     """
 
     var dims: List[String]
@@ -42,7 +42,7 @@ struct _ParallelData(Movable):
 
 
 def _axis_x(plot_x0: Int, plot_x1: Int, n: Int, d: Int) -> Float64:
-    """The pixel x of dimension `d`'s own vertical axis -- `n` axes
+    """The pixel x of dimension `d`'s vertical axis -- `n` axes
     evenly spaced with the first pinned to `plot_x0` and the last to
     `plot_x1` (a single-axis plot, `n == 1`, is a degenerate case with
     no "spacing" to speak of, so it just centers)."""
@@ -52,11 +52,10 @@ def _axis_x(plot_x0: Int, plot_x1: Int, n: Int, d: Int) -> Float64:
 
 
 def _value_y(plot_y0: Int, plot_y1: Int, dim_min: Float64, dim_max: Float64, value: Float64) -> Float64:
-    """`value`'s own pixel y along one dimension's own axis -- top
-    (`plot_y0`) is that dimension's own max, bottom (`plot_y1`) its
-    own min, the same "more/bigger is up" convention every y-axis in
+    """`value`'s pixel y along one dimension's axis -- top
+    (`plot_y0`) is that dimension's max, bottom (`plot_y1`) its min, the same "more/bigger is up" convention every y-axis in
     this package already uses. A zero-span dimension (every row
-    identical on this one) places `value` at the axis's own vertical
+    identical on this one) places `value` at the axis's vertical
     center rather than dividing by zero."""
     var span = dim_max - dim_min
     var frac = 0.5
@@ -68,31 +67,27 @@ def _value_y(plot_y0: Int, plot_y1: Int, dim_min: Float64, dim_max: Float64, val
 def _render_parallel[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.PARALLEL` plot: `encode_parallel()`'s own `dims`
+    """Render a `Mark.PARALLEL` plot: `encode_parallel()`'s `dims`
     (one vertical axis each, evenly spaced left to right -- the first
-    axis at the plot's own left edge, the last at its own right edge,
-    matching every real parallel-coordinates chart's own layout, not
+    axis at the plot's left edge, the last at its right edge,
+    matching every real parallel-coordinates chart's layout, not
     `Mark.RADAR`'s "spokes radiate from a shared center" arrangement)
     and one row per `row_names` entry (`data[row]`, one value per
-    dimension), each drawn as a straight polyline connecting its own
-    per-dimension positions left to right.
+    dimension), each drawn as a straight polyline connecting its per-dimension positions left to right.
 
     Each dimension gets its *own* independent domain (`_min_max` over
-    that column across every row -- unpadded, the same "a legend's own
-    extremes should mean exactly the data's own extremes" reasoning
-    `_data_extent`'s own docstring gives for continuous color/size
+    that column across every row -- unpadded, the same "a legend's extremes should mean exactly the data's extremes" reasoning
+    `_data_extent`'s docstring gives for continuous color/size
     domains), unlike `Mark.RADAR`'s caller-supplied `max_values`:
-    ECharts.jl's own `parallel()` has no per-dimension max parameter
+    ECharts.jl's `parallel()` has no per-dimension max parameter
     either, and different dimensions here are typically wildly
     differently scaled (horsepower vs. price vs. 0-60 time, the
-    chart type's own classic use), so auto-scaling each axis to its
-    own column is the only sensible default. A zero-span column (every
+    chart type's classic use), so auto-scaling each axis to its column is the only sensible default. A zero-span column (every
     row has the identical value on that dimension) places every row at
-    that axis's own vertical center rather than dividing by zero.
+    that axis's vertical center rather than dividing by zero.
 
-    No axis tick labels beyond each dimension's own name at the
-    bottom -- the same deliberate v1 simplification `Mark.POLAR`'s own
-    `_draw_polar_grid` docstring already gives for numeric axis
+    No axis tick labels beyond each dimension's name at the
+    bottom -- the same deliberate v1 simplification `Mark.POLAR`'s `_draw_polar_grid` docstring already gives for numeric axis
     readout. Legend keyed by `row_names` (always drawn, even for one
     row -- the same "`Theme.show_legend` is the only real toggle"
     convention every other legend-bearing mark here follows).
@@ -116,7 +111,7 @@ def _render_parallel[
 
     var n = len(plot._parallel.dims)
 
-    # Each dimension's own [min, max] across every row -- one _min_max
+    # Each dimension's [min, max] across every row -- one _min_max
     # per column, not per row (the whole point of a parallel-
     # coordinates axis is comparing every row *on that one dimension's
     # own scale*).
@@ -178,11 +173,11 @@ def parallel(
     """A parallel-coordinates chart -- `Mark.PARALLEL`, one row per
     `row_names` entry (`data[row]`, one value per `dims` entry) drawn
     as a polyline across evenly spaced vertical axes, each
-    independently scaled to its own column's own `[min, max]`.
-    `row_names` is required, unlike ECharts.jl's own `parallel(data,
+    independently scaled to its column's `[min, max]`.
+    `row_names` is required, unlike ECharts.jl's `parallel(data,
     dims)` (which auto-numbers rows) -- every other named-series
-    `encode_*` in this package takes its own names explicitly rather
+    `encode_*` in this package takes its names explicitly rather
     than generating them, and this stays consistent with that. See
-    `_render_parallel`'s own docstring for the full reasoning."""
+    `_render_parallel`'s docstring for the full reasoning."""
     var plot = Plot().mark_parallel().encode_parallel(dims=dims, row_names=row_names, data=data)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

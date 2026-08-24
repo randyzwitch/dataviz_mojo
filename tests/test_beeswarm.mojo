@@ -1,5 +1,5 @@
 """Tests for Mark.BEESWARM: jittered points per category (raster + SVG)
--- see beeswarm.mojo's own docstrings for the row-clustering swarm
+-- see beeswarm.mojo's docstrings for the row-clustering swarm
 rules verified here.
 """
 
@@ -24,11 +24,11 @@ def test_render_beeswarm_matches_hand_derived_offsets() raises:
     # whole band, center = 220. y-domain = _data_extent([10,11,50]):
     # span 40, 5% pad 2.0 -> [8, 52]; scale = (20-250)/(52-8) =
     # -5.2273 -> pixel y's 240 (v=10), 234 (v=11), 30 (v=50) --
-    # independently computed via python3 from LinearScale's own to_
+    # independently computed via python3 from LinearScale's to_
     # pixel formula, then confirmed against a real render() run before
     # trusting it. Default point_radius 3.5 rounds to 4, spacing = 8:
-    # sorted by y, 50's own row (y=30) is 204px from 11's own (y=234,
-    # sorted next) -- far past the 8px spacing threshold, its own row
+    # sorted by y, 50's row (y=30) is 204px from 11's (y=234,
+    # sorted next) -- far past the 8px spacing threshold, its row
     # by itself, offset 0. 11 and 10 are only 6px apart (234 vs 240) --
     # inside the same row: 11 (sorted first in that row) gets offset 0,
     # 10 (sorted second) gets +1*spacing = +8.
@@ -37,9 +37,9 @@ def test_render_beeswarm_matches_hand_derived_offsets() raises:
     var t = Theme(show_gridlines=False)
     var c = beeswarm(cats, vals, theme=t, width=400, height=300)
 
-    _assert_color(c, 228, 240, t.mark_color, "value 10 -- offset +8 (second in its own row)")
-    _assert_color(c, 220, 234, t.mark_color, "value 11 -- offset 0 (first in its own row)")
-    _assert_color(c, 220, 30, t.mark_color, "value 50 -- offset 0 (alone in its own row)")
+    _assert_color(c, 228, 240, t.mark_color, "value 10 -- offset +8 (second in its row)")
+    _assert_color(c, 220, 234, t.mark_color, "value 11 -- offset 0 (first in its row)")
+    _assert_color(c, 220, 30, t.mark_color, "value 50 -- offset 0 (alone in its row)")
     _assert_color(c, 10, 10, BG, "well outside the plot area -- background")
 
 

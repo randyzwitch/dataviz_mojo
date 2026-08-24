@@ -1,6 +1,6 @@
 """Tests for scale.mojo: LinearScale.to_pixel/scale/translate, and the
 nice-tick algorithm -- every expected value here was independently
-computed by hand (see scale.mojo's own module docstring) before
+computed by hand (see scale.mojo's module docstring) before
 trusting the Mojo implementation.
 """
 
@@ -44,7 +44,7 @@ def test_linear_scale_zero_domain_span_maps_everything_to_range_min() raises:
 
 def test_nice_step_matches_hand_computed_values() raises:
     # Independently computed by hand (Heckbert's nice-numbers
-    # algorithm, see scale.mojo's own docstring) before trusting this.
+    # algorithm, see scale.mojo's docstring).
     var a = _nice_step(0.0, 100.0, 5)
     assert_equal(a.step, 20.0)
     assert_equal(a.exponent, 1)
@@ -117,8 +117,7 @@ def test_format_fixed_matches_hand_computed_strings() raises:
 def test_format_fixed_avoids_binary_floating_point_drift() raises:
     # Regression test for the exact bug that motivated this function:
     # 0.0 + 3*0.1 is 0.30000000000000004 as a raw Float64 -- confirmed
-    # by probe before writing this function at all (see its own
-    # docstring). String(Float64) alone would print that garbage
+    # by probe before writing this function at all (see its docstring). String(Float64) alone would print that garbage
     # directly; _format_fixed must not.
     var drifted = 0.0 + 3.0 * 0.1
     assert_equal(_format_fixed(drifted, 1), "0.3")
@@ -141,13 +140,12 @@ def test_min_max_over_a_plain_column() raises:
 
 
 def test_min_max_raises_on_an_empty_column() raises:
-    # _min_max used to read data[0] with no length check at all -- out
-    # of bounds on an empty column. No caller can currently reach it
-    # (every render path returns early on empty data first), so this
+    # No caller can currently reach an empty column (every render path
+    # returns early on empty data first), so this
     # raises rather than inventing a fallback: a silent MinMax(0, 0)
     # would hand back a degenerate domain that still renders as a real
     # axis, which is the "silently misrepresent the data" failure this
-    # package's own encode/render checks exist to prevent.
+    # package's encode/render checks exist to prevent.
     with assert_raises():
         _ = _min_max(List[Float64]())
 

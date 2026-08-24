@@ -27,10 +27,10 @@ from dataviz_mojo.theme import Theme
 struct _RadarData(Movable):
     """
     Mark.RADAR only -- one named indicator (axis) per entry, each with
-    its own max, plus one or more named series each with a value per
-    indicator. See encode_radar()'s own docstring.
+    its max, plus one or more named series each with a value per
+    indicator. See encode_radar()'s docstring.
 
-    Grouped onto `Plot._radar` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._radar` -- see `Plot`'s docstring.
     """
 
     var indicators: List[String]
@@ -50,17 +50,17 @@ def _draw_radar_grid[
 ](mut target: T, cx: Float64, cy: Float64, max_radius: Float64, n: Int, theme: Theme) raises:
     """The radar coordinate system: `n` straight spokes from the
     center out to `max_radius` (one per indicator axis, `_polar_point`
-    at each axis's own angle), plus `theme.radar_grid_rings` concentric
+    at each axis's angle), plus `theme.radar_grid_rings` concentric
     "web" rings -- each ring a straight-edged `n`-sided polygon
-    connecting every spoke's own tip at that ring's radius fraction,
-    *not* a circle the way `polar.mojo`'s own `_draw_polar_grid` rings
+    connecting every spoke's tip at that ring's radius fraction,
+    *not* a circle the way `polar.mojo`'s `_draw_polar_grid` rings
     are. This is deliberate, not a missed reuse opportunity: a radar
-    chart's own axes are discrete (one per named indicator, not a
+    chart's axes are discrete (one per named indicator, not a
     continuous angle), so there's no meaningful position *between*
     two spokes for a circular ring to pass through that isn't already
     implied by straight-line interpolation between them -- the
     standard "polygon grid" reading every radar chart (ECharts
-    included, its own default `shape: 'polygon'`) uses.
+    included, its default `shape: 'polygon'`) uses.
     """
     for i in range(n):
         var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
@@ -84,21 +84,20 @@ def _draw_radar_grid[
 def _render_radar[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.RADAR` plot: `encode_radar()`'s own named
+    """Render a `Mark.RADAR` plot: `encode_radar()`'s named
     `indicators` (one spoke each, evenly spaced, starting at 12
     o'clock and sweeping clockwise -- the same convention every other
     polar mark in this package shares) with a per-indicator own
     `max_values`, and one or more `series` (name + one value per
     indicator) drawn as a closed polygon each: a straight `line_to`
-    from one indicator's own point to the next, back to the first, no
+    from one indicator's point to the next, back to the first, no
     smoothing (the same "the shape *is* the data" stance `Mark.POLAR`
-    already takes for its own polyline).
+    already takes for its polyline).
 
-    Each indicator's own value is *not* clamped to `[0, max_values[i]]`
-    -- a value past its own axis's max draws past the outer ring,
-    visibly (not silently) flagging a caller's own max as too low,
-    rather than hiding the overshoot. Each axis has its own
-    independent max (unlike `Mark.POLAR`'s single shared radius
+    Each indicator's value is *not* clamped to `[0, max_values[i]]`
+    -- a value past its axis's max draws past the outer ring,
+    visibly (not silently) flagging a caller's max as too low,
+    rather than hiding the overshoot. Each axis has its independent max (unlike `Mark.POLAR`'s single shared radius
     domain) -- a real radar chart's whole point is comparing
     differently-scaled dimensions (e.g. "Attack" out of 100, "Crit
     Chance" out of 1.0) on one shared-looking grid.
@@ -110,7 +109,7 @@ def _render_radar[
     this package, both drawn from the identical path, since there's no
     Theme flag to skip the fill: a radar chart with several series and
     no fill at all is unreadable overlapping-outline soup, so this
-    isn't optional the way, say, `Mark.AREA`'s own stroke is.
+    isn't optional the way, say, `Mark.AREA`'s stroke is.
 
     Legend keyed by `series_names` (only relevant with 2+ series --
     still drawn for one, the same "always draw it, `Theme.show_legend`
@@ -158,10 +157,10 @@ def _render_radar[
         target.fill_path_aa(poly, _lighten(color, theme.radar_fill_alpha))
         target.stroke_path_aa(poly, color, sc.line_width)
 
-    # Axis labels, placed just outside each spoke's own tip -- aligned
+    # Axis labels, placed just outside each spoke's tip -- aligned
     # by which side of center the tip falls on (LEFT for the right
     # half, RIGHT for the left half, CENTER for the top/bottom-most
-    # spokes) so a label never reads as overlapping its own spoke.
+    # spokes) so a label never reads as overlapping its spoke.
     for i in range(n):
         var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
         var tip = _polar_point(cx, cy, angle, max_radius + Float64(sc.label_gap))
@@ -204,11 +203,8 @@ def radar(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A radar/spider chart -- `Mark.RADAR` over `Plot.encode_radar()`'s
-    own shape: `indicators` (one spoke per name, each its own
-    `max_values`), and one polygon per series (`series_names` + a
-    value per indicator, `series_values`). See `_render_radar`'s own
-    docstring for the full reasoning."""
+    """A radar/spider chart -- `Mark.RADAR` over `Plot.encode_radar()`'s shape: `indicators` (one spoke per name, each its `max_values`), and one polygon per series (`series_names` + a
+    value per indicator, `series_values`). See `_render_radar`'s docstring for the full reasoning."""
     var plot = Plot().mark_radar().encode_radar(
         indicators=indicators,
         max_values=max_values,

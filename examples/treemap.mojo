@@ -1,17 +1,16 @@
 """Demo: a treemap -- Mark.TREEMAP, a hierarchy (Plot.encode_
 hierarchy(), the same flattened id/parent_id/value shape Mark.SUNBURST/
-TREE use -- see treemap.mojo's own docstring) laid out as nested,
+TREE use -- see treemap.mojo's docstring) laid out as nested,
 area-proportional rectangles via slice-and-dice. Built via
-dataviz_mojo.treemap() -- see examples/scatter.mojo's own docstring
+dataviz_mojo.treemap() -- see examples/scatter.mojo's docstring
 for what that trades away.
 
-Disk usage by folder -- the exact same data Mark.SUNBURST's own
-example uses, so the two chart types' own different readings of the
+Disk usage by folder -- the exact same data Mark.SUNBURST's example uses, so the two chart types' different readings of the
 identical hierarchy (radial rings vs. nested rectangles) are easy to
 compare directly.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

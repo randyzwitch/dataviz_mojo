@@ -27,9 +27,9 @@ struct _PolarData(Movable):
     polar()), or a shared `angle` domain plus one or more named series
     (encode_polar_series(), `_polar.series_names` non-empty is what
     `_render_polar` actually branches on -- the legacy `_polar.radius`
-    field stays empty in that case). See both methods' own docstrings.
+    field stays empty in that case). See both methods' docstrings.
 
-    Grouped onto `Plot._polar` -- see `Plot`'s own docstring.
+    Grouped onto `Plot._polar` -- see `Plot`'s docstring.
     """
 
     var angle: List[Float64]
@@ -45,7 +45,7 @@ struct _PolarData(Movable):
 
 
 struct _PolarPoint(Movable):
-    """`_polar_point`'s own return value -- a named struct, not a raw
+    """`_polar_point`'s return value -- a named struct, not a raw
     tuple, the same multi-value-return convention every other function
     here follows (`_LabelsFrame`, `MinMax`, `Ticks`, ...)."""
 
@@ -64,8 +64,8 @@ def _polar_point(cx: Float64, cy: Float64, angle: Float64, radius: Float64) -> _
     -- not the counterclockwise "east, then north" convention plain
     trigonometry usually means, but the same clockwise convention
     `Mark.ARC`/`Mark.CHORD`/`Mark.NIGHTINGALE`/`Mark.POLAR_BAR` already
-    establish (a real-world clock face's own reading direction; see
-    `_render_arc`'s own docstring for why -- pixel y increases
+    establish (a real-world clock face's reading direction; see
+    `_render_arc`'s docstring for why -- pixel y increases
     downward, which flips the usual counterclockwise-is-positive
     reading), kept identical here so every polar mark in this package
     agrees on which way an angle turns. `radius` is a plain pixel
@@ -82,13 +82,11 @@ def _draw_polar_grid[
     spaced concentric circles (one full `Path.arc_to` sweep each,
     stroked) plus `theme.polar_grid_spokes` straight radial lines from the
     center out to `max_radius` -- the polar equivalent of a cartesian
-    plot's own gridlines, drawn in `theme.gridline_color` the same way
-    `_draw_categorical_axis_frame`'s own gridlines are. No tick labels
-    (neither the radius rings' own values nor the angle spokes' own
-    degrees) -- a real, deliberate v1 simplification (the same kind
-    `Mark.CHORD`'s own straight-rim ribbons or `Mark.VIOLIN`'s own
-    std-only bandwidth already are): the grid alone already
-    communicates the coordinate system's own shape, and a numeric
+    plot's gridlines, drawn in `theme.gridline_color` the same way
+    `_draw_categorical_axis_frame`'s gridlines are. No tick labels
+    (neither the radius rings' values nor the angle spokes' degrees) -- a real, deliberate v1 simplification (the same kind
+    `Mark.CHORD`'s straight-rim ribbons or `Mark.VIOLIN`'s std-only bandwidth already are): the grid alone already
+    communicates the coordinate system's shape, and a numeric
     label placed *around* a circle (curved baseline, radial
     orientation) is a real, separate typesetting problem this package
     has no existing machinery for -- worth solving if a concrete need
@@ -111,27 +109,27 @@ def _draw_polar_grid[
 def _render_polar[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.POLAR` plot: `encode_polar()`'s own `angle`/
-    `radius` pairs (or `encode_polar_series()`'s own shared `angle`
-    plus several named series -- see this docstring's own last
+    """Render a `Mark.POLAR` plot: `encode_polar()`'s `angle`/
+    `radius` pairs (or `encode_polar_series()`'s shared `angle`
+    plus several named series -- see this docstring's last
     paragraph), connected in row order by one stroked polyline per
     series (`_build_line_path`-style, but there's no smoothing knob
-    here -- a polar line's own shape *is* the data, not a cartesian
+    here -- a polar line's shape *is* the data, not a cartesian
     curve fit) plus a small filled circle marker at each point, drawn
-    over `_draw_polar_grid`'s own coordinate system.
+    over `_draw_polar_grid`'s coordinate system.
 
     `angle` is used exactly as given, in radians, completely
     unscaled and unwrapped -- unlike every other continuous channel
     in this package, there's no `_data_extent` padding or domain
     normalization step: a caller plotting `angle` values beyond
-    `2*pi` (ECharts.jl's own "spiral" example, angle extending past a
+    `2*pi` (ECharts.jl's "spiral" example, angle extending past a
     full turn) gets a real spiral outward, not a wrapped-and-
     overlapping mess `mod 2*pi` would produce. `radius` *is* scaled,
     linearly, from `[0, max(radius)]` to `[0, max_radius]` -- always
     zero-anchored (never padded away from zero the way `_data_extent`
     pads other continuous axes), the same "a magnitude axis must
-    include its own zero" reasoning `_zero_baseline_y_extent` already
-    gives for `Mark.BAR`/`Mark.AREA`: the chart's own center *is* the
+    include its zero" reasoning `_zero_baseline_y_extent` already
+    gives for `Mark.BAR`/`Mark.AREA`: the chart's center *is* the
     zero point a polar radius axis measures from, not an arbitrary
     coordinate.
 
@@ -140,11 +138,11 @@ def _render_polar[
     other value-validated mark here takes) -- a negative radius has no
     polar meaning without redefining the whole coordinate system.
 
-    No axis-frame text either way. `encode_polar()`'s own plain single
+    No axis-frame text either way. `encode_polar()`'s plain single
     series draws in `theme.mark_color`, no legend -- nothing to key
     one by, the same reason a plain `Mark.LINE`/`Mark.POINT` series
     draws none either. `encode_polar_series()`'s several named series
-    each get their own `default_categorical_palette()` color and a
+    each get their `default_categorical_palette()` color and a
     legend keyed by `series_names` (always drawn, even for one series
     -- the same "`Theme.show_legend` is the only real toggle"
     convention every other legend-bearing mark here follows), and
@@ -279,9 +277,7 @@ def polar(
     """A polar-coordinate line plot -- `Mark.POLAR` over `angle`
     (radians, used exactly as given -- values beyond `2*pi` spiral
     outward rather than wrapping) and `radius` (linearly scaled from
-    `[0, max(radius)]`, always zero-anchored at the chart's own
-    center; every value must be non-negative). See `_render_polar`'s
-    own docstring for the full reasoning."""
+    `[0, max(radius)]`, always zero-anchored at the chart's center; every value must be non-negative). See `_render_polar`'s docstring for the full reasoning."""
     var plot = Plot().mark_polar().encode_polar(angle=angle, radius=radius)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
@@ -299,14 +295,14 @@ def polar_series(
     y_title: String = "",
 ) raises -> Canvas:
     """A multi-series polar-coordinate line plot -- `Mark.POLAR` over
-    `Plot.encode_polar_series()`'s own shared `angle` domain plus one
+    `Plot.encode_polar_series()`'s shared `angle` domain plus one
     or more named series (`series_names` + `series_values`, one radius
     value per series per angle), sharing one radius scale across every
     series and a legend keyed by `series_names`. The same relationship
     `pie()`/`donut()` have to `Mark.ARC` -- one mark, two quickplot
     entry points for two genuinely different shapes (here: one
     unlabeled trace vs. several compared side by side). See `_render_
-    polar`'s own docstring for the full reasoning."""
+    polar`'s docstring for the full reasoning."""
     var plot = Plot().mark_polar().encode_polar_series(
         angle=angle, series_names=series_names, series_values=series_values
     )

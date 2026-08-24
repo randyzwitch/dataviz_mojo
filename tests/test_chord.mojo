@@ -1,5 +1,5 @@
 """Tests for Mark.CHORD: node ring sectors plus flow ribbons (raster +
-smoke-level SVG) -- see chord.mojo's own docstrings for the angle/
+smoke-level SVG) -- see chord.mojo's docstrings for the angle/
 ribbon-geometry rules verified here.
 """
 
@@ -17,8 +17,7 @@ from _test_helpers import BG, _assert_color
 
 
 def test_render_chord_two_nodes_one_edge_matches_hand_derived_geometry() raises:
-    # 2 nodes ("A", "B"), one edge A->B, value 10 -- each node's own
-    # total flow is 10 (its only edge), so the two ring sectors split
+    # 2 nodes ("A", "B"), one edge A->B, value 10 -- each node's total flow is 10 (its only edge), so the two ring sectors split
     # the circle exactly in half, the same -pi/2->pi/2 (A) / pi/2->3pi/2
     # (B) split test_render_arc_mark_matches_hand_derived_wedge_colors
     # already confirms for two equal Mark.ARC wedges (this mark reuses
@@ -29,18 +28,17 @@ def test_render_chord_two_nodes_one_edge_matches_hand_derived_geometry() raises:
     # Mark.CHORD has no y-axis labels at all), center (220,135), radius
     # = min(320,230)/2*0.9 = 103.5, inner_radius = radius*0.92 = 95.22.
     #
-    # With only one edge, that edge's own sub-arc allocation *is* each
-    # node's own full span -- so the ribbon's own rim segments trace
+    # With only one edge, that edge's sub-arc allocation *is* each
+    # node's full span -- so the ribbon's rim segments trace
     # A's entire rim (-pi/2 -> pi/2) then B's entire rim (pi/2 -> 3pi/2
     # == -pi/2), a full 2*pi sweep back to the start point, with both
     # "cross" quad_curve_to calls degenerating to a single point (their
     # start and end angles are identical -- pi/2 and -pi/2 respectively).
-    # The whole ribbon path is therefore just the full circle's own
-    # circumference at inner_radius, traced once -- filling it fills the
-    # *entire* inner disk in the ribbon's own color (A's palette color,
-    # index 0), not just "A's own half" -- confirmed directly below,
-    # not assumed: the inner-disk sample point on B's own geometric side
-    # (left of center) is still palette[0], not palette[1].
+    # The whole ribbon path is therefore just the full circle's circumference at inner_radius, traced once -- filling it fills the
+    # *entire* inner disk in the ribbon's color (A's palette color,
+    # index 0), not just "A's half": the inner-disk sample point on
+    # B's geometric side (left of center) is still palette[0], not
+    # palette[1].
     var from_cats: List[String] = ["A"]
     var to_cats: List[String] = ["B"]
     var values: List[Float64] = [10.0]
@@ -50,21 +48,21 @@ def test_render_chord_two_nodes_one_edge_matches_hand_derived_geometry() raises:
     var palette = default_categorical_palette()
 
     # Ring band (radius in (95.22, 103.5)), right of center -> A.
-    _assert_color(c, 319, 135, palette[0], "A's own ring sector, right of center")
+    _assert_color(c, 319, 135, palette[0], "A's ring sector, right of center")
     # Ring band, left of center -> B.
-    _assert_color(c, 121, 135, palette[1], "B's own ring sector, left of center")
-    # Inner disk (radius < 95.22): entirely the one ribbon's own color.
-    _assert_color(c, 270, 135, palette[0], "inner disk, right of center -- A's own ribbon")
-    _assert_color(c, 170, 135, palette[0], "inner disk, left of center (B's geometric side) -- still A's own ribbon")
-    _assert_color(c, 220, 135, palette[0], "dead center -- still inside the one ribbon's own filled disk")
+    _assert_color(c, 121, 135, palette[1], "B's ring sector, left of center")
+    # Inner disk (radius < 95.22): entirely the one ribbon's color.
+    _assert_color(c, 270, 135, palette[0], "inner disk, right of center -- A's ribbon")
+    _assert_color(c, 170, 135, palette[0], "inner disk, left of center (B's geometric side) -- still A's ribbon")
+    _assert_color(c, 220, 135, palette[0], "dead center -- still inside the one ribbon's filled disk")
     _assert_color(c, 10, 10, BG, "well outside the whole circle -- background")
 
 
 def test_render_chord_svg_writes_ribbon_and_ring_paths() raises:
     # A smoke-level structural check (not a pixel-exact one -- a
     # curved, multi-segment filled path isn't practically hand-derived
-    # the way a rect-based mark's own SVG output is): three nodes, real
-    # flows between them, confirms real <path>/<path fill=...> markup
+    # the way a rect-based mark's SVG output is): three nodes, real
+    # flows between them, confirms real <path>/<path fill=.> markup
     # comes out for both the ribbons and the ring sectors, not just an
     # empty or background-only canvas.
     var from_cats: List[String] = ["A", "B"]
@@ -77,12 +75,12 @@ def test_render_chord_svg_writes_ribbon_and_ring_paths() raises:
     render_svg(svg, plot)
     var s = svg.to_string()
     assert_true("<path " in s, "at least one ribbon drawn as a real SVG path")
-    # default_categorical_palette()'s own first three entries, hardcoded
-    # the same way test_population_pyramid.mojo's own SVG test hardcodes
+    # default_categorical_palette()'s first three entries, hardcoded
+    # the same way test_population_pyramid.mojo's SVG test hardcodes
     # palette hex values (Color(31,119,180)/(255,127,14)/(44,160,44)).
-    assert_true("#1f77b4" in s, "node A's own ring sector color appears")
-    assert_true("#ff7f0e" in s, "node B's own ring sector color appears")
-    assert_true("#2ca02c" in s, "node C's own ring sector color appears")
+    assert_true("#1f77b4" in s, "node A's ring sector color appears")
+    assert_true("#ff7f0e" in s, "node B's ring sector color appears")
+    assert_true("#2ca02c" in s, "node C's ring sector color appears")
 
 
 def test_render_chord_raises_on_mismatched_length() raises:

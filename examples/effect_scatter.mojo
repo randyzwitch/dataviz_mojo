@@ -1,17 +1,16 @@
 """Demo: an effect scatter -- Mark.EFFECT_SCATTER, a scatter plot with
-a halo drawn under each point, the static equivalent of ECharts' own
-animated-ripple effect scatter (Plot.mark_effect_scatter().encode(),
-Mark.POINT's own encode() unchanged -- see that mark's own docstring
+a halo drawn under each point, the static equivalent of ECharts' animated-ripple effect scatter (Plot.mark_effect_scatter().encode(),
+Mark.POINT's encode() unchanged -- see that mark's docstring
 in mark.mojo for why a raster/SVG renderer approximates the animation
 this way). Built via dataviz_mojo.effect_scatter() -- see examples/
-scatter.mojo's own docstring for what that trades away.
+scatter.mojo's docstring for what that trades away.
 
 A handful of highlighted store locations -- the classic effect-scatter
 use: drawing the eye to specific points on a map or chart, the halo
-doing statically what ECharts' own ripple animation does over time.
+doing statically what ECharts' ripple animation does over time.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

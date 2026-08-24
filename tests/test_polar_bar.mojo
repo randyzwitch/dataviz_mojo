@@ -19,11 +19,10 @@ def test_render_polar_bar_matches_hand_derived_bar_colors() raises:
     # Three equal-value categories -- same equal-angle slots (2*pi/3,
     # bisectors -30/90/210 degrees) and center/radius (400x300,
     # default margins, single-char labels -> center (155,135), max
-    # radius 85.5) test_nightingale.mojo's own three-category case
-    # uses -- the 20% angular padding narrows each bar's own span
+    # radius 85.5) test_nightingale.mojo's three-category case
+    # uses -- the 20% angular padding narrows each bar's span
     # around that same bisector but doesn't move it, so the same
-    # radius-50 test points along each bisector stay inside their own
-    # bar.
+    # radius-50 test points along each bisector stay inside their bar.
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 1.0, 1.0]
     var c = polarbar(x, y, width=400, height=300)
@@ -42,7 +41,7 @@ def test_render_polar_bar_leaves_a_gap_between_bars() raises:
     # degrees exactly -- offset (155 + 50*cos(30), 135 + 50*sin(30)) =
     # (198.3, 160)) neither bar has reached yet: background, not
     # either bar's color -- the one thing that actually distinguishes
-    # this mark from Mark.NIGHTINGALE's own edge-to-edge wedges (see
+    # this mark from Mark.NIGHTINGALE's edge-to-edge wedges (see
     # test_nightingale.mojo, which has no such gap to test).
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 1.0, 1.0]

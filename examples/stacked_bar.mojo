@@ -1,18 +1,16 @@
-"""Demo: a stacked bar chart -- Mark.STACKED_BAR, each category's own
-series stacked as segments on top of each other instead of Mark.
+"""Demo: a stacked bar chart -- Mark.STACKED_BAR, each category's series stacked as segments on top of each other instead of Mark.
 GROUPED_BAR's side-by-side sub-bars (Plot().mark_stacked_bar().encode_
 grouped_bar(categories, series_names, values) -- the exact same data
 shape/encode method Mark.GROUPED_BAR uses, only the mark differs; see
-that method's own docstring). Same quarterly-revenue-by-region data
+that method's docstring). Same quarterly-revenue-by-region data
 examples/grouped_bar.mojo uses, so the two examples read as a direct
-before/after comparison of the same numbers under each mark's own
-convention: grouped answers "how do the regions compare to each other
+before/after comparison of the same numbers under each mark's convention: grouped answers "how do the regions compare to each other
 each quarter," stacked answers "what's the total, and how is it
 composed." Built via dataviz_mojo.stacked_bar() -- see
-examples/scatter.mojo's own docstring for what that trades away.
+examples/scatter.mojo's docstring for what that trades away.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

@@ -1,11 +1,10 @@
-"""Demo: a bump chart -- Mark.BUMP, one line per series tracking its
-own *rank* (1 = highest value) among every series at each category, not
+"""Demo: a bump chart -- Mark.BUMP, one line per series tracking its *rank* (1 = highest value) among every series at each category, not
 its raw value (Plot.encode_grouped_bar(), the exact same categories/
 series_names/values shape grouped_bar()/stacked_bar() take -- see
-bump.mojo's own docstring for the rank computation). Its own hand-
+bump.mojo's docstring for the rank computation). Its own hand-
 rolled rank axis (rank 1 at the top) -- see that same docstring for
 why a real LinearScale doesn't work here. Built via dataviz_mojo.
-bump() -- see examples/scatter.mojo's own docstring for what that
+bump() -- see examples/scatter.mojo's docstring for what that
 trades away.
 
 Programming-language popularity rankings over a few years -- the
@@ -13,7 +12,7 @@ classic bump-chart use: which position matters more than the exact
 score behind it.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

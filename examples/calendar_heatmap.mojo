@@ -1,16 +1,16 @@
 """Demo: a calendar heatmap -- Mark.CALENDAR_HEATMAP, daily values laid
 out in a GitHub-contributions-style calendar grid (Plot.encode_
 calendar(), plain "YYYY-MM-DD" date strings -- see calendar_heatmap.
-mojo's own docstring), colored through the same continuous gradient
+mojo's docstring), colored through the same continuous gradient
 Mark.HEATMAP uses. Built via dataviz_mojo.calendar_heatmap() -- see
-examples/scatter.mojo's own docstring for what that trades away.
+examples/scatter.mojo's docstring for what that trades away.
 
-Simulated activity across 2024 -- ECharts.jl's own calendarheatmap
+Simulated activity across 2024 -- ECharts.jl's calendarheatmap
 example (GitHub commit counts), a value that cycles by day-of-month so
 the grid reads as varied rather than flatly banded.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

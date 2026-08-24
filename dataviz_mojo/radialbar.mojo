@@ -27,25 +27,24 @@ def _render_radialbar[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.RADIALBAR` plot: one concentric ring per category
-    (`encode_categorical`'s own `x`/`y`, the identical shape `Mark.ARC`/
+    (`encode_categorical`'s `x`/`y`, the identical shape `Mark.ARC`/
     `Mark.POLAR_BAR`/`Mark.NIGHTINGALE` already share -- a radial-bar
     chart is the same category+value data as a polar bar chart, just
     read as concentric progress rings instead of bars radiating from
-    the center), each ring's own value drawn as a clockwise-from-12-
-    o'clock arc (`_polar_point`'s own convention, reused by every polar
+    the center), each ring's value drawn as a clockwise-from-12-
+    o'clock arc (`_polar_point`'s convention, reused by every polar
     mark in this package) over a full light-gray "track" circle, swept
     to `value / max(values)` of the way around -- the same always-
     linear-against-the-data's-own-max normalization `Mark.POLAR_BAR`
     already uses (no per-category goal; every ring answers "how does
     this compare to the largest value here", not "how close is this to
-    its own separate target").
+    its separate target").
 
-    The first category's own ring is drawn *outermost* (largest,
+    The first category's ring is drawn *outermost* (largest,
     most prominent), each later category nesting one ring further in
     -- the "primary metric outermost" convention real multi-ring
-    progress widgets (Apple Watch's own activity rings, GitHub's own
-    contribution-ring widgets) already use. This is the opposite
-    ordering from `Mark.SUNBURST`'s own innermost-first rings, which
+    progress widgets (Apple Watch's activity rings, GitHub's contribution-ring widgets) already use. This is the opposite
+    ordering from `Mark.SUNBURST`'s innermost-first rings, which
     encode hierarchy *depth* (a real structural property), not display
     prominence -- there's no hierarchy here for depth to mean anything.
 
@@ -112,10 +111,10 @@ def radialbar(
     """A radial (multi-ring) progress chart -- `Mark.RADIALBAR` over
     the same categorical `x` + continuous `y` shape `bar()`/`pie()`/
     `polarbar()` take (every value must be non-negative, and at least
-    one positive). Each category becomes its own concentric ring, swept
+    one positive). Each category becomes its concentric ring, swept
     clockwise from 12 o'clock to `value / max(values)` of the way
-    around a light-gray track -- the first category's own ring drawn
-    outermost. See `_render_radialbar`'s own docstring for the full
+    around a light-gray track -- the first category's ring drawn
+    outermost. See `_render_radialbar`'s docstring for the full
     reasoning, including how this differs from `polarbar()`'s radiating
     bars."""
     var plot = Plot().mark_radialbar().encode_categorical(x=categories, y=values)

@@ -1,6 +1,6 @@
 """Tests for Mark.GRAPH: circular node positioning, straight-line edge
-geometry/width, per-from-node color, encode_chord()'s own shared
-validation (raster + SVG) -- see graph.mojo's own docstrings for the
+geometry/width, per-from-node color, encode_chord()'s shared
+validation (raster + SVG) -- see graph.mojo's docstrings for the
 rules verified here.
 """
 
@@ -19,7 +19,7 @@ from _test_helpers import BG, _assert_color
 
 def test_render_graph_matches_hand_derived_edges() raises:
     # 3 nodes (A, B, C -- first-seen order across from-then-to),
-    # edges A->B (value 10, the domain's own max) and B->C (value 5,
+    # edges A->B (value 10, the domain's max) and B->C (value 5,
     # half that). Canvas 400x300, default theme: plot area x:[60,380],
     # y:[20,250] -> center (220,135), max radius 103.5 (the same
     # no-legend-needed numbers every polar-family mark this session
@@ -27,23 +27,23 @@ def test_render_graph_matches_hand_derived_edges() raises:
     # legend space at all).
     #
     # 3 nodes evenly spaced starting at 12 o'clock, sweeping clockwise
-    # (Mark.ARC's own convention, reused for position only): A at -90
+    # (Mark.ARC's convention, reused for position only): A at -90
     # degrees -> (220,32); B at 30 degrees -> (310,187); C at 150
     # degrees -> (130,187) -- every number confirmed against a real
-    # render_svg() run first (see this file's own SVG test). Edge
-    # midpoints (well clear of either endpoint's own marker) confirm
-    # each edge's own color follows its own "from" node.
+    # render_svg() run first (see this file's SVG test). Edge
+    # midpoints (well clear of either endpoint's marker) confirm
+    # each edge's color follows its "from" node.
     var from_c: List[String] = ["A", "B"]
     var to_c: List[String] = ["B", "C"]
     var v: List[Float64] = [10.0, 5.0]
     var c = graph(from_c, to_c, v, width=400, height=300)
 
     var palette = default_categorical_palette()
-    _assert_color(c, 265, 110, palette[0], "A->B's own edge, at its own midpoint")
-    _assert_color(c, 220, 187, palette[1], "B->C's own edge, at its own midpoint")
-    _assert_color(c, 220, 32, palette[0], "node A's own marker")
-    _assert_color(c, 310, 187, palette[1], "node B's own marker")
-    _assert_color(c, 130, 187, palette[2], "node C's own marker")
+    _assert_color(c, 265, 110, palette[0], "A->B's edge, at its midpoint")
+    _assert_color(c, 220, 187, palette[1], "B->C's edge, at its midpoint")
+    _assert_color(c, 220, 32, palette[0], "node A's marker")
+    _assert_color(c, 310, 187, palette[1], "node B's marker")
+    _assert_color(c, 130, 187, palette[2], "node C's marker")
 
 
 def test_render_graph_svg_matches_confirmed_geometry() raises:

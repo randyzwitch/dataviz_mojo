@@ -23,32 +23,32 @@ from dataviz_mojo.theme import Theme
 def _render_sankey[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.SANKEY` plot: `Mark.CHORD`'s own edge-list shape
+    """Render a `Mark.SANKEY` plot: `Mark.CHORD`'s edge-list shape
     (`encode_chord()`'s `from`/`to`/`value`) reused unchanged again,
-    laid out left-to-right by column (a node's own column is the
+    laid out left-to-right by column (a node's column is the
     length of the *longest* path reaching it from any source -- a node
     with no incoming edges -- computed via one Kahn's-algorithm
     topological pass over the edge list; a cycle makes that
     impossible, so this raises rather than looping forever if the
-    given edges aren't a real DAG, which every real Sankey's own flow
+    given edges aren't a real DAG, which every real Sankey's flow
     data already has to be).
 
     Each node draws as a thin vertical bar, height proportional to
-    `max(total inflow, total outflow)` (so a node's own imbalance
+    `max(total inflow, total outflow)` (so a node's imbalance
     between the two, if any, is visible: whichever side sums to less
-    than the node's own full height leaves a real gap, not silently
+    than the node's full height leaves a real gap, not silently
     stretched to hide it). Nodes sharing a column stack top-to-bottom,
-    each claiming `own value / column's own total value` of the
-    column's own available height -- the same "round the cumulative
+    each claiming `own value / column's total value` of the
+    column's available height -- the same "round the cumulative
     boundary, not an independent size" pattern `Mark.MARIMEKKO`/
     `TREEMAP` already establish, so adjacent nodes in a column never
     show a hairline gap.
 
     Each flow draws as one or more filled quadrilaterals ("ribbon"
-    segments) between a slice of its own `from` node's right edge and
-    a slice of its own `to` node's left edge -- straight edges, not a
+    segments) between a slice of its `from` node's right edge and
+    a slice of its `to` node's left edge -- straight edges, not a
     smooth curve (the same "straight, not curved" simplification
-    `Mark.CHORD`'s own straight-rim ribbons already are, for the
+    `Mark.CHORD`'s straight-rim ribbons already are, for the
     identical reason: a smooth Bezier ribbon whose own top and bottom
     edges both curve independently is real, added geometric complexity
     a straight trapezoid sidesteps while keeping the same essential
@@ -57,23 +57,22 @@ def _render_sankey[
     segments through one invisible pass-through node per intermediate
     column, instead of one long ribbon drawn straight through whatever
     else occupies those columns -- each pass-through node competes for
-    vertical space in its own column exactly like a real node does
+    vertical space in its column exactly like a real node does
     (proportional to the one flow value passing through it), so real
     nodes sharing that column get pushed to make room for it, the same
     way a real Sankey routes a long flow *around* other nodes instead
-    of through them. Every ribbon segment in one flow's own chain
-    still colors by that flow's own original source node (not
+    of through them. Every ribbon segment in one flow's chain
+    still colors by that flow's original source node (not
     whichever pass-through node a given segment happens to start from)
-    so the whole chain reads as one flow. Each skip edge gets its own
-    dedicated pass-through nodes, never shared with another skip edge
+    so the whole chain reads as one flow. Each skip edge gets its dedicated pass-through nodes, never shared with another skip edge
     passing through the same column -- a real, deliberate v1
     simplification (a real Sankey layout would bundle same-direction
     pass-throughs into shared lanes to save vertical space; this
     doesn't, trading some extra column height for a much simpler
     layout pass with no lane-bundling logic of its own). Multiple
     flows in or out of one node (real or pass-through) stack in the
-    given row order, each claiming its own proportional slice of that
-    node's own side -- exactly how a real Sankey's own additive-flow
+    given row order, each claiming its proportional slice of that
+    node's side -- exactly how a real Sankey's additive-flow
     reading works.
 
     A self-loop (`from[i] == to[i]`) is dropped before layout entirely
@@ -91,9 +90,9 @@ def _render_sankey[
     ref nodes = edges.nodes
     var n = len(nodes)
 
-    # Kept as its own filtered pass rather than using `edges.from_idx`/
+    # Kept as its filtered pass rather than using `edges.from_idx`/
     # `to_idx` directly: this mark drops self-loops (`fi == ti`), so
-    # its own two index columns are a *subset* of the edge rows, not
+    # its two index columns are a *subset* of the edge rows, not
     # parallel to them. Only the per-row domain lookup moved -- what
     # was two full scans of `nodes` per row is now two array reads.
     var from_idx = List[Int](capacity=len(plot._edges.from_categories))
@@ -136,7 +135,7 @@ def _render_sankey[
     if len(queue) != n:
         raise Error(
             "Plot: Mark.SANKEY requires the edges to form a DAG (a cycle was found --"
-            " every real Sankey diagram's own flow data must have no cycles)"
+            " every real Sankey diagram's flow data must have no cycles)"
         )
 
     var max_column = 0
@@ -146,12 +145,12 @@ def _render_sankey[
 
     # Splice every skip edge (target column more than one past source
     # column) into a chain through one pass-through node per
-    # intermediate column -- see this function's own docstring for the
+    # intermediate column -- see this function's docstring for the
     # full reasoning. `all_column` extends `column` with one entry per
     # pass-through node (indices `n..n_total-1`); `edge_origin` tracks
-    # each final-edge-list segment's own *original* source node (for
-    # coloring -- a chain's own middle segments start from a pass-
-    # through node, not the flow's own real source).
+    # each final-edge-list segment's *original* source node (for
+    # coloring -- a chain's middle segments start from a pass-
+    # through node, not the flow's real source).
     var final_from = List[Int]()
     var final_to = List[Int]()
     var final_value = List[Float64]()
@@ -284,11 +283,11 @@ def sankey(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A Sankey diagram -- `Mark.SANKEY`, `Mark.CHORD`'s own edge list
+    """A Sankey diagram -- `Mark.SANKEY`, `Mark.CHORD`'s edge list
     (`Plot.encode_chord()`'s `from_categories`/`to_categories`/
     `values`) drawn as nodes in left-to-right columns connected by
     proportionally sized flow ribbons. The edges must form a DAG (no
-    cycles) -- see `_render_sankey`'s own docstring for the full
+    cycles) -- see `_render_sankey`'s docstring for the full
     reasoning."""
     var plot = Plot().mark_sankey().encode_chord(
         from_categories=from_categories, to_categories=to_categories, values=values

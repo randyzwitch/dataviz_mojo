@@ -1,6 +1,5 @@
 """Tests for Mark.STACKED_BAR: per-series stacked rectangles and legend,
-including independent positive/negative stacking (raster + SVG) -- split
-out of what used to be one big test_plot.mojo.
+including independent positive/negative stacking (raster + SVG).
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -36,13 +35,13 @@ def test_render_stacked_bar_matches_hand_derived_rectangles() raises:
     # band_start(B)=164.5->165, bandwidth=76) -- all positive values
     # here, so only the *positive* running total ever moves. Per
     # category: North stacks first (bottom=0), South stacks on top of
-    # it (bottom=North's own value). y-domain: _zero_baseline_y_extent
-    # over each category's own *final* running total (A: 10+5=15, B:
+    # it (bottom=North's value). y-domain: _zero_baseline_y_extent
+    # over each category's *final* running total (A: 10+5=15, B:
     # 20+15=35) plus the always-included zero -> padded [0, 36.75].
     #
     # Every position independently re-derived via python3 (LinearScale's
     # own slope/intercept for the y-axis against this stacked-total
-    # domain, OrdinalScale's own band formula for x, unchanged from
+    # domain, OrdinalScale's band formula for x, unchanged from
     # Mark.GROUPED_BAR's own -- full band width per segment here, not
     # divided sub-bars), then confirmed against a real render() run.
     var cats: List[String] = ["A", "B"]
@@ -60,9 +59,9 @@ def test_render_stacked_bar_matches_hand_derived_rectangles() raises:
     _assert_color(c, 195, 200, palette[0], "B/North segment, well inside")
     # B, South (top segment, value 15, stacked on North): x:[165,241), y:[31,125)
     _assert_color(c, 195, 80, palette[1], "B/South segment, stacked on top of North")
-    # Unlike Mark.GROUPED_BAR, a stacked bar's own segments share the
+    # Unlike Mark.GROUPED_BAR, a stacked bar's segments share the
     # *full* band width, so there's no gap between series within a
-    # category -- but the inter-category gap (OrdinalScale's own 0.2
+    # category -- but the inter-category gap (OrdinalScale's 0.2
     # padding) is still there: x=155 sits in it at any y.
     _assert_color(c, 155, 150, BG, "the inter-category gap between A and B -- background")
 
@@ -83,27 +82,26 @@ def test_render_svg_stacked_bar_matches_confirmed_rects_and_legend() raises:
     assert_true('<rect x="165" y="125" width="76" height="125" fill="#1f77b4"/>' in s, "B/North")
     assert_true('<rect x="165" y="31" width="76" height="94" fill="#ff7f0e"/>' in s, "B/South")
     assert_true(
-        '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s, "North's own legend swatch"
+        '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s, "North's legend swatch"
     )
     assert_true(
-        '<rect x="270" y="42" width="14" height="14" fill="#ff7f0e"/>' in s, "South's own legend swatch"
+        '<rect x="270" y="42" width="14" height="14" fill="#ff7f0e"/>' in s, "South's legend swatch"
     )
 
 
 def test_render_svg_stacked_bar_mixed_sign_stacks_independently_each_direction() raises:
     # One category ("A"), two series: North=10 (positive), South=-5
     # (negative) -- the one case test_render_stacked_bar_matches_hand_
-    # derived_rectangles' own all-positive data can't exercise: a
-    # negative value must stack *downward* from its own running
-    # negative total (independent of North's own positive stack), not
-    # slide North's own segment down by 5. y-domain: _zero_baseline_y_
+    # derived_rectangles' all-positive data can't exercise: a
+    # negative value must stack *downward* from its running
+    # negative total (independent of North's positive stack), not
+    # slide North's segment down by 5. y-domain: _zero_baseline_y_
     # extent over [pos_total=10, neg_total=-5] -> padded [-5.75, 10.75]
     # (span 15, 5% pad 0.75 each end, zero always included/kept exact).
     # band_start(0)=79 (1 category spans the whole OrdinalScale range,
     # no inter-category gap to speak of), bandwidth=152.
     #
-    # Every position independently re-derived via python3, confirmed
-    # against a real render_svg() run before trusting it here.
+    # Every position independently re-derived via python3.
     var cats: List[String] = ["A"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0], [-5.0]]

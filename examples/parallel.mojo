@@ -1,17 +1,17 @@
 """Demo: a parallel-coordinates chart -- Mark.PARALLEL, one evenly
 spaced vertical axis per dimension (Plot.encode_parallel(), each
-independently scaled to its own column's own [min, max]), one polyline
-per named row connecting its own per-dimension positions. Built via
-dataviz_mojo.parallel() -- see examples/scatter.mojo's own docstring
+independently scaled to its column's [min, max]), one polyline
+per named row connecting its per-dimension positions. Built via
+dataviz_mojo.parallel() -- see examples/scatter.mojo's docstring
 for what that trades away.
 
-Vehicle attribute comparison -- ECharts.jl's own parallel() example,
-the chart type's own classic use (several wildly-differently-scaled
+Vehicle attribute comparison -- ECharts.jl's parallel() example,
+the chart type's classic use (several wildly-differently-scaled
 numeric dimensions -- horsepower, MPG, weight, 0-60 time, price -- laid
-out so every vehicle's own tradeoffs read as one connected shape).
+out so every vehicle's tradeoffs read as one connected shape).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

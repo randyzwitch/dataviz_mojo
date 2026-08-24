@@ -1,5 +1,5 @@
 """Tests for Mark.FUNNEL: tapering trapezoids, largest value first
-(raster + SVG) -- see funnel.mojo's own docstrings for the sort/taper
+(raster + SVG) -- see funnel.mojo's docstrings for the sort/taper
 rules verified here.
 """
 
@@ -24,10 +24,9 @@ def test_render_funnel_matches_hand_derived_trapezoids() raises:
     # y:[20,250], center x=220, max_width=320, row_height=(250-20)/3 =
     # 76.667. top_width[i] = value[i]/100*320 -> 320/192/64; bottom_
     # width[i] = top_width[i+1] (192/64), except the last row, whose
-    # own bottom matches its own top (64, flat). Every coordinate
-    # confirmed against a real render() run before trusting it (see
-    # this file's own SVG test for the exact path data). Sampled at
-    # each row's own vertical midpoint, x=220 (dead center -- always
+    # own bottom matches its top (64, flat). See this file's SVG test
+    # for the exact path data. Sampled at
+    # each row's vertical midpoint, x=220 (dead center -- always
     # inside every trapezoid, symmetric around cx, regardless of its
     # own width), so no left/right-edge math is needed here at all.
     var cats: List[String] = ["A", "B", "C"]
@@ -56,23 +55,23 @@ def test_render_funnel_svg_matches_confirmed_paths() raises:
     )
     assert_true(
         '<path d="M188.000,173.000 L252.000,173.000 L252.000,250.000 L188.000,250.000 Z" fill="#2ca02c"/>' in s,
-        "row 2 -- flat bottom, matching its own top",
+        "row 2 -- flat bottom, matching its top",
     )
 
 
 def test_render_funnel_sorts_largest_value_first_regardless_of_input_order() raises:
     # "Small" (10) given *before* "Big" (100) -- the opposite of
     # display order. If sorting works, row 0 (drawn first, topmost) is
-    # still "Big," so its own top edge spans the full plot width edge
+    # still "Big," so its top edge spans the full plot width edge
     # to edge (the largest value always does, by construction) --
-    # confirmed geometrically, no need to parse the legend's own text.
+    # confirmed geometrically, no need to parse the legend's text.
     var cats: List[String] = ["Small", "Big"]
     var vals: List[Float64] = [10.0, 100.0]
     var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_funnel().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False))
     render_svg(svg, plot)
     var s = svg.to_string()
-    assert_true('M60.000,20.000 L380.000,20.000' in s, "row 0's own top edge spans the full plot width -- it's Big, not Small")
+    assert_true('M60.000,20.000 L380.000,20.000' in s, "row 0's top edge spans the full plot width -- it's Big, not Small")
 
 
 def test_render_funnel_raises_on_negative_value() raises:

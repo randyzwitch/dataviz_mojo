@@ -18,35 +18,31 @@ from dataviz_mojo.theme import Theme
 def _render_span_chart[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.SPAN_CHART` plot: `Mark.GANTT`'s own mirror
+    """Render a `Mark.SPAN_CHART` plot: `Mark.GANTT`'s mirror
     image -- one floating bar per category from `plot._gantt.start[i]`
     (the low end) to `plot._gantt.end[i]` (the high end), but *vertical*
     on the normal `_draw_categorical_axis_frame` (categories along `x`,
-    a continuous `y` for the value domain) instead of `Mark.GANTT`'s
-    own horizontal frame -- ECharts.jl's own `spanchart`, "an invisible
+    a continuous `y` for the value domain) instead of `Mark.GANTT`'s horizontal frame -- ECharts.jl's `spanchart`, "an invisible
     spacer bar extends from 0 to lows[i], and the visible span bar
     extends from lows[i] to highs[i]," the same "a range with no
-    anchor to zero" reading `Mark.CANDLESTICK`'s own high-low wick
+    anchor to zero" reading `Mark.CANDLESTICK`'s high-low wick
     already gives, generalized to a filled bar instead of a thin line.
 
-    Deliberately reuses `encode_gantt()`'s own data shape completely
+    Deliberately reuses `encode_gantt()`'s data shape completely
     unchanged (`Plot.mark_span_chart().encode_gantt(categories=...,
     start=lows, end=highs)`) rather than a new `encode_*` method --
     the same "identical data, purely an orientation/rendering
-    difference" precedent `Mark.STACKED_BAR`'s own reuse of `Mark.
+    difference" precedent `Mark.STACKED_BAR`'s reuse of `Mark.
     GROUPED_BAR`'s `encode_grouped_bar()` already established (see
-    that mark's own docstring in mark.mojo). `_gantt`'s own `start`/
-    `end` don't need `start[i] <= end[i]` -- same as `Mark.GANTT`'s own
-    lack of that requirement, this draws from `min`/`max` of the two,
+    that mark's docstring in mark.mojo). `_gantt`'s `start`/
+    `end` don't need `start[i] <= end[i]` -- same as `Mark.GANTT`'s lack of that requirement, this draws from `min`/`max` of the two,
     not literally `start` to `end` in that order.
 
     Bar width comes from `frame.x_scale.bandwidth()` (the ordinal
-    x-axis's own per-category band, full width -- `Mark.BAR`'s own
-    convention, not narrowed the way `Mark.WATERFALL`'s delta bars
+    x-axis's per-category band, full width -- `Mark.BAR`'s convention, not narrowed the way `Mark.WATERFALL`'s delta bars
     are), bar height floored to at least 1 pixel (`max(1, ...)`, the
     same "a zero-length span is real, visible data, not nothing to
-    show" reasoning `Mark.GANTT`'s own docstring already gives for its
-    own zero-width case).
+    show" reasoning `Mark.GANTT`'s docstring already gives for its zero-width case).
     """
     if len(plot.x_categories) != len(plot._gantt.start) or len(plot._gantt.end) != len(plot._gantt.start):
         raise Error(
@@ -100,8 +96,8 @@ def span_chart(
     y_title: String = "",
 ) raises -> Canvas:
     """A span chart -- `Mark.SPAN_CHART`, one floating vertical bar per
-    category from `low[i]` to `high[i]` (`Mark.GANTT`'s own mirror
-    image; ECharts.jl's own `spanchart`, useful for confidence
+    category from `low[i]` to `high[i]` (`Mark.GANTT`'s mirror
+    image; ECharts.jl's `spanchart`, useful for confidence
     intervals, error bounds, or a range like a daily temperature
     high/low that isn't anchored to zero the way `bar()` assumes)."""
     var plot = Plot().mark_span_chart().encode_gantt(categories=categories, start=low, end=high)

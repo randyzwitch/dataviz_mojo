@@ -1,15 +1,15 @@
 """Demo: a tree diagram -- Mark.TREE, a hierarchy (Plot.encode_
 hierarchy(), the same flattened id/parent_id/value shape Mark.SUNBURST
-uses -- see tree.mojo's own docstring) drawn top-to-bottom as a
-node-link diagram instead of Mark.SUNBURST's own radial rings. Built
-via dataviz_mojo.tree() -- see examples/scatter.mojo's own docstring
+uses -- see tree.mojo's docstring) drawn top-to-bottom as a
+node-link diagram instead of Mark.SUNBURST's radial rings. Built
+via dataviz_mojo.tree() -- see examples/scatter.mojo's docstring
 for what that trades away.
 
-An org chart -- the tree diagram's own classic use, two departments
-each with their own reports.
+An org chart -- the tree diagram's classic use, two departments
+each with their reports.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

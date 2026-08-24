@@ -1,22 +1,21 @@
 """Demo: a gantt/span chart -- Mark.GANTT, one horizontal bar per
 category from a start value to an end value (Plot.encode_gantt(), a
-category plus a range -- see that method's own docstring). The first
+category plus a range -- see that method's docstring). The first
 mark whose categories run along the *y*-axis instead of the x-axis
 (`_draw_horizontal_categorical_axis_frame`, the mirror image of every
-other categorical mark here's own vertical axis frame -- see its own
-docstring for why this needed a dedicated function rather than
+other categorical mark here's vertical axis frame -- see its docstring for why this needed a dedicated function rather than
 generalizing the vertical one). Built via dataviz_mojo.
-gantt() -- see examples/scatter.mojo's own docstring for what that
+gantt() -- see examples/scatter.mojo's docstring for what that
 trades away.
 
 A five-task project schedule (day numbers, not calendar dates -- this
-package has no Date/Time type; see encode_gantt()'s own docstring for
+package has no Date/Time type; see encode_gantt()'s docstring for
 why that's a deliberate, not a missing, choice), with overlapping spans
 (Testing starts before Development finishes) -- the kind of at-a-glance
 overlap a gantt chart is for.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

@@ -1,6 +1,5 @@
 """Tests for Mark.LINE: drawing, line_smoothing (raster + SVG), and the
-_build_line_path Catmull-Rom-to-Bezier helper it's built on -- split out
-of what used to be one big test_plot.mojo.
+_build_line_path Catmull-Rom-to-Bezier helper it's built on.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -31,15 +30,14 @@ from _test_helpers import BG, _count_color, _assert_color
 def test_render_line_mark_draws_ink_between_the_two_endpoints() raises:
     # A horizontal line from (0,0) to (10,0) -- constant y means the
     # y-domain has zero span, padded to [-1.0, 1.0], so y=0.0 maps to
-    # the exact vertical midpoint of the plot area. The line's own
-    # midpoint in x similarly lands at the plot area's horizontal
+    # the exact vertical midpoint of the plot area. The line's midpoint in x similarly lands at the plot area's horizontal
     # midpoint. Checked as "not background" (real ink is present),
-    # not an exact color match -- stroke_path_aa's own coverage math
+    # not an exact color match -- stroke_path_aa's coverage math
     # is already exhaustively tested in canvas itself; this only needs
     # to confirm Plot actually calls it, with a path that passes
     # through the expected point. Built via line() (matches Plot().
     # mark_line().encode(x=x, y=y) + Canvas(400,300,BG) + render()
-    # exactly -- see test_quickplot.mojo's own test_line_matches_
+    # exactly -- see test_quickplot.mojo's test_line_matches_
     # manual_plot) rather than the fluent builder spelled out by hand.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
@@ -51,8 +49,7 @@ def test_render_line_mark_draws_ink_between_the_two_endpoints() raises:
 
 def test_build_line_path_zero_smoothing_is_a_plain_polyline() raises:
     # smoothing=0.0 must take the early "no curve math at all" branch,
-    # not a degenerate curve formula -- confirmed directly by kind, not
-    # just by the resulting shape: every command after the initial
+    # not a degenerate curve formula: every command after the initial
     # move_to is a plain _LINE_TO, never _CUBIC_TO.
     var px: List[Float64] = [0.0, 10.0, 30.0, 50.0]
     var py: List[Float64] = [0.0, 20.0, 5.0, 25.0]
@@ -105,13 +102,13 @@ def test_build_line_path_full_smoothing_matches_hand_derived_control_points() ra
 
 
 def test_render_line_smoothing_default_matches_straight_line_output_exactly() raises:
-    # line_smoothing's own default (0.0) must reproduce the exact
+    # line_smoothing's default (0.0) must reproduce the exact
     # pre-existing straight-segment render byte-for-byte -- not just
     # "close", the same "purely additive" bar every other Theme field
     # added to this package has had to clear (see e.g. Theme.scale's
     # own equivalent test). A real 3-point line (a peak shape, not the
     # 2-point flat line the very first LINE test uses), compared
-    # pixel-for-pixel across the whole canvas between Theme's own bare
+    # pixel-for-pixel across the whole canvas between Theme's bare
     # default and an explicit Theme(line_smoothing=0.0).
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
@@ -130,7 +127,7 @@ def test_render_line_smoothing_default_matches_straight_line_output_exactly() ra
 def test_render_line_smoothing_bows_the_curve_away_from_the_straight_path() raises:
     # x=[0,10,20], y=[0,10,0] -- a symmetric peak, canvas 400x300,
     # default margins (plot area x:[60,380], y:[20,250]),
-    # show_gridlines=False. The straight-line path's own first segment
+    # show_gridlines=False. The straight-line path's first segment
     # runs from (74.545,239.545) to (220,30.455) -- its exact midpoint
     # is (147.27,135.0). A fully (1.0) smoothed Catmull-Rom curve
     # through the same three points bows well away from that point at
@@ -138,8 +135,7 @@ def test_render_line_smoothing_bows_the_curve_away_from_the_straight_path() rais
     # own t=0.5 point lands at (138.18,121.93), about 13px away -- far
     # more than line_width=2.0 plus any AA fringe could reach. So
     # (147,135) is real ink under the straight line but background
-    # under the fully smoothed one -- confirmed via a real render() run
-    # first, not assumed from the hand-derived point alone.
+    # under the fully smoothed one.
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
     var c_straight = line(
@@ -153,7 +149,7 @@ def test_render_line_smoothing_bows_the_curve_away_from_the_straight_path() rais
     var smooth_p = c_smooth.get_pixel(147, 135)
     assert_true(
         straight_p.r != BG.r or straight_p.g != BG.g or straight_p.b != BG.b,
-        "the straight line passes through its own exact segment midpoint",
+        "the straight line passes through its exact segment midpoint",
     )
     assert_equal(smooth_p.r, BG.r)
     assert_equal(smooth_p.g, BG.g)
@@ -163,7 +159,7 @@ def test_render_line_smoothing_bows_the_curve_away_from_the_straight_path() rais
 def test_render_svg_line_smoothing_matches_confirmed_cubic_path() raises:
     # Same x=[0,10,20], y=[0,10,0] peak as the raster test above --
     # every control-point coordinate independently derived via python3
-    # from LinearScale's own slope/intercept formula composed with the
+    # from LinearScale's slope/intercept formula composed with the
     # Catmull-Rom tangent formula, then cross-checked against a real
     # render_svg() run before being trusted here (the same discipline
     # every other exact-string SVG test in this file already follows).
@@ -177,7 +173,7 @@ def test_render_svg_line_smoothing_matches_confirmed_cubic_path() raises:
         ' C268.485,30.455 341.212,204.697 365.455,239.545" fill="none"'
         ' stroke="#1e64b4" stroke-width="2.000" stroke-linecap="round"'
         ' stroke-linejoin="round"/>' in svg.to_string(),
-        "the fully-smoothed LINE mark's own two cubic segments",
+        "the fully-smoothed LINE mark's two cubic segments",
     )
 
 
@@ -203,14 +199,12 @@ def test_render_raises_when_color_encoding_used_with_line_mark() raises:
 def test_render_svg_line_mark_matches_confirmed_path_coordinates() raises:
     # x=[0,10], y=[5,5] (horizontal, zero-span y padded to [4,6] the
     # same way test_render_line_mark_draws_ink_between_the_two_
-    # endpoints' own data is) -- Path stores raw (unrounded) Float64
+    # endpoints' data is) -- Path stores raw (unrounded) Float64
     # pixel coordinates, so unlike the point test above, this asserts
     # against values confirmed by directly running render_svg() once
     # first and reading its real output (not a hand-rolled formula
-    # assumed to match LinearScale.to_pixel()'s own exact operation
-    # order/rounding), then formatted through SvgCanvas's own
-    # `_format_svg_float` (3 decimal places -- see that function's own
-    # docstring for why raw `String(Float64)` isn't safe to assert
+    # assumed to match LinearScale.to_pixel()'s exact operation
+    # order/rounding), then formatted through SvgCanvas's `_format_svg_float` (3 decimal places -- see that function's docstring for why raw `String(Float64)` isn't safe to assert
     # against here: it's what originally caught the 1-ULP cross-
     # context float discrepancy that motivated `_format_svg_float` to
     # exist at all).
@@ -223,7 +217,7 @@ def test_render_svg_line_mark_matches_confirmed_path_coordinates() raises:
         '<path d="M74.545,135.000 L365.455,135.000" fill="none"'
         ' stroke="#1e64b4" stroke-width="2.000" stroke-linecap="round"'
         ' stroke-linejoin="round"/>' in svg.to_string(),
-        "LINE mark's own stroked path, endpoints confirmed via a real render_svg() run",
+        "LINE mark's stroked path",
     )
 
 

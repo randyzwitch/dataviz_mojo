@@ -36,11 +36,11 @@ def test_render_radialbar_ring_colors_and_track() raises:
     #   85.5 - 85.5 + 7.125/2 = 3.5625 (mid-radius 14.25).
     #
     # Angle 0 = 3 o'clock (east), -90 = 12 o'clock, sweeping clockwise.
-    # Ring 0's own 90-degree sweep runs -90 -> 0; its own angular
+    # Ring 0's 90-degree sweep runs -90 -> 0; its angular
     # midpoint (-45, safely 45 degrees from either edge -- ~55.7px of
     # arc at this radius) sits at (155 + 71.25*cos(-45), 135 +
-    # 71.25*sin(-45)) = (205.4, 84.6). Ring 1's own 180-degree sweep
-    # runs -90 -> 90; its own midpoint (0 degrees, due east) sits at
+    # 71.25*sin(-45)) = (205.4, 84.6). Ring 1's 180-degree sweep
+    # runs -90 -> 90; its midpoint (0 degrees, due east) sits at
     # (155 + 42.75, 135) = (197.75, 135).
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0, 4.0]
@@ -52,18 +52,18 @@ def test_render_radialbar_ring_colors_and_track() raises:
     _assert_color(c, 155, 149, palette[2], "ring 2 (innermost), fully swept -- any angle")
 
     # Unswept portions of ring 0 / ring 1 (due west, 180 degrees --
-    # nowhere near either ring's own swept range) show the light-gray
+    # nowhere near either ring's swept range) show the light-gray
     # track, not the category color or the plain background.
     _assert_color(c, 84, 135, _TRACK, "ring 0, unswept portion (due west) shows the track color")
     _assert_color(c, 112, 135, _TRACK, "ring 1, unswept portion (due west) shows the track color")
 
 
 def test_render_radialbar_leaves_a_radial_gap_between_rings() raises:
-    # Same setup as above. The radial gap between ring 0's own inner
-    # edge (60.5625) and ring 1's own outer edge (53.4375) is centered
+    # Same setup as above. The radial gap between ring 0's inner
+    # edge (60.5625) and ring 1's outer edge (53.4375) is centered
     # on radius 57, due east (angle 0): (155 + 57, 135) = (212, 135) --
     # untouched by either ring, so plain background, not the track
-    # color (the track only covers each ring's own inner/outer band).
+    # color (the track only covers each ring's inner/outer band).
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0, 4.0]
     var c = radialbar(x, y, width=400, height=300)
@@ -103,10 +103,10 @@ def test_render_radialbar_svg_matches_confirmed_ring_paths() raises:
     # [1, 3] -- ring 0 ("a", outermost) sweeps 1/3 of the way around,
     # ring 1 ("b", innermost) sweeps the full circle. Paths confirmed
     # via a real render_svg() run first (same discipline as test_arc.
-    # mojo's own donut ring-sector test): each ring draws its own gray
+    # mojo's donut ring-sector test): each ring draws its gray
     # track first (a full-circle ring-sector path, `#e6e6e6`), then its
     # own value arc on top -- ring 1's value arc is a second, identical
-    # full-circle path in its own category color, since a fraction of
+    # full-circle path in its category color, since a fraction of
     # 1.0 sweeps the same full turn the track itself does.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
@@ -117,17 +117,17 @@ def test_render_radialbar_svg_matches_confirmed_ring_paths() raises:
     assert_true(
         '<path d="M220.000,37.969 A97.031,97.031 0 1,1 220.000,37.969'
         ' L220.000,76.781 A58.219,58.219 0 1,0 220.000,76.781 Z" fill="#e6e6e6"/>' in s,
-        "ring 0's own full-circle track path",
+        "ring 0's full-circle track path",
     )
     assert_true(
         '<path d="M220.000,37.969 A97.031,97.031 0 0,1 304.032,183.516'
         ' L270.419,164.109 A58.219,58.219 0 0,0 220.000,76.781 Z" fill="#1f77b4"/>' in s,
-        "ring 0's own value arc, swept 1/3 of the way around (no large-arc-flag)",
+        "ring 0's value arc, swept 1/3 of the way around (no large-arc-flag)",
     )
     assert_true(
         '<path d="M220.000,89.719 A45.281,45.281 0 1,1 220.000,89.719'
         ' L220.000,128.531 A6.469,6.469 0 1,0 220.000,128.531 Z" fill="#ff7f0e"/>' in s,
-        "ring 1's own value arc, fully swept -- identical shape to its own track, category color on top",
+        "ring 1's value arc, fully swept -- identical shape to its track, category color on top",
     )
 
 

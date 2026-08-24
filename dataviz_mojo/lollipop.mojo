@@ -20,11 +20,10 @@ from dataviz_mojo.theme import Theme
 def _render_lollipop[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.LOLLIPOP` plot: exactly `_render_bar`'s own
-    categorical x-axis / zero-baseline y-axis (`_draw_categorical_axis_
-    frame`, shared -- see its own docstring), but each category draws a
+    """Render a `Mark.LOLLIPOP` plot: exactly `_render_bar`'s categorical x-axis / zero-baseline y-axis (`_draw_categorical_axis_
+    frame`, shared -- see its docstring), but each category draws a
     thin stem (`stroke_path_aa`, `Theme.line_width`, matching `Mark.
-    LINE`'s own stroke-width convention) from the zero baseline up to
+    LINE`'s stroke-width convention) from the zero baseline up to
     its value, capped with a point (`fill_circle_aa`, `Theme.
     point_radius`, matching `Mark.POINT`'s own) at the value itself --
     the same "magnitude from a baseline" meaning a bar's height
@@ -33,10 +32,9 @@ def _render_lollipop[
     Stem/point positions use raw (unrounded) pixel floats from
     `x_scale.center(i)`/`y_scale.to_pixel(...)` for the `Path` the stem
     strokes through, the same sub-pixel-precision convention `Mark.
-    LINE`/`AREA` already use for their own `Path`s -- only the point's
+    LINE`/`AREA` already use for their `Path`s -- only the point's
     *center*, passed to `fill_circle_aa` (an `Int`-coordinate primitive,
-    see canvas_mojo/draw_target.mojo), gets rounded, matching `Mark.POINT`'s
-    own `_axis_pixel` convention.
+    see canvas_mojo/draw_target.mojo), gets rounded, matching `Mark.POINT`'s `_axis_pixel` convention.
     """
     _validate_categorical_encoding(plot)
 

@@ -2,11 +2,10 @@
 proportional to its value, colored via the same default_categorical_
 palette() a categorical-color scatter plot uses. A legend (Theme.
 show_legend, on by default for Mark.ARC) labels each wedge. Built via
-dataviz_mojo.pie() -- see examples/scatter.mojo's own
-docstring for what that trades away.
+dataviz_mojo.pie() -- see examples/scatter.mojo's docstring for what that trades away.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

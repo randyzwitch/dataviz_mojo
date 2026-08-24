@@ -1,5 +1,5 @@
 """Tests for Mark.HEATMAP: one colored grid cell per (x, y) category
-pair (raster + SVG) -- see heatmap.mojo's own docstrings for the
+pair (raster + SVG) -- see heatmap.mojo's docstrings for the
 grid-frame/color-scale rules verified here.
 """
 
@@ -22,24 +22,23 @@ def test_render_heatmap_matches_hand_derived_cells() raises:
     # Short "AM"/"PM" labels keep the dynamic left margin at Theme's
     # own default 60 (the same margin every other categorical-mark
     # test with short labels confirms). x_scale/y_scale both use
-    # padding=0.0 (see _draw_grid_axis_frame's own docstring), so with
+    # padding=0.0 (see _draw_grid_axis_frame's docstring), so with
     # exactly 2 categories on each axis and plot area x:[60,380],
     # y:[20,250], every band is exactly half that span: cell width 160
     # (x:[60,220) for "Mon", x:[220,380) for "Tue"), cell height 115
     # (y:[20,135) for "AM", y:[135,250) for "PM") -- category index 0
     # lands first (top/left), the same reading-order convention Mark.
-    # GANTT's own y-axis already establishes.
+    # GANTT's y-axis already establishes.
     #
-    # value=1.0 is the color domain's own min -> exactly Theme's
+    # value=1.0 is the color domain's min -> exactly Theme's
     # color_scale_low, Color(60,110,200); value=4.0 is the max ->
     # exactly color_scale_high, Color(220,90,40) -- both read directly
-    # off Theme, not re-derived. The two in-between cells' own colors
+    # off Theme, not re-derived. The two in-between cells' colors
     # (t=1/3 and t=2/3 through the now-three-stop gradient -- low at
     # 0.0, color_scale_mid at 0.5, high at 1.0, see Theme.color_scale_
-    # mid's own docstring for why a middle stop exists at all) aren't
-    # hand-derived here -- ColorScale's own interpolation is already
-    # covered by test_color_scale.mojo -- just confirmed once against a
-    # real render() run before trusting them: Color(177,193,223) (t=1/3,
+    # mid's docstring for why a middle stop exists at all) aren't
+    # hand-derived here -- ColorScale's interpolation is already
+    # covered by test_color_scale.mojo: Color(177,193,223) (t=1/3,
     # bracketed between low and mid) and Color(230,187,170) (t=2/3,
     # bracketed between mid and high).
     var x: List[String] = ["Mon", "Mon", "Tue", "Tue"]
@@ -48,10 +47,10 @@ def test_render_heatmap_matches_hand_derived_cells() raises:
     var t = Theme(show_gridlines=False, show_legend=False)
     var c = heatmap(x, y, v, theme=t, width=400, height=300)
 
-    _assert_color(c, 100, 60, Color(60, 110, 200), "(Mon, AM) = 1.0, the color domain's own min")
+    _assert_color(c, 100, 60, Color(60, 110, 200), "(Mon, AM) = 1.0, the color domain's min")
     _assert_color(c, 100, 180, Color(177, 193, 223), "(Mon, PM) = 2.0")
     _assert_color(c, 300, 60, Color(230, 187, 170), "(Tue, AM) = 3.0")
-    _assert_color(c, 300, 180, Color(220, 90, 40), "(Tue, PM) = 4.0, the color domain's own max")
+    _assert_color(c, 300, 180, Color(220, 90, 40), "(Tue, PM) = 4.0, the color domain's max")
     _assert_color(c, 10, 10, BG, "outside the plot area entirely -- background")
 
 
@@ -72,8 +71,7 @@ def test_render_heatmap_svg_matches_confirmed_rects() raises:
 
 
 def test_render_heatmap_missing_cell_leaves_background() raises:
-    # A sparse grid -- no (Tue, PM) row at all. _render_heatmap's own
-    # docstring: a missing combination just isn't drawn, not an error
+    # A sparse grid -- no (Tue, PM) row at all. _render_heatmap's docstring: a missing combination just isn't drawn, not an error
     # or a zero.
     var x: List[String] = ["Mon", "Mon", "Tue"]
     var y: List[String] = ["AM", "PM", "AM"]
@@ -91,8 +89,8 @@ def test_render_heatmap_legend_shows_value_domain() raises:
     var plot = Plot().mark_heatmap().encode_heatmap(x=x, y=y, value=v).theme(Theme(show_gridlines=False))
     render_svg(svg, plot)
     var s = svg.to_string()
-    assert_true(">4.0<" in s, "the color domain's own max, at the top of the legend bar")
-    assert_true(">1.0<" in s, "the color domain's own min, at the bottom of the legend bar")
+    assert_true(">4.0<" in s, "the color domain's max, at the top of the legend bar")
+    assert_true(">1.0<" in s, "the color domain's min, at the bottom of the legend bar")
 
 
 def test_render_heatmap_raises_on_mismatched_length() raises:
