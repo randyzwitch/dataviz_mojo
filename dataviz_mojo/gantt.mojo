@@ -28,8 +28,7 @@ struct _HorizontalCategoricalFrame(Movable):
     swap roles: `x_scale` is the continuous `LinearScale` here,
     `y_scale` the categorical `OrdinalScale`), shared by every mark
     whose categories run along a horizontal axis instead of a vertical
-    one (`Mark.GANTT`, `POPULATION_PYRAMID`, `RIDGELINE`,
-    `SPAN_CHART`).
+    one (`Mark.GANTT`, `POPULATION_PYRAMID`, `RIDGELINE`).
 
     `px0`/`py0`/`px1`/`py1` -- see `_CategoricalFrame`'s docstring
     for what these are and why they're carried through unchanged."""
@@ -90,7 +89,7 @@ def _draw_horizontal_categorical_axis_frame[
     continuous `x_scale` runs left-to-right along the bottom instead of
     top-to-bottom on the left. Shared by every mark whose categories
     lay out horizontally -- `Mark.GANTT`, `POPULATION_PYRAMID`,
-    `RIDGELINE`, `SPAN_CHART`.
+    `RIDGELINE`.
 
     Deliberately its own function, not a generalized, orientation-
     flagged version of `_draw_categorical_axis_frame` -- a bidirectional
@@ -100,7 +99,7 @@ def _draw_horizontal_categorical_axis_frame[
     branch through nearly every line is worse than each path staying
     its function" case `_render_bar`'s docstring already warns about.
     Two separate mirror-image functions, each a plain read, stays
-    simpler than one function with an orientation flag even with four
+    simpler than one function with an orientation flag even with three
     callers on this side.
 
     The dynamic left margin here grows to fit the category *names*
@@ -130,22 +129,17 @@ def _draw_horizontal_categorical_axis_frame[
     horizontal ones.
 
     `padding` (default 0.2, `OrdinalScale`'s default) is forwarded
-    straight through to the `OrdinalScale` this builds -- `Mark.GANTT`/
-    `POPULATION_PYRAMID` (this function's two original callers) both
-    want real visual separation between rows, the default's job.
-    `Mark.RIDGELINE` (added later) passes `padding=0.0` instead: the
-    same `padding=0.0` choice `Mark.HEATMAP`'s `_draw_grid_axis_
-    frame` already makes for edge-to-edge cells, needed here for the
-    same underlying reason -- a nonzero gap between adjacent bands left
-    a real sliver of background between one row's baseline and the
-    next row's top, only sometimes covered by the row below's curve rising into it (however much its density happened to be
-    at that x), which showed up as a spurious notch cut into the
-    row above wherever it wasn't -- not `theme.ridgeline_overlap`'s doing,
-    a padding-vs-baseline mismatch this function's default left
-    unaccounted for. `padding=0.0` makes each row's baseline land
-    exactly on the next row's top edge, so only `theme.ridgeline_overlap`
-    itself controls whether/how far one row's peak crosses into
-    another's.
+    straight through to the `OrdinalScale` this builds. `Mark.GANTT`/
+    `POPULATION_PYRAMID` want real visual separation between rows, the
+    default's job. `Mark.RIDGELINE` instead passes `padding=0.0`: the
+    same choice `Mark.HEATMAP`'s `_draw_grid_axis_frame` makes for
+    edge-to-edge cells, needed here so each row's baseline lands
+    exactly on the next row's top edge -- with any nonzero gap, a
+    sliver of background shows between one row's baseline and the
+    next row's top, only sometimes covered by the row below's curve
+    rising into it, which reads as a spurious notch cut into the row
+    above. With `padding=0.0`, only `theme.ridgeline_overlap` itself
+    controls whether/how far one row's peak crosses into another's.
     """
     var sc = _Scaled(theme)
 
@@ -248,11 +242,8 @@ def _render_gantt[
     data at a specific point, not "nothing to show."
 
     No dependency-arrow drawing between related bars (a real gantt-chart
-    convention) -- out of scope for this first version, the same way
-    `Mark.WATERFALL`'s first version had no "total" bars: `encode_
-    gantt()`'s data shape has no notion of one task depending on another
-    to begin with, and inventing one wasn't part of what the wiki's "Phase 2b" item asked for (a horizontal-bar orientation, which
-    this provides).
+    convention) -- out of scope: `encode_gantt()`'s data shape has no
+    notion of one task depending on another to begin with.
     """
     if len(plot.x_categories) != len(plot._gantt.start) or len(plot._gantt.end) != len(plot._gantt.start):
         raise Error(
