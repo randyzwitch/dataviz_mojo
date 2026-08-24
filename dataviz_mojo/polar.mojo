@@ -44,16 +44,6 @@ struct _PolarData(Movable):
         self.series_radius = List[List[Float64]]()
 
 
-# How many evenly-spaced concentric grid rings/angular spokes the polar
-# grid draws -- fixed constants, not `Theme` fields, the same
-# "not worth a knob until something concrete needs one" reasoning
-# every other module-level layout constant here already follows.
-# `_POLAR_GRID_SPOKES = 12` matches ECharts' own default `splitNumber`
-# for a polar angle axis (see ECharts.jl's own `polar()` docs).
-comptime _POLAR_GRID_RINGS = 4
-comptime _POLAR_GRID_SPOKES = 12
-
-
 struct _PolarPoint(Movable):
     """`_polar_point`'s own return value -- a named struct, not a raw
     tuple, the same multi-value-return convention every other function
@@ -88,9 +78,9 @@ def _polar_point(cx: Float64, cy: Float64, angle: Float64, radius: Float64) -> _
 def _draw_polar_grid[
     T: DrawTarget
 ](mut target: T, cx: Float64, cy: Float64, max_radius: Float64, theme: Theme) raises:
-    """The polar coordinate system itself: `_POLAR_GRID_RINGS` evenly
+    """The polar coordinate system itself: `theme.polar_grid_rings` evenly
     spaced concentric circles (one full `Path.arc_to` sweep each,
-    stroked) plus `_POLAR_GRID_SPOKES` straight radial lines from the
+    stroked) plus `theme.polar_grid_spokes` straight radial lines from the
     center out to `max_radius` -- the polar equivalent of a cartesian
     plot's own gridlines, drawn in `theme.gridline_color` the same way
     `_draw_categorical_axis_frame`'s own gridlines are. No tick labels
@@ -105,15 +95,15 @@ def _draw_polar_grid[
     for exact radius/angle readout ever asks for it, not built
     speculatively now.
     """
-    for i in range(1, _POLAR_GRID_RINGS + 1):
-        var r = max_radius * Float64(i) / Float64(_POLAR_GRID_RINGS)
+    for i in range(1, theme.polar_grid_rings + 1):
+        var r = max_radius * Float64(i) / Float64(theme.polar_grid_rings)
         var ring = Path()
         ring.move_to(cx + r, cy)
         ring.arc_to(cx, cy, r, 0.0, 2.0 * pi)
         target.stroke_path_aa(ring, theme.gridline_color)
 
-    for i in range(_POLAR_GRID_SPOKES):
-        var angle = 2.0 * pi * Float64(i) / Float64(_POLAR_GRID_SPOKES)
+    for i in range(theme.polar_grid_spokes):
+        var angle = 2.0 * pi * Float64(i) / Float64(theme.polar_grid_spokes)
         var tip = _polar_point(cx, cy, angle, max_radius)
         target.draw_line_aa(Int(cx), Int(cy), Int(tip.x), Int(tip.y), theme.gridline_color)
 

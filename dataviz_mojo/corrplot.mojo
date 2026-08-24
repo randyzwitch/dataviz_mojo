@@ -44,14 +44,6 @@ struct _CorrplotData(Movable):
         self.labels = False
 
 
-# A bubble's own max radius, as a fraction of its cell's own smaller
-# dimension -- a correlation of exactly +-1.0 fills this much of the
-# cell, everything weaker scales down from there. Fixed, not a Theme
-# field, the same "no concrete need for a knob yet" reasoning every
-# other fixed layout constant here follows.
-comptime _CORRPLOT_BUBBLE_FRACTION = 0.42
-
-
 def _render_corrplot[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
@@ -61,7 +53,7 @@ def _render_corrplot[
     variable list on *both* axes (a correlation matrix is always
     square), unlike `HEATMAP`'s own two independent category domains.
     Bubble radius scales linearly with `abs(matrix[row][col])`
-    (`_CORRPLOT_BUBBLE_FRACTION` of the cell's own smaller dimension at
+    (`theme.corrplot_bubble_fraction` of the cell's own smaller dimension at
     exactly +-1.0), bubble color through the same continuous
     `ColorScale` vocabulary `HEATMAP` uses, but spanning the fixed
     `[-1.0, 1.0]` correlation domain (not the data's own [min, max] --
@@ -142,7 +134,7 @@ def _render_corrplot[
 
     var cell_width = frame.x_scale.bandwidth()
     var cell_height = frame.y_scale.bandwidth()
-    var max_radius = min(cell_width, cell_height) / 2.0 * _CORRPLOT_BUBBLE_FRACTION
+    var max_radius = min(cell_width, cell_height) / 2.0 * theme.corrplot_bubble_fraction
     var n = len(plot._corrplot.variables)
 
     for row in range(n):

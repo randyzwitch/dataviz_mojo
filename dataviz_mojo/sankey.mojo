@@ -19,14 +19,6 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.edges import _edge_node_index, _validate_edge_encoding
 from dataviz_mojo.theme import Theme
 
-comptime _SANKEY_NODE_WIDTH = 12.0
-"""Each node's own fixed pixel width (scaled by `_Scaled.scale`, the
-same convention every other raw-pixel-quantity constant in this
-package follows) -- a Sankey node is a thin bar, not a shape whose own
-width means anything (unlike its height, which is real, value-derived
-data). Fixed, not a `Theme` field, the usual "no concrete need for a
-knob yet" reasoning."""
-
 
 def _render_sankey[
     T: DrawTarget
@@ -203,7 +195,7 @@ def _render_sankey[
         node_value.append(max(total_in[i], total_out[i]))
 
     var sc = _Scaled(theme)
-    var node_width = _SANKEY_NODE_WIDTH * sc.scale
+    var node_width = theme.sankey_node_width * sc.scale
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
     var plot_x1 = ox1 - sc.margin_right

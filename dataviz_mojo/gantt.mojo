@@ -145,10 +145,10 @@ def _draw_horizontal_categorical_axis_frame[
     next row's own top, only sometimes covered by the row below's own
     curve rising into it (however much its own density happened to be
     at that x), which showed up as a spurious notch cut into the
-    row above wherever it wasn't -- not `_RIDGE_OVERLAP`'s own doing,
+    row above wherever it wasn't -- not `theme.ridgeline_overlap`'s own doing,
     a padding-vs-baseline mismatch this function's own default left
     unaccounted for. `padding=0.0` makes each row's own baseline land
-    exactly on the next row's own top edge, so only `_RIDGE_OVERLAP`
+    exactly on the next row's own top edge, so only `theme.ridgeline_overlap`
     itself controls whether/how far one row's peak crosses into
     another's -- confirmed by rendering a two-category ridgeline case
     before and after this fix, not assumed from the formula alone.

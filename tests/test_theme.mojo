@@ -8,11 +8,13 @@ reproducing it) -- split out of what used to be one big test_plot.mojo.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
+from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
 from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
+    _Scaled,
     render,
     render_facets,
     render_facets_svg,
@@ -27,7 +29,7 @@ from dataviz_mojo.colors import RED
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import scatter, waterfall, bullet, treemap, radialbar
 
-from _test_helpers import _count_color, _assert_color
+from _test_helpers import BG, _count_color, _assert_color
 
 
 def test_render_theme_scale_uniformly_scales_the_whole_layout() raises:
@@ -278,6 +280,57 @@ def test_theme_mark_colors_are_actually_used() raises:
         rb_cats, rb_vals, theme=Theme(radialbar_track_color=RED), width=300, height=220
     )
     assert_true(_count_color(r, RED) > 0, "radialbar_track_color reaches the unfilled track")
+
+
+def test_theme_layout_fields_reach_scaled() raises:
+    # Tier 6 differs from the mark-style fields: these are pixel
+    # quantities that must keep flowing through _Scaled, so a bare
+    # "does the output change" check is not enough -- it must also
+    # still multiply by Theme.scale for HiDPI.
+    var t1 = Theme(tick_length=5)
+    var t2 = Theme(tick_length=20)
+    assert_equal(_Scaled(t1).tick_length, 5, "default tick_length reaches _Scaled")
+    assert_equal(_Scaled(t2).tick_length, 20, "overridden tick_length reaches _Scaled")
+
+    # ...and still scales. 20 at scale 2.0 is 40, not 20.
+    assert_equal(
+        _Scaled(Theme(tick_length=20, scale=2.0)).tick_length, 40,
+        "a themed tick_length is still multiplied by Theme.scale",
+    )
+    assert_equal(
+        _Scaled(Theme(legend_width=200, scale=3.0)).legend_width, 600,
+        "legend_width scales too",
+    )
+
+    # continuous_legend_bar_width used to be defined as
+    # _LEGEND_SWATCH_SIZE, so changing the swatch silently moved the
+    # gradient bar. They are independent fields now; assert that
+    # decoupling explicitly, since it is the one behavioral difference
+    # in this change.
+    var decoupled = _Scaled(Theme(legend_swatch_size=40))
+    assert_equal(decoupled.legend_swatch_size, 40, "swatch size changed")
+    assert_equal(
+        decoupled.continuous_legend_bar_width, 14,
+        "the gradient bar no longer follows the swatch size",
+    )
+
+
+def test_theme_legend_width_actually_changes_layout() raises:
+    # The end-to-end half: a wider legend column must take real space
+    # away from the plot area, not just sit in _Scaled.
+    var x: List[Float64] = [0.0, 10.0]
+    var y: List[Float64] = [0.0, 10.0]
+    var cats: List[String] = ["alpha", "beta"]
+    var narrow = Canvas(400, 300, BG)
+    render(narrow, Plot().mark_point().encode(x=x, y=y, color_categories=cats)
+           .theme(Theme(legend_width=80, show_gridlines=False)))
+    var wide = Canvas(400, 300, BG)
+    render(wide, Plot().mark_point().encode(x=x, y=y, color_categories=cats)
+           .theme(Theme(legend_width=260, show_gridlines=False)))
+    assert_true(
+        _count_color(narrow, BG) != _count_color(wide, BG),
+        "legend_width changes how much canvas the plot area gets",
+    )
 
 
 def main() raises:

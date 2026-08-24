@@ -45,20 +45,12 @@ struct _RadarData(Movable):
         self.series_values = List[List[Float64]]()
 
 
-# How many evenly-spaced "web" rings the polygon grid draws -- the
-# same fixed-constant reasoning `polar.mojo`'s own `_POLAR_GRID_RINGS`
-# already gives, unrelated to it only because a radar grid is
-# genuinely a different shape (a straight-edged polygon per ring, not
-# a circle -- see `_draw_radar_grid`'s own docstring).
-comptime _RADAR_GRID_RINGS = 4
-
-
 def _draw_radar_grid[
     T: DrawTarget
 ](mut target: T, cx: Float64, cy: Float64, max_radius: Float64, n: Int, theme: Theme) raises:
     """The radar coordinate system: `n` straight spokes from the
     center out to `max_radius` (one per indicator axis, `_polar_point`
-    at each axis's own angle), plus `_RADAR_GRID_RINGS` concentric
+    at each axis's own angle), plus `theme.radar_grid_rings` concentric
     "web" rings -- each ring a straight-edged `n`-sided polygon
     connecting every spoke's own tip at that ring's radius fraction,
     *not* a circle the way `polar.mojo`'s own `_draw_polar_grid` rings
@@ -75,8 +67,8 @@ def _draw_radar_grid[
         var tip = _polar_point(cx, cy, angle, max_radius)
         target.draw_line_aa(Int(cx), Int(cy), Int(tip.x), Int(tip.y), theme.gridline_color)
 
-    for ring in range(1, _RADAR_GRID_RINGS + 1):
-        var r = max_radius * Float64(ring) / Float64(_RADAR_GRID_RINGS)
+    for ring in range(1, theme.radar_grid_rings + 1):
+        var r = max_radius * Float64(ring) / Float64(theme.radar_grid_rings)
         var web = Path()
         for i in range(n):
             var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
