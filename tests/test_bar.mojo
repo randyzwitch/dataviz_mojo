@@ -1,5 +1,5 @@
 """Tests for Mark.BAR: rectangles, negative values, dynamic left margin,
-color-by-sign -- split out of what used to be one big test_plot.mojo.
+color-by-sign.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite

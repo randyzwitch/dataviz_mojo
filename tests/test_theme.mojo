@@ -1,8 +1,7 @@
 """Tests for Theme.scale (uniform layout scaling and its purely-additive
 default), Theme.font_family (threaded into every _TextRequest at
 construction time, both backends), and Theme.title_bold (the one
-Theme default that deliberately changes prior behavior rather than
-reproducing it) -- split out of what used to be one big test_plot.mojo.
+Theme default that isn't backward-compatible).
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -292,7 +291,7 @@ def test_theme_layout_fields_reach_scaled() raises:
     assert_equal(_Scaled(t1).tick_length, 5, "default tick_length reaches _Scaled")
     assert_equal(_Scaled(t2).tick_length, 20, "overridden tick_length reaches _Scaled")
 
-    # ...and still scales. 20 at scale 2.0 is 40, not 20.
+    # ..and still scales. 20 at scale 2.0 is 40, not 20.
     assert_equal(
         _Scaled(Theme(tick_length=20, scale=2.0)).tick_length, 40,
         "a themed tick_length is still multiplied by Theme.scale",

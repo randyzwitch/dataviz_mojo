@@ -1,6 +1,5 @@
 """Tests for the dynamic left-margin computation (wide y-axis tick labels
-growing plot_x0 on both the continuous and Mark.BAR render paths) --
-split out of what used to be one big test_plot.mojo.
+growing plot_x0 on both the continuous and Mark.BAR render paths).
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
