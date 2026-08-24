@@ -29,11 +29,10 @@ def _validate_grouped_bar_series(plot: Plot) raises:
     Lives here, next to `Mark.GROUPED_BAR`'s rendering, and is
     imported by stacked_bar.mojo rather than duplicated into it: both
     marks are drawn from the exact same `encode_grouped_bar()` data
-    (only the drawing differs -- see `_render_stacked_bar`'s docstring), so they necessarily have the identical thing to check,
-    and had carried verbatim copies of it. `Mark.STACKED_BAR` already
-    depends on `Mark.GROUPED_BAR` conceptually for its whole data
-    shape; making that a real import keeps the two from drifting the
-    way the continuous render paths did.
+    (only the drawing differs -- see `_render_stacked_bar`'s docstring), so they necessarily have the identical thing to
+    check. `Mark.STACKED_BAR` already depends on `Mark.GROUPED_BAR`
+    conceptually for its whole data shape; a real import keeps the two
+    from drifting apart.
     """
     if len(plot._grouped_bar.series_names) != len(plot._grouped_bar.values):
         raise Error(
@@ -61,8 +60,9 @@ def _validate_grouped_bar_series(plot: Plot) raises:
 def _series_legend_reserve(plot: Plot, sc: _Scaled) raises -> Int:
     """How much width the series-name legend `Mark.GROUPED_BAR`/
     `STACKED_BAR` both draw needs, or `0` when `Theme.show_legend` is
-    off -- the other thing those two carried identical copies of.
-    Subtracted from the *outer* `ox1` before
+    off -- shared here for the same reason `_validate_grouped_bar_
+    series` is (see that function's docstring). Subtracted from the
+    *outer* `ox1` before
     `_draw_categorical_axis_frame` is called, the same "shrink the rect
     from outside, don't thread a flag through the shared core" pattern
     `_apply_labels` established (see `_render_grouped_bar`'s docstring).

@@ -64,10 +64,10 @@ def _render_stacked_bar[
 
     Same legend as `Mark.GROUPED_BAR` (series name -> color, reserved
     by shrinking the outer `ox1` before calling `_draw_categorical_
-    axis_frame`) -- and now literally the same code: `_series_legend_
+    axis_frame`) -- and literally the same code: `_series_legend_
     reserve`, imported from grouped_bar.mojo alongside `_validate_
     grouped_bar_series` -- see that function's docstring for why
-    sharing beat duplicating here. No sign-coloring
+    sharing beats duplicating here. No sign-coloring
     -- like `GROUPED_BAR`, a stacked bar chart's whole point is telling
     series apart by color, not sign.
     """
