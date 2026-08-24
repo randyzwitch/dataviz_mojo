@@ -47,9 +47,9 @@ struct _GridFrame(Movable):
     """`_draw_grid_axis_frame`'s finished layout -- the two-
     categorical-axis analog of `_CategoricalFrame`/`_HorizontalCategoricalFrame`
     (both `x_scale`/`y_scale` are `OrdinalScale` here, not one continuous
-    `LinearScale` -- `Mark.HEATMAP` is the first mark type with no
-    continuous axis at all). See that function's docstring for
-    what this computes.
+    `LinearScale` -- shared by every mark with no continuous axis at
+    all: `Mark.HEATMAP`/`CORRPLOT`/`PUNCHCARD`). See that function's
+    docstring for what this computes.
 
     `px0`/`py0`/`px1`/`py1` -- see `_CategoricalFrame`'s docstring
     for what these are and why they're carried through unchanged."""
@@ -112,10 +112,12 @@ def _draw_grid_axis_frame[
     frame`'s reversed one, since there's no zero-baseline-at-bottom
     convention to preserve here -- there's no baseline at all). Its own
     function, not a further generalization of either existing frame
-    core -- the same "one more real caller doesn't justify a shared,
-    orientation-flagged abstraction yet" tolerance `_draw_horizontal_
-    categorical_axis_frame`'s docstring already gives, and this is
-    the *first* caller of a two-categorical-axis frame, not a second.
+    core -- a two-categorical-axis grid is different enough in shape
+    from both (one categorical + one continuous axis apiece) that
+    folding it in would need the same kind of orientation branch
+    `_draw_horizontal_categorical_axis_frame`'s docstring already
+    warns against. Shared by three callers today (`Mark.HEATMAP`/
+    `CORRPLOT`/`PUNCHCARD`).
 
     Both `OrdinalScale`s are built with `padding=0.0` (unlike every
     other categorical axis in this package, which defaults to `0.2`) --
