@@ -33,9 +33,8 @@ def test_render_violin_matches_hand_derived_silhouette() raises:
     # x 117.6/322.4. The two end samples (y=1.0 and y=5.0, symmetric,
     # so the exact same width) scale to a *narrower* width (~73.68) --
     # pixel y 240/30 (y=1.0 -> pixel 240, confirmed below), x
-    # 146.32/293.68. Every number here confirmed against a real
-    # render_svg() run before trusting it (see this file's SVG
-    # test for the exact path substrings).
+    # 146.32/293.68 (see this file's SVG test for the exact path
+    # substrings).
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
     var t = Theme(show_gridlines=False)
@@ -84,9 +83,9 @@ def test_render_violin_custom_bandwidth_widens_the_tapered_edge() raises:
     # to a ~74px half-width (the point (300, 235) sits just past that,
     # background under the default). A caller-given bandwidth=3.0 (a
     # much wider kernel) makes every point's Gaussian spread out
-    # further, so the tails taper far less relative to the peak --
-    # confirmed via a real render() run: (300, 235) now falls *inside*
-    # the wider silhouette, and the interior/exterior sanity points
+    # further, so the tails taper far less relative to the peak:
+    # (300, 235) now falls *inside* the wider silhouette, and the
+    # interior/exterior sanity points
     # from the default-bandwidth test still hold (a wider bandwidth
     # doesn't change *where* the peak or the far background are).
     var cats: List[String] = ["A"]
@@ -120,8 +119,8 @@ def test_render_violin_scale_by_count_narrows_the_smaller_category() raises:
     # Canvas 400x300, show_gridlines=False, default margins: 2-category
     # OrdinalScale step=160, bandwidth=128, "B"'s center_x=300.
     # Sampling row y=135 (near "B"'s peak density, wherever exactly
-    # that peak's y sits doesn't matter here -- confirmed via a
-    # real render() run first): under the default (False), "B"'s silhouette spans x=[256,343]; under scale_by_count=True, the same
+    # that peak's y sits doesn't matter here): under the default
+    # (False), "B"'s silhouette spans x=[256,343]; under scale_by_count=True, the same
     # row narrows to x=[272,327] (ratio 55/87 ~= 0.632, matching the
     # predicted sqrt(2/5) factor). Point (260,135) sits inside the
     # default silhouette but outside the narrowed one.

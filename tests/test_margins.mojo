@@ -57,12 +57,10 @@ def test_render_left_margin_grows_to_fit_wide_y_axis_labels() raises:
 
     _assert_color(c, 68, 135, t.axis_color, "y-axis line moved to the dynamic margin")
 
-    # The wide label's ink extends left of the *old* fixed 60px
-    # margin (confirmed by probe: real, non-background pixels sit at
-    # x=57, part of the "2000000" label's glyphs -- x=56 itself is a
-    # gap between glyphs under the new, narrower metrics, unlike the
-    # pre-repin render) -- exactly why it needed, and got, more room
-    # than the old fixed margin would have given it; a plain "x=60 is
+    # The wide label's ink extends left of a plain fixed 60px margin:
+    # real, non-background pixels sit at x=57, part of the
+    # "2000000" label's glyphs (x=56 itself is a gap between glyphs).
+    # A plain "x=60 is
     # background" check would be wrong here, since covering that space
     # with real label ink is the entire point of this feature, not an
     # absence to assert on.
@@ -92,21 +90,18 @@ def test_render_left_margin_unchanged_for_short_y_axis_labels() raises:
 
 def test_render_bar_left_margin_also_grows_to_fit_wide_y_axis_labels() raises:
     # Same dynamic-left-margin mechanism as the continuous-path tests
-    # above, wired into _render_bar independently (see that function's
-    # own comment) -- confirmed here rather than just assumed to carry
-    # over, since it's a separate function, not shared code.
-    # y=[1000000,2000000] through _zero_baseline_y_extent (BAR's always-include-zero y-domain, not _data_extent's) gives nice
-    # ticks [0,500000,1000000,1500000,2000000] -- confirmed by probe
-    # (re-probed after canvas_mojo v0.1.0's FreeType-to-native-TTF-
-    # parser swap, see test_render_left_margin_grows_to_fit_wide_y_
-    # axis_labels's comment) this lands on the identical dynamic_
-    # left_margin=68 the continuous-path test above got (the widest
+    # above, wired into _render_bar independently (see that
+    # function's comment) -- a separate function, not shared code.
+    # y=[1000000,2000000] through _zero_baseline_y_extent (BAR's
+    # always-include-zero y-domain, not _data_extent's) gives nice
+    # ticks [0,500000,1000000,1500000,2000000], which lands on the
+    # identical dynamic_left_margin=68 the continuous-path test above
+    # got (the widest
     # label's width happens to match closely enough that both round to
     # the same margin), so the same pixel checks apply: the y-axis
-    # line at x=68, and real label ink reaching left of the old fixed
-    # 60px margin (x=57 -- confirmed separately by probe, not assumed
-    # identical, though it now happens to coincide with the continuous
-    # test's x=57 too, unlike before the repin).
+    # line at x=68, and real label ink reaching left of a plain fixed
+    # 60px margin (x=57, coinciding with the continuous test's x=57
+    # too).
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1000000.0, 2000000.0]
     var t = Theme(show_gridlines=False)

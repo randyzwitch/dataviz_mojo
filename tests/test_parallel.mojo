@@ -21,8 +21,7 @@ def test_render_parallel_matches_hand_derived_polylines() raises:
     # set each column's domain to a clean [0, 10] without
     # themselves landing at a boundary pixel this test samples (a
     # point exactly at the plot's edge is prone to AA/stroke-cap
-    # blending that isn't an exact color match -- confirmed directly
-    # by probing before writing this test, not assumed).
+    # blending that isn't an exact color match).
     #
     # Canvas 400x300, no legend (show_legend=False): plot area
     # x:[60,380], y:[20,250] -- the same no-legend numbers test_polar.
@@ -34,8 +33,7 @@ def test_render_parallel_matches_hand_derived_polylines() raises:
     # B's frac 7/10=0.7 -> y = 250 - 0.7*230 = 89. r2 = [7, 3]:
     # the mirror image, A -> y=89, B -> y=181. Both endpoints (the
     # polyline's first vertex, x=60) and an interior point 25% of
-    # the way to the second axis (x=140, y linearly interpolated)
-    # confirmed via a real render() run first.
+    # the way to the second axis (x=140, y linearly interpolated).
     var dims: List[String] = ["A", "B"]
     var row_names: List[String] = ["r1", "r2", "r3", "r4"]
     var data: List[List[Float64]] = [[3.0, 7.0], [7.0, 3.0], [0.0, 0.0], [10.0, 10.0]]

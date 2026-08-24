@@ -30,9 +30,8 @@ def test_render_ridgeline_matches_hand_derived_rows() raises:
     # 3-category OrdinalScale y-axis, step=(250-20)/3=76.667,
     # bandwidth=step (no padding to subtract) -- row A's baseline
     # (band_start(0) + row height) = 96.667, row B's = 173.333, row
-    # C's = 250.0 -- every number confirmed against a real
-    # render_svg() run before trusting it (see this file's SVG
-    # test for the exact path data).
+    # C's = 250.0 (see this file's SVG test for the exact path
+    # data).
     var cats: List[String] = ["A", "B", "C"]
     var vals: List[List[Float64]] = [
         [1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0],
@@ -74,8 +73,8 @@ def test_render_ridgeline_custom_bandwidth_widens_the_tail() raises:
     # (75, 25) sits above the curve's top (background); a caller-
     # given bandwidth=3.0 (much wider than Silverman's ~0.9225) spreads
     # every sample's Gaussian further, so the tail's rise no
-    # longer tapers away -- confirmed via a real render() run: (75, 25)
-    # falls inside the wider curve, while a point near the row's peak (x~=220, near value 3) and one well outside the whole plot
+    # longer tapers away: (75, 25) falls inside the wider curve,
+    # while a point near the row's peak (x~=220, near value 3) and one well outside the whole plot
     # area stay unaffected either way.
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
@@ -112,9 +111,8 @@ def test_render_ridgeline_scale_by_count_shortens_the_smaller_row() raises:
     # a taller row A ambiguous with a shorter row B. At x=220 (near
     # value 3, row B's peak-density region), row B's curve
     # top sits at y=136 under the default (right at this test's zone boundary -- tall), and only y=169 under scale_by_count=True
-    # (visibly shorter) -- confirmed via a real render() run first.
-    # (220, 150) sits inside the default rise but above the narrowed
-    # one's top.
+    # (visibly shorter). (220, 150) sits inside the default rise but
+    # above the narrowed one's top.
     var cats: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 4.0]]
     var t = Theme(show_gridlines=False)

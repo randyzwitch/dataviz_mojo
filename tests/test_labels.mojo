@@ -41,11 +41,9 @@ def test_render_svg_labels_matches_hand_derived_title_and_axis_titles() raises:
     # every plot-area/tick/line-endpoint coordinate the original LINE
     # SVG test hand-solved for the unshrunk canvas. Every position below
     # (titles' anchors, and the line's re-solved endpoints)
-    # independently re-derived via python3 from that shrunk rect, then
-    # confirmed against a real render_svg() run before trusting it here
-    # -- the same cross-check discipline every hand-derived test in this
-    # file follows, doubly so here since this is the first test to
-    # exercise _apply_labels' shrunk-rect math at all.
+    # independently re-derived via python3 from that shrunk rect --
+    # this is the first test to exercise _apply_labels' shrunk-rect
+    # math at all.
     #
     # Title/x_title/y_title all center on the *inner* plot rect
     # (_RenderResult's px0/py0/px1/py1 -- see the wiki's Changelog,
@@ -194,8 +192,8 @@ def test_render_title_draws_ink_in_its_own_reserved_top_band() raises:
 def test_render_svg_subtitle_matches_hand_derived_position() raises:
     # Same setup as test_render_svg_labels_matches_hand_derived_title_
     # and_axis_titles above, plus a subtitle -- confirming subtitle's
-    # own reserved band shifts everything below it (the line mark
-    # itself included) without disturbing title/x_title/y_title's positions, all confirmed via a real render_svg() run first.
+    # reserved band shifts everything below it (the line mark itself
+    # included) without disturbing title/x_title/y_title's positions.
     #
     # _apply_labels now reserves extra_top=Int(18.0)+4 (title) +
     # Int(14.0)+4 (subtitle) = 22+18 = 40 (was 22 with no subtitle),
@@ -245,8 +243,7 @@ def test_render_svg_subtitle_without_title_draws_at_the_top() raises:
     # Plot.labels()'s "each of the four is independent" rule --
     # a subtitle with no title still draws, at the same top position a
     # title alone would have used (y=Int(14.0*0.8)=11, not floating
-    # below a nonexistent title's reserved band) -- confirmed via
-    # a real render_svg() run first.
+    # below a nonexistent title's reserved band).
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
     var svg = SvgCanvas(400, 300)

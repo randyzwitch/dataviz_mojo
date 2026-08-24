@@ -25,9 +25,8 @@ def test_render_bump_matches_hand_derived_rank_lines() raises:
     # left margin, the same short-label convention every other mark's
     # own tests already rely on) -> plot area x:[60,380], y:[20,250].
     # x_scale = OrdinalScale(["X","Y"], 60, 380) (default padding 0.2):
-    # step 160, bandwidth 128, centers 140 (X) and 300 (Y) -- confirmed
-    # against a real render() run before trusting it, along with every
-    # pixel below. n_series=2 -> _bump_rank_pixel(1,2,20,250)=20 (top),
+    # step 160, bandwidth 128, centers 140 (X) and 300 (Y).
+    # n_series=2 -> _bump_rank_pixel(1,2,20,250)=20 (top),
     # _bump_rank_pixel(2,2,20,250)=250 (bottom): A's line runs
     # (140,250)->(300,20) [rank 2 at X, rank 1 at Y], B's the exact
     # mirror, (140,20)->(300,250).
@@ -36,16 +35,14 @@ def test_render_bump_matches_hand_derived_rank_lines() raises:
     # wrapper) -- matching test_line.mojo's precedent for every
     # stroked-line pixel check here: quickplot's supersample-then-
     # downsample pass measurably shifts a thin diagonal stroke's exact
-    # pixel position (confirmed directly, by comparison, while writing
-    # this test -- a real, if subtle, difference from a plain render()
-    # call, not something to test around by picking a bigger tolerance).
-    # Two of each line's points sampled: the row-250 endpoint (both
-    # lines reliably get full ink exactly at that one, confirmed
-    # directly) and one interior point roughly a third of the way along
-    # (the row-20 endpoint itself does *not* reliably get ink -- some
+    # pixel position -- a real, if subtle, difference from a plain
+    # render() call, not something to test around by picking a bigger
+    # tolerance. Two of each line's points sampled: the row-250
+    # endpoint (both lines reliably get full ink exactly at that one)
+    # and one interior point roughly a third of the way along (the
+    # row-20 endpoint itself does *not* reliably get ink -- some
     # rounded-line-cap/clip interaction at the plot area's top
-    # boundary row, also confirmed directly -- so this test doesn't
-    # rely on it).
+    # boundary row -- so this test doesn't rely on it).
     var cats: List[String] = ["X", "Y"]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[10.0, 30.0], [20.0, 5.0]]

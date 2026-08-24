@@ -34,9 +34,8 @@ def test_render_waterfall_colors_by_sign_and_matches_hand_derived_bars() raises:
     # x positions test_render_bar_mark_matches_hand_derived_bar_
     # rectangles already confirmed (113/220/327 centers) since both use
     # the identical 3-category OrdinalScale over the same [60,380]
-    # range -- only the y-domain and per-bar y0/y1 differ. Every pixel
-    # below confirmed via a real render() run first, not the formula
-    # alone: bar 0 (delta +10) mark_color, bar 1 (delta -4) mark_color_
+    # range -- only the y-domain and per-bar y0/y1 differ. Per bar:
+    # bar 0 (delta +10) mark_color, bar 1 (delta -4) mark_color_
     # negative -- unconditional sign coloring, no Theme.color_by_sign
     # flag needed, unlike Mark.BAR -- bar 2 (delta +6) mark_color again,
     # and the two connector lines (gridline_color) at the pixel height
@@ -107,8 +106,7 @@ def test_render_waterfall_total_rows_matches_hand_derived_bars() raises:
     # (0.6) of it, centered -- narrow=38.4, inset=12.8, so A/B's bars are inset ~13px from their band's edges on both sides.
     #
     # Every position independently re-derived via python3 (LinearScale's
-    # own slope/intercept for y, OrdinalScale's band formula for x),
-    # then confirmed against a real render() run before trusting it.
+    # slope/intercept for y, OrdinalScale's band formula for x).
     var cats: List[String] = ["Start", "A", "B", "End"]
     var deltas: List[Float64] = [50.0, 20.0, -10.0, 0.0]
     var is_total: List[Bool] = [True, False, False, True]
@@ -149,12 +147,10 @@ def test_render_svg_waterfall_total_rows_matches_confirmed_rects() raises:
     )
     # Connectors reference each bar's *actual* drawn edge (`bar_x_
     # list[i-1] + bar_width_list[i-1]`, not a formula re-derived from
-    # the band directly) once total rows are in play -- exercises the
-    # exact logic this feature's hand-derivation bug (a 1px
-    # mismatch between a full-width bar's independently-rounded width
-    # and a boundary-rounded connector position, caught by this test
-    # failing against real output before the fix, not assumed correct)
-    # was found and fixed in. Start's right edge (68+64=132) ->
+    # the band directly) once total rows are in play -- guards
+    # against a 1px mismatch between a full-width bar's
+    # independently-rounded width and a boundary-rounded connector
+    # position. Start's right edge (68+64=132) ->
     # A's left edge (161); A's right edge (161+38=199) -> B's
     # own left edge (241); B's right edge (241+38=279) -> End's left edge (308).
     assert_true(
