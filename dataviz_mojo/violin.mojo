@@ -27,7 +27,7 @@ def _kde_bandwidth(values: List[Float64]) -> Float64:
     version, not the fuller IQR-adjusted variant real stats packages
     default to (`0.9 * min(std, IQR/1.34) * n^(-1/5)`, more robust to
     outliers but needs a second, percentile-based computation on top of
-    this one). A deliberate v1 simplification, not an oversight: the
+    this one). A deliberate simplification, not an oversight: the
     plain version is exactly as easy to get wrong and much easier to
     hand-verify (mean/variance only, no percentile-interpolation
     formula alongside it) -- revisit if a real skewed-distribution case
