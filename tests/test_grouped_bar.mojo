@@ -53,10 +53,8 @@ def test_render_grouped_bar_matches_hand_derived_rectangles() raises:
     # rounded width -- see _render_grouped_bar's docstring for why.
     #
     # Every position independently re-derived via python3 (LinearScale's
-    # own slope/intercept for the y-axis, OrdinalScale's band
-    # formula for x, both re-solved for this shrunk-by-the-legend
-    # range), then confirmed against a real render() run before trusting
-    # it here.
+    # slope/intercept for the y-axis, OrdinalScale's band formula for
+    # x, both re-solved for this shrunk-by-the-legend range).
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]

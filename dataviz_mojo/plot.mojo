@@ -3048,11 +3048,10 @@ def _draw_annotation_lines[
 
     A `value` outside the mark's (padded) domain is silently
     skipped, not drawn wherever `LinearScale.to_pixel`'s unclamped
-    linear extrapolation puts it -- a real bug caught by actually
-    rendering this feature's example before trusting it (not a
-    theoretical concern): an out-of-range annotation drew well up into
-    the title/subtitle band above the plot, `Theme.scale`-independent
-    of anything about the mark itself. Not a raise -- an out-of-range
+    linear extrapolation puts it: an unclamped out-of-range annotation
+    draws well up into the title/subtitle band above the plot,
+    `Theme.scale`-independent of anything about the mark itself. Not a
+    raise -- an out-of-range
     target is a legitimate reading (the data just hasn't reached it
     yet), not a caller mistake the way an invalid `Theme` value would
     be, so it disappears quietly rather than erroring the whole render.

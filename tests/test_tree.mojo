@@ -41,8 +41,7 @@ def test_render_tree_matches_hand_derived_positions() raises:
     # own radius: the edge from (220,20) to (60,250), at its 25%
     # mark -> (220 - 0.25*160, 20 + 0.25*230) = (180, 77.5). The exact
     # fractional y (77.5) sits right on a pixel-row boundary, which
-    # AA-blends at y=78 (confirmed directly, not assumed) -- y=77
-    # lands solidly on the stroke instead.
+    # AA-blends at y=78 -- y=77 lands solidly on the stroke instead.
     _assert_color(c, 180, 77, palette[0], "along the root->A edge, 25% of the way down")
 
 

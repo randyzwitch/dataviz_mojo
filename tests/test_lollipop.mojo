@@ -58,7 +58,7 @@ def test_render_lollipop_svg_matches_confirmed_stem_and_point() raises:
     assert_true(
         '<path d="M220.000,250.000 L220.000,30.952" fill="none" stroke="#1e64b4"'
         ' stroke-width="2.000" stroke-linecap="round" stroke-linejoin="round"/>' in s,
-        "category b's stem, confirmed via a real render_svg() run",
+        "category b's stem",
     )
     assert_true('<circle cx="220" cy="31" r="4" fill="#1e64b4"/>' in s, "category b's point")
 

@@ -25,8 +25,8 @@ def test_render_span_chart_matches_hand_derived_bars() raises:
     # OrdinalScale over [60,380] (2 categories, step=160, padding 0.2
     # -> bandwidth 128), band A: x:[76,204], band B: x:[236,364].
     # Bar A (low 10, high 40) -> rect (76, 161, 128, 79); bar B (low
-    # 50, high 90) -> rect (236, 30, 128, 105) -- both confirmed via a
-    # real render_svg() run first (see this file's SVG test).
+    # 50, high 90) -> rect (236, 30, 128, 105) (see this file's SVG
+    # test).
     var cats: List[String] = ["A", "B"]
     var low: List[Float64] = [10.0, 50.0]
     var high: List[Float64] = [40.0, 90.0]

@@ -37,10 +37,9 @@ def test_render_gantt_matches_hand_derived_bars() raises:
     # -> x-domain [6, 94]. y is now the *categorical* axis: OrdinalScale
     # over [20,250] (2 categories, step=115, padding 0.2 -> bandwidth
     # 92), category 0 ("A") landing nearer the *top* (smaller pixel y)
-    # than category 1 ("B") -- confirmed directly below, not assumed.
+    # than category 1 ("B") -- see below.
     # Every pixel independently computed via python3 from LinearScale's/
-    # OrdinalScale's formulas, then confirmed against a real
-    # render() run before trusting it.
+    # OrdinalScale's formulas.
     var cats: List[String] = ["A", "B"]
     var start: List[Float64] = [10.0, 50.0]
     var end: List[Float64] = [40.0, 90.0]

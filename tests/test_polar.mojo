@@ -30,8 +30,7 @@ def test_render_polar_matches_hand_derived_line_and_markers() raises:
     # radius, opposite side -> (220-23, 135) = (197, 135). Point 2
     # (angle pi/2, value 9, the one that sets max) reaches the full
     # 103.5 -- right at the plot edge, not sampled directly (AA/
-    # clipping risk at an exact boundary). Confirmed via a real render
-    # first (not assumed from the formula alone): both sampled points
+    # clipping risk at an exact boundary). Both sampled points
     # land squarely on the stroked polyline through the center (points
     # 0 and 1 sit on the same horizontal line as the center), so
     # either the line stroke or the point's marker circle explains
@@ -110,7 +109,6 @@ def test_render_polar_series_matches_hand_derived_line_and_markers() raises:
     #     (155+28.5*cos120, 135+28.5*sin120) = (140.75, 159.68)
     #   B, angle 240, value 6 (frac 2/3): radius_px 57.0 ->
     #     (155+57*cos240, 135+57*sin240) = (126.5, 85.64)
-    # All four confirmed via a real render() run first.
     var angle: List[Float64] = [0.0, 2.0943951023932, 4.1887902047864]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[3.0, 6.0, 9.0], [9.0, 3.0, 6.0]]

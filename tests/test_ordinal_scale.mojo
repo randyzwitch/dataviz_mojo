@@ -1,5 +1,5 @@
 """Tests for ordinal_scale.mojo: OrdinalScale's band math, hand-
-computed independently before trusting the Mojo implementation.
+computed independently.
 """
 
 from std.testing import assert_equal, TestSuite

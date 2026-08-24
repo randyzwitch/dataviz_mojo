@@ -24,14 +24,13 @@ def test_render_effect_scatter_matches_hand_derived_halo_and_point() raises:
     # margins -> plot area x:[60,380], y:[20,250]; scale_x = 320/2 =
     # 160, scale_y = -230/2 = -115 (y's range is reversed, top of the
     # domain lands at the smaller pixel y). Both put (5, 5) at pixel
-    # (220, 135) -- independently computed via python3, then confirmed
-    # against a real render() run before trusting it. Default point_
-    # radius 3.5 rounds to 4; the halo is 2.2x that (8.8 -> 9), colored
-    # by `_lighten` (Theme.mark_color's (30,100,180) blended toward
-    # white at a fixed 90/255 mix -- (175,200,228), also confirmed
-    # against a real render rather than hand-derived, since Color.
-    # blend_over's integer-division rounding isn't the thing this
-    # test exists to re-verify).
+    # (220, 135) -- independently computed via python3. Default
+    # point_radius 3.5 rounds to 4; the halo is 2.2x that (8.8 -> 9),
+    # colored by `_lighten` (Theme.mark_color's (30,100,180) blended
+    # toward white at a fixed 90/255 mix -- (175,200,228), read off a
+    # real render rather than hand-derived, since Color.blend_over's
+    # integer-division rounding isn't the thing this test exists to
+    # re-verify).
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
     var t = Theme(show_gridlines=False, show_legend=False)

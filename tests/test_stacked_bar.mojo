@@ -101,8 +101,7 @@ def test_render_svg_stacked_bar_mixed_sign_stacks_independently_each_direction()
     # band_start(0)=79 (1 category spans the whole OrdinalScale range,
     # no inter-category gap to speak of), bandwidth=152.
     #
-    # Every position independently re-derived via python3, confirmed
-    # against a real render_svg() run before trusting it here.
+    # Every position independently re-derived via python3.
     var cats: List[String] = ["A"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0], [-5.0]]

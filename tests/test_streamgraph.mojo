@@ -25,13 +25,12 @@ def test_render_streamgraph_matches_hand_derived_bands() raises:
     # 400x300, show_gridlines=False, show_legend=False: plot area
     # x:[60,380], y:[20,250] (short y-axis labels -- max_total=20, 5%
     # pad 1.0, symmetric domain [-11,11] -- keep the dynamic left
-    # margin at Theme's default 60, confirmed directly). x_scale
+    # margin at Theme's default 60). x_scale
     # centers 140 (X) / 300 (Y) -- the same OrdinalScale math every
     # other categorical mark's tests already confirm for this
     # identical 2-category/400-wide/default-margin setup. A's stack: baseline -10, top 0 -> band y:[135,240]. B's own: baseline
-    # 0, top 10 -> band y:[30,135]. Every coordinate confirmed against
-    # a real render() run before trusting it (see this file's SVG
-    # test for the exact path data). Sampled at each band's midpoint.
+    # 0, top 10 -> band y:[30,135] (see this file's SVG test for the
+    # exact path data). Sampled at each band's midpoint.
     var cats: List[String] = ["X", "Y"]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[10.0, 10.0], [10.0, 10.0]]

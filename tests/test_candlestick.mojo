@@ -36,9 +36,8 @@ def test_render_candlestick_matches_hand_derived_wicks_and_bodies() raises:
     # test_render_boxplot_matches_hand_derived_box_whiskers_and_outlier
     # already worked out (bands at x=76/236, width 128, centers 140/300)
     # -- only the y-domain and per-category shape differ here. Every
-    # pixel below independently computed via python3 from LinearScale's
-    # own slope/intercept formula, then confirmed against a real
-    # render() run before trusting it.
+    # pixel below independently computed via python3 from
+    # LinearScale's slope/intercept formula.
     # Built via Plot/Canvas/render() directly, not candlestick() -- see
     # test_render_boxplot_matches_hand_derived_box_whiskers_and_
     # outlier's comment for why an exact hand-derived pixel check

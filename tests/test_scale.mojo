@@ -44,7 +44,7 @@ def test_linear_scale_zero_domain_span_maps_everything_to_range_min() raises:
 
 def test_nice_step_matches_hand_computed_values() raises:
     # Independently computed by hand (Heckbert's nice-numbers
-    # algorithm, see scale.mojo's docstring) before trusting this.
+    # algorithm, see scale.mojo's docstring).
     var a = _nice_step(0.0, 100.0, 5)
     assert_equal(a.step, 20.0)
     assert_equal(a.exponent, 1)

@@ -13,8 +13,7 @@ same approach d3/matplotlib/most charting libraries use in spirit --
 round the ideal step size for a target tick count up to the nearest
 "nice" multiple (1, 2, 5, or 10 times a power of ten) so labels read
 as 0.2/0.4/0.6, not 0.1934/0.3868/0.5802. Every example in this
-module's docstring below was independently computed by hand
-before trusting the Mojo implementation.
+module's docstring below was independently computed by hand.
 """
 
 from std.math import ceil, floor, log10, pow

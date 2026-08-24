@@ -38,8 +38,7 @@ def test_render_heatmap_matches_hand_derived_cells() raises:
     # 0.0, color_scale_mid at 0.5, high at 1.0, see Theme.color_scale_
     # mid's docstring for why a middle stop exists at all) aren't
     # hand-derived here -- ColorScale's interpolation is already
-    # covered by test_color_scale.mojo -- just confirmed once against a
-    # real render() run before trusting them: Color(177,193,223) (t=1/3,
+    # covered by test_color_scale.mojo: Color(177,193,223) (t=1/3,
     # bracketed between low and mid) and Color(230,187,170) (t=2/3,
     # bracketed between mid and high).
     var x: List[String] = ["Mon", "Mon", "Tue", "Tue"]

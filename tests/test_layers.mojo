@@ -31,10 +31,7 @@ from _test_helpers import BG, _count_color, _assert_color
 def test_render_layers_shares_one_domain_across_a_line_and_a_point() raises:
     # A LINE plot (x=[0,10], y=[0,10], default theme) layered with a
     # POINT plot (a single (5,5) point, custom red color + radius 5)
-    # -- every coordinate below confirmed via a real render_layers()
-    # run first (the same cross-check discipline every raw-float
-    # assertion in this file uses), not derived from a hand-rolled
-    # formula alone: the combined domain (both plots' x/y data
+    # -- the combined domain (both plots' x/y data
     # together) pads to [-0.5, 10.5] on both axes, landing the shared
     # point (5,5) -- coincidentally, since 5.0 is that domain's midpoint -- on the same (220, 135) pixel many other single-plot
     # tests in this file already use, and the line's two endpoints
@@ -68,7 +65,7 @@ def test_render_layers_shares_one_domain_across_a_line_and_a_point() raises:
     assert_true(
         '<path d="M74.545,239.545 L365.455,30.455" fill="none" stroke="#1e64b4"'
         ' stroke-width="2.000" stroke-linecap="round" stroke-linejoin="round"/>' in s,
-        "the layered line, endpoints confirmed via a real render_layers_svg() run",
+        "the layered line",
     )
     assert_true('<circle cx="220" cy="135" r="5" fill="#ff0000"/>' in s, "the layered point, same shared domain")
 

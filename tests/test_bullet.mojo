@@ -39,8 +39,7 @@ def test_render_bullet_matches_hand_derived_bands_measure_and_target() raises:
     # already established (bands at x=76/236, width 128, centers
     # 140/300). Every pixel below independently computed via python3
     # from LinearScale's slope/intercept formula (scale=(20-250)/
-    # 105=-2.190476., translate=250), then confirmed against a real
-    # render() run before trusting it.
+    # 105=-2.190476., translate=250).
     # Built via Plot/Canvas/render() directly, not bullet() -- see
     # test_render_boxplot_matches_hand_derived_box_whiskers_and_
     # outlier's comment for why an exact hand-derived pixel check

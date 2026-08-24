@@ -60,9 +60,8 @@ def test_render_svg_area_smoothing_matches_hand_derived_curve() raises:
     # (px/py, the same LinearScale math Mark.LINE's equivalent test
     # already established the technique for) is smoothed; the two
     # line_to()s down to/along baseline (pixel y=250, to_pixel(0.0))
-    # stay straight. Every control-point coordinate independently re-
-    # derived via python3, then confirmed against a real render_svg()
-    # run before trusting it here.
+    # stay straight. Every control-point coordinate independently
+    # re-derived via python3.
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [2.0, 10.0, 4.0]
     var svg = SvgCanvas(400, 300)

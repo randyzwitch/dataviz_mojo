@@ -28,11 +28,10 @@ def test_render_corrplot_matches_hand_derived_bubbles() raises:
     # 24, color exactly Theme's color_scale_high (the domain's max). Cell (A,B) [row 0, col 1, value -0.5]: center (300, 78),
     # radius round(24.15*0.5)=12, color at t=0.25 through the [-1,1]
     # gradient -- (148,173,218), bracketed between color_scale_low and
-    # color_scale_mid (Theme's now-three-stop gradient, see that
-    # field's docstring), confirmed via a real render_svg() run
-    # first (see this file's SVG test), not re-derived from
-    # ColorScale's interpolation math again (already covered by
-    # test_color_scale.mojo).
+    # color_scale_mid (Theme's three-stop gradient, see that
+    # field's docstring; see this file's SVG test) -- not re-derived
+    # from ColorScale's interpolation math again, already covered by
+    # test_color_scale.mojo.
     var vars: List[String] = ["A", "B"]
     var m: List[List[Float64]] = [[1.0, -0.5], [-0.5, 1.0]]
     var t = Theme(show_gridlines=False, show_legend=False)

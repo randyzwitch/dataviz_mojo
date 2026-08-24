@@ -105,9 +105,8 @@ def test_render_bar_negative_values_extend_below_the_baseline() raises:
 
 def test_render_svg_bar_mark_matches_confirmed_rect() raises:
     # Same 3-category/[10,20,15] data test_render_bar_mark_matches_
-    # hand_derived_bar_rectangles already hand-solved (bar 1's rect: x=177, y=31, width=85, height=219) -- confirmed here via a
-    # real render_svg() run first, the same cross-check discipline the
-    # LINE test above used, before trusting it in this assertion.
+    # hand_derived_bar_rectangles already hand-solved (bar 1's rect:
+    # x=177, y=31, width=85, height=219).
     var cats: List[String] = ["a", "b", "c"]
     var vals: List[Float64] = [10.0, 20.0, 15.0]
     var svg = SvgCanvas(400, 300)

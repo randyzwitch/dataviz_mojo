@@ -36,9 +36,9 @@ def test_render_chord_two_nodes_one_edge_matches_hand_derived_geometry() raises:
     # start and end angles are identical -- pi/2 and -pi/2 respectively).
     # The whole ribbon path is therefore just the full circle's circumference at inner_radius, traced once -- filling it fills the
     # *entire* inner disk in the ribbon's color (A's palette color,
-    # index 0), not just "A's half" -- confirmed directly below,
-    # not assumed: the inner-disk sample point on B's geometric side
-    # (left of center) is still palette[0], not palette[1].
+    # index 0), not just "A's half": the inner-disk sample point on
+    # B's geometric side (left of center) is still palette[0], not
+    # palette[1].
     var from_cats: List[String] = ["A"]
     var to_cats: List[String] = ["B"]
     var values: List[Float64] = [10.0]

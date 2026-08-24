@@ -77,7 +77,7 @@ def test_render_sankey_skip_edge_routes_through_a_pass_through_node() raises:
     # (column0-1's bottom half) and pass-through->C (column1-2's
     # own bottom half), *both* colored green (D's color, the
     # flow's original source) even though the second segment's immediate `from` is the invisible pass-through node, not D
-    # itself. Every point confirmed via a real render() run first.
+    # itself.
     var from_c: List[String] = ["A", "B", "D"]
     var to_c: List[String] = ["B", "C", "C"]
     var v: List[Float64] = [10.0, 10.0, 10.0]

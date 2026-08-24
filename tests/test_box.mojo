@@ -34,16 +34,15 @@ def test_render_boxplot_matches_hand_derived_box_whiskers_and_outlier() raises:
     # it), "B" = [10,12,14,15,18] (q1=12, median=14, q3=15, low=10,
     # high=18, no outliers -- fence [7.5, 19.5] contains every value).
     # Both hand-derived via the same linear-interpolation percentile
-    # `_box_stats` itself uses (independently reimplemented in Python,
-    # not just re-run through the Mojo code, before trusting these).
+    # `_box_stats` itself uses (independently reimplemented in
+    # Python, not just re-run through the Mojo code).
     # Domain = _data_extent over every low/high/outlier value
     # ([2,9,10,18,20]) = [1.1, 20.9], 2 categories over [60,380] (band
-    # centers 140/300, bandwidth 128, half-width 64, cap half-width 32)
-    # -- every pixel below confirmed via a real render() run first.
+    # centers 140/300, bandwidth 128, half-width 64, cap half-width 32).
     # Built via Plot/Canvas/render() directly, not box() -- these are
     # exact hand-derived pixel positions (see this function's comment above), and box()'s output is supersampled-then-
     # downsampled internally now (see dataviz_mojo.plot._rendered's
-    # own docstring), which can shift a thin axis-color line's exact
+    # docstring), which can shift a thin axis-color line's exact
     # footprint by a pixel or so relative to this hand-derived math.
     # render() itself stays unsupersampled -- see its docstring --
     # so this exact check still holds there.

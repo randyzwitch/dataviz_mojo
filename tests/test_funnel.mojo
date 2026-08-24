@@ -24,9 +24,8 @@ def test_render_funnel_matches_hand_derived_trapezoids() raises:
     # y:[20,250], center x=220, max_width=320, row_height=(250-20)/3 =
     # 76.667. top_width[i] = value[i]/100*320 -> 320/192/64; bottom_
     # width[i] = top_width[i+1] (192/64), except the last row, whose
-    # own bottom matches its top (64, flat). Every coordinate
-    # confirmed against a real render() run before trusting it (see
-    # this file's SVG test for the exact path data). Sampled at
+    # own bottom matches its top (64, flat). See this file's SVG test
+    # for the exact path data. Sampled at
     # each row's vertical midpoint, x=220 (dead center -- always
     # inside every trapezoid, symmetric around cx, regardless of its
     # own width), so no left/right-edge math is needed here at all.
