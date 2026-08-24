@@ -1,6 +1,5 @@
 """Generic Plot.encode()/render() validation and utility-function tests
-that aren't specific to any one Mark type -- split out of what used to
-be one big test_plot.mojo.
+that aren't specific to any one Mark type.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -144,7 +143,7 @@ def test_categorical_indices_agrees_with_unique_categories_and_index_of() raises
     assert_equal(len(cat.indices), len(data))
     for i in range(len(data)):
         assert_equal(cat.indices[i], _index_of(expected_domain, data[i]))
-        # ...and the index really does address the right category.
+        # .and the index really does address the right category.
         assert_equal(cat.domain[cat.indices[i]], data[i])
 
 
@@ -178,7 +177,7 @@ def test_edge_node_index_agrees_with_unique_categories_and_index_of() raises:
     for i in range(len(f)):
         assert_equal(edges.from_idx[i], _index_of(expected_nodes, f[i]))
         assert_equal(edges.to_idx[i], _index_of(expected_nodes, t[i]))
-        # ...and each index really does address the right node.
+        # .and each index really does address the right node.
         assert_equal(edges.nodes[edges.from_idx[i]], f[i])
         assert_equal(edges.nodes[edges.to_idx[i]], t[i])
 

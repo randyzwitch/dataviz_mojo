@@ -1,6 +1,5 @@
 """Tests for Mark.ARC (pie/donut): wedge colors, inner_radius donut
-behavior, SVG wedge paths -- split out of what used to be one big
-test_plot.mojo.
+behavior, SVG wedge paths.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite

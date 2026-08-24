@@ -1,6 +1,5 @@
 """Tests for render_facets/render_facets_svg: independent per-cell layout,
-titles, empty-grid/invalid-cols guards -- split out of what used to be
-one big test_plot.mojo.
+titles, empty-grid/invalid-cols guards.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -198,7 +197,7 @@ def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() r
     # a title. So a titled cell's top band was never painted, and
     # showed whatever the canvas happened to hold beforehand. render()
     # has always documented the opposite contract ("the whole original
-    # rect is filled ... so a title's reserved margin strip gets
+    # rect is filled . so a title's reserved margin strip gets
     # painted too"); facets now fills each cell's full rect to match.
     #
     # One cell (cols=1) on a deliberately non-background canvas: with
@@ -213,7 +212,7 @@ def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() r
     render_facets(c, plots, 1)
     _assert_color(c, 2, 2, BG, "a titled cell's reserved title strip")
 
-    # ...and the same for an untitled cell, where the strip doesn't
+    # .and the same for an untitled cell, where the strip doesn't
     # exist but the corner is still outside the plot area -- confirming
     # the new fill covers the ordinary case too, not just the titled one.
     var untitled = List[Plot]()

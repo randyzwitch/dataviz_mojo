@@ -28,17 +28,14 @@ from _test_helpers import BG, _count_color, _assert_color
 
 def test_render_left_margin_grows_to_fit_wide_y_axis_labels() raises:
     # y=[1000000,2000000] gives nice ticks [1000000,1500000,2000000]
-    # (_data_extent pads to domain [950000,2050000]; Heckbert's nice-step algorithm picks step=500000 for that span -- same
-    # hand-verified math test_scale.mojo's tests already lock in,
-    # not re-derived here). Those three labels' rendered width at the
-    # default 12pt font -- confirmed by probe against this
-    # environment's real "Sans" font metrics, the same "locked in,
-    # confirmed by probe" convention canvas_mojo/tests/test_text.mojo's glyph-extent tests already use, re-probed after canvas_mojo
-    # v0.1.0's FreeType-to-native-TTF-parser swap (deliberately
-    # unhinted, so it measures every glyph slightly differently than
-    # the old FreeType-hinted values this test used to lock in) -- max
-    # out at 51.8px (the "2000000" label, down from the pre-repin
-    # 55.0px). dynamic_left_margin = Int(51.8) + _TICK_LENGTH(5) +
+    # (_data_extent pads to domain [950000,2050000]; Heckbert's
+    # nice-step algorithm picks step=500000 for that span -- same
+    # hand-verified math test_scale.mojo's tests already lock in, not
+    # re-derived here). Those three labels' rendered width at the
+    # default 12pt font, against this environment's real "Sans" font
+    # metrics (unhinted, so glyph widths depend on the installed font
+    # file), maxes out at 51.8px (the "2000000" label).
+    # dynamic_left_margin = Int(51.8) + _TICK_LENGTH(5) +
     # _LABEL_GAP(4) + _MARGIN_BUFFER(8) = 68, wider than Theme's
     # default 60px margin, so plot_x0 becomes 68, not 60 -- checked
     # directly against where the y-axis line itself actually is (drawn

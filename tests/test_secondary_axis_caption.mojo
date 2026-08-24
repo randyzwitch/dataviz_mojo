@@ -1,5 +1,5 @@
 """Tests for the secondary y-axis caption: a layer with .secondary_
-axis() set captions that axis via its .labels(y_title=...), read
+axis() set captions that axis via its .labels(y_title=.), read
 by render_layers()/render_layers_svg() from that specific layer (not
 plots[0]), mirrored onto the plot's right edge with the opposite
 rotation the primary y_title uses. Absent entirely when no secondary-
@@ -15,7 +15,7 @@ from dataviz_mojo.theme import Theme
 
 def test_render_layers_svg_secondary_axis_caption_matches_hand_derived_position() raises:
     # Primary layer (y:[10,20]) with no caption, secondary layer
-    # (y:[50,10]) captioned "Growth" via its .labels(y_title=...) --
+    # (y:[50,10]) captioned "Growth" via its .labels(y_title=.) --
     # confirmed against a real render_layers_svg() run first, canvas
     # 400x300, no gridlines: the secondary axis's line shrinks
     # further left (to x=332, from the no-caption case's x=350) to
@@ -54,7 +54,7 @@ def test_render_layers_svg_secondary_axis_caption_matches_hand_derived_position(
 
 def test_render_layers_svg_no_caption_when_secondary_axis_has_no_y_title() raises:
     # The pre-existing, still-default case: a secondary-axis layer with
-    # no .labels(y_title=...) draws no caption at all, and the
+    # no .labels(y_title=.) draws no caption at all, and the
     # secondary axis's line lands at its no-caption position
     # (x=350, not x=332 -- confirmed against tests/test_secondary_axis.
     # mojo's already-established geometry for this exact setup).

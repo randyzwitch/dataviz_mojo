@@ -9,19 +9,17 @@ tests catch a wrapper drifting out of sync with Plot's builder (a
 renamed encode_*() kwarg, a dropped .labels()/.theme() call, a wrong
 default), not Plot's rendering math.
 
-This no longer compares against a raw `Canvas` + `render()` call at
-the same size: `_rendered()` now supersamples its output before
-handing it back (see its docstring), so a quickplot call and an
-unsupersampled `render()` at the identical size are no longer
-pixel-identical by construction -- only genuinely different anymore,
-not a bug in either. Comparing against `_rendered()` itself instead
-keeps exactly what this file was always for (a wrapper built the right
-`Plot`, not that `Plot`'s rendering math is correct) without
-needing to re-derive the supersampling math by hand in every test
-here too.
+A quickplot call and an unsupersampled `render()` at the identical
+size are never expected to be pixel-identical: `_rendered()`
+supersamples its output before handing it back (see its docstring),
+so the two differ genuinely, not by a bug in either. Comparing against
+`_rendered()` itself instead keeps exactly what this file is for (a
+wrapper built the right `Plot`, not that `Plot`'s rendering math is
+correct) without needing to re-derive the supersampling math by hand
+in every test here too.
 
-These all lived in one dataviz_mojo/quickplot.mojo when this file was
-written; each now sits in its mark's file instead (see plot.mojo's module docstring for the rule). They stay tested together here
+Each one-call function lives in its own mark's file (see plot.mojo's
+module docstring for the rule). They stay tested together here
 because what they share -- the builder contract and the documented
 defaults -- is exactly what these tests check, and that's a property of
 the group, not of any one mark. Imported from the package itself, the

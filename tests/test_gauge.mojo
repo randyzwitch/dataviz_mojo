@@ -51,7 +51,7 @@ def test_render_gauge_matches_hand_derived_band_colors() raises:
 
 
 def test_render_gauge_leaves_a_gap_at_the_bottom() raises:
-    # The dial sweeps 270 degrees (135..405/45), leaving a 90-degree
+    # The dial sweeps 270 degrees (135.405/45), leaving a 90-degree
     # gap centered on due south (90 degrees) -- a point at radius 88
     # straight down from center (220, 223) is neither a band nor the
     # needle: background.

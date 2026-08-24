@@ -44,7 +44,7 @@ def test_render_ridgeline_matches_hand_derived_rows() raises:
     _assert_color(
         c, 220, 98, t.mark_color,
         "just below row A's baseline (96.667) -- covered by row B's peak rising up to ~73.667,"
-        " the edge-to-edge overlap padding=0.0 fixed (this exact point used to be a background gap)",
+        " the edge-to-edge overlap padding=0.0 gives",
     )
     _assert_color(c, 10, 10, BG, "well outside the whole plot area -- background")
 
@@ -100,7 +100,7 @@ def test_render_ridgeline_explicit_zero_bandwidth_matches_default() raises:
 
 
 def test_render_ridgeline_scale_by_count_shortens_the_smaller_row() raises:
-    # Two categories: "A" (5 values, [1..5], the larger sample count --
+    # Two categories: "A" (5 values, [1.5], the larger sample count --
     # sets max_n=5, so its count_factor stays 1.0) and "B" (2
     # values, [2,4], count_factor sqrt(2/5) ~= 0.6325 under scale_by_
     # count=True). Canvas 400x300, show_gridlines=False -- row B (the

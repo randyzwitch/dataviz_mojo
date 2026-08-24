@@ -1,7 +1,6 @@
 """Tests for Plot.labels(): title/subtitle/axis-title rendering and
 positioning (raster + SVG), including precise centering on the legend-
-narrowed inner plot rect -- split out of what used to be one big
-test_plot.mojo.
+narrowed inner plot rect.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -202,7 +201,7 @@ def test_render_svg_subtitle_matches_hand_derived_position() raises:
     # Int(14.0)+4 (subtitle) = 22+18 = 40 (was 22 with no subtitle),
     # so the inner rect shrinks to (18, 40, 400, 282) -- shifting the
     # LINE mark's flat y=137.000 down to y=146.000 (the new
-    # vertical midpoint of plot_y0=42+18=60.. wait, re-derived
+    # vertical midpoint of plot_y0=42+18=60. wait, re-derived
     # directly against the real render instead: plot_y0=60, plot_y1=
     # 232, midpoint 146). Title stays at its unaffected (229, 14)
     # -- only its cross-axis position depends on the inner rect, and

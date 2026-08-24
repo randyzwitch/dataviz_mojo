@@ -1,6 +1,5 @@
 """Tests for Mark.STACKED_BAR: per-series stacked rectangles and legend,
-including independent positive/negative stacking (raster + SVG) -- split
-out of what used to be one big test_plot.mojo.
+including independent positive/negative stacking (raster + SVG).
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite

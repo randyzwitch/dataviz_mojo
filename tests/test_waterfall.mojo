@@ -1,6 +1,5 @@
 """Tests for Mark.WATERFALL: sign-colored bars, running total rows,
-connectors (raster + SVG) -- split out of what used to be one big
-test_plot.mojo.
+connectors (raster + SVG).
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite

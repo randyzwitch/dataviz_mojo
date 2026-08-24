@@ -291,7 +291,7 @@ def test_theme_layout_fields_reach_scaled() raises:
     assert_equal(_Scaled(t1).tick_length, 5, "default tick_length reaches _Scaled")
     assert_equal(_Scaled(t2).tick_length, 20, "overridden tick_length reaches _Scaled")
 
-    # ..and still scales. 20 at scale 2.0 is 40, not 20.
+    # .and still scales. 20 at scale 2.0 is 40, not 20.
     assert_equal(
         _Scaled(Theme(tick_length=20, scale=2.0)).tick_length, 40,
         "a themed tick_length is still multiplied by Theme.scale",
@@ -301,16 +301,14 @@ def test_theme_layout_fields_reach_scaled() raises:
         "legend_width scales too",
     )
 
-    # continuous_legend_bar_width used to be defined as
-    # _LEGEND_SWATCH_SIZE, so changing the swatch silently moved the
-    # gradient bar. They are independent fields now; assert that
-    # decoupling explicitly, since it is the one behavioral difference
-    # in this change.
+    # legend_swatch_size and continuous_legend_bar_width are
+    # independent fields, not one defined in terms of the other --
+    # changing the swatch must never silently move the gradient bar.
     var decoupled = _Scaled(Theme(legend_swatch_size=40))
     assert_equal(decoupled.legend_swatch_size, 40, "swatch size changed")
     assert_equal(
         decoupled.continuous_legend_bar_width, 14,
-        "the gradient bar no longer follows the swatch size",
+        "the gradient bar doesn't follow the swatch size",
     )
 
 

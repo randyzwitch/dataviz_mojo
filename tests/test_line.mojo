@@ -1,6 +1,5 @@
 """Tests for Mark.LINE: drawing, line_smoothing (raster + SVG), and the
-_build_line_path Catmull-Rom-to-Bezier helper it's built on -- split out
-of what used to be one big test_plot.mojo.
+_build_line_path Catmull-Rom-to-Bezier helper it's built on.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite

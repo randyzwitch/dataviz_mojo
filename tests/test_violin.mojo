@@ -19,7 +19,7 @@ def test_render_violin_matches_hand_derived_silhouette() raises:
     # 1 category ("A"), values [1,2,3,4,5] -- symmetric, evenly spaced,
     # so the KDE's density is symmetric around the mean (3.0) too.
     # Canvas 400x300, show_gridlines=False, default margins (short
-    # "1".."5" tick labels keep the dynamic left margin at 60) -> plot
+    # "1"."5" tick labels keep the dynamic left margin at 60) -> plot
     # area x:[60,380], y:[20,250]. One category spans the whole
     # OrdinalScale band: step=320, bandwidth=320*0.8=256, center=220;
     # half_width = 256*0.4 = 102.4. Silverman's bandwidth (std-only,
@@ -115,7 +115,7 @@ def test_render_violin_explicit_zero_bandwidth_matches_default() raises:
 
 
 def test_render_violin_scale_by_count_narrows_the_smaller_category() raises:
-    # Two categories: "A" (5 values, [1..5]) and "B" (2 values, [2,4]) --
+    # Two categories: "A" (5 values, [1.5]) and "B" (2 values, [2,4]) --
     # "A" has the larger sample count, so it sets max_n=5 and its count_factor stays 1.0 (unaffected either way); "B"'s count_factor is sqrt(2/5) ~= 0.6325 under scale_by_count=True.
     # Canvas 400x300, show_gridlines=False, default margins: 2-category
     # OrdinalScale step=160, bandwidth=128, "B"'s center_x=300.

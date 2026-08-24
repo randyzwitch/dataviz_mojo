@@ -19,9 +19,9 @@ def test_render_nightingale_matches_hand_derived_wedge_colors() raises:
     # Three equal-value wedges -- each spans exactly 2*pi/3 (120
     # degrees). Wedges start at 12 o'clock (-pi/2) and sweep clockwise
     # (Mark.ARC's convention, reused unchanged -- see _render_
-    # nightingale's docstring): wedge 0 spans -90..30 degrees
-    # (bisector -30), wedge 1 spans 30..150 (bisector 90, straight
-    # down), wedge 2 spans 150..270 (bisector 210). Same center/radius
+    # nightingale's docstring): wedge 0 spans -90.30 degrees
+    # (bisector -30), wedge 1 spans 30.150 (bisector 90, straight
+    # down), wedge 2 spans 150.270 (bisector 210). Same center/radius
     # as test_arc.mojo's "a"/"b" case (single-char category labels
     # reserve the same legend width regardless of how many rows, since
     # legend width depends on the widest label, not the row count):
@@ -42,9 +42,9 @@ def test_render_nightingale_matches_hand_derived_wedge_colors() raises:
 
 
 def test_render_nightingale_area_mode_scales_radius_by_sqrt() raises:
-    # Two categories, values [1, 4] (max 4): wedge 0 spans -90..90
+    # Two categories, values [1, 4] (max 4): wedge 0 spans -90.90
     # degrees (bisector 0, straight right of center), wedge 1 spans
-    # 90..270 (bisector 180, straight left). Same center/radius as
+    # 90.270 (bisector 180, straight left). Same center/radius as
     # above (400x300, default margins, single-char labels): center
     # (155,135), max radius 85.5.
     #
@@ -74,8 +74,8 @@ def test_render_nightingale_svg_matches_confirmed_wedge_paths() raises:
     # default rose_type="radius" mode -- center/radius solved the same
     # way (400x300, no legend): cx=220, cy=135, max radius=103.5.
     # Equal angles this time (not ARC's value-proportional ones):
-    # wedge 0 spans -90..90 degrees at radius 103.5*(1/3)=34.5, wedge 1
-    # spans 90..270 at radius 103.5*(3/3)=103.5. Endpoints confirmed
+    # wedge 0 spans -90.90 degrees at radius 103.5*(1/3)=34.5, wedge 1
+    # spans 90.270 at radius 103.5*(3/3)=103.5. Endpoints confirmed
     # via a real render_svg() run first (same discipline as test_arc.
     # mojo's SVG tests), formatted through SvgCanvas's 3-decimal `_format_svg_float`.
     var cats: List[String] = ["a", "b"]
@@ -87,12 +87,12 @@ def test_render_nightingale_svg_matches_confirmed_wedge_paths() raises:
     assert_true(
         '<path d="M220.000,135.000 L220.000,100.500 A34.500,34.500 0 1,1 220.000,169.500'
         ' Z" fill="#1f77b4"/>' in s,
-        "wedge 0 (value 1, frac 1/3, radius 34.5, span -90..90)",
+        "wedge 0 (value 1, frac 1/3, radius 34.5, span -90.90)",
     )
     assert_true(
         '<path d="M220.000,135.000 L220.000,238.500 A103.500,103.500 0 1,1 220.000,31.500'
         ' Z" fill="#ff7f0e"/>' in s,
-        "wedge 1 (value 3, frac 1.0, radius 103.5, span 90..270)",
+        "wedge 1 (value 3, frac 1.0, radius 103.5, span 90.270)",
     )
 
 

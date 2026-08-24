@@ -1,6 +1,5 @@
 """Tests for Mark.BOX (boxplot): box/whiskers/outlier rendering (raster +
-SVG) and encode_boxplot() validation -- split out of what used to be one
-big test_plot.mojo.
+SVG) and encode_boxplot() validation.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite

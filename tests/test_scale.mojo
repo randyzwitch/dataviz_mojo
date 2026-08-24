@@ -140,9 +140,8 @@ def test_min_max_over_a_plain_column() raises:
 
 
 def test_min_max_raises_on_an_empty_column() raises:
-    # _min_max used to read data[0] with no length check at all -- out
-    # of bounds on an empty column. No caller can currently reach it
-    # (every render path returns early on empty data first), so this
+    # No caller can currently reach an empty column (every render path
+    # returns early on empty data first), so this
     # raises rather than inventing a fallback: a silent MinMax(0, 0)
     # would hand back a degenerate domain that still renders as a real
     # axis, which is the "silently misrepresent the data" failure this

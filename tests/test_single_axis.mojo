@@ -19,7 +19,7 @@ def test_render_single_axis_matches_hand_derived_points() raises:
     # 3 values (10, 20, 30). Canvas 400x300, show_gridlines=False,
     # default margins -> plot area x:[60,380], y:[20,250]. x-domain =
     # _data_extent([10,20,30]): span 20, 5% pad 1.0 -> [9, 31]; scale
-    # = (380-60)/(31-9) = 14.5454... -> pixel x's 75/220/365 (each
+    # = (380-60)/(31-9) = 14.5454. -> pixel x's 75/220/365 (each
     # independently computed via python3 from LinearScale's to_
     # pixel formula, then confirmed against a real render() run before
     # trusting it). Every point lands on the same row, the plot area's

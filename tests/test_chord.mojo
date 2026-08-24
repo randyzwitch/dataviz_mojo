@@ -62,7 +62,7 @@ def test_render_chord_svg_writes_ribbon_and_ring_paths() raises:
     # A smoke-level structural check (not a pixel-exact one -- a
     # curved, multi-segment filled path isn't practically hand-derived
     # the way a rect-based mark's SVG output is): three nodes, real
-    # flows between them, confirms real <path>/<path fill=...> markup
+    # flows between them, confirms real <path>/<path fill=.> markup
     # comes out for both the ribbons and the ring sectors, not just an
     # empty or background-only canvas.
     var from_cats: List[String] = ["A", "B"]

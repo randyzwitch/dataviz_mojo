@@ -1,5 +1,4 @@
-"""Tests for Mark.CANDLESTICK: wicks and bodies (raster + SVG) -- split out
-of what used to be one big test_plot.mojo.
+"""Tests for Mark.CANDLESTICK: wicks and bodies (raster + SVG).
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite

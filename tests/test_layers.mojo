@@ -1,7 +1,6 @@
 """Tests for render_layers/render_layers_svg: shared-domain layering of
 Mark.POINT/LINE/AREA, per-layer color/size encoding and legends, and the
-raises-guards for every mark type layering doesn't support -- split out
-of what used to be one big test_plot.mojo.
+raises-guards for every mark type layering doesn't support.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -178,10 +177,11 @@ def test_render_layers_svg_point_layer_color_categories_matches_hand_derived_leg
 
 
 def test_render_layers_raises_when_a_line_layer_uses_color_categories() raises:
-    # The identical "only Mark.POINT" restriction Plot.encode's single-plot path already enforces (see _render_generic's validation) -- render_layers() raises the same way rather than
+    # The identical "only Mark.POINT" restriction Plot.encode's
+    # single-plot path already enforces (see _render_generic's
+    # validation) -- render_layers() raises the same way rather than
     # silently ignoring a LINE/AREA layer's color/color_categories/
-    # size, which the pre-per-point-encoding version of this function
-    # used to do (see render_layers()'s docstring).
+    # size.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var line_cats: List[String] = ["a", "b"]
@@ -344,13 +344,13 @@ def test_render_layers_raises_when_a_stacked_bar_plot_is_included() raises:
 
 
 def test_render_layers_line_honors_theme_line_smoothing() raises:
-    # render_layers used to build a layered Mark.LINE's Path
-    # inline, with a plain move_to plus one line_to per point -- so a
-    # layer's Theme.line_smoothing was silently ignored, always
-    # drawing straight segments no matter what it asked for, while the
-    # identical plot through render() curved. Both paths now go through
-    # _draw_line_layer/_build_line_path, so a single-layer
-    # render_layers() must match render() of that same plot exactly.
+    # Both paths go through _draw_line_layer/_build_line_path, so a
+    # single-layer render_layers() must match render() of that same
+    # plot exactly. Guards against the two drifting apart again: a
+    # layer building its own Path inline instead would silently ignore
+    # Theme.line_smoothing, always drawing straight segments no matter
+    # what it asked for, while the identical plot through render()
+    # curved.
     #
     # Exactly test_render_line_smoothing_bows_the_curve_away_from_the_
     # straight_path's setup (test_line.mojo -- see its comment for
@@ -377,7 +377,7 @@ def test_render_layers_line_honors_theme_line_smoothing() raises:
             assert_equal(p_layered.g, p_standalone.g)
             assert_equal(p_layered.b, p_standalone.b)
 
-    # ...and that the shared output is genuinely the *curved* one, not
+    # .and that the shared output is genuinely the *curved* one, not
     # two identically-straight renders agreeing with each other: the
     # straight path's segment midpoint is background under a fully
     # smoothed curve.

@@ -1,6 +1,5 @@
 """Tests for categorical/continuous legends: swatch positions, continuous
-color/size legends, dynamic legend-column width -- split out of what
-used to be one big test_plot.mojo.
+color/size legends, dynamic legend-column width.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -80,41 +79,34 @@ def test_render_svg_continuous_color_legend_matches_hand_derived_gradient() rais
     # 400-20-130=250, legend anchor (x=270, y=20), bar 14 wide, 100
     # tall (x:[270,284], y:[20,120]).
     #
-    # A real DrawTarget.fill_rect_gradient bar now (canvas_mojo
-    # >=0.3.0), not the many-thin-strip approximation an earlier
-    # version of this test covered -- built from ColorScale's three stops (ColorScale.from_theme: color_scale_low/mid/high at
-    # 0.0/0.5/1.0, see that method's docstring for why a middle
-    # stop exists at all -- Theme.color_scale_mid's docstring has
-    # the real, rendering-caught readability bug it fixes), each one's
-    # own gradient offset flipped (1.0 - stop.offset, see _draw_
-    # continuous_color_legend's docstring for why: the bar's top
-    # has to be the *high* value, but ColorScale's offset 1.0
-    # already means high).
+    # A real DrawTarget.fill_rect_gradient bar, built from
+    # ColorScale's three stops (ColorScale.from_theme: color_scale_
+    # low/mid/high at 0.0/0.5/1.0, see that method's docstring for why
+    # a middle stop exists at all -- Theme.color_scale_mid's docstring
+    # has the real, rendering-caught readability bug it fixes), each
+    # one's gradient offset flipped (1.0 - stop.offset, see _draw_
+    # continuous_color_legend's docstring for why: the bar's top has to
+    # be the *high* value, but ColorScale's offset 1.0 already means
+    # high).
     #
     # The flip reverses their order, so they are sorted back into
     # ASCENDING offset order before being emitted: offset 0.0 =
     # color_scale_high (#dc5a28, Color(220,90,40)) at the bar's top,
     # offset 0.5 = color_scale_mid (#ebebeb, Color(235,235,235)), and
     # offset 1.0 = color_scale_low (#3c6ec8, Color(60,110,200)) at its
-    # bottom.
+    # bottom. That ordering matters: SVG clamps every <stop> offset to
+    # be no less than the previous one's, so a descending list would
+    # collapse onto one offset and render as a single flat color in
+    # any real SVG viewer, even though the raster backend (_color_at_t
+    # scans for the bracketing pair rather than assuming sorted input)
+    # would render the identical gradient correctly.
     #
-    # That ordering is the whole point of this assertion, and this test
-    # previously had it backwards -- it asserted the descending order
-    # (1.0, 0.5, 0.0) the code emitted at the time. SVG clamps every
-    # <stop> offset to be no less than the previous one's, so those
-    # three all collapsed onto 1.0 and the legend bar rendered as a
-    # single flat color in any real SVG viewer, with no gradient at
-    # all. The raster backend was unaffected throughout (_color_at_t
-    # scans for the bracketing pair rather than assuming sorted input),
-    # so the .png was correct while the .svg beside it was not.
-    #
-    # The old comment said it was "confirmed against a real render_svg()
-    # run" -- and it was. That only ever confirmed the markup matched
-    # what the code produced, never that the markup was *valid SVG*.
-    # An assertion written by reading the output back cannot catch a
-    # bug that lives in the output. Hence the explicit ascending-order
-    # check below, which is about the format's requirement rather than
-    # about this particular render.
+    # An assertion written by reading rendered output back can confirm
+    # the markup matches what the code produces, but never that the
+    # markup is *valid SVG* -- it cannot catch a bug that lives in the
+    # output itself. Hence the explicit ascending-order check below,
+    # which is about the format's requirement rather than about this
+    # particular render.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var color: List[Float64] = [0.0, 10.0]
