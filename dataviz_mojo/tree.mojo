@@ -25,7 +25,7 @@ def _assign_leaf_positions(node: Int, idx: _HierarchyIndex, mut x: List[Float64]
     """A deliberately simplified tree layout -- not a real Reingold-
     Tilford algorithm (which additionally shifts whole subtrees
     sideways to avoid sibling overlap when subtrees have uneven
-    shapes), the same "a much simpler, still-genuinely-correct v1"
+    shapes), the same "a much simpler, still-genuinely-correct"
     tolerance `Mark.TREEMAP`'s slice-and-dice layout takes over a
     real squarified one, or `Mark.CHORD`'s straight-rim ribbons
     over a full circular-arc rim.
@@ -40,9 +40,9 @@ def _assign_leaf_positions(node: Int, idx: _HierarchyIndex, mut x: List[Float64]
     matters, not breadth-first). Every internal node's x-slot is
     the plain average of its children's, which can overlap two
     unrelated subtrees' leaves when their shapes are lopsided --
-    a real, visible limitation for an unbalanced tree, acceptable for
-    a first version (revisit with a real Reingold-Tilford pass if a
-    concrete case needs it).
+    a real, visible limitation for an unbalanced tree, accepted here
+    (revisit with a real Reingold-Tilford pass if a concrete case
+    needs it).
     """
     if len(idx.children[node]) == 0:
         x[node] = Float64(next_leaf)
