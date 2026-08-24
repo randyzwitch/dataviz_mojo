@@ -97,9 +97,9 @@ def default_categorical_palette() -> List[Color]:
 
     Deliberately a plain function, not a `Theme` field: adding a
     `List` field to `Theme` would break its `ImplicitlyCopyable`
-    conformance (confirmed directly by probe -- Mojo can't synthesize
-    an implicit copy constructor once a struct holds a `List`), which
-    every existing `var theme = plot._theme`-style copy throughout
+    conformance -- Mojo can't synthesize an implicit copy constructor
+    once a struct holds a `List` -- which every existing `var theme =
+    plot._theme`-style copy throughout
     this package already depends on. The same reasoning
     `canvas_mojo.Color`'s history gives for keeping named palettes out
     of the core `Color` type applies here: a fixed default is enough

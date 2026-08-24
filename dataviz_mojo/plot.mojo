@@ -44,10 +44,9 @@ anti-aliased variant -- `fill_circle_aa` for points, `stroke_path_aa`
 for lines, `draw_line_aa` for gridlines/axis lines/tick marks --
 rather than reasoning per call site about whether AA is "worth it."
 For the axis-aligned lines specifically this makes no visual
-difference (a perfectly horizontal or vertical, integer-positioned
-line has no diagonal stepping for AA to smooth away in the first place
--- confirmed directly against draw_line_aa's coverage math, not
-assumed), but there's no real cost to it either given how few short
+difference: a perfectly horizontal or vertical, integer-positioned
+line has no diagonal stepping for AA to smooth away in the first
+place. But there's no real cost to it either given how few short
 lines these are, and one consistent default is simpler to reason about
 than an exception that has to be re-justified every time someone reads
 this file. `SvgCanvas` has no equivalent AA choice to make at all --
@@ -2600,9 +2599,9 @@ def _draw_continuous_size_legend[T: DrawTarget](
     range) at `size_scale`'s radius for each, the identical scale
     real data points are sized with. Circles left-aligned on their *widest* possible edge (`x + sc.size_range_max`, `Theme`'s configured largest radius, not this particular plot's largest
     circle) so every circle's label lines up at the same x
-    regardless of which circle is biggest -- confirmed directly (not
-    assumed) that this reads better than centering each circle
-    independently, which would stagger the labels.
+    regardless of which circle is biggest -- this reads better than
+    centering each circle independently, which would stagger the
+    labels.
 
     Returns the y-coordinate just below the last circle (plus one row
     gap) -- unused today (this is always the last legend section drawn
@@ -4390,14 +4389,13 @@ struct _CategoricalFrame(Movable):
         ownership checker rejects moving a single field out of a struct
         ("field 'self.text_requests' destroyed out of the middle of a
         value"), since the rest of the frame still owns `x_scale`/
-        `y_scale`/`sc` and needs its normal end-of-scope
-        destruction. Re-confirmed directly against the current compiler
-        when this method was extracted, including with an owned `var
-        self` and with every field consumed in turn -- Mojo has no
-        piecewise-destructuring form that satisfies it, so the copy
-        isn't a workaround for a borrow that could have been avoided by
-        restructuring. It's a small `List` either way, and it now
-        happens in exactly one place instead of eleven.
+        `y_scale`/`sc` and needs its normal end-of-scope destruction --
+        including with an owned `var self` and with every field
+        consumed in turn. Mojo has no piecewise-destructuring form that
+        satisfies it, so the copy isn't a workaround for a borrow that
+        could have been avoided by restructuring. It's a small `List`
+        either way, and it now happens in exactly one place instead of
+        eleven.
 
         Passes `self.y_scale` through as `_RenderResult`'s real
         y-scale (`has_y_scale=True`) -- every mark sharing this frame
@@ -4448,12 +4446,10 @@ def _draw_categorical_axis_frame[
     stopped being "a little." The one real behavioral difference from
     `_render_bar`'s original body: the per-category x-tick+label loop
     and the per-category mark-drawing loop are now two separate passes
-    (every category's tick+label was interleaved with its bar
-    before) -- harmless for both backends, since ticks/labels live
-    below the plot area and every mark shape lives inside it, regions
-    that never overlap; confirmed directly, not just by construction --
-    every pre-existing hand-derived pixel and SVG-substring assertion
-    for `Mark.BAR` kept passing completely unchanged once this landed.
+    -- harmless for both backends, since ticks/labels live below the
+    plot area and every mark shape lives inside it, regions that never
+    overlap; every hand-derived pixel and SVG-substring assertion for
+    `Mark.BAR` passes completely unchanged.
 
     `y_scale`'s domain must already be decided (its range is the usual
     `[0, 1]` placeholder `_data_extent`/`_zero_baseline_y_extent`
@@ -4594,10 +4590,10 @@ def _render_facets_generic[
     target doesn't divide evenly by `cols`/`rows`, and only the first
     form guarantees adjacent cells share the exact same boundary pixel
     with no gap or 1px overlap (cell `col`'s right edge, `width *
-    (col + 1) // cols`, is the identical expression to cell `col + 1`'s left edge) -- confirmed directly, not assumed: a naive per-cell
-    width computed once and repeated would let integer-division
-    rounding error accumulate across columns instead of resetting at
-    every boundary.
+    (col + 1) // cols`, is the identical expression to cell `col + 1`'s
+    left edge): a naive per-cell width computed once and repeated
+    would let integer-division rounding error accumulate across
+    columns instead of resetting at every boundary.
 
     A separate function from `_render_generic` itself, not a `plots:
     List` overload of it -- one `Plot` in, one whole target out is

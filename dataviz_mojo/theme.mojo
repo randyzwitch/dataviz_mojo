@@ -88,8 +88,9 @@ with `mark_color`: the measure bar itself. Unlike `mark_color_negative`,
 `color_scale_low`/`color_scale_mid`/`color_scale_high` are `Plot.encode(
 color=...)`'s continuous channel (and every mark built directly on
 `dataviz_mojo.color_scale.ColorScale` over its data domain --
-`Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`, see each one's `_render_*` docstring) -- three stops, not two: a real, rendering-
-caught readability bug, not a hypothetical one. Two stops alone (the
+`Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`, see each one's
+`_render_*` docstring) -- three stops, not two: a real,
+rendering-caught readability bug. Two stops alone (the
 low/high colors directly, no `color_scale_mid`) linearly interpolate
 in plain RGB space, and the *midpoint* of two saturated, hue-opposite
 colors (the default low/high pair is blue/orange, chosen for

@@ -103,8 +103,7 @@ def _draw_bump_axis_frame[
     rest. A rank axis needs the opposite mapping (small number = top),
     and simply swapping `domain_min`/`domain_max` to get that breaks
     `ticks()`, which assumes an increasing domain throughout (`_nice_
-    step`'s step/log10 math goes through a negative span) --
-    confirmed directly, not assumed, before choosing this route instead.
+    step`'s step/log10 math goes through a negative span).
     Since a rank axis only ever needs exactly `n_series` integer ticks
     (never `LinearScale.ticks()`'s "nice round numbers" treatment),
     hand-rolling one tick per rank via `_bump_rank_pixel` sidesteps the

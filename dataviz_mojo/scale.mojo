@@ -118,9 +118,10 @@ def _nice_step(domain_min: Float64, domain_max: Float64, target_count: Int) -> _
 
 def _format_fixed(value: Float64, decimals: Int) -> String:
     """Format `value` to exactly `decimals` decimal places -- plain
-    `String(Float64)` isn't usable for tick labels: confirmed by probe
-    that e.g. 0.0 + 3*0.1 prints as "0.30000000000000004", ordinary
-    binary-floating-point drift with nothing to do with this module's math. Rounds to the nearest representable value at `decimals`
+    `String(Float64)` isn't usable for tick labels: e.g. 0.0 + 3*0.1
+    prints as "0.30000000000000004", ordinary binary-floating-point
+    drift with nothing to do with this module's math. Rounds to the
+    nearest representable value at `decimals`
     places first (round-half-away-from-zero, via the same
     `_round_to_int` geometry.mojo's pixel rounding uses), then splits
     into integer and fractional parts and builds the string by hand
@@ -209,7 +210,7 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         """The intercept for a Transform2D built from this axis --
         derived from scale() so domain_min always maps to exactly
         range_min (to_pixel(domain_min) == range_min, not just
-        approximately, confirmed directly in
+        approximately -- see
         test_linear_scale_endpoints_map_to_range_exactly)."""
         return self.range_min - self.domain_min * self.scale()
 

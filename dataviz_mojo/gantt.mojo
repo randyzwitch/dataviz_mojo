@@ -121,9 +121,8 @@ def _draw_horizontal_categorical_axis_frame[
     frame's y-axis, this is *not* reversed, since a plain
     increasing-index-goes-downward mapping already reads top-to-bottom,
     the way a real project schedule conventionally lists its first task
-    first) -- confirmed directly, not assumed: see
-    `test_render_gantt_matches_hand_derived_bars`'s first-vs-second-
-    category pixel check.
+    first) -- see `test_render_gantt_matches_hand_derived_bars`'s
+    first-vs-second-category pixel check.
 
     No horizontal (per-row) gridlines -- the same reasoning `_render_
     bar`'s docstring gives for skipping per-bar vertical gridlines:
@@ -148,8 +147,7 @@ def _draw_horizontal_categorical_axis_frame[
     unaccounted for. `padding=0.0` makes each row's baseline land
     exactly on the next row's top edge, so only `theme.ridgeline_overlap`
     itself controls whether/how far one row's peak crosses into
-    another's -- confirmed by rendering a two-category ridgeline case
-    before and after this fix, not assumed from the formula alone.
+    another's.
     """
     var sc = _Scaled(theme)
 

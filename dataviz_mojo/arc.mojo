@@ -37,10 +37,10 @@ def _render_arc[
     never reads a target's width/height directly either).
 
     Wedges start at the 12-o'clock position and proceed clockwise,
-    matching the conventional real-world pie chart reading direction
-    -- confirmed directly (not assumed) that increasing angle in
-    `fill_arc_aa`'s convention sweeps clockwise on screen, since
-    pixel y increases downward: starting at `-pi/2` (pointing toward
+    matching the conventional real-world pie chart reading direction.
+    Increasing angle in `fill_arc_aa`'s convention sweeps clockwise on
+    screen, since pixel y increases downward: starting at `-pi/2`
+    (pointing toward
     -y, i.e. up) and increasing angle sweeps toward +x (3 o'clock),
     then +y (6 o'clock), then -x (9 o'clock), back to 12 -- clockwise
     exactly as a real clock face reads. `SvgCanvas.fill_arc_aa` draws
