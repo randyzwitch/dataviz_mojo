@@ -97,10 +97,10 @@ they happen to live in.
 
 Each wraps `Plot`/`Theme`/`Canvas`/`render()` for the common case: a
 single chart, one mark, sane defaults for everything that isn't the
-data itself. Every one does exactly what `examples/bar.mojo`'s `main()` used to do by hand -- build a `Theme`, build a `Canvas` sized
-to match, build a `Plot`, `encode*()` the data onto it, `render()`
-into the canvas -- collapsed into one call (`_rendered()` below is the
-shared tail all thirteen delegate that to).
+data itself. Every one builds a `Theme`, builds a `Canvas` sized to
+match, builds a `Plot`, `encode*()`s the data onto it, and `render()`s
+into the canvas, in one call (`_rendered()` below is the shared tail
+all thirteen delegate that to).
 
 Not a replacement for the fluent `Plot` builder -- facets, layering,
 `color`/`size` encoding, and the SVG backend all still need `Plot`
@@ -226,9 +226,9 @@ from dataviz_mojo.waterfall import _render_waterfall, _waterfall_running_totals
 # (a real, user-visible choice -- render genuinely larger, for a
 # viewer that upscales), this one exists purely so quickplot's output
 # doesn't look worse than it has to, which isn't a decision a caller
-# should need to make or even know is happening. 3x was picked the
-# same way every example here used to hardcode it -- clearly enough
-# finer-grained to matter, not so large that a 640x420 chart's scratch canvas becomes wasteful; not benchmarked against 2x/4x.
+# should need to make or even know is happening. 3x is clearly enough
+# finer-grained to matter without a 640x420 chart's scratch canvas
+# becoming wasteful; not benchmarked against 2x/4x.
 comptime _QUICKPLOT_SUPERSAMPLE = 3
 
 
@@ -457,9 +457,9 @@ struct Plot(Movable):
 
     `_edges` earns its name particularly: `Mark.CHORD`, `ARC_DIAGRAM`,
     `GRAPH` and `SANKEY` all read the same three columns, a fact
-    previously discoverable only by grepping for `_chord_from` and
-    noticing four unrelated marks in the results. `_edge_node_index`
-    already resolves that shared shape; this names it.
+    otherwise only discoverable by grepping `_chord_from` and noticing
+    four unrelated marks in the results. `_edge_node_index` already
+    resolves that shared shape; this names it.
 
     What stays ungrouped is deliberate: `x_data`/`y_data`/
     `x_categories`/`color_data`/`color_categories`/`size_data` are the
@@ -2065,11 +2065,11 @@ def _categorical_indices(data: List[String]) raises -> _CategoricalIndex:
     categories that was O(n*k) twice over; hashing each row once makes
     it O(n) on average, and the draw loop a plain `indices[i]` lookup.
 
-    `_unique_categories` itself stays (it's this module's documented, separately tested first-seen-order helper, and the
-    domain half of this function agrees with it exactly by
-    construction) -- this just also keeps the answer to "and where did
-    each row land," which every caller previously threw away and then
-    recomputed the expensive way.
+    `_unique_categories` itself stays (it's this module's documented,
+    separately tested first-seen-order helper, and the domain half of
+    this function agrees with it exactly by construction) -- this just
+    also keeps each row's own landing position, the answer every
+    caller otherwise has to recompute the expensive way.
 
     First-seen order comes from `domain`'s append order, not from
     the `Dict` (whose iteration order this never relies on) -- the same
@@ -2101,10 +2101,10 @@ def _build_line_path(px: List[Float64], py: List[Float64], smoothing: Float64) r
     chart's path (see the `Mark.AREA` branch's comment in `_render_
     generic` for the two extra `line_to`s/`close()` that turn this
     function's returned open curve into a closed, fillable region).
-    `smoothing == 0.0` (`Theme.line_smoothing`'s default) builds it exactly as `Mark.LINE` always has, a plain
+    `smoothing == 0.0` (`Theme.line_smoothing`'s default) builds a plain
     `move_to` plus one `line_to` per remaining point, so the default
     case never touches curve math at all and stays byte-for-byte
-    identical to every render from before this feature existed (see
+    identical to a render with `line_smoothing` never touched (see
     `Theme.line_smoothing`'s docstring -- deliberately an explicit
     early branch, not a degenerate curve formula that happens to
     reduce to the same shape, since a flattened cubic Bezier samples
@@ -2688,9 +2688,9 @@ struct _LabelsFrame(Movable):
     """`_apply_labels`'s finished result: the outer rect `render()`/
     `render_svg()` actually hand to `_render_generic` (shrunk to make
     room for `Plot.labels()`'s title/x_title/y_title -- see that
-    method's docstring). Just the shrunk rect -- unlike its original version, `_apply_labels` no longer builds the title
-    `_TextRequest`s here; see its docstring for why that moved to
-    `_label_text_requests`, called *after* rendering instead. A named
+    method's docstring). Just the shrunk rect: `_apply_labels` builds
+    no title `_TextRequest`s itself; see `_label_text_requests`,
+    called *after* rendering instead. A named
     struct even though only `render()`/`render_svg()` call
     `_apply_labels` -- this file's established convention
     (`_CategoricalFrame`, `MinMax`, `Ticks`, ...) is always a named
@@ -2825,10 +2825,10 @@ def _apply_labels(plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> 
     dispatches to) actually runs and returns it (`_RenderResult`'s `px0`..`py1`, see its docstring). Splitting into two phases this
     way -- reserve margin before rendering, center text after -- is what
     makes a title/x_title land pixel-precisely over the inner plot rect
-    instead of the full outer width/height (a wide legend or long
-    y-axis tick labels no longer throws it off-center the way it used
-    to -- see the wiki's Changelog, its "Plot.labels() precise
-    centering" entry for the full before/after). `_label_text_
+    instead of the full outer width/height, immune to a wide legend or
+    long y-axis tick labels throwing it off-center (see the wiki's
+    Changelog, "Plot.labels() precise centering", for the history).
+    `_label_text_
     requests`, called by `render()`/`render_svg()` right after
     `_render_generic` returns, is phase two.
 
@@ -3236,14 +3236,11 @@ def _replay_text_requests(mut canvas: Canvas, requests: List[_TextRequest], mut 
     deferred labels `_render_generic` and friends hand back (see
     `_TextRequest`'s docstring for why they're deferred at all).
 
-    Every raster entry point (`render()`, `render_facets()`,
-    `render_layers()`) used to carry its verbatim copy of this
-    loop, one per request list it had to draw -- nine copies of the
-    same nine-argument `draw_text` call between them, differing only
-    in which list they iterated. That is exactly the shape a helper
-    exists for, and keeping it as one function is what makes the
-    argument list a single place to change rather than nine places to
-    keep in sync (see `_replay_text_requests_svg` for the vector
+    Shared by every raster entry point (`render()`, `render_facets()`,
+    `render_layers()`) across every request list each one draws --
+    the same nine-argument `draw_text` call one function, not several
+    near-identical copies, so the argument list is a single place to
+    change (see `_replay_text_requests_svg` for the vector
     mirror of the same collapse).
     """
     for req in requests:
@@ -3340,15 +3337,16 @@ def render(
     before this call (which usually happens to match anyway, but isn't
     guaranteed to).
 
-    This is now the *only* background fill on this path. `_render_
-    generic` and every mark-specific `_render_*` used to open by
-    filling their rect a second time -- always a strict subset of
-    this one, in the same color, so always pure waste: one whole extra
-    full-target fill per render (at a 640x420 chart's quickplot-supersampled 1920x1260 scratch canvas -- see `_rendered`'s docstring -- about 2.4M redundant pixel writes per chart --
-    arithmetic, not a measured speedup; nothing here has been
-    benchmarked). Painting the background is the *entry point's* job
-    now, once, and each of the four entry points does it: here,
-    `render_svg()`, `_render_facets_generic` (per cell -- see its comment) and `render_layers()`/`render_layers_svg()`.
+    This is the *only* background fill on this path -- `_render_
+    generic` and every mark-specific `_render_*` fill nothing of their
+    own, since any second fill would always be a strict subset of this
+    one, in the same color: one whole extra full-target fill per render
+    (at a 640x420 chart's quickplot-supersampled 1920x1260 scratch
+    canvas -- see `_rendered`'s docstring -- about 2.4M redundant pixel
+    writes per chart). Painting the background is the *entry point's*
+    job, once, and each of the four entry points does it: here,
+    `render_svg()`, `_render_facets_generic` (per cell -- see its
+    comment) and `render_layers()`/`render_layers_svg()`.
 
     Never supersampled on its own -- every pixel-sized quantity here
     scales only by `plot._theme.scale` (see `Theme`'s docstring),
@@ -3525,9 +3523,7 @@ struct _PointChannels(Movable):
     and draw those same legend sections (`_draw_point_layer`). Computing
     them once and handing the same value to both is what keeps the two
     provably consistent -- a column sized for one palette and then drawn
-    with another would be a silent layout bug, and the two used to be
-    independent recomputations in `_render_layers_generic`, agreeing
-    only by inspection.
+    with another would be a silent layout bug.
     """
 
     var has_color: Bool
@@ -3633,9 +3629,8 @@ def _require_some_positive(values: List[Float64], mark_name: String) raises -> F
 def _validate_continuous_encoding(plot: Plot, context: String) raises:
     """Every check `Plot.encode()`'s x/y/color/color_categories/size
     channels need before a continuous-axis render can start -- shared
-    verbatim by the single-plot path (`_render_generic`) and the layered
-    one (`_render_layers_generic`), which used to carry two independent
-    copies of this list differing only in their error strings.
+    verbatim by the single-plot path (`_render_generic`) and the
+    layered one (`_render_layers_generic`).
 
     `context` prefixes every message so each caller still reports the
     thing a caller can actually act on: `"Plot.encode()"` for a
@@ -3989,9 +3984,10 @@ def _lighten(color: Color, alpha: UInt8) -> Color:
     """`color` blended toward opaque white by `alpha` -- `Mark.
     EFFECT_SCATTER`'s halo tint (see `_draw_point_layer`'s `draw_halo` paragraph) and `Mark.RADAR`'s series-polygon fill,
     which pass `Theme.halo_alpha` and `Theme.radar_fill_alpha`
-    respectively. `alpha` is a parameter rather than the fixed constant
-    it used to be precisely because those two callers are unrelated:
-    one shared number silently tied a scatter halo to a radar fill. Built via `Color.blend_over` (give `color`
+    respectively. `alpha` is a parameter, not a fixed constant, because
+    the two callers are unrelated -- a single shared number would
+    silently tie a scatter halo's tint to a radar fill's. Built via
+    `Color.blend_over` (give `color`
     a reduced alpha, composite it over white, keep the fully-opaque
     result) rather than real alpha transparency on the halo circle
     itself: `SvgCanvas` has no opacity concept at all (only `Canvas`,
@@ -4062,8 +4058,8 @@ def _draw_point_layer[
             color = ch.color_scale.color_at(plot.color_data[i])
         elif ch.has_color_categories:
             # A plain lookup, not a search: _PointChannels resolved
-            # every row's domain index up front (see _categorical_
-            # indices' docstring for what this used to cost here).
+            # every row's domain index up front (see
+            # _categorical_indices' docstring).
             color = ch.palette[ch.cat.indices[i] % len(ch.palette)]
         else:
             color = theme.mark_color
@@ -4103,14 +4099,11 @@ def _draw_line_layer[
     laid-out continuous axis frame -- `Theme.line_smoothing` included
     (`_build_line_path`, see its docstring).
 
-    Shared by the standalone and layered paths, which is the point:
-    `_render_layers_generic` used to build its `Path` inline with a
-    plain `move_to` plus one `line_to` per point, so a layered
-    `Mark.LINE` silently ignored `Theme.line_smoothing` entirely and
-    never range-checked it either -- a straight drift from what
-    `Theme.line_smoothing`'s docstring (theme.mojo) documents, and
-    exactly the kind of thing two near-identical copies of the same
-    drawing code are for. Routing both through one function fixes it by
+    Shared by the standalone and layered paths, which is the point: a
+    layered `Mark.LINE` honors `Theme.line_smoothing` and its range
+    check exactly the way a standalone one does -- exactly the kind
+    of thing two near-identical copies of the same drawing code are
+    for. Routing both through one function guarantees it by
     construction rather than by remembering to.
     """
     var theme = plot._theme
@@ -4195,8 +4188,7 @@ def _render_generic[
     the legend column (`_legend_reserve_for`), draw the axis frame
     (`_draw_continuous_axis_frame`), then draw the one mark
     (`_draw_point_layer`/`_draw_line_layer`/`_draw_area_layer`). Every
-    one of those is shared with `_render_layers_generic`, which used to
-    carry its near-verbatim copy of all of it.
+    one of those is shared with `_render_layers_generic`.
 
     `Plot.secondary_axis()` only means anything inside `render_layers()`/
     `render_layers_svg()` (a second series to pair its y-domain
@@ -4637,12 +4629,13 @@ def _render_facets_generic[
         var cell_x1 = width * (col + 1) // cols
         var cell_y0 = height * row // rows
         var cell_y1 = height * (row + 1) // rows
-        # Each cell's *full* rect, filled from that cell's Plot's background before anything else -- the same "the whole
+        # Each cell's *full* rect, filled from that cell's Plot's
+        # background before anything else -- the same "the whole
         # original rect gets painted, including the strip a title's
         # margin reserved" contract render()/render_svg() already
-        # document. Cells used to rely on _render_generic filling its
-        # own (label-shrunk) rect instead, which left a titled cell's
-        # top band showing whatever the canvas held before the call.
+        # document. Filling only _render_generic's own label-shrunk
+        # rect instead would leave a titled cell's top band showing
+        # whatever the canvas held before this call.
         target.fill_rect(
             cell_x0, cell_y0, cell_x1 - cell_x0, cell_y1 - cell_y0, plots[i]._theme.background
         )
@@ -4735,12 +4728,11 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     since every render path now builds its curve through the same
     `_build_line_path`, see `_draw_line_layer`'s docstring -- `line_
     smoothing`, each still scaled by that plot's `Theme.scale`; see
-    `_Scaled`'s docstring). A layered `Mark.LINE`/`AREA` used to
-    ignore `line_smoothing` entirely, always drawing straight segments
-    no matter what its `Theme` asked for; it now curves exactly the
-    way the identical plot rendered standalone through `render()`
-    already did, and rejects an out-of-`[0.0, 1.0]` value there the
-    same way too, instead of silently accepting it. Each encoding-using `Mark.POINT` layer draws its legend section(s) (gated by that layer's `Theme.show_legend`,
+    `_Scaled`'s docstring). A layered `Mark.LINE`/`AREA` curves exactly
+    the way the identical plot rendered standalone through `render()`
+    does, and rejects an out-of-`[0.0, 1.0]` value there the same way
+    too. Each encoding-using `Mark.POINT` layer draws its legend
+    section(s) (gated by that layer's `Theme.show_legend`,
     not `plots[0]`'s), stacked in one shared column in layer order --
     the same categorical/continuous-color/size section types and
     stacking order `_render_generic`'s single-plot `Mark.POINT`
@@ -4770,8 +4762,8 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     # An empty plots list is a real, tested no-op (test_render_layers_
     # with_empty_list_is_a_noop) -- _apply_labels needs plots[0], so
     # labels are skipped entirely rather than indexing an empty list;
-    # _render_layers_generic's existing empty check still leaves
-    # the canvas untouched in that case, same as before this feature.
+    # _render_layers_generic's own empty check leaves the canvas
+    # untouched in that case.
     if len(plots) == 0:
         _ = _render_layers_generic(canvas, plots, ox0, oy0, cx1, cy1)
         return
@@ -4873,15 +4865,6 @@ def _render_layers_generic[
     *all* layered plots' data at once, a legend column sized across
     every layer, and a legend-y cursor threaded through them in order.
 
-    That used to be a near-verbatim copy of `_render_generic`'s continuous-x path, justified as "a little duplication over a
-    premature shared abstraction." It didn't hold up: the copies drifted,
-    and a layered `Mark.LINE`/`AREA` silently stopped honoring
-    `Theme.line_smoothing` (see `_draw_line_layer`'s docstring).
-    Roughly 200 lines of the two paths were identical by then -- well
-    past the two-call-sites tolerance `_render_bar`'s docstring
-    describes, and the same threshold `_draw_categorical_axis_frame`
-    was extracted at.
-
     Returns a `_RenderResult`, like every other `_render_*` function
     (see its docstring) -- `render_layers()`/`render_layers_svg()`
     use the inner rect it carries to center `Plot.labels()`'s title/x_title/y_title (sourced from `plots[0]`, see their docstrings) on the real, shared plot area.
@@ -4893,7 +4876,7 @@ def _render_layers_generic[
     draws mirrored onto the plot's right edge (its axis line, ticks,
     tick labels -- measured and reserved the same "measure the domain's ticks, size the margin to fit them" way `_draw_continuous_axis_
     frame` already sizes the *left* margin, just inlined here since it's
-    the only caller), with no gridlines of its (see `Plot.secondary_
+    the only caller), with no gridlines of its own (see `Plot.secondary_
     axis()`'s docstring for why). Its reserved width sits between
     the plot's inner rect and the legend column -- `legend_x` shifts
     right by exactly that amount so a legend and a secondary axis never
@@ -4901,10 +4884,9 @@ def _render_layers_generic[
     one, keeping every pre-existing single-axis render byte-for-byte
     unchanged.
 
-    Each layer's `Plot.annotate_area()`/`annotate_line()` draw too
-    (closing the `render_layers()` half of the "not wired into render_
-    facets()/render_layers() yet" scope note both methods' docstrings used to carry -- `_render_facets_generic`'s docstring
-    covers the other half). Unlike `render_facets()`'s "one cell, one
+    Each layer's `Plot.annotate_area()`/`annotate_line()` draw too --
+    see `_render_facets_generic`'s docstring for the `render_facets()`
+    side of the same wiring. Unlike `render_facets()`'s "one cell, one
     Plot" case, several layers share one coordinate system here, so
     which layer's annotations mean what against which axis needed
     an actual answer: each layer's annotations draw against *that
@@ -4978,7 +4960,7 @@ def _render_layers_generic[
 
     # The one thing that differs from the single-plot path: both
     # domains span *every* primary-axis layer's data at once, rather
-    # than one plot's (see _draw_continuous_axis_frame's docstring). A single Mark.AREA layer anywhere in the primary group
+    # than one plot's own (see _draw_continuous_axis_frame's docstring). A single Mark.AREA layer anywhere in the primary group
     # forces the zero baseline in for the whole primary y-axis, the same
     # rule Mark.AREA follows on its own -- and independently again for
     # the secondary group, if there is one.
@@ -4996,7 +4978,7 @@ def _render_layers_generic[
     # domain, decided above, never on pixel range -- see _max_label_
     # width's docstring), then tick_length + label_gap + margin_
     # buffer beyond that. 0 when no layer uses a secondary axis, so
-    # legend_x below is unchanged from before this feature existed.
+    # legend_x below is unchanged for every single-axis render.
     # One FontCache for every measurement this layered render makes --
     # see _render_generic's own. This path benefits most: the secondary
     # axis measures here, then the loop below sizes one legend section
@@ -5147,28 +5129,22 @@ def _rendered(
     not a single-resolution render, is what "finer AA" actually means
     here).
 
-    All thirteen functions here used to carry a verbatim copy of these
-    four lines, which is most of what each one *was* -- the two chained
-    builder calls that pick the mark and encode the data are the only
-    part that ever differed. `.labels()`/`.theme()` are applied here
+    Shared by all thirteen functions here -- the two chained builder
+    calls that pick the mark and encode the data are the only part
+    that differs between them. `.labels()`/`.theme()` are applied here
     rather than at each call site for the same reason: nothing about
     them varies by mark.
 
-    The supersampling itself used to live here too, spelled out by
-    hand in every example instead: a `comptime _SUPERSAMPLE = 3`, `
-    width`/`height` multiplied by it, `scale=Float64(_SUPERSAMPLE)`
-    threaded into `Theme`, and the caller's `downsample()` call on
-    the far end. Every one of those five moving parts was pure
-    implementation detail -- nothing about *what chart to draw*, only
-    *how not to make its edges look worse than they have to* -- and
-    every example carried an identical copy of it, which is the tell
-    that it belonged here instead: this is now the one place that
-    logic exists at all, not the cleaned-up version of a pattern
-    every caller still has to write for themselves. A caller who wants
-    that control back still has it, just spelled explicitly rather
-    than defaulted invisibly: build the `Canvas`/`Plot` by hand and
-    call `render()` directly, whose own `Theme.scale` is exactly the
-    same multiplicative knob this function uses internally (see its docstring) -- `render()` itself stays exactly as un-
+    Supersampling is the one place this logic exists at all, not a
+    cleaned-up version of a pattern each caller writes for itself --
+    nothing about it (the `_QUICKPLOT_SUPERSAMPLE` factor, the scaled
+    `Theme`, the `downsample()` call) is about *what chart to draw*,
+    only *how not to make its edges look worse than they have to*. A
+    caller who wants that control back still has it, just spelled
+    explicitly rather than defaulted invisibly: build the `Canvas`/
+    `Plot` by hand and call `render()` directly, whose `Theme.scale` is
+    exactly the same multiplicative knob this function uses internally
+    (see its docstring) -- `render()` itself stays exactly as un-
     supersampled as it always was, deliberately: it's the precise,
     pixel-for-pixel entry point real HiDPI export and this whole test
     suite's hand-verified pixel assertions depend on, so hiding

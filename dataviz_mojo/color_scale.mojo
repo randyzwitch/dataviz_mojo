@@ -66,14 +66,12 @@ struct ColorScale(Movable):
     def from_theme(theme: Theme, domain_min: Float64, domain_max: Float64) -> Self:
         """The one, shared way every continuous color-encoded mark in
         this package (`Plot.encode(color=...)`'s point channel,
-        `Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`) builds its `ColorScale` from `theme`'s three color-scale stops -- `low` at
-        offset `0.0`, `mid` at `0.5`, `high` at `1.0` -- rather than
-        each of those four call sites adding two stops by hand (which
-        is exactly what they used to do, independently, before this
-        existed: `add_stop(0.0, theme.color_scale_low)`/`add_stop(1.0,
-        theme.color_scale_high)`, no middle stop at all -- see `Theme.
-        color_scale_mid`'s docstring for the real, rendering-caught
-        readability bug that was, not just a style cleanup).
+        `Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`) builds its
+        `ColorScale` from `theme`'s three color-scale stops -- `low` at
+        offset `0.0`, `mid` at `0.5`, `high` at `1.0`, not just `low`/
+        `high` alone -- see `Theme.color_scale_mid`'s docstring for the
+        real, rendering-caught readability bug a missing middle stop
+        causes.
 
         A plain `@staticmethod`, not a change to `__init__` itself --
         `ColorScale(domain_min, domain_max)` alone (no stops) stays a

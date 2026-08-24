@@ -149,7 +149,7 @@ def _render_calendar_heatmap[
     axis_frame` -- that function's two axes are both string-labeled
     `OrdinalScale`s over a caller-given domain; this one's row domain
     is a fixed 7-day week and its column domain is a *computed* week
-    index with no natural string label of its (month names label
+    index with no natural string label of its own (month names label
     the *columns where each month starts*, not one label per column
     the way `_draw_grid_axis_frame` would draw), different enough to
     need its layout rather than a forced fit -- the same "own

@@ -120,10 +120,9 @@ def _render_waterfall[
     Every bar's actual left/right pixel edges are computed once,
     per category, into `bar_x`/`bar_width` lists -- then reused for the
     connector-line pass below, rather than each connector re-deriving
-    an edge from the *band's* own boundary directly the way this
-    function's original, total-row-unaware body did (correct only
-    because every bar was full band width then; a narrower delta bar's edges no longer coincide with its band's, so the connector has
-    to ask each bar what it actually drew, not assume). The connector
+    an edge from the *band's* own boundary directly: a narrower delta
+    bar's edges don't coincide with its band's, so the connector has
+    to ask each bar what it actually drew, not assume. The connector
     itself (`theme.axis_color`, not `gridline_color` -- tried first,
     but visually indistinguishable from the y-axis's gridlines once
     actually rendered, defeating the point of a connector at all;

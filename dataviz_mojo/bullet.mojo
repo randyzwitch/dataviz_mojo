@@ -145,9 +145,8 @@ def _render_bullet[
     range_color_scale.add_stop(1.0, theme.bullet_range_color_dark)
 
     # Every one of these depends only on the scale and theme, never on
-    # the category index -- this loop used to recompute all four per
-    # category, calling bandwidth() three separate times (plus a fourth
-    # inside center(i)) on every pass.
+    # the category index -- computed once here, not recomputed inside
+    # the per-category loop below.
     var bandwidth = frame.x_scale.bandwidth()
     var band_width = _round_to_int(bandwidth)
     var measure_width = _round_to_int(bandwidth * theme.bullet_measure_width_fraction)

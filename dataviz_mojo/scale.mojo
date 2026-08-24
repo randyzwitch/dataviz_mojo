@@ -42,8 +42,7 @@ struct MinMax(ImplicitlyCopyable, Movable):
 
 def _min_max(data: List[Float64]) raises -> MinMax:
     """`data`'s [min, max]. Raises on an empty list rather than
-    indexing out of bounds, which is what it used to do -- `data[0]`
-    with no length check at all.
+    indexing `data[0]` out of bounds.
 
     No caller can currently reach that (every one guards on its data being non-empty first, and the render paths return early
     before this on an empty plot), so this raises rather than

@@ -282,12 +282,12 @@ title -- and only the title: `x_title`/`y_title` and every other
 `_TextRequest` (tick/legend labels) stay normal weight always, not
 configurable here, the same "one deliberate exception, not a general
 knob" scope this field itself is. The one default in this whole
-struct that flips a prior behavior rather than reproducing it --
-every other field's default reproduces exactly what render()
-already did before that field existed (see `font_family`'s docstring for why that one does); this one instead exists specifically
-*because* the old, only-ever-normal-weight title no longer reads as
-polished enough on its own -- the one place a caller-visible aesthetic
-default, not just a new capability, changed. Still overridable
+struct that isn't backward-compatible: every other field's default
+reproduces exactly what `render()` already produces without it (see
+`font_family`'s docstring for why that one does); this one exists
+because a plain-weight title doesn't read as polished enough on its
+own -- the one place a caller-visible aesthetic default, not just a
+new capability, changed. Still overridable
 (`Theme(title_bold=False)` reproduces the old look exactly) for a
 caller who wants it. Threaded the identical way `font_family` is --
 `_TextRequest`'s `bold: Bool = False` field, left untouched at
