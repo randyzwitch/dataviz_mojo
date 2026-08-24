@@ -91,13 +91,9 @@ def _parse_date(s: String) raises -> _Date:
 def _days_from_civil(date: _Date) -> Int:
     """Days since 1970-01-01 (the Unix epoch), proleptic Gregorian --
     Howard Hinnant's well-known `days_from_civil` algorithm (public
-    domain, widely used exactly because it's easy to independently
-    verify against known reference dates rather than trust blindly:
-    confirmed here against 2024-01-01, a real-world Monday -- see
-    `_day_of_week`'s docstring). Exact for any real Gregorian
-    calendar date; this mark only ever calls it with dates already
-    parsed from a caller's data, never a negative/pre-Gregorian
-    year.
+    domain). Exact for any real Gregorian calendar date; this mark
+    only ever calls it with dates already parsed from a caller's
+    data, never a negative/pre-Gregorian year.
     """
     var y = date.year
     if date.month <= 2:
@@ -142,8 +138,8 @@ def _render_calendar_heatmap[
     already takes for its length-mismatched lists). The first
     week's column always starts on the Sunday on/before January
     1st (so January 1st never lands outside the grid even when it
-    isn't itself a Sunday) -- `column = (days_since_jan1 + jan1s_own_
-    weekday) // 7`, `row = day_of_week`.
+    isn't itself a Sunday) -- `column = (days_since_jan1 + jan1_dow)
+    // 7`, `row = day_of_week`.
 
     Own bespoke grid layout, not `Mark.HEATMAP`'s `_draw_grid_
     axis_frame` -- that function's two axes are both string-labeled

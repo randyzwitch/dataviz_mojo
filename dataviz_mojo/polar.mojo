@@ -26,8 +26,8 @@ struct _PolarData(Movable):
     Mark.POLAR only -- one (angle, radius) pair per row (encode_
     polar()), or a shared `angle` domain plus one or more named series
     (encode_polar_series(), `_polar.series_names` non-empty is what
-    `_render_polar` actually branches on -- the legacy `_polar.radius`
-    field stays empty in that case). See both methods' docstrings.
+    `_render_polar` actually branches on -- `_polar.radius` stays
+    empty in that case). See both methods' docstrings.
 
     Grouped onto `Plot._polar` -- see `Plot`'s docstring.
     """
