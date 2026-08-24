@@ -2053,8 +2053,10 @@ struct _CategoricalIndex(Movable):
 def _categorical_indices(data: List[String]) raises -> _CategoricalIndex:
     """A categorical column's domain and its per-row indices into that
     domain, resolved together in one pass through a `Dict` -- what
-    `Mark.POINT`'s categorical color channel actually needs (see
-    `_PointChannels`, its only caller).
+    `Mark.POINT`'s categorical color channel needs it for (see
+    `_PointChannels`), and also `Mark.HEATMAP`/`PUNCHCARD`'s two axis
+    domains and `_edge_node_index`'s node resolution for the edge-list
+    family.
 
     Replaces a pair of nested-loop scans that were quadratic in the
     column's distinct-value count: `_unique_categories` compared
@@ -4423,32 +4425,31 @@ def _draw_categorical_axis_frame[
     oy1: Int,
 ) raises -> _CategoricalFrame:
     """The layout and axis-frame-drawing core shared by every
-    categorical-x-axis mark (`Mark.BAR`, `LOLLIPOP`, `WATERFALL`, `BOX`
-    as of this writing): computes the dynamic left margin from
-    `y_scale`'s ticks, builds the `OrdinalScale` x-axis, draws
-    gridlines/axis lines/y-tick marks+labels and every category's x-tick mark+label -- everything these mark types draw identically.
-    Returns the finished `x_scale`/`y_scale` (pixel ranges resolved)
-    plus the already-scaled `_Scaled` theme and the `_TextRequest`s
-    collected so far, for the caller to draw its per-category shape
-    into (a filled rect, a stem+point, a floating rect, a box+whiskers
-    -- the one genuinely different piece between these mark types,
-    deliberately left to each one's function rather than threaded
-    through here, matching `_render_bar`'s long-standing "a mark-
-    type branch through nearly every line is worse than each path
-    staying its function" reasoning).
+    categorical-x-axis mark (`Mark.BAR`, `LOLLIPOP`, `WATERFALL`, `BOX`):
+    computes the dynamic left margin from `y_scale`'s ticks, builds the
+    `OrdinalScale` x-axis, draws gridlines/axis lines/y-tick
+    marks+labels and every category's x-tick mark+label -- everything
+    these mark types draw identically. Returns the finished
+    `x_scale`/`y_scale` (pixel ranges resolved) plus the already-scaled
+    `_Scaled` theme and the `_TextRequest`s collected so far, for the
+    caller to draw its per-category shape into (a filled rect, a
+    stem+point, a floating rect, a box+whiskers -- the one genuinely
+    different piece between these mark types, deliberately left to
+    each one's function rather than threaded through here, matching
+    `_render_bar`'s long-standing "a mark-type branch through nearly
+    every line is worse than each path staying its function"
+    reasoning). Shared once four near-identical ~130-line copies of
+    this same layout math exist -- past the two-call-sites-tolerate-
+    duplication threshold `_draw_horizontal_categorical_axis_frame`'s
+    own docstring states for the opposite case (why *that* one stays
+    unshared).
 
-    Extracted from `_render_bar`'s original, self-contained body
-    once a *third* categorical mark needed the identical axis-frame
-    logic -- two call sites sharing a little duplication was this
-    codebase's established tolerance (see the paragraph above), but
-    four near-identical ~130-line copies of the same layout math
-    stopped being "a little." The one real behavioral difference from
-    `_render_bar`'s original body: the per-category x-tick+label loop
-    and the per-category mark-drawing loop are now two separate passes
-    -- harmless for both backends, since ticks/labels live below the
-    plot area and every mark shape lives inside it, regions that never
-    overlap; every hand-derived pixel and SVG-substring assertion for
-    `Mark.BAR` passes completely unchanged.
+    The per-category x-tick+label loop and the per-category
+    mark-drawing loop are two separate passes -- harmless for both
+    backends, since ticks/labels live below the plot area and every
+    mark shape lives inside it, regions that never overlap; every
+    hand-derived pixel and SVG-substring assertion for `Mark.BAR`
+    passes completely unchanged.
 
     `y_scale`'s domain must already be decided (its range is the usual
     `[0, 1]` placeholder `_data_extent`/`_zero_baseline_y_extent`

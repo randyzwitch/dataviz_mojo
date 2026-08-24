@@ -26,9 +26,10 @@ struct _HorizontalCategoricalFrame(Movable):
     """`_draw_horizontal_categorical_axis_frame`'s finished layout
     -- the mirror image of `_CategoricalFrame` (`x_scale`/`y_scale`
     swap roles: `x_scale` is the continuous `LinearScale` here,
-    `y_scale` the categorical `OrdinalScale`) for `Mark.GANTT`, the one
-    mark type so far whose categories run along a horizontal axis
-    instead of a vertical one.
+    `y_scale` the categorical `OrdinalScale`), shared by every mark
+    whose categories run along a horizontal axis instead of a vertical
+    one (`Mark.GANTT`, `POPULATION_PYRAMID`, `RIDGELINE`,
+    `SPAN_CHART`).
 
     `px0`/`py0`/`px1`/`py1` -- see `_CategoricalFrame`'s docstring
     for what these are and why they're carried through unchanged."""
@@ -87,23 +88,20 @@ def _draw_horizontal_categorical_axis_frame[
     along a horizontal `OrdinalScale` y-axis (top-to-bottom, category
     index 0 at the top -- see below) instead of a vertical one, and the
     continuous `x_scale` runs left-to-right along the bottom instead of
-    top-to-bottom on the left. Built for `Mark.GANTT`, the first (and,
-    as of this writing, only) mark type whose categories aren't laid out
-    vertically.
+    top-to-bottom on the left. Shared by every mark whose categories
+    lay out horizontally -- `Mark.GANTT`, `POPULATION_PYRAMID`,
+    `RIDGELINE`, `SPAN_CHART`.
 
-    Deliberately its function, not a generalized, orientation-
-    flagged version of `_draw_categorical_axis_frame` -- with exactly
-    one caller so far, that's the same "a little duplication over a
-    premature shared abstraction" tolerance this codebase already
-    applies elsewhere (`_render_bar`'s docstring, `LinearGradient`/
-    `RadialGradient` staying separate structs rather than one generic
-    "Gradient" type); a bidirectional version would need an orientation
-    branch threaded through nearly every line below (which scale is
-    which type, which axis reverses, which margin grows dynamically),
-    exactly the kind of "a mark-type branch through nearly every line
-    is worse than each path staying its function" case that
-    reasoning already warns about. Revisit if a second horizontal mark
-    ever needs this.
+    Deliberately its own function, not a generalized, orientation-
+    flagged version of `_draw_categorical_axis_frame` -- a bidirectional
+    version would need an orientation branch threaded through nearly
+    every line below (which scale is which type, which axis reverses,
+    which margin grows dynamically), exactly the kind of "a mark-type
+    branch through nearly every line is worse than each path staying
+    its function" case `_render_bar`'s docstring already warns about.
+    Two separate mirror-image functions, each a plain read, stays
+    simpler than one function with an orientation flag even with four
+    callers on this side.
 
     The dynamic left margin here grows to fit the category *names*
     themselves (`_max_label_width(categories, ...)`, the raw strings --
