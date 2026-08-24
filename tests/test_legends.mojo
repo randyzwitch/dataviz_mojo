@@ -73,8 +73,8 @@ def test_render_legend_disabled_restores_the_full_plot_width() raises:
 def test_render_svg_continuous_color_legend_matches_hand_derived_gradient() raises:
     # x=[0,10], y=[0,10], color=[0.0,10.0] (continuous, no size) --
     # canvas 400x300, default theme, show_gridlines=False. "10.0"/"0.0"
-    # (26.0px/19.0px at the default 12pt font, confirmed by probe)
-    # both stay well under the 130px default legend width, so
+    # (26.0px/19.0px at the default 12pt font) both stay well under
+    # the 130px default legend width, so
     # legend_reserve stays at that default, unchanged -- plot_x1=
     # 400-20-130=250, legend anchor (x=270, y=20), bar 14 wide, 100
     # tall (x:[270,284], y:[20,120]).
@@ -161,9 +161,7 @@ def test_render_svg_continuous_size_legend_matches_hand_derived_circles() raises
     # Theme's configured largest radius (cx = 270 + 15 = 285) so
     # every label lines up regardless of which circle is biggest.
     # Every center/radius/label position independently re-derived via
-    # python3 (LinearScale's slope/intercept for the size scale),
-    # then confirmed against a real render_svg() run before trusting it
-    # here.
+    # python3 (LinearScale's slope/intercept for the size scale).
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var size: List[Float64] = [2.0, 8.0]
@@ -206,13 +204,9 @@ def test_render_point_continuous_legends_are_off_by_default_theme_setting() rais
 
 def test_render_point_legend_width_grows_to_fit_long_category_names() raises:
     # "Southeast Region Sales" measures 140.4px at the default 12pt
-    # font (confirmed by probe against this environment's real "Sans"
-    # font metrics, the same "locked in, confirmed by probe" convention
-    # test_render_left_margin_grows_to_fit_wide_y_axis_labels's wide y-axis label test already uses -- re-probed after canvas_
-    # mojo v0.1.0's FreeType-to-native-TTF-parser swap, which is
-    # deliberately unhinted and so measures every glyph slightly
-    # differently than the old FreeType-hinted values this test used
-    # to lock in). _dynamic_legend_width = max(130, 14+4+140+8) =
+    # font, against this environment's real "Sans" font metrics
+    # (unhinted, so glyph widths depend on the installed font file).
+    # _dynamic_legend_width = max(130, 14+4+140+8) =
     # max(130, 166) = 166, wider than Theme's default 130px legend
     # column -- so plot_x1 becomes 400-20-166=214, not 400-20-130=250.
     # Legend swatch row 0 at x=plot_x1+margin_right=214+20=234, y=

@@ -79,8 +79,7 @@ def test_render_svg_arc_mark_matches_confirmed_wedge_paths() raises:
     # flag 1) -- deliberately not a 50/50 split, whose each-wedge span
     # would land exactly on the pi boundary the large-arc-flag itself
     # switches on, an ambiguous case not worth testing. Endpoint
-    # coordinates confirmed via a real render_svg() run first (same
-    # discipline as the LINE/BAR tests above), formatted through
+    # coordinates formatted through
     # `_format_svg_float`'s 3-decimal rounding (see the LINE
     # test's comment) -- which also resolves what would otherwise
     # print as 219.99999999999997 (pi's finite representation
@@ -112,10 +111,9 @@ def test_render_donut_leaves_the_center_unfilled_and_fills_the_ring() raises:
     # exact center (220, 135) must stay background (the donut hole),
     # while a point on wedge 0's angular bisector (start=-pi/2,
     # end=0, bisector=-pi/4) at the ring's midpoint radius
-    # ((51.75+103.5)/2=77.625) -- (275, 80), confirmed via a real
-    # render() run, not assumed from the formula alone -- lands deep
-    # inside the filled ring, not near either edge where AA blending
-    # would make an exact color match unreliable.
+    # ((51.75+103.5)/2=77.625) -- (275, 80), lands deep inside the
+    # filled ring, not near either edge where AA blending would make
+    # an exact color match unreliable.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
     var c = pie(
@@ -130,9 +128,8 @@ def test_render_donut_leaves_the_center_unfilled_and_fills_the_ring() raises:
 
 def test_render_donut_svg_matches_confirmed_ring_sector_paths() raises:
     # Same data/theme as the raster donut test above, through
-    # render_svg() instead -- endpoints confirmed via a real
-    # render_svg() run first (the same discipline every raw-float SVG
-    # assertion in this file uses), formatted through SvgCanvas's 3-decimal `_format_svg_float`.
+    # render_svg() instead -- formatted through SvgCanvas's
+    # 3-decimal `_format_svg_float`.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
     var svg = SvgCanvas(400, 300)

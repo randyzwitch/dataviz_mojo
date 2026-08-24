@@ -49,8 +49,7 @@ def test_render_line_mark_draws_ink_between_the_two_endpoints() raises:
 
 def test_build_line_path_zero_smoothing_is_a_plain_polyline() raises:
     # smoothing=0.0 must take the early "no curve math at all" branch,
-    # not a degenerate curve formula -- confirmed directly by kind, not
-    # just by the resulting shape: every command after the initial
+    # not a degenerate curve formula: every command after the initial
     # move_to is a plain _LINE_TO, never _CUBIC_TO.
     var px: List[Float64] = [0.0, 10.0, 30.0, 50.0]
     var py: List[Float64] = [0.0, 20.0, 5.0, 25.0]
@@ -136,8 +135,7 @@ def test_render_line_smoothing_bows_the_curve_away_from_the_straight_path() rais
     # own t=0.5 point lands at (138.18,121.93), about 13px away -- far
     # more than line_width=2.0 plus any AA fringe could reach. So
     # (147,135) is real ink under the straight line but background
-    # under the fully smoothed one -- confirmed via a real render() run
-    # first, not assumed from the hand-derived point alone.
+    # under the fully smoothed one.
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
     var c_straight = line(
@@ -219,7 +217,7 @@ def test_render_svg_line_mark_matches_confirmed_path_coordinates() raises:
         '<path d="M74.545,135.000 L365.455,135.000" fill="none"'
         ' stroke="#1e64b4" stroke-width="2.000" stroke-linecap="round"'
         ' stroke-linejoin="round"/>' in svg.to_string(),
-        "LINE mark's stroked path, endpoints confirmed via a real render_svg() run",
+        "LINE mark's stroked path",
     )
 
 

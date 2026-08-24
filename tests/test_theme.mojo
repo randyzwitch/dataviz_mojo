@@ -44,8 +44,7 @@ def test_render_theme_scale_uniformly_scales_the_whole_layout() raises:
     # (440, 270) is exactly double (220, 135) for the same reason:
     # LinearScale.to_pixel() of a domain's midpoint always lands
     # on the range's midpoint, and doubling a range's endpoints
-    # doubles its midpoint too (confirmed directly via the formula,
-    # not assumed to "just carry over" from the 1x case).
+    # doubles its midpoint too.
     var xy: List[Float64] = [5.0]
     var t = Theme(scale=2.0)
     var c = scatter(xy, xy, theme=t, width=800, height=600)
@@ -81,8 +80,7 @@ def test_render_theme_scale_default_matches_unscaled_output_exactly() raises:
 def test_render_theme_font_family_reaches_svg_output() raises:
     # A custom font_family ("Georgia") shows up as a literal
     # font-family="Georgia" attribute on every <text> element SVG
-    # emits -- confirmed via a real render_svg() run first (not
-    # assumed from the plumbing alone). Single point, canvas 400x300,
+    # emits. Single point, canvas 400x300,
     # default theme otherwise: the same setup test_render_theme_scale_
     # uniformly_scales_the_whole_layout's 1x case reuses, so the
     # first tick label ("4.0" on the y-axis) lands at the same (60,
@@ -130,8 +128,7 @@ def test_render_theme_font_family_actually_changes_raster_glyphs() raises:
     # glyph's footprint changing, not necessarily every pixel or
     # any one specific one, so this counts differing pixels in a
     # small region around the label instead of asserting an exact
-    # value -- confirmed via a real render() run first that a real,
-    # nonzero difference exists there before trusting this test.
+    # value -- a real, nonzero difference exists in that region.
     var xy: List[Float64] = [5.0]
     var c_sans = scatter(xy, xy, theme=Theme(font_family="sans-serif"), width=400, height=300)
     var c_mono = scatter(xy, xy, theme=Theme(font_family="monospace"), width=400, height=300)
@@ -148,8 +145,7 @@ def test_render_theme_font_family_actually_changes_raster_glyphs() raises:
 
 def test_render_theme_title_bold_default_emits_font_weight_bold() raises:
     # title_bold's default (True) emits a literal font-weight="bold"
-    # attribute on the title's <text> element -- confirmed via a
-    # real render_svg() run first. Single point, canvas 400x300,
+    # attribute on the title's <text> element. Single point, canvas 400x300,
     # title "Hi" -- the same no-legend geometry test_render_theme_
     # scale_uniformly_scales_the_whole_layout's 1x case already
     # establishes, so the title lands at the same (220, 14) that
@@ -167,10 +163,9 @@ def test_render_theme_title_bold_default_emits_font_weight_bold() raises:
 
 
 def test_render_theme_title_bold_false_reproduces_the_old_no_bold_output() raises:
-    # title_bold=False must reproduce the exact pre-existing (pre-
-    # this-feature) title output -- no font-weight attribute at all,
-    # not font-weight="normal" -- confirmed via a real render_svg()
-    # run first. Same setup as the default-bold test above.
+    # title_bold=False must reproduce the plain title output -- no
+    # font-weight attribute at all, not font-weight="normal". Same
+    # setup as the default-bold test above.
     var xy: List[Float64] = [5.0]
     var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_point().encode(x=xy, y=xy).labels(title="Hi").theme(Theme(title_bold=False))
