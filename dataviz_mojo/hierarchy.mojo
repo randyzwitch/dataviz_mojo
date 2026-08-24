@@ -1,12 +1,13 @@
-"""The shared tree-indexing core behind Phase 7's hierarchy family
+"""The shared tree-indexing core behind the hierarchy family
 (`Mark.SUNBURST`/`TREE`/`TREEMAP`): every one of those marks needs the
 exact same three answers about `Plot.encode_hierarchy()`'s flat
 `ids`/`parent_ids`/`values` rows -- who is whose child, how deep is
 each node, and what's each node's subtree total -- before any
 mark-specific layout (a ring sector, a node position, a rectangle) can
-be computed. Factored out once a third caller needed it, the same
-"one more real caller doesn't justify a shared abstraction until it's
-the *third* one" tolerance `_draw_categorical_axis_frame`'s docstring already established for the categorical-axis cores.
+be computed. Shared by all three callers -- the same "one more real
+caller doesn't justify a shared abstraction until it's the *third*
+one" tolerance `_draw_categorical_axis_frame`'s docstring already
+establishes for the categorical-axis cores.
 
 A flat `(id, parent_id, value)` row list rather than a real tree/graph
 type of its own -- the same "the data already says what's needed"
@@ -68,7 +69,7 @@ def _build_hierarchy_index(
 ) raises -> _HierarchyIndex:
     """Turn `encode_hierarchy()`'s flat rows into what every mark
     in the hierarchy family actually needs: `children[i]` (every row
-    index whose own `parent_ids` points at `ids[i]`), `depth[i]` (0 at
+    index whose `parent_ids` points at `ids[i]`), `depth[i]` (0 at
     the single root, +1 per level -- computed by one BFS pass from the
     root, the same "root's children have index 0 at the top"
     top-down reading `_draw_horizontal_categorical_axis_frame`'s category order already establishes elsewhere), and `subtree_value
@@ -82,10 +83,10 @@ def _build_hierarchy_index(
     An empty `parent_ids[i]` (`""`) marks the single root -- raises if
     zero or more than one row qualifies, the same "raise on a
     genuinely inconsistent input" stance `Mark.CALENDAR_HEATMAP`'s single-year requirement already takes: a forest (multiple roots)
-    is a real, if less common, hierarchy shape, but out of scope for
-    this first version (see this module's docstring's `d3.
-    stratify()` comparison -- that function has the identical single-
-    root restriction by default). Also raises on a duplicate `id`, or
+    is a real, if less common, hierarchy shape, but out of scope (see
+    this module's docstring's `d3.stratify()` comparison -- that
+    function has the identical single-root restriction by default).
+    Also raises on a duplicate `id`, or
     a `parent_ids[i]` that doesn't match any given `id` (other than
     the empty-string root sentinel).
     """
