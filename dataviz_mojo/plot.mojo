@@ -71,7 +71,7 @@ generic`'s dispatch, and machinery genuinely shared by several marks
 layers). Each mark with its dedicated rendering -- everything but
 `Mark.POINT`/`LINE`/`AREA`, which stay inline in `_render_generic`
 itself as the plain-continuous-axis default case with no special axis
-frame of their to justify a file -- has exactly one file holding
+frame of their own to justify a file -- has exactly one file holding
 its `_render_*` plus whatever calculation is specific to it: bar.
 mojo, lollipop.mojo, waterfall.mojo, box.mojo, candlestick.mojo,
 bullet.mojo, gantt.mojo, grouped_bar.mojo, stacked_bar.mojo, arc.mojo,
