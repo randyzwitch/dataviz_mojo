@@ -1,18 +1,18 @@
 """Demo: a heatmap -- Mark.HEATMAP, one colored grid cell per (x, y)
 category pair, colored by a continuous value through Theme.color_
 scale_low/color_scale_high (Plot.encode_heatmap(), one row per cell --
-see that method's own docstring). The first mark with two categorical
-axes and no continuous one at all; its own axis-frame core (_draw_
+see that method's docstring). The first mark with two categorical
+axes and no continuous one at all; its axis-frame core (_draw_
 grid_axis_frame, heatmap.mojo) tiles cells edge-to-edge instead of
-Mark.BAR's own separated bands. Built via dataviz_mojo.heatmap() --
-see examples/scatter.mojo's own docstring for what that trades away.
+Mark.BAR's separated bands. Built via dataviz_mojo.heatmap() --
+see examples/scatter.mojo's docstring for what that trades away.
 
 A day-of-week x hour-of-day activity grid -- the classic heatmap use
 (a correlation matrix or a calendar would be the same shape, just
 different category labels).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

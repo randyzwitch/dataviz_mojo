@@ -1,15 +1,13 @@
 """Demo: a bullet chart -- Mark.BULLET, Stephen Few's measure-vs-target-
 against-qualitative-ranges composite, one per category
 (Plot.encode_bullet(), a category plus a measure, a target, and a whole
-*list* of ascending range thresholds -- see that method's own
-docstring). Each category draws shaded background range bands (a small
-grayscale ColorScale, lightest to darkest by range index -- see Theme's
-own docstring for bullet_range_color_light/dark), a narrower measure
+*list* of ascending range thresholds -- see that method's docstring). Each category draws shaded background range bands (a small
+grayscale ColorScale, lightest to darkest by range index -- see Theme's docstring for bullet_range_color_light/dark), a narrower measure
 bar (mark_color, deliberately never colored by sign -- see
-_render_bullet's own docstring for why, unlike Mark.CANDLESTICK/
+_render_bullet's docstring for why, unlike Mark.CANDLESTICK/
 WATERFALL), and a target tick (axis_color, full band width, matching
-Mark.BOX's own median-line convention). Built via dataviz_mojo.
-bullet() -- see examples/scatter.mojo's own docstring for
+Mark.BOX's median-line convention). Built via dataviz_mojo.
+bullet() -- see examples/scatter.mojo's docstring for
 what that trades away.
 
 Four KPIs on a quarterly dashboard -- a realistic mix of "beat target"
@@ -20,7 +18,7 @@ to both a specific goal and a qualitative sense of poor/satisfactory/
 good."
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

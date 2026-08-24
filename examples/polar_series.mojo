@@ -3,18 +3,18 @@ Plot.encode_polar_series() (a shared angle domain plus one or more
 named series, sharing one radius scale and a legend -- the multi-
 series generalization of encode_polar(), the same relationship pie()/
 donut() have to Mark.ARC). Built via dataviz_mojo.polar_series() --
-see examples/scatter.mojo's own docstring for what that trades away.
+see examples/scatter.mojo's docstring for what that trades away.
 
 Average monthly temperature, Miami vs. Phoenix -- one angle per month
 evenly spaced around the circle (the same "clock face" 12-month
-reading examples/polarbar.mojo's own rainfall example uses), two named
-series sharing one radius scale so the two cities' own seasonal shapes
-are directly comparable at a glance: Miami's own shallower curve
-(consistently warm) against Phoenix's own deeper one (a hot summer
+reading examples/polarbar.mojo's rainfall example uses), two named
+series sharing one radius scale so the two cities' seasonal shapes
+are directly comparable at a glance: Miami's shallower curve
+(consistently warm) against Phoenix's deeper one (a hot summer
 peak, a cooler winter dip).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

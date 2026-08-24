@@ -2,11 +2,11 @@
 fraction set, the same browser-share data examples/pie.mojo draws,
 switched from a full wedge to a ring segment (canvas_mojo.shapes.arcs.
 fill_ring_sector_aa on the raster path, SvgCanvas.fill_ring_sector_aa
-on the vector one -- see plot.mojo's own _render_arc docstring for
+on the vector one -- see plot.mojo's _render_arc docstring for
 where that switch happens). Raster output built via dataviz_mojo.
-pie() -- see examples/scatter.mojo's own docstring for what that
+pie() -- see examples/scatter.mojo's docstring for what that
 trades away; the donut_inner_radius_fraction=0.55 kwarg is the only
-thing distinguishing this file from examples/pie.mojo's own call.
+thing distinguishing this file from examples/pie.mojo's call.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
 Plot -- both backends are first-class (see the wiki), so both get

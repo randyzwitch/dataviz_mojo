@@ -1,17 +1,16 @@
 """Demo: a polar bar chart -- Mark.POLAR_BAR, bars radiating outward
-from the chart's own center, one equal-width angular slot per category
+from the chart's center, one equal-width angular slot per category
 (Plot.encode_categorical(), the same category + value shape pie()/
 bar()/nightingale() use), length proportional to value/max(values).
-Built via dataviz_mojo.polarbar() -- see examples/scatter.mojo's own
-docstring for what that trades away.
+Built via dataviz_mojo.polarbar() -- see examples/scatter.mojo's docstring for what that trades away.
 
-Monthly rainfall -- ECharts.jl's own polarbar example, a good fit for
+Monthly rainfall -- ECharts.jl's polarbar example, a good fit for
 the chart type (12 categories share the full circle evenly, a natural
 "clock face" reading for a 12-month cycle a linear bar chart doesn't
 give for free).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

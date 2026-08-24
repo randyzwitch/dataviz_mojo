@@ -1,17 +1,16 @@
 """Demo: a Marimekko/mosaic chart -- Mark.MARIMEKKO, column widths
-proportional to each category's own share of the grand total, stacked
-segment heights showing each column's own subcategory composition
-(Plot.encode_marimekko() -- see that method's own docstring for the
+proportional to each category's share of the grand total, stacked
+segment heights showing each column's subcategory composition
+(Plot.encode_marimekko() -- see that method's docstring for the
 matrix shape). Built via dataviz_mojo.marimekko() -- see
-examples/scatter.mojo's own docstring for what that trades away.
+examples/scatter.mojo's docstring for what that trades away.
 
-Electricity generation by region and energy source -- ECharts.jl's
-own marimekko() classic use case (both a region's own overall share of
+Electricity generation by region and energy source -- ECharts.jl's marimekko() classic use case (both a region's overall share of
 total generation *and* its energy mix read at a glance, something a
-plain stacked bar chart's own equal-width columns can't show at once).
+plain stacked bar chart's equal-width columns can't show at once).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

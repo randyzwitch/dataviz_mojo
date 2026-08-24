@@ -1,16 +1,16 @@
-"""Demo: a network graph -- Mark.GRAPH, Mark.CHORD's own edge list
+"""Demo: a network graph -- Mark.GRAPH, Mark.CHORD's edge list
 (Plot.encode_chord()) drawn as nodes evenly spaced around a circle,
 connected by straight lines cutting across the interior -- a third
-genuinely different layout from Mark.CHORD's own ring-sectors-plus-
-ribbons and Mark.ARC_DIAGRAM's own nodes-on-a-line-plus-arcs. Built
-via dataviz_mojo.graph() -- see examples/scatter.mojo's own docstring
+genuinely different layout from Mark.CHORD's ring-sectors-plus-
+ribbons and Mark.ARC_DIAGRAM's nodes-on-a-line-plus-arcs. Built
+via dataviz_mojo.graph() -- see examples/scatter.mojo's docstring
 for what that trades away.
 
 A small social network -- who's connected to whom, edge width reading
 as connection strength.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

@@ -1,21 +1,20 @@
 """Demo: a box plot -- Mark.BOX, one box-and-whiskers per category
 summarizing a whole distribution of raw values (Plot.encode_boxplot(),
-a category + a *list* of values -- see that method's own docstring for
+a category + a *list* of values -- see that method's docstring for
 the quartile/whisker/outlier computation it does immediately, via
 _box_stats()). Unlike Mark.BAR/LOLLIPOP/WATERFALL, the y-axis doesn't
-force in a zero baseline -- a distribution's own spread has no inherent
-reason to include zero (see _render_box's own docstring). Built via
-dataviz_mojo.box() -- see examples/scatter.mojo's own
-docstring for what that trades away.
+force in a zero baseline -- a distribution's spread has no inherent
+reason to include zero (see _render_box's docstring). Built via
+dataviz_mojo.box() -- see examples/scatter.mojo's docstring for what that trades away.
 
 Four groups' exam scores, each a real (not perfectly symmetric)
 distribution, one of them (Group C) with a genuine low outlier -- the
-kind of comparison a box plot is for: not each group's own single
-summary number (a bar chart's job), but each group's own spread, and
+kind of comparison a box plot is for: not each group's single
+summary number (a bar chart's job), but each group's spread, and
 whether any individual value falls unusually far from the rest.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

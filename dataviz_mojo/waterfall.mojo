@@ -123,11 +123,10 @@ def _render_waterfall[
     an edge from the *band's* own boundary directly: a narrower delta
     bar's edges don't coincide with its band's, so the connector has
     to ask each bar what it actually drew, not assume. The connector
-    itself (`theme.axis_color`, not `gridline_color` -- tried first,
-    but visually indistinguishable from the y-axis's gridlines once
-    actually rendered, defeating the point of a connector at all;
-    caught by viewing `examples/waterfall.mojo`'s output, not
-    assumed) still runs between consecutive bars at the pixel height
+    itself (`theme.axis_color`, not `gridline_color` -- visually
+    indistinguishable from the y-axis's gridlines once rendered,
+    defeating the point of a connector at all) still runs between
+    consecutive bars at the pixel height
     `y1[i-1]` -- always exactly horizontal (a single Y value, drawn from
     one bar's actual right edge to the next's actual left edge).
     For two plain delta rows in a row, this touches both bars' shared edge exactly (`y1[i-1] == y0[i]` always, by construction).

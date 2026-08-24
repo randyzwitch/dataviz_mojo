@@ -1,21 +1,20 @@
 """Demo: a grouped bar chart -- Mark.GROUPED_BAR, several bars side by
 side per category instead of one (Plot().mark_grouped_bar().encode_
-grouped_bar(categories, series_names, values); see that method's own
-docstring for the values[series][category] data shape). Quarterly
+grouped_bar(categories, series_names, values); see that method's docstring for the values[series][category] data shape). Quarterly
 revenue for three regions across four quarters -- the categorical
 x-axis and zero-baseline y-axis are exactly Mark.BAR's own, shared via
-_draw_categorical_axis_frame; what's new is each category's own band
+_draw_categorical_axis_frame; what's new is each category's band
 splitting into one sub-bar per series (default_categorical_palette(),
 the same cycling convention Mark.POINT's categorical color encoding and
-Mark.ARC's own wedge coloring already use) plus a legend, reserved via
-Theme.show_legend the same way Mark.POINT's own categorical-color
+Mark.ARC's wedge coloring already use) plus a legend, reserved via
+Theme.show_legend the same way Mark.POINT's categorical-color
 legend is. Built via dataviz_mojo.grouped_bar() -- see
-examples/scatter.mojo's own docstring for what that trades away;
-title=/x_title=/y_title= are quickplot's own equivalent of Plot.
+examples/scatter.mojo's docstring for what that trades away;
+title=/x_title=/y_title= are quickplot's equivalent of Plot.
 labels()'s three parameters.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

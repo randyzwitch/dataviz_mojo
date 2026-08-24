@@ -1,23 +1,19 @@
-"""Demo: a dual-y-axis combo chart -- Plot.secondary_axis(), ECharts'
-own `yAxisIndex: 1` (simplified to a boolean, see that method's own
-docstring). A revenue-bars-and-growth-rate-line combination, the
-textbook case a second y-axis exists for: the two series' own units
+"""Demo: a dual-y-axis combo chart -- Plot.secondary_axis(), ECharts' `yAxisIndex: 1` (simplified to a boolean, see that method's docstring). A revenue-bars-and-growth-rate-line combination, the
+textbook case a second y-axis exists for: the two series' units
 ($ millions vs. a percentage) are too different in scale to share one
 axis without one of them going flat.
 
 Monthly revenue (Mark.AREA, left/primary axis) and month-over-month
 growth rate (Mark.LINE, right/secondary axis via .secondary_axis()) --
 built by hand via render_layers() (not a one-call quickplot -- layering
-itself isn't exposed on one; see examples/annotate_line.mojo's own
-docstring for the same reasoning applied to a different Plot feature).
-Each axis captioned via that same layer's own .labels(y_title=...) --
-the secondary layer's own caption mirrors onto the plot's right edge
-(see Plot.secondary_axis()'s own docstring for why this reads from the
-layer itself, not a title shared from plots[0] the way the chart's own
-title/x_title are).
+itself isn't exposed on one; see examples/annotate_line.mojo's docstring for the same reasoning applied to a different Plot feature).
+Each axis captioned via that same layer's .labels(y_title=...) --
+the secondary layer's caption mirrors onto the plot's right edge
+(see Plot.secondary_axis()'s docstring for why this reads from the
+layer itself, not a title shared from plots[0] the way the chart's title/x_title are).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why.
+data -- see examples/donut.mojo's docstring for why.
 
 Run with:
     pixi run example

@@ -1,16 +1,15 @@
 """Demo: a sunburst chart -- Mark.SUNBURST, a hierarchy (Plot.encode_
-hierarchy(), a flattened id/parent_id/value tree -- see sunburst.mojo's
-own docstring) drawn as concentric ring sectors, one ring per depth
-level, each node's own angular span proportional to its own share of
-its parent's own total. Built via dataviz_mojo.sunburst() -- see
-examples/scatter.mojo's own docstring for what that trades away.
+hierarchy(), a flattened id/parent_id/value tree -- see sunburst.mojo's docstring) drawn as concentric ring sectors, one ring per depth
+level, each node's angular span proportional to its share of
+its parent's total. Built via dataviz_mojo.sunburst() -- see
+examples/scatter.mojo's docstring for what that trades away.
 
-Disk usage by folder -- the sunburst chart's own classic use (a
+Disk usage by folder -- the sunburst chart's classic use (a
 directory tree, size = bytes), two top-level folders each broken down
-into their own subfolders.
+into their subfolders.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

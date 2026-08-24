@@ -1,17 +1,17 @@
 """Demo: a violin plot -- Mark.VIOLIN, a symmetric kernel-density-
 estimate silhouette per category (Plot.encode_distribution(), the same
 category-plus-raw-values shape beeswarm()/ridgeline() take -- see
-violin.mojo's own docstring for the bandwidth/sampling/width-scaling
+violin.mojo's docstring for the bandwidth/sampling/width-scaling
 rules). Reuses the same vertical categorical axis frame Mark.BOX/
 BEESWARM do. Built via dataviz_mojo.violin() -- see examples/scatter.
-mojo's own docstring for what that trades away.
+mojo's docstring for what that trades away.
 
 Exam scores by class -- the same data examples/beeswarm.mojo uses, so
 the two are directly comparable: a violin shows the smoothed shape of
 each distribution, beeswarm shows every individual point.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

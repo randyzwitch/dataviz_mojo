@@ -1,15 +1,14 @@
-"""Demo: a Sankey diagram -- Mark.SANKEY, Mark.CHORD's own edge list
+"""Demo: a Sankey diagram -- Mark.SANKEY, Mark.CHORD's edge list
 (Plot.encode_chord()) drawn as nodes in left-to-right columns (a
-node's own column is the longest path reaching it from any source --
-see sankey.mojo's own docstring) connected by proportionally sized
+node's column is the longest path reaching it from any source --
+see sankey.mojo's docstring) connected by proportionally sized
 flow ribbons. Built via dataviz_mojo.sankey() -- see
-examples/scatter.mojo's own docstring for what that trades away.
+examples/scatter.mojo's docstring for what that trades away.
 
-Energy flow from sources to end uses -- the Sankey diagram's own
-classic use case.
+Energy flow from sources to end uses -- the Sankey diagram's classic use case.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

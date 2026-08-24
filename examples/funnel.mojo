@@ -1,16 +1,16 @@
 """Demo: a funnel chart -- Mark.FUNNEL, one tapering trapezoid per
 category, drawn largest-value-first top to bottom (Plot.
 encode_categorical(), the same category+value shape bar()/pie() take
--- see funnel.mojo's own docstring for the sort/taper rules). No x/y
-axis frame at all, the same as pie()'s own Mark.ARC. Built via
-dataviz_mojo.funnel() -- see examples/scatter.mojo's own docstring
+-- see funnel.mojo's docstring for the sort/taper rules). No x/y
+axis frame at all, the same as pie()'s Mark.ARC. Built via
+dataviz_mojo.funnel() -- see examples/scatter.mojo's docstring
 for what that trades away.
 
 A marketing conversion funnel -- the classic funnel-chart use: how a
 count shrinks stage by stage (impressions to clicks to orders).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

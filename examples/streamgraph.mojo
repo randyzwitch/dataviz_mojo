@@ -1,19 +1,17 @@
-"""Demo: a streamgraph -- Mark.STREAMGRAPH, Mark.STACKED_BAR's own
-running-total stack floated centered around zero instead of sitting on
+"""Demo: a streamgraph -- Mark.STREAMGRAPH, Mark.STACKED_BAR's running-total stack floated centered around zero instead of sitting on
 a fixed baseline, drawn as flowing bands instead of discrete rects
 (Plot.encode_grouped_bar(), the exact same categories/series_names/
 values shape grouped_bar()/stacked_bar()/bump() all take -- see
-streamgraph.mojo's own docstring for the per-category centered-
+streamgraph.mojo's docstring for the per-category centered-
 baseline math). Reuses _draw_categorical_axis_frame unchanged. Built
-via dataviz_mojo.streamgraph() -- see examples/scatter.mojo's own
-docstring for what that trades away.
+via dataviz_mojo.streamgraph() -- see examples/scatter.mojo's docstring for what that trades away.
 
 Music genre listening volume over a few years -- the classic
-streamgraph use: several categories' own share ebbing and flowing
+streamgraph use: several categories' share ebbing and flowing
 over time, read as a "river" rather than a stack of bars.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

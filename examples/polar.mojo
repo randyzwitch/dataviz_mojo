@@ -2,17 +2,17 @@
 pairs (Plot.encode_polar(), radians used exactly as given -- never
 wrapped mod 2*pi) connected by one stroked polyline plus point
 markers, drawn over a polar grid (concentric rings, angular spokes --
-see polar.mojo's own _draw_polar_grid docstring). Built via
-dataviz_mojo.polar() -- see examples/scatter.mojo's own docstring for
+see polar.mojo's _draw_polar_grid docstring). Built via
+dataviz_mojo.polar() -- see examples/scatter.mojo's docstring for
 what that trades away.
 
-A four-leaf rose curve -- ECharts.jl's own polar() example, the polar
+A four-leaf rose curve -- ECharts.jl's polar() example, the polar
 equation r = sin(2*theta) (each lobe traced as theta sweeps a half
 turn; the sign flip on the negative half of each sine period is what
 gives the curve its four separate leaves instead of two).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:
@@ -38,9 +38,8 @@ def main() raises:
         var r = sin(2.0 * theta)
         # A negative r has no polar meaning on its own -- fold it into
         # the opposite direction (theta + pi) instead, the standard
-        # way a signed polar radius is plotted, so the curve's own
-        # negative lobes still draw rather than getting clipped by
-        # encode_polar()'s own non-negative-radius validation.
+        # way a signed polar radius is plotted, so the curve's negative lobes still draw rather than getting clipped by
+        # encode_polar()'s non-negative-radius validation.
         if r < 0.0:
             angle.append(theta + pi)
             radius.append(-r)

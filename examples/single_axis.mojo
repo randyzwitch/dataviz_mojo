@@ -1,11 +1,11 @@
 """Demo: a single-axis chart -- Mark.SINGLE_AXIS, every value plotted
 along one horizontal axis with no y-axis at all (Plot.encode_single_
 axis(), a plain x plus the usual optional color/color_categories/size
-channels -- see that method's own docstring). Every point lands on a
+channels -- see that method's docstring). Every point lands on a
 single fixed pixel row via a degenerate zero-span y_scale, reusing
-Mark.POINT's own _draw_point_layer completely unchanged (single_axis.
+Mark.POINT's _draw_point_layer completely unchanged (single_axis.
 mojo). Built via dataviz_mojo.single_axis() -- see examples/scatter.
-mojo's own docstring for what that trades away.
+mojo's docstring for what that trades away.
 
 Response-time samples for one endpoint -- the classic single-axis use:
 seeing the distribution/clustering of one-dimensional data (a cluster
@@ -14,7 +14,7 @@ points along one line shows more directly than a histogram's binning
 would.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

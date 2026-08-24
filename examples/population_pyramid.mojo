@@ -1,18 +1,18 @@
 """Demo: a population pyramid -- Mark.POPULATION_PYRAMID, two mirrored
 horizontal bars per category (age band) growing outward from a shared,
 always-centered zero baseline (Plot.encode_population_pyramid(), a
-category plus two magnitudes -- see that method's own docstring). Mark.
-GANTT's own horizontal categorical axis frame, reused unchanged; only
+category plus two magnitudes -- see that method's docstring). Mark.
+GANTT's horizontal categorical axis frame, reused unchanged; only
 the bars themselves differ. Built via dataviz_mojo.population_pyramid()
--- see examples/scatter.mojo's own docstring for what that trades away.
+-- see examples/scatter.mojo's docstring for what that trades away.
 
 Age-band population counts by sex (male on the left, female on the
 right -- the classic use of this chart, though the mark itself is
 generic to any two magnitudes worth comparing side by side per
-category; see population_pyramid.mojo's own docstring).
+category; see population_pyramid.mojo's docstring).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

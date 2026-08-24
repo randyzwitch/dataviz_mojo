@@ -1,17 +1,17 @@
 """Demo: a diverging bar chart -- Mark.BAR with Theme.color_by_sign
-set, coloring each bar by whether its own value is negative
+set, coloring each bar by whether its value is negative
 (mark_color_negative) or not (mark_color) -- bars extending below the
 zero baseline for negative values already works with no changes
-needed (see examples/bar.mojo's own negative-value bar); color_by_sign
+needed (see examples/bar.mojo's negative-value bar); color_by_sign
 is the one further thing a genuinely *diverging* bar chart adds, so
 the sign reads at a glance, not just from which direction the bar
 points. Raster output built via dataviz_mojo.bar() -- see
-examples/scatter.mojo's own docstring for what that trades away; the
+examples/scatter.mojo's docstring for what that trades away; the
 color_by_sign=True kwarg is the only thing distinguishing this file
-from examples/bar.mojo's own call.
+from examples/bar.mojo's call.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-Plot -- see examples/donut.mojo's own docstring for why, and for why
+Plot -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

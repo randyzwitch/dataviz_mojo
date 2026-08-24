@@ -1,18 +1,16 @@
 """Demo: a rose/coxcomb chart -- Mark.NIGHTINGALE, one wedge per
 category (Plot.encode_categorical(), the same category + value shape
 pie()/bar() use), every wedge the same angular width, magnitude
-encoded by radius instead of angle (see nightingale.mojo's own
-_render_nightingale docstring). Built via dataviz_mojo.nightingale()
--- see examples/scatter.mojo's own docstring for what that trades away.
+encoded by radius instead of angle (see nightingale.mojo's _render_nightingale docstring). Built via dataviz_mojo.nightingale()
+-- see examples/scatter.mojo's docstring for what that trades away.
 
-Causes of mortality in the Crimean War -- the chart type's own
-best-known historical example (Florence Nightingale's original 1858
+Causes of mortality in the Crimean War -- the chart type's best-known historical example (Florence Nightingale's original 1858
 "Diagram of the Causes of Mortality"), using rose_type="area" (the
-mode her original diagram effectively used) so each cause's own wedge
+mode her original diagram effectively used) so each cause's wedge
 *area*, not just its radius, is proportional to its death toll.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

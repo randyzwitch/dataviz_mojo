@@ -1,14 +1,12 @@
 """Demo: a histogram -- Plot.encode_histogram() bins continuous data
-into equal-width intervals and maps the result onto Mark.BAR's own
-categorical x-axis (bin range labels) / continuous y-axis (counts)
-shape -- the same render path examples/bar.mojo's own bar chart uses,
-just fed computed categories instead of given ones (see plot.mojo's
-own encode_histogram() docstring). Raster output built via
-dataviz_mojo.histogram() -- see examples/scatter.mojo's own docstring
+into equal-width intervals and maps the result onto Mark.BAR's categorical x-axis (bin range labels) / continuous y-axis (counts)
+shape -- the same render path examples/bar.mojo's bar chart uses,
+just fed computed categories instead of given ones (see plot.mojo's encode_histogram() docstring). Raster output built via
+dataviz_mojo.histogram() -- see examples/scatter.mojo's docstring
 for what that trades away.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why every new
+data -- see examples/donut.mojo's docstring for why every new
 chart-type example does this from here on.
 
 Run with:

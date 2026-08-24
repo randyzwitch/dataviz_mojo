@@ -1,11 +1,11 @@
 """Demo: a chord diagram -- Mark.CHORD, ring sectors for every distinct
-node across an edge list's own from/to columns, connected by ribbons
-sized by each flow's own value (Plot.encode_chord(), one row per flow
--- see that method's own docstring). Reuses Mark.ARC's own start-at-
+node across an edge list's from/to columns, connected by ribbons
+sized by each flow's value (Plot.encode_chord(), one row per flow
+-- see that method's docstring). Reuses Mark.ARC's start-at-
 12-o'clock, sweep-clockwise ring-sector convention for nodes; ribbons
 are drawn as curved filled paths through the newly-added DrawTarget.
-fill_path_aa (chord.mojo's own _draw_chord_ribbon). Built via
-dataviz_mojo.chord() -- see examples/scatter.mojo's own docstring for
+fill_path_aa (chord.mojo's _draw_chord_ribbon). Built via
+dataviz_mojo.chord() -- see examples/scatter.mojo's docstring for
 what that trades away.
 
 Trade flows between four regions -- the classic chord-diagram use (who
@@ -13,7 +13,7 @@ sends how much to whom), though the mark itself is generic to any
 weighted edge list.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

@@ -2,17 +2,17 @@
 square correlation matrix (Plot.encode_corrplot()), sized by
 abs(correlation) and colored by its sign/strength through the same
 continuous gradient Mark.HEATMAP uses. Built via dataviz_mojo.
-corrplot() -- see examples/scatter.mojo's own docstring for what that
+corrplot() -- see examples/scatter.mojo's docstring for what that
 trades away.
 
 Pairwise correlations between a handful of car attributes -- ECharts.
-jl's own corrplot() classic use case (a real correlation matrix,
+jl's corrplot() classic use case (a real correlation matrix,
 values invented here for a self-contained example rather than pulling
 in a real dataset), upper-triangle layout with the diagonal dropped
 (every self-correlation is trivially 1.0, rarely worth a bubble).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's own docstring for why, and for why
+data -- see examples/donut.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:
