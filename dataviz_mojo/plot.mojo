@@ -1777,7 +1777,7 @@ struct Plot(Movable):
         other optional features (`Theme.line_smoothing`, `donut_inner_
         radius_fraction`, etc.) already follow.
 
-        `subtitle` draws as its line directly beneath `title`,
+        `subtitle` draws as its own line directly beneath `title`,
         smaller and in `Theme.subtitle_color`'s muted tone rather
         than `title`'s bold `text_color` -- the classic editorial two-
         tier headline (a bold, short title plus a longer, quieter
