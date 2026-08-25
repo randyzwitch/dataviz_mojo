@@ -28,8 +28,9 @@ subset that someone would eventually ask to extend one color at a
 time.
 
 Deliberately not part of `canvas_mojo.Color` itself (see color_scale.
-mojo's docstring for that type's existing "keep the core type
-minimal" history) -- this file has no dependency on anything else in
+mojo's `default_categorical_palette()` docstring for the same "keep
+the core type minimal" reasoning) -- this file has no dependency on
+anything else in
 dataviz_mojo (`Plot`, `Theme`, marks, ...), just `Color` values, so it
 could move to canvas_mojo directly (e.g. as its `named_colors`
 module, re-exported from here) if another canvas_mojo consumer beyond
