@@ -43,7 +43,7 @@ def _render_arc_diagram[
     distance between them -- so nodes far apart get tall arcs, nodes
     close together get shallow ones, the defining arc-diagram look.
     Deliberately *not* scaled down to fit any particular height: a
-    real, deliberate v1 choice (the same kind `Mark.CHORD`'s straight-rim ribbons already are) -- the true geometry is shown as
+    real, deliberate choice (the same kind `Mark.CHORD`'s straight-rim ribbons already are) -- the true geometry is shown as
     it is, not silently compressed, so a caller with far-apart nodes
     sees exactly why (and can choose a wider `width`/taller `height`
     accordingly) rather than a chart quietly lying about relative

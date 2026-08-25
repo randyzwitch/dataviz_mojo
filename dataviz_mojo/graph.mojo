@@ -38,7 +38,7 @@ def _render_graph[
     A deliberately simple, deterministic circular layout -- not a real
     force-directed simulation (which iteratively repositions nodes to
     minimize edge crossings/overlap, the layout most general-purpose
-    graph-drawing tools actually use), a real v1 scope choice: a fixed
+    graph-drawing tools actually use), a real scope choice: a fixed
     node order around a circle is easy to hand-verify pixel-for-pixel,
     which this package's whole test methodology depends on, while a
     physics simulation's settled positions generally aren't (see

@@ -1813,7 +1813,7 @@ struct Plot(Movable):
         """Add a horizontal reference line at `value` on the y-axis --
         ECharts' `markLine` (a fixed, explicit value only; not its
         other "average"/"max"/"min" auto-computed modes, a real,
-        deliberate v1 scope cut). Callable more than once -- each call
+        deliberate scope cut). Callable more than once -- each call
         *adds* a line, doesn't replace the previous one, so `.annotate_
         line(target).annotate_line(average, label="avg")` draws both.
         `label`, when non-empty, draws to the right of the line, in
@@ -1840,7 +1840,7 @@ struct Plot(Movable):
         hierarchy/edge-list layouts, `Mark.ARC`'s no-axes-at-all
         shape, `Mark.BUMP`'s rank-not-value y-axis, ...) has no
         y *value* domain a reference line could mean anything against
-        -- a real, deliberate v1 scope limit, not an oversight; growing
+        -- a real, deliberate scope limit, not an oversight; growing
         this list only needs a call site update, not new machinery
         (see `_CategoricalFrame.result`'s docstring for how the
         first nine got it "for free").
@@ -1861,7 +1861,7 @@ struct Plot(Movable):
         """Add a shaded horizontal band from `y0` to `y1` on the y-axis
         -- ECharts' `markArea` (a fixed, explicit `(y0, y1)` pair
         only; not its other "between two series"/auto-computed-range
-        modes, the same deliberate v1 scope cut `annotate_line()`'s docstring already explains for `markLine`). Callable more than
+        modes, the same deliberate scope cut `annotate_line()`'s docstring already explains for `markLine`). Callable more than
         once -- each call *adds* a band. `label`, when non-empty, draws
         inside the band near its top edge, in `Theme.annotation_
         color` (the same ink `annotate_line()`'s label uses -- see
@@ -1916,7 +1916,7 @@ struct Plot(Movable):
     def annotate_vline(var self, value: Float64, label: String = "") -> Self:
         """Add a vertical reference line at `value` on the x-axis --
         `annotate_line()`'s mirror image, for the other axis. Same
-        fixed-value-only v1 scope, same additive/repeatable behavior,
+        fixed-value-only scope, same additive/repeatable behavior,
         same solid `Theme.annotation_color` styling, same silent skip
         on an out-of-(padded)-domain value (see `annotate_line()`'s docstring for the full reasoning behind each of those, which
         this repeats exactly, just transposed to the other axis).
@@ -1943,7 +1943,7 @@ struct Plot(Movable):
     def annotate_point(var self, x: Float64, y: Float64, label: String = "") -> Self:
         """Add a single labeled point at `(x, y)` -- ECharts' `markPoint` (a fixed, explicit coordinate only; not its other
         "max"/"min"/"average" auto-computed modes, the same deliberate
-        v1 scope cut `annotate_line()`'s docstring already explains
+        scope cut `annotate_line()`'s docstring already explains
         for `markLine`). Draws a small filled marker at the data
         coordinate, in `Theme.annotation_color`, with `label` (when
         non-empty) just above it. Additive/repeatable -- each call adds
@@ -4685,7 +4685,7 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     on top of the last in the order given -- a line overlaid on a
     scatter, three comparison lines sharing one y-axis, and so on.
 
-    Restricted to `Mark.POINT`/`LINE`/`AREA` for this first version --
+    Restricted to `Mark.POINT`/`LINE`/`AREA` --
     `Mark.BAR`'s categorical x-axis and `Mark.ARC`'s lack of one don't
     share a domain shape with continuous marks or each other; layering
     those in is real, separate, deferred work (see the wiki's Backlog).
