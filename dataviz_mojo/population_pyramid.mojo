@@ -22,7 +22,7 @@ from dataviz_mojo.theme import Theme
 struct _PyramidData(Movable):
     """
     Mark.POPULATION_PYRAMID only -- one magnitude per side per category,
-    plus each side's legend name. See encode_ population_pyramid()'s docstring.
+    plus each side's legend name. See encode_population_pyramid()'s docstring.
 
     Grouped onto `Plot._pyramid` -- see `Plot`'s docstring.
     """

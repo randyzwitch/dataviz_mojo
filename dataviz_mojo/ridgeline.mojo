@@ -33,10 +33,9 @@ def _render_ridgeline[
     category's curve rising *upward* from its row's bottom
     edge (the baseline) instead of `Mark.VIOLIN`'s left-right-symmetric
     silhouette. Called with `padding=0.0`, *not* that function's 0.2 default -- see its docstring for why a ridgeline plot
-    needs rows to sit edge-to-edge (a real bug this package shipped
-    with initially: a nonzero gap left a sliver of background between
-    rows, only inconsistently covered by `theme.ridgeline_overlap`'s rise,
-    which showed up as a spurious notch).
+    needs rows to sit edge-to-edge (any nonzero gap leaves a sliver of
+    background between rows, only inconsistently covered by
+    `theme.ridgeline_overlap`'s rise, which reads as a spurious notch).
 
     Each row's curve may rise up to `theme.ridgeline_overlap` times the
     row's height above its baseline -- deliberately more than

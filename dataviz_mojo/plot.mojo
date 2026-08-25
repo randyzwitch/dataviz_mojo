@@ -337,7 +337,7 @@ struct _GroupedBarData(Movable):
 struct _DistributionData(Movable):
     """
     Mark.BEESWARM/VIOLIN/RIDGELINE only -- one *list* of raw values per
-    category, kept unsummarized (unlike Mark.BOX's encode_ boxplot,
+    category, kept unsummarized (unlike Mark.BOX's encode_boxplot,
     which reduces each category's list to a five-number summary
     immediately). See encode_distribution()'s docstring.
 
@@ -1824,8 +1824,8 @@ struct Plot(Movable):
         not something this feature works around). A `value` outside
         the mark's (padded) y-domain draws nothing at all -- not
         clamped to an edge, not extrapolated off-plot into the chrome
-        above -- see `_draw_annotation_lines`'s docstring for the
-        real, rendering-caught bug that discipline exists to avoid.
+        above -- see `_draw_annotation_lines`'s docstring for what an
+        unclamped extrapolation would draw instead.
 
         Only meaningful on a mark whose y-axis is a genuine continuous
         `LinearScale` -- checked at render() time (`_RenderResult`'s `has_y_scale`, see its docstring), raising a clear error
@@ -3075,8 +3075,7 @@ def _draw_annotation_lines[
         # pixel outside the visible plot rect entirely -- silently
         # skipped, not drawn wherever the unclamped linear math lands
         # (which can be well up into the title/subtitle band above the
-        # plot, a real, confirmed-by-rendering visual break, not a
-        # theoretical one). Not a raise: an out-of-range annotation
+        # plot). Not a raise: an out-of-range annotation
         # value is a legitimate state (the caller's "target" simply
         # isn't reached by the visible range yet), not a caller mistake
         # the way an invalid Theme parameter would be.
