@@ -33,7 +33,7 @@ def _beeswarm_offsets(y_pixels: List[Int], spacing: Int) -> List[Int]:
 
     A row never checks whether its alternating spread actually fits
     inside a category's band width -- not clipped here, a caller
-    with an unusually dense category may see a swarm wider than its column. A real, documented v1 scope limit, not an oversight.
+    with an unusually dense category may see a swarm wider than its column. A real, documented scope limit, not an oversight.
     """
     var n = len(y_pixels)
     var order = List[Int]()

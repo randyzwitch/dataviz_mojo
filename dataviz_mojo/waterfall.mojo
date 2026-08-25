@@ -108,19 +108,17 @@ def _render_waterfall[
     A delta row draws narrower than the full band (`_WATERFALL_DELTA_
     WIDTH_FRACTION`, centered) *only when this plot actually uses total
     rows at all* (`plot._waterfall.is_total` non-empty) -- if `is_total`
-    was never passed to `encode_waterfall()` (every existing call from
-    before total rows existed), every bar stays full band width,
-    unchanged, purely additive; only once a caller actually opts into
-    at least one total row does the narrow-vs-full distinction have
-    anything to distinguish, and only then does it apply. The two
-    intentionally read as visually distinct at a glance in that case,
-    not just by
-    color (see `Theme.waterfall_total_color`'s docstring).
+    is empty, every bar stays full band width; only once a caller
+    actually opts into at least one total row does the narrow-vs-full
+    distinction have anything to distinguish, and only then does it
+    apply. The two intentionally read as visually distinct at a glance
+    in that case, not just by color (see `Theme.waterfall_total_color`'s
+    docstring).
 
     Every bar's actual left/right pixel edges are computed once,
     per category, into `bar_x`/`bar_width` lists -- then reused for the
     connector-line pass below, rather than each connector re-deriving
-    an edge from the *band's* own boundary directly: a narrower delta
+    an edge from the *band's* boundary directly: a narrower delta
     bar's edges don't coincide with its band's, so the connector has
     to ask each bar what it actually drew, not assume. The connector
     itself (`theme.axis_color`, not `gridline_color` -- visually
@@ -135,9 +133,9 @@ def _render_waterfall[
     height (where the running total stood *entering* this row), but
     only touches that total bar's top edge exactly when its delta is `0` (the common ending-balance case, and every case
     `examples/waterfall.mojo` demonstrates) -- a total row with a real
-    nonzero delta of its would show the connector landing partway
+    nonzero delta of its own would show the connector landing partway
     up the bar instead of at an edge, a deliberately accepted rough
-    edge for a use case this package hasn't needed yet, not a bug in
+    edge this package's use cases haven't needed yet, not a bug in
     the common case.
     """
     if len(plot.x_categories) != len(plot.y_data):
@@ -173,11 +171,9 @@ def _render_waterfall[
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
     # Delta bars only narrow when is_total is actually in use somewhere
-    # on this plot -- if it's empty (no caller ever opted into total
-    # rows), every bar stays full band width, byte-for-byte the same as
-    # every render from before total rows existed. Only once at least
-    # one row is genuinely a total does the narrow-vs-full distinction
-    # have anything to distinguish.
+    # on this plot -- if it's empty, every bar stays full band width.
+    # Only once at least one row is genuinely a total does the
+    # narrow-vs-full distinction have anything to distinguish.
     var using_totals = len(plot._waterfall.is_total) > 0
 
     # Only recorded when is_total is actually in use -- that's the only
@@ -220,15 +216,14 @@ def _render_waterfall[
 
         if i > 0:
             var prev_end_py = _axis_pixel(frame.y_scale, plot._waterfall.y1[i - 1])
-            # using_totals=False reproduces the exact original formula
-            # here (band_start+bandwidth, summed then rounded once, not
-            # `bar_x[i-1] + bar_width[i-1]`'s two independently-
-            # rounded pieces) -- purely additive, byte-for-byte
-            # unchanged from every render before total rows existed.
-            # using_totals=True instead asks the previous bar what it
-            # actually drew, needed once a delta bar can be narrower
-            # than its band -- no backward-compatible formula to
-            # preserve there, since that combination is new.
+            # using_totals=False computes the edge directly from the
+            # band geometry (band_start+bandwidth, summed then rounded
+            # once, not `bar_x[i-1] + bar_width[i-1]`'s two
+            # independently-rounded pieces): every bar is full band
+            # width in this case, so the band's edge and the bar's
+            # coincide. using_totals=True instead asks the previous bar
+            # what it actually drew, needed because a delta bar can be
+            # narrower than its band.
             var prev_x1 = (
                 bar_x_list[i - 1] + bar_width_list[i - 1]
                 if using_totals

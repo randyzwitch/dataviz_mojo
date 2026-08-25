@@ -77,7 +77,7 @@ def test_render_layers_svg_secondary_axis_draws_no_gridlines_of_its_own() raises
     # Same setup as above -- exactly 6 gridlines expected (3 vertical
     # from the shared x-axis, 3 horizontal from the *primary* y-domain's
     # own 3 ticks: 10/15/20), even though the secondary y-domain has 5
-    # ticks of its (10/20/30/40/50) -- confirms none of those 5
+    # ticks of its own (10/20/30/40/50) -- confirms none of those 5
     # spawn a 4th, 5th, 6th, 7th, 8th gridline of their own.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]

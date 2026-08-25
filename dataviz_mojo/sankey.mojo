@@ -49,7 +49,7 @@ def _render_sankey[
     a slice of its `to` node's left edge -- straight edges, not a
     smooth curve (the same "straight, not curved" simplification
     `Mark.CHORD`'s straight-rim ribbons already are, for the
-    identical reason: a smooth Bezier ribbon whose own top and bottom
+    identical reason: a smooth Bezier ribbon whose top and bottom
     edges both curve independently is real, added geometric complexity
     a straight trapezoid sidesteps while keeping the same essential
     "value -> proportional width" reading). A "skip" edge (source
@@ -65,7 +65,7 @@ def _render_sankey[
     still colors by that flow's original source node (not
     whichever pass-through node a given segment happens to start from)
     so the whole chain reads as one flow. Each skip edge gets its dedicated pass-through nodes, never shared with another skip edge
-    passing through the same column -- a real, deliberate v1
+    passing through the same column -- a real, deliberate
     simplification (a real Sankey layout would bundle same-direction
     pass-throughs into shared lanes to save vertical space; this
     doesn't, trading some extra column height for a much simpler
@@ -90,11 +90,12 @@ def _render_sankey[
     ref nodes = edges.nodes
     var n = len(nodes)
 
-    # Kept as its filtered pass rather than using `edges.from_idx`/
+    # A separate filtered pass rather than reusing `edges.from_idx`/
     # `to_idx` directly: this mark drops self-loops (`fi == ti`), so
     # its two index columns are a *subset* of the edge rows, not
-    # parallel to them. Only the per-row domain lookup moved -- what
-    # was two full scans of `nodes` per row is now two array reads.
+    # parallel to them. The per-row domain lookup itself is just two
+    # array reads (`edges.from_idx[row]`/`edges.to_idx[row]`), not a
+    # scan through `nodes`.
     var from_idx = List[Int](capacity=len(plot._edges.from_categories))
     var to_idx = List[Int](capacity=len(plot._edges.from_categories))
     var edge_value = List[Float64](capacity=len(plot._edges.from_categories))

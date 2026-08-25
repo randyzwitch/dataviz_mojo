@@ -87,7 +87,7 @@ def _render_radar[
     """Render a `Mark.RADAR` plot: `encode_radar()`'s named
     `indicators` (one spoke each, evenly spaced, starting at 12
     o'clock and sweeping clockwise -- the same convention every other
-    polar mark in this package shares) with a per-indicator own
+    polar mark in this package shares), each with its own
     `max_values`, and one or more `series` (name + one value per
     indicator) drawn as a closed polygon each: a straight `line_to`
     from one indicator's point to the next, back to the first, no

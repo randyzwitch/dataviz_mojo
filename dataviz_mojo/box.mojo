@@ -17,14 +17,10 @@ from dataviz_mojo.theme import Theme
 
 struct _BoxData(Movable):
     """
-    Mark.WATERFALL only -- which rows are running-total checkpoints
-    (drawn full-band-width in Theme.waterfall_total_color) rather than
-    rising/falling deltas. Empty means "no total rows" -- see
-    encode_waterfall()'s docstring. Mark.BOX only -- the five-number
-    summary encode_boxplot() computes per category up front, plus every
-    outlier tagged with which category (by index into x_categories) it
-    belongs to. See that method's docstring for the
-    quartile/whisker/outlier math.
+    Mark.BOX only -- the five-number summary encode_boxplot() computes per
+    category up front, plus every outlier tagged with which category (by
+    index into x_categories) it belongs to. See that method's docstring for
+    the quartile/whisker/outlier math.
 
     Grouped onto `Plot._box` -- see `Plot`'s docstring.
     """

@@ -87,7 +87,7 @@ def _render_parallel[
     that axis's vertical center rather than dividing by zero.
 
     No axis tick labels beyond each dimension's name at the
-    bottom -- the same deliberate v1 simplification `Mark.POLAR`'s `_draw_polar_grid` docstring already gives for numeric axis
+    bottom -- the same deliberate simplification `Mark.POLAR`'s `_draw_polar_grid` docstring already gives for numeric axis
     readout. Legend keyed by `row_names` (always drawn, even for one
     row -- the same "`Theme.show_legend` is the only real toggle"
     convention every other legend-bearing mark here follows).

@@ -26,8 +26,8 @@ struct _PolarData(Movable):
     Mark.POLAR only -- one (angle, radius) pair per row (encode_
     polar()), or a shared `angle` domain plus one or more named series
     (encode_polar_series(), `_polar.series_names` non-empty is what
-    `_render_polar` actually branches on -- the legacy `_polar.radius`
-    field stays empty in that case). See both methods' docstrings.
+    `_render_polar` actually branches on -- `_polar.radius` stays
+    empty in that case). See both methods' docstrings.
 
     Grouped onto `Plot._polar` -- see `Plot`'s docstring.
     """
@@ -84,7 +84,7 @@ def _draw_polar_grid[
     center out to `max_radius` -- the polar equivalent of a cartesian
     plot's gridlines, drawn in `theme.gridline_color` the same way
     `_draw_categorical_axis_frame`'s gridlines are. No tick labels
-    (neither the radius rings' values nor the angle spokes' degrees) -- a real, deliberate v1 simplification (the same kind
+    (neither the radius rings' values nor the angle spokes' degrees) -- a real, deliberate simplification (the same kind
     `Mark.CHORD`'s straight-rim ribbons or `Mark.VIOLIN`'s std-only bandwidth already are): the grid alone already
     communicates the coordinate system's shape, and a numeric
     label placed *around* a circle (curved baseline, radial

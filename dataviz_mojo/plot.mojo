@@ -71,7 +71,7 @@ generic`'s dispatch, and machinery genuinely shared by several marks
 layers). Each mark with its dedicated rendering -- everything but
 `Mark.POINT`/`LINE`/`AREA`, which stay inline in `_render_generic`
 itself as the plain-continuous-axis default case with no special axis
-frame of their to justify a file -- has exactly one file holding
+frame of their own to justify a file -- has exactly one file holding
 its `_render_*` plus whatever calculation is specific to it: bar.
 mojo, lollipop.mojo, waterfall.mojo, box.mojo, candlestick.mojo,
 bullet.mojo, gantt.mojo, grouped_bar.mojo, stacked_bar.mojo, arc.mojo,
@@ -247,7 +247,7 @@ struct _Scaled(Movable):
     (`draw_line_aa(..., theme.axis_color)`/`(..., theme.gridline_
     color)`) is drawn `width=sc.scale` pixels wide, not the
     library-wide implicit default of a flat 1.0 -- these are the one
-    kind of stroke this package draws whose own width has no `Theme`
+    kind of stroke this package draws whose width has no `Theme`
     field of its own to already be scaled by `_Scaled.__init__` above
     (unlike `line_width`, `point_radius`, ...), so without this they'd
     stay exactly 1 raw pixel wide at any `scale`, visibly thinner than
@@ -1123,7 +1123,7 @@ struct Plot(Movable):
         Raises immediately, the same "can't produce a coherent result
         at all, not merely a length mismatch" reasoning `encode_
         histogram()`'s binning raises for: a mismatched `categories`/
-        `values` length, or any category whose own value list is empty
+        `values` length, or any category whose value list is empty
         (quartiles are undefined for zero data points -- there's no
         sensible fallback the way an empty histogram bin's count-of-
         zero is).
@@ -1571,7 +1571,7 @@ struct Plot(Movable):
         at all" reasoning `encode_distribution()`'s checks already
         give, generalized to four lists instead of two) on any length
         mismatch: `indicators`/`max_values`, `series_names`/`series_
-        values`, or any individual series whose own value count
+        values`, or any individual series whose value count
         doesn't match `indicators`'s count.
         """
         if len(indicators) != len(max_values):
@@ -1661,7 +1661,7 @@ struct Plot(Movable):
 
         Raises immediately (the same up-front "can't produce a
         coherent result at all" reasoning `encode_radar()`'s checks already give) on a `row_names`/`data` length mismatch,
-        or any individual row whose own value count doesn't match
+        or any individual row whose value count doesn't match
         `dims`'s count.
         """
         if len(row_names) != len(data):
@@ -1702,7 +1702,7 @@ struct Plot(Movable):
         Raises immediately (the same "can't produce a coherent result
         at all" reasoning `encode_boxplot()`'s checks already give)
         on a `categories`/`values` length mismatch, or any category
-        whose own value list is empty.
+        whose value list is empty.
         """
         if len(categories) != len(values):
             raise Error(
@@ -1777,7 +1777,7 @@ struct Plot(Movable):
         other optional features (`Theme.line_smoothing`, `donut_inner_
         radius_fraction`, etc.) already follow.
 
-        `subtitle` draws as its line directly beneath `title`,
+        `subtitle` draws as its own line directly beneath `title`,
         smaller and in `Theme.subtitle_color`'s muted tone rather
         than `title`'s bold `text_color` -- the classic editorial two-
         tier headline (a bold, short title plus a longer, quieter
@@ -1813,7 +1813,7 @@ struct Plot(Movable):
         """Add a horizontal reference line at `value` on the y-axis --
         ECharts' `markLine` (a fixed, explicit value only; not its
         other "average"/"max"/"min" auto-computed modes, a real,
-        deliberate v1 scope cut). Callable more than once -- each call
+        deliberate scope cut). Callable more than once -- each call
         *adds* a line, doesn't replace the previous one, so `.annotate_
         line(target).annotate_line(average, label="avg")` draws both.
         `label`, when non-empty, draws to the right of the line, in
@@ -1840,7 +1840,7 @@ struct Plot(Movable):
         hierarchy/edge-list layouts, `Mark.ARC`'s no-axes-at-all
         shape, `Mark.BUMP`'s rank-not-value y-axis, ...) has no
         y *value* domain a reference line could mean anything against
-        -- a real, deliberate v1 scope limit, not an oversight; growing
+        -- a real, deliberate scope limit, not an oversight; growing
         this list only needs a call site update, not new machinery
         (see `_CategoricalFrame.result`'s docstring for how the
         first nine got it "for free").
@@ -1861,7 +1861,7 @@ struct Plot(Movable):
         """Add a shaded horizontal band from `y0` to `y1` on the y-axis
         -- ECharts' `markArea` (a fixed, explicit `(y0, y1)` pair
         only; not its other "between two series"/auto-computed-range
-        modes, the same deliberate v1 scope cut `annotate_line()`'s docstring already explains for `markLine`). Callable more than
+        modes, the same deliberate scope cut `annotate_line()`'s docstring already explains for `markLine`). Callable more than
         once -- each call *adds* a band. `label`, when non-empty, draws
         inside the band near its top edge, in `Theme.annotation_
         color` (the same ink `annotate_line()`'s label uses -- see
@@ -1892,7 +1892,7 @@ struct Plot(Movable):
         this reads well (a thin stroke/dot only loses the small stretch
         that falls inside the band, the rest is untouched), but on
         `Mark.BAR`/`WATERFALL`/`STACKED_BAR`/any other solid-fill mark, a
-        bar whose own height *enters* the band has that whole entering
+        bar whose height *enters* the band has that whole entering
         portion overwritten by the band's color -- it can read as if
         the bar's height changed, not just that a band was drawn behind
         it. Not broken, just something to know before combining the two;
@@ -1916,7 +1916,7 @@ struct Plot(Movable):
     def annotate_vline(var self, value: Float64, label: String = "") -> Self:
         """Add a vertical reference line at `value` on the x-axis --
         `annotate_line()`'s mirror image, for the other axis. Same
-        fixed-value-only v1 scope, same additive/repeatable behavior,
+        fixed-value-only scope, same additive/repeatable behavior,
         same solid `Theme.annotation_color` styling, same silent skip
         on an out-of-(padded)-domain value (see `annotate_line()`'s docstring for the full reasoning behind each of those, which
         this repeats exactly, just transposed to the other axis).
@@ -1943,7 +1943,7 @@ struct Plot(Movable):
     def annotate_point(var self, x: Float64, y: Float64, label: String = "") -> Self:
         """Add a single labeled point at `(x, y)` -- ECharts' `markPoint` (a fixed, explicit coordinate only; not its other
         "max"/"min"/"average" auto-computed modes, the same deliberate
-        v1 scope cut `annotate_line()`'s docstring already explains
+        scope cut `annotate_line()`'s docstring already explains
         for `markLine`). Draws a small filled marker at the data
         coordinate, in `Theme.annotation_color`, with `label` (when
         non-empty) just above it. Additive/repeatable -- each call adds
@@ -4685,7 +4685,7 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     on top of the last in the order given -- a line overlaid on a
     scatter, three comparison lines sharing one y-axis, and so on.
 
-    Restricted to `Mark.POINT`/`LINE`/`AREA` for this first version --
+    Restricted to `Mark.POINT`/`LINE`/`AREA` --
     `Mark.BAR`'s categorical x-axis and `Mark.ARC`'s lack of one don't
     share a domain shape with continuous marks or each other; layering
     those in is real, separate, deferred work (see the wiki's Backlog).
@@ -4700,7 +4700,7 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     for the full mechanics (no gridlines of its own, at least one layer
     must stay on the primary axis).
 
-    A layer whose own mark is `Mark.POINT` can use `color`/`color_
+    A layer whose mark is `Mark.POINT` can use `color`/`color_
     categories`/`size` encoding exactly like a standalone `Mark.POINT`
     plot (see `Plot.encode`'s docstring) -- each such layer's domain (color scale, size scale, category palette) is independent
     of every other layer's, the same "each layer's `Theme` only

@@ -9,9 +9,7 @@ domain.
 
 Deliberately the exact shape `hierarchy.mojo` already has for the
 hierarchy family (`Mark.SUNBURST`/`TREE`/`TREEMAP`) -- a family's shared data type plus the shared index it gets resolved into, in one
-module the family's marks import. That module was factored out when a
-third caller needed it; this one had four callers and stayed scattered
-across plot.mojo instead, which is the only reason it looked different.
+module the family's marks import.
 
 `_EdgeData` lives here rather than on `Plot` beside each single-mark
 struct for the same reason: four marks read it, so no one mark's file
@@ -76,25 +74,21 @@ def _edge_node_index(
     (`Mark.CHORD`/`ARC_DIAGRAM`/`GRAPH`/`SANKEY`, all four sharing
     `encode_chord()`'s two-column shape) actually needs.
 
-    Replaces the nested-loop pattern all four carried: `_unique_
-    categories` over the concatenated columns (which compared every
-    row against every domain entry found so far), then `_index_of`
-    twice *per edge* -- another full domain scan each. For `e` edges
-    over `v` distinct nodes that was O(e*v) twice over. Hashing each
-    endpoint once makes it O(e) on average and every later lookup a
-    plain `from_idx[i]`.
+    Hashes each endpoint once (via `_categorical_indices`), making
+    node resolution O(e) on average for `e` edges, with every later
+    lookup a plain `from_idx[i]` array read.
 
-    This is exactly the fix `_categorical_indices` already applied to
+    This is exactly the fix `_categorical_indices` already applies to
     `Mark.POINT`'s categorical color channel and to
-    `Mark.HEATMAP`/`PUNCHCARD`'s axis domains -- see that function's docstring. The edge-shaped marks were simply never converted
-    with them, so this reuses it rather than re-deriving it: the two
-    columns concatenate exactly the way `_unique_categories` was
-    already being called on them, and the resulting `indices` split
-    back apart at `len(from_categories)` -- the first half indexes the
-    `from` column, the second the `to` column.
+    `Mark.HEATMAP`/`PUNCHCARD`'s axis domains -- see that function's
+    docstring. The two columns concatenate into one call, and the
+    resulting `indices` split back apart at `len(from_categories)`:
+    the first half indexes the `from` column, the second the `to`
+    column.
 
-    First-seen order is unchanged (it comes from the domain's append order, `from_categories` first), so every node's palette
-    color and ring/layer position stays exactly what it was.
+    First-seen order comes from the domain's append order
+    (`from_categories` first), so each node's palette color and
+    ring/layer position is deterministic across those two columns.
     """
     var combined = List[String](capacity=len(from_categories) + len(to_categories))
     for v in from_categories:
@@ -124,14 +118,9 @@ def _edge_node_index(
 def _validate_edge_encoding(plot: Plot, mark_name: String) raises:
     """`Plot.encode_chord()`'s length check plus its non-negative
     rule -- everything `Mark.CHORD`/`ARC_DIAGRAM`/`GRAPH`/`SANKEY` each
-    need before laying out an edge list.
-
-    All four carried this as twenty-one byte-identical lines apiece,
-    differing only in the mark named in the second error message. That
-    is the same duplication `_validate_continuous_encoding` was
-    extracted to remove for the continuous family, and the same one
-    `_edge_node_index` removed for these four marks' node resolution --
-    this is the validation half of that.
+    need before laying out an edge list, shared in one place rather
+    than duplicated per mark -- the validation counterpart to
+    `_edge_node_index`'s node-resolution sharing above.
     """
     if len(plot._edges.from_categories) != len(plot._edges.to_categories) or len(plot._edges.values) != len(
         plot._edges.from_categories

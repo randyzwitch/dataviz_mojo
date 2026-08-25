@@ -58,9 +58,9 @@ def _render_streamgraph[
     band* connecting every category's top/bottom edge in turn
     (straight `line_to` segments between category centers, not curved
     -- deliberately not reusing `Mark.LINE`'s `Theme.line_
-    smoothing`-aware path builder for this first version, to keep the
-    polygon-closing logic here simple; a smoothed variant is a real,
-    separate enhancement, not part of what this mark needs to exist at
+    smoothing`-aware path builder, to keep the polygon-closing logic
+    here simple; a smoothed variant is a real, separate enhancement,
+    not part of what this mark needs to exist at
     all), filled via `DrawTarget.fill_path_aa` -- not `Mark.STACKED_
     BAR`'s one-rect-per-category-per-series.
 
