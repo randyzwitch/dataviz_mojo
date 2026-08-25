@@ -23,8 +23,8 @@ from dataviz_mojo.theme import Theme
 
 struct _SingleAxisFrame(Movable):
     """`_draw_single_axis_frame`'s finished layout -- one continuous
-    `x_scale` and nothing else: `Mark.SINGLE_AXIS` is the first mark
-    with only *one* axis drawn at all (not two, not zero -- `Mark.ARC`/
+    `x_scale` and nothing else: `Mark.SINGLE_AXIS` is the only mark
+    with exactly *one* axis drawn (not two, not zero -- `Mark.ARC`/
     `CHORD` draw none, every other mark here draws two). See that
     function's docstring for what this computes."""
 
