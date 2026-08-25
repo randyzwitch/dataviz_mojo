@@ -60,8 +60,9 @@ def _render_chord[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.CHORD` plot: one node per distinct category
-    across `encode_chord()`'s `from`/`to` columns (`_unique_
-    categories` over the two concatenated, first-seen order), arranged
+    across `encode_chord()`'s `from`/`to` columns (first-seen order
+    across the two concatenated columns -- see `_edge_node_index`'s
+    docstring), arranged
     as ring sectors around a circle (`Mark.ARC`'s start-at-12-
     o'clock, sweep-clockwise convention, reused exactly -- see `_render_
     arc`'s docstring) sized by each node's *total* flow (every

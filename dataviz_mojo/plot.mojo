@@ -1475,9 +1475,10 @@ struct Plot(Movable):
         """Map an edge list onto `Mark.CHORD`'s ring-sectors-plus-
         ribbons shape: one row per flow (`from_categories[i]` to `to_
         categories[i]`, magnitude `values[i]`) -- every distinct name
-        across *both* columns becomes one node (`_unique_categories`
+        across *both* columns becomes one node (`_edge_node_index`
         over the two concatenated at render() time, first-seen order,
-        `from_categories` first), not a separate node list; the same
+        `from_categories` first -- see that function's docstring),
+        not a separate node list; the same
         "the data already says what's needed" shape `encode_heatmap()`'s two-categorical-axis domain derivation already established,
         generalized from a grid to a graph.
 
@@ -2058,19 +2059,15 @@ def _categorical_indices(data: List[String]) raises -> _CategoricalIndex:
     domains and `_edge_node_index`'s node resolution for the edge-list
     family.
 
-    Replaces a pair of nested-loop scans that were quadratic in the
-    column's distinct-value count: `_unique_categories` compared
-    each row against every domain entry found so far, and then the
-    per-point draw loop called `_index_of` -- another full domain scan
-    -- once *per point*. For a scatter of `n` points over `k`
-    categories that was O(n*k) twice over; hashing each row once makes
-    it O(n) on average, and the draw loop a plain `indices[i]` lookup.
+    Hashes each row once, making this O(n) on average for `n` rows;
+    each row's domain position is then a plain `indices[i]` lookup
+    for every later caller, not a domain scan.
 
-    `_unique_categories` itself stays (it's this module's documented,
-    separately tested first-seen-order helper, and the domain half of
-    this function agrees with it exactly by construction) -- this just
-    also keeps each row's own landing position, the answer every
-    caller otherwise has to recompute the expensive way.
+    `domain`'s append order agrees with `_unique_categories` (this
+    module's documented, separately tested first-seen-order helper)
+    exactly by construction -- this function additionally keeps each
+    row's landing position, the answer every caller otherwise has to
+    recompute from the domain.
 
     First-seen order comes from `domain`'s append order, not from
     the `Dict` (whose iteration order this never relies on) -- the same

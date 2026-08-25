@@ -45,10 +45,9 @@ struct _EdgeData(Movable):
 struct _EdgeNodeIndex(Movable):
     """`_edge_node_index`'s result: an edge list's `nodes` (every
     distinct name across both endpoint columns, in first-seen order --
-    exactly what `_unique_categories` over the two concatenated
-    returns, which is the domain `encode_chord()`'s docstring
-    promises) plus `from_idx`/`to_idx`, that domain's position for
-    each edge's two endpoints.
+    the domain `encode_chord()`'s docstring promises) plus
+    `from_idx`/`to_idx`, that domain's position for each edge's two
+    endpoints.
 
     `from_idx[e]`/`to_idx[e]` are edge `e`'s endpoints, so a caller
     never searches the node list by string equality at all.
@@ -108,10 +107,9 @@ def _edge_node_index(
     # Copied, not transferred: moving `domain` out of `idx` while
     # `idx.indices` is still being read is a partial move the compiler
     # rejects ("field destroyed out of the middle of a value"). The
-    # copy is over the *distinct node names* only -- O(v), not the
-    # O(e*v) this function exists to remove -- so it costs nothing the
-    # old `_unique_categories` call didn't already spend building that
-    # same list.
+    # copy is over the *distinct node names* only -- O(v), negligible
+    # next to the O(e) this function already spends resolving each
+    # edge's endpoints.
     return _EdgeNodeIndex(idx.domain.copy(), from_idx^, to_idx^)
 
 
