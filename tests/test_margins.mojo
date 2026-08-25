@@ -35,9 +35,9 @@ def test_render_left_margin_grows_to_fit_wide_y_axis_labels() raises:
     # default 12pt font, against this environment's real "Sans" font
     # metrics (unhinted, so glyph widths depend on the installed font
     # file), maxes out at 51.8px (the "2000000" label).
-    # dynamic_left_margin = Int(51.8) + _TICK_LENGTH(5) +
-    # _LABEL_GAP(4) + _MARGIN_BUFFER(8) = 68, wider than Theme's
-    # default 60px margin, so plot_x0 becomes 68, not 60 -- checked
+    # dynamic_left_margin = Int(51.8) + theme.tick_length(5) +
+    # theme.label_gap(4) + theme.margin_buffer(8) = 68, wider than
+    # Theme's default 60px margin, so plot_x0 becomes 68, not 60 -- checked
     # directly against where the y-axis line itself actually is (drawn
     # at exactly plot_x0), not an indirect proxy for it.
     # Built via Plot/Canvas/render() directly, not scatter() -- these

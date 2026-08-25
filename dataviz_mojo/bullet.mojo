@@ -69,9 +69,9 @@ def _render_bullet[
        reusing `mark_color`-derived shades (a background band should
        read as neutral context, not compete with the measure bar for
        "this is the colored one" attention).
-    2. The measure bar (`fill_rect`, `theme.mark_color`, `_BULLET_
-       MEASURE_WIDTH_FRACTION` of the full band width and centered
-       within it -- narrower on purpose, so it reads as a distinct
+    2. The measure bar (`fill_rect`, `theme.mark_color`, `theme.
+       bullet_measure_width_fraction` of the full band width and
+       centered within it -- narrower on purpose, so it reads as a distinct
        overlaid layer rather than just another, taller range band).
        Deliberately *never* colored by sign (no `mark_color_negative`
        involved at all, unlike `Mark.CANDLESTICK`/`WATERFALL`) -- a

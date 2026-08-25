@@ -102,7 +102,7 @@ def test_render_waterfall_total_rows_matches_hand_derived_bars() raises:
     #
     # OrdinalScale over [60,380], 4 categories, step=80, bandwidth=64 ->
     # band_start: Start=68, A=148, B=228, End=308. Total bars draw full
-    # band width (64px); delta bars draw _WATERFALL_DELTA_WIDTH_FRACTION
+    # band width (64px); delta bars draw theme.waterfall_delta_width_fraction
     # (0.6) of it, centered -- narrow=38.4, inset=12.8, so A/B's bars are inset ~13px from their band's edges on both sides.
     #
     # Every position independently re-derived via python3 (LinearScale's

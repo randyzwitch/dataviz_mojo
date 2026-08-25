@@ -32,8 +32,8 @@ def _render_polar_bar[
     length (radius) proportional to `value / max(values)` (always
     linear -- unlike `NIGHTINGALE`, there's no `rose_type="area"`
     equivalent here; ECharts' polarbar has no such mode). The one
-    real difference from `NIGHTINGALE`'s wedges: `_POLAR_BAR_
-    PADDING` carves a gap out of each bar's angular slot (split
+    real difference from `NIGHTINGALE`'s wedges: `theme.polar_
+    bar_padding` carves a gap out of each bar's angular slot (split
     evenly on both sides), so bars read as separated columns -- the
     same "separated bands vs. edge-to-edge cells" distinction `Mark.
     HEATMAP`'s docstring already draws against `Mark.BAR`, applied
