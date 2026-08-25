@@ -69,9 +69,9 @@ def test_render_annotate_line_raster_draws_ink_at_the_hand_derived_row() raises:
 def test_render_annotate_line_out_of_range_value_draws_nothing() raises:
     # A value outside the mark's padded domain ([0, 21.0] for this
     # data) must draw neither a line nor a label -- not clamped to an
-    # edge, not extrapolated off-plot into the chrome above (a real bug
-    # this exact scenario caught during development -- see _draw_
-    # annotation_lines's docstring). 25.0 is past the domain's 21.0 max.
+    # edge, not extrapolated off-plot into the chrome above (see
+    # _draw_annotation_lines's docstring). 25.0 is past the domain's
+    # 21.0 max.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, 20.0]
     var svg = SvgCanvas(400, 300)

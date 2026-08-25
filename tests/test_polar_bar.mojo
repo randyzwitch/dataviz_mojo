@@ -35,7 +35,7 @@ def test_render_polar_bar_matches_hand_derived_bar_colors() raises:
 
 def test_render_polar_bar_leaves_a_gap_between_bars() raises:
     # Same three-category setup as above. Slot boundaries sit at
-    # -90/30/150 degrees; the 20% padding (_POLAR_BAR_PADDING) carves
+    # -90/30/150 degrees; the 20% padding (theme.polar_bar_padding) carves
     # a 24-degree gap (2*pi/3 * 0.2) centered on each boundary, so at
     # radius 50 along the boundary between bar 0 and bar 1 (angle 30
     # degrees exactly -- offset (155 + 50*cos(30), 135 + 50*sin(30)) =

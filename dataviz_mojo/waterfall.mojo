@@ -105,8 +105,8 @@ def _render_waterfall[
     total row colors `theme.waterfall_total_color` instead and always
     draws the *full* band width (`Mark.BAR`'s convention).
 
-    A delta row draws narrower than the full band (`_WATERFALL_DELTA_
-    WIDTH_FRACTION`, centered) *only when this plot actually uses total
+    A delta row draws narrower than the full band (`theme.waterfall_
+    delta_width_fraction`, centered) *only when this plot actually uses total
     rows at all* (`plot._waterfall.is_total` non-empty) -- if `is_total`
     is empty, every bar stays full band width; only once a caller
     actually opts into at least one total row does the narrow-vs-full

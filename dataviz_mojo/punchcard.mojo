@@ -18,7 +18,7 @@ from dataviz_mojo.theme import Theme
 struct _PunchcardData(Movable):
     """
     Mark.PUNCHCARD only -- one (x category, y category, bubble size) row
-    per cell, plus the size->radius divisor. See encode_ punchcard()'s docstring.
+    per cell, plus the size->radius divisor. See encode_punchcard()'s docstring.
 
     Grouped onto `Plot._punchcard` -- see `Plot`'s docstring.
     """
@@ -57,13 +57,11 @@ def _render_punchcard[
     `Mark.CORRPLOT`'s radius (derived from `frame.x_scale`/`y_
     scale`'s already-scaled pixel ranges, so it tracks `Theme.
     scale` for free), this one starts from a caller-given raw number
-    with no relationship to the plot's pixel space at all -- a
-    real bug this shipped with initially: an un-scaled radius rendered
-    correctly at the SVG backend (no supersampling to interact with)
-    but visibly too small through the raster quickplot path (which
-    supersamples via a boosted internal `Theme.scale`, then
-    downsamples), caught by checking a bubble's edge pixel, not
-    just its solid center.
+    with no relationship to the plot's pixel space at all -- without
+    this multiplication, the radius would render too small whenever
+    `Theme.scale` is anything other than its default (the raster
+    quickplot path's internal supersampling boosts it beyond 1.0, so
+    this is a real, reachable case, not just a defensive multiply).
 
     Multiple rows may share the same `(x, y)` cell -- each still draws
     its independent bubble (not summed into one), the same

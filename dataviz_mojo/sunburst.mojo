@@ -30,18 +30,6 @@ def _fill_ring_sector[
     true "ring" with a hole at all): `fill_arc_aa` for the wedge case,
     `fill_ring_sector_aa` once there's a real inner radius, the same
     pie-vs-donut split `Mark.ARC`'s docstring already establishes.
-
-    Called through `DrawTarget.fill_ring_sector_aa` directly again as
-    of canvas_mojo v0.4.1 -- earlier versions had a real, confirmed
-    bug in that primitive's raster bounding-box shortcut
-    (`_arc_bounds`, fixed upstream in canvas_mojo#33/PR #34) that
-    clipped a rectangular notch off a ring sector whenever its wedge didn't cross a cardinal angle. This function briefly built
-    each ring sector as a real `Path` instead (`fill_path_aa`,
-    sidestepping the buggy primitive entirely) as a workaround; gone
-    now that the pinned canvas_mojo version has the real fix -- see
-    this file's git history (the PR that added, then the PR that
-    reverted, this workaround) for the full incident if this ever
-    needs revisiting.
     """
     if inner <= 0.0:
         target.fill_arc_aa(cx, cy, outer, a0, a1, color)
@@ -98,8 +86,11 @@ def _render_sunburst[
     implementations, a clickable "zoom out" button this package has no
     equivalent interaction model for) -- rendering starts from each of
     the root's direct children instead, each claiming an angular
-    slice proportional to its share of the *root's* own subtree
-    total and a freshly chosen palette color (`_draw_legend`'s `default_categorical_palette()`, indexed by that child's position among its siblings) that then stays fixed through every
+    slice proportional to its share of the root's subtree total and a
+    freshly chosen palette color (`default_categorical_palette()`,
+    indexed by that child's position among its siblings -- the same
+    palette `_draw_legend` colors its swatches from below) that then
+    stays fixed through every
     one of its descendants -- so the whole ring stack under one
     top-level branch reads as one consistent color, the same "which
     branch does this belong to" legibility a real sunburst needs that
