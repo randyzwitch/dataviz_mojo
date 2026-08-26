@@ -101,9 +101,7 @@ def test_render_radialbar_empty_categories_only_fills_background() raises:
 def test_render_radialbar_svg_matches_confirmed_ring_paths() raises:
     # Two categories (no legend, to keep the geometry simple), values
     # [1, 3] -- ring 0 ("a", outermost) sweeps 1/3 of the way around,
-    # ring 1 ("b", innermost) sweeps the full circle. Paths confirmed
-    # via a real render_svg() run first (same discipline as test_arc.
-    # mojo's donut ring-sector test): each ring draws its gray
+    # ring 1 ("b", innermost) sweeps the full circle: each ring draws its gray
     # track first (a full-circle ring-sector path, `#e6e6e6`), then its
     # own value arc on top -- ring 1's value arc is a second, identical
     # full-circle path in its category color, since a fraction of

@@ -16,8 +16,7 @@ from _test_helpers import BG, _assert_color
 
 
 def test_render_calendar_heatmap_matches_hand_derived_cells() raises:
-    # 2024-01-01 (a real-world Monday, confirmed independently, not
-    # just trusted from the formula), 2024-01-07 (the following
+    # 2024-01-01 (a real-world Monday), 2024-01-07 (the following
     # Sunday -- 6 days later, wrapping to the *next* week's column since Sunday starts a new week here), and 2024-12-31 (a
     # real-world Tuesday, the year's last day, in the year's last column). Values [1.0, 2.0, 3.0] -- min/mid/max of the color
     # domain, so the first and third cells read directly off Theme's

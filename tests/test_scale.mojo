@@ -115,9 +115,9 @@ def test_format_fixed_matches_hand_computed_strings() raises:
 
 
 def test_format_fixed_avoids_binary_floating_point_drift() raises:
-    # Regression test for the exact bug that motivated this function:
-    # 0.0 + 3*0.1 is 0.30000000000000004 as a raw Float64 -- confirmed
-    # by probe before writing this function at all (see its docstring). String(Float64) alone would print that garbage
+    # 0.0 + 3*0.1 is 0.30000000000000004 as a raw Float64 -- see
+    # _format_fixed's docstring for why raw String(Float64) is unsafe
+    # for tick labels. String(Float64) alone would print that garbage
     # directly; _format_fixed must not.
     var drifted = 0.0 + 3.0 * 0.1
     assert_equal(_format_fixed(drifted, 1), "0.3")

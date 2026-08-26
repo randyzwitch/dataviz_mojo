@@ -35,8 +35,7 @@ def test_render_lollipop_matches_hand_derived_stem_and_point() raises:
     # -- band_start(1)=177.333 + bandwidth/2=42.667) and value-20 pixel
     # (30.952, rounds to 31 -- the same "tops at y=31" the bar test
     # already confirmed) carry over unchanged; only the *shape* drawn
-    # at those coordinates differs. Confirmed via a real render() run
-    # first, not derived from the formula alone.
+    # at those coordinates differs.
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [10.0, 20.0, 15.0]
     var t = Theme(show_gridlines=False)

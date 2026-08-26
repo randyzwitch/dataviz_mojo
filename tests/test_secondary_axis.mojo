@@ -121,10 +121,10 @@ def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap
     # A color-categories-encoded Mark.POINT primary layer (so a real
     # legend column draws) alongside a secondary-axis Mark.LINE layer --
     # confirms the legend column shifts right past the secondary axis's
-    # own reserved tick-label width instead of overlapping it. Confirmed
-    # against a real render_layers_svg() run first: the secondary axis's
-    # own line lands at x=220 (shrunk further than the no-legend case's
-    # x=350 above, since legend_reserve is now folded in too), its widest tick label ("50") ends well before x=270, where the first
+    # own reserved tick-label width instead of overlapping it. The
+    # secondary axis's own line lands at x=220 (shrunk further than the
+    # no-legend case's x=350 above, since legend_reserve is folded in
+    # too), its widest tick label ("50") ends well before x=270, where the first
     # legend swatch actually starts.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]

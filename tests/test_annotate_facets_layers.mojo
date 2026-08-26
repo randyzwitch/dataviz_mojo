@@ -16,8 +16,7 @@ def test_render_facets_svg_each_cells_own_annotations_use_that_cells_own_scale()
     # annotate_line(15.0), cell 2 (y:[0,15]) gets an annotate_area(8,12)
     # -- deliberately different annotation types on different cells, so
     # a bug that used the wrong cell's scale (or drew only one
-    # cell's annotation) would show up unambiguously. Confirmed
-    # against a real render_facets_svg() run first, canvas 800x300.
+    # cell's annotation) would show up unambiguously. Canvas 800x300.
     var cats: List[String] = ["A", "B"]
     var v1: List[Float64] = [10.0, 20.0]
     var v2: List[Float64] = [5.0, 15.0]
@@ -61,8 +60,7 @@ def test_render_layers_svg_each_layers_own_annotations_use_that_layers_own_scale
     # different rows (12.0 against the primary domain, 40.0 against the
     # secondary one) -- a bug that applied one layer's line to the
     # wrong scale would land at a different, wrong row instead of these
-    # exact ones. Confirmed against a real render_layers_svg() run
-    # first, canvas 400x300, no gridlines.
+    # exact ones. Canvas 400x300, no gridlines.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]

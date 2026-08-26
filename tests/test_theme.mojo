@@ -182,10 +182,9 @@ def test_render_theme_title_bold_only_affects_the_title() raises:
     # Bold is scoped to the chart title alone -- x_title/y_title (and
     # every other _TextRequest) stay normal weight regardless of
     # title_bold, matching Theme.title_bold's docstring ("one
-    # deliberate exception, not a general knob"). Confirmed by
-    # checking a real render_svg() output with both an x_title and a
-    # title present: exactly one font-weight="bold" attribute in the
-    # whole document.
+    # deliberate exception, not a general knob"): with both an x_title
+    # and a title present, exactly one font-weight="bold" attribute
+    # appears in the whole document.
     var xy: List[Float64] = [5.0]
     var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_point().encode(x=xy, y=xy).labels(title="Hi", x_title="X")

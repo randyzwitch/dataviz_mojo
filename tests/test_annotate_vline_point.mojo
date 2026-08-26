@@ -46,9 +46,8 @@ def test_render_svg_annotate_vline_matches_hand_derived_position() raises:
 def test_render_svg_annotate_point_matches_hand_derived_position() raises:
     # Same plot, a point at (1.2, 15.0) -- deliberately a different x
     # than the vline test above, so the two annotation types' ink
-    # never overlaps in a raster ink check. Confirmed against a real
-    # render_svg() run first: cx=133, cy=135 (the same row the "15"
-    # y-tick lands on), r=4 (Theme's default point_radius).
+    # never overlaps in a raster ink check: cx=133, cy=135 (the same
+    # row the "15" y-tick lands on), r=4 (Theme's default point_radius).
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var svg = SvgCanvas(400, 300)

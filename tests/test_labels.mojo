@@ -70,11 +70,10 @@ def test_render_svg_labels_matches_hand_derived_title_and_axis_titles() raises:
     # (300-Int(14.0*0.25)=297), unaffected.
     # y_title: (11,(42+232)//2)=(11,137) -- horizontal position still
     # from the original outer ox0=0 (Int(14.0*0.8)=11), unaffected; the
-    # *vertical* center is now the inner rect's (137, not the old
-    # 150=outer-bounds-based value) -- rotation=-pi/2 -> exactly -90.000
-    # degrees, confirmed correct (bottom-to-top reading, the standard
-    # y-axis-title convention) via a real rendered raster probe before
-    # trusting the sign in this SVG assertion.
+    # *vertical* center is the inner rect's (137), not derived from
+    # outer bounds (which would give 150) -- rotation=-pi/2 -> exactly
+    # -90.000 degrees (bottom-to-top reading, the standard y-axis-title
+    # convention).
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
     var svg = SvgCanvas(400, 300)
