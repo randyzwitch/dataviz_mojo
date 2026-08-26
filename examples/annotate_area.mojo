@@ -9,8 +9,8 @@ loses the small stretch that falls inside the band, unlike a solid-
 fill mark (Mark.BAR/WATERFALL/...) where a bar entering the band would
 have that whole portion overwritten by the band's color instead --
 see annotate_area()'s docstring for the full story (a real,
-documented canvas_mojo limitation -- no true alpha compositing on
-either backend -- not a bug in this feature).
+documented design choice -- an opaque fill, not a translucent
+overlay -- not a bug in this feature).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
 data -- see examples/donut.mojo's docstring for why. Built by hand
