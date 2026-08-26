@@ -12,8 +12,8 @@ category and its position in that same row, so there's never a need
 to search the domain by string equality to answer "where does this
 category go." `Plot`'s `x_categories` list *is* this scale's
 domain, index for index; a caller wanting repeated categories
-(grouped/stacked bars) needs a different, not-yet-built encoding --
-see the wiki.
+(grouped/stacked bars) uses a different encoding (`Plot.encode_
+grouped_bar()`), not this one.
 """
 
 
