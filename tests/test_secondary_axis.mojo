@@ -30,8 +30,7 @@ def test_render_layers_svg_secondary_axis_matches_hand_derived_position() raises
     # 350). Secondary line falls 50->10 -- a deliberately different
     # shape/scale from the primary series, so a wrong implementation
     # that silently reused the primary y_scale would draw a visibly
-    # different (flattened/off-plot) path instead of this one -- both
-    # confirmed against a real render_layers_svg() run first.
+    # different (flattened/off-plot) path instead of this one.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]

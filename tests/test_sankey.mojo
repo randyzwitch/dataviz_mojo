@@ -26,8 +26,7 @@ def test_render_sankey_matches_hand_derived_nodes_and_ribbon() raises:
     # (368,20,12,230) -- both fill the plot's full height (the
     # only node in their column). The ribbon fills the gap
     # between them, (72,20)-(72,250)-(368,250)-(368,20), colored by
-    # its "from" node (A). Every number confirmed against a real
-    # render_svg() run first (see this file's SVG test).
+    # its "from" node (A) (see this file's SVG test).
     var from_c: List[String] = ["A"]
     var to_c: List[String] = ["B"]
     var v: List[Float64] = [10.0]

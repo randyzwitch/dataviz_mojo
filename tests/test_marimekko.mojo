@@ -27,8 +27,7 @@ def test_render_marimekko_matches_hand_derived_columns() raises:
     # x:[60,220), column B x:[220,380). Column A: X segment (75% of
     # 230px height = 172.5 -> 172) sits at the bottom, y:[78,250);
     # column B: Y segment (75%) sits at the bottom instead, y:[193,
-    # 250) -- every number confirmed against a real render_svg() run
-    # first (see this file's SVG test).
+    # 250) (see this file's SVG test).
     var cats: List[String] = ["A", "B"]
     var subs: List[String] = ["X", "Y"]
     var values: List[List[Float64]] = [[30.0, 10.0], [10.0, 30.0]]

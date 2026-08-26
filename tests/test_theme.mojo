@@ -203,17 +203,13 @@ def test_render_theme_title_bold_only_affects_the_title() raises:
 
 
 def test_theme_mark_style_fields_actually_change_output() raises:
-    # Each of these was a compile-time constant until it became a Theme
-    # field. A default-vs-overridden render must differ somewhere, or
-    # the field is wired to nothing -- which is the only way this
-    # change could silently fail, since every default reproduces the
-    # old constant exactly and the rest of the suite would still pass.
-    # A total row is required: the narrow-delta width only applies when
-    # the chart actually has totals to contrast against (see
-    # _render_waterfall -- with no totals every bar spans its full
-    # band, and this fraction is correctly ignored). Getting that wrong
-    # is what made a first version of this test pass against a field
-    # wired to nothing.
+    # A default-vs-overridden render must differ somewhere, or the
+    # field is wired to nothing. A total row is required: the
+    # narrow-delta width only applies when the chart actually has
+    # totals to contrast against (see _render_waterfall -- with no
+    # totals every bar spans its full band, and this fraction is
+    # correctly ignored) -- without one, this test would pass even
+    # against a field wired to nothing.
     var cats: List[String] = ["a", "b", "total"]
     var vals: List[Float64] = [3.0, -2.0, 1.0]
     var totals: List[Bool] = [False, False, True]

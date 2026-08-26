@@ -28,8 +28,7 @@ def test_render_treemap_matches_hand_derived_rects() raises:
     # remaining 80px, x:[300,380]. depth 1 (A's children) splits
     # along y instead (alternating axis): A1 gets 20/30=66.7% of the
     # 230px height -> 153px, y:[20,173]; A2 gets the rest, y:[173,250].
-    # B1, B's only child, gets 100% of B's rect unchanged. Every
-    # number confirmed against a real render_svg() run first (see this
+    # B1, B's only child, gets 100% of B's rect unchanged (see this
     # file's SVG test).
     var ids: List[String] = ["root", "A", "B", "A1", "A2", "B1"]
     var parents: List[String] = ["", "root", "root", "A", "A", "B"]

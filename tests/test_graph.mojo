@@ -29,8 +29,7 @@ def test_render_graph_matches_hand_derived_edges() raises:
     # 3 nodes evenly spaced starting at 12 o'clock, sweeping clockwise
     # (Mark.ARC's convention, reused for position only): A at -90
     # degrees -> (220,32); B at 30 degrees -> (310,187); C at 150
-    # degrees -> (130,187) -- every number confirmed against a real
-    # render_svg() run first (see this file's SVG test). Edge
+    # degrees -> (130,187) (see this file's SVG test). Edge
     # midpoints (well clear of either endpoint's marker) confirm
     # each edge's color follows its "from" node.
     var from_c: List[String] = ["A", "B"]

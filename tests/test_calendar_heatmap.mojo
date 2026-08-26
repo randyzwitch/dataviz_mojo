@@ -27,8 +27,7 @@ def test_render_calendar_heatmap_matches_hand_derived_cells() raises:
     # Canvas 900x300, show_legend=False: plot area x:[60,880],
     # y:[20,250] (top margin grows by one font-size + label-gap for
     # the month-label row above the grid). 2024 is a leap year (366
-    # days) -> 53 week-columns. Every rect below confirmed against a
-    # real render_svg() run first (see this file's SVG test):
+    # days) -> 53 week-columns. Every rect below (see this file's SVG test):
     # Jan 1 (Mon, row 1, col 0) -> rect(60,67,15,31); Jan 7 (Sun, row
     # 0, col 1) -> rect(75,36,15,31); Dec 31 (Tue, row 2, col 52) ->
     # rect(865,97,15,31). Interior points sampled well inside each
