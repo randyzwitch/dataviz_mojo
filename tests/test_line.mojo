@@ -160,9 +160,7 @@ def test_render_svg_line_smoothing_matches_confirmed_cubic_path() raises:
     # Same x=[0,10,20], y=[0,10,0] peak as the raster test above --
     # every control-point coordinate independently derived via python3
     # from LinearScale's slope/intercept formula composed with the
-    # Catmull-Rom tangent formula, then cross-checked against a real
-    # render_svg() run before being trusted here (the same discipline
-    # every other exact-string SVG test in this file already follows).
+    # Catmull-Rom tangent formula.
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
     var svg = SvgCanvas(400, 300)
