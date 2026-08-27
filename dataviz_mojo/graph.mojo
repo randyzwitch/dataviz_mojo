@@ -47,15 +47,15 @@ def _render_graph[
 
     Edge stroke width scales with `value/max(values)`, edge and node
     marker color both follow the edge's `from` node's palette
-    color -- the same conventions `Mark.ARC_DIAGRAM` already
-    establishes for this identical data shape. A self-loop (`from[i]
+    color -- the same conventions `Mark.ARC_DIAGRAM` uses for this
+    identical data shape. A self-loop (`from[i]
     == to[i]`) draws nothing. Every node is labeled just outside its position on the circle, aligned by which side of center it
     falls on (left-aligned on the right half, right-aligned on the
     left half, centered at the top/bottom -- the same alignment rule
-    `Mark.RADAR`'s axis labels already use for the identical
+    `Mark.RADAR`'s axis labels use for the identical
     "label sits just outside a point on a circle" problem) -- no
     legend, the same "already labeled directly, nothing left for a
-    legend to add" reasoning `Mark.ARC_DIAGRAM` already gives.
+    legend to add" reasoning `Mark.ARC_DIAGRAM` gives.
     """
     _validate_edge_encoding(plot, "Mark.GRAPH")
 

@@ -41,14 +41,14 @@ def _render_sankey[
     each claiming `own value / column's total value` of the
     column's available height -- the same "round the cumulative
     boundary, not an independent size" pattern `Mark.MARIMEKKO`/
-    `TREEMAP` already establish, so adjacent nodes in a column never
+    `TREEMAP` use, so adjacent nodes in a column never
     show a hairline gap.
 
     Each flow draws as one or more filled quadrilaterals ("ribbon"
     segments) between a slice of its `from` node's right edge and
     a slice of its `to` node's left edge -- straight edges, not a
     smooth curve (the same "straight, not curved" simplification
-    `Mark.CHORD`'s straight-rim ribbons already are, for the
+    `Mark.CHORD`'s straight-rim ribbons use, for the
     identical reason: a smooth Bezier ribbon whose top and bottom
     edges both curve independently is real, added geometric complexity
     a straight trapezoid sidesteps while keeping the same essential

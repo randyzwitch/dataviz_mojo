@@ -42,28 +42,26 @@ def _render_candlestick[
     """Render a `Mark.CANDLESTICK` plot: `_draw_categorical_axis_frame`'s
     shared categorical x-axis, with a y-domain spanning every open/high/
     low/close value actually drawn (`_data_extent`, padded but *not*
-    forced through zero -- the same reasoning `Mark.BOX` already
-    established: a candlestick chart's whole point is showing fine
-    detail in a price range that's typically nowhere near zero, so
-    forcing zero into view would flatten exactly the detail the chart
-    exists to show).
+    forced through zero: a candlestick chart's whole point is showing
+    fine detail in a price range that's typically nowhere near zero,
+    so forcing zero into view would flatten exactly the detail the
+    chart exists to show -- the same choice `Mark.BOX` makes).
 
-    Draws, per category, back to front (the same "whisker under the
-    box" order `_render_box` already established, so a wick with a
-    short body still reads as one shape, not two disconnected pieces):
-    a thin wick (`draw_line_aa`, `theme.axis_color` -- matching `Mark.
+    Draws, per category, back to front (whisker under body, the same
+    order `_render_box` uses, so a wick with a short body still reads
+    as one shape, not two disconnected pieces): a thin wick
+    (`draw_line_aa`, `theme.axis_color` -- matching `Mark.
     BOX`'s whisker color, both being "the part of the shape that
     isn't the headline value") from `high` to `low`, then the body
-    itself (`fill_rect`, full band width -- the same "use the whole
-    band, no extra narrowing" choice `Mark.BAR`/`BOX` already make) from
-    `open` to `close`, colored by `close >= open`: `theme.mark_color`
-    (closed up) or `theme.mark_color_negative` (closed down). These are
-    the *same* two fields `Mark.WATERFALL` already reuses for its unconditional sign coloring, not new dedicated bullish/bearish
-    fields -- a candlestick's whole reason for being colored by sign
-    *is* the chart, the same "not gated behind an opt-in flag" reasoning
-    `encode_waterfall()`'s docstring gives (contrast `Mark.BAR`'s
-    `Theme.color_by_sign`, which stays a real opt-in there since a plain
-    bar chart is still a complete, correct chart without it).
+    itself (`fill_rect`, full band width, `Mark.BAR`/`BOX`'s
+    convention) from `open` to `close`, colored by `close >= open`:
+    `theme.mark_color` (closed up) or `theme.mark_color_negative`
+    (closed down). These are the *same* two fields `Mark.WATERFALL`
+    reuses for its unconditional sign coloring, not new dedicated
+    bullish/bearish fields: a candlestick's whole reason for being
+    colored by sign *is* the chart, unlike `Mark.BAR`'s `Theme.
+    color_by_sign`, which stays a real opt-in since a plain bar chart
+    is still a complete, correct chart without it.
 
     A doji (`open == close` exactly) would otherwise draw a zero-height
     rect -- `fill_rect` treats that as a no-op (see its tests), which

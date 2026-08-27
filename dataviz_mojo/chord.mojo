@@ -74,8 +74,8 @@ def _render_chord[
     Sub-arcs are allocated in the order rows are given, each one
     advancing a per-node running angular cursor (`node_cursor`, starting
     at that node's `node_start`) -- the same running-total
-    bookkeeping style `Mark.WATERFALL`'s `encode_waterfall` already
-    established, just for angles instead of a bar's running total.
+    bookkeeping style `Mark.WATERFALL`'s `encode_waterfall` uses, just
+    for angles instead of a bar's running total.
     A self-loop (`from[i] == to[i]`) allocates two sub-arcs off the
     same node in sequence rather than one -- not specifically tested,
     but not rejected either, since nothing here assumes `from[i] !=

@@ -79,9 +79,9 @@ def _render_beeswarm[
     Reuses `_draw_categorical_axis_frame` (the same vertical-
     categorical-x/continuous-y core `Mark.BAR`/`BOX`/... share), with
     `_data_extent` (not `_zero_baseline_y_extent`) over every value
-    across every category -- the same "encodes where something falls
-    within a range, not magnitude from a baseline" reasoning `Mark.BOX`
-    already established for exactly this data shape.
+    across every category: this data encodes where something falls
+    within a range, not magnitude from a baseline, the same reasoning
+    `Mark.BOX` uses for its shape.
     """
     var theme = plot._theme
     if len(plot.x_categories) == 0:

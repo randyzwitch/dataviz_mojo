@@ -91,8 +91,8 @@ def _render_radar[
     `max_values`, and one or more `series` (name + one value per
     indicator) drawn as a closed polygon each: a straight `line_to`
     from one indicator's point to the next, back to the first, no
-    smoothing (the same "the shape *is* the data" stance `Mark.POLAR`
-    already takes for its polyline).
+    smoothing -- the same "the shape *is* the data" stance `Mark.POLAR`
+    takes for its polyline.
 
     Each indicator's value is *not* clamped to `[0, max_values[i]]`
     -- a value past its axis's max draws past the outer ring,

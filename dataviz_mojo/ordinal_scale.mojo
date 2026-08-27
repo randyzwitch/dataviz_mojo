@@ -2,9 +2,7 @@
 evenly spaced pixel bands, the standard "band scale" every bar-chart-
 style categorical axis needs (matches d3's `scaleBand` in spirit: one
 `padding` fraction, applied as an equal gap on both sides of every
-band, not separate inner/outer padding knobs -- this package's "minimal, not a port of everything a mature library offers" approach,
-same reasoning `LinearGradient` gives for supporting only "pad" extend
-and not repeat/reflect).
+band, not separate inner/outer padding knobs).
 
 Purely index-based (`band_start(i)`/`center(i)`, not `band_start
 (category_string)`) -- a bar chart's data already gives each row's

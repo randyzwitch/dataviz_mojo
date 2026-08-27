@@ -47,11 +47,10 @@ def _render_bullet[
     baseline" meaning a bar's height encodes, so zero has to stay in
     view the same way). The domain spans every value actually drawn per
     category -- `0.0`, the top of its `ranges` (the tallest
-    background band), its `measure`, and its `target` -- the same "the
-    domain is guaranteed to fit every one of them" reasoning `Mark.BOX`/
-    `WATERFALL` already established, since a measure or target can
-    legitimately fall outside the qualitative ranges (e.g. exceeding
-    the "good" threshold).
+    background band), its `measure`, and its `target` -- the same
+    domain-fits-everything approach `Mark.BOX`/`WATERFALL` take, since
+    a measure or target can legitimately fall outside the qualitative
+    ranges (e.g. exceeding the "good" threshold).
 
     Draws, per category, back to front (the same layering order `Mark.
     BOX`'s whisker-then-box-then-median gives, generalized: context

@@ -25,10 +25,7 @@ def _assign_leaf_positions(node: Int, idx: _HierarchyIndex, mut x: List[Float64]
     """A deliberately simplified tree layout -- not a real Reingold-
     Tilford algorithm (which additionally shifts whole subtrees
     sideways to avoid sibling overlap when subtrees have uneven
-    shapes), the same "a much simpler, still-genuinely-correct"
-    tolerance `Mark.TREEMAP`'s slice-and-dice layout takes over a
-    real squarified one, or `Mark.CHORD`'s straight-rim ribbons
-    over a full circular-arc rim.
+    shapes).
 
     Every leaf gets the next sequential integer x-slot, left to right
     in `idx.children`'s given sibling order (`next_leaf`, threaded
@@ -61,9 +58,8 @@ def _assign_branch_colors(node: Int, branch: Int, idx: _HierarchyIndex, mut out:
     (the root's direct children are numbered 0, 1, 2, ... by
     `_render_tree`; everything under one of them shares its number) -- the same "one color per top-level branch, shared by
     every descendant" convention `Mark.SUNBURST`'s recursive
-    `color` parameter already establishes for the same underlying
-    reason (a glance shows which top-level branch a deeply nested node
-    belongs to). A plain `List[Int]` computed once up front here
+    `color` parameter uses, for the same reason: a glance shows which
+    top-level branch a deeply nested node belongs to. A plain `List[Int]` computed once up front here
     instead of threaded through the draw recursion the way `Mark.
     SUNBURST` does it -- `Mark.TREE` draws edges and node markers as
     two separate passes (see `_render_tree`'s docstring for why),
@@ -112,7 +108,7 @@ def _render_tree[
     single top-down recursive pass drawing "this node, then its edges to children" would risk depending on visit order. Edge/
     marker color follows `_assign_branch_colors`'s per-top-level-
     branch assignment, the same "one color per top-level branch"
-    convention `Mark.SUNBURST` already establishes -- the root itself
+    convention `Mark.SUNBURST` uses -- the root itself
     stays `Theme.text_color` (it belongs to every branch equally, so
     none of them).
 

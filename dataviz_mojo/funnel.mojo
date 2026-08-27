@@ -74,10 +74,9 @@ def _render_funnel[
     drawn largest-value-first top to bottom (`_descending_value_order`
     -- matching ECharts' "highest to lowest" default, not left to
     the caller's row order the way every other categorical mark
-    here is) as one trapezoid per row, no axis frame at all (the same
-    "no coordinate system" choice `_render_arc` already makes, and for
-    the same reason: a funnel's whole point is the taper, not a value
-    read off an axis).
+    here is) as one trapezoid per row, no axis frame at all -- like
+    `_render_arc`, a funnel's whole point is the taper, not a value
+    read off an axis.
 
     Equal row heights spanning the whole plot rect; each row's top
     width is `value / largest_value` of the available width (so the

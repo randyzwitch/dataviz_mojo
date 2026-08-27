@@ -28,11 +28,10 @@ def _symmetric_zero_baseline_y_extent(values: List[List[Float64]], n_categories:
     streamgraph`'s per-category baseline is `-total_i / 2`, so a
     shorter category's band just doesn't use the full vertical
     span, the "wavy river narrowing" look a streamgraph is for). The
-    same "forced symmetric, not independently padded" reasoning `Mark.
-    POPULATION_PYRAMID`'s `_symmetric_zero_baseline_x_extent`
-    already gives, just for a stacked total instead of two independent
-    magnitudes -- both exist so unrelated rows/categories still read on
-    one shared, honest scale.
+    same forced-symmetric domain `Mark.POPULATION_PYRAMID`'s
+    `_symmetric_zero_baseline_x_extent` uses, just for a stacked total
+    instead of two independent magnitudes -- both exist so unrelated
+    rows/categories still read on one shared, honest scale.
     """
     var max_total = 0.0
     for i in range(n_categories):
@@ -64,8 +63,8 @@ def _render_streamgraph[
     all), filled via `DrawTarget.fill_path_aa` -- not `Mark.STACKED_
     BAR`'s one-rect-per-category-per-series.
 
-    Every value must be non-negative -- same reasoning `Mark.ARC`/
-    `FUNNEL` already give: a negative flow has no meaning as a stacked
+    Every value must be non-negative -- the same reason `Mark.ARC`/
+    `FUNNEL` require it: a negative flow has no meaning as a stacked
     band's height.
 
     Reuses `_draw_categorical_axis_frame` (the vertical-categorical-x/

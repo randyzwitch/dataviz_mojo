@@ -158,16 +158,16 @@ once a caller actually calls `.labels(...)` -- an empty string never
 reserves layout space or emits a `_TextRequest`, the same "absent
 means absent, not a zero-size version of present" rule `Plot.encode_
 gantt`'s start/end
-pair and every other optional feature in this file already follow.
+pair and every other optional feature in this file follow.
 
 `subtitle_color` (default a muted gray, `Color(110, 110, 110)`,
 distinct from `text_color`'s default `Color(40, 40, 40)`) is
 `subtitle`'s dedicated color, not `text_color` reused -- the
-second half of the two-tier-headline reading `title_bold`'s docstring already establishes for the title itself: a subtitle is
+second half of the two-tier-headline reading `title_bold`'s docstring gives for the title itself: a subtitle is
 supporting context, not body text or a heading, so it recedes rather
 than competing with either -- the same "a genuinely distinct visual
 role gets its color, not a borrowed one" reasoning `waterfall_
-total_color` below already gives.
+total_color` below gives.
 
 `waterfall_total_color` is `Mark.WATERFALL`'s third color, for a
 row `encode_waterfall()`'s `is_total` marks as a running-total
@@ -244,7 +244,7 @@ get.
 `font_family` (default `"sans-serif"`) is every `_TextRequest`'s typeface -- tick/legend labels, axis titles, the chart title, all of
 it, baked into each `_TextRequest` at the point it's built (the same
 "read straight off `theme`, per construction site" convention every
-other `_TextRequest` field -- `color`, `size` -- already follows,
+other `_TextRequest` field -- `color`, `size` -- follows,
 *not* a single value read once by `render()`/`render_svg()`'s final draw loop: `render_facets()`/`render_layers()` combine several
 independently themed `Plot`s into one shared draw pass, so a family
 read once, globally, would silently apply the wrong plot's choice

@@ -59,7 +59,7 @@ def _calendar_month_labels() -> List[String]:
 struct _Date(Copyable, Movable):
     """A plain year/month/day triple -- not a general-purpose Date
     type (this package deliberately has none, the same stance `Mark.
-    GANTT`'s `encode_gantt` docstring already takes for its start/end values), just enough structure for `_days_from_civil`/
+    GANTT`'s `encode_gantt` takes for its start/end values), just enough structure for `_days_from_civil`/
     `_day_of_week` below to place one calendar cell. A named struct,
     not a raw tuple -- this file's established "always a named
     struct for a multi-value return" convention."""
@@ -135,7 +135,7 @@ def _render_calendar_heatmap[
     inconsistent input rather than silently filtering it the way that
     library's `year` argument does, the same "raise on
     inconsistent input" stance `Mark.RADAR`'s `encode_radar`
-    already takes for its length-mismatched lists). The first
+    takes for its length-mismatched lists). The first
     week's column always starts on the Sunday on/before January
     1st (so January 1st never lands outside the grid even when it
     isn't itself a Sunday) -- `column = (days_since_jan1 + jan1_dow)
@@ -149,8 +149,8 @@ def _render_calendar_heatmap[
     the *columns where each month starts*, not one label per column
     the way `_draw_grid_axis_frame` would draw), different enough to
     need its layout rather than a forced fit -- the same "own
-    frame when the layout genuinely differs" reasoning `Mark.HEATMAP`'s docstring already gives against reusing either existing
-    categorical-axis core.
+    frame when the layout genuinely differs" reasoning `Mark.HEATMAP`
+    gives against reusing either existing categorical-axis core.
     """
     if len(plot._calendar.dates) != len(plot._calendar.values):
         raise Error(

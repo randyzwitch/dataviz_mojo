@@ -87,25 +87,24 @@ def _render_grouped_bar[
     to color by; the whole point of a *grouped* bar chart is telling
     series apart by color, not telling positive from negative.
 
-    Sub-bar boundaries are computed as `_round_to_int(band_start + j *
-    sub_width)` for each `j` from `0` to `len(series_names)` (`len(
+    Sub-bar boundaries round each *boundary* pixel once (`len(
     series_names) + 1` boundary points, not `len(series_names)`
-    independently-rounded widths) -- rounding each *boundary* once and
-    taking consecutive boundaries as a sub-bar's left/right edges
-    guarantees adjacent sub-bars share an exact pixel edge (no 1px gap,
-    no 1px overlap), the standard fencepost-safe way to subdivide a
-    span into rounded pixel segments; independently rounding each
-    sub-bar's width instead can accumulate exactly that kind of
-    off-by-one drift across a whole band.
+    independently-rounded widths) and take consecutive boundaries as a
+    sub-bar's left/right edges, guaranteeing adjacent sub-bars share an
+    exact pixel edge (no 1px gap, no 1px overlap) -- the standard
+    fencepost-safe way to subdivide a span into rounded pixel segments;
+    independently rounding each sub-bar's width instead can accumulate
+    exactly that kind of off-by-one drift across a whole band.
 
     The one other new thing no other categorical-x-axis mark needs: a
     legend (series name -> color), reserved via the same `Theme.
     show_legend` flag and `sc.legend_width` column `Mark.POINT`'s categorical color legend uses (see `_render_generic`'s `show_
     legend`/`legend_reserve` logic) -- but subtracted from the *outer*
     `ox1` passed into `_draw_categorical_axis_frame` rather than
-    threaded through that shared function as a new parameter, the same
-    "shrink the rect from outside, don't touch the shared core" pattern
-    `_apply_labels` already established for `Plot.labels()`'s title/axis-title margins.
+    threaded through that shared function as a new parameter -- the
+    same "shrink the rect from outside, don't touch the shared core"
+    pattern `_apply_labels` uses for `Plot.labels()`'s title/axis-title
+    margins.
     """
     _validate_grouped_bar_series(plot)
 

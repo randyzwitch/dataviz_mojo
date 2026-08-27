@@ -98,8 +98,8 @@ def _render_violin[
     Reuses `_draw_categorical_axis_frame` (the same vertical-
     categorical-x/continuous-y core `Mark.BAR`/`BOX`/`BEESWARM` share),
     with `_data_extent` over every value across every category for the
-    shared axis domain -- the same domain reasoning `Mark.BOX`/
-    `BEESWARM` already established for this data shape.
+    shared axis domain, the same choice `Mark.BOX`/`BEESWARM` make for
+    this data shape.
 
     `mark_violin()`'s `bandwidth`, when given (checked positive at
     render() time), replaces every category's Silverman's-rule

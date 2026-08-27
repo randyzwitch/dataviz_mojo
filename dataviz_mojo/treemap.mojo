@@ -43,7 +43,7 @@ def _draw_treemap_node[
 ) raises:
     """Fill `node`'s rect `(x0, y0, x1, y1)` if it's a leaf
     (colored by `branch[node]`'s top-level-ancestor palette entry,
-    the same convention `Mark.SUNBURST`/`TREE` already establish, plus
+    the same convention `Mark.SUNBURST`/`TREE` use, plus
     a centered label in `Theme.treemap_label_color`), otherwise slice-and-dice that rect among its children and recurse: alternating axis by `depth` (even splits the
     *width*, into side-by-side vertical strips; odd splits the
     *height*, into stacked horizontal strips), each child's share
@@ -52,7 +52,7 @@ def _draw_treemap_node[
     (*not* a real squarified algorithm, which additionally rebalances
     each slice's aspect ratio toward square instead of letting a
     row of many small children go arbitrarily thin -- a real,
-    documented simplification, the same tolerance `Mark.TREE`'s `_assign_leaf_positions` docstring already takes over a full
+    documented simplification, the same tolerance `Mark.TREE`'s `_assign_leaf_positions` docstring takes over a full
     Reingold-Tilford layout).
 
     Every boundary along the split axis comes from rounding a

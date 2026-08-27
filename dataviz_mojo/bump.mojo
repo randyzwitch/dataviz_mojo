@@ -28,9 +28,9 @@ from dataviz_mojo.theme import Theme
 def _bump_rank_pixel(rank: Int, n_series: Int, py0: Int, py1: Int) -> Int:
     """Rank 1 (best) at `py0` (the plot area's top), rank
     `n_series` (worst) at `py1` (the bottom), evenly spaced in between
-    -- not a `LinearScale` (see `_draw_bump_axis_frame`'s docstring
-    for why a reversed-domain `LinearScale` doesn't work here: `ticks()`
-    assumes `domain_min < domain_max`). `n_series == 1` (nothing to
+    -- not a `LinearScale`: a reversed-domain `LinearScale` doesn't
+    work here, since `ticks()` assumes `domain_min < domain_max`.
+    `n_series == 1` (nothing to
     rank against) is the one degenerate case, floored to the plot
     area's vertical center rather than dividing by zero.
     """

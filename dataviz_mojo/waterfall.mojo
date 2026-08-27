@@ -180,9 +180,10 @@ def _render_waterfall[
     # case the connector pass below reads them back (a delta bar can be
     # narrower than its band then, so a connector has to ask the
     # previous bar what it actually drew). With no total rows the
-    # connector re-derives the edge from the band directly, for the
-    # byte-compatibility reason its comment gives, and these two
-    # lists would just be filled and never read.
+    # connector re-derives the edge from the band directly instead
+    # (every bar is full band width then, so the band's edge and the
+    # bar's coincide), and these two lists would just be filled and
+    # never read.
     var bar_x_list = List[Int]()
     var bar_width_list = List[Int]()
     var bandwidth = frame.x_scale.bandwidth()

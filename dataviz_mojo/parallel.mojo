@@ -76,9 +76,9 @@ def _render_parallel[
     dimension), each drawn as a straight polyline connecting its per-dimension positions left to right.
 
     Each dimension gets its *own* independent domain (`_min_max` over
-    that column across every row -- unpadded, the same "a legend's extremes should mean exactly the data's extremes" reasoning
-    `_data_extent`'s docstring gives for continuous color/size
-    domains), unlike `Mark.RADAR`'s caller-supplied `max_values`:
+    that column across every row -- unpadded, the same choice
+    `_data_extent` makes for continuous color/size domains), unlike
+    `Mark.RADAR`'s caller-supplied `max_values`:
     ECharts.jl's `parallel()` has no per-dimension max parameter
     either, and different dimensions here are typically wildly
     differently scaled (horsepower vs. price vs. 0-60 time, the
@@ -87,8 +87,8 @@ def _render_parallel[
     that axis's vertical center rather than dividing by zero.
 
     No axis tick labels beyond each dimension's name at the
-    bottom -- the same deliberate simplification `Mark.POLAR`'s `_draw_polar_grid` docstring already gives for numeric axis
-    readout. Legend keyed by `row_names` (always drawn, even for one
+    bottom -- the same simplification `Mark.POLAR`'s `_draw_polar_grid`
+    makes for numeric axis readout. Legend keyed by `row_names` (always drawn, even for one
     row -- the same "`Theme.show_legend` is the only real toggle"
     convention every other legend-bearing mark here follows).
     """

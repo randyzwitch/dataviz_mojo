@@ -107,7 +107,7 @@ def _draw_grid_axis_frame[
     """`Mark.HEATMAP`'s axis-frame core: two `OrdinalScale` axes,
     `x_categories` left-to-right, `y_categories` top-to-bottom (category
     index 0 at the *top* -- the same reading-order convention `_draw_
-    horizontal_categorical_axis_frame`'s y-axis already establishes
+    horizontal_categorical_axis_frame`'s y-axis uses
     for `Mark.GANTT`/`POPULATION_PYRAMID`, not `_draw_categorical_axis_
     frame`'s reversed one, since there's no zero-baseline-at-bottom
     convention to preserve here -- there's no baseline at all). Its own
@@ -115,7 +115,7 @@ def _draw_grid_axis_frame[
     core -- a two-categorical-axis grid is different enough in shape
     from both (one categorical + one continuous axis apiece) that
     folding it in would need the same kind of orientation branch
-    `_draw_horizontal_categorical_axis_frame`'s docstring already
+    `_draw_horizontal_categorical_axis_frame`'s docstring
     warns against. Shared by three callers today (`Mark.HEATMAP`/
     `CORRPLOT`/`PUNCHCARD`).
 
@@ -200,7 +200,7 @@ def _render_heatmap[
     POINT`'s categorical color channel resolves its domain through)
     -- a caller gives one row per cell, not a separate axis-category
     list, the same "the data already says what the axis needs" shape
-    `encode_categorical()` established for a single categorical axis.
+    `encode_categorical()` uses for a single categorical axis.
     A missing (x, y) combination simply isn't drawn (background shows
     through) rather than being treated as an error or a zero -- real
     heatmap data (a sparse calendar, an incomplete matrix) is commonly
