@@ -297,6 +297,24 @@ def gantt(
     y_title: String = "",
 ) raises -> Canvas:
     """A gantt/span chart -- `Mark.GANTT`, one horizontal bar per
-    category from `start[i]` to `end[i]`."""
+    category from `start[i]` to `end[i]`.
+
+    Args:
+        categories: One horizontal bar per entry, top to bottom.
+        start: Each bar's starting value.
+        end: Each bar's ending value.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_gantt().encode_gantt(categories=categories, start=start, end=end)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

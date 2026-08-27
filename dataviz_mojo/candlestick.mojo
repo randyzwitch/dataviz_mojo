@@ -148,7 +148,29 @@ def candlestick(
     y_title: String = "",
 ) raises -> Canvas:
     """A candlestick chart -- `Mark.CANDLESTICK`, one open/high/low/
-    close bar per category."""
+    close bar per category.
+
+    Args:
+        categories: One bar per entry, in the given order.
+        open: Each category's opening value.
+        high: Each category's highest value -- the wick's top.
+        low: Each category's lowest value -- the wick's bottom.
+        close: Each category's closing value; the body is colored by
+            whether it closed up (`mark_color`) or down
+            (`mark_color_negative`) relative to `open`.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_candlestick().encode_candlestick(
         categories=categories, open=open, high=high, low=low, close=close
     )

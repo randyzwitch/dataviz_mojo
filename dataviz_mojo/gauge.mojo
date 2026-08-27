@@ -181,7 +181,35 @@ def gauge(
     color-banded dial (green/blue/red at the default 20%/80%/100%
     breakpoints, or `breakpoints`/`band_colors`' custom bands --
     see `Plot.encode_gauge()`'s docstring for the sentinel-empty-
-    means-default convention and validation). See `_render_gauge`'s docstring for the full reasoning."""
+    means-default convention and validation). See `_render_gauge`'s docstring for the full reasoning.
+
+    Args:
+        value: The reading to show, clamped (not rejected) to
+            `[min_value, max_value]` -- an out-of-range value pins
+            visibly at the end of the dial.
+        min_value: The dial's low end; defaults to `0.0`.
+        max_value: The dial's high end; defaults to `100.0`, giving a
+            plain percentage-style gauge with the default `value`.
+        breakpoints: Ascending fractions of the full `[min_value,
+            max_value]` span (e.g. `[0.5, 1.0]` for a low/high split);
+            left empty (the default), reproduces ECharts' fixed
+            20%/80%/100% bands unchanged.
+        band_colors: One color per `breakpoints` band, same length;
+            left empty (the default), reproduces ECharts' fixed
+            green/blue/red bands unchanged.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_gauge().encode_gauge(
         value=value, min_value=min_value, max_value=max_value, breakpoints=breakpoints, band_colors=band_colors
     )

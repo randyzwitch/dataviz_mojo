@@ -188,7 +188,32 @@ def corrplot(
     square correlation `matrix` over `variables`, sized and colored by
     `abs`/sign of each pairwise correlation. `layout` ("full" (the
     default), "lower", or "upper") and `diag` (default True) match
-    ECharts.jl's `corrplot()` keyword names. See `_render_corrplot`'s docstring for the full reasoning."""
+    ECharts.jl's `corrplot()` keyword names. See `_render_corrplot`'s docstring for the full reasoning.
+
+    Args:
+        variables: One row and one column per entry -- `matrix` must
+            be this length square.
+        matrix: The square pairwise-correlation matrix, each value in
+            `[-1.0, 1.0]`.
+        layout: Which triangle of `matrix` to draw -- `"full"` (the
+            default), `"lower"`, or `"upper"`.
+        diag: Whether to draw the diagonal cells (`variables[i]`
+            against itself); defaults to `True`.
+        labels: Whether to draw `variables`' names along the axes;
+            defaults to `True`.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_corrplot(layout=layout, diag=diag, labels=labels).encode_corrplot(
         variables=variables, matrix=matrix
     )

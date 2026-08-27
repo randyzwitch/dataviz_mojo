@@ -274,7 +274,27 @@ def polar(
     """A polar-coordinate line plot -- `Mark.POLAR` over `angle`
     (radians, used exactly as given -- values beyond `2*pi` spiral
     outward rather than wrapping) and `radius` (linearly scaled from
-    `[0, max(radius)]`, always zero-anchored at the chart's center; every value must be non-negative). See `_render_polar`'s docstring for the full reasoning."""
+    `[0, max(radius)]`, always zero-anchored at the chart's center; every value must be non-negative). See `_render_polar`'s docstring for the full reasoning.
+
+    Args:
+        angle: Radians, used exactly as given and unwrapped -- values
+            beyond `2*pi` spiral outward rather than overlapping.
+        radius: Linearly scaled from `[0, max(radius)]`, always
+            zero-anchored at the chart's center; every value must be
+            non-negative.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_polar().encode_polar(angle=angle, radius=radius)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
@@ -299,7 +319,29 @@ def polar_series(
     `pie()`/`donut()` have to `Mark.ARC` -- one mark, two quickplot
     entry points for two genuinely different shapes (here: one
     unlabeled trace vs. several compared side by side). See `_render_
-    polar`'s docstring for the full reasoning."""
+    polar`'s docstring for the full reasoning.
+
+    Args:
+        angle: Radians, used exactly as given and unwrapped -- shared
+            by every series.
+        series_names: One trace per name, used as the legend key.
+        series_values: `series_values[j]` is `series_names[j]`'s
+            radius per angle; every value must be non-negative, and
+            every series shares one radius scale (`max(radius)`
+            computed across all of them together).
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_polar().encode_polar_series(
         angle=angle, series_names=series_names, series_values=series_values
     )

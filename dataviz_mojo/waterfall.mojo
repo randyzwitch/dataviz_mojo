@@ -249,6 +249,31 @@ def waterfall(
 ) raises -> Canvas:
     """A waterfall chart -- `Mark.WATERFALL`, floating bars from a
     running total. See `Plot.encode_waterfall()`'s docstring
-    (plot.mojo) for what `deltas`/`is_total` mean."""
+    (plot.mojo) for what `deltas`/`is_total` mean.
+
+    Args:
+        categories: One floating bar per entry, in the given order.
+        deltas: How much the running total changes at each category
+            -- not the bar's absolute height; each bar is drawn from
+            the running total before it to the running total after
+            it, starting the cumulative sum from `0.0`.
+        is_total: Marks specific rows as running-total checkpoints
+            (drawn full band width in `Theme.waterfall_total_color`)
+            instead of a plain rising/falling delta. Left empty (the
+            default), every row is a plain delta -- unchanged
+            original behavior.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_waterfall().encode_waterfall(categories=categories, deltas=deltas, is_total=is_total)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

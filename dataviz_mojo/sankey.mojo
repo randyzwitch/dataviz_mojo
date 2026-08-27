@@ -287,7 +287,28 @@ def sankey(
     `values`) drawn as nodes in left-to-right columns connected by
     proportionally sized flow ribbons. The edges must form a DAG (no
     cycles) -- see `_render_sankey`'s docstring for the full
-    reasoning."""
+    reasoning.
+
+    Args:
+        from_categories: Each flow's source node, one entry per row.
+            Together with `to_categories` the edges must form a DAG.
+        to_categories: Each flow's destination node, one entry per
+            row (paired with `from_categories[i]`).
+        values: Each flow's magnitude, sizing its ribbon; must be
+            non-negative.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_sankey().encode_chord(
         from_categories=from_categories, to_categories=to_categories, values=values
     )

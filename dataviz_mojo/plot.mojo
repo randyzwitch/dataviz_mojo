@@ -5204,7 +5204,23 @@ def scatter(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A scatter plot -- `Mark.POINT` over continuous `x`/`y`."""
+    """A scatter plot -- `Mark.POINT` over continuous `x`/`y`.
+
+    Args:
+        x: The continuous x column, one entry per point.
+        y: The continuous y column, one entry per point.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_point().encode(x=x, y=y)
     return _rendered(plot^, theme, width, height, title, x_title, y_title)
 
@@ -5220,7 +5236,23 @@ def line(
     y_title: String = "",
 ) raises -> Canvas:
     """A line chart -- `Mark.LINE` over continuous `x`/`y`, connected
-    in data order."""
+    in data order.
+
+    Args:
+        x: The continuous x column, one entry per point.
+        y: The continuous y column, one entry per point.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_line().encode(x=x, y=y)
     return _rendered(plot^, theme, width, height, title, x_title, y_title)
 
@@ -5236,6 +5268,23 @@ def area(
     y_title: String = "",
 ) raises -> Canvas:
     """An area chart -- `Mark.AREA` over continuous `x`/`y`, filled
-    down to a zero baseline."""
+    down to a zero baseline.
+
+    Args:
+        x: The continuous x column, one entry per point.
+        y: The continuous y column; the filled area runs from each
+            point down to zero.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_area().encode(x=x, y=y)
     return _rendered(plot^, theme, width, height, title, x_title, y_title)

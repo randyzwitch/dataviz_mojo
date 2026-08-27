@@ -76,6 +76,26 @@ def histogram(
     Named after what it plots, not the mark underneath, the same way
     `pie()`/`donut` share `Mark.ARC`. Takes the same `theme`/`width`/
     `height`/`title`/`x_title`/`y_title` parameters every one-call
-    convenience function does (see plot.mojo's module docstring)."""
+    convenience function does (see plot.mojo's module docstring).
+
+    Args:
+        data: The raw values to bin -- not pre-counted; binning
+            happens internally.
+        bins: How many equal-width intervals to divide `data`'s range
+            into (half-open except the last, which includes its
+            upper edge).
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_bar().encode_histogram(data, bins=bins)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

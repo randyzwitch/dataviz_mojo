@@ -178,6 +178,27 @@ def parallel(
     dims)` (which auto-numbers rows) -- every other named-series
     `encode_*` in this package takes its names explicitly rather
     than generating them, and this stays consistent with that. See
-    `_render_parallel`'s docstring for the full reasoning."""
+    `_render_parallel`'s docstring for the full reasoning.
+
+    Args:
+        data: `data[row]` is `row_names[row]`'s polyline, one value
+            per `dims` entry.
+        dims: One vertical axis per entry, each independently scaled
+            to its own column's `[min, max]` across `data`.
+        row_names: One polyline per entry, used as the legend key;
+            required (not auto-numbered).
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_parallel().encode_parallel(dims=dims, row_names=row_names, data=data)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

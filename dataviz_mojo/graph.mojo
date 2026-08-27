@@ -141,7 +141,27 @@ def graph(
     """A network graph -- `Mark.GRAPH`, `Mark.CHORD`'s edge list
     (`Plot.encode_chord()`'s `from_categories`/`to_categories`/
     `values`) drawn as nodes evenly spaced around a circle, connected
-    by straight lines cutting across the interior. See `_render_graph`'s docstring for the full reasoning."""
+    by straight lines cutting across the interior. See `_render_graph`'s docstring for the full reasoning.
+
+    Args:
+        from_categories: Each edge's source node, one entry per row.
+        to_categories: Each edge's destination node, one entry per
+            row (paired with `from_categories[i]`).
+        values: Each edge's magnitude, sizing its connecting line;
+            must be non-negative.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_graph().encode_chord(
         from_categories=from_categories, to_categories=to_categories, values=values
     )

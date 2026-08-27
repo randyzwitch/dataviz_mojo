@@ -105,6 +105,26 @@ def polarbar(
     radiate outward from the chart's center, one equal-width
     angular slot per category, length proportional to `value /
     max(values)` -- see `_render_polar_bar`'s docstring for how
-    this differs from `nightingale()`'s edge-to-edge wedges."""
+    this differs from `nightingale()`'s edge-to-edge wedges.
+
+    Args:
+        categories: One equal-width angular slot per entry, in the
+            given order.
+        values: Each bar's length, proportional to `value /
+            max(values)`; every value must be non-negative, and at
+            least one positive.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_polar_bar().encode_categorical(x=categories, y=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

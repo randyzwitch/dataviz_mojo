@@ -223,6 +223,29 @@ def tree(
 ) raises -> Canvas:
     """A tree diagram -- `Mark.TREE`, a hierarchy (`Plot.encode_
     hierarchy()`'s flattened `ids`/`parent_ids`/`values`) drawn as
-    a top-to-bottom node-link diagram. See `_render_tree`'s docstring for the full reasoning."""
+    a top-to-bottom node-link diagram. See `_render_tree`'s docstring for the full reasoning.
+
+    Args:
+        ids: Every node's unique id, flattened (not nested), one
+            entry per node.
+        parent_ids: Each node's parent id (must be a value present in
+            `ids`, or empty for the single root); paired with
+            `ids[i]`.
+        values: Each leaf node's magnitude (unused by `tree()`'s own
+            layout, but still validated non-negative -- see `Plot.
+            encode_hierarchy()`'s docstring).
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_tree().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

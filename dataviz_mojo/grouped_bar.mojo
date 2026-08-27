@@ -171,7 +171,27 @@ def grouped_bar(
     by side per category, one per series (`values[j]` is series
     `series_names[j]`'s value per category). See `Plot.
     encode_grouped_bar()`'s docstring (plot.mojo) for the exact
-    shape."""
+    shape.
+
+    Args:
+        categories: One group of side-by-side bars per entry, in the
+            given order.
+        series_names: One sub-bar per name, used as the legend key.
+        values: `values[j]` is `series_names[j]`'s value per
+            category.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_grouped_bar().encode_grouped_bar(
         categories=categories, series_names=series_names, values=values
     )

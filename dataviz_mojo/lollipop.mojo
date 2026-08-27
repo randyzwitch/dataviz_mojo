@@ -86,6 +86,24 @@ def lollipop(
 ) raises -> Canvas:
     """A lollipop chart -- `Mark.LOLLIPOP`, the same `(categories,
     values)` shape `bar()` takes (a thin stem plus a point instead of
-    a filled rect per category)."""
+    a filled rect per category).
+
+    Args:
+        categories: One stem-and-point per entry, in the given order.
+        values: Each entry's value; negative values extend below the
+            zero baseline automatically, the same as `bar()`.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_lollipop().encode_categorical(x=categories, y=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

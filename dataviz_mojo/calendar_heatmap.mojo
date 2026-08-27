@@ -274,6 +274,25 @@ def calendar_heatmap(
     laid out in a GitHub-contributions-style calendar grid, colored
     through a continuous gradient. `dates` are plain `"YYYY-MM-DD"`
     strings, all in the same year (inferred from the first one -- see
-    `_render_calendar_heatmap`'s docstring)."""
+    `_render_calendar_heatmap`'s docstring).
+
+    Args:
+        dates: Plain `"YYYY-MM-DD"` strings, one per entry, all in
+            the same year (inferred from `dates[0]`).
+        values: Each date's value, mapped through a continuous color
+            gradient.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_calendar_heatmap().encode_calendar(dates=dates, values=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
