@@ -584,7 +584,16 @@ struct Plot(Movable):
         `_render_nightingale`'s docstring for why the two modes
         read differently. Every value must be non-negative, and at
         least one must be positive -- checked at render() time, the
-        same as `mark_arc()`."""
+        same as `mark_arc()`.
+
+        Args:
+            area: `False` (the default) scales each wedge's *radius*
+                by `value / max`; `True` scales its *area* instead
+                (`sqrt(value / max)`, ECharts' `rose_type="area"`).
+
+        Returns:
+            Self, for further chaining.
+        """
         self._mark = Mark.NIGHTINGALE
         self._nightingale_area = area
         return self^
@@ -732,7 +741,19 @@ struct Plot(Movable):
         correlation matrix, sized/colored by strength and sign --
         encoded via `encode_corrplot()`, not `encode()`/`encode_
         categorical()`. `layout` ("full"/"lower"/"upper") and `diag`
-        control which cells draw at all -- see `_render_corrplot`'s docstring for what each means."""
+        control which cells draw at all -- see `_render_corrplot`'s docstring for what each means.
+
+        Args:
+            layout: Which triangle to draw -- `"full"` (the default),
+                `"lower"`, or `"upper"`.
+            diag: Whether to draw the diagonal cells; defaults to
+                `True`.
+            labels: Whether to draw variable names along the axes;
+                defaults to `True`.
+
+        Returns:
+            Self, for further chaining.
+        """
         self._mark = Mark.CORRPLOT
         self._corrplot.layout = layout
         self._corrplot.diag = diag
@@ -743,7 +764,16 @@ struct Plot(Movable):
         """A punchcard: a scatter plot on a categorical grid where
         bubble size encodes a third variable -- encoded via `encode_
         punchcard()`. `scale` (default 10.0, matching ECharts.jl's keyword) is the plain pixel-space divisor each bubble's radius comes from (`size / scale`) -- see `_render_punchcard`'s docstring for why this isn't normalized to the cell size
-        the way `mark_corrplot()`'s bubbles are."""
+        the way `mark_corrplot()`'s bubbles are.
+
+        Args:
+            scale: Divides each bubble's raw size before drawing --
+                raise it to shrink bubbles that would otherwise
+                overlap.
+
+        Returns:
+            Self, for further chaining.
+        """
         self._mark = Mark.PUNCHCARD
         self._punchcard.scale = scale
         return self^
@@ -924,7 +954,21 @@ struct Plot(Movable):
         mapping to the identical maximum width regardless of how many
         points went into it. Mirrors `mark_nightingale(area=...)`'s
         boolean toggle, applied here to sample size instead of
-        `NIGHTINGALE`'s value magnitude."""
+        `NIGHTINGALE`'s value magnitude.
+
+        Args:
+            bandwidth: Overrides every category's Silverman's-rule
+                kernel-density bandwidth with one shared value; must
+                be positive if given. Left at its default `0.0`, each
+                category gets its own Silverman's-rule bandwidth.
+            scale_by_count: `False` (the default, `scale = "width"`)
+                gives every category's peak the same maximum width;
+                `True` (`scale = "area"`) additionally scales a
+                category's maximum width by `sqrt(n_i / max(n))`.
+
+        Returns:
+            Self, for further chaining.
+        """
         self._mark = Mark.VIOLIN
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
@@ -938,7 +982,21 @@ struct Plot(Movable):
         Silverman's-rule override / ggplot2 `scale = "area"` toggle
         `mark_violin()`'s parameters of the same names are (applied
         to each row's maximum rise instead of width) -- see that
-        method's docstring."""
+        method's docstring.
+
+        Args:
+            bandwidth: Overrides every category's Silverman's-rule
+                kernel-density bandwidth with one shared value; must
+                be positive if given. Left at its default `0.0`, each
+                category gets its own Silverman's-rule bandwidth.
+            scale_by_count: `False` (the default, `scale = "width"`)
+                gives every category's peak the same maximum rise;
+                `True` (`scale = "area"`) additionally scales a
+                category's maximum rise by `sqrt(n_i / max(n))`.
+
+        Returns:
+            Self, for further chaining.
+        """
         self._mark = Mark.RIDGELINE
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
@@ -987,6 +1045,23 @@ struct Plot(Movable):
         `encode_categorical()` instead -- this method's `x`
         parameter is continuous `Float64` positions, not category
         labels.
+
+        Args:
+            x: The continuous x column, one entry per point.
+            y: The continuous y column, one entry per point.
+            color: Optional continuous color channel, mapped through a
+                `ColorScale` spanning the column's `[min, max]`;
+                mutually exclusive with `color_categories`. `Mark.
+                POINT` only.
+            color_categories: Optional discrete color channel,
+                palette-colored by each value's first-seen order
+                among its unique values; mutually exclusive with
+                `color`. `Mark.POINT` only.
+            size: Optional point-size channel, continuous only.
+                `Mark.POINT` only.
+
+        Returns:
+            Self, for further chaining.
         """
         self.x_data = x.copy()
         self.y_data = y.copy()
@@ -1008,6 +1083,15 @@ struct Plot(Movable):
         or re-sorted; repeated categories (grouped/stacked bars) is a
         different, not-yet-built feature (see the wiki's Backlog), not
         silently merged.
+
+        Args:
+            x: One category per entry, in the given order -- treated
+                as already being the axis's category order, not
+                deduplicated or re-sorted.
+            y: Each category's value.
+
+        Returns:
+            Self, for further chaining.
         """
         self.x_categories = x.copy()
         self.x_data = List[Float64]()
@@ -1032,6 +1116,16 @@ struct Plot(Movable):
         be binned meaningfully -- see `_bin_histogram()`'s docstring (histogram.mojo) for the exact binning algorithm
         (half-open bins except the last, label formatting, ...) and
         every case it raises on.
+
+        Args:
+            data: The raw values to bin -- not pre-counted; binning
+                happens right here.
+            bins: How many equal-width intervals to divide `data`'s
+                range into (half-open except the last, which includes
+                its upper edge).
+
+        Returns:
+            Self, for further chaining.
         """
         var binned = _bin_histogram(data, bins)
         self.x_categories = binned.labels.copy()
@@ -1083,6 +1177,19 @@ struct Plot(Movable):
         waterfall chart conventionally shows, not an opt-in extra. A
         total row's `deltas[i]` is stored the same way but never
         read for coloring -- see `Theme.waterfall_total_color`'s docstring for what colors a total bar instead.
+
+        Args:
+            categories: One floating bar per entry, in the given
+                order.
+            deltas: How much the running total changes at each
+                category -- not the bar's absolute height; the
+                cumulative sum starts from `0.0`.
+            is_total: Marks specific rows as running-total checkpoints
+                instead of a plain rising/falling delta. Left empty
+                (the default), every row is a plain delta.
+
+        Returns:
+            Self, for further chaining.
         """
         self.x_categories = categories.copy()
         self.x_data = List[Float64]()
@@ -1112,6 +1219,19 @@ struct Plot(Movable):
         (quartiles are undefined for zero data points -- there's no
         sensible fallback the way an empty histogram bin's count-of-
         zero is).
+
+        Args:
+            categories: One box per entry, in the given order.
+            values: Each category's raw values (`values[i]`) -- must
+                be non-empty; quartiles/whiskers/outliers are computed
+                from these immediately, not deferred to render() time.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            If `categories`/`values` lengths don't match, or any
+            category's value list is empty.
         """
         if len(categories) != len(values):
             raise Error(
@@ -1182,6 +1302,16 @@ struct Plot(Movable):
         method has no way to raise partway through a fluent chain
         without breaking it for callers who *did* pass matching
         lengths).
+
+        Args:
+            categories: One bar per entry, in the given order.
+            open: Each category's opening value.
+            high: Each category's highest value.
+            low: Each category's lowest value.
+            close: Each category's closing value.
+
+        Returns:
+            Self, for further chaining.
         """
         self.x_categories = categories.copy()
         self.x_data = List[Float64]()
@@ -1215,6 +1345,18 @@ struct Plot(Movable):
         depends on that order) -- is deferred to `render()` time, the
         same as every other categorical `encode_*` here (see `encode_
         categorical()`'s docstring for why).
+
+        Args:
+            categories: One row per entry, in the given order.
+            measures: Each category's actual value, drawn as the
+                narrower measure bar.
+            targets: Each category's goal value, drawn as a tick mark.
+            ranges: Each category's own ascending, non-empty list of
+                qualitative-range thresholds, drawn as shaded
+                background bands.
+
+        Returns:
+            Self, for further chaining.
         """
         self.x_categories = categories.copy()
         self.x_data = List[Float64]()
@@ -1248,6 +1390,16 @@ struct Plot(Movable):
         handling has, so a reversed pair still renders
         sensibly rather than raising over what's likely just a data
         convention difference, not an error.
+
+        Args:
+            categories: One horizontal bar per entry, top to bottom.
+            start: Each bar's starting value.
+            end: Each bar's ending value; not required to be greater
+                than `start` -- drawn from `min(start[i], end[i])` to
+                `max(...)`.
+
+        Returns:
+            Self, for further chaining.
         """
         self.x_categories = categories.copy()
         self.x_data = List[Float64]()
@@ -1275,6 +1427,16 @@ struct Plot(Movable):
         names`/`values` the same length, and every `values[j]` the same
         length as `categories`) is deferred to `render()` time, the same
         as every other categorical `encode_*` here.
+
+        Args:
+            categories: One group of side-by-side bars per entry, in
+                the given order.
+            series_names: One sub-bar per name.
+            values: `values[j]` is `series_names[j]`'s value per
+                category.
+
+        Returns:
+            Self, for further chaining.
         """
         self.x_categories = categories.copy()
         self.x_data = List[Float64]()
@@ -1314,6 +1476,20 @@ struct Plot(Movable):
         (`categories`/`left_values`/`right_values` all the same length)
         is deferred to `render()` time, the same as every other
         categorical `encode_*` here.
+
+        Args:
+            categories: One row per entry, in the given order.
+            left_values: Each row's left-side magnitude, read
+                non-negative regardless of sign.
+            right_values: Each row's right-side magnitude, read
+                non-negative regardless of sign.
+            left_name: Legend label for the left side; left empty
+                (the default), falls back to "Left" at render time.
+            right_name: Legend label for the right side; left empty
+                (the default), falls back to "Right" at render time.
+
+        Returns:
+            Self, for further chaining.
         """
         self.x_categories = categories.copy()
         self.x_data = List[Float64]()
@@ -1342,6 +1518,15 @@ struct Plot(Movable):
         Nothing needs computing up front, so length checking (`x`/`y`/
         `value` all the same length) is deferred to `render()` time,
         the same as every other categorical `encode_*` here.
+
+        Args:
+            x: Each cell's column category, one entry per row of data.
+            y: Each cell's row category, one entry per row of data.
+            value: Each cell's value, mapped through a continuous
+                color gradient.
+
+        Returns:
+            Self, for further chaining.
         """
         self.x_categories = List[String]()
         self.x_data = List[Float64]()
@@ -1367,6 +1552,15 @@ struct Plot(Movable):
         length match. See `_render_calendar_heatmap`'s docstring
         for why this differs from ECharts.jl's explicit `year`
         argument.
+
+        Args:
+            dates: Plain `"YYYY-MM-DD"` strings, one per entry, all in
+                the same calendar year (inferred from `dates[0]`).
+            values: Each date's value, mapped through a continuous
+                color gradient.
+
+        Returns:
+            Self, for further chaining.
         """
         self.x_categories = List[String]()
         self.x_data = List[Float64]()
@@ -1382,7 +1576,17 @@ struct Plot(Movable):
         one row per variable, one value per variable within each row
         (checked at render() time, along with every value falling in
         `[-1.0, 1.0]`, the same deferred-validation stance every other
-        `encode_*` here takes)."""
+        `encode_*` here takes).
+
+        Args:
+            variables: One row and one column per entry -- `matrix`
+                must be this length square.
+            matrix: The square pairwise-correlation matrix, each value
+                in `[-1.0, 1.0]`.
+
+        Returns:
+            Self, for further chaining.
+        """
         self._corrplot.variables = variables.copy()
         self._corrplot.matrix = matrix.copy()
         return self^
@@ -1400,6 +1604,15 @@ struct Plot(Movable):
         Length checking (`x`/`y`/`sizes` all the same length, `sizes`
         all non-negative) is deferred to render() time, the same as
         every other categorical `encode_*` here.
+
+        Args:
+            x: Each bubble's column category, one entry per row of
+                data.
+            y: Each bubble's row category, one entry per row of data.
+            sizes: Each bubble's raw size value, non-negative.
+
+        Returns:
+            Self, for further chaining.
         """
         self.x_categories = List[String]()
         self.x_data = List[Float64]()
@@ -1428,6 +1641,16 @@ struct Plot(Movable):
         row one value per category, every value non-negative) is
         deferred to render() time, the same as every other categorical
         `encode_*` here.
+
+        Args:
+            categories: One column per entry.
+            subcategories: One stacked segment per entry.
+            values: `values[i][j]` is `subcategories[i]`'s value for
+                `categories[j]` (rows are subcategories, columns are
+                categories).
+
+        Returns:
+            Self, for further chaining.
         """
         self._marimekko.categories = categories.copy()
         self._marimekko.subcategories = subcategories.copy()
@@ -1448,6 +1671,19 @@ struct Plot(Movable):
         resolves validation, and the non-negative-values check are all
         deferred to render() time, the same as every other categorical
         `encode_*` here.
+
+        Args:
+            ids: Every node's unique id, flattened (not nested), one
+                entry per node.
+            parent_ids: Each node's parent id (a value present in
+                `ids`, or `""` for the single root); paired with
+                `ids[i]`.
+            values: Each leaf node's magnitude; an internal node's
+                displayed value is always its descendant leaves' sum
+                instead, computed at render() time.
+
+        Returns:
+            Self, for further chaining.
         """
         self._hierarchy.ids = ids.copy()
         self._hierarchy.parent_ids = parent_ids.copy()
@@ -1472,6 +1708,16 @@ struct Plot(Movable):
         `encode_*` here) -- a negative flow has no ribbon-width meaning,
         the same reasoning `encode_categorical()`'s `Mark.ARC` path
         gives for rejecting negative wedge values.
+
+        Args:
+            from_categories: Each flow's source node, one entry per
+                row.
+            to_categories: Each flow's destination node, one entry per
+                row (paired with `from_categories[i]`).
+            values: Each flow's magnitude; must be non-negative.
+
+        Returns:
+            Self, for further chaining.
         """
         self.x_categories = List[String]()
         self.x_data = List[Float64]()
@@ -1495,6 +1741,13 @@ struct Plot(Movable):
         requirement are both checked at render() time, not here -- the
         same "encode() itself can't raise partway through a fluent
         chain" reasoning `encode()`'s docstring gives.
+
+        Args:
+            angle: Radians, used exactly as given and unwrapped.
+            radius: Must be non-negative (checked at render() time).
+
+        Returns:
+            Self, for further chaining.
         """
         self._polar.angle = angle.copy()
         self._polar.radius = radius.copy()
@@ -1526,6 +1779,16 @@ struct Plot(Movable):
         series, and every value non-negative -- both checked at
         render() time, the same deferred-validation stance every other
         encode method here takes.
+
+        Args:
+            angle: Radians, used exactly as given and unwrapped;
+                shared by every series.
+            series_names: One trace per name.
+            series_values: `series_values[j]` is `series_names[j]`'s
+                radius per angle; same length as `angle`, non-negative.
+
+        Returns:
+            Self, for further chaining.
         """
         self._polar.angle = angle.copy()
         self._polar.radius = List[Float64]()
@@ -1557,6 +1820,22 @@ struct Plot(Movable):
         mismatch: `indicators`/`max_values`, `series_names`/`series_
         values`, or any individual series whose value count
         doesn't match `indicators`'s count.
+
+        Args:
+            indicators: One spoke per entry, in the given order.
+            max_values: Each spoke's own independent maximum, paired
+                with `indicators[i]`.
+            series_names: One polygon per name.
+            series_values: `series_values[j]` is `series_names[j]`'s
+                value per indicator.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            If `indicators`/`max_values` lengths don't match,
+            `series_names`/`series_values` lengths don't match, or any
+            series' value count doesn't match `indicators`'s count.
         """
         if len(indicators) != len(max_values):
             raise Error(
@@ -1621,6 +1900,21 @@ struct Plot(Movable):
         feature in this package makes. Length-matching and ascending-
         order validation (when non-default) is deferred to render()
         time, the same as everything else here.
+
+        Args:
+            value: The reading to show, clamped (not rejected) to
+                `[min_value, max_value]`.
+            min_value: The dial's low end; defaults to `0.0`.
+            max_value: The dial's high end; defaults to `100.0`.
+            breakpoints: Ascending fractions of the `[min_value,
+                max_value]` span; left empty (the default), reproduces
+                ECharts' fixed 20%/80%/100% bands.
+            band_colors: One color per `breakpoints` band, same
+                length; left empty (the default), reproduces ECharts'
+                fixed green/blue/red bands.
+
+        Returns:
+            Self, for further chaining.
         """
         self._gauge.value = value
         self._gauge.min_value = min_value
@@ -1647,6 +1941,20 @@ struct Plot(Movable):
         coherent result at all" reasoning `encode_radar()`'s checks give) on a `row_names`/`data` length mismatch,
         or any individual row whose value count doesn't match
         `dims`'s count.
+
+        Args:
+            dims: One vertical axis per entry, each independently
+                scaled to its own column's `[min, max]` across `data`.
+            row_names: One polyline per entry.
+            data: `data[row]` is `row_names[row]`'s polyline, one
+                value per `dims` entry.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            If `row_names`/`data` lengths don't match, or any row's
+            value count doesn't match `dims`'s count.
         """
         if len(row_names) != len(data):
             raise Error(
@@ -1687,6 +1995,18 @@ struct Plot(Movable):
         at all" reasoning `encode_boxplot()`'s checks give)
         on a `categories`/`values` length mismatch, or any category
         whose value list is empty.
+
+        Args:
+            categories: One row per entry, in the given order.
+            values: Each category's raw values (`values[i]`) -- must
+                be non-empty.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            If `categories`/`values` lengths don't match, or any
+            category's value list is empty.
         """
         if len(categories) != len(values):
             raise Error(
@@ -1726,6 +2046,20 @@ struct Plot(Movable):
         mark can reuse `_validate_continuous_encoding`'s existing x/y-
         length-match check and `Mark.POINT`'s `_draw_point_layer`
         unchanged, instead of duplicating either.
+
+        Args:
+            x: The continuous column, one entry per point.
+            color: Optional continuous color channel; mutually
+                exclusive with `color_categories`. Left empty (the
+                default), every point uses `Theme.mark_color`.
+            color_categories: Optional discrete color channel;
+                mutually exclusive with `color`. Left empty (the
+                default), every point uses `Theme.mark_color`.
+            size: Optional point-size channel. Left empty (the
+                default), every point uses `Theme.point_radius`.
+
+        Returns:
+            Self, for further chaining.
         """
         self.x_data = x.copy()
         self.x_categories = List[String]()
@@ -1738,6 +2072,19 @@ struct Plot(Movable):
         return self^
 
     def theme(var self, t: Theme) -> Self:
+        """Attach a full `Theme` to this plot, replacing the default
+        one -- every styling knob (colors, margins, fonts, gridlines,
+        ...) this package exposes lives on `Theme`, not scattered
+        across individual `Plot` methods; see `Theme`'s docstring.
+
+        Args:
+            t: The `Theme` to attach, replacing whatever was set
+                before (the default `Theme()` if this is the first
+                call).
+
+        Returns:
+            Self, for further chaining.
+        """
         self._theme = t
         return self^
 
@@ -1786,6 +2133,19 @@ struct Plot(Movable):
         same "raise on a setting that can't apply, don't silently drop
         it" rule `Plot.encode`'s color/size-on-a-non-POINT-mark
         check follows.
+
+        Args:
+            title: The chart's title. Left empty (the default),
+                reserves no layout space for it.
+            subtitle: A secondary line shown under the title,
+                independent of whether `title` is also set.
+            x_title: Caption for whatever's drawn along the bottom
+                edge; raises at render() time on `Mark.ARC`.
+            y_title: Caption for whatever's drawn along the left edge;
+                raises at render() time on `Mark.ARC`.
+
+        Returns:
+            Self, for further chaining.
         """
         self._labels.title = title
         self._labels.subtitle = subtitle
@@ -1835,6 +2195,16 @@ struct Plot(Movable):
         some other layer's) -- see `_render_facets_generic`'s and
         `_render_layers_generic`'s docstrings for the full mechanics
         of each.
+
+        Args:
+            value: The y-value to draw the line at. Outside the
+                mark's (padded) y-domain, draws nothing.
+            label: Drawn to the right of the line when non-empty; left
+                empty (the default), the line draws with no label.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later if the mark has no genuine continuous y-axis.
         """
         self._annotations.line_values.append(value)
         self._annotations.line_labels.append(label)
@@ -1879,6 +2249,18 @@ struct Plot(Movable):
         mechanism). See `annotate_line()`'s docstring for the exact
         supported list and the facets/layers mechanics, both shared
         exactly.
+
+        Args:
+            y0: One edge of the band; need not be the lower one.
+            y1: The other edge of the band; whichever of `y0`/`y1` is
+                smaller becomes the band's bottom edge.
+            label: Drawn inside the band near its top edge when
+                non-empty; left empty (the default), the band draws
+                with no label.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later if the mark has no genuine continuous y-axis.
         """
         self._annotations.area_y0.append(y0)
         self._annotations.area_y1.append(y1)
@@ -1907,6 +2289,16 @@ struct Plot(Movable):
         Only wired into `render()`/`render_svg()` so far, the same
         `render_facets()`/`render_layers()` scope cut every annotation
         method here currently has.
+
+        Args:
+            value: The x-value to draw the line at. Outside the
+                mark's (padded) x-domain, draws nothing.
+            label: Drawn near the line when non-empty; left empty
+                (the default), the line draws with no label.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later if the mark has no genuine continuous x-axis.
         """
         self._annotations.vline_values.append(value)
         self._annotations.vline_labels.append(label)
@@ -1936,6 +2328,18 @@ struct Plot(Movable):
         Only wired into `render()`/`render_svg()` so far -- not `render_
         facets()`/`render_layers()`, the same scope cut every annotation
         method here currently has.
+
+        Args:
+            x: The point's x-coordinate. Outside the mark's (padded)
+                x-domain, draws nothing.
+            y: The point's y-coordinate. Outside the mark's (padded)
+                y-domain, draws nothing.
+            label: Drawn just above the point when non-empty; left
+                empty (the default), the point draws with no label.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later if the mark has no genuine continuous x/y-axis.
         """
         self._annotations.point_x.append(x)
         self._annotations.point_y.append(y)
@@ -1975,6 +2379,9 @@ struct Plot(Movable):
         reads it from whichever layer actually has `.secondary_axis()`
         set, not from shared chrome (see `_secondary_axis_y_title`'s docstring for the mechanics). Leave it unset for no caption at
         all, the same as the primary axis's `y_title`.
+
+        Returns:
+            Self, for further chaining.
         """
         self._secondary_axis = True
         return self^
@@ -5204,7 +5611,23 @@ def scatter(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Canvas:
-    """A scatter plot -- `Mark.POINT` over continuous `x`/`y`."""
+    """A scatter plot -- `Mark.POINT` over continuous `x`/`y`.
+
+    Args:
+        x: The continuous x column, one entry per point.
+        y: The continuous y column, one entry per point.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_point().encode(x=x, y=y)
     return _rendered(plot^, theme, width, height, title, x_title, y_title)
 
@@ -5220,7 +5643,23 @@ def line(
     y_title: String = "",
 ) raises -> Canvas:
     """A line chart -- `Mark.LINE` over continuous `x`/`y`, connected
-    in data order."""
+    in data order.
+
+    Args:
+        x: The continuous x column, one entry per point.
+        y: The continuous y column, one entry per point.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_line().encode(x=x, y=y)
     return _rendered(plot^, theme, width, height, title, x_title, y_title)
 
@@ -5236,6 +5675,23 @@ def area(
     y_title: String = "",
 ) raises -> Canvas:
     """An area chart -- `Mark.AREA` over continuous `x`/`y`, filled
-    down to a zero baseline."""
+    down to a zero baseline.
+
+    Args:
+        x: The continuous x column, one entry per point.
+        y: The continuous y column; the filled area runs from each
+            point down to zero.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_area().encode(x=x, y=y)
     return _rendered(plot^, theme, width, height, title, x_title, y_title)

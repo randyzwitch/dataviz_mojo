@@ -148,7 +148,27 @@ def streamgraph(
     """A streamgraph -- `Mark.STREAMGRAPH`, `Mark.STACKED_BAR`'s running-total stack, floated centered around zero instead of
     sitting on a fixed baseline, and drawn as flowing bands instead of
     discrete rects. Same data shape `grouped_bar()`/`stacked_bar()`/
-    `bump()` all take."""
+    `bump()` all take.
+
+    Args:
+        categories: One position along the x-axis per entry, in the
+            given order.
+        series_names: One flowing band per name, used as the legend
+            key.
+        values: `values[j]` is `series_names[j]`'s value per
+            category.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_streamgraph().encode_grouped_bar(
         categories=categories, series_names=series_names, values=values
     )

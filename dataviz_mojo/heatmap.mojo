@@ -289,6 +289,25 @@ def heatmap(
 ) raises -> Canvas:
     """A heatmap -- `Mark.HEATMAP`, one colored grid cell per (x, y)
     pair, colored by `value` through a continuous gradient. See `Plot.
-    encode_heatmap()`'s docstring (plot.mojo) for the exact shape."""
+    encode_heatmap()`'s docstring (plot.mojo) for the exact shape.
+
+    Args:
+        x: Each cell's column category, one entry per row of data.
+        y: Each cell's row category, one entry per row of data.
+        value: Each cell's value, mapped through a continuous color
+            gradient.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_heatmap().encode_heatmap(x=x, y=y, value=value)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

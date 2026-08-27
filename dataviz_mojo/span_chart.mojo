@@ -96,6 +96,25 @@ def span_chart(
     category from `low[i]` to `high[i]` (`Mark.GANTT`'s mirror
     image; ECharts.jl's `spanchart`, useful for confidence
     intervals, error bounds, or a range like a daily temperature
-    high/low that isn't anchored to zero the way `bar()` assumes)."""
+    high/low that isn't anchored to zero the way `bar()` assumes).
+
+    Args:
+        categories: One floating vertical bar per entry, in the
+            given order.
+        low: Each bar's lower value.
+        high: Each bar's upper value.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_span_chart().encode_gantt(categories=categories, start=low, end=high)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

@@ -173,7 +173,33 @@ def single_axis(
     plotted along one horizontal axis (no y-axis at all), useful for
     seeing the distribution/clustering of one-dimensional data. See
     `Plot.encode_single_axis()`'s docstring (plot.mojo) for the
-    optional `color`/`color_categories`/`size` channels."""
+    optional `color`/`color_categories`/`size` channels.
+
+    Args:
+        x: The continuous column, one entry per point, plotted along
+            the single horizontal axis.
+        color: Optional continuous color channel, mapped through a
+            gradient spanning its own `[min, max]`; mutually exclusive
+            with `color_categories`. Left empty (the default), every
+            point uses `Theme.mark_color`.
+        color_categories: Optional discrete color channel, palette-
+            colored by each value's first-seen order; mutually
+            exclusive with `color`. Left empty (the default), every
+            point uses `Theme.mark_color`.
+        size: Optional point-size channel. Left empty (the default),
+            every point uses `Theme.point_radius`.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_single_axis().encode_single_axis(
         x=x, color=color, color_categories=color_categories, size=size
     )

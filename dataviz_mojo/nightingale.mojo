@@ -113,6 +113,27 @@ def nightingale(
     `x` and continuous `y` (the same shape `pie()`/`bar()` take; every
     value must be non-negative, and at least one positive). Pass
     `area=True` for ECharts' `rose_type="area"` mode instead of the
-    default `"radius"` mode -- see `_render_nightingale`'s docstring for what each mode means."""
+    default `"radius"` mode -- see `_render_nightingale`'s docstring for what each mode means.
+
+    Args:
+        categories: One wedge per entry, in the given order.
+        values: Each wedge's value; every value must be non-negative,
+            and at least one positive.
+        area: `False` (the default) scales each wedge's *radius* by
+            `value`; `True` scales its *area* instead (ECharts'
+            `rose_type="area"`).
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_nightingale(area=area).encode_categorical(x=categories, y=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

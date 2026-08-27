@@ -129,6 +129,27 @@ def punchcard(
     """A punchcard -- `Mark.PUNCHCARD`, a scatter plot on a categorical
     grid where bubble size (`sizes[i] / scale`) encodes a third
     variable, GitHub-style. See `_render_punchcard`'s docstring for
-    the full reasoning."""
+    the full reasoning.
+
+    Args:
+        x: Each bubble's column category, one entry per row of data.
+        y: Each bubble's row category, one entry per row of data.
+        sizes: Each bubble's raw size value, divided by `scale`
+            before drawing.
+        scale: Divides `sizes` before drawing -- raise it to shrink
+            bubbles that would otherwise overlap.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_punchcard(scale=scale).encode_punchcard(x=x, y=y, sizes=sizes)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

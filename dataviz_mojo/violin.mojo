@@ -189,7 +189,35 @@ def violin(
     `False`, switches from ggplot2's `scale = "width"` to `scale =
     "area"` -- see `Plot.mark_violin()`'s docstring for both). See
     `Plot.encode_distribution()`'s docstring (plot.mojo) for the
-    exact shape (the same one `beeswarm()`/`ridgeline()` take)."""
+    exact shape (the same one `beeswarm()`/`ridgeline()` take).
+
+    Args:
+        categories: One silhouette per entry, in the given order.
+        values: Each category's raw values (`values[i]`) -- the
+            density estimate is computed from these, not passed in
+            directly.
+        bandwidth: Overrides every category's Silverman's-rule
+            kernel-density bandwidth with one shared value; must be
+            positive if given. Left at its default `0.0`, each
+            category gets its own Silverman's-rule bandwidth.
+        scale_by_count: `False` (the default, ggplot2's `scale =
+            "width"`) gives every category's peak the same maximum
+            width; `True` (`scale = "area"`) additionally scales a
+            category's maximum width by `sqrt(n_i / max(n))`, so one
+            built from fewer raw values draws visibly narrower.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_violin(bandwidth=bandwidth, scale_by_count=scale_by_count).encode_distribution(
         categories=categories, values=values
     )

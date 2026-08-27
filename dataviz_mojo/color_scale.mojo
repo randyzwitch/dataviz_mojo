@@ -27,8 +27,11 @@ struct ColorScale(Movable):
     """
 
     var domain_min: Float64
+    """The low end of the data domain this scale's colors span."""
     var domain_max: Float64
+    """The high end of the data domain this scale's colors span."""
     var stops: List[_GradientStop]
+    """The gradient's own color stops, added via `add_stop()`."""
     # The smallest-/largest-offset stop so far -- tracked incrementally
     # here instead of scanned from `stops` by _color_at_t on every
     # call, matching LinearGradient/RadialGradient's pattern (see
@@ -38,6 +41,15 @@ struct ColorScale(Movable):
     var _highest: _GradientStop
 
     def __init__(out self, domain_min: Float64, domain_max: Float64):
+        """Construct an empty `ColorScale` over `[domain_min,
+        domain_max]` -- a real, valid starting point with no stops
+        yet; add them via `add_stop()`, or build one pre-filled with
+        `Theme`'s own stops via `from_theme()`.
+
+        Args:
+            domain_min: The low end of the data domain.
+            domain_max: The high end of the data domain.
+        """
         self.domain_min = domain_min
         self.domain_max = domain_max
         self.stops = List[_GradientStop]()
@@ -48,6 +60,13 @@ struct ColorScale(Movable):
         self._highest = self._lowest
 
     def add_stop(mut self, offset: Float64, color: Color):
+        """Add one color stop to the gradient.
+
+        Args:
+            offset: The stop's position in `[0.0, 1.0]` along the
+                gradient.
+            color: The color at that offset.
+        """
         var stop = _GradientStop(offset, color)
         if len(self.stops) == 0 or offset < self._lowest.offset:
             self._lowest = stop
@@ -56,6 +75,17 @@ struct ColorScale(Movable):
         self.stops.append(stop)
 
     def color_at(self, value: Float64) -> Color:
+        """Project `value` onto this scale's `[domain_min,
+        domain_max]` domain, then interpolate its color between the
+        two nearest stops (see this struct's own docstring for the
+        zero-span-domain case).
+
+        Args:
+            value: The data value to look up a color for.
+
+        Returns:
+            The interpolated color at `value`.
+        """
         var span = self.domain_max - self.domain_min
         var t = 0.0
         if span != 0.0:
@@ -79,6 +109,15 @@ struct ColorScale(Movable):
         mojo`'s hand-built black/white and blue/red scales, for
         instance, have nothing to do with any `Theme` at all and
         shouldn't need one just to construct a `ColorScale`).
+
+        Args:
+            theme: Supplies the three color-scale stops
+                (`color_scale_low`/`mid`/`high`).
+            domain_min: The low end of the data domain.
+            domain_max: The high end of the data domain.
+
+        Returns:
+            A `ColorScale` pre-filled with `theme`'s three stops.
         """
         var scale = Self(domain_min, domain_max)
         scale.add_stop(0.0, theme.color_scale_low)
@@ -105,6 +144,10 @@ def default_categorical_palette() -> List[Color]:
     enough until per-Theme palette customization is an actual,
     concrete need, not a reason to change how `Theme` itself copies
     today.
+
+    Returns:
+        8 visually distinct colors, cycled via modulo for more
+        categories than that.
     """
     return [
         Color(31, 119, 180),

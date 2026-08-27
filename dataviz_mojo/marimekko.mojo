@@ -201,7 +201,29 @@ def marimekko(
     composition. `values[i][j]` is `subcategories[i]`'s value for
     `categories[j]` (rows are subcategories, columns are categories,
     matching ECharts.jl's `marimekko()` matrix convention). See
-    `_render_marimekko`'s docstring for the full reasoning."""
+    `_render_marimekko`'s docstring for the full reasoning.
+
+    Args:
+        categories: One column per entry, its width proportional to
+            its share of the grand total.
+        subcategories: One stacked segment per entry, used as the
+            legend key.
+        values: `values[i][j]` is `subcategories[i]`'s value for
+            `categories[j]` (rows are subcategories, columns are
+            categories).
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_marimekko().encode_marimekko(
         categories=categories, subcategories=subcategories, values=values
     )

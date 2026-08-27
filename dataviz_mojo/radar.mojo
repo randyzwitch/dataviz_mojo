@@ -204,7 +204,28 @@ def radar(
     y_title: String = "",
 ) raises -> Canvas:
     """A radar/spider chart -- `Mark.RADAR` over `Plot.encode_radar()`'s shape: `indicators` (one spoke per name, each its `max_values`), and one polygon per series (`series_names` + a
-    value per indicator, `series_values`). See `_render_radar`'s docstring for the full reasoning."""
+    value per indicator, `series_values`). See `_render_radar`'s docstring for the full reasoning.
+
+    Args:
+        indicators: One spoke per entry, in the given order.
+        max_values: Each spoke's own independent maximum, paired with
+            `indicators[i]`.
+        series_names: One polygon per name, used as the legend key.
+        series_values: `series_values[j]` is `series_names[j]`'s
+            value per indicator.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_radar().encode_radar(
         indicators=indicators,
         max_values=max_values,

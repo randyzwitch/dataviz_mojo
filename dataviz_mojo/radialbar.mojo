@@ -116,6 +116,26 @@ def radialbar(
     around a light-gray track -- the first category's ring drawn
     outermost. See `_render_radialbar`'s docstring for the full
     reasoning, including how this differs from `polarbar()`'s radiating
-    bars."""
+    bars.
+
+    Args:
+        categories: One concentric ring per entry -- the first entry
+            drawn outermost.
+        values: Each ring's sweep, proportional to `value /
+            max(values)`; every value must be non-negative, and at
+            least one positive.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_radialbar().encode_categorical(x=categories, y=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

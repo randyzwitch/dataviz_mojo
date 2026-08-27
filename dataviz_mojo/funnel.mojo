@@ -167,6 +167,25 @@ def funnel(
     continuous `y` (the same shape `bar()`/`pie()` take), drawn
     largest-value-first as tapering trapezoids. See `_render_funnel`'s docstring for the taper/ordering rules. `x_title`/`y_title` are
     accepted for signature consistency with every other quickplot here
-    but have no axis to label, the same as `pie()`'s two."""
+    but have no axis to label, the same as `pie()`'s two.
+
+    Args:
+        categories: One trapezoid per entry -- drawn largest-value-
+            first regardless of the given order.
+        values: Each category's value; every value must be
+            non-negative, and at least one positive.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: Unused -- a funnel chart has no x-axis to label.
+        y_title: Unused -- a funnel chart has no y-axis to label.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_funnel().encode_categorical(x=categories, y=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

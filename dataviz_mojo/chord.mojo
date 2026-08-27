@@ -178,7 +178,27 @@ def chord(
     """A chord diagram -- `Mark.CHORD`, ring sectors for every distinct
     node across `from_categories`/`to_categories`, connected by ribbons
     sized by `values`. See `Plot.encode_chord()`'s docstring
-    (plot.mojo) for the exact shape."""
+    (plot.mojo) for the exact shape.
+
+    Args:
+        from_categories: Each flow's source node, one entry per row.
+        to_categories: Each flow's destination node, one entry per
+            row (paired with `from_categories[i]`).
+        values: Each flow's magnitude, sizing its ribbon; must be
+            non-negative.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_chord().encode_chord(
         from_categories=from_categories, to_categories=to_categories, values=values
     )

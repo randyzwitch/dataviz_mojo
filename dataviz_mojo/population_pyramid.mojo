@@ -171,7 +171,30 @@ def population_pyramid(
 ) raises -> Canvas:
     """A population pyramid -- `Mark.POPULATION_PYRAMID`, two mirrored
     horizontal bars per category growing outward from a shared, always-
-    centered zero baseline."""
+    centered zero baseline.
+
+    Args:
+        categories: One row of two mirrored bars per entry, top to
+            bottom.
+        left_values: Each row's left-side magnitude, non-negative.
+        right_values: Each row's right-side magnitude, non-negative.
+        left_name: Legend label for the left side; left empty (the
+            default), falls back to "Left" at render time.
+        right_name: Legend label for the right side; left empty (the
+            default), falls back to "Right" at render time.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_population_pyramid().encode_population_pyramid(
         categories=categories,
         left_values=left_values,

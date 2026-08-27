@@ -303,68 +303,198 @@ from dataviz_mojo.colors import WHITE
 
 struct Theme(ImplicitlyCopyable, Movable):
     var background: Color
+    """The canvas's fill color, drawn behind everything else."""
     var mark_color: Color
+    """The default ink a mark draws in -- bar fill, line stroke,
+    point fill, ... -- whenever no data-driven `color`/`color_categories`
+    channel or per-mark override (`mark_color_negative`, a palette,
+    ...) applies instead."""
     var axis_color: Color
+    """The axis line/tick/frame color."""
     var gridline_color: Color
+    """Gridline color, drawn when `show_gridlines` is `True`."""
     var text_color: Color
+    """The default text color -- tick labels, the chart title, and
+    anywhere else no more specific color field (`subtitle_color`,
+    `annotation_color`, ...) applies."""
     var font_size: Float64
+    """The base font size, in points, for tick/legend labels --
+    scaled by `Theme.scale` the same as every other pixel-sized
+    quantity (see `_Scaled`'s docstring, plot.mojo)."""
     var point_radius: Float64
+    """The default pixel radius for `Mark.POINT`/`EFFECT_SCATTER`
+    markers, before any data-driven `size` channel overrides it."""
     var line_width: Float64
+    """The default stroke width, in pixels, for `Mark.LINE`/`AREA`
+    and every other stroked mark."""
     var margin_left: Int
+    """Reserved pixel space along the plot's left edge, before the
+    y-axis's own tick-label width/`margin_buffer` are added on top."""
     var margin_right: Int
+    """Reserved pixel space along the plot's right edge, before a
+    legend's own reserved width (if any) is added on top."""
     var margin_top: Int
+    """Reserved pixel space along the plot's top edge, before a
+    title/subtitle's own reserved height (if any) is added on top."""
     var margin_bottom: Int
+    """Reserved pixel space along the plot's bottom edge, before an
+    x-axis title's own reserved height (if any) is added on top."""
     var show_gridlines: Bool
+    """Whether to draw gridlines at all; defaults to `True`."""
     var color_scale_low: Color
+    """The low end of the default continuous color gradient (`Plot.
+    encode(color=...)`, `Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`)."""
     var color_scale_mid: Color
+    """The midpoint of the default continuous color gradient -- a
+    deliberate third stop, not a two-color blend; see this struct's
+    own module docstring for why a plain low/high interpolation reads
+    as a muddy, desaturated middle."""
     var color_scale_high: Color
+    """The high end of the default continuous color gradient."""
     var size_range_min: Float64
+    """The smallest pixel radius a data-driven `size` channel maps
+    its column's minimum value to."""
     var size_range_max: Float64
+    """The largest pixel radius a data-driven `size` channel maps
+    its column's maximum value to."""
     var show_legend: Bool
+    """Whether to draw a legend at all, for every mark that has one;
+    defaults to `True`."""
     var scale: Float64
+    """Uniformly multiplies every other pixel-sized quantity
+    `render()` computes (font size, margins, point radius, line
+    width, tick length, legend layout, ...); see this struct's own
+    module docstring for the full HiDPI-rendering reasoning."""
     var donut_inner_radius_fraction: Float64
+    """A fraction (`[0.0, 1.0)`) of `Mark.ARC`'s outer radius to leave
+    as a hole -- `0.0` (the default) draws an ordinary pie; any
+    positive value draws a donut."""
     var color_by_sign: Bool
+    """Whether `Mark.BAR` colors each bar by whether its value is
+    negative (`mark_color_negative`) or not (`mark_color`); defaults
+    to `False` (every bar stays `mark_color`)."""
     var mark_color_negative: Color
+    """The ink for a negative value -- `Mark.BAR` when `color_by_sign`
+    is `True`, and unconditionally for `Mark.WATERFALL`/`CANDLESTICK`,
+    whose falling/down coloring isn't optional."""
     var bullet_range_color_light: Color
+    """The lightest end of `Mark.BULLET`'s grayscale qualitative-range
+    band gradient (lowest range index)."""
     var bullet_range_color_dark: Color
+    """The darkest end of `Mark.BULLET`'s grayscale qualitative-range
+    band gradient (highest range index)."""
     var line_smoothing: Float64
+    """How much `Mark.LINE`/`AREA` curves through its data points, via
+    a Catmull-Rom-derived spline -- `0.0` (the default) draws plain
+    straight segments; `1.0` the full curve; must be in `[0.0, 1.0]`."""
     var title_font_size: Float64
+    """The chart title's font size, in points; defaults larger than
+    `font_size` since a title reads as a heading."""
     var subtitle_font_size: Float64
+    """The subtitle's font size, in points -- the same size an axis
+    title uses, both reading as a subordinate label under the title."""
     var subtitle_color: Color
+    """The subtitle's dedicated color, distinct from `text_color` so
+    it recedes as supporting context rather than competing with the
+    title."""
     var axis_title_font_size: Float64
+    """The x/y-axis title's font size, in points."""
     var waterfall_total_color: Color
+    """`Mark.WATERFALL`'s third color, for a row `encode_waterfall()`'s
+    `is_total` marks as a running-total checkpoint -- deliberately
+    distinct from `mark_color`/`mark_color_negative` since a total bar
+    is a different kind of thing, not a big increase or decrease."""
     var annotation_color: Color
+    """`Plot.annotate_line()`/`annotate_vline()`/`annotate_point()`'s
+    color -- the reference mark itself and its optional label."""
     var annotation_area_color: Color
+    """`Plot.annotate_area()`'s fill -- a separate field from
+    `annotation_color` since a filled band needs real partial opacity
+    to let the mark underneath keep showing through, unlike a line."""
     var font_family: String
+    """Every `_TextRequest`'s typeface; defaults to `"sans-serif"`, a
+    generic keyword both the raster (fontconfig) and SVG (CSS) text
+    backends resolve consistently."""
     var title_bold: Bool
+    """Whether the chart title draws bold; defaults to `True`. The one
+    field in this struct whose default isn't backward-compatible with
+    pre-existing renders -- see this struct's own module docstring."""
     var waterfall_delta_width_fraction: Float64
+    """How much of its band a rising/falling `Mark.WATERFALL` delta
+    bar occupies; a total bar always spans the full band."""
     var bullet_measure_width_fraction: Float64
+    """How thick `Mark.BULLET`'s measure bar is relative to its band."""
     var chord_ring_fraction: Float64
+    """How thick `Mark.CHORD`'s node ring is relative to the outer
+    radius."""
     var radialbar_track_color: Color
+    """The unfilled background track `Mark.RADIALBAR` sweeps its
+    rings over."""
     var treemap_label_color: Color
+    """The label color drawn on a `Mark.TREEMAP` leaf rectangle."""
     var halo_alpha: UInt8
+    """The opacity `Mark.EFFECT_SCATTER` blends each point's halo at,
+    before flattening it against white."""
     var radar_fill_alpha: UInt8
+    """The opacity `Mark.RADAR` blends each series' filled polygon at,
+    before flattening it against white -- a separate field from
+    `halo_alpha` even though both default to the same value, so
+    retheming one never silently moves the other."""
     var radialbar_ring_gap_fraction: Float64
+    """The gap between adjacent `Mark.RADIALBAR` rings, as a fraction
+    of each ring's own slot."""
     var violin_width_fraction: Float64
+    """How much of its category's band width a `Mark.VIOLIN`'s peak
+    density maps to, by default (ggplot2's `scale = "width"`)."""
     var corrplot_bubble_fraction: Float64
+    """How much of a `Mark.CORRPLOT` cell's smaller dimension its
+    bubble's maximum radius (at `abs(correlation) == 1.0`) fills."""
     var gauge_band_inner_fraction: Float64
+    """`Mark.GAUGE`'s color-banded dial ring's inner radius, as a
+    fraction of the dial's outer radius."""
     var gauge_needle_fraction: Float64
+    """`Mark.GAUGE`'s needle length, as a fraction of the dial's
+    outer radius."""
     var ridgeline_overlap: Float64
+    """How far a `Mark.RIDGELINE` row's curve may rise into the row
+    above it, as a multiple of one row's own height."""
     var polar_bar_padding: Float64
+    """The gap `Mark.POLAR_BAR` leaves out of each bar's angular slot,
+    as a fraction of that slot."""
     var polar_grid_rings: Int
+    """How many evenly spaced concentric gridline rings `Mark.POLAR`
+    draws."""
     var polar_grid_spokes: Int
+    """How many straight radial gridline spokes `Mark.POLAR` draws."""
     var radar_grid_rings: Int
+    """How many concentric gridline rings `Mark.RADAR` draws."""
     var gauge_start_angle: Float64
+    """`Mark.GAUGE`'s dial start angle, in radians (this package's
+    usual clockwise-from-3-o'clock convention)."""
     var gauge_sweep_angle: Float64
+    """`Mark.GAUGE`'s total dial sweep, in radians, from
+    `gauge_start_angle`."""
     var tick_length: Int
+    """The pixel length of each axis tick mark."""
     var label_gap: Int
+    """The pixel gap between a tick mark and its label."""
     var legend_width: Int
+    """The reserved pixel width for a legend's swatch-plus-label
+    column, when its dynamic width can't be computed some other way."""
     var legend_swatch_size: Int
+    """The pixel size of each legend entry's color swatch."""
     var legend_row_gap: Int
+    """The pixel gap between consecutive legend entries."""
     var continuous_legend_bar_width: Int
+    """The pixel width of a continuous (gradient) legend's color bar."""
     var continuous_legend_bar_height: Int
+    """The pixel height of a continuous (gradient) legend's color
+    bar."""
     var margin_buffer: Int
+    """Extra breathing-room padding, in pixels, added after a
+    margin's own tick-label-width/tick-length/label-gap computation."""
     var sankey_node_width: Float64
+    """The pixel width of each `Mark.SANKEY` node column's bar."""
 
     def __init__(
         out self,
@@ -432,6 +562,11 @@ struct Theme(ImplicitlyCopyable, Movable):
         margin_buffer: Int = 8,
         sankey_node_width: Float64 = 12.0,
     ):
+        """Construct a `Theme`, overriding any subset of its fields by
+        keyword -- every parameter here is one field, same name, same
+        default; see each field's own docstring above for what it
+        controls rather than this method repeating it, so a change to
+        one never has a second copy elsewhere to fall out of sync."""
         self.background = background
         self.mark_color = mark_color
         self.axis_color = axis_color

@@ -143,6 +143,24 @@ def pie(
     `y` (the same shape `bar()` takes; every value must be
     non-negative, and at least one positive). Pass `theme=Theme(
     donut_inner_radius_fraction=0.55)` (or any value in `[0.0, 1.0)`)
-    for a donut instead -- see `Theme`'s docstring."""
+    for a donut instead -- see `Theme`'s docstring.
+
+    Args:
+        categories: One wedge per entry, in the given order.
+        values: Each category's share; every value must be
+            non-negative, and at least one positive.
+        theme: Full styling knobs beyond this function's own
+            parameters, including `donut_inner_radius_fraction` for
+            a donut -- see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: Unused -- a pie chart has no x-axis to label.
+        y_title: Unused -- a pie chart has no y-axis to label.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_arc().encode_categorical(x=categories, y=values)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

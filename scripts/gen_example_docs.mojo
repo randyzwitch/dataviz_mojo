@@ -423,11 +423,13 @@ def _extract_clean_body(source: String) raises -> List[String]:
     strip out of it -- everything before it (data setup) kept,
     everything from its own closing `)` onward (write_bmp/png, any
     separate SvgCanvas/render_svg() block) cut. A second, rarer shape
-    (currently just examples/annotate_line.mojo) has no quickplot
-    function to call at all -- built by hand via `Plot()` + bare
-    `render(c, plot)` instead; `_bare_render_call_index()` finds that
-    call's own equivalent stopping point, and everything through it is
-    kept the same way. Raises rather than silently falling back to
+    (examples/annotate_area.mojo, annotate_line.mojo, annotate_vline_
+    point.mojo, dual_axis.mojo, and svg_accessibility.mojo, currently)
+    has no quickplot function to call at all -- built by hand via
+    `Plot()` + bare `render(c, plot)`/`render_layers(c, plots)` instead;
+    `_bare_render_call_index()` finds that call's own equivalent
+    stopping point, and everything through it is kept the same way.
+    Raises rather than silently falling back to
     showing the whole file (which used to be `_extract_clean_body`'s
     own fallback, back when a raster-only-no-quickplot example was a
     real, expected shape) -- a future example that fits neither shape

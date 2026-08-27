@@ -264,7 +264,27 @@ def bump(
 ) raises -> Canvas:
     """A bump chart -- `Mark.BUMP`, one line per series tracking its *rank* (1 = highest value) among every series at each category, not
     its raw value. Same data shape `grouped_bar()`/`stacked_bar()` take
-    (`values[j]` is series `series_names[j]`'s value per category)."""
+    (`values[j]` is series `series_names[j]`'s value per category).
+
+    Args:
+        categories: One position along the x-axis per entry, in the
+            given order.
+        series_names: One line per name, used as the legend key.
+        values: `values[j]` is `series_names[j]`'s raw value per
+            category -- ranked into 1 = highest before drawing, not
+            plotted directly.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_bump().encode_grouped_bar(
         categories=categories, series_names=series_names, values=values
     )

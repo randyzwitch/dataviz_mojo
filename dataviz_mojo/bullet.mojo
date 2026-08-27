@@ -195,7 +195,30 @@ def bullet(
     """A bullet chart -- `Mark.BULLET` (Stephen Few's design): a
     measure bar, a target tick, and shaded qualitative-range bands
     per category. See `Plot.encode_bullet()`'s docstring
-    (plot.mojo) for what `measures`/`targets`/`ranges` mean."""
+    (plot.mojo) for what `measures`/`targets`/`ranges` mean.
+
+    Args:
+        categories: One row per entry, in the given order.
+        measures: Each category's actual value, drawn as the narrow
+            measure bar.
+        targets: Each category's goal value, drawn as a tick mark
+            across the full band width.
+        ranges: Each category's own list of ascending qualitative-
+            range thresholds (poor/satisfactory/good, ...), drawn as
+            shaded background bands from lightest to darkest.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Canvas`.
+        height: Pixel height of the returned `Canvas`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+    """
     var plot = Plot().mark_bullet().encode_bullet(
         categories=categories, measures=measures, targets=targets, ranges=ranges
     )
