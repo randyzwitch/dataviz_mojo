@@ -70,9 +70,8 @@ across the whole band. The one other new thing: a legend (series name
 details.
 
 STACKED_BAR reuses `encode_grouped_bar`'s data shape completely
-unchanged (`Plot.mark_stacked_bar().encode_grouped_bar(...)`, the same
-call LOLLIPOP's reuse of BAR's `encode_categorical` establishes as a
-precedent -- identical data, purely a rendering difference) -- each
+unchanged (`Plot.mark_stacked_bar().encode_grouped_bar(...)` --
+identical data, purely a rendering difference) -- each
 category's series stack vertically instead of sitting side by side:
 full band width per segment, one segment on top of the previous one's
 running total instead of `GROUPED_BAR`'s divided sub-bars. See
@@ -364,9 +363,9 @@ docstring for the full reasoning.
 
 SUNBURST is built on the shared `_build_hierarchy_index`
 (hierarchy.mojo) -- a `d3.stratify()`-style flattened tree
-(`encode_hierarchy()`'s `ids`/`parent_ids`/`values`), the same "the
-data already says what's needed" precedent `encode_chord()`'s edge
-list already sets for graphs, generalized to trees. Drawn as
+(`encode_hierarchy()`'s `ids`/`parent_ids`/`values`), the same
+flat-row shape `encode_chord()`'s edge list uses for graphs,
+generalized to trees. Drawn as
 concentric `fill_ring_sector_aa` rings (`ARC`'s primitive, reused
 directly) -- one ring per depth level, each node's angular span
 proportional to its share of its parent's subtree total (not the
@@ -407,9 +406,8 @@ establish. See treemap.mojo's `_render_treemap` docstring for the full
 reasoning.
 
 ARC_DIAGRAM reuses `CHORD`'s `encode_chord()` edge-list data
-completely unchanged (the same "identical data, purely a rendering
-difference" precedent `STACKED_BAR`'s reuse of `GROUPED_BAR` already
-establishes) -- not this package's `ARC` (pie/donut
+completely unchanged -- identical data, purely a rendering
+difference -- not this package's `ARC` (pie/donut
 wedges), a genuinely different chart type that happens to share a
 name, the same naming collision `CHORD`'s docstring already notes.
 Every distinct node sits on one straight line instead of `CHORD`'s

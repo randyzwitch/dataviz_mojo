@@ -98,8 +98,9 @@ def _render_treemap[
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.TREEMAP` plot: `_build_hierarchy_index`'s `children`/`subtree_value` (hierarchy.mojo), laid out via `_draw_
     treemap_node`'s slice-and-dice recursion starting from the
-    whole inner plot rect at the root. See that function's docstring for the full layout reasoning, and `Mark.SUNBURST`'s docstring for the shared "one color per top-level branch" idea
-    reused here too.
+    whole inner plot rect at the root -- see that function's
+    docstring for the full layout reasoning. Reuses `Mark.SUNBURST`'s
+    "one color per top-level branch" idea.
 
     Every value must be non-negative, and the root's subtree total
     must be positive -- the same validation `Mark.SUNBURST` already

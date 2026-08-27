@@ -32,7 +32,7 @@ def test_render_bump_matches_hand_derived_rank_lines() raises:
     # mirror, (140,20)->(300,250).
     #
     # Built via a plain Canvas()+render() (not the bump() quickplot
-    # wrapper) -- matching test_line.mojo's precedent for every
+    # wrapper) -- the same choice test_line.mojo makes for every
     # stroked-line pixel check here: quickplot's supersample-then-
     # downsample pass measurably shifts a thin diagonal stroke's exact
     # pixel position -- a real, if subtle, difference from a plain

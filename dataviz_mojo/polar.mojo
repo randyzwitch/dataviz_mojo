@@ -84,14 +84,11 @@ def _draw_polar_grid[
     center out to `max_radius` -- the polar equivalent of a cartesian
     plot's gridlines, drawn in `theme.gridline_color` the same way
     `_draw_categorical_axis_frame`'s gridlines are. No tick labels
-    (neither the radius rings' values nor the angle spokes' degrees) -- a real, deliberate simplification (the same kind
-    `Mark.CHORD`'s straight-rim ribbons or `Mark.VIOLIN`'s std-only bandwidth already are): the grid alone already
-    communicates the coordinate system's shape, and a numeric
-    label placed *around* a circle (curved baseline, radial
-    orientation) is a real, separate typesetting problem this package
-    has no existing machinery for -- worth solving if a concrete need
-    for exact radius/angle readout ever asks for it, not built
-    speculatively now.
+    (neither the radius rings' values nor the angle spokes' degrees):
+    the grid alone communicates the coordinate system's shape, and a
+    numeric label placed *around* a circle (curved baseline, radial
+    orientation) is a typesetting problem this package has no
+    machinery for yet.
     """
     for i in range(1, theme.polar_grid_rings + 1):
         var r = max_radius * Float64(i) / Float64(theme.polar_grid_rings)

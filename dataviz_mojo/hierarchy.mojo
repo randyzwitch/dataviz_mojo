@@ -4,18 +4,13 @@ exact same three answers about `Plot.encode_hierarchy()`'s flat
 `ids`/`parent_ids`/`values` rows -- who is whose child, how deep is
 each node, and what's each node's subtree total -- before any
 mark-specific layout (a ring sector, a node position, a rectangle) can
-be computed. Shared by all three callers -- the same "one more real
-caller doesn't justify a shared abstraction until it's the *third*
-one" tolerance `_draw_categorical_axis_frame`'s docstring already
-establishes for the categorical-axis cores.
+be computed. Shared by all three callers.
 
 A flat `(id, parent_id, value)` row list rather than a real tree/graph
-type of its own -- the same "the data already says what's needed"
-precedent `encode_heatmap()`'s two-categorical-axis shape and `encode_
-chord()`'s edge list already set: exactly `d3.stratify()`'s flattening trick (a parent-pointer array instead of nested objects),
-chosen so this package's "plain columnar arrays, no Table" data
-model (see the wiki) covers a hierarchy without inventing a new kind
-of value to hold one.
+type of its own -- exactly `d3.stratify()`'s flattening trick (a
+parent-pointer array instead of nested objects), chosen so this
+package's "plain columnar arrays, no Table" data model (see the wiki)
+covers a hierarchy without inventing a new kind of value to hold one.
 """
 
 from std.collections import Dict

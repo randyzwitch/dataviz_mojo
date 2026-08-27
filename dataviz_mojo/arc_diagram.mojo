@@ -26,15 +26,14 @@ from dataviz_mojo.theme import Theme
 def _render_arc_diagram[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.ARC_DIAGRAM` plot: `Mark.CHORD`'s edge-list
-    shape (`encode_chord()`'s `from`/`to`/`value`, one row per flow),
-    reused completely unchanged -- the same "identical data, purely a
-    rendering difference" precedent `Mark.STACKED_BAR`'s reuse of
-    `GROUPED_BAR`'s `encode_grouped_bar()` already established -- but
-    drawn as a genuinely different, much simpler network layout: every
-    distinct node on one straight line, evenly spaced, edges drawn as
-    semicircular arcs bulging upward above it. This is ECharts.jl's "Arc Diagram," a node-link diagram -- *not* this package's `Mark.ARC` (pie/donut wedges), a genuinely different
-    chart type that happens to share a name; see `Mark.CHORD`'s docstring for the same naming-collision note.
+    """Render a `Mark.ARC_DIAGRAM` plot: reuses `Mark.CHORD`'s
+    edge-list shape (`encode_chord()`'s `from`/`to`/`value`, one row
+    per flow) unchanged, drawn as a simpler network layout instead:
+    every distinct node on one straight line, evenly spaced, edges
+    drawn as semicircular arcs bulging upward above it. This is
+    ECharts.jl's "Arc Diagram," a node-link diagram -- *not* this
+    package's `Mark.ARC` (pie/donut wedges), a different chart type
+    that happens to share a name.
 
     Each node's x is `index / (n - 1)` of the way across the plot
     (a single node centers). Each edge's arc has its center at the
@@ -42,29 +41,23 @@ def _render_arc_diagram[
     (`plot_y1`, the bottom of the inner plot rect), radius half the
     distance between them -- so nodes far apart get tall arcs, nodes
     close together get shallow ones, the defining arc-diagram look.
-    Deliberately *not* scaled down to fit any particular height: a
-    real, deliberate choice (the same kind `Mark.CHORD`'s straight-rim ribbons already are) -- the true geometry is shown as
-    it is, not silently compressed, so a caller with far-apart nodes
-    sees exactly why (and can choose a wider `width`/taller `height`
-    accordingly) rather than a chart quietly lying about relative
-    distance.
+    Not scaled down to fit any particular height: the true geometry
+    is shown as it is, so a caller with far-apart nodes sees exactly
+    why (and can choose a wider `width`/taller `height` accordingly)
+    rather than a chart quietly compressing relative distance.
 
     Edge stroke width scales linearly with `value / max(values)`
     (thinnest at the theme's `line_width`, up to 3x that at the
-    maximum) -- the same "value as line weight" reading `Mark.PARALLEL`
-    doesn't need but a flow diagram like this one does. Edge and node
-    marker color both follow the edge's `from` node's palette
-    color (`default_categorical_palette()`, indexed by first-seen
-    node position -- the same convention `Mark.CHORD`'s ribbons
-    already use). A self-loop (`from[i] == to[i]`) draws nothing (a
-    zero-diameter arc has no shape) rather than raising -- not an
-    error, just nothing to draw.
+    maximum). Edge and node marker color both follow the edge's
+    `from` node's palette color (`default_categorical_palette()`,
+    indexed by first-seen node position). A self-loop
+    (`from[i] == to[i]`) draws nothing (a zero-diameter arc has no
+    shape) rather than raising.
 
-    Every node gets its name labeled directly beneath its marker -- unlike `Mark.CHORD`, which relies on a legend instead
-    (its ring sectors are often too thin to hold a label), an arc
-    diagram's nodes sit in one open row with plenty of room, so no
-    legend is drawn here at all: it would just repeat what's already
-    labeled once, directly, right on the diagram.
+    Every node's name is labeled directly beneath its marker; unlike
+    `Mark.CHORD`, which relies on a legend instead, an arc diagram's
+    nodes sit in one open row with room for direct labels, so no
+    legend is drawn here.
     """
     _validate_edge_encoding(plot, "Mark.ARC_DIAGRAM")
 

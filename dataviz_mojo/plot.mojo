@@ -41,15 +41,12 @@ returns -- see `_TextRequest`'s docstring.
 
 Every raster draw call the generic core makes through `Canvas` is the
 anti-aliased variant -- `fill_circle_aa` for points, `stroke_path_aa`
-for lines, `draw_line_aa` for gridlines/axis lines/tick marks --
-rather than reasoning per call site about whether AA is "worth it."
-For the axis-aligned lines specifically this makes no visual
-difference: a perfectly horizontal or vertical, integer-positioned
-line has no diagonal stepping for AA to smooth away in the first
-place. But there's no real cost to it either given how few short
-lines these are, and one consistent default is simpler to reason about
-than an exception that has to be re-justified every time someone reads
-this file. `SvgCanvas` has no equivalent AA choice to make at all --
+for lines, `draw_line_aa` for gridlines/axis lines/tick marks -- one
+consistent default rather than reasoning per call site about whether
+AA is "worth it." For the axis-aligned lines specifically this makes
+no visual difference: a perfectly horizontal or vertical,
+integer-positioned line has no diagonal stepping for AA to smooth
+away in the first place. `SvgCanvas` has no equivalent AA choice to make at all --
 an SVG renderer handles that itself, at whatever resolution it's
 displayed at (see the wiki's Changelog, its entry for the concrete
 problem that motivated adding it).
@@ -440,25 +437,15 @@ struct Plot(Movable):
     convention).
 
     Data columns are grouped one struct per mark family rather than
-    left loose on this type. `Plot` carried ninety-one flat fields
-    before that -- `_box_q1`, `_box_median`, `_box_q3`, and so on --
-    which made three things worse at once: `__init__` was ninety-four
-    lines of `self.x = List[Float64]()`, adding a mark meant editing
-    this struct in several places, and every mark's render function
-    could see every other mark's columns, with nothing but a naming
-    convention keeping them apart.
-
-    The grouping is not a new taxonomy imposed on the data. The
-    per-field comments here were *already* written one block per mark,
-    which is what made the seams obvious; those blocks are now each
-    sub-struct's docstring, so the documentation sits with the data
-    it describes.
+    left loose on this type: each sub-struct's docstring documents its
+    own fields, so the documentation sits with the data it describes,
+    and a mark's render function only sees its own group's columns,
+    not every other mark's.
 
     `_edges` earns its name particularly: `Mark.CHORD`, `ARC_DIAGRAM`,
-    `GRAPH` and `SANKEY` all read the same three columns, a fact
-    otherwise only discoverable by grepping `_chord_from` and noticing
-    four unrelated marks in the results. `_edge_node_index` already
-    resolves that shared shape; this names it.
+    `GRAPH` and `SANKEY` all read the same three columns --
+    `_edge_node_index` already resolves that shared shape; this names
+    it.
 
     What stays ungrouped is deliberate: `x_data`/`y_data`/
     `x_categories`/`color_data`/`color_categories`/`size_data` are the
@@ -726,10 +713,8 @@ struct Plot(Movable):
         high value, on the normal categorical x-axis instead of
         `Mark.GANTT`'s horizontal one. Encoded via `encode_gantt()`,
         the exact same category + start + end shape, completely
-        unchanged -- only the orientation this renders it in differs
-        (the same "identical data, purely a rendering difference"
-        precedent `mark_stacked_bar()`'s reuse of `encode_grouped_
-        bar()` already established)."""
+        unchanged -- only the orientation this renders it in
+        differs."""
         self._mark = Mark.SPAN_CHART
         return self^
 
@@ -937,9 +922,9 @@ struct Plot(Movable):
         width by `sqrt(n_i / max(n))` when `True` (ggplot2's `scale = "area"`) -- a category built from fewer raw values
         draws visibly narrower, instead of every category's peak
         mapping to the identical maximum width regardless of how many
-        points went into it. The same `mark_nightingale(area=...)`
-        boolean-toggle precedent, applied here to sample size instead
-        of `NIGHTINGALE`'s value magnitude."""
+        points went into it. Mirrors `mark_nightingale(area=...)`'s
+        boolean toggle, applied here to sample size instead of
+        `NIGHTINGALE`'s value magnitude."""
         self._mark = Mark.VIOLIN
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
@@ -1523,10 +1508,9 @@ struct Plot(Movable):
         """Map a shared angle column (radians) plus one or more named
         series onto `Mark.POLAR`'s two channels -- the multi-series
         generalization of `encode_polar()` (which stays the plain
-        single-unnamed-series entry point, exactly the same "a
-        generalized version gets its encode method" precedent
-        `encode_grouped_bar()` already set alongside `encode_
-        categorical()`), for comparing several traces on one shared
+        single-unnamed-series entry point, the same relationship
+        `encode_grouped_bar()` has alongside `encode_categorical()`),
+        for comparing several traces on one shared
         polar grid instead of drawing just one.
 
         Every series shares the same `angle` domain and the same
@@ -1841,10 +1825,9 @@ struct Plot(Movable):
         hierarchy/edge-list layouts, `Mark.ARC`'s no-axes-at-all
         shape, `Mark.BUMP`'s rank-not-value y-axis, ...) has no
         y *value* domain a reference line could mean anything against
-        -- a real, deliberate scope limit, not an oversight; growing
-        this list only needs a call site update, not new machinery
-        (see `_CategoricalFrame.result`'s docstring for how the
-        first nine got it "for free").
+        -- a scope limit: growing this list only needs a call site
+        update, not new machinery (see `_CategoricalFrame.result`'s
+        docstring for how the first nine got it "for free").
 
         Also wired into `render_facets()` (each cell's annotations
         draw against that cell's real y-scale, exactly like a

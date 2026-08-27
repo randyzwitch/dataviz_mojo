@@ -64,12 +64,10 @@ def _render_sankey[
     of through them. Every ribbon segment in one flow's chain
     still colors by that flow's original source node (not
     whichever pass-through node a given segment happens to start from)
-    so the whole chain reads as one flow. Each skip edge gets its dedicated pass-through nodes, never shared with another skip edge
-    passing through the same column -- a real, deliberate
-    simplification (a real Sankey layout would bundle same-direction
-    pass-throughs into shared lanes to save vertical space; this
-    doesn't, trading some extra column height for a much simpler
-    layout pass with no lane-bundling logic of its own). Multiple
+    so the whole chain reads as one flow. Each skip edge gets its own
+    dedicated pass-through nodes, never shared with another skip edge
+    passing through the same column, trading extra column height for
+    a layout pass with no lane-bundling logic. Multiple
     flows in or out of one node (real or pass-through) stack in the
     given row order, each claiming its proportional slice of that
     node's side -- exactly how a real Sankey's additive-flow

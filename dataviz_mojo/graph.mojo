@@ -27,8 +27,7 @@ def _render_graph[
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.GRAPH` plot: `Mark.CHORD`'s edge-list shape
     (`encode_chord()`'s `from`/`to`/`value`), reused completely
-    unchanged (the same reuse precedent `Mark.ARC_DIAGRAM`'s docstring already establishes for this exact data), drawn as a
-    third genuinely different network layout: every distinct node
+    unchanged, drawn as a third genuinely different network layout: every distinct node
     evenly spaced *around* a circle (`Mark.ARC`'s start-at-12-
     o'clock, sweep-clockwise convention, reused for node position only
     -- there's no wedge here), edges drawn as *straight* lines cutting

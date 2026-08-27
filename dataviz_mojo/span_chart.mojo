@@ -28,13 +28,10 @@ def _render_span_chart[
     anchor to zero" reading `Mark.CANDLESTICK`'s high-low wick
     already gives, generalized to a filled bar instead of a thin line.
 
-    Deliberately reuses `encode_gantt()`'s data shape completely
-    unchanged (`Plot.mark_span_chart().encode_gantt(categories=...,
-    start=lows, end=highs)`) rather than a new `encode_*` method --
-    the same "identical data, purely an orientation/rendering
-    difference" precedent `Mark.STACKED_BAR`'s reuse of `Mark.
-    GROUPED_BAR`'s `encode_grouped_bar()` already established (see
-    that mark's docstring in mark.mojo). `_gantt`'s `start`/
+    Reuses `encode_gantt()`'s data shape completely unchanged
+    (`Plot.mark_span_chart().encode_gantt(categories=..., start=lows,
+    end=highs)`) rather than a new `encode_*` method -- identical
+    data, purely an orientation/rendering difference. `_gantt`'s `start`/
     `end` don't need `start[i] <= end[i]` -- same as `Mark.GANTT`'s lack of that requirement, this draws from `min`/`max` of the two,
     not literally `start` to `end` in that order.
 

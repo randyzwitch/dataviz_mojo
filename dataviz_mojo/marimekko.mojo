@@ -68,11 +68,10 @@ def _render_marimekko[
     Every value must be non-negative, and `grand_total` must be
     positive -- the same "raise, don't silently misrepresent" stance
     `Mark.ARC`'s validation already takes for its share-of-
-    a-whole data. No numeric y-axis (a real, deliberate simplification,
-    the same kind `Mark.POLAR`'s ungridded numeric readout already is)
-    -- category names label each column along the
-    bottom, legend keyed by `subcategories` (the same "series name ->
-    color" legend `Mark.STACKED_BAR` already draws).
+    a-whole data. No numeric y-axis -- category names label each
+    column along the bottom, legend keyed by `subcategories` (the
+    same "series name -> color" legend `Mark.STACKED_BAR` already
+    draws).
     """
     if len(plot._marimekko.values) != len(plot._marimekko.subcategories):
         raise Error(
