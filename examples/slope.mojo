@@ -13,8 +13,8 @@ the "Before"/"After"-style category labels a slope chart's x-axis
 conventionally shows -- that needs categorical-x support on Mark.LINE,
 not built yet (see the wiki's Backlog). A real slope chart also
 usually compares *several* entities' slopes on shared axes at
-once, which needs the multi-series layering this whole phase's plan
-builds next (see the wiki's Changelog, its Phase 1 entry) -- this
+once, which needs the multi-series layering feature planned next
+(see the wiki's Changelog, its Phase 1 entry) -- this
 example is deliberately the single-series, numeric-axis case that's
 already possible today, not a claim that the full chart type is done.
 
