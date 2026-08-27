@@ -27,8 +27,7 @@ def _render_graph[
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.GRAPH` plot: `Mark.CHORD`'s edge-list shape
     (`encode_chord()`'s `from`/`to`/`value`), reused completely
-    unchanged (the same reuse precedent `Mark.ARC_DIAGRAM`'s docstring already establishes for this exact data), drawn as a
-    third genuinely different network layout: every distinct node
+    unchanged, drawn as a third genuinely different network layout: every distinct node
     evenly spaced *around* a circle (`Mark.ARC`'s start-at-12-
     o'clock, sweep-clockwise convention, reused for node position only
     -- there's no wedge here), edges drawn as *straight* lines cutting
@@ -48,15 +47,15 @@ def _render_graph[
 
     Edge stroke width scales with `value/max(values)`, edge and node
     marker color both follow the edge's `from` node's palette
-    color -- the same conventions `Mark.ARC_DIAGRAM` already
-    establishes for this identical data shape. A self-loop (`from[i]
+    color -- the same conventions `Mark.ARC_DIAGRAM` uses for this
+    identical data shape. A self-loop (`from[i]
     == to[i]`) draws nothing. Every node is labeled just outside its position on the circle, aligned by which side of center it
     falls on (left-aligned on the right half, right-aligned on the
     left half, centered at the top/bottom -- the same alignment rule
-    `Mark.RADAR`'s axis labels already use for the identical
+    `Mark.RADAR`'s axis labels use for the identical
     "label sits just outside a point on a circle" problem) -- no
     legend, the same "already labeled directly, nothing left for a
-    legend to add" reasoning `Mark.ARC_DIAGRAM` already gives.
+    legend to add" reasoning `Mark.ARC_DIAGRAM` gives.
     """
     _validate_edge_encoding(plot, "Mark.GRAPH")
 

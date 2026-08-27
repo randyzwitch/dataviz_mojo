@@ -29,8 +29,8 @@ from _test_helpers import BG, _count_color, _assert_color
 
 def test_render_bar_mark_matches_hand_derived_bar_rectangles() raises:
     # 3 categories, y=[10,20,15], canvas 400x300 with default margins
-    # (plot area x:[60,380], y:[20,250]). _bar_y_extent pads [0,20] up
-    # to [0,21.0] (5% of the 20-span, only on the non-zero end -- see
+    # (plot area x:[60,380], y:[20,250]). _zero_baseline_y_extent pads
+    # [0,20] up to [0,21.0] (5% of the 20-span, only on the non-zero end -- see
     # that function's docstring), giving baseline pixel y=250 and
     # tops at y=140/31/86 for values 10/20/15 respectively.
     # OrdinalScale's default 0.2 padding over range [60,380] (step
@@ -84,8 +84,8 @@ def test_render_bar_empty_data_only_fills_background() raises:
 
 
 def test_render_bar_negative_values_extend_below_the_baseline() raises:
-    # A single negative bar -- _bar_y_extent's domain is [lo-pad, 0]
-    # (hi stays exactly 0, unpadded, since no value is above zero --
+    # A single negative bar -- _zero_baseline_y_extent's domain is
+    # [lo-pad, 0] (hi stays exactly 0, unpadded, since no value is above zero --
     # see that function's docstring), so the baseline sits at the
     # *top* of the bar's drawn rectangle, not its bottom the way
     # every positive-only bar in the test above has it.

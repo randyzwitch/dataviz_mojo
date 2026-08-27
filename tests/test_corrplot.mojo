@@ -18,8 +18,8 @@ from _test_helpers import BG, _assert_color
 
 def test_render_corrplot_matches_hand_derived_bubbles() raises:
     # 2 variables ("A", "B"), matrix [[1, -0.5], [-0.5, 1]]. Canvas
-    # 400x300, show_gridlines=False, show_legend=False: Mark.HEATMAP's
-    # own _draw_grid_axis_frame (padding=0.0), 2 categories on each
+    # 400x300, show_gridlines=False, show_legend=False:
+    # _draw_grid_axis_frame (padding=0.0), 2 categories on each
     # axis over plot area x:[60,380], y:[20,250] -> cell width 160,
     # cell height 115. max bubble radius = min(160,115)/2*0.42 =
     # 57.5*0.42 = 24.15 -> 24 at |value|=1.0.

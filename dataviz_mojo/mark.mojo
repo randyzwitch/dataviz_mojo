@@ -1,7 +1,7 @@
 """The geometric primitive a data row becomes -- the grammar-of-
 graphics `mark` concept. Follows the same small-struct-with-comptime-
 constants-and-`__eq__` pattern canvas_mojo.FillRule/canvas_mojo.TextAlign
-already established, not a distinct enum mechanism.
+use, not a distinct enum mechanism.
 
 POINT (scatter) and LINE share continuous x/y encoding. LINE's
 `Theme.line_smoothing` (default 0.0, plain straight segments)
@@ -47,8 +47,8 @@ tick -- see `_render_bullet`'s docstring for the drawing order and
 why, unlike CANDLESTICK/WATERFALL, its measure bar is never colored by
 sign.
 
-GANTT is the first mark whose categories run along a *horizontal* axis
-instead of a vertical one -- a project-schedule/span chart, one
+GANTT's categories run along a *horizontal* axis instead of a
+vertical one -- a project-schedule/span chart, one
 floating horizontal bar per category from a start value to an end
 value (`encode_gantt`, deliberately no Date/Time type of its own --
 see that method's docstring). Shares nothing structurally with
@@ -70,9 +70,8 @@ across the whole band. The one other new thing: a legend (series name
 details.
 
 STACKED_BAR reuses `encode_grouped_bar`'s data shape completely
-unchanged (`Plot.mark_stacked_bar().encode_grouped_bar(...)`, the same
-call LOLLIPOP's reuse of BAR's `encode_categorical` establishes as a
-precedent -- identical data, purely a rendering difference) -- each
+unchanged (`Plot.mark_stacked_bar().encode_grouped_bar(...)` --
+identical data, purely a rendering difference) -- each
 category's series stack vertically instead of sitting side by side:
 full band width per segment, one segment on top of the previous one's
 running total instead of `GROUPED_BAR`'s divided sub-bars. See
@@ -94,8 +93,9 @@ draw visually equal-length bars) and the two-color legend
 (`left_name`/`right_name`), the one other new thing no other
 horizontal mark needs.
 
-HEATMAP is the first mark with *two* categorical axes and no
-continuous one at all: `encode_heatmap`'s `x`/`y`/`value` (one row per
+HEATMAP has *two* categorical axes and no continuous one at all
+(shared by CORRPLOT/PUNCHCARD too -- see `_draw_grid_axis_frame`'s
+docstring): `encode_heatmap`'s `x`/`y`/`value` (one row per
 grid cell, `x`/`y` deduplicated into each axis's domain via
 `_categorical_indices`, the same helper `Mark.POINT`'s categorical
 color channel already uses) draws a filled cell per row, colored
@@ -109,7 +109,7 @@ edge-to-edge instead of `Mark.BAR`'s separated bands.
 
 CHORD (not "Arc Diagram" in the network-node-link-over-a-line sense, a
 genuinely different chart type that happens to share a name with this
-package's pre-existing `ARC`) is the first mark drawn from an *edge
+package's `ARC`) is drawn from an *edge
 list* (`encode_chord`'s `from_categories`/`to_categories`/`values`,
 one row per flow) rather than one row per category. Its nodes reuse
 `Mark.ARC`'s start-at-12-o'clock, sweep-clockwise ring-sector
@@ -121,7 +121,7 @@ the circle's center for each cross connection) drawn through
 per-node running-angle bookkeeping (`_render_chord`) and the ribbon
 geometry itself (`_draw_chord_ribbon`).
 
-SINGLE_AXIS is the first mark with only *one* axis drawn at all:
+SINGLE_AXIS is the only mark with exactly *one* axis drawn at all:
 `encode_single_axis`'s `x` (plus the usual optional `color`/`color_
 categories`/`size` channels `Mark.POINT` already supports), one point
 per row, all placed at a single fixed pixel row via a degenerate
@@ -163,7 +163,7 @@ STREAMGRAPH reuses `Mark.STACKED_BAR`'s running-total stacking over
 `encode_grouped_bar`'s data, but each category's stack starts from
 `-total_i / 2` instead of a shared zero (`_symmetric_zero_baseline_y_
 extent`, streamgraph.mojo -- the same "forced symmetric" reasoning
-`POPULATION_PYRAMID`'s x-domain helper already establishes, applied to
+`POPULATION_PYRAMID`'s x-domain helper uses, applied to
 a per-category stacked total instead), so the whole picture floats
 centered around zero -- the "silhouette" look -- and each series draws
 as one flowing filled band across every category (straight `line_to`
@@ -173,7 +173,7 @@ unchanged.
 
 BEESWARM has its `encode_distribution` (categories, one *list* of
 raw values per category, kept unsummarized -- the same outer-list-
-indexes-categories shape `encode_boxplot` already establishes, but
+indexes-categories shape `encode_boxplot` uses, but
 `Mark.BOX` immediately reduces each list to a five-number summary,
 discarding the raw values; `VIOLIN`/`RIDGELINE` share this same encode
 method, since both need the raw values too, for a density estimate).
@@ -292,7 +292,7 @@ to right, each independently scaled to its column's `[min, max]`
 -- unlike `RADAR`'s caller-supplied per-indicator max) and
 `row_names`/`data` (one polyline per named row, one value per
 dimension -- the same "outer list indexes named things" shape
-`RADAR`'s `series_values` already establishes). No axis tick labels
+`RADAR`'s `series_values` uses). No axis tick labels
 beyond each dimension's name -- the same simplification `POLAR`'s grid
 already carries. See parallel.mojo's `_render_parallel` docstring for
 the full reasoning.
@@ -363,9 +363,9 @@ docstring for the full reasoning.
 
 SUNBURST is built on the shared `_build_hierarchy_index`
 (hierarchy.mojo) -- a `d3.stratify()`-style flattened tree
-(`encode_hierarchy()`'s `ids`/`parent_ids`/`values`), the same "the
-data already says what's needed" precedent `encode_chord()`'s edge
-list already sets for graphs, generalized to trees. Drawn as
+(`encode_hierarchy()`'s `ids`/`parent_ids`/`values`), the same
+flat-row shape `encode_chord()`'s edge list uses for graphs,
+generalized to trees. Drawn as
 concentric `fill_ring_sector_aa` rings (`ARC`'s primitive, reused
 directly) -- one ring per depth level, each node's angular span
 proportional to its share of its parent's subtree total (not the
@@ -384,7 +384,7 @@ layout, *not* a real Reingold-Tilford algorithm, see its docstring)
 picks each node's column (every leaf gets the next sequential slot,
 left to right; an internal node sits at the plain average of its
 children's slots). The same "one color per top-level branch, shared by
-every descendant" idea `SUNBURST` already establishes, computed once
+every descendant" idea `SUNBURST` uses, computed once
 up front here (`_assign_branch_colors`) rather than threaded through a
 recursive draw call, since `TREE` draws every edge first, then every
 node marker on top, two separate passes rather than one recursive one.
@@ -397,7 +397,7 @@ depth, each child's share of a split proportional to its
 `subtree_value` share of its parent's total) -- a deliberately
 simplified layout, not a real squarified algorithm (see that
 function's docstring, the same "simpler, still genuinely correct"
-tolerance `TREE`'s layout already takes). Every leaf draws filled and
+tolerance `TREE`'s layout takes). Every leaf draws filled and
 labeled in white (the one mark in this package whose label sits *over*
 a solid fill rather than the background); an internal node draws
 nothing of its own, just partitions space for its children. The same
@@ -406,9 +406,8 @@ establish. See treemap.mojo's `_render_treemap` docstring for the full
 reasoning.
 
 ARC_DIAGRAM reuses `CHORD`'s `encode_chord()` edge-list data
-completely unchanged (the same "identical data, purely a rendering
-difference" precedent `STACKED_BAR`'s reuse of `GROUPED_BAR` already
-establishes) -- not this package's pre-existing `ARC` (pie/donut
+completely unchanged -- identical data, purely a rendering
+difference -- not this package's `ARC` (pie/donut
 wedges), a genuinely different chart type that happens to share a
 name, the same naming collision `CHORD`'s docstring already notes.
 Every distinct node sits on one straight line instead of `CHORD`'s
@@ -429,11 +428,11 @@ as straight lines cutting across the interior instead of `CHORD`'s
 ring-sectors-plus-ribbons or `ARC_DIAGRAM`'s nodes-on-a-line-plus-arcs.
 A deliberately simple, deterministic circular layout, not a real
 force-directed simulation -- the same "not a full physics simulation"
-scope choice `BEESWARM`'s docstring already makes for a completely
+scope choice `BEESWARM`'s docstring makes for a completely
 different layout problem, for the identical reason (this package's
 test methodology needs exact, hand-verifiable positions). Labels align
 by which side of center they fall on, the same rule `RADAR`'s axis
-labels already use. See graph.mojo's `_render_graph` docstring for the
+labels use. See graph.mojo's `_render_graph` docstring for the
 full reasoning.
 
 SANKEY reuses `CHORD`'s edge-list data one more time, laid out
@@ -443,11 +442,11 @@ Kahn's-algorithm topological pass (which also detects a cycle and
 raises, since a real Sankey's flow data must be a DAG). Each node is a
 thin bar, height proportional to `max(total inflow, total outflow)`;
 nodes sharing a column stack via the same "round the cumulative
-boundary" pattern `MARIMEKKO`/`TREEMAP` already establish. Each flow
+boundary" pattern `MARIMEKKO`/`TREEMAP` use. Each flow
 draws as one or more filled quadrilaterals ("ribbon" segments) between
 a slice of its `from` node's right edge and its `to` node's
 left edge -- straight edges, not a smooth curve, the same "straight,
-not curved" simplification `CHORD`'s straight-rim ribbons already are.
+not curved" simplification `CHORD`'s straight-rim ribbons are.
 A "skip" edge (spanning more than one column) is spliced into a chain
 through one invisible pass-through node per intermediate column --
 each competing for that column's vertical space exactly like a real

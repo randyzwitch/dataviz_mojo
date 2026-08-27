@@ -20,8 +20,8 @@ def test_render_calendar_heatmap_matches_hand_derived_cells() raises:
     # Sunday -- 6 days later, wrapping to the *next* week's column since Sunday starts a new week here), and 2024-12-31 (a
     # real-world Tuesday, the year's last day, in the year's last column). Values [1.0, 2.0, 3.0] -- min/mid/max of the color
     # domain, so the first and third cells read directly off Theme's
-    # own color_scale_low/high, no ColorScale interpolation math to
-    # trust blindly.
+    # color_scale_low/high, no ColorScale interpolation math to
+    # re-derive here.
     #
     # Canvas 900x300, show_legend=False: plot area x:[60,880],
     # y:[20,250] (top margin grows by one font-size + label-gap for

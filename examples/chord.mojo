@@ -3,7 +3,7 @@ node across an edge list's from/to columns, connected by ribbons
 sized by each flow's value (Plot.encode_chord(), one row per flow
 -- see that method's docstring). Reuses Mark.ARC's start-at-
 12-o'clock, sweep-clockwise ring-sector convention for nodes; ribbons
-are drawn as curved filled paths through the newly-added DrawTarget.
+are drawn as curved filled paths through DrawTarget.
 fill_path_aa (chord.mojo's _draw_chord_ribbon). Built via
 dataviz_mojo.chord() -- see examples/scatter.mojo's docstring for
 what that trades away.

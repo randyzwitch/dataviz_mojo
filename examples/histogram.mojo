@@ -6,8 +6,8 @@ dataviz_mojo.histogram() -- see examples/scatter.mojo's docstring
 for what that trades away.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why every new
-chart-type example does this from here on.
+data -- see examples/donut.mojo's docstring for why every example
+does this.
 
 Run with:
     pixi run example

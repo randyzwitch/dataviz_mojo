@@ -272,8 +272,8 @@ def test_theme_mark_colors_are_actually_used() raises:
 
 
 def test_theme_layout_fields_reach_scaled() raises:
-    # Tier 6 differs from the mark-style fields: these are pixel
-    # quantities that must keep flowing through _Scaled, so a bare
+    # Layout fields differ from the mark-style fields above: these are
+    # pixel quantities that must keep flowing through _Scaled, so a bare
     # "does the output change" check is not enough -- it must also
     # still multiply by Theme.scale for HiDPI.
     var t1 = Theme(tick_length=5)

@@ -20,9 +20,9 @@ from _test_helpers import BG, _assert_color
 
 def test_render_svg_annotate_vline_matches_hand_derived_position() raises:
     # Mark.LINE, 2 points (10 -> 20), no gridlines -- x-domain pads to
-    # roughly [0.95, 2.05] (5% of span 1.0). annotate_vline(1.5)'s column maps to px=220 -- canvas 400x300, plot area x:[60,380],
-    # y:[20,250]. Its own
-    # label sits just right of the line, near the plot's top edge.
+    # roughly [0.95, 2.05] (5% of span 1.0). annotate_vline(1.5)'s
+    # column maps to px=220 -- canvas 400x300, plot area x:[60,380],
+    # y:[20,250]. Its label sits just right of the line, near the plot's top edge.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var svg = SvgCanvas(400, 300)

@@ -191,19 +191,15 @@ def test_render_facets_svg_raises_on_non_positive_cols() raises:
 
 
 def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() raises:
-    # render_facets never filled a background of its own -- it relied on
-    # _render_generic filling the cell rect it was handed, which is the
-    # rect *after* _apply_labels already shrank it to reserve room for
-    # a title. So a titled cell's top band was never painted, and
-    # showed whatever the canvas happened to hold beforehand. render()
-    # has always documented the opposite contract ("the whole original
-    # rect is filled . so a title's reserved margin strip gets
-    # painted too"); facets now fills each cell's full rect to match.
+    # render_facets() fills each cell's full rect, the same contract
+    # render() documents ("the whole original rect is filled . so a
+    # title's reserved margin strip gets painted too") -- a titled
+    # cell's reserved title strip must get painted, not left showing
+    # whatever the canvas held beforehand.
     #
     # One cell (cols=1) on a deliberately non-background canvas: with
     # title_font_size=18.0 and label_gap=4, extra_top is 22, so y=2 sits
-    # inside the reserved strip and above the plot area entirely. Before
-    # this fill existed that pixel stayed magenta.
+    # inside the reserved strip and above the plot area entirely.
     var xy: List[Float64] = [5.0]
     var plots = List[Plot]()
     plots.append(Plot().mark_point().encode(x=xy, y=xy).labels(title="Titled"))
@@ -214,7 +210,7 @@ def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() r
 
     # .and the same for an untitled cell, where the strip doesn't
     # exist but the corner is still outside the plot area -- confirming
-    # the new fill covers the ordinary case too, not just the titled one.
+    # the fill covers the ordinary case too, not just the titled one.
     var untitled = List[Plot]()
     untitled.append(Plot().mark_point().encode(x=xy, y=xy))
     var c2 = Canvas(400, 300, MAGENTA)

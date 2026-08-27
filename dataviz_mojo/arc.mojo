@@ -27,8 +27,8 @@ def _render_arc[
     """Render a `Mark.ARC` plot (a pie chart): one wedge per category
     (`encode_categorical`'s `x`), its angular span proportional to its value (`y`) divided by the total. No x/y axis frame at all
     (no ticks, gridlines, or axis lines) -- a pie chart doesn't have a
-    coordinate system the way every other mark here does, so this is a
-    fully separate function, not a branch inside `render()`'s continuous or `_render_bar`'s categorical path. Generic over
+    coordinate system the way every other mark here does, so this is
+    its own function. Generic over
     `T: DrawTarget`, returning the legend's labels as
     `_TextRequest`s rather than drawing them -- see `_render_generic`'s docstring for why every render path here works this way.
 

@@ -41,9 +41,7 @@ def test_render_svg_labels_matches_hand_derived_title_and_axis_titles() raises:
     # every plot-area/tick/line-endpoint coordinate the original LINE
     # SVG test hand-solved for the unshrunk canvas. Every position below
     # (titles' anchors, and the line's re-solved endpoints)
-    # independently re-derived via python3 from that shrunk rect --
-    # this is the first test to exercise _apply_labels' shrunk-rect
-    # math at all.
+    # independently re-derived via python3 from that shrunk rect.
     #
     # Title/x_title/y_title all center on the *inner* plot rect
     # (_RenderResult's px0/py0/px1/py1 -- see the wiki's Changelog,
@@ -54,7 +52,9 @@ def test_render_svg_labels_matches_hand_derived_title_and_axis_titles() raises:
     # labels), plot_x1=380 (frame.ox1=400 - margin_right=20, no legend
     # on Mark.LINE), matching the line path's re-solved
     # to_pixel(0)=91.727/to_pixel(10)=366.273 (slope solved from those
-    # two points) below. plot_y0=42 (frame.oy0=22 + margin_top=20),
+    # two points) below.
+    #
+    # plot_y0=42 (frame.oy0=22 + margin_top=20),
     # plot_y1=232 (frame.oy1=282 - margin_bottom=50) -- matching the
     # line's flat y=137.000 (the exact vertical midpoint, y=[5,5]
     # constant data).
@@ -111,19 +111,15 @@ def test_render_svg_labels_matches_hand_derived_title_and_axis_titles() raises:
 
 
 def test_render_svg_title_centers_on_inner_plot_rect_not_outer_bounds() raises:
-    # Direct regression test for the "Plot.labels() precise centering"
-    # fix: same long-category-name legend setup as test_render_point_
-    # legend_width_grows_to_fit_long_category_names above (_dynamic_
-    # legend_width=166, plot_x1=400-20-166=214; plot_x0 stays the
-    # default margin_left=60 -- y=[0.0,0.0] pads to a short-labeled
+    # A title must center on the *inner* plot rect, not the full outer
+    # canvas -- same long-category-name legend setup as test_render_
+    # point_legend_width_grows_to_fit_long_category_names above
+    # (_dynamic_legend_width=166, plot_x1=400-20-166=214; plot_x0 stays
+    # the default margin_left=60 -- y=[0.0,0.0] pads to a short-labeled
     # domain, no dynamic-left-margin growth here), now with a chart
-    # title too. Before this fix, the title centered on the full outer
-    # canvas width ((0+400)//2=200, what test_render_svg_labels_matches_
-    # hand_derived_title_and_axis_titles's "My Title" case would
-    # have used pre-fix); after it, the title centers on the *inner*
-    # plot rect instead -- (60+214)//2=137 -- correctly shifted left of
-    # the legend-narrowed data area's true center, not the
-    # legend-oblivious canvas center.
+    # title too. The title centers at (60+214)//2=137 -- correctly
+    # shifted left of the legend-narrowed data area's true center, not
+    # the legend-oblivious canvas center's ((0+400)//2=200).
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
     var cats: List[String] = ["Cat1", "Southeast Region Sales"]
@@ -194,13 +190,12 @@ def test_render_svg_subtitle_matches_hand_derived_position() raises:
     # reserved band shifts everything below it (the line mark itself
     # included) without disturbing title/x_title/y_title's positions.
     #
-    # _apply_labels now reserves extra_top=Int(18.0)+4 (title) +
-    # Int(14.0)+4 (subtitle) = 22+18 = 40 (was 22 with no subtitle),
+    # _apply_labels reserves extra_top=Int(18.0)+4 (title) +
+    # Int(14.0)+4 (subtitle) = 22+18 = 40 (vs. 22 with no subtitle),
     # so the inner rect shrinks to (18, 40, 400, 282) -- shifting the
     # LINE mark's flat y=137.000 down to y=146.000 (the new
-    # vertical midpoint of plot_y0=42+18=60. wait, re-derived
-    # directly against the real render instead: plot_y0=60, plot_y1=
-    # 232, midpoint 146). Title stays at its unaffected (229, 14)
+    # vertical midpoint: plot_y0=60, plot_y1=232). Title stays at its
+    # unaffected (229, 14)
     # -- only its cross-axis position depends on the inner rect, and
     # that didn't change (still legend-less, same horizontal center).
     # Subtitle sits directly below it, at y=oy0+title_band+Int(14.0*

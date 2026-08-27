@@ -45,8 +45,8 @@ def _gauge_breakpoints() -> List[Float64]:
     "empty means use this default" sentinel convention, and the render-
     time validation once a caller *does* supply their own). A plain
     function, not a `Theme` field -- the same `List`-breaks-
-    `ImplicitlyCopyable` reasoning `default_categorical_palette()`'s docstring already gives for keeping a fixed default list out of
-    `Theme` itself."""
+    `ImplicitlyCopyable` reasoning `default_categorical_palette()`
+    gives for keeping a fixed default list out of `Theme` itself."""
     return [0.2, 0.8, 1.0]
 
 

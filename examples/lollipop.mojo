@@ -1,8 +1,7 @@
 """Demo: a lollipop chart -- Mark.LOLLIPOP, exactly Mark.BAR's categorical x-axis / zero-baseline y-axis (encode_categorical(), the
 identical data shape a bar chart uses -- see plot.mojo's mark_lollipop() docstring), but each category draws a thin stem plus a
 point at its value instead of a filled rect. A lollipop chart
-reads well when there are enough categories that a full bar's width would start to feel heavy -- shown here with ten, more than any
-other categorical example so far in this package. Built via
+reads well when there are enough categories that a full bar's width would start to feel heavy -- shown here with ten. Built via
 dataviz_mojo.lollipop() -- see examples/scatter.mojo's docstring for what that trades away.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same

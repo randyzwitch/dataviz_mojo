@@ -28,7 +28,7 @@ def test_render_radar_matches_hand_derived_polygon_fill() raises:
     # The median from center toward a vertex (angle -90, radius 50,
     # well short of the 103.5 vertex) also always lies inside a convex
     # polygon. A point *between* two vertices near the circle's edge, though (angle 90 -- exactly opposite the triangle's top edge, at radius 100 -- the edge itself sits at the triangle's
-    # own apothem, 103.5*cos(60)=51.75, well short of 100) falls
+    # apothem, 103.5*cos(60)=51.75, well short of 100) falls
     # *outside* the triangle: still background, not the fill color --
     # confirming the polygon is a real triangle, not a full disk.
     var indicators: List[String] = ["Attack", "Defense", "Speed"]
@@ -41,7 +41,7 @@ def test_render_radar_matches_hand_derived_polygon_fill() raises:
     )
 
     # Theme.radar_fill_alpha's default -- the same tint the render
-    # path uses, now passed explicitly rather than baked into _lighten.
+    # path uses, passed explicitly since _lighten takes alpha as a parameter.
     var fill = _lighten(default_categorical_palette()[0], Theme().radar_fill_alpha)
     _assert_color(c, 220, 135, fill, "centroid of the fully-maxed triangle -- inside")
     _assert_color(c, 220, 85, fill, "median from center toward the -90 degree vertex -- inside")

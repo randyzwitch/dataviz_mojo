@@ -26,15 +26,12 @@ def _render_span_chart[
     spacer bar extends from 0 to lows[i], and the visible span bar
     extends from lows[i] to highs[i]," the same "a range with no
     anchor to zero" reading `Mark.CANDLESTICK`'s high-low wick
-    already gives, generalized to a filled bar instead of a thin line.
+    gives, generalized to a filled bar instead of a thin line.
 
-    Deliberately reuses `encode_gantt()`'s data shape completely
-    unchanged (`Plot.mark_span_chart().encode_gantt(categories=...,
-    start=lows, end=highs)`) rather than a new `encode_*` method --
-    the same "identical data, purely an orientation/rendering
-    difference" precedent `Mark.STACKED_BAR`'s reuse of `Mark.
-    GROUPED_BAR`'s `encode_grouped_bar()` already established (see
-    that mark's docstring in mark.mojo). `_gantt`'s `start`/
+    Reuses `encode_gantt()`'s data shape completely unchanged
+    (`Plot.mark_span_chart().encode_gantt(categories=..., start=lows,
+    end=highs)`) rather than a new `encode_*` method -- identical
+    data, purely an orientation/rendering difference. `_gantt`'s `start`/
     `end` don't need `start[i] <= end[i]` -- same as `Mark.GANTT`'s lack of that requirement, this draws from `min`/`max` of the two,
     not literally `start` to `end` in that order.
 
@@ -42,7 +39,7 @@ def _render_span_chart[
     x-axis's per-category band, full width -- `Mark.BAR`'s convention, not narrowed the way `Mark.WATERFALL`'s delta bars
     are), bar height floored to at least 1 pixel (`max(1, ...)`, the
     same "a zero-length span is real, visible data, not nothing to
-    show" reasoning `Mark.GANTT`'s docstring already gives for its zero-width case).
+    show" reasoning `Mark.GANTT`'s docstring gives for its zero-width case).
     """
     if len(plot.x_categories) != len(plot._gantt.start) or len(plot._gantt.end) != len(plot._gantt.start):
         raise Error(

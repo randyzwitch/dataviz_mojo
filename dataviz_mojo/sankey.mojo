@@ -41,14 +41,14 @@ def _render_sankey[
     each claiming `own value / column's total value` of the
     column's available height -- the same "round the cumulative
     boundary, not an independent size" pattern `Mark.MARIMEKKO`/
-    `TREEMAP` already establish, so adjacent nodes in a column never
+    `TREEMAP` use, so adjacent nodes in a column never
     show a hairline gap.
 
     Each flow draws as one or more filled quadrilaterals ("ribbon"
     segments) between a slice of its `from` node's right edge and
     a slice of its `to` node's left edge -- straight edges, not a
     smooth curve (the same "straight, not curved" simplification
-    `Mark.CHORD`'s straight-rim ribbons already are, for the
+    `Mark.CHORD`'s straight-rim ribbons use, for the
     identical reason: a smooth Bezier ribbon whose top and bottom
     edges both curve independently is real, added geometric complexity
     a straight trapezoid sidesteps while keeping the same essential
@@ -64,12 +64,10 @@ def _render_sankey[
     of through them. Every ribbon segment in one flow's chain
     still colors by that flow's original source node (not
     whichever pass-through node a given segment happens to start from)
-    so the whole chain reads as one flow. Each skip edge gets its dedicated pass-through nodes, never shared with another skip edge
-    passing through the same column -- a real, deliberate
-    simplification (a real Sankey layout would bundle same-direction
-    pass-throughs into shared lanes to save vertical space; this
-    doesn't, trading some extra column height for a much simpler
-    layout pass with no lane-bundling logic of its own). Multiple
+    so the whole chain reads as one flow. Each skip edge gets its own
+    dedicated pass-through nodes, never shared with another skip edge
+    passing through the same column, trading extra column height for
+    a layout pass with no lane-bundling logic. Multiple
     flows in or out of one node (real or pass-through) stack in the
     given row order, each claiming its proportional slice of that
     node's side -- exactly how a real Sankey's additive-flow

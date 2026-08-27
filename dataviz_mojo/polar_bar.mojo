@@ -40,10 +40,9 @@ def _render_polar_bar[
     here to `NIGHTINGALE`'s edge-to-edge sectors instead.
 
     Shares `NIGHTINGALE`'s identical validation (non-negative values,
-    at least one positive), palette, legend, and margin-box layout;
-    see `_render_nightingale`'s docstring for why this needs its render path rather than a flag on that one (the padding
-    changes the actual angle math, not just which primitive draws the
-    result).
+    at least one positive), palette, legend, and margin-box layout,
+    but needs its own render path: the padding changes the actual
+    angle math, not just which primitive draws the result.
     """
     _validate_categorical_encoding(plot)
 

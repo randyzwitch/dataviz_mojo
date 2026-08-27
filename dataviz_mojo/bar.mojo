@@ -34,12 +34,12 @@ def _render_bar[
     rectangle it was given, the whole target or one facet cell alike.
 
     The axis frame itself (`OrdinalScale`, gridlines, axis lines, every
-    tick+label) is `_draw_categorical_axis_frame`'s job now, shared
-    with `Mark.LOLLIPOP`/`WATERFALL`/`BOX` -- see that function's docstring for why sharing became the right call, and for the one
-    real (harmless) behavioral difference from this function's
-    original, fully self-contained body. What's left here is exactly
-    the one genuinely BAR-specific thing: filling each category's rect from a zero baseline to its value, optionally colored by sign
-    (`Theme.color_by_sign`).
+    tick+label) is `_draw_categorical_axis_frame`'s job, shared
+    with `Mark.LOLLIPOP`/`WATERFALL`/`BOX` -- see that function's
+    docstring for the shared frame's behavior. What's left here is
+    exactly the one genuinely BAR-specific thing: filling each
+    category's rect from a zero baseline to its value, optionally
+    colored by sign (`Theme.color_by_sign`).
 
     No x-gridlines (unlike the continuous path's per-tick vertical
     gridlines) -- the bars themselves already visually separate

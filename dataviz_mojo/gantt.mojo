@@ -97,7 +97,7 @@ def _draw_horizontal_categorical_axis_frame[
     every line below (which scale is which type, which axis reverses,
     which margin grows dynamically), exactly the kind of "a mark-type
     branch through nearly every line is worse than each path staying
-    its function" case `_render_bar`'s docstring already warns about.
+    its function" case `_render_bar`'s docstring warns about.
     Two separate mirror-image functions, each a plain read, stays
     simpler than one function with an orientation flag even with three
     callers on this side.
@@ -218,7 +218,7 @@ def _render_gantt[
 
     The x-domain is `_data_extent` (padded, *not* forced through a zero
     baseline) over every `start`/`end` value actually drawn -- the same
-    reasoning `Mark.BOX`/`CANDLESTICK` already established, generalized
+    reasoning `Mark.BOX`/`CANDLESTICK` use, generalized
     here into the actual dividing line this package's categorical marks
     fall on: `Mark.BAR`/`LOLLIPOP`/`WATERFALL`/`BULLET` all encode
     *magnitude from a baseline* (how big, how much progress), so they
@@ -230,7 +230,7 @@ def _render_gantt[
 
     Draws one floating horizontal bar per category (`fill_rect`, full
     row height -- the same "no extra narrowing" choice `Mark.BAR`/`BOX`/
-    `CANDLESTICK` already make, just along the now-vertical categorical
+    `CANDLESTICK` make, just along the now-vertical categorical
     axis instead of the horizontal one), from `min(start[i], end[i])` to
     `max(...)`, `theme.mark_color` (a single flat color -- `Mark.GANTT`
     has no sign to color by the way `WATERFALL`/`CANDLESTICK` do; a
@@ -238,7 +238,7 @@ def _render_gantt[
     span (`start[i] == end[i]`, a real milestone/deadline marker, not an
     absent value) is floored to 1px, the same reasoning -- and the same
     departure from `Mark.BULLET`'s zero-measure handling -- `Mark.
-    CANDLESTICK`'s doji case already gives: this is real, informative
+    CANDLESTICK`'s doji case gives: this is real, informative
     data at a specific point, not "nothing to show."
 
     No dependency-arrow drawing between related bars (a real gantt-chart

@@ -35,7 +35,7 @@ def _render_radialbar[
     o'clock arc (`_polar_point`'s convention, reused by every polar
     mark in this package) over a full light-gray "track" circle, swept
     to `value / max(values)` of the way around -- the same always-
-    linear-against-the-data's-own-max normalization `Mark.POLAR_BAR`
+    linear-against-the-data's-max normalization `Mark.POLAR_BAR`
     already uses (no per-category goal; every ring answers "how does
     this compare to the largest value here", not "how close is this to
     its separate target").

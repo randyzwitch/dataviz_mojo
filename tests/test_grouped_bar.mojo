@@ -72,7 +72,7 @@ def test_render_grouped_bar_matches_hand_derived_rectangles() raises:
     # The gap between A's two sub-bars and B's two sub-bars is
     # zero (consecutive-boundary rounding, no gap within a category) --
     # but there IS a real gap *between* categories A and B (OrdinalScale's
-    # own 0.2 padding, band_start(B)=164.5 vs A's band ending at
+    # 0.2 padding, band_start(B)=164.5 vs A's band ending at
     # 69.5+76=145.5): x=155 sits in that inter-category gap at any y.
     _assert_color(c, 155, 150, BG, "the inter-category gap between A and B -- background")
 
@@ -95,7 +95,7 @@ def test_render_svg_grouped_bar_matches_confirmed_rects_and_legend() raises:
 
     # Legend: _draw_legend's row layout (legend_swatch_size=14,
     # legend_row_gap=8) is already covered by Mark.POINT's/Mark.ARC's
-    # own hand-derived legend tests -- this only confirms _render_
+    # hand-derived legend tests -- this only confirms _render_
     # grouped_bar actually calls it with the right labels/palette/
     # starting position: x=plot_x1+margin_right=250+20=270, y=plot_y0=
     # 20 (row 0), row 1 at y=20+(14+8)=42.

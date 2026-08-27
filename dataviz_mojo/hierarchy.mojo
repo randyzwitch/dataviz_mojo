@@ -4,18 +4,13 @@ exact same three answers about `Plot.encode_hierarchy()`'s flat
 `ids`/`parent_ids`/`values` rows -- who is whose child, how deep is
 each node, and what's each node's subtree total -- before any
 mark-specific layout (a ring sector, a node position, a rectangle) can
-be computed. Shared by all three callers -- the same "one more real
-caller doesn't justify a shared abstraction until it's the *third*
-one" tolerance `_draw_categorical_axis_frame`'s docstring already
-establishes for the categorical-axis cores.
+be computed. Shared by all three callers.
 
 A flat `(id, parent_id, value)` row list rather than a real tree/graph
-type of its own -- the same "the data already says what's needed"
-precedent `encode_heatmap()`'s two-categorical-axis shape and `encode_
-chord()`'s edge list already set: exactly `d3.stratify()`'s flattening trick (a parent-pointer array instead of nested objects),
-chosen so this package's "plain columnar arrays, no Table" data
-model (see the wiki) covers a hierarchy without inventing a new kind
-of value to hold one.
+type of its own -- exactly `d3.stratify()`'s flattening trick (a
+parent-pointer array instead of nested objects), chosen so this
+package's "plain columnar arrays, no Table" data model (see the wiki)
+covers a hierarchy without inventing a new kind of value to hold one.
 """
 
 from std.collections import Dict
@@ -72,7 +67,7 @@ def _build_hierarchy_index(
     index whose `parent_ids` points at `ids[i]`), `depth[i]` (0 at
     the single root, +1 per level -- computed by one BFS pass from the
     root, the same "root's children have index 0 at the top"
-    top-down reading `_draw_horizontal_categorical_axis_frame`'s category order already establishes elsewhere), and `subtree_value
+    top-down reading `_draw_horizontal_categorical_axis_frame`'s category order uses elsewhere), and `subtree_value
     [i]` (a leaf's `values[i]`; an internal node's *sum of
     every descendant leaf's value*, not whatever `values[i]` happened
     to be given as -- the standard "a parent's size is its
@@ -82,7 +77,7 @@ def _build_hierarchy_index(
 
     An empty `parent_ids[i]` (`""`) marks the single root -- raises if
     zero or more than one row qualifies, the same "raise on a
-    genuinely inconsistent input" stance `Mark.CALENDAR_HEATMAP`'s single-year requirement already takes: a forest (multiple roots)
+    genuinely inconsistent input" stance `Mark.CALENDAR_HEATMAP`'s single-year requirement takes: a forest (multiple roots)
     is a real, if less common, hierarchy shape, but out of scope (see
     this module's docstring's `d3.stratify()` comparison -- that
     function has the identical single-root restriction by default).
@@ -150,7 +145,7 @@ def _build_hierarchy_index(
     # would silently vanish from the chart.
     #
     # This is the same "raise, don't silently misrepresent the data"
-    # stance `mark_arc()`'s non-negative check already takes: a
+    # stance `mark_arc()`'s non-negative check takes: a
     # chart that quietly drops rows is worse than one that refuses to
     # draw, because nothing about the result looks wrong. Comparing the
     # traversal's reach against `n` catches cycles and disconnected

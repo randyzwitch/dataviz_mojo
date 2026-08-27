@@ -98,7 +98,7 @@ def test_render_sankey_skip_edge_routes_through_a_pass_through_node() raises:
     # The one point that actually distinguishes this from a version
     # with no pass-through node at all: (220, 192) sits inside column
     # 1's node-width strip (x 214-226), in its bottom half -- the
-    # pass-through node's own reserved slot. Nothing draws there (no
+    # pass-through node's reserved slot. Nothing draws there (no
     # bar for an invisible pass-through node, and neither ribbon
     # segment crosses the node-width gap itself) -- background.
     # Without that reserved slot, D's skip edge would draw as one

@@ -2,7 +2,7 @@
 side per category instead of one (Plot().mark_grouped_bar().encode_
 grouped_bar(categories, series_names, values); see that method's docstring for the values[series][category] data shape). Quarterly
 revenue for three regions across four quarters -- the categorical
-x-axis and zero-baseline y-axis are exactly Mark.BAR's own, shared via
+x-axis and zero-baseline y-axis are exactly Mark.BAR's, shared via
 _draw_categorical_axis_frame; what's new is each category's band
 splitting into one sub-bar per series (default_categorical_palette(),
 the same cycling convention Mark.POINT's categorical color encoding and

@@ -20,13 +20,12 @@ struct _HistogramBins(Movable):
 
 def _bin_histogram(data: List[Float64], bins: Int) raises -> _HistogramBins:
     """Bins `data` into `bins` equal-width intervals -- extracted out
-    of `Plot.encode_histogram()`'s body (plot.mojo); see that
-    method's docstring for the full contract (raises on empty
+    of `Plot.encode_histogram()`'s body (plot.mojo). Raises on empty
     data, zero span, or non-positive `bins`; half-open bins except the
     last, which is closed so `data`'s maximum lands in the last
     bin instead of nowhere; labels formatted to one decimal place via
     `_format_fixed`, the same formatter `LinearScale.ticks()` uses for
-    axis labels).
+    axis labels.
     """
     if len(data) == 0:
         raise Error("Plot.encode_histogram(): data must not be empty")
@@ -75,9 +74,8 @@ def histogram(
     encode_histogram()` (see that method's docstring for the
     binning itself: equal-width intervals, half-open except the last).
     Named after what it plots, not the mark underneath, the same way
-    `pie()`/`donut` share `Mark.ARC` -- see this module's `_bin_histogram()` docstring, and plot.mojo's module docstring
-    (its "one-call convenience functions" section) for the shared
-    `theme`/`width`/`height`/`title`/`x_title`/`y_title` parameters
-    every function there takes, this one included."""
+    `pie()`/`donut` share `Mark.ARC`. Takes the same `theme`/`width`/
+    `height`/`title`/`x_title`/`y_title` parameters every one-call
+    convenience function does (see plot.mojo's module docstring)."""
     var plot = Plot().mark_bar().encode_histogram(data, bins=bins)
     return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

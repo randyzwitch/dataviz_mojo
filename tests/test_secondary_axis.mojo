@@ -20,10 +20,10 @@ from _test_helpers import BG, _assert_color
 
 
 def test_render_layers_svg_secondary_axis_matches_hand_derived_position() raises:
-    # 2 layers, no color/size encoding (so legend_reserve is 0), no
-    # gridlines -- wait, gridlines stay on for this one (default Theme)
-    # specifically to confirm the *secondary* domain draws none of its
-    # own (see the gridline-count assertion below). Two points each,
+    # 2 layers, no color/size encoding (so legend_reserve is 0) --
+    # gridlines stay on (default Theme) specifically to confirm the
+    # *secondary* domain draws none of its own (see the gridline-count
+    # assertion below). Two points each,
     # canvas 400x300: primary line rises 10->20 (matches test_layers.
     # mojo's no-legend geometry -- plot area x:[60,342], y:[20,250]
     # before the secondary axis's reserve shrinks px1 further, to
@@ -121,8 +121,8 @@ def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap
     # A color-categories-encoded Mark.POINT primary layer (so a real
     # legend column draws) alongside a secondary-axis Mark.LINE layer --
     # confirms the legend column shifts right past the secondary axis's
-    # own reserved tick-label width instead of overlapping it. The
-    # secondary axis's own line lands at x=220 (shrunk further than the
+    # reserved tick-label width instead of overlapping it. The
+    # secondary axis's line lands at x=220 (shrunk further than the
     # no-legend case's x=350 above, since legend_reserve is folded in
     # too), its widest tick label ("50") ends well before x=270, where the first
     # legend swatch actually starts.

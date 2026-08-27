@@ -234,11 +234,10 @@ def test_render_layers_with_empty_list_is_a_noop() raises:
 def test_render_layers_raises_when_a_lollipop_plot_is_included() raises:
     # The same Mark.POINT/LINE/AREA-only restriction test_render_
     # layers_raises_when_a_bar_plot_is_included already confirms for
-    # Mark.BAR -- checked again for one of "Phase 2a"'s new categorical
-    # marks specifically, since the raise's check is a positive
-    # allow-list (only POINT/LINE/AREA), not a deny-list that would
-    # need updating per new mark -- this test exists to confirm that
-    # holds in practice, not just by reading the condition.
+    # Mark.BAR, checked again for Mark.LOLLIPOP: the raise's check is
+    # a positive allow-list (only POINT/LINE/AREA), not a deny-list
+    # that would need updating per new mark -- this test exists to
+    # confirm that holds in practice, not just by reading the condition.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var lolli_x: List[String] = ["a", "b"]
@@ -252,11 +251,10 @@ def test_render_layers_raises_when_a_lollipop_plot_is_included() raises:
 
 
 def test_render_layers_raises_when_a_candlestick_plot_is_included() raises:
-    # The same Mark.POINT/LINE/AREA-only allow-list test_render_layers_
-    # raises_when_a_lollipop_plot_is_included already confirms holds for
-    # a second "Phase 2a" mark, checked again for "Phase 2b"'s first
-    # mark -- see that test's docstring for why this needs no change
-    # to render_layers()'s check.
+    # The same Mark.POINT/LINE/AREA-only allow-list checked again for
+    # Mark.CANDLESTICK -- see test_render_layers_raises_when_a_
+    # lollipop_plot_is_included's docstring for why this needs no
+    # change to render_layers()'s check.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var cats: List[String] = ["a", "b"]
@@ -271,7 +269,7 @@ def test_render_layers_raises_when_a_candlestick_plot_is_included() raises:
 
 def test_render_layers_raises_when_a_bullet_plot_is_included() raises:
     # The same Mark.POINT/LINE/AREA-only allow-list checked again for
-    # "Phase 2b"'s second mark -- see test_render_layers_raises_when_a_
+    # Mark.BULLET -- see test_render_layers_raises_when_a_
     # lollipop_plot_is_included's docstring for why this needs no
     # change to render_layers()'s check.
     var line_x: List[Float64] = [0.0, 10.0]
@@ -289,9 +287,9 @@ def test_render_layers_raises_when_a_bullet_plot_is_included() raises:
 
 def test_render_layers_raises_when_a_gantt_plot_is_included() raises:
     # The same Mark.POINT/LINE/AREA-only allow-list checked again for
-    # "Phase 2b"'s third and final mark -- see test_render_layers_raises_
-    # when_a_lollipop_plot_is_included's docstring for why this
-    # needs no change to render_layers()'s check.
+    # Mark.GANTT -- see test_render_layers_raises_when_a_lollipop_
+    # plot_is_included's docstring for why this needs no change to
+    # render_layers()'s check.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var cats: List[String] = ["a", "b"]
@@ -306,7 +304,7 @@ def test_render_layers_raises_when_a_gantt_plot_is_included() raises:
 
 def test_render_layers_raises_when_a_grouped_bar_plot_is_included() raises:
     # The same Mark.POINT/LINE/AREA-only allow-list checked again for
-    # the newest mark -- see test_render_layers_raises_when_a_lollipop_
+    # Mark.GROUPED_BAR -- see test_render_layers_raises_when_a_lollipop_
     # plot_is_included's docstring for why this needs no change to
     # render_layers()'s check.
     var line_x: List[Float64] = [0.0, 10.0]
@@ -324,7 +322,7 @@ def test_render_layers_raises_when_a_grouped_bar_plot_is_included() raises:
 
 def test_render_layers_raises_when_a_stacked_bar_plot_is_included() raises:
     # The same Mark.POINT/LINE/AREA-only allow-list checked again for
-    # the newest mark -- see test_render_layers_raises_when_a_lollipop_
+    # Mark.STACKED_BAR -- see test_render_layers_raises_when_a_lollipop_
     # plot_is_included's docstring for why this needs no change to
     # render_layers()'s check.
     var line_x: List[Float64] = [0.0, 10.0]
@@ -414,8 +412,8 @@ def test_render_layers_area_honors_theme_line_smoothing() raises:
 def test_render_layers_raises_on_out_of_range_smoothing() raises:
     # The same [0.0, 1.0] guard test_render_line_raises_on_out_of_range_
     # smoothing (test_line.mojo) already confirms for render() -- the
-    # layered path never checked at all before _draw_line_layer shared
-    # it, silently accepting a value Theme.line_smoothing's docstring assigns no meaning to.
+    # layered path shares this check via _draw_line_layer, rejecting a
+    # value Theme.line_smoothing's docstring assigns no meaning to.
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
 

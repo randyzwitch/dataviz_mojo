@@ -59,7 +59,7 @@ def test_render_annotate_area_raster_draws_ink_at_the_hand_derived_row() raises:
 def test_render_annotate_area_out_of_range_draws_nothing() raises:
     # A band with *no* overlap at all against the mark's (padded)
     # domain ([9.5, 20.5] for this data) draws neither a fill nor a
-    # label -- 25.0-30.0 is entirely past the domain's own ~20.5 max.
+    # label -- 25.0-30.0 is entirely past the domain's ~20.5 max.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var svg = SvgCanvas(400, 300)
@@ -126,7 +126,7 @@ def test_render_annotate_area_multiple_calls_all_draw() raises:
 
 def test_render_annotate_area_raises_on_unsupported_mark() raises:
     # Mark.ARC has no continuous y-axis at all -- annotate_area() must
-    # raise a clear error, the same rule annotate_line() already follows.
+    # raise a clear error, the same rule annotate_line() follows.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
     var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).annotate_area(0.5, 1.5)

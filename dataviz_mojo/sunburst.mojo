@@ -29,7 +29,7 @@ def _fill_ring_sector[
     innermost ring of a sunburst touches the center, so it isn't a
     true "ring" with a hole at all): `fill_arc_aa` for the wedge case,
     `fill_ring_sector_aa` once there's a real inner radius, the same
-    pie-vs-donut split `Mark.ARC`'s docstring already establishes.
+    pie-vs-donut split `Mark.ARC` uses.
     """
     if inner <= 0.0:
         target.fill_arc_aa(cx, cy, outer, a0, a1, color)
@@ -99,7 +99,7 @@ def _render_sunburst[
     Every value must be non-negative, and the root's subtree total
     (the sum of every leaf) must be positive -- the same "raise,
     don't silently misrepresent" stance `Mark.ARC`'s validation
-    already takes for its share-of-a-whole data.
+    takes for its share-of-a-whole data.
     """
     if (
         len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids)

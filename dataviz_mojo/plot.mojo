@@ -41,15 +41,12 @@ returns -- see `_TextRequest`'s docstring.
 
 Every raster draw call the generic core makes through `Canvas` is the
 anti-aliased variant -- `fill_circle_aa` for points, `stroke_path_aa`
-for lines, `draw_line_aa` for gridlines/axis lines/tick marks --
-rather than reasoning per call site about whether AA is "worth it."
-For the axis-aligned lines specifically this makes no visual
-difference: a perfectly horizontal or vertical, integer-positioned
-line has no diagonal stepping for AA to smooth away in the first
-place. But there's no real cost to it either given how few short
-lines these are, and one consistent default is simpler to reason about
-than an exception that has to be re-justified every time someone reads
-this file. `SvgCanvas` has no equivalent AA choice to make at all --
+for lines, `draw_line_aa` for gridlines/axis lines/tick marks -- one
+consistent default rather than reasoning per call site about whether
+AA is "worth it." For the axis-aligned lines specifically this makes
+no visual difference: a perfectly horizontal or vertical,
+integer-positioned line has no diagonal stepping for AA to smooth
+away in the first place. `SvgCanvas` has no equivalent AA choice to make at all --
 an SVG renderer handles that itself, at whatever resolution it's
 displayed at (see the wiki's Changelog, its entry for the concrete
 problem that motivated adding it).
@@ -390,7 +387,7 @@ struct _AnnotationData(Movable):
     """
     A horizontal reference line per (value, label) pair, set via
     .annotate_line() -- see that method's docstring. Parallel lists,
-    the same "outer list indexes named things" shape RADAR's series_names/series_values already establish -- callable more than
+    the same "outer list indexes named things" shape RADAR's series_names/series_values use -- callable more than
     once (each call appends, doesn't replace), so a caller wanting both
     an "average" and a "target" line just calls it twice.
 
@@ -440,25 +437,15 @@ struct Plot(Movable):
     convention).
 
     Data columns are grouped one struct per mark family rather than
-    left loose on this type. `Plot` carried ninety-one flat fields
-    before that -- `_box_q1`, `_box_median`, `_box_q3`, and so on --
-    which made three things worse at once: `__init__` was ninety-four
-    lines of `self.x = List[Float64]()`, adding a mark meant editing
-    this struct in several places, and every mark's render function
-    could see every other mark's columns, with nothing but a naming
-    convention keeping them apart.
-
-    The grouping is not a new taxonomy imposed on the data. The
-    per-field comments here were *already* written one block per mark,
-    which is what made the seams obvious; those blocks are now each
-    sub-struct's docstring, so the documentation sits with the data
-    it describes.
+    left loose on this type: each sub-struct's docstring documents its
+    own fields, so the documentation sits with the data it describes,
+    and a mark's render function only sees its own group's columns,
+    not every other mark's.
 
     `_edges` earns its name particularly: `Mark.CHORD`, `ARC_DIAGRAM`,
-    `GRAPH` and `SANKEY` all read the same three columns, a fact
-    otherwise only discoverable by grepping `_chord_from` and noticing
-    four unrelated marks in the results. `_edge_node_index` already
-    resolves that shared shape; this names it.
+    `GRAPH` and `SANKEY` all read the same three columns --
+    `_edge_node_index` already resolves that shared shape; this names
+    it.
 
     What stays ungrouped is deliberate: `x_data`/`y_data`/
     `x_categories`/`color_data`/`color_categories`/`size_data` are the
@@ -714,8 +701,8 @@ struct Plot(Movable):
     def mark_gantt(var self) -> Self:
         """A gantt chart: one horizontal bar per category, from a
         start value to an end value, encoded via `encode_gantt()` --
-        the first mark whose categories run along the *y*-axis instead
-        of the x-axis (see that method's docstring). See `mark_
+        categories run along the *y*-axis instead of the x-axis (see
+        that method's docstring). See `mark_
         span_chart()` for the same data, drawn vertically instead."""
         self._mark = Mark.GANTT
         return self^
@@ -726,10 +713,8 @@ struct Plot(Movable):
         high value, on the normal categorical x-axis instead of
         `Mark.GANTT`'s horizontal one. Encoded via `encode_gantt()`,
         the exact same category + start + end shape, completely
-        unchanged -- only the orientation this renders it in differs
-        (the same "identical data, purely a rendering difference"
-        precedent `mark_stacked_bar()`'s reuse of `encode_grouped_
-        bar()` already established)."""
+        unchanged -- only the orientation this renders it in
+        differs."""
         self._mark = Mark.SPAN_CHART
         return self^
 
@@ -937,9 +922,9 @@ struct Plot(Movable):
         width by `sqrt(n_i / max(n))` when `True` (ggplot2's `scale = "area"`) -- a category built from fewer raw values
         draws visibly narrower, instead of every category's peak
         mapping to the identical maximum width regardless of how many
-        points went into it. The same `mark_nightingale(area=...)`
-        boolean-toggle precedent, applied here to sample size instead
-        of `NIGHTINGALE`'s value magnitude."""
+        points went into it. Mirrors `mark_nightingale(area=...)`'s
+        boolean toggle, applied here to sample size instead of
+        `NIGHTINGALE`'s value magnitude."""
         self._mark = Mark.VIOLIN
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
@@ -1260,7 +1245,7 @@ struct Plot(Movable):
         or rejected either -- `_render_gantt` draws from `min(start[i],
         end[i])` to `max(...)`, the same "use min/max rather than
         assume an order" tolerance `Mark.CANDLESTICK`'s open/close
-        handling already has, so a reversed pair still renders
+        handling has, so a reversed pair still renders
         sensibly rather than raising over what's likely just a data
         convention difference, not an error.
         """
@@ -1282,8 +1267,8 @@ struct Plot(Movable):
         `values[j]` is series `series_names[j]`'s value for every
         category (so `values[j][i]` is series `j`'s value for `categories
         [i]`), the same "outer list indexes the thing being repeated,
-        inner list indexes categories" shape `encode_boxplot()` already
-        established for a *distribution* per category -- here it's a
+        inner list indexes categories" shape `encode_boxplot()` uses
+        for a *distribution* per category -- here it's a
         *series* per category instead.
 
         Nothing needs computing up front, so length checking (`series_
@@ -1315,7 +1300,7 @@ struct Plot(Movable):
         category). Both are read as non-negative magnitudes regardless
         of sign (`_render_population_pyramid` takes `max(v, -v)`, the
         same "use the shape that makes sense rather than raise over a
-        likely data-convention difference" tolerance `Mark.GANTT`'s `start > end` handling already has) -- a caller with genuinely
+        likely data-convention difference" tolerance `Mark.GANTT`'s `start > end` handling has) -- a caller with genuinely
         signed data should decide which side each value belongs on
         before calling this, not rely on sign to pick a side here.
 
@@ -1345,9 +1330,9 @@ struct Plot(Movable):
         `y[i]`, `value[i]`), not a separate axis-category list: each
         axis's domain is derived from `x`/`y` themselves (their
         distinct values in first-seen order, via `_categorical_indices`
-        at render() time -- the same helper `Plot.encode()`'s `color_categories` channel already resolves its domain through),
+        at render() time -- the same helper `Plot.encode()`'s `color_categories` channel resolves its domain through),
         the same "the data already says what the axis needs" shape
-        `encode_categorical()` established for a single categorical
+        `encode_categorical()` uses for a single categorical
         axis, generalized to two.
 
         A caller need not give every (x, y) combination -- a missing
@@ -1371,7 +1356,7 @@ struct Plot(Movable):
         CALENDAR_HEATMAP`'s shape: one row per day (`dates[i]`, a
         plain `"YYYY-MM-DD"` string -- this package deliberately has
         no Date/Time type of its own, the same stance `encode_gantt()`
-        already takes; parsed only for calendar-grid placement math,
+        takes; parsed only for calendar-grid placement math,
         see calendar_heatmap.mojo's `_parse_date`/`_days_from_
         civil`) and `values[i]`, colored through the same continuous
         gradient `encode_heatmap()`'s `value` channel uses.
@@ -1405,8 +1390,8 @@ struct Plot(Movable):
     def encode_punchcard(var self, x: List[String], y: List[String], sizes: List[Float64]) -> Self:
         """Map two category columns plus a continuous size column onto
         `Mark.PUNCHCARD`'s grid-cell-plus-bubble shape -- the same
-        `x`/`y` domain-derivation `encode_heatmap()` already
-        establishes (`_categorical_indices` at render() time, first-
+        `x`/`y` domain-derivation `encode_heatmap()` uses
+        (`_categorical_indices` at render() time, first-
         seen order), `sizes` in place of that method's `value`.
         Unlike `encode_heatmap()`, a repeated `(x, y)` pair is not
         deduplicated or merged -- each row draws its independent
@@ -1479,14 +1464,14 @@ struct Plot(Movable):
         over the two concatenated at render() time, first-seen order,
         `from_categories` first -- see that function's docstring),
         not a separate node list; the same
-        "the data already says what's needed" shape `encode_heatmap()`'s two-categorical-axis domain derivation already established,
+        "the data already says what's needed" shape `encode_heatmap()`'s two-categorical-axis domain derivation uses,
         generalized from a grid to a graph.
 
         `values` must be non-negative (checked at render() time, along
         with the usual length match, the same as every other categorical
         `encode_*` here) -- a negative flow has no ribbon-width meaning,
         the same reasoning `encode_categorical()`'s `Mark.ARC` path
-        already gives for rejecting negative wedge values.
+        gives for rejecting negative wedge values.
         """
         self.x_categories = List[String]()
         self.x_data = List[Float64]()
@@ -1500,7 +1485,7 @@ struct Plot(Movable):
         """Map an angle column (radians) and a radius column onto
         `Mark.POLAR`'s two channels -- one point per row, connected
         in the given row order (not sorted by angle -- the same "the
-        caller's order is the order drawn" stance `mark_line()`'s docstring already takes, and the only order that lets a
+        caller's order is the order drawn" stance `mark_line()`'s docstring takes, and the only order that lets a
         spiral -- `angle` values beyond `2*pi` -- draw correctly at
         all). A single, unnamed series -- no legend, since there's
         nothing to key one by (see `encode_polar_series()` for several
@@ -1523,10 +1508,9 @@ struct Plot(Movable):
         """Map a shared angle column (radians) plus one or more named
         series onto `Mark.POLAR`'s two channels -- the multi-series
         generalization of `encode_polar()` (which stays the plain
-        single-unnamed-series entry point, exactly the same "a
-        generalized version gets its encode method" precedent
-        `encode_grouped_bar()` already set alongside `encode_
-        categorical()`), for comparing several traces on one shared
+        single-unnamed-series entry point, the same relationship
+        `encode_grouped_bar()` has alongside `encode_categorical()`),
+        for comparing several traces on one shared
         polar grid instead of drawing just one.
 
         Every series shares the same `angle` domain and the same
@@ -1563,14 +1547,13 @@ struct Plot(Movable):
         and one named series per `series_names` entry, each a *list*
         of values in `series_values` -- one value per indicator, the
         same "outer list indexes categories, inner list is that
-        category's numbers" shape `encode_distribution()` already
-        established, but here the inner list's length is fixed
+        category's numbers" shape `encode_distribution()` uses,
+        but here the inner list's length is fixed
         (one value per indicator) rather than an arbitrary raw
         distribution.
 
         Raises immediately (the same "can't produce a coherent result
-        at all" reasoning `encode_distribution()`'s checks already
-        give, generalized to four lists instead of two) on any length
+        at all" reasoning `encode_distribution()`'s checks give, generalized to four lists instead of two) on any length
         mismatch: `indicators`/`max_values`, `series_names`/`series_
         values`, or any individual series whose value count
         doesn't match `indicators`'s count.
@@ -1630,7 +1613,7 @@ struct Plot(Movable):
         fractions of the full `[min_value, max_value]` span (e.g.
         `[0.5, 1.0]` for a two-band low/high split), `band_colors` one
         color per band, same length. Left at their defaults (both
-        empty -- the same empty-list-is-a-sentinel convention `encode()`'s `color`/`size` channels already use), this reproduces
+        empty -- the same empty-list-is-a-sentinel convention `encode()`'s `color`/`size` channels use), this reproduces
         ECharts' fixed 20%/80%/100% green/blue/red default exactly,
         unchanged (see `_gauge_breakpoints()`/`_gauge_band_colors()` in
         gauge.mojo, still what every default call ultimately draws) --
@@ -1656,12 +1639,12 @@ struct Plot(Movable):
         (one polyline per name), and `data` (one list per row, one
         value per dimension -- the same "outer list indexes named
         things, inner list is that thing's numbers" shape `encode_
-        radar()`'s `series_values` already established, generalized
+        radar()`'s `series_values` uses, generalized
         from "one value per named indicator" to "one value per named
         dimension").
 
         Raises immediately (the same up-front "can't produce a
-        coherent result at all" reasoning `encode_radar()`'s checks already give) on a `row_names`/`data` length mismatch,
+        coherent result at all" reasoning `encode_radar()`'s checks give) on a `row_names`/`data` length mismatch,
         or any individual row whose value count doesn't match
         `dims`'s count.
         """
@@ -1694,14 +1677,14 @@ struct Plot(Movable):
         values onto the shape `Mark.BEESWARM`/`VIOLIN`/`RIDGELINE` all
         share -- the same "outer list indexes categories, inner list is
         that category's distribution" shape `encode_boxplot()`
-        already established, but kept as the raw values themselves,
+        uses, but kept as the raw values themselves,
         not immediately reduced to a five-number summary the way `Mark.
         BOX` needs: a swarm plot draws every individual point, and a
         density estimate needs the raw values to estimate from, neither
         of which a quartile summary alone could reconstruct.
 
         Raises immediately (the same "can't produce a coherent result
-        at all" reasoning `encode_boxplot()`'s checks already give)
+        at all" reasoning `encode_boxplot()`'s checks give)
         on a `categories`/`values` length mismatch, or any category
         whose value list is empty.
         """
@@ -1776,7 +1759,7 @@ struct Plot(Movable):
         their docstring for the margin math) -- an unset title
         costs nothing, the same "absent means absent" rule this file's
         other optional features (`Theme.line_smoothing`, `donut_inner_
-        radius_fraction`, etc.) already follow.
+        radius_fraction`, etc.) follow.
 
         `subtitle` draws as its own line directly beneath `title`,
         smaller and in `Theme.subtitle_color`'s muted tone rather
@@ -1802,7 +1785,7 @@ struct Plot(Movable):
         on an `Mark.ARC` plot (only `title`/`subtitle` apply there), the
         same "raise on a setting that can't apply, don't silently drop
         it" rule `Plot.encode`'s color/size-on-a-non-POINT-mark
-        check already follows.
+        check follows.
         """
         self._labels.title = title
         self._labels.subtitle = subtitle
@@ -1831,7 +1814,7 @@ struct Plot(Movable):
         `LinearScale` -- checked at render() time (`_RenderResult`'s `has_y_scale`, see its docstring), raising a clear error
         rather than silently drawing nothing or drawing somewhere
         wrong, the same "raise on a setting that can't apply" rule
-        `x_title`/`y_title`-on-`Mark.ARC` already follows. Supported
+        `x_title`/`y_title`-on-`Mark.ARC` follows. Supported
         today: `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER` (the shared
         continuous path) and every mark sharing `_CategoricalFrame`
         (`BAR`/`LOLLIPOP`/`WATERFALL`/`BOX`/`CANDLESTICK`/`BULLET`/
@@ -1841,10 +1824,9 @@ struct Plot(Movable):
         hierarchy/edge-list layouts, `Mark.ARC`'s no-axes-at-all
         shape, `Mark.BUMP`'s rank-not-value y-axis, ...) has no
         y *value* domain a reference line could mean anything against
-        -- a real, deliberate scope limit, not an oversight; growing
-        this list only needs a call site update, not new machinery
-        (see `_CategoricalFrame.result`'s docstring for how the
-        first nine got it "for free").
+        -- a scope limit: growing this list only needs a call site
+        update, not new machinery (see `_CategoricalFrame.result`'s
+        docstring for how the first nine got it "for free").
 
         Also wired into `render_facets()` (each cell's annotations
         draw against that cell's real y-scale, exactly like a
@@ -1862,7 +1844,7 @@ struct Plot(Movable):
         """Add a shaded horizontal band from `y0` to `y1` on the y-axis
         -- ECharts' `markArea` (a fixed, explicit `(y0, y1)` pair
         only; not its other "between two series"/auto-computed-range
-        modes, the same deliberate scope cut `annotate_line()`'s docstring already explains for `markLine`). Callable more than
+        modes, the same deliberate scope cut `annotate_line()`'s docstring explains for `markLine`). Callable more than
         once -- each call *adds* a band. `label`, when non-empty, draws
         inside the band near its top edge, in `Theme.annotation_
         color` (the same ink `annotate_line()`'s label uses -- see
@@ -1897,13 +1879,14 @@ struct Plot(Movable):
         having a continuous y-axis at all, not about this), but a line/
         point/area-family mark is where it actually looks right today.
 
-        Same mark-support rule as `annotate_line()` -- raises the
+        Same mark-support rule as `annotate_line()`, and wired into
+        `render_facets()`/`render_layers()` the same way -- raises the
         identical clear error rather than silently drawing nothing or
-        somewhere wrong on a mark with no genuine continuous y-axis; see
-        that method's docstring for the exact supported list and why
+        somewhere wrong on a mark with no genuine continuous y-axis
         (both reuse the identical `_RenderResult.y_scale`/`has_y_scale`
-        mechanism). Also wired into `render_facets()`/`render_layers()`
-        the same way `annotate_line()` is -- see that method's docstring for the mechanics, which this shares exactly.
+        mechanism). See `annotate_line()`'s docstring for the exact
+        supported list and the facets/layers mechanics, both shared
+        exactly.
         """
         self._annotations.area_y0.append(y0)
         self._annotations.area_y1.append(y1)
@@ -1940,7 +1923,7 @@ struct Plot(Movable):
     def annotate_point(var self, x: Float64, y: Float64, label: String = "") -> Self:
         """Add a single labeled point at `(x, y)` -- ECharts' `markPoint` (a fixed, explicit coordinate only; not its other
         "max"/"min"/"average" auto-computed modes, the same deliberate
-        scope cut `annotate_line()`'s docstring already explains
+        scope cut `annotate_line()`'s docstring explains
         for `markLine`). Draws a small filled marker at the data
         coordinate, in `Theme.annotation_color`, with `label` (when
         non-empty) just above it. Additive/repeatable -- each call adds
@@ -1984,7 +1967,7 @@ struct Plot(Movable):
         clear error if a plot with this set reaches them directly,
         rather than silently ignoring it, the same "raise on a setting
         that can't apply" rule `annotate_line()`/`x_title`/`y_title`-on-
-        `Mark.ARC` already follow.
+        `Mark.ARC` follow.
 
         At least one layer in the list must stay on the primary axis --
         `render_layers()` raises if *every* layer calls this (there'd be
@@ -2334,11 +2317,11 @@ def _dynamic_legend_width(labels: List[String], content_width: Int, sc: _Scaled)
     *narrower* than it already was -- purely additive, only ever
     growing the column for labels wide enough to actually need it, the
     same "purely additive" contract every dynamic-margin computation in
-    this file already follows. Every call site (`Mark.POINT`'s categorical color/continuous color/continuous size legends,
+    this file follows. Every call site (`Mark.POINT`'s categorical color/continuous color/continuous size legends,
     `Mark.GROUPED_BAR`/`STACKED_BAR`'s series-name legend,
     `Mark.ARC`'s category legend) has to know its actual label
     list *before* finalizing `plot_x1`, the same "measure first, size
-    the margin second" ordering the y-axis's tick labels already
+    the margin second" ordering the y-axis's tick labels
     require -- see each call site's comment for where that
     reordering was needed.
 
@@ -2499,9 +2482,8 @@ def _draw_continuous_color_legend[T: DrawTarget](
 
     Returns the y-coordinate just below this section (bar height plus
     one row gap) -- where `_draw_continuous_size_legend` starts if a
-    plot combines continuous color *and* size (a real, existing case --
-    see `examples/bubble.mojo`), so the two stack vertically in one
-    legend column instead of overlapping.
+    plot combines continuous color *and* size, so the two stack
+    vertically in one legend column instead of overlapping.
     """
     var sc = _Scaled(theme)
     var bar_width = sc.continuous_legend_bar_width
@@ -2803,7 +2785,7 @@ def _apply_labels(plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> 
     horizontal_categorical_axis_frame`, or any mark-specific `_render_*`
     function, all of which stay completely unaware titles exist. This
     is deliberate, the same "a little duplication/a small wrapper over
-    threading a flag through many functions" reasoning `_render_bar`'s docstring already established -- titles are pure outer-rect
+    threading a flag through many functions" reasoning `_render_bar`'s docstring gives -- titles are pure outer-rect
     geometry (how much smaller a rectangle to hand downstream), so
     shrinking that rectangle *before* any mark-specific layout runs
     gets the same effect as threading title state through every one of
@@ -3038,7 +3020,7 @@ def _draw_annotation_lines[
     (`result.px1 - sc.label_gap`, `py - sc.label_gap`) -- a fixed,
     deterministic position, not collision-avoided against the mark's data or another annotation line landing nearby, the same
     "simple, not force-directed" scope this package's layout code
-    already accepts elsewhere (`Mark.GRAPH`/`BEESWARM`) when a fully
+    accepts elsewhere (`Mark.GRAPH`/`BEESWARM`) when a fully
     general placement solver would be real, separate, unbuilt work.
 
     A `value` outside the mark's (padded) domain is silently
@@ -3180,8 +3162,8 @@ def _draw_annotation_points[
     `Theme.annotation_color` -- not a distinct "pin" glyph the way
     ECharts' `markPoint` defaults to (canvas_mojo has no such shape
     primitive to draw one with; a circle is what `_draw_point_layer`
-    already has, and reusing it keeps this consistent with everything
-    else `Theme.annotation_color` already marks). Its own label, when
+    has, and reusing it keeps this consistent with everything
+    else `Theme.annotation_color` marks). Its own label, when
     non-empty, centers just above the marker (`px`, `py - radius -
     label_gap`).
     """
@@ -3502,10 +3484,8 @@ struct _PointChannels(Movable):
 
     Built unconditionally, even for a plot encoding none of the three
     (every `has_*` False, both lists empty, both scales built over a
-    placeholder `[0, 1]` domain and never queried) -- the same "one code
-    path, not a branch duplicated per combination" convention the
-    single-plot render path already documented for these values
-    individually, back when it computed each of them inline.
+    placeholder `[0, 1]` domain and never queried) -- one code
+    path, not a branch duplicated per combination.
 
     A struct rather than five separate locals because these are needed
     at *two* different points in one render, either side of a step that
@@ -3711,17 +3691,16 @@ def _legend_reserve_for(plot: Plot, ch: _PointChannels, sc: _Scaled) raises -> I
     mark, or no data-driven channel encoded -- every other mark either
     has its separate legend logic or none).
 
-    A plot can combine continuous color *and* size (a real, existing
-    case -- see `examples/bubble.mojo`), stacking both sections in one
-    column -- so the width is whichever section needs more room, not a
-    sum (they stack vertically, not side by side). Categorical color and
+    A plot can combine continuous color *and* size, stacking both
+    sections in one column -- so the width is whichever section needs
+    more room, not a sum (they stack vertically, not side by side). Categorical color and
     continuous color are mutually exclusive already
     (`_validate_continuous_encoding`), so at most one of the first two
     ever contributes.
 
     Called *before* the plot rect is finalized, the same "measure the
     real labels before sizing the margin around them" ordering the
-    y-axis's dynamic left margin already requires -- see
+    y-axis's dynamic left margin requires -- see
     `_dynamic_legend_width`'s docstring.
 
     Has a `cache=` overload, for the same reason `_max_label_width`
@@ -3878,7 +3857,7 @@ def _draw_continuous_axis_frame[
     `legend_reserve` is subtracted from the right edge before the rect
     is finalized (`0` when there's no legend) -- the same "shrink the
     rect from outside, don't thread a flag through the shared core"
-    pattern `_apply_labels` and `_render_grouped_bar` both already use.
+    pattern `_apply_labels` and `_render_grouped_bar` both use.
     """
     var sc = _Scaled(theme)
 
@@ -4171,9 +4150,9 @@ def _render_generic[
     `_render_bar`/`_render_arc`'s docstrings).
 
     What's left after the dispatch -- the `Mark.POINT`/`LINE`/`AREA`
-    continuous-axis path -- is itself now just a short assembly of
+    continuous-axis path -- is itself just a short assembly of
     shared pieces, in the same shape every categorical `_render_*`
-    already had: decide the two domains (the only genuinely per-path
+    has: decide the two domains (the only genuinely per-path
     decision, see `_draw_continuous_axis_frame`'s docstring), size
     the legend column (`_legend_reserve_for`), draw the axis frame
     (`_draw_continuous_axis_frame`), then draw the one mark
@@ -4637,7 +4616,7 @@ def _render_facets_generic[
         # shared coordinate system has (see _render_layers_generic's
         # own docstring for how that one's handled instead). Areas
         # drawn before lines, the same per-plot stacking order render()/
-        # render_svg() already use.
+        # render_svg() use.
         var cell_area_requests = _draw_annotation_areas(target, plots[i], cell_result, plots[i]._theme)
         var cell_line_requests = _draw_annotation_lines(target, plots[i], cell_result, plots[i]._theme)
         _extend_text_requests(text_requests, label_requests)
@@ -4700,7 +4679,7 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     if a `LINE`/`AREA` layer tries to use one of these instead. A
     caller wanting several distinctly colored *series* instead (rather
     than per-point encoding within one series) still sets each layer's flat `Theme.mark_color` (the same per-layer-styling `examples/
-    facets.mojo` already uses, just overlaid here instead of laid out
+    facets.mojo` uses, just overlaid here instead of laid out
     in a grid) -- `render_layers` still has no per-*series* name/label
     concept for a "which layer is which" legend built from several
     flat-colored layers (see the wiki's Backlog, its "Explicitly
@@ -4722,7 +4701,7 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     not `plots[0]`'s), stacked in one shared column in layer order --
     the same categorical/continuous-color/size section types and
     stacking order `_render_generic`'s single-plot `Mark.POINT`
-    legend already uses (see its docstring), just once per
+    legend uses (see its docstring), just once per
     encoding-using layer instead of once per plot. The legend column's horizontal position is shared (every section starts at the
     identical x, from the combined `plot_x1`), but each section's row height/font size/colors come from that specific layer's `Theme` -- so differently-scaled or differently-styled layers each
     draw their section correctly, not forced through `plots[0]`'s
@@ -4861,7 +4840,7 @@ def _render_layers_generic[
     rule applied independently within each group. The secondary axis
     draws mirrored onto the plot's right edge (its axis line, ticks,
     tick labels -- measured and reserved the same "measure the domain's ticks, size the margin to fit them" way `_draw_continuous_axis_
-    frame` already sizes the *left* margin, just inlined here since it's
+    frame` sizes the *left* margin, just inlined here since it's
     the only caller), with no gridlines of its own (see `Plot.secondary_
     axis()`'s docstring for why). Its reserved width sits between
     the plot's inner rect and the legend column -- `legend_x` shifts
@@ -4880,7 +4859,7 @@ def _render_layers_generic[
     secondary_axis()` put it on) -- the identical scale that layer's mark just drew against, not the combined domain some other
     layer might be using. Drawn last, on top of every layer's mark,
     the same "annotations after the mark" order `render()`/`render_svg()`
-    already use.
+    use.
     """
     var text_requests = List[_TextRequest]()
     if len(plots) == 0:
@@ -5070,7 +5049,7 @@ def _render_layers_generic[
 
     # Each layer's Plot.annotate_area()/annotate_line() draw last,
     # on top of every layer's mark (the same "annotations drawn
-    # after the mark itself" order render()/render_svg() already use) --
+    # after the mark itself" order render()/render_svg() use) --
     # against *that layer's own* y_scale (primary or secondary,
     # whichever `Plot.secondary_axis()` put it on), not render_facets()'s
     # simpler "one cell, one Plot" case: a layered render shares one

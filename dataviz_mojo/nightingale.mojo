@@ -49,11 +49,10 @@ def _render_nightingale[
     clockwise here) and its identical non-negative/at-least-one-
     positive value validation, `default_categorical_palette()` for
     wedge colors by category index, and the same margin-box/legend
-    layout `_render_arc` uses. No axis frame at all -- the same "a
-    circle has no x/y axes" reasoning `_render_arc` already documents
-    -- so this is its fully separate render path, not a branch
-    inside `_render_arc` itself: the per-wedge angle/radius formula
-    genuinely differs, not just a flag flip.
+    layout `_render_arc` uses. No axis frame at all -- a circle has
+    no x/y axes. The per-wedge angle/radius formula genuinely differs
+    from `_render_arc`'s, so this is its own render path rather than
+    a branch inside that one.
     """
     _validate_categorical_encoding(plot)
 

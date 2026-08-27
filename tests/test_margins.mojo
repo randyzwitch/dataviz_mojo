@@ -67,7 +67,7 @@ def test_render_left_margin_grows_to_fit_wide_y_axis_labels() raises:
     var left_of_old_margin = c.get_pixel(57, 135)
     assert_true(
         left_of_old_margin.r != 255 or left_of_old_margin.g != 255 or left_of_old_margin.b != 255,
-        "wide tick label's ink reaches left of the old fixed margin",
+        "wide tick label's ink reaches left of the plain fixed margin",
     )
 
 
@@ -75,10 +75,9 @@ def test_render_left_margin_unchanged_for_short_y_axis_labels() raises:
     # Confirms the dynamic computation is purely additive: short
     # labels ("2","4","6","8","10", from the same data every other
     # point-mark test in this file uses) must leave plot_x0 at
-    # exactly Theme's default 60, byte-identical to every
-    # pre-existing hand-derived test above -- not a coincidence, the
-    # actual reason none of those needed updating when this feature
-    # was added.
+    # exactly Theme's default 60, byte-identical to every other
+    # hand-derived test above -- the same margin every one of those
+    # depends on for its hand-derived pixel math to hold.
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
     var y: List[Float64] = [2.3, 4.1, 3.6, 5.8, 5.1, 7.4, 6.9, 8.2, 9.0, 8.6]
     var t = Theme(show_gridlines=False)
@@ -112,7 +111,7 @@ def test_render_bar_left_margin_also_grows_to_fit_wide_y_axis_labels() raises:
     var left_of_old_margin = c.get_pixel(57, 135)
     assert_true(
         left_of_old_margin.r != 255 or left_of_old_margin.g != 255 or left_of_old_margin.b != 255,
-        "wide tick label's ink reaches left of the old fixed margin",
+        "wide tick label's ink reaches left of the plain fixed margin",
     )
 
 

@@ -22,8 +22,8 @@ def test_render_graph_matches_hand_derived_edges() raises:
     # edges A->B (value 10, the domain's max) and B->C (value 5,
     # half that). Canvas 400x300, default theme: plot area x:[60,380],
     # y:[20,250] -> center (220,135), max radius 103.5 (the same
-    # no-legend-needed numbers every polar-family mark this session
-    # derives for this exact canvas size -- Mark.GRAPH never reserves
+    # no-legend-needed numbers every polar-family mark's tests already
+    # derive for this exact canvas size -- Mark.GRAPH never reserves
     # legend space at all).
     #
     # 3 nodes evenly spaced starting at 12 o'clock, sweeping clockwise

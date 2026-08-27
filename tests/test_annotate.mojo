@@ -21,8 +21,8 @@ def test_render_svg_annotate_line_matches_hand_derived_position() raises:
     # legend geometry test_render_svg_bar_mark_matches_confirmed_rect's
     # own case establishes for this canvas size: plot area x:[60,380],
     # y:[20,250]. _zero_baseline_y_extent([10,20]) pads to domain
-    # [0, 21.0] (span 20, 5% pad 1.0), so annotate_line(15.0)'s pixel row is the *same* one the y=15 tick already lands on:
-    # y=86 (the
+    # [0, 21.0] (span 20, 5% pad 1.0), so annotate_line(15.0)'s pixel
+    # row is the *same* one the y=15 tick already lands on: y=86 (the
     # tick's label sits at y=90, offset by the same +4 baseline
     # nudge every y-axis tick label already carries). The line spans
     # the full inner width (60 to 380); its label right-aligns

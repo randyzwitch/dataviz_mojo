@@ -21,9 +21,9 @@ struct ColorScale(Movable):
     spatial position to map onto; `color_at(value)` is the whole
     interface. A zero-span domain (every value identical) always
     projects to t=0.0 -- the lowest-offset stop's color (not
-    necessarily whichever was added first; see _color_at_t's bracketing-by-offset-value search), not a crash -- the same
-    degenerate-domain handling LinearScale's `scale()` gives (see
-    that struct's docstring).
+    necessarily whichever was added first; see `_color_at_t`'s
+    bracketing-by-offset-value search), not a crash -- the same
+    degenerate-domain handling `LinearScale.scale()` gives.
     """
 
     var domain_min: Float64

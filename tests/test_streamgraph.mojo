@@ -28,7 +28,7 @@ def test_render_streamgraph_matches_hand_derived_bands() raises:
     # margin at Theme's default 60). x_scale
     # centers 140 (X) / 300 (Y) -- the same OrdinalScale math every
     # other categorical mark's tests already confirm for this
-    # identical 2-category/400-wide/default-margin setup. A's stack: baseline -10, top 0 -> band y:[135,240]. B's own: baseline
+    # identical 2-category/400-wide/default-margin setup. A's stack: baseline -10, top 0 -> band y:[135,240]. B's stack: baseline
     # 0, top 10 -> band y:[30,135] (see this file's SVG test for the
     # exact path data). Sampled at each band's midpoint.
     var cats: List[String] = ["X", "Y"]
