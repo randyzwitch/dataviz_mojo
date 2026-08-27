@@ -20,7 +20,7 @@ def test_render_tree_matches_hand_derived_positions() raises:
     # root -> A, B (both leaves, no grandchildren) -- the simplest
     # non-trivial tree: 2 leaves, max_depth 1. Canvas 400x300, show_
     # legend=False: plot area x:[60,380], y:[20,250] (the standard
-    # no-legend numbers every mark this session derives for this
+    # no-legend numbers every mark's tests already derive for this
     # exact canvas size). 2 leaves -> A's slot 0 maps to plot_x0
     # (60), B's slot 1 maps to plot_x1 (380); root's slot is
     # the average (0.5), maps to the horizontal center (220). depth 0

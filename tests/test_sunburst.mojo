@@ -21,8 +21,8 @@ def test_render_sunburst_matches_hand_derived_ring_sectors() raises:
     # root -> B (50% of root) -> B1 (100% of B's span, B's only
     # child). Canvas 400x300, show_legend=False: plot area x:[60,380],
     # y:[20,250] -> center (220,135), max radius 103.5 (the same no-
-    # legend numbers every polar-family test this session already
-    # derives for this exact canvas size). max_depth=2 -> ring_width
+    # legend numbers every polar-family mark's tests already
+    # derive for this exact canvas size). max_depth=2 -> ring_width
     # 51.75: ring 1 spans [0,51.75], ring 2 spans [51.75,103.5].
     #
     # A spans -90.90 degrees (bisector 0, due east); B spans 90.270
