@@ -32,9 +32,17 @@ struct MinMax(ImplicitlyCopyable, Movable):
     them)."""
 
     var min: Float64
+    """The column's smallest value."""
     var max: Float64
+    """The column's largest value."""
 
     def __init__(out self, min: Float64, max: Float64):
+        """Construct a `MinMax` from an already-known min and max.
+
+        Args:
+            min: The column's smallest value.
+            max: The column's largest value.
+        """
         self.min = min
         self.max = max
 
@@ -152,9 +160,21 @@ struct Ticks(Movable):
     thing to re-derive from a tick value afterward."""
 
     var values: List[Float64]
+    """The tick positions themselves, in the scale's data domain."""
     var decimals: Int
+    """How many decimal places every tick value needs for display --
+    falls straight out of `_nice_step`'s own step computation."""
 
     def __init__(out self, var values: List[Float64], decimals: Int):
+        """Construct a `Ticks` from already-computed positions and a
+        decimal count -- normally built by `LinearScale.ticks()`, not
+        called directly.
+
+        Args:
+            values: The tick positions, in the scale's data domain.
+            decimals: How many decimal places every tick value needs
+                for display.
+        """
         self.values = values^
         self.decimals = decimals
 
@@ -162,7 +182,11 @@ struct Ticks(Movable):
         """Each tick value formatted via _format_fixed at this
         Ticks' `decimals` -- the convenience an axis-drawing
         caller actually wants, without needing to know
-        _format_fixed exists."""
+        _format_fixed exists.
+
+        Returns:
+            One formatted string per `values` entry, same order.
+        """
         var result = List[String](capacity=len(self.values))
         for v in self.values:
             result.append(_format_fixed(v, self.decimals))
@@ -180,13 +204,28 @@ struct LinearScale(ImplicitlyCopyable, Movable):
     """
 
     var domain_min: Float64
+    """The low end of the data domain this scale maps from."""
     var domain_max: Float64
+    """The high end of the data domain this scale maps from."""
     var range_min: Float64
+    """The pixel position `domain_min` maps to."""
     var range_max: Float64
+    """The pixel position `domain_max` maps to -- not necessarily
+    greater than `range_min` (a y-axis scale passes a *smaller* pixel
+    value here, since pixel y increases downward)."""
 
     def __init__(
         out self, domain_min: Float64, domain_max: Float64, range_min: Float64, range_max: Float64
     ):
+        """Construct a `LinearScale` from an already-known domain and
+        pixel range.
+
+        Args:
+            domain_min: The low end of the data domain.
+            domain_max: The high end of the data domain.
+            range_min: The pixel position `domain_min` maps to.
+            range_max: The pixel position `domain_max` maps to.
+        """
         self.domain_min = domain_min
         self.domain_max = domain_max
         self.range_min = range_min
@@ -214,6 +253,15 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         return self.range_min - self.domain_min * self.scale()
 
     def to_pixel(self, value: Float64) -> Float64:
+        """Map a data value onto its pixel position -- `scale()`'s
+        slope times `value`, plus `translate()`'s intercept.
+
+        Args:
+            value: The data value to map.
+
+        Returns:
+            The pixel position `value` lands on.
+        """
         return value * self.scale() + self.translate()
 
     def ticks(self, target_count: Int = 5) -> Ticks:
@@ -229,6 +277,15 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         the nice-step math against a zero raw step (which would need
         log10(0), undefined) -- a real, reachable case (e.g. a column
         of constant values), not just a defensive check.
+
+        Args:
+            target_count: Roughly how many ticks to aim for; the
+                actual count depends on which "nice" step size the
+                domain rounds to. Defaults to `5`.
+
+        Returns:
+            The computed tick positions and their shared decimal
+            count.
         """
         if self.domain_min == self.domain_max:
             var single: List[Float64] = [self.domain_min]
