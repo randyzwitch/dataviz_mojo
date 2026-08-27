@@ -20,7 +20,7 @@ def test_render_gauge_matches_hand_derived_needle_and_pivot() raises:
     # north, since angle 0 is east and angle increases clockwise).
     # Canvas 400x300, no legend needed (a gauge has one value, nothing
     # to key one by): center (220,135), max radius 103.5 -- the same
-    # no-legend numbers test_polar.mojo's tests already derive for
+    # no-legend numbers test_polar.mojo's tests derive for
     # this exact canvas size. Needle reaches 0.9*103.5=93.15; two
     # points straight up from center (at pixel rows 50 and 42, both
     # well short of that) fall on the needle. The center pivot dot is

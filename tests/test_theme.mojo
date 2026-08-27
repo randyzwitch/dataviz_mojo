@@ -84,7 +84,7 @@ def test_render_theme_font_family_reaches_svg_output() raises:
     # default theme otherwise: the same setup test_render_theme_scale_
     # uniformly_scales_the_whole_layout's 1x case reuses, so the
     # first tick label ("4.0" on the y-axis) lands at the same (60,
-    # 271) that case's math already establishes.
+    # 271) that case's math establishes.
     var xy: List[Float64] = [5.0]
     var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(font_family="Georgia"))
@@ -147,7 +147,7 @@ def test_render_theme_title_bold_default_emits_font_weight_bold() raises:
     # title_bold's default (True) emits a literal font-weight="bold"
     # attribute on the title's <text> element. Single point, canvas 400x300,
     # title "Hi" -- the same no-legend geometry test_render_theme_
-    # scale_uniformly_scales_the_whole_layout's 1x case already
+    # scale_uniformly_scales_the_whole_layout's 1x case
     # establishes, so the title lands at the same (220, 14) that
     # case's math implies for this canvas size.
     var xy: List[Float64] = [5.0]

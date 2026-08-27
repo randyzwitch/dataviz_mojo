@@ -30,7 +30,7 @@ from _test_helpers import BG, _count_color, _assert_color
 def test_render_grouped_bar_matches_hand_derived_rectangles() raises:
     # 2 categories ("A"/"B", short labels -- dynamic left margin stays
     # at Theme's default 60, the same short-label convention every
-    # other hand-derived test in this file already relies on), 2 series
+    # other hand-derived test in this file relies on), 2 series
     # -- `values[0]` (North) = [10, 20] (North's value for A, then
     # B), `values[1]` (South) = [5, 15] (South's value for A, then
     # B): North_A=10, North_B=20, South_A=5, South_B=15 -- easy to

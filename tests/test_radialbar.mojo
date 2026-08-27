@@ -19,8 +19,8 @@ comptime _TRACK = Color(230, 230, 230)
 
 
 def test_render_radialbar_ring_colors_and_track() raises:
-    # Same 400x300, single-char "a"/"b"/"c" labels test_polar_bar.mojo's
-    # own case uses -> identical center (155,135) and max_radius 85.5
+    # Same 400x300, single-char "a"/"b"/"c" labels test_polar_bar.mojo
+    # uses -> identical center (155,135) and max_radius 85.5
     # (default margins, dynamic legend width for three one-char labels).
     # Values [1, 2, 4] (max 4) give clean fractions: ring 0 (outermost,
     # category "a") sweeps 1/4 of the way around (90 degrees), ring 1

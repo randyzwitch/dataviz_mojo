@@ -106,7 +106,7 @@ def test_render_line_smoothing_default_matches_straight_line_output_exactly() ra
     # pre-existing straight-segment render byte-for-byte -- not just
     # "close", the same "purely additive" bar every other Theme field
     # added to this package has had to clear (see e.g. Theme.scale's
-    # own equivalent test). A real 3-point line (a peak shape, not the
+    # equivalent test). A real 3-point line (a peak shape, not the
     # 2-point flat line the very first LINE test uses), compared
     # pixel-for-pixel across the whole canvas between Theme's bare
     # default and an explicit Theme(line_smoothing=0.0).

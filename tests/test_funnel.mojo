@@ -28,7 +28,7 @@ def test_render_funnel_matches_hand_derived_trapezoids() raises:
     # for the exact path data. Sampled at
     # each row's vertical midpoint, x=220 (dead center -- always
     # inside every trapezoid, symmetric around cx, regardless of its
-    # own width), so no left/right-edge math is needed here at all.
+    # width), so no left/right-edge math is needed here at all.
     var cats: List[String] = ["A", "B", "C"]
     var vals: List[Float64] = [100.0, 60.0, 20.0]
     var t = Theme(show_legend=False)

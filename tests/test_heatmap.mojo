@@ -20,7 +20,7 @@ def test_render_heatmap_matches_hand_derived_cells() raises:
     # row per cell: (Mon,AM)=1.0, (Mon,PM)=2.0, (Tue,AM)=3.0, (Tue,PM)
     # =4.0. Canvas 400x300, show_gridlines=False, show_legend=False.
     # Short "AM"/"PM" labels keep the dynamic left margin at Theme's
-    # own default 60 (the same margin every other categorical-mark
+    # default 60 (the same margin every other categorical-mark
     # test with short labels confirms). x_scale/y_scale both use
     # padding=0.0 (see _draw_grid_axis_frame's docstring), so with
     # exactly 2 categories on each axis and plot area x:[60,380],
@@ -28,7 +28,7 @@ def test_render_heatmap_matches_hand_derived_cells() raises:
     # (x:[60,220) for "Mon", x:[220,380) for "Tue"), cell height 115
     # (y:[20,135) for "AM", y:[135,250) for "PM") -- category index 0
     # lands first (top/left), the same reading-order convention Mark.
-    # GANTT's y-axis already establishes.
+    # GANTT's y-axis uses.
     #
     # value=1.0 is the color domain's min -> exactly Theme's
     # color_scale_low, Color(60,110,200); value=4.0 is the max ->

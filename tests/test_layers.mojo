@@ -77,13 +77,13 @@ def test_render_layers_svg_title_from_plots0_centers_on_shared_inner_rect() rais
     # (the wiki's Changelog, its "Plot.labels() reaches
     # render_facets/render_layers" entry): the title comes from
     # plots[0] only (the same "shared chrome from plots[0]" convention
-    # Theme already follows here -- see render_layers()'s docstring), and its extra_top=Int(18.0)+4=22 reservation
+    # Theme follows here -- see render_layers()'s docstring), and its extra_top=Int(18.0)+4=22 reservation
     # shifts the *shared* plot_y0 from 20 to 42 -- affecting every
     # layer's geometry together, not just plots[0]'s own, since
     # every layer draws into the identical shared inner rect (the
     # point's cy moves from 135 to 146; the line's endpoints
     # re-solved below via the same to_pixel formula the un-titled test
-    # above already confirmed, just against range_max=42 instead of 20).
+    # above confirmed, just against range_max=42 instead of 20).
     # Title itself centers at ((60+380)//2, Int(18.0*0.8))=(220,14).
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
@@ -127,7 +127,7 @@ def test_render_layers_svg_point_layer_color_categories_matches_hand_derived_leg
     # per-point encoding and legends" entry). x=[0,10], y=[0.0,0.0]
     # (constant -- zero-span domain, padded to [-1,1], the same pattern
     # test_render_color_encoding_matches_hand_derived_colors above
-    # already establishes), color_categories=["A","B"] -- short labels,
+    # establishes), color_categories=["A","B"] -- short labels,
     # so the default 130px Theme.legend_width governs (not grown), and
     # plot_x1 becomes 400-20-130=250 (not 380, the no-legend value other
     # single-layer tests in this file use).
@@ -140,15 +140,15 @@ def test_render_layers_svg_point_layer_color_categories_matches_hand_derived_leg
     # uses, cross-checked in Python, not read off the code's output). y=[−1,1] domain's midpoint (value 0.0) lands at the
     # exact vertical center of [plot_y0=20, plot_y1=250] -> 135, for
     # both points (constant y). Point 0 ("A") gets the default palette's
-    # own first color (#1f77b4), point 1 ("B") the second (#ff7f0e) --
+    # first color (#1f77b4), point 1 ("B") the second (#ff7f0e) --
     # the identical two colors/ordering the single-plot categorical-
-    # color tests in this file already confirm, reused unchanged since
+    # color tests in this file confirm, reused unchanged since
     # render_layers's per-layer encoding is exactly Mark.POINT's single-plot logic, not a reimplementation.
     #
     # Legend column at legend_x=plot_x1+margin_right=250+20=270, row 0
     # (swatch "A") at y=plot_y0=20, row 1 ("B") at y=20+(14+8)=42 -- the
     # identical swatch_size=14/row_gap=8 spacing test_render_point_
-    # legend_width_grows_to_fit_long_category_names above already
+    # legend_width_grows_to_fit_long_category_names above
     # establishes.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
@@ -233,7 +233,7 @@ def test_render_layers_with_empty_list_is_a_noop() raises:
 
 def test_render_layers_raises_when_a_lollipop_plot_is_included() raises:
     # The same Mark.POINT/LINE/AREA-only restriction test_render_
-    # layers_raises_when_a_bar_plot_is_included already confirms for
+    # layers_raises_when_a_bar_plot_is_included confirms for
     # Mark.BAR, checked again for Mark.LOLLIPOP: the raise's check is
     # a positive allow-list (only POINT/LINE/AREA), not a deny-list
     # that would need updating per new mark -- this test exists to
@@ -411,7 +411,7 @@ def test_render_layers_area_honors_theme_line_smoothing() raises:
 
 def test_render_layers_raises_on_out_of_range_smoothing() raises:
     # The same [0.0, 1.0] guard test_render_line_raises_on_out_of_range_
-    # smoothing (test_line.mojo) already confirms for render() -- the
+    # smoothing (test_line.mojo) confirms for render() -- the
     # layered path shares this check via _draw_line_layer, rejecting a
     # value Theme.line_smoothing's docstring assigns no meaning to.
     var x: List[Float64] = [0.0, 10.0, 20.0]

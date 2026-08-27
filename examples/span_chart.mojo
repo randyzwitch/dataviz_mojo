@@ -8,7 +8,7 @@ away.
 
 Monthly temperature range for Beijing -- ECharts.jl's spanchart
 example, the chart type's classic use (a daily high/low range
-that would misrepresent the data if drawn as a bar()`, since a bar
+that would misrepresent the data if drawn as a bar(), since a bar
 implies "from zero," not "from the low").
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same

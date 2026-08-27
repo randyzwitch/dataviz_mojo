@@ -28,13 +28,13 @@ from _test_helpers import BG, _count_color, _assert_color
 
 def test_render_lollipop_matches_hand_derived_stem_and_point() raises:
     # Exactly test_render_bar_mark_matches_hand_derived_bar_rectangles'
-    # own data/canvas/theme (3 categories, y=[10,20,15], 400x300,
+    # data/canvas/theme (3 categories, y=[10,20,15], 400x300,
     # default margins, gridlines off) -- Mark.LOLLIPOP shares Mark.BAR's
-    # own encode_categorical() data shape and _zero_baseline_y_extent
+    # encode_categorical() data shape and _zero_baseline_y_extent
     # domain, so category "b"'s band center (220.0, an exact value
     # -- band_start(1)=177.333 + bandwidth/2=42.667) and value-20 pixel
     # (30.952, rounds to 31 -- the same "tops at y=31" the bar test
-    # already confirmed) carry over unchanged; only the *shape* drawn
+    # confirmed) carry over unchanged; only the *shape* drawn
     # at those coordinates differs.
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [10.0, 20.0, 15.0]

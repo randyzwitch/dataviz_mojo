@@ -30,7 +30,7 @@ def test_render_left_margin_grows_to_fit_wide_y_axis_labels() raises:
     # y=[1000000,2000000] gives nice ticks [1000000,1500000,2000000]
     # (_data_extent pads to domain [950000,2050000]; Heckbert's
     # nice-step algorithm picks step=500000 for that span -- same
-    # hand-verified math test_scale.mojo's tests already lock in, not
+    # hand-verified math test_scale.mojo's tests lock in, not
     # re-derived here). Those three labels' rendered width at the
     # default 12pt font, against this environment's real "Sans" font
     # metrics (unhinted, so glyph widths depend on the installed font

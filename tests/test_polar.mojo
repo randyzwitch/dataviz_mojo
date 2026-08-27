@@ -86,7 +86,7 @@ def test_render_polar_empty_data_only_fills_background() raises:
 def test_render_polar_series_matches_hand_derived_line_and_markers() raises:
     # Two series, two single-char names ("A"/"B") -- the identical
     # dynamic-legend-width case test_nightingale.mojo's/test_polar_
-    # bar.mojo's three-category cases already establish for this
+    # bar.mojo's three-category cases establish for this
     # exact 400x300 canvas: center (155,135), max radius 85.5 (a short
     # label never grows the legend column past Theme's fixed 130px
     # default). Three angles 120 degrees apart (0, 2*pi/3, 4*pi/3) --

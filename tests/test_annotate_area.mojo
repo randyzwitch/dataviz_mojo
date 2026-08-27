@@ -1,6 +1,6 @@
 """Tests for Plot.annotate_area(): shaded reference-band placement
 (SVG + a raster ink companion), the mark-support boundary (mirroring
-annotate_line()'s own), an out-of-range band drawing nothing, a
+annotate_line()'s), an out-of-range band drawing nothing, a
 partially-out-of-range band clipping to the visible portion instead of
 disappearing, and multiple bands stacking via repeated calls.
 """
@@ -19,8 +19,8 @@ from _test_helpers import BG, _assert_color
 def test_render_svg_annotate_area_matches_hand_derived_position() raises:
     # Mark.LINE, 2 points (10 -> 20), no gridlines -- domain pads to
     # roughly [9.5, 20.5] (5% of span 10). annotate_area(12.0, 18.0)'s
-    # own band maps to y:[72, 198] -- canvas 400x300, plot area x:[60,380],
-    # y:[20,250]. Its own label sits just inside the band's top
+    # band maps to y:[72, 198] -- canvas 400x300, plot area x:[60,380],
+    # y:[20,250]. Its label sits just inside the band's top
     # edge, right-aligned near the plot's right edge.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]

@@ -5,8 +5,8 @@ a thin high-low wick (axis_color) plus an open-close body, colored by
 whether it closed up (mark_color) or down (mark_color_negative) --
 unconditional sign coloring, the same "not gated behind an opt-in
 flag" reasoning Mark.WATERFALL's docstring gives (see Theme's docstring for both). Unlike Mark.BAR/LOLLIPOP/WATERFALL, the y-axis
-doesn't force in a zero baseline -- the same reasoning Mark.BOX already
-established: a candlestick chart's whole point is showing fine detail
+doesn't force in a zero baseline -- the same reasoning Mark.BOX
+establishes: a candlestick chart's whole point is showing fine detail
 in a price range nowhere near zero, so forcing zero into view would
 flatten exactly the detail the chart exists to show. Built via
 dataviz_mojo.candlestick() -- see examples/scatter.mojo's docstring for what that trades away.

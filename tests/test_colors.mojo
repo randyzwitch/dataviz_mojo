@@ -80,7 +80,7 @@ def test_gray_grey_spelling_pairs_are_identical_colors() raises:
 def test_named_color_works_as_a_theme_mark_color_through_a_real_render() raises:
     # A real render, not just reading the constant back -- confirms a
     # named color reaches the renderer exactly like any other Color
-    # literal, with no separate integration path of its own (see
+    # literal, with no separate integration path (see
     # colors.mojo's "why comptime, not a lookup" paragraph). A
     # plain non-zero count, not a specific hand-derived pixel -- bar()
     # layout itself is already exhaustively covered in test_bar.mojo;
