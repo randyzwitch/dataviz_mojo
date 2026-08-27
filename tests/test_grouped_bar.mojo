@@ -34,10 +34,9 @@ def test_render_grouped_bar_matches_hand_derived_rectangles() raises:
     # -- `values[0]` (North) = [10, 20] (North's value for A, then
     # B), `values[1]` (South) = [5, 15] (South's value for A, then
     # B): North_A=10, North_B=20, South_A=5, South_B=15 -- easy to
-    # mis-cross with North_A/South_A both "the first number," which is
-    # exactly what a first pass at this test's hand-derivation got
-    # wrong before a real render() run caught it; the values below are
-    # the corrected, confirmed ones. Canvas 400x300, default margins,
+    # mis-cross with North_A/South_A both "the first number," so
+    # double-check against this mapping before changing either list.
+    # Canvas 400x300, default margins,
     # show_gridlines=False, show_legend left at its default (True)
     # -- grouped bar always reserves a legend column, unlike plain
     # Mark.BAR, so the OrdinalScale's range is [60, 250], not

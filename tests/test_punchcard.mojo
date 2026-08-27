@@ -22,7 +22,6 @@ def test_render_punchcard_matches_hand_derived_bubbles() raises:
     # (the default): radius = size/scale -> 5, 10, 2. Canvas 400x300,
     # show_gridlines=False, show_legend=False: Mark.HEATMAP's _draw_grid_axis_frame, plot area x:[60,380], y:[20,250], 2
     # categories on each axis -> centers (140, 78)/(140, 193)/(300, 78)
-    # -- every number confirmed against a real render_svg() run first
     # (see this file's SVG test).
     var x: List[String] = ["Mon", "Mon", "Tue"]
     var y: List[String] = ["9am", "10am", "9am"]
@@ -60,8 +59,7 @@ def test_render_punchcard_repeated_cell_draws_two_independent_bubbles() raises:
     # not a divided-grid cell center. A pixel just outside the smaller
     # bubble's radius (r=2) but still inside the larger one (r=10)
     # confirms the larger bubble is really there, not silently dropped
-    # in favor of the last-drawn row -- both points confirmed against
-    # a real render() run first.
+    # in favor of the last-drawn row.
     var x: List[String] = ["Mon", "Mon"]
     var y: List[String] = ["9am", "9am"]
     var sizes: List[Float64] = [20.0, 100.0]

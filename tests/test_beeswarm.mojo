@@ -25,8 +25,7 @@ def test_render_beeswarm_matches_hand_derived_offsets() raises:
     # span 40, 5% pad 2.0 -> [8, 52]; scale = (20-250)/(52-8) =
     # -5.2273 -> pixel y's 240 (v=10), 234 (v=11), 30 (v=50) --
     # independently computed via python3 from LinearScale's to_
-    # pixel formula, then confirmed against a real render() run before
-    # trusting it. Default point_radius 3.5 rounds to 4, spacing = 8:
+    # pixel formula. Default point_radius 3.5 rounds to 4, spacing = 8:
     # sorted by y, 50's row (y=30) is 204px from 11's (y=234,
     # sorted next) -- far past the 8px spacing threshold, its row
     # by itself, offset 0. 11 and 10 are only 6px apart (234 vs 240) --

@@ -233,18 +233,13 @@ medium gray as a fill would read as an opaque, obtrusive block, while a
 annotate_area()`'s label text still uses `annotation_color`, not
 this field -- ink and fill are two different jobs even on the same
 annotation, the same split `mark_color`/`text_color` already have
-everywhere else. A real, documented limitation this default exists to
-soften: canvas_mojo's `fill_rect` has no true alpha compositing on
-either backend (`Canvas`'s pixel buffer stores no per-pixel alpha
-at all; `SvgCanvas.fill_rect` emits a plain `fill="#rrggbb"`, no `fill-
-opacity`) -- the same real gap `_lighten()`'s docstring already
-documents for `Mark.EFFECT_SCATTER`'s halo, not a new one. A real
-translucent overlay (ECharts' `markArea` default) would let
-whatever the mark drew underneath stay visible through it; this can
-only draw a fully opaque rectangle over it instead, so the default
-stays deliberately pale specifically to minimize how much that
-obscures -- not a substitute for real translucency, just the softest
-version of "opaque" gets to be until canvas_mojo can do better.
+everywhere else. `Plot.annotate_area()` draws this as a fully opaque
+fill, not real alpha over whatever the mark drew underneath (ECharts'
+`markArea` default) -- both canvas_mojo backends can render true
+alpha now (see `_lighten()`'s docstring), so this is an unmade
+caller-side choice, not a missing primitive. The pale default keeps
+that opaque fill's visual weight as light as an opaque rectangle can
+get.
 
 `font_family` (default `"sans-serif"`) is every `_TextRequest`'s typeface -- tick/legend labels, axis titles, the chart title, all of
 it, baked into each `_TextRequest` at the point it's built (the same

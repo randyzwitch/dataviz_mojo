@@ -19,8 +19,7 @@ from _test_helpers import BG, _assert_color
 def test_render_svg_annotate_area_matches_hand_derived_position() raises:
     # Mark.LINE, 2 points (10 -> 20), no gridlines -- domain pads to
     # roughly [9.5, 20.5] (5% of span 10). annotate_area(12.0, 18.0)'s
-    # own band maps to y:[72, 198] -- confirmed against a real
-    # render_svg() run first, canvas 400x300, plot area x:[60,380],
+    # own band maps to y:[72, 198] -- canvas 400x300, plot area x:[60,380],
     # y:[20,250]. Its own label sits just inside the band's top
     # edge, right-aligned near the plot's right edge.
     var x: List[Float64] = [1.0, 2.0]
@@ -81,8 +80,7 @@ def test_render_annotate_area_out_of_range_draws_nothing() raises:
 def test_render_annotate_area_partial_overlap_clips_to_visible_portion() raises:
     # A band that only *partially* overlaps the domain (18.0-25.0,
     # against a ~20.5 max) draws the clipped, visible portion instead
-    # of disappearing entirely -- confirmed against a real render_svg()
-    # run first: clipped to y:[20, 72] (the plot's top edge down to
+    # of disappearing entirely: clipped to y:[20, 72] (the plot's top edge down to
     # 18.0's row), not the full, unclipped 18.0-25.0 span.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]

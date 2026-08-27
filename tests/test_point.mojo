@@ -161,9 +161,7 @@ def test_render_svg_point_mark_matches_hand_derived_coordinates() raises:
     # core, not re-derived from scratch. Integer pixel coordinates
     # (from _round_to_int, not raw Path floats) can't drift between
     # languages/float implementations the way a raw float coordinate
-    # could, so no cross-check-by-probe was needed here (see the LINE/
-    # BAR/ARC tests below, whose raw-float or angle-derived coordinates
-    # were each confirmed against a real render_svg() run first).
+    # could.
     var xy: List[Float64] = [5.0]
     var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_point().encode(x=xy, y=xy)

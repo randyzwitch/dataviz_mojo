@@ -43,7 +43,7 @@ def test_render_stacked_bar_matches_hand_derived_rectangles() raises:
     # own slope/intercept for the y-axis against this stacked-total
     # domain, OrdinalScale's band formula for x, unchanged from
     # Mark.GROUPED_BAR's own -- full band width per segment here, not
-    # divided sub-bars), then confirmed against a real render() run.
+    # divided sub-bars).
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]

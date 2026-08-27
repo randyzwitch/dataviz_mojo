@@ -28,10 +28,9 @@ def test_render_sunburst_matches_hand_derived_ring_sectors() raises:
     # A spans -90.90 degrees (bisector 0, due east); B spans 90.270
     # (bisector 180, due west). A1 spans -90.0 (bisector -45); A2
     # spans 0.90 (bisector 45); B1 spans A's full 90.270 (same
-    # as B itself, bisector 180). Every one of the 5 points below (2
-    # per branch's ring 2, 1 more each ring 1, all at a radius
-    # safely inside their ring, away from any boundary) confirmed
-    # against a real render() run first.
+    # as B itself, bisector 180). Every one of the 5 points below sits
+    # at a radius safely inside its ring (2 per branch's ring 2, 1 more
+    # each ring 1), away from any boundary.
     var ids: List[String] = ["root", "A", "B", "A1", "A2", "B1"]
     var parents: List[String] = ["", "root", "root", "A", "A", "B"]
     var values: List[Float64] = [0.0, 0.0, 0.0, 1.0, 1.0, 2.0]

@@ -182,10 +182,9 @@ def test_render_theme_title_bold_only_affects_the_title() raises:
     # Bold is scoped to the chart title alone -- x_title/y_title (and
     # every other _TextRequest) stay normal weight regardless of
     # title_bold, matching Theme.title_bold's docstring ("one
-    # deliberate exception, not a general knob"). Confirmed by
-    # checking a real render_svg() output with both an x_title and a
-    # title present: exactly one font-weight="bold" attribute in the
-    # whole document.
+    # deliberate exception, not a general knob"): with both an x_title
+    # and a title present, exactly one font-weight="bold" attribute
+    # appears in the whole document.
     var xy: List[Float64] = [5.0]
     var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_point().encode(x=xy, y=xy).labels(title="Hi", x_title="X")
@@ -203,17 +202,13 @@ def test_render_theme_title_bold_only_affects_the_title() raises:
 
 
 def test_theme_mark_style_fields_actually_change_output() raises:
-    # Each of these was a compile-time constant until it became a Theme
-    # field. A default-vs-overridden render must differ somewhere, or
-    # the field is wired to nothing -- which is the only way this
-    # change could silently fail, since every default reproduces the
-    # old constant exactly and the rest of the suite would still pass.
-    # A total row is required: the narrow-delta width only applies when
-    # the chart actually has totals to contrast against (see
-    # _render_waterfall -- with no totals every bar spans its full
-    # band, and this fraction is correctly ignored). Getting that wrong
-    # is what made a first version of this test pass against a field
-    # wired to nothing.
+    # A default-vs-overridden render must differ somewhere, or the
+    # field is wired to nothing. A total row is required: the
+    # narrow-delta width only applies when the chart actually has
+    # totals to contrast against (see _render_waterfall -- with no
+    # totals every bar spans its full band, and this fraction is
+    # correctly ignored) -- without one, this test would pass even
+    # against a field wired to nothing.
     var cats: List[String] = ["a", "b", "total"]
     var vals: List[Float64] = [3.0, -2.0, 1.0]
     var totals: List[Bool] = [False, False, True]

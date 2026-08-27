@@ -16,8 +16,7 @@ from _test_helpers import BG, _assert_color
 
 
 def test_render_calendar_heatmap_matches_hand_derived_cells() raises:
-    # 2024-01-01 (a real-world Monday, confirmed independently, not
-    # just trusted from the formula), 2024-01-07 (the following
+    # 2024-01-01 (a real-world Monday), 2024-01-07 (the following
     # Sunday -- 6 days later, wrapping to the *next* week's column since Sunday starts a new week here), and 2024-12-31 (a
     # real-world Tuesday, the year's last day, in the year's last column). Values [1.0, 2.0, 3.0] -- min/mid/max of the color
     # domain, so the first and third cells read directly off Theme's
@@ -27,8 +26,7 @@ def test_render_calendar_heatmap_matches_hand_derived_cells() raises:
     # Canvas 900x300, show_legend=False: plot area x:[60,880],
     # y:[20,250] (top margin grows by one font-size + label-gap for
     # the month-label row above the grid). 2024 is a leap year (366
-    # days) -> 53 week-columns. Every rect below confirmed against a
-    # real render_svg() run first (see this file's SVG test):
+    # days) -> 53 week-columns. Every rect below (see this file's SVG test):
     # Jan 1 (Mon, row 1, col 0) -> rect(60,67,15,31); Jan 7 (Sun, row
     # 0, col 1) -> rect(75,36,15,31); Dec 31 (Tue, row 2, col 52) ->
     # rect(865,97,15,31). Interior points sampled well inside each

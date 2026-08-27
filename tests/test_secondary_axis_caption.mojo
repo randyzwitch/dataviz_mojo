@@ -16,8 +16,7 @@ from dataviz_mojo.theme import Theme
 def test_render_layers_svg_secondary_axis_caption_matches_hand_derived_position() raises:
     # Primary layer (y:[10,20]) with no caption, secondary layer
     # (y:[50,10]) captioned "Growth" via its .labels(y_title=.) --
-    # confirmed against a real render_layers_svg() run first, canvas
-    # 400x300, no gridlines: the secondary axis's line shrinks
+    # canvas 400x300, no gridlines: the secondary axis's line shrinks
     # further left (to x=332, from the no-caption case's x=350) to
     # make room, and the caption itself draws rotated +90 degrees
     # (the opposite of the primary y_title's -90), centered at
@@ -56,7 +55,7 @@ def test_render_layers_svg_no_caption_when_secondary_axis_has_no_y_title() raise
     # The pre-existing, still-default case: a secondary-axis layer with
     # no .labels(y_title=.) draws no caption at all, and the
     # secondary axis's line lands at its no-caption position
-    # (x=350, not x=332 -- confirmed against tests/test_secondary_axis.
+    # (x=350, not x=332 -- matching tests/test_secondary_axis.
     # mojo's already-established geometry for this exact setup).
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]

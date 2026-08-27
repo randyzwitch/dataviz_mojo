@@ -20,8 +20,8 @@ from _test_helpers import BG, _assert_color
 
 def test_render_svg_annotate_vline_matches_hand_derived_position() raises:
     # Mark.LINE, 2 points (10 -> 20), no gridlines -- x-domain pads to
-    # roughly [0.95, 2.05] (5% of span 1.0). annotate_vline(1.5)'s column maps to px=220 -- confirmed against a real render_svg() run
-    # first, canvas 400x300, plot area x:[60,380], y:[20,250]. Its own
+    # roughly [0.95, 2.05] (5% of span 1.0). annotate_vline(1.5)'s column maps to px=220 -- canvas 400x300, plot area x:[60,380],
+    # y:[20,250]. Its own
     # label sits just right of the line, near the plot's top edge.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
@@ -46,9 +46,8 @@ def test_render_svg_annotate_vline_matches_hand_derived_position() raises:
 def test_render_svg_annotate_point_matches_hand_derived_position() raises:
     # Same plot, a point at (1.2, 15.0) -- deliberately a different x
     # than the vline test above, so the two annotation types' ink
-    # never overlaps in a raster ink check. Confirmed against a real
-    # render_svg() run first: cx=133, cy=135 (the same row the "15"
-    # y-tick lands on), r=4 (Theme's default point_radius).
+    # never overlaps in a raster ink check: cx=133, cy=135 (the same
+    # row the "15" y-tick lands on), r=4 (Theme's default point_radius).
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var svg = SvgCanvas(400, 300)

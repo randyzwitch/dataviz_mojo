@@ -1881,15 +1881,11 @@ struct Plot(Movable):
         A band with *no* overlap at all still draws nothing, the same
         as `annotate_line()`'s out-of-range case.
 
-        A real, documented limitation, not an oversight: canvas_mojo's
-        `fill_rect` has no true alpha compositing on either backend, so
-        this draws as a fully opaque rectangle *on top of* whatever the
-        mark itself drew in that band -- see `Theme.annotation_area_
-        color`'s docstring for the full story (the same gap
-        `_lighten()`'s docstring already documents for `Mark.
-        EFFECT_SCATTER`'s halo) and why its default stays
-        deliberately pale. Confirmed by actually rendering both cases,
-        not just reasoned about: on `Mark.POINT`/`LINE`/`EFFECT_SCATTER`
+        A design choice, not an oversight: this draws as a fully opaque
+        rectangle *on top of* whatever the mark itself drew in that
+        band, not real alpha over it (both backends can render true
+        alpha now -- see `Theme.annotation_area_color`'s docstring),
+        which is why its default stays deliberately pale. On `Mark.POINT`/`LINE`/`EFFECT_SCATTER`
         this reads well (a thin stroke/dot only loses the small stretch
         that falls inside the band, the rest is untouched), but on
         `Mark.BAR`/`WATERFALL`/`STACKED_BAR`/any other solid-fill mark, a
@@ -2961,9 +2957,9 @@ def _draw_annotation_areas[
 
     Each band spans the *inner* plot rect's full width (`result.px0`
     to `result.px1`), filled in `Theme.annotation_area_color` -- see
-    that field's docstring for the real, documented "no true alpha"
-    limitation this draws under (a fully opaque rectangle, not a
-    translucent overlay). Its own label, when non-empty, draws inside
+    that field's docstring for why this draws as a fully opaque
+    rectangle rather than a translucent overlay. Its own label, when
+    non-empty, draws inside
     the band near its top edge, in `Theme.annotation_color` (not
     `annotation_area_color` -- ink and fill are different jobs, see
     that field's docstring).
@@ -3986,12 +3982,10 @@ def _lighten(color: Color, alpha: UInt8) -> Color:
     `Color.blend_over` (give `color`
     a reduced alpha, composite it over white, keep the fully-opaque
     result) rather than real alpha transparency on the halo circle
-    itself: `SvgCanvas` has no opacity concept at all (only `Canvas`,
-    the raster backend, would actually blend a translucent fill), so a
-    genuinely translucent halo would render solid in one backend and
-    see-through in the other -- the same cross-backend-consistency
-    concern `DrawTarget`'s docstring raises for why it stays
-    narrow, just for a primitive (real alpha) that still isn't there.
+    itself: both backends can render true alpha now, but that would
+    blend against whatever's *behind* the halo, not always white --
+    a real design choice to revisit, not a workaround for a missing
+    primitive.
     """
     return Color(color.r, color.g, color.b, alpha).blend_over(Color(255, 255, 255))
 

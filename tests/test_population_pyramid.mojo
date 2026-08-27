@@ -32,8 +32,7 @@ def test_render_population_pyramid_matches_hand_derived_bars() raises:
     # test already confirms, since Mark.POPULATION_PYRAMID reuses Mark.
     # GANTT's horizontal frame unchanged. Every x pixel below
     # independently computed via python3 from LinearScale's to_
-    # pixel formula, then confirmed against a real render() run before
-    # trusting it.
+    # pixel formula.
     var cats: List[String] = ["A", "B"]
     var left: List[Float64] = [10.0, 30.0]
     var right: List[Float64] = [20.0, 10.0]

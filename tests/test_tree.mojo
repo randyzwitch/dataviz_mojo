@@ -24,8 +24,7 @@ def test_render_tree_matches_hand_derived_positions() raises:
     # exact canvas size). 2 leaves -> A's slot 0 maps to plot_x0
     # (60), B's slot 1 maps to plot_x1 (380); root's slot is
     # the average (0.5), maps to the horizontal center (220). depth 0
-    # (root) maps to plot_y0 (20), depth 1 (A, B) to plot_y1 (250) --
-    # every number confirmed against a real render_svg() run first
+    # (root) maps to plot_y0 (20), depth 1 (A, B) to plot_y1 (250)
     # (see this file's SVG test).
     var ids: List[String] = ["root", "A", "B"]
     var parents: List[String] = ["", "root", "root"]

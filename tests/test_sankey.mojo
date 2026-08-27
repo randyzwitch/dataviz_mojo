@@ -26,8 +26,7 @@ def test_render_sankey_matches_hand_derived_nodes_and_ribbon() raises:
     # (368,20,12,230) -- both fill the plot's full height (the
     # only node in their column). The ribbon fills the gap
     # between them, (72,20)-(72,250)-(368,250)-(368,20), colored by
-    # its "from" node (A). Every number confirmed against a real
-    # render_svg() run first (see this file's SVG test).
+    # its "from" node (A) (see this file's SVG test).
     var from_c: List[String] = ["A"]
     var to_c: List[String] = ["B"]
     var v: List[Float64] = [10.0]
@@ -96,18 +95,16 @@ def test_render_sankey_skip_edge_routes_through_a_pass_through_node() raises:
     _assert_color(
         c, 297, 192, palette[2], "D's skip edge, second segment (pass-through -> C), still D's color"
     )
-    # The one point that actually distinguishes this from the pre-fix
-    # behavior: (220, 192) sits inside column 1's node-width strip
-    # (x 214-226), in its bottom half -- the pass-through node's
-    # own reserved slot. Nothing draws there (no bar for an invisible
-    # pass-through node, and neither ribbon segment crosses the node-
-    # width gap itself) -- background. Before this fix, D's skip
-    # edge drew as one straight ribbon with no pass-through node
-    # reserving column 1 space at all, so B's bar -- the column's
-    # only "real" member -- claimed the *entire* column height instead
-    # of just its top half, painting orange here (confirmed by
-    # deliberately reverting to that behavior and re-probing before
-    # writing this assertion).
+    # The one point that actually distinguishes this from a version
+    # with no pass-through node at all: (220, 192) sits inside column
+    # 1's node-width strip (x 214-226), in its bottom half -- the
+    # pass-through node's own reserved slot. Nothing draws there (no
+    # bar for an invisible pass-through node, and neither ribbon
+    # segment crosses the node-width gap itself) -- background.
+    # Without that reserved slot, D's skip edge would draw as one
+    # straight ribbon and B's bar -- the column's only "real" member --
+    # would claim the *entire* column height instead of just its top
+    # half, painting orange here instead of background.
     _assert_color(c, 220, 192, BG, "the pass-through node's reserved slot -- background, not node B's bar")
 
 

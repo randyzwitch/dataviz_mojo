@@ -55,8 +55,7 @@ def test_accessible_svg_string_omits_desc_when_description_is_empty() raises:
 def test_accessible_svg_string_escapes_special_characters() raises:
     # Both the attribute (aria-label) and text-content (<title>)
     # contexts have different escaping rules -- '"' must escape inside
-    # a double-quoted attribute but not inside element text, confirmed
-    # against a real accessible_svg_string() run first.
+    # a double-quoted attribute but not inside element text.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, 20.0]
     var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals)

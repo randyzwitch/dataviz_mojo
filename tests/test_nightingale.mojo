@@ -54,8 +54,8 @@ def test_render_nightingale_area_mode_scales_radius_by_sqrt() raises:
     # 85.5 * sqrt(1/4) = 85.5 * 0.5 = 42.75 -- that same point (185,
     # 135) now falls *inside* it. This is the one pixel that actually
     # discriminates the two modes; wedge 1 (value equals the max, frac
-    # 1.0 either way -- sqrt(1) = 1) reaches full radius in both modes,
-    # confirmed unaffected at (125, 135).
+    # 1.0 either way -- sqrt(1) = 1) reaches full radius in both modes
+    # -- unaffected, at (125, 135).
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1.0, 4.0]
     var palette = default_categorical_palette()
@@ -75,9 +75,7 @@ def test_render_nightingale_svg_matches_confirmed_wedge_paths() raises:
     # way (400x300, no legend): cx=220, cy=135, max radius=103.5.
     # Equal angles this time (not ARC's value-proportional ones):
     # wedge 0 spans -90.90 degrees at radius 103.5*(1/3)=34.5, wedge 1
-    # spans 90.270 at radius 103.5*(3/3)=103.5. Endpoints confirmed
-    # via a real render_svg() run first (same discipline as test_arc.
-    # mojo's SVG tests), formatted through SvgCanvas's 3-decimal `_format_svg_float`.
+    # spans 90.270 at radius 103.5*(3/3)=103.5, formatted through SvgCanvas's 3-decimal `_format_svg_float`.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
     var svg = SvgCanvas(400, 300)

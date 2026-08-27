@@ -160,9 +160,7 @@ def test_render_svg_line_smoothing_matches_confirmed_cubic_path() raises:
     # Same x=[0,10,20], y=[0,10,0] peak as the raster test above --
     # every control-point coordinate independently derived via python3
     # from LinearScale's slope/intercept formula composed with the
-    # Catmull-Rom tangent formula, then cross-checked against a real
-    # render_svg() run before being trusted here (the same discipline
-    # every other exact-string SVG test in this file already follows).
+    # Catmull-Rom tangent formula.
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
     var svg = SvgCanvas(400, 300)
@@ -200,14 +198,10 @@ def test_render_svg_line_mark_matches_confirmed_path_coordinates() raises:
     # x=[0,10], y=[5,5] (horizontal, zero-span y padded to [4,6] the
     # same way test_render_line_mark_draws_ink_between_the_two_
     # endpoints' data is) -- Path stores raw (unrounded) Float64
-    # pixel coordinates, so unlike the point test above, this asserts
-    # against values confirmed by directly running render_svg() once
-    # first and reading its real output (not a hand-rolled formula
-    # assumed to match LinearScale.to_pixel()'s exact operation
-    # order/rounding), then formatted through SvgCanvas's `_format_svg_float` (3 decimal places -- see that function's docstring for why raw `String(Float64)` isn't safe to assert
-    # against here: it's what originally caught the 1-ULP cross-
-    # context float discrepancy that motivated `_format_svg_float` to
-    # exist at all).
+    # pixel coordinates, formatted through SvgCanvas's
+    # `_format_svg_float` (3 decimal places -- see that function's
+    # docstring for why raw `String(Float64)` isn't safe to assert
+    # against here).
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
     var svg = SvgCanvas(400, 300)

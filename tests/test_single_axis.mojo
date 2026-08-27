@@ -21,8 +21,7 @@ def test_render_single_axis_matches_hand_derived_points() raises:
     # _data_extent([10,20,30]): span 20, 5% pad 1.0 -> [9, 31]; scale
     # = (380-60)/(31-9) = 14.5454. -> pixel x's 75/220/365 (each
     # independently computed via python3 from LinearScale's to_
-    # pixel formula, then confirmed against a real render() run before
-    # trusting it). Every point lands on the same row, the plot area's
+    # pixel formula). Every point lands on the same row, the plot area's
     # own vertical center: (20+250)/2 = 135 exactly. Default point_
     # radius 3.5 rounds to 4.
     var x: List[Float64] = [10.0, 20.0, 30.0]

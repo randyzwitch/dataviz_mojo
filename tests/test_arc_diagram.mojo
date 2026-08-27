@@ -29,8 +29,7 @@ def test_render_arc_diagram_matches_hand_derived_arcs() raises:
     # = 6; B->C at frac 5/10=0.5 -> line_width + line_width = 4 (not
     # directly asserted here, confirmed in this file's SVG test
     # instead, where the exact stroke-width is visible in the path
-    # markup). Every point below confirmed against a real render()
-    # run first.
+    # markup).
     var from_c: List[String] = ["A", "B"]
     var to_c: List[String] = ["B", "C"]
     var v: List[Float64] = [10.0, 5.0]
