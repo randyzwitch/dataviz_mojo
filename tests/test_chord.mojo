@@ -23,7 +23,7 @@ def test_render_chord_two_nodes_one_edge_matches_hand_derived_geometry() raises:
     # already confirms for two equal Mark.ARC wedges (this mark reuses
     # that exact start-at-12-o'clock, sweep-clockwise convention).
     # Canvas 400x300, show_legend=False (sidesteps the legend column's
-    # own font-metric-dependent width): plot area x:[60,380], y:[20,250]
+    # font-metric-dependent width): plot area x:[60,380], y:[20,250]
     # (Theme's default margins, no dynamic-left-margin case here --
     # Mark.CHORD has no y-axis labels at all), center (220,135), radius
     # = min(320,230)/2*0.9 = 103.5, inner_radius = radius*0.92 = 95.22.
