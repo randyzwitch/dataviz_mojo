@@ -107,8 +107,8 @@ def test_render_ridgeline_scale_by_count_shortens_the_smaller_row() raises:
     # below its baseline, but row A (baseline y=135) never draws
     # *below* its baseline either, so any filled pixel at y > 135
     # can only be row B's curve, letting this test isolate row B's
-    # own rise without the two rows' overlap (`_RIDGE_OVERLAP`) making
-    # a taller row A ambiguous with a shorter row B. At x=220 (near
+    # own rise without the two rows' overlap (`theme.ridgeline_overlap`)
+    # making a taller row A ambiguous with a shorter row B. At x=220 (near
     # value 3, row B's peak-density region), row B's curve
     # top sits at y=136 under the default (right at this test's zone boundary -- tall), and only y=169 under scale_by_count=True
     # (visibly shorter). (220, 150) sits inside the default rise but
