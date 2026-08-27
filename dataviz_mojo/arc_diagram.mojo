@@ -33,7 +33,7 @@ def _render_arc_diagram[
     `GROUPED_BAR`'s `encode_grouped_bar()` already established -- but
     drawn as a genuinely different, much simpler network layout: every
     distinct node on one straight line, evenly spaced, edges drawn as
-    semicircular arcs bulging upward above it. This is ECharts.jl's "Arc Diagram," a node-link diagram -- *not* this package's pre-existing `Mark.ARC` (pie/donut wedges), a genuinely different
+    semicircular arcs bulging upward above it. This is ECharts.jl's "Arc Diagram," a node-link diagram -- *not* this package's `Mark.ARC` (pie/donut wedges), a genuinely different
     chart type that happens to share a name; see `Mark.CHORD`'s docstring for the same naming-collision note.
 
     Each node's x is `index / (n - 1)` of the way across the plot

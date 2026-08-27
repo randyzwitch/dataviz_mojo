@@ -409,7 +409,7 @@ reasoning.
 ARC_DIAGRAM reuses `CHORD`'s `encode_chord()` edge-list data
 completely unchanged (the same "identical data, purely a rendering
 difference" precedent `STACKED_BAR`'s reuse of `GROUPED_BAR` already
-establishes) -- not this package's pre-existing `ARC` (pie/donut
+establishes) -- not this package's `ARC` (pie/donut
 wedges), a genuinely different chart type that happens to share a
 name, the same naming collision `CHORD`'s docstring already notes.
 Every distinct node sits on one straight line instead of `CHORD`'s

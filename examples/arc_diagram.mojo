@@ -2,7 +2,7 @@
 list (Plot.encode_chord()) drawn as nodes on one line connected by
 semicircular arcs instead of a circular ribbon diagram -- see
 arc_diagram.mojo's docstring for the naming-collision note versus
-this package's pre-existing Mark.ARC (pie/donut wedges). Built via
+this package's Mark.ARC (pie/donut wedges). Built via
 dataviz_mojo.arc_diagram() -- see examples/scatter.mojo's docstring for what that trades away.
 
 Character co-occurrence in a handful of scenes -- the arc diagram's classic use (a network small enough to read as one open row of
