@@ -9,6 +9,7 @@ from dataviz_mojo.plot import (
     _axis_pixel,
     _draw_categorical_axis_frame,
     _empty_result,
+    _pull_off_axis_line,
     _rendered,
     _zero_baseline_y_extent,
 )
@@ -206,14 +207,13 @@ def _render_waterfall[
 
         var y0_py = _axis_pixel(frame.y_scale, plot._waterfall.y0[i])
         var y1_py = _axis_pixel(frame.y_scale, plot._waterfall.y1[i])
-        var bar_y = min(y0_py, y1_py)
-        var bar_height = max(y0_py, y1_py) - min(y0_py, y1_py)
+        var rect = _pull_off_axis_line(y0_py, y1_py, frame.py1)
         var bar_color = (
             theme.waterfall_total_color
             if row_is_total
             else (theme.mark_color_negative if plot.y_data[i] < 0.0 else theme.mark_color)
         )
-        target.fill_rect(bar_x, bar_y, bar_width, bar_height, bar_color)
+        target.fill_rect(bar_x, rect.y, bar_width, rect.height, bar_color)
 
         if i > 0:
             var prev_end_py = _axis_pixel(frame.y_scale, plot._waterfall.y1[i - 1])

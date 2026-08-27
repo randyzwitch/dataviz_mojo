@@ -11,6 +11,7 @@ from dataviz_mojo.plot import (
     _data_extent,
     _draw_categorical_axis_frame,
     _empty_result,
+    _pull_off_axis_line,
     _rendered,
     _zero_baseline_y_extent,
     _validate_categorical_encoding,
@@ -39,7 +40,9 @@ def _render_bar[
     docstring for the shared frame's behavior. What's left here is
     exactly the one genuinely BAR-specific thing: filling each
     category's rect from a zero baseline to its value, optionally
-    colored by sign (`Theme.color_by_sign`).
+    colored by sign (`Theme.color_by_sign`) -- pulled 1px off the axis
+    line via `_pull_off_axis_line` wherever the baseline lands on it
+    (see that function's docstring).
 
     No x-gridlines (unlike the continuous path's per-tick vertical
     gridlines) -- the bars themselves already visually separate
@@ -67,14 +70,13 @@ def _render_bar[
     for i in range(len(plot.x_categories)):
         var bar_x = _round_to_int(frame.x_scale.band_start(i))
         var top_py = _axis_pixel(frame.y_scale, plot.y_data[i])
-        var bar_y = min(baseline_py, top_py)
-        var bar_height = max(baseline_py, top_py) - min(baseline_py, top_py)
+        var rect = _pull_off_axis_line(baseline_py, top_py, frame.py1)
         var bar_color = (
             theme.mark_color_negative
             if (theme.color_by_sign and plot.y_data[i] < 0.0)
             else theme.mark_color
         )
-        target.fill_rect(bar_x, bar_y, bar_width, bar_height, bar_color)
+        target.fill_rect(bar_x, rect.y, bar_width, rect.height, bar_color)
 
     # A `.copy()`, not a `^` transfer -- Mojo's ownership checker
     # rejects moving a single field out of `frame` at all (even here,

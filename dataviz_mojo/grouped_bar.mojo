@@ -13,6 +13,7 @@ from dataviz_mojo.plot import (
     _draw_legend,
     _dynamic_legend_width,
     _empty_result,
+    _pull_off_axis_line,
     _rendered,
     _zero_baseline_y_extent,
 )
@@ -137,9 +138,8 @@ def _render_grouped_bar[
             var left = _round_to_int(band_start + Float64(j) * sub_width)
             var right = _round_to_int(band_start + Float64(j + 1) * sub_width)
             var top_py = _axis_pixel(frame.y_scale, plot._grouped_bar.values[j][i])
-            var bar_y = min(baseline_py, top_py)
-            var bar_height = max(baseline_py, top_py) - min(baseline_py, top_py)
-            target.fill_rect(left, bar_y, right - left, bar_height, palette[j % len(palette)])
+            var rect = _pull_off_axis_line(baseline_py, top_py, frame.py1)
+            target.fill_rect(left, rect.y, right - left, rect.height, palette[j % len(palette)])
 
     if show_legend:
         _draw_legend(

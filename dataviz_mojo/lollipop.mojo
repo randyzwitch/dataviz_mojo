@@ -46,12 +46,23 @@ def _render_lollipop[
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
     var baseline_py = frame.y_scale.to_pixel(0.0)
+    # True only when every value here is non-negative (the only case
+    # _zero_baseline_y_extent's domain puts 0 exactly at the drawn
+    # bottom axis line) -- see _pull_off_axis_line's docstring
+    # (plot.mojo) for the same reasoning, applied to a stroked stem
+    # here instead of a filled rect.
+    var baseline_on_axis_line = _round_to_int(baseline_py) == frame.py1
     for i in range(len(plot.x_categories)):
         var center = frame.x_scale.center(i)
         var value_py = frame.y_scale.to_pixel(plot.y_data[i])
+        # Pulled 1px off the axis line so a nonzero stem doesn't paint
+        # over the row the line's own antialiasing occupies -- left
+        # alone for a zero-value stem (value_py == baseline_py) so it
+        # doesn't grow a real stem out of nothing.
+        var stem_start_py = baseline_py - 1.0 if (baseline_on_axis_line and value_py != baseline_py) else baseline_py
 
         var stem = Path()
-        stem.move_to(center, baseline_py)
+        stem.move_to(center, stem_start_py)
         stem.line_to(center, value_py)
         target.stroke_path_aa(stem, theme.mark_color, width=frame.sc.line_width)
 

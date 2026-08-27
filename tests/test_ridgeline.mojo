@@ -63,7 +63,14 @@ def test_render_ridgeline_svg_matches_confirmed_path_points() raises:
     assert_true('225.000,-3.000' in s, "row A's peak, at its two middle samples")
     assert_true('L365.000,96.667 Z' in s, "row A's closing edge, back down to baseline")
     assert_true('<path d="M75.000,173.333 L75.000,101.622' in s, "row B's baseline and left-edge rise")
-    assert_true('<path d="M75.000,250.000 L75.000,178.289' in s, "row C's baseline and left-edge rise")
+    # Row C is the bottom-most row, so its baseline (250) lands exactly
+    # on the drawn bottom axis line -- pulled 1px up to 249 before every
+    # sample in its curve is computed relative to it, so its whole curve
+    # (not just the flat closing edge) shifts up 1px too, 178.289 ->
+    # 177.289 -- see _pull_off_axis_line's docstring (plot.mojo). Rows
+    # A/B's baselines are interior row boundaries, never the drawn
+    # line, so theirs (96.667/173.333 above) are unaffected.
+    assert_true('<path d="M75.000,249.000 L75.000,177.289' in s, "row C's baseline and left-edge rise")
 
 
 def test_render_ridgeline_custom_bandwidth_widens_the_tail() raises:
