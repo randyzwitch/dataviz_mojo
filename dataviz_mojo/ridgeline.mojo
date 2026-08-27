@@ -91,6 +91,15 @@ def _render_ridgeline[
     for i in range(len(plot.x_categories)):
         var values = plot._distribution.values[i].copy()
         var baseline_y = frame.y_scale.band_start(i) + row_height
+        # The bottom-most row's baseline lands exactly on the drawn
+        # bottom axis line (padding=0.0 above tiles every row edge to
+        # edge, and this is the last one) -- pulled 1px up so a tall
+        # enough curve's flat closing edge doesn't paint over the
+        # line's own antialiasing, the same `_pull_off_axis_line`
+        # reasoning (plot.mojo) applied to this fill's flat lower
+        # boundary instead of a rect edge.
+        if _round_to_int(baseline_y) == frame.py1:
+            baseline_y -= 1.0
         var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
             plot._distribution.kde_scale_by_count and max_n > 0
         ) else 1.0

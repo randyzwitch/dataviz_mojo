@@ -106,14 +106,18 @@ def test_render_bar_negative_values_extend_below_the_baseline() raises:
 def test_render_svg_bar_mark_matches_confirmed_rect() raises:
     # Same 3-category/[10,20,15] data test_render_bar_mark_matches_
     # hand_derived_bar_rectangles already hand-solved (bar 1's rect:
-    # x=177, y=31, width=85, height=219).
+    # x=177, y=31, width=85, baseline_py=250, so height would be 219 --
+    # but the bar's bottom edge sits exactly on the drawn axis line
+    # (250), so _pull_off_axis_line shrinks it 1px to 218, leaving a
+    # hairline of background between the bar and the axis line (see
+    # that function's docstring, plot.mojo).
     var cats: List[String] = ["a", "b", "c"]
     var vals: List[Float64] = [10.0, 20.0, 15.0]
     var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).theme(Theme(show_gridlines=False))
     render_svg(svg, plot)
     assert_true(
-        '<rect x="177" y="31" width="85" height="219" fill="#1e64b4"/>' in svg.to_string(),
+        '<rect x="177" y="31" width="85" height="218" fill="#1e64b4"/>' in svg.to_string(),
         "BAR mark's middle bar, same rectangle render()'s hand-derived test finds",
     )
 

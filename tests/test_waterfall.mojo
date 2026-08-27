@@ -61,7 +61,11 @@ def test_render_waterfall_svg_matches_confirmed_rects_and_connectors() raises:
     render_svg(svg, plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="71" y="67" width="85" height="183" fill="#1e64b4"/>' in s, "bar 0 (delta +10): y0=0 to y1=10"
+        # y0=0 is the baseline, and it lands exactly on the drawn bottom
+        # axis line here (unlike bars 1/2's y0/y1, neither of which is
+        # 0) -- height shrinks 183 -> 182, pulled 1px off that line --
+        # see _pull_off_axis_line's docstring (plot.mojo).
+        '<rect x="71" y="67" width="85" height="182" fill="#1e64b4"/>' in s, "bar 0 (delta +10): y0=0 to y1=10"
     )
     assert_true(
         '<rect x="177" y="67" width="85" height="73" fill="#c83c3c"/>' in s,
@@ -138,12 +142,17 @@ def test_render_svg_waterfall_total_rows_matches_confirmed_rects() raises:
     render_svg(svg, plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="68" y="94" width="64" height="156" fill="#646464"/>' in s, "Start (total): 0 -> 50"
+        # Both total rows' y0=0 is the baseline, and it lands exactly on
+        # the drawn bottom axis line -- each height pulled 1px off that
+        # line (156->155, 188->187 below); A/B's y0/y1 are never 0, so
+        # neither of theirs moves. See _pull_off_axis_line's docstring
+        # (plot.mojo).
+        '<rect x="68" y="94" width="64" height="155" fill="#646464"/>' in s, "Start (total): 0 -> 50"
     )
     assert_true('<rect x="161" y="31" width="38" height="63" fill="#1e64b4"/>' in s, "A: 50 -> 70")
     assert_true('<rect x="241" y="31" width="38" height="31" fill="#c83c3c"/>' in s, "B: 70 -> 60")
     assert_true(
-        '<rect x="308" y="62" width="64" height="188" fill="#646464"/>' in s, "End (total): 0 -> 60"
+        '<rect x="308" y="62" width="64" height="187" fill="#646464"/>' in s, "End (total): 0 -> 60"
     )
     # Connectors reference each bar's *actual* drawn edge (`bar_x_
     # list[i-1] + bar_width_list[i-1]`, not a formula re-derived from

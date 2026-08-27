@@ -10,6 +10,7 @@ from dataviz_mojo.plot import (
     _axis_pixel,
     _draw_categorical_axis_frame,
     _empty_result,
+    _pull_off_axis_line,
     _rendered,
     _zero_baseline_y_extent,
 )
@@ -162,16 +163,14 @@ def _render_bullet[
             var band_color = range_color_scale.color_at(t)
             var top_py = _axis_pixel(frame.y_scale, plot._bullet.ranges[i][j])
             var bottom_py = _axis_pixel(frame.y_scale, prev_threshold)
-            var rect_y = min(top_py, bottom_py)
-            var rect_h = max(top_py, bottom_py) - min(top_py, bottom_py)
-            target.fill_rect(band_x, rect_y, band_width, rect_h, band_color)
+            var band_rect = _pull_off_axis_line(top_py, bottom_py, frame.py1)
+            target.fill_rect(band_x, band_rect.y, band_width, band_rect.height, band_color)
             prev_threshold = plot._bullet.ranges[i][j]
 
         var measure_x = _round_to_int(frame.x_scale.center(i) - measure_inset)
         var measure_py = _axis_pixel(frame.y_scale, plot._bullet.measure[i])
-        var measure_y = min(baseline_py, measure_py)
-        var measure_h = max(baseline_py, measure_py) - min(baseline_py, measure_py)
-        target.fill_rect(measure_x, measure_y, measure_width, measure_h, theme.mark_color)
+        var measure_rect = _pull_off_axis_line(baseline_py, measure_py, frame.py1)
+        target.fill_rect(measure_x, measure_rect.y, measure_width, measure_rect.height, theme.mark_color)
 
         var target_py = _axis_pixel(frame.y_scale, plot._bullet.target[i])
         var band_end = band_x + band_width

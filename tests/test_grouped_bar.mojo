@@ -88,10 +88,13 @@ def test_render_svg_grouped_bar_matches_confirmed_rects_and_legend() raises:
     render_svg(svg, plot)
     var s = svg.to_string()
 
-    assert_true('<rect x="70" y="140" width="38" height="110" fill="#1f77b4"/>' in s, "A/North")
-    assert_true('<rect x="108" y="195" width="38" height="55" fill="#ff7f0e"/>' in s, "A/South")
-    assert_true('<rect x="165" y="31" width="38" height="219" fill="#1f77b4"/>' in s, "B/North")
-    assert_true('<rect x="203" y="86" width="38" height="164" fill="#ff7f0e"/>' in s, "B/South")
+    # Every sub-bar here is non-negative, so every one's bottom edge
+    # lands exactly on the drawn bottom axis line -- each height
+    # pulled 1px off it. See _pull_off_axis_line's docstring (plot.mojo).
+    assert_true('<rect x="70" y="140" width="38" height="109" fill="#1f77b4"/>' in s, "A/North")
+    assert_true('<rect x="108" y="195" width="38" height="54" fill="#ff7f0e"/>' in s, "A/South")
+    assert_true('<rect x="165" y="31" width="38" height="218" fill="#1f77b4"/>' in s, "B/North")
+    assert_true('<rect x="203" y="86" width="38" height="163" fill="#ff7f0e"/>' in s, "B/South")
 
     # Legend: _draw_legend's row layout (legend_swatch_size=14,
     # legend_row_gap=8) is already covered by Mark.POINT's/Mark.ARC's

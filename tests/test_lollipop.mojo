@@ -48,6 +48,9 @@ def test_render_lollipop_matches_hand_derived_stem_and_point() raises:
 
 
 def test_render_lollipop_svg_matches_confirmed_stem_and_point() raises:
+    # Baseline (250.000) sits exactly on the drawn bottom axis line, so
+    # the stem's start point is pulled 1px up to 249.000 -- see
+    # _pull_off_axis_line's docstring (plot.mojo).
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [10.0, 20.0, 15.0]
     var svg = SvgCanvas(400, 300)
@@ -55,7 +58,7 @@ def test_render_lollipop_svg_matches_confirmed_stem_and_point() raises:
     render_svg(svg, plot)
     var s = svg.to_string()
     assert_true(
-        '<path d="M220.000,250.000 L220.000,30.952" fill="none" stroke="#1e64b4"'
+        '<path d="M220.000,249.000 L220.000,30.952" fill="none" stroke="#1e64b4"'
         ' stroke-width="2.000" stroke-linecap="round" stroke-linejoin="round"/>' in s,
         "category b's stem",
     )
