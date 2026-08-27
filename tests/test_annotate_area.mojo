@@ -30,8 +30,11 @@ def test_render_svg_annotate_area_matches_hand_derived_position() raises:
     )
     render_svg(svg, plot, 0, 0, 400, 300)
     var s = svg.to_string()
+    # annotation_area_color's default alpha (200/255 -> 0.784, 3
+    # decimals) emits a real fill-opacity attribute now, not a fully
+    # opaque fill -- see that field's docstring (theme.mojo).
     assert_true(
-        '<rect x="60" y="72" width="320" height="126" fill="#e0ecf6"/>' in s,
+        '<rect x="60" y="72" width="320" height="126" fill="#e0ecf6" fill-opacity="0.784"/>' in s,
         "the band's fill, spanning the full inner plot width",
     )
     assert_true(
@@ -53,7 +56,34 @@ def test_render_annotate_area_raster_draws_ink_at_the_hand_derived_row() raises:
     )
     var c = Canvas(400, 300, BG)
     render(c, plot)
-    _assert_color(c, 200, 150, Color(224, 236, 246), "the band's fill, well inside the band and away from the line")
+    # x=200 sits almost exactly on the line's own path at this row (its
+    # data value crosses 15.0, the row-150 value, right around x=200) --
+    # not a useful "away from the line" point now that the band is real
+    # alpha, so this checks x=90 instead, safely off the line's
+    # diagonal (its row there is ~228, nowhere near 150). Color(224,
+    # 236, 246, 200) blended over the white background (Color.
+    # blend_over) -- not the bare annotation_area_color value, since
+    # it's real alpha now, not an opaque fill. See that field's
+    # docstring (theme.mojo).
+    _assert_color(c, 90, 150, Color(230, 240, 247), "the band's fill, well inside the band and away from the line")
+
+
+def test_render_annotate_area_lets_the_mark_underneath_show_through() raises:
+    # The same plot the raster test above uses -- x=200 is where the
+    # line's own data value crosses row 150 (see that test's comment),
+    # so this point is covered by *both* the mark's stroke and the
+    # band's fill. Color(224, 236, 246, 200).blend_over(mark_color)
+    # (Color(30, 100, 180), Theme's default) -- not the bare
+    # annotation_area_color a fully opaque fill would leave, confirming
+    # the band no longer erases the mark drawn underneath it.
+    var x: List[Float64] = [1.0, 2.0]
+    var y: List[Float64] = [10.0, 20.0]
+    var plot = Plot().mark_line().encode(x=x, y=y).annotate_area(12.0, 18.0).theme(
+        Theme(show_gridlines=False)
+    )
+    var c = Canvas(400, 300, BG)
+    render(c, plot)
+    _assert_color(c, 200, 150, Color(182, 206, 231), "the band blended over the line's own ink, not erasing it")
 
 
 def test_render_annotate_area_out_of_range_draws_nothing() raises:
@@ -74,7 +104,7 @@ def test_render_annotate_area_out_of_range_draws_nothing() raises:
     # other substring that happens to collide with real SVG markup)
     # would have been a false negative here.
     assert_true(">gone<" not in s, "a fully out-of-domain band draws no label at all")
-    assert_true('fill="#e0ecf6"' not in s, "a fully out-of-domain band draws no fill at all")
+    assert_true('fill="#e0ecf6"' not in s, "a fully out-of-domain band draws no fill at all -- the hex color alone, unaffected by the fill-opacity attribute alongside it")
 
 
 def test_render_annotate_area_partial_overlap_clips_to_visible_portion() raises:
@@ -91,7 +121,7 @@ def test_render_annotate_area_partial_overlap_clips_to_visible_portion() raises:
     render_svg(svg, plot, 0, 0, 400, 300)
     var s = svg.to_string()
     assert_true(
-        '<rect x="60" y="20" width="320" height="52" fill="#e0ecf6"/>' in s,
+        '<rect x="60" y="20" width="320" height="52" fill="#e0ecf6" fill-opacity="0.784"/>' in s,
         "the band clips to the plot's top edge rather than disappearing or drawing unclipped",
     )
 

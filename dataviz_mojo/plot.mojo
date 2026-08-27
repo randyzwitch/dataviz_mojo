@@ -1863,21 +1863,13 @@ struct Plot(Movable):
         A band with *no* overlap at all still draws nothing, the same
         as `annotate_line()`'s out-of-range case.
 
-        A design choice, not an oversight: this draws as a fully opaque
-        rectangle *on top of* whatever the mark itself drew in that
-        band, not real alpha over it (both backends can render true
-        alpha now -- see `Theme.annotation_area_color`'s docstring),
-        which is why its default stays deliberately pale. On `Mark.POINT`/`LINE`/`EFFECT_SCATTER`
-        this reads well (a thin stroke/dot only loses the small stretch
-        that falls inside the band, the rest is untouched), but on
-        `Mark.BAR`/`WATERFALL`/`STACKED_BAR`/any other solid-fill mark, a
-        bar whose height *enters* the band has that whole entering
-        portion overwritten by the band's color -- it can read as if
-        the bar's height changed, not just that a band was drawn behind
-        it. Not broken, just something to know before combining the two;
-        this method still works there (the raise below is only about
-        having a continuous y-axis at all, not about this), but a line/
-        point/area-family mark is where it actually looks right today.
+        Drawn *on top of* whatever the mark itself drew in that band,
+        but at real partial opacity (`Theme.annotation_area_color`'s
+        default alpha -- see that field's docstring), not a fully
+        opaque overwrite: the mark's own ink still shows through,
+        tinted, rather than being hidden wherever it falls inside the
+        band. A caller after a stronger or weaker effect can always
+        pass a `Theme.annotation_area_color` with a different alpha.
 
         Same mark-support rule as `annotate_line()`, and wired into
         `render_facets()`/`render_layers()` the same way -- raises the
@@ -2989,10 +2981,10 @@ def _draw_annotation_areas[
     `result.has_y_scale` is `False`.
 
     Each band spans the *inner* plot rect's full width (`result.px0`
-    to `result.px1`), filled in `Theme.annotation_area_color` -- see
-    that field's docstring for why this draws as a fully opaque
-    rectangle rather than a translucent overlay. Its own label, when
-    non-empty, draws inside
+    to `result.px1`), filled in `Theme.annotation_area_color` -- a
+    real translucent fill, so the mark's own ink still shows through
+    wherever a band overlaps it (see that field's docstring). Its own
+    label, when non-empty, draws inside
     the band near its top edge, in `Theme.annotation_color` (not
     `annotation_area_color` -- ink and fill are different jobs, see
     that field's docstring).
