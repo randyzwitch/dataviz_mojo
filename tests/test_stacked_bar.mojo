@@ -77,9 +77,14 @@ def test_render_svg_stacked_bar_matches_confirmed_rects_and_legend() raises:
     render_svg(svg, plot)
     var s = svg.to_string()
 
-    assert_true('<rect x="70" y="187" width="76" height="63" fill="#1f77b4"/>' in s, "A/North")
+    # Only each column's bottom-most segment (North, seg_bottom=0)
+    # touches the drawn bottom axis line -- South stacks on top of
+    # North, sharing North's top edge, never the axis line itself --
+    # so only North's height is pulled 1px off it (63->62, 125->124).
+    # See _pull_off_axis_line's docstring (plot.mojo).
+    assert_true('<rect x="70" y="187" width="76" height="62" fill="#1f77b4"/>' in s, "A/North")
     assert_true('<rect x="70" y="156" width="76" height="31" fill="#ff7f0e"/>' in s, "A/South")
-    assert_true('<rect x="165" y="125" width="76" height="125" fill="#1f77b4"/>' in s, "B/North")
+    assert_true('<rect x="165" y="125" width="76" height="124" fill="#1f77b4"/>' in s, "B/North")
     assert_true('<rect x="165" y="31" width="76" height="94" fill="#ff7f0e"/>' in s, "B/South")
     assert_true(
         '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s, "North's legend swatch"

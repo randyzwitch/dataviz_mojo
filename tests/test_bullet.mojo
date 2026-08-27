@@ -75,10 +75,16 @@ def test_render_bullet_svg_matches_confirmed_bands_measure_and_target() raises:
     )
     render_svg(svg, plot)
     var s = svg.to_string()
-    assert_true('<rect x="76" y="162" width="128" height="88" fill="#e0e0e0"/>' in s, "A's lightest band [0,40]")
+    # The lightest band's bottom (prev_threshold=0) and the measure
+    # bar's bottom (baseline=0) both land exactly on the drawn bottom
+    # axis line, so both heights are pulled 1px off it (88->87,
+    # 120->119) -- the middle/darkest bands and the target tick never
+    # touch 0, so theirs are unaffected. See _pull_off_axis_line's
+    # docstring (plot.mojo).
+    assert_true('<rect x="76" y="162" width="128" height="87" fill="#e0e0e0"/>' in s, "A's lightest band [0,40]")
     assert_true('<rect x="76" y="97" width="128" height="65" fill="#acacac"/>' in s, "A's middle band [40,70]")
     assert_true('<rect x="76" y="31" width="128" height="66" fill="#787878"/>' in s, "A's darkest band [70,100]")
-    assert_true('<rect x="118" y="130" width="45" height="120" fill="#1e64b4"/>' in s, "A's measure bar")
+    assert_true('<rect x="118" y="130" width="45" height="119" fill="#1e64b4"/>' in s, "A's measure bar")
     assert_true(
         '<line x1="76" y1="108" x2="204" y2="108" stroke="#505050" stroke-width="1.000"'
         ' stroke-linecap="round"/>' in s,

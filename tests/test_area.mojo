@@ -60,8 +60,11 @@ def test_render_svg_area_smoothing_matches_hand_derived_curve() raises:
     # (px/py, the same LinearScale math Mark.LINE's equivalent test
     # established the technique for) is smoothed; the two
     # line_to()s down to/along baseline (pixel y=250, to_pixel(0.0))
-    # stay straight. Every control-point coordinate independently
-    # re-derived via python3.
+    # stay straight, but that baseline sits exactly on the drawn
+    # bottom axis line, so it's pulled 1px up to y=249 before either
+    # line_to() -- see _pull_off_axis_line's docstring (plot.mojo).
+    # Every control-point coordinate independently re-derived via
+    # python3.
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [2.0, 10.0, 4.0]
     var svg = SvgCanvas(400, 300)
@@ -69,8 +72,8 @@ def test_render_svg_area_smoothing_matches_hand_derived_curve() raises:
     render_svg(svg, plot)
     assert_true(
         '<path d="M74.545,206.190 C98.788,176.984 171.515,38.254 220.000,30.952'
-        ' C268.485,23.651 341.212,140.476 365.455,162.381 L365.455,250.000'
-        ' L74.545,250.000 Z" fill="#1e64b4"/>' in svg.to_string(),
+        ' C268.485,23.651 341.212,140.476 365.455,162.381 L365.455,249.000'
+        ' L74.545,249.000 Z" fill="#1e64b4"/>' in svg.to_string(),
         "the smoothed top edge, then two straight line_to()s down to baseline, closed",
     )
 

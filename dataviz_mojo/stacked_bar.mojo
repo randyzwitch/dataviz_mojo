@@ -13,6 +13,7 @@ from dataviz_mojo.plot import (
     _draw_categorical_axis_frame,
     _draw_legend,
     _empty_result,
+    _pull_off_axis_line,
     _rendered,
     _zero_baseline_y_extent,
 )
@@ -121,9 +122,8 @@ def _render_stacked_bar[
                 neg_running = seg_bottom
             var top_py = _axis_pixel(frame.y_scale, seg_top)
             var bottom_py = _axis_pixel(frame.y_scale, seg_bottom)
-            var seg_y = min(top_py, bottom_py)
-            var seg_height = max(top_py, bottom_py) - min(top_py, bottom_py)
-            target.fill_rect(band_x, seg_y, band_width, seg_height, palette[j % len(palette)])
+            var rect = _pull_off_axis_line(top_py, bottom_py, frame.py1)
+            target.fill_rect(band_x, rect.y, band_width, rect.height, palette[j % len(palette)])
 
     if show_legend:
         _draw_legend(

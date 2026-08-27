@@ -2071,6 +2071,57 @@ def _axis_pixel(scale: LinearScale, value: Float64) -> Int:
     return _round_to_int(scale.to_pixel(value))
 
 
+struct _BaselineRect(Movable):
+    """`_pull_off_axis_line`'s `(y, height)` result -- a small named
+    struct rather than a positional tuple (see scale.mojo's `MinMax`
+    for the same reasoning this file's own `_CategoricalFrame`/
+    `_ContinuousFrame` already follow)."""
+
+    var y: Int
+    var height: Int
+
+    def __init__(out self, y: Int, height: Int):
+        self.y = y
+        self.height = height
+
+
+def _pull_off_axis_line(edge_a: Int, edge_b: Int, axis_line_py: Int) -> _BaselineRect:
+    """The `(y, height)` of a fill spanning `edge_a`..`edge_b` (order
+    doesn't matter), with whichever edge sits exactly on `axis_line_py`
+    nudged 1px toward the other edge first.
+
+    Every magnitude-from-baseline mark here (`Mark.BAR`/`LOLLIPOP`/
+    `WATERFALL`/`BULLET`/`GROUPED_BAR`/`STACKED_BAR`/`AREA`) has one
+    edge fixed at the zero baseline and the other at the data value;
+    whenever that baseline lands on the actual drawn axis-line row
+    (`_zero_baseline_y_extent`'s domain is exactly `[0, hi]` -- true
+    whenever every value drawn is non-negative, the common case), the
+    fill's baseline edge is the same pixel row the axis line's own
+    antialiasing occupies, and a solid fill drawn after the axis frame
+    paints straight over it, erasing the line beneath every mark that
+    touches it (issue #105). Pulling that edge 1px inward leaves a
+    hairline of background between the mark and the line instead.
+
+    A zero-height span (`edge_a == edge_b`, e.g. a bar/segment/band
+    whose value is exactly zero) is left alone rather than turned into
+    a phantom 1px-tall sliver -- there's nothing there to protect a
+    line from. A no-op whenever neither edge is `axis_line_py` -- true
+    for a mixed-sign domain (baseline sits in the plot's interior) or
+    an all-negative one (baseline sits at the *top* edge, where no line
+    is drawn), the two other domains `_zero_baseline_y_extent` can
+    produce, neither of which has anything to protect here either.
+    """
+    var y = min(edge_a, edge_b)
+    var height = max(edge_a, edge_b) - y
+    if height <= 0:
+        return _BaselineRect(y, height)
+    if y == axis_line_py:
+        return _BaselineRect(y + 1, height - 1)
+    if y + height == axis_line_py:
+        return _BaselineRect(y, height - 1)
+    return _BaselineRect(y, height)
+
+
 def _build_line_path(px: List[Float64], py: List[Float64], smoothing: Float64) raises -> Path:
     """The `Path` a `Mark.LINE` plot strokes through its already-
     pixel-projected points -- also the curve `Mark.AREA` fills down to
@@ -4108,10 +4159,18 @@ def _draw_area_layer[
     library's smoothed-area fill never bends its flat baseline
     either. Shared by the standalone and layered paths for the same
     reason -- and with the same drift fixed -- as `_draw_line_layer`.
+
+    That closing edge is pulled 1px off the bottom axis line whenever
+    it lands there (`y_scale.range_min`, non-negative data only -- see
+    `_pull_off_axis_line`'s docstring for the same rule applied to a
+    filled rect instead of this fill's flat lower boundary), so the
+    fill doesn't paint over the axis line's own antialiasing.
     """
     var theme = plot._theme
     _check_line_smoothing(theme)
     var baseline_py = y_scale.to_pixel(0.0)
+    if _round_to_int(baseline_py) == _round_to_int(y_scale.range_min):
+        baseline_py -= 1.0
     var px = List[Float64](capacity=len(plot.x_data))
     var py = List[Float64](capacity=len(plot.x_data))
     for i in range(len(plot.x_data)):
