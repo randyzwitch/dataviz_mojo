@@ -22,7 +22,7 @@ def test_render_single_axis_matches_hand_derived_points() raises:
     # = (380-60)/(31-9) = 14.5454. -> pixel x's 75/220/365 (each
     # independently computed via python3 from LinearScale's to_
     # pixel formula). Every point lands on the same row, the plot area's
-    # own vertical center: (20+250)/2 = 135 exactly. Default point_
+    # vertical center: (20+250)/2 = 135 exactly. Default point_
     # radius 3.5 rounds to 4.
     var x: List[Float64] = [10.0, 20.0, 30.0]
     var t = Theme(show_gridlines=False)
@@ -47,7 +47,7 @@ def test_render_single_axis_svg_matches_confirmed_circles() raises:
 
 def test_render_single_axis_color_encoding_reuses_point_channels() raises:
     # Two points (x=0, x=10 -> pixel columns 75/365, the same _data_
-    # extent math the first test already confirms for a different pair
+    # extent math the first test confirms for a different pair
     # of values), colored by a continuous channel spanning the same
     # [0, 10] domain -- confirms Mark.POINT's _draw_point_layer
     # channel logic really is reused unchanged here, not just the

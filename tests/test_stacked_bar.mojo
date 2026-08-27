@@ -40,9 +40,9 @@ def test_render_stacked_bar_matches_hand_derived_rectangles() raises:
     # 20+15=35) plus the always-included zero -> padded [0, 36.75].
     #
     # Every position independently re-derived via python3 (LinearScale's
-    # own slope/intercept for the y-axis against this stacked-total
+    # slope/intercept for the y-axis against this stacked-total
     # domain, OrdinalScale's band formula for x, unchanged from
-    # Mark.GROUPED_BAR's own -- full band width per segment here, not
+    # Mark.GROUPED_BAR's -- full band width per segment here, not
     # divided sub-bars).
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]

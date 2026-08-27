@@ -149,7 +149,7 @@ def test_render_facets_svg_each_cell_gets_its_own_independent_title() raises:
     # support (the wiki's Changelog, its "Plot.labels() reaches
     # render_facets/render_layers" entry): the title reserves space
     # *only* in cell 0 -- its point shifts from (220,135), the
-    # no-title baseline the test above already established, down to
+    # no-title baseline the test above established, down to
     # (220,146) (extra_top=Int(18.0)+4=22 pushes plot_y0 from 20 to 42,
     # moving the y=[4,6]-padded-domain midpoint pixel from
     # (20+250)/2=135 to (42+250)/2=146) -- while cell 1's point

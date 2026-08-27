@@ -2,12 +2,11 @@
 module (not a *.mojo file with its main()) so every test file can
 import these instead of redefining them; not a real dataviz_mojo
 sub-package (tests/ itself stays a plain sibling directory of the
-importable package, not one -- see dataviz_mojo/__init__.mojo's docstring/pixi.toml's package-declaration comment for why tests/
-examples can never become a package themselves, since every file in
-here has its main() and Mojo refuses to `mojo package`/`mojo
-precompile` a package directory containing one). Callers need an extra
-`-I tests` alongside the usual `-I .` to resolve `from _test_helpers
-import .` -- see pixi.toml's test task.
+importable package, not one, since every file in here has a main()
+and Mojo refuses to `mojo package`/`mojo precompile` a package
+directory containing one). Callers need an extra `-I tests` alongside
+the usual `-I .` to resolve `from _test_helpers import .` -- see
+pixi.toml's test task.
 """
 
 from canvas_mojo.color import Color

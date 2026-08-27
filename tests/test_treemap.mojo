@@ -21,7 +21,7 @@ def test_render_treemap_matches_hand_derived_rects() raises:
     # root -> A (total 30: A1=20, A2=10), root -> B (total 10: B1=10,
     # B's only child). Canvas 400x300, show_legend=False: plot area
     # x:[60,380], y:[20,250] (the standard no-legend numbers every
-    # mark's tests already derive for this exact canvas size).
+    # mark's tests derive for this exact canvas size).
     #
     # depth 0 (root's children, A/B) splits along x: A gets
     # 30/40=75% of the 320px width -> 240px, x:[60,300]; B gets the

@@ -58,7 +58,7 @@ def test_render_svg_area_smoothing_matches_hand_derived_curve() raises:
     # _zero_baseline_y_extent([2,10,4]) -> domain [0, 10.5] (zero
     # already exact; 10's +5% pad -> 10.5) -- the *top* edge only
     # (px/py, the same LinearScale math Mark.LINE's equivalent test
-    # already established the technique for) is smoothed; the two
+    # established the technique for) is smoothed; the two
     # line_to()s down to/along baseline (pixel y=250, to_pixel(0.0))
     # stay straight, but that baseline sits exactly on the drawn
     # bottom axis line, so it's pulled 1px up to y=249 before either

@@ -25,11 +25,11 @@ def test_render_population_pyramid_matches_hand_derived_bars() raises:
     # x-domain [-31.5, 31.5], mapped to plot x:[60, 380] (short "A"/"B"
     # labels keep the dynamic left margin at Theme's default 60,
     # the same margin test_render_gantt_matches_hand_derived_bars
-    # already confirms for this identical setup) -- a symmetric
+    # confirms for this identical setup) -- a symmetric
     # domain's midpoint (0.0) always maps to the pixel range's midpoint, so the center baseline lands exactly on pixel 220. y is
     # the categorical axis: OrdinalScale over [20, 250] (2 categories,
     # step 115, bandwidth 92) -- the exact same numbers that same gantt
-    # test already confirms, since Mark.POPULATION_PYRAMID reuses Mark.
+    # test confirms, since Mark.POPULATION_PYRAMID reuses Mark.
     # GANTT's horizontal frame unchanged. Every x pixel below
     # independently computed via python3 from LinearScale's to_
     # pixel formula.

@@ -20,7 +20,7 @@ def test_render_tree_matches_hand_derived_positions() raises:
     # root -> A, B (both leaves, no grandchildren) -- the simplest
     # non-trivial tree: 2 leaves, max_depth 1. Canvas 400x300, show_
     # legend=False: plot area x:[60,380], y:[20,250] (the standard
-    # no-legend numbers every mark's tests already derive for this
+    # no-legend numbers every mark's tests derive for this
     # exact canvas size). 2 leaves -> A's slot 0 maps to plot_x0
     # (60), B's slot 1 maps to plot_x1 (380); root's slot is
     # the average (0.5), maps to the horizontal center (220). depth 0
@@ -37,7 +37,7 @@ def test_render_tree_matches_hand_derived_positions() raises:
     _assert_color(c, 60, 250, palette[0], "A's marker -- root's first child, palette[0]")
     _assert_color(c, 380, 250, palette[1], "B's marker -- root's second child, palette[1]")
     # A point along the root->A edge, well clear of either marker's
-    # own radius: the edge from (220,20) to (60,250), at its 25%
+    # radius: the edge from (220,20) to (60,250), at its 25%
     # mark -> (220 - 0.25*160, 20 + 0.25*230) = (180, 77.5). The exact
     # fractional y (77.5) sits right on a pixel-row boundary, which
     # AA-blends at y=78 -- y=77 lands solidly on the stroke instead.

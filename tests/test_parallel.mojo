@@ -25,7 +25,7 @@ def test_render_parallel_matches_hand_derived_polylines() raises:
     #
     # Canvas 400x300, no legend (show_legend=False): plot area
     # x:[60,380], y:[20,250] -- the same no-legend numbers test_polar.
-    # mojo's tests already derive for this exact canvas size. Two
+    # mojo's tests derive for this exact canvas size. Two
     # axes (n=2) pin to the plot's left/right edges: A at x=60, B
     # at x=380.
     #
