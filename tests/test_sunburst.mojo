@@ -112,10 +112,10 @@ def test_render_sunburst_empty_data_only_fills_background() raises:
 def test_render_sunburst_raises_on_a_cycle() raises:
     # "a" and "b" are each other's parent. Every other check passes --
     # no duplicate ids, both parent_ids resolve, exactly one empty-
-    # parent root -- so nothing but a reachability check catches this.
-    # Before that check existed, the traversal simply never reached
-    # either row and both silently vanished from the chart, taking 16
-    # of the 21 total value with them.
+    # parent root -- so nothing but a reachability check catches this:
+    # without it, the traversal simply never reaches either row, and
+    # both would silently vanish from the chart, taking 16 of the 21
+    # total value with them.
     var ids: List[String] = ["root", "leaf", "a", "b"]
     var parents: List[String] = ["", "root", "b", "a"]
     var values: List[Float64] = [0.0, 5.0, 7.0, 9.0]

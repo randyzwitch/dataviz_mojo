@@ -62,19 +62,19 @@ def test_render_sankey_skip_edge_routes_through_a_pass_through_node() raises:
     # pass-through node splits its column exactly in half. Canvas
     # 400x300, same no-legend plot area (x:[60,380], y:[20,250]) and
     # column x positions (60/214/368 for 3 columns, node width 12) the
-    # 2-column test above already derives, extended to a third column.
+    # 2-column test above derives, extended to a third column.
     #
     # Column 0 members in node-index order (A=0, D=2): A gets the top
     # half (y 20-135), D the bottom half (135-250). Column 1 members
     # (B=1, then D's pass-through node, appended after every real
     # node): B gets the top half, the pass-through node the bottom
     # half -- competing for column-1 space exactly like a real node,
-    # even though it draws no bar of its own. Column 2 has only C,
+    # even though it draws no bar. Column 2 has only C,
     # spanning the full height.
     #
     # Ribbons: A->B fills column0-1's top half (blue, A's color); B->C fills column1-2's top half (orange); D's skip edge becomes two chained segments, D->pass-through
     # (column0-1's bottom half) and pass-through->C (column1-2's
-    # own bottom half), *both* colored green (D's color, the
+    # bottom half), *both* colored green (D's color, the
     # flow's original source) even though the second segment's immediate `from` is the invisible pass-through node, not D
     # itself.
     var from_c: List[String] = ["A", "B", "D"]

@@ -33,7 +33,7 @@ def test_render_legend_swatches_match_hand_derived_positions_and_colors() raises
     # margin_right = 250+20 = 270, y = plot_y0 = 20. Row 0 ("A")'s
     # 14x14 swatch sits at (270,20); row 1 ("B")'s at (270, 20 +
     # (14+8)) = (270,42) -- both solved directly from _draw_legend's
-    # own layout constants, not read off the code's output. Checked at
+    # layout constants, not read off the code's output. Checked at
     # each swatch's center (270+7, row_y+7) so a boundary/rounding
     # difference of a pixel or two wouldn't produce a false failure.
     var x: List[Float64] = [0.0, 10.0]
@@ -154,10 +154,10 @@ def test_render_svg_continuous_size_legend_matches_hand_derived_circles() raises
     # x=[0,10], y=[0,10], size=[2.0,8.0] (continuous, no color) --
     # same plot_x1=250, legend anchor (270,20) as the color-legend test
     # above (size_range_min/max default to 3.0/15.0, and this data's
-    # own three representative labels -- "8.0"/"5.0"/"2.0", all 19.0px
+    # three representative labels -- "8.0"/"5.0"/"2.0", all 19.0px
     # -- also stay under the 130px default). Three circles at max
     # (8.0 -> radius 15), midpoint (5.0 -> radius 9), and min (2.0 ->
-    # radius 3) of the *data's* own size domain, left-aligned on
+    # radius 3) of the *data's* size domain, left-aligned on
     # Theme's configured largest radius (cx = 270 + 15 = 285) so
     # every label lines up regardless of which circle is biggest.
     # Every center/radius/label position independently re-derived via

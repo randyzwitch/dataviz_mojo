@@ -32,7 +32,7 @@ def test_render_waterfall_colors_by_sign_and_matches_hand_derived_bars() raises:
     # 10,6, 6,12]. Combined domain [0, 12.6] (_zero_baseline_y_extent
     # over y0 union y1) lands each category's band at the *same*
     # x positions test_render_bar_mark_matches_hand_derived_bar_
-    # rectangles already confirmed (113/220/327 centers) since both use
+    # rectangles confirmed (113/220/327 centers) since both use
     # the identical 3-category OrdinalScale over the same [60,380]
     # range -- only the y-domain and per-bar y0/y1 differ. Per bar:
     # bar 0 (delta +10) mark_color, bar 1 (delta -4) mark_color_
@@ -152,7 +152,7 @@ def test_render_svg_waterfall_total_rows_matches_confirmed_rects() raises:
     # independently-rounded width and a boundary-rounded connector
     # position. Start's right edge (68+64=132) ->
     # A's left edge (161); A's right edge (161+38=199) -> B's
-    # own left edge (241); B's right edge (241+38=279) -> End's left edge (308).
+    # left edge (241); B's right edge (241+38=279) -> End's left edge (308).
     assert_true(
         '<line x1="132" y1="94" x2="161" y2="94" stroke="#505050" stroke-width="1.000"'
         ' stroke-linecap="round"/>' in s,

@@ -36,8 +36,8 @@ def test_render_bar_mark_matches_hand_derived_bar_rectangles() raises:
     # OrdinalScale's default 0.2 padding over range [60,380] (step
     # 106.667, bandwidth 85.333) puts each band's left edge at
     # x=71/177/284, all solved directly from LinearScale/OrdinalScale's
-    # own formulas (cross-checked in Python), not read off the code's
-    # own output. Gridlines off to keep the checked pixels unambiguous.
+    # formulas (cross-checked in Python), not read off the code's
+    # output. Gridlines off to keep the checked pixels unambiguous.
     # Built via bar() (matches Plot().mark_bar().encode_categorical(x=x,
     # y=y).theme(t) + Canvas(400,300,t.background) + render() exactly --
     # see test_quickplot.mojo's test_bar_matches_manual_plot) rather

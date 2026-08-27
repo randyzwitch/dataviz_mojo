@@ -36,7 +36,7 @@ def test_render_bullet_matches_hand_derived_bands_measure_and_target() raises:
     # gives lo=min(0,0)=0 (unpadded, already at zero), hi=max(0,100)=100
     # padded 5% of the 100-span to 105 -- domain [0, 105]. Same
     # 2-category OrdinalScale over [60,380] every other categorical test
-    # already established (bands at x=76/236, width 128, centers
+    # establishes (bands at x=76/236, width 128, centers
     # 140/300). Every pixel below independently computed via python3
     # from LinearScale's slope/intercept formula (scale=(20-250)/
     # 105=-2.190476., translate=250).

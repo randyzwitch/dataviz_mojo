@@ -18,8 +18,8 @@ from _test_helpers import BG, _assert_color
 
 def test_render_svg_annotate_line_matches_hand_derived_position() raises:
     # 2 categories (A=10, B=20), no gridlines/legend -- the same no-
-    # legend geometry test_render_svg_bar_mark_matches_confirmed_rect's
-    # own case establishes for this canvas size: plot area x:[60,380],
+    # legend geometry test_render_svg_bar_mark_matches_confirmed_rect
+    # establishes for this canvas size: plot area x:[60,380],
     # y:[20,250]. _zero_baseline_y_extent([10,20]) pads to domain
     # [0, 21.0] (span 20, 5% pad 1.0), so annotate_line(15.0)'s pixel
     # row is the *same* one the y=15 tick already lands on: y=86 (the
@@ -120,7 +120,7 @@ def test_render_annotate_line_raises_on_unsupported_mark() raises:
     # Mark.ARC has no continuous y-axis at all -- annotate_line() must
     # raise a clear error rather than silently drawing nothing or
     # drawing somewhere meaningless, the same "raise on a setting that
-    # can't apply" rule x_title/y_title-on-Mark.ARC already follows.
+    # can't apply" rule x_title/y_title-on-Mark.ARC follows.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
     var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).annotate_line(1.5)

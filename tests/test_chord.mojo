@@ -20,7 +20,7 @@ def test_render_chord_two_nodes_one_edge_matches_hand_derived_geometry() raises:
     # 2 nodes ("A", "B"), one edge A->B, value 10 -- each node's total flow is 10 (its only edge), so the two ring sectors split
     # the circle exactly in half, the same -pi/2->pi/2 (A) / pi/2->3pi/2
     # (B) split test_render_arc_mark_matches_hand_derived_wedge_colors
-    # already confirms for two equal Mark.ARC wedges (this mark reuses
+    # confirms for two equal Mark.ARC wedges (this mark reuses
     # that exact start-at-12-o'clock, sweep-clockwise convention).
     # Canvas 400x300, show_legend=False (sidesteps the legend column's
     # font-metric-dependent width): plot area x:[60,380], y:[20,250]

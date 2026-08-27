@@ -286,7 +286,7 @@ def test_render_labels_raises_x_title_or_y_title_on_arc() raises:
     # so setting x_title/y_title on one raises rather than silently
     # dropping a caller's request, the same "raise on a setting
     # that can't apply" rule Plot.encode's color/size-on-a-non-
-    # POINT-mark check already follows. title alone (no axis titles)
+    # POINT-mark check follows. title alone (no axis titles)
     # is fine for Mark.ARC -- checked separately, not raised here.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
