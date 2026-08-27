@@ -1,10 +1,12 @@
 """Demo: a gantt/span chart -- Mark.GANTT, one horizontal bar per
 category from a start value to an end value (Plot.encode_gantt(), a
-category plus a range -- see that method's docstring). The first
-mark whose categories run along the *y*-axis instead of the x-axis
-(`_draw_horizontal_categorical_axis_frame`, the mirror image of every
-other categorical mark here's vertical axis frame -- see its docstring for why this needed a dedicated function rather than
-generalizing the vertical one). Built via dataviz_mojo.
+category plus a range -- see that method's docstring). One of the
+marks whose categories run along the *y*-axis instead of the x-axis
+(`_draw_horizontal_categorical_axis_frame`, shared with Mark.
+POPULATION_PYRAMID/RIDGELINE, the mirror image of every other
+categorical mark here's vertical axis frame -- see its docstring for
+why this needed a dedicated function rather than generalizing the
+vertical one). Built via dataviz_mojo.
 gantt() -- see examples/scatter.mojo's docstring for what that
 trades away.
 

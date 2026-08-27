@@ -47,8 +47,8 @@ tick -- see `_render_bullet`'s docstring for the drawing order and
 why, unlike CANDLESTICK/WATERFALL, its measure bar is never colored by
 sign.
 
-GANTT is the first mark whose categories run along a *horizontal* axis
-instead of a vertical one -- a project-schedule/span chart, one
+GANTT's categories run along a *horizontal* axis instead of a
+vertical one -- a project-schedule/span chart, one
 floating horizontal bar per category from a start value to an end
 value (`encode_gantt`, deliberately no Date/Time type of its own --
 see that method's docstring). Shares nothing structurally with
@@ -94,8 +94,9 @@ draw visually equal-length bars) and the two-color legend
 (`left_name`/`right_name`), the one other new thing no other
 horizontal mark needs.
 
-HEATMAP is the first mark with *two* categorical axes and no
-continuous one at all: `encode_heatmap`'s `x`/`y`/`value` (one row per
+HEATMAP has *two* categorical axes and no continuous one at all
+(shared by CORRPLOT/PUNCHCARD too -- see `_draw_grid_axis_frame`'s
+docstring): `encode_heatmap`'s `x`/`y`/`value` (one row per
 grid cell, `x`/`y` deduplicated into each axis's domain via
 `_categorical_indices`, the same helper `Mark.POINT`'s categorical
 color channel already uses) draws a filled cell per row, colored
@@ -109,7 +110,7 @@ edge-to-edge instead of `Mark.BAR`'s separated bands.
 
 CHORD (not "Arc Diagram" in the network-node-link-over-a-line sense, a
 genuinely different chart type that happens to share a name with this
-package's pre-existing `ARC`) is the first mark drawn from an *edge
+package's `ARC`) is drawn from an *edge
 list* (`encode_chord`'s `from_categories`/`to_categories`/`values`,
 one row per flow) rather than one row per category. Its nodes reuse
 `Mark.ARC`'s start-at-12-o'clock, sweep-clockwise ring-sector
@@ -121,7 +122,7 @@ the circle's center for each cross connection) drawn through
 per-node running-angle bookkeeping (`_render_chord`) and the ribbon
 geometry itself (`_draw_chord_ribbon`).
 
-SINGLE_AXIS is the first mark with only *one* axis drawn at all:
+SINGLE_AXIS is the only mark with exactly *one* axis drawn at all:
 `encode_single_axis`'s `x` (plus the usual optional `color`/`color_
 categories`/`size` channels `Mark.POINT` already supports), one point
 per row, all placed at a single fixed pixel row via a degenerate

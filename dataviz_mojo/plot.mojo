@@ -714,8 +714,8 @@ struct Plot(Movable):
     def mark_gantt(var self) -> Self:
         """A gantt chart: one horizontal bar per category, from a
         start value to an end value, encoded via `encode_gantt()` --
-        the first mark whose categories run along the *y*-axis instead
-        of the x-axis (see that method's docstring). See `mark_
+        categories run along the *y*-axis instead of the x-axis (see
+        that method's docstring). See `mark_
         span_chart()` for the same data, drawn vertically instead."""
         self._mark = Mark.GANTT
         return self^
