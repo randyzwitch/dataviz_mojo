@@ -121,8 +121,8 @@ def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap
     # A color-categories-encoded Mark.POINT primary layer (so a real
     # legend column draws) alongside a secondary-axis Mark.LINE layer --
     # confirms the legend column shifts right past the secondary axis's
-    # own reserved tick-label width instead of overlapping it. The
-    # secondary axis's own line lands at x=220 (shrunk further than the
+    # reserved tick-label width instead of overlapping it. The
+    # secondary axis's line lands at x=220 (shrunk further than the
     # no-legend case's x=350 above, since legend_reserve is folded in
     # too), its widest tick label ("50") ends well before x=270, where the first
     # legend swatch actually starts.

@@ -59,7 +59,7 @@ def test_render_annotate_area_raster_draws_ink_at_the_hand_derived_row() raises:
 def test_render_annotate_area_out_of_range_draws_nothing() raises:
     # A band with *no* overlap at all against the mark's (padded)
     # domain ([9.5, 20.5] for this data) draws neither a fill nor a
-    # label -- 25.0-30.0 is entirely past the domain's own ~20.5 max.
+    # label -- 25.0-30.0 is entirely past the domain's ~20.5 max.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var svg = SvgCanvas(400, 300)

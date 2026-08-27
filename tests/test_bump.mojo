@@ -23,7 +23,7 @@ def test_render_bump_matches_hand_derived_rank_lines() raises:
     # outranks B (5) -- A rank 1, B rank 2. Canvas 400x300, default
     # margins (rank labels "1"/"2" stay well under the default 60px
     # left margin, the same short-label convention every other mark's
-    # own tests already rely on) -> plot area x:[60,380], y:[20,250].
+    # tests already rely on) -> plot area x:[60,380], y:[20,250].
     # x_scale = OrdinalScale(["X","Y"], 60, 380) (default padding 0.2):
     # step 160, bandwidth 128, centers 140 (X) and 300 (Y).
     # n_series=2 -> _bump_rank_pixel(1,2,20,250)=20 (top),
