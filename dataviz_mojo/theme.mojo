@@ -224,22 +224,28 @@ to share a similar visual weight today, not a promise they'll always
 share a value; each gets its field so retheming one doesn't
 silently retheme the other.
 
-`annotation_area_color` (default a pale blue-gray, `Color(224, 236,
-246)`) is `Plot.annotate_area()`'s fill -- a genuinely separate
-field from `annotation_color`, not that same gray reused, because a
-*filled* rectangle needs to read very differently from a *line*: solid
-medium gray as a fill would read as an opaque, obtrusive block, while a
-1px stroke in the same gray reads as a thin, unobtrusive mark. `Plot.
-annotate_area()`'s label text still uses `annotation_color`, not
-this field -- ink and fill are two different jobs even on the same
-annotation, the same split `mark_color`/`text_color` already have
-everywhere else. `Plot.annotate_area()` draws this as a fully opaque
-fill, not real alpha over whatever the mark drew underneath (ECharts'
-`markArea` default) -- both canvas_mojo backends can render true
-alpha now (see `_lighten()`'s docstring), so this is an unmade
-caller-side choice, not a missing primitive. The pale default keeps
-that opaque fill's visual weight as light as an opaque rectangle can
-get.
+`annotation_area_color` (default a pale blue-gray at partial opacity,
+`Color(224, 236, 246, 200)`) is `Plot.annotate_area()`'s fill -- a
+genuinely separate field from `annotation_color`, not that same gray
+reused, because a *filled* rectangle needs to read very differently
+from a *line*: solid medium gray as a fill would read as an opaque,
+obtrusive block, while a 1px stroke in the same gray reads as a thin,
+unobtrusive mark. `Plot.annotate_area()`'s label text still uses
+`annotation_color`, not this field -- ink and fill are two different
+jobs even on the same annotation, the same split `mark_color`/
+`text_color` already have everywhere else. Real alpha (`a=200`, not
+the `_lighten()`-style pre-blend-against-white `halo_alpha`/
+`radar_fill_alpha` use), unlike those two: a halo/radar fill wants a
+*consistent* tint regardless of what happens to be behind it, but a
+reference band's whole point is marking a region on the *existing*
+chart, so it should let whatever the mark drew there keep showing
+through instead of painting fully over it. Both canvas_mojo backends
+already composite `Color.a` correctly (`Canvas.write_pixel`'s
+`blend_over`, `SvgCanvas.fill_rect`'s `fill-opacity`), so this is a
+plain color value, not special-cased draw logic. Tuned so the over-white look
+stays close to the old fully-opaque pale fill (`a=200` over white
+lands within a few units of `(224, 236, 246)`), while a mark's own
+color still visibly shows through wherever a band overlaps it.
 
 `font_family` (default `"sans-serif"`) is every `_TextRequest`'s typeface -- tick/legend labels, axis titles, the chart title, all of
 it, baked into each `_TextRequest` at the point it's built (the same
@@ -394,7 +400,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         axis_title_font_size: Float64 = 14.0,
         waterfall_total_color: Color = Color(100, 100, 100),
         annotation_color: Color = Color(150, 150, 150),
-        annotation_area_color: Color = Color(224, 236, 246),
+        annotation_area_color: Color = Color(224, 236, 246, 200),
         font_family: String = "sans-serif",
         title_bold: Bool = True,
         waterfall_delta_width_fraction: Float64 = 0.6,

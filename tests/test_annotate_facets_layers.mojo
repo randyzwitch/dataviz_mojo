@@ -43,7 +43,7 @@ def test_render_facets_svg_each_cells_own_annotations_use_that_cells_own_scale()
         "cell 1's reference line label",
     )
     assert_true(
-        '<rect x="460" y="75" width="320" height="58" fill="#e0ecf6"/>' in s,
+        '<rect x="460" y="75" width="320" height="58" fill="#e0ecf6" fill-opacity="0.784"/>' in s,
         "cell 2's reference band, against its [0,15] domain -- a different position"
         " than it would land at against cell 1's domain",
     )

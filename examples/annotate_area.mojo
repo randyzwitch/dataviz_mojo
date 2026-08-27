@@ -1,16 +1,13 @@
 """Demo: a shaded reference band -- Plot.annotate_area(), ECharts' markArea (a fixed (y0, y1) pair only, not its auto-computed-range
-modes -- see that method's docstring). Draws a solid filled band
+modes -- see that method's docstring). Draws a translucent filled band
 across the full plot width, in Theme.annotation_area_color, with an
 optional label near its top edge.
 
-Response-time samples against an acceptable range -- Mark.LINE, the
-mark this feature actually looks best on: its thin stroke only
-loses the small stretch that falls inside the band, unlike a solid-
-fill mark (Mark.BAR/WATERFALL/...) where a bar entering the band would
-have that whole portion overwritten by the band's color instead --
-see annotate_area()'s docstring for the full story (a real,
-documented design choice -- an opaque fill, not a translucent
-overlay -- not a bug in this feature).
+Response-time samples against an acceptable range -- Mark.LINE, drawn
+after the band so its stroke stays on top; the band's real partial
+opacity means the line still reads clearly through the shaded stretch
+inside it, rather than that stretch being overwritten -- see
+annotate_area()'s docstring for the full story.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
 data -- see examples/donut.mojo's docstring for why. Built by hand
