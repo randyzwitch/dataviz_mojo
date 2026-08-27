@@ -126,7 +126,7 @@ def test_render_annotate_area_multiple_calls_all_draw() raises:
 
 def test_render_annotate_area_raises_on_unsupported_mark() raises:
     # Mark.ARC has no continuous y-axis at all -- annotate_area() must
-    # raise a clear error, the same rule annotate_line() already follows.
+    # raise a clear error, the same rule annotate_line() follows.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
     var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).annotate_area(0.5, 1.5)
