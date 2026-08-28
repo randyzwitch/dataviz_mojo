@@ -3,7 +3,7 @@ mark_line() draws, filled down to a zero baseline instead of stroked.
 Built via dataviz_mojo.area() -- see examples/scatter.mojo's docstring for what that trades away.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
+data -- see examples/pie.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

@@ -10,7 +10,7 @@ total generation *and* its energy mix read at a glance, something a
 plain stacked bar chart's equal-width columns can't show at once).
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
+data -- see examples/pie.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

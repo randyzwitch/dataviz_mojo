@@ -11,7 +11,7 @@ area.mojo's docstring uses, so the two annotation demos read as a
 matched pair.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why. Built by hand
+data -- see examples/pie.mojo's docstring for why. Built by hand
 (not a one-call quickplot -- neither method is exposed on quickplot
 functions, the same deliberate scope cut examples/annotate_line.mojo's docstring explains) via Plot() directly.
 

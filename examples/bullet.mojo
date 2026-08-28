@@ -18,7 +18,7 @@ to both a specific goal and a qualitative sense of poor/satisfactory/
 good."
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
+data -- see examples/pie.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

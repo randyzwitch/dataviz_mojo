@@ -10,7 +10,7 @@ use: drawing the eye to specific points on a map or chart, the halo
 doing statically what ECharts' ripple animation does over time.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
+data -- see examples/pie.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

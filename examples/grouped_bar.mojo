@@ -14,7 +14,7 @@ title=/x_title=/y_title= are quickplot's equivalent of Plot.
 labels()'s three parameters.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
+data -- see examples/pie.mojo's docstring for why, and for why
 the docs page only shows the quickplot call above.
 
 Run with:

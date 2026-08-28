@@ -6,7 +6,7 @@ dataviz_mojo.histogram() -- see examples/scatter.mojo's docstring
 for what that trades away.
 
 Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why every example
+data -- see examples/pie.mojo's docstring for why every example
 does this.
 
 Run with:
