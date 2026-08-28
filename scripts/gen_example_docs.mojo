@@ -883,8 +883,13 @@ def _build_page(name: String, title: String) raises -> String:
     # than one quickplot call (examples/bar.mojo's own diverging-bars
     # variant) gets a second section instead of a second page -- its
     # own "### <heading>" (see `_segment_heading()`) followed by its
-    # own image and snippet, right below the first's.
+    # own image and snippet, right below the first's. A second section
+    # calling the *same* quickplot function (bar.mojo/pie.mojo's own
+    # diverging/donut variants both reuse bar()/pie()) shows the same
+    # Args section its first call already did -- skipped rather than
+    # repeated verbatim.
     var is_first = True
+    var last_args_fn = ""
     for section in sections:
         var body_text = String("\n").join(section.body)
         var import_lines = _imports_for(body_text)
@@ -913,7 +918,7 @@ def _build_page(name: String, title: String) raises -> String:
         page.append("```")
         page.append("")
 
-        if section.fn_name:
+        if section.fn_name and section.fn_name != last_args_fn:
             var args_lines = _extract_args_lines(section.fn_name, _quickplot_file_for(section.fn_name))
             if len(args_lines) > 0:
                 page.append("**Args:**")
@@ -921,6 +926,7 @@ def _build_page(name: String, title: String) raises -> String:
                 for l in args_lines:
                     page.append(l)
                 page.append("")
+            last_args_fn = section.fn_name
 
         is_first = False
 
