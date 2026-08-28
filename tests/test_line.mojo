@@ -5,9 +5,7 @@ _build_line_path Catmull-Rom-to-Bezier helper it's built on.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -163,9 +161,8 @@ def test_render_svg_line_smoothing_matches_confirmed_cubic_path() raises:
     # Catmull-Rom tangent formula.
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_line().encode(x=x, y=y).theme(Theme(line_smoothing=1.0, show_gridlines=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_line().encode(x=x, y=y).theme(Theme(line_smoothing=1.0, show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     assert_true(
         '<path d="M74.545,239.545 C98.788,204.697 171.515,30.455 220.000,30.455'
         ' C268.485,30.455 341.212,204.697 365.455,239.545" fill="none"'
@@ -188,10 +185,9 @@ def test_render_raises_when_color_encoding_used_with_line_mark() raises:
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [1.0, 2.0]
     var color: List[Float64] = [1.0, 2.0]
-    var plot = Plot().mark_line().encode(x=x, y=y, color=color)
-    var c = Canvas(200, 150, BG)
+    var plot = Plot().mark_line().encode(x=x, y=y, color=color).size(200, 150)
     with assert_raises():
-        render(c, plot)
+        var c = render(plot)
 
 
 def test_render_svg_line_mark_matches_confirmed_path_coordinates() raises:
@@ -204,9 +200,8 @@ def test_render_svg_line_mark_matches_confirmed_path_coordinates() raises:
     # against here).
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_line().encode(x=x, y=y).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_line().encode(x=x, y=y).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     assert_true(
         '<path d="M74.545,135.000 L365.455,135.000" fill="none"'
         ' stroke="#1e64b4" stroke-width="2.000" stroke-linecap="round"'

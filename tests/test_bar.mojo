@@ -5,9 +5,7 @@ color-by-sign.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -71,9 +69,8 @@ def test_render_bar_raises_on_mismatched_category_length() raises:
 
 
 def test_render_bar_empty_data_only_fills_background() raises:
-    var plot = Plot().mark_bar()  # no encode_categorical() call
-    var c = Canvas(50, 40, Color(10, 20, 30))
-    render(c, plot)
+    var plot = Plot().mark_bar().size(50, 40)  # no encode_categorical() call
+    var c = render(plot)
     var expected = Theme.default().background
     for y in range(c.height):
         for x in range(c.width):
@@ -113,9 +110,10 @@ def test_render_svg_bar_mark_matches_confirmed_rect() raises:
     # that function's docstring, plot.mojo).
     var cats: List[String] = ["a", "b", "c"]
     var vals: List[Float64] = [10.0, 20.0, 15.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).theme(
+        Theme(show_gridlines=False)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     assert_true(
         '<rect x="177" y="31" width="85" height="218" fill="#1e64b4"/>' in svg.to_string(),
         "BAR mark's middle bar, same rectangle render()'s hand-derived test finds",

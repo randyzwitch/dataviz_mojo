@@ -6,8 +6,6 @@ rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo.theme import Theme
@@ -44,9 +42,8 @@ def test_render_funnel_matches_hand_derived_trapezoids() raises:
 def test_render_funnel_svg_matches_confirmed_paths() raises:
     var cats: List[String] = ["A", "B", "C"]
     var vals: List[Float64] = [100.0, 60.0, 20.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_funnel().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_funnel().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<path d="M60.000,20.000 L380.000,20.000 L316.000,96.000 L124.000,96.000 Z" fill="#1f77b4"/>' in s, "row 0")
     assert_true(
@@ -67,9 +64,8 @@ def test_render_funnel_sorts_largest_value_first_regardless_of_input_order() rai
     # confirmed geometrically, no need to parse the legend's text.
     var cats: List[String] = ["Small", "Big"]
     var vals: List[Float64] = [10.0, 100.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_funnel().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_funnel().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('M60.000,20.000 L380.000,20.000' in s, "row 0's top edge spans the full plot width -- it's Big, not Small")
 

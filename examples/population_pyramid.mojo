@@ -14,7 +14,7 @@ category; see population_pyramid.mojo's docstring).
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from canvas_mojo.vector.svg import write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import population_pyramid
 from dataviz_mojo.theme import Theme
@@ -29,9 +29,8 @@ def main() raises:
     write_bmp(c, "examples/out_population_pyramid.bmp")
     write_png(c, "examples/out_population_pyramid.png")
 
-    var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_population_pyramid().encode_population_pyramid(
         categories=age_bands, left_values=male, right_values=female, left_name="Male", right_name="Female"
     ).theme(Theme())
-    render_svg(svg, svg_plot)
+    var svg = render_svg(svg_plot)
     write_svg(svg, "examples/out_population_pyramid.svg")

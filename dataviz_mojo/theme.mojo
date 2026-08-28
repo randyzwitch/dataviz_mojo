@@ -299,6 +299,7 @@ from std.math import pi
 from canvas_mojo.color import Color
 
 from dataviz_mojo.colors import WHITE
+from dataviz_mojo.output_format import OutputFormat
 
 
 struct Theme(ImplicitlyCopyable, Movable):
@@ -495,6 +496,12 @@ struct Theme(ImplicitlyCopyable, Movable):
     margin's own tick-label-width/tick-length/label-gap computation."""
     var sankey_node_width: Float64
     """The pixel width of each `Mark.SANKEY` node column's bar."""
+    var output_format: OutputFormat
+    """The file format `save()` (plot.mojo) writes when given a `Plot`
+    and a path, with no `canvas_mojo` backend named at the call site --
+    defaults to `OutputFormat.SVG` (see that struct's docstring for why
+    vector is the default). `render()`/`render_svg()` ignore this field
+    entirely; it only governs `save()`'s own choice."""
 
     def __init__(
         out self,
@@ -561,6 +568,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         continuous_legend_bar_height: Int = 100,
         margin_buffer: Int = 8,
         sankey_node_width: Float64 = 12.0,
+        output_format: OutputFormat = OutputFormat.SVG,
     ):
         """Construct a `Theme`, overriding any subset of its fields by
         keyword -- every parameter here is one field, same name, same
@@ -630,6 +638,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.continuous_legend_bar_height = continuous_legend_bar_height
         self.margin_buffer = margin_buffer
         self.sankey_node_width = sankey_node_width
+        self.output_format = output_format
 
     @staticmethod
     def default() -> Self:

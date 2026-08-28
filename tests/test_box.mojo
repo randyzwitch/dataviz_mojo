@@ -5,9 +5,7 @@ SVG) and encode_boxplot() validation.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -52,8 +50,7 @@ def test_render_boxplot_matches_hand_derived_box_whiskers_and_outlier() raises:
         [10.0, 12.0, 14.0, 15.0, 18.0],
     ]
     var t = Theme(show_gridlines=False)
-    var c = Canvas(400, 300, BG)
-    render(c, Plot().mark_box().encode_boxplot(cats, values).theme(t))
+    var c = render(Plot().mark_box().encode_boxplot(cats, values).theme(t).size(400, 300))
 
     _assert_color(c, 140, 200, t.mark_color, "A: inside the box (between q1 and q3)")
     _assert_color(c, 140, 205, t.axis_color, "A: the median line, drawn over the box fill")
@@ -72,9 +69,8 @@ def test_render_boxplot_svg_matches_confirmed_rects_and_outlier() raises:
         [2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0, 20.0],
         [10.0, 12.0, 14.0, 15.0, 18.0],
     ]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_box().encode_boxplot(cats, values).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_box().encode_boxplot(cats, values).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<rect x="76" y="181" width="128" height="35" fill="#1e64b4"/>' in s, "A's box (q1 to q3)")
     assert_true('<rect x="236" y="89" width="128" height="35" fill="#1e64b4"/>' in s, "B's box (q1 to q3)")

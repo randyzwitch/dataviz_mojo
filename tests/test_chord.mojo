@@ -6,7 +6,6 @@ ribbon-geometry rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import Plot, render_svg
@@ -68,11 +67,10 @@ def test_render_chord_svg_writes_ribbon_and_ring_paths() raises:
     var from_cats: List[String] = ["A", "B"]
     var to_cats: List[String] = ["B", "C"]
     var values: List[Float64] = [5.0, 3.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_chord().encode_chord(
         from_categories=from_cats, to_categories=to_cats, values=values
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true("<path " in s, "at least one ribbon drawn as a real SVG path")
     # default_categorical_palette()'s first three entries, hardcoded

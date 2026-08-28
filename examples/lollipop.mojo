@@ -7,7 +7,7 @@ dataviz_mojo.lollipop() -- see examples/scatter.mojo's docstring for what that t
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from canvas_mojo.vector.svg import write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import lollipop
 from dataviz_mojo.colors import TEAL
@@ -25,9 +25,8 @@ def main() raises:
     write_bmp(c, "examples/out_lollipop.bmp")
     write_png(c, "examples/out_lollipop.png")
 
-    var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_lollipop().encode_categorical(x=countries, y=gdp).theme(
         Theme(mark_color=TEAL)
     )
-    render_svg(svg, svg_plot)
+    var svg = render_svg(svg_plot)
     write_svg(svg, "examples/out_lollipop.svg")

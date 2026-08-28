@@ -6,8 +6,6 @@ rings, SVG bar paths.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
@@ -108,9 +106,8 @@ def test_render_radialbar_svg_matches_confirmed_ring_paths() raises:
     # 1.0 sweeps the same full turn the track itself does.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_radialbar().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_radialbar().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<path d="M220.000,37.969 A97.031,97.031 0 1,1 220.000,37.969'

@@ -5,9 +5,7 @@
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -50,8 +48,7 @@ def test_render_bullet_matches_hand_derived_bands_measure_and_target() raises:
     var targets: List[Float64] = [65.0, 50.0]
     var ranges: List[List[Float64]] = [[40.0, 70.0, 100.0], [30.0, 60.0, 90.0]]
     var t = Theme(show_gridlines=False)
-    var c = Canvas(400, 300, BG)
-    render(c, Plot().mark_bullet().encode_bullet(cats, measures, targets, ranges).theme(t))
+    var c = render(Plot().mark_bullet().encode_bullet(cats, measures, targets, ranges).theme(t).size(400, 300))
 
     _assert_color(c, 90, 200, Color(224, 224, 224), "A: lightest range band [0,40], off the measure bar")
     _assert_color(c, 90, 130, Color(172, 172, 172), "A: middle range band [40,70], off the measure bar")
@@ -69,11 +66,10 @@ def test_render_bullet_svg_matches_confirmed_bands_measure_and_target() raises:
     var measures: List[Float64] = [55.0, 75.0]
     var targets: List[Float64] = [65.0, 50.0]
     var ranges: List[List[Float64]] = [[40.0, 70.0, 100.0], [30.0, 60.0, 90.0]]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_bullet().encode_bullet(cats, measures, targets, ranges).theme(
         Theme(show_gridlines=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     # The lightest band's bottom (prev_threshold=0) and the measure
     # bar's bottom (baseline=0) both land exactly on the drawn bottom

@@ -6,7 +6,6 @@ Mark.HEATMAP (raster + SVG) -- see calendar_heatmap.mojo's docstrings for the da
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo.theme import Theme
@@ -53,11 +52,10 @@ def test_render_calendar_heatmap_matches_hand_derived_cells() raises:
 def test_render_calendar_heatmap_svg_matches_confirmed_rects() raises:
     var dates: List[String] = ["2024-01-01", "2024-01-07", "2024-12-31"]
     var values: List[Float64] = [1.0, 2.0, 3.0]
-    var svg = SvgCanvas(900, 300)
     var plot = Plot().mark_calendar_heatmap().encode_calendar(dates=dates, values=values).theme(
         Theme(show_legend=False)
-    )
-    render_svg(svg, plot)
+    ).size(900, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<rect x="60" y="67" width="15" height="31" fill="#3c6ec8"/>' in s, "Jan 1 (Mon), col 0")
     assert_true('<rect x="75" y="36" width="15" height="31" fill="#ebebeb"/>' in s, "Jan 7 (Sun), col 1")

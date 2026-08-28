@@ -6,7 +6,6 @@ rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo.theme import Theme
@@ -45,11 +44,10 @@ def test_render_beeswarm_matches_hand_derived_offsets() raises:
 def test_render_beeswarm_svg_matches_confirmed_circles() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[10.0, 11.0, 50.0]]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_beeswarm().encode_distribution(categories=cats, values=vals).theme(
         Theme(show_gridlines=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<circle cx="228" cy="240" r="4" fill="#1e64b4"/>' in s, "value 10")
     assert_true('<circle cx="220" cy="234" r="4" fill="#1e64b4"/>' in s, "value 11")

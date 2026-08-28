@@ -11,7 +11,7 @@ each team's relative strengths across dimensions immediately visible).
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from canvas_mojo.vector.svg import write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import radar
 from dataviz_mojo.theme import Theme
@@ -30,9 +30,8 @@ def main() raises:
     write_bmp(c, "examples/out_radar.bmp")
     write_png(c, "examples/out_radar.png")
 
-    var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_radar().encode_radar(
         indicators=indicators, max_values=max_values, series_names=series_names, series_values=series_values
     ).theme(Theme())
-    render_svg(svg, svg_plot)
+    var svg = render_svg(svg_plot)
     write_svg(svg, "examples/out_radar.svg")

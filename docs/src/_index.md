@@ -45,16 +45,14 @@ automatically, no `-I` flag needed for either package.
 ## A first chart
 
 ```mojo
-from dataviz_mojo import Plot, Theme, render
-from canvas_mojo import Canvas, Color
+from dataviz_mojo import Plot, save
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
     var y: List[Float64] = [2.3, 4.1, 3.6, 5.8, 5.1]
 
     var plot = Plot().mark_point().encode(x=x, y=y)
-    var c = Canvas(640, 420, Color(255, 255, 255))
-    render(c, plot)
+    save(plot, "chart.svg")
 ```
 
 See [Examples](examples/) for the same pattern applied to every mark

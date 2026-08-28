@@ -5,9 +5,7 @@ ordinary Mark.BAR chart.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -23,7 +21,7 @@ from dataviz_mojo.plot import (
 )
 from dataviz_mojo.theme import Theme
 
-from _test_helpers import BG, _count_color, _assert_color
+from _test_helpers import _count_color, _assert_color
 
 
 def test_encode_histogram_bins_match_hand_derived_counts() raises:
@@ -73,9 +71,8 @@ def test_render_histogram_draws_as_an_ordinary_bar_chart() raises:
     # friends -- encode_histogram() feeds the identical render path,
     # just with computed rather than given categories/counts).
     var data: List[Float64] = [1.0, 1.0, 1.0, 5.0, 9.0]
-    var c = Canvas(400, 300, BG)
-    var plot = Plot().mark_bar().encode_histogram(data, bins=3).theme(Theme(show_gridlines=False))
-    render(c, plot)
+    var plot = Plot().mark_bar().encode_histogram(data, bins=3).theme(Theme(show_gridlines=False)).size(400, 300)
+    var c = render(plot)
     # Bin 0 ([1.0, 3.667)) holds 3 of the 5 values -- its bar
     # should be the tallest, definitely not still just background at
     # the vertical center of the plot area.

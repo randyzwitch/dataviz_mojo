@@ -8,7 +8,7 @@ for what that trades away.
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from canvas_mojo.vector.svg import write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import histogram
 from dataviz_mojo.colors import REBECCAPURPLE
@@ -28,9 +28,8 @@ def main() raises:
     write_bmp(c, "examples/out_histogram.bmp")
     write_png(c, "examples/out_histogram.png")
 
-    var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_bar().encode_histogram(scores, bins=8).theme(
         Theme(mark_color=REBECCAPURPLE)
     )
-    render_svg(svg, svg_plot)
+    var svg = render_svg(svg_plot)
     write_svg(svg, "examples/out_histogram.svg")

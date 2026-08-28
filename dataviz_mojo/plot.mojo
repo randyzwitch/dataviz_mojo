@@ -14,29 +14,36 @@ y=ys).theme(t)` -- matches `canvas`'s Path/Canvas builder feel in
 spirit, chained rather than one statement per call since that's the
 composition style settled on for this package specifically.
 
-`render(canvas, plot)`/`render_svg(svg, plot)` are the two entry
-points that turn a Plot into pixels or into SVG markup -- both a
-single batch pass, no retained scene graph and no reactive signals
-(see dataviz-api-design for why: `canvas` itself has neither, so
-there's nothing for either to attach to yet). By default each owns
-the whole target it's given (fills the background, computes margins
-from `Theme`, plus any extra margin `Plot.labels()`'s chart/axis
-titles need -- see `_apply_labels`'s docstring) rather than
-compositing into an existing drawing; their optional `ox0`/`oy0`/
-`ox1`/`oy1` bounds narrow that to a sub-rectangle instead -- the
-mechanism `render_facets()` (small multiples: a grid of independently
-laid-out plots on one canvas) composes on top of, without `render()`
-itself knowing facets exist.
+`render(plot)`/`render_svg(plot)` are the two entry points that turn a
+Plot into pixels or into SVG markup, each returning a fresh
+`Canvas`/`SvgCanvas` built from `plot.width`/`plot.height` (see
+`Plot.size()`) -- no `canvas_mojo` type for a caller to construct by
+hand first (see `save()`'s docstring for the "don't even pick a
+backend" convenience layered on top of these two). Both are a single
+batch pass, no retained scene graph and no reactive signals (see
+dataviz-api-design for why: `canvas` itself has neither, so there's
+nothing for either to attach to yet). Each is a thin wrapper around a
+private, sub-rectangle-capable core (`_render_into`/`_render_svg_into`)
+that fills the whole target's background, computes margins from
+`Theme`, plus any extra margin `Plot.labels()`'s chart/axis titles need
+(see `_apply_labels`'s docstring) rather than compositing into an
+existing drawing. `render_facets()`/`render_layers()` (small multiples
+and shared-domain overlays, respectively) don't call these two at all
+-- each has its own per-cell/shared-canvas variant of the same
+"fill background, `_apply_labels`, hand off to the generic core"
+pattern instead, since neither fits a single-plot-into-one-rect shape.
 
-Both entry points share one generic rendering core (`_render_generic`,
-`_render_bar`, `_render_arc` -- each `[T: DrawTarget]`, see canvas/
-draw_target.mojo's docstring for what that trait is and why it
-exists) for everything except *text*: `DrawTarget` deliberately has no
-`draw_text` method (drawing real text needs `canvas_mojo.text`'s native FreeType/fontconfig glyph machinery for the raster path, or
-SVG-specific markup for the vector one, and forcing either dependency
-onto the other would defeat the point), so text is
-collected as a `List[_TextRequest]` while the generic pass runs, then
-`render()`/`render_svg()` each draw that list their way once it
+`render()`/`render_svg()` (via `_render_into`/`_render_svg_into`) and
+`render_facets()`/`render_layers()` all share one generic rendering
+core underneath (`_render_generic`, `_render_bar`, `_render_arc` --
+each `[T: DrawTarget]`, see canvas/draw_target.mojo's docstring for
+what that trait is and why it exists) for everything except *text*:
+`DrawTarget` deliberately has no `draw_text` method (drawing real text
+needs `canvas_mojo.text`'s native FreeType/fontconfig glyph machinery
+for the raster path, or SVG-specific markup for the vector one, and
+forcing either dependency onto the other would defeat the point), so
+text is collected as a `List[_TextRequest]` while the generic pass
+runs, then each entry point draws that list its own way once it
 returns -- see `_TextRequest`'s docstring.
 
 Every raster draw call the generic core makes through `Canvas` is the
@@ -133,8 +140,9 @@ parameters shared across all of them:
 Every one returns a `Canvas`, already rendered -- call
 `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) on the
 result. There's no SVG equivalent yet -- build a `Plot` and call
-`render_svg()` into an `SvgCanvas` directly for that (see
-`examples/scatter_svg.mojo`), same as for any mark these don't cover.
+`render_svg(plot)` for that (see `examples/scatter.mojo`'s SVG-twin
+block, or `save()` below if the caller doesn't want to name a backend
+at all), same as for any mark these don't cover.
 """
 
 from std.collections import Dict
@@ -143,17 +151,20 @@ from std.math import pi
 from canvas_mojo.buffer import Canvas
 from canvas_mojo.color import Color
 from canvas_mojo.gradient import LinearGradient
+from canvas_mojo.io.bmp import write_bmp
+from canvas_mojo.io.png import write_png
 from canvas_mojo.resize import downsample
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.path import Path
-from canvas_mojo.vector.svg import SvgCanvas, _escape_xml_text, _escape_xml_attr
+from canvas_mojo.vector.svg import SvgCanvas, write_svg, _escape_xml_text, _escape_xml_attr
 from canvas_mojo.text.render import draw_text, measure_text, FontWeight, TextAlign
 from canvas_mojo.text.font_cache import FontCache
 
 from dataviz_mojo.color_scale import ColorScale, default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.ordinal_scale import OrdinalScale
+from dataviz_mojo.output_format import OutputFormat
 from dataviz_mojo.scale import LinearScale, MinMax, _format_fixed, _min_max
 from dataviz_mojo.theme import Theme
 
@@ -495,6 +506,14 @@ struct Plot(Movable):
     var _secondary_axis: Bool
     var _mark: Mark
     var _theme: Theme
+    var width: Int
+    """Pixel width `render()`/`render_svg()`/`save()` construct their
+    target at -- set via `.size()`; defaults to 640, matching every
+    quickplot function's own default (see plot.mojo's module docstring
+    for quickplot's separate `_rendered()` path, which takes `width`/
+    `height` as its own plain args and never reads this field)."""
+    var height: Int
+    """Pixel height -- see `width`'s docstring."""
 
     def __init__(out self):
         self.x_data = List[Float64]()
@@ -528,6 +547,18 @@ struct Plot(Movable):
         self._secondary_axis = False
         self._mark = Mark.POINT
         self._theme = Theme.default()
+        self.width = 640
+        self.height = 420
+
+    def size(var self, width: Int, height: Int) -> Self:
+        """Set the pixel dimensions `render()`/`render_svg()`/`save()`
+        construct their target at (`Canvas`/`SvgCanvas`, chosen by
+        whichever of those a caller reaches for -- see plot.mojo's
+        module docstring). Defaults to 640x420 if never called, the
+        same default every quickplot function already uses."""
+        self.width = width
+        self.height = height
+        return self^
 
     def mark_point(var self) -> Self:
         """A scatter plot: one point per (x, y) pair."""
@@ -3719,7 +3750,21 @@ def _extend_text_requests(mut dst: List[_TextRequest], src: List[_TextRequest]):
         dst.append(req.copy())
 
 
-def render(
+def render(plot: Plot) raises -> Canvas:
+    """Render `plot` into a fresh `Canvas` sized `plot.width` x
+    `plot.height` (see `Plot.size()`) and return it -- the only public
+    single-plot raster entry point; no `canvas_mojo` type to construct
+    by hand first. A thin wrapper around `_render_into`, this module's
+    private single-plot-into-a-rect core (also what `save()` reaches
+    for when `plot._theme.output_format` says raster) -- see that
+    function's own docstring for the full rendering story.
+    """
+    var canvas = Canvas(plot.width, plot.height)
+    _render_into(canvas, plot)
+    return canvas^
+
+
+def _render_into(
     mut canvas: Canvas, plot: Plot, ox0: Int = 0, oy0: Int = 0, ox1: Int = -1, oy1: Int = -1
 ) raises:
     """Render `plot` into `canvas` -- fills its outer bounds
@@ -3727,16 +3772,32 @@ def render(
     mark itself, in that back-to-front order) rather than compositing
     into whatever was there before.
 
+    Private: `render()` is this function's only caller (a thin wrapper
+    that builds a right-sized `Canvas` from `plot.width`/`height` and
+    calls this), plus `_rendered()` (quickplot's shared tail -- see its
+    own docstring), always with the default whole-target bounds.
+    `render_facets()`/`render_layers()` do *not* call this: each has
+    its own per-cell/shared-canvas variant of the same "fill background,
+    `_apply_labels`, hand off to `_render_generic`" pattern
+    (`_render_facets_generic`/`_render_layers_generic`), since neither
+    fits this function's one-plot-one-rect shape -- a cell needs many
+    plots against one target, a layer needs many plots sharing one
+    combined domain. The `ox0`/`oy0`/`ox1`/`oy1` parameters below are
+    consequently only ever exercised at their defaults today; they stay
+    because `_render_generic` (what this function's body hands off to)
+    is itself genuinely bounds-generic, and narrowing this function's
+    own signature to match its current callers would just move the
+    sentinel-resolution logic elsewhere the next time something needs
+    it, not remove it.
+
     `ox0`/`oy0`/`ox1`/`oy1` default to the whole canvas (`ox1`/`oy1`'s
     default of -1 means "canvas.width"/"canvas.height" -- a real
     negative bound is never meaningful, so it's a safe sentinel, not
-    an ambiguous one) -- every existing single-plot call keeps
-    rendering into the entire canvas exactly as before. Passing a
-    narrower rectangle instead (what `render_facets()` does, one call
-    per grid cell) makes this one plot's margins, axes, and
-    optional legend lay out relative to that sub-rectangle instead of
-    the whole canvas -- the plot has no idea it's sharing a canvas
-    with anything else.
+    an ambiguous one) -- every call today renders into the entire
+    canvas. A narrower rectangle would make this one plot's margins,
+    axes, and optional legend lay out relative to that sub-rectangle
+    instead of the whole canvas -- the plot has no idea it's sharing a
+    canvas with anything else.
 
     A thin wrapper around `_render_generic` (see this module's docstring for why rendering is split this way): resolves the
     sentinel bounds against `canvas`'s size, reserves room for any
@@ -3769,7 +3830,7 @@ def render(
     canvas -- see `_rendered`'s docstring -- about 2.4M redundant pixel
     writes per chart). Painting the background is the *entry point's*
     job, once, and each of the four entry points does it: here,
-    `render_svg()`, `_render_facets_generic` (per cell -- see its
+    `_render_svg_into()`, `_render_facets_generic` (per cell -- see its
     comment) and `render_layers()`/`render_layers_svg()`.
 
     Never supersampled on its own -- every pixel-sized quantity here
@@ -3811,17 +3872,33 @@ def render(
     _replay_text_requests(canvas, result.text_requests, text_cache)
 
 
-def render_svg(
+def render_svg(plot: Plot) raises -> SvgCanvas:
+    """Render `plot` into a fresh `SvgCanvas` sized `plot.width` x
+    `plot.height` and return it -- `render()`'s exact counterpart for
+    the vector backend; no `canvas_mojo` type to construct by hand
+    first. A thin wrapper around `_render_svg_into`, mirroring
+    `render()`'s relationship to `_render_into` exactly.
+    """
+    var svg = SvgCanvas(plot.width, plot.height)
+    _render_svg_into(svg, plot)
+    return svg^
+
+
+def _render_svg_into(
     mut svg: SvgCanvas, plot: Plot, ox0: Int = 0, oy0: Int = 0, ox1: Int = -1, oy1: Int = -1
 ) raises:
-    """`render()`'s exact counterpart for `SvgCanvas` -- same
+    """`_render_into`'s exact counterpart for `SvgCanvas` -- same
     sentinel-resolution, same `_apply_labels`/`_render_generic` core,
     same `_TextRequest` lists handed back afterward; the only
     difference is *how* those get drawn (`SvgCanvas.draw_text`, plain
     markup emission, no font/glyph machinery involved at all) -- see
-    `render()`'s docstring for the shared story, and canvas_mojo/
+    `_render_into`'s docstring for the shared story, and canvas_mojo/
     draw_target.mojo's for why text is deferred like this in the first
-    place.
+    place. Private the same way `_render_into` is, for the same reason:
+    `render_svg()` is this function's only caller; `render_facets_svg()`/
+    `render_layers_svg()` don't call it, each having its own per-cell/
+    shared-canvas variant of this same pattern instead -- see
+    `_render_into`'s docstring for the full explanation.
     """
     var cx1 = ox1 if ox1 >= 0 else svg.width
     var cy1 = oy1 if oy1 >= 0 else svg.height
@@ -3841,6 +3918,35 @@ def render_svg(
     _replay_text_requests_svg(svg, annotation_requests)
     _replay_text_requests_svg(svg, point_annotation_requests)
     _replay_text_requests_svg(svg, result.text_requests)
+
+
+def save(plot: Plot, path: String) raises:
+    """Render `plot` and write it to `path` in one call -- the "never
+    name a `canvas_mojo` backend" entry point issue #112 asked for.
+    Reads `plot._theme.output_format` (`Theme`'s docstring; defaults to
+    `OutputFormat.SVG`) to decide which of `render()`/`render_svg()` to
+    call and which `canvas_mojo.io`/`canvas_mojo.vector.svg` writer to
+    hand the result to -- `PNG`/`BMP` both render through the same
+    raster `render()` path, differing only in which writer runs.
+
+    A plain runtime `if`/`elif`, not a compile-time dispatch:
+    `output_format` is an ordinary value a caller sets through `Theme`
+    like any other styling knob, not something known until `plot` is
+    actually built, so there's nothing to resolve at compile time here.
+
+    For anyone who wants the rendered `Canvas`/`SvgCanvas` object
+    itself (to write more than one format from a single render, or to
+    inspect/assert against it directly, the way this test suite's
+    hand-verified pixel assertions do) -- call `render()`/`render_svg()`
+    directly instead; this function is purely a convenience on top of
+    those two, not a replacement for them.
+    """
+    if plot._theme.output_format == OutputFormat.SVG:
+        write_svg(render_svg(plot), path)
+    elif plot._theme.output_format == OutputFormat.PNG:
+        write_png(render(plot), path)
+    else:
+        write_bmp(render(plot), path)
 
 
 def accessible_svg_string(svg: SvgCanvas, title: String, description: String = "") raises -> String:
@@ -4952,27 +5058,88 @@ def _draw_categorical_axis_frame[
     return _CategoricalFrame(x_scale^, out_y_scale, sc^, text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def render_facets(mut canvas: Canvas, plots: List[Plot], cols: Int) raises:
-    """Render each of `plots` into its evenly sized grid cell on
-    `canvas` -- see `_render_facets_generic`'s docstring for the
-    actual cell-layout contract this and `render_facets_svg` share. A
-    thin wrapper exactly like `render()`'s own: resolve `canvas`'s size, hand off to the shared generic core, draw the `_TextRequest`s
-    it returns via `canvas_mojo.text.draw_text`.
+def _require_uniform_size(plots: List[Plot], caller: String) raises:
+    """`render_facets()`/`render_facets_svg()`/`render_layers()`/
+    `render_layers_svg()`'s shared precondition, checked once here
+    rather than four times: every `Plot` in `plots` must agree on its
+    own `.size()`, since none of the four take a caller-supplied
+    canvas to size themselves against anymore -- the grid/shared
+    canvas they build is derived entirely from the plots list. Every
+    real call already satisfied this before `Plot` had a `.size()` at
+    all (a facet grid/layer canvas was always evenly divided among
+    cells, and layered plots always shared one canvas), so this
+    doesn't restrict anything that used to work.
+
+    Raises naming `caller` (e.g. `"render_facets"`) so a mismatch is
+    easy to trace back to which of the four wrappers produced it.
     """
+    if len(plots) == 0:
+        raise Error(caller + "(): plots must not be empty")
+    var width = plots[0].width
+    var height = plots[0].height
+    for i in range(1, len(plots)):
+        if plots[i].width != width or plots[i].height != height:
+            raise Error(
+                caller
+                + "(): every Plot must share the same .size() -- plots[0] is "
+                + String(width)
+                + "x"
+                + String(height)
+                + ", plots["
+                + String(i)
+                + "] is "
+                + String(plots[i].width)
+                + "x"
+                + String(plots[i].height)
+            )
+
+
+def render_facets(plots: List[Plot], cols: Int) raises -> Canvas:
+    """Render each of `plots` into its evenly sized grid cell of a
+    fresh `Canvas`, sized from the plots themselves (`_require_
+    uniform_size`), and return it -- see `_render_facets_generic`'s
+    docstring for the actual cell-layout contract this and
+    `render_facets_svg` share. A thin wrapper exactly like `render()`'s
+    own: build the right-sized target, hand off to the shared generic
+    core, draw the `_TextRequest`s it returns via `canvas_mojo.text.draw_text`.
+
+    Checks `cols` before touching `plots` at all: a non-positive `cols`
+    used in the `rows`/canvas-size math below (before `_render_facets_
+    generic`'s own `cols <= 0` check would otherwise catch it) can
+    divide by zero or build a negative-width `Canvas`, crashing outright
+    instead of raising a clean error -- this guard is what turns that
+    into the same ordinary raise `_render_facets_generic` already
+    documents for a caller-supplied-canvas-shaped `cols <= 0`.
+    """
+    if cols <= 0:
+        raise Error("render_facets(): cols must be positive (got " + String(cols) + ")")
+    _require_uniform_size(plots, "render_facets")
+    var rows = (len(plots) + cols - 1) // cols
+    var canvas = Canvas(cols * plots[0].width, rows * plots[0].height)
     var text_requests = _render_facets_generic(canvas, canvas.width, canvas.height, plots, cols)
     # One FontCache for every cell's labels -- see render()'s own.
     var text_cache = FontCache()
     _replay_text_requests(canvas, text_requests, text_cache)
+    return canvas^
 
 
-def render_facets_svg(mut svg: SvgCanvas, plots: List[Plot], cols: Int) raises:
+def render_facets_svg(plots: List[Plot], cols: Int) raises -> SvgCanvas:
     """`render_facets()`'s exact counterpart for `SvgCanvas` -- same
     shared `_render_facets_generic` core, `SvgCanvas.draw_text` in
     place of `canvas_mojo.text.draw_text` for the returned labels, the same
     relationship `render_svg()` has to `render()` (see that function's docstring).
+
+    Same `cols <= 0` guard as `render_facets()`, checked before `rows`/
+    the target's size are computed -- see its docstring for why.
     """
+    if cols <= 0:
+        raise Error("render_facets_svg(): cols must be positive (got " + String(cols) + ")")
+    _require_uniform_size(plots, "render_facets_svg")
+    var rows = (len(plots) + cols - 1) // cols
+    var svg = SvgCanvas(cols * plots[0].width, rows * plots[0].height)
     var text_requests = _render_facets_generic(svg, svg.width, svg.height, plots, cols)
     _replay_text_requests_svg(svg, text_requests)
+    return svg^
 
 
 def _render_facets_generic[
@@ -5104,7 +5271,7 @@ def _secondary_axis_y_title(plots: List[Plot]) -> String:
     return ""
 
 
-def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int = 0, ox1: Int = -1, oy1: Int = -1) raises:
+def render_layers(plots: List[Plot]) raises -> Canvas:
     """Render every `Plot` in `plots` onto *one shared* coordinate
     system on `canvas` -- one combined x/y domain (computed across
     every layered plot's data together, not each plot's independent domain the way `render_facets()`'s cells each get),
@@ -5177,23 +5344,23 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     layer rather than only from `plots[0]`) -- absent whenever no
     secondary-axis layer sets one, which is every pre-existing call.
 
-    `ox0`/`oy0`/`ox1`/`oy1` are the exact same sentinel-bounds
-    convention `render()` itself uses (see that function's docstring) -- default to the whole canvas.
+    Every `Plot` in `plots` must share the same `.size()` (`_require_
+    uniform_size` -- see its docstring) since there's no longer a
+    caller-supplied canvas to derive one shared size from; raises on
+    an empty `plots` for the same reason (there's no plot left to read
+    a size off of -- a prior version of this function treated an empty
+    list as a no-op against a canvas the caller already owned, but
+    that reading doesn't survive this function building its own
+    canvas instead).
     """
-    var cx1 = ox1 if ox1 >= 0 else canvas.width
-    var cy1 = oy1 if oy1 >= 0 else canvas.height
-    # An empty plots list is a real, tested no-op (test_render_layers_
-    # with_empty_list_is_a_noop) -- _apply_labels needs plots[0], so
-    # labels are skipped entirely rather than indexing an empty list;
-    # _render_layers_generic's own empty check leaves the canvas
-    # untouched in that case.
-    if len(plots) == 0:
-        _ = _render_layers_generic(canvas, plots, ox0, oy0, cx1, cy1)
-        return
-    canvas.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plots[0]._theme.background)
+    _require_uniform_size(plots, "render_layers")
+    var canvas = Canvas(plots[0].width, plots[0].height)
+    var cx1 = canvas.width
+    var cy1 = canvas.height
+    canvas.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
     var sc = _Scaled(plots[0]._theme)
     var y2_title = _secondary_axis_y_title(plots)
-    var frame = _apply_labels(plots[0], ox0, oy0, cx1, cy1)
+    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1)
     if y2_title.byte_length() > 0:
         # Mirrors _apply_labels's extra_left reservation for the
         # primary y_title exactly, just on the right edge instead --
@@ -5204,7 +5371,7 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
         frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
     var result = _render_layers_generic(canvas, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1)
     var label_requests = _label_text_requests(
-        plots[0], ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
+        plots[0], 0, 0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
     if y2_title.byte_length() > 0:
         # The mirror image of _label_text_requests's primary y_title
@@ -5228,30 +5395,30 @@ def render_layers(mut canvas: Canvas, plots: List[Plot], ox0: Int = 0, oy0: Int 
     var text_cache = FontCache()
     _replay_text_requests(canvas, label_requests, text_cache)
     _replay_text_requests(canvas, result.text_requests, text_cache)
+    return canvas^
 
 
-def render_layers_svg(mut svg: SvgCanvas, plots: List[Plot], ox0: Int = 0, oy0: Int = 0, ox1: Int = -1, oy1: Int = -1) raises:
+def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
     """`render_layers()`'s exact counterpart for `SvgCanvas` -- same
     shared `_render_layers_generic` core, `SvgCanvas.draw_text` in
     place of `canvas_mojo.text.draw_text` for the returned labels, the same
-    relationship `render_svg()` has to `render()`.
+    relationship `render_svg()` has to `render()`. Same `_require_
+    uniform_size` precondition and empty-`plots` behavior as
+    `render_layers()` -- see its docstring.
     """
-    var cx1 = ox1 if ox1 >= 0 else svg.width
-    var cy1 = oy1 if oy1 >= 0 else svg.height
-    # See render_layers()'s comment just above -- same empty-list
-    # guard, needed here too since _apply_labels indexes plots[0].
-    if len(plots) == 0:
-        _ = _render_layers_generic(svg, plots, ox0, oy0, cx1, cy1)
-        return
-    svg.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plots[0]._theme.background)
+    _require_uniform_size(plots, "render_layers_svg")
+    var svg = SvgCanvas(plots[0].width, plots[0].height)
+    var cx1 = svg.width
+    var cy1 = svg.height
+    svg.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
     var sc = _Scaled(plots[0]._theme)
     var y2_title = _secondary_axis_y_title(plots)
-    var frame = _apply_labels(plots[0], ox0, oy0, cx1, cy1)
+    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1)
     if y2_title.byte_length() > 0:
         frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
     var result = _render_layers_generic(svg, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1)
     var label_requests = _label_text_requests(
-        plots[0], ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
+        plots[0], 0, 0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
     if y2_title.byte_length() > 0:
         label_requests.append(
@@ -5268,6 +5435,7 @@ def render_layers_svg(mut svg: SvgCanvas, plots: List[Plot], ox0: Int = 0, oy0: 
         )
     _replay_text_requests_svg(svg, label_requests)
     _replay_text_requests_svg(svg, result.text_requests)
+    return svg^
 
 
 def _render_layers_generic[
@@ -5564,15 +5732,21 @@ def _rendered(
     `Theme`, the `downsample()` call) is about *what chart to draw*,
     only *how not to make its edges look worse than they have to*. A
     caller who wants that control back still has it, just spelled
-    explicitly rather than defaulted invisibly: build the `Canvas`/
-    `Plot` by hand and call `render()` directly, whose `Theme.scale` is
-    exactly the same multiplicative knob this function uses internally
-    (see its docstring) -- `render()` itself stays exactly as un-
-    supersampled as it always was, deliberately: it's the precise,
-    pixel-for-pixel entry point real HiDPI export and this whole test
-    suite's hand-verified pixel assertions depend on, so hiding
-    this mechanism inside quickplot's convenience layer doesn't
-    touch it at all.
+    explicitly rather than defaulted invisibly: build a `Plot` and call
+    `render()` directly, whose `Theme.scale` is exactly the same
+    multiplicative knob this function uses internally (see its
+    docstring) -- `render()` itself stays exactly as un-supersampled as
+    it always was, deliberately: it's the precise, pixel-for-pixel
+    entry point real HiDPI export and this whole test suite's
+    hand-verified pixel assertions depend on, so hiding this mechanism
+    inside quickplot's convenience layer doesn't touch it at all. This
+    function calls the private `_render_into` directly rather than
+    public `render()` since it already owns its own right-sized
+    (supersampled) scratch `Canvas`, built independently of
+    `plot.width`/`height` (quickplot's `width`/`height` are this
+    function's own plain args, never read off `plot` -- see plot.mojo's
+    module docstring); `render()`'s own `Canvas` construction from
+    `plot.width`/`height` would be the wrong size here regardless.
 
     A caller who renders the same `plot` through this function twice
     at different sizes sees no leftover effect of one call on the
@@ -5594,7 +5768,7 @@ def _rendered(
     var scaled_theme = theme
     scaled_theme.scale = theme.scale * Float64(factor)
     var scratch = Canvas(width * factor, height * factor, scaled_theme.background)
-    render(
+    _render_into(
         scratch,
         plot^.labels(title=title, subtitle=subtitle, x_title=x_title, y_title=y_title).theme(scaled_theme),
     )

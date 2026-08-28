@@ -12,7 +12,7 @@ compare directly.
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from canvas_mojo.vector.svg import write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import treemap
 from dataviz_mojo.theme import Theme
@@ -27,9 +27,8 @@ def main() raises:
     write_bmp(c, "examples/out_treemap.bmp")
     write_png(c, "examples/out_treemap.png")
 
-    var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_treemap().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=sizes).theme(
         Theme()
     )
-    render_svg(svg, svg_plot)
+    var svg = render_svg(svg_plot)
     write_svg(svg, "examples/out_treemap.svg")

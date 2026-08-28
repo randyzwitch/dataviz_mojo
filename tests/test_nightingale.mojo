@@ -5,8 +5,6 @@ colors, the radius-vs-area rose_type distinction, SVG wedge paths.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
@@ -78,9 +76,8 @@ def test_render_nightingale_svg_matches_confirmed_wedge_paths() raises:
     # spans 90.270 at radius 103.5*(3/3)=103.5, formatted through SvgCanvas's 3-decimal `_format_svg_float`.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_nightingale().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_nightingale().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<path d="M220.000,135.000 L220.000,100.500 A34.500,34.500 0 1,1 220.000,169.500'

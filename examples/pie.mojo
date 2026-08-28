@@ -26,7 +26,7 @@ are the cleaner reconstruction of "how would I actually write this."
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from canvas_mojo.vector.svg import write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import pie
 from dataviz_mojo.theme import Theme
@@ -50,17 +50,15 @@ def main() raises:
     write_bmp(c, "examples/out_pie.bmp")
     write_png(c, "examples/out_pie.png")
 
-    var svg = SvgCanvas(400, 300)
-    var svg_plot = Plot().mark_arc().encode_categorical(x=browsers, y=share).theme(Theme())
-    render_svg(svg, svg_plot)
+    var svg_plot = Plot().mark_arc().encode_categorical(x=browsers, y=share).theme(Theme()).size(400, 300)
+    var svg = render_svg(svg_plot)
     write_svg(svg, "examples/out_pie.svg")
 
     write_bmp(c_donut, "examples/out_pie_donut.bmp")
     write_png(c_donut, "examples/out_pie_donut.png")
 
-    var svg_donut = SvgCanvas(400, 300)
     var svg_plot_donut = Plot().mark_arc().encode_categorical(x=browsers, y=share).theme(
         Theme(donut_inner_radius_fraction=0.55)
-    )
-    render_svg(svg_donut, svg_plot_donut)
+    ).size(400, 300)
+    var svg_donut = render_svg(svg_plot_donut)
     write_svg(svg_donut, "examples/out_pie_donut.svg")

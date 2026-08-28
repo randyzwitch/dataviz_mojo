@@ -22,7 +22,7 @@ the other chart's own I/O block leaks into it).
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from canvas_mojo.vector.svg import write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import bar
 from dataviz_mojo.colors import SEAGREEN
@@ -44,19 +44,17 @@ def main() raises:
     write_bmp(c, "examples/out_bar.bmp")
     write_png(c, "examples/out_bar.png")
 
-    var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_bar().encode_categorical(x=categories, y=values).theme(
         Theme(mark_color=SEAGREEN)
     )
-    render_svg(svg, svg_plot)
+    var svg = render_svg(svg_plot)
     write_svg(svg, "examples/out_bar.svg")
 
     write_bmp(c_diverging, "examples/out_bar_diverging.bmp")
     write_png(c_diverging, "examples/out_bar_diverging.png")
 
-    var svg_diverging = SvgCanvas(640, 420)
     var svg_plot_diverging = Plot().mark_bar().encode_categorical(x=quarters, y=net_change).theme(
         Theme(color_by_sign=True)
     )
-    render_svg(svg_diverging, svg_plot_diverging)
+    var svg_diverging = render_svg(svg_plot_diverging)
     write_svg(svg_diverging, "examples/out_bar_diverging.svg")

@@ -7,8 +7,6 @@ see treemap.mojo's docstrings for the rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo.theme import Theme
@@ -46,11 +44,10 @@ def test_render_treemap_svg_matches_confirmed_rects() raises:
     var ids: List[String] = ["root", "A", "B", "A1", "A2", "B1"]
     var parents: List[String] = ["", "root", "root", "A", "A", "B"]
     var values: List[Float64] = [0.0, 0.0, 0.0, 20.0, 10.0, 10.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_treemap().encode_hierarchy(ids=ids, parent_ids=parents, values=values).theme(
         Theme(show_legend=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<rect x="60" y="20" width="240" height="153" fill="#1f77b4"/>' in s, "A1")
     assert_true('<rect x="60" y="173" width="240" height="77" fill="#1f77b4"/>' in s, "A2")

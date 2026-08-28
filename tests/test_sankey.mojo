@@ -6,8 +6,6 @@ chord()'s shared validation (raster + SVG) -- see sankey.mojo's docstrings for t
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo.theme import Theme
@@ -42,11 +40,10 @@ def test_render_sankey_svg_matches_confirmed_geometry() raises:
     var from_c: List[String] = ["A"]
     var to_c: List[String] = ["B"]
     var v: List[Float64] = [10.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_sankey().encode_chord(from_categories=from_c, to_categories=to_c, values=v).theme(
         Theme()
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<path d="M72.000,20.000 L72.000,250.000 L368.000,250.000 L368.000,20.000 Z" fill="#1f77b4"/>' in s,

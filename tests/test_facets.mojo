@@ -5,9 +5,7 @@ titles, empty-grid/invalid-cols guards.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -24,7 +22,7 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 from dataviz_mojo.colors import MAGENTA, RED
 
-from _test_helpers import BG, _count_color, _assert_color
+from _test_helpers import _count_color, _assert_color
 
 
 def test_render_facets_lays_out_independent_plots_side_by_side() raises:
@@ -41,15 +39,18 @@ def test_render_facets_lays_out_independent_plots_side_by_side() raises:
     # scratch. Two different mark_colors (one per plot's Theme)
     # confirm each cell actually rendered its independent plot, not
     # one plot's output bleeding into or overwriting the other's cell.
+    #
+    # render_facets() derives its 800x300 canvas from each plot's own
+    # .size(400, 300) (both plots must agree -- see _require_uniform_
+    # size's docstring), rather than a canvas the caller builds by hand.
     var xy: List[Float64] = [5.0]
-    var plot0 = Plot().mark_point().encode(x=xy, y=xy)
-    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED))
+    var plot0 = Plot().mark_point().encode(x=xy, y=xy).size(400, 300)
+    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED)).size(400, 300)
     var plots = List[Plot]()
     plots.append(plot0^)
     plots.append(plot1^)
 
-    var c = Canvas(800, 300, BG)
-    render_facets(c, plots, cols=2)
+    var c = render_facets(plots, cols=2)
 
     _assert_color(c, 220, 135, Theme.default().mark_color, "cell 0's point, unshifted")
     _assert_color(c, 620, 135, RED, "cell 1's point, +400px shifted")
@@ -67,49 +68,52 @@ def test_render_facets_leaves_trailing_cells_blank_when_plots_dont_fill_the_grid
     # [+400 in x]; (1,0) -> plot area y:[320,550] (cell_y0=300, so
     # +300 in y throughout), point at (220,435) [+300 in y].
     #
-    # The canvas starts filled with a color no plot's Theme ever
-    # produces (10,20,30, not white) specifically so a genuinely
-    # untouched cell is distinguishable from one that was rendered with
-    # a background matching the canvas's initial fill by
-    # coincidence.
+    # Every plot's Theme.background is set to a color no default Theme
+    # ever produces (10,20,30, not white) specifically so a genuinely
+    # untouched cell (the render()-constructed canvas's own default
+    # white fill) is distinguishable from one that was rendered.
     var xy: List[Float64] = [5.0]
-    var plot0 = Plot().mark_point().encode(x=xy, y=xy)
-    var plot1 = Plot().mark_point().encode(x=xy, y=xy)
-    var plot2 = Plot().mark_point().encode(x=xy, y=xy)
+    var theme = Theme(background=Color(10, 20, 30))
+    var plot0 = Plot().mark_point().encode(x=xy, y=xy).theme(theme).size(400, 300)
+    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(theme).size(400, 300)
+    var plot2 = Plot().mark_point().encode(x=xy, y=xy).theme(theme).size(400, 300)
     var plots = List[Plot]()
     plots.append(plot0^)
     plots.append(plot1^)
     plots.append(plot2^)
 
-    var c = Canvas(800, 600, Color(10, 20, 30))
-    render_facets(c, plots, cols=2)
+    var c = render_facets(plots, cols=2)
 
     var mark_color = Theme.default().mark_color
     _assert_color(c, 220, 135, mark_color, "cell (0,0)'s point")
     _assert_color(c, 620, 135, mark_color, "cell (0,1)'s point")
     _assert_color(c, 220, 435, mark_color, "cell (1,0)'s point")
-    _assert_color(c, 700, 450, Color(10, 20, 30), "cell (1,1) has no 4th plot -- never touched")
+    _assert_color(c, 700, 450, Color(255, 255, 255), "cell (1,1) has no 4th plot -- never touched, stays the canvas's own white default")
 
 
 def test_render_facets_raises_on_non_positive_cols() raises:
+    # A non-empty, uniformly sized list -- cols<=0 is what this test
+    # means to exercise, not the separate "plots must not be empty"
+    # guard _require_uniform_size raises first for an empty list (see
+    # test_render_facets_with_empty_list_raises below).
+    var xy: List[Float64] = [5.0]
     var plots = List[Plot]()
-    var c = Canvas(400, 300, BG)
+    plots.append(Plot().mark_point().encode(x=xy, y=xy).size(400, 300))
     with assert_raises():
-        render_facets(c, plots, cols=0)
+        _ = render_facets(plots, cols=0)
     with assert_raises():
-        render_facets(c, plots, cols=-1)
+        _ = render_facets(plots, cols=-1)
 
 
-def test_render_facets_with_empty_list_is_a_noop() raises:
+def test_render_facets_with_empty_list_raises() raises:
+    # A prior version of this function took a caller-supplied canvas
+    # and treated an empty plots list as a no-op against it; now that
+    # render_facets() builds its own canvas from the plots list, there's
+    # no plot left to derive a size from, so an empty list raises
+    # instead (see _require_uniform_size's docstring).
     var plots = List[Plot]()
-    var c = Canvas(50, 40, Color(10, 20, 30))
-    render_facets(c, plots, cols=2)
-    for y in range(c.height):
-        for x in range(c.width):
-            var p = c.get_pixel(x, y)
-            assert_equal(p.r, 10)
-            assert_equal(p.g, 20)
-            assert_equal(p.b, 30)
+    with assert_raises():
+        _ = render_facets(plots, cols=2)
 
 
 def test_render_facets_svg_lays_out_independent_plots_side_by_side() raises:
@@ -122,14 +126,13 @@ def test_render_facets_svg_lays_out_independent_plots_side_by_side() raises:
     # Two different mark_colors confirm each cell rendered its independent plot into the shared SvgCanvas, not one overwriting
     # the other.
     var xy: List[Float64] = [5.0]
-    var plot0 = Plot().mark_point().encode(x=xy, y=xy)
-    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED))
+    var plot0 = Plot().mark_point().encode(x=xy, y=xy).size(400, 300)
+    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED)).size(400, 300)
     var plots = List[Plot]()
     plots.append(plot0^)
     plots.append(plot1^)
 
-    var svg = SvgCanvas(800, 300)
-    render_facets_svg(svg, plots, cols=2)
+    var svg = render_facets_svg(plots, cols=2)
     var s = svg.to_string()
 
     assert_true(
@@ -158,14 +161,13 @@ def test_render_facets_svg_each_cell_gets_its_own_independent_title() raises:
     # ((60+380)//2, Int(18.0*0.8))=(220,14), cell 0's inner rect,
     # unaffected by cell 1's layout.
     var xy: List[Float64] = [5.0]
-    var plot0 = Plot().mark_point().encode(x=xy, y=xy).labels(title="Left")
-    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED))
+    var plot0 = Plot().mark_point().encode(x=xy, y=xy).labels(title="Left").size(400, 300)
+    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED)).size(400, 300)
     var plots = List[Plot]()
     plots.append(plot0^)
     plots.append(plot1^)
 
-    var svg = SvgCanvas(800, 300)
-    render_facets_svg(svg, plots, cols=2)
+    var svg = render_facets_svg(plots, cols=2)
     var s = svg.to_string()
 
     assert_true(
@@ -184,10 +186,11 @@ def test_render_facets_svg_each_cell_gets_its_own_independent_title() raises:
 
 
 def test_render_facets_svg_raises_on_non_positive_cols() raises:
+    var xy: List[Float64] = [5.0]
     var plots = List[Plot]()
-    var svg = SvgCanvas(400, 300)
+    plots.append(Plot().mark_point().encode(x=xy, y=xy).size(400, 300))
     with assert_raises():
-        render_facets_svg(svg, plots, cols=0)
+        _ = render_facets_svg(plots, cols=0)
 
 
 def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() raises:
@@ -197,25 +200,31 @@ def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() r
     # cell's reserved title strip must get painted, not left showing
     # whatever the canvas held beforehand.
     #
-    # One cell (cols=1) on a deliberately non-background canvas: with
-    # title_font_size=18.0 and label_gap=4, extra_top is 22, so y=2 sits
-    # inside the reserved strip and above the plot area entirely.
+    # Proven via a distinctive Theme.background (MAGENTA) rather than a
+    # caller-prefilled canvas -- render_facets() builds its own canvas
+    # now (always starting from Canvas's own white default), so the
+    # only way pixel (2,2) ends up MAGENTA is a real fill_rect reaching
+    # it, exactly the same proof the old MAGENTA-prefilled-canvas
+    # version made, just inverted (white -> MAGENTA instead of
+    # MAGENTA -> white). One cell (cols=1), title_font_size=18.0 and
+    # label_gap=4 make extra_top=22, so y=2 sits inside the reserved
+    # strip and above the plot area entirely.
     var xy: List[Float64] = [5.0]
     var plots = List[Plot]()
-    plots.append(Plot().mark_point().encode(x=xy, y=xy).labels(title="Titled"))
+    plots.append(
+        Plot().mark_point().encode(x=xy, y=xy).labels(title="Titled").theme(Theme(background=MAGENTA)).size(400, 300)
+    )
 
-    var c = Canvas(400, 300, MAGENTA)
-    render_facets(c, plots, 1)
-    _assert_color(c, 2, 2, BG, "a titled cell's reserved title strip")
+    var c = render_facets(plots, 1)
+    _assert_color(c, 2, 2, MAGENTA, "a titled cell's reserved title strip")
 
     # .and the same for an untitled cell, where the strip doesn't
     # exist but the corner is still outside the plot area -- confirming
     # the fill covers the ordinary case too, not just the titled one.
     var untitled = List[Plot]()
-    untitled.append(Plot().mark_point().encode(x=xy, y=xy))
-    var c2 = Canvas(400, 300, MAGENTA)
-    render_facets(c2, untitled, 1)
-    _assert_color(c2, 2, 2, BG, "an untitled cell's top-left corner")
+    untitled.append(Plot().mark_point().encode(x=xy, y=xy).theme(Theme(background=MAGENTA)).size(400, 300))
+    var c2 = render_facets(untitled, 1)
+    _assert_color(c2, 2, 2, MAGENTA, "an untitled cell's top-left corner")
 
 
 def main() raises:

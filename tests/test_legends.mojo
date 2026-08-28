@@ -5,9 +5,7 @@ color/size legends, dynamic legend-column width.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -39,9 +37,8 @@ def test_render_legend_swatches_match_hand_derived_positions_and_colors() raises
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
     var cats: List[String] = ["A", "B"]
-    var plot = Plot().mark_point().encode(x=x, y=y, color_categories=cats)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var plot = Plot().mark_point().encode(x=x, y=y, color_categories=cats).size(400, 300)
+    var c = render(plot)
 
     var palette = default_categorical_palette()
     _assert_color(c, 277, 27, palette[0], "legend row 0 swatch -- category A")
@@ -59,9 +56,8 @@ def test_render_legend_disabled_restores_the_full_plot_width() raises:
     var y: List[Float64] = [0.0, 0.0]
     var cats: List[String] = ["A", "B"]
     var t = Theme(show_legend=False)
-    var plot = Plot().mark_point().encode(x=x, y=y, color_categories=cats).theme(t)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var plot = Plot().mark_point().encode(x=x, y=y, color_categories=cats).theme(t).size(400, 300)
+    var c = render(plot)
 
     var palette = default_categorical_palette()
     _assert_color(c, 75, 135, palette[0], "category A, full-width layout")
@@ -110,9 +106,8 @@ def test_render_svg_continuous_color_legend_matches_hand_derived_gradient() rais
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var color: List[Float64] = [0.0, 10.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_point().encode(x=x, y=y, color=color).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_point().encode(x=x, y=y, color=color).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
 
     assert_true(
@@ -165,9 +160,8 @@ def test_render_svg_continuous_size_legend_matches_hand_derived_circles() raises
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var size: List[Float64] = [2.0, 8.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_point().encode(x=x, y=y, size=size).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_point().encode(x=x, y=y, size=size).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
 
     assert_true('<circle cx="285" cy="35" r="15" fill="#1e64b4"/>' in s, "max (8.0) -> radius 15")
@@ -195,9 +189,8 @@ def test_render_point_continuous_legends_are_off_by_default_theme_setting() rais
     var y: List[Float64] = [0.0, 0.0]
     var color: List[Float64] = [0.0, 10.0]
     var t = Theme(show_legend=False)
-    var plot = Plot().mark_point().encode(x=x, y=y, color=color).theme(t)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var plot = Plot().mark_point().encode(x=x, y=y, color=color).theme(t).size(400, 300)
+    var c = render(plot)
     _assert_color(c, 365, 135, t.color_scale_high, "point regains the full-width layout's pixel center")
     _assert_color(c, 277, 27, BG, "no continuous color legend drawn when show_legend=False")
 
@@ -214,11 +207,10 @@ def test_render_point_legend_width_grows_to_fit_long_category_names() raises:
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
     var cats: List[String] = ["Cat1", "Southeast Region Sales"]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_point().encode(x=x, y=y, color_categories=cats).theme(
         Theme(show_gridlines=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<rect x="234" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
@@ -237,11 +229,10 @@ def test_render_grouped_bar_legend_width_grows_to_fit_long_series_names() raises
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "Southeast Region Sales"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_grouped_bar().encode_grouped_bar(cats, names, values).theme(
         Theme(show_gridlines=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<rect x="234" y="20" width="14" height="14" fill="#1f77b4"/>' in s,

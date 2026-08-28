@@ -19,10 +19,9 @@ render_facets() already have to be.
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from canvas_mojo.vector.svg import write_svg
 from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
-from canvas_mojo.buffer import Canvas
 
 
 def main() raises:
@@ -33,12 +32,10 @@ def main() raises:
         title="Monthly Revenue", subtitle="Actual vs. target, $M"
     ).annotate_line(60.0, label="target").annotate_line(51.5, label="average")
 
-    var c = Canvas(640, 420)
-    render(c, plot)
+    var c = render(plot)
     write_bmp(c, "examples/out_annotate_line.bmp")
     write_png(c, "examples/out_annotate_line.png")
 
-    var svg = SvgCanvas(640, 420)
     var svg_plot = (
         Plot()
         .mark_bar()
@@ -48,5 +45,5 @@ def main() raises:
         .annotate_line(51.5, label="average")
         .theme(Theme())
     )
-    render_svg(svg, svg_plot)
+    var svg = render_svg(svg_plot)
     write_svg(svg, "examples/out_annotate_line.svg")

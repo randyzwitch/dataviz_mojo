@@ -4,10 +4,8 @@ growing plot_x0 on both the continuous and Mark.BAR render paths).
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.color import Color
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -23,7 +21,7 @@ from dataviz_mojo.plot import (
 )
 from dataviz_mojo.theme import Theme
 
-from _test_helpers import BG, _count_color, _assert_color
+from _test_helpers import _count_color, _assert_color
 
 
 def test_render_left_margin_grows_to_fit_wide_y_axis_labels() raises:
@@ -52,8 +50,7 @@ def test_render_left_margin_grows_to_fit_wide_y_axis_labels() raises:
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [1000000.0, 2000000.0]
     var t = Theme(show_gridlines=False)
-    var c = Canvas(400, 300, BG)
-    render(c, Plot().mark_point().encode(x=x, y=y).theme(t))
+    var c = render(Plot().mark_point().encode(x=x, y=y).theme(t).size(400, 300))
 
     _assert_color(c, 68, 135, t.axis_color, "y-axis line moved to the dynamic margin")
 
@@ -81,8 +78,7 @@ def test_render_left_margin_unchanged_for_short_y_axis_labels() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
     var y: List[Float64] = [2.3, 4.1, 3.6, 5.8, 5.1, 7.4, 6.9, 8.2, 9.0, 8.6]
     var t = Theme(show_gridlines=False)
-    var c = Canvas(400, 300, BG)
-    render(c, Plot().mark_point().encode(x=x, y=y).theme(t))
+    var c = render(Plot().mark_point().encode(x=x, y=y).theme(t).size(400, 300))
 
     _assert_color(c, 60, 135, t.axis_color, "y-axis line still at Theme's default margin")
 
@@ -104,8 +100,7 @@ def test_render_bar_left_margin_also_grows_to_fit_wide_y_axis_labels() raises:
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1000000.0, 2000000.0]
     var t = Theme(show_gridlines=False)
-    var c = Canvas(400, 300, BG)
-    render(c, Plot().mark_bar().encode_categorical(x=x, y=y).theme(t))
+    var c = render(Plot().mark_bar().encode_categorical(x=x, y=y).theme(t).size(400, 300))
 
     _assert_color(c, 68, 135, t.axis_color, "bar chart y-axis line moved to the dynamic margin")
     var left_of_old_margin = c.get_pixel(57, 135)

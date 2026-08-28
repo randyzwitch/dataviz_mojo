@@ -7,8 +7,6 @@ punchcard.mojo's docstrings for the rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import punchcard
@@ -39,11 +37,10 @@ def test_render_punchcard_svg_matches_confirmed_circles() raises:
     var x: List[String] = ["Mon", "Mon", "Tue"]
     var y: List[String] = ["9am", "10am", "9am"]
     var sizes: List[Float64] = [50.0, 100.0, 20.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_punchcard(scale=10.0).encode_punchcard(x=x, y=y, sizes=sizes).theme(
         Theme(show_gridlines=False, show_legend=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<circle cx="140" cy="78" r="5" fill="#1e64b4"/>' in s, "(Mon, 9am)")
     assert_true('<circle cx="140" cy="193" r="10" fill="#1e64b4"/>' in s, "(Mon, 10am)")

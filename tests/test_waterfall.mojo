@@ -5,9 +5,7 @@ connectors (raster + SVG).
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -56,9 +54,8 @@ def test_render_waterfall_colors_by_sign_and_matches_hand_derived_bars() raises:
 def test_render_waterfall_svg_matches_confirmed_rects_and_connectors() raises:
     var cats: List[String] = ["a", "b", "c"]
     var deltas: List[Float64] = [10.0, -4.0, 6.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_waterfall().encode_waterfall(cats, deltas).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_waterfall().encode_waterfall(cats, deltas).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         # y0=0 is the baseline, and it lands exactly on the drawn bottom
@@ -135,11 +132,10 @@ def test_render_svg_waterfall_total_rows_matches_confirmed_rects() raises:
     var cats: List[String] = ["Start", "A", "B", "End"]
     var deltas: List[Float64] = [50.0, 20.0, -10.0, 0.0]
     var is_total: List[Bool] = [True, False, False, True]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_waterfall().encode_waterfall(cats, deltas, is_total).theme(
         Theme(show_gridlines=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         # Both total rows' y0=0 is the baseline, and it lands exactly on

@@ -19,7 +19,7 @@ overlap a gantt chart is for.
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from canvas_mojo.vector.svg import write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import gantt
 from dataviz_mojo.theme import Theme
@@ -34,7 +34,6 @@ def main() raises:
     write_bmp(c, "examples/out_gantt.bmp")
     write_png(c, "examples/out_gantt.png")
 
-    var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_gantt().encode_gantt(tasks, start, end).theme(Theme())
-    render_svg(svg, svg_plot)
+    var svg = render_svg(svg_plot)
     write_svg(svg, "examples/out_gantt.svg")

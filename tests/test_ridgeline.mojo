@@ -6,8 +6,6 @@ baseline/overlap rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import ridgeline
@@ -53,11 +51,10 @@ def test_render_ridgeline_svg_matches_confirmed_path_points() raises:
     var vals: List[List[Float64]] = [
         [1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0],
     ]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_ridgeline().encode_distribution(categories=cats, values=vals).theme(
         Theme(show_gridlines=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<path d="M75.000,96.667 L75.000,24.955' in s, "row A's baseline and left-edge rise")
     assert_true('225.000,-3.000' in s, "row A's peak, at its two middle samples")

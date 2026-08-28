@@ -419,15 +419,25 @@ def _quickplot_call_end(body: List[String], start: Int) -> Int:
 
 
 def _bare_render_call_index(body: List[String]) -> Int:
-    """The line index of the bare `render(c, ...)` or `render_layers(c,
-    ...)` call, or -- for the one example where it's the genuinely
-    interesting line instead of boilerplate to cut -- a `write_
-    accessible_svg(...)` call. The non-quickplot equivalent of
-    `_quickplot_call_starts()`/`_quickplot_call_end()`, for an example
-    built by hand via `Plot()` directly because no one-call convenience
-    function covers what it demos (e.g. `Plot.annotate_line()`/`Plot.
-    secondary_axis()`, neither exposed on any quickplot function -- see
-    examples/annotate_line.mojo's/dual_axis.mojo's own docstrings).
+    """The line index of the `var <ident> = render(...)` or `var
+    <ident> = render_layers(...)` call, or -- for the one example where
+    it's the genuinely interesting line instead of boilerplate to cut
+    -- a `write_accessible_svg(...)` call. The non-quickplot equivalent
+    of `_quickplot_call_starts()`/`_quickplot_call_end()`, for an
+    example built by hand via `Plot()` directly because no one-call
+    convenience function covers what it demos (e.g. `Plot.annotate_
+    line()`/`Plot.secondary_axis()`, neither exposed on any quickplot
+    function -- see examples/annotate_line.mojo's/dual_axis.mojo's own
+    docstrings).
+
+    `render(plot)`/`render_layers(plots)` return their target rather
+    than mutating a caller-built one in place (issue #112 -- see
+    plot.mojo's module docstring), so this now looks for the exact same
+    `var <ident> = <name>(` assignment shape `_quickplot_call_starts()`
+    matches, just checking `name` against `"render"`/`"render_layers"`
+    specifically rather than a quickplot mark function -- reuses `_var_
+    ident`'s own `var <ident> = ` parsing so a future rename of the
+    identifier (not always `c`) still matches.
 
     `write_accessible_svg(` is a deliberate, narrow exception to this
     file's own "the render call is the interesting part, everything
@@ -435,23 +445,32 @@ def _bare_render_call_index(body: List[String]) -> Int:
     accessibility.mojo's *whole point* is that call's own title/
     description arguments, not the render_svg() line just above it --
     cutting there the way every other example cuts at its own render
-    call would throw away the one line the page exists to show.
+    call would throw away the one line the page exists to show. Checked
+    as a literal bare-prefix line (it's never itself a `var <ident> =
+    ...` assignment) since it's the one real exception to the
+    assignment shape every other anchor here now has.
 
-    Checked as three explicit prefixes, not one substring test, so a
-    future example calling `render_svg(`/`render_facets(`/`render_
-    layers_svg(` instead doesn't silently match the wrong one (each has
-    a different character right after "render"/"render_layers", never
-    "(" -- so `startswith("render(")` alone would correctly skip
-    `render_svg(` too, but `render_layers(` needs its own explicit check
-    since nothing about the first shape's own prefix rules it out or
-    in). -1 if this example calls none of the three at all."""
+    `render_svg(`/`render_facets(`/`render_facets_svg(`/`render_layers_
+    svg(` deliberately don't match here even though they're now also
+    `var <ident> = <name>(`-shaped calls -- none of the five hand-built
+    examples' *shown* snippet is meant to stop at those (each is either
+    the separate, cut-from-the-snippet SVG-twin block, or -- for
+    `render_facets`/`render_facets_svg`, not currently used by any
+    example -- simply not one of the two names this function looks
+    for). -1 if this example calls none of these at all."""
     for i in range(len(body)):
         var stripped = body[i].strip()
-        if (
-            stripped.startswith("render(")
-            or stripped.startswith("render_layers(")
-            or stripped.startswith("write_accessible_svg(")
-        ):
+        if stripped.startswith("write_accessible_svg("):
+            return i
+        var ident = _var_ident(body[i])
+        if not ident:
+            continue
+        var after_var = String(stripped[byte=4:])  # 4 == len("var ")
+        var eq = after_var.find(" = ")
+        if eq == -1:
+            continue
+        var after_eq = String(after_var[byte = eq + 3 :])  # 3 == len(" = ")
+        if after_eq.startswith("render(") or after_eq.startswith("render_layers("):
             return i
     return -1
 
@@ -519,10 +538,10 @@ def _build_sections(name: String, source: String, writes_svg: Bool) raises -> Li
     A second, rarer shape (examples/annotate_area.mojo, annotate_line.
     mojo, annotate_vline_point.mojo, dual_axis.mojo, and svg_
     accessibility.mojo, currently) has no quickplot function to call at
-    all -- built by hand via `Plot()` + bare `render(c, plot)`/`render_
-    layers(c, plots)` instead; `_bare_render_call_index()` finds that
-    call's own equivalent stopping point, and everything through it
-    becomes this page's one and only section. Raises rather than
+    all -- built by hand via `Plot()` + `var c = render(plot)`/`var c =
+    render_layers(plots)` instead; `_bare_render_call_index()` finds
+    that call's own equivalent stopping point, and everything through
+    it becomes this page's one and only section. Raises rather than
     silently falling back to showing the whole file (which used to be
     this function's own fallback, back when a raster-only-no-quickplot
     example was a real, expected shape) -- a future example that fits
@@ -575,14 +594,16 @@ def _build_sections(name: String, source: String, writes_svg: Bool) raises -> Li
     if render_idx == -1:
         raise Error(
             "gen_example_docs: no one-call convenience function call"
-            " (`var <ident> = <fn>(...)`) and no bare `render(c, ...)`/write_"
-            "accessible_svg(...) call found -- every example's own shown"
-            " snippet is expected to be built one of these ways"
+            " (`var <ident> = <fn>(...)`), no `var <ident> = render(...)`/"
+            "render_layers(...) call, and no bare write_accessible_svg(...)"
+            " call found -- every example's own shown snippet is expected"
+            " to be built one of these ways"
         )
     # Reuses _quickplot_call_end's own single-line-vs-multi-line closing
     # logic -- write_accessible_svg(...) (examples/svg_accessibility.
-    # mojo) is a real multi-line call needing it, unlike every render(c,
-    # plot) call so far, which has always closed on its own start line.
+    # mojo) is a real multi-line call needing it, unlike every `var c =
+    # render(plot)`/`var c = render_layers(plots)` call so far, which
+    # has always closed on its own start line.
     var render_end = _quickplot_call_end(body, render_idx)
     var clean = List[String]()
     for i in range(0, render_end + 1):

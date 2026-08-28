@@ -4,9 +4,7 @@
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -57,9 +55,8 @@ def test_render_gantt_svg_matches_confirmed_rects() raises:
     var cats: List[String] = ["A", "B"]
     var start: List[Float64] = [10.0, 50.0]
     var end: List[Float64] = [40.0, 90.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_gantt().encode_gantt(cats, start, end).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_gantt().encode_gantt(cats, start, end).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<rect x="75" y="32" width="109" height="92" fill="#1e64b4"/>' in s, "A's bar")
     assert_true('<rect x="220" y="147" width="145" height="92" fill="#1e64b4"/>' in s, "B's bar")
@@ -74,9 +71,8 @@ def test_render_gantt_zero_length_span_floors_to_one_pixel() raises:
     var cats: List[String] = ["Launch"]
     var start: List[Float64] = [50.0]
     var end: List[Float64] = [50.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_gantt().encode_gantt(cats, start, end).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_gantt().encode_gantt(cats, start, end).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('width="1"' in s, "the milestone's bar, floored to a visible 1px width")
 

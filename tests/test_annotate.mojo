@@ -7,13 +7,11 @@ stacking via repeated calls.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import bar
 
-from _test_helpers import BG, _assert_color
+from _test_helpers import _assert_color
 
 
 def test_render_svg_annotate_line_matches_hand_derived_position() raises:
@@ -29,15 +27,15 @@ def test_render_svg_annotate_line_matches_hand_derived_position() raises:
     # just inside the right edge, y=86-4=82.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, 20.0]
-    var svg = SvgCanvas(400, 300)
     var plot = (
         Plot()
         .mark_bar()
         .encode_categorical(x=cats, y=vals)
         .annotate_line(15.0, label="mid")
         .theme(Theme(show_gridlines=False))
+        .size(400, 300)
     )
-    render_svg(svg, plot)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<line x1="60" y1="86" x2="380" y2="86" stroke="#969696" stroke-width="1.000"'
@@ -60,9 +58,8 @@ def test_render_annotate_line_raster_draws_ink_at_the_hand_derived_row() raises:
     var c = bar(cats, vals, width=400, height=300, theme=Theme(show_gridlines=False))
     var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).annotate_line(15.0).theme(
         Theme(show_gridlines=False)
-    )
-    var c2 = Canvas(400, 300, BG)
-    render(c2, plot)
+    ).size(400, 300)
+    var c2 = render(plot)
     _assert_color(c2, 220, 86, Color(150, 150, 150), "the reference line's ink, well inside the plot width")
 
 
@@ -74,15 +71,15 @@ def test_render_annotate_line_out_of_range_value_draws_nothing() raises:
     # 21.0 max.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, 20.0]
-    var svg = SvgCanvas(400, 300)
     var plot = (
         Plot()
         .mark_bar()
         .encode_categorical(x=cats, y=vals)
         .annotate_line(25.0, label="out of range")
         .theme(Theme(show_gridlines=False))
+        .size(400, 300)
     )
-    render_svg(svg, plot)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true("out of range" not in s, "an out-of-domain annotation draws no label at all")
     assert_true('stroke="#969696"' not in s, "an out-of-domain annotation draws no line at all")
@@ -94,7 +91,6 @@ def test_render_annotate_line_multiple_calls_all_draw() raises:
     # <line> elements in the SVG output.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, 20.0]
-    var svg = SvgCanvas(400, 300)
     var plot = (
         Plot()
         .mark_bar()
@@ -102,8 +98,9 @@ def test_render_annotate_line_multiple_calls_all_draw() raises:
         .annotate_line(5.0, label="low")
         .annotate_line(15.0, label="high")
         .theme(Theme(show_gridlines=False))
+        .size(400, 300)
     )
-    render_svg(svg, plot)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     var count = 0
     var search_from = 0
@@ -123,10 +120,9 @@ def test_render_annotate_line_raises_on_unsupported_mark() raises:
     # can't apply" rule x_title/y_title-on-Mark.ARC follows.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
-    var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).annotate_line(1.5)
-    var c = Canvas(200, 150, BG)
+    var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).annotate_line(1.5).size(200, 150)
     with assert_raises():
-        render(c, plot)
+        var c = render(plot)
 
 
 def main() raises:

@@ -5,9 +5,7 @@ behavior, SVG wedge paths.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -87,9 +85,8 @@ def test_render_svg_arc_mark_matches_confirmed_wedge_paths() raises:
     # both ends of the full circle these two wedges split.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<path d="M220.000,135.000 L220.000,31.500 A103.500,103.500 0 0,1 323.500,135.000'
@@ -132,11 +129,10 @@ def test_render_donut_svg_matches_confirmed_ring_sector_paths() raises:
     # 3-decimal `_format_svg_float`.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).theme(
         Theme(show_legend=False, donut_inner_radius_fraction=0.5)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<path d="M220.000,31.500 A103.500,103.500 0 0,1 323.500,135.000'

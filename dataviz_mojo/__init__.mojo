@@ -25,6 +25,7 @@ made in this package.
 
 from dataviz_mojo.theme import Theme
 from dataviz_mojo.mark import Mark
+from dataviz_mojo.output_format import OutputFormat
 from dataviz_mojo.scale import LinearScale, MinMax, Ticks
 from dataviz_mojo.color_scale import ColorScale, default_categorical_palette
 from dataviz_mojo.colors import *
@@ -39,6 +40,7 @@ from dataviz_mojo.plot import (
     render_layers,
     render_layers_svg,
     render_svg,
+    save,
     scatter,
 )
 

@@ -7,8 +7,6 @@ rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo.theme import Theme
@@ -49,9 +47,8 @@ def test_render_graph_svg_matches_confirmed_geometry() raises:
     var from_c: List[String] = ["A", "B"]
     var to_c: List[String] = ["B", "C"]
     var v: List[Float64] = [10.0, 5.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_graph().encode_chord(from_categories=from_c, to_categories=to_c, values=v).theme(Theme())
-    render_svg(svg, plot)
+    var plot = Plot().mark_graph().encode_chord(from_categories=from_c, to_categories=to_c, values=v).theme(Theme()).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<line x1="220" y1="32" x2="310" y2="187" stroke="#1f77b4" stroke-width="6.000"' in s,

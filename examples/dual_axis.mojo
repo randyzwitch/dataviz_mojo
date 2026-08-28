@@ -16,10 +16,9 @@ layer itself, not a title shared from plots[0] the way the chart's title/x_title
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
 from canvas_mojo.color import Color
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from canvas_mojo.vector.svg import write_svg
 from dataviz_mojo.plot import Plot, render_layers, render_layers_svg
 from dataviz_mojo.theme import Theme
-from canvas_mojo.buffer import Canvas
 
 
 def main() raises:
@@ -42,8 +41,7 @@ def main() raises:
     plots.append(revenue_layer^)
     plots.append(growth_layer^)
 
-    var c = Canvas(640, 420)
-    render_layers(c, plots)
+    var c = render_layers(plots)
     write_bmp(c, "examples/out_dual_axis.bmp")
     write_png(c, "examples/out_dual_axis.png")
 
@@ -61,6 +59,5 @@ def main() raises:
     var svg_plots = List[Plot]()
     svg_plots.append(svg_revenue_layer^)
     svg_plots.append(svg_growth_layer^)
-    var svg = SvgCanvas(640, 420)
-    render_layers_svg(svg, svg_plots)
+    var svg = render_layers_svg(svg_plots)
     write_svg(svg, "examples/out_dual_axis.svg")

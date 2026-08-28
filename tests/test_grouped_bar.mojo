@@ -5,9 +5,7 @@ SVG).
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -81,11 +79,10 @@ def test_render_svg_grouped_bar_matches_confirmed_rects_and_legend() raises:
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_grouped_bar().encode_grouped_bar(cats, names, values).theme(
         Theme(show_gridlines=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
 
     # Every sub-bar here is non-negative, so every one's bottom edge

@@ -16,9 +16,8 @@ examples/annotate_line.mojo's docstring explains) via Plot() directly.
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from canvas_mojo.vector.svg import write_svg
 from dataviz_mojo.plot import Plot, render, render_svg
-from canvas_mojo.buffer import Canvas
 
 
 def main() raises:
@@ -33,12 +32,10 @@ def main() raises:
         .annotate_area(50.0, 60.0, label="acceptable range")
     )
 
-    var c = Canvas(640, 420)
-    render(c, plot)
+    var c = render(plot)
     write_bmp(c, "examples/out_annotate_area.bmp")
     write_png(c, "examples/out_annotate_area.png")
 
-    var svg = SvgCanvas(640, 420)
     var svg_plot = (
         Plot()
         .mark_line()
@@ -46,5 +43,5 @@ def main() raises:
         .labels(title="Response Time (ms)", subtitle="Against an acceptable range")
         .annotate_area(50.0, 60.0, label="acceptable range")
     )
-    render_svg(svg, svg_plot)
+    var svg = render_svg(svg_plot)
     write_svg(svg, "examples/out_annotate_area.svg")

@@ -17,7 +17,6 @@ counterpart at all (role/aria-label/title/desc are SVG-only concepts;
 a raster PNG/BMP has no accessible-tree equivalent to attach them to).
 """
 
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.plot import Plot, render_svg, write_accessible_svg
 
 
@@ -29,8 +28,7 @@ def main() raises:
         title="Regional Revenue"
     )
 
-    var svg = SvgCanvas(640, 420)
-    render_svg(svg, plot)
+    var svg = render_svg(plot)
     write_accessible_svg(
         svg,
         "examples/out_svg_accessibility.svg",

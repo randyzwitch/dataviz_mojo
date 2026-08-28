@@ -7,9 +7,7 @@ Theme default that isn't backward-compatible).
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -86,9 +84,8 @@ def test_render_theme_font_family_reaches_svg_output() raises:
     # first tick label ("4.0" on the y-axis) lands at the same (60,
     # 271) that case's math establishes.
     var xy: List[Float64] = [5.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(font_family="Georgia"))
-    render_svg(svg, plot)
+    var plot = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(font_family="Georgia")).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<text x="60" y="271" font-size="12.000" font-family="Georgia" fill="#282828"'
@@ -151,9 +148,8 @@ def test_render_theme_title_bold_default_emits_font_weight_bold() raises:
     # establishes, so the title lands at the same (220, 14) that
     # case's math implies for this canvas size.
     var xy: List[Float64] = [5.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_point().encode(x=xy, y=xy).labels(title="Hi")
-    render_svg(svg, plot)
+    var plot = Plot().mark_point().encode(x=xy, y=xy).labels(title="Hi").size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<text x="220" y="14" font-size="18.000" font-family="sans-serif" font-weight="bold"'
@@ -167,9 +163,8 @@ def test_render_theme_title_bold_false_reproduces_the_old_no_bold_output() raise
     # font-weight attribute at all, not font-weight="normal". Same
     # setup as the default-bold test above.
     var xy: List[Float64] = [5.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_point().encode(x=xy, y=xy).labels(title="Hi").theme(Theme(title_bold=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_point().encode(x=xy, y=xy).labels(title="Hi").theme(Theme(title_bold=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<text x="220" y="14" font-size="18.000" font-family="sans-serif" fill="#282828"'
@@ -186,9 +181,8 @@ def test_render_theme_title_bold_only_affects_the_title() raises:
     # and a title present, exactly one font-weight="bold" attribute
     # appears in the whole document.
     var xy: List[Float64] = [5.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_point().encode(x=xy, y=xy).labels(title="Hi", x_title="X")
-    render_svg(svg, plot)
+    var plot = Plot().mark_point().encode(x=xy, y=xy).labels(title="Hi", x_title="X").size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     var count = 0
     var search_from = 0
@@ -308,12 +302,10 @@ def test_theme_legend_width_actually_changes_layout() raises:
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var cats: List[String] = ["alpha", "beta"]
-    var narrow = Canvas(400, 300, BG)
-    render(narrow, Plot().mark_point().encode(x=x, y=y, color_categories=cats)
-           .theme(Theme(legend_width=80, show_gridlines=False)))
-    var wide = Canvas(400, 300, BG)
-    render(wide, Plot().mark_point().encode(x=x, y=y, color_categories=cats)
-           .theme(Theme(legend_width=260, show_gridlines=False)))
+    var narrow = render(Plot().mark_point().encode(x=x, y=y, color_categories=cats)
+           .theme(Theme(legend_width=80, show_gridlines=False)).size(400, 300))
+    var wide = render(Plot().mark_point().encode(x=x, y=y, color_categories=cats)
+           .theme(Theme(legend_width=260, show_gridlines=False)).size(400, 300))
     assert_true(
         _count_color(narrow, BG) != _count_color(wide, BG),
         "legend_width changes how much canvas the plot area gets",

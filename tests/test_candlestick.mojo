@@ -4,9 +4,7 @@
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -49,8 +47,9 @@ def test_render_candlestick_matches_hand_derived_wicks_and_bodies() raises:
     var low: List[Float64] = [8.0, 16.0]
     var close: List[Float64] = [13.0, 17.0]
     var t = Theme(show_gridlines=False)
-    var c = Canvas(400, 300, BG)
-    render(c, Plot().mark_candlestick().encode_candlestick(cats, open, high, low, close).theme(t))
+    var c = render(
+        Plot().mark_candlestick().encode_candlestick(cats, open, high, low, close).theme(t).size(400, 300)
+    )
 
     _assert_color(c, 140, 200, t.mark_color, "A: inside the body (open=210 to close=165), closed up")
     _assert_color(c, 140, 150, t.axis_color, "A: the wick, above the body (between high=135 and the body top)")
@@ -67,11 +66,10 @@ def test_render_candlestick_svg_matches_confirmed_wicks_and_bodies() raises:
     var high: List[Float64] = [15.0, 22.0]
     var low: List[Float64] = [8.0, 16.0]
     var close: List[Float64] = [13.0, 17.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_candlestick().encode_candlestick(cats, open, high, low, close).theme(
         Theme(show_gridlines=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<line x1="140" y1="135" x2="140" y2="240" stroke="#505050" stroke-width="1.000"'

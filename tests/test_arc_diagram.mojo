@@ -5,7 +5,6 @@ edge-arc geometry/width, per-from-node color, encode_chord()'s shared validation
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import Plot, render_svg
@@ -47,11 +46,10 @@ def test_render_arc_diagram_svg_matches_confirmed_geometry() raises:
     var from_c: List[String] = ["A", "B"]
     var to_c: List[String] = ["B", "C"]
     var v: List[Float64] = [10.0, 5.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_arc_diagram().encode_chord(from_categories=from_c, to_categories=to_c, values=v).theme(
         Theme()
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<path d="M60.000,250.000 A80.000,80.000 0 1,1 220.000,250.000" fill="none" stroke="#1f77b4"'

@@ -6,8 +6,6 @@ the degenerate-y_scale trick verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import single_axis
@@ -36,9 +34,8 @@ def test_render_single_axis_matches_hand_derived_points() raises:
 
 def test_render_single_axis_svg_matches_confirmed_circles() raises:
     var x: List[Float64] = [10.0, 20.0, 30.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_single_axis().encode_single_axis(x=x).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_single_axis().encode_single_axis(x=x).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<circle cx="75" cy="135" r="4" fill="#1e64b4"/>' in s, "the first point")
     assert_true('<circle cx="220" cy="135" r="4" fill="#1e64b4"/>' in s, "the second point")

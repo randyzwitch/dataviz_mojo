@@ -6,10 +6,7 @@ band rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.colors import WHITE
 from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import streamgraph
@@ -35,9 +32,8 @@ def test_render_streamgraph_matches_hand_derived_bands() raises:
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[10.0, 10.0], [10.0, 10.0]]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var plot = Plot().mark_streamgraph().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(t)
-    var c = Canvas(400, 300, WHITE)
-    render(c, plot)
+    var plot = Plot().mark_streamgraph().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(t).size(400, 300)
+    var c = render(plot)
 
     var palette = default_categorical_palette()
     _assert_color(c, 220, 187, palette[0], "A's band, midpoint -- y:[135,240]")
@@ -49,11 +45,10 @@ def test_render_streamgraph_svg_matches_confirmed_paths() raises:
     var cats: List[String] = ["X", "Y"]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[10.0, 10.0], [10.0, 10.0]]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_streamgraph().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(
         Theme(show_gridlines=False, show_legend=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<path d="M140.000,135.000 L300.000,135.000 L300.000,240.000 L140.000,240.000 Z" fill="#1f77b4"/>' in s, "A's band")
     assert_true('<path d="M140.000,30.000 L300.000,30.000 L300.000,135.000 L140.000,135.000 Z" fill="#ff7f0e"/>' in s, "B's band")

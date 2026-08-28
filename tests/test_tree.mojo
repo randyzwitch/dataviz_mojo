@@ -6,8 +6,6 @@ the rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo.theme import Theme
@@ -48,11 +46,10 @@ def test_render_tree_svg_matches_confirmed_geometry() raises:
     var ids: List[String] = ["root", "A", "B"]
     var parents: List[String] = ["", "root", "root"]
     var values: List[Float64] = [0.0, 1.0, 1.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_tree().encode_hierarchy(ids=ids, parent_ids=parents, values=values).theme(
         Theme(show_legend=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<line x1="220" y1="20" x2="60" y2="250" stroke="#1f77b4"' in s, "root->A edge")
     assert_true('<line x1="220" y1="20" x2="380" y2="250" stroke="#ff7f0e"' in s, "root->B edge")

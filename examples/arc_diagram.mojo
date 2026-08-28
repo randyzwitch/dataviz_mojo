@@ -12,7 +12,7 @@ once there are enough nodes to fill a ring).
 
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
+from canvas_mojo.vector.svg import write_svg
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo import arc_diagram
 from dataviz_mojo.theme import Theme
@@ -27,9 +27,8 @@ def main() raises:
     write_bmp(c, "examples/out_arc_diagram.bmp")
     write_png(c, "examples/out_arc_diagram.png")
 
-    var svg = SvgCanvas(640, 420)
     var svg_plot = Plot().mark_arc_diagram().encode_chord(
         from_categories=from_characters, to_categories=to_characters, values=scenes_together
     ).theme(Theme())
-    render_svg(svg, svg_plot)
+    var svg = render_svg(svg_plot)
     write_svg(svg, "examples/out_arc_diagram.svg")

@@ -7,8 +7,6 @@ here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.plot import Plot, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import corrplot
@@ -47,11 +45,10 @@ def test_render_corrplot_matches_hand_derived_bubbles() raises:
 def test_render_corrplot_svg_matches_confirmed_circles() raises:
     var vars: List[String] = ["A", "B"]
     var m: List[List[Float64]] = [[1.0, -0.5], [-0.5, 1.0]]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_corrplot(labels=False).encode_corrplot(variables=vars, matrix=m).theme(
         Theme(show_gridlines=False, show_legend=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<circle cx="140" cy="78" r="24" fill="#dc5a28"/>' in s, "(A, A)")
     assert_true('<circle cx="300" cy="78" r="12" fill="#94adda"/>' in s, "(A, B)")
