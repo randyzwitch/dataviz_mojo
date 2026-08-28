@@ -1,13 +1,19 @@
 name: Docs build (reusable)
 
-# The actual build logic (mojo doc -> modo build -> hugo), shared by
-# both callers below rather than duplicated: docs.yml (pull_request,
-# status-only) and docs-deploy.yml (push to main, builds then
-# deploys). A `workflow_call` reusable workflow, not a job either
-# caller could just copy-paste, specifically so the two callers'
-# actual trigger conditions can differ -- see docs.yml's own comment
-# for why that split exists at all (a job merely skipped on PRs still
-# shows up as an always-"skipped" check, which is worse than no check).
+# The actual build logic (mojo doc -> modo build -> hugo). A
+# `workflow_call` reusable workflow, called by docs-deploy.yml (push
+# to main, builds then deploys) -- kept as its own file rather than a
+# job inlined there so a job gated `if: github.event_name == 'push'`
+# doesn't show up as an always-"skipped" check on every PR forever
+# (worse than no check at all). ci.yml's own `docs-build` job covers
+# the PR-status-only case instead, by reusing the example images its
+# own `test` job already rendered rather than calling this file a
+# second time -- re-rendering every example a second time here too,
+# on every PR, used to be exactly that: pure duplicate compute, and
+# every extra Mojo compile is another roll against the compiler crash
+# in `pixi run test`/`pixi run example`'s own known flakiness. This
+# file's own render (below) still runs for real once per push to main,
+# there's just no PR-side twin of it left to duplicate it.
 # Always uploads the Pages artifact (cheap, not itself a publish step
 # -- deploy-pages, in docs-deploy.yml only, is the one that actually
 # goes live) so docs-deploy.yml can deploy it without rebuilding.
