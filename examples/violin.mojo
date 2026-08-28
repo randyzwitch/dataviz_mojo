@@ -10,10 +10,6 @@ Exam scores by class -- the same data examples/beeswarm.mojo uses, so
 the two are directly comparable: a violin shows the smoothed shape of
 each distribution, beeswarm shows every individual point.
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """

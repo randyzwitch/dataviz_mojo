@@ -7,10 +7,6 @@ Website visitors by day of week and hour of day -- ECharts.jl's punchcard() exam
 during weekday business hours reads immediately as a cluster of large
 bubbles).
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """

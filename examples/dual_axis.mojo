@@ -12,9 +12,6 @@ the secondary layer's caption mirrors onto the plot's right edge
 (see Plot.secondary_axis()'s docstring for why this reads from the
 layer itself, not a title shared from plots[0] the way the chart's title/x_title are).
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why.
-
 Run with:
     pixi run example
 """

@@ -22,10 +22,6 @@ starting total's delta (50.0) *is* the starting balance itself
 floating); the ending total's delta is 0.0 (adds nothing further,
 just displays 0 -> whatever the running sum already reached).
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """

@@ -4,10 +4,6 @@ wired through quickplot's theme= parameter, not just the default
 look. Built via dataviz_mojo.line() -- see examples/
 scatter.mojo's docstring for what that trades away.
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """

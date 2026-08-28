@@ -5,10 +5,6 @@ just fed computed categories instead of given ones (see plot.mojo's encode_histo
 dataviz_mojo.histogram() -- see examples/scatter.mojo's docstring
 for what that trades away.
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why every example
-does this.
-
 Run with:
     pixi run example
 """

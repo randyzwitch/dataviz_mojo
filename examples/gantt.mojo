@@ -16,10 +16,6 @@ why that's a deliberate, not a missing, choice), with overlapping spans
 (Testing starts before Development finishes) -- the kind of at-a-glance
 overlap a gantt chart is for.
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """

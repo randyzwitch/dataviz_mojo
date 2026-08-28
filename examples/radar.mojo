@@ -8,10 +8,6 @@ Two teams compared across five attributes -- ECharts.jl's radar()
 example, the chart type's classic use (overlapping polygons make
 each team's relative strengths across dimensions immediately visible).
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """

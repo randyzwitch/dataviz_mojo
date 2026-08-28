@@ -11,10 +11,6 @@ equation r = sin(2*theta) (each lobe traced as theta sweeps a half
 turn; the sign flip on the negative half of each sine period is what
 gives the curve its four separate leaves instead of two).
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """

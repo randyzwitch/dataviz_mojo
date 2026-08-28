@@ -19,10 +19,6 @@ docstring for why that ordering matters (each call's docs snippet
 stops the moment its own chart's data+call is done, so nothing from
 the other chart's own I/O block leaks into it).
 
-Writes both a raster (.bmp) and a vector (.svg) file per chart, from
-the same data -- see examples/pie.mojo's docstring for why, and for
-why the docs page only shows the quickplot calls above.
-
 Run with:
     pixi run example
 """

@@ -11,13 +11,10 @@ Monthly revenue against a target -- a real editorial-chart convention
 not something a legend/tooltip is needed to explain), built on the
 same data grouped_bar()'s example uses for a single region.
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above. Built by hand (not
-a one-call quickplot -- annotate_line() isn't exposed on quickplot
-functions, a deliberate scope cut; see that method's docstring)
-via Plot() directly, the same way render_layers()/render_facets()
-already have to be.
+Built by hand (not a one-call quickplot -- annotate_line() isn't
+exposed on quickplot functions, a deliberate scope cut; see that
+method's docstring) via Plot() directly, the same way render_layers()/
+render_facets() already have to be.
 
 Run with:
     pixi run example

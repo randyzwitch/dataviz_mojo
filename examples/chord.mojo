@@ -12,10 +12,6 @@ Trade flows between four regions -- the classic chord-diagram use (who
 sends how much to whom), though the mark itself is generic to any
 weighted edge list.
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """

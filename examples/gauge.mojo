@@ -9,10 +9,6 @@ Server CPU usage -- ECharts.jl's gauge() example, the chart
 type's classic use (a single live metric against a known-good/
 known-bad range, read at a glance the way a real analog dial is).
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """

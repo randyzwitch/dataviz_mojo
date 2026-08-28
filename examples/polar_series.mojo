@@ -13,10 +13,6 @@ are directly comparable at a glance: Miami's shallower curve
 (consistently warm) against Phoenix's deeper one (a hot summer
 peak, a cooler winter dip).
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """

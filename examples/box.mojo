@@ -13,10 +13,6 @@ kind of comparison a box plot is for: not each group's single
 summary number (a bar chart's job), but each group's spread, and
 whether any individual value falls unusually far from the rest.
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """

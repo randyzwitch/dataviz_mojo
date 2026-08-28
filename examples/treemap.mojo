@@ -9,10 +9,6 @@ Disk usage by folder -- the exact same data Mark.SUNBURST's example uses, so the
 identical hierarchy (radial rings vs. nested rectangles) are easy to
 compare directly.
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """

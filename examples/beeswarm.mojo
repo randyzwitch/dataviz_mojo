@@ -9,10 +9,6 @@ Exam scores by class -- the classic beeswarm use: seeing every
 individual data point's position within its group, not just a
 box's five-number summary.
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """

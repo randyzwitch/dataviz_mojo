@@ -9,10 +9,6 @@ the chart type (12 categories share the full circle evenly, a natural
 "clock face" reading for a 12-month cycle a linear bar chart doesn't
 give for free).
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """

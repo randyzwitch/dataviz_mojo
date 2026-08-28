@@ -10,10 +10,6 @@ Music genre listening volume over a few years -- the classic
 streamgraph use: several categories' share ebbing and flowing
 over time, read as a "river" rather than a stack of bars.
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/pie.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
 Run with:
     pixi run example
 """
