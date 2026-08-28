@@ -7,9 +7,6 @@ examples/scatter.mojo's docstring for what that trades away.
 Disk usage by folder -- the sunburst chart's classic use (a
 directory tree, size = bytes), two top-level folders each broken down
 into their subfolders.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -35,5 +32,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_sunburst.svg")
-
-    print("wrote examples/out_sunburst.bmp, .png, and .svg")

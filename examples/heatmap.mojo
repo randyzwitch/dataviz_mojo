@@ -10,9 +10,6 @@ see examples/scatter.mojo's docstring for what that trades away.
 A day-of-week x hour-of-day activity grid -- the classic heatmap use
 (a correlation matrix or a calendar would be the same shape, just
 different category labels).
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -36,5 +33,3 @@ def main() raises:
     var svg_plot = Plot().mark_heatmap().encode_heatmap(x=days, y=hours, value=activity).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_heatmap.svg")
-
-    print("wrote examples/out_heatmap.bmp, .png, and .svg")

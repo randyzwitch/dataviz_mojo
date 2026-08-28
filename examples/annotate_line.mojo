@@ -15,9 +15,6 @@ Built by hand (not a one-call quickplot -- annotate_line() isn't
 exposed on quickplot functions, a deliberate scope cut; see that
 method's docstring) via Plot() directly, the same way render_layers()/
 render_facets() already have to be.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -53,5 +50,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_annotate_line.svg")
-
-    print("wrote examples/out_annotate_line.bmp, .png, and .svg")

@@ -8,9 +8,6 @@ examples/scatter.mojo's docstring for what that trades away.
 Electricity generation by region and energy source -- ECharts.jl's marimekko() classic use case (both a region's overall share of
 total generation *and* its energy mix read at a glance, something a
 plain stacked bar chart's equal-width columns can't show at once).
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -40,5 +37,3 @@ def main() raises:
     ).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_marimekko.svg")
-
-    print("wrote examples/out_marimekko.bmp, .png, and .svg")

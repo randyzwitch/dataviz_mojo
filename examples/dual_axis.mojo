@@ -11,9 +11,6 @@ Each axis captioned via that same layer's .labels(y_title=...) --
 the secondary layer's caption mirrors onto the plot's right edge
 (see Plot.secondary_axis()'s docstring for why this reads from the
 layer itself, not a title shared from plots[0] the way the chart's title/x_title are).
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -67,5 +64,3 @@ def main() raises:
     var svg = SvgCanvas(640, 420)
     render_layers_svg(svg, svg_plots)
     write_svg(svg, "examples/out_dual_axis.svg")
-
-    print("wrote examples/out_dual_axis.bmp, .png, and .svg")

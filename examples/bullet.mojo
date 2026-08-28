@@ -16,9 +16,6 @@ the kind of at-a-glance comparison a bullet chart is for: not just
 "how big is the number" (a bar chart's job), but "how does it compare
 to both a specific goal and a qualitative sense of poor/satisfactory/
 good."
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -48,5 +45,3 @@ def main() raises:
     var svg_plot = Plot().mark_bullet().encode_bullet(kpis, measures, targets, ranges).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_bullet.svg")
-
-    print("wrote examples/out_bullet.bmp, .png, and .svg")

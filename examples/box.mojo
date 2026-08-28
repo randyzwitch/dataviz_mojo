@@ -12,9 +12,6 @@ distribution, one of them (Group C) with a genuine low outlier -- the
 kind of comparison a box plot is for: not each group's single
 summary number (a bar chart's job), but each group's spread, and
 whether any individual value falls unusually far from the rest.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -45,5 +42,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_box.svg")
-
-    print("wrote examples/out_box.bmp, .png, and .svg")

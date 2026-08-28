@@ -10,9 +10,6 @@ jl's corrplot() classic use case (a real correlation matrix,
 values invented here for a self-contained example rather than pulling
 in a real dataset), upper-triangle layout with the diagonal dropped
 (every self-correlation is trivially 1.0, rarely worth a bubble).
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -42,5 +39,3 @@ def main() raises:
     ).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_corrplot.svg")
-
-    print("wrote examples/out_corrplot.bmp, .png, and .svg")

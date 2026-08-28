@@ -15,9 +15,6 @@ rather than being folded into every other chart's file.
 Writes only a vector (.svg) file -- this feature has no raster
 counterpart at all (role/aria-label/title/desc are SVG-only concepts;
 a raster PNG/BMP has no accessible-tree equivalent to attach them to).
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.vector.svg import SvgCanvas
@@ -41,5 +38,3 @@ def main() raises:
         "A chart comparing revenue across four regions: North ($420), South ($310),"
         " East ($275), and West ($390).",
     )
-
-    print("wrote examples/out_svg_accessibility.svg")

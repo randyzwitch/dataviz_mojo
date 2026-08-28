@@ -8,9 +8,6 @@ for what that trades away.
 
 A small social network -- who's connected to whom, edge width reading
 as connection strength.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -36,5 +33,3 @@ def main() raises:
     ).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_graph.svg")
-
-    print("wrote examples/out_graph.bmp, .png, and .svg")

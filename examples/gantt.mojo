@@ -15,9 +15,6 @@ package has no Date/Time type; see encode_gantt()'s docstring for
 why that's a deliberate, not a missing, choice), with overlapping spans
 (Testing starts before Development finishes) -- the kind of at-a-glance
 overlap a gantt chart is for.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -41,5 +38,3 @@ def main() raises:
     var svg_plot = Plot().mark_gantt().encode_gantt(tasks, start, end).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_gantt.svg")
-
-    print("wrote examples/out_gantt.bmp, .png, and .svg")

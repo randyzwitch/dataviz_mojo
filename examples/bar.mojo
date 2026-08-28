@@ -18,9 +18,6 @@ after both -- see scripts/gen_example_docs.mojo's own PageSection
 docstring for why that ordering matters (each call's docs snippet
 stops the moment its own chart's data+call is done, so nothing from
 the other chart's own I/O block leaks into it).
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -63,5 +60,3 @@ def main() raises:
     )
     render_svg(svg_diverging, svg_plot_diverging)
     write_svg(svg_diverging, "examples/out_bar_diverging.svg")
-
-    print("wrote examples/out_bar.bmp/.png/.svg and examples/out_bar_diverging.bmp/.png/.svg")

@@ -8,9 +8,6 @@ for what that trades away.
 Disk usage by folder -- the exact same data Mark.SUNBURST's example uses, so the two chart types' different readings of the
 identical hierarchy (radial rings vs. nested rectangles) are easy to
 compare directly.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -36,5 +33,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_treemap.svg")
-
-    print("wrote examples/out_treemap.bmp, .png, and .svg")

@@ -10,9 +10,6 @@ Monthly temperature range for Beijing -- ECharts.jl's spanchart
 example, the chart type's classic use (a daily high/low range
 that would misrepresent the data if drawn as a bar(), since a bar
 implies "from zero," not "from the low").
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -40,5 +37,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_span_chart.svg")
-
-    print("wrote examples/out_span_chart.bmp, .png, and .svg")

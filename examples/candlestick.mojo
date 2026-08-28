@@ -15,9 +15,6 @@ Eight trading days of a single (fictional) stock -- a realistic mix of
 up and down days, including one wide-range day (Day 4) and one narrow-
 range day (Day 8), the kind of variety that actually exercises both
 wick lengths and both body colors.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -45,5 +42,3 @@ def main() raises:
     var svg_plot = Plot().mark_candlestick().encode_candlestick(days, open, high, low, close).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_candlestick.svg")
-
-    print("wrote examples/out_candlestick.bmp, .png, and .svg")

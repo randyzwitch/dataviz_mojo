@@ -8,9 +8,6 @@ for what that trades away.
 
 A marketing conversion funnel -- the classic funnel-chart use: how a
 count shrinks stage by stage (impressions to clicks to orders).
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -33,5 +30,3 @@ def main() raises:
     var svg_plot = Plot().mark_funnel().encode_categorical(x=stages, y=counts).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_funnel.svg")
-
-    print("wrote examples/out_funnel.bmp, .png, and .svg")

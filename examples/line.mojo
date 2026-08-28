@@ -3,9 +3,6 @@ mark color, thicker line, gridlines off) to show that's actually
 wired through quickplot's theme= parameter, not just the default
 look. Built via dataviz_mojo.line() -- see examples/
 scatter.mojo's docstring for what that trades away.
-
-Run with:
-    pixi run example
 """
 
 from std.math import sin
@@ -46,5 +43,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_line.svg")
-
-    print("wrote examples/out_line.bmp, .png, and .svg")

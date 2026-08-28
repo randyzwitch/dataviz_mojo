@@ -10,9 +10,6 @@ A four-leaf rose curve -- ECharts.jl's polar() example, the polar
 equation r = sin(2*theta) (each lobe traced as theta sweeps a half
 turn; the sign flip on the negative half of each sine period is what
 gives the curve its four separate leaves instead of two).
-
-Run with:
-    pixi run example
 """
 
 from std.math import pi, sin
@@ -51,5 +48,3 @@ def main() raises:
     var svg_plot = Plot().mark_polar().encode_polar(angle=angle, radius=radius).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_polar.svg")
-
-    print("wrote examples/out_polar.bmp, .png, and .svg")

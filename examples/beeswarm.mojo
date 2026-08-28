@@ -8,9 +8,6 @@ does. Built via dataviz_mojo.beeswarm() -- see examples/scatter.mojo's docstring
 Exam scores by class -- the classic beeswarm use: seeing every
 individual data point's position within its group, not just a
 box's five-number summary.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -37,5 +34,3 @@ def main() raises:
     var svg_plot = Plot().mark_beeswarm().encode_distribution(categories=classes, values=scores).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_beeswarm.svg")
-
-    print("wrote examples/out_beeswarm.bmp, .png, and .svg")

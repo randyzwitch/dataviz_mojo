@@ -12,9 +12,6 @@ seeing the distribution/clustering of one-dimensional data (a cluster
 of fast responses, a scattering of slow outliers) that a strip of
 points along one line shows more directly than a histogram's binning
 would.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -38,5 +35,3 @@ def main() raises:
     var svg_plot = Plot().mark_single_axis().encode_single_axis(x=response_ms).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_single_axis.svg")
-
-    print("wrote examples/out_single_axis.bmp, .png, and .svg")

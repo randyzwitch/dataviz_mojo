@@ -7,9 +7,6 @@ for what that trades away.
 Two teams compared across five attributes -- ECharts.jl's radar()
 example, the chart type's classic use (overlapping polygons make
 each team's relative strengths across dimensions immediately visible).
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -39,5 +36,3 @@ def main() raises:
     ).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_radar.svg")
-
-    print("wrote examples/out_radar.bmp, .png, and .svg")

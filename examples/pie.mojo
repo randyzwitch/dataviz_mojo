@@ -22,9 +22,6 @@ The docs page for this example (see scripts/gen_example_docs.mojo)
 shows only the quickplot calls above, not the render_svg() blocks
 below -- both produce the identical charts, and the quickplot calls
 are the cleaner reconstruction of "how would I actually write this."
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -67,5 +64,3 @@ def main() raises:
     )
     render_svg(svg_donut, svg_plot_donut)
     write_svg(svg_donut, "examples/out_pie_donut.svg")
-
-    print("wrote examples/out_pie.bmp/.png/.svg and examples/out_pie_donut.bmp/.png/.svg")

@@ -6,9 +6,6 @@ flow ribbons. Built via dataviz_mojo.sankey() -- see
 examples/scatter.mojo's docstring for what that trades away.
 
 Energy flow from sources to end uses -- the Sankey diagram's classic use case.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -34,5 +31,3 @@ def main() raises:
     ).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_sankey.svg")
-
-    print("wrote examples/out_sankey.bmp, .png, and .svg")

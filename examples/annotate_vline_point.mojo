@@ -13,9 +13,6 @@ matched pair.
 Built by hand (not a one-call quickplot -- neither method is exposed
 on quickplot functions, the same deliberate scope cut examples/
 annotate_line.mojo's docstring explains) via Plot() directly.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -54,5 +51,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_annotate_vline_point.svg")
-
-    print("wrote examples/out_annotate_vline_point.bmp, .png, and .svg")

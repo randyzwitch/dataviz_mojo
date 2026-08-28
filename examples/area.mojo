@@ -1,9 +1,6 @@
 """Demo: an area chart -- Mark.AREA, the same continuous (x, y) data
 mark_line() draws, filled down to a zero baseline instead of stroked.
 Built via dataviz_mojo.area() -- see examples/scatter.mojo's docstring for what that trades away.
-
-Run with:
-    pixi run example
 """
 
 from std.math import sin
@@ -36,5 +33,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_area.svg")
-
-    print("wrote examples/out_area.bmp, .png, and .svg")

@@ -10,9 +10,6 @@ trades away.
 Programming-language popularity rankings over a few years -- the
 classic bump-chart use: which position matters more than the exact
 score behind it.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -42,5 +39,3 @@ def main() raises:
     ).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_bump.svg")
-
-    print("wrote examples/out_bump.bmp, .png, and .svg")

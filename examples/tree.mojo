@@ -7,9 +7,6 @@ for what that trades away.
 
 An org chart -- the tree diagram's classic use, two departments
 each with their reports.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -37,5 +34,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_tree.svg")
-
-    print("wrote examples/out_tree.bmp, .png, and .svg")
