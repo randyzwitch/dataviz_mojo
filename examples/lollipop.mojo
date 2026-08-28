@@ -3,13 +3,6 @@ identical data shape a bar chart uses -- see plot.mojo's mark_lollipop() docstri
 point at its value instead of a filled rect. A lollipop chart
 reads well when there are enough categories that a full bar's width would start to feel heavy -- shown here with ten. Built via
 dataviz_mojo.lollipop() -- see examples/scatter.mojo's docstring for what that trades away.
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -38,5 +31,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_lollipop.svg")
-
-    print("wrote examples/out_lollipop.bmp, .png, and .svg")

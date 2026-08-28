@@ -6,14 +6,9 @@ around Plot().mark_point().encode(...).theme(...) + Canvas + render()
 what it trades away (facets, layering, color/size encoding still need
 Plot directly).
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above. scatter()'s raster output is supersampled internally before it's ever returned
-here (see dataviz_mojo.plot._rendered's docstring) -- nothing in
-this file, or any other example, has to ask for that.
-
-Run with:
-    pixi run example
+scatter()'s raster output is supersampled internally before it's ever
+returned here (see dataviz_mojo.plot._rendered's docstring) -- nothing
+in this file, or any other example, has to ask for that.
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -37,5 +32,3 @@ def main() raises:
     var svg_plot = Plot().mark_point().encode(x=x, y=y).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_scatter.svg")
-
-    print("wrote examples/out_scatter.bmp, .png, and .svg")

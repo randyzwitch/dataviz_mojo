@@ -21,13 +21,6 @@ starting total's delta (50.0) *is* the starting balance itself
 (still added to the running sum, just displayed 0 -> 50 instead of
 floating); the ending total's delta is 0.0 (adds nothing further,
 just displays 0 -> whatever the running sum already reached).
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -51,5 +44,3 @@ def main() raises:
     var svg_plot = Plot().mark_waterfall().encode_waterfall(stages, deltas, is_total).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_waterfall.svg")
-
-    print("wrote examples/out_waterfall.bmp, .png, and .svg")

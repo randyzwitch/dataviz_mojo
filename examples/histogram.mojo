@@ -4,13 +4,6 @@ shape -- the same render path examples/bar.mojo's bar chart uses,
 just fed computed categories instead of given ones (see plot.mojo's encode_histogram() docstring). Raster output built via
 dataviz_mojo.histogram() -- see examples/scatter.mojo's docstring
 for what that trades away.
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why every example
-does this.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -41,5 +34,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_histogram.svg")
-
-    print("wrote examples/out_histogram.bmp, .png, and .svg")

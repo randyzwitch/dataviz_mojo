@@ -10,13 +10,6 @@ trades away.
 Programming-language popularity rankings over a few years -- the
 classic bump-chart use: which position matters more than the exact
 score behind it.
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -46,5 +39,3 @@ def main() raises:
     ).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_bump.svg")
-
-    print("wrote examples/out_bump.bmp, .png, and .svg")

@@ -10,13 +10,6 @@ jl's corrplot() classic use case (a real correlation matrix,
 values invented here for a self-contained example rather than pulling
 in a real dataset), upper-triangle layout with the diagonal dropped
 (every self-correlation is trivially 1.0, rarely worth a bubble).
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -46,5 +39,3 @@ def main() raises:
     ).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_corrplot.svg")
-
-    print("wrote examples/out_corrplot.bmp, .png, and .svg")

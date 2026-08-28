@@ -8,13 +8,6 @@ Causes of mortality in the Crimean War -- the chart type's best-known historical
 "Diagram of the Causes of Mortality"), using rose_type="area" (the
 mode her original diagram effectively used) so each cause's wedge
 *area*, not just its radius, is proportional to its death toll.
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -37,5 +30,3 @@ def main() raises:
     var svg_plot = Plot().mark_nightingale(area=True).encode_categorical(x=causes, y=deaths).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_nightingale.svg")
-
-    print("wrote examples/out_nightingale.bmp, .png, and .svg")

@@ -8,13 +8,6 @@ Monthly rainfall -- ECharts.jl's polarbar example, a good fit for
 the chart type (12 categories share the full circle evenly, a natural
 "clock face" reading for a 12-month cycle a linear bar chart doesn't
 give for free).
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -39,5 +32,3 @@ def main() raises:
     var svg_plot = Plot().mark_polar_bar().encode_categorical(x=months, y=rainfall).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_polarbar.svg")
-
-    print("wrote examples/out_polarbar.bmp, .png, and .svg")

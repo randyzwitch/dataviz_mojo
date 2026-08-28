@@ -9,13 +9,6 @@ via dataviz_mojo.streamgraph() -- see examples/scatter.mojo's docstring for what
 Music genre listening volume over a few years -- the classic
 streamgraph use: several categories' share ebbing and flowing
 over time, read as a "river" rather than a stack of bars.
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -45,5 +38,3 @@ def main() raises:
     ).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_streamgraph.svg")
-
-    print("wrote examples/out_streamgraph.bmp, .png, and .svg")

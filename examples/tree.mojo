@@ -7,13 +7,6 @@ for what that trades away.
 
 An org chart -- the tree diagram's classic use, two departments
 each with their reports.
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -41,5 +34,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_tree.svg")
-
-    print("wrote examples/out_tree.bmp, .png, and .svg")

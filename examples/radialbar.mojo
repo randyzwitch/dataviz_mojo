@@ -9,13 +9,6 @@ Quarterly OKR completion by team -- four teams, each a percentage of
 their quarter's objectives completed, drawn as nested "activity
 rings" (the first team's ring outermost) instead of a bar chart,
 so all four read together as one shape at a glance.
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -38,5 +31,3 @@ def main() raises:
     var svg_plot = Plot().mark_radialbar().encode_categorical(x=teams, y=completion).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_radialbar.svg")
-
-    print("wrote examples/out_radialbar.bmp, .png, and .svg")

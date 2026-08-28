@@ -10,13 +10,6 @@ Age-band population counts by sex (male on the left, female on the
 right -- the classic use of this chart, though the mark itself is
 generic to any two magnitudes worth comparing side by side per
 category; see population_pyramid.mojo's docstring).
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -42,5 +35,3 @@ def main() raises:
     ).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_population_pyramid.svg")
-
-    print("wrote examples/out_population_pyramid.bmp, .png, and .svg")

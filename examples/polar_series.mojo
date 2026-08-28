@@ -12,13 +12,6 @@ series sharing one radius scale so the two cities' seasonal shapes
 are directly comparable at a glance: Miami's shallower curve
 (consistently warm) against Phoenix's deeper one (a hot summer
 peak, a cooler winter dip).
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from std.math import pi
@@ -51,5 +44,3 @@ def main() raises:
     ).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_polar_series.svg")
-
-    print("wrote examples/out_polar_series.bmp, .png, and .svg")

@@ -6,13 +6,6 @@ style. Built via dataviz_mojo.punchcard() -- see examples/scatter.mojo's docstri
 Website visitors by day of week and hour of day -- ECharts.jl's punchcard() example, the chart type's classic use (peak traffic
 during weekday business hours reads immediately as a cluster of large
 bubbles).
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -45,5 +38,3 @@ def main() raises:
     var svg_plot = Plot().mark_punchcard().encode_punchcard(x=x, y=y, sizes=counts).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_punchcard.svg")
-
-    print("wrote examples/out_punchcard.bmp, .png, and .svg")

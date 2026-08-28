@@ -12,13 +12,6 @@ Daily temperature distributions across a few months -- the classic
 ridgeline use: several distributions' shapes, stacked so they're
 easy to compare at a glance, with a little overlap read as "closer to
 the viewer."
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -46,5 +39,3 @@ def main() raises:
     var svg_plot = Plot().mark_ridgeline().encode_distribution(categories=months, values=temps).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_ridgeline.svg")
-
-    print("wrote examples/out_ridgeline.bmp, .png, and .svg")

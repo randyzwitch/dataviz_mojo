@@ -9,14 +9,9 @@ opacity means the line still reads clearly through the shaded stretch
 inside it, rather than that stretch being overwritten -- see
 annotate_area()'s docstring for the full story.
 
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why. Built by hand
-(not a one-call quickplot -- annotate_area() isn't exposed on
-quickplot functions, the same deliberate scope cut examples/
-annotate_line.mojo's docstring explains) via Plot() directly.
-
-Run with:
-    pixi run example
+Built by hand (not a one-call quickplot -- annotate_area() isn't
+exposed on quickplot functions, the same deliberate scope cut
+examples/annotate_line.mojo's docstring explains) via Plot() directly.
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -53,5 +48,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_annotate_area.svg")
-
-    print("wrote examples/out_annotate_area.bmp, .png, and .svg")

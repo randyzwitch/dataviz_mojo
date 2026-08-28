@@ -17,13 +17,6 @@ once, which needs the multi-series layering feature planned next
 (see the wiki's Changelog, its Phase 1 entry) -- this
 example is deliberately the single-series, numeric-axis case that's
 already possible today, not a claim that the full chart type is done.
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -60,5 +53,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_slope.svg")
-
-    print("wrote examples/out_slope.bmp, .png, and .svg")

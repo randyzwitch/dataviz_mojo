@@ -3,13 +3,6 @@ mark color, thicker line, gridlines off) to show that's actually
 wired through quickplot's theme= parameter, not just the default
 look. Built via dataviz_mojo.line() -- see examples/
 scatter.mojo's docstring for what that trades away.
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from std.math import sin
@@ -50,5 +43,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_line.svg")
-
-    print("wrote examples/out_line.bmp, .png, and .svg")

@@ -20,9 +20,12 @@ handling out by hand. Extraction strategy:
 - The example's raster output is always built via a one-call
   convenience function (`var c = bar(...)`, `var c = scatter(...)`,
   ...) -- that call is the snippet shown, verbatim (see
-  `_quickplot_call_start()`). Everything after that call's own closing
+  `_quickplot_call_starts()`). Everything after that call's own closing
   `)` -- write_bmp/png, any separate SvgCanvas/render_svg() block -- is
-  cut entirely, not shown.
+  cut entirely, not shown. An example file with more than one such call
+  (examples/bar.mojo's own diverging-bars variant, alongside its plain
+  bar chart) gets one section per call on its own page instead of a
+  page each -- see `_build_sections()`.
 
 A Mojo script, not Python -- this repo's own tooling stays in the
 language it's showcasing, string-matching primitives (`.strip()`,
@@ -52,12 +55,10 @@ def _titles() -> Dict[String, String]:
     d["scatter"] = "Scatter"
     d["line"] = "Line"
     d["bar"] = "Bar"
-    d["diverging_bar"] = "Diverging Bar"
     d["grouped_bar"] = "Grouped Bar"
     d["stacked_bar"] = "Stacked Bar"
     d["area"] = "Area"
-    d["pie"] = "Pie"
-    d["donut"] = "Donut"
+    d["pie"] = "Pie/Donut"
     d["lollipop"] = "Lollipop"
     d["waterfall"] = "Waterfall"
     d["box"] = "Box Plot"
@@ -142,7 +143,7 @@ def _categories() -> List[Category]:
     cats.append(Category(
         "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
         [
-            "scatter", "line", "bar", "area", "pie", "donut", "single_axis", "effect_scatter",
+            "scatter", "line", "bar", "area", "pie", "single_axis", "effect_scatter",
             "svg_accessibility", "annotate_area", "annotate_vline_point",
         ],
     ))
@@ -151,7 +152,7 @@ def _categories() -> List[Category]:
         "Chart types built around one categorical dimension: rankings, timelines, progress,"
         " period-over-period comparisons, and process stages.",
         [
-            "lollipop", "waterfall", "gantt", "span_chart", "population_pyramid", "bullet", "diverging_bar",
+            "lollipop", "waterfall", "gantt", "span_chart", "population_pyramid", "bullet",
             "grouped_bar", "stacked_bar", "slope", "funnel", "bump", "streamgraph", "annotate_line",
         ],
     ))
@@ -336,38 +337,77 @@ def _color_constant_names() raises -> List[String]:
     return names^
 
 
-def _quickplot_call_start(body: List[String]) -> Int:
-    """The line index of `var c = <quickplot fn>(...`, or -1 if this
-    example doesn't build its raster output that way. Written either
-    as one line (`var c = scatter(x, y)`, whenever the call is short
-    enough) or, once there's enough kwargs to want one per line, the
-    multi-line shape (the opening line ends `(`, one argument per
+def _quickplot_call_starts(body: List[String]) -> List[Int]:
+    """Every `var <ident> = <quickplot fn>(...` line's own index, in
+    source order -- generalizes the old single-match version (there
+    used to be only ever one call per example, so it just returned
+    that line's index or -1) now that one example can build more than
+    one Canvas on its own docs page (examples/bar.mojo's own
+    diverging-bars variant, assigned to `var c_diverging` rather than
+    reusing `c`, so both calls' snippets can show up as separate
+    sections on the same page -- see `_build_sections()`). Matches
+    `var <ident> = ` generically (any identifier), not the literal
+    `var c = ` the single-match version checked, since a second call
+    on the same page needs its own, different identifier. Written
+    either as one line (`var c = scatter(x, y)`, whenever the call is
+    short enough) or, once there's enough kwargs to want one per line,
+    the multi-line shape (the opening line ends `(`, one argument per
     line, a lone `)` closes it -- see any of examples/bar.mojo/
     scatter.mojo/etc. for either). Either way the call's own function
-    name sits right after `var c = ` and before its own first `(`, so
-    matching that is enough regardless of which shape follows;
-    `_quickplot_call_end()` finds wherever the call itself actually
+    name sits right after `var <ident> = ` and before its own first
+    `(`, so matching that is enough regardless of which shape follows;
+    `_quickplot_call_end()` finds wherever each call itself actually
     closes."""
     var names = _quickplot_names()
+    var starts = List[Int]()
     for i in range(len(body)):
         var stripped = body[i].strip()
-        if not stripped.startswith("var c = "):
+        if not stripped.startswith("var "):
             continue
-        var after = String(stripped[byte=8:])  # 8 == len("var c = ")
-        var paren = after.find("(")
+        var after_var = String(stripped[byte=4:])  # 4 == len("var ")
+        var eq = after_var.find(" = ")
+        if eq == -1:
+            continue
+        var after_eq = String(after_var[byte = eq + 3 :])  # 3 == len(" = ")
+        var paren = after_eq.find("(")
         if paren == -1:
             continue
-        var name = String(after[byte=0:paren])
+        var name = String(after_eq[byte=0:paren])
         if name in names:
-            return i
-    return -1
+            starts.append(i)
+    return starts^
+
+
+def _var_ident(line: String) -> String:
+    """The `<ident>` out of a `var <ident> = ...` line, or a `var
+    <ident>: <type> = ...` one (examples/pie.mojo's own `var browsers:
+    List[String] = [...]`, stopping at the `:` rather than swallowing
+    the type annotation too) -- "" if the line isn't shaped either
+    way. Used both for a confirmed quickplot-call line (`_quickplot_
+    call_starts()` already found it, so this just re-extracts its own
+    identifier) and, in `_build_sections()`, to test whether some
+    earlier plain data-setup line is one a later section's own code
+    goes on to reference by name."""
+    var stripped = line.strip()
+    if not stripped.startswith("var "):
+        return ""
+    var after_var = String(stripped[byte=4:])  # 4 == len("var ")
+    var eq = after_var.find(" = ")
+    if eq == -1:
+        return ""
+    var head = String(after_var[byte=0:eq])
+    var colon = head.find(":")
+    if colon != -1:
+        var untyped = String(head[byte=0:colon])
+        head = untyped
+    return String(head.strip())
 
 
 def _quickplot_call_end(body: List[String], start: Int) -> Int:
     """`start`'s own line already closes the call (a single-line
     `var c = scatter(x, y)`) if it ends with `)` -- checked before
     scanning further, since a multi-line call's own opening line never
-    does (it always ends `(`, per `_quickplot_call_start`'s own
+    does (it always ends `(`, per `_quickplot_call_starts`'s own
     docstring). Otherwise, the matching close is the first line below
     `start` that's a lone `)` with nothing else on it."""
     if body[start].strip().endswith(")"):
@@ -383,7 +423,7 @@ def _bare_render_call_index(body: List[String]) -> Int:
     ...)` call, or -- for the one example where it's the genuinely
     interesting line instead of boilerplate to cut -- a `write_
     accessible_svg(...)` call. The non-quickplot equivalent of
-    `_quickplot_call_start()`/`_quickplot_call_end()`, for an example
+    `_quickplot_call_starts()`/`_quickplot_call_end()`, for an example
     built by hand via `Plot()` directly because no one-call convenience
     function covers what it demos (e.g. `Plot.annotate_line()`/`Plot.
     secondary_axis()`, neither exposed on any quickplot function -- see
@@ -416,41 +456,126 @@ def _bare_render_call_index(body: List[String]) -> Int:
     return -1
 
 
-def _extract_clean_body(source: String) raises -> List[String]:
-    """Most examples build their raster output via a one-call
-    convenience function (see this file's own module docstring): the
-    `var c = <fn>(...)` call verbatim, shown as-is with nothing left to
-    strip out of it -- everything before it (data setup) kept,
-    everything from its own closing `)` onward (write_bmp/png, any
-    separate SvgCanvas/render_svg() block) cut. A second, rarer shape
-    (examples/annotate_area.mojo, annotate_line.mojo, annotate_vline_
-    point.mojo, dual_axis.mojo, and svg_accessibility.mojo, currently)
-    has no quickplot function to call at all -- built by hand via
-    `Plot()` + bare `render(c, plot)`/`render_layers(c, plots)` instead;
-    `_bare_render_call_index()` finds that call's own equivalent
-    stopping point, and everything through it is kept the same way.
-    Raises rather than silently falling back to
-    showing the whole file (which used to be `_extract_clean_body`'s
-    own fallback, back when a raster-only-no-quickplot example was a
-    real, expected shape) -- a future example that fits neither shape
-    needs a real decision about how its own page should look, not a
-    silently-wrong one.
+struct PageSection(Copyable, Movable):
+    """One shown image + code snippet on a docs page. Almost every
+    example produces exactly one of these (`heading` empty, since
+    there's nothing to distinguish it from); an example whose file
+    builds more than one quickplot Canvas (examples/bar.mojo's own
+    diverging-bars variant) produces one per call instead, each with
+    its own image and its own `### <heading>` subsection -- see
+    `_build_sections()`."""
+    var body: List[String]
+    var image: String
+    var heading: String
+
+    def __init__(out self, var body: List[String], image: String, heading: String):
+        self.body = body^
+        self.image = image
+        self.heading = heading
+
+
+def _segment_heading(segment: List[String]) -> String:
+    """A non-first section's own subheading, pulled from its own
+    leading `# ...` comment line if it has one (see examples/bar.mojo's
+    `# Diverging variant: ...` line, right above its own `var
+    c_diverging = bar(...)` call) -- falls back to "Variant" if it
+    doesn't, so a future multi-call example that skips the comment
+    still gets a real (if generic) subsection rather than an empty
+    one."""
+    for l in segment:
+        var stripped = l.strip()
+        if stripped.startswith("# "):
+            return String(stripped[byte=2:])
+        if stripped.startswith("#"):
+            return String(stripped[byte=1:])
+    return "Variant"
+
+
+def _build_sections(name: String, source: String, writes_svg: Bool) raises -> List[PageSection]:
+    """Every section this example's docs page shows, in source order.
+    Most examples build their raster output via a one-call convenience
+    function (see this file's own module docstring): each `var <ident>
+    = <fn>(...)` call found by `_quickplot_call_starts()` becomes its
+    own section, its own snippet shown verbatim with nothing stripped
+    out of it -- everything since the previous call (or the start of
+    `main()`, for the first) kept, everything from its own closing `)`
+    onward (write_bmp/png, any separate SvgCanvas/render_svg() block)
+    cut. A later call's own section also gets any earlier data-setup
+    line (`var <ident> = ...`, not itself a previous quickplot call)
+    prepended, but only ones its own code actually goes on to
+    reference by name -- examples/pie.mojo's own donut variant reuses
+    the exact same `browsers`/`share` its pie call above already
+    declared rather than redeclaring them, so its own snippet needs
+    that declaration to stand alone; examples/bar.mojo's diverging
+    variant never references its own first chart's `categories`/
+    `values` at all, so nothing gets pulled in for it. The first
+    call's own section reuses this example's plain `out_<name>` image
+    (matching every single-call example's existing page); each one
+    after it gets its own `out_<name>_<suffix>` image (`<suffix>`
+    being its own identifier with a leading `c_` stripped, e.g.
+    `c_diverging` -> `diverging`) and its own `### <heading>`
+    subsection (see `_segment_heading()`).
+
+    A second, rarer shape (examples/annotate_area.mojo, annotate_line.
+    mojo, annotate_vline_point.mojo, dual_axis.mojo, and svg_
+    accessibility.mojo, currently) has no quickplot function to call at
+    all -- built by hand via `Plot()` + bare `render(c, plot)`/`render_
+    layers(c, plots)` instead; `_bare_render_call_index()` finds that
+    call's own equivalent stopping point, and everything through it
+    becomes this page's one and only section. Raises rather than
+    silently falling back to showing the whole file (which used to be
+    this function's own fallback, back when a raster-only-no-quickplot
+    example was a real, expected shape) -- a future example that fits
+    neither shape needs a real decision about how its own page should
+    look, not a silently-wrong one.
     """
     var body = _main_body_lines(source)
+    var ext = ".svg" if writes_svg else ".png"
 
-    var qp_start = _quickplot_call_start(body)
-    if qp_start != -1:
-        var qp_end = _quickplot_call_end(body, qp_start)
-        var qp_clean = List[String]()
-        for i in range(0, qp_end + 1):
-            qp_clean.append(body[i])
-        return _finish_clean_body(qp_clean)
+    var qp_starts = _quickplot_call_starts(body)
+    if len(qp_starts) > 0:
+        var sections = List[PageSection]()
+        var seg_start = 0
+        for idx in range(len(qp_starts)):
+            var qp_start = qp_starts[idx]
+            var qp_end = _quickplot_call_end(body, qp_start)
+            var own_lines = List[String]()
+            for i in range(seg_start, qp_end + 1):
+                own_lines.append(body[i])
+
+            var raw_seg = List[String]()
+            if idx > 0:
+                var own_text = String("\n").join(own_lines)
+                for i in range(0, seg_start):
+                    if i in qp_starts:
+                        continue  # a previous call's own start line, not data setup
+                    var ident = _var_ident(body[i])
+                    if ident and _word_in(own_text, ident):
+                        raw_seg.append(body[i])
+            for l in own_lines:
+                raw_seg.append(l)
+            var clean_seg = _finish_clean_body(raw_seg)
+
+            var image: String
+            var heading: String
+            if idx == 0:
+                image = "out_" + name + ext
+                heading = ""
+            else:
+                var ident = _var_ident(body[qp_start])
+                var suffix = String(ident[byte=2:]) if ident.startswith("c_") else ident  # 2 == len("c_")
+                image = "out_" + name + "_" + suffix + ext
+                heading = _segment_heading(clean_seg)
+
+            sections.append(PageSection(clean_seg^, image, heading))
+            seg_start = qp_end + 1
+        return sections^
 
     var render_idx = _bare_render_call_index(body)
     if render_idx == -1:
         raise Error(
             "gen_example_docs: no one-call convenience function call"
-            " (`var c = <fn>(...)`) and no bare `render(c, ...)`/write_"
+            " (`var <ident> = <fn>(...)`) and no bare `render(c, ...)`/write_"
             "accessible_svg(...) call found -- every example's own shown"
             " snippet is expected to be built one of these ways"
         )
@@ -462,7 +587,9 @@ def _extract_clean_body(source: String) raises -> List[String]:
     var clean = List[String]()
     for i in range(0, render_end + 1):
         clean.append(body[i])
-    return _finish_clean_body(clean)
+    var sections = List[PageSection]()
+    sections.append(PageSection(_finish_clean_body(clean), "out_" + name + ext, ""))
+    return sections^
 
 
 def _finish_clean_body(clean: List[String]) -> List[String]:
@@ -565,7 +692,7 @@ def _build_page(name: String, title: String) raises -> String:
     # docstring paragraph). This holds even for a quickplot-built
     # example, whose *shown* snippet only constructs the raster Canvas
     # (that separate SvgCanvas/render_svg() block is cut from the
-    # snippet entirely -- see _extract_clean_body()'s own docstring):
+    # snippet entirely -- see _build_sections()'s own docstring):
     # the two backends render the identical chart from the identical
     # data, so the .svg is still an accurate picture of what the shown
     # snippet's quickplot call produces, just via the file's other
@@ -580,20 +707,8 @@ def _build_page(name: String, title: String) raises -> String:
     # check for "write_svg(" alone doesn't match it (`write_accessible_
     # svg(` never contains that exact substring).
     var writes_svg = _has_call(source, "write_svg") or _has_call(source, "write_accessible_svg")
-    var image = "out_" + name + ".svg" if writes_svg else "out_" + name + ".png"
 
-    var clean_body = _extract_clean_body(source)
-    var body_text = String("\n").join(clean_body)
-    var import_lines = _imports_for(body_text)
-
-    var indented = List[String]()
-    for l in clean_body:
-        indented.append("    " + l if l.strip() else "")
-
-    var snippet = String("\n").join(import_lines)
-    if len(import_lines) > 0:
-        snippet += "\n\n"
-    snippet += "def main() raises:\n" + String("\n").join(indented)
+    var sections = _build_sections(name, source, writes_svg)
 
     var page = List[String]()
     page.append("---")
@@ -602,14 +717,44 @@ def _build_page(name: String, title: String) raises -> String:
     page.append("")
     page.append(hook)
     page.append("")
-    page.append("![" + title + "](" + image + ")")
-    page.append("")
-    page.append("## Usage")
-    page.append("")
-    page.append("```mojo")
-    page.append(snippet)
-    page.append("```")
-    page.append("")
+
+    # Every example so far has exactly one section (`sections[0]`,
+    # heading always ""), shown the same way this always has been:
+    # image, then "## Usage", then its snippet. An example with more
+    # than one quickplot call (examples/bar.mojo's own diverging-bars
+    # variant) gets a second section instead of a second page -- its
+    # own "### <heading>" (see `_segment_heading()`) followed by its
+    # own image and snippet, right below the first's.
+    var is_first = True
+    for section in sections:
+        var body_text = String("\n").join(section.body)
+        var import_lines = _imports_for(body_text)
+
+        var indented = List[String]()
+        for l in section.body:
+            indented.append("    " + l if l.strip() else "")
+
+        var snippet = String("\n").join(import_lines)
+        if len(import_lines) > 0:
+            snippet += "\n\n"
+        snippet += "def main() raises:\n" + String("\n").join(indented)
+
+        if is_first:
+            page.append("![" + title + "](" + section.image + ")")
+            page.append("")
+            page.append("## Usage")
+            page.append("")
+        else:
+            page.append("### " + section.heading)
+            page.append("")
+            page.append("![" + title + " -- " + section.heading + "](" + section.image + ")")
+            page.append("")
+        page.append("```mojo")
+        page.append(snippet)
+        page.append("```")
+        page.append("")
+        is_first = False
+
     return String("\n").join(page)
 
 

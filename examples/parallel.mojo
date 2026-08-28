@@ -9,13 +9,6 @@ Vehicle attribute comparison -- ECharts.jl's parallel() example,
 the chart type's classic use (several wildly-differently-scaled
 numeric dimensions -- horsepower, MPG, weight, 0-60 time, price -- laid
 out so every vehicle's tradeoffs read as one connected shape).
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -45,5 +38,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_parallel.svg")
-
-    print("wrote examples/out_parallel.bmp, .png, and .svg")

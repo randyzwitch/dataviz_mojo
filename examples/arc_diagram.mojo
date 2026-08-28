@@ -8,13 +8,6 @@ dataviz_mojo.arc_diagram() -- see examples/scatter.mojo's docstring for what tha
 Character co-occurrence in a handful of scenes -- the arc diagram's classic use (a network small enough to read as one open row of
 nodes, unlike Mark.CHORD's circular layout, which reads better
 once there are enough nodes to fill a ring).
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -40,5 +33,3 @@ def main() raises:
     ).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_arc_diagram.svg")
-
-    print("wrote examples/out_arc_diagram.bmp, .png, and .svg")

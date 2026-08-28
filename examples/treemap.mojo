@@ -8,13 +8,6 @@ for what that trades away.
 Disk usage by folder -- the exact same data Mark.SUNBURST's example uses, so the two chart types' different readings of the
 identical hierarchy (radial rings vs. nested rectangles) are easy to
 compare directly.
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -40,5 +33,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_treemap.svg")
-
-    print("wrote examples/out_treemap.bmp, .png, and .svg")

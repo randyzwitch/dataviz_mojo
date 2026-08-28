@@ -7,13 +7,6 @@ examples/scatter.mojo's docstring for what that trades away.
 Disk usage by folder -- the sunburst chart's classic use (a
 directory tree, size = bytes), two top-level folders each broken down
 into their subfolders.
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -39,5 +32,3 @@ def main() raises:
     )
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_sunburst.svg")
-
-    print("wrote examples/out_sunburst.bmp, .png, and .svg")

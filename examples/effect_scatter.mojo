@@ -8,13 +8,6 @@ scatter.mojo's docstring for what that trades away.
 A handful of highlighted store locations -- the classic effect-scatter
 use: drawing the eye to specific points on a map or chart, the halo
 doing statically what ECharts' ripple animation does over time.
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -37,5 +30,3 @@ def main() raises:
     var svg_plot = Plot().mark_effect_scatter().encode(x=longitude, y=latitude).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_effect_scatter.svg")
-
-    print("wrote examples/out_effect_scatter.bmp, .png, and .svg")

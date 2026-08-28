@@ -8,13 +8,6 @@ examples/scatter.mojo's docstring for what that trades away.
 Server CPU usage -- ECharts.jl's gauge() example, the chart
 type's classic use (a single live metric against a known-good/
 known-bad range, read at a glance the way a real analog dial is).
-
-Writes both a raster (.bmp) and a vector (.svg) file from the same
-data -- see examples/donut.mojo's docstring for why, and for why
-the docs page only shows the quickplot call above.
-
-Run with:
-    pixi run example
 """
 
 from canvas_mojo.io.bmp import write_bmp
@@ -36,5 +29,3 @@ def main() raises:
     var svg_plot = Plot().mark_gauge().encode_gauge(value=cpu_usage).theme(Theme())
     render_svg(svg, svg_plot)
     write_svg(svg, "examples/out_gauge.svg")
-
-    print("wrote examples/out_gauge.bmp, .png, and .svg")
