@@ -14,14 +14,12 @@ same data grouped_bar()'s example uses for a single region.
 Built by hand (not a one-call quickplot -- annotate_line() isn't
 exposed on quickplot functions, a deliberate scope cut; see that
 method's docstring) via Plot() directly, the same way render_layers()/
-render_facets() already have to be.
+render_facets() already have to be. Writes all three formats from one
+`plot` via save() -- no `canvas_mojo` import needed at all (see
+save()'s docstring).
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render, render_svg
-from dataviz_mojo.theme import Theme
+from dataviz_mojo.plot import Plot, save
 
 
 def main() raises:
@@ -31,19 +29,7 @@ def main() raises:
     var plot = Plot().mark_bar().encode_categorical(x=months, y=revenue).labels(
         title="Monthly Revenue", subtitle="Actual vs. target, $M"
     ).annotate_line(60.0, label="target").annotate_line(51.5, label="average")
+    save(plot, "examples/out_annotate_line.svg")
+    save(plot, "examples/out_annotate_line.bmp")
+    save(plot, "examples/out_annotate_line.png")
 
-    var c = render(plot)
-    write_bmp(c, "examples/out_annotate_line.bmp")
-    write_png(c, "examples/out_annotate_line.png")
-
-    var svg_plot = (
-        Plot()
-        .mark_bar()
-        .encode_categorical(x=months, y=revenue)
-        .labels(title="Monthly Revenue", subtitle="Actual vs. target, $M")
-        .annotate_line(60.0, label="target")
-        .annotate_line(51.5, label="average")
-        .theme(Theme())
-    )
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_annotate_line.svg")

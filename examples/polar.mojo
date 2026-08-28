@@ -14,10 +14,7 @@ gives the curve its four separate leaves instead of two).
 
 from std.math import pi, sin
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import polar
 from dataviz_mojo.theme import Theme
 
@@ -41,9 +38,6 @@ def main() raises:
             radius.append(r)
 
     var c = polar(angle, radius)
-    write_bmp(c, "examples/out_polar.bmp")
-    write_png(c, "examples/out_polar.png")
-
-    var svg_plot = Plot().mark_polar().encode_polar(angle=angle, radius=radius).theme(Theme())
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_polar.svg")
+    save(c, "examples/out_polar.svg")
+    save(c, "examples/out_polar.bmp")
+    save(c, "examples/out_polar.png")

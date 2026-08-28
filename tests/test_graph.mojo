@@ -8,7 +8,7 @@ from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
 from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import graph
 
@@ -33,7 +33,7 @@ def test_render_graph_matches_hand_derived_edges() raises:
     var from_c: List[String] = ["A", "B"]
     var to_c: List[String] = ["B", "C"]
     var v: List[Float64] = [10.0, 5.0]
-    var c = graph(from_c, to_c, v, width=400, height=300)
+    var c = render(graph(from_c, to_c, v, width=400, height=300))
 
     var palette = default_categorical_palette()
     _assert_color(c, 265, 110, palette[0], "A->B's edge, at its midpoint")
@@ -64,7 +64,7 @@ def test_render_graph_self_loop_draws_nothing_but_doesnt_raise() raises:
     var from_c: List[String] = ["A", "A"]
     var to_c: List[String] = ["A", "B"]
     var v: List[Float64] = [5.0, 5.0]
-    var c = graph(from_c, to_c, v, width=200, height=150)
+    var c = render(graph(from_c, to_c, v, width=200, height=150))
     _ = c
 
 
@@ -73,7 +73,7 @@ def test_render_graph_raises_on_negative_value() raises:
     var to_c: List[String] = ["B"]
     var v: List[Float64] = [-1.0]
     with assert_raises():
-        _ = graph(from_c, to_c, v, width=200, height=150)
+        _ = render(graph(from_c, to_c, v, width=200, height=150))
 
 
 def test_render_graph_raises_on_mismatched_length() raises:
@@ -81,14 +81,14 @@ def test_render_graph_raises_on_mismatched_length() raises:
     var to_c: List[String] = ["B"]
     var v: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = graph(from_c, to_c, v, width=200, height=150)
+        _ = render(graph(from_c, to_c, v, width=200, height=150))
 
 
 def test_render_graph_empty_data_only_fills_background() raises:
     var from_c = List[String]()
     var to_c = List[String]()
     var v = List[Float64]()
-    var c = graph(from_c, to_c, v, width=100, height=80)
+    var c = render(graph(from_c, to_c, v, width=100, height=80))
     _assert_color(c, 50, 40, BG, "no edges: nothing drawn but the background")
 
 

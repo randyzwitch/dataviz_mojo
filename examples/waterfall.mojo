@@ -23,10 +23,7 @@ floating); the ending total's delta is 0.0 (adds nothing further,
 just displays 0 -> whatever the running sum already reached).
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import waterfall
 from dataviz_mojo.theme import Theme
 
@@ -37,9 +34,6 @@ def main() raises:
     var is_total: List[Bool] = [True, False, False, False, False, False, True]
 
     var c = waterfall(stages, deltas, is_total=is_total)
-    write_bmp(c, "examples/out_waterfall.bmp")
-    write_png(c, "examples/out_waterfall.png")
-
-    var svg_plot = Plot().mark_waterfall().encode_waterfall(stages, deltas, is_total).theme(Theme())
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_waterfall.svg")
+    save(c, "examples/out_waterfall.svg")
+    save(c, "examples/out_waterfall.bmp")
+    save(c, "examples/out_waterfall.png")

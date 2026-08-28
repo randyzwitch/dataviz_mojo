@@ -249,6 +249,24 @@ def _has_call(source: String, func_name: String) -> Bool:
     return (func_name + "(") in source
 
 
+def _has_svg_save_call(source: String) -> Bool:
+    """Whether any `save(...)`/`save_layers(...)`/`save_facets(...)`
+    call in `source` writes a path ending `.svg` -- issue #112's
+    `save()` family replaced `write_svg(`/`write_accessible_svg(` as
+    how every example actually produces its own SVG output, so `_has_
+    call(source, "write_svg")` alone no longer detects it (no example
+    calls that directly any more). Checked as a plain per-line
+    substring test (one of the three call names, and `.svg"`, both
+    present on the same line) rather than a real parse, since every
+    such call in examples/*.mojo is single-line."""
+    for line in source.split("\n"):
+        if '.svg"' not in line:
+            continue
+        if "save(" in line or "save_layers(" in line or "save_facets(" in line:
+            return True
+    return False
+
+
 def _main_body_lines(source: String) -> List[String]:
     var lines = source.split("\n")
     var start = -1
@@ -418,61 +436,39 @@ def _quickplot_call_end(body: List[String], start: Int) -> Int:
     return -1
 
 
-def _bare_render_call_index(body: List[String]) -> Int:
-    """The line index of the `var <ident> = render(...)` or `var
-    <ident> = render_layers(...)` call, or -- for the one example where
-    it's the genuinely interesting line instead of boilerplate to cut
-    -- a `write_accessible_svg(...)` call. The non-quickplot equivalent
-    of `_quickplot_call_starts()`/`_quickplot_call_end()`, for an
-    example built by hand via `Plot()` directly because no one-call
-    convenience function covers what it demos (e.g. `Plot.annotate_
-    line()`/`Plot.secondary_axis()`, neither exposed on any quickplot
-    function -- see examples/annotate_line.mojo's/dual_axis.mojo's own
-    docstrings).
-
-    `render(plot)`/`render_layers(plots)` return their target rather
-    than mutating a caller-built one in place (issue #112 -- see
-    plot.mojo's module docstring), so this now looks for the exact same
-    `var <ident> = <name>(` assignment shape `_quickplot_call_starts()`
-    matches, just checking `name` against `"render"`/`"render_layers"`
-    specifically rather than a quickplot mark function -- reuses `_var_
-    ident`'s own `var <ident> = ` parsing so a future rename of the
-    identifier (not always `c`) still matches.
-
-    `write_accessible_svg(` is a deliberate, narrow exception to this
-    file's own "the render call is the interesting part, everything
-    after it is I/O boilerplate to cut" rule: examples/svg_
-    accessibility.mojo's *whole point* is that call's own title/
-    description arguments, not the render_svg() line just above it --
-    cutting there the way every other example cuts at its own render
-    call would throw away the one line the page exists to show. Checked
-    as a literal bare-prefix line (it's never itself a `var <ident> =
-    ...` assignment) since it's the one real exception to the
-    assignment shape every other anchor here now has.
-
-    `render_svg(`/`render_facets(`/`render_facets_svg(`/`render_layers_
-    svg(` deliberately don't match here even though they're now also
-    `var <ident> = <name>(`-shaped calls -- none of the five hand-built
-    examples' *shown* snippet is meant to stop at those (each is either
-    the separate, cut-from-the-snippet SVG-twin block, or -- for
-    `render_facets`/`render_facets_svg`, not currently used by any
-    example -- simply not one of the two names this function looks
-    for). -1 if this example calls none of these at all."""
+def _accessible_svg_call_index(body: List[String]) -> Int:
+    """The line index of the bare `write_accessible_svg(...)` call --
+    examples/svg_accessibility.mojo's own anchor, and the one remaining
+    exception to this file's "the render/save call is boilerplate to
+    cut" rule: that example's *whole point* is this call's own title/
+    description arguments, not the `render_svg()`/`save()` line just
+    above it -- cutting there the way `_finish_clean_body()` strips
+    every other example's I/O calls would throw away the one line the
+    page exists to show. -1 if this example doesn't call it at all
+    (every hand-built example but that one)."""
     for i in range(len(body)):
-        var stripped = body[i].strip()
-        if stripped.startswith("write_accessible_svg("):
-            return i
-        var ident = _var_ident(body[i])
-        if not ident:
-            continue
-        var after_var = String(stripped[byte=4:])  # 4 == len("var ")
-        var eq = after_var.find(" = ")
-        if eq == -1:
-            continue
-        var after_eq = String(after_var[byte = eq + 3 :])  # 3 == len(" = ")
-        if after_eq.startswith("render(") or after_eq.startswith("render_layers("):
+        if body[i].strip().startswith("write_accessible_svg("):
             return i
     return -1
+
+
+def _has_save_call(body: List[String]) -> Bool:
+    """Whether this example writes its output via `save()`/`save_
+    layers()`/`save_facets()` -- the shape every hand-built example but
+    svg_accessibility.mojo now uses (issue #112: one `Plot`/`List[Plot]`,
+    one or more plain-I/O `save*()` calls, no separate raster/SVG
+    `Plot` chains left to find an anchor to cut *before* -- see
+    `_build_sections()`'s docstring for why that changes how this
+    file's second shape works)."""
+    for i in range(len(body)):
+        var stripped = body[i].strip()
+        if (
+            stripped.startswith("save(")
+            or stripped.startswith("save_layers(")
+            or stripped.startswith("save_facets(")
+        ):
+            return True
+    return False
 
 
 struct PageSection(Copyable, Movable):
@@ -536,17 +532,23 @@ def _build_sections(name: String, source: String, writes_svg: Bool) raises -> Li
     subsection (see `_segment_heading()`).
 
     A second, rarer shape (examples/annotate_area.mojo, annotate_line.
-    mojo, annotate_vline_point.mojo, dual_axis.mojo, and svg_
-    accessibility.mojo, currently) has no quickplot function to call at
-    all -- built by hand via `Plot()` + `var c = render(plot)`/`var c =
-    render_layers(plots)` instead; `_bare_render_call_index()` finds
-    that call's own equivalent stopping point, and everything through
-    it becomes this page's one and only section. Raises rather than
-    silently falling back to showing the whole file (which used to be
-    this function's own fallback, back when a raster-only-no-quickplot
-    example was a real, expected shape) -- a future example that fits
-    neither shape needs a real decision about how its own page should
-    look, not a silently-wrong one.
+    mojo, annotate_vline_point.mojo, and dual_axis.mojo, currently) has
+    no quickplot function to call at all -- built by hand via `Plot()`/
+    `List[Plot]` and one or more `save()`/`save_layers()`/`save_
+    facets()` calls instead (`_has_save_call()`). Unlike the quickplot
+    shape above, there's no second call to cut *before* here -- every
+    one of these examples now builds exactly one `Plot`/`List[Plot]`
+    and writes every format from it, so the whole `main()` body (minus
+    the `save*()`/`print()` I/O lines `_finish_clean_body()` already
+    strips) *is* the one section. `write_accessible_svg(...)` (svg_
+    accessibility.mojo) is a third, narrower shape still needing its
+    own anchor-and-cut treatment -- see `_accessible_svg_call_index()`'s
+    docstring for why. Raises rather than silently falling back to
+    showing the whole file (which used to be this function's own
+    fallback, back when a raster-only-no-quickplot example was a real,
+    expected shape) -- a future example that fits none of these three
+    needs a real decision about how its own page should look, not a
+    silently-wrong one.
     """
     var body = _main_body_lines(source)
     var ext = ".svg" if writes_svg else ".png"
@@ -590,44 +592,78 @@ def _build_sections(name: String, source: String, writes_svg: Bool) raises -> Li
             seg_start = qp_end + 1
         return sections^
 
-    var render_idx = _bare_render_call_index(body)
-    if render_idx == -1:
-        raise Error(
-            "gen_example_docs: no one-call convenience function call"
-            " (`var <ident> = <fn>(...)`), no `var <ident> = render(...)`/"
-            "render_layers(...) call, and no bare write_accessible_svg(...)"
-            " call found -- every example's own shown snippet is expected"
-            " to be built one of these ways"
-        )
-    # Reuses _quickplot_call_end's own single-line-vs-multi-line closing
-    # logic -- write_accessible_svg(...) (examples/svg_accessibility.
-    # mojo) is a real multi-line call needing it, unlike every `var c =
-    # render(plot)`/`var c = render_layers(plots)` call so far, which
-    # has always closed on its own start line.
-    var render_end = _quickplot_call_end(body, render_idx)
-    var clean = List[String]()
-    for i in range(0, render_end + 1):
-        clean.append(body[i])
-    var sections = List[PageSection]()
-    sections.append(PageSection(_finish_clean_body(clean), "out_" + name + ext, ""))
-    return sections^
+    var accessible_idx = _accessible_svg_call_index(body)
+    if accessible_idx != -1:
+        # Reuses _quickplot_call_end's own single-line-vs-multi-line
+        # closing logic -- write_accessible_svg(...) is a real
+        # multi-line call needing it.
+        var accessible_end = _quickplot_call_end(body, accessible_idx)
+        var clean = List[String]()
+        for i in range(0, accessible_end + 1):
+            clean.append(body[i])
+        var sections = List[PageSection]()
+        sections.append(PageSection(_finish_clean_body(clean), "out_" + name + ext, ""))
+        return sections^
+
+    if _has_save_call(body):
+        # No anchor line to search for here: every hand-built example
+        # but svg_accessibility.mojo now builds one Plot/List[Plot] and
+        # writes every format through save()/save_layers()/save_
+        # facets() calls -- `_finish_clean_body()` drops the raster
+        # (.bmp/.png) ones as boilerplate but keeps the .svg one (see
+        # its own docstring for why), the one line demonstrating how to
+        # actually write the Plot/List[Plot] this snippet just built.
+        # There's no second, near-identical Plot chain left to cut
+        # *before* the way the old raster-then-SVG-twin shape needed --
+        # the whole main() body, cleaned up, *is* the snippet.
+        var sections = List[PageSection]()
+        sections.append(PageSection(_finish_clean_body(body), "out_" + name + ext, ""))
+        return sections^
+
+    raise Error(
+        "gen_example_docs: no one-call convenience function call"
+        " (`var <ident> = <fn>(...)`), no save()/save_layers()/save_"
+        "facets() call, and no bare write_accessible_svg(...) call"
+        " found -- every example's own shown snippet is expected to be"
+        " built one of these ways"
+    )
 
 
 def _finish_clean_body(clean: List[String]) -> List[String]:
     """The cleanup every extraction path (quickplot call, SVG-path
     cut, in-place raster desupersampling) shares once its own
     mark-specific work is done: drop leftover write_bmp/write_png/
-    write_svg/print() I/O lines, drop a now-empty `.theme(Theme())`
-    method call, collapse the blank lines that leaves behind, and undo
-    `def main()`'s own 4-space indent."""
+    write_svg/print() I/O lines and every raster save()/save_layers()/
+    save_facets() call, drop a now-empty `.theme(Theme())` method call,
+    collapse the blank lines that leaves behind, and undo `def main()`'s
+    own 4-space indent.
+
+    A save-family call writing `.svg` is the one exception kept rather
+    than dropped -- unlike write_bmp/write_png/write_svg (always
+    boilerplate here: the interesting call in that shape is `render()`
+    itself, already captured before this function ever sees these
+    lines), a hand-built example's own save()/save_layers()/save_
+    facets() calls are the *only* place its shown snippet demonstrates
+    writing the `Plot` it just built at all -- dropping every one of
+    them would leave a snippet that builds a chart and never shows how
+    to do anything with it. Keeping the `.svg` call specifically (not
+    the `.bmp`/`.png` ones, when an example writes more than one)
+    matches this docs site's own "SVG is the preferred display format"
+    convention (see `_build_page()`'s comment)."""
     var without_io = List[String]()
     for l in clean:
         var stripped = l.strip()
+        var is_save_call = (
+            stripped.startswith("save(")
+            or stripped.startswith("save_layers(")
+            or stripped.startswith("save_facets(")
+        )
         if (
             stripped.startswith("write_bmp(")
             or stripped.startswith("write_png(")
             or stripped.startswith("write_svg(")
             or stripped.startswith("print(")
+            or (is_save_call and ".svg" not in stripped)
         ):
             continue
         without_io.append(l)
@@ -671,6 +707,7 @@ def _imports_for(body_text: String) raises -> List[String]:
     var plot_symbols: List[String] = [
         "Plot", "render", "render_svg", "render_facets", "render_facets_svg",
         "render_layers", "render_layers_svg", "accessible_svg_string", "write_accessible_svg",
+        "save", "save_layers", "save_facets",
     ]
     var used = List[String]()
     for s in plot_symbols:
@@ -708,26 +745,25 @@ def _build_page(name: String, title: String) raises -> String:
 
     # SVG is the preferred display format -- a vector image stays crisp
     # at any zoom/pane size a browser puts it in, unlike a fixed-
-    # resolution raster snapshot, and every example now writes one (see
-    # examples/*.mojo's own "Writes both a raster ... and a vector ..."
-    # docstring paragraph). This holds even for a quickplot-built
-    # example, whose *shown* snippet only constructs the raster Canvas
-    # (that separate SvgCanvas/render_svg() block is cut from the
-    # snippet entirely -- see _build_sections()'s own docstring):
-    # the two backends render the identical chart from the identical
-    # data, so the .svg is still an accurate picture of what the shown
-    # snippet's quickplot call produces, just via the file's other
-    # (unshown) render path. Falls back to .png only for an example
-    # that doesn't write an .svg at all -- none do today, but a future
-    # one demoing raster-only output (PNG/BMP specifically) would land
-    # here instead of being forced into a vector image it never builds.
-    # `write_accessible_svg(` also counts as "writes an .svg" -- examples/
-    # svg_accessibility.mojo writes only that (an accessible SVG has no
-    # raster equivalent at all -- role/aria-label/title/desc are SVG-only
-    # concepts, see that function's own docstring), and a plain substring
-    # check for "write_svg(" alone doesn't match it (`write_accessible_
-    # svg(` never contains that exact substring).
-    var writes_svg = _has_call(source, "write_svg") or _has_call(source, "write_accessible_svg")
+    # resolution raster snapshot, and every example now writes one via
+    # save() (issue #112). This holds even for a quickplot-built
+    # example, whose *shown* snippet only constructs the `Plot` (every
+    # `save()` call, `.svg` included, is cut from the snippet entirely
+    # -- see _build_sections()'s own docstring): the raster/vector
+    # backends render the identical chart from the identical data, so
+    # the .svg is still an accurate picture of what the shown snippet's
+    # quickplot call produces, just via the file's other (unshown)
+    # save() call. Falls back to .png only for an example that doesn't
+    # write an .svg at all -- none do today, but a future one demoing
+    # raster-only output (PNG/BMP specifically) would land here instead
+    # of being forced into a vector image it never builds.
+    # `write_accessible_svg(` also counts as "writes an .svg" --
+    # examples/svg_accessibility.mojo writes only that (an accessible
+    # SVG has no raster equivalent at all -- role/aria-label/title/desc
+    # are SVG-only concepts, see that function's own docstring), and
+    # neither `_has_svg_save_call()` (looks for `save(`) nor a plain
+    # substring check for "write_svg(" matches it.
+    var writes_svg = _has_svg_save_call(source) or _has_call(source, "write_accessible_svg")
 
     var sections = _build_sections(name, source, writes_svg)
 

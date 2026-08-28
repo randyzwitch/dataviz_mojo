@@ -7,7 +7,7 @@ from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
 from canvas_mojo.vector.svg import SvgCanvas
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import calendar_heatmap
 
@@ -41,7 +41,7 @@ def test_render_calendar_heatmap_matches_hand_derived_cells() raises:
     var dates: List[String] = ["2024-01-01", "2024-01-07", "2024-12-31"]
     var values: List[Float64] = [1.0, 2.0, 3.0]
     var t = Theme(show_legend=False)
-    var c = calendar_heatmap(dates, values, theme=t, width=900, height=300)
+    var c = render(calendar_heatmap(dates, values, theme=t, width=900, height=300))
 
     _assert_color(c, 67, 82, t.color_scale_low, "Jan 1 (Mon), value 1.0 -- the color domain's min")
     _assert_color(c, 82, 51, t.color_scale_mid, "Jan 7 (Sun), value 2.0 -- the domain's exact midpoint")
@@ -66,20 +66,20 @@ def test_render_calendar_heatmap_raises_on_mismatched_length() raises:
     var dates: List[String] = ["2024-01-01", "2024-01-02"]
     var values: List[Float64] = [1.0]
     with assert_raises():
-        _ = calendar_heatmap(dates, values, width=200, height=150)
+        _ = render(calendar_heatmap(dates, values, width=200, height=150))
 
 
 def test_render_calendar_heatmap_raises_on_mismatched_year() raises:
     var dates: List[String] = ["2024-01-01", "2025-01-01"]
     var values: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = calendar_heatmap(dates, values, width=200, height=150)
+        _ = render(calendar_heatmap(dates, values, width=200, height=150))
 
 
 def test_render_calendar_heatmap_empty_data_only_fills_background() raises:
     var dates = List[String]()
     var values = List[Float64]()
-    var c = calendar_heatmap(dates, values, width=100, height=80)
+    var c = render(calendar_heatmap(dates, values, width=100, height=80))
     _assert_color(c, 50, 40, BG, "no dates at all -- background everywhere")
 
 

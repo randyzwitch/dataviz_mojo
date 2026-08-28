@@ -13,17 +13,14 @@ glance rather than only from which direction the bar points. Bars
 already extend below the zero baseline for negative values with no
 changes needed, per the chart above; color_by_sign is the one further
 thing a diverging bar chart adds. Both quickplot calls sit next to
-each other, with each chart's own write_bmp/png/svg calls held until
-after both -- see scripts/gen_example_docs.mojo's own PageSection
-docstring for why that ordering matters (each call's docs snippet
-stops the moment its own chart's data+call is done, so nothing from
-the other chart's own I/O block leaks into it).
+each other, with each chart's own save() calls held until after both
+-- see scripts/gen_example_docs.mojo's own PageSection docstring for
+why that ordering matters (each call's docs snippet stops the moment
+its own chart's data+call is done, so nothing from the other chart's
+own save() calls leaks into it).
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import bar
 from dataviz_mojo.colors import SEAGREEN
 from dataviz_mojo.theme import Theme
@@ -41,20 +38,12 @@ def main() raises:
 
     var c_diverging = bar(quarters, net_change, theme=Theme(color_by_sign=True))
 
-    write_bmp(c, "examples/out_bar.bmp")
-    write_png(c, "examples/out_bar.png")
+    save(c, "examples/out_bar.svg")
+    save(c, "examples/out_bar.bmp")
+    save(c, "examples/out_bar.png")
 
-    var svg_plot = Plot().mark_bar().encode_categorical(x=categories, y=values).theme(
-        Theme(mark_color=SEAGREEN)
-    )
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_bar.svg")
+    save(c_diverging, "examples/out_bar_diverging.svg")
+    save(c_diverging, "examples/out_bar_diverging.bmp")
+    save(c_diverging, "examples/out_bar_diverging.png")
 
-    write_bmp(c_diverging, "examples/out_bar_diverging.bmp")
-    write_png(c_diverging, "examples/out_bar_diverging.png")
 
-    var svg_plot_diverging = Plot().mark_bar().encode_categorical(x=quarters, y=net_change).theme(
-        Theme(color_by_sign=True)
-    )
-    var svg_diverging = render_svg(svg_plot_diverging)
-    write_svg(svg_diverging, "examples/out_bar_diverging.svg")

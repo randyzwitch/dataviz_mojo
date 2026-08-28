@@ -12,10 +12,7 @@ A day-of-week x hour-of-day activity grid -- the classic heatmap use
 different category labels).
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import heatmap
 from dataviz_mojo.theme import Theme
 
@@ -26,9 +23,6 @@ def main() raises:
     var activity: List[Float64] = [3.0, 8.0, 5.0, 4.0, 9.0, 6.0, 2.0, 7.0, 10.0]
 
     var c = heatmap(days, hours, activity)
-    write_bmp(c, "examples/out_heatmap.bmp")
-    write_png(c, "examples/out_heatmap.png")
-
-    var svg_plot = Plot().mark_heatmap().encode_heatmap(x=days, y=hours, value=activity).theme(Theme())
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_heatmap.svg")
+    save(c, "examples/out_heatmap.svg")
+    save(c, "examples/out_heatmap.bmp")
+    save(c, "examples/out_heatmap.png")

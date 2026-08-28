@@ -12,10 +12,7 @@ generic to any two magnitudes worth comparing side by side per
 category; see population_pyramid.mojo's docstring).
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import population_pyramid
 from dataviz_mojo.theme import Theme
 
@@ -26,11 +23,6 @@ def main() raises:
     var female: List[Float64] = [11.5, 12.5, 13.5, 12.0, 10.5, 9.0, 7.0, 5.5]
 
     var c = population_pyramid(age_bands, male, female, left_name="Male", right_name="Female")
-    write_bmp(c, "examples/out_population_pyramid.bmp")
-    write_png(c, "examples/out_population_pyramid.png")
-
-    var svg_plot = Plot().mark_population_pyramid().encode_population_pyramid(
-        categories=age_bands, left_values=male, right_values=female, left_name="Male", right_name="Female"
-    ).theme(Theme())
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_population_pyramid.svg")
+    save(c, "examples/out_population_pyramid.svg")
+    save(c, "examples/out_population_pyramid.bmp")
+    save(c, "examples/out_population_pyramid.png")

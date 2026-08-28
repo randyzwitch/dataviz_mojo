@@ -76,14 +76,14 @@ def test_render_bump_raises_on_mismatched_series_names_and_values_length() raise
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        _ = bump(cats, names, vals, width=200, height=150)
+        _ = render(bump(cats, names, vals, width=200, height=150))
 
 
 def test_render_bump_empty_categories_only_fills_background() raises:
     var cats = List[String]()
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [List[Float64]()]
-    var c = bump(cats, names, vals, width=200, height=150)
+    var c = render(bump(cats, names, vals, width=200, height=150))
     _assert_color(c, 100, 75, BG, "no categories -- background everywhere")
 
 

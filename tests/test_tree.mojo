@@ -7,7 +7,7 @@ from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
 from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import tree
 
@@ -28,7 +28,7 @@ def test_render_tree_matches_hand_derived_positions() raises:
     var parents: List[String] = ["", "root", "root"]
     var values: List[Float64] = [0.0, 1.0, 1.0]
     var t = Theme(show_legend=False)
-    var c = tree(ids, parents, values, theme=t, width=400, height=300)
+    var c = render(tree(ids, parents, values, theme=t, width=400, height=300))
 
     var palette = default_categorical_palette()
     _assert_color(c, 220, 20, t.text_color, "root's marker -- no branch, stays text_color")
@@ -63,7 +63,7 @@ def test_render_tree_raises_on_multiple_roots() raises:
     var parents: List[String] = ["", ""]
     var values: List[Float64] = [1.0, 1.0]
     with assert_raises():
-        _ = tree(ids, parents, values, width=200, height=150)
+        _ = render(tree(ids, parents, values, width=200, height=150))
 
 
 def test_render_tree_raises_on_negative_value() raises:
@@ -71,7 +71,7 @@ def test_render_tree_raises_on_negative_value() raises:
     var parents: List[String] = ["", "root"]
     var values: List[Float64] = [0.0, -1.0]
     with assert_raises():
-        _ = tree(ids, parents, values, width=200, height=150)
+        _ = render(tree(ids, parents, values, width=200, height=150))
 
 
 def test_render_tree_raises_on_mismatched_length() raises:
@@ -79,14 +79,14 @@ def test_render_tree_raises_on_mismatched_length() raises:
     var parents: List[String] = ["", "root", "extra"]
     var values: List[Float64] = [0.0, 1.0]
     with assert_raises():
-        _ = tree(ids, parents, values, width=200, height=150)
+        _ = render(tree(ids, parents, values, width=200, height=150))
 
 
 def test_render_tree_empty_data_only_fills_background() raises:
     var ids = List[String]()
     var parents = List[String]()
     var values = List[Float64]()
-    var c = tree(ids, parents, values, width=100, height=80)
+    var c = render(tree(ids, parents, values, width=100, height=80))
     _assert_color(c, 50, 40, BG, "no hierarchy: nothing drawn but the background")
 
 

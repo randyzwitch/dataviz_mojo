@@ -57,7 +57,7 @@ def test_render_respects_custom_theme_colors() raises:
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
     var custom = Theme(background=Color(20, 20, 20), mark_color=RED)
-    var c = scatter(x, y, theme=custom, width=400, height=300)
+    var c = render(scatter(x, y, theme=custom, width=400, height=300))
 
     # Far corner, untouched by any mark/axis/gridline -- pure background.
     var corner = c.get_pixel(399, 0)
@@ -74,11 +74,10 @@ def test_render_respects_custom_theme_colors() raises:
 def test_render_gridlines_flag_actually_controls_gridline_pixels() raises:
     # Built via Plot/Canvas/render() directly, not scatter() -- an
     # exact-zero pixel count is sensitive to any anti-aliasing detail,
-    # and scatter()'s output is supersampled-then-downsampled
-    # internally now (see dataviz_mojo.plot._rendered's docstring),
-    # which can coincidentally blend an edge pixel to this exact gray
-    # even with gridlines off. render() itself stays unsupersampled --
-    # see its docstring -- so this exact check still holds there.
+    # and this test predates quickplot returning a plain, un-rendered
+    # `Plot` (dataviz_mojo.plot._finished's docstring); render() is
+    # the exact same path scatter()'s own output would go through now
+    # too, so this check would hold identically either way.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var gridline_color = Color(225, 225, 225)

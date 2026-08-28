@@ -11,10 +11,7 @@ numeric dimensions -- horsepower, MPG, weight, 0-60 time, price -- laid
 out so every vehicle's tradeoffs read as one connected shape).
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import parallel
 from dataviz_mojo.theme import Theme
 
@@ -29,11 +26,6 @@ def main() raises:
     ]
 
     var c = parallel(data, dims, row_names)
-    write_bmp(c, "examples/out_parallel.bmp")
-    write_png(c, "examples/out_parallel.png")
-
-    var svg_plot = Plot().mark_parallel().encode_parallel(dims=dims, row_names=row_names, data=data).theme(
-        Theme()
-    )
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_parallel.svg")
+    save(c, "examples/out_parallel.svg")
+    save(c, "examples/out_parallel.bmp")
+    save(c, "examples/out_parallel.png")

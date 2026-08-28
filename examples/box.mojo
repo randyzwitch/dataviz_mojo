@@ -14,10 +14,7 @@ summary number (a bar chart's job), but each group's spread, and
 whether any individual value falls unusually far from the rest.
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import box
 from dataviz_mojo.colors import ROYALBLUE
 from dataviz_mojo.theme import Theme
@@ -33,11 +30,6 @@ def main() raises:
     ]
 
     var c = box(groups, scores, theme=Theme(mark_color=ROYALBLUE))
-    write_bmp(c, "examples/out_box.bmp")
-    write_png(c, "examples/out_box.png")
-
-    var svg_plot = Plot().mark_box().encode_boxplot(groups, scores).theme(
-        Theme(mark_color=ROYALBLUE)
-    )
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_box.svg")
+    save(c, "examples/out_box.svg")
+    save(c, "examples/out_box.bmp")
+    save(c, "examples/out_box.png")

@@ -7,7 +7,7 @@ from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
 from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import sankey
 
@@ -28,7 +28,7 @@ def test_render_sankey_matches_hand_derived_nodes_and_ribbon() raises:
     var from_c: List[String] = ["A"]
     var to_c: List[String] = ["B"]
     var v: List[Float64] = [10.0]
-    var c = sankey(from_c, to_c, v, width=400, height=300)
+    var c = render(sankey(from_c, to_c, v, width=400, height=300))
 
     var palette = default_categorical_palette()
     _assert_color(c, 66, 135, palette[0], "node A's rect")
@@ -77,7 +77,7 @@ def test_render_sankey_skip_edge_routes_through_a_pass_through_node() raises:
     var from_c: List[String] = ["A", "B", "D"]
     var to_c: List[String] = ["B", "C", "C"]
     var v: List[Float64] = [10.0, 10.0, 10.0]
-    var c = sankey(from_c, to_c, v, width=400, height=300)
+    var c = render(sankey(from_c, to_c, v, width=400, height=300))
 
     var palette = default_categorical_palette()
     _assert_color(c, 66, 77, palette[0], "node A's rect (column 0, top half)")
@@ -110,14 +110,14 @@ def test_render_sankey_raises_on_cycle() raises:
     var to_c: List[String] = ["B", "A"]
     var v: List[Float64] = [5.0, 5.0]
     with assert_raises():
-        _ = sankey(from_c, to_c, v, width=200, height=150)
+        _ = render(sankey(from_c, to_c, v, width=200, height=150))
 
 
 def test_render_sankey_self_loop_doesnt_raise() raises:
     var from_c: List[String] = ["A", "A"]
     var to_c: List[String] = ["A", "B"]
     var v: List[Float64] = [5.0, 5.0]
-    var c = sankey(from_c, to_c, v, width=200, height=150)
+    var c = render(sankey(from_c, to_c, v, width=200, height=150))
     _ = c
 
 
@@ -126,7 +126,7 @@ def test_render_sankey_raises_on_negative_value() raises:
     var to_c: List[String] = ["B"]
     var v: List[Float64] = [-1.0]
     with assert_raises():
-        _ = sankey(from_c, to_c, v, width=200, height=150)
+        _ = render(sankey(from_c, to_c, v, width=200, height=150))
 
 
 def test_render_sankey_raises_on_mismatched_length() raises:
@@ -134,14 +134,14 @@ def test_render_sankey_raises_on_mismatched_length() raises:
     var to_c: List[String] = ["B"]
     var v: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = sankey(from_c, to_c, v, width=200, height=150)
+        _ = render(sankey(from_c, to_c, v, width=200, height=150))
 
 
 def test_render_sankey_empty_data_only_fills_background() raises:
     var from_c = List[String]()
     var to_c = List[String]()
     var v = List[Float64]()
-    var c = sankey(from_c, to_c, v, width=100, height=80)
+    var c = render(sankey(from_c, to_c, v, width=100, height=80))
     _assert_color(c, 50, 40, BG, "no edges: nothing drawn but the background")
 
 

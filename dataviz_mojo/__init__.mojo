@@ -41,6 +41,8 @@ from dataviz_mojo.plot import (
     render_layers_svg,
     render_svg,
     save,
+    save_facets,
+    save_layers,
     scatter,
 )
 

@@ -8,10 +8,7 @@ examples/scatter.mojo's docstring for what that trades away.
 Energy flow from sources to end uses -- the Sankey diagram's classic use case.
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import sankey
 from dataviz_mojo.theme import Theme
 
@@ -22,11 +19,6 @@ def main() raises:
     var energy: List[Float64] = [30.0, 20.0, 15.0, 10.0, 25.0, 20.0]
 
     var c = sankey(from_stage, to_stage, energy)
-    write_bmp(c, "examples/out_sankey.bmp")
-    write_png(c, "examples/out_sankey.png")
-
-    var svg_plot = Plot().mark_sankey().encode_chord(
-        from_categories=from_stage, to_categories=to_stage, values=energy
-    ).theme(Theme())
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_sankey.svg")
+    save(c, "examples/out_sankey.svg")
+    save(c, "examples/out_sankey.bmp")
+    save(c, "examples/out_sankey.png")

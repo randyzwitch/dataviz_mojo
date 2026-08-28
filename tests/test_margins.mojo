@@ -40,13 +40,10 @@ def test_render_left_margin_grows_to_fit_wide_y_axis_labels() raises:
     # at exactly plot_x0), not an indirect proxy for it.
     # Built via Plot/Canvas/render() directly, not scatter() -- these
     # margin/axis-line pixel positions are exact by construction (see
-    # this function's comment above), and scatter()'s output
-    # is supersampled-then-downsampled internally now (see dataviz_
-    # mojo.plot._rendered's docstring), whose real font metrics at
-    # 3x scale don't divide back down to the identical pixel column
-    # this hand-derived math assumes. render() itself stays
-    # unsupersampled -- see its docstring -- so this exact check
-    # still holds there.
+    # this function's comment above); this test predates quickplot
+    # returning a plain, un-rendered `Plot` (dataviz_mojo.plot.
+    # _finished's docstring), render() being the exact same path
+    # scatter()'s own output would go through now too.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [1000000.0, 2000000.0]
     var t = Theme(show_gridlines=False)

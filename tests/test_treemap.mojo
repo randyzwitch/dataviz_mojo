@@ -8,7 +8,7 @@ from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
 from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import treemap
 
@@ -32,7 +32,7 @@ def test_render_treemap_matches_hand_derived_rects() raises:
     var parents: List[String] = ["", "root", "root", "A", "A", "B"]
     var values: List[Float64] = [0.0, 0.0, 0.0, 20.0, 10.0, 10.0]
     var t = Theme(show_legend=False)
-    var c = treemap(ids, parents, values, theme=t, width=400, height=300)
+    var c = render(treemap(ids, parents, values, theme=t, width=400, height=300))
 
     var palette = default_categorical_palette()
     _assert_color(c, 150, 80, palette[0], "A1's rect, well inside its bounds")
@@ -59,7 +59,7 @@ def test_render_treemap_raises_on_multiple_roots() raises:
     var parents: List[String] = ["", ""]
     var values: List[Float64] = [1.0, 1.0]
     with assert_raises():
-        _ = treemap(ids, parents, values, width=200, height=150)
+        _ = render(treemap(ids, parents, values, width=200, height=150))
 
 
 def test_render_treemap_raises_on_negative_value() raises:
@@ -67,7 +67,7 @@ def test_render_treemap_raises_on_negative_value() raises:
     var parents: List[String] = ["", "root"]
     var values: List[Float64] = [0.0, -1.0]
     with assert_raises():
-        _ = treemap(ids, parents, values, width=200, height=150)
+        _ = render(treemap(ids, parents, values, width=200, height=150))
 
 
 def test_render_treemap_raises_on_all_zero_values() raises:
@@ -75,7 +75,7 @@ def test_render_treemap_raises_on_all_zero_values() raises:
     var parents: List[String] = ["", "root", "root"]
     var values: List[Float64] = [0.0, 0.0, 0.0]
     with assert_raises():
-        _ = treemap(ids, parents, values, width=200, height=150)
+        _ = render(treemap(ids, parents, values, width=200, height=150))
 
 
 def test_render_treemap_raises_on_mismatched_length() raises:
@@ -83,14 +83,14 @@ def test_render_treemap_raises_on_mismatched_length() raises:
     var parents: List[String] = ["", "root", "extra"]
     var values: List[Float64] = [0.0, 1.0]
     with assert_raises():
-        _ = treemap(ids, parents, values, width=200, height=150)
+        _ = render(treemap(ids, parents, values, width=200, height=150))
 
 
 def test_render_treemap_empty_data_only_fills_background() raises:
     var ids = List[String]()
     var parents = List[String]()
     var values = List[Float64]()
-    var c = treemap(ids, parents, values, width=100, height=80)
+    var c = render(treemap(ids, parents, values, width=100, height=80))
     _assert_color(c, 50, 40, BG, "no hierarchy: nothing drawn but the background")
 
 

@@ -19,10 +19,7 @@ example is deliberately the single-series, numeric-axis case that's
 already possible today, not a claim that the full chart type is done.
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import line
 from dataviz_mojo.colors import SEAGREEN
 from dataviz_mojo.theme import Theme
@@ -44,11 +41,6 @@ def main() raises:
         width=320,
         height=420,
     )
-    write_bmp(c, "examples/out_slope.bmp")
-    write_png(c, "examples/out_slope.png")
-
-    var svg_plot = Plot().mark_line().encode(x=x, y=revenue).theme(
-        Theme(mark_color=SEAGREEN, line_width=3.0, show_gridlines=False)
-    ).size(320, 420)
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_slope.svg")
+    save(c, "examples/out_slope.svg")
+    save(c, "examples/out_slope.bmp")
+    save(c, "examples/out_slope.png")

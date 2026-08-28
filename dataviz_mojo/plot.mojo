@@ -58,13 +58,6 @@ an SVG renderer handles that itself, at whatever resolution it's
 displayed at (see the wiki's Changelog, its entry for the concrete
 problem that motivated adding it).
 
-Per-primitive AA is one layer of that; whole-canvas supersampling is
-the other, coarser one -- rendering everything above at several times
-its final size, then shrinking back down (see `canvas_mojo.resize.
-downsample`'s docstring for the mechanism). `render()` itself
-never does this on its own -- see its docstring, and `_rendered`'s,
-for exactly where it does and doesn't happen and why.
-
 This file holds only what every mark shares: the `Plot` struct itself
 (its methods can't be split across files -- a Mojo struct's methods all have to live with its definition -- so `encode_histogram(
 )`/`encode_waterfall()` are thin wrappers that immediately delegate to
@@ -98,20 +91,23 @@ wiki's Changelog for the move.) Import them from the package itself --
 `from dataviz_mojo import bar, scatter` -- not from the mark file
 they happen to live in.
 
-Each wraps `Plot`/`Theme`/`Canvas`/`render()` for the common case: a
-single chart, one mark, sane defaults for everything that isn't the
-data itself. Every one builds a `Theme`, builds a `Canvas` sized to
-match, builds a `Plot`, `encode*()`s the data onto it, and `render()`s
-into the canvas, in one call (`_rendered()` below is the shared tail
-all thirteen delegate that to).
+Each is nothing more than `Plot().mark_*().encode*(...)`, plus the
+five shared parameters below applied via `.theme()`/`.size()`/
+`.labels()` -- sane defaults for everything that isn't the data
+itself, so a single chart, one mark, needs no builder chain spelled
+out by hand at all. `_finished()` below is the shared tail every one
+delegates that application to; the `Plot` it returns is exactly what
+building the same chart by hand would have produced -- not a
+render, not a special quickplot-only type -- so `render()`/
+`render_svg()`/`save()` (whichever a caller reaches for) work on it
+exactly the same way they do on any hand-built `Plot`.
 
 Not a replacement for the fluent `Plot` builder -- facets, layering,
-`color`/`size` encoding, and the SVG backend all still need `Plot`
-built directly, the same way `examples/` already shows for each. They
-sit *on top of* that builder, not instead of it: every one still ends
-up calling `Plot`/`render()` itself, so dropping down to the full
-builder later (a second series, a facet grid) is a rewrite of one
-call, not a different mental model.
+and `color`/`size` encoding still need `Plot` built directly, the
+same way `examples/` already shows for each. They sit *on top of*
+that builder, not instead of it: every one still just *is* a `Plot`,
+so dropping down to the full builder later (a second series, a facet
+grid) is a rewrite of one call, not a different mental model.
 
 Named after the mark, not the `Plot.mark_*()` method each wraps
 (`bar`, not `mark_bar`) -- they're meant to be the first thing a
@@ -131,18 +127,14 @@ parameters shared across all of them:
   it, or `Color(40, 130, 90)` directly) works exactly as it does
   building a `Plot` by hand; only how it's handed in differs (an
   argument here, instead of a chained `.theme(...)`).
-- `width`/`height`: the returned `Canvas`'s pixel size, defaulting to
-  640x420 -- the final size of the returned `Canvas`; see `_rendered`'s docstring for the internal supersampling every one of these
-  functions now bakes in before handing that `Canvas` back, invisibly
-  to the caller.
+- `width`/`height`: the returned `Plot`'s `.size()` (`Plot.size()`'s
+  docstring), defaulting to 640x420 like every hand-built `Plot`.
 - `title`/`x_title`/`y_title`: forwarded to `Plot.labels()` as-is.
 
-Every one returns a `Canvas`, already rendered -- call
-`.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) on the
-result. There's no SVG equivalent yet -- build a `Plot` and call
-`render_svg(plot)` for that (see `examples/scatter.mojo`'s SVG-twin
-block, or `save()` below if the caller doesn't want to name a backend
-at all), same as for any mark these don't cover.
+Every one returns a `Plot` -- call `save(plot, path)` to write it (any
+of `.svg`/`.png`/`.bmp`, `save()`'s own docstring), or `render(plot)`/
+`render_svg(plot)` for the explicit two-step (needed for pixel/string
+assertions -- this whole test suite's hand-verified ones included).
 """
 
 from std.collections import Dict
@@ -153,7 +145,6 @@ from canvas_mojo.color import Color
 from canvas_mojo.gradient import LinearGradient
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
-from canvas_mojo.resize import downsample
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.path import Path
@@ -223,20 +214,6 @@ from dataviz_mojo.population_pyramid import _render_population_pyramid
 from dataviz_mojo.stacked_bar import _render_stacked_bar
 from dataviz_mojo.streamgraph import _render_streamgraph
 from dataviz_mojo.waterfall import _render_waterfall, _waterfall_running_totals
-
-
-# The fixed internal supersampling factor `_rendered()` renders every
-# one-call convenience function's raster output at before shrinking it
-# back down -- see that function's docstring for the mechanism and
-# why it lives only there, not in `render()` itself. Not a `Theme`
-# field and not exposed as a parameter anywhere: unlike `Theme.scale`
-# (a real, user-visible choice -- render genuinely larger, for a
-# viewer that upscales), this one exists purely so quickplot's output
-# doesn't look worse than it has to, which isn't a decision a caller
-# should need to make or even know is happening. 3x is clearly enough
-# finer-grained to matter without a 640x420 chart's scratch canvas
-# becoming wasteful; not benchmarked against 2x/4x.
-comptime _QUICKPLOT_SUPERSAMPLE = 3
 
 
 struct _Scaled(Movable):
@@ -510,7 +487,7 @@ struct Plot(Movable):
     """Pixel width `render()`/`render_svg()`/`save()` construct their
     target at -- set via `.size()`; defaults to 640, matching every
     quickplot function's own default (see plot.mojo's module docstring
-    for quickplot's separate `_rendered()` path, which takes `width`/
+    for quickplot's separate `_finished()` path, which takes `width`/
     `height` as its own plain args and never reads this field)."""
     var height: Int
     """Pixel height -- see `width`'s docstring."""
@@ -3774,7 +3751,7 @@ def _render_into(
 
     Private: `render()` is this function's only caller (a thin wrapper
     that builds a right-sized `Canvas` from `plot.width`/`height` and
-    calls this), plus `_rendered()` (quickplot's shared tail -- see its
+    calls this), plus `_finished()` (quickplot's shared tail -- see its
     own docstring), always with the default whole-target bounds.
     `render_facets()`/`render_layers()` do *not* call this: each has
     its own per-cell/shared-canvas variant of the same "fill background,
@@ -3826,24 +3803,20 @@ def _render_into(
     generic` and every mark-specific `_render_*` fill nothing of their
     own, since any second fill would always be a strict subset of this
     one, in the same color: one whole extra full-target fill per render
-    (at a 640x420 chart's quickplot-supersampled 1920x1260 scratch
-    canvas -- see `_rendered`'s docstring -- about 2.4M redundant pixel
-    writes per chart). Painting the background is the *entry point's*
-    job, once, and each of the four entry points does it: here,
-    `_render_svg_into()`, `_render_facets_generic` (per cell -- see its
-    comment) and `render_layers()`/`render_layers_svg()`.
+    would be pure redundant work. Painting the background is the
+    *entry point's* job, once, and each of the four entry points does
+    it: here, `_render_svg_into()`, `_render_facets_generic` (per cell
+    -- see its comment) and `render_layers()`/`render_layers_svg()`.
 
-    Never supersampled on its own -- every pixel-sized quantity here
-    scales only by `plot._theme.scale` (see `Theme`'s docstring),
-    exactly the value the caller set, nothing added silently. This is
-    the precise, pixel-for-pixel entry point real HiDPI export and
-    this whole test suite's hand-verified pixel assertions rely
-    on; `_rendered()` -- what every one-call convenience function
-    (`bar()`, `scatter()`, ...) calls instead of this directly -- is
-    the one place a fixed supersample factor gets applied
-    automatically, invisibly to its caller, precisely because nothing
-    there needs that precision (see its docstring for why the two
-    entry points draw that line differently).
+    Every pixel-sized quantity here scales only by `plot._theme.scale`
+    (see `Theme`'s docstring), exactly the value the caller set,
+    nothing added silently -- the precise, pixel-for-pixel entry point
+    real HiDPI export and this whole test suite's hand-verified pixel
+    assertions rely on. `_finished()` -- what every one-call
+    convenience function (`bar()`, `scatter()`, ...) calls instead of
+    this directly -- reads no differently: it hands back a plain
+    `Plot`, unrendered, so a quickplot-built chart goes through this
+    exact same, un-scaled path too, whenever a caller renders/saves it.
     """
     var cx1 = ox1 if ox1 >= 0 else canvas.width
     var cy1 = oy1 if oy1 >= 0 else canvas.height
@@ -3920,33 +3893,126 @@ def _render_svg_into(
     _replay_text_requests_svg(svg, result.text_requests)
 
 
+def _resolve_output_format(theme_format: OutputFormat, path: String) -> OutputFormat:
+    """The format `save()`/`save_layers()`/`save_facets()` actually
+    use: `path`'s own extension when it's one of `.svg`/`.png`/`.bmp`
+    (case-insensitive), `theme_format` (a `Theme.output_format`, see
+    its docstring) otherwise. Path wins when it says something
+    unambiguous -- `save(plot, "chart.png")` should write a PNG
+    regardless of what `Theme` happens to be set to, the same way
+    `savefig(path)`-style APIs elsewhere read the destination's own
+    extension rather than requiring a separate format argument to
+    agree with it. `theme_format` remains the fallback for a path with
+    no extension, or one this function doesn't recognize, and stays
+    the whole story for any caller going through `render()`/
+    `render_svg()` directly instead of one of these three, which never
+    look at a path at all.
+    """
+    var lower = path.lower()
+    if lower.endswith(".svg"):
+        return OutputFormat.SVG
+    elif lower.endswith(".png"):
+        return OutputFormat.PNG
+    elif lower.endswith(".bmp"):
+        return OutputFormat.BMP
+    return theme_format
+
+
 def save(plot: Plot, path: String) raises:
     """Render `plot` and write it to `path` in one call -- the "never
-    name a `canvas_mojo` backend" entry point issue #112 asked for.
-    Reads `plot._theme.output_format` (`Theme`'s docstring; defaults to
-    `OutputFormat.SVG`) to decide which of `render()`/`render_svg()` to
-    call and which `canvas_mojo.io`/`canvas_mojo.vector.svg` writer to
-    hand the result to -- `PNG`/`BMP` both render through the same
-    raster `render()` path, differing only in which writer runs.
-
-    A plain runtime `if`/`elif`, not a compile-time dispatch:
-    `output_format` is an ordinary value a caller sets through `Theme`
-    like any other styling knob, not something known until `plot` is
-    actually built, so there's nothing to resolve at compile time here.
+    import anything from `canvas_mojo`" entry point issue #112 asked
+    for. Picks a format via `_resolve_output_format()` (`path`'s own
+    extension, falling back to `plot._theme.output_format` -- `Theme`'s
+    docstring), then calls whichever of `render()`/`render_svg()` that
+    format needs and hands the result to the matching `canvas_mojo.io`/
+    `canvas_mojo.vector.svg` writer -- `PNG`/`BMP` both render through
+    the same raster `render()` path, differing only in which writer
+    runs.
 
     For anyone who wants the rendered `Canvas`/`SvgCanvas` object
     itself (to write more than one format from a single render, or to
     inspect/assert against it directly, the way this test suite's
     hand-verified pixel assertions do) -- call `render()`/`render_svg()`
     directly instead; this function is purely a convenience on top of
-    those two, not a replacement for them.
+    those two, not a replacement for them. `save_layers()`/`save_
+    facets()` are this function's `render_layers()`/`render_facets()`
+    counterparts, for a `List[Plot]` instead of one `Plot`; the `save(
+    canvas: Canvas, path: String)` overload just below is its quickplot
+    counterpart, for an already-rendered `Canvas` (what `scatter()`/
+    `bar()`/... return -- plot.mojo's module docstring) instead of a
+    `Plot` this function would still need to render itself.
     """
-    if plot._theme.output_format == OutputFormat.SVG:
+    var format = _resolve_output_format(plot._theme.output_format, path)
+    if format == OutputFormat.SVG:
         write_svg(render_svg(plot), path)
-    elif plot._theme.output_format == OutputFormat.PNG:
+    elif format == OutputFormat.PNG:
         write_png(render(plot), path)
     else:
         write_bmp(render(plot), path)
+
+
+def save(canvas: Canvas, path: String) raises:
+    """Write an already-rendered `Canvas` -- what `render()` returns,
+    for a caller who wants that explicit two-step instead of `save(
+    plot: Plot, path: String)`'s one-step convenience -- to `path` in
+    one call, without importing `write_bmp`/`write_png` from
+    `canvas_mojo.io` directly. Picks PNG or BMP from `path`'s own
+    extension (case-insensitive), defaulting to PNG when the extension
+    isn't `.bmp` -- there's no `Theme` to fall back to the way `save(
+    plot: Plot, path: String)` has one (`canvas` is already-rendered
+    pixels, not a `Plot`), and no way to produce real vector markup
+    from raster pixels at all, so a path ending `.svg` raises rather
+    than silently writing something that isn't actually SVG.
+    """
+    var lower = path.lower()
+    if lower.endswith(".svg"):
+        raise Error(
+            "save(): a Canvas is already-rendered raster pixels -- write_svg"
+            " can't produce real vector markup from it. Build the chart as a"
+            " Plot and call save(plot, path) instead."
+        )
+    elif lower.endswith(".bmp"):
+        write_bmp(canvas, path)
+    else:
+        write_png(canvas, path)
+
+
+def save_layers(plots: List[Plot], path: String) raises:
+    """`save()`'s `render_layers()`/`render_layers_svg()` counterpart
+    -- see `save()`'s own docstring for the shared story. Format comes
+    from `plots[0]`'s theme when `path`'s own extension doesn't decide
+    it (every layer already has to share one `Theme.output_format` the
+    same way it shares one `.size()` -- `_require_uniform_size`'s
+    docstring covers `render_layers()`'s own uniform-size requirement,
+    though output_format itself isn't part of that check); raises on an
+    empty `plots` before ever touching `plots[0]`, the same guard
+    `render_layers()` itself raises for the same reason.
+    """
+    if len(plots) == 0:
+        raise Error("save_layers(): plots must not be empty")
+    var format = _resolve_output_format(plots[0]._theme.output_format, path)
+    if format == OutputFormat.SVG:
+        write_svg(render_layers_svg(plots), path)
+    elif format == OutputFormat.PNG:
+        write_png(render_layers(plots), path)
+    else:
+        write_bmp(render_layers(plots), path)
+
+
+def save_facets(plots: List[Plot], cols: Int, path: String) raises:
+    """`save()`'s `render_facets()`/`render_facets_svg()` counterpart
+    -- see `save_layers()`'s docstring for the shared "format from
+    plots[0], empty list raises first" story, identical here.
+    """
+    if len(plots) == 0:
+        raise Error("save_facets(): plots must not be empty")
+    var format = _resolve_output_format(plots[0]._theme.output_format, path)
+    if format == OutputFormat.SVG:
+        write_svg(render_facets_svg(plots, cols), path)
+    elif format == OutputFormat.PNG:
+        write_png(render_facets(plots, cols), path)
+    else:
+        write_bmp(render_facets(plots, cols), path)
 
 
 def accessible_svg_string(svg: SvgCanvas, title: String, description: String = "") raises -> String:
@@ -5698,7 +5764,7 @@ def _render_layers_generic[
     return _RenderResult(text_requests^, frame.px0, frame.py0, frame.px1, frame.py1)
 
 
-def _rendered(
+def _finished(
     var plot: Plot,
     theme: Theme,
     width: Int,
@@ -5707,54 +5773,24 @@ def _rendered(
     x_title: String,
     y_title: String,
     subtitle: String = "",
-) raises -> Canvas:
+) -> Plot:
     """Everything every function in this module does once its mark
     and data are chosen: apply the shared `title`/`subtitle`/`x_title`/
-    `y_title` and `theme` to the half-built `plot`, then render it -- at
-    `_QUICKPLOT_SUPERSAMPLE` times `width`/`height`, into a scratch
-    `Canvas` that size, immediately shrunk back down via
-    `canvas_mojo.resize.downsample` -- and return the result, a
-    `Canvas` of exactly `width`x`height` with genuinely finer-grained
-    anti-aliasing baked in than a direct `render()` at that same size
-    would produce (see `downsample()`'s docstring for why this,
-    not a single-resolution render, is what "finer AA" actually means
-    here).
+    `y_title`, `theme`, and `width`/`height` to the half-built `plot`
+    and hand back the finished `Plot` -- unrendered. Every quickplot
+    function really is nothing more than "build this specific `Plot`"
+    (issue #112): it returns exactly what `Plot().mark_point().encode(
+    x=x, y=y).theme(theme).size(width, height).labels(...)` would have
+    built by hand, so `render()`/`render_svg()`/`save()` -- the same
+    ones any hand-built `Plot` uses, no quickplot-specific entry point
+    at all -- are how a caller turns the result into pixels, markup, or
+    a written file.
 
-    Shared by all thirteen functions here -- the two chained builder
+    Shared by every function in this module -- the two chained builder
     calls that pick the mark and encode the data are the only part
-    that differs between them. `.labels()`/`.theme()` are applied here
-    rather than at each call site for the same reason: nothing about
-    them varies by mark.
-
-    Supersampling is the one place this logic exists at all, not a
-    cleaned-up version of a pattern each caller writes for itself --
-    nothing about it (the `_QUICKPLOT_SUPERSAMPLE` factor, the scaled
-    `Theme`, the `downsample()` call) is about *what chart to draw*,
-    only *how not to make its edges look worse than they have to*. A
-    caller who wants that control back still has it, just spelled
-    explicitly rather than defaulted invisibly: build a `Plot` and call
-    `render()` directly, whose `Theme.scale` is exactly the same
-    multiplicative knob this function uses internally (see its
-    docstring) -- `render()` itself stays exactly as un-supersampled as
-    it always was, deliberately: it's the precise, pixel-for-pixel
-    entry point real HiDPI export and this whole test suite's
-    hand-verified pixel assertions depend on, so hiding this mechanism
-    inside quickplot's convenience layer doesn't touch it at all. This
-    function calls the private `_render_into` directly rather than
-    public `render()` since it already owns its own right-sized
-    (supersampled) scratch `Canvas`, built independently of
-    `plot.width`/`height` (quickplot's `width`/`height` are this
-    function's own plain args, never read off `plot` -- see plot.mojo's
-    module docstring); `render()`'s own `Canvas` construction from
-    `plot.width`/`height` would be the wrong size here regardless.
-
-    A caller who renders the same `plot` through this function twice
-    at different sizes sees no leftover effect of one call on the
-    next -- `theme` is never mutated in place, only copied into a
-    fresh, larger-`scale` `Theme` each time, since `Theme` is a plain
-    value type and `theme.scale` here is always relative to the
-    caller's untouched `theme.scale`, not something this function
-    remembers between calls.
+    that differs between them. `.labels()`/`.theme()`/`.size()` are
+    applied here rather than at each call site for the same reason:
+    nothing about them varies by mark.
 
     Takes `plot` as `var` (owned) because `Plot`'s builder methods
     consume and return `Self` -- see plot.mojo's module docstring
@@ -5764,15 +5800,10 @@ def _rendered(
     `^` the compiler rejects the call outright rather than silently
     copying the columns.
     """
-    var factor = _QUICKPLOT_SUPERSAMPLE
-    var scaled_theme = theme
-    scaled_theme.scale = theme.scale * Float64(factor)
-    var scratch = Canvas(width * factor, height * factor, scaled_theme.background)
-    _render_into(
-        scratch,
-        plot^.labels(title=title, subtitle=subtitle, x_title=x_title, y_title=y_title).theme(scaled_theme),
-    )
-    return downsample(scratch, factor)
+    return plot^.labels(
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title
+    ).theme(theme).size(width, height)
+
 
 
 def scatter(
@@ -5784,7 +5815,7 @@ def scatter(
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Canvas:
+) raises -> Plot:
     """A scatter plot -- `Mark.POINT` over continuous `x`/`y`.
 
     Args:
@@ -5793,17 +5824,17 @@ def scatter(
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
-        width: Pixel width of the returned `Canvas`.
-        height: Pixel height of the returned `Canvas`.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
         title: The chart's title, shown above the plot.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
 
     Returns:
-        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
     """
     var plot = Plot().mark_point().encode(x=x, y=y)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _finished(plot^, theme, width, height, title, x_title, y_title)
 
 
 def line(
@@ -5815,7 +5846,7 @@ def line(
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Canvas:
+) raises -> Plot:
     """A line chart -- `Mark.LINE` over continuous `x`/`y`, connected
     in data order.
 
@@ -5825,17 +5856,17 @@ def line(
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
-        width: Pixel width of the returned `Canvas`.
-        height: Pixel height of the returned `Canvas`.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
         title: The chart's title, shown above the plot.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
 
     Returns:
-        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
     """
     var plot = Plot().mark_line().encode(x=x, y=y)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _finished(plot^, theme, width, height, title, x_title, y_title)
 
 
 def area(
@@ -5847,7 +5878,7 @@ def area(
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Canvas:
+) raises -> Plot:
     """An area chart -- `Mark.AREA` over continuous `x`/`y`, filled
     down to a zero baseline.
 
@@ -5858,14 +5889,14 @@ def area(
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
-        width: Pixel width of the returned `Canvas`.
-        height: Pixel height of the returned `Canvas`.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
         title: The chart's title, shown above the plot.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
 
     Returns:
-        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
     """
     var plot = Plot().mark_area().encode(x=x, y=y)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title)
+    return _finished(plot^, theme, width, height, title, x_title, y_title)

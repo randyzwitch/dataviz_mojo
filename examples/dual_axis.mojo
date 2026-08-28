@@ -11,13 +11,13 @@ Each axis captioned via that same layer's .labels(y_title=...) --
 the secondary layer's caption mirrors onto the plot's right edge
 (see Plot.secondary_axis()'s docstring for why this reads from the
 layer itself, not a title shared from plots[0] the way the chart's title/x_title are).
+
+Writes all three formats from one `plots` list via save_layers() --
+no `canvas_mojo` import needed at all (see that function's docstring).
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
 from canvas_mojo.color import Color
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_layers, render_layers_svg
+from dataviz_mojo.plot import Plot, save_layers
 from dataviz_mojo.theme import Theme
 
 
@@ -41,23 +41,6 @@ def main() raises:
     plots.append(revenue_layer^)
     plots.append(growth_layer^)
 
-    var c = render_layers(plots)
-    write_bmp(c, "examples/out_dual_axis.bmp")
-    write_png(c, "examples/out_dual_axis.png")
-
-    var svg_revenue_layer = Plot().mark_area().encode(x=months, y=revenue).theme(
-        Theme(mark_color=Color(70, 130, 180))
-    ).labels(title="Revenue & Growth", x_title="Month", y_title="Revenue ($M)")
-    var svg_growth_layer = (
-        Plot()
-        .mark_line()
-        .encode(x=months, y=growth)
-        .theme(Theme(mark_color=Color(220, 80, 60)))
-        .secondary_axis()
-        .labels(y_title="Growth (%)")
-    )
-    var svg_plots = List[Plot]()
-    svg_plots.append(svg_revenue_layer^)
-    svg_plots.append(svg_growth_layer^)
-    var svg = render_layers_svg(svg_plots)
-    write_svg(svg, "examples/out_dual_axis.svg")
+    save_layers(plots, "examples/out_dual_axis.bmp")
+    save_layers(plots, "examples/out_dual_axis.png")
+    save_layers(plots, "examples/out_dual_axis.svg")

@@ -12,10 +12,7 @@ in a real dataset), upper-triangle layout with the diagonal dropped
 (every self-correlation is trivially 1.0, rarely worth a bubble).
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import corrplot
 from dataviz_mojo.theme import Theme
 
@@ -30,11 +27,6 @@ def main() raises:
     ]
 
     var c = corrplot(variables, matrix, layout="upper", diag=False)
-    write_bmp(c, "examples/out_corrplot.bmp")
-    write_png(c, "examples/out_corrplot.png")
-
-    var svg_plot = Plot().mark_corrplot(layout="upper", diag=False).encode_corrplot(
-        variables=variables, matrix=matrix
-    ).theme(Theme())
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_corrplot.svg")
+    save(c, "examples/out_corrplot.svg")
+    save(c, "examples/out_corrplot.bmp")
+    save(c, "examples/out_corrplot.png")

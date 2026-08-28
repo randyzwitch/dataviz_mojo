@@ -10,10 +10,7 @@ A small social network -- who's connected to whom, edge width reading
 as connection strength.
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import graph
 from dataviz_mojo.theme import Theme
 
@@ -24,11 +21,6 @@ def main() raises:
     var connection_strength: List[Float64] = [8.0, 3.0, 5.0, 6.0, 4.0]
 
     var c = graph(from_people, to_people, connection_strength)
-    write_bmp(c, "examples/out_graph.bmp")
-    write_png(c, "examples/out_graph.png")
-
-    var svg_plot = Plot().mark_graph().encode_chord(
-        from_categories=from_people, to_categories=to_people, values=connection_strength
-    ).theme(Theme())
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_graph.svg")
+    save(c, "examples/out_graph.svg")
+    save(c, "examples/out_graph.bmp")
+    save(c, "examples/out_graph.png")

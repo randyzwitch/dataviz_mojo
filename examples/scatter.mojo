@@ -11,10 +11,7 @@ returned here (see dataviz_mojo.plot._rendered's docstring) -- nothing
 in this file, or any other example, has to ask for that.
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import scatter
 from dataviz_mojo.theme import Theme
 
@@ -24,10 +21,7 @@ def main() raises:
     var y: List[Float64] = [2.3, 4.1, 3.6, 5.8, 5.1, 7.4, 6.9, 8.2, 9.0, 8.6]
 
     var c = scatter(x, y)
+    save(c, "examples/out_scatter.svg")
+    save(c, "examples/out_scatter.bmp")
+    save(c, "examples/out_scatter.png")
 
-    write_bmp(c, "examples/out_scatter.bmp")
-    write_png(c, "examples/out_scatter.png")
-
-    var svg_plot = Plot().mark_point().encode(x=x, y=y).theme(Theme())
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_scatter.svg")

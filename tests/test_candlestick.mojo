@@ -94,7 +94,7 @@ def test_render_candlestick_raises_on_mismatched_category_length() raises:
     var low: List[Float64] = [1.0, 2.0]
     var close: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = candlestick(cats, open, high, low, close, width=200, height=150)
+        _ = render(candlestick(cats, open, high, low, close, width=200, height=150))
 
 
 def test_render_candlestick_raises_on_mismatched_ohlc_length() raises:
@@ -104,7 +104,7 @@ def test_render_candlestick_raises_on_mismatched_ohlc_length() raises:
     var low: List[Float64] = [1.0, 2.0]
     var close: List[Float64] = [1.0]
     with assert_raises():
-        _ = candlestick(cats, open, high, low, close, width=200, height=150)
+        _ = render(candlestick(cats, open, high, low, close, width=200, height=150))
 
 
 def main() raises:

@@ -10,10 +10,7 @@ example (GitHub commit counts), a value that cycles by day-of-month so
 the grid reads as varied rather than flatly banded.
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import calendar_heatmap
 from dataviz_mojo.theme import Theme
 
@@ -30,9 +27,6 @@ def main() raises:
             values.append(Float64((day * 7 + month) % 10))
 
     var c = calendar_heatmap(dates, values, width=900, height=250)
-    write_bmp(c, "examples/out_calendar_heatmap.bmp")
-    write_png(c, "examples/out_calendar_heatmap.png")
-
-    var svg_plot = Plot().mark_calendar_heatmap().encode_calendar(dates=dates, values=values).theme(Theme()).size(900, 250)
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_calendar_heatmap.svg")
+    save(c, "examples/out_calendar_heatmap.svg")
+    save(c, "examples/out_calendar_heatmap.bmp")
+    save(c, "examples/out_calendar_heatmap.png")

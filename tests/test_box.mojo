@@ -38,12 +38,11 @@ def test_render_boxplot_matches_hand_derived_box_whiskers_and_outlier() raises:
     # ([2,9,10,18,20]) = [1.1, 20.9], 2 categories over [60,380] (band
     # centers 140/300, bandwidth 128, half-width 64, cap half-width 32).
     # Built via Plot/Canvas/render() directly, not box() -- these are
-    # exact hand-derived pixel positions (see this function's comment above), and box()'s output is supersampled-then-
-    # downsampled internally now (see dataviz_mojo.plot._rendered's
-    # docstring), which can shift a thin axis-color line's exact
-    # footprint by a pixel or so relative to this hand-derived math.
-    # render() itself stays unsupersampled -- see its docstring --
-    # so this exact check still holds there.
+    # exact hand-derived pixel positions (see this function's comment
+    # above); this test predates quickplot returning a plain,
+    # un-rendered `Plot` (dataviz_mojo.plot._finished's docstring),
+    # render() being the exact same path box()'s own output would go
+    # through now too.
     var cats: List[String] = ["A", "B"]
     var values: List[List[Float64]] = [
         [2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0, 20.0],
@@ -81,14 +80,14 @@ def test_encode_boxplot_raises_on_mismatched_length() raises:
     var cats: List[String] = ["A", "B"]
     var values: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        _ = box(cats, values)
+        _ = render(box(cats, values))
 
 
 def test_encode_boxplot_raises_on_empty_category_values() raises:
     var cats: List[String] = ["A", "B"]
     var values: List[List[Float64]] = [[1.0, 2.0], List[Float64]()]
     with assert_raises():
-        _ = box(cats, values)
+        _ = render(box(cats, values))
 
 
 def main() raises:

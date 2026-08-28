@@ -31,7 +31,7 @@ def test_render_nightingale_matches_hand_derived_wedge_colors() raises:
     # computed by hand from cos/sin of each bisector angle.
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 1.0, 1.0]
-    var c = nightingale(x, y, width=400, height=300)
+    var c = render(nightingale(x, y, width=400, height=300))
 
     var palette = default_categorical_palette()
     _assert_color(c, 198, 110, palette[0], "wedge 0, bisector -30 degrees")
@@ -58,11 +58,11 @@ def test_render_nightingale_area_mode_scales_radius_by_sqrt() raises:
     var y: List[Float64] = [1.0, 4.0]
     var palette = default_categorical_palette()
 
-    var radius_mode = nightingale(x, y, area=False, width=400, height=300)
+    var radius_mode = render(nightingale(x, y, area=False, width=400, height=300))
     _assert_color(radius_mode, 185, 135, BG, "radius mode: (1/4) * 85.5 = 21.375, point at r=30 is outside")
     _assert_color(radius_mode, 125, 135, palette[1], "radius mode: wedge 1 (frac 1.0) still reaches r=30")
 
-    var area_mode = nightingale(x, y, area=True, width=400, height=300)
+    var area_mode = render(nightingale(x, y, area=True, width=400, height=300))
     _assert_color(area_mode, 185, 135, palette[0], "area mode: sqrt(1/4) * 85.5 = 42.75, point at r=30 is inside")
     _assert_color(area_mode, 125, 135, palette[1], "area mode: wedge 1 (frac 1.0) still reaches r=30")
 
@@ -95,27 +95,27 @@ def test_render_nightingale_raises_on_negative_value() raises:
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1.0, -1.0]
     with assert_raises():
-        _ = nightingale(x, y, width=200, height=150)
+        _ = render(nightingale(x, y, width=200, height=150))
 
 
 def test_render_nightingale_raises_on_all_zero_values() raises:
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [0.0, 0.0]
     with assert_raises():
-        _ = nightingale(x, y, width=200, height=150)
+        _ = render(nightingale(x, y, width=200, height=150))
 
 
 def test_render_nightingale_raises_on_mismatched_category_length() raises:
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = nightingale(x, y, width=200, height=150)
+        _ = render(nightingale(x, y, width=200, height=150))
 
 
 def test_render_nightingale_empty_categories_only_fills_background() raises:
     var x = List[String]()
     var y = List[Float64]()
-    var c = nightingale(x, y, width=100, height=80)
+    var c = render(nightingale(x, y, width=100, height=80))
     _assert_color(c, 50, 40, BG, "no categories: nothing drawn but the background")
 
 

@@ -55,7 +55,7 @@ def test_render_annotate_line_raster_draws_ink_at_the_hand_derived_row() raises:
     # that the SVG backend's text/line plumbing is correct.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, 20.0]
-    var c = bar(cats, vals, width=400, height=300, theme=Theme(show_gridlines=False))
+    var c = render(bar(cats, vals, width=400, height=300, theme=Theme(show_gridlines=False)))
     var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).annotate_line(15.0).theme(
         Theme(show_gridlines=False)
     ).size(400, 300)

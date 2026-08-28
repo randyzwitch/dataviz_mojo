@@ -20,7 +20,7 @@ from dataviz_mojo.plot import (
     _dynamic_legend_width,
     _empty_result,
     _max_label_width,
-    _rendered,
+    _finished,
 )
 from dataviz_mojo.theme import Theme
 
@@ -261,7 +261,7 @@ def bump(
     title: String = "",
     subtitle: String = "",
     x_title: String = "",
-) raises -> Canvas:
+) raises -> Plot:
     """A bump chart -- `Mark.BUMP`, one line per series tracking its *rank* (1 = highest value) among every series at each category, not
     its raw value. Same data shape `grouped_bar()`/`stacked_bar()` take
     (`values[j]` is series `series_names[j]`'s value per category).
@@ -276,16 +276,16 @@ def bump(
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
-        width: Pixel width of the returned `Canvas`.
-        height: Pixel height of the returned `Canvas`.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
         title: The chart's title, shown above the plot.
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
 
     Returns:
-        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
     """
     var plot = Plot().mark_bump().encode_grouped_bar(
         categories=categories, series_names=series_names, values=values
     )
-    return _rendered(plot^, theme, width, height, title, x_title, "Rank", subtitle=subtitle)
+    return _finished(plot^, theme, width, height, title, x_title, "Rank", subtitle=subtitle)

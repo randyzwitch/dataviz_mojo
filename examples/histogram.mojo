@@ -6,10 +6,7 @@ dataviz_mojo.histogram() -- see examples/scatter.mojo's docstring
 for what that trades away.
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import histogram
 from dataviz_mojo.colors import REBECCAPURPLE
 from dataviz_mojo.theme import Theme
@@ -25,11 +22,6 @@ def main() raises:
     ]
 
     var c = histogram(scores, bins=8, theme=Theme(mark_color=REBECCAPURPLE))
-    write_bmp(c, "examples/out_histogram.bmp")
-    write_png(c, "examples/out_histogram.png")
-
-    var svg_plot = Plot().mark_bar().encode_histogram(scores, bins=8).theme(
-        Theme(mark_color=REBECCAPURPLE)
-    )
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_histogram.svg")
+    save(c, "examples/out_histogram.svg")
+    save(c, "examples/out_histogram.bmp")
+    save(c, "examples/out_histogram.png")

@@ -12,13 +12,12 @@ matched pair.
 
 Built by hand (not a one-call quickplot -- neither method is exposed
 on quickplot functions, the same deliberate scope cut examples/
-annotate_line.mojo's docstring explains) via Plot() directly.
+annotate_line.mojo's docstring explains) via Plot() directly. Writes
+all three formats from one `plot` via save() -- no `canvas_mojo`
+import needed at all (see save()'s docstring).
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render, render_svg
+from dataviz_mojo.plot import Plot, save
 
 
 def main() raises:
@@ -33,18 +32,7 @@ def main() raises:
         .annotate_vline(4.0, label="launch")
         .annotate_point(7.0, 70.0, label="peak")
     )
+    save(plot, "examples/out_annotate_vline_point.svg")
+    save(plot, "examples/out_annotate_vline_point.bmp")
+    save(plot, "examples/out_annotate_vline_point.png")
 
-    var c = render(plot)
-    write_bmp(c, "examples/out_annotate_vline_point.bmp")
-    write_png(c, "examples/out_annotate_vline_point.png")
-
-    var svg_plot = (
-        Plot()
-        .mark_line()
-        .encode(x=x, y=latency)
-        .labels(title="Response Time (ms)", subtitle="With a launch marker and peak callout")
-        .annotate_vline(4.0, label="launch")
-        .annotate_point(7.0, 70.0, label="peak")
-    )
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_annotate_vline_point.svg")

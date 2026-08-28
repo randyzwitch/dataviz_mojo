@@ -11,10 +11,7 @@ rings" (the first team's ring outermost) instead of a bar chart,
 so all four read together as one shape at a glance.
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import radialbar
 from dataviz_mojo.theme import Theme
 
@@ -24,9 +21,6 @@ def main() raises:
     var completion: List[Float64] = [92.0, 78.0, 45.0, 60.0]
 
     var c = radialbar(teams, completion)
-    write_bmp(c, "examples/out_radialbar.bmp")
-    write_png(c, "examples/out_radialbar.png")
-
-    var svg_plot = Plot().mark_radialbar().encode_categorical(x=teams, y=completion).theme(Theme())
-    var svg = render_svg(svg_plot)
-    write_svg(svg, "examples/out_radialbar.svg")
+    save(c, "examples/out_radialbar.svg")
+    save(c, "examples/out_radialbar.bmp")
+    save(c, "examples/out_radialbar.png")

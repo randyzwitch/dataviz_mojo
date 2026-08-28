@@ -6,7 +6,7 @@ grid-frame/color-scale rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import heatmap
 
@@ -43,7 +43,7 @@ def test_render_heatmap_matches_hand_derived_cells() raises:
     var y: List[String] = ["AM", "PM", "AM", "PM"]
     var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = heatmap(x, y, v, theme=t, width=400, height=300)
+    var c = render(heatmap(x, y, v, theme=t, width=400, height=300))
 
     _assert_color(c, 100, 60, Color(60, 110, 200), "(Mon, AM) = 1.0, the color domain's min")
     _assert_color(c, 100, 180, Color(177, 193, 223), "(Mon, PM) = 2.0")
@@ -74,7 +74,7 @@ def test_render_heatmap_missing_cell_leaves_background() raises:
     var y: List[String] = ["AM", "PM", "AM"]
     var v: List[Float64] = [1.0, 2.0, 3.0]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = heatmap(x, y, v, theme=t, width=400, height=300)
+    var c = render(heatmap(x, y, v, theme=t, width=400, height=300))
     _assert_color(c, 300, 180, BG, "(Tue, PM) was never given -- background shows through")
 
 
@@ -94,14 +94,14 @@ def test_render_heatmap_raises_on_mismatched_length() raises:
     var one: List[Float64] = [1.0, 2.0]
     var y: List[String] = ["a", "b", "c"]
     with assert_raises():
-        _ = heatmap(x, y, one, width=200, height=150)
+        _ = render(heatmap(x, y, one, width=200, height=150))
 
 
 def test_render_heatmap_empty_data_only_fills_background() raises:
     var x = List[String]()
     var y = List[String]()
     var v = List[Float64]()
-    var c = heatmap(x, y, v, width=200, height=150)
+    var c = render(heatmap(x, y, v, width=200, height=150))
     _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
 
 

@@ -45,7 +45,7 @@ def test_render_theme_scale_uniformly_scales_the_whole_layout() raises:
     # doubles its midpoint too.
     var xy: List[Float64] = [5.0]
     var t = Theme(scale=2.0)
-    var c = scatter(xy, xy, theme=t, width=800, height=600)
+    var c = render(scatter(xy, xy, theme=t, width=800, height=600))
 
     _assert_color(c, 440, 270, t.mark_color, "scale=2.0's point, exactly 2x the scale=1.0 pixel")
     # The y-axis line itself, confirming the *margin* scaled (not just
@@ -63,8 +63,8 @@ def test_render_theme_scale_default_matches_unscaled_output_exactly() raises:
     # single-point setup, compared pixel-for-pixel between an explicit
     # Theme(scale=1.0) and Theme's bare default.
     var xy: List[Float64] = [5.0]
-    var c_default = scatter(xy, xy, width=400, height=300)
-    var c_explicit = scatter(xy, xy, theme=Theme(scale=1.0), width=400, height=300)
+    var c_default = render(scatter(xy, xy, width=400, height=300))
+    var c_explicit = render(scatter(xy, xy, theme=Theme(scale=1.0), width=400, height=300))
 
     for y in range(c_default.height):
         for x in range(c_default.width):
@@ -102,8 +102,8 @@ def test_render_theme_font_family_default_matches_sans_serif_explicit() raises:
     # exercised through the actual construction-time-baked-in code
     # path rather than just trusting the parameter's default.
     var xy: List[Float64] = [5.0]
-    var c_default = scatter(xy, xy, width=400, height=300)
-    var c_explicit = scatter(xy, xy, theme=Theme(font_family="sans-serif"), width=400, height=300)
+    var c_default = render(scatter(xy, xy, width=400, height=300))
+    var c_explicit = render(scatter(xy, xy, theme=Theme(font_family="sans-serif"), width=400, height=300))
 
     for y in range(c_default.height):
         for x in range(c_default.width):
@@ -127,8 +127,8 @@ def test_render_theme_font_family_actually_changes_raster_glyphs() raises:
     # small region around the label instead of asserting an exact
     # value -- a real, nonzero difference exists in that region.
     var xy: List[Float64] = [5.0]
-    var c_sans = scatter(xy, xy, theme=Theme(font_family="sans-serif"), width=400, height=300)
-    var c_mono = scatter(xy, xy, theme=Theme(font_family="monospace"), width=400, height=300)
+    var c_sans = render(scatter(xy, xy, theme=Theme(font_family="sans-serif"), width=400, height=300))
+    var c_mono = render(scatter(xy, xy, theme=Theme(font_family="monospace"), width=400, height=300))
 
     var diff_count = 0
     for y in range(260, 280):
@@ -207,11 +207,11 @@ def test_theme_mark_style_fields_actually_change_output() raises:
     var vals: List[Float64] = [3.0, -2.0, 1.0]
     var totals: List[Bool] = [False, False, True]
 
-    var base = waterfall(cats, vals, totals, theme=Theme(), width=200, height=150)
-    var wide = waterfall(
+    var base = render(waterfall(cats, vals, totals, theme=Theme(), width=200, height=150))
+    var wide = render(waterfall(
         cats, vals, totals,
         theme=Theme(waterfall_delta_width_fraction=0.95), width=200, height=150,
-    )
+    ))
     assert_true(
         _count_color(base, Theme().mark_color) != _count_color(wide, Theme().mark_color),
         "waterfall_delta_width_fraction changes how much band a delta bar covers",
@@ -220,11 +220,11 @@ def test_theme_mark_style_fields_actually_change_output() raises:
     var measure: List[Float64] = [7.0]
     var target: List[Float64] = [8.0]
     var ranges: List[List[Float64]] = [[4.0, 6.0, 10.0]]
-    var b_thin = bullet(cats0(), measure, target, ranges, theme=Theme(), width=200, height=150)
-    var b_fat = bullet(
+    var b_thin = render(bullet(cats0(), measure, target, ranges, theme=Theme(), width=200, height=150))
+    var b_fat = render(bullet(
         cats0(), measure, target, ranges,
         theme=Theme(bullet_measure_width_fraction=0.9), width=200, height=150,
-    )
+    ))
     assert_true(
         _count_color(b_thin, Theme().mark_color) != _count_color(b_fat, Theme().mark_color),
         "bullet_measure_width_fraction changes the measure bar's thickness",
@@ -246,7 +246,7 @@ def test_theme_mark_colors_are_actually_used() raises:
     # supersampled and downsamples, so an antialiased glyph keeps no
     # pixel at the pure source color. The label is unmistakably red
     # either way, which is what this asserts.
-    var t = treemap(ids, parents, values, theme=Theme(treemap_label_color=RED), width=300, height=200)
+    var t = render(treemap(ids, parents, values, theme=Theme(treemap_label_color=RED), width=300, height=200))
     var reddish = 0
     for y in range(t.height):
         for x in range(t.width):
@@ -259,9 +259,9 @@ def test_theme_mark_colors_are_actually_used() raises:
     # full turn and there is no unfilled track left to color at all.
     var rb_cats: List[String] = ["x", "y"]
     var rb_vals: List[Float64] = [1.0, 8.0]
-    var r = radialbar(
+    var r = render(radialbar(
         rb_cats, rb_vals, theme=Theme(radialbar_track_color=RED), width=300, height=220
-    )
+    ))
     assert_true(_count_color(r, RED) > 0, "radialbar_track_color reaches the unfilled track")
 
 

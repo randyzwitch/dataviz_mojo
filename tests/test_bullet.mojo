@@ -93,7 +93,7 @@ def test_render_bullet_raises_on_mismatched_category_length() raises:
     var one: List[Float64] = [1.0, 2.0]
     var ranges: List[List[Float64]] = [[1.0], [1.0]]
     with assert_raises():
-        _ = bullet(cats, one, one, ranges, width=200, height=150)
+        _ = render(bullet(cats, one, one, ranges, width=200, height=150))
 
 
 def test_render_bullet_raises_on_empty_range_thresholds() raises:
@@ -101,7 +101,7 @@ def test_render_bullet_raises_on_empty_range_thresholds() raises:
     var one: List[Float64] = [1.0, 2.0]
     var ranges: List[List[Float64]] = [[1.0], List[Float64]()]
     with assert_raises():
-        _ = bullet(cats, one, one, ranges, width=200, height=150)
+        _ = render(bullet(cats, one, one, ranges, width=200, height=150))
 
 
 def test_render_bullet_raises_on_non_ascending_range_thresholds() raises:
@@ -109,7 +109,7 @@ def test_render_bullet_raises_on_non_ascending_range_thresholds() raises:
     var one: List[Float64] = [1.0]
     var ranges: List[List[Float64]] = [[50.0, 30.0, 100.0]]
     with assert_raises():
-        _ = bullet(cats, one, one, ranges, width=200, height=150)
+        _ = render(bullet(cats, one, one, ranges, width=200, height=150))
 
 
 def main() raises:

@@ -169,7 +169,7 @@ def test_render_title_draws_ink_in_its_own_reserved_top_band() raises:
     # render() must be the title's ink.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
-    var c = line(x, y, title="My Title", width=400, height=300)
+    var c = render(line(x, y, title="My Title", width=400, height=300))
 
     var found_ink = False
     for yy in range(22):  # extra_top, hand-derived above
@@ -285,11 +285,11 @@ def test_render_labels_raises_x_title_or_y_title_on_arc() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = pie(cats, vals, x_title="X", width=200, height=150)
+        _ = render(pie(cats, vals, x_title="X", width=200, height=150))
     with assert_raises():
-        _ = pie(cats, vals, y_title="Y", width=200, height=150)
+        _ = render(pie(cats, vals, y_title="Y", width=200, height=150))
     # title alone must NOT raise for Mark.ARC.
-    _ = pie(cats, vals, title="Share", width=200, height=150)
+    _ = render(pie(cats, vals, title="Share", width=200, height=150))
 
 
 def main() raises:

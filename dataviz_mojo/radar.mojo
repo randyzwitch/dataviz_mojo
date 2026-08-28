@@ -18,7 +18,7 @@ from dataviz_mojo.plot import (
     _dynamic_legend_width,
     _empty_result,
     _lighten,
-    _rendered,
+    _finished,
 )
 from dataviz_mojo.polar import _polar_point
 from dataviz_mojo.theme import Theme
@@ -202,7 +202,7 @@ def radar(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Canvas:
+) raises -> Plot:
     """A radar/spider chart -- `Mark.RADAR` over `Plot.encode_radar()`'s shape: `indicators` (one spoke per name, each its `max_values`), and one polygon per series (`series_names` + a
     value per indicator, `series_values`). See `_render_radar`'s docstring for the full reasoning.
 
@@ -216,15 +216,15 @@ def radar(
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
-        width: Pixel width of the returned `Canvas`.
-        height: Pixel height of the returned `Canvas`.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
         title: The chart's title, shown above the plot.
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
 
     Returns:
-        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
     """
     var plot = Plot().mark_radar().encode_radar(
         indicators=indicators,
@@ -232,4 +232,4 @@ def radar(
         series_names=series_names,
         series_values=series_values,
     )
-    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

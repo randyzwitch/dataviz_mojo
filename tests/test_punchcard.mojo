@@ -7,7 +7,7 @@ punchcard.mojo's docstrings for the rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import punchcard
 
@@ -25,7 +25,7 @@ def test_render_punchcard_matches_hand_derived_bubbles() raises:
     var y: List[String] = ["9am", "10am", "9am"]
     var sizes: List[Float64] = [50.0, 100.0, 20.0]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = punchcard(x, y, sizes, theme=t, width=400, height=300)
+    var c = render(punchcard(x, y, sizes, theme=t, width=400, height=300))
 
     _assert_color(c, 140, 78, t.mark_color, "(Mon, 9am), size 50 -> radius 5")
     _assert_color(c, 140, 193, t.mark_color, "(Mon, 10am), size 100 -> radius 10")
@@ -61,7 +61,7 @@ def test_render_punchcard_repeated_cell_draws_two_independent_bubbles() raises:
     var y: List[String] = ["9am", "9am"]
     var sizes: List[Float64] = [20.0, 100.0]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = punchcard(x, y, sizes, theme=t, width=400, height=300)
+    var c = render(punchcard(x, y, sizes, theme=t, width=400, height=300))
     _assert_color(c, 220, 134, t.mark_color, "1px above center -- inside the smaller (r=2) and larger (r=10) both")
     _assert_color(c, 220, 128, t.mark_color, "7px above center -- outside r=2, inside the larger bubble (r=10)")
 
@@ -71,7 +71,7 @@ def test_render_punchcard_raises_on_negative_size() raises:
     var y: List[String] = ["b"]
     var sizes: List[Float64] = [-1.0]
     with assert_raises():
-        _ = punchcard(x, y, sizes, width=200, height=150)
+        _ = render(punchcard(x, y, sizes, width=200, height=150))
 
 
 def test_render_punchcard_raises_on_mismatched_length() raises:
@@ -79,14 +79,14 @@ def test_render_punchcard_raises_on_mismatched_length() raises:
     var y: List[String] = ["c"]
     var sizes: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = punchcard(x, y, sizes, width=200, height=150)
+        _ = render(punchcard(x, y, sizes, width=200, height=150))
 
 
 def test_render_punchcard_empty_data_only_fills_background() raises:
     var x = List[String]()
     var y = List[String]()
     var sizes = List[Float64]()
-    var c = punchcard(x, y, sizes, width=100, height=80)
+    var c = render(punchcard(x, y, sizes, width=100, height=80))
     _assert_color(c, 50, 40, BG, "no data: nothing drawn but the background")
 
 
