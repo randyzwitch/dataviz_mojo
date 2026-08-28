@@ -54,6 +54,82 @@ def test_render_streamgraph_svg_matches_confirmed_paths() raises:
     assert_true('<path d="M140.000,30.000 L300.000,30.000 L300.000,135.000 L140.000,135.000 Z" fill="#ff7f0e"/>' in s, "B's band")
 
 
+def test_render_streamgraph_svg_smoothing_matches_confirmed_cubic_path() raises:
+    # 3 categories (X,Y,Z), 2 series: A=[10,15,8], B=[5,10,12] --
+    # totals [15,25,20], max_total=25, pad=1.25, symmetric y-domain
+    # [-13.75,13.75]. Canvas 400x300, show_gridlines/show_legend=False:
+    # plot area x:[60,380], y:[20,250], x-centers 113.333/220.000/
+    # 326.667 (OrdinalScale step (380-60)/3=106.667, same padded-band
+    # math every other categorical mark's tests already confirm).
+    # A's stack (first series): running starts at -total_i/2 ->
+    # bottom=[-7.5,-12.5,-10], top=[2.5,2.5,-2] -- pixel y via
+    # LinearScale(-13.75,13.75,250,20) rounded to the nearest int (the
+    # `_axis_pixel` every mark's hand-derived pixel test already relies
+    # on): top_py=[114,114,152], bottom_py=[198,240,219]. Every control
+    # point below independently re-derived via python3's own Catmull-
+    # Rom tangent formula from these rounded pixel positions, then
+    # checked against this actual rendered path -- not just asserted
+    # from whatever the renderer happened to print.
+    var cats: List[String] = ["X", "Y", "Z"]
+    var names: List[String] = ["A", "B"]
+    var vals: List[List[Float64]] = [[10.0, 15.0, 8.0], [5.0, 10.0, 12.0]]
+    var plot = Plot().mark_streamgraph().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(
+        Theme(show_gridlines=False, show_legend=False, line_smoothing=1.0)
+    ).size(400, 300)
+    var svg = render_svg(plot)
+    var s = svg.to_string()
+    assert_true(
+        '<path d="M113.333,114.000 C131.111,114.000 184.444,107.667 220.000,114.000'
+        ' C255.556,120.333 308.889,145.667 326.667,152.000 L326.667,219.000'
+        ' C308.889,222.500 255.556,243.500 220.000,240.000 C184.444,236.500 131.111,205.000 113.333,198.000 Z"'
+        ' fill="#1f77b4"/>' in s,
+        "A's band: smoothed top edge, straight cap, smoothed bottom edge (reversed), straight cap via close()",
+    )
+
+
+def test_render_streamgraph_raises_on_out_of_range_smoothing() raises:
+    var cats: List[String] = ["X", "Y"]
+    var names: List[String] = ["A"]
+    var vals: List[List[Float64]] = [[1.0, 2.0]]
+    with assert_raises():
+        var plot = Plot().mark_streamgraph().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(
+            Theme(line_smoothing=-0.1)
+        ).size(200, 150)
+        _ = render(plot)
+    with assert_raises():
+        var plot = Plot().mark_streamgraph().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(
+            Theme(line_smoothing=1.1)
+        ).size(200, 150)
+        _ = render(plot)
+
+
+def test_streamgraph_defaults_to_smoothed_bands() raises:
+    # streamgraph()'s own default (`smoothing=0.6`, unlike Theme's own
+    # 0.0) means calling it with no explicit smoothing argument at all
+    # already curves the bands -- a real cubic command in the SVG
+    # output, not just straight `L` segments.
+    var cats: List[String] = ["X", "Y", "Z"]
+    var names: List[String] = ["A"]
+    var vals: List[List[Float64]] = [[10.0, 15.0, 8.0]]
+    var _hoisted4 = streamgraph(cats, names, vals, width=400, height=300)
+    var svg = render_svg(_hoisted4)
+    assert_true(" C" in svg.to_string(), "default streamgraph() output includes a cubic curve command")
+
+
+def test_streamgraph_smoothing_zero_reproduces_straight_bands() raises:
+    # Passing smoothing=0.0 explicitly opts back into the old plain-
+    # straight-segment bands -- byte-identical to a hand-built Plot
+    # with Theme's own line_smoothing default (0.0).
+    var cats: List[String] = ["X", "Y"]
+    var names: List[String] = ["A", "B"]
+    var vals: List[List[Float64]] = [[10.0, 10.0], [10.0, 10.0]]
+    var _hoisted5 = streamgraph(cats, names, vals, theme=Theme(show_gridlines=False, show_legend=False), smoothing=0.0, width=400, height=300)
+    var svg = render_svg(_hoisted5)
+    var s = svg.to_string()
+    assert_true('<path d="M140.000,135.000 L300.000,135.000 L300.000,240.000 L140.000,240.000 Z" fill="#1f77b4"/>' in s, "A's band, straight")
+    assert_true('<path d="M140.000,30.000 L300.000,30.000 L300.000,135.000 L140.000,135.000 Z" fill="#ff7f0e"/>' in s, "B's band, straight")
+
+
 def test_render_streamgraph_raises_on_negative_value() raises:
     var cats: List[String] = ["X"]
     var names: List[String] = ["A"]
