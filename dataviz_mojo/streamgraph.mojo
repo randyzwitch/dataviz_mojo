@@ -11,6 +11,7 @@ from dataviz_mojo.plot import (
     _RenderResult,
     _Scaled,
     _axis_pixel,
+    _check_line_smoothing,
     _draw_categorical_axis_frame,
     _draw_legend,
     _dynamic_legend_width,
@@ -44,6 +45,31 @@ def _symmetric_zero_baseline_y_extent(values: List[List[Float64]], n_categories:
     return LinearScale(-bound, bound, 0.0, 1.0)
 
 
+def _append_smoothed_edge(mut path: Path, px: List[Float64], py: List[Float64], smoothing: Float64) raises:
+    """Appends `line_to`/`cubic_curve_to` for `px[0]->...->px[n-1]`
+    onto `path`, continuing from its current point (no `move_to`) --
+    same Catmull-Rom math as `_build_line_path` (plot.mojo), kept as
+    its own copy here since a streamgraph band needs to run this twice
+    on one continuous `Path` (top edge, then bottom edge), and `_build_
+    line_path` always starts a fresh subpath."""
+    if len(px) <= 1:
+        return
+    if smoothing <= 0.0:
+        for i in range(1, len(px)):
+            path.line_to(px[i], py[i])
+        return
+
+    var n = len(px)
+    for i in range(n - 1):
+        var prev = i - 1 if i > 0 else i
+        var next2 = i + 2 if i + 2 < n else i + 1
+        var t1x = (px[i + 1] - px[prev]) / 6.0 * smoothing
+        var t1y = (py[i + 1] - py[prev]) / 6.0 * smoothing
+        var t2x = (px[next2] - px[i]) / 6.0 * smoothing
+        var t2y = (py[next2] - py[i]) / 6.0 * smoothing
+        path.cubic_curve_to(px[i] + t1x, py[i] + t1y, px[i + 1] - t2x, py[i + 1] - t2y, px[i + 1], py[i + 1])
+
+
 def _render_streamgraph[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
@@ -54,14 +80,14 @@ def _render_streamgraph[
     baseline), not a shared zero, so the whole stack floats centered
     around zero instead of sitting on a fixed baseline -- the
     "silhouette" look. Second, each series is drawn as one *flowing
-    band* connecting every category's top/bottom edge in turn
-    (straight `line_to` segments between category centers, not curved
-    -- deliberately not reusing `Mark.LINE`'s `Theme.line_
-    smoothing`-aware path builder, to keep the polygon-closing logic
-    here simple; a smoothed variant is a real, separate enhancement,
-    not part of what this mark needs to exist at
-    all), filled via `DrawTarget.fill_path_aa` -- not `Mark.STACKED_
-    BAR`'s one-rect-per-category-per-series.
+    band* connecting every category's top/bottom edge in turn, filled
+    via `DrawTarget.fill_path_aa` -- not `Mark.STACKED_BAR`'s
+    one-rect-per-category-per-series.
+
+    `Theme.line_smoothing` curves both the top and bottom edges
+    (`_append_smoothed_edge` above; `0.0` stays plain straight
+    segments). The two "cap" edges connecting them at the first/last
+    category always stay straight -- they're not real data.
 
     Every value must be non-negative -- the same reason `Mark.ARC`/
     `FUNNEL` require it: a negative flow has no meaning as a stacked
@@ -74,6 +100,7 @@ def _render_streamgraph[
     _validate_grouped_bar_series(plot)
 
     var theme = plot._theme
+    _check_line_smoothing(theme)
     if len(plot.x_categories) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
@@ -109,7 +136,6 @@ def _render_streamgraph[
 
     var palette = default_categorical_palette()
     for j in range(n_series):
-        var path = Path()
         var top = List[Float64](capacity=n_categories)
         var bottom = List[Float64](capacity=n_categories)
         for i in range(n_categories):
@@ -117,12 +143,27 @@ def _render_streamgraph[
             running[i] += plot._grouped_bar.values[j][i]
             top.append(running[i])
 
-        path.move_to(frame.x_scale.center(0), Float64(_axis_pixel(frame.y_scale, top[0])))
-        for i in range(1, n_categories):
-            path.line_to(frame.x_scale.center(i), Float64(_axis_pixel(frame.y_scale, top[i])))
+        # Top edge in category order, bottom edge in *reverse*
+        # category order -- see this function's own docstring for why
+        # tracing bottom in reverse still produces the geometrically
+        # correct smoothed curve.
+        var top_px = List[Float64](capacity=n_categories)
+        var top_py = List[Float64](capacity=n_categories)
+        for i in range(n_categories):
+            top_px.append(frame.x_scale.center(i))
+            top_py.append(Float64(_axis_pixel(frame.y_scale, top[i])))
+        var bottom_px = List[Float64](capacity=n_categories)
+        var bottom_py = List[Float64](capacity=n_categories)
         for i in range(n_categories - 1, -1, -1):
-            path.line_to(frame.x_scale.center(i), Float64(_axis_pixel(frame.y_scale, bottom[i])))
-        path.close()
+            bottom_px.append(frame.x_scale.center(i))
+            bottom_py.append(Float64(_axis_pixel(frame.y_scale, bottom[i])))
+
+        var path = Path()
+        path.move_to(top_px[0], top_py[0])
+        _append_smoothed_edge(path, top_px, top_py, theme.line_smoothing)
+        path.line_to(bottom_px[0], bottom_py[0])  # the straight "cap" at the last category
+        _append_smoothed_edge(path, bottom_px, bottom_py, theme.line_smoothing)
+        path.close()  # the straight "cap" at the first category
         target.fill_path_aa(path, palette[j % len(palette)])
 
     if show_legend:
@@ -139,6 +180,7 @@ def streamgraph(
     series_names: List[String],
     values: List[List[Float64]],
     theme: Theme = Theme(),
+    smoothing: Float64 = 0.6,
     width: Int = 640,
     height: Int = 420,
     title: String = "",
@@ -160,6 +202,12 @@ def streamgraph(
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
+        smoothing: Sets `theme.line_smoothing` -- how much each band's
+            edges curve, `[0.0, 1.0]`. Defaults to `0.6`, not `Theme`'s
+            own `0.0`: a streamgraph is meant to look like flowing
+            water, so unlike `Mark.LINE`/`AREA` (straight by default),
+            this one curves unless told not to. Pass `0.0` for the old
+            straight-segment bands.
         width: Pixel width of the returned `Plot` (`.size()`).
         height: Pixel height of the returned `Plot` (`.size()`).
         title: The chart's title, shown above the plot.
@@ -169,7 +217,9 @@ def streamgraph(
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
     """
+    var t = theme
+    t.line_smoothing = smoothing
     var plot = Plot().mark_streamgraph().encode_grouped_bar(
         categories=categories, series_names=series_names, values=values
     )
-    return _finished(plot^, theme, width, height, title, x_title, "", subtitle=subtitle)
+    return _finished(plot^, t, width, height, title, x_title, "", subtitle=subtitle)
