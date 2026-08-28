@@ -186,6 +186,20 @@ def _categories() -> List[Category]:
     return cats^
 
 
+def _hooks_from_own_docstring() -> List[String]:
+    """Examples whose page-level hook should stay sourced from their
+    *own* module docstring instead of the quickplot function's
+    (`_build_page()`'s usual default) -- an explicit, hand-maintained
+    exception list, the same shape `_titles()`/`_categories()` already
+    are, not an automated "are these two sentences different enough"
+    heuristic (too fragile to trust for an editorial call like this
+    one). `slope` is the one entry today: it calls the general-purpose
+    `line()`, but its own docstring explains the specific two-point
+    data shape that makes it read as a slope chart at all -- line()'s
+    own docstring has no reason to know about that."""
+    return ["slope"]
+
+
 def _read_file(path: String) raises -> String:
     var f = open(path, "r")
     var content = f.read()
@@ -477,6 +491,21 @@ def _quickplot_file_for(fn_name: String) raises -> String:
             return file
         i = block_end + 1
     raise Error("gen_example_docs: no dataviz_mojo/__init__.mojo import found defining " + fn_name)
+
+
+def _quickplot_hook(fn_name: String, file: String) raises -> String:
+    """The one-line "what is this chart" hook shown at the top of a
+    docs page, pulled from `fn_name`'s own docstring in dataviz_mojo/
+    <file>.mojo via the same `_extract_docstring()`/`_first_sentence()`
+    already used for an example's *own* module docstring -- reusing
+    the quickplot function's docstring here too (instead of a second,
+    separately hand-maintained sentence living in examples/<name>.mojo)
+    means there's exactly one place describing what a chart type is."""
+    var source = _read_file("dataviz_mojo/" + file + ".mojo")
+    var def_idx = source.find("\ndef " + fn_name + "(")
+    if def_idx == -1:
+        raise Error("gen_example_docs: no `def " + fn_name + "(` found in dataviz_mojo/" + file + ".mojo")
+    return _first_sentence(_extract_docstring(String(source[byte=def_idx:])))
 
 
 def _extract_args_lines(fn_name: String, file: String) raises -> List[String]:
@@ -842,8 +871,6 @@ def _imports_for(body_text: String) raises -> List[String]:
 
 def _build_page(name: String, title: String) raises -> String:
     var source = _read_file(_EXAMPLES_DIR + "/" + name + ".mojo")
-    var docstring = _extract_docstring(source)
-    var hook = _first_sentence(docstring)
 
     # SVG is the preferred display format -- a vector image stays crisp
     # at any zoom/pane size a browser puts it in, unlike a fixed-
@@ -868,6 +895,18 @@ def _build_page(name: String, title: String) raises -> String:
     var writes_svg = _has_svg_save_call(source) or _has_call(source, "write_accessible_svg")
 
     var sections = _build_sections(name, source, writes_svg)
+
+    # The page-level hook comes from the first section's own quickplot
+    # function's docstring when it has one -- falls back to this
+    # example's own module docstring for the 5 hand-built-Plot/
+    # write_accessible_svg pages, which have no such function to pull
+    # from (see `PageSection.fn_name`'s docstring), and for the small,
+    # explicit exception list in `_hooks_from_own_docstring()`.
+    var hook: String
+    if sections[0].fn_name and name not in _hooks_from_own_docstring():
+        hook = _quickplot_hook(sections[0].fn_name, _quickplot_file_for(sections[0].fn_name))
+    else:
+        hook = _first_sentence(_extract_docstring(source))
 
     var page = List[String]()
     page.append("---")
