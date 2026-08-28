@@ -434,6 +434,104 @@ def _quickplot_call_end(body: List[String], start: Int) -> Int:
     return -1
 
 
+def _quickplot_fn_name(line: String) -> String:
+    """The `<fn>` name out of a `var <ident> = <fn>(...` line already
+    confirmed by `_quickplot_call_starts()` -- re-extracts it the same
+    way that function's own match already did, so `_build_sections()`
+    can look up that function's own docstring for its Args section."""
+    var stripped = line.strip()
+    var after_var = String(stripped[byte=4:])  # 4 == len("var ")
+    var eq = after_var.find(" = ")
+    var after_eq = String(after_var[byte = eq + 3 :])  # 3 == len(" = ")
+    var paren = after_eq.find("(")
+    return String(after_eq[byte=0:paren])
+
+
+def _quickplot_file_for(fn_name: String) raises -> String:
+    """Which dataviz_mojo/<file>.mojo defines `fn_name`, per __init__.
+    mojo's own `from dataviz_mojo.<file> import ...` re-export block --
+    the package's single source of truth for this mapping, not a
+    second one invented here. Each `from` block is either one line
+    (`from dataviz_mojo.arc import pie`) or, once there's more than a
+    couple of names, a parenthesized multi-line shape (`dataviz_mojo.
+    plot`'s own block) -- both handled the same way `_quickplot_call_
+    end()` already handles a quickplot *call*'s own single-line-vs-
+    multi-line shape."""
+    var lines = _read_file("dataviz_mojo/__init__.mojo").split("\n")
+    var i = 0
+    while i < len(lines):
+        var stripped = lines[i].strip()
+        if not stripped.startswith("from dataviz_mojo."):
+            i += 1
+            continue
+        var after_prefix = String(stripped[byte=18:])  # 18 == len("from dataviz_mojo.")
+        var dot = after_prefix.find(" import")
+        var file = String(after_prefix[byte=0:dot])
+        var block_end = i
+        if stripped.endswith("("):
+            var j = i + 1
+            while j < len(lines) and not (lines[j].strip() == ")"):
+                j += 1
+            block_end = j
+        if _word_in(String("\n").join(lines[i : block_end + 1]), fn_name):
+            return file
+        i = block_end + 1
+    raise Error("gen_example_docs: no dataviz_mojo/__init__.mojo import found defining " + fn_name)
+
+
+def _extract_args_lines(fn_name: String, file: String) raises -> List[String]:
+    """The `Args:` section's own bullet lines out of `fn_name`'s
+    docstring in dataviz_mojo/<file>.mojo, formatted as markdown --
+    `[]` if that function has no `Args:` section (every quickplot
+    function does, per #122, but this degrades gracefully rather than
+    raising for one that doesn't). Every docstring added by #122 shares
+    one consistent indent (8 spaces for a bullet's `name: description`
+    line, 12 for a continuation -- confirmed across every quickplot
+    function's own docstring, not assumed), so that's what this parses
+    against rather than a more general (and more fragile) indent-
+    detection scheme. Skips the type annotation entirely -- reliably
+    parsing each argument's real type back out of the function's own
+    multi-line signature (`Theme`'s own giant default-value literal,
+    `List[Float64]`, ...) isn't worth it for what the snippet's own
+    real usage, shown right above, already makes clear."""
+    var lines = _read_file("dataviz_mojo/" + file + ".mojo").split("\n")
+    var def_idx = -1
+    for i in range(len(lines)):
+        if lines[i].startswith("def " + fn_name + "("):
+            def_idx = i
+            break
+    if def_idx == -1:
+        raise Error("gen_example_docs: no `def " + fn_name + "(` found in dataviz_mojo/" + file + ".mojo")
+
+    var args_idx = -1
+    var end_idx = -1
+    for i in range(def_idx, len(lines)):
+        var stripped = lines[i].strip()
+        if stripped == "Args:":
+            args_idx = i
+        elif args_idx != -1 and (stripped == "Returns:" or stripped == '"""'):
+            end_idx = i
+            break
+    if args_idx == -1:
+        return List[String]()
+    if end_idx == -1:
+        end_idx = len(lines)
+
+    var result = List[String]()
+    for i in range(args_idx + 1, end_idx):
+        var raw = lines[i]
+        if raw.strip() == "":
+            continue
+        if raw.startswith("        ") and not raw.startswith("         "):  # exactly 8 spaces -- a new bullet
+            var colon = raw.find(": ")
+            var arg_name = String(raw[byte=8:colon])
+            var desc = String(raw[byte = colon + 2 :])
+            result.append("- `" + arg_name + "`: " + desc)
+        else:
+            result.append("  " + raw.strip())
+    return result^
+
+
 def _accessible_svg_call_index(body: List[String]) -> Int:
     """The line index of the bare `write_accessible_svg(...)` call --
     examples/svg_accessibility.mojo's own anchor, and the one remaining
@@ -476,15 +574,21 @@ struct PageSection(Copyable, Movable):
     builds more than one quickplot `Plot` (examples/bar.mojo's own
     diverging-bars variant) produces one per call instead, each with
     its own image and its own `### <heading>` subsection -- see
-    `_build_sections()`."""
+    `_build_sections()`. `fn_name` is the quickplot function this
+    section's snippet calls (`""` for a hand-built-`Plot`/`write_
+    accessible_svg` section, which has no single function's Args to
+    show) -- `_build_page()` uses it to append that function's own
+    `Args:` section (`_extract_args_lines()`) below the snippet."""
     var body: List[String]
     var image: String
     var heading: String
+    var fn_name: String
 
-    def __init__(out self, var body: List[String], image: String, heading: String):
+    def __init__(out self, var body: List[String], image: String, heading: String, fn_name: String = ""):
         self.body = body^
         self.image = image
         self.heading = heading
+        self.fn_name = fn_name
 
 
 def _segment_heading(segment: List[String]) -> String:
@@ -586,7 +690,7 @@ def _build_sections(name: String, source: String, writes_svg: Bool) raises -> Li
                 image = "out_" + name + "_" + suffix + ext
                 heading = _segment_heading(clean_seg)
 
-            sections.append(PageSection(clean_seg^, image, heading))
+            sections.append(PageSection(clean_seg^, image, heading, _quickplot_fn_name(body[qp_start])))
             seg_start = qp_end + 1
         return sections^
 
@@ -808,6 +912,16 @@ def _build_page(name: String, title: String) raises -> String:
         page.append(snippet)
         page.append("```")
         page.append("")
+
+        if section.fn_name:
+            var args_lines = _extract_args_lines(section.fn_name, _quickplot_file_for(section.fn_name))
+            if len(args_lines) > 0:
+                page.append("**Args:**")
+                page.append("")
+                for l in args_lines:
+                    page.append(l)
+                page.append("")
+
         is_first = False
 
     return String("\n").join(page)
