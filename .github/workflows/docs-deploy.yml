@@ -1,14 +1,18 @@
 name: Docs deploy
 
 # Builds (via docs-build.yml) and deploys the docs site on every push
-# to main -- see docs.yml's own comment for why deploying is split
-# into its own workflow file rather than a same-file job gated by
-# `if: github.event_name == 'push'`. Never runs on a pull_request, so
-# it only ever shows up as a check on main's own commits, not on a PR
-# a feature branch's own Actions run has no business publishing from.
+# to main -- see docs-build.yml's own comment for why deploying is
+# split into its own workflow file rather than a same-file job gated
+# by `if: github.event_name == 'push'`. Never runs on a pull_request,
+# so it only ever shows up as a check on main's own commits, not on a
+# PR a feature branch's own Actions run has no business publishing
+# from.
 #
-# Path filter kept identical to docs.yml's own -- see that file's
-# comment for why it's duplicated rather than shared.
+# Path filter is this file's own -- unlike the PR-side docs build
+# (ci.yml's `docs-build` job, unconditional now that it no longer pays
+# its own render cost, see that job's comment), an actual deploy still
+# goes live to GitHub Pages, so it stays worth skipping when nothing
+# docs-relevant changed.
 
 on:
   push:

@@ -47,11 +47,13 @@ pixi run example   # examples/*.mojo, writes examples/out_*.{bmp,png,svg}
 pixi run docs      # regenerates docs/ (served via GitHub Pages) -- run `example` first
 ```
 
-`docs/` also regenerates itself automatically (`.github/workflows/docs.yml`,
-committed straight back to `main`) whenever a push touches
-`dataviz_mojo/`, `examples/`, or `docs/_src/` -- manual `pixi run docs`
-is for previewing locally before you push, not required to keep the
-site in sync.
+`docs/` also regenerates and deploys itself automatically to GitHub
+Pages (`.github/workflows/docs-deploy.yml`) whenever a push to `main`
+touches `dataviz_mojo/`, `examples/`, or `docs/_src/` -- manual
+`pixi run docs` is for previewing locally before you push, not
+required to keep the site in sync. PRs get a status-only docs build
+(the `docs-build` job in `.github/workflows/ci.yml`) that proves the
+site still builds, without deploying anything.
 
 ## License
 
