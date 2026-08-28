@@ -35,7 +35,8 @@ def test_render_ridgeline_matches_hand_derived_rows() raises:
         [1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0],
     ]
     var t = Theme(show_gridlines=False)
-    var c = render(ridgeline(cats, vals, theme=t, width=400, height=300))
+    var _hoisted1 = ridgeline(cats, vals, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 220, 50, t.mark_color, "inside row A -- between its peak (~-3) and baseline (96.667)")
     _assert_color(
@@ -86,7 +87,8 @@ def test_render_ridgeline_custom_bandwidth_widens_the_tail() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
     var t = Theme(show_gridlines=False)
-    var c = render(ridgeline(cats, vals, bandwidth=3.0, theme=t, width=400, height=300))
+    var _hoisted2 = ridgeline(cats, vals, bandwidth=3.0, theme=t, width=400, height=300)
+    var c = render(_hoisted2)
     _assert_color(c, 77, 25, t.mark_color, "bandwidth=3.0 widens the tail -- now inside the curve")
     _assert_color(c, 220, 25, t.mark_color, "still inside near the peak")
     _assert_color(c, 10, 10, BG, "still background, well outside the plot area")
@@ -100,7 +102,8 @@ def test_render_ridgeline_explicit_zero_bandwidth_matches_default() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
     var t = Theme(show_gridlines=False)
-    var c = render(ridgeline(cats, vals, bandwidth=0.0, theme=t, width=400, height=300))
+    var _hoisted3 = ridgeline(cats, vals, bandwidth=0.0, theme=t, width=400, height=300)
+    var c = render(_hoisted3)
     _assert_color(c, 75, 25, BG, "default bandwidth still tapers away at the tail -- background")
     _assert_color(c, 220, 25, t.mark_color, "still inside near the peak")
 
@@ -123,7 +126,8 @@ def test_render_ridgeline_scale_by_count_shortens_the_smaller_row() raises:
     var cats: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 4.0]]
     var t = Theme(show_gridlines=False)
-    var c = render(ridgeline(cats, vals, scale_by_count=True, theme=t, width=400, height=300))
+    var _hoisted4 = ridgeline(cats, vals, scale_by_count=True, theme=t, width=400, height=300)
+    var c = render(_hoisted4)
     _assert_color(c, 220, 150, BG, "scale_by_count shortens row B's rise -- now above its curve")
     _assert_color(c, 220, 200, t.mark_color, "still inside row B's (shorter) curve, closer to its baseline")
 
@@ -136,7 +140,8 @@ def test_render_ridgeline_scale_by_count_false_matches_default() raises:
     var cats: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 4.0]]
     var t = Theme(show_gridlines=False)
-    var c = render(ridgeline(cats, vals, scale_by_count=False, theme=t, width=400, height=300))
+    var _hoisted5 = ridgeline(cats, vals, scale_by_count=False, theme=t, width=400, height=300)
+    var c = render(_hoisted5)
     _assert_color(c, 220, 150, t.mark_color, "unscaled -- row B still reaches this height")
 
 
@@ -144,27 +149,31 @@ def test_render_ridgeline_raises_on_negative_bandwidth() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0]]
     with assert_raises():
-        _ = render(ridgeline(cats, vals, bandwidth=-1.0, width=200, height=150))
+        var _hoisted6 = ridgeline(cats, vals, bandwidth=-1.0, width=200, height=150)
+        _ = render(_hoisted6)
 
 
 def test_render_ridgeline_raises_on_mismatched_category_length() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[List[Float64]] = [[1.0]]
     with assert_raises():
-        _ = render(ridgeline(cats, vals, width=200, height=150))
+        var _hoisted7 = ridgeline(cats, vals, width=200, height=150)
+        _ = render(_hoisted7)
 
 
 def test_render_ridgeline_raises_on_empty_category_distribution() raises:
     var cats: List[String] = ["a"]
     var vals: List[List[Float64]] = [List[Float64]()]
     with assert_raises():
-        _ = render(ridgeline(cats, vals, width=200, height=150))
+        var _hoisted8 = ridgeline(cats, vals, width=200, height=150)
+        _ = render(_hoisted8)
 
 
 def test_render_ridgeline_empty_categories_only_fills_background() raises:
     var cats = List[String]()
     var vals = List[List[Float64]]()
-    var c = render(ridgeline(cats, vals, width=200, height=150))
+    var _hoisted9 = ridgeline(cats, vals, width=200, height=150)
+    var c = render(_hoisted9)
     _assert_color(c, 100, 75, BG, "no categories -- background everywhere")
 
 

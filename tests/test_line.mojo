@@ -39,7 +39,8 @@ def test_render_line_mark_draws_ink_between_the_two_endpoints() raises:
     # manual_plot) rather than the fluent builder spelled out by hand.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
-    var c = render(line(x, y, width=400, height=300))
+    var _hoisted1 = line(x, y, width=400, height=300)
+    var c = render(_hoisted1)
 
     var mid = c.get_pixel(220, 135)  # plot area's horizontal/vertical midpoint
     assert_true(mid.r != 255 or mid.g != 255 or mid.b != 255)
@@ -110,8 +111,10 @@ def test_render_line_smoothing_default_matches_straight_line_output_exactly() ra
     # default and an explicit Theme(line_smoothing=0.0).
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
-    var c_default = render(line(x, y, width=400, height=300))
-    var c_explicit = render(line(x, y, theme=Theme(line_smoothing=0.0), width=400, height=300))
+    var _hoisted2 = line(x, y, width=400, height=300)
+    var c_default = render(_hoisted2)
+    var _hoisted3 = line(x, y, theme=Theme(line_smoothing=0.0), width=400, height=300)
+    var c_explicit = render(_hoisted3)
 
     for yy in range(c_default.height):
         for xx in range(c_default.width):
@@ -136,12 +139,14 @@ def test_render_line_smoothing_bows_the_curve_away_from_the_straight_path() rais
     # under the fully smoothed one.
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
-    var c_straight = render(line(
+    var _hoisted4 = line(
         x, y, theme=Theme(line_smoothing=0.0, show_gridlines=False), width=400, height=300
-    ))
-    var c_smooth = render(line(
+    )
+    var c_straight = render(_hoisted4)
+    var _hoisted5 = line(
         x, y, theme=Theme(line_smoothing=1.0, show_gridlines=False), width=400, height=300
-    ))
+    )
+    var c_smooth = render(_hoisted5)
 
     var straight_p = c_straight.get_pixel(147, 135)
     var smooth_p = c_smooth.get_pixel(147, 135)
@@ -176,9 +181,11 @@ def test_render_line_raises_on_out_of_range_smoothing() raises:
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     with assert_raises():
-        _ = render(line(x, y, theme=Theme(line_smoothing=-0.1), width=200, height=150))
+        var _hoisted6 = line(x, y, theme=Theme(line_smoothing=-0.1), width=200, height=150)
+        _ = render(_hoisted6)
     with assert_raises():
-        _ = render(line(x, y, theme=Theme(line_smoothing=1.1), width=200, height=150))
+        var _hoisted7 = line(x, y, theme=Theme(line_smoothing=1.1), width=200, height=150)
+        _ = render(_hoisted7)
 
 
 def test_render_raises_when_color_encoding_used_with_line_mark() raises:

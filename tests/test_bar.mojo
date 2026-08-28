@@ -44,7 +44,8 @@ def test_render_bar_mark_matches_hand_derived_bar_rectangles() raises:
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [10.0, 20.0, 15.0]
     var t = Theme(show_gridlines=False)
-    var c = render(bar(x, y, theme=t, width=400, height=300))
+    var _hoisted1 = bar(x, y, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     var mark_color = t.mark_color
 
@@ -65,7 +66,8 @@ def test_render_bar_raises_on_mismatched_category_length() raises:
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = render(bar(x, y, width=200, height=150))
+        var _hoisted2 = bar(x, y, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_bar_empty_data_only_fills_background() raises:
@@ -89,7 +91,8 @@ def test_render_bar_negative_values_extend_below_the_baseline() raises:
     var x: List[String] = ["a"]
     var y: List[Float64] = [-10.0]
     var t = Theme(show_gridlines=False)
-    var c = render(bar(x, y, theme=t, width=400, height=300))
+    var _hoisted3 = bar(x, y, theme=t, width=400, height=300)
+    var c = render(_hoisted3)
 
     # Baseline (value 0) is the domain's unpadded top edge, so it
     # lands exactly at the plot area's top, pixel y=20 -- a
@@ -131,7 +134,8 @@ def test_render_bar_color_by_sign_colors_negative_bars_differently() raises:
     var x: List[String] = ["a"]
     var y: List[Float64] = [-10.0]
     var t = Theme(show_gridlines=False, color_by_sign=True)
-    var c = render(bar(x, y, theme=t, width=400, height=300))
+    var _hoisted4 = bar(x, y, theme=t, width=400, height=300)
+    var c = render(_hoisted4)
     _assert_color(c, 220, 25, t.mark_color_negative, "negative bar uses mark_color_negative")
 
 
@@ -144,7 +148,8 @@ def test_render_bar_color_by_sign_leaves_positive_bars_at_mark_color() raises:
     var x: List[String] = ["a"]
     var y: List[Float64] = [10.0]
     var t = Theme(show_gridlines=False, color_by_sign=True)
-    var c = render(bar(x, y, theme=t, width=400, height=300))
+    var _hoisted5 = bar(x, y, theme=t, width=400, height=300)
+    var c = render(_hoisted5)
     _assert_color(c, 220, 245, t.mark_color, "positive bar stays mark_color even with color_by_sign on")
 
 
@@ -157,7 +162,8 @@ def test_render_bar_color_by_sign_defaults_off() raises:
     var x: List[String] = ["a"]
     var y: List[Float64] = [-10.0]
     var t = Theme(show_gridlines=False)
-    var c = render(bar(x, y, theme=t, width=400, height=300))
+    var _hoisted6 = bar(x, y, theme=t, width=400, height=300)
+    var c = render(_hoisted6)
     _assert_color(c, 220, 25, t.mark_color, "color_by_sign defaults off: still mark_color")
 
 

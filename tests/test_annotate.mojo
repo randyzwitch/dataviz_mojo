@@ -11,7 +11,7 @@ from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import bar
 
-from _test_helpers import _assert_color
+from _test_helpers import _assert_color, _assert_near_color
 
 
 def test_render_svg_annotate_line_matches_hand_derived_position() raises:
@@ -55,12 +55,17 @@ def test_render_annotate_line_raster_draws_ink_at_the_hand_derived_row() raises:
     # that the SVG backend's text/line plumbing is correct.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, 20.0]
-    var c = render(bar(cats, vals, width=400, height=300, theme=Theme(show_gridlines=False)))
+    var _hoisted1 = bar(cats, vals, width=400, height=300, theme=Theme(show_gridlines=False))
+    var c = render(_hoisted1)
     var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).annotate_line(15.0).theme(
         Theme(show_gridlines=False)
     ).size(400, 300)
     var c2 = render(plot)
-    _assert_color(c2, 220, 86, Color(150, 150, 150), "the reference line's ink, well inside the plot width")
+    # `_assert_near_color()`, not `_assert_color()` -- the reference
+    # line is a 1px-wide stroke, the same reason every other mark's
+    # axis-line/gridline checks already need the tolerant helper (see
+    # its docstring, tests/_test_helpers.mojo).
+    _assert_near_color(c2, 220, 86, Color(150, 150, 150), 75, "the reference line's ink, well inside the plot width")
 
 
 def test_render_annotate_line_out_of_range_value_draws_nothing() raises:

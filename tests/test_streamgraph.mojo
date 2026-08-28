@@ -59,7 +59,8 @@ def test_render_streamgraph_raises_on_negative_value() raises:
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [[-1.0]]
     with assert_raises():
-        _ = render(streamgraph(cats, names, vals, width=200, height=150))
+        var _hoisted1 = streamgraph(cats, names, vals, width=200, height=150)
+        _ = render(_hoisted1)
 
 
 def test_render_streamgraph_raises_on_mismatched_series_names_and_values_length() raises:
@@ -67,14 +68,16 @@ def test_render_streamgraph_raises_on_mismatched_series_names_and_values_length(
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        _ = render(streamgraph(cats, names, vals, width=200, height=150))
+        var _hoisted2 = streamgraph(cats, names, vals, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_streamgraph_empty_categories_only_fills_background() raises:
     var cats = List[String]()
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [List[Float64]()]
-    var c = render(streamgraph(cats, names, vals, width=200, height=150))
+    var _hoisted3 = streamgraph(cats, names, vals, width=200, height=150)
+    var c = render(_hoisted3)
     _assert_color(c, 100, 75, BG, "no categories -- background everywhere")
 
 

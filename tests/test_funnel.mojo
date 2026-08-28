@@ -30,7 +30,8 @@ def test_render_funnel_matches_hand_derived_trapezoids() raises:
     var cats: List[String] = ["A", "B", "C"]
     var vals: List[Float64] = [100.0, 60.0, 20.0]
     var t = Theme(show_legend=False)
-    var c = render(funnel(cats, vals, theme=t, width=400, height=300))
+    var _hoisted1 = funnel(cats, vals, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
     _assert_color(c, 220, 58, palette[0], "row 0 (A, value 100) -- the widest row")
@@ -74,27 +75,31 @@ def test_render_funnel_raises_on_negative_value() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, -1.0]
     with assert_raises():
-        _ = render(funnel(cats, vals, width=200, height=150))
+        var _hoisted2 = funnel(cats, vals, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_funnel_raises_on_all_zero_values() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [0.0, 0.0]
     with assert_raises():
-        _ = render(funnel(cats, vals, width=200, height=150))
+        var _hoisted3 = funnel(cats, vals, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_funnel_raises_on_mismatched_category_length() raises:
     var cats: List[String] = ["a", "b", "c"]
     var vals: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = render(funnel(cats, vals, width=200, height=150))
+        var _hoisted4 = funnel(cats, vals, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_funnel_empty_data_only_fills_background() raises:
     var cats = List[String]()
     var vals = List[Float64]()
-    var c = render(funnel(cats, vals, width=200, height=150))
+    var _hoisted5 = funnel(cats, vals, width=200, height=150)
+    var c = render(_hoisted5)
     _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
 
 

@@ -11,7 +11,7 @@ from canvas_mojo.color import Color
 from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 
-from _test_helpers import _assert_color
+from _test_helpers import _assert_color, _assert_near_color
 
 
 def test_render_svg_annotate_area_matches_hand_derived_position() raises:
@@ -78,7 +78,12 @@ def test_render_annotate_area_lets_the_mark_underneath_show_through() raises:
         Theme(show_gridlines=False)
     ).size(400, 300)
     var c = render(plot)
-    _assert_color(c, 200, 150, Color(182, 206, 231), "the band blended over the line's own ink, not erasing it")
+    # `_assert_near_color()`, not `_assert_color()` -- x=200 sits on
+    # the line's own 1px-wide stroke, the same reason every other
+    # mark's axis-line/gridline checks already need the tolerant
+    # helper (see its docstring, tests/_test_helpers.mojo); the band's
+    # own fill blended into that isn't exact-pixel-stable either.
+    _assert_near_color(c, 200, 150, Color(182, 206, 231), 30, "the band blended over the line's own ink, not erasing it")
 
 
 def test_render_annotate_area_out_of_range_draws_nothing() raises:

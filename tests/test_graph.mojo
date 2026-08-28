@@ -33,7 +33,8 @@ def test_render_graph_matches_hand_derived_edges() raises:
     var from_c: List[String] = ["A", "B"]
     var to_c: List[String] = ["B", "C"]
     var v: List[Float64] = [10.0, 5.0]
-    var c = render(graph(from_c, to_c, v, width=400, height=300))
+    var _hoisted1 = graph(from_c, to_c, v, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
     _assert_color(c, 265, 110, palette[0], "A->B's edge, at its midpoint")
@@ -64,7 +65,8 @@ def test_render_graph_self_loop_draws_nothing_but_doesnt_raise() raises:
     var from_c: List[String] = ["A", "A"]
     var to_c: List[String] = ["A", "B"]
     var v: List[Float64] = [5.0, 5.0]
-    var c = render(graph(from_c, to_c, v, width=200, height=150))
+    var _hoisted2 = graph(from_c, to_c, v, width=200, height=150)
+    var c = render(_hoisted2)
     _ = c
 
 
@@ -73,7 +75,8 @@ def test_render_graph_raises_on_negative_value() raises:
     var to_c: List[String] = ["B"]
     var v: List[Float64] = [-1.0]
     with assert_raises():
-        _ = render(graph(from_c, to_c, v, width=200, height=150))
+        var _hoisted3 = graph(from_c, to_c, v, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_graph_raises_on_mismatched_length() raises:
@@ -81,14 +84,16 @@ def test_render_graph_raises_on_mismatched_length() raises:
     var to_c: List[String] = ["B"]
     var v: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = render(graph(from_c, to_c, v, width=200, height=150))
+        var _hoisted4 = graph(from_c, to_c, v, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_graph_empty_data_only_fills_background() raises:
     var from_c = List[String]()
     var to_c = List[String]()
     var v = List[Float64]()
-    var c = render(graph(from_c, to_c, v, width=100, height=80))
+    var _hoisted5 = graph(from_c, to_c, v, width=100, height=80)
+    var c = render(_hoisted5)
     _assert_color(c, 50, 40, BG, "no edges: nothing drawn but the background")
 
 

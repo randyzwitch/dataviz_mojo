@@ -56,7 +56,8 @@ def test_render_grouped_bar_matches_hand_derived_rectangles() raises:
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
     var t = Theme(show_gridlines=False)
-    var c = render(grouped_bar(cats, names, values, theme=t, width=400, height=300))
+    var _hoisted1 = grouped_bar(cats, names, values, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
     # A, North (series 0, value 10): x:[70,108), y:[140,250)
@@ -111,7 +112,8 @@ def test_render_grouped_bar_zero_length_categories_only_fills_background() raise
     var cats = List[String]()
     var names: List[String] = ["North"]
     var values: List[List[Float64]] = [List[Float64]()]
-    var c = render(grouped_bar(cats, names, values, width=200, height=150))
+    var _hoisted2 = grouped_bar(cats, names, values, width=200, height=150)
+    var c = render(_hoisted2)
     _assert_color(c, 100, 75, BG, "no categories -- just the background fill")
 
 
@@ -120,7 +122,8 @@ def test_render_grouped_bar_raises_on_mismatched_series_names_and_values_length(
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        _ = render(grouped_bar(cats, names, values, width=200, height=150))
+        var _hoisted3 = grouped_bar(cats, names, values, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_grouped_bar_raises_on_mismatched_value_series_length() raises:
@@ -128,7 +131,8 @@ def test_render_grouped_bar_raises_on_mismatched_value_series_length() raises:
     var names: List[String] = ["North"]
     var values: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        _ = render(grouped_bar(cats, names, values, width=200, height=150))
+        var _hoisted4 = grouped_bar(cats, names, values, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def main() raises:

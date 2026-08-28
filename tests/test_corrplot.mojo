@@ -33,7 +33,8 @@ def test_render_corrplot_matches_hand_derived_bubbles() raises:
     var vars: List[String] = ["A", "B"]
     var m: List[List[Float64]] = [[1.0, -0.5], [-0.5, 1.0]]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = render(corrplot(vars, m, labels=False, theme=t, width=400, height=300))
+    var _hoisted1 = corrplot(vars, m, labels=False, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 140, 78, t.color_scale_high, "(A, A) = 1.0, the color domain's max")
     _assert_color(c, 300, 78, Color(148, 173, 218), "(A, B) = -0.5, t=0.25 through the gradient")
@@ -64,7 +65,8 @@ def test_render_corrplot_lower_layout_without_diag_keeps_only_below_diagonal() r
     var vars: List[String] = ["A", "B"]
     var m: List[List[Float64]] = [[1.0, -0.5], [-0.5, 1.0]]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = render(corrplot(vars, m, layout="lower", diag=False, labels=False, theme=t, width=400, height=300))
+    var _hoisted2 = corrplot(vars, m, layout="lower", diag=False, labels=False, theme=t, width=400, height=300)
+    var c = render(_hoisted2)
 
     _assert_color(c, 140, 78, BG, "(A, A) -- diagonal, dropped by diag=False")
     _assert_color(c, 300, 78, BG, "(A, B) -- upper triangle, dropped by layout=\"lower\"")
@@ -76,27 +78,31 @@ def test_render_corrplot_raises_on_non_square_matrix() raises:
     var vars: List[String] = ["A", "B"]
     var m: List[List[Float64]] = [[1.0, 0.5], [0.5]]
     with assert_raises():
-        _ = render(corrplot(vars, m, width=200, height=150))
+        var _hoisted3 = corrplot(vars, m, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_corrplot_raises_on_wrong_row_count() raises:
     var vars: List[String] = ["A", "B", "C"]
     var m: List[List[Float64]] = [[1.0, 0.5, 0.1], [0.5, 1.0, 0.2]]
     with assert_raises():
-        _ = render(corrplot(vars, m, width=200, height=150))
+        var _hoisted4 = corrplot(vars, m, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_corrplot_raises_on_out_of_range_value() raises:
     var vars: List[String] = ["A", "B"]
     var m: List[List[Float64]] = [[1.0, 1.5], [1.5, 1.0]]
     with assert_raises():
-        _ = render(corrplot(vars, m, width=200, height=150))
+        var _hoisted5 = corrplot(vars, m, width=200, height=150)
+        _ = render(_hoisted5)
 
 
 def test_render_corrplot_empty_variables_only_fills_background() raises:
     var vars = List[String]()
     var m = List[List[Float64]]()
-    var c = render(corrplot(vars, m, width=100, height=80))
+    var _hoisted6 = corrplot(vars, m, width=100, height=80)
+    var c = render(_hoisted6)
     _assert_color(c, 50, 40, BG, "no variables: nothing drawn but the background")
 
 

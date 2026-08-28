@@ -57,7 +57,8 @@ def test_render_respects_custom_theme_colors() raises:
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
     var custom = Theme(background=Color(20, 20, 20), mark_color=RED)
-    var c = render(scatter(x, y, theme=custom, width=400, height=300))
+    var _hoisted1 = scatter(x, y, theme=custom, width=400, height=300)
+    var c = render(_hoisted1)
 
     # Far corner, untouched by any mark/axis/gridline -- pure background.
     var corner = c.get_pixel(399, 0)
@@ -78,15 +79,36 @@ def test_render_gridlines_flag_actually_controls_gridline_pixels() raises:
     # `Plot` (dataviz_mojo.plot._finished's docstring); render() is
     # the exact same path scatter()'s own output would go through now
     # too, so this check would hold identically either way.
+    #
+    # The "off" side no longer asserts an exact 0: `render()`'s
+    # supersample-then-downsample (`_RASTER_SUPERSAMPLE`, plot.mojo)
+    # can blend an unrelated edge (a tick mark, a label glyph, the
+    # point marker's own AA fringe) to coincidentally land on this
+    # exact gray by chance, a handful of times, with no gridlines
+    # drawn at all -- see `_assert_near_color`'s docstring (tests/
+    # _test_helpers.mojo) for the same underlying phenomenon. What
+    # still holds exactly: real gridlines paint this color at a whole
+    # different order of magnitude more pixels (hundreds, from long
+    # straight runs) than stray incidental collisions ever could (a
+    # handful) -- so the flag's actual effect is checked by that gap,
+    # not by a brittle exact zero.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var gridline_color = Color(225, 225, 225)
 
-    var c_on = render(Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=True)).size(400, 300))
-    assert_true(_count_color(c_on, gridline_color) > 0)
+    var _hoisted2 = Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=True)).size(400, 300)
+    var c_on = render(_hoisted2)
+    var count_on = _count_color(c_on, gridline_color)
+    assert_true(count_on > 0)
 
-    var c_off = render(Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=False)).size(400, 300))
-    assert_equal(_count_color(c_off, gridline_color), 0)
+    var _hoisted3 = Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=False)).size(400, 300)
+    var c_off = render(_hoisted3)
+    var count_off = _count_color(c_off, gridline_color)
+    assert_true(
+        count_off * 10 < count_on,
+        "far fewer gridline-colored pixels with gridlines off (" + String(count_off) + ") than on ("
+        + String(count_on) + ")",
+    )
 
 
 def test_render_raises_on_mismatched_color_length() raises:

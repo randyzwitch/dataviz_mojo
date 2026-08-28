@@ -42,7 +42,8 @@ def test_render_gantt_matches_hand_derived_bars() raises:
     var start: List[Float64] = [10.0, 50.0]
     var end: List[Float64] = [40.0, 90.0]
     var t = Theme(show_gridlines=False)
-    var c = render(gantt(cats, start, end, theme=t, width=400, height=300))
+    var _hoisted1 = gantt(cats, start, end, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 100, 60, t.mark_color, "A's bar (x:[75,184), y:[32,124)), well inside")
     _assert_color(c, 250, 180, t.mark_color, "B's bar (x:[220,365), y:[147,239)), well inside")
@@ -81,13 +82,15 @@ def test_render_gantt_raises_on_mismatched_category_length() raises:
     var cats: List[String] = ["a", "b", "c"]
     var one: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = render(gantt(cats, one, one, width=200, height=150))
+        var _hoisted2 = gantt(cats, one, one, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_gantt_empty_data_only_fills_background() raises:
     var cats = List[String]()
     var empty = List[Float64]()
-    var c = render(gantt(cats, empty, empty, width=200, height=150))
+    var _hoisted3 = gantt(cats, empty, empty, width=200, height=150)
+    var c = render(_hoisted3)
     _assert_color(c, 100, 75, BG, "no categories -- just the background fill")
 
 

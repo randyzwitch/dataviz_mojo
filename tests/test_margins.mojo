@@ -1,5 +1,15 @@
 """Tests for the dynamic left-margin computation (wide y-axis tick labels
 growing plot_x0 on both the continuous and Mark.BAR render paths).
+
+The axis-line-position checks use `_assert_near_color()`, not
+`_assert_color()` -- `render()`'s supersample-then-downsample
+(`_RASTER_SUPERSAMPLE`, plot.mojo) has no single output pixel that
+lands fully opaque for a 1px-wide stroke, so an exact color match at
+the line's own nominal column isn't guaranteed the way a filled mark's
+solid interior pixel still is (see `_assert_near_color`'s own
+docstring, tests/_test_helpers.mojo). What's still checked exactly:
+*which* column the line's ink concentrates around (the margin
+actually moved), not the precise color at it.
 """
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
@@ -21,7 +31,7 @@ from dataviz_mojo.plot import (
 )
 from dataviz_mojo.theme import Theme
 
-from _test_helpers import _count_color, _assert_color
+from _test_helpers import _count_color, _assert_color, _assert_near_color
 
 
 def test_render_left_margin_grows_to_fit_wide_y_axis_labels() raises:
@@ -47,9 +57,10 @@ def test_render_left_margin_grows_to_fit_wide_y_axis_labels() raises:
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [1000000.0, 2000000.0]
     var t = Theme(show_gridlines=False)
-    var c = render(Plot().mark_point().encode(x=x, y=y).theme(t).size(400, 300))
+    var _hoisted1 = Plot().mark_point().encode(x=x, y=y).theme(t).size(400, 300)
+    var c = render(_hoisted1)
 
-    _assert_color(c, 68, 135, t.axis_color, "y-axis line moved to the dynamic margin")
+    _assert_near_color(c, 68, 135, t.axis_color, 70, "y-axis line moved to the dynamic margin")
 
     # The wide label's ink extends left of a plain fixed 60px margin:
     # real, non-background pixels sit at x=57, part of the
@@ -75,9 +86,10 @@ def test_render_left_margin_unchanged_for_short_y_axis_labels() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
     var y: List[Float64] = [2.3, 4.1, 3.6, 5.8, 5.1, 7.4, 6.9, 8.2, 9.0, 8.6]
     var t = Theme(show_gridlines=False)
-    var c = render(Plot().mark_point().encode(x=x, y=y).theme(t).size(400, 300))
+    var _hoisted2 = Plot().mark_point().encode(x=x, y=y).theme(t).size(400, 300)
+    var c = render(_hoisted2)
 
-    _assert_color(c, 60, 135, t.axis_color, "y-axis line still at Theme's default margin")
+    _assert_near_color(c, 60, 135, t.axis_color, 70, "y-axis line still at Theme's default margin")
 
 
 def test_render_bar_left_margin_also_grows_to_fit_wide_y_axis_labels() raises:
@@ -97,9 +109,10 @@ def test_render_bar_left_margin_also_grows_to_fit_wide_y_axis_labels() raises:
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1000000.0, 2000000.0]
     var t = Theme(show_gridlines=False)
-    var c = render(Plot().mark_bar().encode_categorical(x=x, y=y).theme(t).size(400, 300))
+    var _hoisted3 = Plot().mark_bar().encode_categorical(x=x, y=y).theme(t).size(400, 300)
+    var c = render(_hoisted3)
 
-    _assert_color(c, 68, 135, t.axis_color, "bar chart y-axis line moved to the dynamic margin")
+    _assert_near_color(c, 68, 135, t.axis_color, 70, "bar chart y-axis line moved to the dynamic margin")
     var left_of_old_margin = c.get_pixel(57, 135)
     assert_true(
         left_of_old_margin.r != 255 or left_of_old_margin.g != 255 or left_of_old_margin.b != 255,

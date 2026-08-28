@@ -32,7 +32,8 @@ def test_render_effect_scatter_matches_hand_derived_halo_and_point() raises:
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = render(effect_scatter(x, y, theme=t, width=400, height=300))
+    var _hoisted1 = effect_scatter(x, y, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 220, 135, t.mark_color, "the point itself, dead center")
     _assert_color(c, 220, 128, Color(175, 200, 228), "inside the halo (radius 9) but outside the point (radius 4)")
@@ -66,7 +67,8 @@ def test_render_point_mark_draws_no_halo() raises:
 def test_render_effect_scatter_empty_data_only_fills_background() raises:
     var x = List[Float64]()
     var y = List[Float64]()
-    var c = render(effect_scatter(x, y, width=200, height=150))
+    var _hoisted2 = effect_scatter(x, y, width=200, height=150)
+    var c = render(_hoisted2)
     _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
 
 

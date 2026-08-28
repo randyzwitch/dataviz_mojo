@@ -145,6 +145,7 @@ from canvas_mojo.color import Color
 from canvas_mojo.gradient import LinearGradient
 from canvas_mojo.io.bmp import write_bmp
 from canvas_mojo.io.png import write_png
+from canvas_mojo.resize import downsample
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.path import Path
@@ -3727,18 +3728,85 @@ def _extend_text_requests(mut dst: List[_TextRequest], src: List[_TextRequest]):
         dst.append(req.copy())
 
 
-def render(plot: Plot) raises -> Canvas:
+comptime _RASTER_SUPERSAMPLE = 3
+"""How many times larger than the requested size `render()`/`render_
+facets()`/`render_layers()` actually draw at internally, before
+shrinking back down -- genuinely finer-grained anti-aliasing than
+drawing directly at the final size would produce (see `canvas_mojo.
+resize.downsample`'s docstring for the mechanism). Unconditional, not
+a `Theme` field or a caller-visible knob: turning a `Plot`/`List[Plot]`
+into raster pixels should just look good, the same way turning one
+into SVG markup needs no equivalent choice (vector has no fixed
+resolution for supersampling to even apply to) -- so every raster
+entry point does this the same way, none of them a lower-quality
+"precise" alternative to opt out into. A solid, single-color region is
+unaffected either way -- every subpixel `downsample()` averages
+together already agrees, so the averaged result is the exact same
+color -- so this changes only pixels near a shape's own edge, never a
+chart's interior. 3x is clearly enough finer-grained to matter without
+wasting work; not benchmarked against 2x/4x."""
+
+
+def _bump_scale(mut plots: List[Plot], factor: Int) -> List[Float64]:
+    """Multiplies every `Plot` in `plots`' own `_theme.scale` by
+    `factor` in place, returning each one's original value (in the
+    same order) so `_restore_scale()` can put them back afterward --
+    the `render_facets()`/`render_layers()` version of the same
+    "temporarily bump a field, do the work, put it back" trick
+    `render()`'s own docstring explains, generalized from one `Plot`
+    to a whole list: every plot in a facet grid/layer stack needs its
+    *own* mark styling (line width, point radius, font size, ...)
+    scaled up together for the supersampled render to look uniformly
+    sharp, not just `plots[0]`'s shared chrome."""
+    var originals = List[Float64]()
+    for i in range(len(plots)):
+        originals.append(plots[i]._theme.scale)
+        plots[i]._theme.scale = plots[i]._theme.scale * Float64(factor)
+    return originals^
+
+
+def _restore_scale(mut plots: List[Plot], originals: List[Float64]):
+    """Undoes `_bump_scale()` -- see its docstring."""
+    for i in range(len(plots)):
+        plots[i]._theme.scale = originals[i]
+
+
+def render(mut plot: Plot) raises -> Canvas:
     """Render `plot` into a fresh `Canvas` sized `plot.width` x
-    `plot.height` (see `Plot.size()`) and return it -- the only public
-    single-plot raster entry point; no `canvas_mojo` type to construct
-    by hand first. A thin wrapper around `_render_into`, this module's
-    private single-plot-into-a-rect core (also what `save()` reaches
-    for when `plot._theme.output_format` says raster) -- see that
-    function's own docstring for the full rendering story.
+    `plot.height` (see `Plot.size()`) and return it, supersampled by
+    `_RASTER_SUPERSAMPLE` -- the only public single-plot raster entry
+    point; no `canvas_mojo` type to construct by hand first, and no
+    lower-quality "precise" mode to opt out of: this is just what
+    turning a `Plot` into pixels means here.
+
+    `plot` is a `mut` (not owned, not a plain immutable borrow) purely
+    as an implementation detail, not a caller-visible capability:
+    `plot._theme.scale` is bumped by `_RASTER_SUPERSAMPLE`, the scratch
+    render happens, then it's set back to exactly what it was before
+    returning -- the same "temporarily bump a field, do the work, put
+    it back" trick `_finished()` uses to let one `Plot` serve two
+    different renders without `Plot` needing to be `Copyable` (it
+    owns every data column). The caller's `plot` is unchanged and
+    fully reusable afterward -- `save(plot, "a.svg"); save(plot,
+    "a.png")` on the same variable still works exactly as before.
+    Because Mojo requires a real named variable for a `mut` argument
+    (a temporary can't bind to one), `render(scatter(x, y))` inline no
+    longer compiles -- `var plot = scatter(x, y)` first, then
+    `render(plot)`.
+
+    A thin wrapper around `_render_into`, this module's private
+    single-plot-into-a-rect core (also what `save()` reaches for when
+    `plot._theme.output_format` says raster) -- see that function's
+    own docstring for the full rendering story; supersampling itself
+    happens only here, around `_render_into`, not inside it.
     """
-    var canvas = Canvas(plot.width, plot.height)
-    _render_into(canvas, plot)
-    return canvas^
+    var factor = _RASTER_SUPERSAMPLE
+    var original_scale = plot._theme.scale
+    plot._theme.scale = original_scale * Float64(factor)
+    var scratch = Canvas(plot.width * factor, plot.height * factor, plot._theme.background)
+    _render_into(scratch, plot)
+    plot._theme.scale = original_scale
+    return downsample(scratch, factor)
 
 
 def _render_into(
@@ -3809,14 +3877,24 @@ def _render_into(
     -- see its comment) and `render_layers()`/`render_layers_svg()`.
 
     Every pixel-sized quantity here scales only by `plot._theme.scale`
-    (see `Theme`'s docstring), exactly the value the caller set,
-    nothing added silently -- the precise, pixel-for-pixel entry point
-    real HiDPI export and this whole test suite's hand-verified pixel
-    assertions rely on. `_finished()` -- what every one-call
-    convenience function (`bar()`, `scatter()`, ...) calls instead of
-    this directly -- reads no differently: it hands back a plain
-    `Plot`, unrendered, so a quickplot-built chart goes through this
-    exact same, un-scaled path too, whenever a caller renders/saves it.
+    (see `Theme`'s docstring), exactly the value the caller passed in
+    -- this function itself adds nothing silently. `render()` (the
+    only caller that matters from the outside -- see its own
+    docstring) is where `_RASTER_SUPERSAMPLE` gets applied, by
+    temporarily bumping that same `plot._theme.scale` before calling
+    this function and restoring it after; this function has no idea
+    that happens, and doesn't need to -- it just draws whatever scale
+    it's handed, precisely. This whole test suite's hand-verified
+    pixel assertions go through `render()`, not this function
+    directly, so they see supersampled output -- exact for any
+    solid-color interior point (averaging a uniform block gives back
+    that same color), and only genuinely different right at a shape's
+    own edge. `_finished()` -- what every one-call convenience
+    function (`bar()`, `scatter()`, ...) calls instead of this
+    directly -- reads no differently: it hands back a plain `Plot`,
+    unrendered, so a quickplot-built chart goes through `render()`'s
+    exact same supersampled path too, whenever a caller renders/saves
+    it.
     """
     var cx1 = ox1 if ox1 >= 0 else canvas.width
     var cy1 = oy1 if oy1 >= 0 else canvas.height
@@ -3918,7 +3996,7 @@ def _resolve_output_format(theme_format: OutputFormat, path: String) -> OutputFo
     return theme_format
 
 
-def save(plot: Plot, path: String) raises:
+def save(mut plot: Plot, path: String) raises:
     """Render `plot` and write it to `path` in one call -- the "never
     import anything from `canvas_mojo`" entry point issue #112 asked
     for. Picks a format via `_resolve_output_format()` (`path`'s own
@@ -3929,6 +4007,14 @@ def save(plot: Plot, path: String) raises:
     the same raster `render()` path, differing only in which writer
     runs.
 
+    `plot` is `mut` purely because `render()` is (see its own
+    docstring for why) -- `save()` never leaves `plot` any different
+    than it found it, so `save(plot, "a.svg"); save(plot, "a.png")` on
+    the same variable still works exactly as before. Same restriction
+    that gives it: a temporary can't bind to a `mut` argument, so
+    `save(scatter(x, y), path)` inline doesn't compile -- bind it to a
+    variable first.
+
     For anyone who wants the rendered `Canvas`/`SvgCanvas` object
     itself (to write more than one format from a single render, or to
     inspect/assert against it directly, the way this test suite's
@@ -3937,10 +4023,10 @@ def save(plot: Plot, path: String) raises:
     those two, not a replacement for them. `save_layers()`/`save_
     facets()` are this function's `render_layers()`/`render_facets()`
     counterparts, for a `List[Plot]` instead of one `Plot`; the `save(
-    canvas: Canvas, path: String)` overload just below is its quickplot
-    counterpart, for an already-rendered `Canvas` (what `scatter()`/
-    `bar()`/... return -- plot.mojo's module docstring) instead of a
-    `Plot` this function would still need to render itself.
+    canvas: Canvas, path: String)` overload just below is for an
+    already-rendered `Canvas` obtained some other way (`render()`,
+    `canvas_mojo.resize.downsample()`, ...) instead of a `Plot` this
+    function would still need to render itself.
     """
     var format = _resolve_output_format(plot._theme.output_format, path)
     if format == OutputFormat.SVG:
@@ -3977,7 +4063,7 @@ def save(canvas: Canvas, path: String) raises:
         write_png(canvas, path)
 
 
-def save_layers(plots: List[Plot], path: String) raises:
+def save_layers(mut plots: List[Plot], path: String) raises:
     """`save()`'s `render_layers()`/`render_layers_svg()` counterpart
     -- see `save()`'s own docstring for the shared story. Format comes
     from `plots[0]`'s theme when `path`'s own extension doesn't decide
@@ -3987,6 +4073,10 @@ def save_layers(plots: List[Plot], path: String) raises:
     though output_format itself isn't part of that check); raises on an
     empty `plots` before ever touching `plots[0]`, the same guard
     `render_layers()` itself raises for the same reason.
+
+    `plots` is `mut` purely because `render_layers()` is (supersampling
+    -- see its docstring); `save_layers()` never leaves it any
+    different than it found it.
     """
     if len(plots) == 0:
         raise Error("save_layers(): plots must not be empty")
@@ -3999,10 +4089,11 @@ def save_layers(plots: List[Plot], path: String) raises:
         write_bmp(render_layers(plots), path)
 
 
-def save_facets(plots: List[Plot], cols: Int, path: String) raises:
+def save_facets(mut plots: List[Plot], cols: Int, path: String) raises:
     """`save()`'s `render_facets()`/`render_facets_svg()` counterpart
     -- see `save_layers()`'s docstring for the shared "format from
-    plots[0], empty list raises first" story, identical here.
+    plots[0], empty list raises first, `mut` for supersampling" story,
+    identical here.
     """
     if len(plots) == 0:
         raise Error("save_facets(): plots must not be empty")
@@ -5160,14 +5251,16 @@ def _require_uniform_size(plots: List[Plot], caller: String) raises:
             )
 
 
-def render_facets(plots: List[Plot], cols: Int) raises -> Canvas:
+def render_facets(mut plots: List[Plot], cols: Int) raises -> Canvas:
     """Render each of `plots` into its evenly sized grid cell of a
     fresh `Canvas`, sized from the plots themselves (`_require_
-    uniform_size`), and return it -- see `_render_facets_generic`'s
-    docstring for the actual cell-layout contract this and
-    `render_facets_svg` share. A thin wrapper exactly like `render()`'s
-    own: build the right-sized target, hand off to the shared generic
-    core, draw the `_TextRequest`s it returns via `canvas_mojo.text.draw_text`.
+    uniform_size`), supersampled by `_RASTER_SUPERSAMPLE` exactly like
+    `render()` (see its docstring for why, and for the same `mut`
+    tradeoff: a temporary `List[Plot]` can't bind to a `mut` argument,
+    so `render_facets(build_plots(), cols)` inline doesn't compile --
+    bind it to a variable first), and return it -- see `_render_facets_
+    generic`'s docstring for the actual cell-layout contract this and
+    `render_facets_svg` share.
 
     Checks `cols` before touching `plots` at all: a non-positive `cols`
     used in the `rows`/canvas-size math below (before `_render_facets_
@@ -5181,12 +5274,15 @@ def render_facets(plots: List[Plot], cols: Int) raises -> Canvas:
         raise Error("render_facets(): cols must be positive (got " + String(cols) + ")")
     _require_uniform_size(plots, "render_facets")
     var rows = (len(plots) + cols - 1) // cols
-    var canvas = Canvas(cols * plots[0].width, rows * plots[0].height)
+    var factor = _RASTER_SUPERSAMPLE
+    var originals = _bump_scale(plots, factor)
+    var canvas = Canvas(cols * plots[0].width * factor, rows * plots[0].height * factor)
     var text_requests = _render_facets_generic(canvas, canvas.width, canvas.height, plots, cols)
     # One FontCache for every cell's labels -- see render()'s own.
     var text_cache = FontCache()
     _replay_text_requests(canvas, text_requests, text_cache)
-    return canvas^
+    _restore_scale(plots, originals)
+    return downsample(canvas, factor)
 
 
 def render_facets_svg(plots: List[Plot], cols: Int) raises -> SvgCanvas:
@@ -5337,7 +5433,7 @@ def _secondary_axis_y_title(plots: List[Plot]) -> String:
     return ""
 
 
-def render_layers(plots: List[Plot]) raises -> Canvas:
+def render_layers(mut plots: List[Plot]) raises -> Canvas:
     """Render every `Plot` in `plots` onto *one shared* coordinate
     system on `canvas` -- one combined x/y domain (computed across
     every layered plot's data together, not each plot's independent domain the way `render_facets()`'s cells each get),
@@ -5418,9 +5514,19 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
     list as a no-op against a canvas the caller already owned, but
     that reading doesn't survive this function building its own
     canvas instead).
+
+    Supersampled by `_RASTER_SUPERSAMPLE` exactly like `render()` (see
+    its docstring for why, and for the same `mut` tradeoff: a temporary
+    `List[Plot]` can't bind to a `mut` argument, so `render_layers(
+    build_plots())` inline doesn't compile -- bind it to a variable
+    first) -- every layer's own `_theme.scale` is bumped together
+    (`_bump_scale()`), not just `plots[0]`'s shared chrome, so each
+    layer's own mark styling stays uniformly sharp too.
     """
     _require_uniform_size(plots, "render_layers")
-    var canvas = Canvas(plots[0].width, plots[0].height)
+    var factor = _RASTER_SUPERSAMPLE
+    var originals = _bump_scale(plots, factor)
+    var canvas = Canvas(plots[0].width * factor, plots[0].height * factor)
     var cx1 = canvas.width
     var cy1 = canvas.height
     canvas.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
@@ -5461,7 +5567,8 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
     var text_cache = FontCache()
     _replay_text_requests(canvas, label_requests, text_cache)
     _replay_text_requests(canvas, result.text_requests, text_cache)
-    return canvas^
+    _restore_scale(plots, originals)
+    return downsample(canvas, factor)
 
 
 def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:

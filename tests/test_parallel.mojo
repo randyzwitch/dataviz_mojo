@@ -37,7 +37,8 @@ def test_render_parallel_matches_hand_derived_polylines() raises:
     var dims: List[String] = ["A", "B"]
     var row_names: List[String] = ["r1", "r2", "r3", "r4"]
     var data: List[List[Float64]] = [[3.0, 7.0], [7.0, 3.0], [0.0, 0.0], [10.0, 10.0]]
-    var c = render(parallel(data, dims, row_names, theme=Theme(show_legend=False), width=400, height=300))
+    var _hoisted1 = parallel(data, dims, row_names, theme=Theme(show_legend=False), width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
     _assert_color(c, 60, 181, palette[0], "r1's first vertex, axis A (frac 0.3)")
@@ -51,7 +52,8 @@ def test_render_parallel_raises_on_mismatched_row_length() raises:
     var row_names: List[String] = ["r1", "r2"]
     var data: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        _ = render(parallel(data, dims, row_names, width=200, height=150))
+        var _hoisted2 = parallel(data, dims, row_names, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_parallel_raises_on_wrong_length_row() raises:
@@ -59,14 +61,16 @@ def test_render_parallel_raises_on_wrong_length_row() raises:
     var row_names: List[String] = ["r1"]
     var data: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        _ = render(parallel(data, dims, row_names, width=200, height=150))
+        var _hoisted3 = parallel(data, dims, row_names, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_parallel_empty_dims_only_fills_background() raises:
     var dims = List[String]()
     var row_names = List[String]()
     var data = List[List[Float64]]()
-    var c = render(parallel(data, dims, row_names, width=100, height=80))
+    var _hoisted4 = parallel(data, dims, row_names, width=100, height=80)
+    var c = render(_hoisted4)
     _assert_color(c, 50, 40, BG, "no dimensions: nothing drawn but the background")
 
 

@@ -43,7 +43,8 @@ def test_render_point_mark_centers_on_the_hand_derived_pixel() raises:
     # manual_plot) rather than the fluent builder spelled out by hand.
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
-    var c = render(scatter(x, y, width=400, height=300))
+    var _hoisted1 = scatter(x, y, width=400, height=300)
+    var c = render(_hoisted1)
 
     var p = c.get_pixel(220, 135)
     var expected = Theme.default().mark_color

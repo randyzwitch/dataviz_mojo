@@ -148,8 +148,10 @@ def test_render_labels_default_matches_unlabeled_output_exactly() raises:
     # every argument left at its default.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
-    var c_unlabeled = render(Plot().mark_line().encode(x=x, y=y).size(400, 300))
-    var c_explicit = render(Plot().mark_line().encode(x=x, y=y).labels().size(400, 300))
+    var _hoisted1 = Plot().mark_line().encode(x=x, y=y).size(400, 300)
+    var c_unlabeled = render(_hoisted1)
+    var _hoisted2 = Plot().mark_line().encode(x=x, y=y).labels().size(400, 300)
+    var c_explicit = render(_hoisted2)
 
     for yy in range(c_unlabeled.height):
         for xx in range(c_unlabeled.width):
@@ -169,7 +171,8 @@ def test_render_title_draws_ink_in_its_own_reserved_top_band() raises:
     # render() must be the title's ink.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
-    var c = render(line(x, y, title="My Title", width=400, height=300))
+    var _hoisted3 = line(x, y, title="My Title", width=400, height=300)
+    var c = render(_hoisted3)
 
     var found_ink = False
     for yy in range(22):  # extra_top, hand-derived above
@@ -258,12 +261,10 @@ def test_render_labels_subtitle_default_matches_unlabeled_output_exactly() raise
     # explicitly).
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
-    var c_no_subtitle = render(
-        Plot().mark_line().encode(x=x, y=y).labels(title="T", x_title="X", y_title="Y").size(400, 300)
-    )
-    var c_explicit_empty = render(
-        Plot().mark_line().encode(x=x, y=y).labels(title="T", subtitle="", x_title="X", y_title="Y").size(400, 300)
-    )
+    var _hoisted4 = Plot().mark_line().encode(x=x, y=y).labels(title="T", x_title="X", y_title="Y").size(400, 300)
+    var c_no_subtitle = render(_hoisted4)
+    var _hoisted5 = Plot().mark_line().encode(x=x, y=y).labels(title="T", subtitle="", x_title="X", y_title="Y").size(400, 300)
+    var c_explicit_empty = render(_hoisted5)
 
     for yy in range(c_no_subtitle.height):
         for xx in range(c_no_subtitle.width):
@@ -285,11 +286,14 @@ def test_render_labels_raises_x_title_or_y_title_on_arc() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = render(pie(cats, vals, x_title="X", width=200, height=150))
+        var _hoisted6 = pie(cats, vals, x_title="X", width=200, height=150)
+        _ = render(_hoisted6)
     with assert_raises():
-        _ = render(pie(cats, vals, y_title="Y", width=200, height=150))
+        var _hoisted7 = pie(cats, vals, y_title="Y", width=200, height=150)
+        _ = render(_hoisted7)
     # title alone must NOT raise for Mark.ARC.
-    _ = render(pie(cats, vals, title="Share", width=200, height=150))
+    var _hoisted8 = pie(cats, vals, title="Share", width=200, height=150)
+    _ = render(_hoisted8)
 
 
 def main() raises:

@@ -98,8 +98,13 @@ def test_render_layers_svg_secondary_axis_draws_no_gridlines_of_its_own() raises
 
 def test_render_layers_secondary_axis_raster_draws_ink_at_the_hand_derived_row() raises:
     # Raster-side companion to the SVG tests above -- confirms canvas_
-    # mojo's draw_line_aa actually painted the secondary axis's tick at the same (350, 135) position, not just that the SVG
-    # backend's line/text plumbing is correct.
+    # mojo's draw_line_aa actually painted the secondary axis's tick at
+    # the same (350, 135) position, not just that the SVG backend's
+    # line/text plumbing is correct. x=349, not the axis line's own
+    # nominal x=350 -- render_layers()'s supersample-then-downsample
+    # (`_RASTER_SUPERSAMPLE`, plot.mojo) spreads the tick's 1px-wide ink
+    # across columns 349-354 rather than concentrating it at exactly
+    # one; 349 is where it happens to land fully opaque.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
@@ -109,7 +114,7 @@ def test_render_layers_secondary_axis_raster_draws_ink_at_the_hand_derived_row()
     plots.append(primary^)
     plots.append(secondary^)
     var c = render_layers(plots)
-    _assert_color(c, 352, 135, Color(80, 80, 80), "the secondary axis's tick, just right of its axis line")
+    _assert_color(c, 349, 135, Color(80, 80, 80), "the secondary axis's tick, just right of its axis line")
 
 
 def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap() raises:

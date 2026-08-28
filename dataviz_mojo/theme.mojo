@@ -36,6 +36,15 @@ returns a plain `Plot` (`dataviz_mojo.plot._finished`'s docstring),
 not a rendered `Canvas`, so there's no separate quickplot-only
 scaling behavior to distinguish `scale` from here at all.
 
+Distinct from `render()`'s own internal supersampling
+(`_RASTER_SUPERSAMPLE`, plot.mojo): that's a fixed, unconditional
+multiplier `render()` applies and un-applies around one raster render
+pass so PNG/BMP output just looks good, not a `Theme` field or
+something this value composes with explicitly -- `scale` is the one
+knob a caller actually sets to ask for a bigger/sharper export;
+`render()`'s own supersampling is invisible plumbing underneath that
+choice, not a second version of it.
+
 `donut_inner_radius_fraction` (default 0.0 -- an ordinary pie, `Mark.
 ARC` unchanged) is a *fraction* of the outer radius `_render_arc`
 already computes from the plot area, not a pixel value -- the outer

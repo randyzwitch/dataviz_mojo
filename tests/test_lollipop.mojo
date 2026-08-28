@@ -37,7 +37,8 @@ def test_render_lollipop_matches_hand_derived_stem_and_point() raises:
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [10.0, 20.0, 15.0]
     var t = Theme(show_gridlines=False)
-    var c = render(lollipop(x, y, theme=t, width=400, height=300))
+    var _hoisted1 = lollipop(x, y, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 220, 31, t.mark_color, "circle center, category b's value pixel")
     _assert_color(c, 220, 150, t.mark_color, "stem midpoint, well within the 2px-wide stroke")
@@ -66,7 +67,8 @@ def test_render_lollipop_raises_on_mismatched_category_length() raises:
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = render(lollipop(x, y, width=200, height=150))
+        var _hoisted2 = lollipop(x, y, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def main() raises:

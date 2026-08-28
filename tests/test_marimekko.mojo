@@ -30,7 +30,8 @@ def test_render_marimekko_matches_hand_derived_columns() raises:
     var subs: List[String] = ["X", "Y"]
     var values: List[List[Float64]] = [[30.0, 10.0], [10.0, 30.0]]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = render(marimekko(cats, subs, values, theme=t, width=400, height=300))
+    var _hoisted1 = marimekko(cats, subs, values, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
     _assert_color(c, 140, 150, palette[0], "column A, well inside the X (bottom) segment")
@@ -59,7 +60,8 @@ def test_render_marimekko_raises_on_wrong_row_count() raises:
     var subs: List[String] = ["X", "Y", "Z"]
     var values: List[List[Float64]] = [[1.0, 2.0], [3.0, 4.0]]
     with assert_raises():
-        _ = render(marimekko(cats, subs, values, width=200, height=150))
+        var _hoisted2 = marimekko(cats, subs, values, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_marimekko_raises_on_wrong_column_count() raises:
@@ -67,7 +69,8 @@ def test_render_marimekko_raises_on_wrong_column_count() raises:
     var subs: List[String] = ["X"]
     var values: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        _ = render(marimekko(cats, subs, values, width=200, height=150))
+        var _hoisted3 = marimekko(cats, subs, values, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_marimekko_raises_on_negative_value() raises:
@@ -75,7 +78,8 @@ def test_render_marimekko_raises_on_negative_value() raises:
     var subs: List[String] = ["X"]
     var values: List[List[Float64]] = [[-1.0]]
     with assert_raises():
-        _ = render(marimekko(cats, subs, values, width=200, height=150))
+        var _hoisted4 = marimekko(cats, subs, values, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_marimekko_raises_on_all_zero_values() raises:
@@ -83,14 +87,16 @@ def test_render_marimekko_raises_on_all_zero_values() raises:
     var subs: List[String] = ["X"]
     var values: List[List[Float64]] = [[0.0, 0.0]]
     with assert_raises():
-        _ = render(marimekko(cats, subs, values, width=200, height=150))
+        var _hoisted5 = marimekko(cats, subs, values, width=200, height=150)
+        _ = render(_hoisted5)
 
 
 def test_render_marimekko_empty_data_only_fills_background() raises:
     var cats = List[String]()
     var subs = List[String]()
     var values = List[List[Float64]]()
-    var c = render(marimekko(cats, subs, values, width=100, height=80))
+    var _hoisted6 = marimekko(cats, subs, values, width=100, height=80)
+    var c = render(_hoisted6)
     _assert_color(c, 50, 40, BG, "no categories: nothing drawn but the background")
 
 

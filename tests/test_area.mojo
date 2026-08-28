@@ -40,7 +40,8 @@ def test_render_area_mark_matches_hand_derived_fill_region() raises:
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var t = Theme(show_gridlines=False)
-    var c = render(area(x, y, theme=t, width=400, height=300))
+    var _hoisted1 = area(x, y, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 220, 200, t.mark_color, "inside the filled area")
     _assert_color(c, 220, 50, BG, "above the area's top edge -- background")
@@ -86,8 +87,10 @@ def test_render_area_smoothing_default_matches_straight_output_exactly() raises:
     # an explicit Theme(line_smoothing=0.0).
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [2.0, 10.0, 4.0]
-    var c_default = render(area(x, y, width=400, height=300))
-    var c_explicit = render(area(x, y, theme=Theme(line_smoothing=0.0), width=400, height=300))
+    var _hoisted2 = area(x, y, width=400, height=300)
+    var c_default = render(_hoisted2)
+    var _hoisted3 = area(x, y, theme=Theme(line_smoothing=0.0), width=400, height=300)
+    var c_explicit = render(_hoisted3)
 
     for yy in range(c_default.height):
         for xx in range(c_default.width):
@@ -102,9 +105,11 @@ def test_render_area_raises_on_out_of_range_smoothing() raises:
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     with assert_raises():
-        _ = render(area(x, y, theme=Theme(line_smoothing=-0.1), width=200, height=150))
+        var _hoisted4 = area(x, y, theme=Theme(line_smoothing=-0.1), width=200, height=150)
+        _ = render(_hoisted4)
     with assert_raises():
-        _ = render(area(x, y, theme=Theme(line_smoothing=1.1), width=200, height=150))
+        var _hoisted5 = area(x, y, theme=Theme(line_smoothing=1.1), width=200, height=150)
+        _ = render(_hoisted5)
 
 
 def main() raises:

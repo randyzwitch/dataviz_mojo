@@ -13,7 +13,7 @@ from canvas_mojo.color import Color
 from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 
-from _test_helpers import _assert_color
+from _test_helpers import _assert_color, _assert_near_color
 
 
 def test_render_svg_annotate_vline_matches_hand_derived_position() raises:
@@ -70,7 +70,11 @@ def test_render_annotate_vline_raster_draws_ink_at_the_hand_derived_column() rai
         Theme(show_gridlines=False)
     ).size(400, 300)
     var c = render(plot)
-    _assert_color(c, 220, 100, Color(150, 150, 150), "the vline's ink, well inside the plot height")
+    # `_assert_near_color()`, not `_assert_color()` -- the vline is a
+    # 1px-wide stroke, the same reason every other mark's axis-line/
+    # gridline checks already need the tolerant helper (see its
+    # docstring, tests/_test_helpers.mojo).
+    _assert_near_color(c, 220, 100, Color(150, 150, 150), 40, "the vline's ink, well inside the plot height")
 
 
 def test_render_annotate_point_raster_draws_ink_at_the_hand_derived_position() raises:

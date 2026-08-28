@@ -3,29 +3,27 @@ part of `pixi run docs` (see pixi.toml), before `mojo doc`/`modo
 build`, so a new example file automatically gets a docs page without
 anyone hand-writing one.
 
-Each page shows the actual grammar-of-graphics pattern -- every
-example's raster output is built via a one-call convenience function
-now (`bar()`, `scatter()`, ...; see plot.mojo's own module docstring
-for what these are, and dataviz_mojo/__init__.mojo's own docstring for
-why every one is imported from the package itself rather than the
-mark file it happens to live in), each already the cleanest possible
-reconstruction of "how would I actually write this" -- not this docs
-site's own file-writing plumbing every example also needs, and not
-even the supersampling every one of these functions bakes into its
-own output now (see dataviz_mojo.plot._rendered's own docstring):
-there's nothing left to strip out of the shown snippet on that front
-at all, unlike when every example spelled its own `_SUPERSAMPLE`
-handling out by hand. Extraction strategy:
+Each page shows the actual grammar-of-graphics pattern -- most
+examples build their `Plot` via a one-call convenience function
+(`bar()`, `scatter()`, ...; see plot.mojo's own module docstring for
+what these are, and dataviz_mojo/__init__.mojo's own docstring for why
+every one is imported from the package itself rather than the mark
+file it happens to live in). That call returns a plain, un-rendered
+`Plot` (dataviz_mojo.plot._finished's docstring) -- rendering and
+supersampling only happen inside `render()`/`save()` themselves (see
+`_RASTER_SUPERSAMPLE`'s docstring, plot.mojo), automatically, for any
+`Plot` regardless of how it was built, so there's nothing to strip out
+of the shown snippet on that front at all. Extraction strategy:
 
-- The example's raster output is always built via a one-call
-  convenience function (`var c = bar(...)`, `var c = scatter(...)`,
-  ...) -- that call is the snippet shown, verbatim (see
-  `_quickplot_call_starts()`). Everything after that call's own closing
-  `)` -- write_bmp/png, any separate SvgCanvas/render_svg() block -- is
-  cut entirely, not shown. An example file with more than one such call
-  (examples/bar.mojo's own diverging-bars variant, alongside its plain
-  bar chart) gets one section per call on its own page instead of a
-  page each -- see `_build_sections()`.
+- The example's `Plot` is usually built via a one-call convenience
+  function (`var c = bar(...)`, `var c = scatter(...)`, ...) -- that
+  call is the snippet shown, verbatim (see `_quickplot_call_starts()`).
+  Everything after that call's own closing `)` -- the `save()` calls
+  that actually write it out -- is cut entirely, not shown. An example
+  file with more than one such call (examples/bar.mojo's own
+  diverging-bars variant, alongside its plain bar chart) gets one
+  section per call on its own page instead of a page each -- see
+  `_build_sections()`.
 
 A Mojo script, not Python -- this repo's own tooling stays in the
 language it's showcasing, string-matching primitives (`.strip()`,
@@ -360,7 +358,7 @@ def _quickplot_call_starts(body: List[String]) -> List[Int]:
     source order -- generalizes the old single-match version (there
     used to be only ever one call per example, so it just returned
     that line's index or -1) now that one example can build more than
-    one Canvas on its own docs page (examples/bar.mojo's own
+    one `Plot` on its own docs page (examples/bar.mojo's own
     diverging-bars variant, assigned to `var c_diverging` rather than
     reusing `c`, so both calls' snippets can show up as separate
     sections on the same page -- see `_build_sections()`). Matches
@@ -475,7 +473,7 @@ struct PageSection(Copyable, Movable):
     """One shown image + code snippet on a docs page. Almost every
     example produces exactly one of these (`heading` empty, since
     there's nothing to distinguish it from); an example whose file
-    builds more than one quickplot Canvas (examples/bar.mojo's own
+    builds more than one quickplot `Plot` (examples/bar.mojo's own
     diverging-bars variant) produces one per call instead, each with
     its own image and its own `### <heading>` subsection -- see
     `_build_sections()`."""

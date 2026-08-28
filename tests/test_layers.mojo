@@ -343,7 +343,8 @@ def test_render_layers_line_honors_theme_line_smoothing() raises:
     plots.append(Plot().mark_line().encode(x=x, y=y).theme(theme).size(400, 300))
     var c_layered = render_layers(plots)
 
-    var c_standalone = render(Plot().mark_line().encode(x=x, y=y).theme(theme).size(400, 300))
+    var _hoisted1 = Plot().mark_line().encode(x=x, y=y).theme(theme).size(400, 300)
+    var c_standalone = render(_hoisted1)
 
     for yy in range(c_layered.height):
         for xx in range(c_layered.width):
@@ -377,7 +378,8 @@ def test_render_layers_area_honors_theme_line_smoothing() raises:
     plots.append(Plot().mark_area().encode(x=x, y=y).theme(theme).size(400, 300))
     var c_layered = render_layers(plots)
 
-    var c_standalone = render(Plot().mark_area().encode(x=x, y=y).theme(theme).size(400, 300))
+    var _hoisted2 = Plot().mark_area().encode(x=x, y=y).theme(theme).size(400, 300)
+    var c_standalone = render(_hoisted2)
 
     for yy in range(c_layered.height):
         for xx in range(c_layered.width):

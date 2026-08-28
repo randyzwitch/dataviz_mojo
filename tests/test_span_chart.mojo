@@ -29,7 +29,8 @@ def test_render_span_chart_matches_hand_derived_bars() raises:
     var low: List[Float64] = [10.0, 50.0]
     var high: List[Float64] = [40.0, 90.0]
     var t = Theme(show_gridlines=False)
-    var c = render(span_chart(cats, low, high, theme=t, width=400, height=300))
+    var _hoisted1 = span_chart(cats, low, high, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 140, 200, t.mark_color, "well inside bar A's rect (76,161,128,79)")
     _assert_color(c, 300, 80, t.mark_color, "well inside bar B's rect (236,30,128,105)")
@@ -53,7 +54,8 @@ def test_render_span_chart_zero_length_span_floors_to_one_pixel() raises:
     var cats: List[String] = ["A"]
     var low: List[Float64] = [10.0]
     var high: List[Float64] = [10.0]
-    var c = render(span_chart(cats, low, high, width=200, height=150))
+    var _hoisted2 = span_chart(cats, low, high, width=200, height=150)
+    var c = render(_hoisted2)
     # No assertion failure means a zero-height bar didn't raise or
     # vanish -- the same "real, visible data" floor Mark.GANTT's equivalent test confirms.
     _ = c
@@ -64,14 +66,16 @@ def test_render_span_chart_raises_on_mismatched_category_length() raises:
     var low: List[Float64] = [1.0, 2.0]
     var high: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = render(span_chart(cats, low, high, width=200, height=150))
+        var _hoisted3 = span_chart(cats, low, high, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_span_chart_empty_data_only_fills_background() raises:
     var cats = List[String]()
     var low = List[Float64]()
     var high = List[Float64]()
-    var c = render(span_chart(cats, low, high, width=100, height=80))
+    var _hoisted4 = span_chart(cats, low, high, width=100, height=80)
+    var c = render(_hoisted4)
     _assert_color(c, 50, 40, BG, "no categories: nothing drawn but the background")
 
 

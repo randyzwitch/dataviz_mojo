@@ -42,7 +42,8 @@ def test_render_chord_two_nodes_one_edge_matches_hand_derived_geometry() raises:
     var to_cats: List[String] = ["B"]
     var values: List[Float64] = [10.0]
     var t = Theme(show_legend=False)
-    var c = render(chord(from_cats, to_cats, values, theme=t, width=400, height=300))
+    var _hoisted1 = chord(from_cats, to_cats, values, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
 
@@ -86,7 +87,8 @@ def test_render_chord_raises_on_mismatched_length() raises:
     var to_cats: List[String] = ["x", "y"]
     var values: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = render(chord(from_cats, to_cats, values, width=200, height=150))
+        var _hoisted2 = chord(from_cats, to_cats, values, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_chord_raises_on_negative_value() raises:
@@ -94,7 +96,8 @@ def test_render_chord_raises_on_negative_value() raises:
     var to_cats: List[String] = ["b"]
     var values: List[Float64] = [-1.0]
     with assert_raises():
-        _ = render(chord(from_cats, to_cats, values, width=200, height=150))
+        var _hoisted3 = chord(from_cats, to_cats, values, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_chord_raises_on_all_zero_values() raises:
@@ -102,14 +105,16 @@ def test_render_chord_raises_on_all_zero_values() raises:
     var to_cats: List[String] = ["b"]
     var values: List[Float64] = [0.0]
     with assert_raises():
-        _ = render(chord(from_cats, to_cats, values, width=200, height=150))
+        var _hoisted4 = chord(from_cats, to_cats, values, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_chord_empty_data_only_fills_background() raises:
     var from_cats = List[String]()
     var to_cats = List[String]()
     var values = List[Float64]()
-    var c = render(chord(from_cats, to_cats, values, width=200, height=150))
+    var _hoisted5 = chord(from_cats, to_cats, values, width=200, height=150)
+    var c = render(_hoisted5)
     _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
 
 

@@ -33,7 +33,8 @@ def test_render_beeswarm_matches_hand_derived_offsets() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[10.0, 11.0, 50.0]]
     var t = Theme(show_gridlines=False)
-    var c = render(beeswarm(cats, vals, theme=t, width=400, height=300))
+    var _hoisted1 = beeswarm(cats, vals, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 228, 240, t.mark_color, "value 10 -- offset +8 (second in its row)")
     _assert_color(c, 220, 234, t.mark_color, "value 11 -- offset 0 (first in its row)")
@@ -58,20 +59,23 @@ def test_render_beeswarm_raises_on_mismatched_category_length() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[List[Float64]] = [[1.0]]
     with assert_raises():
-        _ = render(beeswarm(cats, vals, width=200, height=150))
+        var _hoisted2 = beeswarm(cats, vals, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_beeswarm_raises_on_empty_category_distribution() raises:
     var cats: List[String] = ["a"]
     var vals: List[List[Float64]] = [List[Float64]()]
     with assert_raises():
-        _ = render(beeswarm(cats, vals, width=200, height=150))
+        var _hoisted3 = beeswarm(cats, vals, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_beeswarm_empty_categories_only_fills_background() raises:
     var cats = List[String]()
     var vals = List[List[Float64]]()
-    var c = render(beeswarm(cats, vals, width=200, height=150))
+    var _hoisted4 = beeswarm(cats, vals, width=200, height=150)
+    var c = render(_hoisted4)
     _assert_color(c, 100, 75, BG, "no categories -- background everywhere")
 
 

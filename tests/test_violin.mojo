@@ -36,7 +36,8 @@ def test_render_violin_matches_hand_derived_silhouette() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
     var t = Theme(show_gridlines=False)
-    var c = render(violin(cats, vals, theme=t, width=400, height=300))
+    var _hoisted1 = violin(cats, vals, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 220, 135, t.mark_color, "near the peak (y~=3), dead center -- well inside")
     _assert_color(c, 280, 235, t.mark_color, "near the bottom edge (y=1), still inside the ~74px half-width there")
@@ -69,7 +70,8 @@ def test_render_violin_identical_values_does_not_raise() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[7.0, 7.0, 7.0]]
     var t = Theme(show_gridlines=False)
-    var c = render(violin(cats, vals, theme=t, width=400, height=300))
+    var _hoisted2 = violin(cats, vals, theme=t, width=400, height=300)
+    var c = render(_hoisted2)
     _assert_color(c, 220, 20, BG, "well above the collapsed row -- background")
 
 
@@ -88,7 +90,8 @@ def test_render_violin_custom_bandwidth_widens_the_tapered_edge() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
     var t = Theme(show_gridlines=False)
-    var c = render(violin(cats, vals, bandwidth=3.0, theme=t, width=400, height=300))
+    var _hoisted3 = violin(cats, vals, bandwidth=3.0, theme=t, width=400, height=300)
+    var c = render(_hoisted3)
     _assert_color(c, 300, 235, t.mark_color, "bandwidth=3.0 widens the tail -- now inside the silhouette")
     _assert_color(c, 220, 135, t.mark_color, "still inside near the peak")
     _assert_color(c, 10, 10, BG, "still background, well outside the plot area")
@@ -104,7 +107,8 @@ def test_render_violin_explicit_zero_bandwidth_matches_default() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
     var t = Theme(show_gridlines=False)
-    var c = render(violin(cats, vals, bandwidth=0.0, theme=t, width=400, height=300))
+    var _hoisted4 = violin(cats, vals, bandwidth=0.0, theme=t, width=400, height=300)
+    var c = render(_hoisted4)
     _assert_color(c, 220, 135, t.mark_color, "near the peak (y~=3), dead center -- well inside")
     _assert_color(c, 280, 235, t.mark_color, "near the bottom edge (y=1), still inside the ~74px half-width there")
     _assert_color(c, 300, 235, BG, "near the bottom edge (y=1), past the ~74px half-width there -- outside")
@@ -124,7 +128,8 @@ def test_render_violin_scale_by_count_narrows_the_smaller_category() raises:
     var cats: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 4.0]]
     var t = Theme(show_gridlines=False)
-    var c = render(violin(cats, vals, scale_by_count=True, theme=t, width=400, height=300))
+    var _hoisted5 = violin(cats, vals, scale_by_count=True, theme=t, width=400, height=300)
+    var c = render(_hoisted5)
     _assert_color(c, 260, 135, BG, "scale_by_count narrows category B -- now outside")
     _assert_color(c, 300, 135, t.mark_color, "category B's center, still inside even narrowed")
 
@@ -137,7 +142,8 @@ def test_render_violin_scale_by_count_false_matches_default() raises:
     var cats: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 4.0]]
     var t = Theme(show_gridlines=False)
-    var c = render(violin(cats, vals, scale_by_count=False, theme=t, width=400, height=300))
+    var _hoisted6 = violin(cats, vals, scale_by_count=False, theme=t, width=400, height=300)
+    var c = render(_hoisted6)
     _assert_color(c, 260, 135, t.mark_color, "unscaled -- category B still reaches its full half-width here")
 
 
@@ -145,27 +151,31 @@ def test_render_violin_raises_on_negative_bandwidth() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0]]
     with assert_raises():
-        _ = render(violin(cats, vals, bandwidth=-1.0, width=200, height=150))
+        var _hoisted7 = violin(cats, vals, bandwidth=-1.0, width=200, height=150)
+        _ = render(_hoisted7)
 
 
 def test_render_violin_raises_on_mismatched_category_length() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[List[Float64]] = [[1.0]]
     with assert_raises():
-        _ = render(violin(cats, vals, width=200, height=150))
+        var _hoisted8 = violin(cats, vals, width=200, height=150)
+        _ = render(_hoisted8)
 
 
 def test_render_violin_raises_on_empty_category_distribution() raises:
     var cats: List[String] = ["a"]
     var vals: List[List[Float64]] = [List[Float64]()]
     with assert_raises():
-        _ = render(violin(cats, vals, width=200, height=150))
+        var _hoisted9 = violin(cats, vals, width=200, height=150)
+        _ = render(_hoisted9)
 
 
 def test_render_violin_empty_categories_only_fills_background() raises:
     var cats = List[String]()
     var vals = List[List[Float64]]()
-    var c = render(violin(cats, vals, width=200, height=150))
+    var _hoisted10 = violin(cats, vals, width=200, height=150)
+    var c = render(_hoisted10)
     _assert_color(c, 100, 75, BG, "no categories -- background everywhere")
 
 

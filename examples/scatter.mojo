@@ -1,14 +1,18 @@
 """Demo: a basic scatter plot -- Mark.POINT, default theme, axes and
 gridlines computed automatically from the data's domain. Built via
-dataviz_mojo.scatter() -- the one-call convenience wrapper
-around Plot().mark_point().encode(...).theme(...) + Canvas + render()
--- rather than the builder spelled out by hand; see plot.mojo's module docstring (its "one-call convenience functions" section) for
-what it trades away (facets, layering, color/size encoding still need
-Plot directly).
+dataviz_mojo.scatter() -- the one-call convenience wrapper around
+Plot().mark_point().encode(...).theme(...) -- rather than the builder
+spelled out by hand; see plot.mojo's module docstring (its "one-call
+convenience functions" section) for what it trades away (facets,
+layering, color/size encoding still need Plot directly). scatter()
+returns a plain, un-rendered `Plot`, exactly as if built by hand --
+save() below is what actually renders and writes it out.
 
-scatter()'s raster output is supersampled internally before it's ever
-returned here (see dataviz_mojo.plot._rendered's docstring) -- nothing
-in this file, or any other example, has to ask for that.
+Raster (PNG/BMP) output is supersampled internally by render() itself
+before it's ever written (see `_RASTER_SUPERSAMPLE`'s docstring,
+plot.mojo) -- automatic for any `Plot`, hand-built or from a one-call
+convenience function like scatter() here; nothing in this file, or any
+other example, has to ask for that.
 """
 
 from dataviz_mojo.plot import save

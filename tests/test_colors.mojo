@@ -89,7 +89,8 @@ def test_named_color_works_as_a_theme_mark_color_through_a_real_render() raises:
     # for is the fill color that actually landed on the canvas.
     var cats: List[String] = ["a", "b"]
     var values: List[Float64] = [3.0, 5.0]
-    var c = render(bar(cats, values, theme=Theme(mark_color=CORNFLOWERBLUE)))
+    var _hoisted1 = bar(cats, values, theme=Theme(mark_color=CORNFLOWERBLUE))
+    var c = render(_hoisted1)
 
     assert_equal(_count_color(c, CORNFLOWERBLUE) > 0, True, "bar filled with a named color renders that exact color")
 

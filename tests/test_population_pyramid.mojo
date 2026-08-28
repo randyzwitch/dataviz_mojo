@@ -35,7 +35,8 @@ def test_render_population_pyramid_matches_hand_derived_bars() raises:
     var left: List[Float64] = [10.0, 30.0]
     var right: List[Float64] = [20.0, 10.0]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = render(population_pyramid(cats, left, right, theme=t, width=400, height=300))
+    var _hoisted1 = population_pyramid(cats, left, right, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
 
@@ -116,13 +117,15 @@ def test_render_population_pyramid_raises_on_mismatched_length() raises:
     var cats: List[String] = ["a", "b", "c"]
     var one: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = render(population_pyramid(cats, one, one, width=200, height=150))
+        var _hoisted2 = population_pyramid(cats, one, one, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_population_pyramid_empty_data_only_fills_background() raises:
     var cats = List[String]()
     var vals = List[Float64]()
-    var c = render(population_pyramid(cats, vals, vals, width=200, height=150))
+    var _hoisted3 = population_pyramid(cats, vals, vals, width=200, height=150)
+    var c = render(_hoisted3)
     _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
 
 

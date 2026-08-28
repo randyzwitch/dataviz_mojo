@@ -25,7 +25,8 @@ def test_render_gauge_matches_hand_derived_needle_and_pivot() raises:
     # points straight up from center (at pixel rows 50 and 42, both
     # well short of that) fall on the needle. The center pivot dot is
     # also theme.mark_color.
-    var c = render(gauge(50.0, width=400, height=300))
+    var _hoisted1 = gauge(50.0, width=400, height=300)
+    var c = render(_hoisted1)
     var mark_color = Theme().mark_color
     _assert_color(c, 220, 50, mark_color, "needle, straight up from center")
     _assert_color(c, 220, 42, mark_color, "needle, straight up from center (further out)")
@@ -42,7 +43,8 @@ def test_render_gauge_matches_hand_derived_band_colors() raises:
     # green band) -> (132, 135); 200 degrees (fraction 0.241, inside
     # [0.2, 0.8) blue) -> (137, 105); 18 degrees/378 unwrapped
     # (fraction 0.9, inside [0.8, 1.0] red) -> (304, 162).
-    var c = render(gauge(50.0, width=400, height=300))
+    var _hoisted2 = gauge(50.0, width=400, height=300)
+    var c = render(_hoisted2)
     var breakpoint_colors = [Color(46, 139, 87), Color(30, 144, 255), Color(220, 20, 60)]
     _assert_color(c, 132, 135, breakpoint_colors[0], "green band, fraction 0.167")
     _assert_color(c, 137, 105, breakpoint_colors[1], "blue band, fraction 0.241")
@@ -54,7 +56,8 @@ def test_render_gauge_leaves_a_gap_at_the_bottom() raises:
     # gap centered on due south (90 degrees) -- a point at radius 88
     # straight down from center (220, 223) is neither a band nor the
     # needle: background.
-    var c = render(gauge(50.0, width=400, height=300))
+    var _hoisted3 = gauge(50.0, width=400, height=300)
+    var c = render(_hoisted3)
     _assert_color(c, 220, 223, BG, "the 90-degree gap at the bottom of the dial")
 
 
@@ -65,17 +68,21 @@ def test_render_gauge_clamps_values_beyond_the_range() raises:
     # degrees. Both checked at a point along each needle's direction,
     # well short of its 93.15-pixel length.
     var mark_color = Theme().mark_color
-    var high = render(gauge(1000.0, width=400, height=300))
+    var _hoisted4 = gauge(1000.0, width=400, height=300)
+    var high = render(_hoisted4)
     _assert_color(high, 255, 170, mark_color, "clamped to max_value -- needle at 45 degrees")
-    var low = render(gauge(-1000.0, width=400, height=300))
+    var _hoisted5 = gauge(-1000.0, width=400, height=300)
+    var low = render(_hoisted5)
     _assert_color(low, 185, 170, mark_color, "clamped to min_value -- needle at 135 degrees")
 
 
 def test_render_gauge_raises_when_min_value_is_not_less_than_max_value() raises:
     with assert_raises():
-        _ = render(gauge(5.0, min_value=10.0, max_value=10.0, width=200, height=150))
+        var _hoisted6 = gauge(5.0, min_value=10.0, max_value=10.0, width=200, height=150)
+        _ = render(_hoisted6)
     with assert_raises():
-        _ = render(gauge(5.0, min_value=10.0, max_value=0.0, width=200, height=150))
+        var _hoisted7 = gauge(5.0, min_value=10.0, max_value=0.0, width=200, height=150)
+        _ = render(_hoisted7)
 
 
 def test_render_gauge_custom_breakpoints_matches_hand_derived_band_colors() raises:
@@ -89,7 +96,8 @@ def test_render_gauge_custom_breakpoints_matches_hand_derived_band_colors() rais
     # 0; (304,162) sits at fraction 0.9, in band 1 either way.
     var bps: List[Float64] = [0.5, 1.0]
     var cols: List[Color] = [Color(10, 20, 30), Color(200, 100, 50)]
-    var c = render(gauge(50.0, width=400, height=300, breakpoints=bps, band_colors=cols))
+    var _hoisted8 = gauge(50.0, width=400, height=300, breakpoints=bps, band_colors=cols)
+    var c = render(_hoisted8)
     _assert_color(c, 132, 135, cols[0], "band 0, fraction 0.167")
     _assert_color(c, 137, 105, cols[0], "band 0, fraction 0.241")
     _assert_color(c, 304, 162, cols[1], "band 1, fraction 0.9")
@@ -105,7 +113,8 @@ def test_render_gauge_custom_breakpoints_default_empty_matches_original() raises
     # parameters, so this exercises the actual sentinel-check code path.
     var empty_bps = List[Float64]()
     var empty_cols = List[Color]()
-    var c = render(gauge(50.0, width=400, height=300, breakpoints=empty_bps, band_colors=empty_cols))
+    var _hoisted9 = gauge(50.0, width=400, height=300, breakpoints=empty_bps, band_colors=empty_cols)
+    var c = render(_hoisted9)
     var breakpoint_colors = [Color(46, 139, 87), Color(30, 144, 255), Color(220, 20, 60)]
     _assert_color(c, 132, 135, breakpoint_colors[0], "green band, fraction 0.167")
     _assert_color(c, 137, 105, breakpoint_colors[1], "blue band, fraction 0.241")
@@ -116,24 +125,28 @@ def test_render_gauge_raises_on_mismatched_breakpoints_and_band_colors_length() 
     var bps: List[Float64] = [0.5, 1.0]
     var cols: List[Color] = [Color(10, 20, 30)]
     with assert_raises():
-        _ = render(gauge(50.0, width=200, height=150, breakpoints=bps, band_colors=cols))
+        var _hoisted10 = gauge(50.0, width=200, height=150, breakpoints=bps, band_colors=cols)
+        _ = render(_hoisted10)
 
 
 def test_render_gauge_raises_on_non_ascending_breakpoints() raises:
     var bps: List[Float64] = [0.5, 0.3]
     var cols: List[Color] = [Color(10, 20, 30), Color(200, 100, 50)]
     with assert_raises():
-        _ = render(gauge(50.0, width=200, height=150, breakpoints=bps, band_colors=cols))
+        var _hoisted11 = gauge(50.0, width=200, height=150, breakpoints=bps, band_colors=cols)
+        _ = render(_hoisted11)
 
 
 def test_render_gauge_raises_on_out_of_range_breakpoint() raises:
     var too_high: List[Float64] = [0.5, 1.5]
     var cols: List[Color] = [Color(10, 20, 30), Color(200, 100, 50)]
     with assert_raises():
-        _ = render(gauge(50.0, width=200, height=150, breakpoints=too_high, band_colors=cols))
+        var _hoisted12 = gauge(50.0, width=200, height=150, breakpoints=too_high, band_colors=cols)
+        _ = render(_hoisted12)
     var zero_start: List[Float64] = [0.0, 1.0]
     with assert_raises():
-        _ = render(gauge(50.0, width=200, height=150, breakpoints=zero_start, band_colors=cols))
+        var _hoisted13 = gauge(50.0, width=200, height=150, breakpoints=zero_start, band_colors=cols)
+        _ = render(_hoisted13)
 
 
 def main() raises:
