@@ -12,13 +12,13 @@ annotate_area()'s docstring for the full story.
 Built by hand (not a one-call quickplot -- annotate_area() isn't
 exposed on quickplot functions, the same deliberate scope cut
 examples/annotate_line.mojo's docstring explains) via Plot() directly.
+Writes all three formats from one `plot` via save() -- no
+`canvas_mojo` import needed at all (see save()'s docstring); `save()`
+never consumes `plot`, so the same value is reused for each call rather
+than needing three near-identical `Plot()` chains.
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
-from dataviz_mojo.plot import Plot, render, render_svg
-from canvas_mojo.buffer import Canvas
+from dataviz_mojo.plot import Plot, save
 
 
 def main() raises:
@@ -32,19 +32,7 @@ def main() raises:
         .labels(title="Response Time (ms)", subtitle="Against an acceptable range")
         .annotate_area(50.0, 60.0, label="acceptable range")
     )
+    save(plot, "examples/out_annotate_area.svg")
+    save(plot, "examples/out_annotate_area.bmp")
+    save(plot, "examples/out_annotate_area.png")
 
-    var c = Canvas(640, 420)
-    render(c, plot)
-    write_bmp(c, "examples/out_annotate_area.bmp")
-    write_png(c, "examples/out_annotate_area.png")
-
-    var svg = SvgCanvas(640, 420)
-    var svg_plot = (
-        Plot()
-        .mark_line()
-        .encode(x=x, y=latency)
-        .labels(title="Response Time (ms)", subtitle="Against an acceptable range")
-        .annotate_area(50.0, 60.0, label="acceptable range")
-    )
-    render_svg(svg, svg_plot)
-    write_svg(svg, "examples/out_annotate_area.svg")

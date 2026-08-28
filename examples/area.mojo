@@ -5,10 +5,7 @@ Built via dataviz_mojo.area() -- see examples/scatter.mojo's docstring for what 
 
 from std.math import sin
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import area
 from dataviz_mojo.colors import STEELBLUE
 from dataviz_mojo.theme import Theme
@@ -23,13 +20,7 @@ def main() raises:
         y.append(sin(t) * 4.0 + 6.0)
 
     var c = area(x, y, theme=Theme(mark_color=STEELBLUE))
+    save(c, "examples/out_area.svg")
+    save(c, "examples/out_area.bmp")
+    save(c, "examples/out_area.png")
 
-    write_bmp(c, "examples/out_area.bmp")
-    write_png(c, "examples/out_area.png")
-
-    var svg = SvgCanvas(640, 420)
-    var svg_plot = Plot().mark_area().encode(x=x, y=y).theme(
-        Theme(mark_color=STEELBLUE)
-    )
-    render_svg(svg, svg_plot)
-    write_svg(svg, "examples/out_area.svg")

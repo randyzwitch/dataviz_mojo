@@ -16,7 +16,7 @@ from dataviz_mojo.plot import (
     _empty_result,
     _max_label_width,
     _min_max,
-    _rendered,
+    _finished,
 )
 from dataviz_mojo.scale import _format_fixed
 from dataviz_mojo.theme import Theme
@@ -269,7 +269,7 @@ def calendar_heatmap(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Canvas:
+) raises -> Plot:
     """A calendar heatmap -- `Mark.CALENDAR_HEATMAP`, daily `values`
     laid out in a GitHub-contributions-style calendar grid, colored
     through a continuous gradient. `dates` are plain `"YYYY-MM-DD"`
@@ -284,15 +284,15 @@ def calendar_heatmap(
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
-        width: Pixel width of the returned `Canvas`.
-        height: Pixel height of the returned `Canvas`.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
         title: The chart's title, shown above the plot.
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
 
     Returns:
-        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
     """
     var plot = Plot().mark_calendar_heatmap().encode_calendar(dates=dates, values=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

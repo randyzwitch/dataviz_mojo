@@ -15,19 +15,18 @@ quickplot function, just pie() with donut_inner_radius_fraction set,
 which is the one thing distinguishing the second call below from the
 first.
 
-Writes both a raster (.bmp) and a vector (.svg) file per chart, from
-the same data -- both backends are first-class (see the wiki), so
-both get exercised by every example without doubling the file count.
-The docs page for this example (see scripts/gen_example_docs.mojo)
-shows only the quickplot calls above, not the render_svg() blocks
-below -- both produce the identical charts, and the quickplot calls
-are the cleaner reconstruction of "how would I actually write this."
+Writes both a raster (.bmp/.png) and a vector (.svg) file per chart,
+from the same data -- both backends are first-class (see the wiki),
+so both get exercised by every example without doubling the file
+count. Both quickplot calls sit next to each other, with each chart's
+own save() calls held until after both -- see scripts/gen_example_
+docs.mojo's own PageSection docstring for why that ordering matters
+(each call's docs snippet stops the moment its own chart's data+call
+is done, so nothing from the other chart's own save() calls leaks
+into it).
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import pie
 from dataviz_mojo.theme import Theme
 
@@ -47,20 +46,12 @@ def main() raises:
         height=300,
     )
 
-    write_bmp(c, "examples/out_pie.bmp")
-    write_png(c, "examples/out_pie.png")
+    save(c, "examples/out_pie.svg")
+    save(c, "examples/out_pie.bmp")
+    save(c, "examples/out_pie.png")
 
-    var svg = SvgCanvas(400, 300)
-    var svg_plot = Plot().mark_arc().encode_categorical(x=browsers, y=share).theme(Theme())
-    render_svg(svg, svg_plot)
-    write_svg(svg, "examples/out_pie.svg")
+    save(c_donut, "examples/out_pie_donut.svg")
+    save(c_donut, "examples/out_pie_donut.bmp")
+    save(c_donut, "examples/out_pie_donut.png")
 
-    write_bmp(c_donut, "examples/out_pie_donut.bmp")
-    write_png(c_donut, "examples/out_pie_donut.png")
 
-    var svg_donut = SvgCanvas(400, 300)
-    var svg_plot_donut = Plot().mark_arc().encode_categorical(x=browsers, y=share).theme(
-        Theme(donut_inner_radius_fraction=0.55)
-    )
-    render_svg(svg_donut, svg_plot_donut)
-    write_svg(svg_donut, "examples/out_pie_donut.svg")

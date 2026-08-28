@@ -5,9 +5,7 @@ that aren't specific to any one Mark type.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -28,16 +26,15 @@ from dataviz_mojo.theme import Theme
 from dataviz_mojo import scatter
 from dataviz_mojo.colors import RED
 
-from _test_helpers import BG, _count_color, _assert_color
+from _test_helpers import _count_color, _assert_color
 
 
 def test_render_raises_on_mismatched_x_y_lengths() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0]
     var y: List[Float64] = [1.0, 2.0]
-    var plot = Plot().encode(x=x, y=y)
-    var c = Canvas(200, 150, BG)
+    var plot = Plot().encode(x=x, y=y).size(200, 150)
     with assert_raises():
-        render(c, plot)
+        var c = render(plot)
 
 
 def test_render_empty_data_only_fills_background() raises:
@@ -45,9 +42,8 @@ def test_render_empty_data_only_fills_background() raises:
     # whatever the canvas was constructed with (Plot owns the whole
     # canvas it's given -- see plot.mojo's docstring), so the
     # canvas's initial fill color (10,20,30) must NOT survive.
-    var plot = Plot()  # no encode() call -- x_data/y_data both empty
-    var c = Canvas(50, 40, Color(10, 20, 30))
-    render(c, plot)
+    var plot = Plot().size(50, 40)  # no encode() call -- x_data/y_data both empty
+    var c = render(plot)
     var expected = Theme.default().background
     for y in range(c.height):
         for x in range(c.width):
@@ -61,7 +57,8 @@ def test_render_respects_custom_theme_colors() raises:
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
     var custom = Theme(background=Color(20, 20, 20), mark_color=RED)
-    var c = scatter(x, y, theme=custom, width=400, height=300)
+    var _hoisted1 = scatter(x, y, theme=custom, width=400, height=300)
+    var c = render(_hoisted1)
 
     # Far corner, untouched by any mark/axis/gridline -- pure background.
     var corner = c.get_pixel(399, 0)
@@ -78,42 +75,58 @@ def test_render_respects_custom_theme_colors() raises:
 def test_render_gridlines_flag_actually_controls_gridline_pixels() raises:
     # Built via Plot/Canvas/render() directly, not scatter() -- an
     # exact-zero pixel count is sensitive to any anti-aliasing detail,
-    # and scatter()'s output is supersampled-then-downsampled
-    # internally now (see dataviz_mojo.plot._rendered's docstring),
-    # which can coincidentally blend an edge pixel to this exact gray
-    # even with gridlines off. render() itself stays unsupersampled --
-    # see its docstring -- so this exact check still holds there.
+    # and this test predates quickplot returning a plain, un-rendered
+    # `Plot` (dataviz_mojo.plot._finished's docstring); render() is
+    # the exact same path scatter()'s own output would go through now
+    # too, so this check would hold identically either way.
+    #
+    # The "off" side no longer asserts an exact 0: `render()`'s
+    # supersample-then-downsample (`_RASTER_SUPERSAMPLE`, plot.mojo)
+    # can blend an unrelated edge (a tick mark, a label glyph, the
+    # point marker's own AA fringe) to coincidentally land on this
+    # exact gray by chance, a handful of times, with no gridlines
+    # drawn at all -- see `_assert_near_color`'s docstring (tests/
+    # _test_helpers.mojo) for the same underlying phenomenon. What
+    # still holds exactly: real gridlines paint this color at a whole
+    # different order of magnitude more pixels (hundreds, from long
+    # straight runs) than stray incidental collisions ever could (a
+    # handful) -- so the flag's actual effect is checked by that gap,
+    # not by a brittle exact zero.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     var gridline_color = Color(225, 225, 225)
 
-    var c_on = Canvas(400, 300, BG)
-    render(c_on, Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=True)))
-    assert_true(_count_color(c_on, gridline_color) > 0)
+    var _hoisted2 = Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=True)).size(400, 300)
+    var c_on = render(_hoisted2)
+    var count_on = _count_color(c_on, gridline_color)
+    assert_true(count_on > 0)
 
-    var c_off = Canvas(400, 300, BG)
-    render(c_off, Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=False)))
-    assert_equal(_count_color(c_off, gridline_color), 0)
+    var _hoisted3 = Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=False)).size(400, 300)
+    var c_off = render(_hoisted3)
+    var count_off = _count_color(c_off, gridline_color)
+    assert_true(
+        count_off * 10 < count_on,
+        "far fewer gridline-colored pixels with gridlines off (" + String(count_off) + ") than on ("
+        + String(count_on) + ")",
+    )
 
 
 def test_render_raises_on_mismatched_color_length() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0]
     var y: List[Float64] = [1.0, 2.0, 3.0]
     var color: List[Float64] = [1.0, 2.0]
-    var plot = Plot().encode(x=x, y=y, color=color)
-    var c = Canvas(200, 150, BG)
+    var plot = Plot().encode(x=x, y=y, color=color).size(200, 150)
     with assert_raises():
-        render(c, plot)
+        var c = render(plot)
 
 
 def test_render_raises_on_mismatched_size_length() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0]
     var y: List[Float64] = [1.0, 2.0, 3.0]
     var size: List[Float64] = [1.0, 2.0]
-    var plot = Plot().encode(x=x, y=y, size=size)
-    var c = Canvas(200, 150, BG)
+    var plot = Plot().encode(x=x, y=y, size=size).size(200, 150)
     with assert_raises():
-        render(c, plot)
+        var c = render(plot)
 
 
 def test_unique_categories_preserves_first_seen_order() raises:
@@ -302,20 +315,18 @@ def test_render_raises_when_color_and_color_categories_both_given() raises:
     var y: List[Float64] = [1.0, 2.0]
     var color: List[Float64] = [1.0, 2.0]
     var cats: List[String] = ["A", "B"]
-    var plot = Plot().encode(x=x, y=y, color=color, color_categories=cats)
-    var c = Canvas(200, 150, BG)
+    var plot = Plot().encode(x=x, y=y, color=color, color_categories=cats).size(200, 150)
     with assert_raises():
-        render(c, plot)
+        var c = render(plot)
 
 
 def test_render_raises_on_mismatched_color_categories_length() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0]
     var y: List[Float64] = [1.0, 2.0, 3.0]
     var cats: List[String] = ["A", "B"]
-    var plot = Plot().encode(x=x, y=y, color_categories=cats)
-    var c = Canvas(200, 150, BG)
+    var plot = Plot().encode(x=x, y=y, color_categories=cats).size(200, 150)
     with assert_raises():
-        render(c, plot)
+        var c = render(plot)
 
 
 def test_render_svg_raises_on_mismatched_x_y_lengths() raises:
@@ -325,10 +336,9 @@ def test_render_svg_raises_on_mismatched_x_y_lengths() raises:
     # identically. Confirms that sharing, not re-derives the check.
     var x: List[Float64] = [1.0, 2.0, 3.0]
     var y: List[Float64] = [1.0, 2.0]
-    var svg = SvgCanvas(200, 150)
-    var plot = Plot().encode(x=x, y=y)
+    var plot = Plot().encode(x=x, y=y).size(200, 150)
     with assert_raises():
-        render_svg(svg, plot)
+        var svg = render_svg(plot)
 
 
 def main() raises:

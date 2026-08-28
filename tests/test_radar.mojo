@@ -35,10 +35,11 @@ def test_render_radar_matches_hand_derived_polygon_fill() raises:
     var max_values: List[Float64] = [100.0, 100.0, 100.0]
     var series_names: List[String] = ["Team A"]
     var series_values: List[List[Float64]] = [[100.0, 100.0, 100.0]]
-    var c = radar(
+    var _hoisted1 = radar(
         indicators, max_values, series_names, series_values,
         theme=Theme(show_legend=False), width=400, height=300,
     )
+    var c = render(_hoisted1)
 
     # Theme.radar_fill_alpha's default -- the same tint the render
     # path uses, passed explicitly since _lighten takes alpha as a parameter.
@@ -54,7 +55,8 @@ def test_render_radar_raises_on_mismatched_indicator_length() raises:
     var series_names: List[String] = ["s"]
     var series_values: List[List[Float64]] = [[1.0, 1.0, 1.0]]
     with assert_raises():
-        _ = radar(indicators, max_values, series_names, series_values, width=200, height=150)
+        var _hoisted2 = radar(indicators, max_values, series_names, series_values, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_radar_raises_on_mismatched_series_length() raises:
@@ -63,7 +65,8 @@ def test_render_radar_raises_on_mismatched_series_length() raises:
     var series_names: List[String] = ["s1", "s2"]
     var series_values: List[List[Float64]] = [[1.0, 1.0]]
     with assert_raises():
-        _ = radar(indicators, max_values, series_names, series_values, width=200, height=150)
+        var _hoisted3 = radar(indicators, max_values, series_names, series_values, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_radar_raises_on_wrong_length_series_values() raises:
@@ -72,7 +75,8 @@ def test_render_radar_raises_on_wrong_length_series_values() raises:
     var series_names: List[String] = ["s"]
     var series_values: List[List[Float64]] = [[1.0, 1.0]]
     with assert_raises():
-        _ = radar(indicators, max_values, series_names, series_values, width=200, height=150)
+        var _hoisted4 = radar(indicators, max_values, series_names, series_values, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_radar_empty_indicators_only_fills_background() raises:
@@ -80,7 +84,8 @@ def test_render_radar_empty_indicators_only_fills_background() raises:
     var max_values = List[Float64]()
     var series_names = List[String]()
     var series_values = List[List[Float64]]()
-    var c = radar(indicators, max_values, series_names, series_values, width=100, height=80)
+    var _hoisted5 = radar(indicators, max_values, series_names, series_values, width=100, height=80)
+    var c = render(_hoisted5)
     _assert_color(c, 50, 40, BG, "no indicators: nothing drawn but the background")
 
 

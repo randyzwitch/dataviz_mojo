@@ -6,9 +6,7 @@ narrowed inner plot rect.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -76,15 +74,15 @@ def test_render_svg_labels_matches_hand_derived_title_and_axis_titles() raises:
     # convention).
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
-    var svg = SvgCanvas(400, 300)
     var plot = (
         Plot()
         .mark_line()
         .encode(x=x, y=y)
         .labels(title="My Title", x_title="X Axis", y_title="Y Axis")
         .theme(Theme(show_gridlines=False))
+        .size(400, 300)
     )
-    render_svg(svg, plot)
+    var svg = render_svg(plot)
     var s = svg.to_string()
 
     assert_true(
@@ -123,15 +121,15 @@ def test_render_svg_title_centers_on_inner_plot_rect_not_outer_bounds() raises:
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
     var cats: List[String] = ["Cat1", "Southeast Region Sales"]
-    var svg = SvgCanvas(400, 300)
     var plot = (
         Plot()
         .mark_point()
         .encode(x=x, y=y, color_categories=cats)
         .labels(title="Sales by Region")
         .theme(Theme(show_gridlines=False))
+        .size(400, 300)
     )
-    render_svg(svg, plot)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<text x="137" y="14" font-size="18.000" font-family="sans-serif" font-weight="bold" fill="#282828"'
@@ -150,10 +148,10 @@ def test_render_labels_default_matches_unlabeled_output_exactly() raises:
     # every argument left at its default.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
-    var c_unlabeled = Canvas(400, 300, BG)
-    render(c_unlabeled, Plot().mark_line().encode(x=x, y=y))
-    var c_explicit = Canvas(400, 300, BG)
-    render(c_explicit, Plot().mark_line().encode(x=x, y=y).labels())
+    var _hoisted1 = Plot().mark_line().encode(x=x, y=y).size(400, 300)
+    var c_unlabeled = render(_hoisted1)
+    var _hoisted2 = Plot().mark_line().encode(x=x, y=y).labels().size(400, 300)
+    var c_explicit = render(_hoisted2)
 
     for yy in range(c_unlabeled.height):
         for xx in range(c_unlabeled.width):
@@ -173,7 +171,8 @@ def test_render_title_draws_ink_in_its_own_reserved_top_band() raises:
     # render() must be the title's ink.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
-    var c = line(x, y, title="My Title", width=400, height=300)
+    var _hoisted3 = line(x, y, title="My Title", width=400, height=300)
+    var c = render(_hoisted3)
 
     var found_ink = False
     for yy in range(22):  # extra_top, hand-derived above
@@ -204,15 +203,15 @@ def test_render_svg_subtitle_matches_hand_derived_position() raises:
     # weight attribute).
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
-    var svg = SvgCanvas(400, 300)
     var plot = (
         Plot()
         .mark_line()
         .encode(x=x, y=y)
         .labels(title="My Title", subtitle="A subtitle", x_title="X Axis", y_title="Y Axis")
         .theme(Theme(show_gridlines=False))
+        .size(400, 300)
     )
-    render_svg(svg, plot)
+    var svg = render_svg(plot)
     var s = svg.to_string()
 
     assert_true(
@@ -240,11 +239,10 @@ def test_render_svg_subtitle_without_title_draws_at_the_top() raises:
     # below a nonexistent title's reserved band).
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_line().encode(x=x, y=y).labels(subtitle="Only a subtitle").theme(
         Theme(show_gridlines=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<text x="220" y="11" font-size="14.000" font-family="sans-serif" fill="#6e6e6e"'
@@ -263,13 +261,10 @@ def test_render_labels_subtitle_default_matches_unlabeled_output_exactly() raise
     # explicitly).
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
-    var c_no_subtitle = Canvas(400, 300, BG)
-    render(c_no_subtitle, Plot().mark_line().encode(x=x, y=y).labels(title="T", x_title="X", y_title="Y"))
-    var c_explicit_empty = Canvas(400, 300, BG)
-    render(
-        c_explicit_empty,
-        Plot().mark_line().encode(x=x, y=y).labels(title="T", subtitle="", x_title="X", y_title="Y"),
-    )
+    var _hoisted4 = Plot().mark_line().encode(x=x, y=y).labels(title="T", x_title="X", y_title="Y").size(400, 300)
+    var c_no_subtitle = render(_hoisted4)
+    var _hoisted5 = Plot().mark_line().encode(x=x, y=y).labels(title="T", subtitle="", x_title="X", y_title="Y").size(400, 300)
+    var c_explicit_empty = render(_hoisted5)
 
     for yy in range(c_no_subtitle.height):
         for xx in range(c_no_subtitle.width):
@@ -291,11 +286,14 @@ def test_render_labels_raises_x_title_or_y_title_on_arc() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = pie(cats, vals, x_title="X", width=200, height=150)
+        var _hoisted6 = pie(cats, vals, x_title="X", width=200, height=150)
+        _ = render(_hoisted6)
     with assert_raises():
-        _ = pie(cats, vals, y_title="Y", width=200, height=150)
+        var _hoisted7 = pie(cats, vals, y_title="Y", width=200, height=150)
+        _ = render(_hoisted7)
     # title alone must NOT raise for Mark.ARC.
-    _ = pie(cats, vals, title="Share", width=200, height=150)
+    var _hoisted8 = pie(cats, vals, title="Share", width=200, height=150)
+    _ = render(_hoisted8)
 
 
 def main() raises:

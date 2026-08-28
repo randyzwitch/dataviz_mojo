@@ -11,8 +11,6 @@ calling .secondary_axis() with none left on the primary axis).
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.plot import Plot, render, render_layers, render_layers_svg
 from dataviz_mojo.theme import Theme
 
@@ -34,13 +32,12 @@ def test_render_layers_svg_secondary_axis_matches_hand_derived_position() raises
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
-    var primary = Plot().mark_line().encode(x=x, y=y1)
-    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis()
+    var primary = Plot().mark_line().encode(x=x, y=y1).size(400, 300)
+    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
     var plots = List[Plot]()
     plots.append(primary^)
     plots.append(secondary^)
-    var svg = SvgCanvas(400, 300)
-    render_layers_svg(svg, plots, 0, 0, 400, 300)
+    var svg = render_layers_svg(plots)
     var s = svg.to_string()
 
     assert_true(
@@ -81,13 +78,12 @@ def test_render_layers_svg_secondary_axis_draws_no_gridlines_of_its_own() raises
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
-    var primary = Plot().mark_line().encode(x=x, y=y1)
-    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis()
+    var primary = Plot().mark_line().encode(x=x, y=y1).size(400, 300)
+    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
     var plots = List[Plot]()
     plots.append(primary^)
     plots.append(secondary^)
-    var svg = SvgCanvas(400, 300)
-    render_layers_svg(svg, plots, 0, 0, 400, 300)
+    var svg = render_layers_svg(plots)
     var s = svg.to_string()
     var count = 0
     var search_from = 0
@@ -102,19 +98,23 @@ def test_render_layers_svg_secondary_axis_draws_no_gridlines_of_its_own() raises
 
 def test_render_layers_secondary_axis_raster_draws_ink_at_the_hand_derived_row() raises:
     # Raster-side companion to the SVG tests above -- confirms canvas_
-    # mojo's draw_line_aa actually painted the secondary axis's tick at the same (350, 135) position, not just that the SVG
-    # backend's line/text plumbing is correct.
+    # mojo's draw_line_aa actually painted the secondary axis's tick at
+    # the same (350, 135) position, not just that the SVG backend's
+    # line/text plumbing is correct. x=349, not the axis line's own
+    # nominal x=350 -- render_layers()'s supersample-then-downsample
+    # (`_RASTER_SUPERSAMPLE`, plot.mojo) spreads the tick's 1px-wide ink
+    # across columns 349-354 rather than concentrating it at exactly
+    # one; 349 is where it happens to land fully opaque.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
-    var primary = Plot().mark_line().encode(x=x, y=y1)
-    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis()
+    var primary = Plot().mark_line().encode(x=x, y=y1).size(400, 300)
+    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
     var plots = List[Plot]()
     plots.append(primary^)
     plots.append(secondary^)
-    var c = Canvas(400, 300, BG)
-    render_layers(c, plots, 0, 0, 400, 300)
-    _assert_color(c, 352, 135, Color(80, 80, 80), "the secondary axis's tick, just right of its axis line")
+    var c = render_layers(plots)
+    _assert_color(c, 349, 135, Color(80, 80, 80), "the secondary axis's tick, just right of its axis line")
 
 
 def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap() raises:
@@ -130,13 +130,12 @@ def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap
     var y1: List[Float64] = [10.0, 20.0]
     var cats: List[String] = ["a", "b"]
     var y2: List[Float64] = [50.0, 10.0]
-    var primary = Plot().mark_point().encode(x=x, y=y1, color_categories=cats)
-    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis()
+    var primary = Plot().mark_point().encode(x=x, y=y1, color_categories=cats).size(400, 300)
+    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
     var plots = List[Plot]()
     plots.append(primary^)
     plots.append(secondary^)
-    var svg = SvgCanvas(400, 300)
-    render_layers_svg(svg, plots, 0, 0, 400, 300)
+    var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
         '<line x1="220" y1="20" x2="220" y2="250" stroke="#505050" stroke-width="1.000"'
@@ -156,10 +155,9 @@ def test_render_secondary_axis_raises_on_standalone_render() raises:
     # to pair against).
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).secondary_axis()
-    var c = Canvas(200, 150, BG)
+    var plot = Plot().mark_line().encode(x=x, y=y).secondary_axis().size(200, 150)
     with assert_raises():
-        render(c, plot)
+        _ = render(plot)
 
 
 def test_render_layers_raises_when_every_layer_is_secondary() raises:
@@ -175,9 +173,8 @@ def test_render_layers_raises_when_every_layer_is_secondary() raises:
     var plots = List[Plot]()
     plots.append(a^)
     plots.append(b^)
-    var c = Canvas(400, 300, BG)
     with assert_raises():
-        render_layers(c, plots)
+        _ = render_layers(plots)
 
 
 def main() raises:

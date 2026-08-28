@@ -7,10 +7,8 @@ domain/rendering rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import population_pyramid
 
@@ -37,7 +35,8 @@ def test_render_population_pyramid_matches_hand_derived_bars() raises:
     var left: List[Float64] = [10.0, 30.0]
     var right: List[Float64] = [20.0, 10.0]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = population_pyramid(cats, left, right, theme=t, width=400, height=300)
+    var _hoisted1 = population_pyramid(cats, left, right, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
 
@@ -58,11 +57,10 @@ def test_render_population_pyramid_svg_matches_confirmed_rects() raises:
     var cats: List[String] = ["A", "B"]
     var left: List[Float64] = [10.0, 30.0]
     var right: List[Float64] = [20.0, 10.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_population_pyramid().encode_population_pyramid(
         categories=cats, left_values=left, right_values=right
-    ).theme(Theme(show_gridlines=False, show_legend=False))
-    render_svg(svg, plot)
+    ).theme(Theme(show_gridlines=False, show_legend=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<rect x="169" y="32" width="51" height="92" fill="#1f77b4"/>' in s, "A's left bar")
     assert_true('<rect x="220" y="32" width="102" height="92" fill="#ff7f0e"/>' in s, "A's right bar")
@@ -78,11 +76,10 @@ def test_render_population_pyramid_zero_magnitude_draws_no_bar() raises:
     var cats: List[String] = ["Only"]
     var left: List[Float64] = [0.0]
     var right: List[Float64] = [10.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_population_pyramid().encode_population_pyramid(
         categories=cats, left_values=left, right_values=right
-    ).theme(Theme(show_gridlines=False, show_legend=False))
-    render_svg(svg, plot)
+    ).theme(Theme(show_gridlines=False, show_legend=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('fill="#1f77b4"' not in s, "zero-magnitude left side draws no rect at all")
     assert_true('fill="#ff7f0e"' in s, "the non-zero right side still draws")
@@ -94,11 +91,10 @@ def test_render_population_pyramid_legend_uses_left_right_fallback_names() raise
     var cats: List[String] = ["A"]
     var left: List[Float64] = [10.0]
     var right: List[Float64] = [10.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_population_pyramid().encode_population_pyramid(
         categories=cats, left_values=left, right_values=right
-    ).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    ).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(">Left<" in s, "the fallback legend label for the left side")
     assert_true(">Right<" in s, "the fallback legend label for the right side")
@@ -108,11 +104,10 @@ def test_render_population_pyramid_legend_uses_given_names() raises:
     var cats: List[String] = ["A"]
     var left: List[Float64] = [10.0]
     var right: List[Float64] = [10.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_population_pyramid().encode_population_pyramid(
         categories=cats, left_values=left, right_values=right, left_name="Male", right_name="Female"
-    ).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    ).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(">Male<" in s, "the given left legend label")
     assert_true(">Female<" in s, "the given right legend label")
@@ -122,13 +117,15 @@ def test_render_population_pyramid_raises_on_mismatched_length() raises:
     var cats: List[String] = ["a", "b", "c"]
     var one: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = population_pyramid(cats, one, one, width=200, height=150)
+        var _hoisted2 = population_pyramid(cats, one, one, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_population_pyramid_empty_data_only_fills_background() raises:
     var cats = List[String]()
     var vals = List[Float64]()
-    var c = population_pyramid(cats, vals, vals, width=200, height=150)
+    var _hoisted3 = population_pyramid(cats, vals, vals, width=200, height=150)
+    var c = render(_hoisted3)
     _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
 
 

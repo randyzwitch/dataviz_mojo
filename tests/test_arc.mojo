@@ -5,9 +5,7 @@ behavior, SVG wedge paths.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -45,7 +43,8 @@ def test_render_arc_mark_matches_hand_derived_wedge_colors() raises:
     # well inside that.
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1.0, 1.0]
-    var c = pie(x, y, width=400, height=300)
+    var _hoisted1 = pie(x, y, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
     _assert_color(c, 205, 135, palette[0], "right of center -- wedge 0 (a)")
@@ -56,21 +55,24 @@ def test_render_arc_raises_on_negative_value() raises:
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1.0, -1.0]
     with assert_raises():
-        _ = pie(x, y, width=200, height=150)
+        var _hoisted2 = pie(x, y, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_arc_raises_on_all_zero_values() raises:
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [0.0, 0.0]
     with assert_raises():
-        _ = pie(x, y, width=200, height=150)
+        var _hoisted3 = pie(x, y, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_arc_raises_on_mismatched_category_length() raises:
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = pie(x, y, width=200, height=150)
+        var _hoisted4 = pie(x, y, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_svg_arc_mark_matches_confirmed_wedge_paths() raises:
@@ -87,9 +89,8 @@ def test_render_svg_arc_mark_matches_confirmed_wedge_paths() raises:
     # both ends of the full circle these two wedges split.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<path d="M220.000,135.000 L220.000,31.500 A103.500,103.500 0 0,1 323.500,135.000'
@@ -116,9 +117,10 @@ def test_render_donut_leaves_the_center_unfilled_and_fills_the_ring() raises:
     # an exact color match unreliable.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var c = pie(
+    var _hoisted5 = pie(
         cats, vals, theme=Theme(show_legend=False, donut_inner_radius_fraction=0.5), width=400, height=300
     )
+    var c = render(_hoisted5)
 
     _assert_color(c, 220, 135, BG, "donut hole: the exact center stays background")
     _assert_color(
@@ -132,11 +134,10 @@ def test_render_donut_svg_matches_confirmed_ring_sector_paths() raises:
     # 3-decimal `_format_svg_float`.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).theme(
         Theme(show_legend=False, donut_inner_radius_fraction=0.5)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<path d="M220.000,31.500 A103.500,103.500 0 0,1 323.500,135.000'
@@ -154,9 +155,11 @@ def test_render_donut_raises_on_out_of_range_inner_radius_fraction() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 1.0]
     with assert_raises():
-        _ = pie(cats, vals, theme=Theme(donut_inner_radius_fraction=1.0), width=400, height=300)
+        var _hoisted6 = pie(cats, vals, theme=Theme(donut_inner_radius_fraction=1.0), width=400, height=300)
+        _ = render(_hoisted6)
     with assert_raises():
-        _ = pie(cats, vals, theme=Theme(donut_inner_radius_fraction=-0.1), width=400, height=300)
+        var _hoisted7 = pie(cats, vals, theme=Theme(donut_inner_radius_fraction=-0.1), width=400, height=300)
+        _ = render(_hoisted7)
 
 
 def main() raises:

@@ -8,7 +8,6 @@ axis layer sets one -- the pre-existing, still-default behavior.
 
 from std.testing import assert_true, TestSuite
 
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.plot import Plot, render_layers_svg
 from dataviz_mojo.theme import Theme
 
@@ -24,7 +23,7 @@ def test_render_layers_svg_secondary_axis_caption_matches_hand_derived_position(
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
-    var primary = Plot().mark_line().encode(x=x, y=y1).theme(Theme(show_gridlines=False))
+    var primary = Plot().mark_line().encode(x=x, y=y1).theme(Theme(show_gridlines=False)).size(400, 300)
     var secondary = (
         Plot()
         .mark_line()
@@ -32,12 +31,12 @@ def test_render_layers_svg_secondary_axis_caption_matches_hand_derived_position(
         .secondary_axis()
         .labels(y_title="Growth")
         .theme(Theme(show_gridlines=False))
+        .size(400, 300)
     )
     var plots = List[Plot]()
     plots.append(primary^)
     plots.append(secondary^)
-    var svg = SvgCanvas(400, 300)
-    render_layers_svg(svg, plots, 0, 0, 400, 300)
+    var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
         '<text x="389" y="135" font-size="14.000" font-family="sans-serif" fill="#282828"'
@@ -60,13 +59,12 @@ def test_render_layers_svg_no_caption_when_secondary_axis_has_no_y_title() raise
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
-    var primary = Plot().mark_line().encode(x=x, y=y1).theme(Theme(show_gridlines=False))
-    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis().theme(Theme(show_gridlines=False))
+    var primary = Plot().mark_line().encode(x=x, y=y1).theme(Theme(show_gridlines=False)).size(400, 300)
+    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis().theme(Theme(show_gridlines=False)).size(400, 300)
     var plots = List[Plot]()
     plots.append(primary^)
     plots.append(secondary^)
-    var svg = SvgCanvas(400, 300)
-    render_layers_svg(svg, plots, 0, 0, 400, 300)
+    var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true("rotate(90" not in s, "no secondary-axis caption text draws when y_title is unset")
     assert_true(
@@ -85,13 +83,12 @@ def test_render_layers_svg_primary_layers_own_y_title_is_not_mistaken_for_a_capt
     var y2: List[Float64] = [50.0, 10.0]
     var primary = Plot().mark_line().encode(x=x, y=y1).labels(y_title="Primary").theme(
         Theme(show_gridlines=False)
-    )
-    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis().theme(Theme(show_gridlines=False))
+    ).size(400, 300)
+    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis().theme(Theme(show_gridlines=False)).size(400, 300)
     var plots = List[Plot]()
     plots.append(primary^)
     plots.append(secondary^)
-    var svg = SvgCanvas(400, 300)
-    render_layers_svg(svg, plots, 0, 0, 400, 300)
+    var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true("rotate(-90" in s, "the primary layer's y_title still draws, rotated the usual way")
     assert_true("rotate(90.000" not in s, "no right-side caption draws just because plots[0] set a y_title")

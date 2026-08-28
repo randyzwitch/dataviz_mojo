@@ -10,7 +10,7 @@ from canvas_mojo.color import Color
 from canvas_mojo.buffer import Canvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.theme import Theme
-from dataviz_mojo import polar, polar_series
+from dataviz_mojo import polar, polar_series, render
 
 from _test_helpers import BG, _assert_color
 
@@ -38,7 +38,8 @@ def test_render_polar_matches_hand_derived_line_and_markers() raises:
     # doesn't need to distinguish which one.
     var angle: List[Float64] = [0.0, 3.14159265358979, 1.5707963267949]
     var radius: List[Float64] = [2.0, 2.0, 9.0]
-    var c = polar(angle, radius, width=400, height=300)
+    var _hoisted1 = polar(angle, radius, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 243, 135, Theme().mark_color, "point 0 (angle 0, radius_px 23) -- east of center")
     _assert_color(c, 197, 135, Theme().mark_color, "point 1 (angle pi, radius_px 23) -- west of center")
@@ -46,19 +47,29 @@ def test_render_polar_matches_hand_derived_line_and_markers() raises:
 
 def test_render_polar_draws_a_grid_even_with_no_data_on_it() raises:
     # A single point at the origin (radius 0) still gets the full
-    # polar grid drawn -- confirmed by sampling a point on the
-    # outermost ring (220, 31), which must differ from a plain white
-    # background even though AA blending on a 1px stroke makes an
-    # *exact* gridline-color match unreliable to assert (see
-    # _render_polar's docstring: no tick labels, but the rings/
-    # spokes themselves always draw).
+    # polar grid drawn -- confirmed by scanning a small column near the
+    # outermost ring's nominal position, at least one pixel of which
+    # must differ from a plain white background (see _render_polar's
+    # docstring: no tick labels, but the rings/spokes themselves always
+    # draw). A window scan, not one exact pixel: `render()`'s
+    # supersample-then-downsample (`_RASTER_SUPERSAMPLE`, plot.mojo)
+    # spreads a 1px ring's faint ink across a couple of columns rather
+    # than concentrating it at one exact, stable position -- see
+    # `_assert_near_color`'s docstring (tests/_test_helpers.mojo) for
+    # the same underlying reason applied to a stroke's *color* instead
+    # of its *position*.
     var angle: List[Float64] = [0.0]
     var radius: List[Float64] = [0.0]
-    var c = polar(angle, radius, width=400, height=300)
-    var p = c.get_pixel(220, 31)
+    var _hoisted2 = polar(angle, radius, width=400, height=300)
+    var c = render(_hoisted2)
+    var found_ring_ink = False
+    for y in range(28, 36):
+        var p = c.get_pixel(220, y)
+        if p.r != BG.r or p.g != BG.g or p.b != BG.b:
+            found_ring_ink = True
     assert_true(
-        p.r != BG.r or p.g != BG.g or p.b != BG.b,
-        "the outer polar grid ring should paint something other than plain background",
+        found_ring_ink,
+        "the outer polar grid ring should paint something other than plain background somewhere near y=28-35",
     )
 
 
@@ -66,20 +77,23 @@ def test_render_polar_raises_on_mismatched_length() raises:
     var angle: List[Float64] = [0.0, 1.0]
     var radius: List[Float64] = [1.0]
     with assert_raises():
-        _ = polar(angle, radius, width=200, height=150)
+        var _hoisted3 = polar(angle, radius, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_polar_raises_on_negative_radius() raises:
     var angle: List[Float64] = [0.0]
     var radius: List[Float64] = [-1.0]
     with assert_raises():
-        _ = polar(angle, radius, width=200, height=150)
+        var _hoisted4 = polar(angle, radius, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_polar_empty_data_only_fills_background() raises:
     var angle = List[Float64]()
     var radius = List[Float64]()
-    var c = polar(angle, radius, width=100, height=80)
+    var _hoisted5 = polar(angle, radius, width=100, height=80)
+    var c = render(_hoisted5)
     _assert_color(c, 50, 40, BG, "no data: nothing drawn but the background")
 
 
@@ -112,7 +126,8 @@ def test_render_polar_series_matches_hand_derived_line_and_markers() raises:
     var angle: List[Float64] = [0.0, 2.0943951023932, 4.1887902047864]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[3.0, 6.0, 9.0], [9.0, 3.0, 6.0]]
-    var c = polar_series(angle, names, vals, width=400, height=300)
+    var _hoisted6 = polar_series(angle, names, vals, width=400, height=300)
+    var c = render(_hoisted6)
     var palette = default_categorical_palette()
     _assert_color(c, 183, 135, palette[0], "series A, angle 0, radius_px 28.5")
     _assert_color(c, 126, 184, palette[0], "series A, angle 120, radius_px 57.0")
@@ -125,7 +140,8 @@ def test_render_polar_series_raises_on_mismatched_names_and_values_length() rais
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        _ = polar_series(angle, names, vals, width=200, height=150)
+        var _hoisted7 = polar_series(angle, names, vals, width=200, height=150)
+        _ = render(_hoisted7)
 
 
 def test_render_polar_series_raises_when_a_series_length_does_not_match_angle() raises:
@@ -133,7 +149,8 @@ def test_render_polar_series_raises_when_a_series_length_does_not_match_angle() 
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0]]
     with assert_raises():
-        _ = polar_series(angle, names, vals, width=200, height=150)
+        var _hoisted8 = polar_series(angle, names, vals, width=200, height=150)
+        _ = render(_hoisted8)
 
 
 def test_render_polar_series_raises_on_negative_radius() raises:
@@ -141,14 +158,16 @@ def test_render_polar_series_raises_on_negative_radius() raises:
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [[-1.0]]
     with assert_raises():
-        _ = polar_series(angle, names, vals, width=200, height=150)
+        var _hoisted9 = polar_series(angle, names, vals, width=200, height=150)
+        _ = render(_hoisted9)
 
 
 def test_render_polar_series_empty_angle_only_fills_background() raises:
     var angle = List[Float64]()
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [List[Float64]()]
-    var c = polar_series(angle, names, vals, width=100, height=80)
+    var _hoisted10 = polar_series(angle, names, vals, width=100, height=80)
+    var c = render(_hoisted10)
     _assert_color(c, 50, 40, BG, "no data: nothing drawn but the background")
 
 

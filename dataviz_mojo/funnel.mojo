@@ -13,7 +13,7 @@ from dataviz_mojo.plot import (
     _draw_legend,
     _dynamic_legend_width,
     _empty_result,
-    _rendered,
+    _finished,
     _validate_categorical_encoding,
     _require_non_negative,
 )
@@ -162,7 +162,7 @@ def funnel(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Canvas:
+) raises -> Plot:
     """A funnel chart -- `Mark.FUNNEL` over a categorical `x` and
     continuous `y` (the same shape `bar()`/`pie()` take), drawn
     largest-value-first as tapering trapezoids. See `_render_funnel`'s docstring for the taper/ordering rules. `x_title`/`y_title` are
@@ -177,15 +177,15 @@ def funnel(
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
-        width: Pixel width of the returned `Canvas`.
-        height: Pixel height of the returned `Canvas`.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
         title: The chart's title, shown above the plot.
         subtitle: A secondary line shown under the title.
         x_title: Unused -- a funnel chart has no x-axis to label.
         y_title: Unused -- a funnel chart has no y-axis to label.
 
     Returns:
-        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
     """
     var plot = Plot().mark_funnel().encode_categorical(x=categories, y=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

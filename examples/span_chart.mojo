@@ -12,10 +12,7 @@ that would misrepresent the data if drawn as a bar(), since a bar
 implies "from zero," not "from the low").
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import span_chart
 from dataviz_mojo.theme import Theme
 
@@ -28,12 +25,6 @@ def main() raises:
     var temp_high: List[Float64] = [5.0, 7.0, 12.0, 20.0, 25.0, 29.0, 31.0, 30.0, 26.0, 18.0, 10.0, 5.0]
 
     var c = span_chart(months, temp_low, temp_high)
-    write_bmp(c, "examples/out_span_chart.bmp")
-    write_png(c, "examples/out_span_chart.png")
-
-    var svg = SvgCanvas(640, 420)
-    var svg_plot = Plot().mark_span_chart().encode_gantt(categories=months, start=temp_low, end=temp_high).theme(
-        Theme()
-    )
-    render_svg(svg, svg_plot)
-    write_svg(svg, "examples/out_span_chart.svg")
+    save(c, "examples/out_span_chart.svg")
+    save(c, "examples/out_span_chart.bmp")
+    save(c, "examples/out_span_chart.png")

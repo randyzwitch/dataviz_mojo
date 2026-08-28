@@ -5,9 +5,7 @@
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -24,7 +22,7 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import bullet
 
-from _test_helpers import BG, _count_color, _assert_color
+from _test_helpers import BG, _count_color, _assert_color, _assert_near_color
 
 
 def test_render_bullet_matches_hand_derived_bands_measure_and_target() raises:
@@ -50,14 +48,19 @@ def test_render_bullet_matches_hand_derived_bands_measure_and_target() raises:
     var targets: List[Float64] = [65.0, 50.0]
     var ranges: List[List[Float64]] = [[40.0, 70.0, 100.0], [30.0, 60.0, 90.0]]
     var t = Theme(show_gridlines=False)
-    var c = Canvas(400, 300, BG)
-    render(c, Plot().mark_bullet().encode_bullet(cats, measures, targets, ranges).theme(t))
+    var _hoisted1 = Plot().mark_bullet().encode_bullet(cats, measures, targets, ranges).theme(t).size(400, 300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 90, 200, Color(224, 224, 224), "A: lightest range band [0,40], off the measure bar")
     _assert_color(c, 90, 130, Color(172, 172, 172), "A: middle range band [40,70], off the measure bar")
     _assert_color(c, 90, 60, Color(120, 120, 120), "A: darkest range band [70,100], off the measure bar")
     _assert_color(c, 140, 200, t.mark_color, "A: inside the measure bar (0 to 55), over the bands")
-    _assert_color(c, 90, 108, t.axis_color, "A: the target tick (65), off the measure bar")
+    # A's target tick, not B's: `render()`'s supersample-then-downsample
+    # (`_RASTER_SUPERSAMPLE`, plot.mojo) doesn't land this particular
+    # 1px-wide stroke fully opaque at this column -- B's target tick
+    # below, at a different pixel position, still does (see
+    # `_assert_near_color`'s docstring, tests/_test_helpers.mojo).
+    _assert_near_color(c, 90, 108, t.axis_color, 65, "A: the target tick (65), off the measure bar")
     _assert_color(c, 140, 10, BG, "A: above every band -- background")
     _assert_color(c, 300, 150, t.mark_color, "B: inside the measure bar (0 to 75)")
     _assert_color(c, 250, 140, t.axis_color, "B: the target tick (50), off the measure bar")
@@ -69,11 +72,10 @@ def test_render_bullet_svg_matches_confirmed_bands_measure_and_target() raises:
     var measures: List[Float64] = [55.0, 75.0]
     var targets: List[Float64] = [65.0, 50.0]
     var ranges: List[List[Float64]] = [[40.0, 70.0, 100.0], [30.0, 60.0, 90.0]]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_bullet().encode_bullet(cats, measures, targets, ranges).theme(
         Theme(show_gridlines=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     # The lightest band's bottom (prev_threshold=0) and the measure
     # bar's bottom (baseline=0) both land exactly on the drawn bottom
@@ -97,7 +99,8 @@ def test_render_bullet_raises_on_mismatched_category_length() raises:
     var one: List[Float64] = [1.0, 2.0]
     var ranges: List[List[Float64]] = [[1.0], [1.0]]
     with assert_raises():
-        _ = bullet(cats, one, one, ranges, width=200, height=150)
+        var _hoisted2 = bullet(cats, one, one, ranges, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_bullet_raises_on_empty_range_thresholds() raises:
@@ -105,7 +108,8 @@ def test_render_bullet_raises_on_empty_range_thresholds() raises:
     var one: List[Float64] = [1.0, 2.0]
     var ranges: List[List[Float64]] = [[1.0], List[Float64]()]
     with assert_raises():
-        _ = bullet(cats, one, one, ranges, width=200, height=150)
+        var _hoisted3 = bullet(cats, one, one, ranges, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_bullet_raises_on_non_ascending_range_thresholds() raises:
@@ -113,7 +117,8 @@ def test_render_bullet_raises_on_non_ascending_range_thresholds() raises:
     var one: List[Float64] = [1.0]
     var ranges: List[List[Float64]] = [[50.0, 30.0, 100.0]]
     with assert_raises():
-        _ = bullet(cats, one, one, ranges, width=200, height=150)
+        var _hoisted4 = bullet(cats, one, one, ranges, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def main() raises:

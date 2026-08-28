@@ -30,19 +30,20 @@ crop/zoom -- the plot's logical layout (data domain, tick
 positions, legend contents) is identical at every scale, only the
 pixel measurements of everything drawn change.
 
-A distinct thing from the supersample-then-shrink-back-down
-anti-aliasing every one-call convenience function (`bar()`,
-`scatter()`, ...) now bakes into its output automatically (see
-`dataviz_mojo.plot._rendered`'s docstring) -- that one always
-returns a `Canvas` at the exact size asked for, `scale` untouched by
-it from the caller's point of view; internally it composes with
-whatever `scale` the caller already set (a real HiDPI export that
-also wants quickplot's smoother edges gets both, multiplied
-together), it just isn't a knob a caller sets to get supersampling in
-the first place -- `render()`, `Plot`'s direct entry point, has no
-such hidden factor at all, so a `Theme(scale=3.0)` built by hand and
-handed to `render()` is exactly, only, three times the pixels, with
-none of `_rendered`'s automatic multiplication on top.
+Every one-call convenience function (`bar()`, `scatter()`, ...)
+reads `scale` exactly the same way a hand-built `Plot` does -- it
+returns a plain `Plot` (`dataviz_mojo.plot._finished`'s docstring),
+not a rendered `Canvas`, so there's no separate quickplot-only
+scaling behavior to distinguish `scale` from here at all.
+
+Distinct from `render()`'s own internal supersampling
+(`_RASTER_SUPERSAMPLE`, plot.mojo): that's a fixed, unconditional
+multiplier `render()` applies and un-applies around one raster render
+pass so PNG/BMP output just looks good, not a `Theme` field or
+something this value composes with explicitly -- `scale` is the one
+knob a caller actually sets to ask for a bigger/sharper export;
+`render()`'s own supersampling is invisible plumbing underneath that
+choice, not a second version of it.
 
 `donut_inner_radius_fraction` (default 0.0 -- an ordinary pie, `Mark.
 ARC` unchanged) is a *fraction* of the outer radius `_render_arc`
@@ -299,6 +300,7 @@ from std.math import pi
 from canvas_mojo.color import Color
 
 from dataviz_mojo.colors import WHITE
+from dataviz_mojo.output_format import OutputFormat
 
 
 struct Theme(ImplicitlyCopyable, Movable):
@@ -495,6 +497,12 @@ struct Theme(ImplicitlyCopyable, Movable):
     margin's own tick-label-width/tick-length/label-gap computation."""
     var sankey_node_width: Float64
     """The pixel width of each `Mark.SANKEY` node column's bar."""
+    var output_format: OutputFormat
+    """The file format `save()` (plot.mojo) writes when given a `Plot`
+    and a path, with no `canvas_mojo` backend named at the call site --
+    defaults to `OutputFormat.SVG` (see that struct's docstring for why
+    vector is the default). `render()`/`render_svg()` ignore this field
+    entirely; it only governs `save()`'s own choice."""
 
     def __init__(
         out self,
@@ -561,6 +569,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         continuous_legend_bar_height: Int = 100,
         margin_buffer: Int = 8,
         sankey_node_width: Float64 = 12.0,
+        output_format: OutputFormat = OutputFormat.SVG,
     ):
         """Construct a `Theme`, overriding any subset of its fields by
         keyword -- every parameter here is one field, same name, same
@@ -630,6 +639,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.continuous_legend_bar_height = continuous_legend_bar_height
         self.margin_buffer = margin_buffer
         self.sankey_node_width = sankey_node_width
+        self.output_format = output_format
 
     @staticmethod
     def default() -> Self:

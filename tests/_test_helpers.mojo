@@ -11,7 +11,7 @@ pixi.toml's test task.
 
 from canvas_mojo.color import Color
 from canvas_mojo.buffer import Canvas
-from std.testing import assert_equal
+from std.testing import assert_equal, assert_true
 
 from dataviz_mojo.colors import WHITE
 
@@ -33,3 +33,28 @@ def _assert_color(c: Canvas, x: Int, y: Int, expected: Color, label: String) rai
     assert_equal(p.r, expected.r, label)
     assert_equal(p.g, expected.g, label)
     assert_equal(p.b, expected.b, label)
+
+
+def _assert_near_color(c: Canvas, x: Int, y: Int, expected: Color, tolerance: Int, label: String) raises:
+    """`_assert_color()`'s tolerant sibling, for a *stroked* position
+    (an axis line, a gridline, an annotation line -- anything whose
+    footprint is only 1-2px wide) rather than a filled mark's solid
+    interior. `render()`'s supersample-then-downsample (`_RASTER_
+    SUPERSAMPLE`, plot.mojo) genuinely has no single output pixel that
+    lands fully opaque for a stroke that thin -- the stroke's true
+    (supersampled) footprint straddles a downsample block boundary
+    unevenly almost regardless of position, so averaging never fully
+    saturates any one output pixel the way it would for a filled
+    shape's own interior (see `_RASTER_SUPERSAMPLE`'s own docstring for
+    why a *filled* region's interior doesn't have this problem: every
+    subpixel already agrees, so nothing there ever blends). `_assert_
+    color()` remains the right choice for anything with real interior
+    area to sample away from its own edge."""
+    var p = c.get_pixel(x, y)
+    assert_true(
+        abs(Int(p.r) - Int(expected.r)) <= tolerance
+        and abs(Int(p.g) - Int(expected.g)) <= tolerance
+        and abs(Int(p.b) - Int(expected.b)) <= tolerance,
+        label + " (got (" + String(p.r) + "," + String(p.g) + "," + String(p.b) + "), expected within "
+        + String(tolerance) + " of (" + String(expected.r) + "," + String(expected.g) + "," + String(expected.b) + "))",
+    )

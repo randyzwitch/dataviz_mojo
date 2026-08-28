@@ -6,9 +6,7 @@ the degenerate-y_scale trick verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import single_axis
 
@@ -26,7 +24,8 @@ def test_render_single_axis_matches_hand_derived_points() raises:
     # radius 3.5 rounds to 4.
     var x: List[Float64] = [10.0, 20.0, 30.0]
     var t = Theme(show_gridlines=False)
-    var c = single_axis(x, theme=t, width=400, height=300)
+    var _hoisted1 = single_axis(x, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 75, 135, t.mark_color, "the first point (x=10)")
     _assert_color(c, 220, 135, t.mark_color, "the second point (x=20)")
@@ -36,9 +35,8 @@ def test_render_single_axis_matches_hand_derived_points() raises:
 
 def test_render_single_axis_svg_matches_confirmed_circles() raises:
     var x: List[Float64] = [10.0, 20.0, 30.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_single_axis().encode_single_axis(x=x).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_single_axis().encode_single_axis(x=x).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<circle cx="75" cy="135" r="4" fill="#1e64b4"/>' in s, "the first point")
     assert_true('<circle cx="220" cy="135" r="4" fill="#1e64b4"/>' in s, "the second point")
@@ -55,7 +53,8 @@ def test_render_single_axis_color_encoding_reuses_point_channels() raises:
     var x: List[Float64] = [0.0, 10.0]
     var color: List[Float64] = [0.0, 10.0]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = single_axis(x, color=color, theme=t, width=400, height=300)
+    var _hoisted2 = single_axis(x, color=color, theme=t, width=400, height=300)
+    var c = render(_hoisted2)
     _assert_color(c, 75, 135, t.color_scale_low, "x=0, color=0.0 -- the color domain's min")
     _assert_color(c, 365, 135, t.color_scale_high, "x=10, color=10.0 -- the color domain's max")
 
@@ -64,12 +63,14 @@ def test_render_single_axis_raises_on_mismatched_channel_length() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0]
     var color: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = single_axis(x, color=color, width=200, height=150)
+        var _hoisted3 = single_axis(x, color=color, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_single_axis_empty_data_only_fills_background() raises:
     var x = List[Float64]()
-    var c = single_axis(x, width=200, height=150)
+    var _hoisted4 = single_axis(x, width=200, height=150)
+    var c = render(_hoisted4)
     _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
 
 

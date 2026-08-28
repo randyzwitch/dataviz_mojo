@@ -10,10 +10,7 @@ A marketing conversion funnel -- the classic funnel-chart use: how a
 count shrinks stage by stage (impressions to clicks to orders).
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import funnel
 from dataviz_mojo.theme import Theme
 
@@ -23,10 +20,6 @@ def main() raises:
     var counts: List[Float64] = [10000.0, 3200.0, 950.0, 400.0]
 
     var c = funnel(stages, counts)
-    write_bmp(c, "examples/out_funnel.bmp")
-    write_png(c, "examples/out_funnel.png")
-
-    var svg = SvgCanvas(640, 420)
-    var svg_plot = Plot().mark_funnel().encode_categorical(x=stages, y=counts).theme(Theme())
-    render_svg(svg, svg_plot)
-    write_svg(svg, "examples/out_funnel.svg")
+    save(c, "examples/out_funnel.svg")
+    save(c, "examples/out_funnel.bmp")
+    save(c, "examples/out_funnel.png")

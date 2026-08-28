@@ -6,7 +6,6 @@ secondary), not some other cell's/layer's.
 
 from std.testing import assert_true, TestSuite
 
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.plot import Plot, render_facets_svg, render_layers_svg
 from dataviz_mojo.theme import Theme
 
@@ -16,21 +15,21 @@ def test_render_facets_svg_each_cells_own_annotations_use_that_cells_own_scale()
     # annotate_line(15.0), cell 2 (y:[0,15]) gets an annotate_area(8,12)
     # -- deliberately different annotation types on different cells, so
     # a bug that used the wrong cell's scale (or drew only one
-    # cell's annotation) would show up unambiguously. Canvas 800x300.
+    # cell's annotation) would show up unambiguously. Canvas 800x300
+    # (each cell .size(400, 300), cols=2).
     var cats: List[String] = ["A", "B"]
     var v1: List[Float64] = [10.0, 20.0]
     var v2: List[Float64] = [5.0, 15.0]
     var p1 = Plot().mark_bar().encode_categorical(x=cats, y=v1).annotate_line(15.0, label="mid").theme(
         Theme(show_gridlines=False)
-    )
+    ).size(400, 300)
     var p2 = Plot().mark_bar().encode_categorical(x=cats, y=v2).annotate_area(8.0, 12.0, label="band").theme(
         Theme(show_gridlines=False)
-    )
+    ).size(400, 300)
     var plots = List[Plot]()
     plots.append(p1^)
     plots.append(p2^)
-    var svg = SvgCanvas(800, 300)
-    render_facets_svg(svg, plots, 2)
+    var svg = render_facets_svg(plots, 2)
     var s = svg.to_string()
     assert_true(
         '<line x1="60" y1="86" x2="380" y2="86" stroke="#969696" stroke-width="1.000"'
@@ -66,7 +65,7 @@ def test_render_layers_svg_each_layers_own_annotations_use_that_layers_own_scale
     var y2: List[Float64] = [50.0, 10.0]
     var primary = Plot().mark_line().encode(x=x, y=y1).annotate_line(12.0, label="primline").theme(
         Theme(show_gridlines=False)
-    )
+    ).size(400, 300)
     var secondary = (
         Plot()
         .mark_line()
@@ -74,12 +73,12 @@ def test_render_layers_svg_each_layers_own_annotations_use_that_layers_own_scale
         .secondary_axis()
         .annotate_line(40.0, label="secline")
         .theme(Theme(show_gridlines=False))
+        .size(400, 300)
     )
     var plots = List[Plot]()
     plots.append(primary^)
     plots.append(secondary^)
-    var svg = SvgCanvas(400, 300)
-    render_layers_svg(svg, plots, 0, 0, 400, 300)
+    var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
         '<line x1="60" y1="198" x2="350" y2="198" stroke="#969696" stroke-width="1.000"'

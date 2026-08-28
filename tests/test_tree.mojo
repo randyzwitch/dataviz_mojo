@@ -6,10 +6,8 @@ the rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import tree
 
@@ -30,7 +28,8 @@ def test_render_tree_matches_hand_derived_positions() raises:
     var parents: List[String] = ["", "root", "root"]
     var values: List[Float64] = [0.0, 1.0, 1.0]
     var t = Theme(show_legend=False)
-    var c = tree(ids, parents, values, theme=t, width=400, height=300)
+    var _hoisted1 = tree(ids, parents, values, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
     _assert_color(c, 220, 20, t.text_color, "root's marker -- no branch, stays text_color")
@@ -48,11 +47,10 @@ def test_render_tree_svg_matches_confirmed_geometry() raises:
     var ids: List[String] = ["root", "A", "B"]
     var parents: List[String] = ["", "root", "root"]
     var values: List[Float64] = [0.0, 1.0, 1.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_tree().encode_hierarchy(ids=ids, parent_ids=parents, values=values).theme(
         Theme(show_legend=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<line x1="220" y1="20" x2="60" y2="250" stroke="#1f77b4"' in s, "root->A edge")
     assert_true('<line x1="220" y1="20" x2="380" y2="250" stroke="#ff7f0e"' in s, "root->B edge")
@@ -66,7 +64,8 @@ def test_render_tree_raises_on_multiple_roots() raises:
     var parents: List[String] = ["", ""]
     var values: List[Float64] = [1.0, 1.0]
     with assert_raises():
-        _ = tree(ids, parents, values, width=200, height=150)
+        var _hoisted2 = tree(ids, parents, values, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_tree_raises_on_negative_value() raises:
@@ -74,7 +73,8 @@ def test_render_tree_raises_on_negative_value() raises:
     var parents: List[String] = ["", "root"]
     var values: List[Float64] = [0.0, -1.0]
     with assert_raises():
-        _ = tree(ids, parents, values, width=200, height=150)
+        var _hoisted3 = tree(ids, parents, values, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_tree_raises_on_mismatched_length() raises:
@@ -82,14 +82,16 @@ def test_render_tree_raises_on_mismatched_length() raises:
     var parents: List[String] = ["", "root", "extra"]
     var values: List[Float64] = [0.0, 1.0]
     with assert_raises():
-        _ = tree(ids, parents, values, width=200, height=150)
+        var _hoisted4 = tree(ids, parents, values, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_tree_empty_data_only_fills_background() raises:
     var ids = List[String]()
     var parents = List[String]()
     var values = List[Float64]()
-    var c = tree(ids, parents, values, width=100, height=80)
+    var _hoisted5 = tree(ids, parents, values, width=100, height=80)
+    var c = render(_hoisted5)
     _assert_color(c, 50, 40, BG, "no hierarchy: nothing drawn but the background")
 
 

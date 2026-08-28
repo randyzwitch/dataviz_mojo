@@ -7,9 +7,7 @@ verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import effect_scatter
 
@@ -34,7 +32,8 @@ def test_render_effect_scatter_matches_hand_derived_halo_and_point() raises:
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = effect_scatter(x, y, theme=t, width=400, height=300)
+    var _hoisted1 = effect_scatter(x, y, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 220, 135, t.mark_color, "the point itself, dead center")
     _assert_color(c, 220, 128, Color(175, 200, 228), "inside the halo (radius 9) but outside the point (radius 4)")
@@ -44,11 +43,10 @@ def test_render_effect_scatter_matches_hand_derived_halo_and_point() raises:
 def test_render_effect_scatter_svg_matches_confirmed_circles() raises:
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_effect_scatter().encode(x=x, y=y).theme(
         Theme(show_gridlines=False, show_legend=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<circle cx="220" cy="135" r="9" fill="#afc8e4"/>' in s, "the halo, drawn first")
     assert_true('<circle cx="220" cy="135" r="4" fill="#1e64b4"/>' in s, "the point itself, drawn on top")
@@ -60,9 +58,8 @@ def test_render_point_mark_draws_no_halo() raises:
     # EFFECT_SCATTER, not just that EFFECT_SCATTER turns it on.
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=False, show_legend=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=False, show_legend=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('r="9"' not in s, "no halo circle for a plain Mark.POINT plot")
 
@@ -70,7 +67,8 @@ def test_render_point_mark_draws_no_halo() raises:
 def test_render_effect_scatter_empty_data_only_fills_background() raises:
     var x = List[Float64]()
     var y = List[Float64]()
-    var c = effect_scatter(x, y, width=200, height=150)
+    var _hoisted2 = effect_scatter(x, y, width=200, height=150)
+    var c = render(_hoisted2)
     _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
 
 

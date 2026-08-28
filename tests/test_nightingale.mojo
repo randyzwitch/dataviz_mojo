@@ -5,8 +5,6 @@ colors, the radius-vs-area rose_type distinction, SVG wedge paths.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
@@ -33,7 +31,8 @@ def test_render_nightingale_matches_hand_derived_wedge_colors() raises:
     # computed by hand from cos/sin of each bisector angle.
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 1.0, 1.0]
-    var c = nightingale(x, y, width=400, height=300)
+    var _hoisted1 = nightingale(x, y, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
     _assert_color(c, 198, 110, palette[0], "wedge 0, bisector -30 degrees")
@@ -60,11 +59,13 @@ def test_render_nightingale_area_mode_scales_radius_by_sqrt() raises:
     var y: List[Float64] = [1.0, 4.0]
     var palette = default_categorical_palette()
 
-    var radius_mode = nightingale(x, y, area=False, width=400, height=300)
+    var _hoisted2 = nightingale(x, y, area=False, width=400, height=300)
+    var radius_mode = render(_hoisted2)
     _assert_color(radius_mode, 185, 135, BG, "radius mode: (1/4) * 85.5 = 21.375, point at r=30 is outside")
     _assert_color(radius_mode, 125, 135, palette[1], "radius mode: wedge 1 (frac 1.0) still reaches r=30")
 
-    var area_mode = nightingale(x, y, area=True, width=400, height=300)
+    var _hoisted3 = nightingale(x, y, area=True, width=400, height=300)
+    var area_mode = render(_hoisted3)
     _assert_color(area_mode, 185, 135, palette[0], "area mode: sqrt(1/4) * 85.5 = 42.75, point at r=30 is inside")
     _assert_color(area_mode, 125, 135, palette[1], "area mode: wedge 1 (frac 1.0) still reaches r=30")
 
@@ -78,9 +79,8 @@ def test_render_nightingale_svg_matches_confirmed_wedge_paths() raises:
     # spans 90.270 at radius 103.5*(3/3)=103.5, formatted through SvgCanvas's 3-decimal `_format_svg_float`.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_nightingale().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_nightingale().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<path d="M220.000,135.000 L220.000,100.500 A34.500,34.500 0 1,1 220.000,169.500'
@@ -98,27 +98,31 @@ def test_render_nightingale_raises_on_negative_value() raises:
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1.0, -1.0]
     with assert_raises():
-        _ = nightingale(x, y, width=200, height=150)
+        var _hoisted4 = nightingale(x, y, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_nightingale_raises_on_all_zero_values() raises:
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [0.0, 0.0]
     with assert_raises():
-        _ = nightingale(x, y, width=200, height=150)
+        var _hoisted5 = nightingale(x, y, width=200, height=150)
+        _ = render(_hoisted5)
 
 
 def test_render_nightingale_raises_on_mismatched_category_length() raises:
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = nightingale(x, y, width=200, height=150)
+        var _hoisted6 = nightingale(x, y, width=200, height=150)
+        _ = render(_hoisted6)
 
 
 def test_render_nightingale_empty_categories_only_fills_background() raises:
     var x = List[String]()
     var y = List[Float64]()
-    var c = nightingale(x, y, width=100, height=80)
+    var _hoisted7 = nightingale(x, y, width=100, height=80)
+    var c = render(_hoisted7)
     _assert_color(c, 50, 40, BG, "no categories: nothing drawn but the background")
 
 

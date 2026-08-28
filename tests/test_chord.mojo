@@ -6,10 +6,9 @@ ribbon-geometry rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import chord
 
@@ -43,7 +42,8 @@ def test_render_chord_two_nodes_one_edge_matches_hand_derived_geometry() raises:
     var to_cats: List[String] = ["B"]
     var values: List[Float64] = [10.0]
     var t = Theme(show_legend=False)
-    var c = chord(from_cats, to_cats, values, theme=t, width=400, height=300)
+    var _hoisted1 = chord(from_cats, to_cats, values, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
 
@@ -68,11 +68,10 @@ def test_render_chord_svg_writes_ribbon_and_ring_paths() raises:
     var from_cats: List[String] = ["A", "B"]
     var to_cats: List[String] = ["B", "C"]
     var values: List[Float64] = [5.0, 3.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_chord().encode_chord(
         from_categories=from_cats, to_categories=to_cats, values=values
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true("<path " in s, "at least one ribbon drawn as a real SVG path")
     # default_categorical_palette()'s first three entries, hardcoded
@@ -88,7 +87,8 @@ def test_render_chord_raises_on_mismatched_length() raises:
     var to_cats: List[String] = ["x", "y"]
     var values: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = chord(from_cats, to_cats, values, width=200, height=150)
+        var _hoisted2 = chord(from_cats, to_cats, values, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_chord_raises_on_negative_value() raises:
@@ -96,7 +96,8 @@ def test_render_chord_raises_on_negative_value() raises:
     var to_cats: List[String] = ["b"]
     var values: List[Float64] = [-1.0]
     with assert_raises():
-        _ = chord(from_cats, to_cats, values, width=200, height=150)
+        var _hoisted3 = chord(from_cats, to_cats, values, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_chord_raises_on_all_zero_values() raises:
@@ -104,14 +105,16 @@ def test_render_chord_raises_on_all_zero_values() raises:
     var to_cats: List[String] = ["b"]
     var values: List[Float64] = [0.0]
     with assert_raises():
-        _ = chord(from_cats, to_cats, values, width=200, height=150)
+        var _hoisted4 = chord(from_cats, to_cats, values, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_chord_empty_data_only_fills_background() raises:
     var from_cats = List[String]()
     var to_cats = List[String]()
     var values = List[Float64]()
-    var c = chord(from_cats, to_cats, values, width=200, height=150)
+    var _hoisted5 = chord(from_cats, to_cats, values, width=200, height=150)
+    var c = render(_hoisted5)
     _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
 
 

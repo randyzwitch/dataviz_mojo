@@ -16,7 +16,7 @@ from dataviz_mojo.plot import (
     _draw_legend,
     _dynamic_legend_width,
     _empty_result,
-    _rendered,
+    _finished,
     _require_non_negative,
 )
 from dataviz_mojo.theme import Theme
@@ -176,7 +176,7 @@ def sunburst(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Canvas:
+) raises -> Plot:
     """A sunburst chart -- `Mark.SUNBURST`, a hierarchy (`Plot.encode_
     hierarchy()`'s flattened `ids`/`parent_ids`/`values`) drawn as
     concentric ring sectors, one ring per depth level. See `_render_
@@ -193,15 +193,15 @@ def sunburst(
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
-        width: Pixel width of the returned `Canvas`.
-        height: Pixel height of the returned `Canvas`.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
         title: The chart's title, shown above the plot.
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
 
     Returns:
-        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
     """
     var plot = Plot().mark_sunburst().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

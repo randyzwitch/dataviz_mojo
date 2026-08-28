@@ -11,10 +11,7 @@ the two are directly comparable: a violin shows the smoothed shape of
 each distribution, beeswarm shows every individual point.
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import violin
 from dataviz_mojo.theme import Theme
 
@@ -28,10 +25,6 @@ def main() raises:
     ]
 
     var c = violin(classes, scores)
-    write_bmp(c, "examples/out_violin.bmp")
-    write_png(c, "examples/out_violin.png")
-
-    var svg = SvgCanvas(640, 420)
-    var svg_plot = Plot().mark_violin().encode_distribution(categories=classes, values=scores).theme(Theme())
-    render_svg(svg, svg_plot)
-    write_svg(svg, "examples/out_violin.svg")
+    save(c, "examples/out_violin.svg")
+    save(c, "examples/out_violin.bmp")
+    save(c, "examples/out_violin.png")

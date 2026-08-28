@@ -5,9 +5,7 @@ connectors (raster + SVG).
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -43,7 +41,8 @@ def test_render_waterfall_colors_by_sign_and_matches_hand_derived_bars() raises:
     var cats: List[String] = ["a", "b", "c"]
     var deltas: List[Float64] = [10.0, -4.0, 6.0]
     var t = Theme(show_gridlines=False)
-    var c = waterfall(cats, deltas, theme=t, width=400, height=300)
+    var _hoisted1 = waterfall(cats, deltas, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 113, 150, t.mark_color, "bar 0 (delta +10), well inside its rect")
     _assert_color(c, 220, 100, t.mark_color_negative, "bar 1 (delta -4), colored by sign")
@@ -56,9 +55,8 @@ def test_render_waterfall_colors_by_sign_and_matches_hand_derived_bars() raises:
 def test_render_waterfall_svg_matches_confirmed_rects_and_connectors() raises:
     var cats: List[String] = ["a", "b", "c"]
     var deltas: List[Float64] = [10.0, -4.0, 6.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_waterfall().encode_waterfall(cats, deltas).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_waterfall().encode_waterfall(cats, deltas).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         # y0=0 is the baseline, and it lands exactly on the drawn bottom
@@ -90,7 +88,8 @@ def test_render_waterfall_raises_on_mismatched_category_length() raises:
     var cats: List[String] = ["a", "b", "c"]
     var deltas: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = waterfall(cats, deltas, width=200, height=150)
+        var _hoisted2 = waterfall(cats, deltas, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_waterfall_total_rows_matches_hand_derived_bars() raises:
@@ -115,7 +114,8 @@ def test_render_waterfall_total_rows_matches_hand_derived_bars() raises:
     var deltas: List[Float64] = [50.0, 20.0, -10.0, 0.0]
     var is_total: List[Bool] = [True, False, False, True]
     var t = Theme(show_gridlines=False)
-    var c = waterfall(cats, deltas, is_total=is_total, theme=t, width=400, height=300)
+    var _hoisted3 = waterfall(cats, deltas, is_total=is_total, theme=t, width=400, height=300)
+    var c = render(_hoisted3)
 
     # Start (total): x:[68,132), y:[94,250) -- full band width.
     _assert_color(c, 100, 200, t.waterfall_total_color, "Start (total), well inside")
@@ -135,11 +135,10 @@ def test_render_svg_waterfall_total_rows_matches_confirmed_rects() raises:
     var cats: List[String] = ["Start", "A", "B", "End"]
     var deltas: List[Float64] = [50.0, 20.0, -10.0, 0.0]
     var is_total: List[Bool] = [True, False, False, True]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_waterfall().encode_waterfall(cats, deltas, is_total).theme(
         Theme(show_gridlines=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         # Both total rows' y0=0 is the baseline, and it lands exactly on
@@ -184,7 +183,8 @@ def test_render_waterfall_raises_on_mismatched_is_total_length() raises:
     var deltas: List[Float64] = [10.0, -4.0, 6.0]
     var is_total: List[Bool] = [True, False]
     with assert_raises():
-        _ = waterfall(cats, deltas, is_total=is_total, width=400, height=300)
+        var _hoisted4 = waterfall(cats, deltas, is_total=is_total, width=400, height=300)
+        _ = render(_hoisted4)
 
 
 def main() raises:

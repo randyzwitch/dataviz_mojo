@@ -5,10 +5,7 @@ raises-guards for every mark type layering doesn't support.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -36,31 +33,33 @@ def test_render_layers_shares_one_domain_across_a_line_and_a_point() raises:
     # point (5,5) -- coincidentally, since 5.0 is that domain's midpoint -- on the same (220, 135) pixel many other single-plot
     # tests in this file already use, and the line's two endpoints
     # at (74.545, 239.545) and (365.455, 30.455).
+    #
+    # render_layers() derives its 400x300 canvas from every layer's own
+    # .size(400, 300) (all layers must agree -- see _require_uniform_
+    # size's docstring).
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var point_x: List[Float64] = [5.0]
     var point_y: List[Float64] = [5.0]
-    var plot_a = Plot().mark_line().encode(x=line_x, y=line_y).theme(Theme(show_gridlines=False))
+    var plot_a = Plot().mark_line().encode(x=line_x, y=line_y).theme(Theme(show_gridlines=False)).size(400, 300)
     var plot_b = Plot().mark_point().encode(x=point_x, y=point_y).theme(
         Theme(mark_color=RED, point_radius=5.0)
-    )
+    ).size(400, 300)
     var plots = List[Plot]()
     plots.append(plot_a^)
     plots.append(plot_b^)
 
-    var c = Canvas(400, 300, BG)
-    render_layers(c, plots)
+    var c = render_layers(plots)
     _assert_color(c, 220, 135, RED, "the layered point, at the shared domain's pixel")
 
-    var svg = SvgCanvas(400, 300)
     var svg_plots = List[Plot]()
-    svg_plots.append(Plot().mark_line().encode(x=line_x, y=line_y).theme(Theme(show_gridlines=False)))
+    svg_plots.append(Plot().mark_line().encode(x=line_x, y=line_y).theme(Theme(show_gridlines=False)).size(400, 300))
     svg_plots.append(
         Plot().mark_point().encode(x=point_x, y=point_y).theme(
             Theme(mark_color=RED, point_radius=5.0)
-        )
+        ).size(400, 300)
     )
-    render_layers_svg(svg, svg_plots)
+    var svg = render_layers_svg(svg_plots)
     var s = svg.to_string()
     assert_true(
         '<path d="M74.545,239.545 L365.455,30.455" fill="none" stroke="#1e64b4"'
@@ -89,19 +88,18 @@ def test_render_layers_svg_title_from_plots0_centers_on_shared_inner_rect() rais
     var line_y: List[Float64] = [0.0, 10.0]
     var point_x: List[Float64] = [5.0]
     var point_y: List[Float64] = [5.0]
-    var svg = SvgCanvas(400, 300)
     var plots = List[Plot]()
     plots.append(
         Plot().mark_line().encode(x=line_x, y=line_y).labels(title="Combined").theme(
             Theme(show_gridlines=False)
-        )
+        ).size(400, 300)
     )
     plots.append(
         Plot().mark_point().encode(x=point_x, y=point_y).theme(
             Theme(mark_color=RED, point_radius=5.0)
-        )
+        ).size(400, 300)
     )
-    render_layers_svg(svg, plots)
+    var svg = render_layers_svg(plots)
     var s = svg.to_string()
 
     assert_true(
@@ -153,12 +151,11 @@ def test_render_layers_svg_point_layer_color_categories_matches_hand_derived_leg
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
     var cats: List[String] = ["A", "B"]
-    var svg = SvgCanvas(400, 300)
     var plots = List[Plot]()
     plots.append(
-        Plot().mark_point().encode(x=x, y=y, color_categories=cats).theme(Theme(show_gridlines=False))
+        Plot().mark_point().encode(x=x, y=y, color_categories=cats).theme(Theme(show_gridlines=False)).size(400, 300)
     )
-    render_layers_svg(svg, plots)
+    var svg = render_layers_svg(plots)
     var s = svg.to_string()
 
     assert_true('<circle cx="69" cy="135" r="4" fill="#1f77b4"/>' in s, "layered point 0, category A's color")
@@ -178,32 +175,29 @@ def test_render_layers_raises_when_a_line_layer_uses_color_categories() raises:
     # single-plot path already enforces (see _render_generic's
     # validation) -- render_layers() raises the same way rather than
     # silently ignoring a LINE/AREA layer's color/color_categories/
-    # size.
+    # size. A single-element list is trivially uniform-sized (default
+    # 640x420, never set explicitly) -- irrelevant here since the
+    # mark-type check raises before size would matter.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var line_cats: List[String] = ["a", "b"]
     var plots = List[Plot]()
     plots.append(Plot().mark_line().encode(x=line_x, y=line_y, color_categories=line_cats))
-    var c = Canvas(400, 300, BG)
     with assert_raises():
-        render_layers(c, plots)
+        _ = render_layers(plots)
 
 
-def test_render_layers_with_empty_list_and_a_title_is_still_a_noop() raises:
-    # test_render_layers_with_empty_list_is_a_noop's case, but
-    # confirming the new Plot.labels() support doesn't break it: an
-    # empty plots list has no plots[0] to source a title from, so
-    # render_layers() must skip label handling entirely rather than
-    # indexing an empty list -- still a genuine no-op, canvas untouched.
+def test_render_layers_with_empty_list_and_a_title_raises() raises:
+    # A prior version of this function took a caller-supplied canvas
+    # and treated an empty plots list (with or without a title-bearing
+    # plots[0], which doesn't exist for an empty list either way) as a
+    # no-op against it; now that render_layers() builds its own canvas
+    # from the plots list, there's no plot left to derive a size (or a
+    # title) from, so an empty list raises instead (see _require_
+    # uniform_size's docstring).
     var plots = List[Plot]()
-    var c = Canvas(50, 40, Color(10, 20, 30))
-    render_layers(c, plots)
-    for y in range(c.height):
-        for x in range(c.width):
-            var p = c.get_pixel(x, y)
-            assert_equal(p.r, 10)
-            assert_equal(p.g, 20)
-            assert_equal(p.b, 30)
+    with assert_raises():
+        _ = render_layers(plots)
 
 
 def test_render_layers_raises_when_a_bar_plot_is_included() raises:
@@ -214,21 +208,14 @@ def test_render_layers_raises_when_a_bar_plot_is_included() raises:
     var plots = List[Plot]()
     plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
     plots.append(Plot().mark_bar().encode_categorical(x=bar_x, y=bar_y))
-    var c = Canvas(400, 300, BG)
     with assert_raises():
-        render_layers(c, plots)
+        _ = render_layers(plots)
 
 
-def test_render_layers_with_empty_list_is_a_noop() raises:
+def test_render_layers_with_empty_list_raises() raises:
     var plots = List[Plot]()
-    var c = Canvas(50, 40, Color(10, 20, 30))
-    render_layers(c, plots)
-    for y in range(c.height):
-        for x in range(c.width):
-            var p = c.get_pixel(x, y)
-            assert_equal(p.r, 10)
-            assert_equal(p.g, 20)
-            assert_equal(p.b, 30)
+    with assert_raises():
+        _ = render_layers(plots)
 
 
 def test_render_layers_raises_when_a_lollipop_plot_is_included() raises:
@@ -245,9 +232,8 @@ def test_render_layers_raises_when_a_lollipop_plot_is_included() raises:
     var plots = List[Plot]()
     plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
     plots.append(Plot().mark_lollipop().encode_categorical(x=lolli_x, y=lolli_y))
-    var c = Canvas(400, 300, BG)
     with assert_raises():
-        render_layers(c, plots)
+        _ = render_layers(plots)
 
 
 def test_render_layers_raises_when_a_candlestick_plot_is_included() raises:
@@ -262,9 +248,8 @@ def test_render_layers_raises_when_a_candlestick_plot_is_included() raises:
     var plots = List[Plot]()
     plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
     plots.append(Plot().mark_candlestick().encode_candlestick(cats, one, one, one, one))
-    var c = Canvas(400, 300, BG)
     with assert_raises():
-        render_layers(c, plots)
+        _ = render_layers(plots)
 
 
 def test_render_layers_raises_when_a_bullet_plot_is_included() raises:
@@ -280,9 +265,8 @@ def test_render_layers_raises_when_a_bullet_plot_is_included() raises:
     var plots = List[Plot]()
     plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
     plots.append(Plot().mark_bullet().encode_bullet(cats, one, one, ranges))
-    var c = Canvas(400, 300, BG)
     with assert_raises():
-        render_layers(c, plots)
+        _ = render_layers(plots)
 
 
 def test_render_layers_raises_when_a_gantt_plot_is_included() raises:
@@ -297,9 +281,8 @@ def test_render_layers_raises_when_a_gantt_plot_is_included() raises:
     var plots = List[Plot]()
     plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
     plots.append(Plot().mark_gantt().encode_gantt(cats, one, one))
-    var c = Canvas(400, 300, BG)
     with assert_raises():
-        render_layers(c, plots)
+        _ = render_layers(plots)
 
 
 def test_render_layers_raises_when_a_grouped_bar_plot_is_included() raises:
@@ -315,9 +298,8 @@ def test_render_layers_raises_when_a_grouped_bar_plot_is_included() raises:
     var plots = List[Plot]()
     plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
     plots.append(Plot().mark_grouped_bar().encode_grouped_bar(cats, names, values))
-    var c = Canvas(400, 300, BG)
     with assert_raises():
-        render_layers(c, plots)
+        _ = render_layers(plots)
 
 
 def test_render_layers_raises_when_a_stacked_bar_plot_is_included() raises:
@@ -333,9 +315,8 @@ def test_render_layers_raises_when_a_stacked_bar_plot_is_included() raises:
     var plots = List[Plot]()
     plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
     plots.append(Plot().mark_stacked_bar().encode_grouped_bar(cats, names, values))
-    var c = Canvas(400, 300, BG)
     with assert_raises():
-        render_layers(c, plots)
+        _ = render_layers(plots)
 
 
 def test_render_layers_line_honors_theme_line_smoothing() raises:
@@ -351,18 +332,19 @@ def test_render_layers_line_honors_theme_line_smoothing() raises:
     # straight_path's setup (test_line.mojo -- see its comment for
     # where (147,135) comes from): one layer means the combined domain
     # is just that plot's own, so every pixel it hand-derived applies
-    # here unchanged.
+    # here unchanged. Both the layered and standalone plots share the
+    # same explicit .size(400, 300) so their canvases -- and the
+    # hand-derived (147, 135) pixel -- line up.
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
     var theme = Theme(line_smoothing=1.0, show_gridlines=False)
 
-    var c_layered = Canvas(400, 300, BG)
     var plots = List[Plot]()
-    plots.append(Plot().mark_line().encode(x=x, y=y).theme(theme))
-    render_layers(c_layered, plots)
+    plots.append(Plot().mark_line().encode(x=x, y=y).theme(theme).size(400, 300))
+    var c_layered = render_layers(plots)
 
-    var c_standalone = Canvas(400, 300, BG)
-    render(c_standalone, Plot().mark_line().encode(x=x, y=y).theme(theme))
+    var _hoisted1 = Plot().mark_line().encode(x=x, y=y).theme(theme).size(400, 300)
+    var c_standalone = render(_hoisted1)
 
     for yy in range(c_layered.height):
         for xx in range(c_layered.width):
@@ -392,13 +374,12 @@ def test_render_layers_area_honors_theme_line_smoothing() raises:
     var y: List[Float64] = [0.0, 10.0, 0.0]
     var theme = Theme(line_smoothing=1.0, show_gridlines=False)
 
-    var c_layered = Canvas(400, 300, BG)
     var plots = List[Plot]()
-    plots.append(Plot().mark_area().encode(x=x, y=y).theme(theme))
-    render_layers(c_layered, plots)
+    plots.append(Plot().mark_area().encode(x=x, y=y).theme(theme).size(400, 300))
+    var c_layered = render_layers(plots)
 
-    var c_standalone = Canvas(400, 300, BG)
-    render(c_standalone, Plot().mark_area().encode(x=x, y=y).theme(theme))
+    var _hoisted2 = Plot().mark_area().encode(x=x, y=y).theme(theme).size(400, 300)
+    var c_standalone = render(_hoisted2)
 
     for yy in range(c_layered.height):
         for xx in range(c_layered.width):
@@ -417,16 +398,15 @@ def test_render_layers_raises_on_out_of_range_smoothing() raises:
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
 
-    var c = Canvas(400, 300, BG)
     var low = List[Plot]()
     low.append(Plot().mark_line().encode(x=x, y=y).theme(Theme(line_smoothing=-0.1)))
     with assert_raises():
-        render_layers(c, low)
+        _ = render_layers(low)
 
     var high = List[Plot]()
     high.append(Plot().mark_area().encode(x=x, y=y).theme(Theme(line_smoothing=1.1)))
     with assert_raises():
-        render_layers(c, high)
+        _ = render_layers(high)
 
 
 def main() raises:

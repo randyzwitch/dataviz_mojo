@@ -18,10 +18,7 @@ to both a specific goal and a qualitative sense of poor/satisfactory/
 good."
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import bullet
 from dataviz_mojo.theme import Theme
 
@@ -38,10 +35,6 @@ def main() raises:
     ]
 
     var c = bullet(kpis, measures, targets, ranges)
-    write_bmp(c, "examples/out_bullet.bmp")
-    write_png(c, "examples/out_bullet.png")
-
-    var svg = SvgCanvas(640, 420)
-    var svg_plot = Plot().mark_bullet().encode_bullet(kpis, measures, targets, ranges).theme(Theme())
-    render_svg(svg, svg_plot)
-    write_svg(svg, "examples/out_bullet.svg")
+    save(c, "examples/out_bullet.svg")
+    save(c, "examples/out_bullet.bmp")
+    save(c, "examples/out_bullet.png")

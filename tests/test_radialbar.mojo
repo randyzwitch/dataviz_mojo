@@ -6,8 +6,6 @@ rings, SVG bar paths.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
@@ -44,7 +42,8 @@ def test_render_radialbar_ring_colors_and_track() raises:
     # (155 + 42.75, 135) = (197.75, 135).
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0, 4.0]
-    var c = radialbar(x, y, width=400, height=300)
+    var _hoisted1 = radialbar(x, y, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
     _assert_color(c, 205, 85, palette[0], "ring 0 (outermost), swept half at -45 degrees")
@@ -66,7 +65,8 @@ def test_render_radialbar_leaves_a_radial_gap_between_rings() raises:
     # color (the track only covers each ring's inner/outer band).
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0, 4.0]
-    var c = radialbar(x, y, width=400, height=300)
+    var _hoisted2 = radialbar(x, y, width=400, height=300)
+    var c = render(_hoisted2)
     _assert_color(c, 212, 135, BG, "the radial gap between ring 0 and ring 1")
 
 
@@ -74,27 +74,31 @@ def test_render_radialbar_raises_on_negative_value() raises:
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1.0, -1.0]
     with assert_raises():
-        _ = radialbar(x, y, width=200, height=150)
+        var _hoisted3 = radialbar(x, y, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_radialbar_raises_on_all_zero_values() raises:
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [0.0, 0.0]
     with assert_raises():
-        _ = radialbar(x, y, width=200, height=150)
+        var _hoisted4 = radialbar(x, y, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_radialbar_raises_on_mismatched_category_length() raises:
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = radialbar(x, y, width=200, height=150)
+        var _hoisted5 = radialbar(x, y, width=200, height=150)
+        _ = render(_hoisted5)
 
 
 def test_render_radialbar_empty_categories_only_fills_background() raises:
     var x = List[String]()
     var y = List[Float64]()
-    var c = radialbar(x, y, width=100, height=80)
+    var _hoisted6 = radialbar(x, y, width=100, height=80)
+    var c = render(_hoisted6)
     _assert_color(c, 50, 40, BG, "no categories: nothing drawn but the background")
 
 
@@ -108,9 +112,8 @@ def test_render_radialbar_svg_matches_confirmed_ring_paths() raises:
     # 1.0 sweeps the same full turn the track itself does.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_radialbar().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_radialbar().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<path d="M220.000,37.969 A97.031,97.031 0 1,1 220.000,37.969'

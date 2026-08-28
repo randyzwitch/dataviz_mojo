@@ -9,7 +9,7 @@ from canvas_mojo.color import Color
 from canvas_mojo.buffer import Canvas
 from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import sunburst
 
@@ -35,7 +35,8 @@ def test_render_sunburst_matches_hand_derived_ring_sectors() raises:
     var parents: List[String] = ["", "root", "root", "A", "A", "B"]
     var values: List[Float64] = [0.0, 0.0, 0.0, 1.0, 1.0, 2.0]
     var t = Theme(show_legend=False)
-    var c = sunburst(ids, parents, values, theme=t, width=400, height=300)
+    var _hoisted1 = sunburst(ids, parents, values, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
     _assert_color(c, 277, 78, palette[0], "A1, ring 2, bisector -45 degrees")
@@ -50,7 +51,8 @@ def test_render_sunburst_raises_on_multiple_roots() raises:
     var parents: List[String] = ["", ""]
     var values: List[Float64] = [1.0, 1.0]
     with assert_raises():
-        _ = sunburst(ids, parents, values, width=200, height=150)
+        var _hoisted2 = sunburst(ids, parents, values, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_sunburst_raises_on_no_root() raises:
@@ -58,7 +60,8 @@ def test_render_sunburst_raises_on_no_root() raises:
     var parents: List[String] = ["b", "a"]
     var values: List[Float64] = [1.0, 1.0]
     with assert_raises():
-        _ = sunburst(ids, parents, values, width=200, height=150)
+        var _hoisted3 = sunburst(ids, parents, values, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_sunburst_raises_on_unresolved_parent_id() raises:
@@ -66,7 +69,8 @@ def test_render_sunburst_raises_on_unresolved_parent_id() raises:
     var parents: List[String] = ["", "missing"]
     var values: List[Float64] = [0.0, 1.0]
     with assert_raises():
-        _ = sunburst(ids, parents, values, width=200, height=150)
+        var _hoisted4 = sunburst(ids, parents, values, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_sunburst_raises_on_duplicate_id() raises:
@@ -74,7 +78,8 @@ def test_render_sunburst_raises_on_duplicate_id() raises:
     var parents: List[String] = ["", "root", "root"]
     var values: List[Float64] = [0.0, 1.0, 1.0]
     with assert_raises():
-        _ = sunburst(ids, parents, values, width=200, height=150)
+        var _hoisted5 = sunburst(ids, parents, values, width=200, height=150)
+        _ = render(_hoisted5)
 
 
 def test_render_sunburst_raises_on_negative_value() raises:
@@ -82,7 +87,8 @@ def test_render_sunburst_raises_on_negative_value() raises:
     var parents: List[String] = ["", "root"]
     var values: List[Float64] = [0.0, -1.0]
     with assert_raises():
-        _ = sunburst(ids, parents, values, width=200, height=150)
+        var _hoisted6 = sunburst(ids, parents, values, width=200, height=150)
+        _ = render(_hoisted6)
 
 
 def test_render_sunburst_raises_on_all_zero_values() raises:
@@ -90,7 +96,8 @@ def test_render_sunburst_raises_on_all_zero_values() raises:
     var parents: List[String] = ["", "root", "root"]
     var values: List[Float64] = [0.0, 0.0, 0.0]
     with assert_raises():
-        _ = sunburst(ids, parents, values, width=200, height=150)
+        var _hoisted7 = sunburst(ids, parents, values, width=200, height=150)
+        _ = render(_hoisted7)
 
 
 def test_render_sunburst_raises_on_mismatched_length() raises:
@@ -98,14 +105,16 @@ def test_render_sunburst_raises_on_mismatched_length() raises:
     var parents: List[String] = ["", "root", "extra"]
     var values: List[Float64] = [0.0, 1.0]
     with assert_raises():
-        _ = sunburst(ids, parents, values, width=200, height=150)
+        var _hoisted8 = sunburst(ids, parents, values, width=200, height=150)
+        _ = render(_hoisted8)
 
 
 def test_render_sunburst_empty_data_only_fills_background() raises:
     var ids = List[String]()
     var parents = List[String]()
     var values = List[Float64]()
-    var c = sunburst(ids, parents, values, width=100, height=80)
+    var _hoisted9 = sunburst(ids, parents, values, width=100, height=80)
+    var c = render(_hoisted9)
     _assert_color(c, 50, 40, BG, "no hierarchy: nothing drawn but the background")
 
 
@@ -120,7 +129,8 @@ def test_render_sunburst_raises_on_a_cycle() raises:
     var parents: List[String] = ["", "root", "b", "a"]
     var values: List[Float64] = [0.0, 5.0, 7.0, 9.0]
     with assert_raises():
-        _ = sunburst(ids, parents, values, width=200, height=150)
+        var _hoisted10 = sunburst(ids, parents, values, width=200, height=150)
+        _ = render(_hoisted10)
 
 
 def test_render_sunburst_raises_on_a_disconnected_component() raises:
@@ -131,7 +141,8 @@ def test_render_sunburst_raises_on_a_disconnected_component() raises:
     var parents: List[String] = ["", "orphan"]
     var values: List[Float64] = [0.0, 3.0]
     with assert_raises():
-        _ = sunburst(ids, parents, values, width=200, height=150)
+        var _hoisted11 = sunburst(ids, parents, values, width=200, height=150)
+        _ = render(_hoisted11)
 
 
 def main() raises:

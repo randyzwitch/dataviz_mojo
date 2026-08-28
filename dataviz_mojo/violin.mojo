@@ -14,7 +14,7 @@ from dataviz_mojo.plot import (
     _draw_categorical_axis_frame,
     _empty_result,
     _min_max,
-    _rendered,
+    _finished,
 )
 from dataviz_mojo.theme import Theme
 
@@ -181,7 +181,7 @@ def violin(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Canvas:
+) raises -> Plot:
     """A violin plot -- `Mark.VIOLIN`, a symmetric kernel-density-
     estimate silhouette per category (`bandwidth`, left at its default
     `0.0`, overrides every category's Silverman's-rule bandwidth
@@ -208,17 +208,17 @@ def violin(
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
-        width: Pixel width of the returned `Canvas`.
-        height: Pixel height of the returned `Canvas`.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
         title: The chart's title, shown above the plot.
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
 
     Returns:
-        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
     """
     var plot = Plot().mark_violin(bandwidth=bandwidth, scale_by_count=scale_by_count).encode_distribution(
         categories=categories, values=values
     )
-    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

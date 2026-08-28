@@ -4,9 +4,7 @@
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -23,7 +21,7 @@ from dataviz_mojo.plot import (
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import candlestick
 
-from _test_helpers import BG, _count_color, _assert_color
+from _test_helpers import BG, _count_color, _assert_color, _assert_near_color
 
 
 def test_render_candlestick_matches_hand_derived_wicks_and_bodies() raises:
@@ -43,21 +41,28 @@ def test_render_candlestick_matches_hand_derived_wicks_and_bodies() raises:
     # outlier's comment for why an exact hand-derived pixel check
     # uses render() itself rather than the (now internally
     # supersampled) quickplot wrapper.
+    #
+    # The 4 wick checks use `_assert_near_color()`, not `_assert_
+    # color()` -- a wick is a 1px-wide stroke, the same reason every
+    # other mark's axis-line/gridline checks already need the
+    # tolerant helper (see its docstring, tests/_test_helpers.mojo).
+    # The 2 body checks (solid interior) and the background check (a
+    # wide-open empty area) stay exact -- both robust by construction.
     var cats: List[String] = ["A", "B"]
     var open: List[Float64] = [10.0, 20.0]
     var high: List[Float64] = [15.0, 22.0]
     var low: List[Float64] = [8.0, 16.0]
     var close: List[Float64] = [13.0, 17.0]
     var t = Theme(show_gridlines=False)
-    var c = Canvas(400, 300, BG)
-    render(c, Plot().mark_candlestick().encode_candlestick(cats, open, high, low, close).theme(t))
+    var _hoisted1 = Plot().mark_candlestick().encode_candlestick(cats, open, high, low, close).theme(t).size(400, 300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 140, 200, t.mark_color, "A: inside the body (open=210 to close=165), closed up")
-    _assert_color(c, 140, 150, t.axis_color, "A: the wick, above the body (between high=135 and the body top)")
-    _assert_color(c, 140, 225, t.axis_color, "A: the wick, below the body (between the body bottom and low=240)")
+    _assert_near_color(c, 140, 150, t.axis_color, 60, "A: the wick, above the body (between high=135 and the body top)")
+    _assert_near_color(c, 140, 225, t.axis_color, 60, "A: the wick, below the body (between the body bottom and low=240)")
     _assert_color(c, 300, 80, t.mark_color_negative, "B: inside the body (open=60 to close=105), closed down")
-    _assert_color(c, 300, 45, t.axis_color, "B: the wick, above the body (between high=30 and the body top)")
-    _assert_color(c, 300, 115, t.axis_color, "B: the wick, below the body (between the body bottom and low=120)")
+    _assert_near_color(c, 300, 45, t.axis_color, 60, "B: the wick, above the body (between high=30 and the body top)")
+    _assert_near_color(c, 300, 115, t.axis_color, 60, "B: the wick, below the body (between the body bottom and low=120)")
     _assert_color(c, 190, 150, BG, "no ink here -- off the wick's x, above A's body")
 
 
@@ -67,11 +72,10 @@ def test_render_candlestick_svg_matches_confirmed_wicks_and_bodies() raises:
     var high: List[Float64] = [15.0, 22.0]
     var low: List[Float64] = [8.0, 16.0]
     var close: List[Float64] = [13.0, 17.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_candlestick().encode_candlestick(cats, open, high, low, close).theme(
         Theme(show_gridlines=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<line x1="140" y1="135" x2="140" y2="240" stroke="#505050" stroke-width="1.000"'
@@ -96,7 +100,8 @@ def test_render_candlestick_raises_on_mismatched_category_length() raises:
     var low: List[Float64] = [1.0, 2.0]
     var close: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = candlestick(cats, open, high, low, close, width=200, height=150)
+        var _hoisted2 = candlestick(cats, open, high, low, close, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_candlestick_raises_on_mismatched_ohlc_length() raises:
@@ -106,7 +111,8 @@ def test_render_candlestick_raises_on_mismatched_ohlc_length() raises:
     var low: List[Float64] = [1.0, 2.0]
     var close: List[Float64] = [1.0]
     with assert_raises():
-        _ = candlestick(cats, open, high, low, close, width=200, height=150)
+        var _hoisted3 = candlestick(cats, open, high, low, close, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def main() raises:

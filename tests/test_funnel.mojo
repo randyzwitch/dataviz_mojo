@@ -6,10 +6,8 @@ rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import funnel
 
@@ -32,7 +30,8 @@ def test_render_funnel_matches_hand_derived_trapezoids() raises:
     var cats: List[String] = ["A", "B", "C"]
     var vals: List[Float64] = [100.0, 60.0, 20.0]
     var t = Theme(show_legend=False)
-    var c = funnel(cats, vals, theme=t, width=400, height=300)
+    var _hoisted1 = funnel(cats, vals, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
     _assert_color(c, 220, 58, palette[0], "row 0 (A, value 100) -- the widest row")
@@ -44,9 +43,8 @@ def test_render_funnel_matches_hand_derived_trapezoids() raises:
 def test_render_funnel_svg_matches_confirmed_paths() raises:
     var cats: List[String] = ["A", "B", "C"]
     var vals: List[Float64] = [100.0, 60.0, 20.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_funnel().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_funnel().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<path d="M60.000,20.000 L380.000,20.000 L316.000,96.000 L124.000,96.000 Z" fill="#1f77b4"/>' in s, "row 0")
     assert_true(
@@ -67,9 +65,8 @@ def test_render_funnel_sorts_largest_value_first_regardless_of_input_order() rai
     # confirmed geometrically, no need to parse the legend's text.
     var cats: List[String] = ["Small", "Big"]
     var vals: List[Float64] = [10.0, 100.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_funnel().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_funnel().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('M60.000,20.000 L380.000,20.000' in s, "row 0's top edge spans the full plot width -- it's Big, not Small")
 
@@ -78,27 +75,31 @@ def test_render_funnel_raises_on_negative_value() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, -1.0]
     with assert_raises():
-        _ = funnel(cats, vals, width=200, height=150)
+        var _hoisted2 = funnel(cats, vals, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_funnel_raises_on_all_zero_values() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [0.0, 0.0]
     with assert_raises():
-        _ = funnel(cats, vals, width=200, height=150)
+        var _hoisted3 = funnel(cats, vals, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_funnel_raises_on_mismatched_category_length() raises:
     var cats: List[String] = ["a", "b", "c"]
     var vals: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = funnel(cats, vals, width=200, height=150)
+        var _hoisted4 = funnel(cats, vals, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_funnel_empty_data_only_fills_background() raises:
     var cats = List[String]()
     var vals = List[Float64]()
-    var c = funnel(cats, vals, width=200, height=150)
+    var _hoisted5 = funnel(cats, vals, width=200, height=150)
+    var c = render(_hoisted5)
     _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
 
 

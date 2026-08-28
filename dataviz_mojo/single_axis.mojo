@@ -14,7 +14,7 @@ from dataviz_mojo.plot import (
     _draw_point_layer,
     _empty_result,
     _legend_reserve_for,
-    _rendered,
+    _finished,
     _validate_continuous_encoding,
 )
 from dataviz_mojo.scale import LinearScale
@@ -168,7 +168,7 @@ def single_axis(
     title: String = "",
     subtitle: String = "",
     x_title: String = "",
-) raises -> Canvas:
+) raises -> Plot:
     """A single-axis chart -- `Mark.SINGLE_AXIS`, every value in `x`
     plotted along one horizontal axis (no y-axis at all), useful for
     seeing the distribution/clustering of one-dimensional data. See
@@ -191,16 +191,16 @@ def single_axis(
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
-        width: Pixel width of the returned `Canvas`.
-        height: Pixel height of the returned `Canvas`.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
         title: The chart's title, shown above the plot.
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
 
     Returns:
-        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
     """
     var plot = Plot().mark_single_axis().encode_single_axis(
         x=x, color=color, color_categories=color_categories, size=size
     )
-    return _rendered(plot^, theme, width, height, title, x_title, "", subtitle=subtitle)
+    return _finished(plot^, theme, width, height, title, x_title, "", subtitle=subtitle)

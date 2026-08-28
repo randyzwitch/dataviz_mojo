@@ -6,9 +6,7 @@ grid-frame/color-scale rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import heatmap
 
@@ -45,7 +43,8 @@ def test_render_heatmap_matches_hand_derived_cells() raises:
     var y: List[String] = ["AM", "PM", "AM", "PM"]
     var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = heatmap(x, y, v, theme=t, width=400, height=300)
+    var _hoisted1 = heatmap(x, y, v, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 100, 60, Color(60, 110, 200), "(Mon, AM) = 1.0, the color domain's min")
     _assert_color(c, 100, 180, Color(177, 193, 223), "(Mon, PM) = 2.0")
@@ -58,11 +57,10 @@ def test_render_heatmap_svg_matches_confirmed_rects() raises:
     var x: List[String] = ["Mon", "Mon", "Tue", "Tue"]
     var y: List[String] = ["AM", "PM", "AM", "PM"]
     var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_heatmap().encode_heatmap(x=x, y=y, value=v).theme(
         Theme(show_gridlines=False, show_legend=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<rect x="60" y="20" width="160" height="115" fill="#3c6ec8"/>' in s, "(Mon, AM)")
     assert_true('<rect x="60" y="135" width="160" height="115" fill="#b1c1df"/>' in s, "(Mon, PM)")
@@ -77,7 +75,8 @@ def test_render_heatmap_missing_cell_leaves_background() raises:
     var y: List[String] = ["AM", "PM", "AM"]
     var v: List[Float64] = [1.0, 2.0, 3.0]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = heatmap(x, y, v, theme=t, width=400, height=300)
+    var _hoisted2 = heatmap(x, y, v, theme=t, width=400, height=300)
+    var c = render(_hoisted2)
     _assert_color(c, 300, 180, BG, "(Tue, PM) was never given -- background shows through")
 
 
@@ -85,9 +84,8 @@ def test_render_heatmap_legend_shows_value_domain() raises:
     var x: List[String] = ["Mon", "Tue"]
     var y: List[String] = ["AM", "AM"]
     var v: List[Float64] = [1.0, 4.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_heatmap().encode_heatmap(x=x, y=y, value=v).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_heatmap().encode_heatmap(x=x, y=y, value=v).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(">4.0<" in s, "the color domain's max, at the top of the legend bar")
     assert_true(">1.0<" in s, "the color domain's min, at the bottom of the legend bar")
@@ -98,14 +96,16 @@ def test_render_heatmap_raises_on_mismatched_length() raises:
     var one: List[Float64] = [1.0, 2.0]
     var y: List[String] = ["a", "b", "c"]
     with assert_raises():
-        _ = heatmap(x, y, one, width=200, height=150)
+        var _hoisted3 = heatmap(x, y, one, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_heatmap_empty_data_only_fills_background() raises:
     var x = List[String]()
     var y = List[String]()
     var v = List[Float64]()
-    var c = heatmap(x, y, v, width=200, height=150)
+    var _hoisted4 = heatmap(x, y, v, width=200, height=150)
+    var c = render(_hoisted4)
     _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
 
 

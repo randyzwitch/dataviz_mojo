@@ -4,9 +4,7 @@
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -39,7 +37,8 @@ def test_render_lollipop_matches_hand_derived_stem_and_point() raises:
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [10.0, 20.0, 15.0]
     var t = Theme(show_gridlines=False)
-    var c = lollipop(x, y, theme=t, width=400, height=300)
+    var _hoisted1 = lollipop(x, y, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     _assert_color(c, 220, 31, t.mark_color, "circle center, category b's value pixel")
     _assert_color(c, 220, 150, t.mark_color, "stem midpoint, well within the 2px-wide stroke")
@@ -53,9 +52,8 @@ def test_render_lollipop_svg_matches_confirmed_stem_and_point() raises:
     # _pull_off_axis_line's docstring (plot.mojo).
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [10.0, 20.0, 15.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_lollipop().encode_categorical(x=x, y=y).theme(Theme(show_gridlines=False))
-    render_svg(svg, plot)
+    var plot = Plot().mark_lollipop().encode_categorical(x=x, y=y).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<path d="M220.000,249.000 L220.000,30.952" fill="none" stroke="#1e64b4"'
@@ -69,7 +67,8 @@ def test_render_lollipop_raises_on_mismatched_category_length() raises:
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = lollipop(x, y, width=200, height=150)
+        var _hoisted2 = lollipop(x, y, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def main() raises:

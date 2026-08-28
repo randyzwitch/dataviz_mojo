@@ -6,15 +6,12 @@ axis rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.colors import WHITE
 from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import bump
 
-from _test_helpers import BG, _assert_color
+from _test_helpers import BG, _assert_color, _assert_near_color
 
 
 def test_render_bump_matches_hand_derived_rank_lines() raises:
@@ -31,29 +28,28 @@ def test_render_bump_matches_hand_derived_rank_lines() raises:
     # (140,250)->(300,20) [rank 2 at X, rank 1 at Y], B's the exact
     # mirror, (140,20)->(300,250).
     #
-    # Built via a plain Canvas()+render() (not the bump() quickplot
-    # wrapper) -- the same choice test_line.mojo makes for every
-    # stroked-line pixel check here: quickplot's supersample-then-
-    # downsample pass measurably shifts a thin diagonal stroke's exact
-    # pixel position -- a real, if subtle, difference from a plain
-    # render() call, not something to test around by picking a bigger
-    # tolerance. Two of each line's points sampled: the row-250
-    # endpoint (both lines reliably get full ink exactly at that one)
-    # and one interior point roughly a third of the way along (the
-    # row-20 endpoint itself does *not* reliably get ink -- some
-    # rounded-line-cap/clip interaction at the plot area's top
-    # boundary row -- so this test doesn't rely on it).
+    # Two of each line's points sampled: the row-250 endpoint and one
+    # interior point roughly a third of the way along (the row-20
+    # endpoint itself does *not* reliably get ink -- some rounded-line-
+    # cap/clip interaction at the plot area's top boundary row -- so
+    # this test doesn't rely on it). The interior points land exactly
+    # on palette color (`_assert_color`); the endpoints, right at each
+    # line's own rounded cap, only land *close* to it -- `render()`'s
+    # supersample-then-downsample (`_RASTER_SUPERSAMPLE`, plot.mojo)
+    # blends a line-cap's curved edge slightly, the same reason
+    # `_assert_near_color` exists (tests/_test_helpers.mojo).
     var cats: List[String] = ["X", "Y"]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[10.0, 30.0], [20.0, 5.0]]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var plot = Plot().mark_bump().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(t)
-    var c = Canvas(400, 300, WHITE)
-    render(c, plot)
+    var plot = Plot().mark_bump().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(
+        t
+    ).size(400, 300)
+    var c = render(plot)
 
     var palette = default_categorical_palette()
-    _assert_color(c, 140, 250, palette[0], "A's rank-2-at-X endpoint")
-    _assert_color(c, 300, 250, palette[1], "B's rank-2-at-Y endpoint")
+    _assert_near_color(c, 140, 250, palette[0], 20, "A's rank-2-at-X endpoint")
+    _assert_near_color(c, 300, 250, palette[1], 20, "B's rank-2-at-Y endpoint")
     _assert_color(c, 185, 185, palette[0], "A's line, partway from X to Y")
     _assert_color(c, 255, 185, palette[1], "B's line, partway from X to Y")
 
@@ -62,11 +58,10 @@ def test_render_bump_svg_matches_confirmed_paths_and_ticks() raises:
     var cats: List[String] = ["X", "Y"]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[10.0, 30.0], [20.0, 5.0]]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_bump().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(
         Theme(show_gridlines=False, show_legend=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<path d="M140.000,250.000 L300.000,20.000"' in s, "A's line: rank 2 at X, rank 1 at Y")
     assert_true('<path d="M140.000,20.000 L300.000,250.000"' in s, "B's line: rank 1 at X, rank 2 at Y")
@@ -79,14 +74,16 @@ def test_render_bump_raises_on_mismatched_series_names_and_values_length() raise
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        _ = bump(cats, names, vals, width=200, height=150)
+        var _hoisted1 = bump(cats, names, vals, width=200, height=150)
+        _ = render(_hoisted1)
 
 
 def test_render_bump_empty_categories_only_fills_background() raises:
     var cats = List[String]()
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [List[Float64]()]
-    var c = bump(cats, names, vals, width=200, height=150)
+    var _hoisted2 = bump(cats, names, vals, width=200, height=150)
+    var c = render(_hoisted2)
     _assert_color(c, 100, 75, BG, "no categories -- background everywhere")
 
 

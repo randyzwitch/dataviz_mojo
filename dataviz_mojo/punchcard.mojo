@@ -10,7 +10,7 @@ from dataviz_mojo.plot import (
     _RenderResult,
     _categorical_indices,
     _empty_result,
-    _rendered,
+    _finished,
 )
 from dataviz_mojo.theme import Theme
 
@@ -59,9 +59,8 @@ def _render_punchcard[
     scale` for free), this one starts from a caller-given raw number
     with no relationship to the plot's pixel space at all -- without
     this multiplication, the radius would render too small whenever
-    `Theme.scale` is anything other than its default (the raster
-    quickplot path's internal supersampling boosts it beyond 1.0, so
-    this is a real, reachable case, not just a defensive multiply).
+    `Theme.scale` is anything other than its default (a real HiDPI
+    export is exactly this case, not just a defensive multiply).
 
     Multiple rows may share the same `(x, y)` cell -- each still draws
     its independent bubble (not summed into one), the same
@@ -125,7 +124,7 @@ def punchcard(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Canvas:
+) raises -> Plot:
     """A punchcard -- `Mark.PUNCHCARD`, a scatter plot on a categorical
     grid where bubble size (`sizes[i] / scale`) encodes a third
     variable, GitHub-style. See `_render_punchcard`'s docstring for
@@ -141,15 +140,15 @@ def punchcard(
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
-        width: Pixel width of the returned `Canvas`.
-        height: Pixel height of the returned `Canvas`.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
         title: The chart's title, shown above the plot.
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
 
     Returns:
-        The rendered chart -- call `.write_png(path)`/`.write_bmp(path)` (both `canvas_mojo.io`) to save it.
+        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
     """
     var plot = Plot().mark_punchcard(scale=scale).encode_punchcard(x=x, y=y, sizes=sizes)
-    return _rendered(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

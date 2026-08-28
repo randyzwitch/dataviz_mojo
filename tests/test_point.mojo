@@ -4,9 +4,7 @@ color/size encoding, categorical color, SVG coordinates.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -45,7 +43,8 @@ def test_render_point_mark_centers_on_the_hand_derived_pixel() raises:
     # manual_plot) rather than the fluent builder spelled out by hand.
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
-    var c = scatter(x, y, width=400, height=300)
+    var _hoisted1 = scatter(x, y, width=400, height=300)
+    var c = render(_hoisted1)
 
     var p = c.get_pixel(220, 135)
     var expected = Theme.default().mark_color
@@ -79,9 +78,8 @@ def test_render_color_encoding_matches_hand_derived_colors() raises:
     var t = Theme(
         color_scale_low=BLACK, color_scale_high=WHITE, show_legend=False
     )
-    var plot = Plot().mark_point().encode(x=x, y=y, color=color).theme(t)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var plot = Plot().mark_point().encode(x=x, y=y, color=color).theme(t).size(400, 300)
+    var c = render(plot)
 
     var p0 = c.get_pixel(75, 135)
     assert_equal(p0.r, 0)
@@ -117,9 +115,8 @@ def test_render_size_encoding_matches_hand_derived_radii() raises:
     var t = Theme(
         size_range_min=2.0, size_range_max=10.0, show_gridlines=False, show_legend=False
     )
-    var plot = Plot().mark_point().encode(x=x, y=y, size=size).theme(t)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var plot = Plot().mark_point().encode(x=x, y=y, size=size).theme(t).size(400, 300)
+    var c = render(plot)
 
     var mark_color = t.mark_color
     _assert_color(c, 75, 135, mark_color, "small point center")
@@ -144,9 +141,8 @@ def test_render_categorical_color_matches_hand_derived_palette_entries() raises:
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
     var cats: List[String] = ["A", "B"]
-    var plot = Plot().mark_point().encode(x=x, y=y, color_categories=cats)
-    var c = Canvas(400, 300, BG)
-    render(c, plot)
+    var plot = Plot().mark_point().encode(x=x, y=y, color_categories=cats).size(400, 300)
+    var c = render(plot)
 
     var palette = default_categorical_palette()
     _assert_color(c, 69, 135, palette[0], "category A -> palette[0]")
@@ -163,9 +159,8 @@ def test_render_svg_point_mark_matches_hand_derived_coordinates() raises:
     # languages/float implementations the way a raw float coordinate
     # could.
     var xy: List[Float64] = [5.0]
-    var svg = SvgCanvas(400, 300)
-    var plot = Plot().mark_point().encode(x=xy, y=xy)
-    render_svg(svg, plot)
+    var plot = Plot().mark_point().encode(x=xy, y=xy).size(400, 300)
+    var svg = render_svg(plot)
     assert_true(
         '<circle cx="220" cy="135" r="4" fill="#1e64b4"/>' in svg.to_string(),
         "encode()'s point, same pixel render() already hand-derives",

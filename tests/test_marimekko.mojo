@@ -6,10 +6,8 @@ the rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import Plot, render, render_svg
 from dataviz_mojo.theme import Theme
 from dataviz_mojo import marimekko
 
@@ -32,7 +30,8 @@ def test_render_marimekko_matches_hand_derived_columns() raises:
     var subs: List[String] = ["X", "Y"]
     var values: List[List[Float64]] = [[30.0, 10.0], [10.0, 30.0]]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var c = marimekko(cats, subs, values, theme=t, width=400, height=300)
+    var _hoisted1 = marimekko(cats, subs, values, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
     _assert_color(c, 140, 150, palette[0], "column A, well inside the X (bottom) segment")
@@ -45,11 +44,10 @@ def test_render_marimekko_svg_matches_confirmed_rects() raises:
     var cats: List[String] = ["A", "B"]
     var subs: List[String] = ["X", "Y"]
     var values: List[List[Float64]] = [[30.0, 10.0], [10.0, 30.0]]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_marimekko().encode_marimekko(categories=cats, subcategories=subs, values=values).theme(
         Theme(show_gridlines=False, show_legend=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('<rect x="60" y="78" width="160" height="172" fill="#1f77b4"/>' in s, "column A, X segment")
     assert_true('<rect x="60" y="20" width="160" height="58" fill="#ff7f0e"/>' in s, "column A, Y segment")
@@ -62,7 +60,8 @@ def test_render_marimekko_raises_on_wrong_row_count() raises:
     var subs: List[String] = ["X", "Y", "Z"]
     var values: List[List[Float64]] = [[1.0, 2.0], [3.0, 4.0]]
     with assert_raises():
-        _ = marimekko(cats, subs, values, width=200, height=150)
+        var _hoisted2 = marimekko(cats, subs, values, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_marimekko_raises_on_wrong_column_count() raises:
@@ -70,7 +69,8 @@ def test_render_marimekko_raises_on_wrong_column_count() raises:
     var subs: List[String] = ["X"]
     var values: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        _ = marimekko(cats, subs, values, width=200, height=150)
+        var _hoisted3 = marimekko(cats, subs, values, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_marimekko_raises_on_negative_value() raises:
@@ -78,7 +78,8 @@ def test_render_marimekko_raises_on_negative_value() raises:
     var subs: List[String] = ["X"]
     var values: List[List[Float64]] = [[-1.0]]
     with assert_raises():
-        _ = marimekko(cats, subs, values, width=200, height=150)
+        var _hoisted4 = marimekko(cats, subs, values, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_marimekko_raises_on_all_zero_values() raises:
@@ -86,14 +87,16 @@ def test_render_marimekko_raises_on_all_zero_values() raises:
     var subs: List[String] = ["X"]
     var values: List[List[Float64]] = [[0.0, 0.0]]
     with assert_raises():
-        _ = marimekko(cats, subs, values, width=200, height=150)
+        var _hoisted5 = marimekko(cats, subs, values, width=200, height=150)
+        _ = render(_hoisted5)
 
 
 def test_render_marimekko_empty_data_only_fills_background() raises:
     var cats = List[String]()
     var subs = List[String]()
     var values = List[List[Float64]]()
-    var c = marimekko(cats, subs, values, width=100, height=80)
+    var _hoisted6 = marimekko(cats, subs, values, width=100, height=80)
+    var c = render(_hoisted6)
     _assert_color(c, 50, 40, BG, "no categories: nothing drawn but the background")
 
 

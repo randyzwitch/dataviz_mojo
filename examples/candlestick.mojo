@@ -17,10 +17,7 @@ range day (Day 8), the kind of variety that actually exercises both
 wick lengths and both body colors.
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import candlestick
 from dataviz_mojo.theme import Theme
 
@@ -35,10 +32,6 @@ def main() raises:
     var close: List[Float64] = [104.0, 101.0, 97.0, 107.0, 110.0, 103.0, 108.0, 105.0]
 
     var c = candlestick(days, open, high, low, close)
-    write_bmp(c, "examples/out_candlestick.bmp")
-    write_png(c, "examples/out_candlestick.png")
-
-    var svg = SvgCanvas(640, 420)
-    var svg_plot = Plot().mark_candlestick().encode_candlestick(days, open, high, low, close).theme(Theme())
-    render_svg(svg, svg_plot)
-    write_svg(svg, "examples/out_candlestick.svg")
+    save(c, "examples/out_candlestick.svg")
+    save(c, "examples/out_candlestick.bmp")
+    save(c, "examples/out_candlestick.png")

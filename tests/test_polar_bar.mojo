@@ -25,7 +25,8 @@ def test_render_polar_bar_matches_hand_derived_bar_colors() raises:
     # radius-50 test points along each bisector stay inside their bar.
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 1.0, 1.0]
-    var c = polarbar(x, y, width=400, height=300)
+    var _hoisted1 = polarbar(x, y, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
     _assert_color(c, 198, 110, palette[0], "bar 0, bisector -30 degrees")
@@ -45,7 +46,8 @@ def test_render_polar_bar_leaves_a_gap_between_bars() raises:
     # test_nightingale.mojo, which has no such gap to test).
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 1.0, 1.0]
-    var c = polarbar(x, y, width=400, height=300)
+    var _hoisted2 = polarbar(x, y, width=400, height=300)
+    var c = render(_hoisted2)
     _assert_color(c, 198, 160, BG, "the gap between bar 0 and bar 1, at their shared slot boundary")
 
 
@@ -53,27 +55,31 @@ def test_render_polar_bar_raises_on_negative_value() raises:
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1.0, -1.0]
     with assert_raises():
-        _ = polarbar(x, y, width=200, height=150)
+        var _hoisted3 = polarbar(x, y, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_polar_bar_raises_on_all_zero_values() raises:
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [0.0, 0.0]
     with assert_raises():
-        _ = polarbar(x, y, width=200, height=150)
+        var _hoisted4 = polarbar(x, y, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def test_render_polar_bar_raises_on_mismatched_category_length() raises:
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        _ = polarbar(x, y, width=200, height=150)
+        var _hoisted5 = polarbar(x, y, width=200, height=150)
+        _ = render(_hoisted5)
 
 
 def test_render_polar_bar_empty_categories_only_fills_background() raises:
     var x = List[String]()
     var y = List[Float64]()
-    var c = polarbar(x, y, width=100, height=80)
+    var _hoisted6 = polarbar(x, y, width=100, height=80)
+    var c = render(_hoisted6)
     _assert_color(c, 50, 40, BG, "no categories: nothing drawn but the background")
 
 

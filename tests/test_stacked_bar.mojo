@@ -5,9 +5,7 @@ including independent positive/negative stacking (raster + SVG).
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from canvas_mojo.vector.svg import SvgCanvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.plot import (
     Plot,
@@ -48,7 +46,8 @@ def test_render_stacked_bar_matches_hand_derived_rectangles() raises:
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
     var t = Theme(show_gridlines=False)
-    var c = stacked_bar(cats, names, values, theme=t, width=400, height=300)
+    var _hoisted1 = stacked_bar(cats, names, values, theme=t, width=400, height=300)
+    var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
     # A, North (bottom segment, value 10): x:[70,146), y:[187,250)
@@ -70,11 +69,10 @@ def test_render_svg_stacked_bar_matches_confirmed_rects_and_legend() raises:
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_stacked_bar().encode_grouped_bar(cats, names, values).theme(
         Theme(show_gridlines=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
 
     # Only each column's bottom-most segment (North, seg_bottom=0)
@@ -110,11 +108,10 @@ def test_render_svg_stacked_bar_mixed_sign_stacks_independently_each_direction()
     var cats: List[String] = ["A"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0], [-5.0]]
-    var svg = SvgCanvas(400, 300)
     var plot = Plot().mark_stacked_bar().encode_grouped_bar(cats, names, values).theme(
         Theme(show_gridlines=False)
-    )
-    render_svg(svg, plot)
+    ).size(400, 300)
+    var svg = render_svg(plot)
     var s = svg.to_string()
 
     # North: data range [0,10] (positive stack, starts at zero).
@@ -127,7 +124,8 @@ def test_render_stacked_bar_zero_length_categories_only_fills_background() raise
     var cats = List[String]()
     var names: List[String] = ["North"]
     var values: List[List[Float64]] = [List[Float64]()]
-    var c = stacked_bar(cats, names, values, width=200, height=150)
+    var _hoisted2 = stacked_bar(cats, names, values, width=200, height=150)
+    var c = render(_hoisted2)
     _assert_color(c, 100, 75, BG, "no categories -- just the background fill")
 
 
@@ -136,7 +134,8 @@ def test_render_stacked_bar_raises_on_mismatched_series_names_and_values_length(
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        _ = stacked_bar(cats, names, values, width=200, height=150)
+        var _hoisted3 = stacked_bar(cats, names, values, width=200, height=150)
+        _ = render(_hoisted3)
 
 
 def test_render_stacked_bar_raises_on_mismatched_value_series_length() raises:
@@ -144,7 +143,8 @@ def test_render_stacked_bar_raises_on_mismatched_value_series_length() raises:
     var names: List[String] = ["North"]
     var values: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        _ = stacked_bar(cats, names, values, width=200, height=150)
+        var _hoisted4 = stacked_bar(cats, names, values, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def main() raises:

@@ -12,10 +12,7 @@ classic bump-chart use: which position matters more than the exact
 score behind it.
 """
 
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.vector.svg import SvgCanvas, write_svg
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz_mojo.plot import save
 from dataviz_mojo import bump
 from dataviz_mojo.theme import Theme
 
@@ -30,12 +27,6 @@ def main() raises:
     ]
 
     var c = bump(years, languages, scores)
-    write_bmp(c, "examples/out_bump.bmp")
-    write_png(c, "examples/out_bump.png")
-
-    var svg = SvgCanvas(640, 420)
-    var svg_plot = Plot().mark_bump().encode_grouped_bar(
-        categories=years, series_names=languages, values=scores
-    ).theme(Theme())
-    render_svg(svg, svg_plot)
-    write_svg(svg, "examples/out_bump.svg")
+    save(c, "examples/out_bump.svg")
+    save(c, "examples/out_bump.bmp")
+    save(c, "examples/out_bump.png")
