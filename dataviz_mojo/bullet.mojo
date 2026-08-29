@@ -218,6 +218,27 @@ def bullet(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import bullet
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var kpis: List[String] = ["Revenue", "Profit", "New Customers", "Satisfaction"]
+            var measures: List[Float64] = [72.0, 58.0, 85.0, 78.0]
+            var targets: List[Float64] = [80.0, 65.0, 70.0, 90.0]
+            var ranges: List[List[Float64]] = [
+                [50.0, 75.0, 100.0],
+                [40.0, 70.0, 100.0],
+                [30.0, 60.0, 100.0],
+                [60.0, 85.0, 100.0],
+            ]
+
+            var c = bullet(kpis, measures, targets, ranges)
+            save(c, "docs/src/examples/out_bullet.svg")
+        ```
     """
     var plot = Plot().mark_bullet().encode_bullet(
         categories=categories, measures=measures, targets=targets, ranges=ranges

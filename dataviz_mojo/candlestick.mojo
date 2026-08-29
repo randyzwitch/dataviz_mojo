@@ -170,6 +170,25 @@ def candlestick(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import candlestick
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var days: List[String] = [
+                "Day 1", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7", "Day 8",
+            ]
+            var open: List[Float64] = [100.0, 104.0, 101.0, 97.0, 107.0, 110.0, 103.0, 108.0]
+            var high: List[Float64] = [106.0, 105.0, 103.0, 108.0, 112.0, 111.0, 109.0, 110.0]
+            var low: List[Float64] = [98.0, 99.0, 95.0, 96.0, 105.0, 102.0, 101.0, 104.0]
+            var close: List[Float64] = [104.0, 101.0, 97.0, 107.0, 110.0, 103.0, 108.0, 105.0]
+
+            var c = candlestick(days, open, high, low, close)
+            save(c, "docs/src/examples/out_candlestick.svg")
+        ```
     """
     var plot = Plot().mark_candlestick().encode_candlestick(
         categories=categories, open=open, high=high, low=low, close=close

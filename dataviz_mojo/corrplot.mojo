@@ -213,6 +213,24 @@ def corrplot(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import corrplot
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var variables: List[String] = ["Horsepower", "MPG", "Weight", "Price"]
+            var matrix: List[List[Float64]] = [
+                [1.0, -0.78, 0.66, 0.72],
+                [-0.78, 1.0, -0.83, -0.55],
+                [0.66, -0.83, 1.0, 0.48],
+                [0.72, -0.55, 0.48, 1.0],
+            ]
+
+            var c = corrplot(variables, matrix, layout="upper", diag=False)
+            save(c, "docs/src/examples/out_corrplot.svg")
+        ```
     """
     var plot = Plot().mark_corrplot(layout=layout, diag=diag, labels=labels).encode_corrplot(
         variables=variables, matrix=matrix

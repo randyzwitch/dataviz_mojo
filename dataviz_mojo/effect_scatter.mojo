@@ -36,6 +36,20 @@ def effect_scatter(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import effect_scatter
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var longitude: List[Float64] = [10.0, 25.0, 40.0, 60.0, 80.0]
+            var latitude: List[Float64] = [15.0, 40.0, 20.0, 55.0, 30.0]
+
+            var c = effect_scatter(longitude, latitude)
+            save(c, "docs/src/examples/out_effect_scatter.svg")
+        ```
     """
     var plot = Plot().mark_effect_scatter().encode(x=x, y=y)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

@@ -149,6 +149,29 @@ def punchcard(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import punchcard
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var days: List[String] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            var hours: List[String] = ["9am", "12pm", "3pm", "6pm", "9pm"]
+
+            var x = List[String]()
+            var y = List[String]()
+            var counts = List[Float64]()
+            for day_i in range(len(days)):
+                var is_weekend = day_i >= 5
+                for hour in hours:
+                    x.append(days[day_i])
+                    y.append(hour)
+                    counts.append(15.0 if is_weekend else 60.0)
+
+            var c = punchcard(x, y, counts)
+            save(c, "docs/src/examples/out_punchcard.svg")
+        ```
     """
     var plot = Plot().mark_punchcard(scale=scale).encode_punchcard(x=x, y=y, sizes=sizes)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

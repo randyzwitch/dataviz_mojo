@@ -134,6 +134,19 @@ def nightingale(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import nightingale
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var causes: List[String] = ["Zymotic disease", "Wounds", "Other"]
+            var deaths: List[Float64] = [1857.0, 202.0, 97.0]
+
+            var c = nightingale(causes, deaths, area=True)
+            save(c, "docs/src/examples/out_nightingale.svg")
+        ```
     """
     var plot = Plot().mark_nightingale(area=area).encode_categorical(x=categories, y=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

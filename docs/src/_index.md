@@ -63,7 +63,7 @@ multi-series layering, and the SVG backend.
 
 ```sh
 pixi run test      # tests/*.mojo
-pixi run example   # examples/*.mojo, writes examples/out_*.{bmp,png,svg}
+pixi run example   # every dataviz_mojo/*.mojo `Example:` docstring section, writes docs/src/examples/out_*.svg
 pixi run docs      # regenerates this site -- run `example` first
 ```
 

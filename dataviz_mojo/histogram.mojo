@@ -96,6 +96,26 @@ def histogram(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import histogram
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.colors import REBECCAPURPLE
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            # Exam scores out of 100 -- a real bell-ish spread, not a uniform
+            # or already-sorted list, so the binning has genuine work to do.
+            var scores: List[Float64] = [
+                52.0, 61.0, 65.0, 68.0, 70.0, 71.0, 72.0, 74.0, 75.0, 76.0,
+                77.0, 78.0, 78.0, 79.0, 80.0, 81.0, 81.0, 82.0, 83.0, 84.0,
+                85.0, 86.0, 87.0, 88.0, 89.0, 90.0, 91.0, 93.0, 95.0, 98.0,
+            ]
+
+            var c = histogram(scores, bins=8, theme=Theme(mark_color=REBECCAPURPLE))
+            save(c, "docs/src/examples/out_histogram.svg")
+        ```
     """
     var plot = Plot().mark_bar().encode_histogram(data, bins=bins)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

@@ -246,6 +246,22 @@ def tree(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import tree
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var ids: List[String] = [
+                "CEO", "Engineering", "Sales", "Backend", "Frontend", "Enterprise", "SMB",
+            ]
+            var parent_ids: List[String] = ["", "CEO", "CEO", "Engineering", "Engineering", "Sales", "Sales"]
+            var values: List[Float64] = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
+
+            var c = tree(ids, parent_ids, values)
+            save(c, "docs/src/examples/out_tree.svg")
+        ```
     """
     var plot = Plot().mark_tree().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

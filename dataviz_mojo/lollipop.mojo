@@ -104,6 +104,24 @@ def lollipop(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import lollipop
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.theme import Theme
+        from dataviz_mojo.colors import TEAL
+
+        def main() raises:
+            var countries: List[String] = [
+                "USA", "China", "Japan", "Germany", "India",
+                "UK", "France", "Italy", "Brazil", "Canada",
+            ]
+            var gdp: List[Float64] = [27.4, 17.8, 4.2, 4.1, 3.7, 3.3, 3.0, 2.2, 2.1, 2.1]
+
+            var c = lollipop(countries, gdp, theme=Theme(mark_color=TEAL))
+            save(c, "docs/src/examples/out_lollipop.svg")
+        ```
     """
     var plot = Plot().mark_lollipop().encode_categorical(x=categories, y=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

@@ -136,6 +136,19 @@ def radialbar(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import radialbar
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var teams: List[String] = ["Platform", "Growth", "Data", "Design"]
+            var completion: List[Float64] = [92.0, 78.0, 45.0, 60.0]
+
+            var c = radialbar(teams, completion)
+            save(c, "docs/src/examples/out_radialbar.svg")
+        ```
     """
     var plot = Plot().mark_radialbar().encode_categorical(x=categories, y=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

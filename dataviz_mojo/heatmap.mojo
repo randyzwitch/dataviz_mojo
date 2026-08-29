@@ -308,6 +308,21 @@ def heatmap(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import heatmap
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var days: List[String] = ["Mon", "Mon", "Mon", "Tue", "Tue", "Tue", "Wed", "Wed", "Wed"]
+            var hours: List[String] = ["9am", "1pm", "5pm", "9am", "1pm", "5pm", "9am", "1pm", "5pm"]
+            var activity: List[Float64] = [3.0, 8.0, 5.0, 4.0, 9.0, 6.0, 2.0, 7.0, 10.0]
+
+            var c = heatmap(days, hours, activity)
+            save(c, "docs/src/examples/out_heatmap.svg")
+        ```
     """
     var plot = Plot().mark_heatmap().encode_heatmap(x=x, y=y, value=value)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

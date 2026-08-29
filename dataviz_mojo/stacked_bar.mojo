@@ -174,6 +174,31 @@ def stacked_bar(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import stacked_bar
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4"]
+            var series_names: List[String] = ["North", "South", "East"]
+            var values: List[List[Float64]] = [
+                [42.0, 48.0, 45.0, 61.0],
+                [30.0, 35.0, 33.0, 40.0],
+                [55.0, 50.0, 58.0, 66.0],
+            ]
+
+            var c = stacked_bar(
+                quarters,
+                series_names,
+                values,
+                title="Quarterly Revenue by Region (stacked)",
+                x_title="Quarter",
+                y_title="Revenue ($M)",
+            )
+            save(c, "docs/src/examples/out_stacked_bar.svg")
+        ```
     """
     var plot = Plot().mark_stacked_bar().encode_grouped_bar(
         categories=categories, series_names=series_names, values=values

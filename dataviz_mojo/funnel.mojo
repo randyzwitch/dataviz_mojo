@@ -186,6 +186,20 @@ def funnel(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import funnel
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var stages: List[String] = ["Impressions", "Clicks", "Add to Cart", "Orders"]
+            var counts: List[Float64] = [10000.0, 3200.0, 950.0, 400.0]
+
+            var c = funnel(stages, counts)
+            save(c, "docs/src/examples/out_funnel.svg")
+        ```
     """
     var plot = Plot().mark_funnel().encode_categorical(x=categories, y=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

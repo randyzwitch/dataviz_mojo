@@ -315,6 +315,21 @@ def gantt(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import gantt
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var tasks: List[String] = ["Design", "Development", "Testing", "Documentation", "Launch"]
+            var start: List[Float64] = [0.0, 5.0, 20.0, 15.0, 28.0]
+            var end: List[Float64] = [8.0, 25.0, 28.0, 27.0, 30.0]
+
+            var c = gantt(tasks, start, end)
+            save(c, "docs/src/examples/out_gantt.svg")
+        ```
     """
     var plot = Plot().mark_gantt().encode_gantt(categories=categories, start=start, end=end)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

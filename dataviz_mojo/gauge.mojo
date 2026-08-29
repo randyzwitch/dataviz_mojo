@@ -209,6 +209,18 @@ def gauge(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import gauge
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var cpu_usage = 67.0
+
+            var c = gauge(cpu_usage)
+            save(c, "docs/src/examples/out_gauge.svg")
+        ```
     """
     var plot = Plot().mark_gauge().encode_gauge(
         value=value, min_value=min_value, max_value=max_value, breakpoints=breakpoints, band_colors=band_colors

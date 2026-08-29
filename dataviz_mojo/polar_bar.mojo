@@ -125,6 +125,21 @@ def polarbar(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import polarbar
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var months: List[String] = [
+                "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+            ]
+            var rainfall: List[Float64] = [2.6, 5.9, 9.0, 26.4, 28.7, 70.7, 175.6, 182.2, 48.7, 18.8, 6.0, 2.3]
+
+            var c = polarbar(months, rainfall)
+            save(c, "docs/src/examples/out_polarbar.svg")
+        ```
     """
     var plot = Plot().mark_polar_bar().encode_categorical(x=categories, y=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

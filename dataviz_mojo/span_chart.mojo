@@ -115,6 +115,22 @@ def span_chart(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import span_chart
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var months: List[String] = [
+                "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+            ]
+            var temp_low: List[Float64] = [-3.0, -2.0, 3.0, 10.0, 15.0, 19.0, 21.0, 20.0, 15.0, 8.0, 2.0, -1.0]
+            var temp_high: List[Float64] = [5.0, 7.0, 12.0, 20.0, 25.0, 29.0, 31.0, 30.0, 26.0, 18.0, 10.0, 5.0]
+
+            var c = span_chart(months, temp_low, temp_high)
+            save(c, "docs/src/examples/out_span_chart.svg")
+        ```
     """
     var plot = Plot().mark_span_chart().encode_gantt(categories=categories, start=low, end=high)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

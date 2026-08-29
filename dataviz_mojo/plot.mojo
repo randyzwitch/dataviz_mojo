@@ -104,7 +104,8 @@ exactly the same way they do on any hand-built `Plot`.
 
 Not a replacement for the fluent `Plot` builder -- facets, layering,
 and `color`/`size` encoding still need `Plot` built directly, the
-same way `examples/` already shows for each. They sit *on top of*
+same way the docs site's own Examples gallery already shows for each.
+They sit *on top of*
 that builder, not instead of it: every one still just *is* a `Plot`,
 so dropping down to the full builder later (a second series, a facet
 grid) is a rewrite of one call, not a different mental model.
@@ -1164,9 +1165,9 @@ struct Plot(Movable):
         still-default behavior, unchanged) optionally marks specific
         rows as running-total *checkpoints* instead -- see `_waterfall_
         running_totals()`'s docstring (waterfall.mojo) for exactly
-        what that changes about how a row draws, and `examples/
-        waterfall.mojo` for the conventional start-then-deltas-then-end
-        shape it enables.
+        what that changes about how a row draws, and `waterfall()`'s
+        own `Example:` section (waterfall.mojo) for the conventional
+        start-then-deltas-then-end shape it enables.
 
         Unlike `encode_histogram()`'s binning, this never needs to
         raise immediately: a running sum is well-defined for any
@@ -2214,6 +2215,20 @@ struct Plot(Movable):
         Returns:
             Self, for further chaining -- `render()`/`render_svg()`
             raise later if the mark has no genuine continuous y-axis.
+
+        Example:
+            ```mojo
+            from dataviz_mojo.plot import Plot, save
+
+            def main() raises:
+                var months: List[String] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+                var revenue: List[Float64] = [42.0, 48.0, 45.0, 61.0, 55.0, 58.0]
+
+                var plot = Plot().mark_bar().encode_categorical(x=months, y=revenue).labels(
+                    title="Monthly Revenue", subtitle="Actual vs. target, $M"
+                ).annotate_line(60.0, label="target").annotate_line(51.5, label="average")
+                save(plot, "docs/src/examples/out_annotate_line.svg")
+            ```
         """
         self._annotations.line_values.append(value)
         self._annotations.line_labels.append(label)
@@ -2270,6 +2285,24 @@ struct Plot(Movable):
         Returns:
             Self, for further chaining -- `render()`/`render_svg()`
             raise later if the mark has no genuine continuous y-axis.
+
+        Example:
+            ```mojo
+            from dataviz_mojo.plot import Plot, save
+
+            def main() raises:
+                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+                var latency: List[Float64] = [42.0, 48.0, 45.0, 61.0, 55.0, 58.0, 70.0, 63.0]
+
+                var plot = (
+                    Plot()
+                    .mark_line()
+                    .encode(x=x, y=latency)
+                    .labels(title="Response Time (ms)", subtitle="Against an acceptable range")
+                    .annotate_area(50.0, 60.0, label="acceptable range")
+                )
+                save(plot, "docs/src/examples/out_annotate_area.svg")
+            ```
         """
         self._annotations.area_y0.append(y0)
         self._annotations.area_y1.append(y1)
@@ -2308,6 +2341,24 @@ struct Plot(Movable):
         Returns:
             Self, for further chaining -- `render()`/`render_svg()`
             raise later if the mark has no genuine continuous x-axis.
+
+        Example:
+            ```mojo
+            from dataviz_mojo.plot import Plot, save
+
+            def main() raises:
+                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+                var latency: List[Float64] = [42.0, 48.0, 45.0, 61.0, 55.0, 58.0, 70.0, 63.0]
+
+                var plot = (
+                    Plot()
+                    .mark_line()
+                    .encode(x=x, y=latency)
+                    .labels(title="Response Time (ms)", subtitle="With a launch marker")
+                    .annotate_vline(4.0, label="launch")
+                )
+                save(plot, "docs/src/examples/out_annotate_vline.svg")
+            ```
         """
         self._annotations.vline_values.append(value)
         self._annotations.vline_labels.append(label)
@@ -2349,6 +2400,24 @@ struct Plot(Movable):
         Returns:
             Self, for further chaining -- `render()`/`render_svg()`
             raise later if the mark has no genuine continuous x/y-axis.
+
+        Example:
+            ```mojo
+            from dataviz_mojo.plot import Plot, save
+
+            def main() raises:
+                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+                var latency: List[Float64] = [42.0, 48.0, 45.0, 61.0, 55.0, 58.0, 70.0, 63.0]
+
+                var plot = (
+                    Plot()
+                    .mark_line()
+                    .encode(x=x, y=latency)
+                    .labels(title="Response Time (ms)", subtitle="With a peak callout")
+                    .annotate_point(7.0, 70.0, label="peak")
+                )
+                save(plot, "docs/src/examples/out_annotate_point.svg")
+            ```
         """
         self._annotations.point_x.append(x)
         self._annotations.point_y.append(y)
@@ -2391,6 +2460,35 @@ struct Plot(Movable):
 
         Returns:
             Self, for further chaining.
+
+        Example:
+            ```mojo
+            from canvas_mojo.color import Color
+            from dataviz_mojo.plot import Plot, save_layers
+            from dataviz_mojo.theme import Theme
+
+            def main() raises:
+                var months: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+                var revenue: List[Float64] = [420.0, 480.0, 450.0, 610.0, 550.0, 580.0]
+                var growth: List[Float64] = [2.1, 3.4, -1.2, 8.7, 4.0, 5.2]
+
+                var revenue_layer = Plot().mark_area().encode(x=months, y=revenue).theme(
+                    Theme(mark_color=Color(70, 130, 180))
+                ).labels(title="Revenue & Growth", x_title="Month", y_title="Revenue ($M)")
+                var growth_layer = (
+                    Plot()
+                    .mark_line()
+                    .encode(x=months, y=growth)
+                    .theme(Theme(mark_color=Color(220, 80, 60)))
+                    .secondary_axis()
+                    .labels(y_title="Growth (%)")
+                )
+                var plots = List[Plot]()
+                plots.append(revenue_layer^)
+                plots.append(growth_layer^)
+
+                save_layers(plots, "docs/src/examples/out_dual_axis.svg")
+            ```
         """
         self._secondary_axis = True
         return self^
@@ -4181,6 +4279,28 @@ def write_accessible_svg(svg: SvgCanvas, path: String, title: String, descriptio
     to_string()`. See that function's docstring for what gets
     added and why, including its honest scope note about which
     embedding contexts actually benefit from any of this.
+
+    Example:
+        ```mojo
+        from dataviz_mojo.plot import Plot, render_svg, write_accessible_svg
+
+        def main() raises:
+            var regions: List[String] = ["North", "South", "East", "West"]
+            var revenue: List[Float64] = [420.0, 310.0, 275.0, 390.0]
+
+            var plot = Plot().mark_bar().encode_categorical(x=regions, y=revenue).labels(
+                title="Regional Revenue"
+            )
+
+            var svg = render_svg(plot)
+            write_accessible_svg(
+                svg,
+                "docs/src/examples/out_svg_accessibility.svg",
+                "Regional Revenue comparison chart",
+                "A chart comparing revenue across four regions: North ($420), South ($310),"
+                " East ($275), and West ($390).",
+            )
+        ```
     """
     var f = open(path, "w")
     f.write(accessible_svg_string(svg, title, description))
@@ -5465,8 +5585,9 @@ def render_layers(mut plots: List[Plot]) raises -> Canvas:
     "only Mark.POINT" error `Plot.encode`'s single-plot path raises
     if a `LINE`/`AREA` layer tries to use one of these instead. A
     caller wanting several distinctly colored *series* instead (rather
-    than per-point encoding within one series) still sets each layer's flat `Theme.mark_color` (the same per-layer-styling `examples/
-    facets.mojo` uses, just overlaid here instead of laid out
+    than per-point encoding within one series) still sets each layer's
+    flat `Theme.mark_color` directly, the same per-layer styling
+    `render_facets()` uses, just overlaid here instead of laid out
     in a grid) -- `render_layers` still has no per-*series* name/label
     concept for a "which layer is which" legend built from several
     flat-colored layers (see the wiki's Backlog, its "Explicitly
@@ -5939,6 +6060,19 @@ def scatter(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import scatter
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+            var y: List[Float64] = [2.3, 4.1, 3.6, 5.8, 5.1, 7.4, 6.9, 8.2, 9.0, 8.6]
+
+            var c = scatter(x, y)
+            save(c, "docs/src/examples/out_scatter.svg")
+        ```
     """
     var plot = Plot().mark_point().encode(x=x, y=y)
     return _finished(plot^, theme, width, height, title, x_title, y_title)
@@ -5971,6 +6105,61 @@ def line(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from std.math import sin
+
+        from dataviz_mojo import line
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.colors import BROWN
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var x = List[Float64]()
+            var y = List[Float64]()
+            for i in range(40):
+                var t = Float64(i) * 0.25
+                x.append(t)
+                y.append(sin(t) * 10.0 + t * 0.5)
+
+            var c = line(
+                x,
+                y,
+                theme=Theme(
+                    mark_color=BROWN,
+                    line_width=3.0,
+                    show_gridlines=False,
+                ),
+            )
+            save(c, "docs/src/examples/out_line.svg")
+        ```
+
+    Example (Slope Chart):
+        ```mojo
+        from dataviz_mojo import line
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.theme import Theme
+        from dataviz_mojo.colors import SEAGREEN
+
+        def main() raises:
+            # x=0.0 ("2023"), x=1.0 ("2024") -- revenue, in millions.
+            var x: List[Float64] = [0.0, 1.0]
+            var revenue: List[Float64] = [42.0, 61.0]
+
+            var c = line(
+                x,
+                revenue,
+                theme=Theme(
+                    mark_color=SEAGREEN,
+                    line_width=3.0,
+                    show_gridlines=False,
+                ),
+                width=320,
+                height=420,
+            )
+            save(c, "docs/src/examples/out_slope.svg")
+        ```
     """
     var plot = Plot().mark_line().encode(x=x, y=y)
     return _finished(plot^, theme, width, height, title, x_title, y_title)
@@ -6004,6 +6193,27 @@ def area(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from std.math import sin
+
+        from dataviz_mojo import area
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.colors import STEELBLUE
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var x = List[Float64]()
+            var y = List[Float64]()
+            for i in range(30):
+                var t = Float64(i) * 0.3
+                x.append(t)
+                y.append(sin(t) * 4.0 + 6.0)
+
+            var c = area(x, y, theme=Theme(mark_color=STEELBLUE))
+            save(c, "docs/src/examples/out_area.svg")
+        ```
     """
     var plot = Plot().mark_area().encode(x=x, y=y)
     return _finished(plot^, theme, width, height, title, x_title, y_title)

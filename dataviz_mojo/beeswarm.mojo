@@ -143,6 +143,23 @@ def beeswarm(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import beeswarm
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var classes: List[String] = ["Section A", "Section B", "Section C"]
+            var scores: List[List[Float64]] = [
+                [72.0, 75.0, 78.0, 80.0, 74.0, 76.0, 91.0],
+                [65.0, 70.0, 72.0, 88.0, 90.0, 92.0, 95.0],
+                [80.0, 82.0, 83.0, 84.0, 81.0, 79.0, 85.0],
+            ]
+
+            var c = beeswarm(classes, scores)
+            save(c, "docs/src/examples/out_beeswarm.svg")
+        ```
     """
     var plot = Plot().mark_beeswarm().encode_distribution(categories=categories, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

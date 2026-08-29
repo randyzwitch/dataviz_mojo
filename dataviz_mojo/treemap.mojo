@@ -209,6 +209,20 @@ def treemap(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import treemap
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var ids: List[String] = ["root", "src", "docs", "main.py", "utils.py", "guide.md", "api.md"]
+            var parent_ids: List[String] = ["", "root", "root", "src", "src", "docs", "docs"]
+            var sizes: List[Float64] = [0.0, 0.0, 0.0, 45.0, 20.0, 12.0, 8.0]
+
+            var c = treemap(ids, parent_ids, sizes)
+            save(c, "docs/src/examples/out_treemap.svg")
+        ```
     """
     var plot = Plot().mark_treemap().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

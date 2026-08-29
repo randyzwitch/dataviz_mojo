@@ -161,6 +161,39 @@ def pie(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import pie
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var browsers: List[String] = ["Chrome", "Safari", "Edge", "Firefox", "Other"]
+            var share: List[Float64] = [65.0, 18.0, 5.0, 7.0, 5.0]
+
+            var c = pie(browsers, share, width=400, height=300)
+            save(c, "docs/src/examples/out_pie.svg")
+        ```
+
+    Example (Donut (donut_inner_radius_fraction)):
+        ```mojo
+        from dataviz_mojo import pie
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var browsers: List[String] = ["Chrome", "Safari", "Edge", "Firefox", "Other"]
+            var share: List[Float64] = [65.0, 18.0, 5.0, 7.0, 5.0]
+
+            var c_donut = pie(
+                browsers,
+                share,
+                theme=Theme(donut_inner_radius_fraction=0.55),
+                width=400,
+                height=300,
+            )
+            save(c_donut, "docs/src/examples/out_pie_donut.svg")
+        ```
     """
     var plot = Plot().mark_arc().encode_categorical(x=categories, y=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
