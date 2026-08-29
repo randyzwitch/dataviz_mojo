@@ -1,11 +1,15 @@
 """`pixi run example`'s own script -- extracts every `Example:` block
 this package's docstrings declare (`_example_docstrings.mojo`'s
-`_pages()`) into a real, standalone `.mojo` file under `.build/
-docstring_examples/`, so `scripts/run_parallel.sh` can compile and run
-every one of them for real, same as `examples/*.mojo` used to. This is
-what makes an `Example:` section a load-bearing test, not just
-documentation text: a broken one fails to compile or run here, the
-same way a broken `examples/*.mojo` file always did.
+`_pages()`) into a real, standalone `.mojo` file under docs/src/
+examples/ (already entirely generated/gitignored, same as the .md
+pages gen_example_docs.mojo writes there and the .svg/.png/.bmp images
+each extracted program's own save() call writes there too -- one
+generated-docs-content location, not a second, separately-gitignored
+build directory for no real benefit), so `scripts/run_parallel.sh` can
+compile and run every one of them for real, same as `examples/*.mojo`
+used to. This is what makes an `Example:` section a load-bearing test,
+not just documentation text: a broken one fails to compile or run
+here, the same way a broken `examples/*.mojo` file always did.
 
 Deduplicated by (`file`, `fn_name`) -- `line`'s and `slope`'s pages
 both come from `line()`'s own docstring (`slope` shows only one of its
@@ -18,7 +22,7 @@ named `<fn_name>[_<slug of its own heading>].mojo`.
 
 from _example_docstrings import _extract_example_blocks, _pages, _write_file
 
-comptime _OUT_DIR = ".build/docstring_examples"
+comptime _OUT_DIR = "docs/src/examples"
 
 
 def _slug(heading: String) -> String:
