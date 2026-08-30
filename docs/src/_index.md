@@ -171,6 +171,25 @@ p:not([class]) {
   height: auto;
   display: block;
 }
+/* A plain "keep going" pointer to Quickstart after the last section --
+   not another hero-button pair (already at the top of the page, and
+   this isn't a second call to action, just a way out for someone who
+   read the whole pitch), right-aligned the way a "next page" link
+   reads. not-prose so it skips the underline #content's link rule
+   adds -- this already carries its own arrow and weight. */
+.dvm-next {
+  width: 100%;
+  text-align: right;
+  margin-top: 1.5rem;
+}
+.dvm-next a {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--hx-color-primary-600);
+}
+.dvm-next a:hover {
+  text-decoration: underline;
+}
 </style>
 
 <div class="dvm-gallery not-prose">
@@ -253,5 +272,7 @@ def main() raises:
 
 </div>
 
-That's the same pattern behind every mark type this package supports, plus color/size encoding, facets, multi-series layering, and the raster backend. See the [Quickstart](quickstart/) or jump straight to the [Examples](examples/) for the full gallery.
+That's the same pattern behind every mark type this package supports, plus color/size encoding, facets, multi-series layering, and the raster backend.
+
+<p class="dvm-next"><a href="quickstart/" class="not-prose">Quickstart &rarr;</a></p>
 
