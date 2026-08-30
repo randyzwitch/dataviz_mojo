@@ -10,6 +10,13 @@ author:
 markup:
   highlight:
     style: github-dark
+  goldmark:
+    renderer:
+      # The homepage's chart-thumbnail gallery is hand-written HTML
+      # (a grid of <a>/<img> cards), not a shortcode -- Goldmark drops
+      # raw HTML by default and only shortcode output is exempt, so
+      # this is needed for that block to render at all.
+      unsafe: true
 
 module:
   imports:
@@ -17,19 +24,19 @@ module:
 
 menu:
   main:
-    - name: Examples
+    - name: Quickstart
       weight: 1
+      url: "/quickstart/"
+    - name: Examples
+      weight: 2
       url: "/examples/"
     - name: API Reference
-      weight: 2
+      weight: 3
       url: "/dataviz_mojo/"
     - name: Search
-      weight: 3
+      weight: 4
       params:
         type: search
-    - name: Wiki
-      weight: 4
-      url: "https://github.com/randyzwitch/dataviz_mojo/wiki"
     - name: GitHub
       weight: 5
       url: "https://github.com/randyzwitch/dataviz_mojo"

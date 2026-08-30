@@ -55,31 +55,30 @@ test = "bash scripts/run_parallel.sh tests/test_quickplot.mojo tests/test_facets
 # deployed by docs/docs-serve below is deployed straight to GitHub
 # Pages by .github/workflows/docs.yml's own Actions-based deploy,
 # regenerated fresh each time. Only docs/src/_index.md (the hand-
-# written landing page), docs/modo.yaml, and docs/site/'s own Hugo
-# project files (hugo.yaml, go.mod/go.sum) are real, committed source
-# -- see docs/modo.yaml's own comments for the Hugo-over-plain-markdown
-# reasoning, and gen_example_docs.mojo's own docstring for how it turns
-# dataviz_mojo/*.mojo's own `Example:` docstring sections into docs/
-# src/examples/ pages (a Mojo script, not Python -- this repo's own
-# tooling stays in the language it's showcasing). Assumes `pixi run
-# example` has already been run at least once -- that's what actually
-# renders docs/src/examples/out_*.svg and writes each extracted
-# `Example:` program's own *.mojo there too (this task only ever
-# removes *.md there, never touches *.svg/*.png/*.bmp/*.mojo, the same
-# "separate, independently-invoked task" split this file's own
-# example/test tasks already have). The trailing `sed` patches modo's
-# own generated
-# dataviz_mojo/_index.md front matter: modo always emits `weight: 400`
-# for a package's own root section, with no config flag to change it
-# (`modo build --help` has nothing for it, and there's no local modo
-# source to safely override via `--templates`), which sorted it *after*
-# Examples (weight: 200) in Hextra's left sidebar -- API reference
-# before Examples reads better, so this pins it to 150 post-build
-# instead. A one-line `sed` on a single front-matter field, not a
-# script of its own -- see gen_example_docs.mojo's own docstring for
-# why anything with real logic in this pipeline is Mojo, not shell.
+# written landing page), docs/src/quickstart.md (ditto), docs/modo.yaml,
+# and docs/site/'s own Hugo project files (hugo.yaml, go.mod/go.sum) are
+# real, committed source -- see docs/modo.yaml's own comments for the
+# Hugo-over-plain-markdown reasoning, and gen_example_docs.mojo's own
+# docstring for how it turns dataviz_mojo/*.mojo's own `Example:`
+# docstring sections into docs/src/examples/ pages (a Mojo script, not
+# Python -- this repo's own tooling stays in the language it's
+# showcasing). Assumes `pixi run example` has already been run at least
+# once -- that's what actually renders docs/src/examples/out_*.svg and
+# writes each extracted `Example:` program's own *.mojo there too (this
+# task only ever removes *.md there, never touches
+# *.svg/*.png/*.bmp/*.mojo, the same "separate, independently-invoked
+# task" split this file's own example/test tasks already have). Left-
+# sidebar order falls straight out of each section's own front-matter
+# `weight` -- docs/src/quickstart.md pins itself to 100, gen_example_
+# docs.mojo pins Examples to 200, and modo's own generated dataviz_mojo/
+# _index.md is left at whatever `modo build` emits for a package's own
+# root section (400, as of writing, with no config flag to override --
+# `modo build --help` has nothing for it, and there's no local modo
+# source to safely override via `--templates`) -- Quickstart, then
+# Examples, then the API reference, no `sed` patch needed since 400
+# already sorts after both.
 docs-install = "bash scripts/install-modo.sh"
-docs-build = { cmd = "rm -rf docs/site/content docs/site/public && mkdir -p docs/src/examples && rm -f docs/src/examples/*.md && mojo run -I . -I scripts scripts/gen_example_docs.mojo && mojo doc -I . -o docs/src/dataviz_mojo.json dataviz_mojo && .tools/modo build docs -c modo.yaml && sed -i 's/^weight: 400$/weight: 150/' docs/site/content/dataviz_mojo/_index.md", depends-on = [
+docs-build = { cmd = "rm -rf docs/site/content docs/site/public && mkdir -p docs/src/examples && rm -f docs/src/examples/*.md && mojo run -I . -I scripts scripts/gen_example_docs.mojo && mojo doc -I . -o docs/src/dataviz_mojo.json dataviz_mojo && .tools/modo build docs -c modo.yaml", depends-on = [
     "docs-install",
 ] }
 # One-shot build into docs/site/public -- what docs-deploy.yml
