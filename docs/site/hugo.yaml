@@ -9,7 +9,17 @@ author:
 
 markup:
   highlight:
-    style: github-dark
+    # Hugo's default (noClasses: true) bakes each token's color as an
+    # inline `style="color:...` attribute straight onto the element,
+    # picked once from a single fixed `style:` -- that always wins over
+    # any stylesheet rule, in either theme, which is why code blocks
+    # were solid dark regardless of the light/dark/system switcher.
+    # Hextra ships its own theme-aware Chroma stylesheet pair instead
+    # (assets/css/chroma/{light,dark}.css, `.highlight` vs `.dark
+    # .highlight`, both already generated from the "github" style) --
+    # noClasses: false switches Hugo to emit CSS classes so those
+    # actually apply instead of being overridden by inline colors.
+    noClasses: false
   goldmark:
     renderer:
       # The homepage's chart-thumbnail gallery is hand-written HTML
