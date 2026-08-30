@@ -1072,6 +1072,60 @@ struct Plot(Movable):
 
         Returns:
             Self, for further chaining.
+
+        Example (Continuous Color):
+            ```mojo
+            from dataviz_mojo.plot import Plot, save
+
+            def main() raises:
+                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+                var y: List[Float64] = [12.0, 18.0, 15.0, 22.0, 19.0, 25.0, 21.0, 28.0]
+                var temperature: List[Float64] = [58.0, 61.0, 64.0, 70.0, 74.0, 79.0, 82.0, 88.0]
+
+                var plot = (
+                    Plot()
+                    .mark_point()
+                    .encode(x=x, y=y, color=temperature)
+                    .labels(title="Readings by Temperature", subtitle="Color mapped to a continuous variable")
+                )
+                save(plot, "docs/src/examples/out_color_continuous.svg")
+            ```
+
+        Example (Categorical Color):
+            ```mojo
+            from dataviz_mojo.plot import Plot, save
+
+            def main() raises:
+                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+                var y: List[Float64] = [12.0, 9.0, 18.0, 15.0, 22.0, 20.0, 27.0, 25.0]
+                var region: List[String] = ["North", "South", "North", "South", "North", "South", "North", "South"]
+
+                var plot = (
+                    Plot()
+                    .mark_point()
+                    .encode(x=x, y=y, color_categories=region)
+                    .labels(title="Readings by Region", subtitle="Color mapped to a discrete category")
+                )
+                save(plot, "docs/src/examples/out_color_categorical.svg")
+            ```
+
+        Example (Bubble Size):
+            ```mojo
+            from dataviz_mojo.plot import Plot, save
+
+            def main() raises:
+                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+                var y: List[Float64] = [12.0, 18.0, 15.0, 22.0, 19.0, 25.0, 21.0, 28.0]
+                var population: List[Float64] = [4.0, 12.0, 7.0, 20.0, 9.0, 25.0, 15.0, 30.0]
+
+                var plot = (
+                    Plot()
+                    .mark_point()
+                    .encode(x=x, y=y, size=population)
+                    .labels(title="Readings by Population", subtitle="Point size mapped to a continuous variable")
+                )
+                save(plot, "docs/src/examples/out_bubble_size.svg")
+            ```
         """
         self.x_data = x.copy()
         self.y_data = y.copy()
@@ -2094,6 +2148,87 @@ struct Plot(Movable):
 
         Returns:
             Self, for further chaining.
+
+        Example (Custom Typography):
+            ```mojo
+            from dataviz_mojo.plot import Plot, save
+            from dataviz_mojo.theme import Theme
+
+            def main() raises:
+                var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4"]
+                var revenue: List[Float64] = [42.0, 48.0, 55.0, 61.0]
+
+                var plot = (
+                    Plot()
+                    .mark_bar()
+                    .encode_categorical(x=quarters, y=revenue)
+                    .labels(title="Quarterly Revenue")
+                    .theme(Theme(font_family="serif", title_bold=True, title_font_size=24.0))
+                )
+                save(plot, "docs/src/examples/out_theme_typography.svg")
+            ```
+
+        Example (Minimal Theme (No Gridlines/Legend)):
+            ```mojo
+            from dataviz_mojo.plot import Plot, save
+            from dataviz_mojo.theme import Theme
+
+            def main() raises:
+                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+                var y: List[Float64] = [12.0, 9.0, 18.0, 15.0, 22.0, 20.0]
+                var region: List[String] = ["North", "South", "North", "South", "North", "South"]
+
+                var plot = (
+                    Plot()
+                    .mark_point()
+                    .encode(x=x, y=y, color_categories=region)
+                    .labels(title="Readings by Region")
+                    .theme(Theme(show_gridlines=False, show_legend=False))
+                )
+                save(plot, "docs/src/examples/out_theme_minimal.svg")
+            ```
+
+        Example (Custom Margins):
+            ```mojo
+            from dataviz_mojo.plot import Plot, save
+            from dataviz_mojo.theme import Theme
+
+            def main() raises:
+                var categories: List[String] = ["Northeast Region", "Southwest Region", "Central Region"]
+                var values: List[Float64] = [420.0, 310.0, 275.0]
+
+                var plot = (
+                    Plot()
+                    .mark_bar()
+                    .encode_categorical(x=categories, y=values)
+                    .labels(title="Revenue by Region", y_title="Revenue ($K)")
+                    .theme(Theme(margin_bottom=70, margin_left=90))
+                )
+                save(plot, "docs/src/examples/out_theme_margins.svg")
+            ```
+
+        Example (High-DPI Export):
+            ```mojo
+            from dataviz_mojo.plot import Plot, save
+            from dataviz_mojo.theme import Theme
+
+            def main() raises:
+                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
+                var y: List[Float64] = [12.0, 18.0, 15.0, 22.0, 19.0]
+
+                # Twice the pixel size, paired with scale=2.0, renders the
+                # exact same layout at double the pixel density -- crisp at
+                # 2x zoom instead of upscaled and blurry.
+                var plot = (
+                    Plot()
+                    .size(1280, 840)
+                    .mark_line()
+                    .encode(x=x, y=y)
+                    .labels(title="High-Resolution Export")
+                    .theme(Theme(scale=2.0))
+                )
+                save(plot, "docs/src/examples/out_theme_high_dpi.png")
+            ```
         """
         self._theme = t
         return self^
@@ -4175,6 +4310,117 @@ def save_layers(mut plots: List[Plot], path: String) raises:
     `plots` is `mut` purely because `render_layers()` is (supersampling
     -- see its docstring); `save_layers()` never leaves it any
     different than it found it.
+
+    Example (Combo Chart, Shared Axis):
+        ```mojo
+        from dataviz_mojo.plot import Plot, save_layers
+        from dataviz_mojo.colors import CORNFLOWERBLUE, TOMATO
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var months: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+            var actual: List[Float64] = [420.0, 480.0, 450.0, 610.0, 550.0, 580.0]
+            var target: List[Float64] = [400.0, 420.0, 460.0, 500.0, 540.0, 560.0]
+
+            var actual_layer = (
+                Plot()
+                .mark_area()
+                .encode(x=months, y=actual)
+                .theme(Theme(mark_color=CORNFLOWERBLUE))
+                .labels(title="Actual vs. Target Revenue", x_title="Month", y_title="Revenue ($K)")
+            )
+            var target_layer = (
+                Plot()
+                .mark_line()
+                .encode(x=months, y=target)
+                .theme(Theme(mark_color=TOMATO, line_width=3.0))
+            )
+            var plots: List[Plot] = [actual_layer^, target_layer^]
+            save_layers(plots, "docs/src/examples/out_layers_combo.svg")
+        ```
+
+    Example (Best-Fit Trend Line):
+        ```mojo
+        from dataviz_mojo.plot import Plot, save_layers
+        from dataviz_mojo.colors import CORNFLOWERBLUE, TOMATO
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+            var y: List[Float64] = [2.3, 4.1, 3.6, 5.8, 5.1, 7.4, 6.9, 8.2, 9.0, 8.6]
+
+            # Ordinary least squares -- the standard closed-form slope/
+            # intercept for a straight best-fit line through (x, y).
+            var n = Float64(len(x))
+            var sum_x = 0.0
+            var sum_y = 0.0
+            var sum_xy = 0.0
+            var sum_xx = 0.0
+            for i in range(len(x)):
+                sum_x += x[i]
+                sum_y += y[i]
+                sum_xy += x[i] * y[i]
+                sum_xx += x[i] * x[i]
+            var slope = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x)
+            var intercept = (sum_y - slope * sum_x) / n
+
+            var fit_x: List[Float64] = [x[0], x[len(x) - 1]]
+            var fit_y: List[Float64] = [slope * fit_x[0] + intercept, slope * fit_x[1] + intercept]
+
+            var points = (
+                Plot()
+                .mark_point()
+                .encode(x=x, y=y)
+                .theme(Theme(mark_color=CORNFLOWERBLUE))
+                .labels(title="Response Time vs. Load", subtitle="With an ordinary-least-squares best-fit line")
+            )
+            var trend = (
+                Plot()
+                .mark_line()
+                .encode(x=fit_x, y=fit_y)
+                .theme(Theme(mark_color=TOMATO, line_width=2.0))
+            )
+            var plots: List[Plot] = [points^, trend^]
+            save_layers(plots, "docs/src/examples/out_layers_trend.svg")
+        ```
+
+    Example (Indexed-to-100 Comparison):
+        ```mojo
+        from dataviz_mojo.plot import Plot, save_layers
+        from dataviz_mojo.colors import CORNFLOWERBLUE, SEAGREEN
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var months: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+            var product_a: List[Float64] = [80.0, 92.0, 105.0, 98.0, 130.0, 145.0]
+            var product_b: List[Float64] = [4200.0, 4300.0, 4450.0, 4600.0, 4550.0, 4900.0]
+
+            # Index each series to its own first value * 100 so two series
+            # on very different scales become directly comparable growth
+            # curves.
+            var index_a = List[Float64]()
+            for v in product_a:
+                index_a.append(v / product_a[0] * 100.0)
+            var index_b = List[Float64]()
+            for v in product_b:
+                index_b.append(v / product_b[0] * 100.0)
+
+            var layer_a = (
+                Plot()
+                .mark_line()
+                .encode(x=months, y=index_a)
+                .theme(Theme(mark_color=CORNFLOWERBLUE, line_width=3.0))
+                .labels(title="Growth Since January (Indexed to 100)", x_title="Month", y_title="Index (Jan = 100)")
+            )
+            var layer_b = (
+                Plot()
+                .mark_line()
+                .encode(x=months, y=index_b)
+                .theme(Theme(mark_color=SEAGREEN, line_width=3.0))
+            )
+            var plots: List[Plot] = [layer_a^, layer_b^]
+            save_layers(plots, "docs/src/examples/out_layers_indexed.svg")
+        ```
     """
     if len(plots) == 0:
         raise Error("save_layers(): plots must not be empty")
@@ -6135,6 +6381,24 @@ def scatter(
             var c = scatter(x, y)
             save(c, "docs/src/examples/out_scatter.svg")
         ```
+
+    Example (Export to SVG/PNG/BMP):
+        ```mojo
+        from dataviz_mojo import scatter
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
+            var y: List[Float64] = [2.3, 4.1, 3.6, 5.8, 5.1]
+
+            var c = scatter(x, y)
+            # save() picks the format from each path's own extension --
+            # one Plot, three real output files, no separate export step
+            # per format.
+            save(c, "docs/src/examples/out_export_formats.svg")
+            save(c, "docs/src/examples/out_export_formats.png")
+            save(c, "docs/src/examples/out_export_formats.bmp")
+        ```
     """
     var plot = Plot().mark_point().encode(x=x, y=y)
     return _finished(plot^, theme, width, height, title, x_title, y_title)
@@ -6221,6 +6485,25 @@ def line(
                 height=420,
             )
             save(c, "docs/src/examples/out_slope.svg")
+        ```
+
+    Example (Smoothed Line):
+        ```mojo
+        from dataviz_mojo import line
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.colors import CORNFLOWERBLUE
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+            var y: List[Float64] = [12.0, 19.0, 14.0, 25.0, 18.0, 29.0, 22.0, 31.0]
+
+            var c = line(
+                x,
+                y,
+                theme=Theme(mark_color=CORNFLOWERBLUE, line_smoothing=1.0),
+            )
+            save(c, "docs/src/examples/out_line_smoothed.svg")
         ```
     """
     var plot = Plot().mark_line().encode(x=x, y=y)

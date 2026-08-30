@@ -110,6 +110,20 @@ def _titles() -> Dict[String, String]:
     d["annotate_vline"] = "Vertical Reference Line"
     d["annotate_point"] = "Point Marker"
     d["facets"] = "Facets"
+    d["color_continuous"] = "Color by Continuous Variable"
+    d["color_categorical"] = "Color by Category"
+    d["bubble_size"] = "Bubble Size"
+    d["diverging_bar"] = "Diverging Bar (Positive/Negative Color)"
+    d["sorted_bar"] = "Sorted Bars"
+    d["line_smoothing"] = "Smoothed Line"
+    d["typography"] = "Custom Typography"
+    d["minimal_theme"] = "Hiding Gridlines & Legend"
+    d["custom_margins"] = "Custom Margins"
+    d["high_dpi_export"] = "High-DPI Export"
+    d["export_formats"] = "Multi-Format Export"
+    d["combo_chart"] = "Combo Chart (Shared Axis)"
+    d["best_fit_line"] = "Best-Fit Trend Line"
+    d["indexed_100"] = "Indexed-to-100 Comparison"
     return d^
 
 
@@ -211,6 +225,9 @@ def _cookbook() -> Category:
         [
             "annotate_line", "annotate_area", "annotate_vline", "annotate_point", "dual_axis",
             "svg_accessibility", "facets",
+            "color_continuous", "color_categorical", "bubble_size", "diverging_bar", "sorted_bar",
+            "line_smoothing", "typography", "minimal_theme", "custom_margins", "high_dpi_export",
+            "export_formats", "combo_chart", "best_fit_line", "indexed_100",
         ],
     )
 

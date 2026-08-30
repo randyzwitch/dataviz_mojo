@@ -113,6 +113,26 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("dual_axis", "plot", "secondary_axis", is_method=True),
         ExamplePage("svg_accessibility", "plot", "write_accessible_svg"),
         ExamplePage("facets", "plot", "save_facets"),
+        # Cookbook additions: existing-capability recipes, each a named
+        # Example (<heading>): block on the function that already
+        # implements the technique -- no new dataviz_mojo API surface,
+        # just discoverability (see the wiki's Cookbook plan).
+        ExamplePage("color_continuous", "plot", "encode", is_method=True, block="Continuous Color"),
+        ExamplePage("color_categorical", "plot", "encode", is_method=True, block="Categorical Color"),
+        ExamplePage("bubble_size", "plot", "encode", is_method=True, block="Bubble Size"),
+        ExamplePage("diverging_bar", "bar", "bar", block="Diverging bars (color_by_sign)"),
+        ExamplePage("sorted_bar", "bar", "bar", block="Sorted by Value"),
+        ExamplePage("line_smoothing", "plot", "line", block="Smoothed Line"),
+        ExamplePage("typography", "plot", "theme", is_method=True, block="Custom Typography"),
+        ExamplePage(
+            "minimal_theme", "plot", "theme", is_method=True, block="Minimal Theme (No Gridlines/Legend)"
+        ),
+        ExamplePage("custom_margins", "plot", "theme", is_method=True, block="Custom Margins"),
+        ExamplePage("high_dpi_export", "plot", "theme", is_method=True, block="High-DPI Export"),
+        ExamplePage("export_formats", "plot", "scatter", block="Export to SVG/PNG/BMP"),
+        ExamplePage("combo_chart", "plot", "save_layers", block="Combo Chart, Shared Axis"),
+        ExamplePage("best_fit_line", "plot", "save_layers", block="Best-Fit Trend Line"),
+        ExamplePage("indexed_100", "plot", "save_layers", block="Indexed-to-100 Comparison"),
     ]
 
 
@@ -128,10 +148,44 @@ def _hook_overrides() -> Dict[String, String]:
     sentence is comparative ("save()'s render_facets()/
     render_facets_svg() counterpart"), assuming a reader who already
     knows what render_facets() is -- fine inside plot.mojo read
-    alongside it, not as a standalone page's opening line."""
+    alongside it, not as a standalone page's opening line.
+
+    Every cookbook page added alongside color_continuous below needs
+    the same treatment for the same reason: each is one named `Example
+    (<heading>):` variant on a multi-purpose host function (`encode()`,
+    `bar()`, `line()`, `Plot.theme()`, `scatter()`, `save_layers()`),
+    so that function's own first sentence describes the host, not the
+    one technique this specific page is about."""
     var d = Dict[String, String]()
     d["slope"] = "A slope chart."
     d["facets"] = "Lay out several independent Plots in an evenly sized grid."
+    d["color_continuous"] = "Map a continuous data column onto point color via a gradient scale."
+    d["color_categorical"] = "Map a discrete category column onto point color via the categorical palette."
+    d["bubble_size"] = "Map a continuous data column onto point size."
+    d["diverging_bar"] = "Color each bar by whether its value is positive or negative, instead of one flat color."
+    d["sorted_bar"] = (
+        "Sort categories by value before charting them -- encode_categorical() draws bars in exactly the"
+        " order given."
+    )
+    d["line_smoothing"] = (
+        "Curve a line (or an area's top edge) through its data points instead of drawing straight segments."
+    )
+    d["typography"] = "Override the chart's typeface, title weight, and title font size."
+    d["minimal_theme"] = "Turn off gridlines and the legend for a plainer, chart-only look."
+    d["custom_margins"] = "Widen a plot's margins to make room for long axis labels or titles."
+    d["high_dpi_export"] = "Render the same chart at a higher pixel density for a crisp export."
+    d["export_formats"] = (
+        "Write the same Plot to SVG, PNG, and BMP -- save() picks the format from each path's own extension."
+    )
+    d["combo_chart"] = (
+        "Layer two series that share one y-axis and one set of units -- render_layers()'s default, no"
+        " secondary_axis() needed."
+    )
+    d["best_fit_line"] = "Overlay a computed best-fit line as a second layer on top of a scatter plot."
+    d["indexed_100"] = (
+        "Index each series to its own first value so two series on different scales become directly"
+        " comparable."
+    )
     return d^
 
 
