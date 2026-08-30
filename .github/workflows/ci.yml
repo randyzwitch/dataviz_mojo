@@ -129,5 +129,8 @@ jobs:
       - name: Render examples
         run: pixi run example
 
+      - name: Render quickstart tutorial examples
+        run: pixi run example-quickstart
+
       - name: Build docs site
         run: pixi run docs
