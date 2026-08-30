@@ -1,0 +1,42 @@
+/* Site-wide CSS overrides. Hextra ships this exact file, empty, as
+   its own customization hook -- Hugo's module-mount overlay makes
+   this project's copy shadow the theme's, and head.html links it in
+   as its own <style> AFTER compiled/main.css and variables.css, so
+   plain equal-specificity rules here win the cascade without !important.
+
+   Light-theme palette below, evoking The Hartford's classic brand
+   colors (maroon + light blue) per user request -- I couldn't fetch
+   the actual reference image (cleanpng.com blocks non-browser
+   requests), so treat these as a first-pass guess to tune live, not
+   a verified color match.
+
+   Hextra derives its whole primary-50..900 shade ramp (buttons,
+   links, hover rings, badges, search highlight, ...) from three
+   --primary-* HSL variables via calc()-based formulas in the theme's
+   own styles.css, the same mechanism it already uses to shift hue
+   between light/dark (see that file's own :root vs .dark blocks) --
+   overriding the ramp directly instead would desync hover/focus
+   states from the base color, so this only retunes the hue/
+   saturation/lightness inputs into a maroon, the same way the theme
+   itself does.
+
+   Scoped to :root.light specifically -- setTheme() (assets/js/head/
+   theme.js) resolves "system" down to a literal "light"/"dark" class
+   on <html> before anything renders, so `.light` alone (equivalent
+   specificity to the theme's own `.dark` override) covers explicit
+   light AND system-resolved-light, while leaving dark mode exactly
+   as the theme ships it -- this is a light-theme-only request. */
+:root.light {
+  --primary-hue: 345deg;
+  --primary-saturation: 62%;
+  --primary-lightness: 28%;
+}
+
+/* The footer's background (.hextra-footer, hx:bg-gray-100) is a flat
+   Tailwind gray, not derived from --primary-*, so the hue retune above
+   doesn't touch it -- same light-blue tint used on the homepage's own
+   gallery/chart-preview cards (docs/src/_index.md), for one consistent
+   accent across the site rather than two different blues. */
+:root.light .hextra-footer {
+  background-color: #eaf5fa;
+}
