@@ -320,10 +320,17 @@ def main() raises:
             # extracts and runs it verbatim, see pixi.toml's `example`
             # task), unrelated to which docs/src/ directory this
             # script writes the *page* into -- moving the six pages
-            # doesn't move those files, so the image reference needs
-            # the ../examples/ prefix to still find them from one
-            # directory over.
-            var page_md = _build_page(p.name, titles[p.name], p, image_prefix="../examples/")
+            # doesn't move those files, so the image reference needs a
+            # relative prefix back to them. Two levels, not one: a
+            # cookbook page's own published URL is /cookbook/<name>/,
+            # two path segments below the site root, vs. quickstart.md
+            # (one segment, /quickstart/, correctly just "../examples/"
+            # for that page's own images) -- one ".." only pops back to
+            # /cookbook/, landing on the non-existent /cookbook/
+            # examples/... instead of /examples/... (caught by hand:
+            # the wrong path still 404s quietly, an <img> with a dead
+            # src doesn't fail the build).
+            var page_md = _build_page(p.name, titles[p.name], p, image_prefix="../../examples/")
             _write_file(_COOKBOOK_OUT_DIR + "/" + p.name + ".md", page_md)
         else:
             var page_md = _build_page(p.name, titles[p.name], p)
