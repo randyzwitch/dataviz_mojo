@@ -1,7 +1,8 @@
-"""Generates docs/src/examples/*.md straight from dataviz_mojo/*.mojo's
-own docstrings -- run as part of `pixi run docs` (see pixi.toml),
-before `mojo doc`/`modo build`, so a new `Example:` docstring section
-automatically gets a docs page without anyone hand-writing one.
+"""Generates docs/src/examples/*.md and docs/src/cookbook/*.md straight
+from dataviz_mojo/*.mojo's own docstrings -- run as part of `pixi run
+docs` (see pixi.toml), before `mojo doc`/`modo build`, so a new
+`Example:` docstring section automatically gets a docs page without
+anyone hand-writing one.
 
 The actual per-function docstring parsing (`_pages()`'s master list,
 `_quickplot_hook()`, `_extract_args_lines()`, `_extract_example_
@@ -11,19 +12,24 @@ that compiles and runs every one of the same `Example:` blocks this
 file only reads) -- see that module's own docstring for the full
 picture of how a page's content maps back to one function's docstring.
 
-This file itself only does two things: `_titles()`/`_categories()`
-below, the hand-curated title/navigation-grouping metadata every docs
-page needs beyond what any docstring could reasonably say about
-itself, and `_build_page()`/`main()`, which assemble that metadata plus
-`_example_docstrings.mojo`'s extracted content into the final markdown.
+This file itself only does two things: `_titles()`/`_categories()`/
+`_cookbook()` below, the hand-curated title/navigation-grouping
+metadata every docs page needs beyond what any docstring could
+reasonably say about itself, and `_build_page()`/`main()`, which
+assemble that metadata plus `_example_docstrings.mojo`'s extracted
+content into the final markdown -- two top-level pages' worth
+(Examples' own many categories, Cookbook's one flat list), not just
+one, see `_cookbook()`'s own docstring for why a whole separate page
+rather than a category on Examples.
 
 Adding a new example: add its function's own `Example:` section, then
 add it to `_example_docstrings.mojo`'s `_pages()`, to `_titles()`
-below, and to exactly one category in `_categories()` below --
-`main()`'s own assertions catch a missing entry either way (a function
-with no category, or a category referencing a name that doesn't
-exist) rather than silently skipping it or crashing deep in string
-formatting.
+below, and to exactly one category in `_categories()` below OR to
+`_cookbook()`'s own list (not both) -- `main()`'s own assertions catch
+a missing/misplaced entry either way (a function placed nowhere, in
+two places at once, or a category/cookbook entry referencing a name
+that doesn't exist) rather than silently skipping it or crashing deep
+in string formatting.
 
 A Mojo script, not Python -- this repo's own tooling stays in the
 language it's showcasing, string-matching primitives (`.strip()`,
@@ -47,6 +53,7 @@ from _example_docstrings import (
 )
 
 comptime _OUT_DIR = "docs/src/examples"
+comptime _COOKBOOK_OUT_DIR = "docs/src/cookbook"
 
 
 def _titles() -> Dict[String, String]:
@@ -117,30 +124,17 @@ struct Category(Copyable, Movable):
 
 
 def _categories() -> List[Category]:
-    # Every example here (except the last category) is a distinct,
-    # recognizable chart type -- no feature demos (facets, layers,
-    # titles, dynamic margins, color/size encoding, line/area
-    # smoothing) mixed in among them; those are real dataviz_mojo
-    # capabilities, just not chart types of their own, so they live in
-    # the wiki/API reference instead of the Examples gallery.
-    # annotate_line, svg_accessibility, annotate_area, dual_axis,
-    # annotate_vline, and annotate_point are the six exceptions: unlike
-    # facets/layers/titles, none has a simpler existing example to
-    # piggyback on -- none of Plot.annotate_line(), Plot.
-    # annotate_area(), Plot.annotate_vline(), Plot.annotate_point(), or
-    # Plot.secondary_axis() is exposed on any quickplot function, and
-    # accessible_svg_string()/write_accessible_svg() are a standalone
-    # SVG-writing utility with no Plot method of their own at all (see
-    # each one's own docstring) -- so there's no other "how do I use
-    # this" page anywhere else in these docs. They used to be filed
-    # under whichever category their own example's mark happened to
-    # belong to instead (a chart-type category being the only kind
-    # that existed yet), which read as clutter once the gallery grew --
-    # a scatter/bar/etc. reader expects every entry to be a distinct
-    # chart shape, not "how to add a reference line to one you already
-    # have." "Cookbook" (last, below) is that missing "how do I use
-    # this" home instead: one-off customization techniques applied to
-    # a plot, not chart types in their own right.
+    # Every example here is a distinct, recognizable chart type -- no
+    # feature demos (facets, layers, titles, dynamic margins, color/
+    # size encoding, line/area smoothing) mixed in among them; those
+    # are real dataviz_mojo capabilities, just not chart types of their
+    # own. annotate_line, svg_accessibility, annotate_area, dual_axis,
+    # annotate_vline, and annotate_point used to be the exceptions,
+    # filed under whichever category their own example's mark happened
+    # to belong to (a chart-type category being the only kind that
+    # existed yet) -- see `_cookbook()` below for where they live now,
+    # and why a whole separate top-level page instead of a category on
+    # this one.
     var cats = List[Category]()
     cats.append(Category(
         "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
@@ -184,7 +178,31 @@ def _categories() -> List[Category]:
         " see Plot.encode_hierarchy().",
         ["sunburst", "tree", "treemap"],
     ))
-    cats.append(Category(
+    return cats^
+
+
+def _cookbook() -> Category:
+    """The Cookbook page's own single flat list -- one-off techniques
+    for customizing a plot you already have (a reference line/band/
+    point marker, a second y-axis, accessible SVG output), not chart
+    types in their own right. Used to be a category on the Examples
+    page itself, tacked onto whichever chart-type category each
+    one's own example happened to fit best -- read as clutter once
+    the gallery grew (a scatter/bar/etc. reader expects every entry in
+    a chart-type category to be a distinct chart shape, not "how do I
+    add a reference line to one of these"), and still didn't read as
+    its own *kind* of content the way Examples/API reference/Quickstart
+    each do. A full top-level page instead, alongside those three, not
+    just its own category on this one -- same `docs/site/hugo.yaml`
+    top-nav/left-sidebar treatment as Examples, see `main()` below for
+    the `_index.md` it writes.
+
+    A `Category` like the rest of `_categories()`'s list, not a
+    distinct type, since `main()` builds an `_index.md` from one
+    exactly the same way either page needs -- one category with every
+    name, unlike Examples' many.
+    """
+    return Category(
         "Cookbook",
         "One-off techniques for customizing a plot you already have -- not chart types of their own,"
         " so each is filed by what it does rather than what it looks like.",
@@ -192,11 +210,10 @@ def _categories() -> List[Category]:
             "annotate_line", "annotate_area", "annotate_vline", "annotate_point", "dual_axis",
             "svg_accessibility",
         ],
-    ))
-    return cats^
+    )
 
 
-def _build_page(name: String, title: String, page: ExamplePage) raises -> String:
+def _build_page(name: String, title: String, page: ExamplePage, image_prefix: String = "") raises -> String:
     var hook_overrides = _hook_overrides()
     var hook: String
     if name in hook_overrides:
@@ -229,7 +246,7 @@ def _build_page(name: String, title: String, page: ExamplePage) raises -> String
 
     var is_first = True
     for block in blocks:
-        var image = _output_svg_name(block.lines)
+        var image = image_prefix + _output_svg_name(block.lines)
         if is_first:
             out.append("![" + title + "](" + image + ")")
             out.append("")
@@ -268,24 +285,49 @@ def main() raises:
         all_names.append(p.name)
     sort(all_names)
 
+    var cookbook = _cookbook()
+
     var categorized = List[String]()
     for cat in categories:
         for n in cat.names:
+            if n in categorized:
+                raise Error("Example placed in more than one category: " + n)
             categorized.append(n)
+    for n in cookbook.names:
+        if n in categorized:
+            raise Error("Example placed in both a category and the cookbook: " + n)
+        categorized.append(n)
 
     for n in all_names:
         if n not in categorized:
-            raise Error("Example not placed in any category: " + n)
+            raise Error("Example not placed in any category or the cookbook: " + n)
     for n in categorized:
         if n not in all_names:
-            raise Error("Category references a non-existent example: " + n)
+            raise Error("Category/cookbook references a non-existent example: " + n)
     for n in all_names:
         if n not in titles:
             raise Error("Example has no title: " + n)
 
     for p in pages:
-        var page_md = _build_page(p.name, titles[p.name], p)
-        _write_file(_OUT_DIR + "/" + p.name + ".md", page_md)
+        if p.name in cookbook.names:
+            # Cookbook pages live in their own top-level docs/src/
+            # cookbook/ directory (own top-nav/sidebar entry, same
+            # treatment as Examples -- see the _index.md written
+            # below), but their rendered .svg files still land under
+            # docs/src/examples/out_*.svg: that path comes straight
+            # from each Example: docstring's own hardcoded save() call
+            # in dataviz_mojo/*.mojo (extract_docstring_examples.mojo
+            # extracts and runs it verbatim, see pixi.toml's `example`
+            # task), unrelated to which docs/src/ directory this
+            # script writes the *page* into -- moving the six pages
+            # doesn't move those files, so the image reference needs
+            # the ../examples/ prefix to still find them from one
+            # directory over.
+            var page_md = _build_page(p.name, titles[p.name], p, image_prefix="../examples/")
+            _write_file(_COOKBOOK_OUT_DIR + "/" + p.name + ".md", page_md)
+        else:
+            var page_md = _build_page(p.name, titles[p.name], p)
+            _write_file(_OUT_DIR + "/" + p.name + ".md", page_md)
 
     var idx = List[String]()
     idx.append("---")
@@ -323,4 +365,32 @@ def main() raises:
         idx.append("")
     _write_file(_OUT_DIR + "/_index.md", String("\n").join(idx))
 
-    print("Wrote", len(all_names), "example pages + _index.md to", _OUT_DIR)
+    # Weight 300 -- between Examples (200) and modo's own dataviz_mojo/
+    # _index.md (400, pinned to title "API Reference" post-build, see
+    # pixi.toml's own docs-build task) -- puts Cookbook's left-sidebar/
+    # top-nav entry (docs/site/hugo.yaml) right after Examples, ahead of
+    # the API reference, the same weight-drives-sidebar-order mechanism
+    # Quickstart/Examples/API reference already use (see pixi.toml's
+    # own comment next to docs-build for the fuller picture).
+    var cookbook_idx = List[String]()
+    cookbook_idx.append("---")
+    cookbook_idx.append("title: Cookbook")
+    cookbook_idx.append("type: docs")
+    cookbook_idx.append("weight: 300")
+    cookbook_idx.append("cascade:")
+    cookbook_idx.append("  type: docs")
+    cookbook_idx.append("---")
+    cookbook_idx.append("")
+    cookbook_idx.append(
+        "Techniques for customizing a plot you already have -- a reference "
+        "line/band/point marker, a second y-axis, accessible SVG output -- "
+        "rather than a distinct chart type of its own. See "
+        "[Examples](../examples/) for the chart-type gallery these apply to."
+    )
+    cookbook_idx.append("")
+    for n in cookbook.names:
+        cookbook_idx.append("- [" + titles[n] + "](" + n + "/)")
+    cookbook_idx.append("")
+    _write_file(_COOKBOOK_OUT_DIR + "/_index.md", String("\n").join(cookbook_idx))
+
+    print("Wrote", len(all_names), "example pages + _index.md to", _OUT_DIR, "and", _COOKBOOK_OUT_DIR)

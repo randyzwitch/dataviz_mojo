@@ -51,6 +51,11 @@ docs/src/examples/*
 !docs/src/examples/quickstart
 docs/src/examples/quickstart/*
 !docs/src/examples/quickstart/*.mojo
+# docs/src/cookbook/ is the same story as docs/src/examples/ above --
+# entirely generated, by the same scripts/gen_example_docs.mojo, just
+# its own top-level docs page now instead of a category tacked onto
+# Examples (see that script's own _cookbook() docstring for why).
+docs/src/cookbook/
 docs/site/content/
 docs/site/public/
 docs/site/*.lock
