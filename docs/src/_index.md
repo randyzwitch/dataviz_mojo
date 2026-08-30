@@ -137,6 +137,29 @@ p:not([class]) {
   font-size: 0.875rem;
   opacity: 0.7;
 }
+/* Light-blue card treatment to go with docs/site/assets/css/
+   custom.css's maroon primary override -- same light-mode-only scope
+   (`:root.light`) and same "first pass, tune live" caveat as that
+   file's own comment explains. Raw hex rather than currentColor-mix
+   here (unlike the neutral base rules above) since a specific blue
+   needs to survive regardless of surrounding text color; dark mode
+   keeps the neutral base rules untouched. */
+:root.light .dvm-gallery a {
+  border-color: #b8dcec;
+}
+:root.light .dvm-gallery a:hover {
+  border-color: #6fa8c9;
+}
+:root.light .dvm-gallery .dvm-thumb {
+  background: #eaf5fa;
+}
+:root.light .dvm-chart-preview {
+  background: #eaf5fa;
+  border-color: #b8dcec;
+}
+:root.light h2 {
+  border-bottom-color: #b8dcec;
+}
 /* "A first chart"'s code sample paired with the actual chart it
    produces, side by side -- half-width each on desktop, stacked on
    mobile. examples/out_scatter.svg is real pipeline output (`scatter(x,
