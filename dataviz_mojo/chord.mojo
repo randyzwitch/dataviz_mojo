@@ -198,6 +198,21 @@ def chord(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import chord
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var from_regions: List[String] = ["North", "North", "South", "East", "West"]
+            var to_regions: List[String] = ["South", "East", "West", "West", "North"]
+            var trade_volume: List[Float64] = [12.0, 8.0, 15.0, 6.0, 10.0]
+
+            var c = chord(from_regions, to_regions, trade_volume)
+            save(c, "docs/src/examples/out_chord.svg")
+        ```
     """
     var plot = Plot().mark_chord().encode_chord(
         from_categories=from_categories, to_categories=to_categories, values=values

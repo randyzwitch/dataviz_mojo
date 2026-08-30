@@ -274,6 +274,26 @@ def box(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import box
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.colors import ROYALBLUE
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var groups: List[String] = ["Group A", "Group B", "Group C", "Group D"]
+            var scores: List[List[Float64]] = [
+                [72.0, 75.0, 78.0, 80.0, 81.0, 83.0, 85.0, 88.0, 90.0],
+                [60.0, 65.0, 68.0, 70.0, 72.0, 74.0, 77.0, 79.0],
+                [55.0, 70.0, 73.0, 75.0, 76.0, 78.0, 80.0, 82.0, 20.0],
+                [82.0, 84.0, 85.0, 86.0, 87.0, 88.0, 89.0, 91.0, 93.0],
+            ]
+
+            var c = box(groups, scores, theme=Theme(mark_color=ROYALBLUE))
+            save(c, "docs/src/examples/out_box.svg")
+        ```
     """
     var plot = Plot().mark_box().encode_boxplot(categories=categories, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

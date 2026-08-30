@@ -43,13 +43,13 @@ automatically, no `-I` flag needed for either package.
 
 ```sh
 pixi run test      # tests/*.mojo
-pixi run example   # examples/*.mojo, writes examples/out_*.{bmp,png,svg}
+pixi run example   # every dataviz_mojo/*.mojo `Example:` docstring section, writes docs/src/examples/out_*.svg
 pixi run docs      # regenerates docs/ (served via GitHub Pages) -- run `example` first
 ```
 
 `docs/` also regenerates and deploys itself automatically to GitHub
 Pages (`.github/workflows/docs-deploy.yml`) whenever a push to `main`
-touches `dataviz_mojo/`, `examples/`, or `docs/_src/` -- manual
+touches `dataviz_mojo/` or `docs/_src/` -- manual
 `pixi run docs` is for previewing locally before you push, not
 required to keep the site in sync. PRs get a status-only docs build
 (the `docs-build` job in `.github/workflows/ci.yml`) that proves the

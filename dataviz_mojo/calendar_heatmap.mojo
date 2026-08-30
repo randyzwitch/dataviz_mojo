@@ -293,6 +293,26 @@ def calendar_heatmap(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import calendar_heatmap
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var dates = List[String]()
+            var values = List[Float64]()
+            var days_in_month: List[Int] = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+            for month in range(1, 13):
+                var month_str = "0" + String(month) if month < 10 else String(month)
+                for day in range(1, days_in_month[month - 1] + 1):
+                    var day_str = "0" + String(day) if day < 10 else String(day)
+                    dates.append(String(2024) + "-" + month_str + "-" + day_str)
+                    values.append(Float64((day * 7 + month) % 10))
+
+            var c = calendar_heatmap(dates, values, width=900, height=250)
+            save(c, "docs/src/examples/out_calendar_heatmap.svg")
+        ```
     """
     var plot = Plot().mark_calendar_heatmap().encode_calendar(dates=dates, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

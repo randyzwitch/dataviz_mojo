@@ -216,6 +216,24 @@ def streamgraph(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import streamgraph
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var years: List[String] = ["2020", "2021", "2022", "2023", "2024"]
+            var genres: List[String] = ["Pop", "Rock", "Jazz"]
+            var listens: List[List[Float64]] = [
+                [30.0, 40.0, 55.0, 60.0, 50.0],
+                [45.0, 35.0, 30.0, 25.0, 20.0],
+                [10.0, 15.0, 12.0, 18.0, 25.0],
+            ]
+
+            var c = streamgraph(years, genres, listens)
+            save(c, "docs/src/examples/out_streamgraph.svg")
+        ```
     """
     var t = theme
     t.line_smoothing = smoothing

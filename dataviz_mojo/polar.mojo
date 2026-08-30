@@ -294,6 +294,35 @@ def polar(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from std.math import pi, sin
+
+        from dataviz_mojo import polar
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var angle = List[Float64]()
+            var radius = List[Float64]()
+            var steps = 200
+            for i in range(steps + 1):
+                var theta = 2.0 * pi * Float64(i) / Float64(steps)
+                var r = sin(2.0 * theta)
+                # A negative r has no polar meaning on its own -- fold it into
+                # the opposite direction (theta + pi) instead, the standard
+                # way a signed polar radius is plotted, so the curve's negative lobes still draw rather than getting clipped by
+                # encode_polar()'s non-negative-radius validation.
+                if r < 0.0:
+                    angle.append(theta + pi)
+                    radius.append(-r)
+                else:
+                    angle.append(theta)
+                    radius.append(r)
+
+            var c = polar(angle, radius)
+            save(c, "docs/src/examples/out_polar.svg")
+        ```
     """
     var plot = Plot().mark_polar().encode_polar(angle=angle, radius=radius)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
@@ -341,6 +370,27 @@ def polar_series(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from std.math import pi
+
+        from dataviz_mojo import polar_series
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var angle = List[Float64]()
+            for i in range(12):
+                angle.append(2.0 * pi * Float64(i) / 12.0)
+
+            var names: List[String] = ["Miami", "Phoenix"]
+            var miami: List[Float64] = [68.0, 69.0, 72.0, 76.0, 80.0, 83.0, 84.0, 85.0, 84.0, 80.0, 74.0, 69.0]
+            var phoenix: List[Float64] = [57.0, 61.0, 66.0, 75.0, 84.0, 95.0, 97.0, 95.0, 90.0, 78.0, 65.0, 56.0]
+            var values: List[List[Float64]] = [miami.copy(), phoenix.copy()]
+
+            var c = polar_series(angle, names, values)
+            save(c, "docs/src/examples/out_polar_series.svg")
+        ```
     """
     var plot = Plot().mark_polar().encode_polar_series(
         angle=angle, series_names=series_names, series_values=series_values

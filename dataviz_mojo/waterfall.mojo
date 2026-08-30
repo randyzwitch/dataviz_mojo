@@ -274,6 +274,21 @@ def waterfall(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import waterfall
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var stages: List[String] = ["Starting", "Revenue", "COGS", "Opex", "Tax", "One-off", "Ending"]
+            var deltas: List[Float64] = [50.0, 32.0, -18.0, -12.0, -6.0, 4.0, 0.0]
+            var is_total: List[Bool] = [True, False, False, False, False, False, True]
+
+            var c = waterfall(stages, deltas, is_total=is_total)
+            save(c, "docs/src/examples/out_waterfall.svg")
+        ```
     """
     var plot = Plot().mark_waterfall().encode_waterfall(categories=categories, deltas=deltas, is_total=is_total)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

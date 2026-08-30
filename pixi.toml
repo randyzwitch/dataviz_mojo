@@ -12,15 +12,20 @@ hugo = ">=0.165.0,<0.166"
 go = ">=1.26.7,<2"
 
 [tasks]
-# Both tasks below run every file in parallel via scripts/run_parallel.sh
+# `test` runs every file in parallel via scripts/run_parallel.sh
 # (capped at the machine's own CPU count -- see that script's own
 # docstring) instead of one `mojo run` per file chained with `&&`:
 # each `mojo run` process pays Mojo's own from-source recompile cost
 # independently (no shared build cache across files), so this whole
 # suite was dominated by that fixed per-file cost times the file count,
 # not real work -- exactly what running the independent, unrelated
-# files in parallel fixes. Same script both tasks share (see its own
-# docstring for why one script, not two, works for both).
+# files in parallel fixes. `example` shares the same script, over a
+# dynamic file list `extract_docstring_examples.mojo` writes first
+# (see that script's own docstring) rather than a hand-maintained one:
+# every `Example:` docstring section becomes its own real, compiled,
+# run `.mojo` program under docs/src/examples/, the same load-bearing-
+# test role `examples/*.mojo` used to have before #131 moved each
+# one's runnable code into its own function's docstring.
 #
 # `test`'s own file order is deliberately NOT alphabetical -- most-
 # expensive-first, the same "longest job first" scheduling heuristic
@@ -38,44 +43,43 @@ go = ">=1.26.7,<2"
 # matter (a new test file added at the end is always at least
 # functionally correct, just not optimally placed -- true right now for
 # beeswarm/violin/ridgeline below, added after this ranking was
-# measured). `example`'s own order mirrors the same ranking, by each
-# file's own equivalent test file (`examples/bar.mojo` follows test_
-# bar.mojo's own rank, etc.) -- examples don't
-# print their own per-file timing the way test's own Summary lines do,
-# so this is a reasonable proxy (the same render code, same cost
-# profile), not independently measured. Matters far less locally (this
-# machine's own core count comfortably exceeds either file count), but
-# costs nothing to get right for CI too.
-example = "bash scripts/run_parallel.sh examples/line.mojo examples/slope.mojo examples/scatter.mojo examples/bar.mojo examples/area.mojo examples/waterfall.mojo examples/effect_scatter.mojo examples/stacked_bar.mojo examples/grouped_bar.mojo examples/lollipop.mojo examples/heatmap.mojo examples/streamgraph.mojo examples/population_pyramid.mojo examples/box.mojo examples/gantt.mojo examples/histogram.mojo examples/single_axis.mojo examples/bullet.mojo examples/pie.mojo examples/candlestick.mojo examples/bump.mojo examples/chord.mojo examples/funnel.mojo examples/beeswarm.mojo examples/violin.mojo examples/ridgeline.mojo examples/nightingale.mojo examples/polarbar.mojo examples/polar.mojo examples/polar_series.mojo examples/radar.mojo examples/gauge.mojo examples/parallel.mojo examples/span_chart.mojo examples/calendar_heatmap.mojo examples/corrplot.mojo examples/punchcard.mojo examples/marimekko.mojo examples/sunburst.mojo examples/tree.mojo examples/treemap.mojo examples/arc_diagram.mojo examples/graph.mojo examples/sankey.mojo examples/radialbar.mojo examples/annotate_line.mojo examples/svg_accessibility.mojo examples/annotate_area.mojo examples/dual_axis.mojo examples/annotate_vline_point.mojo"
+# measured). `example`'s own file order is left to `extract_docstring_
+# examples.mojo`'s own `_pages()` order (`_example_docstrings.mojo`) --
+# there's no equivalent per-file timing to rank it by any more now that
+# it isn't a fixed, hand-maintained list.
+example = "mkdir -p docs/src/examples && rm -f docs/src/examples/*.mojo docs/src/examples/out_* && mojo run -I . -I scripts scripts/extract_docstring_examples.mojo && bash scripts/run_parallel.sh docs/src/examples/*.mojo"
 test = "bash scripts/run_parallel.sh tests/test_quickplot.mojo tests/test_facets.mojo tests/test_line.mojo tests/test_layers.mojo tests/test_legends.mojo tests/test_point.mojo tests/test_theme.mojo tests/test_labels.mojo tests/test_bar.mojo tests/test_area.mojo tests/test_core.mojo tests/test_margins.mojo tests/test_waterfall.mojo tests/test_effect_scatter.mojo tests/test_stacked_bar.mojo tests/test_grouped_bar.mojo tests/test_lollipop.mojo tests/test_heatmap.mojo tests/test_streamgraph.mojo tests/test_population_pyramid.mojo tests/test_box.mojo tests/test_gantt.mojo tests/test_histogram.mojo tests/test_single_axis.mojo tests/test_bullet.mojo tests/test_arc.mojo tests/test_colors.mojo tests/test_candlestick.mojo tests/test_bump.mojo tests/test_chord.mojo tests/test_funnel.mojo tests/test_scale.mojo tests/test_ordinal_scale.mojo tests/test_color_scale.mojo tests/test_beeswarm.mojo tests/test_violin.mojo tests/test_ridgeline.mojo tests/test_nightingale.mojo tests/test_polar_bar.mojo tests/test_polar.mojo tests/test_radar.mojo tests/test_gauge.mojo tests/test_parallel.mojo tests/test_span_chart.mojo tests/test_calendar_heatmap.mojo tests/test_corrplot.mojo tests/test_punchcard.mojo tests/test_marimekko.mojo tests/test_sunburst.mojo tests/test_tree.mojo tests/test_treemap.mojo tests/test_arc_diagram.mojo tests/test_graph.mojo tests/test_sankey.mojo tests/test_radialbar.mojo tests/test_annotate.mojo tests/test_svg_accessibility.mojo tests/test_annotate_area.mojo tests/test_secondary_axis.mojo tests/test_secondary_axis_caption.mojo tests/test_annotate_facets_layers.mojo tests/test_annotate_vline_point.mojo"
 # Regenerates docs/site/content (nothing docs-build itself produces is
 # committed -- not that, not docs/site/public further downstream, not
-# docs/src/examples/, scripts/gen_example_docs.mojo's own output +
-# copied images). Everything deployed by docs/docs-serve below is
-# deployed straight to GitHub Pages by .github/workflows/docs.yml's
-# own Actions-based deploy, regenerated fresh each time. Only
-# docs/src/_index.md (the hand-written landing page), docs/modo.yaml,
-# and docs/site/'s own Hugo project files (hugo.yaml, go.mod/go.sum)
-# are real, committed source -- see docs/modo.yaml's own comments for
-# the Hugo-over-plain-markdown reasoning, and gen_example_docs.mojo's own
-# docstring for how it turns examples/*.mojo into docs/src/examples/
-# pages (a Mojo script, not Python -- this repo's own tooling stays in
-# the language it's showcasing). Assumes `pixi run example` has
-# already been run at least once (copies its output images rather
-# than re-rendering them itself, the same "separate, independently-
-# invoked task" split this file's own example/test tasks already
-# have). The trailing `sed` patches modo's own generated dataviz_mojo/
-# _index.md front matter: modo always emits `weight: 400` for a
-# package's own root section, with no config flag to change it (`modo
-# build --help` has nothing for it, and there's no local modo source
-# to safely override via `--templates`), which sorted it *after*
+# docs/src/examples/, gen_example_docs.mojo's own output). Everything
+# deployed by docs/docs-serve below is deployed straight to GitHub
+# Pages by .github/workflows/docs.yml's own Actions-based deploy,
+# regenerated fresh each time. Only docs/src/_index.md (the hand-
+# written landing page), docs/modo.yaml, and docs/site/'s own Hugo
+# project files (hugo.yaml, go.mod/go.sum) are real, committed source
+# -- see docs/modo.yaml's own comments for the Hugo-over-plain-markdown
+# reasoning, and gen_example_docs.mojo's own docstring for how it turns
+# dataviz_mojo/*.mojo's own `Example:` docstring sections into docs/
+# src/examples/ pages (a Mojo script, not Python -- this repo's own
+# tooling stays in the language it's showcasing). Assumes `pixi run
+# example` has already been run at least once -- that's what actually
+# renders docs/src/examples/out_*.svg and writes each extracted
+# `Example:` program's own *.mojo there too (this task only ever
+# removes *.md there, never touches *.svg/*.png/*.bmp/*.mojo, the same
+# "separate, independently-invoked task" split this file's own
+# example/test tasks already have). The trailing `sed` patches modo's
+# own generated
+# dataviz_mojo/_index.md front matter: modo always emits `weight: 400`
+# for a package's own root section, with no config flag to change it
+# (`modo build --help` has nothing for it, and there's no local modo
+# source to safely override via `--templates`), which sorted it *after*
 # Examples (weight: 200) in Hextra's left sidebar -- API reference
 # before Examples reads better, so this pins it to 150 post-build
 # instead. A one-line `sed` on a single front-matter field, not a
 # script of its own -- see gen_example_docs.mojo's own docstring for
 # why anything with real logic in this pipeline is Mojo, not shell.
 docs-install = "bash scripts/install-modo.sh"
-docs-build = { cmd = "rm -rf docs/site/content docs/site/public docs/src/examples && mkdir -p docs/src/examples && mojo run -I . scripts/gen_example_docs.mojo && cp examples/out_*.png examples/out_*.svg docs/src/examples/ && mojo doc -I . -o docs/src/dataviz_mojo.json dataviz_mojo && .tools/modo build docs -c modo.yaml && sed -i 's/^weight: 400$/weight: 150/' docs/site/content/dataviz_mojo/_index.md", depends-on = [
+docs-build = { cmd = "rm -rf docs/site/content docs/site/public && mkdir -p docs/src/examples && rm -f docs/src/examples/*.md && mojo run -I . -I scripts scripts/gen_example_docs.mojo && mojo doc -I . -o docs/src/dataviz_mojo.json dataviz_mojo && .tools/modo build docs -c modo.yaml && sed -i 's/^weight: 400$/weight: 150/' docs/site/content/dataviz_mojo/_index.md", depends-on = [
     "docs-install",
 ] }
 # One-shot build into docs/site/public -- what docs-deploy.yml

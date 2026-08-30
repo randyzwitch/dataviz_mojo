@@ -180,6 +180,24 @@ def ridgeline(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import ridgeline
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var months: List[String] = ["June", "July", "August", "September"]
+            var temps: List[List[Float64]] = [
+                [68.0, 70.0, 72.0, 74.0, 71.0, 69.0, 75.0, 73.0],
+                [78.0, 80.0, 82.0, 85.0, 79.0, 81.0, 83.0, 84.0],
+                [80.0, 82.0, 84.0, 86.0, 81.0, 83.0, 85.0, 87.0],
+                [70.0, 72.0, 74.0, 76.0, 71.0, 73.0, 75.0, 69.0],
+            ]
+
+            var c = ridgeline(months, temps)
+            save(c, "docs/src/examples/out_ridgeline.svg")
+        ```
     """
     var plot = Plot().mark_ridgeline(bandwidth=bandwidth, scale_by_count=scale_by_count).encode_distribution(
         categories=categories, values=values

@@ -37,11 +37,12 @@ jobs:
       # by default; test_labels.mojo/test_theme.mojo exercise
       # draw_text()/measure_text() directly), so this is a real runtime
       # requirement for `pixi run test` on its own, independent of
-      # examples/ -- examples/*.mojo don't render in this job at all
-      # (see the docs-build job below: examples exist to feed the docs
-      # site's gallery, not this package's own test signal, so
-      # rendering them lives entirely in the docs pipeline, run once
-      # there rather than a second time here). libfreetype used to be
+      # `pixi run example` -- that doesn't render in this job at all
+      # (see the docs-build job below: dataviz_mojo/*.mojo's own
+      # `Example:` docstring sections exist to feed the docs site's
+      # gallery, not this package's own test signal, so rendering them
+      # lives entirely in the docs pipeline, run once there rather than
+      # a second time here). libfreetype used to be
       # installed here too, but canvas_mojo v0.1.0 (this package's
       # now-tagged dependency, see pixi.toml) replaced its own FreeType
       # FFI binding with a native TrueType parser (canvas_mojo/text/
@@ -78,10 +79,12 @@ jobs:
   # (docs.yml, deleted) that called the same reusable docs-build.yml
   # push-to-main deploys still use (docs-deploy.yml). Folded in here
   # instead, as its own job rather than a step tacked onto `test`
-  # above, deliberately: examples/*.mojo exist to feed this package's
-  # docs site (its gallery images, and the snippets gen_example_docs.
-  # mojo extracts from them), not this repo's own test signal -- `pixi
-  # run example` used to run inside the `test` job on every push/PR
+  # above, deliberately: every quickplot function's/Plot method's own
+  # `Example:` docstring section (dataviz_mojo/*.mojo) exists to feed
+  # this package's docs site (its gallery images, and the snippets
+  # gen_example_docs.mojo extracts from them via extract_docstring_
+  # examples.mojo), not this repo's own test signal -- `pixi run
+  # example` used to run inside the `test` job on every push/PR
   # regardless of whether anything docs-relevant even changed, which
   # both muddied what `test` actually verifies (real assertions vs.
   # "did every example still render") and meant every PR paid its
@@ -112,8 +115,9 @@ jobs:
 
       # Same runtime requirement as `test`'s own identical step -- see
       # its comment for the full "why fontconfig, not freetype" story.
-      # Needed here specifically because this job renders examples/
-      # itself (below), which draw real text same as tests do.
+      # Needed here specifically because this job renders every
+      # `Example:` docstring section itself (below), which draw real
+      # text same as tests do.
       - name: Install libfontconfig and test fonts (Linux)
         run: sudo apt-get update && sudo apt-get install -y libfontconfig1 fonts-dejavu-core
 

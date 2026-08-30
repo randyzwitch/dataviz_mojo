@@ -194,6 +194,20 @@ def population_pyramid(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import population_pyramid
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var age_bands: List[String] = ["0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70+"]
+            var male: List[Float64] = [12.0, 13.0, 14.0, 12.5, 10.0, 8.5, 6.0, 4.0]
+            var female: List[Float64] = [11.5, 12.5, 13.5, 12.0, 10.5, 9.0, 7.0, 5.5]
+
+            var c = population_pyramid(age_bands, male, female, left_name="Male", right_name="Female")
+            save(c, "docs/src/examples/out_population_pyramid.svg")
+        ```
     """
     var plot = Plot().mark_population_pyramid().encode_population_pyramid(
         categories=categories,

@@ -161,6 +161,20 @@ def graph(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import graph
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var from_people: List[String] = ["Alice", "Alice", "Bob", "Carol", "Dave"]
+            var to_people: List[String] = ["Bob", "Carol", "Dave", "Dave", "Eve"]
+            var connection_strength: List[Float64] = [8.0, 3.0, 5.0, 6.0, 4.0]
+
+            var c = graph(from_people, to_people, connection_strength)
+            save(c, "docs/src/examples/out_graph.svg")
+        ```
     """
     var plot = Plot().mark_graph().encode_chord(
         from_categories=from_categories, to_categories=to_categories, values=values

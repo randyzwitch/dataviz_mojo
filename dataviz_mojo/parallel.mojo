@@ -199,6 +199,24 @@ def parallel(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import parallel
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var dims: List[String] = ["Horsepower", "MPG", "Weight (100 lbs)", "0-60 (sec)", "Price ($k)"]
+            var row_names: List[String] = ["Sedan", "SUV", "Sports Car"]
+            var data: List[List[Float64]] = [
+                [180.0, 32.0, 30.0, 8.5, 28.0],
+                [280.0, 22.0, 45.0, 6.5, 42.0],
+                [450.0, 16.0, 34.0, 3.5, 85.0],
+            ]
+
+            var c = parallel(data, dims, row_names)
+            save(c, "docs/src/examples/out_parallel.svg")
+        ```
     """
     var plot = Plot().mark_parallel().encode_parallel(dims=dims, row_names=row_names, data=data)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

@@ -199,6 +199,21 @@ def single_axis(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import single_axis
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var response_ms: List[Float64] = [
+                12.0, 14.0, 13.0, 15.0, 11.0, 14.0, 13.0, 12.0, 45.0, 15.0, 13.0, 14.0, 12.0, 90.0, 14.0,
+            ]
+
+            var c = single_axis(response_ms)
+            save(c, "docs/src/examples/out_single_axis.svg")
+        ```
     """
     var plot = Plot().mark_single_axis().encode_single_axis(
         x=x, color=color, color_categories=color_categories, size=size

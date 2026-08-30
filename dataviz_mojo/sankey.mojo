@@ -308,6 +308,20 @@ def sankey(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import sankey
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var from_stage: List[String] = ["Coal", "Gas", "Coal", "Gas", "Electricity", "Electricity"]
+            var to_stage: List[String] = ["Electricity", "Electricity", "Industry", "Industry", "Residential", "Industry"]
+            var energy: List[Float64] = [30.0, 20.0, 15.0, 10.0, 25.0, 20.0]
+
+            var c = sankey(from_stage, to_stage, energy)
+            save(c, "docs/src/examples/out_sankey.svg")
+        ```
     """
     var plot = Plot().mark_sankey().encode_chord(
         from_categories=from_categories, to_categories=to_categories, values=values

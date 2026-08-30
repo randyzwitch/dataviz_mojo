@@ -223,6 +223,24 @@ def marimekko(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import marimekko
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var regions: List[String] = ["Northeast", "Midwest", "South", "West"]
+            var sources: List[String] = ["Coal", "Gas", "Renewables"]
+            var generation: List[List[Float64]] = [
+                [5.0, 20.0, 15.0, 3.0],
+                [30.0, 35.0, 50.0, 20.0],
+                [10.0, 15.0, 10.0, 27.0],
+            ]
+
+            var c = marimekko(regions, sources, generation)
+            save(c, "docs/src/examples/out_marimekko.svg")
+        ```
     """
     var plot = Plot().mark_marimekko().encode_marimekko(
         categories=categories, subcategories=subcategories, values=values

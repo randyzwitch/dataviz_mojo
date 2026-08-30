@@ -284,6 +284,25 @@ def bump(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import bump
+        from dataviz_mojo.plot import save
+        from dataviz_mojo.theme import Theme
+
+        def main() raises:
+            var years: List[String] = ["2021", "2022", "2023", "2024"]
+            var languages: List[String] = ["Python", "JavaScript", "Rust"]
+            var scores: List[List[Float64]] = [
+                [85.0, 90.0, 95.0, 98.0],
+                [92.0, 88.0, 84.0, 80.0],
+                [40.0, 55.0, 70.0, 85.0],
+            ]
+
+            var c = bump(years, languages, scores)
+            save(c, "docs/src/examples/out_bump.svg")
+        ```
     """
     var plot = Plot().mark_bump().encode_grouped_bar(
         categories=categories, series_names=series_names, values=values

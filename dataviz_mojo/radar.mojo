@@ -225,6 +225,24 @@ def radar(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import radar
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var indicators: List[String] = ["Attack", "Defense", "Speed", "Stamina", "Skill"]
+            var max_values: List[Float64] = [100.0, 100.0, 100.0, 100.0, 100.0]
+            var series_names: List[String] = ["Team A", "Team B"]
+            var series_values: List[List[Float64]] = [
+                [90.0, 60.0, 80.0, 70.0, 85.0],
+                [65.0, 85.0, 55.0, 90.0, 60.0],
+            ]
+
+            var c = radar(indicators, max_values, series_names, series_values)
+            save(c, "docs/src/examples/out_radar.svg")
+        ```
     """
     var plot = Plot().mark_radar().encode_radar(
         indicators=indicators,

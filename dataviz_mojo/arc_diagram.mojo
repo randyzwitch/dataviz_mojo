@@ -156,6 +156,20 @@ def arc_diagram(
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz_mojo import arc_diagram
+        from dataviz_mojo.plot import save
+
+        def main() raises:
+            var from_characters: List[String] = ["Alice", "Bob", "Alice", "Carol", "Dave"]
+            var to_characters: List[String] = ["Bob", "Carol", "Carol", "Dave", "Eve"]
+            var scenes_together: List[Float64] = [8.0, 5.0, 3.0, 6.0, 4.0]
+
+            var c = arc_diagram(from_characters, to_characters, scenes_together)
+            save(c, "docs/src/examples/out_arc_diagram.svg")
+        ```
     """
     var plot = Plot().mark_arc_diagram().encode_chord(
         from_categories=from_categories, to_categories=to_categories, values=values

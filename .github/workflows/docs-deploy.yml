@@ -19,7 +19,6 @@ on:
     branches: [main]
     paths:
       - "dataviz_mojo/**"
-      - "examples/**"
       - "docs/src/**"
       - "docs/site/hugo.yaml"
       - "docs/site/go.mod"
@@ -28,6 +27,8 @@ on:
       - "pixi.toml"
       - "scripts/install-modo.sh"
       - "scripts/gen_example_docs.mojo"
+      - "scripts/_example_docstrings.mojo"
+      - "scripts/extract_docstring_examples.mojo"
       - ".github/workflows/docs-build.yml"
       - ".github/workflows/docs-deploy.yml"
   workflow_dispatch:
