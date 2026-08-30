@@ -88,12 +88,13 @@ test = "bash scripts/run_parallel.sh tests/test_quickplot.mojo tests/test_facets
 # task" split this file's own example/test tasks already have). Left-
 # sidebar order falls straight out of each section's own front-matter
 # `weight` -- docs/src/quickstart.md pins itself to 100, gen_example_
-# docs.mojo pins Examples to 200, and modo's own generated dataviz_mojo/
-# _index.md is left at whatever `modo build` emits for a package's own
-# root section (400, as of writing, with no config flag to override --
-# `modo build --help` has nothing for it, and there's no local modo
-# source to safely override via `--templates`) -- Quickstart, then
-# Examples, then the API reference, no `sed` patch needed since 400
+# docs.mojo pins Examples to 200 and Cookbook to 300, and modo's own
+# generated dataviz_mojo/_index.md is left at whatever `modo build`
+# emits for a package's own root section (400, as of writing, with no
+# config flag to override -- `modo build --help` has nothing for it,
+# and there's no local modo source to safely override via
+# `--templates`) -- Quickstart, then Examples, then Cookbook, then the
+# API reference, no `sed` patch needed since 400
 # already sorts after both. A `sed` patch IS needed for that section's
 # own front-matter `title` though: modo always emits `title:
 # dataviz_mojo` (the package name) for a package's own root section,

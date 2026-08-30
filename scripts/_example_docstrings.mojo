@@ -112,6 +112,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("annotate_point", "plot", "annotate_point", is_method=True),
         ExamplePage("dual_axis", "plot", "secondary_axis", is_method=True),
         ExamplePage("svg_accessibility", "plot", "write_accessible_svg"),
+        ExamplePage("facets", "plot", "save_facets"),
     ]
 
 
@@ -123,9 +124,14 @@ def _hook_overrides() -> Dict[String, String]:
     one entry: it calls the general-purpose `line()`, but reads as its
     own chart type, not a variant of "Line" -- line()'s own docstring
     has no reason to say "slope chart" anywhere in its main
-    description."""
+    description. `facets` is the other: save_facets()'s own first
+    sentence is comparative ("save()'s render_facets()/
+    render_facets_svg() counterpart"), assuming a reader who already
+    knows what render_facets() is -- fine inside plot.mojo read
+    alongside it, not as a standalone page's opening line."""
     var d = Dict[String, String]()
     d["slope"] = "A slope chart."
+    d["facets"] = "Lay out several independent Plots in an evenly sized grid."
     return d^
 
 
