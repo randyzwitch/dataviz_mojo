@@ -117,36 +117,34 @@ struct Category(Copyable, Movable):
 
 
 def _categories() -> List[Category]:
-    # Every example here is a distinct, recognizable chart type -- no
-    # feature demos (facets, layers, titles, dynamic margins, color/
-    # size encoding, line/area smoothing, a bare SVG-backend page)
-    # mixed in among them; those are real dataviz_mojo capabilities,
-    # just not chart types of their own, so they live in the wiki/API
-    # reference instead of the Examples gallery. annotate_line,
-    # svg_accessibility, annotate_area, dual_axis, annotate_vline, and
-    # annotate_point are the six exceptions: unlike facets/layers/
-    # titles, none has a simpler existing example to piggyback on --
-    # none of Plot.annotate_line(), Plot.annotate_area(), Plot.
-    # annotate_vline(), Plot.annotate_point(), or Plot.secondary_axis()
-    # is exposed on any quickplot function, and accessible_svg_string()/
-    # write_accessible_svg() are a standalone SVG-writing utility with
-    # no Plot method of their own at all (see each one's own
-    # docstring) -- so there's no other "how do I use this" page
-    # anywhere else in these docs. Each is filed under whichever
-    # category its own example's mark belongs to instead --
-    # "Categorical business charts" for annotate_line (Mark.BAR),
-    # "Basic marks" for svg_accessibility (its own bar-chart data is
-    # incidental -- the feature works with any mark), annotate_area,
-    # annotate_vline, and annotate_point (all Mark.LINE), "Multivariate"
-    # for dual_axis (a layered Mark.AREA + Mark.LINE combo) -- rather
-    # than getting a category of its own.
+    # Every example here (except the last category) is a distinct,
+    # recognizable chart type -- no feature demos (facets, layers,
+    # titles, dynamic margins, color/size encoding, line/area
+    # smoothing) mixed in among them; those are real dataviz_mojo
+    # capabilities, just not chart types of their own, so they live in
+    # the wiki/API reference instead of the Examples gallery.
+    # annotate_line, svg_accessibility, annotate_area, dual_axis,
+    # annotate_vline, and annotate_point are the six exceptions: unlike
+    # facets/layers/titles, none has a simpler existing example to
+    # piggyback on -- none of Plot.annotate_line(), Plot.
+    # annotate_area(), Plot.annotate_vline(), Plot.annotate_point(), or
+    # Plot.secondary_axis() is exposed on any quickplot function, and
+    # accessible_svg_string()/write_accessible_svg() are a standalone
+    # SVG-writing utility with no Plot method of their own at all (see
+    # each one's own docstring) -- so there's no other "how do I use
+    # this" page anywhere else in these docs. They used to be filed
+    # under whichever category their own example's mark happened to
+    # belong to instead (a chart-type category being the only kind
+    # that existed yet), which read as clutter once the gallery grew --
+    # a scatter/bar/etc. reader expects every entry to be a distinct
+    # chart shape, not "how to add a reference line to one you already
+    # have." "Cookbook" (last, below) is that missing "how do I use
+    # this" home instead: one-off customization techniques applied to
+    # a plot, not chart types in their own right.
     var cats = List[Category]()
     cats.append(Category(
         "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
-        [
-            "scatter", "line", "bar", "area", "pie", "single_axis", "effect_scatter",
-            "svg_accessibility", "annotate_area", "annotate_vline", "annotate_point",
-        ],
+        ["scatter", "line", "bar", "area", "pie", "single_axis", "effect_scatter"],
     ))
     cats.append(Category(
         "Categorical business charts",
@@ -154,7 +152,7 @@ def _categories() -> List[Category]:
         " period-over-period comparisons, and process stages.",
         [
             "lollipop", "waterfall", "gantt", "span_chart", "population_pyramid", "bullet",
-            "grouped_bar", "stacked_bar", "slope", "funnel", "bump", "streamgraph", "annotate_line",
+            "grouped_bar", "stacked_bar", "slope", "funnel", "bump", "streamgraph",
         ],
     ))
     cats.append(Category(
@@ -173,7 +171,7 @@ def _categories() -> List[Category]:
     cats.append(Category(
         "Multivariate",
         "Several numeric dimensions compared at once on one shared layout, not a single value per category.",
-        ["parallel", "dual_axis"],
+        ["parallel"],
     ))
     cats.append(Category(
         "Grid & matrix",
@@ -185,6 +183,15 @@ def _categories() -> List[Category]:
         "A tree, not a value per category -- one flattened id/parent_id/value row per node,"
         " see Plot.encode_hierarchy().",
         ["sunburst", "tree", "treemap"],
+    ))
+    cats.append(Category(
+        "Cookbook",
+        "One-off techniques for customizing a plot you already have -- not chart types of their own,"
+        " so each is filed by what it does rather than what it looks like.",
+        [
+            "annotate_line", "annotate_area", "annotate_vline", "annotate_point", "dual_axis",
+            "svg_accessibility",
+        ],
     ))
     return cats^
 
