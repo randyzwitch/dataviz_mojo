@@ -32,7 +32,25 @@ docs/src/*.json
 # Actions-based deploy, regenerated fresh on every run. docs/site/'s
 # own Hugo *project* files (hugo.yaml, go.mod/go.sum) ARE committed --
 # those are real source, not output.
-docs/src/examples/
+# EXCEPTION: docs/src/examples/quickstart/*.mojo -- real, hand-written
+# source behind docs/src/quickstart.md's own step-by-step tutorial
+# (see pixi.toml's own `example-quickstart` task and its comment next
+# to `example` above), not extracted from a docstring like everything
+# else in this directory, so there's nothing else that would recreate
+# them if they weren't committed. Their own out_*.svg output stays
+# gitignored though, same as every other rendered image in this repo
+# -- `example-quickstart` regenerates those, it just needs the .mojo
+# files themselves to still be there after a fresh checkout to run.
+# Git can't re-include a file whose parent directory is itself
+# excluded (a single blanket `docs/src/examples/` -- see `man
+# gitignore`'s own "It is not possible to re-include a file if a
+# parent directory of that file is excluded" note), so this walks down
+# one level at a time instead, un-excluding exactly the path needed at
+# each step before re-excluding what's still generated within it.
+docs/src/examples/*
+!docs/src/examples/quickstart
+docs/src/examples/quickstart/*
+!docs/src/examples/quickstart/*.mojo
 docs/site/content/
 docs/site/public/
 docs/site/*.lock

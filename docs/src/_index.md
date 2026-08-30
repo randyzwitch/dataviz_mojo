@@ -160,40 +160,15 @@ p:not([class]) {
 :root.light h2 {
   border-bottom-color: #b8dcec;
 }
-/* "A first chart"'s code sample paired with the actual chart it
-   produces, side by side -- half-width each on desktop, stacked on
-   mobile. examples/out_scatter.svg is real pipeline output (`scatter(x,
-   y)` is `Plot().mark_point().encode(x=x, y=y)` under the hood, same
-   x/y as this snippet -- see plot.mojo's own `scatter()` docstring),
-   not a hand-dropped image, so it can't drift out of sync with what
-   the code on the left actually does. */
-.dvm-chart-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  align-items: center;
-  width: 100%;
-  margin-top: 1rem;
-}
-@media (max-width: 640px) {
-  .dvm-chart-row {
-    grid-template-columns: 1fr;
-  }
-}
-.dvm-chart-preview {
-  background: #fff;
-  border-radius: 0.75rem;
-  border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
-  padding: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.dvm-chart-preview img {
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
+/* examples/out_scatter.svg is real pipeline output (`scatter(x, y)` is
+   `Plot().mark_point().encode(x=x, y=y)` under the hood, same x/y as
+   this snippet -- see plot.mojo's own `scatter()` docstring), not a
+   hand-dropped image, so it can't drift out of sync with what the
+   code on the left actually does. The .dvm-chart-row/-code/-preview
+   layout classes themselves now live in docs/site/assets/css/
+   custom.css -- quickstart.md's own step-by-step tutorial reuses the
+   same code-left/chart-right treatment, so one shared definition
+   beats two copies drifting apart. */
 /* A plain "keep going" pointer to Quickstart after the last section --
    not another hero-button pair (already at the top of the page, and
    this isn't a second call to action, just a way out for someone who

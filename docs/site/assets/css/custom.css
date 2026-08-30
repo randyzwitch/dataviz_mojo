@@ -40,3 +40,59 @@
 :root.light .hextra-footer {
   background-color: #eaf5fa;
 }
+
+/* .dvm-chart-preview: a bordered/backgrounded box around a rendered
+   chart, paired with the code that produced it. Shared site-wide (not
+   a page-scoped <style>) because both the homepage's "A first chart"
+   section and quickstart.md's own step-by-step tutorial use it -- one
+   definition instead of two that could quietly drift apart. Theme-
+   neutral (color-mix over currentColor, not a fixed color) so it
+   reads correctly in light and dark alike, unlike the maroon/blue
+   rules above.
+
+   Two layouts share this box:
+   - Standalone (quickstart.md): chart above, code below, in normal
+     document flow -- capped width and centered so it reads as one
+     sized figure, not a full-bleed band. Chosen over code-left/chart-
+     right after the row version rendered each chart too small at
+     quickstart's narrower content width (docs pages cap at
+     hextra-max-content-width, ~72rem, vs. the homepage's full-width
+     hero layout) -- half of half a narrow column left little room.
+   - Inside .dvm-chart-row (the homepage only): code left, chart
+     right, half-width each -- there the wider hero layout gives each
+     half enough room for the image to read fine, and .dvm-chart-row's
+     own grid overrides the standalone max-width/centering below. */
+.dvm-chart-preview {
+  background: #fff;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 32rem;
+  margin: 1rem auto;
+}
+.dvm-chart-preview img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+.dvm-chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: center;
+  width: 100%;
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 640px) {
+  .dvm-chart-row {
+    grid-template-columns: 1fr;
+  }
+}
+.dvm-chart-row .dvm-chart-preview {
+  max-width: none;
+  margin: 0;
+}
