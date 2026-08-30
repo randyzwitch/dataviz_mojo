@@ -94,9 +94,22 @@ test = "bash scripts/run_parallel.sh tests/test_quickplot.mojo tests/test_facets
 # `modo build --help` has nothing for it, and there's no local modo
 # source to safely override via `--templates`) -- Quickstart, then
 # Examples, then the API reference, no `sed` patch needed since 400
-# already sorts after both.
+# already sorts after both. A `sed` patch IS needed for that section's
+# own front-matter `title` though: modo always emits `title:
+# dataviz_mojo` (the package name) for a package's own root section,
+# same "no config flag to override" gap as weight above -- but the top
+# nav's own menu entry for this section already reads "API Reference"
+# (hugo.yaml), so the left sidebar entry/breadcrumb links/browser tab
+# for the section itself read as the odd one out next to it, all
+# three sourced from this one `title` field. Pinned to "API Reference"
+# post-build for consistency with the nav; every individual module
+# page under it (plot/_index.md, theme/_index.md, ...) keeps its own
+# real title untouched -- the `^title: dataviz_mojo$` anchor only
+# matches that one root _index.md's own front-matter line, not a
+# module page whose title happens to equal the package name in body
+# text elsewhere.
 docs-install = "bash scripts/install-modo.sh"
-docs-build = { cmd = "rm -rf docs/site/content docs/site/public && mkdir -p docs/src/examples && rm -f docs/src/examples/*.md && mojo run -I . -I scripts scripts/gen_example_docs.mojo && mojo doc -I . -o docs/src/dataviz_mojo.json dataviz_mojo && .tools/modo build docs -c modo.yaml", depends-on = [
+docs-build = { cmd = "rm -rf docs/site/content docs/site/public && mkdir -p docs/src/examples && rm -f docs/src/examples/*.md && mojo run -I . -I scripts scripts/gen_example_docs.mojo && mojo doc -I . -o docs/src/dataviz_mojo.json dataviz_mojo && .tools/modo build docs -c modo.yaml && sed -i 's/^title: dataviz_mojo$/title: API Reference/' docs/site/content/dataviz_mojo/_index.md", depends-on = [
     "docs-install",
 ] }
 # One-shot build into docs/site/public -- what docs-deploy.yml
