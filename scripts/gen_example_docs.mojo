@@ -109,6 +109,7 @@ def _titles() -> Dict[String, String]:
     d["dual_axis"] = "Dual Y-Axis"
     d["annotate_vline"] = "Vertical Reference Line"
     d["annotate_point"] = "Point Marker"
+    d["facets"] = "Facets"
     return d^
 
 
@@ -184,8 +185,9 @@ def _categories() -> List[Category]:
 def _cookbook() -> Category:
     """The Cookbook page's own single flat list -- one-off techniques
     for customizing a plot you already have (a reference line/band/
-    point marker, a second y-axis, accessible SVG output), not chart
-    types in their own right. Used to be a category on the Examples
+    point marker, a second y-axis, accessible SVG output, a grid of
+    several independent plots), not chart types in their own right.
+    Used to be a category on the Examples
     page itself, tacked onto whichever chart-type category each
     one's own example happened to fit best -- read as clutter once
     the gallery grew (a scatter/bar/etc. reader expects every entry in
@@ -208,7 +210,7 @@ def _cookbook() -> Category:
         " so each is filed by what it does rather than what it looks like.",
         [
             "annotate_line", "annotate_area", "annotate_vline", "annotate_point", "dual_axis",
-            "svg_accessibility",
+            "svg_accessibility", "facets",
         ],
     )
 
@@ -390,9 +392,10 @@ def main() raises:
     cookbook_idx.append("")
     cookbook_idx.append(
         "Techniques for customizing a plot you already have -- a reference "
-        "line/band/point marker, a second y-axis, accessible SVG output -- "
-        "rather than a distinct chart type of its own. See "
-        "[Examples](../examples/) for the chart-type gallery these apply to."
+        "line/band/point marker, a second y-axis, accessible SVG output, a "
+        "grid of independent plots -- rather than a distinct chart type of "
+        "its own. See [Examples](../examples/) for the chart-type gallery "
+        "these apply to."
     )
     cookbook_idx.append("")
     for n in cookbook.names:
