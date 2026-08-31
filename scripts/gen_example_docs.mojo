@@ -1,8 +1,9 @@
-"""Generates docs/src/examples/*.md and docs/src/cookbook/*.md straight
-from dataviz_mojo/*.mojo's own docstrings -- run as part of `pixi run
-docs` (see pixi.toml), before `mojo doc`/`modo build`, so a new
-`Example:` docstring section automatically gets a docs page without
-anyone hand-writing one.
+"""Generates docs/src/examples/*.md and docs/src/cookbook/*.md --
+Examples straight from dataviz_mojo/*.mojo's own docstrings, Cookbook
+from *both* that same docstring path *and* docs/src/cookbook_recipes/
+(community-contributed, self-contained files -- see that directory's
+own README.md for the contributor-facing side of this). Run as part of
+`pixi run docs` (see pixi.toml), before `mojo doc`/`modo build`.
 
 The actual per-function docstring parsing (`_pages()`'s master list,
 `_quickplot_hook()`, `_extract_args_lines()`, `_extract_example_
@@ -12,24 +13,28 @@ that compiles and runs every one of the same `Example:` blocks this
 file only reads) -- see that module's own docstring for the full
 picture of how a page's content maps back to one function's docstring.
 
-This file itself only does two things: `_titles()`/`_categories()`/
+This file itself does three things: `_titles()`/`_categories()`/
 `_cookbook()` below, the hand-curated title/navigation-grouping
-metadata every docs page needs beyond what any docstring could
-reasonably say about itself, and `_build_page()`/`main()`, which
-assemble that metadata plus `_example_docstrings.mojo`'s extracted
-content into the final markdown -- two top-level pages' worth
-(Examples' own many categories, Cookbook's one flat list), not just
-one, see `_cookbook()`'s own docstring for why a whole separate page
-rather than a category on Examples.
+metadata every *docstring-sourced* page needs beyond what any
+docstring could reasonably say about itself; `_build_page()`/
+`_build_contributed_page()`, which turn a docstring-sourced page or a
+`docs/src/cookbook_recipes/` file (respectively) into markdown; and
+`main()`, which discovers/assembles both kinds into the final Examples
+and Cookbook pages -- see `_cookbook()`'s own docstring for why
+Cookbook is a whole separate top-level page rather than a category on
+Examples, and `_build_contributed_page()`'s own docstring for why a
+Cookbook recipe doesn't need a docstring host the way an Example does.
 
-Adding a new example: add its function's own `Example:` section, then
-add it to `_example_docstrings.mojo`'s `_pages()`, to `_titles()`
+Adding a new *Example*: add its function's own `Example:` section,
+then add it to `_example_docstrings.mojo`'s `_pages()`, to `_titles()`
 below, and to exactly one category in `_categories()` below OR to
 `_cookbook()`'s own list (not both) -- `main()`'s own assertions catch
 a missing/misplaced entry either way (a function placed nowhere, in
 two places at once, or a category/cookbook entry referencing a name
 that doesn't exist) rather than silently skipping it or crashing deep
-in string formatting.
+in string formatting. Adding a new *Cookbook recipe* needs none of
+that -- drop a file in `docs/src/cookbook_recipes/`; see its own
+README.md.
 
 A Mojo script, not Python -- this repo's own tooling stays in the
 language it's showcasing, string-matching primitives (`.strip()`,
@@ -39,21 +44,26 @@ its own regex module (it doesn't, as of this writing).
 """
 
 from std.collections import Dict
+from std.os import listdir
 
 from _example_docstrings import (
     ExamplePage,
     _ExampleBlock,
     _extract_args_lines,
+    _extract_docstring,
     _extract_example_blocks,
+    _first_sentence,
     _hook_overrides,
     _output_svg_name,
     _pages,
     _quickplot_hook,
+    _read_file,
     _write_file,
 )
 
 comptime _OUT_DIR = "docs/src/examples"
 comptime _COOKBOOK_OUT_DIR = "docs/src/cookbook"
+comptime _RECIPES_DIR = "docs/src/cookbook_recipes"
 
 
 def _titles() -> Dict[String, String]:
@@ -277,6 +287,90 @@ def _build_page(name: String, title: String, page: ExamplePage, image_prefix: St
     return String("\n").join(out)
 
 
+def _title_case_filename(stem: String) -> String:
+    """`bold_points` -> `"Bold Points"` -- a Cookbook recipe's title,
+    for the one kind of page that has no docstring-sourced `_titles()`
+    entry to look up (see `_build_contributed_page()`'s own
+    docstring). Every underscore-separated word gets its first letter
+    uppercased, everything else lowercased -- a deliberately plain
+    rule (no acronym table, no manual override map) so a contributor
+    never needs to touch this file at all; a recipe wanting different
+    capitalization (an acronym like "SVG") can still get it by simply
+    naming the file that way (`svg_something.mojo` won't title-case
+    "SVG" correctly on its own, but a contributor who cares can spell
+    a word in a way this function happens to preserve, or a maintainer
+    can rename the file post-hoc -- not worth a config knob for the
+    rare case)."""
+    var words = stem.split("_")
+    var out = List[String]()
+    for w in words:
+        if w.byte_length() == 0:
+            continue
+        var first = String(w[byte=0:1]).upper()
+        var rest = String(w[byte=1:]).lower()
+        out.append(first + rest)
+    return String(" ").join(out)
+
+
+def _build_contributed_page(title: String, content: String) raises -> String:
+    """A `docs/src/cookbook_recipes/*.mojo` file's own content, turned
+    into the same markdown shape `_build_page()` produces for a
+    docstring-sourced page -- title/hook/image/Usage, minus an `Args:`
+    section (there's no host function's own parameter docs to pull one
+    from; a recipe is a technique, not one function's own API
+    surface, see that directory's README.md for why this path exists
+    at all) and minus any named-variant support (`_extract_example_
+    blocks()`'s `Example (<heading>):` mechanism -- one recipe file is
+    always exactly one page, one code block).
+
+    `content` must have a leading `\"\"\"...\"\"\"` module docstring
+    (`_extract_docstring()`, the exact same primitive `_quickplot_
+    hook()` already uses on a function's docstring, just pointed at a
+    whole file's leading one instead) -- its first sentence
+    (`_first_sentence()`) becomes the hook line, everything else in
+    the docstring is for the contributor's own benefit and never
+    reaches the page. Everything *after* that docstring's closing
+    `\"\"\"` is shown verbatim as the page's own Usage code block --
+    already a complete, real, runnable program by the README's own
+    contract, so there's no fenced-block extraction to do the way
+    `_extract_example_blocks()` needs for a block embedded inside a
+    larger function's docstring.
+    """
+    var doc_start = content.find('"""')
+    if doc_start == -1:
+        raise Error("gen_example_docs: cookbook recipe has no leading docstring (see cookbook_recipes/README.md)")
+    var doc_content_start = doc_start + 3
+    var doc_end = content.find('"""', doc_content_start)
+    if doc_end == -1:
+        raise Error("gen_example_docs: cookbook recipe's leading docstring is never closed")
+    var hook = _first_sentence(_extract_docstring(content))
+    var code = String(content[byte = doc_end + 3 :]).strip()
+
+    var out = List[String]()
+    out.append("---")
+    out.append("title: " + title)
+    out.append("---")
+    out.append("")
+    out.append(hook)
+    out.append("")
+
+    var code_lines = List[String]()
+    for l in code.split("\n"):
+        code_lines.append(String(l))
+    var image = "../../examples/" + _output_svg_name(code_lines)
+    out.append("![" + title + "](" + image + ")")
+    out.append("")
+    out.append("## Usage")
+    out.append("")
+    out.append("```mojo")
+    for l in code_lines:
+        out.append(l)
+    out.append("```")
+    out.append("")
+
+    return String("\n").join(out)
+
+
 def main() raises:
     var titles = _titles()
     var categories = _categories()
@@ -338,6 +432,36 @@ def main() raises:
             var page_md = _build_page(p.name, titles[p.name], p)
             _write_file(_OUT_DIR + "/" + p.name + ".md", page_md)
 
+    # Community Cookbook recipes -- every *.mojo file in _RECIPES_DIR,
+    # discovered fresh each run (std.os.listdir), not a hand-maintained
+    # list the way _pages() is: the whole point of this directory is
+    # that a contributor doesn't touch any *.mojo file under scripts/
+    # at all. Raises the same "don't silently overwrite" way `main()`'s
+    # own docstring-page assertions already do, extended to cover a
+    # recipe's name colliding with an existing Examples/Cookbook page
+    # -- both land in a flat name -> file namespace across the whole
+    # site, so a collision either way would otherwise silently clobber
+    # one page with another.
+    var recipe_entries = listdir(_RECIPES_DIR)
+    sort(recipe_entries)
+    var recipe_names = List[String]()
+    var recipe_titles = Dict[String, String]()
+    for e in recipe_entries:
+        if not e.endswith(".mojo"):
+            continue
+        var stem = String(e[byte = 0 : e.byte_length() - 5])
+        if stem in all_names:
+            raise Error(
+                "gen_example_docs: cookbook_recipes/" + e + " collides with an existing Examples/Cookbook"
+                " page name '" + stem + "' -- rename the file"
+            )
+        var content = _read_file(_RECIPES_DIR + "/" + e)
+        var title = _title_case_filename(stem)
+        var page_md = _build_contributed_page(title, content)
+        _write_file(_COOKBOOK_OUT_DIR + "/" + stem + ".md", page_md)
+        recipe_names.append(stem)
+        recipe_titles[stem] = title
+
     var idx = List[String]()
     idx.append("---")
     idx.append("title: Examples")
@@ -395,12 +519,19 @@ def main() raises:
         "line/band/point marker, a second y-axis, accessible SVG output, a "
         "grid of independent plots -- rather than a distinct chart type of "
         "its own. See [Examples](../examples/) for the chart-type gallery "
-        "these apply to."
+        "these apply to, or `docs/src/cookbook_recipes/`'s own README.md "
+        "in the repo to contribute one yourself -- a Cookbook recipe "
+        "doesn't need to be tied to one function the way an Example does."
     )
     cookbook_idx.append("")
     for n in cookbook.names:
         cookbook_idx.append("- [" + titles[n] + "](" + n + "/)")
+    for n in recipe_names:
+        cookbook_idx.append("- [" + recipe_titles[n] + "](" + n + "/)")
     cookbook_idx.append("")
     _write_file(_COOKBOOK_OUT_DIR + "/_index.md", String("\n").join(cookbook_idx))
 
-    print("Wrote", len(all_names), "example pages + _index.md to", _OUT_DIR, "and", _COOKBOOK_OUT_DIR)
+    print(
+        "Wrote", len(all_names), "example pages,", len(recipe_names),
+        "contributed cookbook recipes, + _index.md to", _OUT_DIR, "and", _COOKBOOK_OUT_DIR,
+    )
