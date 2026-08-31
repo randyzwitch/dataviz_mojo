@@ -477,6 +477,11 @@ struct Plot(Movable):
     # mark_nightingale()'s docstring. Ungrouped: a lone mode flag,
     # not a data column.
     var _nightingale_area: Bool
+    # Mark.STACKED_BAR only -- normalize each category's own segments
+    # to sum to 100% (ggplot's position="fill") instead of stacking
+    # raw values. See mark_stacked_bar()'s docstring. Same "lone mode
+    # flag" shape as _nightingale_area above.
+    var _stacked_bar_percent: Bool
     var _polar: _PolarData
     var _radar: _RadarData
     var _gauge: _GaugeData
@@ -534,6 +539,7 @@ struct Plot(Movable):
         self._edges = _EdgeData()
         self._distribution = _DistributionData()
         self._nightingale_area = False
+        self._stacked_bar_percent = False
         self._polar = _PolarData()
         self._radar = _RadarData()
         self._gauge = _GaugeData()
@@ -854,13 +860,38 @@ struct Plot(Movable):
         self._mark = Mark.GROUPED_BAR
         return self^
 
-    def mark_stacked_bar(var self) -> Self:
+    def mark_stacked_bar(var self, percent: Bool = False) -> Self:
         """A stacked bar chart: one bar per category, each series' value stacked as a segment on top of the previous one's running total, instead of `Mark.GROUPED_BAR`'s side-by-side
         sub-bars -- encoded via the exact same `encode_grouped_bar()`,
         no separate encode method needed (the data is identical; only
         the rendering differs, the same relationship `Mark.LOLLIPOP`
-        already has to `Mark.BAR`'s `encode_categorical()`)."""
+        already has to `Mark.BAR`'s `encode_categorical()`).
+
+        `percent=True` (default `False`) normalizes each category's own
+        segments to sum to exactly 100% instead of stacking raw values
+        (ggplot's `position = "fill"`, matplotlib's manual-normalize-
+        before-plotting equivalent) -- every column reaches the same
+        height, so what's actually being compared is each series' own
+        *share* of that category's total, not its absolute magnitude.
+        The y-axis becomes a fixed `[0, 100]` range regardless of the
+        data (there's no "padding" a percentage the way `_data_extent`
+        pads a real-valued domain -- every column is definitionally
+        exactly 100% tall). Every value must be non-negative (a
+        negative *share* has no meaning) -- checked at render() time,
+        the same as `mark_arc()`/`mark_nightingale()`. A category whose
+        values are all zero draws as an empty column (0% of an
+        undefined whole) rather than dividing by zero.
+
+        Args:
+            percent: `False` (the default) stacks raw values, an
+                unchanged real-valued y-axis. `True` normalizes each
+                category to 100% and fixes the y-axis to `[0, 100]`.
+
+        Returns:
+            Self, for further chaining.
+        """
         self._mark = Mark.STACKED_BAR
+        self._stacked_bar_percent = percent
         return self^
 
     def mark_population_pyramid(var self) -> Self:
