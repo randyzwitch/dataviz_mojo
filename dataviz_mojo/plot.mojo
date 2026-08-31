@@ -4299,7 +4299,7 @@ def save_layers(mut plots: List[Plot], path: String) raises:
         write_bmp(render_layers(plots), path)
 
 
-def save_facets(mut plots: List[Plot], cols: Int, path: String) raises:
+def save_facets(mut plots: List[Plot], cols: Int, path: String, shared_y_scale: Bool = False) raises:
     """`save()`'s `render_facets()`/`render_facets_svg()` counterpart
     -- see `save_layers()`'s docstring for the shared "format from
     plots[0], empty list raises first, `mut` for supersampling" story,
@@ -4317,18 +4317,25 @@ def save_facets(mut plots: List[Plot], cols: Int, path: String) raises:
     own; build each cell's `Plot` however that cell needs to look, one
     at a time, then hand the list here).
 
+    `shared_y_scale` (default `False`) makes every cell share one
+    y-domain instead -- see `_render_facets_generic`'s own docstring
+    for the full mechanics and its `Mark.POINT`/`LINE`/`EFFECT_SCATTER`-
+    only scope.
+
     See the Cookbook's own "Facets" recipe (docs/src/cookbook_recipes/
-    facets.mojo) for a full worked example.
+    facets.mojo) for a full worked example, and its "Shared Facet
+    Scale" recipe (docs/src/cookbook_recipes/shared_facet_scale.mojo)
+    for `shared_y_scale=True` specifically.
     """
     if len(plots) == 0:
         raise Error("save_facets(): plots must not be empty")
     var format = _resolve_output_format(plots[0]._theme.output_format, path)
     if format == OutputFormat.SVG:
-        write_svg(render_facets_svg(plots, cols), path)
+        write_svg(render_facets_svg(plots, cols, shared_y_scale), path)
     elif format == OutputFormat.PNG:
-        write_png(render_facets(plots, cols), path)
+        write_png(render_facets(plots, cols, shared_y_scale), path)
     else:
-        write_bmp(render_facets(plots, cols), path)
+        write_bmp(render_facets(plots, cols, shared_y_scale), path)
 
 
 def accessible_svg_string(svg: SvgCanvas, title: String, description: String = "") raises -> String:
@@ -5250,7 +5257,17 @@ def _draw_area_layer[
 
 def _render_generic[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    has_shared_y_domain: Bool = False,
+    shared_y_min: Float64 = 0.0,
+    shared_y_max: Float64 = 0.0,
+) raises -> _RenderResult:
     """The actual dispatch, layout, and shape-drawing core `render()`/
     `render_svg()` both delegate to -- generic over any `DrawTarget`,
     so this exact code draws correctly into a raster `Canvas` or a
@@ -5310,6 +5327,46 @@ def _render_generic[
             "Plot.scale_y_log(): not supported on Mark.AREA -- its y-domain is always forced"
             " through a zero baseline (see _zero_baseline_y_extent()'s docstring), and zero has"
             " no logarithm"
+        )
+    if has_shared_y_domain and not (
+        plot._mark == Mark.POINT or plot._mark == Mark.LINE or plot._mark == Mark.EFFECT_SCATTER
+    ):
+        # render_facets(shared_y_scale=True)'s own mark check -- Mark.
+        # AREA is deliberately excluded even though it's otherwise part
+        # of the "continuous" family render_layers() shares: its own
+        # y-domain is always forced to include a zero baseline (see the
+        # scale_y_log() check just above, and _zero_baseline_y_extent's
+        # docstring), and there's no principled way to reconcile that
+        # per-cell requirement with one externally supplied shared
+        # domain that might not include zero at all -- see render_
+        # facets()'s own docstring for the fuller reasoning.
+        raise Error(
+            "render_facets(shared_y_scale=True): only Mark.POINT/LINE/EFFECT_SCATTER support a"
+            " shared y-scale today (Mark.AREA's own forced zero baseline has no principled way to"
+            " compose with an externally supplied shared domain)"
+        )
+    if has_shared_y_domain and plot._y_log:
+        raise Error(
+            "render_facets(shared_y_scale=True): not supported together with Plot.scale_y_log() --"
+            " the shared domain is computed in real (linear) units, log-scaling it isn't wired up"
+        )
+    if has_shared_y_domain and (
+        len(plot.y_err_data) > 0 or len(plot.y_err_lower_data) > 0 or len(plot.y_err_upper_data) > 0
+    ):
+        # The shared domain (_render_facets_generic's own combined_y
+        # union, computed once up front over every cell's plain
+        # plot.y_data) doesn't widen for any cell's whisker endpoints
+        # the way this same function's own y_domain_data below does for
+        # an ordinary, non-shared render -- so a whisker here could
+        # silently extend past the shared axis and get clipped. No
+        # principled way to reconcile the two yet (widening the shared
+        # union would need every cell's y_err arrays threaded through
+        # render_facets() too), the same "raise rather than draw
+        # something wrong" stance the AREA/scale_y_log checks above
+        # take.
+        raise Error(
+            "render_facets(shared_y_scale=True): not supported together with Plot.encode(y_err=...)"
+            "/y_err_lower/y_err_upper -- the shared domain isn't widened for whisker endpoints yet"
         )
     _validate_log_scale_annotations(plot)
     if plot._mark == Mark.BAR:
@@ -5427,7 +5484,14 @@ def _render_generic[
     # _render_box's own docstring already establishes for its own
     # whiskers (Mark.AREA never has either -- see _validate_continuous_
     # encoding's mark check -- so that branch's own domain is
-    # unaffected either way).
+    # unaffected either way). has_shared_y_domain (render_facets(
+    # shared_y_scale=True) only) short-circuits all of that: the caller
+    # already computed the domain from every cell's own data union,
+    # this cell just needs a plain LinearScale over it -- the mark
+    # check above already ruled out anything (Mark.AREA, a log-scaled
+    # axis, y_err) that would need its own special domain treatment
+    # here (see render_facets's own docstring for why y_err and
+    # shared_y_scale don't mix yet).
     var y_domain_data = List[Float64]()
     if len(plot.y_err_data) > 0:
         for i in range(len(plot.y_data)):
@@ -5441,8 +5505,10 @@ def _render_generic[
         for v in plot.y_data:
             y_domain_data.append(v)
     var y_scale = (
-        _log_data_extent(y_domain_data) if plot._y_log else (
-            _zero_baseline_y_extent(y_domain_data) if plot._mark == Mark.AREA else _data_extent(y_domain_data)
+        LinearScale(shared_y_min, shared_y_max, 0.0, 1.0) if has_shared_y_domain else (
+            _log_data_extent(y_domain_data) if plot._y_log else (
+                _zero_baseline_y_extent(y_domain_data) if plot._mark == Mark.AREA else _data_extent(y_domain_data)
+            )
         )
     )
     var x_scale = _log_data_extent(plot.x_data) if plot._x_log else _data_extent(plot.x_data)
@@ -5693,7 +5759,7 @@ def _require_uniform_size(plots: List[Plot], caller: String) raises:
             )
 
 
-def render_facets(mut plots: List[Plot], cols: Int) raises -> Canvas:
+def render_facets(mut plots: List[Plot], cols: Int, shared_y_scale: Bool = False) raises -> Canvas:
     """Render each of `plots` into its evenly sized grid cell of a
     fresh `Canvas`, sized from the plots themselves (`_require_
     uniform_size`), supersampled by `_RASTER_SUPERSAMPLE` exactly like
@@ -5719,7 +5785,9 @@ def render_facets(mut plots: List[Plot], cols: Int) raises -> Canvas:
     var factor = _RASTER_SUPERSAMPLE
     var originals = _bump_scale(plots, factor)
     var canvas = Canvas(cols * plots[0].width * factor, rows * plots[0].height * factor)
-    var text_requests = _render_facets_generic(canvas, canvas.width, canvas.height, plots, cols)
+    var text_requests = _render_facets_generic(
+        canvas, canvas.width, canvas.height, plots, cols, shared_y_scale
+    )
     # One FontCache for every cell's labels -- see render()'s own.
     var text_cache = FontCache()
     _replay_text_requests(canvas, text_requests, text_cache)
@@ -5727,7 +5795,7 @@ def render_facets(mut plots: List[Plot], cols: Int) raises -> Canvas:
     return downsample(canvas, factor)
 
 
-def render_facets_svg(plots: List[Plot], cols: Int) raises -> SvgCanvas:
+def render_facets_svg(plots: List[Plot], cols: Int, shared_y_scale: Bool = False) raises -> SvgCanvas:
     """`render_facets()`'s exact counterpart for `SvgCanvas` -- same
     shared `_render_facets_generic` core, `SvgCanvas.draw_text` in
     place of `canvas_mojo.text.draw_text` for the returned labels, the same
@@ -5741,14 +5809,21 @@ def render_facets_svg(plots: List[Plot], cols: Int) raises -> SvgCanvas:
     _require_uniform_size(plots, "render_facets_svg")
     var rows = (len(plots) + cols - 1) // cols
     var svg = SvgCanvas(cols * plots[0].width, rows * plots[0].height)
-    var text_requests = _render_facets_generic(svg, svg.width, svg.height, plots, cols)
+    var text_requests = _render_facets_generic(svg, svg.width, svg.height, plots, cols, shared_y_scale)
     _replay_text_requests_svg(svg, text_requests)
     return svg^
 
 
 def _render_facets_generic[
     T: DrawTarget
-](mut target: T, width: Int, height: Int, plots: List[Plot], cols: Int) raises -> List[_TextRequest]:
+](
+    mut target: T,
+    width: Int,
+    height: Int,
+    plots: List[Plot],
+    cols: Int,
+    shared_y_scale: Bool = False,
+) raises -> List[_TextRequest]:
     """The shared cell-layout core `render_facets()`/`render_facets_svg()`
     both delegate to -- generic over any `DrawTarget`, the same
     `_render_generic`/`render()`/`render_svg()` split (see that
@@ -5808,12 +5883,58 @@ def _render_facets_generic[
     rendered standalone, no shared-coordinate-system ambiguity to
     resolve the way `render_layers()`'s single combined domain has (see
     `_render_layers_generic`'s docstring for that one instead).
+
+    `shared_y_scale` (default `False` -- every cell keeps its own
+    independent y-domain, unchanged) is the opposite default from
+    `render_layers()`'s always-shared one: small multiples usually
+    *aren't* meant to be compared value-for-value (this function's own
+    contract, above, is explicitly "doesn't know or care" about that),
+    but the common case that wants it -- several panels of the same
+    kind of measurement, meant to be read side by side, e.g. ggplot's
+    `facet_wrap()` default -- has no way to ask for it otherwise. When
+    set, every cell's y-domain becomes one shared range computed from
+    the union of every cell's own `y_data` (`_data_extent` over the
+    combined list, the same padded-domain math a standalone plot's own
+    y-axis already gets), passed into each cell's own `_render_generic`
+    call instead of letting it compute one independently. Only `Mark.
+    POINT`/`LINE`/`EFFECT_SCATTER` support this -- `_render_generic`'s
+    own check raises a clear error otherwise, the same "raise on a
+    setting that can't apply" rule every other cross-cutting flag in
+    this package follows. `Mark.AREA` is excluded even though it's
+    otherwise part of that same "continuous" family `render_layers()`
+    shares: its own y-domain is always forced to include a zero
+    baseline, which has no principled way to compose with an
+    externally supplied shared domain that might not include zero at
+    all. Every cell must share this same mark for the same reason
+    `render_layers()`'s own combined domain needs one mark family, not
+    an assorted mix -- a mismatched cell raises the identical error
+    `_render_generic` already gives a standalone plot with the wrong
+    mark for this. Not yet compatible with `Plot.scale_y_log()` (the
+    shared domain is computed in real, linear units), nor with
+    `Plot.encode(y_err=...)`/`y_err_lower`/`y_err_upper` (the shared
+    union above is computed over plain `y_data`, not widened for
+    whisker endpoints the way a standalone plot's own domain is --
+    see `_render_generic`'s own check).
     """
     var text_requests = List[_TextRequest]()
     if cols <= 0:
         raise Error("render_facets(): cols must be positive (got " + String(cols) + ")")
     if len(plots) == 0:
         return text_requests^
+
+    # Computed once, up front, only when actually asked for -- every
+    # cell then reads the same two numbers, so two cells can never
+    # disagree about what "shared" means partway through the grid.
+    var shared_y_min = 0.0
+    var shared_y_max = 0.0
+    if shared_y_scale:
+        var combined_y = List[Float64]()
+        for i in range(len(plots)):
+            for v in plots[i].y_data:
+                combined_y.append(v)
+        var domain = _data_extent(combined_y)
+        shared_y_min = domain.domain_min
+        shared_y_max = domain.domain_max
 
     var rows = (len(plots) + cols - 1) // cols
     for i in range(len(plots)):
@@ -5834,7 +5955,17 @@ def _render_facets_generic[
             cell_x0, cell_y0, cell_x1 - cell_x0, cell_y1 - cell_y0, plots[i]._theme.background
         )
         var frame = _apply_labels(plots[i], cell_x0, cell_y0, cell_x1, cell_y1)
-        var cell_result = _render_generic(target, plots[i], frame.ox0, frame.oy0, frame.ox1, frame.oy1)
+        var cell_result = _render_generic(
+            target,
+            plots[i],
+            frame.ox0,
+            frame.oy0,
+            frame.ox1,
+            frame.oy1,
+            has_shared_y_domain=shared_y_scale,
+            shared_y_min=shared_y_min,
+            shared_y_max=shared_y_max,
+        )
         var label_requests = _label_text_requests(
             plots[i], cell_x0, cell_y0, cell_x1, cell_y1, cell_result.px0, cell_result.py0, cell_result.px1, cell_result.py1
         )
