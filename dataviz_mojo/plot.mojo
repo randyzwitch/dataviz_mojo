@@ -139,7 +139,7 @@ assertions -- this whole test suite's hand-verified ones included).
 """
 
 from std.collections import Dict
-from std.math import pi
+from std.math import log10, pi
 
 from canvas_mojo.buffer import Canvas
 from canvas_mojo.color import Color
@@ -483,6 +483,11 @@ struct Plot(Movable):
     # there's only one series, nothing for a second axis to pair
     # against).
     var _secondary_axis: Bool
+    # Set via .scale_y_log()/.scale_x_log() -- see those methods'
+    # docstrings. Lone mode flags, not data, same as _secondary_axis
+    # above.
+    var _y_log: Bool
+    var _x_log: Bool
     var _mark: Mark
     var _theme: Theme
     var width: Int
@@ -524,6 +529,8 @@ struct Plot(Movable):
         self._labels = _LabelData()
         self._annotations = _AnnotationData()
         self._secondary_axis = False
+        self._y_log = False
+        self._x_log = False
         self._mark = Mark.POINT
         self._theme = Theme.default()
         self.width = 640
@@ -2424,6 +2431,94 @@ struct Plot(Movable):
         self._annotations.point_labels.append(label)
         return self^
 
+    def scale_y_log(var self) -> Self:
+        """Scale the y-axis logarithmically (base 10) instead of
+        linearly -- every y value (and every y-axis `Plot.annotate_
+        line()`/`annotate_area()`/`annotate_point()` value) must be
+        strictly positive; `render()`/`render_svg()` raise a clear
+        error otherwise (see `_log_data_extent()`'s docstring), the
+        same "raise rather than silently misrepresent the data" stance
+        every other encode/render check in this package already takes
+        -- `log10(0)`/`log10(negative)` have no honest pixel position.
+
+        `Mark.POINT`/`LINE`/`EFFECT_SCATTER` only, standalone `render()`/
+        `render_svg()` only -- `render()`/`render_svg()` raise if this
+        is set on any other mark (a categorical-x-axis mark has no
+        continuous y-domain for this to mean anything against), on
+        `Mark.AREA` specifically (its y-domain is always forced through
+        a zero baseline -- see `_zero_baseline_y_extent()`'s docstring
+        -- and zero has no logarithm), or inside `render_layers()`/
+        `render_layers_svg()` (several layers' domains get combined
+        into one shared linear scale there -- see `_render_layers_
+        generic()`'s docstring -- log-scaling that combined domain
+        isn't supported yet).
+
+        Every tick/gridline/data point/annotation on this axis keeps
+        going through the exact same `LinearScale.to_pixel()` call it
+        always has, passing real-unit values exactly as it would for a
+        linear scale -- see that method's own docstring for how the
+        log transform gets applied underneath, transparently to every
+        caller.
+
+        Returns:
+            Self, for further chaining.
+
+        Example:
+            ```mojo
+            from dataviz_mojo.plot import Plot, save
+
+            def main() raises:
+                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+                var users: List[Float64] = [10.0, 25.0, 60.0, 150.0, 400.0, 900.0, 2200.0, 5000.0]
+
+                var plot = (
+                    Plot()
+                    .mark_line()
+                    .encode(x=x, y=users)
+                    .labels(title="Weekly Active Users", subtitle="Log-scaled y-axis")
+                    .scale_y_log()
+                )
+                save(plot, "docs/src/examples/out_scale_y_log.svg")
+            ```
+        """
+        self._y_log = True
+        return self^
+
+    def scale_x_log(var self) -> Self:
+        """`scale_y_log()`'s x-axis mirror -- see that method's
+        docstring for the full "why"/mechanics story, identical here
+        with x/y swapped. `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER`
+        (x's domain is never forced through a zero baseline the way
+        `Mark.AREA`'s y-domain is, so `AREA` has no equivalent
+        restriction on this axis), standalone `render()`/`render_svg()`
+        only.
+
+        Returns:
+            Self, for further chaining.
+
+        Example:
+            ```mojo
+            from dataviz_mojo.plot import Plot, save
+
+            def main() raises:
+                var frequency: List[Float64] = [
+                    20.0, 50.0, 100.0, 200.0, 500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0
+                ]
+                var response_db: List[Float64] = [-2.0, -1.0, 0.0, 0.5, 1.0, 0.0, -1.5, -3.0, -6.0, -10.0]
+
+                var plot = (
+                    Plot()
+                    .mark_line()
+                    .encode(x=frequency, y=response_db)
+                    .labels(title="Frequency Response", x_title="Frequency (Hz)", y_title="Gain (dB)")
+                    .scale_x_log()
+                )
+                save(plot, "docs/src/examples/out_scale_x_log.svg")
+            ```
+        """
+        self._x_log = True
+        return self^
+
     def secondary_axis(var self) -> Self:
         """Draw this layer's y values against a second, independent
         y-domain on the plot's right edge, instead of `render_layers()`'s
@@ -3215,6 +3310,45 @@ def _zero_baseline_y_extent(data: List[Float64]) raises -> LinearScale:
     var padded_lo = lo - pad if lo < 0.0 else lo
     var padded_hi = hi + pad if hi > 0.0 else hi
     return LinearScale(padded_lo, padded_hi, 0.0, 1.0)
+
+
+def _log_data_extent(data: List[Float64]) raises -> LinearScale:
+    """`_data_extent()`'s log10-scaled counterpart (`Plot.scale_y_log()`/
+    `scale_x_log()`) -- raises immediately if any value isn't strictly
+    positive (`log10(0)` and `log10(negative)` are undefined; a
+    log-scaled axis has no honest way to place a zero or negative
+    value, the same "raise at the boundary, don't invent a fallback"
+    stance `_min_max()`'s own empty-column check takes).
+
+    Domain is computed and padded entirely in log10-space, not real
+    units: `log10(min)`/`log10(max)`, padded 5% of *that* span on each
+    side (a zero-span column -- every value identical -- gets a fixed
+    1.0-decade pad instead, the same `_data_extent()` fallback for the
+    same reason). Padding in log-space rather than real units is
+    deliberate: a log axis's visual "breathing room" is naturally
+    multiplicative (5% of a span measured in decades), not additive --
+    padding the real values by 5% of their raw span would pad the
+    high end by vastly more absolute room than the low end on any
+    wide-ranging column, the exact distortion a log scale exists to
+    avoid in the first place.
+
+    Returned `LinearScale.is_log` is `True` -- every value this scale
+    later maps via `to_pixel()` is still passed in real units (see
+    that field's own docstring); this function only ever computes the
+    *domain* in log-space, never transforms `data` itself.
+    """
+    for v in data:
+        if v <= 0.0:
+            raise Error(
+                "scale_y_log()/scale_x_log(): every value must be > 0 for a log-scaled axis"
+                " (log10(0) and log10(negative) are undefined) -- got " + String(v)
+            )
+    var mm = _min_max(data)
+    var log_lo = log10(mm.min)
+    var log_hi = log10(mm.max)
+    var span = log_hi - log_lo
+    var pad = span * 0.05 if span > 0.0 else 1.0
+    return LinearScale(log_lo - pad, log_hi + pad, 0.0, 1.0, is_log=True)
 
 
 struct _LabelsFrame(Movable):
@@ -4565,6 +4699,64 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
         )
 
 
+def _validate_log_scale_annotations(plot: Plot) raises:
+    """Every `Plot.annotate_line()`/`annotate_area()`/`annotate_vline()`/
+    `annotate_point()` value on an axis `Plot.scale_y_log()`/
+    `scale_x_log()` scales must itself be strictly positive, the same
+    requirement `_log_data_extent()` already enforces for the mark's
+    own data -- an annotation is drawn through the identical
+    `LinearScale.to_pixel()` call the data points use (see that
+    method's docstring), so a zero/negative annotation value on a
+    log-scaled axis has exactly the same "no honest pixel position"
+    problem `_log_data_extent()` raises on. Checked once, up front,
+    here -- not deferred to `to_pixel()` itself, which isn't `raises`
+    (see its own docstring) and shouldn't become so just for this one
+    caller.
+
+    A no-op whenever neither axis is log-scaled (`_render_generic`
+    calls this unconditionally, the same "the check itself is the
+    guard" shape `_check_line_smoothing` uses).
+    """
+    if plot._y_log:
+        for v in plot._annotations.line_values:
+            if v <= 0.0:
+                raise Error(
+                    "Plot.annotate_line(): value must be > 0 when Plot.scale_y_log() is set"
+                    " (got " + String(v) + ")"
+                )
+        for v in plot._annotations.area_y0:
+            if v <= 0.0:
+                raise Error(
+                    "Plot.annotate_area(): y0 must be > 0 when Plot.scale_y_log() is set"
+                    " (got " + String(v) + ")"
+                )
+        for v in plot._annotations.area_y1:
+            if v <= 0.0:
+                raise Error(
+                    "Plot.annotate_area(): y1 must be > 0 when Plot.scale_y_log() is set"
+                    " (got " + String(v) + ")"
+                )
+        for v in plot._annotations.point_y:
+            if v <= 0.0:
+                raise Error(
+                    "Plot.annotate_point(): y must be > 0 when Plot.scale_y_log() is set"
+                    " (got " + String(v) + ")"
+                )
+    if plot._x_log:
+        for v in plot._annotations.vline_values:
+            if v <= 0.0:
+                raise Error(
+                    "Plot.annotate_vline(): value must be > 0 when Plot.scale_x_log() is set"
+                    " (got " + String(v) + ")"
+                )
+        for v in plot._annotations.point_x:
+            if v <= 0.0:
+                raise Error(
+                    "Plot.annotate_point(): x must be > 0 when Plot.scale_x_log() is set"
+                    " (got " + String(v) + ")"
+                )
+
+
 def _check_line_smoothing(theme: Theme) raises:
     """`Theme.line_smoothing`'s `[0.0, 1.0]` range check -- see that
     field's docstring (theme.mojo) for why anything outside that
@@ -5075,6 +5267,24 @@ def _render_generic[
             "render_layers_svg() -- a standalone plot has only one"
             " series, nothing for a second y-axis to pair against"
         )
+    if (plot._y_log or plot._x_log) and not (
+        plot._mark == Mark.POINT
+        or plot._mark == Mark.LINE
+        or plot._mark == Mark.AREA
+        or plot._mark == Mark.EFFECT_SCATTER
+    ):
+        raise Error(
+            "Plot.scale_y_log()/scale_x_log() only apply to Mark.POINT/LINE/AREA/EFFECT_SCATTER"
+            " -- a categorical-x-axis (or other non-continuous) mark has no continuous domain for"
+            " a log scale to mean anything against"
+        )
+    if plot._y_log and plot._mark == Mark.AREA:
+        raise Error(
+            "Plot.scale_y_log(): not supported on Mark.AREA -- its y-domain is always forced"
+            " through a zero baseline (see _zero_baseline_y_extent()'s docstring), and zero has"
+            " no logarithm"
+        )
+    _validate_log_scale_annotations(plot)
     if plot._mark == Mark.BAR:
         return _render_bar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.LOLLIPOP:
@@ -5183,9 +5393,11 @@ def _render_generic[
     # baseline into the y-domain, every other continuous mark just pads
     # around its data.
     var y_scale = (
-        _zero_baseline_y_extent(plot.y_data) if plot._mark == Mark.AREA else _data_extent(plot.y_data)
+        _log_data_extent(plot.y_data) if plot._y_log else (
+            _zero_baseline_y_extent(plot.y_data) if plot._mark == Mark.AREA else _data_extent(plot.y_data)
+        )
     )
-    var x_scale = _data_extent(plot.x_data)
+    var x_scale = _log_data_extent(plot.x_data) if plot._x_log else _data_extent(plot.x_data)
 
     var frame = _draw_continuous_axis_frame(
         target, x_scale, y_scale, theme, legend_reserve, ox0, oy0, ox1, oy1, cache=measure_cache
@@ -5859,6 +6071,14 @@ def _render_layers_generic[
                 "render_layers(): only Mark.POINT/Mark.LINE/Mark.AREA can be layered"
                 " (got a different mark -- see the wiki's Backlog for why Mark.BAR/"
                 "Mark.ARC aren't supported here yet)"
+            )
+        if plots[i]._y_log or plots[i]._x_log:
+            raise Error(
+                "render_layers(): Plot.scale_y_log()/scale_x_log() aren't supported here yet -- every"
+                " layer's domain gets combined into one shared linear scale (see combined_x/combined_y"
+                " below), which doesn't have a log-space equivalent built yet (layer "
+                + String(i)
+                + ")"
             )
         _validate_continuous_encoding(plots[i], "render_layers(): layer " + String(i))
 

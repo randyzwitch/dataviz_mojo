@@ -110,6 +110,8 @@ def _titles() -> Dict[String, String]:
     d["annotate_vline"] = "Vertical Reference Line"
     d["annotate_point"] = "Point Marker"
     d["facets"] = "Facets"
+    d["log_scale_y"] = "Log Scale (Y-Axis)"
+    d["log_scale_x"] = "Log Scale (X-Axis)"
     return d^
 
 
@@ -210,7 +212,7 @@ def _cookbook() -> Category:
         " so each is filed by what it does rather than what it looks like.",
         [
             "annotate_line", "annotate_area", "annotate_vline", "annotate_point", "dual_axis",
-            "svg_accessibility", "facets",
+            "svg_accessibility", "facets", "log_scale_y", "log_scale_x",
         ],
     )
 

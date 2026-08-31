@@ -152,6 +152,75 @@ def _format_fixed(value: Float64, decimals: Int) -> String:
     return sign + String(int_part) + "." + frac_str
 
 
+def _log_ticks(domain_min: Float64, domain_max: Float64) -> Ticks:
+    """Tick positions for a log10-scaled `LinearScale` -- `domain_min`/
+    `domain_max` are already in log10-space (a log scale's own
+    `domain_min`/`domain_max`, per `LinearScale.to_pixel()`'s
+    docstring), so `10.0**domain_min`/`10.0**domain_max` are the
+    real-unit bounds ticks must fall within. Returns real-unit values
+    (1, 10, 100, ..., never their own log) -- ready to feed straight
+    into the same `to_pixel()` every other value on this axis already
+    goes through, which itself takes `log10()` of whatever it's given
+    when `is_log` is set; passing an already-logged position here
+    would double-transform it.
+
+    Major ticks only (`1 * 10^k`) whenever the visible span covers
+    more than 2 decades -- the standard log-axis convention
+    (matplotlib's `LogLocator` does the same) to avoid a cluttered
+    1/2/5-per-decade axis on a wide range. `1 * 10^k`/`2 * 10^k`/
+    `5 * 10^k` within each covered decade otherwise, for a genuinely
+    readable axis when there's only one or two decades to show.
+    Hand-verified: domain `[0, 3]` (real `[1, 1000]`, a 3-decade span)
+    -> majors only, `[1, 10, 100, 1000]`; domain `[0, 1]` (real
+    `[1, 10]`, one decade) -> the full 1/2/5 set, `[1, 2, 5, 10]`.
+
+    A degenerate zero-span domain (shouldn't reach here in practice --
+    `_log_data_extent()` always pads -- but handled the same defensive
+    way `LinearScale.ticks()`'s own zero-span case is) returns a
+    single tick at the one real value. A domain narrow enough to miss
+    every `1`/`2`/`5` multiple in its own decade (e.g. `[35, 40]`,
+    between the `2*10^1` and `5*10^1` ticks) falls back to its own two
+    real endpoints rather than an empty axis.
+    """
+    if domain_min == domain_max:
+        var v = pow(10.0, domain_min)
+        var single: List[Float64] = [v]
+        var single_label: List[String] = [_format_fixed(v, max(0, -Int(floor(domain_min))))]
+        return Ticks(single^, 0, single_label^)
+
+    var start_exp = Int(floor(domain_min))
+    var end_exp = Int(ceil(domain_max))
+    var lo = pow(10.0, domain_min)
+    var hi = pow(10.0, domain_max)
+    var wide = (end_exp - start_exp) > 2
+
+    var values = List[Float64]()
+    var labels = List[String]()
+    for e in range(start_exp, end_exp + 1):
+        var decade = pow(10.0, Float64(e))
+        var mults: List[Float64] = [1.0] if wide else [1.0, 2.0, 5.0]
+        for m in mults:
+            var v = m * decade
+            # A tiny relative tolerance against the real bounds, not an
+            # exact >=/<=, so a tick that should land exactly on a
+            # padded boundary (computed through pow()/floor()/ceil())
+            # isn't dropped by ordinary floating-point rounding --
+            # the same reasoning LinearScale.ticks()'s own boundary-
+            # inclusive comment gives for the linear case.
+            if v >= lo * (1.0 - 1e-9) and v <= hi * (1.0 + 1e-9):
+                values.append(v)
+                labels.append(_format_fixed(v, max(0, -e)))
+
+    if len(values) == 0:
+        values = [lo, hi]
+        labels = [
+            _format_fixed(lo, max(0, -start_exp)),
+            _format_fixed(hi, max(0, -end_exp)),
+        ]
+
+    return Ticks(values^, 0, labels^)
+
+
 struct Ticks(Movable):
     """LinearScale.ticks()'s result: the tick positions themselves
     plus how many decimal places they need for display -- both
@@ -163,9 +232,20 @@ struct Ticks(Movable):
     """The tick positions themselves, in the scale's data domain."""
     var decimals: Int
     """How many decimal places every tick value needs for display --
-    falls straight out of `_nice_step`'s own step computation."""
+    falls straight out of `_nice_step`'s own step computation. Unused
+    (but still present) whenever `override_labels` is non-empty."""
+    var override_labels: List[String]
+    """Pre-formatted labels, one per `values` entry, empty (the
+    default) for the ordinary case where every tick shares one
+    `decimals` count. Non-empty only for `_log_ticks()`'s log-scaled
+    ticks, where a decade-spanning axis needs a *different* decimal
+    count per tick (0.01 needs 2 places, 100 needs 0) -- something one
+    shared `decimals` can't express, unlike every linear-scale case
+    `_nice_step` ever produces."""
 
-    def __init__(out self, var values: List[Float64], decimals: Int):
+    def __init__(
+        out self, var values: List[Float64], decimals: Int, var override_labels: List[String] = List[String]()
+    ):
         """Construct a `Ticks` from already-computed positions and a
         decimal count -- normally built by `LinearScale.ticks()`, not
         called directly.
@@ -173,20 +253,27 @@ struct Ticks(Movable):
         Args:
             values: The tick positions, in the scale's data domain.
             decimals: How many decimal places every tick value needs
-                for display.
+                for display. Ignored if `override_labels` is given.
+            override_labels: Pre-formatted labels, one per `values`
+                entry; left empty (the default) to format every tick
+                via `decimals` instead.
         """
         self.values = values^
         self.decimals = decimals
+        self.override_labels = override_labels^
 
     def labels(self) -> List[String]:
         """Each tick value formatted via _format_fixed at this
         Ticks' `decimals` -- the convenience an axis-drawing
         caller actually wants, without needing to know
-        _format_fixed exists.
+        _format_fixed exists. Returns `override_labels` unchanged
+        instead, when set (see its own docstring for why).
 
         Returns:
             One formatted string per `values` entry, same order.
         """
+        if len(self.override_labels) > 0:
+            return self.override_labels.copy()
         var result = List[String](capacity=len(self.values))
         for v in self.values:
             result.append(_format_fixed(v, self.decimals))
@@ -213,9 +300,27 @@ struct LinearScale(ImplicitlyCopyable, Movable):
     """The pixel position `domain_max` maps to -- not necessarily
     greater than `range_min` (a y-axis scale passes a *smaller* pixel
     value here, since pixel y increases downward)."""
+    var is_log: Bool
+    """`False` (the default -- every pre-existing `LinearScale` keeps
+    mapping exactly as it always has) for a plain linear scale.
+    `True` for a log10-scaled axis (`Plot.scale_y_log()`/
+    `scale_x_log()`): `domain_min`/`domain_max` are then themselves
+    already in log10-space (see `_log_data_extent()`, plot.mojo), and
+    `to_pixel()` takes `log10()` of whatever real-unit value it's
+    given before applying the same affine map -- every caller
+    (data points, gridlines, tick marks, `Plot.annotate_line()`/
+    `annotate_area()`/`annotate_vline()`/`annotate_point()`, all of
+    which already go through `to_pixel()`/`_axis_pixel()`, plot.mojo)
+    keeps passing real-unit values exactly as it does for a linear
+    scale, unaware which kind of scale it's actually talking to."""
 
     def __init__(
-        out self, domain_min: Float64, domain_max: Float64, range_min: Float64, range_max: Float64
+        out self,
+        domain_min: Float64,
+        domain_max: Float64,
+        range_min: Float64,
+        range_max: Float64,
+        is_log: Bool = False,
     ):
         """Construct a `LinearScale` from an already-known domain and
         pixel range.
@@ -225,11 +330,15 @@ struct LinearScale(ImplicitlyCopyable, Movable):
             domain_max: The high end of the data domain.
             range_min: The pixel position `domain_min` maps to.
             range_max: The pixel position `domain_max` maps to.
+            is_log: Whether `domain_min`/`domain_max` are in log10-
+                space and `to_pixel()` should log-transform its input
+                first; see this field's own docstring.
         """
         self.domain_min = domain_min
         self.domain_max = domain_max
         self.range_min = range_min
         self.range_max = range_max
+        self.is_log = is_log
 
     def scale(self) -> Float64:
         """The slope for a Transform2D built from this axis --
@@ -254,15 +363,20 @@ struct LinearScale(ImplicitlyCopyable, Movable):
 
     def to_pixel(self, value: Float64) -> Float64:
         """Map a data value onto its pixel position -- `scale()`'s
-        slope times `value`, plus `translate()`'s intercept.
+        slope times `value`, plus `translate()`'s intercept. Takes
+        `log10(value)` first when `is_log` is set (see that field's
+        docstring) -- `value` itself is always the real, untransformed
+        data value; every caller stays the same either way.
 
         Args:
-            value: The data value to map.
+            value: The data value to map, in real units (never
+                pre-logged, even when `is_log` is set).
 
         Returns:
             The pixel position `value` lands on.
         """
-        return value * self.scale() + self.translate()
+        var v = log10(value) if self.is_log else value
+        return v * self.scale() + self.translate()
 
     def ticks(self, target_count: Int = 5) -> Ticks:
         """"Nice" tick positions within [domain_min, domain_max] (see
@@ -287,6 +401,8 @@ struct LinearScale(ImplicitlyCopyable, Movable):
             The computed tick positions and their shared decimal
             count.
         """
+        if self.is_log:
+            return _log_ticks(self.domain_min, self.domain_max)
         if self.domain_min == self.domain_max:
             var single: List[Float64] = [self.domain_min]
             return Ticks(single^, 0)

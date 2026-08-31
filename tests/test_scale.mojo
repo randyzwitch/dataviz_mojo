@@ -6,7 +6,7 @@ trusting the Mojo implementation.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from dataviz_mojo.scale import LinearScale, Ticks, _format_fixed, _min_max, _nice_step
+from dataviz_mojo.scale import LinearScale, Ticks, _format_fixed, _log_ticks, _min_max, _nice_step
 
 
 def _assert_ticks_equal(actual: List[Float64], expected: List[Float64], label: String) raises:
@@ -130,6 +130,70 @@ def test_ticks_labels_uses_format_fixed_per_tick() raises:
     assert_equal(labels[0], "0.000")
     assert_equal(labels[1], "0.002")
     assert_equal(labels[len(labels) - 1], "0.010")
+
+
+def test_log_scale_to_pixel_matches_hand_derived_positions() raises:
+    # domain [0, 3] (log10-space, i.e. real [1, 1000]) -> range
+    # [400, 0]: scale() = (0-400)/(3-0) = -133.333..., translate() =
+    # 400 - 0*scale() = 400. to_pixel(v) = log10(v)*scale() +
+    # translate() -- every value below independently computed by hand.
+    var s = LinearScale(0.0, 3.0, 400.0, 0.0, is_log=True)
+    assert_equal(s.to_pixel(1.0), 400.0)
+    assert_equal(s.to_pixel(10.0), 266.66666666666663)
+    assert_equal(s.to_pixel(100.0), 133.33333333333331)
+    assert_equal(s.to_pixel(1000.0), 0.0)
+
+
+def test_log_ticks_wide_domain_returns_major_ticks_only() raises:
+    # > 2 decades (domain [0, 3], real [1, 1000]) -> 1*10^k only, no
+    # 2*10^k/5*10^k sub-ticks (the standard log-axis convention for a
+    # wide range -- see _log_ticks's own docstring).
+    var t = _log_ticks(0.0, 3.0)
+    var expected: List[Float64] = [1.0, 10.0, 100.0, 1000.0]
+    _assert_ticks_equal(t.values, expected, "wide log domain [0,3]")
+    var labels = t.labels()
+    assert_equal(labels[0], "1")
+    assert_equal(labels[1], "10")
+    assert_equal(labels[2], "100")
+    assert_equal(labels[3], "1000")
+
+
+def test_log_ticks_narrow_domain_returns_the_full_1_2_5_set() raises:
+    # <= 2 decades (domain [0, 1], real [1, 10]) -> the full 1/2/5*10^k
+    # set within that one decade.
+    var t = _log_ticks(0.0, 1.0)
+    var expected: List[Float64] = [1.0, 2.0, 5.0, 10.0]
+    _assert_ticks_equal(t.values, expected, "narrow log domain [0,1]")
+    var labels = t.labels()
+    assert_equal(labels[0], "1")
+    assert_equal(labels[1], "2")
+    assert_equal(labels[2], "5")
+    assert_equal(labels[3], "10")
+
+
+def test_log_ticks_sub_one_domain_formats_each_tick_with_its_own_decimals() raises:
+    # domain [-2, 0] (real [0.01, 1]) -- every 1/2/5*10^k tick needs a
+    # *different* decimal count (0.01 needs 2 places, 1 needs 0),
+    # exactly what Ticks.override_labels exists for (one shared
+    # `decimals` can't express this).
+    var t = _log_ticks(-2.0, 0.0)
+    var expected: List[Float64] = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
+    _assert_ticks_equal(t.values, expected, "sub-one log domain [-2,0]")
+    var labels = t.labels()
+    assert_equal(labels[0], "0.01")
+    assert_equal(labels[1], "0.02")
+    assert_equal(labels[2], "0.05")
+    assert_equal(labels[3], "0.1")
+    assert_equal(labels[4], "0.2")
+    assert_equal(labels[5], "0.5")
+    assert_equal(labels[6], "1")
+
+
+def test_log_ticks_zero_span_domain_returns_a_single_real_unit_tick() raises:
+    var t = _log_ticks(2.0, 2.0)
+    assert_equal(len(t.values), 1)
+    assert_equal(t.values[0], 100.0)
+    assert_equal(t.labels()[0], "100")
 
 
 def test_min_max_over_a_plain_column() raises:
