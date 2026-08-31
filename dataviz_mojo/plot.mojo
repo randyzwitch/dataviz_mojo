@@ -404,6 +404,18 @@ struct _AnnotationData(Movable):
     annotate_band()`'s own docstring for why this needs a genuinely
     different data shape from `area_*`'s constant `(y0, y1)` pair.
 
+    `best_fit*` isn't a parallel list the way every field above is --
+    unlike the others, it isn't independent caller-supplied data: it's
+    a single opt-in request to compute a line *from* this same `Plot`'s
+    own already-encoded `x_data`/`y_data` (see `Plot.annotate_best_
+    fit()`'s own docstring for why calling it more than once wouldn't
+    mean anything -- the fit is deterministic from the plot's own
+    data, so a second call could only ever recompute the identical
+    line). A plain `Bool` request flag plus its own display options,
+    the same shape `_secondary_axis`/`_y_log` (`Plot`'s own fields)
+    already use for a single opt-in setting rather than repeatable
+    data.
+
     Grouped onto `Plot._annotations` -- see `Plot`'s docstring.
     """
 
@@ -421,6 +433,10 @@ struct _AnnotationData(Movable):
     var band_y_lower: List[List[Float64]]
     var band_y_upper: List[List[Float64]]
     var band_labels: List[String]
+    var best_fit: Bool
+    var best_fit_show_equation: Bool
+    var best_fit_show_r_squared: Bool
+    var best_fit_label: String
 
     def __init__(out self):
         self.line_values = List[Float64]()
@@ -437,6 +453,10 @@ struct _AnnotationData(Movable):
         self.band_y_lower = List[List[Float64]]()
         self.band_y_upper = List[List[Float64]]()
         self.band_labels = List[String]()
+        self.best_fit = False
+        self.best_fit_show_equation = False
+        self.best_fit_show_r_squared = False
+        self.best_fit_label = ""
 
 
 struct Plot(Movable):
@@ -2597,6 +2617,88 @@ struct Plot(Movable):
         self._annotations.band_labels.append(label)
         return self^
 
+    def annotate_best_fit(
+        var self, show_equation: Bool = False, show_r_squared: Bool = False, label: String = ""
+    ) -> Self:
+        """Overlay an ordinary-least-squares best-fit line computed
+        directly from this plot's own already-encoded `x_data`/
+        `y_data` -- no manual slope/intercept math and no second
+        `render_layers()` layer needed the way the Cookbook's older
+        "Best-Fit Trend Line" recipe (docs/src/cookbook_recipes/
+        best_fit_line.mojo) required before this method existed.
+
+        The fit itself is computed at render() time (not here), from
+        whatever `x_data`/`y_data` the plot ends up with -- so this
+        method works whether it's called before or after `.encode()`
+        in the fluent chain, unlike a method that needed the data
+        immediately. Not additive/repeatable the way `annotate_line()`/
+        `annotate_point()` etc. are: the fit is entirely determined by
+        this plot's own data, so calling it more than once could only
+        ever recompute the identical line -- the last call simply wins
+        (a plain request flag, not a growing list; see `_AnnotationData`'s own docstring for the same reasoning).
+
+        Drawn as a solid line in `Theme.annotation_color`, spanning the
+        mark's full (padded) x-domain (`result.x_scale.domain_min` to
+        `domain_max`) rather than just the data's own `min(x)`/`max(x)`
+        -- a trend line conventionally reads across the whole visible
+        plot, the same way `annotate_line()`'s horizontal reference
+        line spans the plot's full width rather than stopping at the
+        nearest data point.
+
+        `show_equation`/`show_r_squared`, when set, each draw one more
+        line of text, right-aligned near the plot's top-right corner
+        (a fixed corner -- not tracking the fitted line's own slope-
+        dependent endpoint, the same "anchor in one predictable spot"
+        choice `annotate_area()`'s own label placement already makes,
+        here specifically to avoid the caption colliding with the
+        fitted line itself at whichever end its slope happens to be
+        higher). `label`, when non-empty, draws as a heading above
+        both. R-squared (`1 - SS_res/SS_tot`, the standard "share of
+        y's variance the fit explains" measure) is defined as exactly
+        `1.0` when `SS_tot` is `0.0` (every `y` value identical) --
+        the fit's own slope comes out to exactly `0.0` in that case
+        too (see this method's own raise conditions below), so the
+        "fit" trivially explains all of the (nonexistent) variance,
+        rather than the `0/0` a literal formula would produce.
+
+        Needs a genuine coordinate on *both* axes, the same `Mark.
+        POINT`/`LINE`/`AREA`/`EFFECT_SCATTER`-only scope `annotate_
+        point()` has, and for the identical reason (see that method's
+        docstring). Raises at render() time if the plot has fewer
+        than 2 points (no line through one point means anything), or
+        if every `x` value is identical (a vertical scatter -- the
+        OLS slope formula's denominator is exactly `0.0`, and there is
+        no honest non-vertical line to draw through it).
+
+        Only wired into `render()`/`render_svg()` so far, the same
+        scope cut every annotation method here currently has.
+
+        Args:
+            show_equation: Draw the fitted line's own `y = mx + b`
+                text when `True`; `False` (the default) draws only the
+                line itself.
+            show_r_squared: Draw the fit's R-squared text when `True`;
+                `False` (the default) omits it.
+            label: An optional heading drawn above the equation/
+                R-squared text; left empty (the default), no heading
+                draws (independent of `show_equation`/`show_r_
+                squared` -- a `label` with both left `False` still
+                draws only the line, no text at all).
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later if the mark has no genuine continuous x/y-axis,
+            has fewer than 2 points, or every x value is identical.
+
+        See the Cookbook's own "Best-Fit Trend Line" recipe (docs/src/
+        cookbook_recipes/best_fit_line.mojo) for a full worked example.
+        """
+        self._annotations.best_fit = True
+        self._annotations.best_fit_show_equation = show_equation
+        self._annotations.best_fit_show_r_squared = show_r_squared
+        self._annotations.best_fit_label = label
+        return self^
+
     def scale_y_log(var self) -> Self:
         """Scale the y-axis logarithmically (base 10) instead of
         linearly -- every y value (and every y-axis `Plot.annotate_
@@ -4124,6 +4226,144 @@ def _draw_annotation_points[
     return text_requests^
 
 
+def _draw_annotation_best_fit[
+    T: DrawTarget
+](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises -> List[_TextRequest]:
+    """Draws `Plot.annotate_best_fit()`'s ordinary-least-squares line
+    (a plain `draw_line_aa`, the same "no font/glyph machinery needed
+    to draw the line itself" reasoning `_draw_annotation_lines`'s
+    docstring gives), and returns its optional label/equation/
+    R-squared text as `_TextRequest`s for the caller to draw
+    afterward.
+
+    The regression itself is computed here, from `plot.x_data`/
+    `plot.y_data` directly -- not in `Plot.annotate_best_fit()` itself,
+    so the fit always sees whatever data the plot ends up with
+    regardless of call order (see that method's own docstring).
+    Standard closed-form OLS: `slope = (n*sum_xy - sum_x*sum_y) /
+    (n*sum_xx - sum_x^2)`, `intercept = mean_y - slope*mean_x`.
+
+    Needs *both* `result.x_scale` and `result.y_scale`, the same
+    `Plot.annotate_point()` family this belongs to (see that method's
+    docstring for the exact supported-mark list and why). Raises if
+    fewer than 2 points are encoded (no line through one point means
+    anything), or if the OLS denominator (`n*sum_xx - sum_x^2`) is
+    exactly `0.0` -- every x value identical, a vertical scatter with
+    no honest non-vertical slope to report.
+
+    Drawn across the mark's own full (padded) x-domain (`result.
+    x_scale.domain_min`/`domain_max`, not just `min(x)`/`max(x)`) --
+    see `Plot.annotate_best_fit()`'s own docstring for why a trend
+    line reads better spanning the whole visible plot. Each endpoint
+    still clamps into `[py_top, py_bottom]` the same way `_draw_
+    annotation_bands`'s vertices do, for the same reason: a steep fit
+    could otherwise project a y value far outside the visible plot
+    rect at one end.
+    """
+    var text_requests = List[_TextRequest]()
+    if not plot._annotations.best_fit:
+        return text_requests^
+    if not result.has_x_scale or not result.has_y_scale:
+        raise Error(
+            "Plot.annotate_best_fit(): this mark has no continuous x/y axes to fit a line against."
+            " Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
+        )
+    var n_points = len(plot.x_data)
+    if n_points < 2:
+        raise Error(
+            "Plot.annotate_best_fit(): needs at least 2 points to fit a line through (got "
+            + String(n_points)
+            + ")"
+        )
+
+    var n = Float64(n_points)
+    var sum_x = 0.0
+    var sum_y = 0.0
+    var sum_xy = 0.0
+    var sum_xx = 0.0
+    for i in range(n_points):
+        sum_x += plot.x_data[i]
+        sum_y += plot.y_data[i]
+        sum_xy += plot.x_data[i] * plot.y_data[i]
+        sum_xx += plot.x_data[i] * plot.x_data[i]
+    var denom = n * sum_xx - sum_x * sum_x
+    if denom == 0.0:
+        raise Error(
+            "Plot.annotate_best_fit(): every x value is identical -- there is no honest"
+            " non-vertical line to fit through a vertical scatter"
+        )
+    var slope = (n * sum_xy - sum_x * sum_y) / denom
+    var mean_x = sum_x / n
+    var mean_y = sum_y / n
+    var intercept = mean_y - slope * mean_x
+
+    var sc = _Scaled(theme)
+    var py_top = min(result.py0, result.py1)
+    var py_bottom = max(result.py0, result.py1)
+    var x_left = result.x_scale.domain_min
+    var x_right = result.x_scale.domain_max
+    var px_left = _axis_pixel(result.x_scale, x_left)
+    var px_right = _axis_pixel(result.x_scale, x_right)
+    var py_left = min(max(_axis_pixel(result.y_scale, slope * x_left + intercept), py_top), py_bottom)
+    var py_right = min(max(_axis_pixel(result.y_scale, slope * x_right + intercept), py_top), py_bottom)
+    target.draw_line_aa(px_left, py_left, px_right, py_right, theme.annotation_color, width=sc.scale)
+
+    var text_x = max(result.px0, result.px1) - sc.label_gap
+    var text_y = py_top + Int(sc.font_size)
+    if plot._annotations.best_fit_label.byte_length() > 0:
+        text_requests.append(
+            _TextRequest(
+                text_x,
+                text_y,
+                plot._annotations.best_fit_label,
+                theme.annotation_color,
+                sc.font_size,
+                TextAlign.RIGHT,
+                theme.font_family,
+            )
+        )
+        text_y += Int(sc.font_size) + sc.label_gap
+    if plot._annotations.best_fit_show_equation:
+        var slope_str = _format_fixed(slope, 3)
+        var eq: String
+        if intercept >= 0.0:
+            eq = "y = " + slope_str + "x + " + _format_fixed(intercept, 3)
+        else:
+            eq = "y = " + slope_str + "x - " + _format_fixed(-intercept, 3)
+        text_requests.append(
+            _TextRequest(text_x, text_y, eq, theme.annotation_color, sc.font_size, TextAlign.RIGHT, theme.font_family)
+        )
+        text_y += Int(sc.font_size) + sc.label_gap
+    if plot._annotations.best_fit_show_r_squared:
+        # R-squared = 1 - SS_res/SS_tot, the standard "share of y's
+        # variance the fit explains" measure. SS_tot == 0.0 (every y
+        # identical) defines this as exactly 1.0 rather than the 0/0 a
+        # literal formula would produce -- see this method's own
+        # docstring for why that's the honest answer, not just a
+        # convenient one.
+        var ss_res = 0.0
+        var ss_tot = 0.0
+        for i in range(n_points):
+            var predicted = slope * plot.x_data[i] + intercept
+            var residual = plot.y_data[i] - predicted
+            ss_res += residual * residual
+            var deviation = plot.y_data[i] - mean_y
+            ss_tot += deviation * deviation
+        var r_squared = 1.0 if ss_tot == 0.0 else 1.0 - ss_res / ss_tot
+        text_requests.append(
+            _TextRequest(
+                text_x,
+                text_y,
+                "R² = " + _format_fixed(r_squared, 3),
+                theme.annotation_color,
+                sc.font_size,
+                TextAlign.RIGHT,
+                theme.font_family,
+            )
+        )
+    return text_requests^
+
+
 def _replay_text_requests(mut canvas: Canvas, requests: List[_TextRequest], mut cache: FontCache) raises:
     """Draw every `_TextRequest` in `requests` into `canvas` via
     `canvas_mojo.text.draw_text` -- the raster half of replaying the
@@ -4370,6 +4610,7 @@ def _render_into(
     var vline_annotation_requests = _draw_annotation_vlines(canvas, plot, result, plot._theme)
     var annotation_requests = _draw_annotation_lines(canvas, plot, result, plot._theme)
     var point_annotation_requests = _draw_annotation_points(canvas, plot, result, plot._theme)
+    var best_fit_annotation_requests = _draw_annotation_best_fit(canvas, plot, result, plot._theme)
     # One FontCache shared by every label this render draws. Without
     # it each draw_text() resolves its font from scratch -- twice,
     # in fact, since draw_text measures and then renders (see canvas_
@@ -4383,6 +4624,7 @@ def _render_into(
     _replay_text_requests(canvas, vline_annotation_requests, text_cache)
     _replay_text_requests(canvas, annotation_requests, text_cache)
     _replay_text_requests(canvas, point_annotation_requests, text_cache)
+    _replay_text_requests(canvas, best_fit_annotation_requests, text_cache)
     _replay_text_requests(canvas, result.text_requests, text_cache)
 
 
@@ -4427,12 +4669,14 @@ def _render_svg_into(
     var vline_annotation_requests = _draw_annotation_vlines(svg, plot, result, plot._theme)
     var annotation_requests = _draw_annotation_lines(svg, plot, result, plot._theme)
     var point_annotation_requests = _draw_annotation_points(svg, plot, result, plot._theme)
+    var best_fit_annotation_requests = _draw_annotation_best_fit(svg, plot, result, plot._theme)
     _replay_text_requests_svg(svg, label_requests)
     _replay_text_requests_svg(svg, area_annotation_requests)
     _replay_text_requests_svg(svg, band_annotation_requests)
     _replay_text_requests_svg(svg, vline_annotation_requests)
     _replay_text_requests_svg(svg, annotation_requests)
     _replay_text_requests_svg(svg, point_annotation_requests)
+    _replay_text_requests_svg(svg, best_fit_annotation_requests)
     _replay_text_requests_svg(svg, result.text_requests)
 
 
