@@ -1073,11 +1073,14 @@ struct Plot(Movable):
         `Theme.mark_color`) -- an error bar reads as *that point's own*
         uncertainty, not a separate, unrelated color.
 
-        Only `Mark.POINT`/`EFFECT_SCATTER` support these four channels
-        today -- see render()'s check. A per-segment color/width
-        gradient along a `Mark.LINE`, or error bars on one, are real,
-        fancier features, not silently approximated by reusing the
-        scatter-point machinery.
+        `color`/`color_categories`/`size` support `Mark.POINT`/
+        `SINGLE_AXIS`/`EFFECT_SCATTER` today -- see render()'s check.
+        `y_err` is narrower still, `Mark.POINT`/`EFFECT_SCATTER` only
+        (not `SINGLE_AXIS` -- a single-axis plot has no genuine
+        y-domain for a whisker to extend into). A per-segment color/
+        width gradient along a `Mark.LINE`, or error bars on one, are
+        real, fancier features, not silently approximated by reusing
+        the scatter-point machinery.
 
         For a categorical x-axis (`Mark.BAR`), use
         `encode_categorical()` instead -- this method's `x`
@@ -1090,16 +1093,17 @@ struct Plot(Movable):
             color: Optional continuous color channel, mapped through a
                 `ColorScale` spanning the column's `[min, max]`;
                 mutually exclusive with `color_categories`. `Mark.
-                POINT`/`EFFECT_SCATTER` only.
+                POINT`/`SINGLE_AXIS`/`EFFECT_SCATTER` only.
             color_categories: Optional discrete color channel,
                 palette-colored by each value's first-seen order
                 among its unique values; mutually exclusive with
-                `color`. `Mark.POINT`/`EFFECT_SCATTER` only.
+                `color`. `Mark.POINT`/`SINGLE_AXIS`/`EFFECT_SCATTER`
+                only.
             size: Optional point-size channel, continuous only.
-                `Mark.POINT`/`EFFECT_SCATTER` only.
+                `Mark.POINT`/`SINGLE_AXIS`/`EFFECT_SCATTER` only.
             y_err: Optional symmetric error-bar half-width per point,
                 continuous only, every value `>= 0`. `Mark.POINT`/
-                `EFFECT_SCATTER` only.
+                `EFFECT_SCATTER` only (not `SINGLE_AXIS`).
 
         Returns:
             Self, for further chaining.
