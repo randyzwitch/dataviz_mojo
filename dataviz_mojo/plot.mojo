@@ -1117,13 +1117,17 @@ struct Plot(Movable):
         POINT`/`SINGLE_AXIS`/`EFFECT_SCATTER` today -- see render()'s
         check (`color_map` inherits whatever mark `color_categories`
         is used on; it has no narrower restriction of its own beyond
-        needing `color_categories` set). The three error-bar channels
-        are narrower still, `Mark.POINT`/`EFFECT_SCATTER` only (not
+        needing `color_categories` set). `y_err` reaches `Mark.POINT`/
+        `LINE`/`EFFECT_SCATTER` (on a line chart, a confidence whisker
+        per point, drawn once per original data point in `theme.mark_
+        color` -- see `_draw_line_layer`'s own docstring), but not
         `SINGLE_AXIS` -- a single-axis plot has no genuine y-domain for
-        a whisker to extend into). A per-segment color/width gradient
-        along a `Mark.LINE`, or error bars on one, are real, fancier
-        features, not silently approximated by reusing the
-        scatter-point machinery.
+        a whisker to extend into. `y_err_lower`/`y_err_upper` are
+        narrower still, `Mark.POINT`/`EFFECT_SCATTER` only (not yet
+        wired up for `Mark.LINE` the way symmetric `y_err` is). A
+        per-segment color/width gradient along a `Mark.LINE` is still a
+        real, fancier feature this doesn't attempt, not silently
+        approximated by reusing the scatter-point machinery.
 
         For a categorical x-axis (`Mark.BAR`), use
         `encode_categorical()` instead -- this method's `x`
@@ -1146,14 +1150,16 @@ struct Plot(Movable):
                 `Mark.POINT`/`SINGLE_AXIS`/`EFFECT_SCATTER` only.
             y_err: Optional symmetric error-bar half-width per point,
                 continuous only, every value `>= 0`; mutually exclusive
-                with `y_err_lower`/`y_err_upper`. `Mark.POINT`/
+                with `y_err_lower`/`y_err_upper`. `Mark.POINT`/`LINE`/
                 `EFFECT_SCATTER` only (not `SINGLE_AXIS`).
             y_err_lower: Optional asymmetric error-bar downward extent
                 per point; must be given together with `y_err_upper`,
-                every value `>= 0`. `Mark.POINT`/`EFFECT_SCATTER` only.
+                every value `>= 0`. `Mark.POINT`/`EFFECT_SCATTER` only
+                (not yet `Mark.LINE`).
             y_err_upper: Optional asymmetric error-bar upward extent
                 per point; must be given together with `y_err_lower`,
-                every value `>= 0`. `Mark.POINT`/`EFFECT_SCATTER` only.
+                every value `>= 0`. `Mark.POINT`/`EFFECT_SCATTER` only
+                (not yet `Mark.LINE`).
             color_map: Optional explicit category-to-color overrides,
                 keyed by the category's own name; only meaningful
                 alongside `color_categories`. `Mark.POINT`/`SINGLE_
@@ -4648,10 +4654,17 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
                 raise Error(context + ": y_err values must be >= 0 (got " + String(v) + ")")
     # No Mark.SINGLE_AXIS here, unlike the color/size check above -- a
     # single-axis plot has no genuine y-domain for an error bar to
-    # extend into (see mark_single_axis()'s docstring).
-    if has_y_err and not (plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER):
+    # extend into (see mark_single_axis()'s docstring). Mark.LINE *is*
+    # included, unlike color/size -- a line chart with a per-point
+    # confidence whisker is a real, common pattern (see _draw_line_
+    # layer's own docstring for how it draws these), where a per-
+    # segment color/width gradient (color/size's own reason for
+    # staying POINT-only) has no equivalent here.
+    if has_y_err and not (
+        plot._mark == Mark.POINT or plot._mark == Mark.LINE or plot._mark == Mark.EFFECT_SCATTER
+    ):
         raise Error(
-            context + ": y_err is only supported for Mark.POINT/EFFECT_SCATTER today"
+            context + ": y_err is only supported for Mark.POINT/LINE/EFFECT_SCATTER today"
         )
 
     var has_y_err_lower = len(plot.y_err_lower_data) > 0
@@ -5195,10 +5208,38 @@ def _draw_line_layer[
     of thing two near-identical copies of the same drawing code are
     for. Routing both through one function guarantees it by
     construction rather than by remembering to.
+
+    `Plot.encode()`'s `y_err` whisker (when set -- see that method's
+    own docstring) draws once per *original* data point, before the
+    line itself (whisker first, line on top, the same back-to-front
+    order `_draw_point_layer`'s own whisker/point drawing already
+    uses) -- deliberately over the untouched `plot.x_data`/`y_data`,
+    not `thinned`: decimation below exists purely so the *path*'s own
+    rasterization cost doesn't scale with sub-pixel-dense data, a
+    concern specific to the stroked curve, not to how many discrete
+    whiskers should draw. `Mark.LINE` has no per-point color the way
+    `Mark.POINT`'s `color`/`color_categories` channels do (color/size
+    stay POINT-only, see `_validate_continuous_encoding`'s own mark
+    check), so every whisker here is plain `theme.mark_color`, the
+    same ink the line itself strokes with.
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
     _check_line_smoothing(theme)
+    if len(plot.y_err_data) > 0:
+        var cap_half = _round_to_int(sc.error_bar_cap_width)
+        for i in range(len(plot.x_data)):
+            var px_i = _round_to_int(x_scale.to_pixel(plot.x_data[i]))
+            var err = plot.y_err_data[i]
+            var py_hi = _axis_pixel(y_scale, plot.y_data[i] + err)
+            var py_lo = _axis_pixel(y_scale, plot.y_data[i] - err)
+            target.draw_line_aa(px_i, py_hi, px_i, py_lo, theme.mark_color, width=sc.scale)
+            target.draw_line_aa(
+                px_i - cap_half, py_hi, px_i + cap_half, py_hi, theme.mark_color, width=sc.scale
+            )
+            target.draw_line_aa(
+                px_i - cap_half, py_lo, px_i + cap_half, py_lo, theme.mark_color, width=sc.scale
+            )
     var px = List[Float64](capacity=len(plot.x_data))
     var py = List[Float64](capacity=len(plot.x_data))
     for i in range(len(plot.x_data)):

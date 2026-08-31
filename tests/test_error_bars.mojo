@@ -90,10 +90,14 @@ def test_render_raises_on_a_y_err_length_mismatch() raises:
 
 
 def test_render_raises_on_y_err_with_an_incompatible_mark() raises:
+    # Mark.AREA -- still excluded (see tests/test_error_bars_on_line.
+    # mojo's own docstring for why, and its own dedicated test for this
+    # exact case). Mark.LINE was the incompatible mark this test used
+    # to check, before #146 added y_err support there deliberately.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var err: List[Float64] = [1.0, 1.0]
-    var plot = Plot().mark_line().encode(x=x, y=y, y_err=err)
+    var plot = Plot().mark_area().encode(x=x, y=y, y_err=err)
     with assert_raises():
         _ = render(plot)
 
