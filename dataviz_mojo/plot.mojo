@@ -441,10 +441,10 @@ struct Plot(Movable):
 
     What stays ungrouped is deliberate: `x_data`/`y_data`/
     `x_categories`/`color_data`/`color_categories`/`size_data`/
-    `y_err_data`/`y_err_lower_data`/`y_err_upper_data` are the shared
-    encoding channels many marks read, not any one mark's columns, and
-    `_mark`/`_theme`/`_secondary_axis`/`_nightingale_area` are single
-    settings rather than data.
+    `y_err_data`/`y_err_lower_data`/`y_err_upper_data`/`color_map` are
+    the shared encoding channels many marks read, not any one mark's
+    columns, and `_mark`/`_theme`/`_secondary_axis`/`_nightingale_area`
+    are single settings rather than data.
     """
 
     var x_data: List[Float64]
@@ -461,6 +461,7 @@ struct Plot(Movable):
     # y_err_data with a sign convention.
     var y_err_lower_data: List[Float64]
     var y_err_upper_data: List[Float64]
+    var color_map: Dict[String, Color]
     var _waterfall: _WaterfallData
     var _box: _BoxData
     var _candle: _CandleData
@@ -521,6 +522,7 @@ struct Plot(Movable):
         self.y_err_data = List[Float64]()
         self.y_err_lower_data = List[Float64]()
         self.y_err_upper_data = List[Float64]()
+        self.color_map = Dict[String, Color]()
         self._waterfall = _WaterfallData()
         self._box = _BoxData()
         self._candle = _CandleData()
@@ -1044,19 +1046,21 @@ struct Plot(Movable):
         y_err: List[Float64] = List[Float64](),
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
+        color_map: Dict[String, Color] = Dict[String, Color](),
     ) -> Self:
         """Map data columns onto channels. `x`/`y` are required;
         `color`/`color_categories`/`size`/`y_err`/`y_err_lower`/`y_err_
-        upper` are optional data-driven channels -- when given, each
-        must be the same length as `x`/`y` (checked at render() time,
-        not here, for the same reason `x`/`y`'s length match is:
-        encode() itself has no way to raise partway through a fluent
-        chain without breaking the chain for every caller who *did*
-        pass matching lengths). Omitting all of them (the default,
-        empty lists) means "use Theme's flat `mark_color`/`point_
-        radius`, no error bars" -- the exact pre-existing behavior,
-        unchanged, for every caller who doesn't need a data-driven
-        channel.
+        upper`/`color_map` are optional data-driven channels -- when
+        given, each of `color`/`color_categories`/`size`/`y_err`/`y_err_
+        lower`/`y_err_upper` must be the same length as `x`/`y` (checked
+        at render() time, not here, for the same reason `x`/`y`'s
+        length match is: encode() itself has no way to raise partway
+        through a fluent chain without breaking the chain for every
+        caller who *did* pass matching lengths). Omitting all of them
+        (the default, empty containers) means "use Theme's flat `mark_
+        color`/`point_radius`, first-seen-order palette, no error
+        bars" -- the exact pre-existing behavior, unchanged, for every
+        caller who doesn't need a data-driven channel.
 
         `color` (continuous, `List[Float64]`, mapped through a
         `ColorScale` spanning the column's [min, max]) and
@@ -1093,14 +1097,33 @@ struct Plot(Movable):
         set, else `Theme.mark_color`) -- an error bar reads as *that
         point's own* uncertainty, not a separate, unrelated color.
 
-        `color`/`color_categories`/`size` support `Mark.POINT`/
-        `SINGLE_AXIS`/`EFFECT_SCATTER` today -- see render()'s check.
-        The three error-bar channels are narrower still, `Mark.POINT`/
-        `EFFECT_SCATTER` only (not `SINGLE_AXIS` -- a single-axis plot
-        has no genuine y-domain for a whisker to extend into). A
-        per-segment color/width gradient along a `Mark.LINE`, or error
-        bars on one, are real, fancier features, not silently
-        approximated by reusing the scatter-point machinery.
+        `color_map` pins specific `color_categories` values to specific
+        colors (e.g. always red for `"Region: West"`, or a consistent
+        color for one category reused across several charts) --
+        `{category_name: Color}`, checked against `color_categories`'
+        own values, not a positional index. A category absent from
+        `color_map` still gets its ordinary first-seen-order palette
+        color, so a caller only needs to name the categories that
+        actually matter, not enumerate every one. Only meaningful
+        alongside `color_categories` -- raises at render() time if
+        given with `color_categories` empty, the same "raise on a
+        setting that can't apply" rule `color`/`color_categories`'s own
+        mutual-exclusion check follows. A name in `color_map` that
+        never actually appears in `color_categories` is not an error --
+        the same "no principled reason to enforce this" stance a stale
+        dict entry gets everywhere else in this package.
+
+        `color`/`color_categories`/`size`/`color_map` support `Mark.
+        POINT`/`SINGLE_AXIS`/`EFFECT_SCATTER` today -- see render()'s
+        check (`color_map` inherits whatever mark `color_categories`
+        is used on; it has no narrower restriction of its own beyond
+        needing `color_categories` set). The three error-bar channels
+        are narrower still, `Mark.POINT`/`EFFECT_SCATTER` only (not
+        `SINGLE_AXIS` -- a single-axis plot has no genuine y-domain for
+        a whisker to extend into). A per-segment color/width gradient
+        along a `Mark.LINE`, or error bars on one, are real, fancier
+        features, not silently approximated by reusing the
+        scatter-point machinery.
 
         For a categorical x-axis (`Mark.BAR`), use
         `encode_categorical()` instead -- this method's `x`
@@ -1131,6 +1154,11 @@ struct Plot(Movable):
             y_err_upper: Optional asymmetric error-bar upward extent
                 per point; must be given together with `y_err_lower`,
                 every value `>= 0`. `Mark.POINT`/`EFFECT_SCATTER` only.
+            color_map: Optional explicit category-to-color overrides,
+                keyed by the category's own name; only meaningful
+                alongside `color_categories`. `Mark.POINT`/`SINGLE_
+                AXIS`/`EFFECT_SCATTER` only (whatever mark `color_
+                categories` is used on).
 
         Returns:
             Self, for further chaining.
@@ -1147,6 +1175,7 @@ struct Plot(Movable):
         self.y_err_data = y_err.copy()
         self.y_err_lower_data = y_err_lower.copy()
         self.y_err_upper_data = y_err_upper.copy()
+        self.color_map = color_map.copy()
         return self^
 
     def encode_categorical(var self, x: List[String], y: List[Float64]) -> Self:
@@ -4423,6 +4452,14 @@ struct _PointChannels(Movable):
     # render -- the exact O(n) work this is here to avoid. Both halves
     # are empty when the channel isn't encoded.
     var cat: _CategoricalIndex
+    # One color per `cat.domain` entry, in the same order -- unlike
+    # `default_categorical_palette()`'s own fixed-length list (meant to
+    # be indexed `% len(palette)`), this is sized to the domain exactly
+    # and already has `Plot.encode()`'s `color_map` overrides folded
+    # in, so every reader (`_draw_point_layer`'s per-point lookup,
+    # `_draw_legend`'s per-row one) can index it directly by domain
+    # position with no modulo and no override check of its own -- one
+    # place resolves "this category's real color", not two.
     var palette: List[Color]
     var color_scale: ColorScale
     var size_mm: MinMax
@@ -4440,7 +4477,15 @@ struct _PointChannels(Movable):
             self.cat = _categorical_indices(plot.color_categories)
         else:
             self.cat = _CategoricalIndex(List[String](), List[Int]())
-        self.palette = default_categorical_palette() if self.has_color_categories else List[Color]()
+        self.palette = List[Color]()
+        if self.has_color_categories:
+            var default_palette = default_categorical_palette()
+            for i in range(len(self.cat.domain)):
+                var name = self.cat.domain[i]
+                if name in plot.color_map:
+                    self.palette.append(plot.color_map[name])
+                else:
+                    self.palette.append(default_palette[i % len(default_palette)])
         var color_mm = _min_max(plot.color_data) if self.has_color else MinMax(0.0, 1.0)
         self.color_scale = ColorScale.from_theme(plot._theme, color_mm.min, color_mm.max)
         self.size_mm = _min_max(plot.size_data) if self.has_size else MinMax(0.0, 1.0)
@@ -4646,6 +4691,12 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
         raise Error(
             context + ": y_err_lower/y_err_upper are only supported for Mark.POINT/EFFECT_SCATTER"
             " today"
+        )
+
+    if len(plot.color_map) > 0 and not has_color_categories:
+        raise Error(
+            context + ": color_map is only meaningful alongside color_categories -- got a"
+            " color_map with color_categories empty"
         )
 
 
