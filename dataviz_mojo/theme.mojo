@@ -497,6 +497,13 @@ struct Theme(ImplicitlyCopyable, Movable):
     margin's own tick-label-width/tick-length/label-gap computation."""
     var sankey_node_width: Float64
     """The pixel width of each `Mark.SANKEY` node column's bar."""
+    var error_bar_cap_width: Float64
+    """Half the pixel width of the horizontal cap `Plot.encode()`'s
+    `y_err` channel draws at each end of a point's error-bar whisker --
+    `Mark.BOX`'s own whisker caps are sized from each category's own
+    band width instead (there's a natural width to derive one from,
+    a `Mark.BOX` category has no equivalent), so this is a real,
+    independent `Theme` field, not a reuse of anything else here."""
     var output_format: OutputFormat
     """The file format `save()` (plot.mojo) writes when given a `Plot`
     and a path, with no `canvas_mojo` backend named at the call site --
@@ -569,6 +576,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         continuous_legend_bar_height: Int = 100,
         margin_buffer: Int = 8,
         sankey_node_width: Float64 = 12.0,
+        error_bar_cap_width: Float64 = 4.0,
         output_format: OutputFormat = OutputFormat.SVG,
     ):
         """Construct a `Theme`, overriding any subset of its fields by
@@ -639,6 +647,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.continuous_legend_bar_height = continuous_legend_bar_height
         self.margin_buffer = margin_buffer
         self.sankey_node_width = sankey_node_width
+        self.error_bar_cap_width = error_bar_cap_width
         self.output_format = output_format
 
     @staticmethod
