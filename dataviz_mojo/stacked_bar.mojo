@@ -5,6 +5,7 @@ from canvas_mojo.buffer import Canvas
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.grouped_bar import _series_legend_reserve, _validate_grouped_bar_series
 from dataviz_mojo.mark import Mark
+from dataviz_mojo.scale import LinearScale
 from dataviz_mojo.plot import (
     Plot,
     _RenderResult,
@@ -79,19 +80,37 @@ def _render_stacked_bar[
         return _empty_result(ox0, oy0, ox1, oy1)
 
     var n_series = len(plot._grouped_bar.series_names)
-    var domain_data = List[Float64]()
-    for i in range(len(plot.x_categories)):
-        var pos_total = 0.0
-        var neg_total = 0.0
+
+    if plot._stacked_bar_percent:
         for j in range(n_series):
-            var v = plot._grouped_bar.values[j][i]
-            if v >= 0.0:
-                pos_total += v
-            else:
-                neg_total += v
-        domain_data.append(pos_total)
-        domain_data.append(neg_total)
-    var y_scale = _zero_baseline_y_extent(domain_data)
+            for v in plot._grouped_bar.values[j]:
+                if v < 0.0:
+                    raise Error(
+                        "Plot.mark_stacked_bar(percent=True): every value must be >= 0 (a negative"
+                        " share has no meaning) -- got " + String(v)
+                    )
+
+    var y_scale: LinearScale
+    if plot._stacked_bar_percent:
+        # Fixed to exactly [0, 100] -- there's no "padding" a
+        # percentage the way _zero_baseline_y_extent pads a real-valued
+        # domain; every column is definitionally exactly 100% tall, so
+        # a padded [0, 105]-ish axis would misrepresent that.
+        y_scale = LinearScale(0.0, 100.0, 0.0, 1.0)
+    else:
+        var domain_data = List[Float64]()
+        for i in range(len(plot.x_categories)):
+            var pos_total = 0.0
+            var neg_total = 0.0
+            for j in range(n_series):
+                var v = plot._grouped_bar.values[j][i]
+                if v >= 0.0:
+                    pos_total += v
+                else:
+                    neg_total += v
+            domain_data.append(pos_total)
+            domain_data.append(neg_total)
+        y_scale = _zero_baseline_y_extent(domain_data)
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
@@ -106,10 +125,24 @@ def _render_stacked_bar[
     var band_width = _round_to_int(frame.x_scale.bandwidth())
     for i in range(len(plot.x_categories)):
         var band_x = _round_to_int(frame.x_scale.band_start(i))
+        # percent=True: each category's own total (validated non-
+        # negative above, so a plain sum is also that category's own
+        # magnitude) rescales its own series values to sum to 100 --
+        # every other category's own total is unrelated, so this is
+        # recomputed per category, not once for the whole chart. A
+        # category whose values are all zero divides by nothing;
+        # `scale_factor` of 0.0 in that case just draws every segment
+        # at zero height instead (an empty column), not a NaN.
+        var scale_factor = 1.0
+        if plot._stacked_bar_percent:
+            var category_total = 0.0
+            for j in range(n_series):
+                category_total += plot._grouped_bar.values[j][i]
+            scale_factor = 100.0 / category_total if category_total > 0.0 else 0.0
         var pos_running = 0.0
         var neg_running = 0.0
         for j in range(n_series):
-            var v = plot._grouped_bar.values[j][i]
+            var v = plot._grouped_bar.values[j][i] * scale_factor
             var seg_bottom: Float64
             var seg_top: Float64
             if v >= 0.0:
@@ -150,11 +183,13 @@ def stacked_bar(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    percent: Bool = False,
 ) raises -> Plot:
     """A stacked bar chart -- `Mark.STACKED_BAR`, the exact same
     `(categories, series_names, values)` shape `grouped_bar()` takes,
     each series drawn as a stacked segment instead of a side-by-side
-    sub-bar.
+    sub-bar. See `Plot.mark_stacked_bar()`'s own docstring for what
+    `percent=True` does.
 
     Args:
         categories: One stacked bar per entry, in the given order.
@@ -171,6 +206,9 @@ def stacked_bar(
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
+        percent: `False` (the default) stacks raw values. `True`
+            normalizes each category to 100% -- see `Plot.mark_
+            stacked_bar()`'s own docstring.
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
@@ -200,7 +238,7 @@ def stacked_bar(
             save(c, "docs/src/examples/out_stacked_bar.svg")
         ```
     """
-    var plot = Plot().mark_stacked_bar().encode_grouped_bar(
+    var plot = Plot().mark_stacked_bar(percent=percent).encode_grouped_bar(
         categories=categories, series_names=series_names, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
