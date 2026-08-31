@@ -113,6 +113,8 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("dual_axis", "plot", "secondary_axis", is_method=True),
         ExamplePage("svg_accessibility", "plot", "write_accessible_svg"),
         ExamplePage("facets", "plot", "save_facets"),
+        ExamplePage("log_scale_y", "plot", "scale_y_log", is_method=True),
+        ExamplePage("log_scale_x", "plot", "scale_x_log", is_method=True),
     ]
 
 
@@ -132,6 +134,7 @@ def _hook_overrides() -> Dict[String, String]:
     var d = Dict[String, String]()
     d["slope"] = "A slope chart."
     d["facets"] = "Lay out several independent Plots in an evenly sized grid."
+    d["log_scale_x"] = "Scale the x-axis logarithmically (base 10) instead of linearly."
     return d^
 
 
