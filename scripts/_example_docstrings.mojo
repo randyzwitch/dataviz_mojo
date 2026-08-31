@@ -115,6 +115,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("facets", "plot", "save_facets"),
         ExamplePage("log_scale_y", "plot", "scale_y_log", is_method=True),
         ExamplePage("log_scale_x", "plot", "scale_x_log", is_method=True),
+        ExamplePage("error_bars", "plot", "encode", is_method=True, block="Error Bars"),
     ]
 
 
@@ -135,6 +136,7 @@ def _hook_overrides() -> Dict[String, String]:
     d["slope"] = "A slope chart."
     d["facets"] = "Lay out several independent Plots in an evenly sized grid."
     d["log_scale_x"] = "Scale the x-axis logarithmically (base 10) instead of linearly."
+    d["error_bars"] = "Draw a symmetric error-bar whisker through each point, via encode()'s y_err channel."
     return d^
 
 

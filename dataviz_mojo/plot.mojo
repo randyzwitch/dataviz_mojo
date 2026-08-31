@@ -263,6 +263,7 @@ struct _Scaled(Movable):
     var axis_title_font_size: Float64
     var continuous_legend_bar_width: Int
     var continuous_legend_bar_height: Int
+    var error_bar_cap_width: Float64
 
     def __init__(out self, theme: Theme):
         var s = theme.scale
@@ -287,6 +288,7 @@ struct _Scaled(Movable):
         self.axis_title_font_size = theme.axis_title_font_size * s
         self.continuous_legend_bar_width = Int(Float64(theme.continuous_legend_bar_width) * s)
         self.continuous_legend_bar_height = Int(Float64(theme.continuous_legend_bar_height) * s)
+        self.error_bar_cap_width = theme.error_bar_cap_width * s
 
 
 struct _GanttData(Movable):
@@ -438,9 +440,10 @@ struct Plot(Movable):
     it.
 
     What stays ungrouped is deliberate: `x_data`/`y_data`/
-    `x_categories`/`color_data`/`color_categories`/`size_data` are the
-    shared encoding channels many marks read, not any one mark's columns, and `_mark`/`_theme`/`_secondary_axis`/`_nightingale_area`
-    are single settings rather than data.
+    `x_categories`/`color_data`/`color_categories`/`size_data`/
+    `y_err_data` are the shared encoding channels many marks read, not
+    any one mark's columns, and `_mark`/`_theme`/`_secondary_axis`/
+    `_nightingale_area` are single settings rather than data.
     """
 
     var x_data: List[Float64]
@@ -449,6 +452,7 @@ struct Plot(Movable):
     var color_data: List[Float64]
     var color_categories: List[String]
     var size_data: List[Float64]
+    var y_err_data: List[Float64]
     var _waterfall: _WaterfallData
     var _box: _BoxData
     var _candle: _CandleData
@@ -506,6 +510,7 @@ struct Plot(Movable):
         self.color_data = List[Float64]()
         self.color_categories = List[String]()
         self.size_data = List[Float64]()
+        self.y_err_data = List[Float64]()
         self._waterfall = _WaterfallData()
         self._box = _BoxData()
         self._candle = _CandleData()
@@ -1026,18 +1031,19 @@ struct Plot(Movable):
         color: List[Float64] = List[Float64](),
         color_categories: List[String] = List[String](),
         size: List[Float64] = List[Float64](),
+        y_err: List[Float64] = List[Float64](),
     ) -> Self:
         """Map data columns onto channels. `x`/`y` are required;
-        `color`/`color_categories`/`size` are optional data-driven
-        channels -- when given, each must be the same length as `x`/`y`
-        (checked at render() time, not here, for the same reason
-        `x`/`y`'s length match is: encode() itself has no way to
+        `color`/`color_categories`/`size`/`y_err` are optional data-
+        driven channels -- when given, each must be the same length as
+        `x`/`y` (checked at render() time, not here, for the same
+        reason `x`/`y`'s length match is: encode() itself has no way to
         raise partway through a fluent chain without breaking the
         chain for every caller who *did* pass matching lengths).
-        Omitting all three (the default, empty lists) means "use
-        Theme's flat `mark_color`/`point_radius`" -- the exact
-        pre-existing behavior, unchanged, for every caller who doesn't
-        need a data-driven channel.
+        Omitting all four (the default, empty lists) means "use
+        Theme's flat `mark_color`/`point_radius`, no error bars" -- the
+        exact pre-existing behavior, unchanged, for every caller who
+        doesn't need a data-driven channel.
 
         `color` (continuous, `List[Float64]`, mapped through a
         `ColorScale` spanning the column's [min, max]) and
@@ -1053,10 +1059,25 @@ struct Plot(Movable):
         continuous only; a "categorical size" doesn't have an
         equivalent meaning the way categorical color obviously does.
 
-        Only `Mark.POINT` supports these three channels today -- see
-        render()'s check. A per-segment color/width gradient along
-        a `Mark.LINE` is a real, fancier feature, not silently
-        approximated by reusing the scatter-point machinery.
+        `y_err` draws a vertical whisker from `y[i] - y_err[i]` to
+        `y[i] + y_err[i]` through each point, with a small horizontal
+        cap at each end (`Theme.error_bar_cap_width`) -- a symmetric
+        error bar (matplotlib's `errorbar(yerr=...)`, ggplot's
+        `geom_errorbar()` with `ymin`/`ymax` equidistant from the
+        point) only; asymmetric upper/lower bounds are a real, fancier
+        feature this doesn't attempt yet. Every value must be `>= 0`
+        (a negative error bar has no meaning) -- checked at render()
+        time, the same as the length check above. Drawn in whatever
+        color that specific point actually resolved to (`color`/
+        `color_categories`'s palette color when either is set, else
+        `Theme.mark_color`) -- an error bar reads as *that point's own*
+        uncertainty, not a separate, unrelated color.
+
+        Only `Mark.POINT`/`EFFECT_SCATTER` support these four channels
+        today -- see render()'s check. A per-segment color/width
+        gradient along a `Mark.LINE`, or error bars on one, are real,
+        fancier features, not silently approximated by reusing the
+        scatter-point machinery.
 
         For a categorical x-axis (`Mark.BAR`), use
         `encode_categorical()` instead -- this method's `x`
@@ -1069,16 +1090,37 @@ struct Plot(Movable):
             color: Optional continuous color channel, mapped through a
                 `ColorScale` spanning the column's `[min, max]`;
                 mutually exclusive with `color_categories`. `Mark.
-                POINT` only.
+                POINT`/`EFFECT_SCATTER` only.
             color_categories: Optional discrete color channel,
                 palette-colored by each value's first-seen order
                 among its unique values; mutually exclusive with
-                `color`. `Mark.POINT` only.
+                `color`. `Mark.POINT`/`EFFECT_SCATTER` only.
             size: Optional point-size channel, continuous only.
-                `Mark.POINT` only.
+                `Mark.POINT`/`EFFECT_SCATTER` only.
+            y_err: Optional symmetric error-bar half-width per point,
+                continuous only, every value `>= 0`. `Mark.POINT`/
+                `EFFECT_SCATTER` only.
 
         Returns:
             Self, for further chaining.
+
+        Example (Error Bars):
+            ```mojo
+            from dataviz_mojo.plot import Plot, save
+
+            def main() raises:
+                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
+                var y: List[Float64] = [10.0, 14.0, 11.0, 18.0, 15.0]
+                var err: List[Float64] = [1.5, 2.0, 0.5, 3.0, 1.0]
+
+                var plot = (
+                    Plot()
+                    .mark_point()
+                    .encode(x=x, y=y, y_err=err)
+                    .labels(title="Measurements", subtitle="With symmetric error bars")
+                )
+                save(plot, "docs/src/examples/out_error_bars.svg")
+            ```
         """
         self.x_data = x.copy()
         self.y_data = y.copy()
@@ -1086,6 +1128,7 @@ struct Plot(Movable):
         self.color_data = color.copy()
         self.color_categories = color_categories.copy()
         self.size_data = size.copy()
+        self.y_err_data = y_err.copy()
         return self^
 
     def encode_categorical(var self, x: List[String], y: List[Float64]) -> Self:
@@ -4697,6 +4740,27 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             context + ": color/size encoding is only supported for"
             " Mark.POINT/SINGLE_AXIS/EFFECT_SCATTER today"
         )
+    var has_y_err = len(plot.y_err_data) > 0
+    if has_y_err and len(plot.y_err_data) != len(plot.x_data):
+        raise Error(
+            context
+            + ": y_err must be the same length as x/y (got "
+            + String(len(plot.y_err_data))
+            + " and "
+            + String(len(plot.x_data))
+            + ")"
+        )
+    if has_y_err:
+        for v in plot.y_err_data:
+            if v < 0.0:
+                raise Error(context + ": y_err values must be >= 0 (got " + String(v) + ")")
+    # No Mark.SINGLE_AXIS here, unlike the color/size check above -- a
+    # single-axis plot has no genuine y-domain for an error bar to
+    # extend into (see mark_single_axis()'s docstring).
+    if has_y_err and not (plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER):
+        raise Error(
+            context + ": y_err is only supported for Mark.POINT/EFFECT_SCATTER today"
+        )
 
 
 def _validate_log_scale_annotations(plot: Plot) raises:
@@ -5124,6 +5188,21 @@ def _draw_point_layer[
             if ch.has_size
             else _round_to_int(sc.point_radius)
         )
+        if len(plot.y_err_data) > 0:
+            # Whisker first, point on top -- the same back-to-front
+            # order _render_box draws its own whisker/box/median in,
+            # so the point marker visually "sits on" its own error bar
+            # rather than the bar cutting through it. Drawn in this
+            # point's own resolved `color` (not a fixed Theme color) --
+            # an error bar reads as *that point's own* uncertainty, see
+            # encode()'s own y_err docstring.
+            var err = plot.y_err_data[i]
+            var py_hi = _axis_pixel(y_scale, plot.y_data[i] + err)
+            var py_lo = _axis_pixel(y_scale, plot.y_data[i] - err)
+            var cap_half = _round_to_int(sc.error_bar_cap_width)
+            target.draw_line_aa(px, py_hi, px, py_lo, color, width=sc.scale)
+            target.draw_line_aa(px - cap_half, py_hi, px + cap_half, py_hi, color, width=sc.scale)
+            target.draw_line_aa(px - cap_half, py_lo, px + cap_half, py_lo, color, width=sc.scale)
         if draw_halo:
             target.fill_circle_aa(px, py, _round_to_int(Float64(radius) * 2.2), _lighten(color, theme.halo_alpha))
         target.fill_circle_aa(px, py, radius, color)
@@ -5392,9 +5471,25 @@ def _render_generic[
     # continuous_axis_frame's docstring). Mark.AREA forces a zero
     # baseline into the y-domain, every other continuous mark just pads
     # around its data.
+    #
+    # y_domain_data is plot.y_data itself, unless y_err is set -- then
+    # it's every whisker *endpoint* (y[i] +/- y_err[i]) instead, the
+    # same "the domain must span everything actually drawn" rule
+    # _render_box's own docstring already establishes for its own
+    # whiskers (Mark.AREA never has y_err -- see _validate_continuous_
+    # encoding's mark check -- so that branch's own domain is
+    # unaffected either way).
+    var y_domain_data = List[Float64]()
+    if len(plot.y_err_data) > 0:
+        for i in range(len(plot.y_data)):
+            y_domain_data.append(plot.y_data[i] - plot.y_err_data[i])
+            y_domain_data.append(plot.y_data[i] + plot.y_err_data[i])
+    else:
+        for v in plot.y_data:
+            y_domain_data.append(v)
     var y_scale = (
-        _log_data_extent(plot.y_data) if plot._y_log else (
-            _zero_baseline_y_extent(plot.y_data) if plot._mark == Mark.AREA else _data_extent(plot.y_data)
+        _log_data_extent(y_domain_data) if plot._y_log else (
+            _zero_baseline_y_extent(y_domain_data) if plot._mark == Mark.AREA else _data_extent(y_domain_data)
         )
     )
     var x_scale = _log_data_extent(plot.x_data) if plot._x_log else _data_extent(plot.x_data)
@@ -6106,14 +6201,32 @@ def _render_layers_generic[
     for i in range(len(plots)):
         for v in plots[i].x_data:
             combined_x.append(v)
+        # A layer's own y_err_data (Mark.POINT only -- see
+        # _validate_continuous_encoding's mark check, and render_layers()'s
+        # own Mark.POINT/LINE/AREA allow-list above) widens what it
+        # actually contributes to the combined domain to each whisker's
+        # own endpoint, not just its point's y -- the same "the domain
+        # must span everything actually drawn" rule _render_generic's
+        # own y_domain_data follows for the standalone-plot case.
+        var has_y_err = len(plots[i].y_err_data) > 0
         if plots[i]._secondary_axis:
-            for v in plots[i].y_data:
-                combined_y2.append(v)
+            if has_y_err:
+                for j in range(len(plots[i].y_data)):
+                    combined_y2.append(plots[i].y_data[j] - plots[i].y_err_data[j])
+                    combined_y2.append(plots[i].y_data[j] + plots[i].y_err_data[j])
+            else:
+                for v in plots[i].y_data:
+                    combined_y2.append(v)
             if plots[i]._mark == Mark.AREA:
                 any_area2 = True
         else:
-            for v in plots[i].y_data:
-                combined_y.append(v)
+            if has_y_err:
+                for j in range(len(plots[i].y_data)):
+                    combined_y.append(plots[i].y_data[j] - plots[i].y_err_data[j])
+                    combined_y.append(plots[i].y_data[j] + plots[i].y_err_data[j])
+            else:
+                for v in plots[i].y_data:
+                    combined_y.append(v)
             if plots[i]._mark == Mark.AREA:
                 any_area = True
 
