@@ -104,18 +104,17 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("histogram", "histogram", "histogram"),
         ExamplePage("grouped_bar", "grouped_bar", "grouped_bar"),
         ExamplePage("stacked_bar", "stacked_bar", "stacked_bar"),
-        # The six with no quickplot function -- Plot methods (or, for
-        # write_accessible_svg, a free function), all in plot.mojo.
-        ExamplePage("annotate_area", "plot", "annotate_area", is_method=True),
-        ExamplePage("annotate_line", "plot", "annotate_line", is_method=True),
-        ExamplePage("annotate_vline", "plot", "annotate_vline", is_method=True),
-        ExamplePage("annotate_point", "plot", "annotate_point", is_method=True),
-        ExamplePage("dual_axis", "plot", "secondary_axis", is_method=True),
-        ExamplePage("svg_accessibility", "plot", "write_accessible_svg"),
-        ExamplePage("facets", "plot", "save_facets"),
-        ExamplePage("log_scale_y", "plot", "scale_y_log", is_method=True),
-        ExamplePage("log_scale_x", "plot", "scale_x_log", is_method=True),
-        ExamplePage("error_bars", "plot", "encode", is_method=True, block="Error Bars"),
+        # Every Cookbook page used to be listed here too (annotate_area/
+        # annotate_line/annotate_vline/annotate_point/dual_axis (secondary_
+        # axis)/svg_accessibility (write_accessible_svg)/facets (save_
+        # facets)/log_scale_y (scale_y_log)/log_scale_x (scale_x_log)/
+        # error_bars (encode)) -- all migrated to docs/src/cookbook_
+        # recipes/ (see that directory's own README.md), which needs no
+        # entry here at all. This list is now Examples-only: a docstring-
+        # sourced Cookbook page is still possible (gen_example_docs.
+        # mojo's _cookbook() wasn't removed, just emptied) for the rare
+        # recipe that really is about documenting one function, but
+        # isn't the default path any more.
     ]
 
 
@@ -127,16 +126,11 @@ def _hook_overrides() -> Dict[String, String]:
     one entry: it calls the general-purpose `line()`, but reads as its
     own chart type, not a variant of "Line" -- line()'s own docstring
     has no reason to say "slope chart" anywhere in its main
-    description. `facets` is the other: save_facets()'s own first
-    sentence is comparative ("save()'s render_facets()/
-    render_facets_svg() counterpart"), assuming a reader who already
-    knows what render_facets() is -- fine inside plot.mojo read
-    alongside it, not as a standalone page's opening line."""
+    description. (`facets` used to be the other entry here, for the
+    same reason -- migrated away along with the rest of the Cookbook,
+    see `_pages()`'s own comment.)"""
     var d = Dict[String, String]()
     d["slope"] = "A slope chart."
-    d["facets"] = "Lay out several independent Plots in an evenly sized grid."
-    d["log_scale_x"] = "Scale the x-axis logarithmically (base 10) instead of linearly."
-    d["error_bars"] = "Draw a symmetric error-bar whisker through each point, via encode()'s y_err channel."
     return d^
 
 

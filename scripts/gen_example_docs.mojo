@@ -1,9 +1,12 @@
 """Generates docs/src/examples/*.md and docs/src/cookbook/*.md --
 Examples straight from dataviz_mojo/*.mojo's own docstrings, Cookbook
-from *both* that same docstring path *and* docs/src/cookbook_recipes/
-(community-contributed, self-contained files -- see that directory's
-own README.md for the contributor-facing side of this). Run as part of
-`pixi run docs` (see pixi.toml), before `mojo doc`/`modo build`.
+from docs/src/cookbook_recipes/ (community-contributed, self-contained
+files -- see that directory's own README.md for the contributor-facing
+side of this). Every Cookbook page used to be docstring-sourced too,
+the same mechanism Examples still uses -- all migrated away (see
+`_cookbook()`'s own docstring for why, and why that path is kept
+working rather than deleted). Run as part of `pixi run docs` (see
+pixi.toml), before `mojo doc`/`modo build`.
 
 The actual per-function docstring parsing (`_pages()`'s master list,
 `_quickplot_hook()`, `_extract_args_lines()`, `_extract_example_
@@ -113,16 +116,10 @@ def _titles() -> Dict[String, String]:
     d["sankey"] = "Sankey"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
-    d["annotate_line"] = "Reference Line"
-    d["svg_accessibility"] = "SVG Accessibility"
-    d["annotate_area"] = "Reference Band"
-    d["dual_axis"] = "Dual Y-Axis"
-    d["annotate_vline"] = "Vertical Reference Line"
-    d["annotate_point"] = "Point Marker"
-    d["facets"] = "Facets"
-    d["log_scale_y"] = "Log Scale (Y-Axis)"
-    d["log_scale_x"] = "Log Scale (X-Axis)"
-    d["error_bars"] = "Error Bars"
+    # Every Cookbook title used to be listed here too -- migrated to
+    # docs/src/cookbook_recipes/ (title comes from each recipe's own
+    # filename or its optional `# title:` override, see that
+    # directory's README.md), so there's nothing left to add here.
     return d^
 
 
@@ -196,35 +193,31 @@ def _categories() -> List[Category]:
 
 
 def _cookbook() -> Category:
-    """The Cookbook page's own single flat list -- one-off techniques
-    for customizing a plot you already have (a reference line/band/
-    point marker, a second y-axis, accessible SVG output, a grid of
-    several independent plots), not chart types in their own right.
-    Used to be a category on the Examples
-    page itself, tacked onto whichever chart-type category each
-    one's own example happened to fit best -- read as clutter once
-    the gallery grew (a scatter/bar/etc. reader expects every entry in
-    a chart-type category to be a distinct chart shape, not "how do I
-    add a reference line to one of these"), and still didn't read as
-    its own *kind* of content the way Examples/API reference/Quickstart
-    each do. A full top-level page instead, alongside those three, not
-    just its own category on this one -- same `docs/site/hugo.yaml`
-    top-nav/left-sidebar treatment as Examples, see `main()` below for
-    the `_index.md` it writes.
+    """The Cookbook page's own docstring-sourced list -- always empty
+    now (see `main()`'s own comment next to where this is called):
+    every one-off technique for customizing a plot you already have
+    (a reference line/band/point marker, a second y-axis, accessible
+    SVG output, a grid of several independent plots, color/size
+    encoding, theme overrides, layered-combo recipes, ...) migrated to
+    `docs/src/cookbook_recipes/` -- see that directory's own README.md
+    for why a Cookbook recipe doesn't need a docstring host the way an
+    Example does, and `main()`'s own recipe-discovery block for how
+    those pages actually get built now.
 
-    A `Category` like the rest of `_categories()`'s list, not a
+    Kept as a real, working mechanism rather than deleted outright --
+    `main()`'s own assertions still catch a docstring-sourced page
+    placed nowhere or in both a category and here, and a future recipe
+    that genuinely is about documenting one function's own API (the
+    way an Example is) has a place to go without re-inventing this.
+    Still a `Category` like the rest of `_categories()`'s list, not a
     distinct type, since `main()` builds an `_index.md` from one
-    exactly the same way either page needs -- one category with every
-    name, unlike Examples' many.
+    exactly the same way either page needs.
     """
     return Category(
         "Cookbook",
         "One-off techniques for customizing a plot you already have -- not chart types of their own,"
         " so each is filed by what it does rather than what it looks like.",
-        [
-            "annotate_line", "annotate_area", "annotate_vline", "annotate_point", "dual_axis",
-            "svg_accessibility", "facets", "log_scale_y", "log_scale_x", "error_bars",
-        ],
+        [],
     )
 
 
@@ -313,6 +306,31 @@ def _title_case_filename(stem: String) -> String:
         var rest = String(w[byte=1:]).lower()
         out.append(first + rest)
     return String(" ").join(out)
+
+
+def _title_override(content: String) -> String:
+    """A recipe file's own optional `# title: <text>` first line --
+    `""` (no override) if the file's first line doesn't start with
+    that exact prefix, in which case the caller falls back to
+    `_title_case_filename()`. Exists because that plain per-word-
+    capitalize rule can't produce every real title on its own -- an
+    acronym ("SVG Accessibility"), a deliberately different word order
+    ("Smoothed Line" from `line_smoothing.mojo`), a hyphenated
+    compound ("High-DPI Export"), or a lowercase preposition ("Color
+    by Category") -- without forcing a contributor to pick a filename
+    that happens to title-case correctly instead of the name they
+    actually want. A plain leading comment line, not a second
+    docstring or a structured header, so it costs nothing when unused
+    (the common case, see `bold_points.mojo`) and doesn't complicate
+    the docstring/code split `_build_contributed_page()` does
+    (a `#` comment before the module docstring is ordinary, valid
+    Mojo, confirmed directly rather than assumed)."""
+    var first_line_end = content.find("\n")
+    var first_line = String(content[byte=0:first_line_end]) if first_line_end != -1 else content
+    var prefix = "# title: "
+    if first_line.startswith(prefix):
+        return String(String(first_line[byte = prefix.byte_length() :]).strip())
+    return ""
 
 
 def _build_contributed_page(title: String, content: String) raises -> String:
@@ -459,7 +477,8 @@ def main() raises:
                 " page name '" + stem + "' -- rename the file"
             )
         var content = _read_file(_RECIPES_DIR + "/" + e)
-        var title = _title_case_filename(stem)
+        var override = _title_override(content)
+        var title = override if override else _title_case_filename(stem)
         var page_md = _build_contributed_page(title, content)
         _write_file(_COOKBOOK_OUT_DIR + "/" + stem + ".md", page_md)
         recipe_names.append(stem)

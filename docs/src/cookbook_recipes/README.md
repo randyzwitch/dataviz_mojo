@@ -62,7 +62,12 @@ Rules the build enforces:
   the same as a broken test would.
 - **The page's title is your filename, title-cased** -- `bold_points.
   mojo` becomes "Bold Points". Name your file the way you'd want the
-  page titled.
+  page titled. When that plain rule can't produce the title you
+  actually want (an acronym like "SVG", a hyphenated compound like
+  "High-DPI Export", a lowercase preposition like "Color by
+  Category"), add a `# title: <text>` comment as the file's *very
+  first line*, before your docstring -- it overrides the filename-
+  derived title, and nothing else about the file changes.
 - **Your filename must not collide with an existing Cookbook or
   Examples page name** -- the build raises a clear error if it does,
   rather than silently overwriting one page with another.
