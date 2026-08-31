@@ -1108,23 +1108,8 @@ struct Plot(Movable):
         Returns:
             Self, for further chaining.
 
-        Example (Error Bars):
-            ```mojo
-            from dataviz_mojo.plot import Plot, save
-
-            def main() raises:
-                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
-                var y: List[Float64] = [10.0, 14.0, 11.0, 18.0, 15.0]
-                var err: List[Float64] = [1.5, 2.0, 0.5, 3.0, 1.0]
-
-                var plot = (
-                    Plot()
-                    .mark_point()
-                    .encode(x=x, y=y, y_err=err)
-                    .labels(title="Measurements", subtitle="With symmetric error bars")
-                )
-                save(plot, "docs/src/examples/out_error_bars.svg")
-            ```
+        See the Cookbook's own "Error Bars" recipe (docs/src/
+        cookbook_recipes/error_bars.mojo) for a full worked example.
         """
         self.x_data = x.copy()
         self.y_data = y.copy()
@@ -2270,19 +2255,8 @@ struct Plot(Movable):
             Self, for further chaining -- `render()`/`render_svg()`
             raise later if the mark has no genuine continuous y-axis.
 
-        Example:
-            ```mojo
-            from dataviz_mojo.plot import Plot, save
-
-            def main() raises:
-                var months: List[String] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
-                var revenue: List[Float64] = [42.0, 48.0, 45.0, 61.0, 55.0, 58.0]
-
-                var plot = Plot().mark_bar().encode_categorical(x=months, y=revenue).labels(
-                    title="Monthly Revenue", subtitle="Actual vs. target, $M"
-                ).annotate_line(60.0, label="target").annotate_line(51.5, label="average")
-                save(plot, "docs/src/examples/out_annotate_line.svg")
-            ```
+        See the Cookbook's own "Reference Line" recipe (docs/src/
+        cookbook_recipes/annotate_line.mojo) for a full worked example.
         """
         self._annotations.line_values.append(value)
         self._annotations.line_labels.append(label)
@@ -2340,23 +2314,8 @@ struct Plot(Movable):
             Self, for further chaining -- `render()`/`render_svg()`
             raise later if the mark has no genuine continuous y-axis.
 
-        Example:
-            ```mojo
-            from dataviz_mojo.plot import Plot, save
-
-            def main() raises:
-                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
-                var latency: List[Float64] = [42.0, 48.0, 45.0, 61.0, 55.0, 58.0, 70.0, 63.0]
-
-                var plot = (
-                    Plot()
-                    .mark_line()
-                    .encode(x=x, y=latency)
-                    .labels(title="Response Time (ms)", subtitle="Against an acceptable range")
-                    .annotate_area(50.0, 60.0, label="acceptable range")
-                )
-                save(plot, "docs/src/examples/out_annotate_area.svg")
-            ```
+        See the Cookbook's own "Reference Band" recipe (docs/src/
+        cookbook_recipes/annotate_area.mojo) for a full worked example.
         """
         self._annotations.area_y0.append(y0)
         self._annotations.area_y1.append(y1)
@@ -2396,23 +2355,9 @@ struct Plot(Movable):
             Self, for further chaining -- `render()`/`render_svg()`
             raise later if the mark has no genuine continuous x-axis.
 
-        Example:
-            ```mojo
-            from dataviz_mojo.plot import Plot, save
-
-            def main() raises:
-                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
-                var latency: List[Float64] = [42.0, 48.0, 45.0, 61.0, 55.0, 58.0, 70.0, 63.0]
-
-                var plot = (
-                    Plot()
-                    .mark_line()
-                    .encode(x=x, y=latency)
-                    .labels(title="Response Time (ms)", subtitle="With a launch marker")
-                    .annotate_vline(4.0, label="launch")
-                )
-                save(plot, "docs/src/examples/out_annotate_vline.svg")
-            ```
+        See the Cookbook's own "Vertical Reference Line" recipe (docs/
+        src/cookbook_recipes/annotate_vline.mojo) for a full worked
+        example.
         """
         self._annotations.vline_values.append(value)
         self._annotations.vline_labels.append(label)
@@ -2455,23 +2400,9 @@ struct Plot(Movable):
             Self, for further chaining -- `render()`/`render_svg()`
             raise later if the mark has no genuine continuous x/y-axis.
 
-        Example:
-            ```mojo
-            from dataviz_mojo.plot import Plot, save
-
-            def main() raises:
-                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
-                var latency: List[Float64] = [42.0, 48.0, 45.0, 61.0, 55.0, 58.0, 70.0, 63.0]
-
-                var plot = (
-                    Plot()
-                    .mark_line()
-                    .encode(x=x, y=latency)
-                    .labels(title="Response Time (ms)", subtitle="With a peak callout")
-                    .annotate_point(7.0, 70.0, label="peak")
-                )
-                save(plot, "docs/src/examples/out_annotate_point.svg")
-            ```
+        See the Cookbook's own "Point Marker" recipe (docs/src/
+        cookbook_recipes/annotate_point.mojo) for a full worked
+        example.
         """
         self._annotations.point_x.append(x)
         self._annotations.point_y.append(y)
@@ -2510,23 +2441,8 @@ struct Plot(Movable):
         Returns:
             Self, for further chaining.
 
-        Example:
-            ```mojo
-            from dataviz_mojo.plot import Plot, save
-
-            def main() raises:
-                var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
-                var users: List[Float64] = [10.0, 25.0, 60.0, 150.0, 400.0, 900.0, 2200.0, 5000.0]
-
-                var plot = (
-                    Plot()
-                    .mark_line()
-                    .encode(x=x, y=users)
-                    .labels(title="Weekly Active Users", subtitle="Log-scaled y-axis")
-                    .scale_y_log()
-                )
-                save(plot, "docs/src/examples/out_scale_y_log.svg")
-            ```
+        See the Cookbook's own "Log Scale (Y-Axis)" recipe (docs/src/
+        cookbook_recipes/log_scale_y.mojo) for a full worked example.
         """
         self._y_log = True
         return self^
@@ -2543,25 +2459,8 @@ struct Plot(Movable):
         Returns:
             Self, for further chaining.
 
-        Example:
-            ```mojo
-            from dataviz_mojo.plot import Plot, save
-
-            def main() raises:
-                var frequency: List[Float64] = [
-                    20.0, 50.0, 100.0, 200.0, 500.0, 1000.0, 2000.0, 5000.0, 10000.0, 20000.0
-                ]
-                var response_db: List[Float64] = [-2.0, -1.0, 0.0, 0.5, 1.0, 0.0, -1.5, -3.0, -6.0, -10.0]
-
-                var plot = (
-                    Plot()
-                    .mark_line()
-                    .encode(x=frequency, y=response_db)
-                    .labels(title="Frequency Response", x_title="Frequency (Hz)", y_title="Gain (dB)")
-                    .scale_x_log()
-                )
-                save(plot, "docs/src/examples/out_scale_x_log.svg")
-            ```
+        See the Cookbook's own "Log Scale (X-Axis)" recipe (docs/src/
+        cookbook_recipes/log_scale_x.mojo) for a full worked example.
         """
         self._x_log = True
         return self^
@@ -2603,34 +2502,8 @@ struct Plot(Movable):
         Returns:
             Self, for further chaining.
 
-        Example:
-            ```mojo
-            from canvas_mojo.color import Color
-            from dataviz_mojo.plot import Plot, save_layers
-            from dataviz_mojo.theme import Theme
-
-            def main() raises:
-                var months: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
-                var revenue: List[Float64] = [420.0, 480.0, 450.0, 610.0, 550.0, 580.0]
-                var growth: List[Float64] = [2.1, 3.4, -1.2, 8.7, 4.0, 5.2]
-
-                var revenue_layer = Plot().mark_area().encode(x=months, y=revenue).theme(
-                    Theme(mark_color=Color(70, 130, 180))
-                ).labels(title="Revenue & Growth", x_title="Month", y_title="Revenue ($M)")
-                var growth_layer = (
-                    Plot()
-                    .mark_line()
-                    .encode(x=months, y=growth)
-                    .theme(Theme(mark_color=Color(220, 80, 60)))
-                    .secondary_axis()
-                    .labels(y_title="Growth (%)")
-                )
-                var plots = List[Plot]()
-                plots.append(revenue_layer^)
-                plots.append(growth_layer^)
-
-                save_layers(plots, "docs/src/examples/out_dual_axis.svg")
-            ```
+        See the Cookbook's own "Dual Y-Axis" recipe (docs/src/
+        cookbook_recipes/dual_axis.mojo) for a full worked example.
         """
         self._secondary_axis = True
         return self^
@@ -4386,55 +4259,8 @@ def save_facets(mut plots: List[Plot], cols: Int, path: String) raises:
     own; build each cell's `Plot` however that cell needs to look, one
     at a time, then hand the list here).
 
-    Example:
-        ```mojo
-        from dataviz_mojo.plot import Plot, save_facets
-        from dataviz_mojo.colors import CORNFLOWERBLUE, SEAGREEN, TOMATO, GOLD
-        from dataviz_mojo.theme import Theme
-
-        def main() raises:
-            var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
-            var north: List[Float64] = [12.0, 15.0, 14.0, 18.0, 20.0]
-            var south: List[Float64] = [9.0, 11.0, 13.0, 12.0, 16.0]
-            var east: List[Float64] = [20.0, 19.0, 22.0, 24.0, 23.0]
-            var west: List[Float64] = [6.0, 8.0, 7.0, 10.0, 9.0]
-
-            var plot_north = (
-                              Plot()
-                              .size(320, 240)
-                              .mark_line()
-                              .encode(x=x, y=north)
-                              .labels(title="North")
-                              .theme(Theme(mark_color=CORNFLOWERBLUE))
-                              )
-            var plot_south = (
-                              Plot()
-                              .size(320, 240)
-                              .mark_line()
-                              .encode(x=x, y=south)
-                              .labels(title="South")
-                              .theme(Theme(mark_color=SEAGREEN))
-                              )
-            var plot_east = (
-                             Plot()
-                             .size(320, 240)
-                             .mark_line()
-                             .encode(x=x, y=east)
-                             .labels(title="East")
-                             .theme(Theme(mark_color=TOMATO))
-                             )
-            var plot_west = (
-                             Plot()
-                             .size(320, 240)
-                             .mark_line()
-                             .encode(x=x, y=west)
-                             .labels(title="West")
-                             .theme(Theme(mark_color=GOLD))
-                             )
-
-            var plots: List[Plot] = [plot_north^, plot_south^, plot_east^, plot_west^]
-            save_facets(plots, 2, "docs/src/examples/out_facets.svg")
-        ```
+    See the Cookbook's own "Facets" recipe (docs/src/cookbook_recipes/
+    facets.mojo) for a full worked example.
     """
     if len(plots) == 0:
         raise Error("save_facets(): plots must not be empty")
@@ -4523,27 +4349,8 @@ def write_accessible_svg(svg: SvgCanvas, path: String, title: String, descriptio
     added and why, including its honest scope note about which
     embedding contexts actually benefit from any of this.
 
-    Example:
-        ```mojo
-        from dataviz_mojo.plot import Plot, render_svg, write_accessible_svg
-
-        def main() raises:
-            var regions: List[String] = ["North", "South", "East", "West"]
-            var revenue: List[Float64] = [420.0, 310.0, 275.0, 390.0]
-
-            var plot = Plot().mark_bar().encode_categorical(x=regions, y=revenue).labels(
-                title="Regional Revenue"
-            )
-
-            var svg = render_svg(plot)
-            write_accessible_svg(
-                svg,
-                "docs/src/examples/out_svg_accessibility.svg",
-                "Regional Revenue comparison chart",
-                "A chart comparing revenue across four regions: North ($420), South ($310),"
-                " East ($275), and West ($390).",
-            )
-        ```
+    See the Cookbook's own "SVG Accessibility" recipe (docs/src/
+    cookbook_recipes/svg_accessibility.mojo) for a full worked example.
     """
     var f = open(path, "w")
     f.write(accessible_svg_string(svg, title, description))
