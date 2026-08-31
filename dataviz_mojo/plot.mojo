@@ -395,6 +395,15 @@ struct _AnnotationData(Movable):
     interchangeable data, so merging them would need a "which axis"
     flag per entry, where separate fields already keep them apart.
 
+    `band_*` is one filled region per `.annotate_band()` call -- unlike
+    every other field here, each entry's own `x`/`y_lower`/`y_upper`
+    is itself a full parallel-list series (a curve, not a single
+    number), so the outer list is one level deeper: `band_x[k]` is the
+    k-th band's own x column, `band_y_lower[k]`/`band_y_upper[k]` its
+    lower/upper edges at each of those x positions. See `Plot.
+    annotate_band()`'s own docstring for why this needs a genuinely
+    different data shape from `area_*`'s constant `(y0, y1)` pair.
+
     Grouped onto `Plot._annotations` -- see `Plot`'s docstring.
     """
 
@@ -408,6 +417,10 @@ struct _AnnotationData(Movable):
     var point_x: List[Float64]
     var point_y: List[Float64]
     var point_labels: List[String]
+    var band_x: List[List[Float64]]
+    var band_y_lower: List[List[Float64]]
+    var band_y_upper: List[List[Float64]]
+    var band_labels: List[String]
 
     def __init__(out self):
         self.line_values = List[Float64]()
@@ -420,6 +433,10 @@ struct _AnnotationData(Movable):
         self.point_x = List[Float64]()
         self.point_y = List[Float64]()
         self.point_labels = List[String]()
+        self.band_x = List[List[Float64]]()
+        self.band_y_lower = List[List[Float64]]()
+        self.band_y_upper = List[List[Float64]]()
+        self.band_labels = List[String]()
 
 
 struct Plot(Movable):
@@ -2504,6 +2521,82 @@ struct Plot(Movable):
         self._annotations.point_labels.append(label)
         return self^
 
+    def annotate_band(
+        var self, x: List[Float64], y_lower: List[Float64], y_upper: List[Float64], label: String = ""
+    ) -> Self:
+        """Shade the region between two *curves* that vary with `x` --
+        a confidence/uncertainty band around a trend line, or a min/max
+        envelope around several series (matplotlib's `fill_between(x,
+        y1, y2)`, ggplot's `geom_ribbon(aes(ymin=, ymax=))`). `annotate_
+        area()`'s band is a fixed `(y0, y1)` pair, constant across the
+        whole x-range -- genuinely different data (two parallel lists
+        keyed by `x`, not two numbers), hence a separate method rather
+        than an overload. Additive/repeatable -- each call adds one
+        more band.
+
+        `x`/`y_lower`/`y_upper` must be the same length (checked at
+        render() time, not here, the same reason `encode()`'s own
+        length checks are deferred -- see its docstring), and every
+        `y_upper[i]` must be `>= y_lower[i]` (a confidence interval
+        whose upper bound sits below its lower one has no meaning,
+        the same "raise rather than silently draw something wrong"
+        stance `Plot.encode()`'s `y_err >= 0` check already takes).
+        `x` need not be sorted ascending -- the band's top edge (`x[i],
+        y_upper[i]` for `i` in order) and bottom edge (`y_lower[i]`,
+        walked back in reverse) trace exactly the order given, the
+        same "the caller's own order is the curve" contract `Plot.
+        mark_line()` follows for its own points.
+
+        Filled in `Theme.annotation_area_color`, the same translucent
+        ink `annotate_area()` uses (so the mark's own line/points
+        still show through), with a straight-line edge between
+        consecutive points -- no `Theme.line_smoothing`; a band's edge
+        is closer to a data polygon than a styled curve, and
+        `annotate_area()`'s own straight edges set the same precedent
+        for this package's annotation layer. `label`, when non-empty,
+        centers just above the band's middle x-index on its upper
+        edge (`len(x) // 2`, the same "pick one representative point"
+        approach `annotate_point()`'s single marker naturally gives,
+        adapted here since a band has no single point of its own).
+
+        Needs a genuine coordinate on *both* axes, the same `Mark.
+        POINT`/`LINE`/`AREA`/`EFFECT_SCATTER`-only scope `annotate_
+        point()` has, and for the identical reason (see that method's
+        docstring). Unlike `annotate_point()`'s all-or-nothing skip,
+        though, a band clips to whatever x-range actually overlaps the
+        mark's (padded) domain -- the same "a region has real width,
+        show the part that's genuinely in range" reasoning `annotate_
+        area()`'s own docstring gives for its y-only band, extended
+        here to both axes. A band with no overlap at all on either
+        axis still draws nothing.
+
+        Only wired into `render()`/`render_svg()` so far, the same
+        scope cut every annotation method here currently has.
+
+        Args:
+            x: The band's x column, one entry per (`y_lower`, `y_upper`)
+                pair, in the order the edges should trace.
+            y_lower: The band's bottom edge, one entry per `x`.
+            y_upper: The band's top edge, one entry per `x`; every
+                value must be `>= y_lower`'s value at that same index.
+            label: Drawn centered above the band's middle point when
+                non-empty; left empty (the default), the band draws
+                with no label.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later if the lengths mismatch, an upper/lower value
+            is inverted, or the mark has no genuine continuous x/y-axis.
+
+        See the Cookbook's own "Confidence Band" recipe (docs/src/
+        cookbook_recipes/annotate_band.mojo) for a full worked example.
+        """
+        self._annotations.band_x.append(x.copy())
+        self._annotations.band_y_lower.append(y_lower.copy())
+        self._annotations.band_y_upper.append(y_upper.copy())
+        self._annotations.band_labels.append(label)
+        return self^
+
     def scale_y_log(var self) -> Self:
         """Scale the y-axis logarithmically (base 10) instead of
         linearly -- every y value (and every y-axis `Plot.annotate_
@@ -3706,6 +3799,127 @@ def _draw_annotation_areas[
     return text_requests^
 
 
+def _draw_annotation_bands[
+    T: DrawTarget
+](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises -> List[_TextRequest]:
+    """Draws every `Plot.annotate_band()` filled region -- the same
+    `target.fill_path_aa` closed-polygon technique `_draw_area_layer`
+    uses for `Mark.AREA` itself (see that function's docstring), just
+    built from two independent curves (`y_upper` left-to-right, then
+    `y_lower` walked back right-to-left) instead of one curve plus a
+    flat baseline. Returns each band's optional label as a
+    `_TextRequest`, the same deferred-text split every other
+    annotation draw here uses.
+
+    Called by `render()`/`render_svg()` right after `_draw_annotation_
+    areas` -- both are translucent-fill "shade a region" annotations,
+    the bottom-most layer beneath the line/vline/point annotations, so
+    grouping them adjacently in the draw order keeps that story
+    together (see `_draw_annotation_areas`'s own docstring for why
+    fills draw first). Needs *both* `result.x_scale` and `result.
+    y_scale` (raises the identical kind of error `_draw_annotation_
+    points` does if either is missing -- see `Plot.annotate_band()`'s
+    docstring for exactly which marks supply both).
+
+    Raises if any band's `x`/`y_lower`/`y_upper` lengths mismatch, or
+    any `y_upper[i] < y_lower[i]` -- see `Plot.annotate_band()`'s
+    docstring for why both are treated as caller mistakes rather than
+    silently drawing something wrong.
+
+    No true polygon-clip against the *inner* plot rect the way
+    `_draw_annotation_areas`'s flat rectangle gets (`min`/`max` against
+    two horizontal bounds is trivial; clipping an arbitrary polygon
+    against one is a real algorithm -- Sutherland-Hodgman or similar --
+    not attempted here). Instead, each vertex's pixel position clamps
+    independently into `[result.px0, result.px1]` x `[top, bottom]`
+    before the path is built: a band that's mostly in-range with a
+    small overshoot still draws correctly clipped-looking (the common
+    case -- e.g. a confidence band around a fitted line that spans
+    exactly the data's own x-range), though a vertex that's clamped
+    on one axis draws a straight wall at that boundary rather than a
+    true intersection with the domain edge, unlike a mathematically
+    exact clip. A band with every vertex clamped to the identical
+    corner (no real overlap at all) still fills a degenerate,
+    zero-area region -- effectively invisible, the same practical
+    outcome `_draw_annotation_areas`'s explicit `continue` reaches by
+    a more direct route.
+    """
+    var text_requests = List[_TextRequest]()
+    if len(plot._annotations.band_x) == 0:
+        return text_requests^
+    if not result.has_x_scale or not result.has_y_scale:
+        raise Error(
+            "Plot.annotate_band(): this mark has no continuous x/y axes to place a band against."
+            " Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
+        )
+
+    var sc = _Scaled(theme)
+    var px_left = Float64(min(result.px0, result.px1))
+    var px_right = Float64(max(result.px0, result.px1))
+    var py_top = Float64(min(result.py0, result.py1))
+    var py_bottom = Float64(max(result.py0, result.py1))
+    for k in range(len(plot._annotations.band_x)):
+        var xs = plot._annotations.band_x[k].copy()
+        var ys_lower = plot._annotations.band_y_lower[k].copy()
+        var ys_upper = plot._annotations.band_y_upper[k].copy()
+        if len(xs) != len(ys_lower) or len(xs) != len(ys_upper):
+            raise Error(
+                "Plot.annotate_band(): x/y_lower/y_upper must be the same length (got "
+                + String(len(xs))
+                + ", "
+                + String(len(ys_lower))
+                + ", and "
+                + String(len(ys_upper))
+                + ")"
+            )
+        if len(xs) == 0:
+            continue
+        var px_upper = List[Float64](capacity=len(xs))
+        var py_upper = List[Float64](capacity=len(xs))
+        var px_lower = List[Float64](capacity=len(xs))
+        var py_lower = List[Float64](capacity=len(xs))
+        for i in range(len(xs)):
+            if ys_upper[i] < ys_lower[i]:
+                raise Error(
+                    "Plot.annotate_band(): y_upper must be >= y_lower at every index (got y_lower="
+                    + String(ys_lower[i])
+                    + " and y_upper="
+                    + String(ys_upper[i])
+                    + " at index "
+                    + String(i)
+                    + ")"
+                )
+            var this_px = min(max(result.x_scale.to_pixel(xs[i]), px_left), px_right)
+            px_upper.append(this_px)
+            px_lower.append(this_px)
+            py_upper.append(min(max(result.y_scale.to_pixel(ys_upper[i]), py_top), py_bottom))
+            py_lower.append(min(max(result.y_scale.to_pixel(ys_lower[i]), py_top), py_bottom))
+        var path = Path()
+        path.move_to(px_upper[0], py_upper[0])
+        for i in range(1, len(xs)):
+            path.line_to(px_upper[i], py_upper[i])
+        for i in range(len(xs) - 1, -1, -1):
+            path.line_to(px_lower[i], py_lower[i])
+        path.close()
+        target.fill_path_aa(path, theme.annotation_area_color)
+
+        var label = plot._annotations.band_labels[k]
+        if label.byte_length() > 0:
+            var mid = len(xs) // 2
+            text_requests.append(
+                _TextRequest(
+                    Int(px_upper[mid]),
+                    Int(py_upper[mid]) - sc.label_gap,
+                    label,
+                    theme.annotation_color,
+                    sc.font_size,
+                    TextAlign.CENTER,
+                    theme.font_family,
+                )
+            )
+    return text_requests^
+
+
 def _draw_annotation_lines[
     T: DrawTarget
 ](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises -> List[_TextRequest]:
@@ -4152,6 +4366,7 @@ def _render_into(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
     var area_annotation_requests = _draw_annotation_areas(canvas, plot, result, plot._theme)
+    var band_annotation_requests = _draw_annotation_bands(canvas, plot, result, plot._theme)
     var vline_annotation_requests = _draw_annotation_vlines(canvas, plot, result, plot._theme)
     var annotation_requests = _draw_annotation_lines(canvas, plot, result, plot._theme)
     var point_annotation_requests = _draw_annotation_points(canvas, plot, result, plot._theme)
@@ -4164,6 +4379,7 @@ def _render_into(
     var text_cache = FontCache()
     _replay_text_requests(canvas, label_requests, text_cache)
     _replay_text_requests(canvas, area_annotation_requests, text_cache)
+    _replay_text_requests(canvas, band_annotation_requests, text_cache)
     _replay_text_requests(canvas, vline_annotation_requests, text_cache)
     _replay_text_requests(canvas, annotation_requests, text_cache)
     _replay_text_requests(canvas, point_annotation_requests, text_cache)
@@ -4207,11 +4423,13 @@ def _render_svg_into(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
     var area_annotation_requests = _draw_annotation_areas(svg, plot, result, plot._theme)
+    var band_annotation_requests = _draw_annotation_bands(svg, plot, result, plot._theme)
     var vline_annotation_requests = _draw_annotation_vlines(svg, plot, result, plot._theme)
     var annotation_requests = _draw_annotation_lines(svg, plot, result, plot._theme)
     var point_annotation_requests = _draw_annotation_points(svg, plot, result, plot._theme)
     _replay_text_requests_svg(svg, label_requests)
     _replay_text_requests_svg(svg, area_annotation_requests)
+    _replay_text_requests_svg(svg, band_annotation_requests)
     _replay_text_requests_svg(svg, vline_annotation_requests)
     _replay_text_requests_svg(svg, annotation_requests)
     _replay_text_requests_svg(svg, point_annotation_requests)
