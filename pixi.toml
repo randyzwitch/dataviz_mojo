@@ -7,7 +7,7 @@ version = "0.5.0"
 
 [dependencies]
 mojo = ">=1.0.0,<2"
-canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.9.1" }
+canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.10.1" }
 hugo = ">=0.165.0,<0.166"
 go = ">=1.26.7,<2"
 # Dev/test-only, same as hugo/go above -- neither appears in
@@ -161,8 +161,8 @@ path = "dataviz_mojo"
 
 [package.host-dependencies]
 mojo = ">=1.0.0,<2"
-canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.9.1" }
+canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.10.1" }
 
 [package.run-dependencies]
 mojo = ">=1.0.0,<2"
-canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.9.1" }
+canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.10.1" }
