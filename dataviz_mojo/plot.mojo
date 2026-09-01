@@ -155,6 +155,8 @@ from canvas_mojo.text.render import draw_text, measure_text, FontWeight, TextAli
 from canvas_mojo.text.font_cache import FontCache
 
 from dataviz_mojo.array_like import Float64Sequence, _materialize_floats, _materialize_scalar_list
+from dataviz_mojo.numpy_interop import _materialize_python_floats
+from std.python import PythonObject
 from dataviz_mojo.color_scale import ColorScale, default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.ordinal_scale import OrdinalScale
@@ -1421,6 +1423,73 @@ struct Plot(Movable):
             color_map=color_map,
         )
 
+    def encode(
+        var self,
+        x: PythonObject,
+        y: PythonObject,
+        color: List[Float64] = List[Float64](),
+        color_categories: List[String] = List[String](),
+        size: List[Float64] = List[Float64](),
+        y_err: List[Float64] = List[Float64](),
+        y_err_lower: List[Float64] = List[Float64](),
+        y_err_upper: List[Float64] = List[Float64](),
+        color_map: Dict[String, Color] = Dict[String, Color](),
+    ) raises -> Self:
+        """`encode()`'s `x`/`y`, generalized to a numpy `ndarray`, a
+        pandas `Series`, or a plain Python list of numbers -- the third,
+        independent axis alongside `Float64Sequence` (a different
+        container type) and the `DType`-generic overload right above
+        (a different numeric element type through a `List`):
+        `PythonObject` can't conform to a Mojo trait either, so this
+        needs its own dedicated overload, not either of those two
+        mechanisms. See numpy_interop.mojo's own module docstring for
+        the full reasoning, including why a raw pandas `Series` works
+        here with no `.to_numpy()` step of your own (confirmed
+        empirically, not assumed).
+
+        Requires numpy installed in *your* environment -- raises
+        numpy's own clear error if it isn't, or if `x`/`y` can't become
+        a 1-D numeric array (non-numeric data, more than one
+        dimension, ...).
+
+        `x`/`y` don't need to be the same numpy dtype as each other
+        (unlike the `Float64Sequence`/`DType` overloads' shared type
+        parameter) -- numpy's own conversion handles each
+        independently. Materializes both into real `List[Float64]`s
+        (`_materialize_python_floats`) and delegates entirely to the
+        concrete `encode()`, same as the other two array-like
+        overloads.
+
+        Args:
+            x: The continuous x column, one entry per point -- a numpy
+                `ndarray`, a pandas `Series`, or a plain Python list of
+                numbers.
+            y: The continuous y column, one entry per point -- same
+                shape as `x`.
+            color: See `encode()`'s own docstring -- unchanged here,
+                still a concrete `List[Float64]`.
+            color_categories: See `encode()`'s own docstring.
+            size: See `encode()`'s own docstring.
+            y_err: See `encode()`'s own docstring.
+            y_err_lower: See `encode()`'s own docstring.
+            y_err_upper: See `encode()`'s own docstring.
+            color_map: See `encode()`'s own docstring.
+
+        Returns:
+            Self, for further chaining.
+        """
+        return self^.encode(
+            _materialize_python_floats(x),
+            _materialize_python_floats(y),
+            color=color,
+            color_categories=color_categories,
+            size=size,
+            y_err=y_err,
+            y_err_lower=y_err_lower,
+            y_err_upper=y_err_upper,
+            color_map=color_map,
+        )
+
     def encode_categorical(var self, x: List[String], y: List[Float64]) -> Self:
         """Map a categorical x column and a continuous y column onto
         the x/y channels -- for `Mark.BAR`, whose x-axis is discrete
@@ -1454,9 +1523,10 @@ struct Plot(Movable):
         `encode()`'s own `DType`-generic overload is -- see that
         overload's docstring for the full reasoning. `x` stays a
         concrete `List[String]` here (categories are never numeric),
-        so unlike `encode()`'s two array-like axes this is the only
-        one that applies to this method -- no combinatorial overload
-        set needed, just this one extra signature.
+        so unlike `encode()`'s array-like axes this is the only one
+        that applies to this method's `y` -- no combinatorial overload
+        set needed, just this one extra signature (and the `PythonObject`
+        one right below it).
 
         Materializes `y` into a real `List[Float64]` (`_materialize_
         scalar_list`) and delegates entirely to the concrete `encode_
@@ -1471,6 +1541,29 @@ struct Plot(Movable):
             Self, for further chaining.
         """
         return self^.encode_categorical(x, _materialize_scalar_list(y))
+
+    def encode_categorical(var self, x: List[String], y: PythonObject) raises -> Self:
+        """`encode_categorical()`'s `y`, generalized to a numpy
+        `ndarray`/pandas `Series`/plain Python number list -- the same
+        third axis `encode()`'s own `PythonObject` overload adds (see
+        that overload's docstring, and numpy_interop.mojo's own module
+        docstring, for the full reasoning). `x` stays a concrete
+        `List[String]` here, same as the `DType`-generic overload right
+        above.
+
+        Materializes `y` into a real `List[Float64]` (`_materialize_
+        python_floats`) and delegates entirely to the concrete `encode_
+        categorical()` above.
+
+        Args:
+            x: One category per entry, in the given order.
+            y: Each category's value -- a numpy `ndarray`, a pandas
+                `Series`, or a plain Python list of numbers.
+
+        Returns:
+            Self, for further chaining.
+        """
+        return self^.encode_categorical(x, _materialize_python_floats(y))
 
     def encode_histogram(var self, data: List[Float64], bins: Int = 10) raises -> Self:
         """Bin `data` into `bins` equal-width intervals and map the
