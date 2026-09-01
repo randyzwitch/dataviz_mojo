@@ -2,12 +2,14 @@ from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from canvas_mojo.text.render import TextAlign
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
     Plot,
     _RenderResult,
     _Scaled,
+    _TextRequest,
     _axis_pixel,
     _draw_categorical_axis_frame,
     _draw_legend,
@@ -17,6 +19,7 @@ from dataviz_mojo.plot import (
     _finished,
     _zero_baseline_y_extent,
 )
+from dataviz_mojo.scale import _format_fixed, _label_decimals
 from dataviz_mojo.theme import Theme
 
 
@@ -106,6 +109,11 @@ def _render_grouped_bar[
     same "shrink the rect from outside, don't touch the shared core"
     pattern `_apply_labels` uses for `Plot.labels()`'s title/axis-title
     margins.
+
+    `Theme.show_data_labels` draws each sub-bar's own value above (or
+    below, for a negative value) it, centered on that sub-bar's own
+    narrower width -- see `Theme.show_data_labels`'s own docstring and
+    `_render_bar`'s identical placement logic for `Mark.BAR`.
     """
     _validate_grouped_bar_series(plot)
 
@@ -137,9 +145,29 @@ def _render_grouped_bar[
         for j in range(n_series):
             var left = _round_to_int(band_start + Float64(j) * sub_width)
             var right = _round_to_int(band_start + Float64(j + 1) * sub_width)
-            var top_py = _axis_pixel(frame.y_scale, plot._grouped_bar.values[j][i])
+            var value = plot._grouped_bar.values[j][i]
+            var top_py = _axis_pixel(frame.y_scale, value)
             var rect = _pull_off_axis_line(baseline_py, top_py, frame.py1)
             target.fill_rect(left, rect.y, right - left, rect.height, palette[j % len(palette)])
+            if theme.show_data_labels:
+                # Same above-positive/below-negative placement Mark.
+                # BAR's own labels use (see _render_bar's docstring),
+                # centered on this sub-bar's own narrower width rather
+                # than the whole category band.
+                var label_y = (
+                    rect.y + rect.height + sc.label_gap + Int(sc.font_size) if value < 0.0 else rect.y - sc.label_gap
+                )
+                frame.text_requests.append(
+                    _TextRequest(
+                        (left + right) // 2,
+                        label_y,
+                        _format_fixed(value, _label_decimals(value)),
+                        theme.text_color,
+                        sc.font_size,
+                        TextAlign.CENTER,
+                        theme.font_family,
+                    )
+                )
 
     if show_legend:
         _draw_legend(

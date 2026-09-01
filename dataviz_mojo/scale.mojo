@@ -152,6 +152,37 @@ def _format_fixed(value: Float64, decimals: Int) -> String:
     return sign + String(int_part) + "." + frac_str
 
 
+def _label_decimals(value: Float64, max_decimals: Int = 2) -> Int:
+    """The fewest decimal places (up to `max_decimals`) that represent
+    `value` with no visible rounding error -- `Theme.show_data_labels`'s
+    own formatting, deliberately *not* tied to whatever decimal count
+    the axis's own `Ticks.decimals` happens to use: an axis stepping by
+    whole 10s still needs a data label to show `15.3` as `15.3`, not
+    round it down to the tick grid's own coarser `15` the way reusing
+    `Ticks.decimals` directly would -- the entire point of a value
+    label is showing the real number a bar's height alone can't convey
+    exactly, so silently dropping real precision there would defeat
+    it.
+
+    Checked by re-scaling and rounding at each candidate decimal count
+    in turn, not string comparison -- plain binary floating-point
+    values almost never land on an exact decimal (`_format_fixed`'s
+    own docstring gives the same "0.30000000000000004" class of drift
+    the reason floating-point equality can't be trusted here), so a
+    1e-9 tolerance (many orders of magnitude below anything a rendered
+    label could visibly show) stands in for exact equality. Returns
+    `max_decimals` itself if no smaller count clears that tolerance,
+    the same "give up gracefully rather than looping forever" contract
+    a bounded search should have.
+    """
+    for d in range(max_decimals + 1):
+        var scale = pow(10.0, Float64(d))
+        var rounded = Float64(_round_to_int(value * scale)) / scale
+        if abs(value - rounded) < 1e-9:
+            return d
+    return max_decimals
+
+
 def _log_ticks(domain_min: Float64, domain_max: Float64) -> Ticks:
     """Tick positions for a log10-scaled `LinearScale` -- `domain_min`/
     `domain_max` are already in log10-space (a log scale's own
