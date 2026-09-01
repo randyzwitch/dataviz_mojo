@@ -2,6 +2,8 @@ from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
+
 from canvas_mojo.text.render import TextAlign
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.ordinal_scale import OrdinalScale
@@ -214,7 +216,7 @@ def bar(
 
         def main() raises:
             var categories: List[String] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-            var values: List[Float64] = [12.0, 19.0, 8.0, 15.0, 22.0, -4.0, 6.0]
+            var values: List[Int] = [12, 19, 8, 15, 22, -4, 6]
 
             var c = bar(categories, values, theme=Theme(mark_color=SEAGREEN))
             save(c, "docs/src/examples/out_bar.svg")
@@ -236,3 +238,27 @@ def bar(
     """
     var plot = Plot().mark_bar().encode_categorical(x=categories, y=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def bar[
+    dtype: DType
+](
+    categories: List[String],
+    values: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`bar()`, generalized over numeric element type (`List[Int]`,
+    `List[Float32]`, ...) instead of a concrete `List[Float64]` -- see
+    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. Delegates to the concrete `bar()` above.
+    """
+    return bar(
+        categories, _materialize_scalar_list(values), theme=theme, width=width, height=height,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

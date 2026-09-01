@@ -6,6 +6,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.vector.svg import SvgCanvas
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -317,7 +318,7 @@ def sankey(
         def main() raises:
             var from_stage: List[String] = ["Coal", "Gas", "Coal", "Gas", "Electricity", "Electricity"]
             var to_stage: List[String] = ["Electricity", "Electricity", "Industry", "Industry", "Residential", "Industry"]
-            var energy: List[Float64] = [30.0, 20.0, 15.0, 10.0, 25.0, 20.0]
+            var energy: List[Int] = [30, 20, 15, 10, 25, 20]
 
             var c = sankey(from_stage, to_stage, energy)
             save(c, "docs/src/examples/out_sankey.svg")
@@ -327,3 +328,27 @@ def sankey(
         from_categories=from_categories, to_categories=to_categories, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def sankey[
+    dtype: DType
+](
+    from_categories: List[String],
+    to_categories: List[String],
+    values: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`sankey()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. Delegates to the concrete `sankey()` above.
+    """
+    return sankey(
+        from_categories, to_categories, _materialize_scalar_list(values), theme=theme, width=width,
+        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

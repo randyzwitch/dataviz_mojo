@@ -3,6 +3,7 @@ from canvas_mojo.text.render import TextAlign
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.color_scale import ColorScale
 from canvas_mojo.text.font_cache import FontCache
 from dataviz_mojo.mark import Mark
@@ -301,14 +302,14 @@ def calendar_heatmap(
 
         def main() raises:
             var dates = List[String]()
-            var values = List[Float64]()
+            var values = List[Int]()
             var days_in_month: List[Int] = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
             for month in range(1, 13):
                 var month_str = "0" + String(month) if month < 10 else String(month)
                 for day in range(1, days_in_month[month - 1] + 1):
                     var day_str = "0" + String(day) if day < 10 else String(day)
                     dates.append(String(2024) + "-" + month_str + "-" + day_str)
-                    values.append(Float64((day * 7 + month) % 10))
+                    values.append((day * 7 + month) % 10)
 
             var c = calendar_heatmap(dates, values, width=900, height=250)
             save(c, "docs/src/examples/out_calendar_heatmap.svg")
@@ -316,3 +317,27 @@ def calendar_heatmap(
     """
     var plot = Plot().mark_calendar_heatmap().encode_calendar(dates=dates, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def calendar_heatmap[
+    dtype: DType
+](
+    dates: List[String],
+    values: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`calendar_heatmap()`, generalized over numeric element type --
+    see `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. Delegates to the concrete `calendar_heatmap()`
+    above.
+    """
+    return calendar_heatmap(
+        dates, _materialize_scalar_list(values), theme=theme, width=width, height=height,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

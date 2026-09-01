@@ -2,6 +2,7 @@ from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
     Plot,
@@ -283,7 +284,7 @@ def waterfall(
 
         def main() raises:
             var stages: List[String] = ["Starting", "Revenue", "COGS", "Opex", "Tax", "One-off", "Ending"]
-            var deltas: List[Float64] = [50.0, 32.0, -18.0, -12.0, -6.0, 4.0, 0.0]
+            var deltas: List[Int] = [50, 32, -18, -12, -6, 4, 0]
             var is_total: List[Bool] = [True, False, False, False, False, False, True]
 
             var c = waterfall(stages, deltas, is_total=is_total)
@@ -292,3 +293,27 @@ def waterfall(
     """
     var plot = Plot().mark_waterfall().encode_waterfall(categories=categories, deltas=deltas, is_total=is_total)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def waterfall[
+    dtype: DType
+](
+    categories: List[String],
+    deltas: List[Scalar[dtype]],
+    is_total: List[Bool] = List[Bool](),
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`waterfall()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. Delegates to the concrete `waterfall()` above.
+    """
+    return waterfall(
+        categories, _materialize_scalar_list(deltas), is_total=is_total, theme=theme, width=width,
+        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

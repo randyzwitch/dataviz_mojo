@@ -2,6 +2,7 @@ from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
     Plot,
@@ -125,8 +126,8 @@ def span_chart(
             var months: List[String] = [
                 "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
             ]
-            var temp_low: List[Float64] = [-3.0, -2.0, 3.0, 10.0, 15.0, 19.0, 21.0, 20.0, 15.0, 8.0, 2.0, -1.0]
-            var temp_high: List[Float64] = [5.0, 7.0, 12.0, 20.0, 25.0, 29.0, 31.0, 30.0, 26.0, 18.0, 10.0, 5.0]
+            var temp_low: List[Int] = [-3, -2, 3, 10, 15, 19, 21, 20, 15, 8, 2, -1]
+            var temp_high: List[Int] = [5, 7, 12, 20, 25, 29, 31, 30, 26, 18, 10, 5]
 
             var c = span_chart(months, temp_low, temp_high)
             save(c, "docs/src/examples/out_span_chart.svg")
@@ -134,3 +135,28 @@ def span_chart(
     """
     var plot = Plot().mark_span_chart().encode_gantt(categories=categories, start=low, end=high)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def span_chart[
+    dtype: DType
+](
+    categories: List[String],
+    low: List[Scalar[dtype]],
+    high: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`span_chart()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. `low`/`high` share one dtype. Delegates to the
+    concrete `span_chart()` above.
+    """
+    return span_chart(
+        categories, _materialize_scalar_list(low), _materialize_scalar_list(high), theme=theme,
+        width=width, height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

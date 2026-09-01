@@ -5,6 +5,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.vector.svg import SvgCanvas
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.hierarchy import _HierarchyIndex, _build_hierarchy_index
 from dataviz_mojo.mark import Mark
@@ -211,7 +212,7 @@ def sunburst(
         def main() raises:
             var ids: List[String] = ["root", "src", "docs", "main.py", "utils.py", "guide.md", "api.md"]
             var parent_ids: List[String] = ["", "root", "root", "src", "src", "docs", "docs"]
-            var sizes: List[Float64] = [0.0, 0.0, 0.0, 45.0, 20.0, 12.0, 8.0]
+            var sizes: List[Int] = [0, 0, 0, 45, 20, 12, 8]
 
             var c = sunburst(ids, parent_ids, sizes)
             save(c, "docs/src/examples/out_sunburst.svg")
@@ -219,3 +220,27 @@ def sunburst(
     """
     var plot = Plot().mark_sunburst().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def sunburst[
+    dtype: DType
+](
+    ids: List[String],
+    parent_ids: List[String],
+    values: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`sunburst()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. Delegates to the concrete `sunburst()` above.
+    """
+    return sunburst(
+        ids, parent_ids, _materialize_scalar_list(values), theme=theme, width=width, height=height,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

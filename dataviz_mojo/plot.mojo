@@ -7725,6 +7725,30 @@ def scatter(
     return _finished(plot^, theme, width, height, title, x_title, y_title)
 
 
+def scatter[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`scatter()`, generalized over numeric element type (`List[Int]`,
+    `List[Float32]`, ...) instead of a concrete `List[Float64]` -- see
+    `Plot.encode()`'s own `DType`-generic overload (array_like.mojo's
+    module docstring) for the full reasoning. Delegates to the
+    concrete `scatter()` above.
+    """
+    return scatter(
+        _materialize_scalar_list(x), _materialize_scalar_list(y), theme=theme, width=width,
+        height=height, title=title, x_title=x_title, y_title=y_title,
+    )
+
+
 def line(
     x: List[Float64],
     y: List[Float64],
@@ -7812,6 +7836,28 @@ def line(
     return _finished(plot^, theme, width, height, title, x_title, y_title)
 
 
+def line[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`line()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload above for the full
+    reasoning. Delegates to the concrete `line()` above.
+    """
+    return line(
+        _materialize_scalar_list(x), _materialize_scalar_list(y), theme=theme, width=width,
+        height=height, title=title, x_title=x_title, y_title=y_title,
+    )
+
+
 def area(
     x: List[Float64],
     y: List[Float64],
@@ -7864,3 +7910,25 @@ def area(
     """
     var plot = Plot().mark_area().encode(x=x, y=y)
     return _finished(plot^, theme, width, height, title, x_title, y_title)
+
+
+def area[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`area()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload above for the full
+    reasoning. Delegates to the concrete `area()` above.
+    """
+    return area(
+        _materialize_scalar_list(x), _materialize_scalar_list(y), theme=theme, width=width,
+        height=height, title=title, x_title=x_title, y_title=y_title,
+    )

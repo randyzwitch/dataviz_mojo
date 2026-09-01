@@ -2,6 +2,7 @@ from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.color_scale import ColorScale
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -227,8 +228,8 @@ def bullet(
 
         def main() raises:
             var kpis: List[String] = ["Revenue", "Profit", "New Customers", "Satisfaction"]
-            var measures: List[Float64] = [72.0, 58.0, 85.0, 78.0]
-            var targets: List[Float64] = [80.0, 65.0, 70.0, 90.0]
+            var measures: List[Int] = [72, 58, 85, 78]
+            var targets: List[Int] = [80, 65, 70, 90]
             var ranges: List[List[Float64]] = [
                 [50.0, 75.0, 100.0],
                 [40.0, 70.0, 100.0],
@@ -244,3 +245,33 @@ def bullet(
         categories=categories, measures=measures, targets=targets, ranges=ranges
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def bullet[
+    dtype: DType
+](
+    categories: List[String],
+    measures: List[Scalar[dtype]],
+    targets: List[Scalar[dtype]],
+    ranges: List[List[Float64]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`bullet()`, generalized over numeric element type for
+    `measures`/`targets` (sharing one dtype) -- see `scatter()`'s own
+    `DType`-generic overload (plot.mojo) for the full reasoning.
+    `ranges` stays a concrete `List[List[Float64]]` -- a nested-list
+    generalization is a real, separate follow-up (see #158's own
+    tracking issue), not attempted here. Delegates to the concrete
+    `bullet()` above.
+    """
+    return bullet(
+        categories, _materialize_scalar_list(measures), _materialize_scalar_list(targets), ranges,
+        theme=theme, width=width, height=height, title=title, subtitle=subtitle, x_title=x_title,
+        y_title=y_title,
+    )

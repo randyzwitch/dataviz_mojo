@@ -4,6 +4,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.vector.svg import SvgCanvas
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -142,7 +143,7 @@ def nightingale(
 
         def main() raises:
             var causes: List[String] = ["Zymotic disease", "Wounds", "Other"]
-            var deaths: List[Float64] = [1857.0, 202.0, 97.0]
+            var deaths: List[Int] = [1857, 202, 97]
 
             var c = nightingale(causes, deaths, area=True)
             save(c, "docs/src/examples/out_nightingale.svg")
@@ -150,3 +151,27 @@ def nightingale(
     """
     var plot = Plot().mark_nightingale(area=area).encode_categorical(x=categories, y=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def nightingale[
+    dtype: DType
+](
+    categories: List[String],
+    values: List[Scalar[dtype]],
+    area: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`nightingale()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. Delegates to the concrete `nightingale()` above.
+    """
+    return nightingale(
+        categories, _materialize_scalar_list(values), area=area, theme=theme, width=width,
+        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )
