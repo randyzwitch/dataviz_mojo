@@ -2,9 +2,9 @@
 """Color each bar by whether its value is positive or negative, instead
 of one flat color.
 """
-from dataviz_mojo import bar
-from dataviz_mojo.plot import save
-from dataviz_mojo.theme import Theme
+from dataviz import bar
+from dataviz.plot import save
+from dataviz.theme import Theme
 
 def main() raises:
     var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"]

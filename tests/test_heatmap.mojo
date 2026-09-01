@@ -6,9 +6,9 @@ grid-frame/color-scale rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from dataviz_mojo.plot import Plot, render, render_svg
-from dataviz_mojo.theme import Theme
-from dataviz_mojo import heatmap
+from dataviz.plot import Plot, render, render_svg
+from dataviz.theme import Theme
+from dataviz import heatmap
 
 from _test_helpers import BG, _assert_color
 

@@ -1,7 +1,7 @@
 """Draw an asymmetric error-bar whisker -- independent upper and lower
 extents per point, instead of one shared half-width in each direction.
 """
-from dataviz_mojo.plot import Plot, save
+from dataviz.plot import Plot, save
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]

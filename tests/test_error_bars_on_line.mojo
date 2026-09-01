@@ -8,9 +8,9 @@ and confirmation Mark.AREA (still excluded) raises.
 
 from std.testing import assert_raises, assert_true, TestSuite
 
-from dataviz_mojo.plot import Plot, render, render_svg
-from dataviz_mojo.theme import Theme
-from dataviz_mojo.colors import TOMATO
+from dataviz.plot import Plot, render, render_svg
+from dataviz.theme import Theme
+from dataviz.colors import TOMATO
 
 
 def test_render_svg_line_error_bar_matches_hand_derived_positions() raises:

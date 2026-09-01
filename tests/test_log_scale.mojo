@@ -9,7 +9,7 @@ value, and render_layers()'s own rejection).
 
 from std.testing import assert_raises, assert_true, TestSuite
 
-from dataviz_mojo.plot import Plot, render, render_svg, render_layers, save_layers
+from dataviz.plot import Plot, render, render_svg, render_layers, save_layers
 
 
 def test_render_svg_scale_y_log_matches_hand_derived_positions() raises:

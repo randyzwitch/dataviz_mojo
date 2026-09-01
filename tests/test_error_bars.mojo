@@ -9,7 +9,7 @@ y_err on an incompatible mark).
 
 from std.testing import assert_raises, assert_true, TestSuite
 
-from dataviz_mojo.plot import Plot, render, render_svg
+from dataviz.plot import Plot, render, render_svg
 
 
 def test_render_svg_error_bar_matches_hand_derived_positions() raises:

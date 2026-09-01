@@ -9,8 +9,8 @@ behavior when a band's x/y overshoot the mark's own domain.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from dataviz_mojo.plot import Plot, render, render_svg
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, render, render_svg
+from dataviz.theme import Theme
 
 from _test_helpers import _assert_color
 

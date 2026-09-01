@@ -3,9 +3,9 @@
 `Plot.annotate_best_fit()` -- no manual regression math and no second
 layer needed.
 """
-from dataviz_mojo.plot import Plot, save
-from dataviz_mojo.colors import CORNFLOWERBLUE
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, save
+from dataviz.colors import CORNFLOWERBLUE
+from dataviz.theme import Theme
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]

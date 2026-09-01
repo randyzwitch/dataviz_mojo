@@ -1,6 +1,6 @@
-from dataviz_mojo import Plot, save
-from dataviz_mojo.colors import SEAGREEN
-from dataviz_mojo.theme import Theme
+from dataviz import Plot, save
+from dataviz.colors import SEAGREEN
+from dataviz.theme import Theme
 
 
 def main() raises:

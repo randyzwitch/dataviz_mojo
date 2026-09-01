@@ -5,9 +5,9 @@ vertical bars per category) -- raster + SVG.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from dataviz_mojo.plot import Plot, render, render_svg
-from dataviz_mojo.theme import Theme
-from dataviz_mojo import span_chart
+from dataviz.plot import Plot, render, render_svg
+from dataviz.theme import Theme
+from dataviz import span_chart
 
 from _test_helpers import BG, _assert_color
 

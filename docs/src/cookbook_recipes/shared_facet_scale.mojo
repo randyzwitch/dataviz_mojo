@@ -2,9 +2,9 @@
 its own independent one -- for small multiples meant to be compared
 value-for-value, not just laid out side by side.
 """
-from dataviz_mojo.plot import Plot, save_facets
-from dataviz_mojo.colors import CORNFLOWERBLUE, SEAGREEN
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, save_facets
+from dataviz.colors import CORNFLOWERBLUE, SEAGREEN
+from dataviz.theme import Theme
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]

@@ -45,7 +45,13 @@ menu:
       url: "/cookbook/"
     - name: API Reference
       weight: 4
-      url: "/dataviz_mojo/"
+      # Points at the generated API-reference section's own path
+      # (modo names it after the Mojo package itself, "dataviz" --
+      # see docs/modo.yaml/pixi.toml's own docs-build task) --
+      # independent of baseURL/title above, which stay "dataviz_mojo"
+      # (this site's own identity, matching the repo/distribution
+      # name) regardless of what the Mojo import name is.
+      url: "/dataviz/"
     - name: Search
       weight: 5
       params:

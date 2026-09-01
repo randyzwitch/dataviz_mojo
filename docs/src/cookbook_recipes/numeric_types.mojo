@@ -3,8 +3,8 @@ accepts any numeric list type, not just `List[Float64]`, converting
 losslessly (a real widening cast, not integer division) and still
 showing whole-number labels as `"10"`, never `"10.0"`.
 """
-from dataviz_mojo.plot import Plot, save
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, save
+from dataviz.theme import Theme
 
 def main() raises:
     var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4"]

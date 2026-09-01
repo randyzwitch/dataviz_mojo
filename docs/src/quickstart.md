@@ -39,7 +39,7 @@ position), and something to actually write the result out.
 <div class="dvm-chart-preview"><img src="../examples/quickstart/out_step1.svg" alt="A minimal scatter plot: five points, no axis titles" /></div>
 
 ```mojo
-from dataviz_mojo import Plot, save
+from dataviz import Plot, save
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
@@ -69,7 +69,7 @@ else reading it. `.labels()` adds captions -- text, not data -- and
 <div class="dvm-chart-preview"><img src="../examples/quickstart/out_step2.svg" alt="The same scatter plot, now with axis titles: Day and Revenue ($k)" /></div>
 
 ```mojo
-from dataviz_mojo import Plot, save
+from dataviz import Plot, save
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
@@ -99,7 +99,7 @@ the ride in the same call:
 <div class="dvm-chart-preview"><img src="../examples/quickstart/out_step3.svg" alt="The same scatter plot, now with a Weekly Revenue title above it too" /></div>
 
 ```mojo
-from dataviz_mojo import Plot, save
+from dataviz import Plot, save
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
@@ -119,14 +119,14 @@ def main() raises:
 Everything about how a chart *looks* rather than what it *means* --
 color, point size, margins, fonts, gridlines -- lives on `Theme`, set
 via `.theme()`. `mark_color` and `point_radius` are two of many knobs
-(see the [`Theme` reference](../dataviz_mojo/theme/) for the rest):
+(see the [`Theme` reference](../dataviz/theme/) for the rest):
 
 <div class="dvm-chart-preview"><img src="../examples/quickstart/out_step4.svg" alt="The same scatter plot, now colored seagreen with larger points" /></div>
 
 ```mojo
-from dataviz_mojo import Plot, save
-from dataviz_mojo.colors import SEAGREEN
-from dataviz_mojo.theme import Theme
+from dataviz import Plot, save
+from dataviz.colors import SEAGREEN
+from dataviz.theme import Theme
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
@@ -153,9 +153,9 @@ from steps 2-4 is available as a keyword argument:
 <div class="dvm-chart-preview"><img src="../examples/quickstart/out_step5_quickplot.svg" alt="The exact same seagreen scatter plot as step 4, produced in one scatter() call instead" /></div>
 
 ```mojo
-from dataviz_mojo import scatter, save
-from dataviz_mojo.colors import SEAGREEN
-from dataviz_mojo.theme import Theme
+from dataviz import scatter, save
+from dataviz.colors import SEAGREEN
+from dataviz.theme import Theme
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
@@ -186,7 +186,7 @@ mark type this package supports.
 
 - **[Examples](../examples/)** -- every chart type this package can
   produce, source code next to its actual rendered output.
-- **[API reference](../dataviz_mojo/)** -- the full surface `Plot`
+- **[API reference](../dataviz/)** -- the full surface `Plot`
   and `Theme` expose, every scale, every mark.
 
 ## Contributing to dataviz_mojo
@@ -199,7 +199,7 @@ There are several useful commands defined in the Pixi environment for developmen
 
 ```sh
 pixi run test      # tests/*.mojo
-pixi run example   # every dataviz_mojo/*.mojo `Example:` docstring section, writes docs/src/examples/out_*.svg
+pixi run example   # every dataviz/*.mojo `Example:` docstring section, writes docs/src/examples/out_*.svg
 pixi run docs      # regenerates this site -- run `example` first
 ```
 

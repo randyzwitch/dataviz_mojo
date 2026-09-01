@@ -6,7 +6,7 @@ trusting the Mojo implementation.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from dataviz_mojo.scale import LinearScale, Ticks, _format_fixed, _label_decimals, _log_ticks, _min_max, _nice_step
+from dataviz.scale import LinearScale, Ticks, _format_fixed, _label_decimals, _log_ticks, _min_max, _nice_step
 
 
 def _assert_ticks_equal(actual: List[Float64], expected: List[Float64], label: String) raises:

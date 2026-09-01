@@ -4,7 +4,7 @@ the mark's (padded) y-domain, draws nothing rather than clipping to an
 edge -- callable more than once, so a target line and an average line
 can both be added to the same chart.
 """
-from dataviz_mojo.plot import Plot, save
+from dataviz.plot import Plot, save
 
 def main() raises:
     var months: List[String] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]

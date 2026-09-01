@@ -3,8 +3,8 @@ extending left-to-right instead of the default vertical layout --
 `Plot.mark_bar(horizontal=True)`/`bar(..., horizontal=True)`, handy
 when category names are long or there are many of them.
 """
-from dataviz_mojo.plot import Plot, save
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, save
+from dataviz.theme import Theme
 
 def main() raises:
     var languages: List[String] = ["Python", "JavaScript", "TypeScript", "Rust", "Mojo"]

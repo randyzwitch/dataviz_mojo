@@ -11,7 +11,7 @@
 # survive that, so every edit would otherwise need a full server restart
 # to show up (see the wiki/session history for how that was diagnosed).
 # `docs-build` also reruns `mojo doc`/`gen_example_docs.mojo`, needed
-# after touching dataviz_mojo/*.mojo docstrings or examples/, but not for
+# after touching dataviz/*.mojo docstrings or examples/, but not for
 # a docs/src/*.md-only edit -- this script only ever calls modo directly,
 # the same "regenerate site/content from src/" step docs-build's own
 # comment describes, without the steps that don't apply here.

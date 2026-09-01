@@ -3,9 +3,9 @@ cell is its own Plot, with its own data, theme, and even mark type;
 this is purely a grid-layout primitive, not a "split this data by a
 column" faceting feature.
 """
-from dataviz_mojo.plot import Plot, save_facets
-from dataviz_mojo.colors import CORNFLOWERBLUE, SEAGREEN, TOMATO, GOLD
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, save_facets
+from dataviz.colors import CORNFLOWERBLUE, SEAGREEN, TOMATO, GOLD
+from dataviz.theme import Theme
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]

@@ -1,4 +1,4 @@
-from dataviz_mojo import Plot, save
+from dataviz import Plot, save
 
 
 def main() raises:

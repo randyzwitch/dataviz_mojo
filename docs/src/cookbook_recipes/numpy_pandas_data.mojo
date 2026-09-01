@@ -2,7 +2,7 @@
 `encode_categorical()` accept either with no manual conversion, even a
 raw `Series` with no `.to_numpy()` step first.
 """
-from dataviz_mojo.plot import Plot, save
+from dataviz.plot import Plot, save
 from std.python import Python
 
 def main() raises:

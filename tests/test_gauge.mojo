@@ -7,8 +7,8 @@ from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
 from canvas_mojo.buffer import Canvas
-from dataviz_mojo.theme import Theme
-from dataviz_mojo import gauge, render
+from dataviz.theme import Theme
+from dataviz import gauge, render
 
 from _test_helpers import BG, _assert_color
 

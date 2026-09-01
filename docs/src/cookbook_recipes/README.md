@@ -25,7 +25,7 @@ after the first sentence (further paragraphs, more detail) is fine to
 include for your own documentation but won't appear on the page --
 keep the important part first.
 """
-from dataviz_mojo.plot import Plot, save
+from dataviz.plot import Plot, save
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0]

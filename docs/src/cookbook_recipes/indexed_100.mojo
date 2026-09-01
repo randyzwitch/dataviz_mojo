@@ -2,9 +2,9 @@
 """Index each series to its own first value so two series on different
 scales become directly comparable.
 """
-from dataviz_mojo.plot import Plot, save_layers
-from dataviz_mojo.colors import CORNFLOWERBLUE, SEAGREEN
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, save_layers
+from dataviz.colors import CORNFLOWERBLUE, SEAGREEN
+from dataviz.theme import Theme
 
 def main() raises:
     var months: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]

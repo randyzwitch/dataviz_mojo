@@ -6,8 +6,8 @@ chart, where the two series' units/scales are too different to share
 one axis without one of them going flat.
 """
 from canvas_mojo.color import Color
-from dataviz_mojo.plot import Plot, save_layers
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, save_layers
+from dataviz.theme import Theme
 
 def main() raises:
     var months: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]

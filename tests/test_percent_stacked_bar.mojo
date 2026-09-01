@@ -5,9 +5,9 @@ non-negative-value requirement, and the all-zero-category edge case.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.theme import Theme
-from dataviz_mojo import stacked_bar
+from dataviz.plot import Plot, render_svg
+from dataviz.theme import Theme
+from dataviz import stacked_bar
 
 
 def test_render_svg_percent_stacked_bar_matches_hand_derived_rectangles() raises:

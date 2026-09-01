@@ -2,9 +2,9 @@
 `render_layers()` -- the classic bar-plus-line combo chart, sharing
 one categorical x-axis with the bars.
 """
-from dataviz_mojo.plot import Plot, save_layers
-from dataviz_mojo.colors import CORNFLOWERBLUE, TOMATO
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, save_layers
+from dataviz.colors import CORNFLOWERBLUE, TOMATO
+from dataviz.theme import Theme
 
 def main() raises:
     var months: List[String] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]

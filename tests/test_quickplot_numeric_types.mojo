@@ -14,7 +14,7 @@ that data still renders correctly.
 
 from std.testing import assert_equal, TestSuite
 
-from dataviz_mojo import (
+from dataviz import (
     area,
     bar,
     bullet,
@@ -45,7 +45,7 @@ from dataviz_mojo import (
     treemap,
     waterfall,
 )
-from dataviz_mojo.plot import render_svg
+from dataviz.plot import render_svg
 
 
 def test_scatter_accepts_list_int_matching_list_float64() raises:

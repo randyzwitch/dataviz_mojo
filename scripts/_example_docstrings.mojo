@@ -4,7 +4,7 @@ each docs page (`_pages()`), and the extraction primitives both
 scripts need (`_quickplot_hook()`, `_extract_args_lines()`,
 `_extract_example_blocks()`). Kept in its own module (not a *.mojo
 file with its own `main()`) so both callers can import it -- the same
-reason tests/_test_helpers.mojo isn't a real dataviz_mojo sub-package
+reason tests/_test_helpers.mojo isn't a real dataviz sub-package
 either; a directory containing a file with `main()` can't be `mojo
 package`d/`precompile`d. Callers need an extra `-I scripts` alongside
 the usual `-I .` to resolve `from _example_docstrings import ...` --
@@ -13,7 +13,7 @@ see pixi.toml's own docs-build/example tasks.
 Every example page's content -- the hook, the runnable snippet, and
 the `Args:` reference -- comes from exactly one place: the backing
 quickplot function's (or, for the handful with no quickplot function,
-a `Plot` method's) own docstring in `dataviz_mojo/*.mojo`. There is no
+a `Plot` method's) own docstring in `dataviz/*.mojo`. There is no
 separate `examples/*.mojo` file to keep in sync by hand any more: the
 `Example:` section (a peer of `Args:`/`Returns:`) *is* the shown
 snippet, verbatim -- a complete, standalone, runnable program (real
@@ -36,7 +36,7 @@ from std.collections import Dict
 
 struct ExamplePage(Copyable, Movable):
     """One docs page's own source: `fn_name` (`is_method`'s own struct
-    method, or a free function) in `dataviz_mojo/<file>.mojo`. `block`
+    method, or a free function) in `dataviz/<file>.mojo`. `block`
     is "" for the common case (show/run every `Example:` section that
     function's docstring has -- one page section per block, `bar()`/
     `pie()`'s own diverging-bars/donut variants included); non-empty
@@ -205,13 +205,13 @@ def _def_index(lines: List[String], fn_name: String, want_indent: Int) raises ->
 
 
 def _lines_of(file: String) raises -> List[String]:
-    """dataviz_mojo/<file>.mojo's own lines, as real `List[String]` --
+    """dataviz/<file>.mojo's own lines, as real `List[String]` --
     `String.split()` itself returns lifetime-bound `StringSpan`s tied
     to the source string's own storage, which doesn't survive being
     passed across a function boundary the way every caller here needs
     (`_def_index()` chief among them), so this copies each line into
     its own owned `String` once, right after reading."""
-    var raw = _read_file("dataviz_mojo/" + file + ".mojo").split("\n")
+    var raw = _read_file("dataviz/" + file + ".mojo").split("\n")
     var lines = List[String](capacity=len(raw))
     for l in raw:
         lines.append(String(l))
@@ -220,7 +220,7 @@ def _lines_of(file: String) raises -> List[String]:
 
 def _quickplot_hook(fn_name: String, file: String, is_method: Bool) raises -> String:
     """The one-line "what is this chart" hook shown at the top of a
-    docs page, pulled from `fn_name`'s own docstring in dataviz_mojo/
+    docs page, pulled from `fn_name`'s own docstring in dataviz/
     <file>.mojo via `_extract_docstring()`/`_first_sentence()`."""
     var lines = _lines_of(file)
     var want_indent = 4 if is_method else 0
@@ -231,7 +231,7 @@ def _quickplot_hook(fn_name: String, file: String, is_method: Bool) raises -> St
 
 def _extract_args_lines(fn_name: String, file: String, is_method: Bool) raises -> List[String]:
     """The `Args:` section's own bullet lines out of `fn_name`'s
-    docstring in dataviz_mojo/<file>.mojo, formatted as markdown --
+    docstring in dataviz/<file>.mojo, formatted as markdown --
     `[]` if that function has no `Args:` section. Every docstring
     shares one consistent indent relative to its own `def` (8 spaces
     for a bullet's `name: description` line, 12 for a continuation,

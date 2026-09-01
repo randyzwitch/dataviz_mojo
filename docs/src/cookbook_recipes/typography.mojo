@@ -1,8 +1,8 @@
 # title: Custom Typography
 """Override the chart's typeface, title weight, and title font size.
 """
-from dataviz_mojo.plot import Plot, save
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, save
+from dataviz.theme import Theme
 
 def main() raises:
     var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4"]

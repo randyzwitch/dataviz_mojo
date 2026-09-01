@@ -15,7 +15,7 @@ to contribute, let's chat!
 
 **[Docs & examples](https://randyzwitch.com/dataviz_mojo/)** --
 every example's source next to its actual rendered output, plus the
-full `dataviz_mojo` API reference (generated from this repo's own
+full `dataviz` API reference (generated from this repo's own
 docstrings via [modo](https://github.com/mlange-42/modo), see
 `modo.yaml`/`pixi run docs`).
 
@@ -37,19 +37,24 @@ dataviz_mojo = { git = "https://github.com/randyzwitch/dataviz_mojo.git", branch
 `canvas_mojo` dependency, transitively, the identical way) from that
 git ref and installs the resulting precompiled package into your own
 workspace's pixi environment — Mojo's own toolchain finds it there
-automatically, no `-I` flag needed for either package.
+automatically, no `-I` flag needed for either package. The
+distribution name stays `dataviz_mojo` above (what you depend on),
+but the code itself imports as the shorter `dataviz` --
+`from dataviz import Plot, save`, the same distribution-name-vs-
+import-name split Python packages like `beautifulsoup4`/`import bs4`
+already have.
 
 ## Development
 
 ```sh
 pixi run test      # tests/*.mojo
-pixi run example   # every dataviz_mojo/*.mojo `Example:` docstring section, writes docs/src/examples/out_*.svg
+pixi run example   # every dataviz/*.mojo `Example:` docstring section, writes docs/src/examples/out_*.svg
 pixi run docs      # regenerates docs/ (served via GitHub Pages) -- run `example` first
 ```
 
 `docs/` also regenerates and deploys itself automatically to GitHub
 Pages (`.github/workflows/docs-deploy.yml`) whenever a push to `main`
-touches `dataviz_mojo/` or `docs/_src/` -- manual
+touches `dataviz/` or `docs/_src/` -- manual
 `pixi run docs` is for previewing locally before you push, not
 required to keep the site in sync. PRs get a status-only docs build
 (the `docs-build` job in `.github/workflows/ci.yml`) that proves the

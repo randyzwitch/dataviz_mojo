@@ -15,7 +15,7 @@ module docstring for the rule). They stay tested together here
 because what they share -- the builder contract and the documented
 defaults -- is exactly what these tests check, and that's a property of
 the group, not of any one mark. Imported from the package itself, the
-way a caller is meant to (see dataviz_mojo/__init__.mojo's docstring), which is also what keeps this file indifferent to which
+way a caller is meant to (see dataviz/__init__.mojo's docstring), which is also what keeps this file indifferent to which
 mark file any given one ends up in.
 
 One "matches the manual builder, non-default theme/size/labels"
@@ -28,9 +28,9 @@ from std.testing import assert_equal, TestSuite
 
 from canvas_mojo.color import Color
 from canvas_mojo.buffer import Canvas
-from dataviz_mojo.plot import Plot, render
-from dataviz_mojo.theme import Theme
-from dataviz_mojo import (
+from dataviz.plot import Plot, render
+from dataviz.theme import Theme
+from dataviz import (
     area,
     bar,
     box,

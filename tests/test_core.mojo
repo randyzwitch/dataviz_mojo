@@ -6,8 +6,8 @@ from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import (
+from dataviz.color_scale import default_categorical_palette
+from dataviz.plot import (
     Plot,
     render,
     render_facets,
@@ -21,10 +21,10 @@ from dataviz_mojo.plot import (
     _index_of,
     _unique_categories,
 )
-from dataviz_mojo.edges import _edge_node_index
-from dataviz_mojo.theme import Theme
-from dataviz_mojo import scatter
-from dataviz_mojo.colors import RED
+from dataviz.edges import _edge_node_index
+from dataviz.theme import Theme
+from dataviz import scatter
+from dataviz.colors import RED
 
 from _test_helpers import _count_color, _assert_color
 
@@ -76,7 +76,7 @@ def test_render_gridlines_flag_actually_controls_gridline_pixels() raises:
     # Built via Plot/Canvas/render() directly, not scatter() -- an
     # exact-zero pixel count is sensitive to any anti-aliasing detail,
     # and this test predates quickplot returning a plain, un-rendered
-    # `Plot` (dataviz_mojo.plot._finished's docstring); render() is
+    # `Plot` (dataviz.plot._finished's docstring); render() is
     # the exact same path scatter()'s own output would go through now
     # too, so this check would hold identically either way.
     #
