@@ -2,11 +2,14 @@ from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from canvas_mojo.text.render import TextAlign
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.ordinal_scale import OrdinalScale
+from dataviz_mojo.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz_mojo.plot import (
     Plot,
     _RenderResult,
+    _Scaled,
     _TextRequest,
     _axis_pixel,
     _data_extent,
@@ -17,9 +20,97 @@ from dataviz_mojo.plot import (
     _zero_baseline_y_extent,
     _validate_categorical_encoding,
 )
-from canvas_mojo.text.render import TextAlign
-from dataviz_mojo.scale import _format_fixed, _label_decimals
 from dataviz_mojo.theme import Theme
+
+
+def _draw_bar_rects[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    x_scale: OrdinalScale,
+    y_scale: LinearScale,
+    py1: Int,
+    mut text_requests: List[_TextRequest],
+) raises:
+    """Draw one `Mark.BAR` plot's rectangles (and, when `Theme.show_
+    data_labels` is set, each one's value label) into an already-laid-
+    out categorical axis frame -- the exact loop `_render_bar` runs
+    against its own freshly-built frame, factored out so `render_
+    layers()`'s bar-combo path (`_render_bar_combo_layers`, plot.mojo)
+    can draw a `Mark.BAR` layer against a frame *it* built (shared
+    across every layer), instead of `_render_bar` building its own
+    standalone one -- the same "share the drawing primitive, not just
+    the layout" split `_draw_point_layer`/`_draw_line_layer`/`_draw_
+    area_layer` (plot.mojo) already use for the continuous marks
+    `render()` and `render_layers()` both draw.
+
+    `py1` is the frame's own bottom pixel row (`_pull_off_axis_line`'s
+    "don't paint over the axis line's antialiasing" check needs it) --
+    passed separately rather than bundled with `x_scale`/`y_scale`
+    since neither scale type carries a plot rect's edges itself.
+    `text_requests` is the caller's own list to append any labels
+    into (`frame.text_requests` for `_render_bar`'s standalone case,
+    a list threaded through the whole combo render for the layered
+    case) -- this function never draws text directly itself, the same
+    "collect while drawing shapes, replay afterward" split every other
+    render path here uses (see `_TextRequest`'s own docstring).
+
+    Colored by sign (`Theme.color_by_sign`) and labeled per bar
+    (`Theme.show_data_labels`) exactly like a standalone `Mark.BAR`
+    render -- both are plain `Theme` flags this function reads off
+    `plot._theme` itself (via its own `_Scaled(theme)`, not whatever
+    scale the caller's own frame happened to use -- a layered bar's
+    label sizing follows its *own* `Theme.scale`, the same per-layer
+    styling independence `_render_bar_combo_layers`'s other layers
+    already have), unaffected by whether the caller is `_render_bar`
+    or a layered combo.
+    """
+    var theme = plot._theme
+    var sc = _Scaled(theme)
+    var baseline_py = _axis_pixel(y_scale, 0.0)
+    # bandwidth() depends only on the scale's domain length and
+    # pixel range, never on the category index -- hoisted here (and in
+    # every other mark's loop) rather than recomputing its division
+    # once per category.
+    var bar_width = _round_to_int(x_scale.bandwidth())
+    for i in range(len(plot.x_categories)):
+        var bar_x = _round_to_int(x_scale.band_start(i))
+        var top_py = _axis_pixel(y_scale, plot.y_data[i])
+        var rect = _pull_off_axis_line(baseline_py, top_py, py1)
+        var bar_color = (
+            theme.mark_color_negative
+            if (theme.color_by_sign and plot.y_data[i] < 0.0)
+            else theme.mark_color
+        )
+        target.fill_rect(bar_x, rect.y, bar_width, rect.height, bar_color)
+        if theme.show_data_labels:
+            # Positive value: baseline sits label_gap above the bar's
+            # own top edge (rect.y), the same "baseline placed where
+            # the text should visually end up, not its top" convention
+            # _draw_annotation_points's label uses. Negative value:
+            # below the bar's bottom edge instead (rect.y + rect.
+            # height), mirroring the "below" placement every category
+            # tick label on this same axis already uses (frame.py1 +
+            # tick_length + label_gap + font_size) -- a bar that
+            # extends downward gets its label below it, not colliding
+            # with the bar itself.
+            var label_y = (
+                rect.y + rect.height + sc.label_gap + Int(sc.font_size)
+                if plot.y_data[i] < 0.0
+                else rect.y - sc.label_gap
+            )
+            text_requests.append(
+                _TextRequest(
+                    bar_x + bar_width // 2,
+                    label_y,
+                    _format_fixed(plot.y_data[i], _label_decimals(plot.y_data[i])),
+                    theme.text_color,
+                    sc.font_size,
+                    TextAlign.CENTER,
+                    theme.font_family,
+                )
+            )
 
 
 def _render_bar[
@@ -42,10 +133,9 @@ def _render_bar[
     with `Mark.LOLLIPOP`/`WATERFALL`/`BOX` -- see that function's
     docstring for the shared frame's behavior. What's left here is
     exactly the one genuinely BAR-specific thing: filling each
-    category's rect from a zero baseline to its value, optionally
-    colored by sign (`Theme.color_by_sign`) -- pulled 1px off the axis
-    line via `_pull_off_axis_line` wherever the baseline lands on it
-    (see that function's docstring).
+    category's rect from a zero baseline to its value (`_draw_bar_
+    rects`, shared with `render_layers()`'s bar-combo path -- see that
+    function's own docstring for why it's factored out).
 
     `Theme.show_data_labels` (default `False`) draws each bar's own
     value as text above it (below it for a negative value, so the
@@ -69,49 +159,7 @@ def _render_bar[
     var y_scale = _zero_baseline_y_extent(plot.y_data)
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
-    var baseline_py = _axis_pixel(frame.y_scale, 0.0)
-    # bandwidth() depends only on the scale's domain length and
-    # pixel range, never on the category index -- hoisted here (and in
-    # every other mark's loop) rather than recomputing its division
-    # once per category.
-    var bar_width = _round_to_int(frame.x_scale.bandwidth())
-    for i in range(len(plot.x_categories)):
-        var bar_x = _round_to_int(frame.x_scale.band_start(i))
-        var top_py = _axis_pixel(frame.y_scale, plot.y_data[i])
-        var rect = _pull_off_axis_line(baseline_py, top_py, frame.py1)
-        var bar_color = (
-            theme.mark_color_negative
-            if (theme.color_by_sign and plot.y_data[i] < 0.0)
-            else theme.mark_color
-        )
-        target.fill_rect(bar_x, rect.y, bar_width, rect.height, bar_color)
-        if theme.show_data_labels:
-            # Positive value: baseline sits label_gap above the bar's
-            # own top edge (rect.y), the same "baseline placed where
-            # the text should visually end up, not its top" convention
-            # _draw_annotation_points's label uses. Negative value:
-            # below the bar's bottom edge instead (rect.y + rect.
-            # height), mirroring the "below" placement every category
-            # tick label on this same axis already uses (frame.py1 +
-            # tick_length + label_gap + font_size) -- a bar that
-            # extends downward gets its label below it, not colliding
-            # with the bar itself.
-            var label_y = (
-                rect.y + rect.height + frame.sc.label_gap + Int(frame.sc.font_size)
-                if plot.y_data[i] < 0.0
-                else rect.y - frame.sc.label_gap
-            )
-            frame.text_requests.append(
-                _TextRequest(
-                    bar_x + bar_width // 2,
-                    label_y,
-                    _format_fixed(plot.y_data[i], _label_decimals(plot.y_data[i])),
-                    theme.text_color,
-                    frame.sc.font_size,
-                    TextAlign.CENTER,
-                    theme.font_family,
-                )
-            )
+    _draw_bar_rects(target, plot, frame.x_scale, frame.y_scale, frame.py1, frame.text_requests)
 
     # A `.copy()`, not a `^` transfer -- Mojo's ownership checker
     # rejects moving a single field out of `frame` at all (even here,

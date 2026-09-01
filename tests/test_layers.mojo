@@ -200,7 +200,15 @@ def test_render_layers_with_empty_list_and_a_title_raises() raises:
         _ = render_layers(plots)
 
 
-def test_render_layers_raises_when_a_bar_plot_is_included() raises:
+def test_render_layers_no_longer_raises_when_a_single_bar_plot_is_included() raises:
+    # Mark.BAR used to be a plain deny-listed mark here, same as every
+    # other categorical-x-axis mark below -- render_layers()'s own
+    # bar-combo path (_render_bar_combo_layers, plot.mojo) now handles
+    # exactly one Mark.BAR layer instead of rejecting it outright (see
+    # tests/test_layers_bar_combo.mojo for that path's own dedicated,
+    # hand-derived coverage) -- this is deliberately no longer a raise
+    # test, confirming the lift actually took effect rather than
+    # leaving a stale assertion pointing at removed behavior.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var bar_x: List[String] = ["a", "b"]
@@ -208,8 +216,7 @@ def test_render_layers_raises_when_a_bar_plot_is_included() raises:
     var plots = List[Plot]()
     plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
     plots.append(Plot().mark_bar().encode_categorical(x=bar_x, y=bar_y))
-    with assert_raises():
-        _ = render_layers(plots)
+    _ = render_layers(plots)
 
 
 def test_render_layers_with_empty_list_raises() raises:
@@ -219,12 +226,14 @@ def test_render_layers_with_empty_list_raises() raises:
 
 
 def test_render_layers_raises_when_a_lollipop_plot_is_included() raises:
-    # The same Mark.POINT/LINE/AREA-only restriction test_render_
-    # layers_raises_when_a_bar_plot_is_included confirms for
-    # Mark.BAR, checked again for Mark.LOLLIPOP: the raise's check is
-    # a positive allow-list (only POINT/LINE/AREA), not a deny-list
-    # that would need updating per new mark -- this test exists to
-    # confirm that holds in practice, not just by reading the condition.
+    # render_layers()'s Mark.POINT/LINE/AREA-only allow-list, checked
+    # for Mark.LOLLIPOP -- unlike Mark.BAR (now specially handled by
+    # _render_bar_combo_layers, see test_render_layers_no_longer_
+    # raises_when_a_single_bar_plot_is_included), every other
+    # categorical-x-axis mark still falls straight through to this
+    # plain deny-by-omission check, unaffected by that carve-out. This
+    # test exists to confirm that holds in practice, not just by
+    # reading the condition.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var lolli_x: List[String] = ["a", "b"]

@@ -168,7 +168,7 @@ from dataviz_mojo.polar_bar import _render_polar_bar
 from dataviz_mojo.gauge import _render_gauge
 from dataviz_mojo.parallel import _render_parallel
 from dataviz_mojo.radar import _render_radar
-from dataviz_mojo.bar import _render_bar
+from dataviz_mojo.bar import _render_bar, _draw_bar_rects
 from dataviz_mojo.beeswarm import _render_beeswarm
 from dataviz_mojo.ridgeline import _render_ridgeline
 from dataviz_mojo.violin import _render_violin
@@ -6548,11 +6548,23 @@ def render_layers(mut plots: List[Plot]) raises -> Canvas:
     on top of the last in the order given -- a line overlaid on a
     scatter, three comparison lines sharing one y-axis, and so on.
 
-    Restricted to `Mark.POINT`/`LINE`/`AREA` --
-    `Mark.BAR`'s categorical x-axis and `Mark.ARC`'s lack of one don't
-    share a domain shape with continuous marks or each other; layering
-    those in is real, separate, deferred work (see the wiki's Backlog).
-    Raises if any layered plot uses a different mark.
+Restricted to `Mark.POINT`/`LINE`/`AREA`, *plus* an
+    exception for exactly one `Mark.BAR` layer -- the classic bar-
+    plus-line combo chart (monthly revenue bars with a rolling-average
+    or target line drawn over them). That one case shares a
+    categorical x-axis (the bar layer's own categories) instead of the
+    continuous one every other combination here uses, dispatched
+    entirely to `_render_bar_combo_layers` (see its own docstring for
+    the full mechanics and its narrower v1 scope: every non-bar layer
+    aligns to the bar's categories *by position*, not by its own `x`
+    values, and `color`/`color_categories`/`size`/`y_err*`/`Plot.
+    secondary_axis()`/`scale_y_log()`/`scale_x_log()`/`Plot.
+    annotate_*()` aren't supported yet on any layer there). `Mark.ARC`
+    still has no domain shape to share with anything and isn't
+    supported at all; more than one `Mark.BAR` layer has no
+    principled shared-axis meaning yet either. Raises if any layered
+    plot uses a mark outside this list, or if two-or-more use
+    `Mark.BAR`.
 
     A layer built via `Plot.secondary_axis()` scales its y values
     against a second, independent y-domain drawn on the plot's right
@@ -6719,6 +6731,183 @@ def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
     return svg^
 
 
+def _render_bar_combo_layers[
+    T: DrawTarget
+](mut target: T, plots: List[Plot], bar_index: Int, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+    """`_render_layers_generic`'s dispatch target whenever exactly one
+    layer is `Mark.BAR` -- the classic bar-plus-line combo chart (e.g.
+    monthly revenue bars with a rolling-average or target line drawn
+    over them), sharing one categorical x-axis (the bar layer's own
+    `x_categories`) instead of the continuous `LinearScale` x-axis
+    every other `render_layers()` combination uses.
+
+    Every non-bar layer's data aligns to the shared category axis *by
+    position*, not by its own `x` values -- `plots[j].y_data[k]` plots
+    at the bar layer's own category `k`'s band center
+    (`OrdinalScale.center(k)`), the same way `Mark.GROUPED_BAR`'s own
+    `values[series][category]` already aligns by position rather than
+    by a numeric x. A categorical axis has no numeric x for a line's
+    own x values to mean anything against (unlike the continuous
+    combo path's shared `LinearScale`), so every non-bar layer's own
+    `x_data` must have exactly `len(bar_categories)` entries -- checked
+    here and raised on a mismatch -- but its actual numeric content is
+    never read. Callers commonly just pass `x=[0.0, 1.0, 2.0, ...]`
+    (`encode()` requires *some* x column; there's no `encode_
+    categorical()`-style variant for `Mark.LINE`/`POINT`/`AREA` yet).
+
+    v1 scope, deliberately narrower than the continuous combo path
+    above: no `color`/`color_categories`/`size`/`y_err`/`y_err_lower`/
+    `y_err_upper` encoding on any non-bar layer (raises clearly if
+    used), no `Plot.secondary_axis()`/`scale_y_log()`/`scale_x_log()`
+    on any layer, and no `Plot.annotate_*()` on any layer -- each is a
+    real, separate feature this doesn't attempt, not silently dropped.
+    The bar layer itself still gets its own `Theme.color_by_sign` and
+    `Theme.show_data_labels` (`_draw_bar_rects`, shared with the
+    standalone `Mark.BAR` path -- see that function's own docstring),
+    each read off its own `Theme`, not `plots[0]`'s.
+
+    The bar layer always draws first (beneath every other layer),
+    regardless of its position in `plots` -- matching how a combo
+    chart is conventionally drawn (bars behind, lines/points in front),
+    the same "z-order matches drawing order" story `render_layers()`'s
+    own continuous path already documents for its own layer list,
+    just with the one Mark.BAR layer pinned to the back rather than
+    wherever the caller happened to put it in the list. Every non-bar
+    layer then draws in the order given, each in its *own* `Theme`
+    (`mark_color`/`line_width`/`point_radius`/`line_smoothing`, each
+    scaled by that layer's own `Theme.scale`) -- the same per-layer
+    styling independence `render_layers()`'s continuous path already
+    has, just reused here rather than duplicated with a different
+    story.
+
+    The shared y-domain always includes a zero baseline
+    (`_zero_baseline_y_extent`, never the padded-only `_data_extent`)
+    -- a `Mark.BAR` layer requires one unconditionally (see
+    `_render_bar`'s own docstring), a stricter requirement than the
+    continuous path's own "only if a Mark.AREA layer is present" rule,
+    so this always applies it rather than checking for one.
+    """
+    var bar_categories = plots[bar_index].x_categories.copy()
+    _validate_categorical_encoding(plots[bar_index])
+
+    for i in range(len(plots)):
+        if plots[i]._secondary_axis:
+            raise Error(
+                "render_layers(): Plot.secondary_axis() isn't supported yet on a Mark.BAR combo"
+                " chart (layer "
+                + String(i)
+                + ")"
+            )
+        if plots[i]._y_log or plots[i]._x_log:
+            raise Error(
+                "render_layers(): Plot.scale_y_log()/scale_x_log() aren't supported yet on a"
+                " Mark.BAR combo chart (layer "
+                + String(i)
+                + ")"
+            )
+        var has_annotations = (
+            len(plots[i]._annotations.line_values) > 0
+            or len(plots[i]._annotations.area_y0) > 0
+            or len(plots[i]._annotations.vline_values) > 0
+            or len(plots[i]._annotations.point_x) > 0
+        )
+        if has_annotations:
+            raise Error(
+                "render_layers(): Plot.annotate_*() isn't supported yet on a Mark.BAR combo chart"
+                " (layer "
+                + String(i)
+                + ")"
+            )
+        if i == bar_index:
+            continue
+        if not (plots[i]._mark == Mark.POINT or plots[i]._mark == Mark.LINE or plots[i]._mark == Mark.AREA):
+            raise Error(
+                "render_layers(): alongside a Mark.BAR layer, every other layer must be"
+                " Mark.POINT/LINE/AREA (layer "
+                + String(i)
+                + ")"
+            )
+        if len(plots[i].x_data) != len(bar_categories):
+            raise Error(
+                "render_layers(): with a Mark.BAR layer present, every other layer's own data"
+                " must have one entry per bar category -- layer "
+                + String(i)
+                + " has "
+                + String(len(plots[i].x_data))
+                + " points, the bar layer has "
+                + String(len(bar_categories))
+                + " categories"
+            )
+        if len(plots[i].y_data) != len(plots[i].x_data):
+            raise Error(
+                "render_layers(): layer "
+                + String(i)
+                + ": x and y must have the same length (got "
+                + String(len(plots[i].x_data))
+                + " and "
+                + String(len(plots[i].y_data))
+                + ")"
+            )
+        if (
+            len(plots[i].color_data) > 0
+            or len(plots[i].color_categories) > 0
+            or len(plots[i].size_data) > 0
+            or len(plots[i].y_err_data) > 0
+            or len(plots[i].y_err_lower_data) > 0
+            or len(plots[i].y_err_upper_data) > 0
+        ):
+            raise Error(
+                "render_layers(): color/color_categories/size/y_err/y_err_lower/y_err_upper"
+                " encoding isn't supported yet on a Mark.BAR combo chart's non-bar layers (layer "
+                + String(i)
+                + ")"
+            )
+
+    var combined_y = List[Float64]()
+    for i in range(len(plots)):
+        for v in plots[i].y_data:
+            combined_y.append(v)
+    var y_scale = _zero_baseline_y_extent(combined_y)
+
+    var theme = plots[0]._theme
+    var frame = _draw_categorical_axis_frame(target, bar_categories, y_scale, theme, ox0, oy0, ox1, oy1)
+
+    _draw_bar_rects(target, plots[bar_index], frame.x_scale, frame.y_scale, frame.py1, frame.text_requests)
+
+    for i in range(len(plots)):
+        if i == bar_index:
+            continue
+        var layer_theme = plots[i]._theme
+        _check_line_smoothing(layer_theme)
+        var layer_sc = _Scaled(layer_theme)
+        var px = List[Float64](capacity=len(plots[i].y_data))
+        var py = List[Float64](capacity=len(plots[i].y_data))
+        for k in range(len(plots[i].y_data)):
+            px.append(frame.x_scale.center(k))
+            py.append(frame.y_scale.to_pixel(plots[i].y_data[k]))
+        if plots[i]._mark == Mark.POINT:
+            var radius = _round_to_int(layer_sc.point_radius)
+            for k in range(len(px)):
+                target.fill_circle_aa(_round_to_int(px[k]), _round_to_int(py[k]), radius, layer_theme.mark_color)
+        elif plots[i]._mark == Mark.LINE:
+            var path = _build_line_path(px, py, layer_theme.line_smoothing)
+            target.stroke_path_aa(path, layer_theme.mark_color, width=layer_sc.line_width)
+        else:
+            # Mark.AREA -- same closed-down-to-baseline technique
+            # _draw_area_layer uses, just against this frame's
+            # categorical x positions instead of a continuous x_scale.
+            var baseline_py = frame.y_scale.to_pixel(0.0)
+            if _round_to_int(baseline_py) == _round_to_int(frame.y_scale.range_min):
+                baseline_py -= 1.0
+            var path = _build_line_path(px, py, layer_theme.line_smoothing)
+            path.line_to(px[len(px) - 1], baseline_py)
+            path.line_to(px[0], baseline_py)
+            path.close()
+            target.fill_path_aa(path, layer_theme.mark_color)
+
+    return frame.result()
+
+
 def _render_layers_generic[
     T: DrawTarget
 ](mut target: T, plots: List[Plot], ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
@@ -6736,6 +6925,11 @@ def _render_layers_generic[
     only what's genuinely different here -- domains computed across
     *all* layered plots' data at once, a legend column sized across
     every layer, and a legend-y cursor threaded through them in order.
+
+    Everything below describes the continuous-x-only path -- exactly
+    one `Mark.BAR` layer dispatches entirely to `_render_bar_combo_
+    layers` instead, before any of this runs (see that function's own
+    docstring for the categorical-axis combo chart it handles).
 
     Returns a `_RenderResult`, like every other `_render_*` function
     (see its docstring) -- `render_layers()`/`render_layers_svg()`
@@ -6772,18 +6966,50 @@ def _render_layers_generic[
     if len(plots) == 0:
         return _RenderResult(text_requests^, ox0, oy0, ox1, oy1)
 
+    # Exactly one Mark.BAR layer dispatches entirely to _render_bar_
+    # combo_layers instead -- a categorical x-axis shared with
+    # continuous overlay layers (the classic bar-plus-line combo chart)
+    # is a genuinely different domain shape from this function's own
+    # continuous-x-only path below, not a drop-in extension of it (see
+    # that function's own docstring for the full mechanics and v1
+    # scope cuts). More than one Mark.BAR layer has no principled
+    # shared-axis meaning yet (which one's categories would the shared
+    # x-axis even use?) -- rejected before either path runs.
+    var bar_layer_count = 0
+    var bar_layer_index = -1
+    for i in range(len(plots)):
+        if plots[i]._mark == Mark.BAR:
+            bar_layer_count += 1
+            bar_layer_index = i
+    if bar_layer_count > 1:
+        raise Error(
+            "render_layers(): at most one Mark.BAR layer is supported (got "
+            + String(bar_layer_count)
+            + ") -- combining several categorical bar layers has no principled shared-axis"
+            " meaning yet"
+        )
+    if bar_layer_count == 1:
+        return _render_bar_combo_layers(target, plots, bar_layer_index, ox0, oy0, ox1, oy1)
+
     for i in range(len(plots)):
         # The one check that's genuinely layering-specific and so stays
         # here rather than moving into the shared validator: a
         # standalone Mark.BAR plot is perfectly legal, a layered one
-        # isn't (see _validate_continuous_encoding's docstring).
+        # (alongside another Mark.BAR/POINT/LINE/AREA layer) isn't --
+        # a lone Mark.BAR layer already returned via _render_bar_combo_
+        # layers above, so reaching here with one is impossible; this
+        # now only ever fires for Mark.ARC (still unsupported) or a
+        # second, third, ... Mark.BAR (already rejected above too, so
+        # dead in practice, but kept as a defensive catch-all rather
+        # than an assumption).
         if not (
             plots[i]._mark == Mark.POINT or plots[i]._mark == Mark.LINE or plots[i]._mark == Mark.AREA
         ):
             raise Error(
-                "render_layers(): only Mark.POINT/Mark.LINE/Mark.AREA can be layered"
-                " (got a different mark -- see the wiki's Backlog for why Mark.BAR/"
-                "Mark.ARC aren't supported here yet)"
+                "render_layers(): only Mark.POINT/Mark.LINE/Mark.AREA can be layered here"
+                " (got a different mark -- Mark.BAR is supported only as the lone categorical"
+                " layer in a bar-combo chart, see _render_bar_combo_layers; Mark.ARC still isn't"
+                " supported at all)"
             )
         if plots[i]._y_log or plots[i]._x_log:
             raise Error(
