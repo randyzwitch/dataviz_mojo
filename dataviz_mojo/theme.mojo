@@ -510,6 +510,22 @@ struct Theme(ImplicitlyCopyable, Movable):
     defaults to `OutputFormat.SVG` (see that struct's docstring for why
     vector is the default). `render()`/`render_svg()` ignore this field
     entirely; it only governs `save()`'s own choice."""
+    var show_data_labels: Bool
+    """Whether `Mark.BAR`/`GROUPED_BAR`/`STACKED_BAR` draws each bar's
+    own value as text -- `False` (the default, every existing render
+    stays byte-identical) draws nothing extra; `True` draws the same
+    value the bar's own height already encodes, in `text_color` at
+    `font_size`. Formatted via `_label_decimals()` (scale.mojo) --
+    the fewest decimal places that represent that specific value
+    exactly, deliberately *not* the y-axis's own (coarser) `Ticks.
+    decimals`, so a label always shows the real number a bar's height
+    alone can't convey precisely, not the tick grid's rounded version
+    of it. An opt-in flag on `Theme` rather than a new `encode()`
+    channel, the same "changes how a mark draws, not new data" pattern
+    `color_by_sign` already sets -- unlike `color_by_sign`, this is a
+    single flag shared by every categorical-bar mark (`Mark.POINT`'s
+    own data-label case needs a genuine text column via `encode()`,
+    a real, separate feature -- not attempted here)."""
 
     def __init__(
         out self,
@@ -578,6 +594,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         sankey_node_width: Float64 = 12.0,
         error_bar_cap_width: Float64 = 4.0,
         output_format: OutputFormat = OutputFormat.SVG,
+        show_data_labels: Bool = False,
     ):
         """Construct a `Theme`, overriding any subset of its fields by
         keyword -- every parameter here is one field, same name, same
@@ -649,6 +666,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.sankey_node_width = sankey_node_width
         self.error_bar_cap_width = error_bar_cap_width
         self.output_format = output_format
+        self.show_data_labels = show_data_labels
 
     @staticmethod
     def default() -> Self:

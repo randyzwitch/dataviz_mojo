@@ -7,6 +7,7 @@ from dataviz_mojo.ordinal_scale import OrdinalScale
 from dataviz_mojo.plot import (
     Plot,
     _RenderResult,
+    _TextRequest,
     _axis_pixel,
     _data_extent,
     _draw_categorical_axis_frame,
@@ -16,6 +17,8 @@ from dataviz_mojo.plot import (
     _zero_baseline_y_extent,
     _validate_categorical_encoding,
 )
+from canvas_mojo.text.render import TextAlign
+from dataviz_mojo.scale import _format_fixed, _label_decimals
 from dataviz_mojo.theme import Theme
 
 
@@ -43,6 +46,11 @@ def _render_bar[
     colored by sign (`Theme.color_by_sign`) -- pulled 1px off the axis
     line via `_pull_off_axis_line` wherever the baseline lands on it
     (see that function's docstring).
+
+    `Theme.show_data_labels` (default `False`) draws each bar's own
+    value as text above it (below it for a negative value, so the
+    label never collides with a bar that extends downward) -- see
+    that field's own docstring.
 
     No x-gridlines (unlike the continuous path's per-tick vertical
     gridlines) -- the bars themselves already visually separate
@@ -77,6 +85,33 @@ def _render_bar[
             else theme.mark_color
         )
         target.fill_rect(bar_x, rect.y, bar_width, rect.height, bar_color)
+        if theme.show_data_labels:
+            # Positive value: baseline sits label_gap above the bar's
+            # own top edge (rect.y), the same "baseline placed where
+            # the text should visually end up, not its top" convention
+            # _draw_annotation_points's label uses. Negative value:
+            # below the bar's bottom edge instead (rect.y + rect.
+            # height), mirroring the "below" placement every category
+            # tick label on this same axis already uses (frame.py1 +
+            # tick_length + label_gap + font_size) -- a bar that
+            # extends downward gets its label below it, not colliding
+            # with the bar itself.
+            var label_y = (
+                rect.y + rect.height + frame.sc.label_gap + Int(frame.sc.font_size)
+                if plot.y_data[i] < 0.0
+                else rect.y - frame.sc.label_gap
+            )
+            frame.text_requests.append(
+                _TextRequest(
+                    bar_x + bar_width // 2,
+                    label_y,
+                    _format_fixed(plot.y_data[i], _label_decimals(plot.y_data[i])),
+                    theme.text_color,
+                    frame.sc.font_size,
+                    TextAlign.CENTER,
+                    theme.font_family,
+                )
+            )
 
     # A `.copy()`, not a `^` transfer -- Mojo's ownership checker
     # rejects moving a single field out of `frame` at all (even here,

@@ -2,6 +2,7 @@ from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from canvas_mojo.text.render import TextAlign
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.grouped_bar import _series_legend_reserve, _validate_grouped_bar_series
 from dataviz_mojo.mark import Mark
@@ -10,6 +11,7 @@ from dataviz_mojo.plot import (
     Plot,
     _RenderResult,
     _Scaled,
+    _TextRequest,
     _axis_pixel,
     _draw_categorical_axis_frame,
     _draw_legend,
@@ -18,6 +20,7 @@ from dataviz_mojo.plot import (
     _finished,
     _zero_baseline_y_extent,
 )
+from dataviz_mojo.scale import _format_fixed, _label_decimals
 from dataviz_mojo.theme import Theme
 
 
@@ -72,6 +75,12 @@ def _render_stacked_bar[
     sharing beats duplicating here. No sign-coloring
     -- like `GROUPED_BAR`, a stacked bar chart's whole point is telling
     series apart by color, not sign.
+
+    `Theme.show_data_labels` draws each segment's own value centered
+    *inside* it (not above/below the way `Mark.BAR`/`GROUPED_BAR`'s
+    labels sit -- a stacked segment usually has neighbors directly
+    above/below it, so there's no clear outside edge) -- see `Theme.
+    show_data_labels`'s own docstring.
     """
     _validate_grouped_bar_series(plot)
 
@@ -157,6 +166,28 @@ def _render_stacked_bar[
             var bottom_py = _axis_pixel(frame.y_scale, seg_bottom)
             var rect = _pull_off_axis_line(top_py, bottom_py, frame.py1)
             target.fill_rect(band_x, rect.y, band_width, rect.height, palette[j % len(palette)])
+            if theme.show_data_labels:
+                # Centered *inside* the segment, unlike Mark.BAR/
+                # GROUPED_BAR's above/below-the-bar placement -- a
+                # stacked segment usually has neighbors directly above
+                # and below it, so there's no clear "outside" edge to
+                # anchor a label to the way a standalone bar's single
+                # top edge gives one. The segment's own value (v), not
+                # its cumulative running position -- see Theme.show_
+                # data_labels's own docstring for the same "show the
+                # real value" reasoning Mark.BAR's labels already
+                # follow.
+                frame.text_requests.append(
+                    _TextRequest(
+                        band_x + band_width // 2,
+                        (rect.y + rect.height // 2) + Int(sc.font_size * 0.35),
+                        _format_fixed(v, _label_decimals(v)),
+                        theme.text_color,
+                        sc.font_size,
+                        TextAlign.CENTER,
+                        theme.font_family,
+                    )
+                )
 
     if show_legend:
         _draw_legend(

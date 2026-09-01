@@ -6,7 +6,7 @@ trusting the Mojo implementation.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from dataviz_mojo.scale import LinearScale, Ticks, _format_fixed, _log_ticks, _min_max, _nice_step
+from dataviz_mojo.scale import LinearScale, Ticks, _format_fixed, _label_decimals, _log_ticks, _min_max, _nice_step
 
 
 def _assert_ticks_equal(actual: List[Float64], expected: List[Float64], label: String) raises:
@@ -121,6 +121,31 @@ def test_format_fixed_avoids_binary_floating_point_drift() raises:
     # directly; _format_fixed must not.
     var drifted = 0.0 + 3.0 * 0.1
     assert_equal(_format_fixed(drifted, 1), "0.3")
+
+
+def test_label_decimals_matches_hand_computed_counts() raises:
+    assert_equal(_label_decimals(12.0), 0)
+    assert_equal(_label_decimals(-12.0), 0)
+    assert_equal(_label_decimals(15.3), 1)
+    assert_equal(_label_decimals(15.25), 2)
+    assert_equal(_label_decimals(0.0), 0)
+    # 1.0 / 3.0 needs far more than 2 decimals to represent exactly --
+    # the default max_decimals=2 cap applies rather than searching
+    # forever.
+    assert_equal(_label_decimals(1.0 / 3.0), 2)
+    # A caller-widened cap still finds the real value once it's within
+    # reach.
+    assert_equal(_label_decimals(15.25, max_decimals=3), 2)
+    assert_equal(_label_decimals(15.125, max_decimals=3), 3)
+
+
+def test_label_decimals_avoids_binary_floating_point_drift() raises:
+    # The same 0.30000000000000004-class drift test_format_fixed_
+    # avoids_binary_floating_point_drift already covers -- a value
+    # that's "really" 0.3 (to any human reading it) must not need 15+
+    # decimals just because its raw Float64 bits aren't exact.
+    var drifted = 0.0 + 3.0 * 0.1
+    assert_equal(_label_decimals(drifted), 1)
 
 
 def test_ticks_labels_uses_format_fixed_per_tick() raises:
