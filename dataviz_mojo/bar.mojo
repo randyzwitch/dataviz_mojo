@@ -22,6 +22,7 @@ from dataviz_mojo.plot import (
     _zero_baseline_y_extent,
     _validate_categorical_encoding,
 )
+from dataviz_mojo.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz_mojo.theme import Theme
 
 
@@ -174,6 +175,136 @@ def _render_bar[
     return frame.result()
 
 
+def _draw_horizontal_bar_rects[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    x_scale: LinearScale,
+    y_scale: OrdinalScale,
+    px0: Int,
+    mut text_requests: List[_TextRequest],
+) raises:
+    """`_draw_bar_rects`'s mirror image for a horizontal `Mark.BAR`
+    (`Plot.mark_bar(horizontal=True)`, #121) -- categories run down the
+    `y_scale` (`OrdinalScale`) instead of across an x-axis, and each
+    bar is a horizontal rect extending from a zero baseline along the
+    continuous `x_scale` (`LinearScale`) instead of a vertical one.
+    Every role `_draw_bar_rects` gives `x_scale`/`bar_x`/`bar_width`
+    here belongs to `y_scale`/`bar_y`/`bar_height` instead, and vice
+    versa -- otherwise the exact same logic, including `Theme.color_
+    by_sign`/`show_data_labels` support.
+
+    `px0` is the frame's own *left* pixel column -- `_pull_off_axis_
+    line`'s "don't paint over the axis line's antialiasing" check
+    needs it here instead of `_draw_bar_rects`'s `py1` (the bottom
+    row), since a horizontal bar's zero baseline can land on the
+    vertical categorical axis line drawn at the frame's left edge, the
+    exact rotated equivalent of a vertical bar's baseline landing on
+    the horizontal axis line at the bottom.
+
+    Not shared with `render_layers()`'s bar-combo path the way `_draw_
+    bar_rects` is -- `_render_bar_combo_layers` raises clearly on a
+    horizontal bar layer instead (see its own docstring) rather than
+    trying to lay out a horizontal categorical axis alongside
+    continuous line/point/area layers, a real, separate feature this
+    doesn't attempt.
+    """
+    var theme = plot._theme
+    var sc = _Scaled(theme)
+    var baseline_px = _axis_pixel(x_scale, 0.0)
+    # bandwidth() depends only on the scale's domain length and pixel
+    # range, never on the category index -- hoisted here exactly like
+    # _draw_bar_rects' own bar_width.
+    var bar_height = _round_to_int(y_scale.bandwidth())
+    for i in range(len(plot.x_categories)):
+        var bar_y = _round_to_int(y_scale.band_start(i))
+        var value_px = _axis_pixel(x_scale, plot.y_data[i])
+        var rect = _pull_off_axis_line(baseline_px, value_px, px0)
+        var bar_color = (
+            theme.mark_color_negative
+            if (theme.color_by_sign and plot.y_data[i] < 0.0)
+            else theme.mark_color
+        )
+        target.fill_rect(rect.y, bar_y, rect.height, bar_height, bar_color)
+        if theme.show_data_labels:
+            # Positive value (bar extends right): label sits label_gap
+            # to the right of the bar's own right edge, left-aligned --
+            # the horizontal-axis mirror of _draw_bar_rects' "above the
+            # bar" placement. Negative value (bar extends left): to the
+            # left of the bar's left edge instead, right-aligned, so
+            # the label never collides with a bar that extends left of
+            # the baseline. Vertically centered on the bar's own row
+            # (TextAlign has no vertical option -- the same `font_size
+            # * 0.35` baseline-centering offset treemap.mojo/sankey.mojo/
+            # stacked_bar.mojo's own labels already use).
+            var label_x = (
+                rect.y - sc.label_gap
+                if plot.y_data[i] < 0.0
+                else rect.y + rect.height + sc.label_gap
+            )
+            var label_align = TextAlign.RIGHT if plot.y_data[i] < 0.0 else TextAlign.LEFT
+            text_requests.append(
+                _TextRequest(
+                    label_x,
+                    bar_y + bar_height // 2 + Int(sc.font_size * 0.35),
+                    _format_fixed(plot.y_data[i], _label_decimals(plot.y_data[i])),
+                    theme.text_color,
+                    sc.font_size,
+                    label_align,
+                    theme.font_family,
+                )
+            )
+
+
+def _render_horizontal_bar[
+    T: DrawTarget
+](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+    """`_render_bar`'s mirror image for `Plot.mark_bar(horizontal=True)`
+    (#121): a categorical y-axis (`OrdinalScale`, one evenly spaced
+    band per category, top to bottom) and a continuous x-axis whose
+    domain always includes a zero baseline (`_zero_baseline_y_extent`
+    -- axis-agnostic despite the name, see its own docstring; the same
+    function `_render_bar` uses for its own y-domain, reused here for
+    an x-domain instead).
+
+    Deliberately a whole separate function from `_render_bar`, not an
+    orientation flag threaded through it -- the same "a mark-type
+    branch through nearly every line is worse than each path staying
+    its function" reasoning `_draw_horizontal_categorical_axis_frame`'s
+    own docstring already gives for why *that* function stays unshared
+    from `_draw_categorical_axis_frame` (which scale is which type,
+    which axis reverses, which margin grows dynamically -- exactly the
+    branches a bidirectional version would need on nearly every line).
+
+    The axis frame itself is `_draw_horizontal_categorical_axis_frame`'s
+    job (gantt.mojo) -- already shared by `Mark.GANTT`/
+    `POPULATION_PYRAMID`/`RIDGELINE` before this became its fourth
+    caller, not new machinery built for this. What's left here is the
+    one genuinely bar-specific thing, `_draw_horizontal_bar_rects`
+    (this file), the exact mirror of `_render_bar`'s own `_draw_bar_
+    rects` call.
+
+    No y-gridlines (the horizontal mirror of `_render_bar`'s own "no
+    x-gridlines" -- the bars themselves already visually separate
+    categories).
+    """
+    _validate_categorical_encoding(plot)
+
+    var theme = plot._theme
+    if len(plot.x_categories) == 0:
+        return _empty_result(ox0, oy0, ox1, oy1)
+
+    var x_scale = _zero_baseline_y_extent(plot.y_data)
+    var frame = _draw_horizontal_categorical_axis_frame(
+        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
+    )
+
+    _draw_horizontal_bar_rects(target, plot, frame.x_scale, frame.y_scale, frame.px0, frame.text_requests)
+
+    return frame.result()
+
+
 def bar(
     categories: List[String],
     values: List[Float64],
@@ -184,6 +315,7 @@ def bar(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    horizontal: Bool = False,
 ) raises -> Plot:
     """A bar chart -- `Mark.BAR` over a categorical `x` and continuous
     `y` (see `Plot.encode_categorical()`'s docstring; one bar per
@@ -203,6 +335,10 @@ def bar(
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
+        horizontal: Draw categories running top-to-bottom with each
+            bar extending left-to-right instead of the default
+            vertical layout -- see `Plot.mark_bar()`'s own docstring
+            (#121).
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
@@ -236,7 +372,7 @@ def bar(
             save(c_diverging, "docs/src/examples/out_bar_diverging.svg")
         ```
     """
-    var plot = Plot().mark_bar().encode_categorical(x=categories, y=values)
+    var plot = Plot().mark_bar(horizontal=horizontal).encode_categorical(x=categories, y=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
 
@@ -252,6 +388,7 @@ def bar[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    horizontal: Bool = False,
 ) raises -> Plot:
     """`bar()`, generalized over numeric element type (`List[Int]`,
     `List[Float32]`, ...) instead of a concrete `List[Float64]` -- see
@@ -260,5 +397,5 @@ def bar[
     """
     return bar(
         categories, _materialize_scalar_list(values), theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title, horizontal=horizontal,
     )
