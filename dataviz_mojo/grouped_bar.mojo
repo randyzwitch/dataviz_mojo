@@ -3,6 +3,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
 from canvas_mojo.text.render import TextAlign
+from dataviz_mojo.array_like import _materialize_nested_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -228,10 +229,10 @@ def grouped_bar(
         def main() raises:
             var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4"]
             var series_names: List[String] = ["North", "South", "East"]
-            var values: List[List[Float64]] = [
-                [42.0, 48.0, 45.0, 61.0],
-                [30.0, 35.0, 33.0, 40.0],
-                [55.0, 50.0, 58.0, 66.0],
+            var values: List[List[Int]] = [
+                [42, 48, 45, 61],
+                [30, 35, 33, 40],
+                [55, 50, 58, 66],
             ]
 
             var c = grouped_bar(
@@ -249,3 +250,30 @@ def grouped_bar(
         categories=categories, series_names=series_names, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def grouped_bar[
+    dtype: DType
+](
+    categories: List[String],
+    series_names: List[String],
+    values: List[List[Scalar[dtype]]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`grouped_bar()`, generalized over numeric element type for
+    `values` (`List[List[Int]]`, `List[List[Float32]]`, ...) -- the
+    nested-list counterpart to `scatter()`'s own `DType`-generic
+    overload (plot.mojo), using `_materialize_nested_scalar_list`
+    (array_like.mojo). Delegates to the concrete `grouped_bar()`
+    above.
+    """
+    return grouped_bar(
+        categories, series_names, _materialize_nested_scalar_list(values), theme=theme, width=width,
+        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

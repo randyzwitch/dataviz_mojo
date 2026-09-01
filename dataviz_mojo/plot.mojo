@@ -158,6 +158,7 @@ from dataviz_mojo.array_like import (
     Float64Sequence,
     StringSequence,
     _materialize_floats,
+    _materialize_nested_scalar_list,
     _materialize_scalar_list,
     _materialize_strings,
 )
@@ -1787,6 +1788,35 @@ struct Plot(Movable):
         self._box.outlier_value = outlier_value^
         return self^
 
+    def encode_boxplot[
+        dtype: DType
+    ](var self, categories: List[String], values: List[List[Scalar[dtype]]]) raises -> Self:
+        """`encode_boxplot()`'s `values`, generalized over numeric
+        element type (`List[List[Int]]`, `List[List[Float32]]`, ...) --
+        the nested-list counterpart to `encode()`'s own `DType`-generic
+        overload, using `_materialize_nested_scalar_list` (array_like.mojo).
+        `categories` stays concrete here.
+
+        Materializes `values` into a real `List[List[Float64]]` and
+        delegates entirely to the concrete `encode_boxplot()` above --
+        every quartile/whisker/outlier computation, and every length/
+        emptiness check, lives in exactly one place, not duplicated
+        here.
+
+        Args:
+            categories: One box per entry, in the given order.
+            values: Each category's raw values -- any numeric
+                `List[List[Scalar[dtype]]]`.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            If `categories`/`values` lengths don't match, or any
+            category's value list is empty.
+        """
+        return self^.encode_boxplot(categories, _materialize_nested_scalar_list(values))
+
     def encode_candlestick(
         var self,
         categories: List[String],
@@ -1960,13 +1990,10 @@ struct Plot(Movable):
         `StringSequence` overload adds for its `x`, see that
         overload's docstring for the full reasoning.
 
-        `series_names`/`values` stay concrete here -- `values`'s own
-        `List[List[Float64]]` shape (a list *per series*) is a
-        genuinely harder generalization than a flat list (unlike
-        `encode()`'s `x`/`y` or `encode_categorical()`'s `y`, there's
-        no single element type to swap in a `DType`-generic or
-        `PythonObject` overload for), so it's left as a real, separate
-        follow-up rather than attempted here.
+        `series_names`/`values` stay concrete here -- see the
+        `DType`-generic overload right below for `values`'s own axis
+        instead; each overload here still generalizes exactly one
+        parameter at a time.
 
         Materializes `categories` into a real `List[String]`
         (`_materialize_strings`) and delegates entirely to the
@@ -1984,6 +2011,40 @@ struct Plot(Movable):
             Self, for further chaining.
         """
         return self^.encode_grouped_bar(_materialize_strings(categories), series_names, values)
+
+    def encode_grouped_bar[
+        dtype: DType
+    ](
+        var self, categories: List[String], series_names: List[String], values: List[List[Scalar[dtype]]]
+    ) -> Self:
+        """`encode_grouped_bar()`'s `values`, generalized over numeric
+        element type (`List[List[Int]]`, `List[List[Float32]]`, ...) --
+        the nested-list counterpart to `encode()`'s own `DType`-generic
+        overload, using `_materialize_nested_scalar_list` (array_like.mojo)
+        instead of the flat `_materialize_scalar_list` since `values`
+        is a list *per series*, not one flat list. This is exactly the
+        generalization this method's own `StringSequence` overload
+        (above) and #158's tracking issue called out as a real,
+        separate follow-up from the flat-list case -- now built.
+
+        `categories`/`series_names` stay concrete here, same "one
+        parameter at a time" rule every overload in this file follows.
+
+        Materializes `values` into a real `List[List[Float64]]` and
+        delegates entirely to the concrete `encode_grouped_bar()`
+        above.
+
+        Args:
+            categories: One group of side-by-side bars per entry, in
+                the given order.
+            series_names: One sub-bar per name.
+            values: `values[j]` is `series_names[j]`'s value per
+                category -- any numeric `List[List[Scalar[dtype]]]`.
+
+        Returns:
+            Self, for further chaining.
+        """
+        return self^.encode_grouped_bar(categories, series_names, _materialize_nested_scalar_list(values))
 
     def encode_population_pyramid(
         var self,
@@ -2131,6 +2192,27 @@ struct Plot(Movable):
         self._corrplot.matrix = matrix.copy()
         return self^
 
+    def encode_corrplot[
+        dtype: DType
+    ](var self, variables: List[String], matrix: List[List[Scalar[dtype]]]) -> Self:
+        """`encode_corrplot()`'s `matrix`, generalized over numeric
+        element type -- the nested-list counterpart to `encode()`'s
+        own `DType`-generic overload, using `_materialize_nested_
+        scalar_list` (array_like.mojo). `variables` stays concrete
+        here. Delegates entirely to the concrete `encode_corrplot()`
+        above.
+
+        Args:
+            variables: One row and one column per entry -- `matrix`
+                must be this length square.
+            matrix: The square pairwise-correlation matrix -- any
+                numeric `List[List[Scalar[dtype]]]`.
+
+        Returns:
+            Self, for further chaining.
+        """
+        return self^.encode_corrplot(variables, _materialize_nested_scalar_list(matrix))
+
     def encode_punchcard(var self, x: List[String], y: List[String], sizes: List[Float64]) -> Self:
         """Map two category columns plus a continuous size column onto
         `Mark.PUNCHCARD`'s grid-cell-plus-bubble shape -- the same
@@ -2196,6 +2278,30 @@ struct Plot(Movable):
         self._marimekko.subcategories = subcategories.copy()
         self._marimekko.values = values.copy()
         return self^
+
+    def encode_marimekko[
+        dtype: DType
+    ](
+        var self, categories: List[String], subcategories: List[String], values: List[List[Scalar[dtype]]]
+    ) -> Self:
+        """`encode_marimekko()`'s `values`, generalized over numeric
+        element type -- the nested-list counterpart to `encode()`'s
+        own `DType`-generic overload, using `_materialize_nested_
+        scalar_list` (array_like.mojo). `categories`/`subcategories`
+        stay concrete here. Delegates entirely to the concrete
+        `encode_marimekko()` above.
+
+        Args:
+            categories: One column per entry.
+            subcategories: One stacked segment per entry.
+            values: `values[i][j]` is `subcategories[i]`'s value for
+                `categories[j]` -- any numeric `List[List[Scalar[
+                dtype]]]`.
+
+        Returns:
+            Self, for further chaining.
+        """
+        return self^.encode_marimekko(categories, subcategories, _materialize_nested_scalar_list(values))
 
     def encode_hierarchy(var self, ids: List[String], parent_ids: List[String], values: List[Float64]) -> Self:
         """Map a flattened hierarchy onto `Mark.SUNBURST`/`TREE`/
@@ -2336,6 +2442,31 @@ struct Plot(Movable):
         self._polar.series_radius = series_values.copy()
         return self^
 
+    def encode_polar_series[
+        dtype: DType
+    ](
+        var self, angle: List[Float64], series_names: List[String], series_values: List[List[Scalar[dtype]]]
+    ) -> Self:
+        """`encode_polar_series()`'s `series_values`, generalized over
+        numeric element type -- the nested-list counterpart to
+        `encode()`'s own `DType`-generic overload, using `_materialize_
+        nested_scalar_list` (array_like.mojo). `angle`/`series_names`
+        stay concrete here. Delegates entirely to the concrete
+        `encode_polar_series()` above.
+
+        Args:
+            angle: Radians, used exactly as given and unwrapped;
+                shared by every series.
+            series_names: One trace per name.
+            series_values: `series_values[j]` is `series_names[j]`'s
+                radius per angle -- any numeric `List[List[Scalar[
+                dtype]]]`.
+
+        Returns:
+            Self, for further chaining.
+        """
+        return self^.encode_polar_series(angle, series_names, _materialize_nested_scalar_list(series_values))
+
     def encode_radar(
         var self,
         indicators: List[String],
@@ -2410,6 +2541,45 @@ struct Plot(Movable):
         self._radar.series_names = series_names.copy()
         self._radar.series_values = series_values.copy()
         return self^
+
+    def encode_radar[
+        dtype: DType
+    ](
+        var self,
+        indicators: List[String],
+        max_values: List[Float64],
+        series_names: List[String],
+        series_values: List[List[Scalar[dtype]]],
+    ) raises -> Self:
+        """`encode_radar()`'s `series_values`, generalized over numeric
+        element type -- the nested-list counterpart to `encode()`'s
+        own `DType`-generic overload, using `_materialize_nested_
+        scalar_list` (array_like.mojo). `indicators`/`max_values`/
+        `series_names` stay concrete here (`max_values`'s own flat-
+        list axis is a real, separate follow-up, not attempted here).
+        Delegates entirely to the concrete `encode_radar()` above.
+
+        Args:
+            indicators: One named axis per entry, each with its own
+                `max_values[i]`.
+            max_values: Each indicator's own maximum, same length as
+                `indicators`.
+            series_names: One polygon per name.
+            series_values: `series_values[j]` is `series_names[j]`'s
+                value per indicator -- any numeric `List[List[Scalar[
+                dtype]]]`.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            If `indicators`/`max_values` lengths don't match,
+            `series_names`/`series_values` lengths don't match, or any
+            series' value count doesn't match `indicators`'s count.
+        """
+        return self^.encode_radar(
+            indicators, max_values, series_names, _materialize_nested_scalar_list(series_values)
+        )
 
     def encode_gauge(
         var self,
@@ -2520,6 +2690,33 @@ struct Plot(Movable):
         self._parallel.data = data.copy()
         return self^
 
+    def encode_parallel[
+        dtype: DType
+    ](var self, dims: List[String], row_names: List[String], data: List[List[Scalar[dtype]]]) raises -> Self:
+        """`encode_parallel()`'s `data`, generalized over numeric
+        element type -- the nested-list counterpart to `encode()`'s
+        own `DType`-generic overload, using `_materialize_nested_
+        scalar_list` (array_like.mojo). `dims`/`row_names` stay
+        concrete here. Delegates entirely to the concrete `encode_
+        parallel()` above.
+
+        Args:
+            dims: One vertical axis per entry, each independently
+                scaled to its own column's `[min, max]` across `data`.
+            row_names: One polyline per entry.
+            data: `data[row]` is `row_names[row]`'s polyline, one
+                value per `dims` entry -- any numeric `List[List[
+                Scalar[dtype]]]`.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            If `row_names`/`data` lengths don't match, or any row's
+            value count doesn't match `dims`'s count.
+        """
+        return self^.encode_parallel(dims, row_names, _materialize_nested_scalar_list(data))
+
     def encode_distribution(var self, categories: List[String], values: List[List[Float64]]) raises -> Self:
         """Map a category column and, per category, a *list* of raw
         values onto the shape `Mark.BEESWARM`/`VIOLIN`/`RIDGELINE` all
@@ -2570,6 +2767,31 @@ struct Plot(Movable):
         self.y_data = List[Float64]()
         self._distribution.values = values.copy()
         return self^
+
+    def encode_distribution[
+        dtype: DType
+    ](var self, categories: List[String], values: List[List[Scalar[dtype]]]) raises -> Self:
+        """`encode_distribution()`'s `values`, generalized over numeric
+        element type -- the nested-list counterpart to `encode()`'s
+        own `DType`-generic overload, using `_materialize_nested_
+        scalar_list` (array_like.mojo). `categories` stays concrete
+        here. Delegates entirely to the concrete `encode_distribution()`
+        above.
+
+        Args:
+            categories: One distribution per entry, in the given
+                order.
+            values: Each category's raw values -- any numeric
+                `List[List[Scalar[dtype]]]`.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            If `categories`/`values` lengths don't match, or any
+            category's value list is empty.
+        """
+        return self^.encode_distribution(categories, _materialize_nested_scalar_list(values))
 
     def encode_single_axis(
         var self,

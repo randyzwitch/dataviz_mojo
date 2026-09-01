@@ -150,3 +150,27 @@ def _materialize_scalar_list[dtype: DType](data: List[Scalar[dtype]]) -> List[Fl
     for v in data:
         out.append(v.cast[DType.float64]())
     return out^
+
+
+def _materialize_nested_scalar_list[
+    dtype: DType
+](data: List[List[Scalar[dtype]]]) -> List[List[Float64]]:
+    """`_materialize_scalar_list`'s counterpart for the "outer list
+    indexes a series/category, inner list is its own values" shape
+    several marks share (`Mark.GROUPED_BAR`/`STACKED_BAR`, `BOX`,
+    `BEESWARM`/`VIOLIN`/`RIDGELINE`, `CORRPLOT`, `MARIMEKKO`, `RADAR`,
+    `PARALLEL`, the multi-series `POLAR`) -- one `_materialize_scalar_
+    list` call per inner list, same widening cast, same reasoning.
+
+    This is exactly the generalization `Plot.encode_grouped_bar()`'s
+    own docstring (and #158's own tracking issue) called out as a
+    real, separate follow-up from the flat-list case -- a list *per
+    series* needed its own function, not a trivial extension of the
+    flat one, since a `List[List[Scalar[dtype]]]` and a `List[List[
+    Float64]]` are still two different concrete types no amount of
+    flat-list handling covers.
+    """
+    var out = List[List[Float64]](capacity=len(data))
+    for row in data:
+        out.append(_materialize_scalar_list(row))
+    return out^

@@ -2,6 +2,7 @@ from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_nested_scalar_list
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
     Plot,
@@ -284,11 +285,11 @@ def box(
 
         def main() raises:
             var groups: List[String] = ["Group A", "Group B", "Group C", "Group D"]
-            var scores: List[List[Float64]] = [
-                [72.0, 75.0, 78.0, 80.0, 81.0, 83.0, 85.0, 88.0, 90.0],
-                [60.0, 65.0, 68.0, 70.0, 72.0, 74.0, 77.0, 79.0],
-                [55.0, 70.0, 73.0, 75.0, 76.0, 78.0, 80.0, 82.0, 20.0],
-                [82.0, 84.0, 85.0, 86.0, 87.0, 88.0, 89.0, 91.0, 93.0],
+            var scores: List[List[Int]] = [
+                [72, 75, 78, 80, 81, 83, 85, 88, 90],
+                [60, 65, 68, 70, 72, 74, 77, 79],
+                [55, 70, 73, 75, 76, 78, 80, 82, 20],
+                [82, 84, 85, 86, 87, 88, 89, 91, 93],
             ]
 
             var c = box(groups, scores, theme=Theme(mark_color=ROYALBLUE))
@@ -297,3 +298,26 @@ def box(
     """
     var plot = Plot().mark_box().encode_boxplot(categories=categories, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def box[
+    dtype: DType
+](
+    categories: List[String],
+    values: List[List[Scalar[dtype]]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`box()`, generalized over numeric element type for `values`
+    -- see `beeswarm()`'s own `DType`-generic overload for the full
+    reasoning. Delegates to the concrete `box()` above.
+    """
+    return box(
+        categories, _materialize_nested_scalar_list(values), theme=theme, width=width, height=height,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )
