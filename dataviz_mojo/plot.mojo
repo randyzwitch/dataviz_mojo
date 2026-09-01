@@ -178,7 +178,7 @@ from dataviz_mojo.polar_bar import _render_polar_bar
 from dataviz_mojo.gauge import _render_gauge
 from dataviz_mojo.parallel import _render_parallel
 from dataviz_mojo.radar import _render_radar
-from dataviz_mojo.bar import _render_bar, _draw_bar_rects
+from dataviz_mojo.bar import _render_bar, _render_horizontal_bar, _draw_bar_rects
 from dataviz_mojo.beeswarm import _render_beeswarm
 from dataviz_mojo.ridgeline import _render_ridgeline
 from dataviz_mojo.violin import _render_violin
@@ -564,6 +564,18 @@ struct Plot(Movable):
     # above.
     var _y_log: Bool
     var _x_log: Bool
+    # Set only via .mark_bar(horizontal=True) -- see that method's own
+    # docstring. Never independently settable (there's no .horizontal()
+    # builder method of its own), so `_mark == Mark.BAR` is guaranteed
+    # whenever this is True: no other render path has to check for or
+    # guard against a horizontal flag it doesn't understand. #121's own
+    # tracking issue surveyed every mark sharing `_draw_categorical_
+    # axis_frame` (12 of them) before choosing to start with just this
+    # one -- see that issue for which of the rest are real, common
+    # follow-ups (GROUPED_BAR/STACKED_BAR/LOLLIPOP/BOX/VIOLIN/BEESWARM)
+    # versus ones nobody actually wants flipped (CANDLESTICK/
+    # STREAMGRAPH are inherently time-on-x-axis).
+    var _horizontal: Bool
     var _mark: Mark
     var _theme: Theme
     var width: Int
@@ -613,6 +625,7 @@ struct Plot(Movable):
         self._secondary_axis = False
         self._y_log = False
         self._x_log = False
+        self._horizontal = False
         self._mark = Mark.POINT
         self._theme = Theme.default()
         self.width = 640
@@ -642,12 +655,31 @@ struct Plot(Movable):
         self._mark = Mark.LINE
         return self^
 
-    def mark_bar(var self) -> Self:
+    def mark_bar(var self, horizontal: Bool = False) -> Self:
         """A bar chart: one bar per category, encoded via
         `encode_categorical()` rather than `encode()` -- a bar's
         x-axis is discrete categories, not continuous positions (see
-        `encode_categorical()`'s docstring)."""
+        `encode_categorical()`'s docstring).
+
+        `horizontal` (default `False`) draws categories running
+        top-to-bottom along the y-axis instead of left-to-right along
+        the x-axis, each bar a horizontal rect extending from a zero
+        baseline instead of a vertical one -- the same shape a real
+        "flip the axes" request usually means (#121), built by reusing
+        `_draw_horizontal_categorical_axis_frame` (gantt.mojo), already
+        proven across `Mark.GANTT`/`POPULATION_PYRAMID`/`RIDGELINE`,
+        rather than a generic orientation flag threaded through
+        `_render_bar` itself -- see `_render_horizontal_bar`'s own
+        docstring (bar.mojo) for why that's the wrong shape here (the
+        same "a mark-type branch through nearly every line is worse
+        than each path staying its function" reasoning `_draw_
+        horizontal_categorical_axis_frame`'s own docstring already
+        gives). No `.horizontal()` builder method of its own -- this
+        is the only place `Plot._horizontal` can ever be set, so
+        `_mark == Mark.BAR` is guaranteed wherever it's read.
+        """
         self._mark = Mark.BAR
+        self._horizontal = horizontal
         return self^
 
     def mark_area(var self) -> Self:
@@ -6562,6 +6594,8 @@ def _render_generic[
         )
     _validate_log_scale_annotations(plot)
     if plot._mark == Mark.BAR:
+        if plot._horizontal:
+            return _render_horizontal_bar(target, plot, ox0, oy0, ox1, oy1)
         return _render_bar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.LOLLIPOP:
         return _render_lollipop(target, plot, ox0, oy0, ox1, oy1)
@@ -7462,6 +7496,14 @@ def _render_bar_combo_layers[
                 " Mark.BAR combo chart (layer "
                 + String(i)
                 + ")"
+            )
+        if plots[i]._horizontal:
+            raise Error(
+                "render_layers(): Plot.mark_bar(horizontal=True) isn't supported yet on a Mark.BAR"
+                " combo chart (layer "
+                + String(i)
+                + ") -- a horizontal categorical axis alongside continuous line/point/area layers is"
+                " a real, separate feature this doesn't attempt"
             )
         var has_annotations = (
             len(plots[i]._annotations.line_values) > 0
