@@ -6,8 +6,8 @@ from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import (
+from dataviz.color_scale import default_categorical_palette
+from dataviz.plot import (
     Plot,
     render,
     render_facets,
@@ -19,8 +19,8 @@ from dataviz_mojo.plot import (
     _index_of,
     _unique_categories,
 )
-from dataviz_mojo.theme import Theme
-from dataviz_mojo import box
+from dataviz.theme import Theme
+from dataviz import box
 
 from _test_helpers import BG, _count_color, _assert_color, _assert_near_color
 
@@ -40,7 +40,7 @@ def test_render_boxplot_matches_hand_derived_box_whiskers_and_outlier() raises:
     # Built via Plot/Canvas/render() directly, not box() -- these are
     # exact hand-derived pixel positions (see this function's comment
     # above); this test predates quickplot returning a plain,
-    # un-rendered `Plot` (dataviz_mojo.plot._finished's docstring),
+    # un-rendered `Plot` (dataviz.plot._finished's docstring),
     # render() being the exact same path box()'s own output would go
     # through now too.
     var cats: List[String] = ["A", "B"]

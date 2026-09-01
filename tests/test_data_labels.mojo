@@ -8,8 +8,8 @@ BAR/GROUPED_BAR, centered-inside placement for STACKED_BAR, real-value
 
 from std.testing import assert_equal, assert_true, TestSuite
 
-from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, render_svg
+from dataviz.theme import Theme
 
 
 def test_render_svg_bar_data_labels_match_hand_derived_positions() raises:

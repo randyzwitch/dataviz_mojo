@@ -9,8 +9,8 @@ R-squared special case, and deferred computation (callable before
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, render_svg
+from dataviz.theme import Theme
 
 
 def test_render_svg_annotate_best_fit_matches_hand_derived_fit_and_line() raises:

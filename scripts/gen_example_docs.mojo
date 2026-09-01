@@ -1,5 +1,5 @@
 """Generates docs/src/examples/*.md and docs/src/cookbook/*.md --
-Examples straight from dataviz_mojo/*.mojo's own docstrings, Cookbook
+Examples straight from dataviz/*.mojo's own docstrings, Cookbook
 from docs/src/cookbook_recipes/ (community-contributed, self-contained
 files -- see that directory's own README.md for the contributor-facing
 side of this). Every Cookbook page used to be docstring-sourced too,
@@ -138,7 +138,7 @@ def _categories() -> List[Category]:
     # Every example here is a distinct, recognizable chart type -- no
     # feature demos (facets, layers, titles, dynamic margins, color/
     # size encoding, line/area smoothing) mixed in among them; those
-    # are real dataviz_mojo capabilities, just not chart types of their
+    # are real dataviz capabilities, just not chart types of their
     # own. annotate_line, svg_accessibility, annotate_area, dual_axis,
     # annotate_vline, and annotate_point used to be the exceptions,
     # filed under whichever category their own example's mark happened
@@ -433,7 +433,7 @@ def main() raises:
             # below), but their rendered .svg files still land under
             # docs/src/examples/out_*.svg: that path comes straight
             # from each Example: docstring's own hardcoded save() call
-            # in dataviz_mojo/*.mojo (extract_docstring_examples.mojo
+            # in dataviz/*.mojo (extract_docstring_examples.mojo
             # extracts and runs it verbatim, see pixi.toml's `example`
             # task), unrelated to which docs/src/ directory this
             # script writes the *page* into -- moving the six pages
@@ -495,7 +495,7 @@ def main() raises:
     idx.append("")
     idx.append(
         "Every example below comes straight from its chart function's own "
-        "`Example:` docstring section in this repo's `dataviz_mojo/` "
+        "`Example:` docstring section in this repo's `dataviz/` "
         "source -- each page shows the actual grammar-of-graphics "
         "pattern next to its actual rendered output, so you can see "
         "exactly what it takes to produce that chart."
@@ -504,7 +504,7 @@ def main() raises:
     idx.append(
         "Most reach for a single one-call convenience function -- "
         "`bar(categories, values)`, `scatter(x, y)`, and so on, one per "
-        "mark, imported straight from `dataviz_mojo` -- built on top of "
+        "mark, imported straight from `dataviz` -- built on top of "
         "the fuller `Plot` builder (`.encode()`/`.theme()`/`.labels()`, "
         "then `render()`) that the rest still use directly, for whatever "
         "these don't cover yet."
@@ -520,7 +520,7 @@ def main() raises:
         idx.append("")
     _write_file(_OUT_DIR + "/_index.md", String("\n").join(idx))
 
-    # Weight 300 -- between Examples (200) and modo's own dataviz_mojo/
+    # Weight 300 -- between Examples (200) and modo's own dataviz/
     # _index.md (400, pinned to title "API Reference" post-build, see
     # pixi.toml's own docs-build task) -- puts Cookbook's left-sidebar/
     # top-nav entry (docs/site/hugo.yaml) right after Examples, ahead of

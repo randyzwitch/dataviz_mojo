@@ -3,8 +3,8 @@ struct to `StringSequence` and pass it straight to `Plot.
 encode_categorical()`'s `x`, the same way a `Float64Sequence` struct
 plugs into `encode()`'s `x`/`y`.
 """
-from dataviz_mojo.array_like import StringSequence
-from dataviz_mojo.plot import Plot, save
+from dataviz.array_like import StringSequence
+from dataviz.plot import Plot, save
 
 struct UppercaseLabels(StringSequence, Copyable, Movable):
     """Stands in for a real-world array-like source (a dataframe

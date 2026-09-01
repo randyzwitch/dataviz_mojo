@@ -2,10 +2,10 @@
 """Sort categories by value before charting them -- encode_categorical()
 draws bars in exactly the order given.
 """
-from dataviz_mojo import bar
-from dataviz_mojo.plot import save
-from dataviz_mojo.colors import CORNFLOWERBLUE
-from dataviz_mojo.theme import Theme
+from dataviz import bar
+from dataviz.plot import save
+from dataviz.colors import CORNFLOWERBLUE
+from dataviz.theme import Theme
 
 def main() raises:
     var categories: List[String] = ["Product D", "Product A", "Product C", "Product B", "Product E"]

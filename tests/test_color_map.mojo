@@ -10,7 +10,7 @@ from std.collections import Dict
 from std.testing import assert_raises, assert_true, TestSuite
 
 from canvas_mojo.color import Color
-from dataviz_mojo.plot import Plot, render, render_svg
+from dataviz.plot import Plot, render, render_svg
 
 
 def test_render_svg_color_map_overrides_the_named_category() raises:

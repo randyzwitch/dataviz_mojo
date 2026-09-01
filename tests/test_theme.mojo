@@ -8,8 +8,8 @@ from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import (
+from dataviz.color_scale import default_categorical_palette
+from dataviz.plot import (
     Plot,
     _Scaled,
     render,
@@ -22,9 +22,9 @@ from dataviz_mojo.plot import (
     _index_of,
     _unique_categories,
 )
-from dataviz_mojo.colors import RED
-from dataviz_mojo.theme import Theme
-from dataviz_mojo import scatter, waterfall, bullet, treemap, radialbar
+from dataviz.colors import RED
+from dataviz.theme import Theme
+from dataviz import scatter, waterfall, bullet, treemap, radialbar
 
 from _test_helpers import BG, _count_color, _assert_color
 

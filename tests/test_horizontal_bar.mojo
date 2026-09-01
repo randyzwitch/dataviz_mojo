@@ -10,9 +10,9 @@ and the one raise path: a horizontal bar layer inside `render_layers()`.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from dataviz_mojo.plot import Plot, render_layers_svg, render_svg
-from dataviz_mojo.theme import Theme
-from dataviz_mojo import bar
+from dataviz.plot import Plot, render_layers_svg, render_svg
+from dataviz.theme import Theme
+from dataviz import bar
 
 
 def test_render_svg_horizontal_bar_matches_hand_derived_rectangles() raises:

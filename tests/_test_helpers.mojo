@@ -1,6 +1,6 @@
 """Shared helpers for the tests/test_*.mojo files -- kept in its
 module (not a *.mojo file with its main()) so every test file can
-import these instead of redefining them; not a real dataviz_mojo
+import these instead of redefining them; not a real dataviz
 sub-package (tests/ itself stays a plain sibling directory of the
 importable package, not one, since every file in here has a main()
 and Mojo refuses to `mojo package`/`mojo precompile` a package
@@ -13,7 +13,7 @@ from canvas_mojo.color import Color
 from canvas_mojo.buffer import Canvas
 from std.testing import assert_equal, assert_true
 
-from dataviz_mojo.colors import WHITE
+from dataviz.colors import WHITE
 
 comptime BG = WHITE
 

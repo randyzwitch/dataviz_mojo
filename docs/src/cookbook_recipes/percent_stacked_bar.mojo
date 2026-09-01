@@ -2,7 +2,7 @@
 `Plot.mark_stacked_bar(percent=True)`, so every column reads as a
 composition (relative share) instead of an absolute total.
 """
-from dataviz_mojo.plot import Plot, save
+from dataviz.plot import Plot, save
 
 def main() raises:
     var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4"]

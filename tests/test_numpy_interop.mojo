@@ -14,8 +14,8 @@ exactly what a real caller's data would look like.
 from std.testing import assert_equal, assert_raises, TestSuite
 from std.python import Python, PythonObject
 
-from dataviz_mojo.numpy_interop import _materialize_python_floats
-from dataviz_mojo.plot import Plot, render_svg
+from dataviz.numpy_interop import _materialize_python_floats
+from dataviz.plot import Plot, render_svg
 
 
 def test_materialize_python_floats_matches_hand_derived_values() raises:

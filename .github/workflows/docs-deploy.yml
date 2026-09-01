@@ -18,7 +18,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "dataviz_mojo/**"
+      - "dataviz/**"
       - "docs/src/**"
       - "docs/site/hugo.yaml"
       - "docs/site/go.mod"

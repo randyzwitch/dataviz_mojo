@@ -6,8 +6,8 @@ raises-guards for every mark type layering doesn't support.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import (
+from dataviz.color_scale import default_categorical_palette
+from dataviz.plot import (
     Plot,
     render,
     render_facets,
@@ -19,8 +19,8 @@ from dataviz_mojo.plot import (
     _index_of,
     _unique_categories,
 )
-from dataviz_mojo.theme import Theme
-from dataviz_mojo.colors import RED
+from dataviz.theme import Theme
+from dataviz.colors import RED
 
 from _test_helpers import BG, _count_color, _assert_color
 

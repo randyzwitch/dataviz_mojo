@@ -3,8 +3,8 @@ first-seen-order palette -- useful for a consistent color across
 several charts, or to make one category (here, a region that just
 missed its target) stand out from the rest.
 """
-from dataviz_mojo.plot import Plot, save
-from dataviz_mojo.colors import CRIMSON
+from dataviz.plot import Plot, save
+from dataviz.colors import CRIMSON
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]

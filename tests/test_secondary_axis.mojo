@@ -11,8 +11,8 @@ calling .secondary_axis() with none left on the primary axis).
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from dataviz_mojo.plot import Plot, render, render_layers, render_layers_svg
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, render, render_layers, render_layers_svg
+from dataviz.theme import Theme
 
 from _test_helpers import BG, _assert_color
 

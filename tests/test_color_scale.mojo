@@ -10,8 +10,8 @@ canvas_mojo/tests/test_gradient.mojo's tests use).
 
 from std.testing import assert_equal, TestSuite
 
-from dataviz_mojo.color_scale import ColorScale
-from dataviz_mojo.colors import BLACK, BLUE, RED, WHITE
+from dataviz.color_scale import ColorScale
+from dataviz.colors import BLACK, BLUE, RED, WHITE
 
 
 def test_color_scale_matches_hand_computed_values() raises:

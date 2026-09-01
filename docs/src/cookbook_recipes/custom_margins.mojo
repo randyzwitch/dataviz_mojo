@@ -1,7 +1,7 @@
 """Widen a plot's margins to make room for long axis labels or titles.
 """
-from dataviz_mojo.plot import Plot, save
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, save
+from dataviz.theme import Theme
 
 def main() raises:
     var categories: List[String] = ["Northeast Region", "Southwest Region", "Central Region"]

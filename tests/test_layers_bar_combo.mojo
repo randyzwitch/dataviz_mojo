@@ -12,8 +12,8 @@ layer, and annotate_*()).
 
 from std.testing import assert_true, assert_raises, TestSuite
 
-from dataviz_mojo.plot import Plot, render_layers_svg
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, render_layers_svg
+from dataviz.theme import Theme
 
 
 def test_render_layers_svg_bar_combo_matches_hand_derived_positions() raises:

@@ -8,8 +8,8 @@ axis layer sets one -- the pre-existing, still-default behavior.
 
 from std.testing import assert_true, TestSuite
 
-from dataviz_mojo.plot import Plot, render_layers_svg
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, render_layers_svg
+from dataviz.theme import Theme
 
 
 def test_render_layers_svg_secondary_axis_caption_matches_hand_derived_position() raises:

@@ -8,7 +8,7 @@ each bound's own endpoint, and every raise path.
 
 from std.testing import assert_raises, assert_true, TestSuite
 
-from dataviz_mojo.plot import Plot, render, render_svg
+from dataviz.plot import Plot, render, render_svg
 
 
 def test_render_svg_asymmetric_error_bar_matches_hand_derived_positions() raises:

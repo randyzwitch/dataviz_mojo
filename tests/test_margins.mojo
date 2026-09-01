@@ -16,8 +16,8 @@ from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
 from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import (
+from dataviz.color_scale import default_categorical_palette
+from dataviz.plot import (
     Plot,
     render,
     render_facets,
@@ -29,7 +29,7 @@ from dataviz_mojo.plot import (
     _index_of,
     _unique_categories,
 )
-from dataviz_mojo.theme import Theme
+from dataviz.theme import Theme
 
 from _test_helpers import _count_color, _assert_color, _assert_near_color
 
@@ -51,7 +51,7 @@ def test_render_left_margin_grows_to_fit_wide_y_axis_labels() raises:
     # Built via Plot/Canvas/render() directly, not scatter() -- these
     # margin/axis-line pixel positions are exact by construction (see
     # this function's comment above); this test predates quickplot
-    # returning a plain, un-rendered `Plot` (dataviz_mojo.plot.
+    # returning a plain, un-rendered `Plot` (dataviz.plot.
     # _finished's docstring), render() being the exact same path
     # scatter()'s own output would go through now too.
     var x: List[Float64] = [0.0, 10.0]

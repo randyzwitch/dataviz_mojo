@@ -98,19 +98,29 @@ test = "bash scripts/run_parallel.sh tests/test_quickplot.mojo tests/test_facets
 # and docs/site/'s own Hugo project files (hugo.yaml, go.mod/go.sum) are
 # real, committed source -- see docs/modo.yaml's own comments for the
 # Hugo-over-plain-markdown reasoning, and gen_example_docs.mojo's own
-# docstring for how it turns dataviz_mojo/*.mojo's own `Example:`
+# docstring for how it turns dataviz/*.mojo's own `Example:`
 # docstring sections into docs/src/examples/ pages (a Mojo script, not
 # Python -- this repo's own tooling stays in the language it's
 # showcasing). Assumes `pixi run example` has already been run at least
 # once -- that's what actually renders docs/src/examples/out_*.svg and
 # writes each extracted `Example:` program's own *.mojo there too (this
-# task only ever removes *.md there, never touches
+# task only ever removes *.md and *.json there, never touches
 # *.svg/*.png/*.bmp/*.mojo, the same "separate, independently-invoked
-# task" split this file's own example/test tasks already have). Left-
+# task" split this file's own example/test tasks already have). The
+# `*.json` clear (added alongside the dataviz_mojo -> dataviz Mojo-
+# import rename) exists purely so a stale one from a previous run
+# under the old output name can't sit next to the new one and get fed
+# into modo alongside it -- `mojo doc`'s own `-o` filename is only
+# ever whatever this task's own `-o docs/src/dataviz.json` says right
+# now, but modo's `input: - src/` (modo.yaml) scans every `*.json` file
+# under docs/src/ unconditionally, not just the one this task just
+# wrote -- caught this exact double-content bug locally while doing
+# that rename, from a leftover docs/src/dataviz_mojo.json a pre-rename
+# run had left behind (gitignored, so `git status` never flagged it). Left-
 # sidebar order falls straight out of each section's own front-matter
 # `weight` -- docs/src/quickstart.md pins itself to 100, gen_example_
 # docs.mojo pins Examples to 200 and Cookbook to 300, and modo's own
-# generated dataviz_mojo/_index.md is left at whatever `modo build`
+# generated dataviz/_index.md is left at whatever `modo build`
 # emits for a package's own root section (400, as of writing, with no
 # config flag to override -- `modo build --help` has nothing for it,
 # and there's no local modo source to safely override via
@@ -118,7 +128,7 @@ test = "bash scripts/run_parallel.sh tests/test_quickplot.mojo tests/test_facets
 # API reference, no `sed` patch needed since 400
 # already sorts after both. A `sed` patch IS needed for that section's
 # own front-matter `title` though: modo always emits `title:
-# dataviz_mojo` (the package name) for a package's own root section,
+# dataviz` (the package name) for a package's own root section,
 # same "no config flag to override" gap as weight above -- but the top
 # nav's own menu entry for this section already reads "API Reference"
 # (hugo.yaml), so the left sidebar entry/breadcrumb links/browser tab
@@ -126,12 +136,12 @@ test = "bash scripts/run_parallel.sh tests/test_quickplot.mojo tests/test_facets
 # three sourced from this one `title` field. Pinned to "API Reference"
 # post-build for consistency with the nav; every individual module
 # page under it (plot/_index.md, theme/_index.md, ...) keeps its own
-# real title untouched -- the `^title: dataviz_mojo$` anchor only
+# real title untouched -- the `^title: dataviz$` anchor only
 # matches that one root _index.md's own front-matter line, not a
 # module page whose title happens to equal the package name in body
 # text elsewhere.
 docs-install = "bash scripts/install-modo.sh"
-docs-build = { cmd = "rm -rf docs/site/content docs/site/public && mkdir -p docs/src/examples && rm -f docs/src/examples/*.md && mojo run -I . -I scripts scripts/gen_example_docs.mojo && mojo doc -I . -o docs/src/dataviz_mojo.json dataviz_mojo && .tools/modo build docs -c modo.yaml && sed -i 's/^title: dataviz_mojo$/title: API Reference/' docs/site/content/dataviz_mojo/_index.md", depends-on = [
+docs-build = { cmd = "rm -rf docs/site/content docs/site/public && mkdir -p docs/src/examples && rm -f docs/src/examples/*.md docs/src/*.json && mojo run -I . -I scripts scripts/gen_example_docs.mojo && mojo doc -I . -o docs/src/dataviz.json dataviz && .tools/modo build docs -c modo.yaml && sed -i 's/^title: dataviz$/title: API Reference/' docs/site/content/dataviz/_index.md", depends-on = [
     "docs-install",
 ] }
 # One-shot build into docs/site/public -- what docs-deploy.yml
@@ -141,11 +151,18 @@ docs = { cmd = "hugo -s docs/site", depends-on = ["docs-build"] }
 # -- edits under docs/site/content trigger an automatic rebuild, but
 # docs-build's own steps (mojo doc, gen_example_docs.mojo, modo build)
 # don't re-run on their own; re-run `pixi run docs-serve` after
-# changing dataviz_mojo/'s docstrings or examples/ itself.
+# changing dataviz/'s docstrings or examples/ itself.
 docs-serve = { cmd = "hugo server -s docs/site", depends-on = ["docs-build"] }
 
 # --- Package declaration -----------------------------------------------
 [package]
+# The conda/pixi distribution name -- what a `[dependencies]` entry
+# elsewhere (`dataviz_mojo = { git = ..., tag = "vX" }`, matching
+# canvas_mojo's own declaration above) and `pixi add` reference. Kept
+# as "dataviz_mojo" for discoverability/collision-avoidance (a bare
+# "dataviz" already exists as an unrelated package on PyPI) even
+# though the Mojo import name itself is the shorter "dataviz" --
+# see [package.build.config.pkg] below for that split.
 name = "dataviz_mojo"
 version = "0.5.0"
 description = "Grammar-of-graphics-flavored chart building for Mojo, built on canvas_mojo: a fluent Plot builder, scales, themes, and a growing set of mark types across raster and SVG backends."
@@ -156,8 +173,15 @@ backend = { name = "pixi-build-mojo", version = "0.*" }
 source = { path = "." }
 
 [package.build.config.pkg]
-name = "dataviz_mojo"
-path = "dataviz_mojo"
+# The Mojo package name (becomes dataviz.mojopkg -- what code actually
+# imports, `from dataviz import ...`) -- deliberately different from
+# [package] name above (the conda/pixi distribution name, kept as
+# "dataviz_mojo" for discoverability/collision-avoidance on that
+# side): pixi-build-mojo's own docs confirm these two names are
+# independent, the same PyPI-distribution-name-vs-import-name split
+# `beautifulsoup4`/`import bs4` already has in the Python ecosystem.
+name = "dataviz"
+path = "dataviz"
 
 [package.host-dependencies]
 mojo = ">=1.0.0,<2"

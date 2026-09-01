@@ -2,7 +2,7 @@
 measurement, connected by the trend line itself, instead of a bare
 scatter of uncertain points.
 """
-from dataviz_mojo.plot import Plot, save
+from dataviz.plot import Plot, save
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]

@@ -8,7 +8,7 @@ specifically, Plot.scale_y_log(), and Plot.encode(y_err=...)).
 
 from std.testing import assert_raises, assert_true, TestSuite
 
-from dataviz_mojo.plot import Plot, render_facets_svg, render_facets
+from dataviz.plot import Plot, render_facets_svg, render_facets
 
 
 def test_render_facets_svg_shared_y_scale_matches_hand_derived_positions() raises:

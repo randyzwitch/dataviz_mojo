@@ -1,8 +1,8 @@
 # title: High-DPI Export
 """Render the same chart at a higher pixel density for a crisp export.
 """
-from dataviz_mojo.plot import Plot, save
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, save
+from dataviz.theme import Theme
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]

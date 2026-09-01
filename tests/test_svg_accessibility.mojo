@@ -6,7 +6,7 @@ XML-escaping of special characters in both, and that the chart's already-rendere
 
 from std.testing import assert_equal, assert_true, TestSuite
 
-from dataviz_mojo.plot import Plot, render_svg, accessible_svg_string
+from dataviz.plot import Plot, render_svg, accessible_svg_string
 
 
 def test_accessible_svg_string_adds_role_and_aria_label_to_root_element() raises:

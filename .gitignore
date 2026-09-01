@@ -21,7 +21,7 @@ docs/src/*.json
 # docstring_examples.mojo extracts (one per `Example:` docstring
 # section, then compiled/run for real by scripts/run_parallel.sh -- see
 # pixi.toml's own `example` task), and the .svg/.png/.bmp images those
-# programs' own save() calls write -- all sourced from dataviz_mojo/
+# programs' own save() calls write -- all sourced from dataviz/
 # *.mojo's own `Example:` docstring sections, one generated-docs-
 # content location rather than a second, separately-gitignored build
 # directory for the .mojo files alone. Only docs/src/_index.md, the

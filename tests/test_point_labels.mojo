@@ -7,8 +7,8 @@ every raise path (a length mismatch, an unsupported mark).
 
 from std.testing import assert_true, assert_raises, TestSuite
 
-from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, render_svg
+from dataviz.theme import Theme
 
 
 def test_render_svg_point_labels_match_hand_derived_positions() raises:

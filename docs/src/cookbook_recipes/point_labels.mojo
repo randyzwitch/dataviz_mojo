@@ -3,8 +3,8 @@
 since (unlike a bar's own value) a point has no one obvious default
 label; pass `""` for any point that shouldn't get one.
 """
-from dataviz_mojo.plot import Plot, save
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, save
+from dataviz.theme import Theme
 
 def main() raises:
     var city: List[String] = ["Tokyo", "Delhi", "Shanghai", "Chicago", "Lagos"]

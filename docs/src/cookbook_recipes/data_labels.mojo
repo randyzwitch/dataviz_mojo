@@ -2,8 +2,8 @@
 `Theme.show_data_labels=True` -- above a positive bar, below a
 negative one, or centered inside a stacked segment.
 """
-from dataviz_mojo.plot import Plot, save
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, save
+from dataviz.theme import Theme
 
 def main() raises:
     var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4"]

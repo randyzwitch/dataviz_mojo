@@ -2,10 +2,10 @@
 """Curve a line (or an area's top edge) through its data points instead
 of drawing straight segments.
 """
-from dataviz_mojo import line
-from dataviz_mojo.plot import save
-from dataviz_mojo.colors import CORNFLOWERBLUE
-from dataviz_mojo.theme import Theme
+from dataviz import line
+from dataviz.plot import save
+from dataviz.colors import CORNFLOWERBLUE
+from dataviz.theme import Theme
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]

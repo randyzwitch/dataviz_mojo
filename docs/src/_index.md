@@ -249,7 +249,7 @@ p:not([class]) {
 <div class="dvm-chart-code">
 
 ```mojo
-from dataviz_mojo import Plot, save
+from dataviz import Plot, save
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]

@@ -2,8 +2,8 @@
 """Write the same Plot to SVG, PNG, and BMP -- save() picks the format
 from each path's own extension.
 """
-from dataviz_mojo import scatter
-from dataviz_mojo.plot import save
+from dataviz import scatter
+from dataviz.plot import save
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]

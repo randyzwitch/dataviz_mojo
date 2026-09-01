@@ -2,9 +2,9 @@
 """Layer two series that share one y-axis and one set of units --
 render_layers()'s default, no secondary_axis() needed.
 """
-from dataviz_mojo.plot import Plot, save_layers
-from dataviz_mojo.colors import CORNFLOWERBLUE, TOMATO
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, save_layers
+from dataviz.colors import CORNFLOWERBLUE, TOMATO
+from dataviz.theme import Theme
 
 def main() raises:
     var months: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]

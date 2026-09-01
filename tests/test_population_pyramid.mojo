@@ -7,10 +7,10 @@ domain/rendering rules verified here.
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
 from canvas_mojo.color import Color
-from dataviz_mojo.color_scale import default_categorical_palette
-from dataviz_mojo.plot import Plot, render, render_svg
-from dataviz_mojo.theme import Theme
-from dataviz_mojo import population_pyramid
+from dataviz.color_scale import default_categorical_palette
+from dataviz.plot import Plot, render, render_svg
+from dataviz.theme import Theme
+from dataviz import population_pyramid
 
 from _test_helpers import BG, _assert_color
 

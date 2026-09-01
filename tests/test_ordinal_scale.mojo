@@ -4,7 +4,7 @@ computed independently.
 
 from std.testing import assert_equal, TestSuite
 
-from dataviz_mojo.ordinal_scale import OrdinalScale
+from dataviz.ordinal_scale import OrdinalScale
 
 
 def test_band_positions_match_hand_computed_values() raises:

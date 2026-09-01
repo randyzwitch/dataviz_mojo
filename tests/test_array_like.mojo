@@ -25,15 +25,15 @@ identically to the equivalent `List[String]`.
 
 from std.testing import assert_equal, assert_raises, TestSuite
 
-from dataviz_mojo.array_like import (
+from dataviz.array_like import (
     Float64Sequence,
     StringSequence,
     _materialize_floats,
     _materialize_scalar_list,
     _materialize_strings,
 )
-from dataviz_mojo.plot import Plot, render_svg
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, render_svg
+from dataviz.theme import Theme
 
 
 struct _FloatBuffer(Float64Sequence, Copyable, Movable):

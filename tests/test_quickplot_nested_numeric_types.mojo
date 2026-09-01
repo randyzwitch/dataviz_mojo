@@ -24,7 +24,7 @@ number data to prove the overload itself works correctly regardless.
 
 from std.testing import assert_equal, TestSuite
 
-from dataviz_mojo import (
+from dataviz import (
     beeswarm,
     box,
     bump,
@@ -39,7 +39,7 @@ from dataviz_mojo import (
     streamgraph,
     violin,
 )
-from dataviz_mojo.plot import render_svg
+from dataviz.plot import render_svg
 
 
 def test_grouped_bar_accepts_nested_list_int_matching_list_float64() raises:

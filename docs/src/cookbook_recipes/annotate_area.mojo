@@ -4,7 +4,7 @@
 partially overlaps the mark's own y-domain clips to the visible
 portion instead of disappearing entirely.
 """
-from dataviz_mojo.plot import Plot, save
+from dataviz.plot import Plot, save
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]

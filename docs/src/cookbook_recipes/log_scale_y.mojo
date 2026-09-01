@@ -1,7 +1,7 @@
 # title: Log Scale (Y-Axis)
 """Scale the y-axis logarithmically (base 10) instead of linearly.
 """
-from dataviz_mojo.plot import Plot, save
+from dataviz.plot import Plot, save
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]

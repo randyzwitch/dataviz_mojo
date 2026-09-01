@@ -6,8 +6,8 @@ secondary), not some other cell's/layer's.
 
 from std.testing import assert_true, TestSuite
 
-from dataviz_mojo.plot import Plot, render_facets_svg, render_layers_svg
-from dataviz_mojo.theme import Theme
+from dataviz.plot import Plot, render_facets_svg, render_layers_svg
+from dataviz.theme import Theme
 
 
 def test_render_facets_svg_each_cells_own_annotations_use_that_cells_own_scale() raises:

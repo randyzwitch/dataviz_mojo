@@ -38,7 +38,7 @@ jobs:
       # draw_text()/measure_text() directly), so this is a real runtime
       # requirement for `pixi run test` on its own, independent of
       # `pixi run example` -- that doesn't render in this job at all
-      # (see the docs-build job below: dataviz_mojo/*.mojo's own
+      # (see the docs-build job below: dataviz/*.mojo's own
       # `Example:` docstring sections exist to feed the docs site's
       # gallery, not this package's own test signal, so rendering them
       # lives entirely in the docs pipeline, run once there rather than
@@ -80,7 +80,7 @@ jobs:
   # push-to-main deploys still use (docs-deploy.yml). Folded in here
   # instead, as its own job rather than a step tacked onto `test`
   # above, deliberately: every quickplot function's/Plot method's own
-  # `Example:` docstring section (dataviz_mojo/*.mojo) exists to feed
+  # `Example:` docstring section (dataviz/*.mojo) exists to feed
   # this package's docs site (its gallery images, and the snippets
   # gen_example_docs.mojo extracts from them via extract_docstring_
   # examples.mojo), not this repo's own test signal -- `pixi run

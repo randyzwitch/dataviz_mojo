@@ -1,7 +1,7 @@
 # Modo config -- generates docs/site/content (a Hugo site, built by
 # `hugo -s docs/site` into docs/site/public, then deployed straight to
 # GitHub Pages via Actions -- neither ever committed, see pixi.toml's
-# own `docs` task and .github/workflows/docs-deploy.yml) from dataviz_mojo/'s
+# own `docs` task and .github/workflows/docs-deploy.yml) from dataviz/'s
 # own docstrings (via `mojo doc`) plus the hand-written pages in
 # docs/src/. Hugo format specifically (not plain markdown, this
 # repo's original choice) because GitHub's Actions-based Pages
@@ -26,7 +26,7 @@
 input:
   - src/
 source-url:
-  dataviz_mojo: https://github.com/randyzwitch/dataviz_mojo/blob/main/dataviz_mojo
+  dataviz: https://github.com/randyzwitch/dataviz_mojo/blob/main/dataviz
 output: site/content
 tests: ""
 format: hugo
