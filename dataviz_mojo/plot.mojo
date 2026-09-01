@@ -479,10 +479,10 @@ struct Plot(Movable):
 
     What stays ungrouped is deliberate: `x_data`/`y_data`/
     `x_categories`/`color_data`/`color_categories`/`size_data`/
-    `y_err_data`/`y_err_lower_data`/`y_err_upper_data`/`color_map` are
-    the shared encoding channels many marks read, not any one mark's
-    columns, and `_mark`/`_theme`/`_secondary_axis`/`_nightingale_area`
-    are single settings rather than data.
+    `y_err_data`/`y_err_lower_data`/`y_err_upper_data`/`color_map`/
+    `point_labels` are the shared encoding channels many marks read,
+    not any one mark's columns, and `_mark`/`_theme`/`_secondary_axis`/
+    `_nightingale_area` are single settings rather than data.
     """
 
     var x_data: List[Float64]
@@ -491,6 +491,17 @@ struct Plot(Movable):
     var color_data: List[Float64]
     var color_categories: List[String]
     var size_data: List[Float64]
+    # Set only via encode()'s labels -- Mark.POINT/EFFECT_SCATTER only.
+    # Unlike Mark.BAR's Theme.show_data_labels (which draws the bar's
+    # own y value -- there's no other candidate text), a point has no
+    # obvious default label, so this is its own opt-in data channel,
+    # not a Theme flag: providing it *is* the opt-in, the same
+    # "presence of the column is the signal" convention color_data/
+    # size_data above already use. A row's own label may be "" to
+    # draw no label for that one point specifically (a sparse-label
+    # scatter plot), the same per-row opt-out annotate_point()'s label
+    # already supports.
+    var point_labels: List[String]
     var y_err_data: List[Float64]
     # Set together, only via encode()'s y_err_lower/y_err_upper --
     # mutually exclusive with y_err_data above (a plot has one or the
@@ -562,6 +573,7 @@ struct Plot(Movable):
         self.color_data = List[Float64]()
         self.color_categories = List[String]()
         self.size_data = List[Float64]()
+        self.point_labels = List[String]()
         self.y_err_data = List[Float64]()
         self.y_err_lower_data = List[Float64]()
         self.y_err_upper_data = List[Float64]()
@@ -1116,6 +1128,7 @@ struct Plot(Movable):
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
+        labels: List[String] = List[String](),
     ) -> Self:
         """Map data columns onto channels. `x`/`y` are required;
         `color`/`color_categories`/`size`/`y_err`/`y_err_lower`/`y_err_
@@ -1182,11 +1195,23 @@ struct Plot(Movable):
         the same "no principled reason to enforce this" stance a stale
         dict entry gets everywhere else in this package.
 
+        `labels` draws its own text directly above each point --
+        unlike `Mark.BAR`'s `Theme.show_data_labels` (which labels a
+        bar with its own y value, the obvious default), a point has no
+        one obvious label, so providing this column *is* the opt-in
+        (the same "presence of the data is the signal" convention
+        `color`/`size` above already use), not a `Theme` flag. A row's
+        own entry may be `""` to skip that one point's label
+        specifically (a sparse-label scatter plot), without leaving
+        every other point unlabeled too.
+
         `color`/`color_categories`/`size`/`color_map` support `Mark.
         POINT`/`SINGLE_AXIS`/`EFFECT_SCATTER` today -- see render()'s
         check (`color_map` inherits whatever mark `color_categories`
         is used on; it has no narrower restriction of its own beyond
-        needing `color_categories` set). `y_err` reaches `Mark.POINT`/
+        needing `color_categories` set). `labels` is narrower still,
+        `Mark.POINT`/`EFFECT_SCATTER` only (not `SINGLE_AXIS`, which
+        has no y position for a label to sit above). `y_err` reaches `Mark.POINT`/
         `LINE`/`EFFECT_SCATTER` (on a line chart, a confidence whisker
         per point, drawn once per original data point in `theme.mark_
         color` -- see `_draw_line_layer`'s own docstring), but not
@@ -1234,6 +1259,9 @@ struct Plot(Movable):
                 alongside `color_categories`. `Mark.POINT`/`SINGLE_
                 AXIS`/`EFFECT_SCATTER` only (whatever mark `color_
                 categories` is used on).
+            labels: Optional per-point text, drawn above each point;
+                an entry of `""` skips that one point's label.
+                `Mark.POINT`/`EFFECT_SCATTER` only.
 
         Returns:
             Self, for further chaining.
@@ -1251,6 +1279,7 @@ struct Plot(Movable):
         self.y_err_lower_data = y_err_lower.copy()
         self.y_err_upper_data = y_err_upper.copy()
         self.color_map = color_map.copy()
+        self.point_labels = labels.copy()
         return self^
 
     def encode[
@@ -5376,6 +5405,19 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             " color_map with color_categories empty"
         )
 
+    var has_labels = len(plot.point_labels) > 0
+    if has_labels and len(plot.point_labels) != len(plot.x_data):
+        raise Error(
+            context
+            + ": labels must be the same length as x/y (got "
+            + String(len(plot.point_labels))
+            + " and "
+            + String(len(plot.x_data))
+            + ")"
+        )
+    if has_labels and not (plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER):
+        raise Error(context + ": labels is only supported for Mark.POINT/EFFECT_SCATTER today")
+
 
 def _validate_log_scale_annotations(plot: Plot) raises:
     """Every `Plot.annotate_line()`/`annotate_area()`/`annotate_vline()`/
@@ -5780,6 +5822,14 @@ def _draw_point_layer[
     for why this uses `Color.blend_over` rather than real alpha
     transparency (`SvgCanvas` doesn't support it, so a translucent halo
     would look different on the two backends).
+
+    `Plot.encode()`'s `labels` (when set) draws that row's own text
+    centered directly above its point (`sc.label_gap` above the
+    point's own top edge) -- skipped for any row whose own entry is
+    `""`, so a sparse-label scatter plot doesn't need a placeholder for
+    every unlabeled point. See `encode()`'s own docstring for why this
+    is a dedicated data channel rather than a `Theme` flag the way
+    `Mark.BAR`'s `Theme.show_data_labels` is.
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
@@ -5831,6 +5881,22 @@ def _draw_point_layer[
         if draw_halo:
             target.fill_circle_aa(px, py, _round_to_int(Float64(radius) * 2.2), _lighten(color, theme.halo_alpha))
         target.fill_circle_aa(px, py, radius, color)
+        if len(plot.point_labels) > 0 and plot.point_labels[i] != "":
+            # Baseline placed label_gap above the point's own top edge
+            # (py - radius), the same "baseline where the text should
+            # visually end up" convention _draw_bar_rects' label uses
+            # above a bar's own top edge.
+            text_requests.append(
+                _TextRequest(
+                    px,
+                    py - radius - sc.label_gap,
+                    plot.point_labels[i],
+                    theme.text_color,
+                    sc.font_size,
+                    TextAlign.CENTER,
+                    theme.font_family,
+                )
+            )
 
     if not theme.show_legend:
         return legend_y
@@ -6921,7 +6987,7 @@ def _render_bar_combo_layers[
 
     v1 scope, deliberately narrower than the continuous combo path
     above: no `color`/`color_categories`/`size`/`y_err`/`y_err_lower`/
-    `y_err_upper` encoding on any non-bar layer (raises clearly if
+    `y_err_upper`/`labels` encoding on any non-bar layer (raises clearly if
     used), no `Plot.secondary_axis()`/`scale_y_log()`/`scale_x_log()`
     on any layer, and no `Plot.annotate_*()` on any layer -- each is a
     real, separate feature this doesn't attempt, not silently dropped.
@@ -7019,9 +7085,10 @@ def _render_bar_combo_layers[
             or len(plots[i].y_err_data) > 0
             or len(plots[i].y_err_lower_data) > 0
             or len(plots[i].y_err_upper_data) > 0
+            or len(plots[i].point_labels) > 0
         ):
             raise Error(
-                "render_layers(): color/color_categories/size/y_err/y_err_lower/y_err_upper"
+                "render_layers(): color/color_categories/size/y_err/y_err_lower/y_err_upper/labels"
                 " encoding isn't supported yet on a Mark.BAR combo chart's non-bar layers (layer "
                 + String(i)
                 + ")"
