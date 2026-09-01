@@ -154,7 +154,7 @@ from canvas_mojo.vector.svg import SvgCanvas, write_svg, _escape_xml_text, _esca
 from canvas_mojo.text.render import draw_text, measure_text, FontWeight, TextAlign
 from canvas_mojo.text.font_cache import FontCache
 
-from dataviz_mojo.array_like import Float64Sequence, _materialize_floats
+from dataviz_mojo.array_like import Float64Sequence, _materialize_floats, _materialize_scalar_list
 from dataviz_mojo.color_scale import ColorScale, default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.ordinal_scale import OrdinalScale
@@ -1281,14 +1281,11 @@ struct Plot(Movable):
         `x` and `y` share one type parameter `T` -- both must conform
         to `Float64Sequence` and be the *same* concrete type; there's
         no mixed-overload here for "x is array-like, y is already a
-        `List[Float64]`" (or vice versa) in this first pass. Convert
-        the plain-`List` side with `List[Float64](...)`'s own
-        constructor (or just pass both through `_materialize_floats`
-        yourself) if you have one of each -- a real limitation, not
-        silently worked around, and one `_materialize_floats`/`_
-        materialize_strings`'s callers can hit for `encode_categorical()`/
-        other entry points too as this expands (see #158's own
-        tracking issue for what's next).
+        `List[Float64]`" (or vice versa) in this first pass -- a real
+        limitation, not silently worked around, and one the same
+        underlying entry points (`encode_categorical()`, ...) will
+        hit too as this expands (see #158's own tracking issue for
+        what's next).
 
         Materializes both into real `List[Float64]`s
         (`_materialize_floats`) and delegates entirely to the concrete
@@ -1325,6 +1322,76 @@ struct Plot(Movable):
             color_map=color_map,
         )
 
+    def encode[
+        dtype: DType
+    ](
+        var self,
+        x: List[Scalar[dtype]],
+        y: List[Scalar[dtype]],
+        color: List[Float64] = List[Float64](),
+        color_categories: List[String] = List[String](),
+        size: List[Float64] = List[Float64](),
+        y_err: List[Float64] = List[Float64](),
+        y_err_lower: List[Float64] = List[Float64](),
+        y_err_upper: List[Float64] = List[Float64](),
+        color_map: Dict[String, Color] = Dict[String, Color](),
+    ) -> Self:
+        """`encode()`'s `x`/`y`, generalized over numeric *element*
+        type -- `List[Int]`, `List[Float32]`, `List[Int32]`, any other
+        `List[Scalar[dtype]]` -- rather than requiring the caller to
+        convert to `List[Float64]` by hand first. A completely
+        different axis from the `Float64Sequence` overload right
+        above (that one's about the *container* not being a `List` at
+        all; this one's about the `List`'s own element type not being
+        `Float64`) -- see array_like.mojo's own module docstring for
+        why this needs `DType`/`Scalar` genericity rather than a
+        trait: `Int`/`Float32`/etc. don't actually conform to the
+        stdlib's own `Floatable` trait despite each having a real
+        `__float__`, confirmed empirically while building this.
+
+        `x`/`y` still share one `dtype` -- both columns must be the
+        same numeric type, same limitation as the `Float64Sequence`
+        overload's shared `T`. Materializes both into real `List[
+        Float64]`s (`_materialize_scalar_list`, one `.cast[DType.
+        float64]()` per element) and delegates entirely to the
+        concrete `encode()`, same as that overload.
+
+        A plain `List[Float64]` also technically satisfies `List[
+        Scalar[dtype]]` (with `dtype = DType.float64`), but never
+        actually reaches this overload in practice -- the concrete
+        `List[Float64]` overload above is more specific and wins for
+        that exact input, so this one only ever runs for a genuinely
+        different element type.
+
+        Args:
+            x: The continuous x column, one entry per point -- any
+                numeric `List[Scalar[dtype]]`.
+            y: The continuous y column, one entry per point -- the
+                same element type as `x`.
+            color: See `encode()`'s own docstring -- unchanged here,
+                still a concrete `List[Float64]`.
+            color_categories: See `encode()`'s own docstring.
+            size: See `encode()`'s own docstring.
+            y_err: See `encode()`'s own docstring.
+            y_err_lower: See `encode()`'s own docstring.
+            y_err_upper: See `encode()`'s own docstring.
+            color_map: See `encode()`'s own docstring.
+
+        Returns:
+            Self, for further chaining.
+        """
+        return self^.encode(
+            _materialize_scalar_list(x),
+            _materialize_scalar_list(y),
+            color=color,
+            color_categories=color_categories,
+            size=size,
+            y_err=y_err,
+            y_err_lower=y_err_lower,
+            y_err_upper=y_err_upper,
+            color_map=color_map,
+        )
+
     def encode_categorical(var self, x: List[String], y: List[Float64]) -> Self:
         """Map a categorical x column and a continuous y column onto
         the x/y channels -- for `Mark.BAR`, whose x-axis is discrete
@@ -1351,6 +1418,30 @@ struct Plot(Movable):
         self.x_data = List[Float64]()
         self.y_data = y.copy()
         return self^
+
+    def encode_categorical[dtype: DType](var self, x: List[String], y: List[Scalar[dtype]]) -> Self:
+        """`encode_categorical()`'s `y`, generalized over numeric
+        element type (`List[Int]`, `List[Float32]`, ...) the same way
+        `encode()`'s own `DType`-generic overload is -- see that
+        overload's docstring for the full reasoning. `x` stays a
+        concrete `List[String]` here (categories are never numeric),
+        so unlike `encode()`'s two array-like axes this is the only
+        one that applies to this method -- no combinatorial overload
+        set needed, just this one extra signature.
+
+        Materializes `y` into a real `List[Float64]` (`_materialize_
+        scalar_list`) and delegates entirely to the concrete `encode_
+        categorical()` above.
+
+        Args:
+            x: One category per entry, in the given order.
+            y: Each category's value -- any numeric `List[Scalar[
+                dtype]]`.
+
+        Returns:
+            Self, for further chaining.
+        """
+        return self^.encode_categorical(x, _materialize_scalar_list(y))
 
     def encode_histogram(var self, data: List[Float64], bins: Int = 10) raises -> Self:
         """Bin `data` into `bins` equal-width intervals and map the
