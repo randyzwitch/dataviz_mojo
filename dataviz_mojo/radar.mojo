@@ -7,7 +7,7 @@ from canvas_mojo.vector.svg import SvgCanvas
 from canvas_mojo.buffer import Canvas
 from canvas_mojo.text.render import TextAlign
 
-from dataviz_mojo.array_like import _materialize_nested_scalar_list
+from dataviz_mojo.array_like import _materialize_nested_scalar_list, _materialize_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -273,10 +273,37 @@ def radar[
     `series_values` -- the nested-list counterpart to `scatter()`'s
     own `DType`-generic overload (plot.mojo), using `_materialize_
     nested_scalar_list` (array_like.mojo). `max_values` stays
-    concrete (its own flat-list axis is a real, separate follow-up).
-    Delegates to the concrete `radar()` above.
+    concrete here -- see the overload right below for its own flat-
+    list axis instead. Delegates to the concrete `radar()` above.
     """
     return radar(
         indicators, max_values, series_names, _materialize_nested_scalar_list(series_values), theme=theme,
+        width=width, height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )
+
+
+def radar[
+    dtype: DType
+](
+    indicators: List[String],
+    max_values: List[Scalar[dtype]],
+    series_names: List[String],
+    series_values: List[List[Float64]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`radar()`, generalized over numeric element type for
+    `max_values` -- the flat-list counterpart to `scatter()`'s own
+    `DType`-generic overload (plot.mojo), using `_materialize_scalar_
+    list` (array_like.mojo). `series_values` stays concrete here.
+    Delegates to the concrete `radar()` above.
+    """
+    return radar(
+        indicators, _materialize_scalar_list(max_values), series_names, series_values, theme=theme,
         width=width, height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
     )

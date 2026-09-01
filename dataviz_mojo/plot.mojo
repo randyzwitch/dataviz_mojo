@@ -2555,9 +2555,11 @@ struct Plot(Movable):
         element type -- the nested-list counterpart to `encode()`'s
         own `DType`-generic overload, using `_materialize_nested_
         scalar_list` (array_like.mojo). `indicators`/`max_values`/
-        `series_names` stay concrete here (`max_values`'s own flat-
-        list axis is a real, separate follow-up, not attempted here).
-        Delegates entirely to the concrete `encode_radar()` above.
+        `series_names` stay concrete here -- see the `DType`-generic
+        overload right below for `max_values`'s own flat-list axis
+        instead; each overload here still generalizes exactly one
+        parameter at a time. Delegates entirely to the concrete
+        `encode_radar()` above.
 
         Args:
             indicators: One named axis per entry, each with its own
@@ -2579,6 +2581,44 @@ struct Plot(Movable):
         """
         return self^.encode_radar(
             indicators, max_values, series_names, _materialize_nested_scalar_list(series_values)
+        )
+
+    def encode_radar[
+        dtype: DType
+    ](
+        var self,
+        indicators: List[String],
+        max_values: List[Scalar[dtype]],
+        series_names: List[String],
+        series_values: List[List[Float64]],
+    ) raises -> Self:
+        """`encode_radar()`'s `max_values`, generalized over numeric
+        element type -- the flat-list counterpart to `encode()`'s own
+        `DType`-generic overload, using `_materialize_scalar_list`
+        (array_like.mojo). `indicators`/`series_names`/`series_values`
+        stay concrete here, the same "one parameter at a time" rule
+        the `series_values`-generic overload above follows. Delegates
+        entirely to the concrete `encode_radar()` above.
+
+        Args:
+            indicators: One named axis per entry, each with its own
+                `max_values[i]`.
+            max_values: Each indicator's own maximum, same length as
+                `indicators` -- any numeric `List[Scalar[dtype]]`.
+            series_names: One polygon per name.
+            series_values: `series_values[j]` is `series_names[j]`'s
+                value per indicator.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            If `indicators`/`max_values` lengths don't match,
+            `series_names`/`series_values` lengths don't match, or any
+            series' value count doesn't match `indicators`'s count.
+        """
+        return self^.encode_radar(
+            indicators, _materialize_scalar_list(max_values), series_names, series_values
         )
 
     def encode_gauge(
