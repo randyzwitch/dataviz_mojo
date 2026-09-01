@@ -10,6 +10,12 @@ function: calling it with `List[List[Int]]` data renders byte-for-byte
 identically to calling it with the equivalent `List[List[Float64]]`
 data, via the new `_materialize_nested_scalar_list` (array_like.mojo).
 
+Also covers `radar()`'s other, independent `DType`-generic axis (#173):
+`max_values` is a flat `List[Float64]`, generalized separately from
+`series_values`' own nested axis above -- the two can't be generic
+together in one call (see `encode_radar()`'s own docstring for why),
+so this is its own dedicated test, not folded into the nested one.
+
 `corrplot()`/`parallel()`'s own example data stayed `Float64`
 (correlations, decimal-valued real-world stats) -- not swept in the
 Cookbook/docstring sense, but still covered here with synthetic whole-
@@ -134,6 +140,22 @@ def test_radar_accepts_nested_list_int_matching_list_float64() raises:
     assert_equal(
         render_svg(radar(indicators, max_values, names, vi)).to_string(),
         render_svg(radar(indicators, max_values, names, vf)).to_string(),
+    )
+
+
+def test_radar_accepts_list_int_max_values_matching_list_float64() raises:
+    # radar()'s other DType-generic axis (#173) -- max_values, a flat
+    # List[Float64], is independent of series_values' own nested axis
+    # tested above; each overload here generalizes exactly one of the
+    # two, never both together (see encode_radar()'s own docstring).
+    var indicators: List[String] = ["A", "B", "C"]
+    var names: List[String] = ["S1", "S2"]
+    var series_values: List[List[Float64]] = [[90.0, 60.0, 80.0], [65.0, 85.0, 55.0]]
+    var max_i: List[Int] = [100, 100, 100]
+    var max_f: List[Float64] = [100.0, 100.0, 100.0]
+    assert_equal(
+        render_svg(radar(indicators, max_i, names, series_values)).to_string(),
+        render_svg(radar(indicators, max_f, names, series_values)).to_string(),
     )
 
 
