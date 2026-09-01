@@ -154,7 +154,13 @@ from canvas_mojo.vector.svg import SvgCanvas, write_svg, _escape_xml_text, _esca
 from canvas_mojo.text.render import draw_text, measure_text, FontWeight, TextAlign
 from canvas_mojo.text.font_cache import FontCache
 
-from dataviz_mojo.array_like import Float64Sequence, _materialize_floats, _materialize_scalar_list
+from dataviz_mojo.array_like import (
+    Float64Sequence,
+    StringSequence,
+    _materialize_floats,
+    _materialize_scalar_list,
+    _materialize_strings,
+)
 from dataviz_mojo.numpy_interop import _materialize_python_floats
 from std.python import PythonObject
 from dataviz_mojo.color_scale import ColorScale, default_categorical_palette
@@ -1517,16 +1523,49 @@ struct Plot(Movable):
         self.y_data = y.copy()
         return self^
 
+    def encode_categorical[Tx: StringSequence](var self, x: Tx, y: List[Float64]) -> Self:
+        """`encode_categorical()`'s `x`, generalized to anything
+        conforming to `StringSequence` (array_like.mojo) instead of a
+        concrete `List[String]` -- the container axis, same mechanism
+        `encode()`'s own `Float64Sequence` overload uses for its `x`/
+        `y` (see that overload's docstring for the full reasoning: a
+        future dataframe column type or a custom buffer wrapper can
+        conform to `StringSequence` itself; `List[String]` can't be
+        retrofitted to, which is why the concrete overload above still
+        exists unchanged).
+
+        `y` stays a concrete `List[Float64]` here -- no mixed overload
+        for "`x` is array-like, `y` is already a `List[Float64]`" (or
+        the numeric-element-type/`PythonObject` axes below) in this
+        first pass, the same limitation `encode()`'s own array-like
+        `x`/`y` overload documents for mixing its own axes. Every
+        `encode_categorical()` overload here is one axis generic at a
+        time, never two at once.
+
+        Materializes `x` into a real `List[String]` (`_materialize_
+        strings`) and delegates entirely to the concrete `encode_
+        categorical()` above.
+
+        Args:
+            x: One category per entry, in the given order -- anything
+                conforming to `StringSequence`.
+            y: Each category's value -- a concrete `List[Float64]`.
+
+        Returns:
+            Self, for further chaining.
+        """
+        return self^.encode_categorical(_materialize_strings(x), y)
+
     def encode_categorical[dtype: DType](var self, x: List[String], y: List[Scalar[dtype]]) -> Self:
         """`encode_categorical()`'s `y`, generalized over numeric
         element type (`List[Int]`, `List[Float32]`, ...) the same way
         `encode()`'s own `DType`-generic overload is -- see that
         overload's docstring for the full reasoning. `x` stays a
-        concrete `List[String]` here (categories are never numeric),
-        so unlike `encode()`'s array-like axes this is the only one
-        that applies to this method's `y` -- no combinatorial overload
-        set needed, just this one extra signature (and the `PythonObject`
-        one right below it).
+        concrete `List[String]` here (categories are never numeric) --
+        see the `StringSequence` overload right above for `x`'s own
+        array-like axis instead. Each of `encode_categorical()`'s
+        overloads generalizes exactly one of `x`/`y` at a time, never
+        both together (see that overload's own docstring for why).
 
         Materializes `y` into a real `List[Float64]` (`_materialize_
         scalar_list`) and delegates entirely to the concrete `encode_
@@ -1911,6 +1950,40 @@ struct Plot(Movable):
         self._grouped_bar.series_names = series_names.copy()
         self._grouped_bar.values = values.copy()
         return self^
+
+    def encode_grouped_bar[
+        Tx: StringSequence
+    ](var self, categories: Tx, series_names: List[String], values: List[List[Float64]]) -> Self:
+        """`encode_grouped_bar()`'s `categories`, generalized to
+        anything conforming to `StringSequence` (array_like.mojo) --
+        the same container axis `encode_categorical()`'s own
+        `StringSequence` overload adds for its `x`, see that
+        overload's docstring for the full reasoning.
+
+        `series_names`/`values` stay concrete here -- `values`'s own
+        `List[List[Float64]]` shape (a list *per series*) is a
+        genuinely harder generalization than a flat list (unlike
+        `encode()`'s `x`/`y` or `encode_categorical()`'s `y`, there's
+        no single element type to swap in a `DType`-generic or
+        `PythonObject` overload for), so it's left as a real, separate
+        follow-up rather than attempted here.
+
+        Materializes `categories` into a real `List[String]`
+        (`_materialize_strings`) and delegates entirely to the
+        concrete `encode_grouped_bar()` above.
+
+        Args:
+            categories: One group of side-by-side bars per entry, in
+                the given order -- anything conforming to
+                `StringSequence`.
+            series_names: One sub-bar per name.
+            values: `values[j]` is `series_names[j]`'s value per
+                category.
+
+        Returns:
+            Self, for further chaining.
+        """
+        return self^.encode_grouped_bar(_materialize_strings(categories), series_names, values)
 
     def encode_population_pyramid(
         var self,

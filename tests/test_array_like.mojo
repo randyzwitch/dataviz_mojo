@@ -16,6 +16,11 @@ losslessly up to the real `Int`-to-`Float64` exact-precision boundary
 a chart built from `List[Int]` still displays whole-number labels as
 `"10"`, never `"10.0"` (`_label_decimals` decides digit count from the
 value itself, not from whatever type it started out as).
+
+Also covers `StringSequence`'s own container axis on the categorical
+side -- `encode_categorical()`'s `x` and `encode_grouped_bar()`'s
+`categories`, not just `encode()`'s `x`/`y` -- rendering byte-for-byte
+identically to the equivalent `List[String]`.
 """
 
 from std.testing import assert_equal, assert_raises, TestSuite
@@ -220,6 +225,40 @@ def test_encode_categorical_list_int_labels_display_as_whole_numbers() raises:
     assert_equal("-5</text>" in svg, True)
     assert_equal("10.0</text>" in svg, False)
     assert_equal("-5.0</text>" in svg, False)
+
+
+def test_encode_categorical_accepts_a_custom_stringsequence_matching_the_list_path() raises:
+    # The container axis's counterpart on the categorical side --
+    # encode_categorical()'s x, not just encode()'s x/y, can be
+    # anything conforming to StringSequence.
+    var x_buf = _StringBuffer(["A", "B", "C"])
+    var vals: List[Float64] = [10.0, 20.0, -5.0]
+    var plot_from_buffer = Plot().mark_bar().encode_categorical(x=x_buf, y=vals).size(400, 300)
+    var svg_from_buffer = render_svg(plot_from_buffer).to_string()
+
+    var x_list: List[String] = ["A", "B", "C"]
+    var plot_from_list = Plot().mark_bar().encode_categorical(x=x_list, y=vals).size(400, 300)
+    var svg_from_list = render_svg(plot_from_list).to_string()
+
+    assert_equal(svg_from_buffer, svg_from_list)
+
+
+def test_encode_grouped_bar_accepts_a_custom_stringsequence_matching_the_list_path() raises:
+    var cats_buf = _StringBuffer(["Q1", "Q2"])
+    var names: List[String] = ["North", "South"]
+    var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
+    var plot_from_buffer = Plot().mark_grouped_bar().encode_grouped_bar(
+        categories=cats_buf, series_names=names, values=values
+    ).size(400, 300)
+    var svg_from_buffer = render_svg(plot_from_buffer).to_string()
+
+    var cats_list: List[String] = ["Q1", "Q2"]
+    var plot_from_list = Plot().mark_grouped_bar().encode_grouped_bar(
+        categories=cats_list, series_names=names, values=values
+    ).size(400, 300)
+    var svg_from_list = render_svg(plot_from_list).to_string()
+
+    assert_equal(svg_from_buffer, svg_from_list)
 
 
 def main() raises:
