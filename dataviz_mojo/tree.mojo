@@ -4,6 +4,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.vector.svg import SvgCanvas
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.hierarchy import _HierarchyIndex, _build_hierarchy_index
 from dataviz_mojo.mark import Mark
@@ -257,7 +258,7 @@ def tree(
                 "CEO", "Engineering", "Sales", "Backend", "Frontend", "Enterprise", "SMB",
             ]
             var parent_ids: List[String] = ["", "CEO", "CEO", "Engineering", "Engineering", "Sales", "Sales"]
-            var values: List[Float64] = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
+            var values: List[Int] = [0, 0, 0, 1, 1, 1, 1]
 
             var c = tree(ids, parent_ids, values)
             save(c, "docs/src/examples/out_tree.svg")
@@ -265,3 +266,27 @@ def tree(
     """
     var plot = Plot().mark_tree().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def tree[
+    dtype: DType
+](
+    ids: List[String],
+    parent_ids: List[String],
+    values: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`tree()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. Delegates to the concrete `tree()` above.
+    """
+    return tree(
+        ids, parent_ids, _materialize_scalar_list(values), theme=theme, width=width, height=height,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

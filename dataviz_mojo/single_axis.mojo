@@ -2,6 +2,7 @@ from canvas_mojo.text.render import TextAlign
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
     Plot,
@@ -207,8 +208,8 @@ def single_axis(
         from dataviz_mojo.theme import Theme
 
         def main() raises:
-            var response_ms: List[Float64] = [
-                12.0, 14.0, 13.0, 15.0, 11.0, 14.0, 13.0, 12.0, 45.0, 15.0, 13.0, 14.0, 12.0, 90.0, 14.0,
+            var response_ms: List[Int] = [
+                12, 14, 13, 15, 11, 14, 13, 12, 45, 15, 13, 14, 12, 90, 14,
             ]
 
             var c = single_axis(response_ms)
@@ -219,3 +220,30 @@ def single_axis(
         x=x, color=color, color_categories=color_categories, size=size
     )
     return _finished(plot^, theme, width, height, title, x_title, "", subtitle=subtitle)
+
+
+def single_axis[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    color: List[Float64] = List[Float64](),
+    color_categories: List[String] = List[String](),
+    size: List[Float64] = List[Float64](),
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+) raises -> Plot:
+    """`single_axis()`, generalized over numeric element type for
+    `x` -- see `scatter()`'s own `DType`-generic overload (plot.mojo)
+    for the full reasoning. `color`/`color_categories`/`size` stay
+    concrete here, the same restriction `Plot.encode()`'s own array-
+    like overloads already have. Delegates to the concrete
+    `single_axis()` above.
+    """
+    return single_axis(
+        _materialize_scalar_list(x), color=color, color_categories=color_categories, size=size,
+        theme=theme, width=width, height=height, title=title, subtitle=subtitle, x_title=x_title,
+    )

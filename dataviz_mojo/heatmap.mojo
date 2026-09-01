@@ -3,6 +3,7 @@ from canvas_mojo.text.render import TextAlign
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.color_scale import ColorScale
 from canvas_mojo.text.font_cache import FontCache
 from dataviz_mojo.mark import Mark
@@ -318,7 +319,7 @@ def heatmap(
         def main() raises:
             var days: List[String] = ["Mon", "Mon", "Mon", "Tue", "Tue", "Tue", "Wed", "Wed", "Wed"]
             var hours: List[String] = ["9am", "1pm", "5pm", "9am", "1pm", "5pm", "9am", "1pm", "5pm"]
-            var activity: List[Float64] = [3.0, 8.0, 5.0, 4.0, 9.0, 6.0, 2.0, 7.0, 10.0]
+            var activity: List[Int] = [3, 8, 5, 4, 9, 6, 2, 7, 10]
 
             var c = heatmap(days, hours, activity)
             save(c, "docs/src/examples/out_heatmap.svg")
@@ -326,3 +327,27 @@ def heatmap(
     """
     var plot = Plot().mark_heatmap().encode_heatmap(x=x, y=y, value=value)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def heatmap[
+    dtype: DType
+](
+    x: List[String],
+    y: List[String],
+    value: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`heatmap()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. Delegates to the concrete `heatmap()` above.
+    """
+    return heatmap(
+        x, y, _materialize_scalar_list(value), theme=theme, width=width, height=height,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

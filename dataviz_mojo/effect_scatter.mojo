@@ -1,5 +1,6 @@
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.plot import Plot, _finished
 from dataviz_mojo.theme import Theme
 
@@ -44,8 +45,8 @@ def effect_scatter(
         from dataviz_mojo.theme import Theme
 
         def main() raises:
-            var longitude: List[Float64] = [10.0, 25.0, 40.0, 60.0, 80.0]
-            var latitude: List[Float64] = [15.0, 40.0, 20.0, 55.0, 30.0]
+            var longitude: List[Int] = [10, 25, 40, 60, 80]
+            var latitude: List[Int] = [15, 40, 20, 55, 30]
 
             var c = effect_scatter(longitude, latitude)
             save(c, "docs/src/examples/out_effect_scatter.svg")
@@ -53,3 +54,27 @@ def effect_scatter(
     """
     var plot = Plot().mark_effect_scatter().encode(x=x, y=y)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def effect_scatter[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`effect_scatter()`, generalized over numeric element type --
+    see `scatter()`'s own `DType`-generic overload (plot.mojo) for
+    the full reasoning. Delegates to the concrete `effect_scatter()`
+    above.
+    """
+    return effect_scatter(
+        _materialize_scalar_list(x), _materialize_scalar_list(y), theme=theme, width=width,
+        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

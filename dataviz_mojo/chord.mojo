@@ -5,6 +5,7 @@ from canvas_mojo.path import Path
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -208,7 +209,7 @@ def chord(
         def main() raises:
             var from_regions: List[String] = ["North", "North", "South", "East", "West"]
             var to_regions: List[String] = ["South", "East", "West", "West", "North"]
-            var trade_volume: List[Float64] = [12.0, 8.0, 15.0, 6.0, 10.0]
+            var trade_volume: List[Int] = [12, 8, 15, 6, 10]
 
             var c = chord(from_regions, to_regions, trade_volume)
             save(c, "docs/src/examples/out_chord.svg")
@@ -218,3 +219,27 @@ def chord(
         from_categories=from_categories, to_categories=to_categories, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def chord[
+    dtype: DType
+](
+    from_categories: List[String],
+    to_categories: List[String],
+    values: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`chord()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. Delegates to the concrete `chord()` above.
+    """
+    return chord(
+        from_categories, to_categories, _materialize_scalar_list(values), theme=theme, width=width,
+        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

@@ -2,6 +2,7 @@ from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
     Plot,
@@ -181,10 +182,10 @@ def candlestick(
             var days: List[String] = [
                 "Day 1", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7", "Day 8",
             ]
-            var open: List[Float64] = [100.0, 104.0, 101.0, 97.0, 107.0, 110.0, 103.0, 108.0]
-            var high: List[Float64] = [106.0, 105.0, 103.0, 108.0, 112.0, 111.0, 109.0, 110.0]
-            var low: List[Float64] = [98.0, 99.0, 95.0, 96.0, 105.0, 102.0, 101.0, 104.0]
-            var close: List[Float64] = [104.0, 101.0, 97.0, 107.0, 110.0, 103.0, 108.0, 105.0]
+            var open: List[Int] = [100, 104, 101, 97, 107, 110, 103, 108]
+            var high: List[Int] = [106, 105, 103, 108, 112, 111, 109, 110]
+            var low: List[Int] = [98, 99, 95, 96, 105, 102, 101, 104]
+            var close: List[Int] = [104, 101, 97, 107, 110, 103, 108, 105]
 
             var c = candlestick(days, open, high, low, close)
             save(c, "docs/src/examples/out_candlestick.svg")
@@ -194,3 +195,31 @@ def candlestick(
         categories=categories, open=open, high=high, low=low, close=close
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def candlestick[
+    dtype: DType
+](
+    categories: List[String],
+    open: List[Scalar[dtype]],
+    high: List[Scalar[dtype]],
+    low: List[Scalar[dtype]],
+    close: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`candlestick()`, generalized over numeric element type --
+    see `scatter()`'s own `DType`-generic overload (plot.mojo) for
+    the full reasoning. `open`/`high`/`low`/`close` share one dtype.
+    Delegates to the concrete `candlestick()` above.
+    """
+    return candlestick(
+        categories, _materialize_scalar_list(open), _materialize_scalar_list(high),
+        _materialize_scalar_list(low), _materialize_scalar_list(close), theme=theme, width=width,
+        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

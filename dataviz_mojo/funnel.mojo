@@ -3,6 +3,7 @@ from canvas_mojo.path import Path
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -195,7 +196,7 @@ def funnel(
 
         def main() raises:
             var stages: List[String] = ["Impressions", "Clicks", "Add to Cart", "Orders"]
-            var counts: List[Float64] = [10000.0, 3200.0, 950.0, 400.0]
+            var counts: List[Int] = [10000, 3200, 950, 400]
 
             var c = funnel(stages, counts)
             save(c, "docs/src/examples/out_funnel.svg")
@@ -203,3 +204,26 @@ def funnel(
     """
     var plot = Plot().mark_funnel().encode_categorical(x=categories, y=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def funnel[
+    dtype: DType
+](
+    categories: List[String],
+    values: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`funnel()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. Delegates to the concrete `funnel()` above.
+    """
+    return funnel(
+        categories, _materialize_scalar_list(values), theme=theme, width=width, height=height,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

@@ -3,6 +3,7 @@ from canvas_mojo.text.render import TextAlign
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.ordinal_scale import OrdinalScale
 from dataviz_mojo.plot import (
@@ -324,8 +325,8 @@ def gantt(
 
         def main() raises:
             var tasks: List[String] = ["Design", "Development", "Testing", "Documentation", "Launch"]
-            var start: List[Float64] = [0.0, 5.0, 20.0, 15.0, 28.0]
-            var end: List[Float64] = [8.0, 25.0, 28.0, 27.0, 30.0]
+            var start: List[Int] = [0, 5, 20, 15, 28]
+            var end: List[Int] = [8, 25, 28, 27, 30]
 
             var c = gantt(tasks, start, end)
             save(c, "docs/src/examples/out_gantt.svg")
@@ -333,3 +334,28 @@ def gantt(
     """
     var plot = Plot().mark_gantt().encode_gantt(categories=categories, start=start, end=end)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def gantt[
+    dtype: DType
+](
+    categories: List[String],
+    start: List[Scalar[dtype]],
+    end: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`gantt()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. `start`/`end` share one dtype. Delegates to the
+    concrete `gantt()` above.
+    """
+    return gantt(
+        categories, _materialize_scalar_list(start), _materialize_scalar_list(end), theme=theme,
+        width=width, height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

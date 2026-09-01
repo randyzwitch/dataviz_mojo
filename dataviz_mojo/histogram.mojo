@@ -1,5 +1,6 @@
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.plot import Plot, _finished
 from dataviz_mojo.scale import _format_fixed, _min_max
 from dataviz_mojo.theme import Theme
@@ -107,10 +108,10 @@ def histogram(
         def main() raises:
             # Exam scores out of 100 -- a real bell-ish spread, not a uniform
             # or already-sorted list, so the binning has genuine work to do.
-            var scores: List[Float64] = [
-                52.0, 61.0, 65.0, 68.0, 70.0, 71.0, 72.0, 74.0, 75.0, 76.0,
-                77.0, 78.0, 78.0, 79.0, 80.0, 81.0, 81.0, 82.0, 83.0, 84.0,
-                85.0, 86.0, 87.0, 88.0, 89.0, 90.0, 91.0, 93.0, 95.0, 98.0,
+            var scores: List[Int] = [
+                52, 61, 65, 68, 70, 71, 72, 74, 75, 76,
+                77, 78, 78, 79, 80, 81, 81, 82, 83, 84,
+                85, 86, 87, 88, 89, 90, 91, 93, 95, 98,
             ]
 
             var c = histogram(scores, bins=8, theme=Theme(mark_color=REBECCAPURPLE))
@@ -119,3 +120,26 @@ def histogram(
     """
     var plot = Plot().mark_bar().encode_histogram(data, bins=bins)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def histogram[
+    dtype: DType
+](
+    data: List[Scalar[dtype]],
+    bins: Int = 10,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`histogram()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. Delegates to the concrete `histogram()` above.
+    """
+    return histogram(
+        _materialize_scalar_list(data), bins=bins, theme=theme, width=width, height=height,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

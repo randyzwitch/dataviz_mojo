@@ -3,6 +3,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
 from canvas_mojo.text.font_cache import FontCache
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.heatmap import _draw_grid_axis_frame
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -161,13 +162,13 @@ def punchcard(
 
             var x = List[String]()
             var y = List[String]()
-            var counts = List[Float64]()
+            var counts = List[Int]()
             for day_i in range(len(days)):
                 var is_weekend = day_i >= 5
                 for hour in hours:
                     x.append(days[day_i])
                     y.append(hour)
-                    counts.append(15.0 if is_weekend else 60.0)
+                    counts.append(15 if is_weekend else 60)
 
             var c = punchcard(x, y, counts)
             save(c, "docs/src/examples/out_punchcard.svg")
@@ -175,3 +176,28 @@ def punchcard(
     """
     var plot = Plot().mark_punchcard(scale=scale).encode_punchcard(x=x, y=y, sizes=sizes)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def punchcard[
+    dtype: DType
+](
+    x: List[String],
+    y: List[String],
+    sizes: List[Scalar[dtype]],
+    scale: Float64 = 10.0,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`punchcard()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. Delegates to the concrete `punchcard()` above.
+    """
+    return punchcard(
+        x, y, _materialize_scalar_list(sizes), scale=scale, theme=theme, width=width, height=height,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

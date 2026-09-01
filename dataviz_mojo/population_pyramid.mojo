@@ -2,6 +2,7 @@ from canvas_mojo.geometry import _round_to_int
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz_mojo.mark import Mark
@@ -217,3 +218,31 @@ def population_pyramid(
         right_name=right_name,
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def population_pyramid[
+    dtype: DType
+](
+    categories: List[String],
+    left_values: List[Scalar[dtype]],
+    right_values: List[Scalar[dtype]],
+    left_name: String = "",
+    right_name: String = "",
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`population_pyramid()`, generalized over numeric element type
+    -- see `scatter()`'s own `DType`-generic overload (plot.mojo) for
+    the full reasoning. `left_values`/`right_values` share one dtype.
+    Delegates to the concrete `population_pyramid()` above.
+    """
+    return population_pyramid(
+        categories, _materialize_scalar_list(left_values), _materialize_scalar_list(right_values),
+        left_name=left_name, right_name=right_name, theme=theme, width=width, height=height,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

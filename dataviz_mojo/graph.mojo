@@ -7,6 +7,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.vector.svg import SvgCanvas
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -170,7 +171,7 @@ def graph(
         def main() raises:
             var from_people: List[String] = ["Alice", "Alice", "Bob", "Carol", "Dave"]
             var to_people: List[String] = ["Bob", "Carol", "Dave", "Dave", "Eve"]
-            var connection_strength: List[Float64] = [8.0, 3.0, 5.0, 6.0, 4.0]
+            var connection_strength: List[Int] = [8, 3, 5, 6, 4]
 
             var c = graph(from_people, to_people, connection_strength)
             save(c, "docs/src/examples/out_graph.svg")
@@ -180,3 +181,27 @@ def graph(
         from_categories=from_categories, to_categories=to_categories, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def graph[
+    dtype: DType
+](
+    from_categories: List[String],
+    to_categories: List[String],
+    values: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`graph()`, generalized over numeric element type -- see
+    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
+    full reasoning. Delegates to the concrete `graph()` above.
+    """
+    return graph(
+        from_categories, to_categories, _materialize_scalar_list(values), theme=theme, width=width,
+        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )
