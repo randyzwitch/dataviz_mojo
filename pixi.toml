@@ -10,6 +10,16 @@ mojo = ">=1.0.0,<2"
 canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.9.1" }
 hugo = ">=0.165.0,<0.166"
 go = ">=1.26.7,<2"
+# Dev/test-only, same as hugo/go above -- neither appears in
+# [package.run-dependencies] below, so installing dataviz_mojo itself
+# never pulls numpy/pandas in. They're here only so the numpy adapter
+# (numpy_interop.mojo) has something real to compile and test against
+# locally and in CI -- a caller who actually uses that adapter needs
+# numpy installed in *their own* environment regardless (Python.
+# import_module("numpy") raises a clear error if it isn't), same as
+# any optional Python interop.
+numpy = ">=2.0,<3"
+pandas = ">=2.0,<3"
 
 [tasks]
 # `test` runs every file in parallel via scripts/run_parallel.sh
@@ -47,7 +57,14 @@ go = ">=1.26.7,<2"
 # matter (a new test file added at the end is always at least
 # functionally correct, just not optimally placed -- true right now for
 # beeswarm/violin/ridgeline below, added after this ranking was
-# measured). `example`'s own file order is left to `extract_docstring_
+# measured, and for test_numpy_interop.mojo too: its own `TestSuite`-
+# reported per-test times look wild for anything touching Python
+# interop, 100+ seconds for a single call -- but real wall-clock
+# `time` on the whole file says ~5s, in line with every other file
+# here, so that reported number is some clock-domain confusion
+# specific to Python-interop tests (likely GIL/subinterpreter
+# accounting), not a real cost -- left at the end rather than acted on
+# until re-measured against real wall-clock time). `example`'s own file order is left to `extract_docstring_
 # examples.mojo`'s own `_pages()` order (`_example_docstrings.mojo`) --
 # there's no equivalent per-file timing to rank it by any more now that
 # it isn't a fixed, hand-maintained list.
@@ -70,7 +87,7 @@ go = ">=1.26.7,<2"
 # docstring the way everything else here does.
 example = "mkdir -p docs/src/examples && rm -f docs/src/examples/*.mojo docs/src/examples/out_* && mojo run -I . -I scripts scripts/extract_docstring_examples.mojo && bash scripts/run_parallel.sh docs/src/examples/*.mojo docs/src/cookbook_recipes/*.mojo"
 example-quickstart = "bash scripts/run_parallel.sh docs/src/examples/quickstart/*.mojo"
-test = "bash scripts/run_parallel.sh tests/test_quickplot.mojo tests/test_facets.mojo tests/test_line.mojo tests/test_layers.mojo tests/test_legends.mojo tests/test_point.mojo tests/test_theme.mojo tests/test_labels.mojo tests/test_bar.mojo tests/test_area.mojo tests/test_core.mojo tests/test_margins.mojo tests/test_waterfall.mojo tests/test_effect_scatter.mojo tests/test_stacked_bar.mojo tests/test_grouped_bar.mojo tests/test_lollipop.mojo tests/test_heatmap.mojo tests/test_streamgraph.mojo tests/test_population_pyramid.mojo tests/test_box.mojo tests/test_gantt.mojo tests/test_histogram.mojo tests/test_single_axis.mojo tests/test_bullet.mojo tests/test_arc.mojo tests/test_colors.mojo tests/test_candlestick.mojo tests/test_bump.mojo tests/test_chord.mojo tests/test_funnel.mojo tests/test_scale.mojo tests/test_ordinal_scale.mojo tests/test_color_scale.mojo tests/test_beeswarm.mojo tests/test_violin.mojo tests/test_ridgeline.mojo tests/test_nightingale.mojo tests/test_polar_bar.mojo tests/test_polar.mojo tests/test_radar.mojo tests/test_gauge.mojo tests/test_parallel.mojo tests/test_span_chart.mojo tests/test_calendar_heatmap.mojo tests/test_corrplot.mojo tests/test_punchcard.mojo tests/test_marimekko.mojo tests/test_sunburst.mojo tests/test_tree.mojo tests/test_treemap.mojo tests/test_arc_diagram.mojo tests/test_graph.mojo tests/test_sankey.mojo tests/test_radialbar.mojo tests/test_annotate.mojo tests/test_svg_accessibility.mojo tests/test_annotate_area.mojo tests/test_secondary_axis.mojo tests/test_secondary_axis_caption.mojo tests/test_annotate_facets_layers.mojo tests/test_annotate_vline_point.mojo tests/test_log_scale.mojo tests/test_error_bars.mojo tests/test_error_bars_asymmetric.mojo tests/test_color_map.mojo tests/test_facets_shared_scale.mojo tests/test_error_bars_on_line.mojo tests/test_percent_stacked_bar.mojo tests/test_annotate_band.mojo tests/test_annotate_best_fit.mojo tests/test_data_labels.mojo tests/test_layers_bar_combo.mojo tests/test_array_like.mojo tests/test_point_labels.mojo"
+test = "bash scripts/run_parallel.sh tests/test_quickplot.mojo tests/test_facets.mojo tests/test_line.mojo tests/test_layers.mojo tests/test_legends.mojo tests/test_point.mojo tests/test_theme.mojo tests/test_labels.mojo tests/test_bar.mojo tests/test_area.mojo tests/test_core.mojo tests/test_margins.mojo tests/test_waterfall.mojo tests/test_effect_scatter.mojo tests/test_stacked_bar.mojo tests/test_grouped_bar.mojo tests/test_lollipop.mojo tests/test_heatmap.mojo tests/test_streamgraph.mojo tests/test_population_pyramid.mojo tests/test_box.mojo tests/test_gantt.mojo tests/test_histogram.mojo tests/test_single_axis.mojo tests/test_bullet.mojo tests/test_arc.mojo tests/test_colors.mojo tests/test_candlestick.mojo tests/test_bump.mojo tests/test_chord.mojo tests/test_funnel.mojo tests/test_scale.mojo tests/test_ordinal_scale.mojo tests/test_color_scale.mojo tests/test_beeswarm.mojo tests/test_violin.mojo tests/test_ridgeline.mojo tests/test_nightingale.mojo tests/test_polar_bar.mojo tests/test_polar.mojo tests/test_radar.mojo tests/test_gauge.mojo tests/test_parallel.mojo tests/test_span_chart.mojo tests/test_calendar_heatmap.mojo tests/test_corrplot.mojo tests/test_punchcard.mojo tests/test_marimekko.mojo tests/test_sunburst.mojo tests/test_tree.mojo tests/test_treemap.mojo tests/test_arc_diagram.mojo tests/test_graph.mojo tests/test_sankey.mojo tests/test_radialbar.mojo tests/test_annotate.mojo tests/test_svg_accessibility.mojo tests/test_annotate_area.mojo tests/test_secondary_axis.mojo tests/test_secondary_axis_caption.mojo tests/test_annotate_facets_layers.mojo tests/test_annotate_vline_point.mojo tests/test_log_scale.mojo tests/test_error_bars.mojo tests/test_error_bars_asymmetric.mojo tests/test_color_map.mojo tests/test_facets_shared_scale.mojo tests/test_error_bars_on_line.mojo tests/test_percent_stacked_bar.mojo tests/test_annotate_band.mojo tests/test_annotate_best_fit.mojo tests/test_data_labels.mojo tests/test_layers_bar_combo.mojo tests/test_array_like.mojo tests/test_point_labels.mojo tests/test_numpy_interop.mojo"
 # Regenerates docs/site/content (nothing docs-build itself produces is
 # committed -- not that, not docs/site/public further downstream, not
 # docs/src/examples/, gen_example_docs.mojo's own output). Everything
