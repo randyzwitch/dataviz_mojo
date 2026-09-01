@@ -23,6 +23,7 @@ pure noise a spec already settled, not documentation of a real choice
 made in this package.
 """
 
+from dataviz_mojo.array_like import Float64Sequence, StringSequence
 from dataviz_mojo.theme import Theme
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.output_format import OutputFormat
