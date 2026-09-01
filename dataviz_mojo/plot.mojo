@@ -154,6 +154,7 @@ from canvas_mojo.vector.svg import SvgCanvas, write_svg, _escape_xml_text, _esca
 from canvas_mojo.text.render import draw_text, measure_text, FontWeight, TextAlign
 from canvas_mojo.text.font_cache import FontCache
 
+from dataviz_mojo.array_like import Float64Sequence, _materialize_floats
 from dataviz_mojo.color_scale import ColorScale, default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.ordinal_scale import OrdinalScale
@@ -1251,6 +1252,78 @@ struct Plot(Movable):
         self.y_err_upper_data = y_err_upper.copy()
         self.color_map = color_map.copy()
         return self^
+
+    def encode[
+        T: Float64Sequence
+    ](
+        var self,
+        x: T,
+        y: T,
+        color: List[Float64] = List[Float64](),
+        color_categories: List[String] = List[String](),
+        size: List[Float64] = List[Float64](),
+        y_err: List[Float64] = List[Float64](),
+        y_err_lower: List[Float64] = List[Float64](),
+        y_err_upper: List[Float64] = List[Float64](),
+        color_map: Dict[String, Color] = Dict[String, Color](),
+    ) -> Self:
+        """`encode()`'s `x`/`y`, generalized to anything conforming to
+        `Float64Sequence` (array_like.mojo) instead of a concrete
+        `List[Float64]` -- for chart data that started out as, say, a
+        custom buffer wrapper or a future dataframe column type,
+        rather than something already copied into a plain `List`. See
+        `Float64Sequence`'s own docstring for exactly which types this
+        does and doesn't help with (a type's *author* has to declare
+        the conformance; this can't retrofit `List` itself or a numpy
+        array, which is why the concrete overload right above this one
+        still exists unchanged, not replaced by this).
+
+        `x` and `y` share one type parameter `T` -- both must conform
+        to `Float64Sequence` and be the *same* concrete type; there's
+        no mixed-overload here for "x is array-like, y is already a
+        `List[Float64]`" (or vice versa) in this first pass. Convert
+        the plain-`List` side with `List[Float64](...)`'s own
+        constructor (or just pass both through `_materialize_floats`
+        yourself) if you have one of each -- a real limitation, not
+        silently worked around, and one `_materialize_floats`/`_
+        materialize_strings`'s callers can hit for `encode_categorical()`/
+        other entry points too as this expands (see #158's own
+        tracking issue for what's next).
+
+        Materializes both into real `List[Float64]`s
+        (`_materialize_floats`) and delegates entirely to the concrete
+        `encode()` above -- every other parameter, every length/
+        mutual-exclusion check, the whole docstring's worth of
+        behavior lives in exactly one place, not duplicated here.
+
+        Args:
+            x: The continuous x column, one entry per point --
+                anything conforming to `Float64Sequence`.
+            y: The continuous y column, one entry per point -- the
+                same concrete type as `x`.
+            color: See `encode()`'s own docstring -- unchanged here,
+                still a concrete `List[Float64]`.
+            color_categories: See `encode()`'s own docstring.
+            size: See `encode()`'s own docstring.
+            y_err: See `encode()`'s own docstring.
+            y_err_lower: See `encode()`'s own docstring.
+            y_err_upper: See `encode()`'s own docstring.
+            color_map: See `encode()`'s own docstring.
+
+        Returns:
+            Self, for further chaining.
+        """
+        return self^.encode(
+            _materialize_floats(x),
+            _materialize_floats(y),
+            color=color,
+            color_categories=color_categories,
+            size=size,
+            y_err=y_err,
+            y_err_lower=y_err_lower,
+            y_err_upper=y_err_upper,
+            color_map=color_map,
+        )
 
     def encode_categorical(var self, x: List[String], y: List[Float64]) -> Self:
         """Map a categorical x column and a continuous y column onto
