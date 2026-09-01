@@ -5,6 +5,7 @@ from canvas_mojo.buffer import Canvas
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.mark import Mark
+from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -74,6 +75,63 @@ def _render_lollipop[
     return frame.result()
 
 
+def _render_horizontal_lollipop[
+    T: DrawTarget
+](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+    """`_render_lollipop`'s mirror image for `Plot.mark_lollipop(
+    horizontal=True)` (#121) -- exactly `_render_horizontal_bar`'s own
+    categorical y-axis / zero-baseline x-axis (`_draw_horizontal_
+    categorical_axis_frame`, gantt.mojo, shared -- see that function's
+    docstring), but each category draws a horizontal stem (`stroke_
+    path_aa`) from the zero baseline out to its value along `x_scale`,
+    capped with a point at the value itself -- the same stem+point
+    shape `_render_lollipop` draws, just swapped onto the horizontal
+    frame's `(LinearScale x_scale, OrdinalScale y_scale)` instead of
+    the vertical one's `(OrdinalScale x_scale, LinearScale y_scale)`.
+
+    Deliberately its own function, not an orientation flag threaded
+    through `_render_lollipop` -- see `_render_horizontal_bar`'s own
+    docstring (bar.mojo) for the full reasoning, identical here.
+    """
+    _validate_categorical_encoding(plot)
+
+    var theme = plot._theme
+    if len(plot.x_categories) == 0:
+        return _empty_result(ox0, oy0, ox1, oy1)
+
+    var x_scale = _zero_baseline_y_extent(plot.y_data)
+    var frame = _draw_horizontal_categorical_axis_frame(
+        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
+    )
+
+    var baseline_px = frame.x_scale.to_pixel(0.0)
+    # True only when every value here is non-negative (the only case
+    # _zero_baseline_y_extent's domain puts 0 exactly at the drawn
+    # left axis line) -- the horizontal mirror of _render_lollipop's
+    # own "baseline on the bottom axis line" check.
+    var baseline_on_axis_line = _round_to_int(baseline_px) == frame.px0
+    for i in range(len(plot.x_categories)):
+        var center = frame.y_scale.center(i)
+        var value_px = frame.x_scale.to_pixel(plot.y_data[i])
+        # Pulled 1px off the axis line, the same reasoning as
+        # _render_lollipop's own vertical stem, rotated: don't paint
+        # over the row the vertical axis line's own antialiasing
+        # occupies; left alone for a zero-value stem so it doesn't
+        # grow a real stem out of nothing.
+        var stem_start_px = baseline_px + 1.0 if (baseline_on_axis_line and value_px != baseline_px) else baseline_px
+
+        var stem = Path()
+        stem.move_to(stem_start_px, center)
+        stem.line_to(value_px, center)
+        target.stroke_path_aa(stem, theme.mark_color, width=frame.sc.line_width)
+
+        target.fill_circle_aa(
+            _round_to_int(value_px), _round_to_int(center), _round_to_int(frame.sc.point_radius), theme.mark_color
+        )
+
+    return frame.result()
+
+
 def lollipop(
     categories: List[String],
     values: List[Float64],
@@ -84,6 +142,7 @@ def lollipop(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    horizontal: Bool = False,
 ) raises -> Plot:
     """A lollipop chart -- `Mark.LOLLIPOP`, the same `(categories,
     values)` shape `bar()` takes (a thin stem plus a point instead of
@@ -102,6 +161,10 @@ def lollipop(
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
+        horizontal: Draw categories running top-to-bottom with each
+            stem extending left-to-right instead of the default
+            vertical layout -- see `Plot.mark_lollipop()`'s own
+            docstring (#121).
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
@@ -124,7 +187,7 @@ def lollipop(
             save(c, "docs/src/examples/out_lollipop.svg")
         ```
     """
-    var plot = Plot().mark_lollipop().encode_categorical(x=categories, y=values)
+    var plot = Plot().mark_lollipop(horizontal=horizontal).encode_categorical(x=categories, y=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
 
@@ -140,6 +203,7 @@ def lollipop[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    horizontal: Bool = False,
 ) raises -> Plot:
     """`lollipop()`, generalized over numeric element type -- see
     `scatter()`'s own `DType`-generic overload (plot.mojo) for the
@@ -147,5 +211,5 @@ def lollipop[
     """
     return lollipop(
         categories, _materialize_scalar_list(values), theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title, horizontal=horizontal,
     )

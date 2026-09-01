@@ -220,7 +220,7 @@ from dataviz.graph import _render_graph
 from dataviz.sankey import _render_sankey
 from dataviz.radialbar import _render_radialbar
 from dataviz.histogram import _bin_histogram
-from dataviz.lollipop import _render_lollipop
+from dataviz.lollipop import _render_lollipop, _render_horizontal_lollipop
 from dataviz.single_axis import _render_single_axis
 from dataviz.population_pyramid import _render_population_pyramid
 from dataviz.stacked_bar import _render_stacked_bar
@@ -564,17 +564,17 @@ struct Plot(Movable):
     # above.
     var _y_log: Bool
     var _x_log: Bool
-    # Set only via .mark_bar(horizontal=True) -- see that method's own
-    # docstring. Never independently settable (there's no .horizontal()
-    # builder method of its own), so `_mark == Mark.BAR` is guaranteed
-    # whenever this is True: no other render path has to check for or
-    # guard against a horizontal flag it doesn't understand. #121's own
-    # tracking issue surveyed every mark sharing `_draw_categorical_
-    # axis_frame` (12 of them) before choosing to start with just this
-    # one -- see that issue for which of the rest are real, common
-    # follow-ups (GROUPED_BAR/STACKED_BAR/LOLLIPOP/BOX/VIOLIN/BEESWARM)
-    # versus ones nobody actually wants flipped (CANDLESTICK/
-    # STREAMGRAPH are inherently time-on-x-axis).
+    # Set only via a mark_*(horizontal=True) parameter (`mark_bar()`,
+    # `mark_lollipop()`, ...) -- see #121's own tracking issue for the
+    # full list this is expected to grow to (every mark sharing
+    # `_draw_categorical_axis_frame`: BAR done, GROUPED_BAR/STACKED_BAR/
+    # LOLLIPOP/BOX/VIOLIN/BEESWARM are real, common follow-ups;
+    # CANDLESTICK/STREAMGRAPH nobody actually wants flipped, inherently
+    # time-on-x-axis). Never independently settable -- there's no
+    # `.horizontal()` builder method of its own -- so this is only ever
+    # `True` alongside a `_mark` whose own `mark_*()` method actually
+    # reads it; no other render path has to guard against a flag it
+    # doesn't understand.
     var _horizontal: Bool
     var _mark: Mark
     var _theme: Theme
@@ -791,14 +791,26 @@ struct Plot(Movable):
         self._mark = Mark.PARALLEL
         return self^
 
-    def mark_lollipop(var self) -> Self:
+    def mark_lollipop(var self, horizontal: Bool = False) -> Self:
         """A lollipop chart: one stem-plus-point per category, encoded
         via `encode_categorical()` -- exactly `mark_bar()`'s data
         shape (a bar chart and a lollipop chart differ only in how each
         category's magnitude is drawn, a filled rect vs. a thin stem
         with a point at its end, not in what the underlying data
-        means)."""
+        means).
+
+        `horizontal` (default `False`) -- exactly `mark_bar(horizontal=
+        True)`'s own flip, the first of the real, common follow-ups
+        that method's own docstring named (#121): categories running
+        top-to-bottom, each stem extending left-to-right from a zero
+        baseline instead of bottom-to-top. Built the same way, reusing
+        `_draw_horizontal_categorical_axis_frame` (gantt.mojo) rather
+        than an orientation flag threaded through `_render_lollipop`
+        itself -- see `_render_horizontal_lollipop`'s own docstring
+        (lollipop.mojo).
+        """
         self._mark = Mark.LOLLIPOP
+        self._horizontal = horizontal
         return self^
 
     def mark_waterfall(var self) -> Self:
@@ -6598,6 +6610,8 @@ def _render_generic[
             return _render_horizontal_bar(target, plot, ox0, oy0, ox1, oy1)
         return _render_bar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.LOLLIPOP:
+        if plot._horizontal:
+            return _render_horizontal_lollipop(target, plot, ox0, oy0, ox1, oy1)
         return _render_lollipop(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.WATERFALL:
         return _render_waterfall(target, plot, ox0, oy0, ox1, oy1)
