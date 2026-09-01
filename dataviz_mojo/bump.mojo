@@ -3,6 +3,7 @@ from canvas_mojo.text.render import TextAlign
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_nested_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.funnel import _descending_value_order
 from dataviz_mojo.grouped_bar import _validate_grouped_bar_series
@@ -294,10 +295,10 @@ def bump(
         def main() raises:
             var years: List[String] = ["2021", "2022", "2023", "2024"]
             var languages: List[String] = ["Python", "JavaScript", "Rust"]
-            var scores: List[List[Float64]] = [
-                [85.0, 90.0, 95.0, 98.0],
-                [92.0, 88.0, 84.0, 80.0],
-                [40.0, 55.0, 70.0, 85.0],
+            var scores: List[List[Int]] = [
+                [85, 90, 95, 98],
+                [92, 88, 84, 80],
+                [40, 55, 70, 85],
             ]
 
             var c = bump(years, languages, scores)
@@ -308,3 +309,26 @@ def bump(
         categories=categories, series_names=series_names, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, "Rank", subtitle=subtitle)
+
+
+def bump[
+    dtype: DType
+](
+    categories: List[String],
+    series_names: List[String],
+    values: List[List[Scalar[dtype]]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+) raises -> Plot:
+    """`bump()`, generalized over numeric element type for `values`
+    -- see `grouped_bar()`'s own `DType`-generic overload for the full
+    reasoning. Delegates to the concrete `bump()` above.
+    """
+    return bump(
+        categories, series_names, _materialize_nested_scalar_list(values), theme=theme, width=width,
+        height=height, title=title, subtitle=subtitle, x_title=x_title,
+    )

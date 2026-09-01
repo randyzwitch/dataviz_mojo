@@ -6,7 +6,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.vector.svg import SvgCanvas
 from canvas_mojo.buffer import Canvas
 
-from dataviz_mojo.array_like import _materialize_scalar_list
+from dataviz_mojo.array_like import _materialize_nested_scalar_list, _materialize_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -409,9 +409,9 @@ def polar_series(
                 angle.append(2.0 * pi * Float64(i) / 12.0)
 
             var names: List[String] = ["Miami", "Phoenix"]
-            var miami: List[Float64] = [68.0, 69.0, 72.0, 76.0, 80.0, 83.0, 84.0, 85.0, 84.0, 80.0, 74.0, 69.0]
-            var phoenix: List[Float64] = [57.0, 61.0, 66.0, 75.0, 84.0, 95.0, 97.0, 95.0, 90.0, 78.0, 65.0, 56.0]
-            var values: List[List[Float64]] = [miami.copy(), phoenix.copy()]
+            var miami: List[Int] = [68, 69, 72, 76, 80, 83, 84, 85, 84, 80, 74, 69]
+            var phoenix: List[Int] = [57, 61, 66, 75, 84, 95, 97, 95, 90, 78, 65, 56]
+            var values: List[List[Int]] = [miami.copy(), phoenix.copy()]
 
             var c = polar_series(angle, names, values)
             save(c, "docs/src/examples/out_polar_series.svg")
@@ -421,3 +421,29 @@ def polar_series(
         angle=angle, series_names=series_names, series_values=series_values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def polar_series[
+    dtype: DType
+](
+    angle: List[Float64],
+    series_names: List[String],
+    series_values: List[List[Scalar[dtype]]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`polar_series()`, generalized over numeric element type for
+    `series_values` -- the nested-list counterpart to `scatter()`'s
+    own `DType`-generic overload (plot.mojo), using `_materialize_
+    nested_scalar_list` (array_like.mojo). `angle` stays concrete.
+    Delegates to the concrete `polar_series()` above.
+    """
+    return polar_series(
+        angle, series_names, _materialize_nested_scalar_list(series_values), theme=theme, width=width,
+        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

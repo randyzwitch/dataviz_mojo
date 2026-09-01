@@ -7,6 +7,7 @@ from canvas_mojo.vector.svg import SvgCanvas
 from canvas_mojo.buffer import Canvas
 from canvas_mojo.text.render import TextAlign
 
+from dataviz_mojo.array_like import _materialize_nested_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -235,9 +236,9 @@ def radar(
             var indicators: List[String] = ["Attack", "Defense", "Speed", "Stamina", "Skill"]
             var max_values: List[Float64] = [100.0, 100.0, 100.0, 100.0, 100.0]
             var series_names: List[String] = ["Team A", "Team B"]
-            var series_values: List[List[Float64]] = [
-                [90.0, 60.0, 80.0, 70.0, 85.0],
-                [65.0, 85.0, 55.0, 90.0, 60.0],
+            var series_values: List[List[Int]] = [
+                [90, 60, 80, 70, 85],
+                [65, 85, 55, 90, 60],
             ]
 
             var c = radar(indicators, max_values, series_names, series_values)
@@ -251,3 +252,31 @@ def radar(
         series_values=series_values,
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def radar[
+    dtype: DType
+](
+    indicators: List[String],
+    max_values: List[Float64],
+    series_names: List[String],
+    series_values: List[List[Scalar[dtype]]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`radar()`, generalized over numeric element type for
+    `series_values` -- the nested-list counterpart to `scatter()`'s
+    own `DType`-generic overload (plot.mojo), using `_materialize_
+    nested_scalar_list` (array_like.mojo). `max_values` stays
+    concrete (its own flat-list axis is a real, separate follow-up).
+    Delegates to the concrete `radar()` above.
+    """
+    return radar(
+        indicators, max_values, series_names, _materialize_nested_scalar_list(series_values), theme=theme,
+        width=width, height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

@@ -5,6 +5,7 @@ from canvas_mojo.path import Path
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_nested_scalar_list
 from dataviz_mojo.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -188,11 +189,11 @@ def ridgeline(
 
         def main() raises:
             var months: List[String] = ["June", "July", "August", "September"]
-            var temps: List[List[Float64]] = [
-                [68.0, 70.0, 72.0, 74.0, 71.0, 69.0, 75.0, 73.0],
-                [78.0, 80.0, 82.0, 85.0, 79.0, 81.0, 83.0, 84.0],
-                [80.0, 82.0, 84.0, 86.0, 81.0, 83.0, 85.0, 87.0],
-                [70.0, 72.0, 74.0, 76.0, 71.0, 73.0, 75.0, 69.0],
+            var temps: List[List[Int]] = [
+                [68, 70, 72, 74, 71, 69, 75, 73],
+                [78, 80, 82, 85, 79, 81, 83, 84],
+                [80, 82, 84, 86, 81, 83, 85, 87],
+                [70, 72, 74, 76, 71, 73, 75, 69],
             ]
 
             var c = ridgeline(months, temps)
@@ -203,3 +204,29 @@ def ridgeline(
         categories=categories, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def ridgeline[
+    dtype: DType
+](
+    categories: List[String],
+    values: List[List[Scalar[dtype]]],
+    bandwidth: Float64 = 0.0,
+    scale_by_count: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`ridgeline()`, generalized over numeric element type for
+    `values` -- see `beeswarm()`'s own `DType`-generic overload for
+    the full reasoning. Delegates to the concrete `ridgeline()` above.
+    """
+    return ridgeline(
+        categories, _materialize_nested_scalar_list(values), bandwidth=bandwidth,
+        scale_by_count=scale_by_count, theme=theme, width=width, height=height, title=title,
+        subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

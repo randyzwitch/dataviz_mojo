@@ -3,6 +3,7 @@ from canvas_mojo.text.render import TextAlign
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_nested_scalar_list
 from dataviz_mojo.color_scale import ColorScale
 from canvas_mojo.text.font_cache import FontCache
 from dataviz_mojo.heatmap import _draw_grid_axis_frame
@@ -236,3 +237,32 @@ def corrplot(
         variables=variables, matrix=matrix
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def corrplot[
+    dtype: DType
+](
+    variables: List[String],
+    matrix: List[List[Scalar[dtype]]],
+    layout: String = "full",
+    diag: Bool = True,
+    labels: Bool = True,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`corrplot()`, generalized over numeric element type for
+    `matrix` -- the nested-list counterpart to `scatter()`'s own
+    `DType`-generic overload (plot.mojo), using `_materialize_nested_
+    scalar_list` (array_like.mojo). Delegates to the concrete
+    `corrplot()` above.
+    """
+    return corrplot(
+        variables, _materialize_nested_scalar_list(matrix), layout=layout, diag=diag, labels=labels,
+        theme=theme, width=width, height=height, title=title, subtitle=subtitle, x_title=x_title,
+        y_title=y_title,
+    )

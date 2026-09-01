@@ -5,6 +5,7 @@ from canvas_mojo.path import Path
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_nested_scalar_list
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
     Plot,
@@ -225,10 +226,10 @@ def violin(
 
         def main() raises:
             var classes: List[String] = ["Section A", "Section B", "Section C"]
-            var scores: List[List[Float64]] = [
-                [72.0, 75.0, 78.0, 80.0, 74.0, 76.0, 91.0],
-                [65.0, 70.0, 72.0, 88.0, 90.0, 92.0, 95.0],
-                [80.0, 82.0, 83.0, 84.0, 81.0, 79.0, 85.0],
+            var scores: List[List[Int]] = [
+                [72, 75, 78, 80, 74, 76, 91],
+                [65, 70, 72, 88, 90, 92, 95],
+                [80, 82, 83, 84, 81, 79, 85],
             ]
 
             var c = violin(classes, scores)
@@ -239,3 +240,29 @@ def violin(
         categories=categories, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def violin[
+    dtype: DType
+](
+    categories: List[String],
+    values: List[List[Scalar[dtype]]],
+    bandwidth: Float64 = 0.0,
+    scale_by_count: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`violin()`, generalized over numeric element type for
+    `values` -- see `beeswarm()`'s own `DType`-generic overload for
+    the full reasoning. Delegates to the concrete `violin()` above.
+    """
+    return violin(
+        categories, _materialize_nested_scalar_list(values), bandwidth=bandwidth,
+        scale_by_count=scale_by_count, theme=theme, width=width, height=height, title=title,
+        subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

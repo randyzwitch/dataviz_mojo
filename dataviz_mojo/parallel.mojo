@@ -5,6 +5,7 @@ from canvas_mojo.vector.svg import SvgCanvas
 from canvas_mojo.buffer import Canvas
 from canvas_mojo.text.render import TextAlign
 
+from dataviz_mojo.array_like import _materialize_nested_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -220,3 +221,29 @@ def parallel(
     """
     var plot = Plot().mark_parallel().encode_parallel(dims=dims, row_names=row_names, data=data)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def parallel[
+    dtype: DType
+](
+    data: List[List[Scalar[dtype]]],
+    dims: List[String],
+    row_names: List[String],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`parallel()`, generalized over numeric element type for
+    `data` -- the nested-list counterpart to `scatter()`'s own
+    `DType`-generic overload (plot.mojo), using `_materialize_nested_
+    scalar_list` (array_like.mojo). Delegates to the concrete
+    `parallel()` above.
+    """
+    return parallel(
+        _materialize_nested_scalar_list(data), dims, row_names, theme=theme, width=width, height=height,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

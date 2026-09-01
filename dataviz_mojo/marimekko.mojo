@@ -3,6 +3,7 @@ from canvas_mojo.text.render import TextAlign
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_nested_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.mark import Mark
 from dataviz_mojo.plot import (
@@ -232,10 +233,10 @@ def marimekko(
         def main() raises:
             var regions: List[String] = ["Northeast", "Midwest", "South", "West"]
             var sources: List[String] = ["Coal", "Gas", "Renewables"]
-            var generation: List[List[Float64]] = [
-                [5.0, 20.0, 15.0, 3.0],
-                [30.0, 35.0, 50.0, 20.0],
-                [10.0, 15.0, 10.0, 27.0],
+            var generation: List[List[Int]] = [
+                [5, 20, 15, 3],
+                [30, 35, 50, 20],
+                [10, 15, 10, 27],
             ]
 
             var c = marimekko(regions, sources, generation)
@@ -246,3 +247,29 @@ def marimekko(
         categories=categories, subcategories=subcategories, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def marimekko[
+    dtype: DType
+](
+    categories: List[String],
+    subcategories: List[String],
+    values: List[List[Scalar[dtype]]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`marimekko()`, generalized over numeric element type for
+    `values` -- the nested-list counterpart to `scatter()`'s own
+    `DType`-generic overload (plot.mojo), using `_materialize_nested_
+    scalar_list` (array_like.mojo). Delegates to the concrete
+    `marimekko()` above.
+    """
+    return marimekko(
+        categories, subcategories, _materialize_nested_scalar_list(values), theme=theme, width=width,
+        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+    )

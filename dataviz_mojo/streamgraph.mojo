@@ -3,6 +3,7 @@ from canvas_mojo.path import Path
 from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
+from dataviz_mojo.array_like import _materialize_nested_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.grouped_bar import _validate_grouped_bar_series
 from dataviz_mojo.mark import Mark
@@ -225,10 +226,10 @@ def streamgraph(
         def main() raises:
             var years: List[String] = ["2020", "2021", "2022", "2023", "2024"]
             var genres: List[String] = ["Pop", "Rock", "Jazz"]
-            var listens: List[List[Float64]] = [
-                [30.0, 40.0, 55.0, 60.0, 50.0],
-                [45.0, 35.0, 30.0, 25.0, 20.0],
-                [10.0, 15.0, 12.0, 18.0, 25.0],
+            var listens: List[List[Int]] = [
+                [30, 40, 55, 60, 50],
+                [45, 35, 30, 25, 20],
+                [10, 15, 12, 18, 25],
             ]
 
             var c = streamgraph(years, genres, listens)
@@ -241,3 +242,28 @@ def streamgraph(
         categories=categories, series_names=series_names, values=values
     )
     return _finished(plot^, t, width, height, title, x_title, "", subtitle=subtitle)
+
+
+def streamgraph[
+    dtype: DType
+](
+    categories: List[String],
+    series_names: List[String],
+    values: List[List[Scalar[dtype]]],
+    theme: Theme = Theme(),
+    smoothing: Float64 = 0.6,
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+) raises -> Plot:
+    """`streamgraph()`, generalized over numeric element type for
+    `values` -- see `grouped_bar()`'s own `DType`-generic overload for
+    the full reasoning. Delegates to the concrete `streamgraph()`
+    above.
+    """
+    return streamgraph(
+        categories, series_names, _materialize_nested_scalar_list(values), theme=theme, smoothing=smoothing,
+        width=width, height=height, title=title, subtitle=subtitle, x_title=x_title,
+    )

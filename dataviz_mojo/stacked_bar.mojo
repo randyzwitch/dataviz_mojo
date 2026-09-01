@@ -3,6 +3,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
 from canvas_mojo.text.render import TextAlign
+from dataviz_mojo.array_like import _materialize_nested_scalar_list
 from dataviz_mojo.color_scale import default_categorical_palette
 from dataviz_mojo.grouped_bar import _series_legend_reserve, _validate_grouped_bar_series
 from dataviz_mojo.mark import Mark
@@ -252,10 +253,10 @@ def stacked_bar(
         def main() raises:
             var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4"]
             var series_names: List[String] = ["North", "South", "East"]
-            var values: List[List[Float64]] = [
-                [42.0, 48.0, 45.0, 61.0],
-                [30.0, 35.0, 33.0, 40.0],
-                [55.0, 50.0, 58.0, 66.0],
+            var values: List[List[Int]] = [
+                [42, 48, 45, 61],
+                [30, 35, 33, 40],
+                [55, 50, 58, 66],
             ]
 
             var c = stacked_bar(
@@ -273,3 +274,29 @@ def stacked_bar(
         categories=categories, series_names=series_names, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+
+
+def stacked_bar[
+    dtype: DType
+](
+    categories: List[String],
+    series_names: List[String],
+    values: List[List[Scalar[dtype]]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+    percent: Bool = False,
+) raises -> Plot:
+    """`stacked_bar()`, generalized over numeric element type for
+    `values` -- see `grouped_bar()`'s own `DType`-generic overload for
+    the full reasoning. Delegates to the concrete `stacked_bar()`
+    above.
+    """
+    return stacked_bar(
+        categories, series_names, _materialize_nested_scalar_list(values), theme=theme, width=width,
+        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title, percent=percent,
+    )
