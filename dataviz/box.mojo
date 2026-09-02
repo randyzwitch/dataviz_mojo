@@ -1,6 +1,6 @@
-from canvas_mojo.geometry import _round_to_int
-from canvas_mojo.vector.draw_target import DrawTarget
-from canvas_mojo.buffer import Canvas
+from canvas.geometry import _round_to_int
+from canvas.vector.draw_target import DrawTarget
+from canvas.buffer import Canvas
 
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.mark import Mark

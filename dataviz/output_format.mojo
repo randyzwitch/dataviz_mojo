@@ -1,15 +1,15 @@
 """The file format `save()` (this module's sibling `plot.mojo`) writes
 when a caller hands it a `Plot` and a path, rather than picking a
-`canvas_mojo` backend by hand. Follows the same small-struct-with-
+`canvas` backend by hand. Follows the same small-struct-with-
 comptime-constants-and-`__eq__` pattern `Mark` (mark.mojo) and
-canvas_mojo's `FillRule`/`TextAlign` use, not a distinct enum
+canvas's `FillRule`/`TextAlign` use, not a distinct enum
 mechanism.
 
 Named after the concrete file formats a caller actually asks for --
-`SVG`/`PNG`/`BMP` -- rather than the two `canvas_mojo` backends
+`SVG`/`PNG`/`BMP` -- rather than the two `canvas` backends
 underneath (`SvgCanvas`/`Canvas`) that render() them: `PNG` and `BMP`
 both route through the same raster `Canvas` render pass, differing
-only in which `canvas_mojo.io` writer gets called at the end, so
+only in which `canvas.io` writer gets called at the end, so
 naming this after backends instead of formats would expose exactly
 the implementation detail `save()` exists to hide.
 

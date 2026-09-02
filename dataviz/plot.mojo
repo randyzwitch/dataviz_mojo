@@ -17,7 +17,7 @@ composition style settled on for this package specifically.
 `render(plot)`/`render_svg(plot)` are the two entry points that turn a
 Plot into pixels or into SVG markup, each returning a fresh
 `Canvas`/`SvgCanvas` built from `plot.width`/`plot.height` (see
-`Plot.size()`) -- no `canvas_mojo` type for a caller to construct by
+`Plot.size()`) -- no `canvas` type for a caller to construct by
 hand first (see `save()`'s docstring for the "don't even pick a
 backend" convenience layered on top of these two). Both are a single
 batch pass, no retained scene graph and no reactive signals (see
@@ -39,7 +39,7 @@ core underneath (`_render_generic`, `_render_bar`, `_render_arc` --
 each `[T: DrawTarget]`, see canvas/draw_target.mojo's docstring for
 what that trait is and why it exists) for everything except *text*:
 `DrawTarget` deliberately has no `draw_text` method (drawing real text
-needs `canvas_mojo.text`'s native FreeType/fontconfig glyph machinery
+needs `canvas.text`'s native FreeType/fontconfig glyph machinery
 for the raster path, or SVG-specific markup for the vector one, and
 forcing either dependency onto the other would defeat the point), so
 text is collected as a `List[_TextRequest]` while the generic pass
@@ -141,18 +141,18 @@ assertions -- this whole test suite's hand-verified ones included).
 from std.collections import Dict
 from std.math import log10, pi
 
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.color import Color
-from canvas_mojo.gradient import LinearGradient
-from canvas_mojo.io.bmp import write_bmp
-from canvas_mojo.io.png import write_png
-from canvas_mojo.resize import downsample
-from canvas_mojo.vector.draw_target import DrawTarget
-from canvas_mojo.geometry import _round_to_int
-from canvas_mojo.path import Path
-from canvas_mojo.vector.svg import SvgCanvas, write_svg, _escape_xml_text, _escape_xml_attr
-from canvas_mojo.text.render import draw_text, measure_text, FontWeight, TextAlign
-from canvas_mojo.text.font_cache import FontCache
+from canvas.buffer import Canvas
+from canvas.color import Color
+from canvas.gradient import LinearGradient
+from canvas.io.bmp import write_bmp
+from canvas.io.png import write_png
+from canvas.resize import downsample
+from canvas.vector.draw_target import DrawTarget
+from canvas.geometry import _round_to_int
+from canvas.path import Path
+from canvas.vector.svg import SvgCanvas, write_svg, _escape_xml_text, _escape_xml_attr
+from canvas.text.render import draw_text, measure_text, FontWeight, TextAlign
+from canvas.text.font_cache import FontCache
 
 from dataviz.array_like import (
     Float64Sequence,
@@ -3008,7 +3008,7 @@ struct Plot(Movable):
         line(target).annotate_line(average, label="avg")` draws both.
         `label`, when non-empty, draws to the right of the line, in
         `Theme.annotation_color`'s muted tone; the line itself
-        spans the full plot width, solid (not dashed -- canvas_mojo has
+        spans the full plot width, solid (not dashed -- canvas has
         no dashed-stroke primitive at all yet, a real, separate gap,
         not something this feature works around). A `value` outside
         the mark's (padded) y-domain draws nothing at all -- not
@@ -3696,7 +3696,7 @@ def _decimate_to_pixel_columns(px: List[Float64], py: List[Float64]) -> _Decimat
     what makes a 5000-point line chart take ~1.7s against ~21ms for the
     same points as a scatter). Dropping them is the only fix available
     from this side of the library; the per-segment constant itself
-    lives in canvas_mojo.
+    lives in canvas.
 
     Per column this keeps exactly the **minimum** and **maximum** y,
     emitted in original data order (and collapsed to one point when a
@@ -3805,10 +3805,10 @@ def _max_label_width(labels: List[String], font_size: Float64) raises -> Float64
     list). A caller that measures *twice* in one render -- a y-axis
     tick list and then a legend's labels, which several marks do --
     should use the `cache=` overload below and share one cache between
-    the two instead, since a fresh cache re-pays canvas_mojo's font
+    the two instead, since a fresh cache re-pays canvas's font
     resolution and TTF parse: measured at 0.44ms for a 5-label call
     against 0.056ms once the cache is warm. Two overloads rather than
-    one required parameter deliberately mirrors canvas_mojo's `measure_text`/`draw_text` pair, and keeps the two dozen
+    one required parameter deliberately mirrors canvas's `measure_text`/`draw_text` pair, and keeps the two dozen
     single-measurement call sites in this package untouched.
     """
     var cache = FontCache()
@@ -3877,10 +3877,10 @@ def _dynamic_legend_width(
 struct _TextRequest(Copyable, Movable):
     """One deferred `draw_text()` call -- collected while the generic,
     `DrawTarget`-bounded rendering pass runs, instead of drawn inline
-    right away (see canvas_mojo/draw_target.mojo's docstring for why
+    right away (see canvas/draw_target.mojo's docstring for why
     `DrawTarget` itself has no `draw_text` method to call). `render()`/
     `render_svg()` each replay a returned list of these their way
-    -- `canvas_mojo.text.draw_text` for the former, `SvgCanvas.draw_text`
+    -- `canvas.text.draw_text` for the former, `SvgCanvas.draw_text`
     for the latter -- once the shared generic pass that collected them
     returns; see either function's body for exactly where.
 
@@ -4029,7 +4029,7 @@ def _draw_continuous_color_legend[T: DrawTarget](
     #
     # The raster path was always correct, which is exactly why this
     # survived: `_color_at_t` scans for the bracketing pair rather than
-    # assuming sorted input (see canvas_mojo/gradient.mojo), so the
+    # assuming sorted input (see canvas/gradient.mojo), so the
     # same code produced a correct .png and a broken .svg from one
     # render. Only the vector output was ever wrong.
     #
@@ -4847,7 +4847,7 @@ def _draw_annotation_points[
     The marker itself is a plain filled circle, `sc.point_radius` (the
     same radius a standalone `Mark.POINT` plot's points use), in
     `Theme.annotation_color` -- not a distinct "pin" glyph the way
-    ECharts' `markPoint` defaults to (canvas_mojo has no such shape
+    ECharts' `markPoint` defaults to (canvas has no such shape
     primitive to draw one with; a circle is what `_draw_point_layer`
     has, and reusing it keeps this consistent with everything
     else `Theme.annotation_color` marks). Its own label, when
@@ -5031,7 +5031,7 @@ def _draw_annotation_best_fit[
 
 def _replay_text_requests(mut canvas: Canvas, requests: List[_TextRequest], mut cache: FontCache) raises:
     """Draw every `_TextRequest` in `requests` into `canvas` via
-    `canvas_mojo.text.draw_text` -- the raster half of replaying the
+    `canvas.text.draw_text` -- the raster half of replaying the
     deferred labels `_render_generic` and friends hand back (see
     `_TextRequest`'s docstring for why they're deferred at all).
 
@@ -5061,11 +5061,11 @@ def _replay_text_requests(mut canvas: Canvas, requests: List[_TextRequest], mut 
 def _replay_text_requests_svg(mut svg: SvgCanvas, requests: List[_TextRequest]) raises:
     """`_replay_text_requests`' exact counterpart for `SvgCanvas` --
     same deferred-label replay, `SvgCanvas.draw_text` (plain markup
-    emission, no glyph machinery) in place of `canvas_mojo.text.
+    emission, no glyph machinery) in place of `canvas.text.
     draw_text`, the same relationship `render_svg()` has to `render()`.
     Kept a separate function rather than folded into one `DrawTarget`-
     generic helper because `DrawTarget` deliberately has no `draw_text`
-    method to dispatch through -- see canvas_mojo/draw_target.mojo's docstring for why text is the one thing that never crosses
+    method to dispatch through -- see canvas/draw_target.mojo's docstring for why text is the one thing that never crosses
     that trait boundary.
     """
     for req in requests:
@@ -5098,7 +5098,7 @@ comptime _RASTER_SUPERSAMPLE = 3
 """How many times larger than the requested size `render()`/`render_
 facets()`/`render_layers()` actually draw at internally, before
 shrinking back down -- genuinely finer-grained anti-aliasing than
-drawing directly at the final size would produce (see `canvas_mojo.
+drawing directly at the final size would produce (see `canvas.
 resize.downsample`'s docstring for the mechanism). Unconditional, not
 a `Theme` field or a caller-visible knob: turning a `Plot`/`List[Plot]`
 into raster pixels should just look good, the same way turning one
@@ -5141,7 +5141,7 @@ def render(mut plot: Plot) raises -> Canvas:
     """Render `plot` into a fresh `Canvas` sized `plot.width` x
     `plot.height` (see `Plot.size()`) and return it, supersampled by
     `_RASTER_SUPERSAMPLE` -- the only public single-plot raster entry
-    point; no `canvas_mojo` type to construct by hand first, and no
+    point; no `canvas` type to construct by hand first, and no
     lower-quality "precise" mode to opt out of: this is just what
     turning a `Plot` into pixels means here.
 
@@ -5221,9 +5221,9 @@ def _render_into(
     than the full outer bounds (see `_apply_labels`'s docstring for
     why this is a two-phase split) -- and finally draws every
     `_TextRequest` (the title(s) plus whatever `_render_generic` itself
-    returned) via `canvas_mojo.text.draw_text` -- the one piece
+    returned) via `canvas.text.draw_text` -- the one piece
     `_render_generic` itself can't do, since it's generic over any
-    `DrawTarget` and drawing real text needs `canvas_mojo.text`'s native glyph machinery, specific to this raster path (see
+    `DrawTarget` and drawing real text needs `canvas.text`'s native glyph machinery, specific to this raster path (see
     `_TextRequest`'s docstring).
 
     The whole *original* `(ox0, oy0)`-`(cx1, cy1)` rect is filled with
@@ -5296,7 +5296,7 @@ def _render_into(
 def render_svg(plot: Plot) raises -> SvgCanvas:
     """Render `plot` into a fresh `SvgCanvas` sized `plot.width` x
     `plot.height` and return it -- `render()`'s exact counterpart for
-    the vector backend; no `canvas_mojo` type to construct by hand
+    the vector backend; no `canvas` type to construct by hand
     first. A thin wrapper around `_render_svg_into`, mirroring
     `render()`'s relationship to `_render_into` exactly.
     """
@@ -5313,7 +5313,7 @@ def _render_svg_into(
     same `_TextRequest` lists handed back afterward; the only
     difference is *how* those get drawn (`SvgCanvas.draw_text`, plain
     markup emission, no font/glyph machinery involved at all) -- see
-    `_render_into`'s docstring for the shared story, and canvas_mojo/
+    `_render_into`'s docstring for the shared story, and canvas/
     draw_target.mojo's for why text is deferred like this in the first
     place. Private the same way `_render_into` is, for the same reason:
     `render_svg()` is this function's only caller; `render_facets_svg()`/
@@ -5376,8 +5376,8 @@ def save(mut plot: Plot, path: String) raises:
     for. Picks a format via `_resolve_output_format()` (`path`'s own
     extension, falling back to `plot._theme.output_format` -- `Theme`'s
     docstring), then calls whichever of `render()`/`render_svg()` that
-    format needs and hands the result to the matching `canvas_mojo.io`/
-    `canvas_mojo.vector.svg` writer -- `PNG`/`BMP` both render through
+    format needs and hands the result to the matching `canvas.io`/
+    `canvas.vector.svg` writer -- `PNG`/`BMP` both render through
     the same raster `render()` path, differing only in which writer
     runs.
 
@@ -5399,7 +5399,7 @@ def save(mut plot: Plot, path: String) raises:
     counterparts, for a `List[Plot]` instead of one `Plot`; the `save(
     canvas: Canvas, path: String)` overload just below is for an
     already-rendered `Canvas` obtained some other way (`render()`,
-    `canvas_mojo.resize.downsample()`, ...) instead of a `Plot` this
+    `canvas.resize.downsample()`, ...) instead of a `Plot` this
     function would still need to render itself.
     """
     var format = _resolve_output_format(plot._theme.output_format, path)
@@ -5416,7 +5416,7 @@ def save(canvas: Canvas, path: String) raises:
     for a caller who wants that explicit two-step instead of `save(
     plot: Plot, path: String)`'s one-step convenience -- to `path` in
     one call, without importing `write_bmp`/`write_png` from
-    `canvas_mojo.io` directly. Picks PNG or BMP from `path`'s own
+    `canvas.io` directly. Picks PNG or BMP from `path`'s own
     extension (case-insensitive), defaulting to PNG when the extension
     isn't `.bmp` -- there's no `Theme` to fall back to the way `save(
     plot: Plot, path: String)` has one (`canvas` is already-rendered
@@ -5573,7 +5573,7 @@ def accessible_svg_string(svg: SvgCanvas, title: String, description: String = "
 
 def write_accessible_svg(svg: SvgCanvas, path: String, title: String, description: String = "") raises:
     """`accessible_svg_string()`, written to `path` -- the same
-    relationship `canvas_mojo.vector.svg.write_svg` has to `SvgCanvas.
+    relationship `canvas.vector.svg.write_svg` has to `SvgCanvas.
     to_string()`. See that function's docstring for what gets
     added and why, including its honest scope note about which
     embedding contexts actually benefit from any of this.
@@ -6705,7 +6705,7 @@ def _render_generic[
     # One FontCache for every measurement this render makes. Both the
     # legend sizing below and the axis frame's tick-label
     # measurement resolve the same font; a fresh cache per call re-pays
-    # canvas_mojo's font resolution *and* its TTF parse (0.44ms for a
+    # canvas's font resolution *and* its TTF parse (0.44ms for a
     # 5-label call, against 0.056ms once warm), which is pure waste
     # when the two calls are microseconds apart in the same render.
     var measure_cache = FontCache()
@@ -7038,7 +7038,7 @@ def render_facets(mut plots: List[Plot], cols: Int, shared_y_scale: Bool = False
 def render_facets_svg(plots: List[Plot], cols: Int, shared_y_scale: Bool = False) raises -> SvgCanvas:
     """`render_facets()`'s exact counterpart for `SvgCanvas` -- same
     shared `_render_facets_generic` core, `SvgCanvas.draw_text` in
-    place of `canvas_mojo.text.draw_text` for the returned labels, the same
+    place of `canvas.text.draw_text` for the returned labels, the same
     relationship `render_svg()` has to `render()` (see that function's docstring).
 
     Same `cols <= 0` guard as `render_facets()`, checked before `rows`/
@@ -7400,7 +7400,7 @@ Restricted to `Mark.POINT`/`LINE`/`AREA`, *plus* an
 def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
     """`render_layers()`'s exact counterpart for `SvgCanvas` -- same
     shared `_render_layers_generic` core, `SvgCanvas.draw_text` in
-    place of `canvas_mojo.text.draw_text` for the returned labels, the same
+    place of `canvas.text.draw_text` for the returned labels, the same
     relationship `render_svg()` has to `render()`. Same `_require_
     uniform_size` precondition and empty-`plots` behavior as
     `render_layers()` -- see its docstring.

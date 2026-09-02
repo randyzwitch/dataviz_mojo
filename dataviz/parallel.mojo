@@ -1,9 +1,9 @@
-from canvas_mojo.color import Color
-from canvas_mojo.path import Path
-from canvas_mojo.vector.draw_target import DrawTarget
-from canvas_mojo.vector.svg import SvgCanvas
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.text.render import TextAlign
+from canvas.color import Color
+from canvas.path import Path
+from canvas.vector.draw_target import DrawTarget
+from canvas.vector.svg import SvgCanvas
+from canvas.buffer import Canvas
+from canvas.text.render import TextAlign
 
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette

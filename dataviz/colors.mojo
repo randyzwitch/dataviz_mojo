@@ -27,7 +27,7 @@ need. `CSS`-standard names only, not an invented palette -- an actual
 subset that someone would eventually ask to extend one color at a
 time.
 
-Deliberately not part of `canvas_mojo.Color` itself (see color_scale.
+Deliberately not part of `canvas.Color` itself (see color_scale.
 mojo's `default_categorical_palette()` docstring for the same "keep
 the core type minimal" reasoning) -- this file has no dependency on
 anything else in
@@ -45,7 +45,7 @@ means jumping to the O's, not guessing whether it counts as "warm" or
 "reds" here.
 """
 
-from canvas_mojo.color import Color
+from canvas.color import Color
 
 comptime ALICEBLUE = Color(240, 248, 255)
 comptime ANTIQUEWHITE = Color(250, 235, 215)

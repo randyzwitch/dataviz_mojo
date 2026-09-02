@@ -9,7 +9,7 @@ given with color_categories empty).
 from std.collections import Dict
 from std.testing import assert_raises, assert_true, TestSuite
 
-from canvas_mojo.color import Color
+from canvas.color import Color
 from dataviz.plot import Plot, render, render_svg
 
 

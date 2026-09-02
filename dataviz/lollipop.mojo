@@ -1,7 +1,7 @@
-from canvas_mojo.geometry import _round_to_int
-from canvas_mojo.path import Path
-from canvas_mojo.vector.draw_target import DrawTarget
-from canvas_mojo.buffer import Canvas
+from canvas.geometry import _round_to_int
+from canvas.path import Path
+from canvas.vector.draw_target import DrawTarget
+from canvas.buffer import Canvas
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.mark import Mark
@@ -36,7 +36,7 @@ def _render_lollipop[
     strokes through, the same sub-pixel-precision convention `Mark.
     LINE`/`AREA` already use for their `Path`s -- only the point's
     *center*, passed to `fill_circle_aa` (an `Int`-coordinate primitive,
-    see canvas_mojo/draw_target.mojo), gets rounded, matching `Mark.POINT`'s `_axis_pixel` convention.
+    see canvas/draw_target.mojo), gets rounded, matching `Mark.POINT`'s `_axis_pixel` convention.
     """
     _validate_categorical_encoding(plot)
 

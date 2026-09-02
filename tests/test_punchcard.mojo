@@ -6,7 +6,7 @@ punchcard.mojo's docstrings for the rules verified here.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from canvas_mojo.color import Color
+from canvas.color import Color
 from dataviz.plot import Plot, render, render_svg
 from dataviz.theme import Theme
 from dataviz import punchcard

@@ -1,10 +1,10 @@
 from std.math import pi
 
-from canvas_mojo.color import Color
-from canvas_mojo.vector.draw_target import DrawTarget
-from canvas_mojo.vector.svg import SvgCanvas
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.text.render import TextAlign
+from canvas.color import Color
+from canvas.vector.draw_target import DrawTarget
+from canvas.vector.svg import SvgCanvas
+from canvas.buffer import Canvas
+from canvas.text.render import TextAlign
 
 from dataviz.mark import Mark
 from dataviz.plot import Plot, _RenderResult, _Scaled, _TextRequest, _finished

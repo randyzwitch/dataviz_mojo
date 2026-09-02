@@ -4,7 +4,7 @@ colors, the radius-vs-area rose_type distinction, SVG wedge paths.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from canvas_mojo.color import Color
+from canvas.color import Color
 from dataviz.color_scale import default_categorical_palette
 from dataviz.plot import Plot, render, render_svg
 from dataviz.theme import Theme

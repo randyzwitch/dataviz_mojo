@@ -1,6 +1,6 @@
 """The geometric primitive a data row becomes -- the grammar-of-
 graphics `mark` concept. Follows the same small-struct-with-comptime-
-constants-and-`__eq__` pattern canvas_mojo.FillRule/canvas_mojo.TextAlign
+constants-and-`__eq__` pattern canvas.FillRule/canvas.TextAlign
 use, not a distinct enum mechanism.
 
 POINT (scatter) and LINE share continuous x/y encoding. LINE's

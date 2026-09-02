@@ -12,7 +12,7 @@ fed a different value).
 
 from std.testing import assert_equal, TestSuite
 
-from canvas_mojo.color import Color
+from canvas.color import Color
 from dataviz import (
     render,
     RED,

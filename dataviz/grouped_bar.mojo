@@ -1,8 +1,8 @@
-from canvas_mojo.geometry import _round_to_int
-from canvas_mojo.vector.draw_target import DrawTarget
-from canvas_mojo.buffer import Canvas
+from canvas.geometry import _round_to_int
+from canvas.vector.draw_target import DrawTarget
+from canvas.buffer import Canvas
 
-from canvas_mojo.text.render import TextAlign
+from canvas.text.render import TextAlign
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
 from dataviz.mark import Mark

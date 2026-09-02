@@ -1,5 +1,5 @@
 """Tests for color_scale.mojo: ColorScale.color_at -- shares its
-interpolation math with canvas_mojo.gradient's LinearGradient/
+interpolation math with canvas.gradient's LinearGradient/
 RadialGradient (already exhaustively tested there), so these focus on
 what's specific to ColorScale: projecting a data domain (not a pixel
 position) onto [0, 1], and the zero-span-domain degenerate case.

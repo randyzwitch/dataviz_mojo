@@ -8,7 +8,7 @@ behavior when a band's x/y overshoot the mark's own domain.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from canvas_mojo.color import Color
+from canvas.color import Color
 from dataviz.plot import Plot, render, render_svg
 from dataviz.theme import Theme
 
@@ -58,7 +58,7 @@ def test_render_svg_annotate_band_matches_hand_derived_path_and_label() raises:
 
 
 def test_render_annotate_band_raster_draws_fill_at_a_hand_derived_point() raises:
-    # Raster-side companion -- confirms canvas_mojo.fill_path_aa
+    # Raster-side companion -- confirms canvas.fill_path_aa
     # actually painted the band's fill, not just that the SVG
     # backend's own path/attribute plumbing is correct. x=90 sits well
     # inside the band and away from the line's own diagonal (same

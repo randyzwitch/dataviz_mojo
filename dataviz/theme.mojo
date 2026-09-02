@@ -240,7 +240,7 @@ the `_lighten()`-style pre-blend-against-white `halo_alpha`/
 *consistent* tint regardless of what happens to be behind it, but a
 reference band's whole point is marking a region on the *existing*
 chart, so it should let whatever the mark drew there keep showing
-through instead of painting fully over it. Both canvas_mojo backends
+through instead of painting fully over it. Both canvas backends
 already composite `Color.a` correctly (`Canvas.write_pixel`'s
 `blend_over`, `SvgCanvas.fill_rect`'s `fill-opacity`), so this is a
 plain color value, not special-cased draw logic. Tuned so the over-white look
@@ -257,7 +257,7 @@ independently themed `Plot`s into one shared draw pass, so a family
 read once, globally, would silently apply the wrong plot's choice
 to every other plot sharing that canvas). `"sans-serif"` is
 deliberately a value valid in *both* worlds a caller's chosen family
-ends up in -- `canvas_mojo.text.draw_text`'s raster path resolves
+ends up in -- `canvas.text.draw_text`'s raster path resolves
 it as a fontconfig family/alias (fontconfig ships `sans-serif` as a
 recognized generic alias, the same generic-substitution concept CSS's `sans-serif` keyword is, alongside its older capitalized `Sans`
 form), while `SvgCanvas.draw_text`'s `family` parameter is a
@@ -297,7 +297,7 @@ everywhere `font_family` needed to be, since nothing else ever wants
 
 from std.math import pi
 
-from canvas_mojo.color import Color
+from canvas.color import Color
 
 from dataviz.colors import WHITE
 from dataviz.output_format import OutputFormat
@@ -506,7 +506,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     independent `Theme` field, not a reuse of anything else here."""
     var output_format: OutputFormat
     """The file format `save()` (plot.mojo) writes when given a `Plot`
-    and a path, with no `canvas_mojo` backend named at the call site --
+    and a path, with no `canvas` backend named at the call site --
     defaults to `OutputFormat.SVG` (see that struct's docstring for why
     vector is the default). `render()`/`render_svg()` ignore this field
     entirely; it only governs `save()`'s own choice."""

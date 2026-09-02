@@ -1,11 +1,11 @@
-from canvas_mojo.geometry import _round_to_int
-from canvas_mojo.text.render import TextAlign
-from canvas_mojo.vector.draw_target import DrawTarget
-from canvas_mojo.buffer import Canvas
+from canvas.geometry import _round_to_int
+from canvas.text.render import TextAlign
+from canvas.vector.draw_target import DrawTarget
+from canvas.buffer import Canvas
 
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import ColorScale
-from canvas_mojo.text.font_cache import FontCache
+from canvas.text.font_cache import FontCache
 from dataviz.heatmap import _draw_grid_axis_frame
 from dataviz.mark import Mark
 from dataviz.plot import (

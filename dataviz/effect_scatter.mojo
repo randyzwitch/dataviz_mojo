@@ -1,4 +1,4 @@
-from canvas_mojo.buffer import Canvas
+from canvas.buffer import Canvas
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.plot import Plot, _finished
