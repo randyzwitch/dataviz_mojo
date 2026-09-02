@@ -5,6 +5,7 @@ from canvas_mojo.buffer import Canvas
 from canvas_mojo.text.render import TextAlign
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
+from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.grouped_bar import _series_legend_reserve, _validate_grouped_bar_series
 from dataviz.mark import Mark
 from dataviz.scale import LinearScale
@@ -204,6 +205,132 @@ def _render_stacked_bar[
     return frame.result()
 
 
+def _render_horizontal_stacked_bar[
+    T: DrawTarget
+](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+    """`_render_stacked_bar`'s mirror image for `Plot.mark_stacked_bar(
+    horizontal=True)` (#121) -- exactly `_render_horizontal_bar`'s own
+    categorical y-axis / zero-baseline (or fixed `[0, 100]` for
+    `percent=True`) x-axis (`_draw_horizontal_categorical_axis_frame`,
+    gantt.mojo, shared -- see that function's docstring), but each
+    category's row stacks its series' segments left-to-right instead
+    of bottom-to-top -- full band *height* per segment (`frame.y_scale.
+    band_start(i)`/`.bandwidth()`) instead of `_render_stacked_bar`'s
+    full band *width*, otherwise the identical two-independent-running-
+    totals-per-category logic that function's own docstring explains
+    (mixed-sign values, `percent=True`'s per-category rescale, the
+    "running totals share an exact Float64 boundary so no extra
+    pixel-rounding trick is needed" property) -- unchanged here since
+    none of it depends on which axis is which.
+
+    Deliberately its own function, not an orientation flag threaded
+    through `_render_stacked_bar` -- see `_render_horizontal_bar`'s own
+    docstring (bar.mojo) for the full reasoning, identical here.
+
+    Same legend placement as `_render_horizontal_grouped_bar`'s own
+    (`frame.px1 + margin_right`, `frame.py0`) -- see that function's
+    docstring for why `frame.py0` replaces `_render_stacked_bar`'s own
+    `frame.y_scale.range_max` here.
+    """
+    _validate_grouped_bar_series(plot)
+
+    var theme = plot._theme
+    if len(plot.x_categories) == 0:
+        return _empty_result(ox0, oy0, ox1, oy1)
+
+    var n_series = len(plot._grouped_bar.series_names)
+
+    if plot._stacked_bar_percent:
+        for j in range(n_series):
+            for v in plot._grouped_bar.values[j]:
+                if v < 0.0:
+                    raise Error(
+                        "Plot.mark_stacked_bar(percent=True): every value must be >= 0 (a negative"
+                        " share has no meaning) -- got " + String(v)
+                    )
+
+    var x_scale: LinearScale
+    if plot._stacked_bar_percent:
+        x_scale = LinearScale(0.0, 100.0, 0.0, 1.0)
+    else:
+        var domain_data = List[Float64]()
+        for i in range(len(plot.x_categories)):
+            var pos_total = 0.0
+            var neg_total = 0.0
+            for j in range(n_series):
+                var v = plot._grouped_bar.values[j][i]
+                if v >= 0.0:
+                    pos_total += v
+                else:
+                    neg_total += v
+            domain_data.append(pos_total)
+            domain_data.append(neg_total)
+        x_scale = _zero_baseline_y_extent(domain_data)
+
+    var sc = _Scaled(theme)
+    var show_legend = theme.show_legend
+    var legend_reserve = _series_legend_reserve(plot, sc)
+
+    var frame = _draw_horizontal_categorical_axis_frame(
+        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
+    )
+
+    var palette = default_categorical_palette()
+
+    var band_height = _round_to_int(frame.y_scale.bandwidth())
+    for i in range(len(plot.x_categories)):
+        var band_y = _round_to_int(frame.y_scale.band_start(i))
+        var scale_factor = 1.0
+        if plot._stacked_bar_percent:
+            var category_total = 0.0
+            for j in range(n_series):
+                category_total += plot._grouped_bar.values[j][i]
+            scale_factor = 100.0 / category_total if category_total > 0.0 else 0.0
+        var pos_running = 0.0
+        var neg_running = 0.0
+        for j in range(n_series):
+            var v = plot._grouped_bar.values[j][i] * scale_factor
+            var seg_low: Float64
+            var seg_high: Float64
+            if v >= 0.0:
+                seg_low = pos_running
+                seg_high = pos_running + v
+                pos_running = seg_high
+            else:
+                seg_high = neg_running
+                seg_low = neg_running + v
+                neg_running = seg_low
+            var low_px = _axis_pixel(frame.x_scale, seg_low)
+            var high_px = _axis_pixel(frame.x_scale, seg_high)
+            var rect = _pull_off_axis_line(low_px, high_px, frame.px0)
+            target.fill_rect(rect.y, band_y, rect.height, band_height, palette[j % len(palette)])
+            if theme.show_data_labels:
+                frame.text_requests.append(
+                    _TextRequest(
+                        rect.y + rect.height // 2,
+                        (band_y + band_height // 2) + Int(sc.font_size * 0.35),
+                        _format_fixed(v, _label_decimals(v)),
+                        theme.text_color,
+                        sc.font_size,
+                        TextAlign.CENTER,
+                        theme.font_family,
+                    )
+                )
+
+    if show_legend:
+        _draw_legend(
+            target,
+            frame.text_requests,
+            plot._grouped_bar.series_names,
+            palette,
+            _round_to_int(frame.x_scale.range_max) + sc.margin_right,
+            frame.py0,
+            theme,
+        )
+
+    return frame.result()
+
+
 def stacked_bar(
     categories: List[String],
     series_names: List[String],
@@ -216,6 +343,7 @@ def stacked_bar(
     x_title: String = "",
     y_title: String = "",
     percent: Bool = False,
+    horizontal: Bool = False,
 ) raises -> Plot:
     """A stacked bar chart -- `Mark.STACKED_BAR`, the exact same
     `(categories, series_names, values)` shape `grouped_bar()` takes,
@@ -241,6 +369,10 @@ def stacked_bar(
         percent: `False` (the default) stacks raw values. `True`
             normalizes each category to 100% -- see `Plot.mark_
             stacked_bar()`'s own docstring.
+        horizontal: Draw categories running top-to-bottom with each
+            category's segments stacked left-to-right instead of the
+            default vertical layout -- see `Plot.mark_stacked_bar()`'s
+            own docstring (#121).
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
@@ -270,7 +402,7 @@ def stacked_bar(
             save(c, "docs/src/examples/out_stacked_bar.svg")
         ```
     """
-    var plot = Plot().mark_stacked_bar(percent=percent).encode_grouped_bar(
+    var plot = Plot().mark_stacked_bar(percent=percent, horizontal=horizontal).encode_grouped_bar(
         categories=categories, series_names=series_names, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
@@ -290,6 +422,7 @@ def stacked_bar[
     x_title: String = "",
     y_title: String = "",
     percent: Bool = False,
+    horizontal: Bool = False,
 ) raises -> Plot:
     """`stacked_bar()`, generalized over numeric element type for
     `values` -- see `grouped_bar()`'s own `DType`-generic overload for
@@ -299,4 +432,5 @@ def stacked_bar[
     return stacked_bar(
         categories, series_names, _materialize_nested_scalar_list(values), theme=theme, width=width,
         height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title, percent=percent,
+        horizontal=horizontal,
     )

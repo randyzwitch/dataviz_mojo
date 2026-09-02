@@ -206,7 +206,7 @@ from dataviz.span_chart import _render_span_chart
 from dataviz.bump import _render_bump
 from dataviz.chord import _render_chord
 from dataviz.funnel import _render_funnel
-from dataviz.grouped_bar import _render_grouped_bar
+from dataviz.grouped_bar import _render_grouped_bar, _render_horizontal_grouped_bar
 from dataviz.heatmap import _render_heatmap
 from dataviz.calendar_heatmap import _render_calendar_heatmap
 from dataviz.corrplot import _render_corrplot
@@ -220,10 +220,10 @@ from dataviz.graph import _render_graph
 from dataviz.sankey import _render_sankey
 from dataviz.radialbar import _render_radialbar
 from dataviz.histogram import _bin_histogram
-from dataviz.lollipop import _render_lollipop
+from dataviz.lollipop import _render_lollipop, _render_horizontal_lollipop
 from dataviz.single_axis import _render_single_axis
 from dataviz.population_pyramid import _render_population_pyramid
-from dataviz.stacked_bar import _render_stacked_bar
+from dataviz.stacked_bar import _render_stacked_bar, _render_horizontal_stacked_bar
 from dataviz.streamgraph import _render_streamgraph
 from dataviz.waterfall import _render_waterfall, _waterfall_running_totals
 
@@ -564,17 +564,17 @@ struct Plot(Movable):
     # above.
     var _y_log: Bool
     var _x_log: Bool
-    # Set only via .mark_bar(horizontal=True) -- see that method's own
-    # docstring. Never independently settable (there's no .horizontal()
-    # builder method of its own), so `_mark == Mark.BAR` is guaranteed
-    # whenever this is True: no other render path has to check for or
-    # guard against a horizontal flag it doesn't understand. #121's own
-    # tracking issue surveyed every mark sharing `_draw_categorical_
-    # axis_frame` (12 of them) before choosing to start with just this
-    # one -- see that issue for which of the rest are real, common
-    # follow-ups (GROUPED_BAR/STACKED_BAR/LOLLIPOP/BOX/VIOLIN/BEESWARM)
-    # versus ones nobody actually wants flipped (CANDLESTICK/
-    # STREAMGRAPH are inherently time-on-x-axis).
+    # Set only via a mark_*(horizontal=True) parameter (`mark_bar()`,
+    # `mark_lollipop()`, ...) -- see #121's own tracking issue for the
+    # full list this is expected to grow to (every mark sharing
+    # `_draw_categorical_axis_frame`: BAR done, GROUPED_BAR/STACKED_BAR/
+    # LOLLIPOP/BOX/VIOLIN/BEESWARM are real, common follow-ups;
+    # CANDLESTICK/STREAMGRAPH nobody actually wants flipped, inherently
+    # time-on-x-axis). Never independently settable -- there's no
+    # `.horizontal()` builder method of its own -- so this is only ever
+    # `True` alongside a `_mark` whose own `mark_*()` method actually
+    # reads it; no other render path has to guard against a flag it
+    # doesn't understand.
     var _horizontal: Bool
     var _mark: Mark
     var _theme: Theme
@@ -791,14 +791,26 @@ struct Plot(Movable):
         self._mark = Mark.PARALLEL
         return self^
 
-    def mark_lollipop(var self) -> Self:
+    def mark_lollipop(var self, horizontal: Bool = False) -> Self:
         """A lollipop chart: one stem-plus-point per category, encoded
         via `encode_categorical()` -- exactly `mark_bar()`'s data
         shape (a bar chart and a lollipop chart differ only in how each
         category's magnitude is drawn, a filled rect vs. a thin stem
         with a point at its end, not in what the underlying data
-        means)."""
+        means).
+
+        `horizontal` (default `False`) -- exactly `mark_bar(horizontal=
+        True)`'s own flip, the first of the real, common follow-ups
+        that method's own docstring named (#121): categories running
+        top-to-bottom, each stem extending left-to-right from a zero
+        baseline instead of bottom-to-top. Built the same way, reusing
+        `_draw_horizontal_categorical_axis_frame` (gantt.mojo) rather
+        than an orientation flag threaded through `_render_lollipop`
+        itself -- see `_render_horizontal_lollipop`'s own docstring
+        (lollipop.mojo).
+        """
         self._mark = Mark.LOLLIPOP
+        self._horizontal = horizontal
         return self^
 
     def mark_waterfall(var self) -> Self:
@@ -952,15 +964,25 @@ struct Plot(Movable):
         self._mark = Mark.TREEMAP
         return self^
 
-    def mark_grouped_bar(var self) -> Self:
+    def mark_grouped_bar(var self, horizontal: Bool = False) -> Self:
         """A grouped bar chart: several bars side by side per category,
         one per series, encoded via `encode_grouped_bar()` -- a category
         plus a name and a value *per series*, not `encode_categorical()`'s
-        single value."""
+        single value.
+
+        `horizontal` (default `False`) -- exactly `mark_bar(horizontal=
+        True)`'s own flip (#121): categories run top-to-bottom, each
+        category's row subdivided into equal-height sub-bars stacked
+        within it instead of equal-width sub-bars side by side. Built
+        the same way, reusing `_draw_horizontal_categorical_axis_frame`
+        (gantt.mojo) -- see `_render_horizontal_grouped_bar`'s own
+        docstring (grouped_bar.mojo).
+        """
         self._mark = Mark.GROUPED_BAR
+        self._horizontal = horizontal
         return self^
 
-    def mark_stacked_bar(var self, percent: Bool = False) -> Self:
+    def mark_stacked_bar(var self, percent: Bool = False, horizontal: Bool = False) -> Self:
         """A stacked bar chart: one bar per category, each series' value stacked as a segment on top of the previous one's running total, instead of `Mark.GROUPED_BAR`'s side-by-side
         sub-bars -- encoded via the exact same `encode_grouped_bar()`,
         no separate encode method needed (the data is identical; only
@@ -982,16 +1004,27 @@ struct Plot(Movable):
         values are all zero draws as an empty column (0% of an
         undefined whole) rather than dividing by zero.
 
+        `horizontal` (default `False`) -- exactly `mark_bar(horizontal=
+        True)`'s own flip (#121): categories run top-to-bottom, each
+        category's segments stack left-to-right from a zero baseline
+        instead of bottom-to-top. Built the same way, reusing `_draw_
+        horizontal_categorical_axis_frame` (gantt.mojo) -- see `_render_
+        horizontal_stacked_bar`'s own docstring (stacked_bar.mojo).
+
         Args:
             percent: `False` (the default) stacks raw values, an
                 unchanged real-valued y-axis. `True` normalizes each
                 category to 100% and fixes the y-axis to `[0, 100]`.
+            horizontal: Draw categories running top-to-bottom with each
+                category's segments stacked left-to-right instead of
+                the default vertical layout.
 
         Returns:
             Self, for further chaining.
         """
         self._mark = Mark.STACKED_BAR
         self._stacked_bar_percent = percent
+        self._horizontal = horizontal
         return self^
 
     def mark_population_pyramid(var self) -> Self:
@@ -6629,6 +6662,8 @@ def _render_generic[
             return _render_horizontal_bar(target, plot, ox0, oy0, ox1, oy1)
         return _render_bar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.LOLLIPOP:
+        if plot._horizontal:
+            return _render_horizontal_lollipop(target, plot, ox0, oy0, ox1, oy1)
         return _render_lollipop(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.WATERFALL:
         return _render_waterfall(target, plot, ox0, oy0, ox1, oy1)
@@ -6641,8 +6676,12 @@ def _render_generic[
     if plot._mark == Mark.BULLET:
         return _render_bullet(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.GROUPED_BAR:
+        if plot._horizontal:
+            return _render_horizontal_grouped_bar(target, plot, ox0, oy0, ox1, oy1)
         return _render_grouped_bar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.STACKED_BAR:
+        if plot._horizontal:
+            return _render_horizontal_stacked_bar(target, plot, ox0, oy0, ox1, oy1)
         return _render_stacked_bar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.GANTT:
         return _render_gantt(target, plot, ox0, oy0, ox1, oy1)

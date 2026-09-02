@@ -5,6 +5,7 @@ from canvas_mojo.buffer import Canvas
 from canvas_mojo.text.render import TextAlign
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
+from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -184,6 +185,110 @@ def _render_grouped_bar[
     return frame.result()
 
 
+def _render_horizontal_grouped_bar[
+    T: DrawTarget
+](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+    """`_render_grouped_bar`'s mirror image for `Plot.mark_grouped_bar(
+    horizontal=True)` (#121) -- exactly `_render_horizontal_bar`'s own
+    categorical y-axis / zero-baseline x-axis (`_draw_horizontal_
+    categorical_axis_frame`, gantt.mojo, shared -- see that function's
+    docstring), but each category's row is subdivided into `len(
+    series_names)` equal-*height* sub-bars stacked within it instead of
+    equal-*width* sub-bars side by side -- every role `_render_grouped_
+    bar` gives `x_scale`/`band_start`/sub-bar width belongs to `y_
+    scale`/`band_start`/sub-bar height here instead, and vice versa,
+    otherwise the exact same logic (including the "round each boundary
+    once" fencepost-safe subdivision that function's own docstring
+    explains).
+
+    Deliberately its own function, not an orientation flag threaded
+    through `_render_grouped_bar` -- see `_render_horizontal_bar`'s own
+    docstring (bar.mojo) for the full reasoning, identical here.
+
+    The series-name legend still reserves space from the outer `ox1`
+    exactly like `_render_grouped_bar`'s own `_series_legend_reserve`
+    call -- `frame.x_scale.range_max` lands at that same reduced
+    boundary regardless of orientation, since `x_scale` is always the
+    frame's continuous scale, just carried by a different axis here.
+    Positioned at the frame's own top-left corner (`frame.px1 +
+    margin_right`, `frame.py0`) rather than `_render_grouped_bar`'s
+    `frame.y_scale.range_max` -- the vertical frame's `y_scale` is
+    itself the continuous scale there, so its own `range_max` (the
+    plot's top pixel) is a shortcut for the same corner; here `y_scale`
+    is categorical, so `frame.py0` (the frame's own top pixel, carried
+    unchanged either way) reaches that corner directly instead.
+    """
+    _validate_grouped_bar_series(plot)
+
+    var theme = plot._theme
+    if len(plot.x_categories) == 0:
+        return _empty_result(ox0, oy0, ox1, oy1)
+
+    var domain_data = List[Float64]()
+    for j in range(len(plot._grouped_bar.values)):
+        for i in range(len(plot._grouped_bar.values[j])):
+            domain_data.append(plot._grouped_bar.values[j][i])
+    var x_scale = _zero_baseline_y_extent(domain_data)
+
+    var sc = _Scaled(theme)
+    var show_legend = theme.show_legend
+    var legend_reserve = _series_legend_reserve(plot, sc)
+
+    var frame = _draw_horizontal_categorical_axis_frame(
+        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
+    )
+
+    var palette = default_categorical_palette()
+    var n_series = len(plot._grouped_bar.series_names)
+    var baseline_px = _axis_pixel(frame.x_scale, 0.0)
+
+    var sub_height = frame.y_scale.bandwidth() / Float64(n_series)
+    for i in range(len(plot.x_categories)):
+        var band_start = frame.y_scale.band_start(i)
+        for j in range(n_series):
+            var top = _round_to_int(band_start + Float64(j) * sub_height)
+            var bottom = _round_to_int(band_start + Float64(j + 1) * sub_height)
+            var value = plot._grouped_bar.values[j][i]
+            var value_px = _axis_pixel(frame.x_scale, value)
+            var rect = _pull_off_axis_line(baseline_px, value_px, frame.px0)
+            target.fill_rect(rect.y, top, rect.height, bottom - top, palette[j % len(palette)])
+            if theme.show_data_labels:
+                # The horizontal mirror of _render_grouped_bar's own
+                # above-positive/below-negative placement: right of a
+                # positive sub-bar's own right edge (left-aligned), left
+                # of a negative sub-bar's own left edge (right-aligned)
+                # -- _draw_horizontal_bar_rects' identical convention
+                # (bar.mojo).
+                var label_x = (
+                    rect.y - sc.label_gap if value < 0.0 else rect.y + rect.height + sc.label_gap
+                )
+                var label_align = TextAlign.RIGHT if value < 0.0 else TextAlign.LEFT
+                frame.text_requests.append(
+                    _TextRequest(
+                        label_x,
+                        (top + bottom) // 2 + Int(sc.font_size * 0.35),
+                        _format_fixed(value, _label_decimals(value)),
+                        theme.text_color,
+                        sc.font_size,
+                        label_align,
+                        theme.font_family,
+                    )
+                )
+
+    if show_legend:
+        _draw_legend(
+            target,
+            frame.text_requests,
+            plot._grouped_bar.series_names,
+            palette,
+            _round_to_int(frame.x_scale.range_max) + sc.margin_right,
+            frame.py0,
+            theme,
+        )
+
+    return frame.result()
+
+
 def grouped_bar(
     categories: List[String],
     series_names: List[String],
@@ -195,6 +300,7 @@ def grouped_bar(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    horizontal: Bool = False,
 ) raises -> Plot:
     """A grouped bar chart -- `Mark.GROUPED_BAR`, several bars side
     by side per category, one per series (`values[j]` is series
@@ -217,6 +323,10 @@ def grouped_bar(
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
+        horizontal: Draw categories running top-to-bottom with each
+            category's sub-bars stacked left-to-right instead of the
+            default vertical layout -- see `Plot.mark_grouped_bar()`'s
+            own docstring (#121).
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
@@ -246,7 +356,7 @@ def grouped_bar(
             save(c, "docs/src/examples/out_grouped_bar.svg")
         ```
     """
-    var plot = Plot().mark_grouped_bar().encode_grouped_bar(
+    var plot = Plot().mark_grouped_bar(horizontal=horizontal).encode_grouped_bar(
         categories=categories, series_names=series_names, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
@@ -265,6 +375,7 @@ def grouped_bar[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    horizontal: Bool = False,
 ) raises -> Plot:
     """`grouped_bar()`, generalized over numeric element type for
     `values` (`List[List[Int]]`, `List[List[Float32]]`, ...) -- the
@@ -275,5 +386,5 @@ def grouped_bar[
     """
     return grouped_bar(
         categories, series_names, _materialize_nested_scalar_list(values), theme=theme, width=width,
-        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title, horizontal=horizontal,
     )
