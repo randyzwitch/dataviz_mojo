@@ -3,7 +3,7 @@ channels = ["https://conda.modular.com/max", "conda-forge"]
 name = "dataviz_mojo"
 platforms = ["linux-64", "osx-arm64"]
 preview = ["pixi-build"]
-version = "0.5.0"
+version = "0.6.0"
 
 [dependencies]
 mojo = ">=1.0.0,<2"
@@ -164,7 +164,7 @@ docs-serve = { cmd = "hugo server -s docs/site", depends-on = ["docs-build"] }
 # though the Mojo import name itself is the shorter "dataviz" --
 # see [package.build.config.pkg] below for that split.
 name = "dataviz_mojo"
-version = "0.5.0"
+version = "0.6.0"
 description = "Grammar-of-graphics-flavored chart building for Mojo, built on canvas_mojo: a fluent Plot builder, scales, themes, and a growing set of mark types across raster and SVG backends."
 license = "MIT"
 
