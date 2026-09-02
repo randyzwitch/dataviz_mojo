@@ -6,7 +6,7 @@ from canvas.text.render import TextAlign
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
-from dataviz.grouped_bar import _series_legend_reserve, _validate_grouped_bar_series
+from dataviz.grouped_bar import _draw_series_legend, _series_legend_reserve, _validate_grouped_bar_series
 from dataviz.mark import Mark
 from dataviz.scale import LinearScale
 from dataviz.plot import (
@@ -16,7 +16,6 @@ from dataviz.plot import (
     _TextRequest,
     _axis_pixel,
     _draw_categorical_axis_frame,
-    _draw_legend,
     _empty_result,
     _pull_off_axis_line,
     _finished,
@@ -192,12 +191,13 @@ def _render_stacked_bar[
                 )
 
     if show_legend:
-        _draw_legend(
+        _draw_series_legend(
             target,
             frame.text_requests,
-            plot._grouped_bar.series_names,
+            plot,
+            sc,
             palette,
-            _round_to_int(frame.x_scale.range_max) + sc.margin_right,
+            _round_to_int(frame.x_scale.range_max),
             _round_to_int(frame.y_scale.range_max),
             theme,
         )
@@ -318,12 +318,13 @@ def _render_horizontal_stacked_bar[
                 )
 
     if show_legend:
-        _draw_legend(
+        _draw_series_legend(
             target,
             frame.text_requests,
-            plot._grouped_bar.series_names,
+            plot,
+            sc,
             palette,
-            _round_to_int(frame.x_scale.range_max) + sc.margin_right,
+            _round_to_int(frame.x_scale.range_max),
             frame.py0,
             theme,
         )

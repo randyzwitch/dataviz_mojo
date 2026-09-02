@@ -1,3 +1,4 @@
+from canvas.color import Color
 from canvas.geometry import _round_to_int
 from canvas.vector.draw_target import DrawTarget
 from canvas.buffer import Canvas
@@ -24,6 +25,17 @@ from dataviz.plot import (
 )
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.theme import Theme
+
+
+def _bar_fill_color(theme: Theme, value: Float64) -> Color:
+    """The one fill color `_draw_bar_rects`/`_draw_horizontal_bar_rects`
+    both pick per bar -- `Theme.mark_color_negative` when `Theme.
+    color_by_sign` is on and this bar's own value is negative, `Theme.
+    mark_color` otherwise. Color doesn't depend on which axis is
+    which, so both orientations share this instead of each inlining
+    the same ternary.
+    """
+    return theme.mark_color_negative if (theme.color_by_sign and value < 0.0) else theme.mark_color
 
 
 def _draw_bar_rects[
@@ -81,11 +93,7 @@ def _draw_bar_rects[
         var bar_x = _round_to_int(x_scale.band_start(i))
         var top_py = _axis_pixel(y_scale, plot.y_data[i])
         var rect = _pull_off_axis_line(baseline_py, top_py, py1)
-        var bar_color = (
-            theme.mark_color_negative
-            if (theme.color_by_sign and plot.y_data[i] < 0.0)
-            else theme.mark_color
-        )
+        var bar_color = _bar_fill_color(theme, plot.y_data[i])
         target.fill_rect(bar_x, rect.y, bar_width, rect.height, bar_color)
         if theme.show_data_labels:
             # Positive value: baseline sits label_gap above the bar's
@@ -221,11 +229,7 @@ def _draw_horizontal_bar_rects[
         var bar_y = _round_to_int(y_scale.band_start(i))
         var value_px = _axis_pixel(x_scale, plot.y_data[i])
         var rect = _pull_off_axis_line(baseline_px, value_px, px0)
-        var bar_color = (
-            theme.mark_color_negative
-            if (theme.color_by_sign and plot.y_data[i] < 0.0)
-            else theme.mark_color
-        )
+        var bar_color = _bar_fill_color(theme, plot.y_data[i])
         target.fill_rect(rect.y, bar_y, rect.height, bar_height, bar_color)
         if theme.show_data_labels:
             # Positive value (bar extends right): label sits label_gap
