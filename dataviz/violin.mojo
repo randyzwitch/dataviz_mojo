@@ -6,6 +6,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
 from dataviz.array_like import _materialize_nested_scalar_list
+from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -170,6 +171,91 @@ def _render_violin[
     return frame.result()
 
 
+def _render_horizontal_violin[
+    T: DrawTarget
+](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+    """`_render_violin`'s mirror image for `Plot.mark_violin(
+    horizontal=True)` (#121) -- exactly `_render_horizontal_bar`'s own
+    categorical y-axis / continuous x-axis (`_draw_horizontal_
+    categorical_axis_frame`, gantt.mojo, shared -- see that function's
+    docstring), each category's silhouette sampled across the
+    continuous `x_scale` and bulging *vertically* (up/down) around its
+    own row's center instead of horizontally (left/right) around its
+    own column's center -- otherwise the identical per-category KDE
+    computation `_render_violin`'s own docstring explains (`_kde_
+    bandwidth`/`_kde_density`, `mark_violin()`'s `bandwidth`/`scale_
+    by_count` overrides, each violin's own `[min(values), max(values)]`
+    sampling range), none of which depends on which axis is which.
+
+    Deliberately its own function, not an orientation flag threaded
+    through `_render_violin` -- see `_render_horizontal_bar`'s own
+    docstring (bar.mojo) for the full reasoning, identical here.
+    """
+    var theme = plot._theme
+    if len(plot.x_categories) == 0:
+        return _empty_result(ox0, oy0, ox1, oy1)
+
+    if plot._distribution.kde_bandwidth_override < 0.0:
+        raise Error(
+            "Plot.mark_violin(): bandwidth must be positive (got "
+            + String(plot._distribution.kde_bandwidth_override)
+            + ")"
+        )
+
+    var all_values = List[Float64]()
+    var max_n = 0
+    for series in plot._distribution.values:
+        if len(series) > max_n:
+            max_n = len(series)
+        for v in series:
+            all_values.append(v)
+    var x_scale = _data_extent(all_values)
+
+    var frame = _draw_horizontal_categorical_axis_frame(
+        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
+    )
+
+    var half_height = frame.y_scale.bandwidth() * theme.violin_width_fraction
+
+    for i in range(len(plot.x_categories)):
+        var values = plot._distribution.values[i].copy()
+        var center_y = frame.y_scale.center(i)
+        var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
+            plot._distribution.kde_scale_by_count and max_n > 0
+        ) else 1.0
+        var bandwidth = plot._distribution.kde_bandwidth_override if plot._distribution.kde_bandwidth_override > 0.0 else _kde_bandwidth(
+            values
+        )
+        var mm = _min_max(values)
+
+        var densities = List[Float64](capacity=_KDE_SAMPLES)
+        var x_values = List[Float64](capacity=_KDE_SAMPLES)
+        var max_density = 0.0
+        var span = mm.max - mm.min
+        for s in range(_KDE_SAMPLES):
+            var x_value = mm.min if span == 0.0 else mm.min + span * Float64(s) / Float64(_KDE_SAMPLES - 1)
+            var d = _kde_density(values, bandwidth, x_value)
+            x_values.append(x_value)
+            densities.append(d)
+            max_density = max(max_density, d)
+
+        var path = Path()
+        var scale = (half_height * count_factor) / max_density if max_density > 0.0 else 0.0
+        path.move_to(Float64(_axis_pixel(frame.x_scale, x_values[0])), center_y + densities[0] * scale)
+        for s in range(1, _KDE_SAMPLES):
+            path.line_to(
+                Float64(_axis_pixel(frame.x_scale, x_values[s])), center_y + densities[s] * scale
+            )
+        for s in range(_KDE_SAMPLES - 1, -1, -1):
+            path.line_to(
+                Float64(_axis_pixel(frame.x_scale, x_values[s])), center_y - densities[s] * scale
+            )
+        path.close()
+        target.fill_path_aa(path, theme.mark_color)
+
+    return frame.result()
+
+
 def violin(
     categories: List[String],
     values: List[List[Float64]],
@@ -182,6 +268,7 @@ def violin(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    horizontal: Bool = False,
 ) raises -> Plot:
     """A violin plot -- `Mark.VIOLIN`, a symmetric kernel-density-
     estimate silhouette per category (`bandwidth`, left at its default
@@ -215,6 +302,10 @@ def violin(
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
+        horizontal: Draw categories running top-to-bottom with each
+            silhouette bulging up-down around its own row instead of
+            the default vertical layout -- see `Plot.mark_violin()`'s
+            own docstring (#121).
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
@@ -236,9 +327,9 @@ def violin(
             save(c, "docs/src/examples/out_violin.svg")
         ```
     """
-    var plot = Plot().mark_violin(bandwidth=bandwidth, scale_by_count=scale_by_count).encode_distribution(
-        categories=categories, values=values
-    )
+    var plot = Plot().mark_violin(
+        bandwidth=bandwidth, scale_by_count=scale_by_count, horizontal=horizontal
+    ).encode_distribution(categories=categories, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
 
@@ -256,6 +347,7 @@ def violin[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    horizontal: Bool = False,
 ) raises -> Plot:
     """`violin()`, generalized over numeric element type for
     `values` -- see `beeswarm()`'s own `DType`-generic overload for
@@ -264,5 +356,5 @@ def violin[
     return violin(
         categories, _materialize_nested_scalar_list(values), bandwidth=bandwidth,
         scale_by_count=scale_by_count, theme=theme, width=width, height=height, title=title,
-        subtitle=subtitle, x_title=x_title, y_title=y_title,
+        subtitle=subtitle, x_title=x_title, y_title=y_title, horizontal=horizontal,
     )

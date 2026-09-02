@@ -3,6 +3,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
 from dataviz.array_like import _materialize_nested_scalar_list
+from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -242,6 +243,110 @@ def _render_box[
     return frame.result()
 
 
+def _render_horizontal_box[
+    T: DrawTarget
+](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+    """`_render_box`'s mirror image for `Plot.mark_box(horizontal=
+    True)` (#121) -- exactly `_render_horizontal_bar`'s own categorical
+    y-axis (`_draw_horizontal_categorical_axis_frame`, gantt.mojo,
+    shared -- see that function's docstring) instead of a categorical
+    x-axis, with the continuous axis (`_data_extent`, not zero-forced --
+    see `_render_box`'s own docstring for why) carried along the
+    bottom instead of up the left side.
+
+    Every role `_render_box` gives `x_scale`/`y_scale` swaps here:
+    the two whiskers become horizontal lines (`Q3` out to `high`, `Q1`
+    out to `low`) with a small *vertical* cap at each end instead of a
+    horizontal one, the box itself becomes a horizontal rect (`Q1` to
+    `Q3`) spanning the category's own band *height*, and the median
+    line is drawn vertically across the box's own height instead of
+    horizontally across its width. Outliers plot at `(value's x pixel,
+    category's y-center)` instead of the reverse. Otherwise the exact
+    same per-category five-number-summary drawing `_render_box`'s own
+    docstring explains, just rotated.
+
+    Deliberately its own function, not an orientation flag threaded
+    through `_render_box` -- see `_render_horizontal_bar`'s own
+    docstring (bar.mojo) for the full reasoning, identical here.
+    """
+    if len(plot.x_categories) != len(plot._box.q1):
+        raise Error(
+            "Plot.encode_boxplot(): categories and values must have the"
+            " same length (got "
+            + String(len(plot.x_categories))
+            + " and "
+            + String(len(plot._box.q1))
+            + ")"
+        )
+
+    var theme = plot._theme
+    if len(plot.x_categories) == 0:
+        return _empty_result(ox0, oy0, ox1, oy1)
+
+    var domain_data = List[Float64]()
+    for v in plot._box.low:
+        domain_data.append(v)
+    for v in plot._box.high:
+        domain_data.append(v)
+    for v in plot._box.outlier_value:
+        domain_data.append(v)
+    var x_scale = _data_extent(domain_data)
+
+    var frame = _draw_horizontal_categorical_axis_frame(
+        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
+    )
+
+    var band_h = frame.y_scale.bandwidth()
+    for i in range(len(plot.x_categories)):
+        var center = frame.y_scale.center(i)
+        var half_h = band_h / 2.0
+        var cap_half_h = band_h / 4.0
+
+        var q1_px = frame.x_scale.to_pixel(plot._box.q1[i])
+        var q3_px = frame.x_scale.to_pixel(plot._box.q3[i])
+        var median_px = frame.x_scale.to_pixel(plot._box.median[i])
+        var low_px = frame.x_scale.to_pixel(plot._box.low[i])
+        var high_px = frame.x_scale.to_pixel(plot._box.high[i])
+
+        var center_i = _round_to_int(center)
+        target.draw_line_aa(_round_to_int(q3_px), center_i, _round_to_int(high_px), center_i, theme.axis_color, width=theme.scale)
+        target.draw_line_aa(_round_to_int(low_px), center_i, _round_to_int(q1_px), center_i, theme.axis_color, width=theme.scale)
+        target.draw_line_aa(
+            _round_to_int(high_px),
+            _round_to_int(center - cap_half_h),
+            _round_to_int(high_px),
+            _round_to_int(center + cap_half_h),
+            theme.axis_color,
+            width=theme.scale,
+        )
+        target.draw_line_aa(
+            _round_to_int(low_px),
+            _round_to_int(center - cap_half_h),
+            _round_to_int(low_px),
+            _round_to_int(center + cap_half_h),
+            theme.axis_color,
+            width=theme.scale,
+        )
+
+        var box_y = _round_to_int(center - half_h)
+        var box_x = _round_to_int(min(q1_px, q3_px))
+        var box_w = _round_to_int(max(q1_px, q3_px) - min(q1_px, q3_px))
+        target.fill_rect(box_x, box_y, box_w, _round_to_int(band_h), theme.mark_color)
+
+        target.draw_line_aa(
+            _round_to_int(median_px), _round_to_int(center - half_h), _round_to_int(median_px),
+            _round_to_int(center + half_h), theme.axis_color, width=theme.scale,
+        )
+
+    for j in range(len(plot._box.outlier_value)):
+        var cat_i = plot._box.outlier_cat[j]
+        var center_py = _round_to_int(frame.y_scale.center(cat_i))
+        var value_px = _axis_pixel(frame.x_scale, plot._box.outlier_value[j])
+        target.fill_circle_aa(value_px, center_py, _round_to_int(frame.sc.point_radius), theme.mark_color)
+
+    return frame.result()
+
+
 def box(
     categories: List[String],
     values: List[List[Float64]],
@@ -252,6 +357,7 @@ def box(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    horizontal: Bool = False,
 ) raises -> Plot:
     """A box plot -- `Mark.BOX`, one box-and-whiskers per category
     summarizing a whole distribution of raw values (`values[i]`, not
@@ -272,6 +378,10 @@ def box(
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
+        horizontal: Draw categories running top-to-bottom with each
+            box-and-whiskers left-to-right instead of the default
+            vertical layout -- see `Plot.mark_box()`'s own docstring
+            (#121).
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
@@ -296,7 +406,7 @@ def box(
             save(c, "docs/src/examples/out_box.svg")
         ```
     """
-    var plot = Plot().mark_box().encode_boxplot(categories=categories, values=values)
+    var plot = Plot().mark_box(horizontal=horizontal).encode_boxplot(categories=categories, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
 
@@ -312,6 +422,7 @@ def box[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    horizontal: Bool = False,
 ) raises -> Plot:
     """`box()`, generalized over numeric element type for `values`
     -- see `beeswarm()`'s own `DType`-generic overload for the full
@@ -319,5 +430,5 @@ def box[
     """
     return box(
         categories, _materialize_nested_scalar_list(values), theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title, horizontal=horizontal,
     )
