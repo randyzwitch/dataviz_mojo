@@ -165,6 +165,7 @@ from dataviz.array_like import (
 from dataviz.numpy_interop import _materialize_python_floats
 from std.python import PythonObject
 from dataviz.color_scale import ColorScale, default_categorical_palette
+from dataviz.marker import PointShape, _fill_shape_aa, default_marker_shapes
 from dataviz.mark import Mark
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.output_format import OutputFormat
@@ -3991,6 +3992,7 @@ def _draw_legend[T: DrawTarget](
     x: Int,
     y: Int,
     theme: Theme,
+    shapes: List[PointShape] = List[PointShape](),
 ) raises:
     """A simple swatch+label legend, one row per entry in `labels`,
     starting at (x, y) and growing downward -- the shared layout both
@@ -4001,6 +4003,13 @@ def _draw_legend[T: DrawTarget](
     wedges were colored, not `labels[i]`'s index directly, so a
     legend row always shows the exact color that category actually
     got, cycling included.
+
+    `shapes`, when non-empty (`Theme.shape_by_category`'s own `_ch.
+    shapes` -- see `_PointChannels`' docstring), draws each row's own
+    `PointShape` in place of the plain color square, same size, same
+    position, same indexing convention as `palette` -- every other
+    caller (`Mark.ARC`'s own legend, which has no shape concept) leaves
+    this empty and gets the unchanged square swatch.
 
     Computes its `_Scaled(theme)` rather than taking one as a
     parameter -- keeps this function's signature stable (still
@@ -4015,7 +4024,13 @@ def _draw_legend[T: DrawTarget](
     for i in range(len(labels)):
         var row_y = y + i * (sc.legend_swatch_size + sc.legend_row_gap)
         var color = palette[i % len(palette)]
-        target.fill_rect(x, row_y, sc.legend_swatch_size, sc.legend_swatch_size, color)
+        if len(shapes) > 0:
+            var radius = sc.legend_swatch_size // 2
+            _fill_shape_aa(
+                target, x + radius, row_y + radius, radius, shapes[i % len(shapes)], color
+            )
+        else:
+            target.fill_rect(x, row_y, sc.legend_swatch_size, sc.legend_swatch_size, color)
         text_requests.append(
             _TextRequest(
                 x + sc.legend_swatch_size + sc.label_gap,
@@ -5684,6 +5699,15 @@ struct _PointChannels(Movable):
     # position with no modulo and no override check of its own -- one
     # place resolves "this category's real color", not two.
     var palette: List[Color]
+    # One shape per `cat.domain` entry, same order/indexing story as
+    # `palette` above -- empty unless both `has_color_categories` and
+    # `Theme.shape_by_category` are true (see that field's own
+    # docstring for why it's a no-op without a category column to
+    # index). `has_shapes` names the *combination*, not just the
+    # `Theme` flag, so every reader (`_draw_point_layer`, `_draw_
+    # legend`) checks one Bool instead of re-deriving it from two.
+    var has_shapes: Bool
+    var shapes: List[PointShape]
     var color_scale: ColorScale
     var size_mm: MinMax
     var size_scale: LinearScale
@@ -5709,6 +5733,12 @@ struct _PointChannels(Movable):
                     self.palette.append(plot.color_map[name])
                 else:
                     self.palette.append(default_palette[i % len(default_palette)])
+        self.has_shapes = self.has_color_categories and plot._theme.shape_by_category
+        self.shapes = List[PointShape]()
+        if self.has_shapes:
+            var default_shapes = default_marker_shapes()
+            for i in range(len(self.cat.domain)):
+                self.shapes.append(default_shapes[i % len(default_shapes)])
         var color_mm = _min_max(plot.color_data) if self.has_color else MinMax(0.0, 1.0)
         self.color_scale = ColorScale.from_theme(plot._theme, color_mm.min, color_mm.max)
         self.size_mm = _min_max(plot.size_data) if self.has_size else MinMax(0.0, 1.0)
@@ -6404,7 +6434,13 @@ def _draw_point_layer[
             target.draw_line_aa(px - cap_half, py_lo, px + cap_half, py_lo, color, width=sc.scale)
         if draw_halo:
             target.fill_circle_aa(px, py, _round_to_int(Float64(radius) * 2.2), _lighten(color, theme.halo_alpha))
-        target.fill_circle_aa(px, py, radius, color)
+        if ch.has_shapes:
+            # Same plain lookup `color`'s own categorical branch above
+            # uses -- ch.shapes is sized to ch.cat.domain exactly, the
+            # same way ch.palette is (see _PointChannels' docstring).
+            _fill_shape_aa(target, px, py, radius, ch.shapes[ch.cat.indices[i] % len(ch.shapes)], color)
+        else:
+            target.fill_circle_aa(px, py, radius, color)
         if len(plot.point_labels) > 0 and plot.point_labels[i] != "":
             # Baseline placed label_gap above the point's own top edge
             # (py - radius), the same "baseline where the text should
@@ -6429,7 +6465,7 @@ def _draw_point_layer[
 
     var next_y = legend_y
     if ch.has_color_categories:
-        _draw_legend(target, text_requests, ch.cat.domain, ch.palette, legend_x, next_y, theme)
+        _draw_legend(target, text_requests, ch.cat.domain, ch.palette, legend_x, next_y, theme, shapes=ch.shapes)
         next_y += len(ch.cat.domain) * (sc.legend_swatch_size + sc.legend_row_gap)
     elif ch.has_color:
         next_y = _draw_continuous_color_legend(
