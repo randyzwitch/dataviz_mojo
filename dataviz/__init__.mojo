@@ -29,6 +29,7 @@ from dataviz.mark import Mark
 from dataviz.output_format import OutputFormat
 from dataviz.scale import LinearScale, MinMax, Ticks
 from dataviz.color_scale import ColorScale, default_categorical_palette
+from dataviz.marker import PointShape, default_marker_shapes
 from dataviz.colors import *
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (

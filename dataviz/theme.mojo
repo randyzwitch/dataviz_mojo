@@ -379,6 +379,23 @@ struct Theme(ImplicitlyCopyable, Movable):
     """The ink for a negative value -- `Mark.BAR` when `color_by_sign`
     is `True`, and unconditionally for `Mark.WATERFALL`/`CANDLESTICK`,
     whose falling/down coloring isn't optional."""
+    var shape_by_category: Bool
+    """Whether `Mark.POINT`/`SINGLE_AXIS`/`EFFECT_SCATTER` draws each
+    `color_categories` row with a distinct point *shape* (`PointShape`,
+    marker.mojo) on top of its resolved color, cycling `default_
+    marker_shapes()` the same `% len(palette)` way `color_categories`'s
+    own color cycles. Defaults to `False` (every point stays a circle,
+    the shape every render before this field existed already drew). A
+    no-op without `color_categories` set -- there's no category to
+    draw more than one shape for, the same "a `Theme` flag only some
+    marks/encodings read" precedent `color_by_sign` already sets.
+
+    The one channel this package draws purely as redundant coding, not
+    a distinct data encoding of its own: a legend row's shape and
+    color both identify the same category, so a chart printed,
+    projected, or viewed by someone who can't rely on color -- where
+    every `color_categories` swatch collapses toward the same gray --
+    still reads as one series per distinct glyph."""
     var bullet_range_color_light: Color
     """The lightest end of `Mark.BULLET`'s grayscale qualitative-range
     band gradient (lowest range index)."""
@@ -552,6 +569,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         donut_inner_radius_fraction: Float64 = 0.0,
         color_by_sign: Bool = False,
         mark_color_negative: Color = Color(200, 60, 60),
+        shape_by_category: Bool = False,
         bullet_range_color_light: Color = Color(224, 224, 224),
         bullet_range_color_dark: Color = Color(120, 120, 120),
         line_smoothing: Float64 = 0.0,
@@ -624,6 +642,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.donut_inner_radius_fraction = donut_inner_radius_fraction
         self.color_by_sign = color_by_sign
         self.mark_color_negative = mark_color_negative
+        self.shape_by_category = shape_by_category
         self.bullet_range_color_light = bullet_range_color_light
         self.bullet_range_color_dark = bullet_range_color_dark
         self.line_smoothing = line_smoothing
