@@ -179,9 +179,9 @@ from dataviz.gauge import _render_gauge
 from dataviz.parallel import _render_parallel
 from dataviz.radar import _render_radar
 from dataviz.bar import _render_bar, _render_horizontal_bar, _draw_bar_rects
-from dataviz.beeswarm import _render_beeswarm
+from dataviz.beeswarm import _render_beeswarm, _render_horizontal_beeswarm
 from dataviz.ridgeline import _render_ridgeline
-from dataviz.violin import _render_violin
+from dataviz.violin import _render_violin, _render_horizontal_violin
 from dataviz.waterfall import _WaterfallData
 from dataviz.box import _BoxData
 from dataviz.candlestick import _CandleData
@@ -198,7 +198,7 @@ from dataviz.punchcard import _PunchcardData
 from dataviz.marimekko import _MarimekkoData
 from dataviz.edges import _EdgeData
 from dataviz.hierarchy import _HierarchyData
-from dataviz.box import _box_stats, _render_box
+from dataviz.box import _box_stats, _render_box, _render_horizontal_box
 from dataviz.bullet import _render_bullet
 from dataviz.candlestick import _render_candlestick
 from dataviz.gantt import _render_gantt
@@ -810,15 +810,24 @@ struct Plot(Movable):
         self._mark = Mark.WATERFALL
         return self^
 
-    def mark_box(var self) -> Self:
+    def mark_box(var self, horizontal: Bool = False) -> Self:
         """A box plot: one box-and-whiskers per category, summarizing
         a whole distribution of raw values -- encoded via
         `encode_boxplot()` (a category + a *list* of values, not
         `encode_categorical()`'s single number per category; see that
         method's docstring for the quartile/whisker/outlier
         computation it does immediately, not deferred to render()
-        time)."""
+        time).
+
+        `horizontal` (default `False`) -- exactly `mark_bar(horizontal=
+        True)`'s own flip (#121): categories run top-to-bottom, each
+        box-and-whiskers drawn left-to-right instead of bottom-to-top.
+        Built the same way, reusing `_draw_horizontal_categorical_axis_
+        frame` (gantt.mojo) -- see `_render_horizontal_box`'s own
+        docstring (box.mojo).
+        """
         self._mark = Mark.BOX
+        self._horizontal = horizontal
         return self^
 
     def mark_candlestick(var self) -> Self:
@@ -1079,15 +1088,27 @@ struct Plot(Movable):
         self._mark = Mark.STREAMGRAPH
         return self^
 
-    def mark_beeswarm(var self) -> Self:
+    def mark_beeswarm(var self, horizontal: Bool = False) -> Self:
         """A beeswarm plot: one point per raw value, jittered sideways
         within its category's band to avoid overlap -- encoded via
         `encode_distribution()`, the same data `mark_violin()`/`mark_
-        ridgeline()` will use."""
+        ridgeline()` will use.
+
+        `horizontal` (default `False`) -- exactly `mark_bar(horizontal=
+        True)`'s own flip (#121): categories run top-to-bottom, each
+        swarm jittered vertically within its own row instead of
+        horizontally within its own column. Built the same way,
+        reusing `_draw_horizontal_categorical_axis_frame` (gantt.mojo)
+        -- see `_render_horizontal_beeswarm`'s own docstring
+        (beeswarm.mojo).
+        """
         self._mark = Mark.BEESWARM
+        self._horizontal = horizontal
         return self^
 
-    def mark_violin(var self, bandwidth: Float64 = 0.0, scale_by_count: Bool = False) -> Self:
+    def mark_violin(
+        var self, bandwidth: Float64 = 0.0, scale_by_count: Bool = False, horizontal: Bool = False
+    ) -> Self:
         """A violin plot: a symmetric kernel-density-estimate
         silhouette per category -- encoded via `encode_distribution()`,
         the same data `mark_beeswarm()`/`mark_ridgeline()` use.
@@ -1121,6 +1142,15 @@ struct Plot(Movable):
                 gives every category's peak the same maximum width;
                 `True` (`scale = "area"`) additionally scales a
                 category's maximum width by `sqrt(n_i / max(n))`.
+            horizontal: `False` (the default) draws each silhouette
+                bulging left-right around a vertical column, one
+                column per category left-to-right. `True` -- exactly
+                `mark_bar(horizontal=True)`'s own flip (#121) -- draws
+                each silhouette bulging up-down around a horizontal
+                row, one row per category top-to-bottom, reusing
+                `_draw_horizontal_categorical_axis_frame` (gantt.mojo)
+                -- see `_render_horizontal_violin`'s own docstring
+                (violin.mojo).
 
         Returns:
             Self, for further chaining.
@@ -1128,6 +1158,7 @@ struct Plot(Movable):
         self._mark = Mark.VIOLIN
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
+        self._horizontal = horizontal
         return self^
 
     def mark_ridgeline(var self, bandwidth: Float64 = 0.0, scale_by_count: Bool = False) -> Self:
@@ -6602,6 +6633,8 @@ def _render_generic[
     if plot._mark == Mark.WATERFALL:
         return _render_waterfall(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.BOX:
+        if plot._horizontal:
+            return _render_horizontal_box(target, plot, ox0, oy0, ox1, oy1)
         return _render_box(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.CANDLESTICK:
         return _render_candlestick(target, plot, ox0, oy0, ox1, oy1)
@@ -6650,8 +6683,12 @@ def _render_generic[
     if plot._mark == Mark.STREAMGRAPH:
         return _render_streamgraph(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.BEESWARM:
+        if plot._horizontal:
+            return _render_horizontal_beeswarm(target, plot, ox0, oy0, ox1, oy1)
         return _render_beeswarm(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.VIOLIN:
+        if plot._horizontal:
+            return _render_horizontal_violin(target, plot, ox0, oy0, ox1, oy1)
         return _render_violin(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.RIDGELINE:
         return _render_ridgeline(target, plot, ox0, oy0, ox1, oy1)

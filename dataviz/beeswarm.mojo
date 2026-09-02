@@ -3,6 +3,7 @@ from canvas_mojo.vector.draw_target import DrawTarget
 from canvas_mojo.buffer import Canvas
 
 from dataviz.array_like import _materialize_nested_scalar_list
+from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -112,6 +113,55 @@ def _render_beeswarm[
     return frame.result()
 
 
+def _render_horizontal_beeswarm[
+    T: DrawTarget
+](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+    """`_render_beeswarm`'s mirror image for `Plot.mark_beeswarm(
+    horizontal=True)` (#121) -- exactly `_render_horizontal_bar`'s own
+    categorical y-axis / continuous x-axis (`_draw_horizontal_
+    categorical_axis_frame`, gantt.mojo, shared -- see that function's
+    docstring), with each category's raw values placed along the
+    continuous `x_scale` and jittered *vertically* within their own
+    row via `_beeswarm_offsets` instead of horizontally within their
+    own column -- `_beeswarm_offsets` itself is unchanged, since it
+    only ever reasons about one continuous pixel axis (the one values
+    are placed along) and one perpendicular jitter axis, never which
+    is which.
+
+    Deliberately its own function, not an orientation flag threaded
+    through `_render_beeswarm` -- see `_render_horizontal_bar`'s own
+    docstring (bar.mojo) for the full reasoning, identical here.
+    """
+    var theme = plot._theme
+    if len(plot.x_categories) == 0:
+        return _empty_result(ox0, oy0, ox1, oy1)
+
+    var all_values = List[Float64]()
+    for series in plot._distribution.values:
+        for v in series:
+            all_values.append(v)
+    var x_scale = _data_extent(all_values)
+
+    var frame = _draw_horizontal_categorical_axis_frame(
+        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
+    )
+
+    var sc = _Scaled(theme)
+    var radius = _round_to_int(sc.point_radius)
+    var spacing = 2 * radius
+
+    for i in range(len(plot.x_categories)):
+        var center_y = _round_to_int(frame.y_scale.center(i))
+        var x_pixels = List[Int]()
+        for v in plot._distribution.values[i]:
+            x_pixels.append(_axis_pixel(frame.x_scale, v))
+        var offsets = _beeswarm_offsets(x_pixels, spacing)
+        for j in range(len(x_pixels)):
+            target.fill_circle_aa(x_pixels[j], center_y + offsets[j], radius, theme.mark_color)
+
+    return frame.result()
+
+
 def beeswarm(
     categories: List[String],
     values: List[List[Float64]],
@@ -122,6 +172,7 @@ def beeswarm(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    horizontal: Bool = False,
 ) raises -> Plot:
     """A beeswarm plot -- `Mark.BEESWARM`, one point per raw value,
     jittered sideways to avoid overlap, one swarm per category. See
@@ -141,6 +192,10 @@ def beeswarm(
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
+        horizontal: Draw categories running top-to-bottom with each
+            swarm jittered vertically within its own row instead of
+            the default vertical layout -- see `Plot.mark_beeswarm()`'s
+            own docstring (#121).
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
@@ -162,7 +217,7 @@ def beeswarm(
             save(c, "docs/src/examples/out_beeswarm.svg")
         ```
     """
-    var plot = Plot().mark_beeswarm().encode_distribution(categories=categories, values=values)
+    var plot = Plot().mark_beeswarm(horizontal=horizontal).encode_distribution(categories=categories, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
 
@@ -178,6 +233,7 @@ def beeswarm[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    horizontal: Bool = False,
 ) raises -> Plot:
     """`beeswarm()`, generalized over numeric element type for
     `values` -- the nested-list counterpart to `scatter()`'s own
@@ -187,5 +243,5 @@ def beeswarm[
     """
     return beeswarm(
         categories, _materialize_nested_scalar_list(values), theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title, horizontal=horizontal,
     )
