@@ -206,7 +206,7 @@ from dataviz.span_chart import _render_span_chart
 from dataviz.bump import _render_bump
 from dataviz.chord import _render_chord
 from dataviz.funnel import _render_funnel
-from dataviz.grouped_bar import _render_grouped_bar
+from dataviz.grouped_bar import _render_grouped_bar, _render_horizontal_grouped_bar
 from dataviz.heatmap import _render_heatmap
 from dataviz.calendar_heatmap import _render_calendar_heatmap
 from dataviz.corrplot import _render_corrplot
@@ -223,7 +223,7 @@ from dataviz.histogram import _bin_histogram
 from dataviz.lollipop import _render_lollipop, _render_horizontal_lollipop
 from dataviz.single_axis import _render_single_axis
 from dataviz.population_pyramid import _render_population_pyramid
-from dataviz.stacked_bar import _render_stacked_bar
+from dataviz.stacked_bar import _render_stacked_bar, _render_horizontal_stacked_bar
 from dataviz.streamgraph import _render_streamgraph
 from dataviz.waterfall import _render_waterfall, _waterfall_running_totals
 
@@ -955,15 +955,25 @@ struct Plot(Movable):
         self._mark = Mark.TREEMAP
         return self^
 
-    def mark_grouped_bar(var self) -> Self:
+    def mark_grouped_bar(var self, horizontal: Bool = False) -> Self:
         """A grouped bar chart: several bars side by side per category,
         one per series, encoded via `encode_grouped_bar()` -- a category
         plus a name and a value *per series*, not `encode_categorical()`'s
-        single value."""
+        single value.
+
+        `horizontal` (default `False`) -- exactly `mark_bar(horizontal=
+        True)`'s own flip (#121): categories run top-to-bottom, each
+        category's row subdivided into equal-height sub-bars stacked
+        within it instead of equal-width sub-bars side by side. Built
+        the same way, reusing `_draw_horizontal_categorical_axis_frame`
+        (gantt.mojo) -- see `_render_horizontal_grouped_bar`'s own
+        docstring (grouped_bar.mojo).
+        """
         self._mark = Mark.GROUPED_BAR
+        self._horizontal = horizontal
         return self^
 
-    def mark_stacked_bar(var self, percent: Bool = False) -> Self:
+    def mark_stacked_bar(var self, percent: Bool = False, horizontal: Bool = False) -> Self:
         """A stacked bar chart: one bar per category, each series' value stacked as a segment on top of the previous one's running total, instead of `Mark.GROUPED_BAR`'s side-by-side
         sub-bars -- encoded via the exact same `encode_grouped_bar()`,
         no separate encode method needed (the data is identical; only
@@ -985,16 +995,27 @@ struct Plot(Movable):
         values are all zero draws as an empty column (0% of an
         undefined whole) rather than dividing by zero.
 
+        `horizontal` (default `False`) -- exactly `mark_bar(horizontal=
+        True)`'s own flip (#121): categories run top-to-bottom, each
+        category's segments stack left-to-right from a zero baseline
+        instead of bottom-to-top. Built the same way, reusing `_draw_
+        horizontal_categorical_axis_frame` (gantt.mojo) -- see `_render_
+        horizontal_stacked_bar`'s own docstring (stacked_bar.mojo).
+
         Args:
             percent: `False` (the default) stacks raw values, an
                 unchanged real-valued y-axis. `True` normalizes each
                 category to 100% and fixes the y-axis to `[0, 100]`.
+            horizontal: Draw categories running top-to-bottom with each
+                category's segments stacked left-to-right instead of
+                the default vertical layout.
 
         Returns:
             Self, for further chaining.
         """
         self._mark = Mark.STACKED_BAR
         self._stacked_bar_percent = percent
+        self._horizontal = horizontal
         return self^
 
     def mark_population_pyramid(var self) -> Self:
@@ -6622,8 +6643,12 @@ def _render_generic[
     if plot._mark == Mark.BULLET:
         return _render_bullet(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.GROUPED_BAR:
+        if plot._horizontal:
+            return _render_horizontal_grouped_bar(target, plot, ox0, oy0, ox1, oy1)
         return _render_grouped_bar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.STACKED_BAR:
+        if plot._horizontal:
+            return _render_horizontal_stacked_bar(target, plot, ox0, oy0, ox1, oy1)
         return _render_stacked_bar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.GANTT:
         return _render_gantt(target, plot, ox0, oy0, ox1, oy1)
