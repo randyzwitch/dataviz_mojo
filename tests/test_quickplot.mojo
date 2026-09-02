@@ -26,8 +26,8 @@ passed" test to lock in the documented defaults.
 
 from std.testing import assert_equal, TestSuite
 
-from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
+from canvas.color import Color
+from canvas.buffer import Canvas
 from dataviz.plot import Plot, render
 from dataviz.theme import Theme
 from dataviz import (

@@ -1,8 +1,8 @@
 from std.math import pi, sqrt
 
-from canvas_mojo.vector.draw_target import DrawTarget
-from canvas_mojo.vector.svg import SvgCanvas
-from canvas_mojo.buffer import Canvas
+from canvas.vector.draw_target import DrawTarget
+from canvas.vector.svg import SvgCanvas
+from canvas.buffer import Canvas
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette

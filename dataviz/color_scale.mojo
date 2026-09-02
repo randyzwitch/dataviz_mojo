@@ -1,6 +1,6 @@
 """ColorScale -- maps a continuous data domain onto a color gradient,
 for data-driven color encoding (`Plot.encode(color=...)`). Shares its
-stop-interpolation logic with `canvas_mojo.gradient`'s `LinearGradient`/
+stop-interpolation logic with `canvas.gradient`'s `LinearGradient`/
 `RadialGradient` via that module's `_color_at_t`/`_GradientStop`
 -- identical math (bracket the two nearest stops, linearly
 interpolate), only the projection differs: those two project a pixel
@@ -10,8 +10,8 @@ domain-to-[0,1] idea `LinearScale` uses for position, generalized to
 color instead of a pixel coordinate.
 """
 
-from canvas_mojo.color import Color
-from canvas_mojo.gradient import _GradientStop, _color_at_t
+from canvas.color import Color
+from canvas.gradient import _GradientStop, _color_at_t
 from dataviz.theme import Theme
 
 
@@ -35,7 +35,7 @@ struct ColorScale(Movable):
     # The smallest-/largest-offset stop so far -- tracked incrementally
     # here instead of scanned from `stops` by _color_at_t on every
     # call, matching LinearGradient/RadialGradient's pattern (see
-    # canvas_mojo.gradient's docstring for why _color_at_t takes
+    # canvas.gradient's docstring for why _color_at_t takes
     # these pre-found rather than scanning itself).
     var _lowest: _GradientStop
     var _highest: _GradientStop
@@ -140,7 +140,7 @@ def default_categorical_palette() -> List[Color]:
     once a struct holds a `List` -- which every existing `var theme =
     plot._theme`-style copy throughout
     this package already depends on. The same reasoning keeps named
-    palettes out of `canvas_mojo.Color` itself: a fixed default is
+    palettes out of `canvas.Color` itself: a fixed default is
     enough until per-Theme palette customization is an actual,
     concrete need, not a reason to change how `Theme` itself copies
     today.

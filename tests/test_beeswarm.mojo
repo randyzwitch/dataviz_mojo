@@ -5,8 +5,8 @@ rules verified here.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from canvas_mojo.color import Color
-from canvas_mojo.vector.svg import SvgCanvas
+from canvas.color import Color
+from canvas.vector.svg import SvgCanvas
 from dataviz.plot import Plot, render, render_svg
 from dataviz.theme import Theme
 from dataviz import beeswarm

@@ -4,9 +4,9 @@ colors, the angular gap between bars, SVG bar paths.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
-from canvas_mojo.vector.svg import SvgCanvas
+from canvas.color import Color
+from canvas.buffer import Canvas
+from canvas.vector.svg import SvgCanvas
 from dataviz.color_scale import default_categorical_palette
 from dataviz.plot import Plot, render, render_svg
 from dataviz.theme import Theme

@@ -4,8 +4,8 @@ encode_radar()'s length-mismatch validation.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from canvas_mojo.color import Color
-from canvas_mojo.buffer import Canvas
+from canvas.color import Color
+from canvas.buffer import Canvas
 from dataviz.color_scale import default_categorical_palette
 from dataviz.plot import Plot, render, _lighten
 from dataviz.theme import Theme

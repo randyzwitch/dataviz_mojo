@@ -1,6 +1,6 @@
 """LinearScale -- maps a continuous data domain onto a pixel range,
 and picks "nice" tick positions within that domain for axis labeling.
-This is the piece canvas_mojo.geometry.Transform2D's docstring already
+This is the piece canvas.geometry.Transform2D's docstring already
 named as deferred here: `scale()`/`translate()` below compute exactly
 the slope/intercept Transform2D's affine map takes, so Plot builds one
 Transform2D from an x-scale and a y-scale (with the y-scale's range
@@ -18,7 +18,7 @@ module's docstring below was independently computed by hand.
 
 from std.math import ceil, floor, log10, pow
 
-from canvas_mojo.geometry import _round_to_int
+from canvas.geometry import _round_to_int
 
 
 struct MinMax(ImplicitlyCopyable, Movable):

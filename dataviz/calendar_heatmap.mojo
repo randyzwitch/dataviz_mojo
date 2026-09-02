@@ -1,11 +1,11 @@
-from canvas_mojo.geometry import _round_to_int
-from canvas_mojo.text.render import TextAlign
-from canvas_mojo.vector.draw_target import DrawTarget
-from canvas_mojo.buffer import Canvas
+from canvas.geometry import _round_to_int
+from canvas.text.render import TextAlign
+from canvas.vector.draw_target import DrawTarget
+from canvas.buffer import Canvas
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import ColorScale
-from canvas_mojo.text.font_cache import FontCache
+from canvas.text.font_cache import FontCache
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -192,7 +192,7 @@ def _render_calendar_heatmap[
     var month_labels = _calendar_month_labels()
     # One FontCache shared by both measurements this render makes
     # (the y-axis category labels here, and the legend's labels
-    # further down) -- a fresh cache per call re-pays canvas_mojo's
+    # further down) -- a fresh cache per call re-pays canvas's
     # font resolution and TTF parse for a font that is already loaded.
     var measure_cache = FontCache()
     var dynamic_left_margin = (

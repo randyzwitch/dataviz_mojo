@@ -4,8 +4,8 @@ SVG).
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from canvas_mojo.color import Color
-from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
+from canvas.color import Color
+from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
 from dataviz.color_scale import default_categorical_palette
 from dataviz.plot import (
     Plot,

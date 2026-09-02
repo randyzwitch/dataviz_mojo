@@ -5,7 +5,7 @@ left-axis domain -- for a revenue-bars-plus-growth-rate-line combo
 chart, where the two series' units/scales are too different to share
 one axis without one of them going flat.
 """
-from canvas_mojo.color import Color
+from canvas.color import Color
 from dataviz.plot import Plot, save_layers
 from dataviz.theme import Theme
 

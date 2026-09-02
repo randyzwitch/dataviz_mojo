@@ -5,8 +5,8 @@ narrowed inner plot rect.
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from canvas_mojo.color import Color
-from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
+from canvas.color import Color
+from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
 from dataviz.color_scale import default_categorical_palette
 from dataviz.plot import (
     Plot,
@@ -164,7 +164,7 @@ def test_render_labels_default_matches_unlabeled_output_exactly() raises:
 
 def test_render_title_draws_ink_in_its_own_reserved_top_band() raises:
     # A simpler, raster-side companion to the SVG string test above --
-    # confirms canvas_mojo.text.draw_text actually got called with a
+    # confirms canvas.text.draw_text actually got called with a
     # real, matching title (not just that the SVG backend's _TextRequest plumbing is correct): a fresh Canvas has no ink
     # anywhere at all before render(), so any non-background pixel
     # inside the reserved top band (y in [0, extra_top)) after

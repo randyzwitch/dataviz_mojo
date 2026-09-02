@@ -45,7 +45,7 @@ jobs:
       # a second time here). libfreetype used to be
       # installed here too, but canvas_mojo v0.1.0 (this package's
       # now-tagged dependency, see pixi.toml) replaced its own FreeType
-      # FFI binding with a native TrueType parser (canvas_mojo/text/
+      # FFI binding with a native TrueType parser (canvas/text/
       # ttf.mojo) -- fontconfig (font *discovery*, resolving a family
       # name to an actual installed file) is the only system library
       # left linked, the same fix canvas_mojo's own CI already made for
@@ -53,7 +53,7 @@ jobs:
       #
       # fonts-dejavu-core is a real runtime dependency too, not
       # cosmetic: no test here passes an explicit font family to
-      # draw_text()/measure_text(), so every one resolves canvas_mojo's
+      # draw_text()/measure_text(), so every one resolves canvas's
       # own default ("Sans") through fontconfig -- DejaVu Sans on a bare
       # Ubuntu runner image, which ships libfontconfig without any
       # actual font files installed.

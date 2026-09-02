@@ -1,9 +1,9 @@
 from std.math import cos, pi, sin
 
-from canvas_mojo.color import Color
-from canvas_mojo.path import Path
-from canvas_mojo.vector.draw_target import DrawTarget
-from canvas_mojo.buffer import Canvas
+from canvas.color import Color
+from canvas.path import Path
+from canvas.vector.draw_target import DrawTarget
+from canvas.buffer import Canvas
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -29,7 +29,7 @@ def _draw_chord_ribbon[
     ->`a1` at node A's inner radius, `b0`->`b1` at node B's) and
     two curved "cross" connections between them -- the classic chord-
     diagram ribbon shape. Each rim arc is a real `Path.arc_to` segment
-    (`canvas_mojo`'s center/radius/angle convention matches this file's
+    (`canvas`'s center/radius/angle convention matches this file's
     `cos`/`sin` rim-point math exactly, so no angle conversion is
     needed at the call site); each cross connection is a single
     `quad_curve_to` pulled toward the circle's center `(cx, cy)`, which

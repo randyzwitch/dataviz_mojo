@@ -6,8 +6,8 @@ Theme default that isn't backward-compatible).
 
 from std.testing import assert_equal, assert_true, assert_raises, TestSuite
 
-from canvas_mojo.color import Color
-from canvas_mojo.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
+from canvas.color import Color
+from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
 from dataviz.color_scale import default_categorical_palette
 from dataviz.plot import (
     Plot,
@@ -122,7 +122,7 @@ def test_render_theme_font_family_default_matches_sans_serif_explicit() raises:
 def test_render_theme_font_family_actually_changes_raster_glyphs() raises:
     # A genuinely different family (monospace, vs. the default sans-
     # serif) must change the actual rendered raster glyphs, not just
-    # the SVG markup -- proof `family` reaches canvas_mojo.text.
+    # the SVG markup -- proof `family` reaches canvas.text.
     # draw_text's raster path too, not only SvgCanvas.draw_text.
     # Sampling a small box around the first y-axis tick label ("4.0"
     # at pixel (60, 271), see the SVG test above) rather than a single
