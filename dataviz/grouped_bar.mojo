@@ -1,3 +1,4 @@
+from canvas.color import Color
 from canvas.geometry import _round_to_int
 from canvas.vector.draw_target import DrawTarget
 from canvas.buffer import Canvas
@@ -76,6 +77,43 @@ def _series_legend_reserve(plot: Plot, sc: _Scaled) raises -> Int:
     if not plot._theme.show_legend:
         return 0
     return _dynamic_legend_width(plot._grouped_bar.series_names, sc.legend_swatch_size, sc)
+
+
+def _draw_series_legend[
+    T: DrawTarget
+](
+    mut target: T,
+    mut text_requests: List[_TextRequest],
+    plot: Plot,
+    sc: _Scaled,
+    palette: List[Color],
+    legend_range_max: Int,
+    legend_y: Int,
+    theme: Theme,
+) raises:
+    """The one `_draw_legend` call `Mark.GROUPED_BAR`/`STACKED_BAR` both
+    make, in both orientations (4 call sites total -- grouped_bar.mojo's
+    own `_render_grouped_bar`/`_render_horizontal_grouped_bar`, plus
+    stacked_bar.mojo's `_render_stacked_bar`/`_render_horizontal_
+    stacked_bar` importing this) -- shared here for the same reason
+    `_series_legend_reserve` above is (see its own docstring).
+
+    `legend_range_max + sc.margin_right` is always the x position (the
+    frame's own continuous scale's `range_max`, whichever axis carries
+    it, passed in already-rounded by the caller); only `legend_y`
+    differs between orientations -- a vertical frame's own `y_scale.
+    range_max` vs a horizontal frame's own `py0` -- see `_render_
+    horizontal_grouped_bar`'s docstring for why.
+    """
+    _draw_legend(
+        target,
+        text_requests,
+        plot._grouped_bar.series_names,
+        palette,
+        legend_range_max + sc.margin_right,
+        legend_y,
+        theme,
+    )
 
 
 def _render_grouped_bar[
@@ -172,12 +210,13 @@ def _render_grouped_bar[
                 )
 
     if show_legend:
-        _draw_legend(
+        _draw_series_legend(
             target,
             frame.text_requests,
-            plot._grouped_bar.series_names,
+            plot,
+            sc,
             palette,
-            _round_to_int(frame.x_scale.range_max) + sc.margin_right,
+            _round_to_int(frame.x_scale.range_max),
             _round_to_int(frame.y_scale.range_max),
             theme,
         )
@@ -276,12 +315,13 @@ def _render_horizontal_grouped_bar[
                 )
 
     if show_legend:
-        _draw_legend(
+        _draw_series_legend(
             target,
             frame.text_requests,
-            plot._grouped_bar.series_names,
+            plot,
+            sc,
             palette,
-            _round_to_int(frame.x_scale.range_max) + sc.margin_right,
+            _round_to_int(frame.x_scale.range_max),
             frame.py0,
             theme,
         )
