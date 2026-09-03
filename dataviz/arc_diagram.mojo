@@ -1,12 +1,9 @@
 from std.math import pi
 
-from canvas.color import Color
 from canvas.geometry import _round_to_int
 from canvas.path import Path
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
-from canvas.vector.svg import SvgCanvas
-from canvas.buffer import Canvas
 
 from dataviz.color_scale import default_categorical_palette
 from dataviz.mark import Mark

@@ -3517,33 +3517,6 @@ struct Plot(Movable):
         return self^
 
 
-def _unique_categories(data: List[String]) -> List[String]:
-    """Every distinct value in `data`, in first-seen order -- the
-    domain a categorical color palette indexes into. Deliberately not
-    shared with `encode_categorical()`'s `x_categories` (which is
-    used as-given, no dedup -- see that method's docstring): a
-    color column is expected to repeat values across many rows (many
-    points share a category), while a bar chart's `x` is one row per
-    category already."""
-    var result = List[String]()
-    for v in data:
-        var found = False
-        for existing in result:
-            if existing == v:
-                found = True
-                break
-        if not found:
-            result.append(v)
-    return result^
-
-
-def _index_of(data: List[String], value: String) -> Int:
-    for i in range(len(data)):
-        if data[i] == value:
-            return i
-    return -1
-
-
 struct _CategoricalIndex(Movable):
     """`_categorical_indices`'s result: a categorical column's
     `domain` (its distinct values in first-seen order, exactly what

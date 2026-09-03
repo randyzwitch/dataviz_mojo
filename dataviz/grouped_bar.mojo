@@ -1,13 +1,11 @@
 from canvas.color import Color
 from canvas.geometry import _round_to_int
 from canvas.vector.draw_target import DrawTarget
-from canvas.buffer import Canvas
 
 from canvas.text.render import TextAlign
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
-from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,

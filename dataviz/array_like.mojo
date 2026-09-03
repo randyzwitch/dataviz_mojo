@@ -1,6 +1,7 @@
-"""Accepting chart data that isn't a plain `List[Float64]`/`List
-[String]` -- two independent axes, each its own mechanism (see #158/
-#107 for the design discussion this closes the first slice of):
+"""Accepting chart data that isn't a plain `List[Float64]`/`List[String]`.
+
+Two independent axes, each its own mechanism (see #158/#107 for the
+design discussion this closes the first slice of):
 
 - A different *container* type -- a custom buffer wrapper, a future
   dataframe column type -- via `Float64Sequence`/`StringSequence`

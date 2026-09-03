@@ -1,7 +1,6 @@
 from canvas.color import Color
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
-from canvas.buffer import Canvas
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette

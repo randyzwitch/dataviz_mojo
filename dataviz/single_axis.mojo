@@ -1,9 +1,7 @@
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
-from canvas.buffer import Canvas
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
     _PointChannels,

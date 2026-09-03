@@ -45,7 +45,7 @@ comment for the measurements).
 
 """
 
-from _test_helpers import BG, _assert_color, _assert_near_color, _count_color
+from _test_helpers import BG, _assert_color, _assert_near_color, _count_color, _index_of, _unique_categories
 from canvas.color import Color
 from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
 from dataviz import (
@@ -75,8 +75,6 @@ from dataviz.plot import (
     _build_line_path,
     _categorical_indices,
     _decimate_to_pixel_columns,
-    _index_of,
-    _unique_categories,
 )
 from dataviz.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true

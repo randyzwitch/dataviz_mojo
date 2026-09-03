@@ -1,12 +1,7 @@
-from std.math import pi
-
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
-from canvas.vector.svg import SvgCanvas
-from canvas.buffer import Canvas
 from canvas.text.render import TextAlign
 
-from dataviz.mark import Mark
 from dataviz.plot import Plot, _RenderResult, _Scaled, _TextRequest, _finished
 from dataviz.polar import _polar_point
 from dataviz.scale import _format_fixed
