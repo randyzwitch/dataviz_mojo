@@ -1,14 +1,8 @@
 """Tests for `_materialize_python_floats` (numpy_interop.mojo) and
-`Plot.encode()`/`encode_categorical()`'s `PythonObject` overloads --
-the third array-like axis alongside `Float64Sequence` (a different
-container type) and `DType` genericity (a different numeric element
-type through a `List`): a numpy `ndarray`, a pandas `Series`, or a
-plain Python list of numbers, all converted via numpy's own array-like
-protocol rather than a hand-rolled element loop.
-
-Real numpy/pandas calls throughout, not mocked -- numpy/pandas are
-dev/test-only dependencies (see pixi.toml's own comment), so this is
-exactly what a real caller's data would look like.
+`Plot.encode()`/`encode_categorical()`'s `PythonObject` overloads: a
+numpy `ndarray`, a pandas `Series`, or a plain Python list of numbers,
+converted through numpy's own array-like protocol. Real numpy/pandas
+calls throughout (dev/test-only dependencies; see pixi.toml).
 """
 
 from std.testing import assert_equal, assert_raises, TestSuite
@@ -39,9 +33,7 @@ def test_materialize_python_floats_converts_an_int64_numpy_array() raises:
 
 
 def test_materialize_python_floats_accepts_a_plain_python_list() raises:
-    # No numpy array wrapping at all -- numpy's own ascontiguousarray
-    # accepts a plain Python list directly (confirmed empirically),
-    # so this works with nothing but the Python interpreter itself.
+    # numpy's ascontiguousarray accepts a plain Python list directly.
     var plain_list = Python.evaluate("[4.0, 5.0, 6.0]")
     var out = _materialize_python_floats(plain_list)
     assert_equal(len(out), 3)
@@ -51,10 +43,8 @@ def test_materialize_python_floats_accepts_a_plain_python_list() raises:
 
 
 def test_materialize_python_floats_accepts_a_pandas_series() raises:
-    # A raw pandas Series, not `.to_numpy()`'d first -- confirmed
-    # empirically that numpy's own array-like protocol handles a
-    # Series transparently, so no extra step is required of the
-    # caller.
+    # A raw pandas Series, not `.to_numpy()`'d first; numpy's array-like
+    # protocol handles it.
     var pd = Python.import_module("pandas")
     var series = pd.Series(Python.evaluate("[10, 20, 30]"))
     var out = _materialize_python_floats(series)

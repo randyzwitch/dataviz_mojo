@@ -1,71 +1,23 @@
-"""Merged test module -- one process for a whole family of test
-files, instead of one per file. Each `render()` call monomorphizes
-`_render_generic[T: DrawTarget]` over every ~50 `_render_*`
-function, and that cost is paid per process, so merging is what
-keeps it from being paid once per file (see pixi.toml's `[tasks]`
-comment for the measurements).
+"""Merged test module (one process per test family; see pixi.toml's
+`[tasks]` comment for why). Covers:
 
-- `test_quickplot.mojo`: Tests for the one-call convenience functions: every one is checked
-  pixel-for-pixel against a manually-built `Plot`, both rendered through
-  the identical `render()` (issue #112 -- quickplot now just returns the
-  `Plot` it builds internally, not a rendered `Canvas`, so there's no
-  quickplot-specific rendering path left to differ from `render()`'s at
-  all; see plot.mojo's module docstring). Not a second hand-derived
-  pixel check (that's already covered per-mark in test_point.mojo/
-  test_bar.mojo/test_waterfall.mojo/etc.), so these tests catch a
-  wrapper drifting out of sync with Plot's builder (a renamed
-  encode_*() kwarg, a dropped .labels()/.theme()/.size() call, a wrong
-  default), not Plot's rendering math.
-  
-  Each one-call function lives in its own mark's file (see plot.mojo's
-  module docstring for the rule). They stay tested together here
-  because what they share -- the builder contract and the documented
-  defaults -- is exactly what these tests check, and that's a property of
-  the group, not of any one mark. Imported from the package itself, the
-  way a caller is meant to (see dataviz/__init__.mojo's docstring), which is also what keeps this file indifferent to which
-  mark file any given one ends up in.
-  
-  One "matches the manual builder, non-default theme/size/labels"
-  test per mark (proves the escape hatch and the shared parameters all
-  actually reach Plot), plus one "matches Theme()/640x420 with nothing
-  passed" test to lock in the documented defaults.
-
-- `test_quickplot_numeric_types.mojo`: Tests for the `DType`-generic overloads added to every quickplot
-  convenience function whose data is flat `List[Float64]` columns (not
-  nested `List[List[Float64]]` -- see each overload's own docstring for
-  why those are a separate, deferred follow-up). One test per function:
-  calling it with `List[Int]` data renders byte-for-byte identically to
-  calling it with the equivalent `List[Float64]` data, proving the
-  overload is a real, lossless pass-through (`_materialize_scalar_list`)
-  rather than a silently different code path.
-  
-  Reuses each function's own updated `Example:` docstring data (now
-  `List[Int]` there too, per #167) so this test doubles as confirmation
-  that data still renders correctly.
-
-- `test_quickplot_nested_numeric_types.mojo`: Tests for the `DType`-generic overloads added to every quickplot
-  convenience function whose data is a *nested* `List[List[Float64]]`
-  column -- `grouped_bar()`/`stacked_bar()`/`bump()`/`streamgraph()`
-  (share `Plot.encode_grouped_bar()`), `beeswarm()`/`ridgeline()`/
-  `violin()`/`box()` (share `Plot.encode_distribution()`/`encode_
-  boxplot()`), `marimekko()`, `radar()`, `parallel()`, `polar_series()`.
-  The follow-up #158's own tracking issue called out as harder than the
-  flat-list case (`test_quickplot_numeric_types.mojo`) -- one test per
-  function: calling it with `List[List[Int]]` data renders byte-for-byte
-  identically to calling it with the equivalent `List[List[Float64]]`
-  data, via the new `_materialize_nested_scalar_list` (array_like.mojo).
-  
-  Also covers `radar()`'s other, independent `DType`-generic axis (#173):
-  `max_values` is a flat `List[Float64]`, generalized separately from
-  `series_values`' own nested axis above -- the two can't be generic
-  together in one call (see `encode_radar()`'s own docstring for why),
-  so this is its own dedicated test, not folded into the nested one.
-  
-  `corrplot()`/`parallel()`'s own example data stayed `Float64`
-  (correlations, decimal-valued real-world stats) -- not swept in the
-  Cookbook/docstring sense, but still covered here with synthetic whole-
-  number data to prove the overload itself works correctly regardless.
-
+- The one-call convenience functions: each is checked pixel-for-pixel
+  against a manually built `Plot` rendered through the same
+  `render()` (#112), so these catch a wrapper drifting from the
+  builder (a renamed kwarg, a dropped .labels()/.theme()/.size()
+  call, a wrong default), not rendering math. One "matches the manual
+  builder with non-default theme/size/labels" test per mark, plus one
+  "matches Theme()/640x420 with nothing passed" test. Imported from
+  the package, as a caller would.
+- The DType-generic overloads of every quickplot function with flat
+  `List[Float64]` data: `List[Int]` renders byte-for-byte like the
+  equivalent `List[Float64]`. Reuses each function's `Example:` data
+  (#167).
+- The nested `List[List[Float64]]` overloads (grouped_bar/stacked_bar/
+  bump/streamgraph, beeswarm/ridgeline/violin/box, marimekko, radar,
+  parallel, polar_series) via `_materialize_nested_scalar_list`, plus
+  radar()'s independent flat `max_values` axis (#173). corrplot()/
+  parallel() use synthetic whole-number data here.
 """
 
 from canvas.buffer import Canvas
@@ -689,10 +641,9 @@ def test_radar_accepts_nested_list_int_matching_list_float64() raises:
 
 
 def test_radar_accepts_list_int_max_values_matching_list_float64() raises:
-    # radar()'s other DType-generic axis (#173) -- max_values, a flat
-    # List[Float64], is independent of series_values' own nested axis
-    # tested above; each overload here generalizes exactly one of the
-    # two, never both together (see encode_radar()'s own docstring).
+    # radar()'s other DType-generic axis (#173): max_values, a flat
+    # List[Float64], independent of series_values' nested axis; each
+    # overload generalizes one of the two.
     var indicators: List[String] = ["A", "B", "C"]
     var names: List[String] = ["S1", "S2"]
     var series_values: List[List[Float64]] = [[90.0, 60.0, 80.0], [65.0, 85.0, 55.0]]
@@ -726,25 +677,18 @@ def test_polar_series_accepts_nested_list_int_matching_list_float64() raises:
 
 
 def test_dtype_generic_overloads_forward_their_mark_style_parameters() raises:
-    """A `[dtype]`-generic quickplot overload must pass its own
-    mark-style parameters down to the concrete one, not just accept
-    and drop them.
-
-    This is a regression test for a real bug: when the per-mark style
-    knobs moved off `Theme` onto the `mark_*()`/quickplot parameters,
-    the generic overloads gained the parameters but kept delegating
-    without forwarding them. Nothing failed loudly -- the value was
-    silently ignored and the chart rendered with the default, which
-    only showed up as one changed image in the docs corpus. Comparing
-    the two overloads against each other is what catches it.
+    """A `[dtype]`-generic quickplot overload must forward its mark-style
+    parameters to the concrete one. Regression test: when the per-mark
+    knobs moved off `Theme` onto `mark_*()`/quickplot parameters, the
+    generic overloads gained the parameters without forwarding them, and
+    the only symptom was one changed image in the docs corpus.
     """
     var cats: List[String] = ["a", "b"]
     var vals_f: List[Float64] = [1.0, 3.0]
     var vals_i: List[Int] = [1, 3]
 
     # pie(): List[Int] takes the generic overload, List[Float64] the
-    # concrete one -- same data, so same pixels, only if the generic
-    # one forwards inner_radius_fraction.
+    # concrete one; same pixels only if inner_radius_fraction is forwarded.
     var _p_gen = pie(cats, vals_i, inner_radius_fraction=0.55, width=300, height=300)
     var _p_con = pie(cats, vals_f, inner_radius_fraction=0.55, width=300, height=300)
     _assert_canvas_equal(render(_p_gen), render(_p_con), "pie inner_radius_fraction")

@@ -1,75 +1,19 @@
-"""Merged test module -- one process for a whole family of test
-files, instead of one per file. Each `render()` call monomorphizes
-`_render_generic[T: DrawTarget]` over every ~50 `_render_*`
-function, and that cost is paid per process, so merging is what
-keeps it from being paid once per file (see pixi.toml's `[tasks]`
-comment for the measurements).
+"""Merged test module (one process per test family; see pixi.toml's
+`[tasks]` comment for why). Covers the `horizontal=True` variants
+(#121) of bar, beeswarm, box, grouped_bar, lollipop, stacked_bar, and
+violin: each `_render_horizontal_*`'s hand-derived geometry, the 1px
+pull-off when the baseline lands on the frame's left axis line,
+Theme.color_by_sign/show_data_labels where the vertical path supports
+them, the quickplot function matching the fluent builder (concrete
+and DType-generic overloads both forwarding `horizontal`),
+percent=True with horizontal stacked bars, and the raise paths (a
+horizontal bar in render_layers(), a negative violin bandwidth,
+length mismatches).
 
-- `test_horizontal_bar.mojo`: Tests for `Plot.mark_bar(horizontal=True)`/`bar(..., horizontal=True)`
-  (#121): `_render_horizontal_bar`'s rectangles, negative values
-  extending left of the baseline instead of below it, the 1px pull-off
-  when the baseline lands exactly on the frame's left axis line,
-  `Theme.color_by_sign`/`show_data_labels` support (mirroring the
-  vertical `Mark.BAR` path's own), the quickplot `bar()` function
-  matching the fluent `Plot.mark_bar(horizontal=True)` builder exactly,
-  and the one raise path: a horizontal bar layer inside `render_layers()`.
-
-- `test_horizontal_beeswarm.mojo`: Tests for `Plot.mark_beeswarm(horizontal=True)`/`beeswarm(...,
-  horizontal=True)` (#121): `_render_horizontal_beeswarm`'s jittered
-  point positions, the quickplot `beeswarm()` function matching the
-  fluent `Plot.mark_beeswarm(horizontal=True)` builder exactly (both the
-  concrete and `DType`-generic overload), and the same raise paths
-  `_render_beeswarm`'s own validation gives.
-
-- `test_horizontal_box.mojo`: Tests for `Plot.mark_box(horizontal=True)`/`box(..., horizontal=True)`
-  (#121): `_render_horizontal_box`'s box/whisker rectangles and outlier
-  placement, the quickplot `box()` function matching the fluent `Plot.
-  mark_box(horizontal=True)` builder exactly (both the concrete and
-  `DType`-generic overload), and the same length-mismatch raise
-  `_render_box`'s own validation gives.
-
-- `test_horizontal_grouped_bar.mojo`: Tests for `Plot.mark_grouped_bar(horizontal=True)`/`grouped_bar(...,
-  horizontal=True)` (#121): `_render_horizontal_grouped_bar`'s
-  sub-bar rectangles and legend placement, `Theme.show_data_labels`
-  support with mixed-sign values, the quickplot `grouped_bar()` function
-  matching the fluent `Plot.mark_grouped_bar(horizontal=True)` builder
-  exactly (both the concrete and `DType`-generic overload), and the
-  empty-data case.
-
-- `test_horizontal_lollipop.mojo`: Tests for `Plot.mark_lollipop(horizontal=True)`/`lollipop(...,
-  horizontal=True)` (#121): `_render_horizontal_lollipop`'s stem+point
-  positions, the 1px pull-off when the baseline lands exactly on the
-  frame's left axis line (mirroring `_render_horizontal_bar`'s own), the
-  quickplot `lollipop()` function matching the fluent `Plot.mark_lollipop(
-  horizontal=True)` builder exactly (both the concrete and the `DType`-
-  generic overload), and the empty-data case.
-  
-  Unlike `Mark.BAR`, `Mark.LOLLIPOP` doesn't support `Theme.
-  color_by_sign`/`show_data_labels` (neither does the vertical path --
-  see `_render_lollipop`), and isn't a valid `render_layers()` combo
-  layer at all regardless of orientation (only `Mark.BAR` gets a combo
-  path; `Mark.LOLLIPOP` already hits the generic "only Mark.POINT/LINE/
-  AREA can be layered" raise, unrelated to `horizontal`), so neither gets
-  a horizontal-specific test here.
-
-- `test_horizontal_stacked_bar.mojo`: Tests for `Plot.mark_stacked_bar(horizontal=True)`/`stacked_bar(...,
-  horizontal=True)` (#121): `_render_horizontal_stacked_bar`'s segment
-  rectangles and legend placement, `percent=True` combined with
-  `horizontal=True` (a fixed `[0, 100]` x-axis), the quickplot
-  `stacked_bar()` function matching the fluent `Plot.mark_stacked_bar(
-  horizontal=True)` builder exactly (both the concrete and `DType`-
-  generic overload), and the empty-data case.
-
-- `test_horizontal_violin.mojo`: Tests for `Plot.mark_violin(horizontal=True)`/`violin(...,
-  horizontal=True)` (#121): `_render_horizontal_violin`'s silhouette
-  path (spot-checked at hand-derived points, the KDE curve itself being
-  too dense to fully re-derive by hand -- the same tolerance test_
-  violin.mojo's own tests take), the quickplot `violin()` function
-  matching the fluent `Plot.mark_violin(horizontal=True)` builder
-  exactly (both the concrete and `DType`-generic overload), `bandwidth`/
-  `scale_by_count` combined with `horizontal=True`, and the negative-
-  bandwidth raise.
-
+Mark.LOLLIPOP doesn't support color_by_sign/show_data_labels in
+either orientation, and isn't a valid render_layers() layer
+regardless of orientation, so neither gets a horizontal-specific
+test.
 """
 
 from dataviz import bar, beeswarm, box, grouped_bar, lollipop, stacked_bar, violin
@@ -83,18 +27,12 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 # ---------------------------------------------------------------
 
 def test_render_svg_horizontal_bar_matches_hand_derived_rectangles() raises:
-    # 2 categories, values=[10, -5], canvas 640x420 default margins
-    # (plot area x:[60,620] y:[20,370]). _zero_baseline_y_extent pads
-    # only the non-zero-crossing end of [-5,10] (span 15, 5% pad
-    # 0.75) to [-5.75, 10.75] -- baseline (0) pixel:
-    # 60 + (0-(-5.75))/16.5*560 = 255.15 -> 255 (matches the "0" tick
-    # this same render confirms independently). Bar A (10):
-    # 60 + (10-(-5.75))/16.5*560 = 594.55 -> 595, rect x=min(255,595)=
-    # 255, width=340. Bar B (-5): 60 + (-5-(-5.75))/16.5*560 = 85.45 ->
-    # 85, rect x=min(255,85)=85, width=170. Neither edge lands on
-    # px0=60, so no 1px pull-off applies here (see the sibling test
-    # below for that case). Every position independently re-derived
-    # via python3 and cross-checked against the actual rendered SVG.
+    # 2 categories, values=[10, -5], canvas 640x420, default margins (plot
+    # area x:[60,620] y:[20,370]). _zero_baseline_y_extent pads [-5,10] to
+    # [-5.75, 10.75]: baseline pixel 60 + 5.75/16.5*560 = 255.15 -> 255.
+    # Bar A (10): 594.55 -> 595, rect x=255, width=340. Bar B (-5): 85.45
+    # -> 85, rect x=85, width=170. Neither edge lands on px0=60, so no
+    # pull-off applies.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, -5.0]
     var plot = Plot().mark_bar(horizontal=True).encode_categorical(x=cats, y=vals).theme(
@@ -108,12 +46,9 @@ def test_render_svg_horizontal_bar_matches_hand_derived_rectangles() raises:
 
 
 def test_render_horizontal_bar_pulls_off_axis_line_when_baseline_touches_left_edge() raises:
-    # All-positive data -- the domain's low end stays exactly 0
-    # (unpadded), so the baseline lands exactly on the frame's own
-    # left axis line (px0=60) -- _pull_off_axis_line should nudge
-    # every bar's left edge to 61, the same hairline-of-background
-    # protection the vertical Mark.BAR path already gets at its own
-    # bottom edge.
+    # All-positive data keeps the domain's low end at exactly 0, so the
+    # baseline lands on the left axis line (px0=60) and _pull_off_axis_line
+    # nudges every bar's left edge to 61.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, 20.0]
     var plot = Plot().mark_bar(horizontal=True).encode_categorical(x=cats, y=vals).theme(
@@ -141,13 +76,10 @@ def test_render_horizontal_bar_color_by_sign() raises:
 
 
 def test_render_svg_horizontal_bar_supports_show_data_labels() raises:
-    # Same frame as the hand-derived rectangles test above. Bar A
-    # (positive, rect x=255,w=340 -> right edge 595): label sits
-    # label_gap(4) right of that edge, left-aligned, vertically
-    # centered on its own row (y=38,h=140 -> center 108, +Int(12*0.35)=4
-    # -> 112). Bar B (negative, rect x=85 -> left edge 85): label sits
-    # 4px left of it, right-aligned, row y=213,h=140 -> center 283,
-    # +4 -> 287.
+    # Same frame as the rectangles test. Bar A (rect x=255,w=340, right
+    # edge 595): label 4px right of it, left-aligned, centered on its row
+    # (y=38,h=140 -> 108 + Int(12*0.35)=4 -> 112). Bar B (left edge 85):
+    # label 4px left of it, right-aligned, row y=213,h=140 -> 283+4 = 287.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, -5.0]
     var plot = Plot().mark_bar(horizontal=True).encode_categorical(x=cats, y=vals).theme(
@@ -167,10 +99,7 @@ def test_render_svg_horizontal_bar_supports_show_data_labels() raises:
 
 
 def test_bar_horizontal_matches_plot_mark_bar_horizontal() raises:
-    # The quickplot bar(horizontal=True) convenience function must
-    # render identically to the fluent builder it wraps -- the same
-    # equivalence test_quickplot.mojo's own test_bar_matches_manual_
-    # plot establishes for the vertical (default) case.
+    # bar(horizontal=True) must render identically to the builder it wraps.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, -5.0]
     var t = Theme(show_gridlines=False)
@@ -202,20 +131,13 @@ def test_render_layers_raises_on_horizontal_bar_in_a_combo() raises:
 # ---------------------------------------------------------------
 
 def test_render_svg_horizontal_beeswarm_matches_hand_derived_offsets() raises:
-    # Same data as test_beeswarm.mojo's own hand-derived test: 1
-    # category ("A"), values [10, 11, 50] -- 10 and 11 land close
-    # enough in pixel space to collide, 50 stays alone. Canvas
-    # 400x300, show_gridlines=False -- the horizontal mirror of that
-    # test's own [60,380]x[20,250]y frame, both axes swapped: x-domain
-    # = _data_extent([10,11,50]) = [8,52] now runs left-to-right
-    # (pixel x's 75 (v=10), 82 (v=11), 365 (v=50)), 1 category spans
-    # the whole y-band (center=135). Unlike the vertical case (where
-    # the y-axis is flipped, so 11 sorts before 10 in pixel space), the
-    # x-axis here runs the same direction as the values, so 10 (pixel
-    # 75) sorts before 11 (pixel 82): 10 gets offset 0 (first in its
-    # row), 11 gets offset +8 (second). Every position independently
-    # re-derived via python3 and cross-checked against the actual
-    # rendered SVG.
+    # Same data as the vertical beeswarm test: 1 category, values
+    # [10, 11, 50], canvas 400x300, no gridlines, the mirror of the
+    # [60,380]x[20,250] frame. x-domain [8,52] runs left-to-right (pixels
+    # 75 (v=10), 82 (v=11), 365 (v=50)); the one category spans the whole
+    # y-band, center 135. Unlike the vertical case, the x-axis runs the
+    # same direction as the values, so 10 sorts before 11: 10 gets offset
+    # 0, 11 gets +8.
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[10.0, 11.0, 50.0]]
     var plot = Plot().mark_beeswarm(horizontal=True).encode_distribution(categories=cats, values=vals).theme(
@@ -229,11 +151,8 @@ def test_render_svg_horizontal_beeswarm_matches_hand_derived_offsets() raises:
 
 
 def test_beeswarm_horizontal_matches_plot_mark_beeswarm_horizontal() raises:
-    # The quickplot beeswarm(horizontal=True) convenience function must
-    # render identically to the fluent builder it wraps, and the
-    # DType-generic overload must forward horizontal too (see
-    # lollipop's own equivalent test -- a forwarding bug there was
-    # caught this exact way).
+    # beeswarm(horizontal=True) must render identically to the builder, and
+    # the DType-generic overload must forward horizontal too.
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[10.0, 11.0, 50.0]]
     var int_vals: List[List[Int]] = [[10, 11, 50]]
@@ -266,15 +185,11 @@ def test_render_horizontal_beeswarm_empty_categories_only_fills_background() rai
 # ---------------------------------------------------------------
 
 def test_render_svg_horizontal_box_matches_hand_derived_rects_and_outlier() raises:
-    # Same data as test_box.mojo's own hand-derived test: "A" =
-    # [2,4,4,4,5,5,7,9,20] (q1=4, median=5, q3=7, low=2, high=9, one
-    # outlier at 20), "B" = [10,12,14,15,18] (q1=12, median=14, q3=15,
-    # low=10, high=18, no outliers). Canvas 400x300, show_gridlines=
-    # False -- the horizontal mirror of that test's own [60,380]x
-    # [20,250]y frame, both axes swapped: domain [1.1, 20.9] now runs
-    # left-to-right, 2 categories run top-to-bottom (band centers
-    # 78/193, bandwidth 92). Every position independently re-derived
-    # via python3 and cross-checked against the actual rendered SVG.
+    # Same data as the vertical box test: "A" = [2,4,4,4,5,5,7,9,20]
+    # (q1=4, median=5, q3=7, whiskers 2/9, outlier 20), "B" =
+    # [10,12,14,15,18] (q1=12, median=14, q3=15, whiskers 10/18). Canvas
+    # 400x300, no gridlines: domain [1.1, 20.9] runs left-to-right, 2
+    # categories top-to-bottom (band centers 78/193, bandwidth 92).
     var cats: List[String] = ["A", "B"]
     var values: List[List[Float64]] = [
         [2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0, 20.0],
@@ -292,11 +207,8 @@ def test_render_svg_horizontal_box_matches_hand_derived_rects_and_outlier() rais
 
 
 def test_box_horizontal_matches_plot_mark_box_horizontal() raises:
-    # The quickplot box(horizontal=True) convenience function must
-    # render identically to the fluent builder it wraps, and the
-    # DType-generic overload must forward horizontal too (see
-    # lollipop's own equivalent test -- a forwarding bug there was
-    # caught this exact way).
+    # box(horizontal=True) must render identically to the builder, and the
+    # DType-generic overload must forward horizontal too.
     var cats: List[String] = ["A", "B"]
     var values: List[List[Float64]] = [[2.0, 4.0, 7.0, 9.0], [10.0, 12.0, 15.0, 18.0]]
     var int_values: List[List[Int]] = [[2, 4, 7, 9], [10, 12, 15, 18]]
@@ -320,25 +232,16 @@ def test_render_horizontal_box_raises_on_mismatched_length() raises:
 # ---------------------------------------------------------------
 
 def test_render_svg_horizontal_grouped_bar_matches_hand_derived_rectangles_and_legend() raises:
-    # 2 categories ("A"/"B"), 2 series -- values[0] (North) = [10, 20]
-    # (North's value for A, then B), values[1] (South) = [5, 15]
-    # (South's value for A, then B) -- the same data/mapping test_
-    # grouped_bar.mojo's own hand-derived-rectangles test uses, so its
-    # domain math ([0, 21], zero exact so unpadded) carries over
-    # unchanged. Canvas 400x300, show_gridlines=False, show_legend at
-    # its default (True) -- legend reserves 130px, so the frame's own
-    # plot area is x:[60,250] y:[20,250] (the horizontal mirror of that
-    # test's own [60,250]x-range/[20,250]y-range, both axes swapped).
+    # 2 categories, 2 series: values[0] (North) = [10, 20], values[1]
+    # (South) = [5, 15], the same data as the vertical grouped-bar test,
+    # so its domain [0, 21] carries over. Canvas 400x300, no gridlines,
+    # legend reserved -> plot area x:[60,250] y:[20,250].
     #
-    # Every value here is non-negative, so the baseline (0) lands
-    # exactly on the frame's left axis line (px0=60) -- every sub-bar's
-    # left edge is pulled 1px to 61 (see _pull_off_axis_line's
-    # docstring, plot.mojo). Category A's band starts at y=31.5,
-    # bandwidth 92, sub_height 46 (2 series) -> North's row y:[32,78),
-    # South's row y:[78,124). Category B's band starts at y=146.5 ->
-    # North's row y:[147,193), South's row y:[193,239). Every position
-    # independently re-derived via python3 and cross-checked against
-    # the actual rendered SVG.
+    # Every value is non-negative, so the baseline lands on the left axis
+    # line (px0=60) and every sub-bar's left edge is pulled to 61. Category
+    # A's band starts at y=31.5, bandwidth 92, sub_height 46: North
+    # y:[32,78), South y:[78,124). Category B's band starts at y=146.5:
+    # North y:[147,193), South y:[193,239).
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
@@ -352,22 +255,16 @@ def test_render_svg_horizontal_grouped_bar_matches_hand_derived_rectangles_and_l
     assert_true('<rect x="61" y="147" width="180" height="46" fill="#1f77b4"/>' in s, "B/North")
     assert_true('<rect x="61" y="193" width="135" height="46" fill="#ff7f0e"/>' in s, "B/South")
 
-    # Legend: same starting corner _render_horizontal_grouped_bar's own
-    # docstring explains (frame.x_scale.range_max + margin_right,
-    # frame.py0) -- x=230+20=250? actually resolves to 270 (see the
-    # vertical Mark.GROUPED_BAR test's own identical 270,20 -- the
-    # same legend width/margins on this same 400x300 canvas produce
-    # the same corner regardless of orientation).
+    # Legend at (frame.x_scale.range_max + margin_right, frame.py0) =
+    # (270, 20), the same corner as the vertical test on this canvas.
     assert_true('<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s, "North's legend swatch")
     assert_true('<rect x="270" y="42" width="14" height="14" fill="#ff7f0e"/>' in s, "South's legend swatch")
 
 
 def test_render_svg_horizontal_grouped_bar_supports_show_data_labels_with_mixed_signs() raises:
-    # values[0] (North) = [10, -5], values[1] (South) = [20, 15] --
-    # mixed signs this time, so the baseline no longer lands on the
-    # frame's own left axis line (unlike the sibling test above) and
-    # no pull-off applies. Every position independently re-derived via
-    # python3 and cross-checked against the actual rendered SVG.
+    # values[0] (North) = [10, -5], values[1] (South) = [20, 15]: mixed
+    # signs, so the baseline is no longer on the left axis line and no
+    # pull-off applies.
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, -5.0], [20.0, 15.0]]
@@ -391,11 +288,8 @@ def test_render_svg_horizontal_grouped_bar_supports_show_data_labels_with_mixed_
 
 
 def test_grouped_bar_horizontal_matches_plot_mark_grouped_bar_horizontal() raises:
-    # The quickplot grouped_bar(horizontal=True) convenience function
-    # must render identically to the fluent builder it wraps, and the
-    # DType-generic overload must forward horizontal too (see lollipop's
-    # own equivalent test -- a forwarding bug there was caught this
-    # exact way).
+    # grouped_bar(horizontal=True) must render identically to the builder,
+    # and the DType-generic overload must forward horizontal too.
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
@@ -422,19 +316,11 @@ def test_render_horizontal_grouped_bar_zero_length_categories_only_fills_backgro
 # ---------------------------------------------------------------
 
 def test_render_svg_horizontal_lollipop_matches_hand_derived_positions() raises:
-    # Same 2-category, values=[10,-5], 640x420-default-margins frame
-    # test_horizontal_bar.mojo's own hand-derived-rectangles test uses
-    # (plot area x:[60,620] y:[20,370], baseline pixel 255 -- the "0"
-    # tick this same render confirms independently, since _zero_
-    # baseline_y_extent's domain math is identical for both marks).
-    # Row centers: band height (370-20)/2=175 -> A=20+87.5=107.5,
-    # B=20+175+87.5=282.5. Stem A (10): 60+(10-(-5.75))/16.5*560=
-    # 594.545 (rounds to 595 for the point). Stem B (-5): 60+(-5-
-    # (-5.75))/16.5*560=85.455 (rounds to 85). Neither stem start
-    # lands on px0=60, so no 1px pull-off applies here (see the
-    # sibling test below for that case). Every position independently
-    # re-derived via python3 and cross-checked against the actual
-    # rendered SVG.
+    # Same 2-category, values=[10,-5], 640x420 frame as the horizontal bar
+    # test (plot area x:[60,620] y:[20,370], baseline pixel 255). Row
+    # centers: band height 175 -> A=107.5, B=282.5. Stem A (10): 594.545
+    # (point rounds to 595). Stem B (-5): 85.455 (rounds to 85). Neither
+    # stem start lands on px0=60, so no pull-off applies.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, -5.0]
     var plot = Plot().mark_lollipop(horizontal=True).encode_categorical(x=cats, y=vals).theme(
@@ -453,12 +339,9 @@ def test_render_svg_horizontal_lollipop_matches_hand_derived_positions() raises:
 
 
 def test_render_horizontal_lollipop_pulls_off_axis_line_when_baseline_touches_left_edge() raises:
-    # All-positive data -- the domain's low end stays exactly 0
-    # (unpadded), so the baseline lands exactly on the frame's own
-    # left axis line (px0=60) -- the stem start should nudge to 61,
-    # the same hairline-of-background protection the vertical Mark.
-    # LOLLIPOP path already gets at its own bottom edge, and the
-    # horizontal Mark.BAR path gets at this same left edge.
+    # All-positive data keeps the baseline on the left axis line (px0=60),
+    # so the stem start nudges to 61, as the vertical lollipop and
+    # horizontal bar paths do at their axis lines.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, 20.0]
     var plot = Plot().mark_lollipop(horizontal=True).encode_categorical(x=cats, y=vals).theme(
@@ -474,10 +357,8 @@ def test_render_horizontal_lollipop_pulls_off_axis_line_when_baseline_touches_le
 
 
 def test_lollipop_horizontal_matches_plot_mark_lollipop_horizontal() raises:
-    # The quickplot lollipop(horizontal=True) convenience function must
-    # render identically to the fluent builder it wraps -- the same
-    # equivalence test_quickplot.mojo's own test_lollipop_matches_
-    # manual_plot establishes for the vertical (default) case.
+    # lollipop(horizontal=True) must render identically to the builder it
+    # wraps.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, -5.0]
     var t = Theme(show_gridlines=False)
@@ -487,11 +368,8 @@ def test_lollipop_horizontal_matches_plot_mark_lollipop_horizontal() raises:
 
 
 def test_lollipop_dtype_generic_overload_forwards_horizontal() raises:
-    # The DType-generic lollipop[dtype: DType](...) overload must
-    # forward its own horizontal parameter to the concrete lollipop()
-    # it delegates to -- caught missing once during development (the
-    # signature gained the parameter before the forwarding call did,
-    # silently ignoring it and always rendering vertical).
+    # The DType-generic lollipop overload must forward horizontal to the
+    # concrete one; this was once missing, silently rendering vertical.
     var cats: List[String] = ["A", "B"]
     var vals: List[Int] = [10, -5]
     var float_vals: List[Float64] = [10.0, -5.0]
@@ -511,25 +389,14 @@ def test_render_horizontal_lollipop_empty_data_only_fills_background() raises:
 # ---------------------------------------------------------------
 
 def test_render_svg_horizontal_stacked_bar_matches_hand_derived_rectangles_and_legend() raises:
-    # Same values[0]/values[1] = North=[10,20]/South=[5,15] as the
-    # sibling horizontal grouped-bar test, but stacked: category A's
-    # total is 15 (10+5), category B's is 35 (20+15) -- domain over
-    # [pos_total, neg_total] per category = [15, 0, 35, 0] ->
-    # _zero_baseline_y_extent -> [0, 36.75] (zero exact, so only the
-    # high end padded 5%). Canvas 400x300, show_gridlines=False,
-    # show_legend default (True), same [60,250]x[20,250] frame the
-    # sibling grouped-bar test derives.
+    # Same North=[10,20]/South=[5,15] data as the horizontal grouped-bar
+    # test, stacked: category totals 15 and 35, so _zero_baseline_y_extent
+    # gives [0, 36.75]. Canvas 400x300, no gridlines, legend reserved,
+    # frame x:[60,250] y:[20,250].
     #
-    # Each category's row is the *full* band height (92, not split
-    # into sub-rows) -- band_y(A)=32 (round(31.5)), band_y(B)=147
-    # (round(146.5)), matching the sibling test's own band-start math.
-    # North's segment always starts at the baseline (pulled 1px to 61,
-    # non-negative-only domain -- see _pull_off_axis_line's docstring);
-    # South's segment picks up exactly where North's left off (the
-    # running-total property `_render_stacked_bar`'s own docstring
-    # explains -- no extra rounding trick needed for that shared
-    # edge). Every position independently re-derived via python3 and
-    # cross-checked against the actual rendered SVG.
+    # Each row is the full band height (92): band_y(A)=32, band_y(B)=147.
+    # North's segment starts at the baseline (pulled to 61); South's picks
+    # up where North's left off.
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
@@ -548,17 +415,11 @@ def test_render_svg_horizontal_stacked_bar_matches_hand_derived_rectangles_and_l
 
 
 def test_render_svg_horizontal_stacked_bar_percent_fixes_x_axis_to_0_100() raises:
-    # values[0] (North) = [10, 30], values[1] (South) = [20, 10] --
-    # category A: North=10/South=20, total 30, scale_factor=100/30;
-    # North -> 33.33% -> [0,33.33], South -> 66.67% -> [33.33,100].
-    # Category B: North=30/South=10, total 40, scale_factor=100/40=2.5;
-    # North -> 75% -> [0,75], South -> 25% -> [75,100]. The x-axis
-    # itself is fixed to exactly [0,100] regardless of the raw data
-    # (Plot.mark_stacked_bar()'s own docstring) -- confirmed here by
-    # the "100" tick landing at the frame's own right edge (250), not
-    # some data-dependent padded value. Every position independently
-    # re-derived via python3 and cross-checked against the actual
-    # rendered SVG.
+    # values[0] (North) = [10, 30], values[1] (South) = [20, 10]. A: total
+    # 30 -> North 33.33% -> [0,33.33], South -> [33.33,100]. B: total 40 ->
+    # North 75% -> [0,75], South -> [75,100]. The x-axis is fixed to
+    # [0,100], confirmed by the "100" tick landing at the frame's right
+    # edge (250).
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 30.0], [20.0, 10.0]]
@@ -584,11 +445,8 @@ def test_render_horizontal_stacked_bar_percent_raises_on_a_negative_value() rais
 
 
 def test_stacked_bar_horizontal_matches_plot_mark_stacked_bar_horizontal() raises:
-    # The quickplot stacked_bar(horizontal=True) convenience function
-    # must render identically to the fluent builder it wraps, and the
-    # DType-generic overload must forward horizontal too (see
-    # lollipop's own equivalent test -- a forwarding bug there was
-    # caught this exact way).
+    # stacked_bar(horizontal=True) must render identically to the builder,
+    # and the DType-generic overload must forward horizontal too.
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
@@ -615,20 +473,12 @@ def test_render_horizontal_stacked_bar_zero_length_categories_only_fills_backgro
 # ---------------------------------------------------------------
 
 def test_render_svg_horizontal_violin_matches_hand_derived_silhouette_points() raises:
-    # 2 categories ("Section A"/"Section B", the same classes/scores
-    # test_violin.mojo's own docstring example uses), canvas 400x300,
-    # show_gridlines=False. The dynamic left margin grows to fit
-    # "Section A"/"Section B" (longer than a single-letter category),
-    # so the frame's own plot_x0 is 72, not the default 60 -- the same
-    # kind of dynamic-margin growth `_draw_horizontal_categorical_axis_
-    # frame`'s own docstring explains. Every KDE sample point is a
-    # dense floating-point curve (Silverman's-rule bandwidth, computed
-    # from each category's own std/n) -- rather than re-deriving all
-    # 60 points per category by hand, this spot-checks the exact first
-    # sampled point (the curve's own left edge, at each category's
-    # own min(values)) of each category's closed path, independently
-    # re-derived via python3 and cross-checked against the actual
-    # rendered SVG.
+    # 2 categories ("Section A"/"Section B", the violin docstring example's
+    # data), canvas 400x300, no gridlines. The dynamic left margin grows to
+    # fit those labels, so plot_x0 is 72 rather than 60. Rather than
+    # re-deriving all 60 KDE points per category, this checks the first
+    # sampled point (the curve's left edge at each category's min value)
+    # of each closed path.
     var cats: List[String] = ["Section A", "Section B"]
     var values: List[List[Float64]] = [
         [72.0, 75.0, 78.0, 80.0, 74.0, 76.0, 91.0],
@@ -644,11 +494,8 @@ def test_render_svg_horizontal_violin_matches_hand_derived_silhouette_points() r
 
 
 def test_violin_horizontal_matches_plot_mark_violin_horizontal() raises:
-    # The quickplot violin(horizontal=True) convenience function must
-    # render identically to the fluent builder it wraps, and the
-    # DType-generic overload must forward horizontal too (see
-    # lollipop's own equivalent test -- a forwarding bug there was
-    # caught this exact way).
+    # violin(horizontal=True) must render identically to the builder, and
+    # the DType-generic overload must forward horizontal too.
     var cats: List[String] = ["A", "B"]
     var values: List[List[Float64]] = [[72.0, 75.0, 78.0, 80.0], [65.0, 70.0, 88.0, 90.0]]
     var int_values: List[List[Int]] = [[72, 75, 78, 80], [65, 70, 88, 90]]
@@ -661,10 +508,8 @@ def test_violin_horizontal_matches_plot_mark_violin_horizontal() raises:
 
 
 def test_violin_horizontal_accepts_bandwidth_and_scale_by_count() raises:
-    # bandwidth/scale_by_count are orientation-independent overrides --
-    # this just confirms they still apply (don't get silently dropped)
-    # when combined with horizontal=True, without re-deriving the
-    # resulting curve by hand.
+    # bandwidth/scale_by_count are orientation-independent; this confirms
+    # they still apply with horizontal=True.
     var cats: List[String] = ["A", "B"]
     var values: List[List[Float64]] = [[72.0, 75.0, 78.0, 80.0], [65.0, 70.0, 88.0, 90.0, 92.0]]
     var plot = Plot().mark_violin(bandwidth=5.0, scale_by_count=True, horizontal=True).encode_distribution(

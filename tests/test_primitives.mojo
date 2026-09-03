@@ -1,62 +1,12 @@
-"""Merged test module -- one process for a whole family of test
-files, instead of one per file. Each `render()` call monomorphizes
-`_render_generic[T: DrawTarget]` over every ~50 `_render_*`
-function, and that cost is paid per process, so merging is what
-keeps it from being paid once per file (see pixi.toml's `[tasks]`
-comment for the measurements).
-
-- `test_scale.mojo`: Tests for scale.mojo: LinearScale.to_pixel/scale/translate, and the
-  nice-tick algorithm -- every expected value here was independently
-  computed by hand (see scale.mojo's module docstring) before
-  trusting the Mojo implementation.
-
-- `test_ordinal_scale.mojo`: Tests for ordinal_scale.mojo: OrdinalScale's band math, hand-
-  computed independently.
-
-- `test_color_scale.mojo`: Tests for color_scale.mojo: ColorScale.color_at -- shares its
-  interpolation math with canvas.gradient's LinearGradient/
-  RadialGradient (already exhaustively tested there), so these focus on
-  what's specific to ColorScale: projecting a data domain (not a pixel
-  position) onto [0, 1], and the zero-span-domain degenerate case.
-  Expected values independently computed by hand (same
-  white-on-black-gives-the-coverage-fraction-directly technique
-  canvas_mojo/tests/test_gradient.mojo's tests use).
-
-- `test_colors.mojo`: Tests for colors.mojo -- spot checks against the actual CSS Color
-  Module Level 3 spec (<https://www.w3.org/TR/css-color-3/#svg-color>),
-  not just re-reading colors.mojo's values back at itself: the three
-  additive primaries, a representative multi-word name, that both
-  spellings CSS itself standardizes for six names resolve to the
-  identical color, and that a named constant works exactly like any
-  other `Color` literal through a real render (see the "why comptime,
-  not a lookup" paragraph in colors.mojo's docstring -- this is what
-  that buys: no separate integration path to test, just Theme.mark_color
-  fed a different value).
-
-- `test_array_like.mojo`: Tests for `Float64Sequence`/`StringSequence` (array_like.mojo) and
-  `Plot.encode()`'s array-like `x`/`y` overload: `_materialize_floats`/
-  `_materialize_strings` copy a conforming custom type into a real
-  `List[Float64]`/`List[String]` correctly, a custom `Float64Sequence`
-  struct renders byte-for-byte identically to the equivalent plain
-  `List[Float64]` through `Plot.encode()`, the plain-`List` path itself
-  is unaffected, and the array-like overload still enforces the same
-  length validation the concrete one does (since it delegates to it).
-  
-  Also covers the independent `DType`-generic axis (`_materialize_
-  scalar_list`, `encode()`/`encode_categorical()`'s numeric-element-type
-  overloads): `List[Int]`/`List[Float32]` render byte-for-byte
-  identically to the equivalent `List[Float64]`, integer values convert
-  losslessly up to the real `Int`-to-`Float64` exact-precision boundary
-  (2^53 -- confirmed empirically while building this, not assumed), and
-  a chart built from `List[Int]` still displays whole-number labels as
-  `"10"`, never `"10.0"` (`_label_decimals` decides digit count from the
-  value itself, not from whatever type it started out as).
-  
-  Also covers `StringSequence`'s own container axis on the categorical
-  side -- `encode_categorical()`'s `x` and `encode_grouped_bar()`'s
-  `categories`, not just `encode()`'s `x`/`y` -- rendering byte-for-byte
-  identically to the equivalent `List[String]`.
-
+"""Merged test module (one process per test family; see pixi.toml's
+`[tasks]` comment for why). Covers scale.mojo (LinearScale, the
+nice-tick algorithm, _format_fixed, _label_decimals, log ticks),
+ordinal_scale.mojo, color_scale.mojo (domain projection and the
+zero-span case; interpolation itself is tested in canvas.gradient),
+colors.mojo (spot checks against the CSS spec, the gray/grey pairs, a
+named color through a real render), and array_like.mojo
+(Float64Sequence/StringSequence, the DType-generic overloads, exact
+Int conversion up to 2^53, whole-number labels from List[Int]).
 """
 
 from _test_helpers import _count_color
@@ -212,10 +162,8 @@ def test_format_fixed_matches_hand_computed_strings() raises:
 
 
 def test_format_fixed_avoids_binary_floating_point_drift() raises:
-    # 0.0 + 3*0.1 is 0.30000000000000004 as a raw Float64 -- see
-    # _format_fixed's docstring for why raw String(Float64) is unsafe
-    # for tick labels. String(Float64) alone would print that garbage
-    # directly; _format_fixed must not.
+    # 0.0 + 3*0.1 is 0.30000000000000004 as a raw Float64; _format_fixed
+    # must not print that.
     var drifted = 0.0 + 3.0 * 0.1
     assert_equal(_format_fixed(drifted, 1), "0.3")
 
@@ -237,10 +185,7 @@ def test_label_decimals_matches_hand_computed_counts() raises:
 
 
 def test_label_decimals_avoids_binary_floating_point_drift() raises:
-    # The same 0.30000000000000004-class drift test_format_fixed_
-    # avoids_binary_floating_point_drift already covers -- a value
-    # that's "really" 0.3 (to any human reading it) must not need 15+
-    # decimals just because its raw Float64 bits aren't exact.
+    # The same drift: a value that reads as 0.3 must not need 15+ decimals.
     var drifted = 0.0 + 3.0 * 0.1
     assert_equal(_label_decimals(drifted), 1)
 
@@ -255,10 +200,9 @@ def test_ticks_labels_uses_format_fixed_per_tick() raises:
 
 
 def test_log_scale_to_pixel_matches_hand_derived_positions() raises:
-    # domain [0, 3] (log10-space, i.e. real [1, 1000]) -> range
-    # [400, 0]: scale() = (0-400)/(3-0) = -133.333..., translate() =
-    # 400 - 0*scale() = 400. to_pixel(v) = log10(v)*scale() +
-    # translate() -- every value below independently computed by hand.
+    # domain [0, 3] (log10-space, real [1, 1000]) -> range [400, 0]:
+    # scale() = (0-400)/(3-0) = -133.333..., translate() = 400. to_pixel(v)
+    # = log10(v)*scale() + translate().
     var s = LinearScale(0.0, 3.0, 400.0, 0.0, is_log=True)
     assert_equal(s.to_pixel(1.0), 400.0)
     assert_equal(s.to_pixel(10.0), 266.66666666666663)
@@ -267,9 +211,7 @@ def test_log_scale_to_pixel_matches_hand_derived_positions() raises:
 
 
 def test_log_ticks_wide_domain_returns_major_ticks_only() raises:
-    # > 2 decades (domain [0, 3], real [1, 1000]) -> 1*10^k only, no
-    # 2*10^k/5*10^k sub-ticks (the standard log-axis convention for a
-    # wide range -- see _log_ticks's own docstring).
+    # > 2 decades (domain [0, 3], real [1, 1000]) -> 1*10^k only.
     var t = _log_ticks(0.0, 3.0)
     var expected: List[Float64] = [1.0, 10.0, 100.0, 1000.0]
     _assert_ticks_equal(t.values, expected, "wide log domain [0,3]")
@@ -294,10 +236,9 @@ def test_log_ticks_narrow_domain_returns_the_full_1_2_5_set() raises:
 
 
 def test_log_ticks_sub_one_domain_formats_each_tick_with_its_own_decimals() raises:
-    # domain [-2, 0] (real [0.01, 1]) -- every 1/2/5*10^k tick needs a
-    # *different* decimal count (0.01 needs 2 places, 1 needs 0),
-    # exactly what Ticks.override_labels exists for (one shared
-    # `decimals` can't express this).
+    # domain [-2, 0] (real [0.01, 1]): every 1/2/5*10^k tick needs a
+    # different decimal count (0.01 needs 2, 1 needs 0), which
+    # Ticks.override_labels carries.
     var t = _log_ticks(-2.0, 0.0)
     var expected: List[Float64] = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
     _assert_ticks_equal(t.values, expected, "sub-one log domain [-2,0]")
@@ -326,12 +267,8 @@ def test_min_max_over_a_plain_column() raises:
 
 
 def test_min_max_raises_on_an_empty_column() raises:
-    # No caller can currently reach an empty column (every render path
-    # returns early on empty data first), so this
-    # raises rather than inventing a fallback: a silent MinMax(0, 0)
-    # would hand back a degenerate domain that still renders as a real
-    # axis, which is the "silently misrepresent the data" failure this
-    # package's encode/render checks exist to prevent.
+    # No caller can currently reach an empty column, and a silent
+    # MinMax(0, 0) would render as a degenerate axis, so this raises.
     with assert_raises():
         _ = _min_max(List[Float64]())
 
@@ -407,10 +344,8 @@ def test_color_scale_clamps_beyond_the_domain() raises:
 
 
 def test_color_scale_zero_span_domain_returns_the_lowest_offset_stop() raises:
-    # A constant-valued color column -- span is 0, so t is always 0.0
-    # regardless of the actual data value, landing on the lowest-
-    # offset stop's color (blue here), not a crash from dividing by
-    # the zero span.
+    # A constant-valued color column: span 0, so t is always 0.0, landing
+    # on the lowest-offset stop (blue).
     var s = ColorScale(5.0, 5.0)
     s.add_stop(0.0, BLUE)
     s.add_stop(1.0, RED)
@@ -446,10 +381,8 @@ def test_multiword_name_matches_the_css_spec() raises:
 
 
 def test_gray_grey_spelling_pairs_are_identical_colors() raises:
-    # CSS standardizes both spellings for these six names -- picking
-    # one and dropping the other would just be a different, equally
-    # arbitrary standard (see colors.mojo's docstring), so both
-    # are provided, and must actually agree with each other.
+    # CSS standardizes both spellings for these six names; both are
+    # provided and must agree.
     _assert_rgb(GREY, Int(GRAY.r), Int(GRAY.g), Int(GRAY.b), "GREY matches GRAY")
     _assert_rgb(DARKGREY, Int(DARKGRAY.r), Int(DARKGRAY.g), Int(DARKGRAY.b), "DARKGREY matches DARKGRAY")
     _assert_rgb(DIMGREY, Int(DIMGRAY.r), Int(DIMGRAY.g), Int(DIMGRAY.b), "DIMGREY matches DIMGRAY")
@@ -465,14 +398,9 @@ def test_gray_grey_spelling_pairs_are_identical_colors() raises:
 
 
 def test_named_color_works_as_a_theme_mark_color_through_a_real_render() raises:
-    # A real render, not just reading the constant back -- confirms a
-    # named color reaches the renderer exactly like any other Color
-    # literal, with no separate integration path (see
-    # colors.mojo's "why comptime, not a lookup" paragraph). A
-    # plain non-zero count, not a specific hand-derived pixel -- bar()
-    # layout itself is already exhaustively covered in test_bar.mojo;
-    # all this needs to prove is that the fill color a caller asked
-    # for is the fill color that actually landed on the canvas.
+    # A named color reaches the renderer like any other Color literal. A
+    # non-zero count rather than a hand-derived pixel; bar() layout is
+    # covered in its own tests.
     var cats: List[String] = ["a", "b"]
     var values: List[Float64] = [3.0, 5.0]
     var _hoisted1 = bar(cats, values, theme=Theme(mark_color=CORNFLOWERBLUE))
@@ -485,12 +413,9 @@ def test_named_color_works_as_a_theme_mark_color_through_a_real_render() raises:
 # ---------------------------------------------------------------
 
 struct _FloatBuffer(Float64Sequence, Copyable, Movable):
-    """A minimal `Float64Sequence`-conforming struct, standing in for
-    a future dataframe column type or a custom buffer wrapper -- see
-    array_like.mojo's own docstring for why this can't just be
-    `List[Float64]` itself (nominal trait conformance, confirmed
-    empirically while building this: `List` has the same `__len__`/
-    `__getitem__` shape but doesn't conform without being declared to).
+    """A minimal Float64Sequence-conforming struct standing in for a custom
+    buffer wrapper or dataframe column; `List[Float64]` itself doesn't
+    conform (see array_like.mojo).
     """
 
     var data: List[Float64]
@@ -539,12 +464,9 @@ def test_materialize_strings_matches_hand_derived_values() raises:
 
 
 def test_encode_accepts_a_custom_float64sequence_matching_the_list_path() raises:
-    # The point of this feature: a Float64Sequence-conforming struct
-    # renders identically to the plain List[Float64] it wraps --
-    # Plot.encode()'s array-like overload materializes it into a real
-    # List once, then delegates entirely to the concrete overload (see
-    # that method's own docstring), so there should be no observable
-    # difference in the rendered SVG at all.
+    # A Float64Sequence-conforming struct renders identically to the
+    # List[Float64] it wraps, since encode()'s array-like overload
+    # materializes it and delegates to the concrete one.
     var x_buf = _FloatBuffer([1.0, 2.0, 3.0])
     var y_buf = _FloatBuffer([10.0, 20.0, 30.0])
     var plot_from_buffer = Plot().mark_point().encode(x=x_buf, y=y_buf).size(400, 300)
@@ -559,10 +481,8 @@ def test_encode_accepts_a_custom_float64sequence_matching_the_list_path() raises
 
 
 def test_encode_plain_list_path_is_unaffected() raises:
-    # A plain List[Float64] doesn't conform to Float64Sequence (see
-    # array_like.mojo's own docstring) -- this proves the original
-    # concrete overload still resolves and renders correctly with the
-    # new generic overload sitting alongside it.
+    # A plain List[Float64] doesn't conform to Float64Sequence, so the
+    # concrete overload still resolves alongside the generic one.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [5.0, 15.0]
     var plot = Plot().mark_point().encode(x=x, y=y).size(400, 300)
@@ -571,10 +491,8 @@ def test_encode_plain_list_path_is_unaffected() raises:
 
 
 def test_encode_array_like_overload_still_enforces_length_validation() raises:
-    # Delegates to the concrete encode()/render() pipeline unchanged,
-    # so a length mismatch is still caught the same way -- proving
-    # this overload didn't silently bypass any of encode()'s existing
-    # validation.
+    # The array-like overload delegates to the concrete pipeline, so a
+    # length mismatch is still caught.
     var x_buf = _FloatBuffer([1.0, 2.0, 3.0])
     var y_buf = _FloatBuffer([10.0, 20.0])
     with assert_raises():
@@ -599,13 +517,8 @@ def test_materialize_scalar_list_matches_hand_derived_values() raises:
 
 def test_materialize_scalar_list_converts_int_exactly_up_to_2_pow_53() raises:
     # Float64 exactly represents every integer up to 2^53
-    # (9007199254740992); 2^53+1 is the first value that doesn't --
-    # confirmed empirically (python3-cross-checked IEEE 754 double
-    # precision), not assumed from a general "floats can be
-    # imprecise" impression. This is the one real, documented limit
-    # of accepting List[Int] directly -- shared with every other
-    # Float64-based charting library, not introduced by this
-    # conversion.
+    # (9007199254740992); 2^53+1 is the first that doesn't. The one limit
+    # of accepting List[Int], shared with every Float64-based library.
     var exact: List[Int] = [9007199254740992]
     var out_exact = _materialize_scalar_list(exact)
     assert_equal(Int(out_exact[0]), 9007199254740992)
@@ -657,12 +570,9 @@ def test_encode_categorical_accepts_list_int_y_matching_the_list_float64_path() 
 
 
 def test_encode_categorical_list_int_labels_display_as_whole_numbers() raises:
-    # The label-display concern this feature has to get right: a
-    # chart built from List[Int] still shows "10"/"-5", never
-    # "10.0"/"-5.0" -- _label_decimals decides digit count from the
-    # value itself (post-conversion Float64), not from whatever type
-    # it started out as, so this was already true before this feature
-    # and stays true now; verified directly rather than assumed.
+    # A chart built from List[Int] still shows "10"/"-5", never
+    # "10.0"/"-5.0": _label_decimals decides from the value, not its
+    # original type.
     var cats: List[String] = ["A", "B", "C"]
     var vals: List[Int] = [10, 20, -5]
     var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).theme(
@@ -676,9 +586,8 @@ def test_encode_categorical_list_int_labels_display_as_whole_numbers() raises:
 
 
 def test_encode_categorical_accepts_a_custom_stringsequence_matching_the_list_path() raises:
-    # The container axis's counterpart on the categorical side --
-    # encode_categorical()'s x, not just encode()'s x/y, can be
-    # anything conforming to StringSequence.
+    # encode_categorical()'s x can be anything conforming to
+    # StringSequence, not just encode()'s x/y.
     var x_buf = _StringBuffer(["A", "B", "C"])
     var vals: List[Float64] = [10.0, 20.0, -5.0]
     var plot_from_buffer = Plot().mark_bar().encode_categorical(x=x_buf, y=vals).size(400, 300)
