@@ -41,33 +41,28 @@ pandas = ">=2.0,<3"
 # standalone program by its own README.md's contract, so the same
 # load-bearing-test property holds with no intermediate file.
 #
-# `test`'s own file order is deliberately NOT alphabetical -- most-
-# expensive-first, the same "longest job first" scheduling heuristic
-# canvas_mojo's own pixi.toml already uses (this repo built on that
-# one, see the wiki): on a CPU-constrained CI runner (fewer cores than
-# files), xargs -P starts jobs in list order as slots free up, so a
-# slow file sitting at the *end* of the list starts late and finishes
-# alone after every fast one's already done -- put first instead, it
-# runs the whole time alongside everything else, and the fast files
-# backfill the freed-up slots around it. Ranked by real measured cost,
-# not a guess: each test file's own `pixi run test` Summary line (its
-# own total assertion time, not `mojo run`'s shared, roughly-constant
-# per-file compile overhead) from a real run on this machine --
-# re-measure and re-sort if the ranking ever drifts far enough to
-# matter (a new test file added at the end is always at least
-# functionally correct, just not optimally placed -- true right now for
-# beeswarm/violin/ridgeline below, added after this ranking was
-# measured, and for test_numpy_interop.mojo too: its own `TestSuite`-
-# reported per-test times look wild for anything touching Python
-# interop, 100+ seconds for a single call -- but real wall-clock
-# `time` on the whole file says ~5s, in line with every other file
-# here, so that reported number is some clock-domain confusion
-# specific to Python-interop tests (likely GIL/subinterpreter
-# accounting), not a real cost -- left at the end rather than acted on
-# until re-measured against real wall-clock time). `example`'s own file order is left to `extract_docstring_
-# examples.mojo`'s own `_pages()` order (`_example_docstrings.mojo`) --
-# there's no equivalent per-file timing to rank it by any more now that
-# it isn't a fixed, hand-maintained list.
+# `test` takes a plain `tests/test_*.mojo` glob, in whatever order the
+# shell expands it. An earlier version hand-listed every file
+# most-expensive-first, on the "longest job first" theory that a slow
+# file at the end of the list starts late and finishes alone. Two
+# things turned out to be wrong with that. The ranking came from each
+# file's `TestSuite` Summary line, and that number is not wall-clock:
+# test_theme.mojo reports 712s but takes 5.8s, test_bar.mojo reports
+# 238s against test_sankey.mojo's 90s while their real times are 5.1s
+# and 4.8s. It isn't even proportional, so the ordering it produced was
+# noise. And there is little to order: every file costs roughly 5-7s,
+# nearly all of it the fixed cost of recompiling this package from
+# source for that file, so the jobs are close enough to uniform that
+# order does not matter. The glob also can't drift the way the hand
+# list did -- a new test file is picked up by writing it, with no
+# second place to remember to update.
+#
+# The real lever on suite time is that per-file recompile, not
+# scheduling: `mojo precompile dataviz` once, then running the tests
+# against the built package instead of `-I .`, roughly halves each
+# file's warm time (6.7s -> 3.3s for test_bar.mojo). Not wired up here
+# yet -- it needs the cold-cache case CI actually pays to be measured
+# first.
 #
 # EXCEPTION: docs/src/examples/quickstart/ (step1..step5_quickplot.mojo
 # + their out_*.svg) is NOT part of this pipeline -- this task's own
@@ -87,7 +82,7 @@ pandas = ">=2.0,<3"
 # docstring the way everything else here does.
 example = "mkdir -p docs/src/examples && rm -f docs/src/examples/*.mojo docs/src/examples/out_* && mojo run -I . -I scripts scripts/extract_docstring_examples.mojo && bash scripts/run_parallel.sh docs/src/examples/*.mojo docs/src/cookbook_recipes/*.mojo"
 example-quickstart = "bash scripts/run_parallel.sh docs/src/examples/quickstart/*.mojo"
-test = "bash scripts/run_parallel.sh tests/test_quickplot.mojo tests/test_facets.mojo tests/test_line.mojo tests/test_layers.mojo tests/test_legends.mojo tests/test_point.mojo tests/test_theme.mojo tests/test_labels.mojo tests/test_bar.mojo tests/test_area.mojo tests/test_core.mojo tests/test_margins.mojo tests/test_waterfall.mojo tests/test_effect_scatter.mojo tests/test_stacked_bar.mojo tests/test_grouped_bar.mojo tests/test_lollipop.mojo tests/test_heatmap.mojo tests/test_streamgraph.mojo tests/test_population_pyramid.mojo tests/test_box.mojo tests/test_gantt.mojo tests/test_histogram.mojo tests/test_single_axis.mojo tests/test_bullet.mojo tests/test_arc.mojo tests/test_colors.mojo tests/test_candlestick.mojo tests/test_bump.mojo tests/test_chord.mojo tests/test_funnel.mojo tests/test_scale.mojo tests/test_ordinal_scale.mojo tests/test_color_scale.mojo tests/test_beeswarm.mojo tests/test_violin.mojo tests/test_ridgeline.mojo tests/test_nightingale.mojo tests/test_polar_bar.mojo tests/test_polar.mojo tests/test_radar.mojo tests/test_gauge.mojo tests/test_parallel.mojo tests/test_span_chart.mojo tests/test_calendar_heatmap.mojo tests/test_corrplot.mojo tests/test_punchcard.mojo tests/test_marimekko.mojo tests/test_sunburst.mojo tests/test_tree.mojo tests/test_treemap.mojo tests/test_arc_diagram.mojo tests/test_graph.mojo tests/test_sankey.mojo tests/test_radialbar.mojo tests/test_annotate.mojo tests/test_svg_accessibility.mojo tests/test_annotate_area.mojo tests/test_secondary_axis.mojo tests/test_secondary_axis_caption.mojo tests/test_annotate_facets_layers.mojo tests/test_annotate_vline_point.mojo tests/test_log_scale.mojo tests/test_error_bars.mojo tests/test_error_bars_asymmetric.mojo tests/test_color_map.mojo tests/test_facets_shared_scale.mojo tests/test_error_bars_on_line.mojo tests/test_percent_stacked_bar.mojo tests/test_annotate_band.mojo tests/test_annotate_best_fit.mojo tests/test_data_labels.mojo tests/test_layers_bar_combo.mojo tests/test_array_like.mojo tests/test_point_labels.mojo tests/test_numpy_interop.mojo tests/test_quickplot_numeric_types.mojo tests/test_quickplot_nested_numeric_types.mojo tests/test_horizontal_bar.mojo tests/test_horizontal_lollipop.mojo tests/test_horizontal_grouped_bar.mojo tests/test_horizontal_stacked_bar.mojo tests/test_horizontal_box.mojo tests/test_horizontal_violin.mojo tests/test_horizontal_beeswarm.mojo tests/test_marker.mojo"
+test = "bash scripts/run_parallel.sh tests/test_*.mojo"
 # Regenerates docs/site/content (nothing docs-build itself produces is
 # committed -- not that, not docs/site/public further downstream, not
 # docs/src/examples/, gen_example_docs.mojo's own output). Everything
