@@ -33,22 +33,32 @@ def _beeswarm_offsets(y_pixels: List[Int], spacing: Int) -> List[Int]:
     this package's whole test methodology depends on hand-derivable
     output (see the wiki).
 
+    O(n log n) overall: one sort of the point indices, then a single
+    linear pass assigning each row's alternating offsets.
+
     A row never checks whether its alternating spread actually fits
     inside a category's band width -- not clipped here, a caller
     with an unusually dense category may see a swarm wider than its column. A real, documented scope limit, not an oversight.
     """
     var n = len(y_pixels)
-    var order = List[Int]()
-    var used = List[Bool]()
-    for _ in range(n):
-        used.append(False)
-    for _ in range(n):
-        var best = -1
-        for i in range(n):
-            if not used[i] and (best == -1 or y_pixels[i] < y_pixels[best]):
-                best = i
-        order.append(best)
-        used[best] = True
+    var order = List[Int](capacity=n)
+    for i in range(n):
+        order.append(i)
+
+    # Ascending by pixel row, ties broken by the point's own original
+    # index -- a total order over `order`'s entries, so the result is
+    # identical whether or not the underlying sort is stable. That tie
+    # rule is not cosmetic: it's what decides which of two points
+    # sharing a pixel row gets the `0` offset and which gets pushed
+    # `+spacing` sideways, so changing it would move real pixels and
+    # break this file's hand-derived tests.
+    @parameter
+    def _before(a: Int, b: Int) -> Bool:
+        if y_pixels[a] != y_pixels[b]:
+            return y_pixels[a] < y_pixels[b]
+        return a < b
+
+    sort[_before](order)
 
     var offset = List[Int]()
     for _ in range(n):
