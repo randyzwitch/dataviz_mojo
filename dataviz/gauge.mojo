@@ -1,5 +1,3 @@
-from std.math import pi
-
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 from canvas.text.render import TextAlign
