@@ -41,6 +41,28 @@ pandas = ">=2.0,<3"
 # standalone program by its own README.md's contract, so the same
 # load-bearing-test property holds with no intermediate file.
 #
+# What actually gets compiled is neither of those directly, though:
+# `build_verify_batches.mojo` first rewrites all 117 standalone
+# programs into 8 batch drivers under docs/src/examples/verify/, and
+# only those get run. Same reason the test files are grouped (see
+# below) -- a single `save()` call monomorphizes the whole ~50-mark
+# `_render_generic[T: DrawTarget]` dispatch tree, and that is a
+# per-process cost, so 117 one-chart programs paid it 117 times.
+# Cold, over the whole corpus:
+#
+#   117 programs   9787 CPU-s   (174s wall, 64 cores)
+#     8 batches      688 / 688 CPU-s   (43s / 42s wall)
+#
+# The standalone programs are deliberately still written out and left
+# alone -- a Cookbook recipe being one complete, readable file is the
+# whole point of docs/src/cookbook_recipes/, and the site renders from
+# the docstrings and out_*.svg either way. verify/ is a throwaway
+# build artifact nothing else reads.
+#
+# 14x less CPU, and all 120 out_*.svg/png/bmp images come out
+# byte-identical -- verified by md5 across the whole corpus, since
+# producing those images is the other half of what this task is for.
+#
 # `test` takes a plain `tests/test_*.mojo` glob, in whatever order the
 # shell expands it. An earlier version hand-listed every file
 # most-expensive-first, on the "longest job first" theory that a slow
@@ -99,7 +121,7 @@ pandas = ">=2.0,<3"
 # docs-build.yml's push-to-main deploy) rather than folded into this
 # task, so it stays obvious that these five don't come from a
 # docstring the way everything else here does.
-example = "mkdir -p docs/src/examples && rm -f docs/src/examples/*.mojo docs/src/examples/out_* && mojo run -I . -I scripts scripts/extract_docstring_examples.mojo && bash scripts/run_parallel.sh docs/src/examples/*.mojo docs/src/cookbook_recipes/*.mojo"
+example = "mkdir -p docs/src/examples && rm -rf docs/src/examples/verify && rm -f docs/src/examples/*.mojo docs/src/examples/out_* && mojo run -I . -I scripts scripts/extract_docstring_examples.mojo && mojo run -I . -I scripts scripts/build_verify_batches.mojo && bash scripts/run_parallel.sh docs/src/examples/verify/*.mojo"
 example-quickstart = "bash scripts/run_parallel.sh docs/src/examples/quickstart/*.mojo"
 test = "bash scripts/run_parallel.sh tests/test_*.mojo"
 # Regenerates docs/site/content (nothing docs-build itself produces is
