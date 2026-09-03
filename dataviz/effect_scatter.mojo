@@ -6,6 +6,7 @@ from dataviz.theme import Theme
 def effect_scatter(
     x: List[Float64],
     y: List[Float64],
+    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -17,12 +18,17 @@ def effect_scatter(
     """A scatter plot with a halo drawn under each point -- `Mark.
     EFFECT_SCATTER` over continuous `x`/`y`, the static equivalent of
     ECharts' animated-ripple effect scatter. `Mark.POINT`'s `encode()` unchanged (`color`/`color_categories`/`size` channels
-    included) -- use `Plot().mark_effect_scatter().encode(...)`
+    included) -- use `Plot().mark_effect_scatter(tooltips=tooltips).encode(...)`
     directly for those, the same relationship `scatter()`'s minimal signature has to `Mark.POINT`'s full one.
 
     Args:
         x: The continuous x column, one entry per point.
         y: The continuous y column, one entry per point.
+        tooltips: Whether each point carries an SVG `<title>` a browser
+            shows on hover; defaults to `False`. Off by default because
+            a title costs roughly as much as the point element itself,
+            so a dense scatter's SVG about doubles -- see
+            `Plot.mark_point()`'s own `tooltips` parameter.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -59,6 +65,7 @@ def effect_scatter[
 ](
     x: List[Scalar[dtype]],
     y: List[Scalar[dtype]],
+    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -73,6 +80,6 @@ def effect_scatter[
     above.
     """
     return effect_scatter(
-        _materialize_scalar_list(x), _materialize_scalar_list(y), theme=theme, width=width,
+        _materialize_scalar_list(x), _materialize_scalar_list(y), tooltips=tooltips, theme=theme, width=width,
         height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
     )

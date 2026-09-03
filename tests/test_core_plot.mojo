@@ -51,6 +51,7 @@ from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
 from dataviz import (
     PointShape,
     bar,
+    beeswarm,
     box,
     bullet,
     default_marker_shapes,
@@ -1620,6 +1621,61 @@ def test_svg_tooltip_for_a_box_is_its_five_number_summary() raises:
     assert_true("range 55-82" in svg, "whisker range in the summary")
     assert_true("<title>Group A: 20 (outlier)</title>" in svg, "low outlier titled separately")
     assert_true("<title>Group A: 140 (outlier)</title>" in svg, "high outlier titled separately")
+
+
+def test_point_tooltips_are_off_by_default_and_opt_in_per_chart() raises:
+    """Unlike the categorical marks, a scatter's tooltips are off until
+    the chart asks for them -- a title costs about as much as the
+    `<circle>` it annotates, so turning them on roughly doubles a dense
+    scatter's SVG."""
+    var xs: List[Float64] = [1.0, 2.5, 3.0]
+    var ys: List[Float64] = [10.0, 20.5, 30.0]
+
+    var off = render_svg(scatter(xs, ys, width=250, height=180)).to_string()
+    assert_equal(off.count("<title>"), 0, "no titles by default")
+
+    var on = render_svg(scatter(xs, ys, tooltips=True, width=250, height=180)).to_string()
+    assert_true("<title>1, 10</title>" in on, "coordinates, formatted like every other label")
+    assert_true("<title>2.5, 20.5</title>" in on, "decimals kept only where they matter")
+    assert_equal(on.count("<title>"), 3, "one per point")
+
+
+def test_point_tooltip_prefers_the_row_s_own_label_over_coordinates() raises:
+    """`encode(labels=...)` text was chosen by the caller to identify
+    the point, so it beats anything derived -- but a row left empty
+    still gets coordinates rather than a blank tooltip."""
+    var xs: List[Float64] = [1.0, 2.5, 3.0]
+    var ys: List[Float64] = [10.0, 20.5, 30.0]
+    var labs: List[String] = ["alpha", "", "gamma"]
+    var plot = Plot().mark_point(tooltips=True).encode(x=xs, y=ys, labels=labs).size(250, 180)
+    var svg = render_svg(plot).to_string()
+
+    assert_true("<title>alpha</title>" in svg, "caller's label wins")
+    assert_true("<title>gamma</title>" in svg, "caller's label wins")
+    assert_true("<title>2.5, 20.5</title>" in svg, "empty label falls back to coordinates")
+
+
+def test_theme_svg_tooltips_off_overrides_the_per_chart_opt_in() raises:
+    """The two controls are ANDed: Theme.svg_tooltips turns tooltips
+    off globally, mark_point(tooltips=) turns them on for a chart that
+    can afford them. Asking for both is what emits a title."""
+    var xs: List[Float64] = [1.0, 2.0]
+    var ys: List[Float64] = [3.0, 4.0]
+    var svg = render_svg(
+        scatter(xs, ys, tooltips=True, theme=Theme(svg_tooltips=False), width=200, height=150)
+    ).to_string()
+    assert_equal(svg.count("<title>"), 0, "theme off beats the chart's opt-in")
+
+
+def test_beeswarm_tooltips_name_the_category_and_value() raises:
+    var cats: List[String] = ["A"]
+    var vals: List[List[Float64]] = [[1.0, 2.0]]
+    var off = render_svg(beeswarm(cats, vals, width=250, height=180)).to_string()
+    assert_equal(off.count("<title>"), 0, "off by default, same as scatter")
+
+    var on = render_svg(beeswarm(cats, vals, tooltips=True, width=250, height=180)).to_string()
+    assert_true("<title>A: 1</title>" in on, "category and value")
+    assert_true("<title>A: 2</title>" in on, "one per point, not per category")
 
 
 def main() raises:
