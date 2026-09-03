@@ -6,7 +6,6 @@ names" use case `horizontal_bar` covers, with segments summing to a
 whole per category instead of side-by-side sub-bars.
 """
 from dataviz.plot import Plot, save
-from dataviz.theme import Theme
 
 def main() raises:
     var languages: List[String] = ["Python", "JavaScript", "TypeScript", "Rust", "Mojo"]

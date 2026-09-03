@@ -34,6 +34,7 @@ def _draw_treemap_node[
     depth: Int,
     idx: _HierarchyIndex,
     ids: List[String],
+    label_color: Color,
     branch: List[Int],
     palette: List[Color],
     theme: Theme,
@@ -43,7 +44,7 @@ def _draw_treemap_node[
     """Fill `node`'s rect `(x0, y0, x1, y1)` if it's a leaf
     (colored by `branch[node]`'s top-level-ancestor palette entry,
     the same convention `Mark.SUNBURST`/`TREE` use, plus
-    a centered label in `Theme.treemap_label_color`), otherwise slice-and-dice that rect among its children and recurse: alternating axis by `depth` (even splits the
+    a centered label in `mark_treemap(label_color=...)`), otherwise slice-and-dice that rect among its children and recurse: alternating axis by `depth` (even splits the
     *width*, into side-by-side vertical strips; odd splits the
     *height*, into stacked horizontal strips), each child's share
     of the split proportional to its `subtree_value` share of
@@ -67,7 +68,7 @@ def _draw_treemap_node[
         target.fill_rect(x0, y0, x1 - x0, y1 - y0, color)
         text_requests.append(
             _TextRequest(
-                (x0 + x1) // 2, (y0 + y1) // 2 + Int(sc.font_size * 0.35), ids[node], theme.treemap_label_color,
+                (x0 + x1) // 2, (y0 + y1) // 2 + Int(sc.font_size * 0.35), ids[node], label_color,
                 sc.font_size, TextAlign.CENTER, theme.font_family,
             )
         )
@@ -86,9 +87,9 @@ def _draw_treemap_node[
         cum += idx.subtree_value[c] / total
         var next_pos = origin + _round_to_int(span * cum)
         if split_x:
-            _draw_treemap_node(target, c, prev, y0, next_pos, y1, depth + 1, idx, ids, branch, palette, theme, sc, text_requests)
+            _draw_treemap_node(target, c, prev, y0, next_pos, y1, depth + 1, idx, ids, label_color, branch, palette, theme, sc, text_requests)
         else:
-            _draw_treemap_node(target, c, x0, prev, x1, next_pos, depth + 1, idx, ids, branch, palette, theme, sc, text_requests)
+            _draw_treemap_node(target, c, x0, prev, x1, next_pos, depth + 1, idx, ids, label_color, branch, palette, theme, sc, text_requests)
         prev = next_pos
 
 
@@ -160,8 +161,8 @@ def _render_treemap[
 
     var palette = default_categorical_palette()
     _draw_treemap_node(
-        target, idx.root, plot_x0, plot_y0, plot_x1, plot_y1, 0, idx, plot._hierarchy.ids, branch, palette, theme,
-        sc, text_requests,
+        target, idx.root, plot_x0, plot_y0, plot_x1, plot_y1, 0, idx, plot._hierarchy.ids,
+        plot._mark_style.treemap_label_color, branch, palette, theme, sc, text_requests,
     )
 
     if show_legend:
@@ -174,6 +175,7 @@ def treemap(
     ids: List[String],
     parent_ids: List[String],
     values: List[Float64],
+    label_color: Color = Color(255, 255, 255),
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -196,6 +198,7 @@ def treemap(
         values: Each leaf node's area; an internal node's area is the
             sum of its descendants' -- see `Plot.encode_hierarchy()`'s
             docstring for the exact rule.
+        label_color: Color for each leaf's centered label; defaults to white.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -223,7 +226,7 @@ def treemap(
             save(c, "docs/src/examples/out_treemap.svg")
         ```
     """
-    var plot = Plot().mark_treemap().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
+    var plot = Plot().mark_treemap(label_color=label_color).encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
 
@@ -233,6 +236,7 @@ def treemap[
     ids: List[String],
     parent_ids: List[String],
     values: List[Scalar[dtype]],
+    label_color: Color = Color(255, 255, 255),
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -246,6 +250,6 @@ def treemap[
     full reasoning. Delegates to the concrete `treemap()` above.
     """
     return treemap(
-        ids, parent_ids, _materialize_scalar_list(values), theme=theme, width=width, height=height,
+        ids, parent_ids, _materialize_scalar_list(values), label_color=label_color, theme=theme, width=width, height=height,
         title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
     )

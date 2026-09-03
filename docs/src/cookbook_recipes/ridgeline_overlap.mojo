@@ -4,7 +4,6 @@ flatter, non-overlapping stack for the classic dramatic cascade.
 """
 from dataviz import ridgeline
 from dataviz.plot import save
-from dataviz.theme import Theme
 
 def main() raises:
     var days: List[String] = ["Mon", "Tue", "Wed", "Thu", "Fri"]
@@ -19,7 +18,7 @@ def main() raises:
     var plot = ridgeline(
         days,
         commute_minutes,
-        theme=Theme(ridgeline_overlap=2.2),
+        overlap=2.2,
         title="Commute Time by Day",
         subtitle="Minutes, a more dramatic cascade than the default overlap",
     )

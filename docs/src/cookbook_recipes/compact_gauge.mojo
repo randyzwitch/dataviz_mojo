@@ -6,12 +6,12 @@ dashboard tile row better.
 from std.math import pi
 from dataviz import gauge
 from dataviz.plot import save
-from dataviz.theme import Theme
 
 def main() raises:
     var plot = gauge(
         72.0,
-        theme=Theme(gauge_start_angle=pi, gauge_sweep_angle=pi),
+        start_angle=pi,
+        sweep_angle=pi,
         title="Server Load",
         width=400,
         height=260,

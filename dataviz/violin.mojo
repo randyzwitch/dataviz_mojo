@@ -87,7 +87,7 @@ def _render_violin[
     a long, visually meaningless near-zero-width sliver).
 
     Each violin's width is scaled *independently* -- its peak
-    density maps to `theme.violin_width_fraction` of its category's band
+    density maps to `plot._mark_style.violin_width_fraction` of its category's band
     width, not a shared cross-category maximum -- matching ggplot2's default `scale = "width"` behavior (every violin the same
     maximum width, regardless of how many points went into it) rather
     than `scale = "area"` (equal area, proportional peak width). The
@@ -127,7 +127,7 @@ def _render_violin[
 
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
-    var half_width = frame.x_scale.bandwidth() * theme.violin_width_fraction
+    var half_width = frame.x_scale.bandwidth() * plot._mark_style.violin_width_fraction
 
     for i in range(len(plot.x_categories)):
         var values = plot._distribution.values[i].copy()
@@ -212,7 +212,7 @@ def _render_horizontal_violin[
         target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
     )
 
-    var half_height = frame.y_scale.bandwidth() * theme.violin_width_fraction
+    var half_height = frame.y_scale.bandwidth() * plot._mark_style.violin_width_fraction
 
     for i in range(len(plot.x_categories)):
         var values = plot._distribution.values[i].copy()
@@ -258,6 +258,7 @@ def violin(
     values: List[List[Float64]],
     bandwidth: Float64 = 0.0,
     scale_by_count: Bool = False,
+    width_fraction: Float64 = 0.4,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -290,6 +291,8 @@ def violin(
             width; `True` (`scale = "area"`) additionally scales a
             category's maximum width by `sqrt(n_i / max(n))`, so one
             built from fewer raw values draws visibly narrower.
+        width_fraction: Each violin's maximum half-width as a fraction of its band
+            width; defaults to `0.4`.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -325,7 +328,10 @@ def violin(
         ```
     """
     var plot = Plot().mark_violin(
-        bandwidth=bandwidth, scale_by_count=scale_by_count, horizontal=horizontal
+        bandwidth=bandwidth,
+        scale_by_count=scale_by_count,
+        horizontal=horizontal,
+        width_fraction=width_fraction,
     ).encode_distribution(categories=categories, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
@@ -337,6 +343,7 @@ def violin[
     values: List[List[Scalar[dtype]]],
     bandwidth: Float64 = 0.0,
     scale_by_count: Bool = False,
+    width_fraction: Float64 = 0.4,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -352,6 +359,6 @@ def violin[
     """
     return violin(
         categories, _materialize_nested_scalar_list(values), bandwidth=bandwidth,
-        scale_by_count=scale_by_count, theme=theme, width=width, height=height, title=title,
+        scale_by_count=scale_by_count, width_fraction=width_fraction, theme=theme, width=width, height=height, title=title,
         subtitle=subtitle, x_title=x_title, y_title=y_title, horizontal=horizontal,
     )

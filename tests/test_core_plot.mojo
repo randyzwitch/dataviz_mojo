@@ -950,12 +950,12 @@ def test_theme_mark_style_fields_actually_change_output() raises:
     var base = render(_hoisted8)
     var _hoisted9 = waterfall(
         cats, vals, totals,
-        theme=Theme(waterfall_delta_width_fraction=0.95), width=200, height=150,
+        delta_width_fraction=0.95, width=200, height=150,
     )
     var wide = render(_hoisted9)
     assert_true(
         _count_color(base, Theme().mark_color) != _count_color(wide, Theme().mark_color),
-        "waterfall_delta_width_fraction changes how much band a delta bar covers",
+        "delta_width_fraction changes how much band a delta bar covers",
     )
 
     var measure: List[Float64] = [7.0]
@@ -965,12 +965,12 @@ def test_theme_mark_style_fields_actually_change_output() raises:
     var b_thin = render(_hoisted10)
     var _hoisted11 = bullet(
         cats0(), measure, target, ranges,
-        theme=Theme(bullet_measure_width_fraction=0.9), width=200, height=150,
+        measure_width_fraction=0.9, width=200, height=150,
     )
     var b_fat = render(_hoisted11)
     assert_true(
         _count_color(b_thin, Theme().mark_color) != _count_color(b_fat, Theme().mark_color),
-        "bullet_measure_width_fraction changes the measure bar's thickness",
+        "measure_width_fraction changes the measure bar's thickness",
     )
 
 
@@ -989,7 +989,7 @@ def test_theme_mark_colors_are_actually_used() raises:
     # supersampled and downsamples, so an antialiased glyph keeps no
     # pixel at the pure source color. The label is unmistakably red
     # either way, which is what this asserts.
-    var _hoisted12 = treemap(ids, parents, values, theme=Theme(treemap_label_color=RED), width=300, height=200)
+    var _hoisted12 = treemap(ids, parents, values, label_color=RED, width=300, height=200)
     var t = render(_hoisted12)
     var reddish = 0
     for y in range(t.height):
@@ -1004,7 +1004,7 @@ def test_theme_mark_colors_are_actually_used() raises:
     var rb_cats: List[String] = ["x", "y"]
     var rb_vals: List[Float64] = [1.0, 8.0]
     var _hoisted13 = radialbar(
-        rb_cats, rb_vals, theme=Theme(radialbar_track_color=RED), width=300, height=220
+        rb_cats, rb_vals, track_color=RED, width=300, height=220
     )
     var r = render(_hoisted13)
     assert_true(_count_color(r, RED) > 0, "radialbar_track_color reaches the unfilled track")

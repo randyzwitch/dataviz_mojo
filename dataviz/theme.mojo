@@ -45,16 +45,6 @@ knob a caller actually sets to ask for a bigger/sharper export;
 `render()`'s own supersampling is invisible plumbing underneath that
 choice, not a second version of it.
 
-`donut_inner_radius_fraction` (default 0.0 -- an ordinary pie, `Mark.
-ARC` unchanged) is a *fraction* of the outer radius `_render_arc`
-already computes from the plot area, not a pixel value -- the outer
-radius itself already scales with canvas size, so a fraction keeps
-the donut hole proportionally correct at any size the same way a
-percentage would, rather than a fixed pixel value that would look
-right at one canvas size and wrong at every other. Must be in
-`[0.0, 1.0)` -- `_render_arc` raises otherwise (an inner radius that
-reaches or exceeds the outer one has no ring left to draw).
-
 `color_by_sign` (default `False` -- every `Mark.BAR` bar stays
 `mark_color`, unchanged) switches `_render_bar` to color each bar by
 whether its value is negative (`mark_color_negative`) or not
@@ -74,17 +64,6 @@ equivalent of their own -- sign coloring isn't an optional extra for
 either (a waterfall's rising/falling color and a candlestick's up/down
 color both *are* what the chart conventionally shows), the way it is
 for an otherwise-complete plain bar chart. See either mark's `_render_*` docstring in plot.mojo.
-
-`bullet_range_color_light`/`bullet_range_color_dark` are `Mark.BULLET`'s pair, unrelated to the sign-coloring fields above: the two ends of
-a small monochrome gradient (via `dataviz.color_scale.ColorScale`, the
-same stop-interpolation machinery `Plot.encode(color=...)`'s continuous channel uses) `_render_bullet` shades each category's
-qualitative range bands with, lightest-to-darkest by range index --
-deliberately grayscale by default (Stephen Few's original bullet-
-chart convention), not `mark_color`-derived, so the shaded background
-bands read as neutral context behind the one thing that *is* colored
-with `mark_color`: the measure bar itself. Unlike `mark_color_negative`,
-`Mark.BULLET`'s measure bar is never colored by sign -- see
-`_render_bullet`'s docstring for why.
 
 `color_scale_low`/`color_scale_mid`/`color_scale_high` are `Plot.encode(
 color=...)`'s continuous channel (and every mark built directly on
@@ -170,43 +149,15 @@ than competing with either -- the same "a genuinely distinct visual
 role gets its color, not a borrowed one" reasoning `waterfall_
 total_color` below gives.
 
-`waterfall_total_color` is `Mark.WATERFALL`'s third color, for a
-row `encode_waterfall()`'s `is_total` marks as a running-total
-checkpoint rather than a rising/falling delta -- deliberately a third,
-neutral color (default a plain gray, `Color(100, 100, 100)`), not
-`mark_color`/`mark_color_negative` reused: a total bar isn't "a big
-increase" or "a big decrease," it's a different *kind* of thing on the
-same chart (where things stand, not what just changed), so it reads
-clearest with its color rather than borrowing meaning from the
-rising/falling pair. See `_render_waterfall`'s docstring for the
-full total-bar drawing story (also wider than a delta bar -- full band
-width vs. `waterfall_delta_width_fraction` below).
-
-`waterfall_delta_width_fraction` (default 0.6) is how much of its band a rising/falling delta bar occupies; a total bar always spans the
-full band, so this is what visually separates the two.
-
-`bullet_measure_width_fraction` (default 0.35) is how thick `Mark.
-BULLET`'s measure bar is relative to its band, and
-`chord_ring_fraction` (default 0.08) how thick `Mark.CHORD`'s node ring
-is relative to the outer radius -- the same *fraction of something the
-layout already computed* shape `donut_inner_radius_fraction` has, and
-for the same reason: a fixed pixel value would look right at one canvas
-size and wrong at every other.
-
-`radialbar_track_color` (default a light grey) is the unfilled track
-`Mark.RADIALBAR` sweeps its rings over, and `treemap_label_color`
-(default white) the label drawn on a `Mark.TREEMAP` leaf rect -- both
-sit on top of palette-colored shapes, so both are real contrast
-choices a caller may need to change rather than internal details.
-
 `halo_alpha` (default 90) is the opacity `Mark.EFFECT_SCATTER` blends
 each point's halo at, before flattening it against white -- see
 `_lighten`'s docstring for why it is flattened rather than drawn
-translucent. `radar_fill_alpha` (also 90) is the same treatment for
-`Mark.RADAR`'s filled series polygons.
+translucent. `Mark.RADAR`'s filled series polygons get the same
+treatment from `mark_radar(fill_alpha=...)`, which is a mark
+parameter rather than a field here.
 
-Two fields rather than one shared "tint alpha", even though both
-default to 90: a single shared constant would silently couple a
+Two separate numbers rather than one shared "tint alpha", even though
+both default to 90: a single shared constant would silently couple a
 scatter halo's tint to a radar fill's. Nothing connects those two
 beyond the number having happened to suit both, so retheming one
 should not move the other.
@@ -235,8 +186,8 @@ unobtrusive mark. `Plot.annotate_area()`'s label text still uses
 `annotation_color`, not this field -- ink and fill are two different
 jobs even on the same annotation, the same split `mark_color`/
 `text_color` already have everywhere else. Real alpha (`a=200`, not
-the `_lighten()`-style pre-blend-against-white `halo_alpha`/
-`radar_fill_alpha` use), unlike those two: a halo/radar fill wants a
+the `_lighten()`-style pre-blend-against-white `halo_alpha` and
+`mark_radar(fill_alpha=...)` use), unlike those two: a halo/radar fill wants a
 *consistent* tint regardless of what happens to be behind it, but a
 reference band's whole point is marking a region on the *existing*
 chart, so it should let whatever the mark drew there keep showing
@@ -367,10 +318,6 @@ struct Theme(ImplicitlyCopyable, Movable):
     `render()` computes (font size, margins, point radius, line
     width, tick length, legend layout, ...); see this struct's own
     module docstring for the full HiDPI-rendering reasoning."""
-    var donut_inner_radius_fraction: Float64
-    """A fraction (`[0.0, 1.0)`) of `Mark.ARC`'s outer radius to leave
-    as a hole -- `0.0` (the default) draws an ordinary pie; any
-    positive value draws a donut."""
     var color_by_sign: Bool
     """Whether `Mark.BAR` colors each bar by whether its value is
     negative (`mark_color_negative`) or not (`mark_color`); defaults
@@ -396,12 +343,6 @@ struct Theme(ImplicitlyCopyable, Movable):
     projected, or viewed by someone who can't rely on color -- where
     every `color_categories` swatch collapses toward the same gray --
     still reads as one series per distinct glyph."""
-    var bullet_range_color_light: Color
-    """The lightest end of `Mark.BULLET`'s grayscale qualitative-range
-    band gradient (lowest range index)."""
-    var bullet_range_color_dark: Color
-    """The darkest end of `Mark.BULLET`'s grayscale qualitative-range
-    band gradient (highest range index)."""
     var line_smoothing: Float64
     """How much `Mark.LINE`/`AREA` curves through its data points, via
     a Catmull-Rom-derived spline -- `0.0` (the default) draws plain
@@ -418,11 +359,6 @@ struct Theme(ImplicitlyCopyable, Movable):
     title."""
     var axis_title_font_size: Float64
     """The x/y-axis title's font size, in points."""
-    var waterfall_total_color: Color
-    """`Mark.WATERFALL`'s third color, for a row `encode_waterfall()`'s
-    `is_total` marks as a running-total checkpoint -- deliberately
-    distinct from `mark_color`/`mark_color_negative` since a total bar
-    is a different kind of thing, not a big increase or decrease."""
     var annotation_color: Color
     """`Plot.annotate_line()`/`annotate_vline()`/`annotate_point()`'s
     color -- the reference mark itself and its optional label."""
@@ -438,61 +374,9 @@ struct Theme(ImplicitlyCopyable, Movable):
     """Whether the chart title draws bold; defaults to `True`. The one
     field in this struct whose default isn't backward-compatible with
     pre-existing renders -- see this struct's own module docstring."""
-    var waterfall_delta_width_fraction: Float64
-    """How much of its band a rising/falling `Mark.WATERFALL` delta
-    bar occupies; a total bar always spans the full band."""
-    var bullet_measure_width_fraction: Float64
-    """How thick `Mark.BULLET`'s measure bar is relative to its band."""
-    var chord_ring_fraction: Float64
-    """How thick `Mark.CHORD`'s node ring is relative to the outer
-    radius."""
-    var radialbar_track_color: Color
-    """The unfilled background track `Mark.RADIALBAR` sweeps its
-    rings over."""
-    var treemap_label_color: Color
-    """The label color drawn on a `Mark.TREEMAP` leaf rectangle."""
     var halo_alpha: UInt8
     """The opacity `Mark.EFFECT_SCATTER` blends each point's halo at,
     before flattening it against white."""
-    var radar_fill_alpha: UInt8
-    """The opacity `Mark.RADAR` blends each series' filled polygon at,
-    before flattening it against white -- a separate field from
-    `halo_alpha` even though both default to the same value, so
-    retheming one never silently moves the other."""
-    var radialbar_ring_gap_fraction: Float64
-    """The gap between adjacent `Mark.RADIALBAR` rings, as a fraction
-    of each ring's own slot."""
-    var violin_width_fraction: Float64
-    """How much of its category's band width a `Mark.VIOLIN`'s peak
-    density maps to, by default (ggplot2's `scale = "width"`)."""
-    var corrplot_bubble_fraction: Float64
-    """How much of a `Mark.CORRPLOT` cell's smaller dimension its
-    bubble's maximum radius (at `abs(correlation) == 1.0`) fills."""
-    var gauge_band_inner_fraction: Float64
-    """`Mark.GAUGE`'s color-banded dial ring's inner radius, as a
-    fraction of the dial's outer radius."""
-    var gauge_needle_fraction: Float64
-    """`Mark.GAUGE`'s needle length, as a fraction of the dial's
-    outer radius."""
-    var ridgeline_overlap: Float64
-    """How far a `Mark.RIDGELINE` row's curve may rise into the row
-    above it, as a multiple of one row's own height."""
-    var polar_bar_padding: Float64
-    """The gap `Mark.POLAR_BAR` leaves out of each bar's angular slot,
-    as a fraction of that slot."""
-    var polar_grid_rings: Int
-    """How many evenly spaced concentric gridline rings `Mark.POLAR`
-    draws."""
-    var polar_grid_spokes: Int
-    """How many straight radial gridline spokes `Mark.POLAR` draws."""
-    var radar_grid_rings: Int
-    """How many concentric gridline rings `Mark.RADAR` draws."""
-    var gauge_start_angle: Float64
-    """`Mark.GAUGE`'s dial start angle, in radians (this package's
-    usual clockwise-from-3-o'clock convention)."""
-    var gauge_sweep_angle: Float64
-    """`Mark.GAUGE`'s total dial sweep, in radians, from
-    `gauge_start_angle`."""
     var tick_length: Int
     """The pixel length of each axis tick mark."""
     var label_gap: Int
@@ -512,8 +396,6 @@ struct Theme(ImplicitlyCopyable, Movable):
     var margin_buffer: Int
     """Extra breathing-room padding, in pixels, added after a
     margin's own tick-label-width/tick-length/label-gap computation."""
-    var sankey_node_width: Float64
-    """The pixel width of each `Mark.SANKEY` node column's bar."""
     var error_bar_cap_width: Float64
     """Half the pixel width of the horizontal cap `Plot.encode()`'s
     `y_err` channel draws at each end of a point's error-bar whisker --
@@ -566,41 +448,19 @@ struct Theme(ImplicitlyCopyable, Movable):
         size_range_max: Float64 = 15.0,
         show_legend: Bool = True,
         scale: Float64 = 1.0,
-        donut_inner_radius_fraction: Float64 = 0.0,
         color_by_sign: Bool = False,
         mark_color_negative: Color = Color(200, 60, 60),
         shape_by_category: Bool = False,
-        bullet_range_color_light: Color = Color(224, 224, 224),
-        bullet_range_color_dark: Color = Color(120, 120, 120),
         line_smoothing: Float64 = 0.0,
         title_font_size: Float64 = 18.0,
         subtitle_font_size: Float64 = 14.0,
         subtitle_color: Color = Color(110, 110, 110),
         axis_title_font_size: Float64 = 14.0,
-        waterfall_total_color: Color = Color(100, 100, 100),
         annotation_color: Color = Color(150, 150, 150),
         annotation_area_color: Color = Color(224, 236, 246, 200),
         font_family: String = "sans-serif",
         title_bold: Bool = True,
-        waterfall_delta_width_fraction: Float64 = 0.6,
-        bullet_measure_width_fraction: Float64 = 0.35,
-        chord_ring_fraction: Float64 = 0.08,
-        radialbar_track_color: Color = Color(230, 230, 230),
-        treemap_label_color: Color = Color(255, 255, 255),
         halo_alpha: UInt8 = 90,
-        radar_fill_alpha: UInt8 = 90,
-        radialbar_ring_gap_fraction: Float64 = 0.25,
-        violin_width_fraction: Float64 = 0.4,
-        corrplot_bubble_fraction: Float64 = 0.42,
-        gauge_band_inner_fraction: Float64 = 0.7,
-        gauge_needle_fraction: Float64 = 0.9,
-        ridgeline_overlap: Float64 = 1.3,
-        polar_bar_padding: Float64 = 0.2,
-        polar_grid_rings: Int = 4,
-        polar_grid_spokes: Int = 12,
-        radar_grid_rings: Int = 4,
-        gauge_start_angle: Float64 = 3.0 * pi / 4.0,
-        gauge_sweep_angle: Float64 = 3.0 * pi / 2.0,
         tick_length: Int = 5,
         label_gap: Int = 4,
         legend_width: Int = 130,
@@ -609,7 +469,6 @@ struct Theme(ImplicitlyCopyable, Movable):
         continuous_legend_bar_width: Int = 14,
         continuous_legend_bar_height: Int = 100,
         margin_buffer: Int = 8,
-        sankey_node_width: Float64 = 12.0,
         error_bar_cap_width: Float64 = 4.0,
         output_format: OutputFormat = OutputFormat.SVG,
         show_data_labels: Bool = False,
@@ -639,41 +498,19 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.size_range_max = size_range_max
         self.show_legend = show_legend
         self.scale = scale
-        self.donut_inner_radius_fraction = donut_inner_radius_fraction
         self.color_by_sign = color_by_sign
         self.mark_color_negative = mark_color_negative
         self.shape_by_category = shape_by_category
-        self.bullet_range_color_light = bullet_range_color_light
-        self.bullet_range_color_dark = bullet_range_color_dark
         self.line_smoothing = line_smoothing
         self.title_font_size = title_font_size
         self.subtitle_font_size = subtitle_font_size
         self.subtitle_color = subtitle_color
         self.axis_title_font_size = axis_title_font_size
-        self.waterfall_total_color = waterfall_total_color
         self.annotation_color = annotation_color
         self.annotation_area_color = annotation_area_color
         self.font_family = font_family
         self.title_bold = title_bold
-        self.waterfall_delta_width_fraction = waterfall_delta_width_fraction
-        self.bullet_measure_width_fraction = bullet_measure_width_fraction
-        self.chord_ring_fraction = chord_ring_fraction
-        self.radialbar_track_color = radialbar_track_color
-        self.treemap_label_color = treemap_label_color
         self.halo_alpha = halo_alpha
-        self.radar_fill_alpha = radar_fill_alpha
-        self.radialbar_ring_gap_fraction = radialbar_ring_gap_fraction
-        self.violin_width_fraction = violin_width_fraction
-        self.corrplot_bubble_fraction = corrplot_bubble_fraction
-        self.gauge_band_inner_fraction = gauge_band_inner_fraction
-        self.gauge_needle_fraction = gauge_needle_fraction
-        self.ridgeline_overlap = ridgeline_overlap
-        self.polar_bar_padding = polar_bar_padding
-        self.polar_grid_rings = polar_grid_rings
-        self.polar_grid_spokes = polar_grid_spokes
-        self.radar_grid_rings = radar_grid_rings
-        self.gauge_start_angle = gauge_start_angle
-        self.gauge_sweep_angle = gauge_sweep_angle
         self.tick_length = tick_length
         self.label_gap = label_gap
         self.legend_width = legend_width
@@ -682,7 +519,6 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.continuous_legend_bar_width = continuous_legend_bar_width
         self.continuous_legend_bar_height = continuous_legend_bar_height
         self.margin_buffer = margin_buffer
-        self.sankey_node_width = sankey_node_width
         self.error_bar_cap_width = error_bar_cap_width
         self.output_format = output_format
         self.show_data_labels = show_data_labels

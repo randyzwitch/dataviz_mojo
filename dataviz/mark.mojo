@@ -23,7 +23,7 @@ rendering difference); WATERFALL has its `encode_waterfall` (a
 category + a *signed delta*, not a plain value -- see that method's
 docstring for the running-total bookkeeping this does, including its
 optional `is_total` running-total-checkpoint rows, drawn full band
-width in `Theme.waterfall_total_color` instead of a narrower
+width in `mark_waterfall(total_color=...)` instead of a narrower
 rising/falling delta bar); BOX has its `encode_boxplot` (a category
 + a whole *distribution* of raw values, not one number -- see that
 method's docstring for the quartile/whisker/outlier computation it
@@ -196,7 +196,7 @@ to every category instead (a real need: comparing several categories'
 smoother or spikier purely from Silverman's rule reacting to its
 sample size), sampled at `_KDE_SAMPLES` points across each category's
 `[min, max]`, each violin's peak density independently scaled to
-`theme.violin_width_fraction` of its band width by default (ggplot2's
+`plot._mark_style.violin_width_fraction` of its band width by default (ggplot2's
 `scale = "width"`), or `mark_violin()`'s `scale_by_count=True` for
 ggplot2's `scale = "area"` instead (multiplying that width by
 `sqrt(n_i / max(n))`, so a category built from fewer raw values draws
@@ -231,7 +231,7 @@ nightingale` docstring for the full reasoning.
 
 POLAR_BAR reuses `NIGHTINGALE`'s equal-angle-slot, radius-by-
 `value/max` geometry, palette, legend, and validation, but carves a
-small gap out of each bar's angular slot (`theme.polar_bar_padding`,
+small gap out of each bar's angular slot (`plot._mark_style.polar_bar_padding`,
 polar_bar.mojo -- the same "separated bands vs. edge-to-edge cells"
 distinction `HEATMAP`'s docstring already draws against `BAR`, applied
 here against `NIGHTINGALE`'s touching sectors) so bars read as

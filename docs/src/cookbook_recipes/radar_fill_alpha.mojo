@@ -5,7 +5,6 @@ whichever one is drawn underneath it.
 """
 from dataviz import radar
 from dataviz.plot import save
-from dataviz.theme import Theme
 
 def main() raises:
     var indicators: List[String] = ["Speed", "Power", "Defense", "Stamina", "Agility"]
@@ -22,7 +21,7 @@ def main() raises:
         max_values,
         series_names,
         series_values,
-        theme=Theme(radar_fill_alpha=45),
+        fill_alpha=45,
         title="Player Attributes",
         subtitle="Three overlapping series, each still visible through the others",
     )

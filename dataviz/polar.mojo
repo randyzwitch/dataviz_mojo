@@ -75,10 +75,10 @@ def _polar_point(cx: Float64, cy: Float64, angle: Float64, radius: Float64) -> _
 
 def _draw_polar_grid[
     T: DrawTarget
-](mut target: T, cx: Float64, cy: Float64, max_radius: Float64, theme: Theme) raises:
-    """The polar coordinate system itself: `theme.polar_grid_rings` evenly
+](mut target: T, cx: Float64, cy: Float64, max_radius: Float64, theme: Theme, grid_rings: Int, grid_spokes: Int) raises:
+    """The polar coordinate system itself: `plot._mark_style.polar_grid_rings` evenly
     spaced concentric circles (one full `Path.arc_to` sweep each,
-    stroked) plus `theme.polar_grid_spokes` straight radial lines from the
+    stroked) plus `plot._mark_style.polar_grid_spokes` straight radial lines from the
     center out to `max_radius` -- the polar equivalent of a cartesian
     plot's gridlines, drawn in `theme.gridline_color` the same way
     `_draw_categorical_axis_frame`'s gridlines are. No tick labels
@@ -88,15 +88,15 @@ def _draw_polar_grid[
     orientation) is a typesetting problem this package has no
     machinery for yet.
     """
-    for i in range(1, theme.polar_grid_rings + 1):
-        var r = max_radius * Float64(i) / Float64(theme.polar_grid_rings)
+    for i in range(1, grid_rings + 1):
+        var r = max_radius * Float64(i) / Float64(grid_rings)
         var ring = Path()
         ring.move_to(cx + r, cy)
         ring.arc_to(cx, cy, r, 0.0, 2.0 * pi)
         target.stroke_path_aa(ring, theme.gridline_color)
 
-    for i in range(theme.polar_grid_spokes):
-        var angle = 2.0 * pi * Float64(i) / Float64(theme.polar_grid_spokes)
+    for i in range(grid_spokes):
+        var angle = 2.0 * pi * Float64(i) / Float64(grid_spokes)
         var tip = _polar_point(cx, cy, angle, max_radius)
         target.draw_line_aa(Int(cx), Int(cy), Int(tip.x), Int(tip.y), theme.gridline_color)
 
@@ -203,7 +203,9 @@ def _render_polar[
     var max_radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
 
     if theme.show_gridlines:
-        _draw_polar_grid(target, cx, cy, max_radius, theme)
+        _draw_polar_grid(
+            target, cx, cy, max_radius, theme, plot._mark_style.polar_grid_rings, plot._mark_style.polar_grid_spokes
+        )
 
     if is_multi:
         var max_r = 0.0

@@ -34,10 +34,10 @@ def _render_ridgeline[
     silhouette. Called with `padding=0.0`, *not* that function's 0.2
     default: a ridgeline plot needs rows to sit edge-to-edge (any
     nonzero gap leaves a sliver of background between rows, only
-    inconsistently covered by `theme.ridgeline_overlap`'s rise, which
+    inconsistently covered by `plot._mark_style.ridgeline_overlap`'s rise, which
     reads as a spurious notch).
 
-    Each row's curve may rise up to `theme.ridgeline_overlap` times the
+    Each row's curve may rise up to `plot._mark_style.ridgeline_overlap` times the
     row's height above its baseline -- deliberately more than
     one row tall, so a tall category's peak overlaps into the row
     above it. Categories are drawn top to bottom, in `x_categories`' given order (not reordered by value the way `Mark.FUNNEL`
@@ -85,7 +85,7 @@ def _render_ridgeline[
     )
 
     var row_height = frame.y_scale.bandwidth()
-    var max_rise = row_height * theme.ridgeline_overlap
+    var max_rise = row_height * plot._mark_style.ridgeline_overlap
 
     for i in range(len(plot.x_categories)):
         var values = plot._distribution.values[i].copy()
@@ -135,6 +135,7 @@ def ridgeline(
     values: List[List[Float64]],
     bandwidth: Float64 = 0.0,
     scale_by_count: Bool = False,
+    overlap: Float64 = 1.3,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -167,6 +168,8 @@ def ridgeline(
             width; `True` (`scale = "area"`) additionally scales a
             category's maximum width by `sqrt(n_i / max(n))`, so one
             built from fewer raw values draws visibly narrower.
+        overlap: How far each row rises into the rows above, as a multiple
+            of row height; defaults to `1.3`.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -198,7 +201,7 @@ def ridgeline(
             save(c, "docs/src/examples/out_ridgeline.svg")
         ```
     """
-    var plot = Plot().mark_ridgeline(bandwidth=bandwidth, scale_by_count=scale_by_count).encode_distribution(
+    var plot = Plot().mark_ridgeline(bandwidth=bandwidth, scale_by_count=scale_by_count, overlap=overlap).encode_distribution(
         categories=categories, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
@@ -211,6 +214,7 @@ def ridgeline[
     values: List[List[Scalar[dtype]]],
     bandwidth: Float64 = 0.0,
     scale_by_count: Bool = False,
+    overlap: Float64 = 1.3,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -225,6 +229,6 @@ def ridgeline[
     """
     return ridgeline(
         categories, _materialize_nested_scalar_list(values), bandwidth=bandwidth,
-        scale_by_count=scale_by_count, theme=theme, width=width, height=height, title=title,
+        scale_by_count=scale_by_count, overlap=overlap, theme=theme, width=width, height=height, title=title,
         subtitle=subtitle, x_title=x_title, y_title=y_title,
     )

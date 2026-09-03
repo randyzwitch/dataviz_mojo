@@ -160,7 +160,7 @@ def test_render_donut_leaves_the_center_unfilled_and_fills_the_ring() raises:
     # Same 2-category [1, 3] data (and the same hand-solved center/
     # radius: cx=220, cy=135, radius=103.5, no legend) test_render_
     # svg_arc_mark_matches_confirmed_wedge_paths already uses --
-    # donut_inner_radius_fraction=0.5 makes inner_radius=51.75, so the
+    # inner_radius_fraction=0.5 makes inner_radius=51.75, so the
     # exact center (220, 135) must stay background (the donut hole),
     # while a point on wedge 0's angular bisector (start=-pi/2,
     # end=0, bisector=-pi/4) at the ring's midpoint radius
@@ -170,7 +170,7 @@ def test_render_donut_leaves_the_center_unfilled_and_fills_the_ring() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
     var _hoisted5 = pie(
-        cats, vals, theme=Theme(show_legend=False, donut_inner_radius_fraction=0.5), width=400, height=300
+        cats, vals, theme=Theme(show_legend=False), inner_radius_fraction=0.5, width=400, height=300
     )
     var c = render(_hoisted5)
 
@@ -186,8 +186,8 @@ def test_render_donut_svg_matches_confirmed_ring_sector_paths() raises:
     # 3-decimal `_format_svg_float`.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).theme(
-        Theme(show_legend=False, donut_inner_radius_fraction=0.5)
+    var plot = Plot().mark_arc(inner_radius_fraction=0.5).encode_categorical(x=cats, y=vals).theme(
+        Theme(show_legend=False)
     ).size(400, 300)
     var svg = render_svg(plot)
     var s = svg.to_string()
@@ -207,10 +207,10 @@ def test_render_donut_raises_on_out_of_range_inner_radius_fraction() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 1.0]
     with assert_raises():
-        var _hoisted6 = pie(cats, vals, theme=Theme(donut_inner_radius_fraction=1.0), width=400, height=300)
+        var _hoisted6 = pie(cats, vals, inner_radius_fraction=1.0, width=400, height=300)
         _ = render(_hoisted6)
     with assert_raises():
-        var _hoisted7 = pie(cats, vals, theme=Theme(donut_inner_radius_fraction=-0.1), width=400, height=300)
+        var _hoisted7 = pie(cats, vals, inner_radius_fraction=-0.1, width=400, height=300)
         _ = render(_hoisted7)
 
 # ---------------------------------------------------------------
@@ -513,7 +513,7 @@ def test_render_polar_bar_matches_hand_derived_bar_colors() raises:
 
 def test_render_polar_bar_leaves_a_gap_between_bars() raises:
     # Same three-category setup as above. Slot boundaries sit at
-    # -90/30/150 degrees; the 20% padding (theme.polar_bar_padding) carves
+    # -90/30/150 degrees; the 20% padding (mark_polar_bar(padding=...)) carves
     # a 24-degree gap (2*pi/3 * 0.2) centered on each boundary, so at
     # radius 50 along the boundary between bar 0 and bar 1 (angle 30
     # degrees exactly -- offset (155 + 50*cos(30), 135 + 50*sin(30)) =
@@ -712,9 +712,9 @@ def test_render_radar_matches_hand_derived_polygon_fill() raises:
     )
     var c = render(_hoisted1)
 
-    # Theme.radar_fill_alpha's default -- the same tint the render
+    # mark_radar(fill_alpha=...)'s default -- the same tint the render
     # path uses, passed explicitly since _lighten takes alpha as a parameter.
-    var fill = _lighten(default_categorical_palette()[0], Theme().radar_fill_alpha)
+    var fill = _lighten(default_categorical_palette()[0], 90)
     _assert_color(c, 220, 135, fill, "centroid of the fully-maxed triangle -- inside")
     _assert_color(c, 220, 85, fill, "median from center toward the -90 degree vertex -- inside")
     _assert_color(c, 220, 235, BG, "angle 90, radius 100 -- beyond the triangle's 51.75 apothem, outside")

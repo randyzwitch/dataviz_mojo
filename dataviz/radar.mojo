@@ -44,10 +44,10 @@ struct _RadarData(Movable):
 
 def _draw_radar_grid[
     T: DrawTarget
-](mut target: T, cx: Float64, cy: Float64, max_radius: Float64, n: Int, theme: Theme) raises:
+](mut target: T, cx: Float64, cy: Float64, max_radius: Float64, n: Int, theme: Theme, grid_rings: Int) raises:
     """The radar coordinate system: `n` straight spokes from the
     center out to `max_radius` (one per indicator axis, `_polar_point`
-    at each axis's angle), plus `theme.radar_grid_rings` concentric
+    at each axis's angle), plus `plot._mark_style.radar_grid_rings` concentric
     "web" rings -- each ring a straight-edged `n`-sided polygon
     connecting every spoke's tip at that ring's radius fraction,
     *not* a circle the way `polar.mojo`'s `_draw_polar_grid` rings
@@ -64,8 +64,8 @@ def _draw_radar_grid[
         var tip = _polar_point(cx, cy, angle, max_radius)
         target.draw_line_aa(Int(cx), Int(cy), Int(tip.x), Int(tip.y), theme.gridline_color)
 
-    for ring in range(1, theme.radar_grid_rings + 1):
-        var r = max_radius * Float64(ring) / Float64(theme.radar_grid_rings)
+    for ring in range(1, grid_rings + 1):
+        var r = max_radius * Float64(ring) / Float64(grid_rings)
         var web = Path()
         for i in range(n):
             var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
@@ -135,7 +135,7 @@ def _render_radar[
 
     var n = len(plot._radar.indicators)
     if theme.show_gridlines:
-        _draw_radar_grid(target, cx, cy, max_radius, n, theme)
+        _draw_radar_grid(target, cx, cy, max_radius, n, theme, plot._mark_style.radar_grid_rings)
 
     var palette = default_categorical_palette()
     for s in range(len(plot._radar.series_values)):
@@ -151,7 +151,7 @@ def _render_radar[
             else:
                 poly.line_to(pt.x, pt.y)
         poly.close()
-        target.fill_path_aa(poly, _lighten(color, theme.radar_fill_alpha))
+        target.fill_path_aa(poly, _lighten(color, plot._mark_style.radar_fill_alpha))
         target.stroke_path_aa(poly, color, sc.line_width)
 
     # Axis labels, placed just outside each spoke's tip -- aligned
@@ -192,6 +192,8 @@ def radar(
     max_values: List[Float64],
     series_names: List[String],
     series_values: List[List[Float64]],
+    fill_alpha: UInt8 = 90,
+    grid_rings: Int = 4,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -210,6 +212,8 @@ def radar(
         series_names: One polygon per name, used as the legend key.
         series_values: `series_values[j]` is `series_names[j]`'s
             value per indicator.
+        fill_alpha: Alpha for each series' filled polygon; defaults to `90`.
+        grid_rings: How many concentric web rings to draw; defaults to `4`.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -241,7 +245,7 @@ def radar(
             save(c, "docs/src/examples/out_radar.svg")
         ```
     """
-    var plot = Plot().mark_radar().encode_radar(
+    var plot = Plot().mark_radar(fill_alpha=fill_alpha, grid_rings=grid_rings).encode_radar(
         indicators=indicators,
         max_values=max_values,
         series_names=series_names,
@@ -257,6 +261,8 @@ def radar[
     max_values: List[Float64],
     series_names: List[String],
     series_values: List[List[Scalar[dtype]]],
+    fill_alpha: UInt8 = 90,
+    grid_rings: Int = 4,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -273,7 +279,7 @@ def radar[
     list axis instead. Delegates to the concrete `radar()` above.
     """
     return radar(
-        indicators, max_values, series_names, _materialize_nested_scalar_list(series_values), theme=theme,
+        indicators, max_values, series_names, _materialize_nested_scalar_list(series_values), fill_alpha=fill_alpha, grid_rings=grid_rings, theme=theme,
         width=width, height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
     )
 
@@ -285,6 +291,8 @@ def radar[
     max_values: List[Scalar[dtype]],
     series_names: List[String],
     series_values: List[List[Float64]],
+    fill_alpha: UInt8 = 90,
+    grid_rings: Int = 4,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -300,6 +308,6 @@ def radar[
     Delegates to the concrete `radar()` above.
     """
     return radar(
-        indicators, _materialize_scalar_list(max_values), series_names, series_values, theme=theme,
+        indicators, _materialize_scalar_list(max_values), series_names, series_values, fill_alpha=fill_alpha, grid_rings=grid_rings, theme=theme,
         width=width, height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
     )

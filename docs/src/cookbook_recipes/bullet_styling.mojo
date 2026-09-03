@@ -5,7 +5,6 @@ thicken the measure bar drawn over it for better contrast.
 from dataviz import bullet
 from dataviz.plot import save
 from dataviz.colors import ALICEBLUE, STEELBLUE
-from dataviz.theme import Theme
 
 def main() raises:
     var categories: List[String] = ["Revenue", "Profit Margin"]
@@ -18,7 +17,9 @@ def main() raises:
         measures,
         targets,
         ranges,
-        theme=Theme(bullet_range_color_light=ALICEBLUE, bullet_range_color_dark=STEELBLUE, bullet_measure_width_fraction=0.55),
+        range_color_light=ALICEBLUE,
+        range_color_dark=STEELBLUE,
+        measure_width_fraction=0.55,
         title="KPI Progress",
     )
     save(plot, "docs/src/examples/out_bullet_styling.svg")
