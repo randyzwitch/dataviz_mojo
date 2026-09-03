@@ -11,13 +11,9 @@ from dataviz.theme import Theme
 
 
 struct _GaugeData(Movable):
-    """
-    Mark.GAUGE only -- a single value plus its dial range, plus the
-    optional custom breakpoint bands (empty means "use ECharts' 20%/80%/100% default", the same empty-list-is-a-sentinel convention
-    `encode()`'s `color`/`size` channels already use). See
-    encode_gauge()'s docstring.
-
-    Grouped onto `Plot._gauge` -- see `Plot`'s docstring.
+    """A single value plus its dial range and optional custom breakpoint
+    bands (empty means ECharts' 20%/80%/100% default), for `Mark.GAUGE`.
+    See `encode_gauge()`. Stored on `Plot._gauge`.
     """
 
     var value: Float64
@@ -35,53 +31,39 @@ struct _GaugeData(Movable):
 
 
 def _gauge_breakpoints() -> List[Float64]:
-    """ECharts' default breakpoints (a gauge's value range split
-    into low/mid/high bands at 20%/80%/100%) -- the fallback `_render_
-    gauge` draws when `Plot.encode_gauge()`'s `breakpoints` is left
-    at its default empty list (see that method's docstring for the
-    "empty means use this default" sentinel convention, and the render-
-    time validation once a caller *does* supply their own). A plain
-    function, not a `Theme` field -- the same `List`-breaks-
-    `ImplicitlyCopyable` reasoning `default_categorical_palette()`
-    gives for keeping a fixed default list out of `Theme` itself."""
+    """ECharts' default breakpoints (low/mid/high bands at 20%/80%/100%),
+    used when `Plot.encode_gauge()`'s `breakpoints` is left empty. A plain
+    function rather than a `Theme` field for the `ImplicitlyCopyable`
+    reason in `default_categorical_palette()`'s docstring.
+    """
     return [0.2, 0.8, 1.0]
 
 
 def _gauge_band_colors() -> List[Color]:
-    """The three breakpoint bands' colors -- green/blue/red,
-    ECharts' default, drawn whenever `Plot.encode_gauge()`'s `band_colors` is left at its default empty list. See `_gauge_
-    breakpoints()`'s docstring for why this is a plain function,
-    not a `Theme` field."""
+    """The three default bands' colors (green/blue/red, ECharts' default),
+    used when `Plot.encode_gauge()`'s `band_colors` is left empty.
+    """
     return [Color(46, 139, 87), Color(30, 144, 255), Color(220, 20, 60)]
 
 
 def _render_gauge[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.GAUGE` plot: `encode_gauge()`'s single
-    `value` (clamped to `[min_value, max_value]` before drawing -- a
-    real, visible "pinned at the end of the dial" reading for an out-
-    of-range value, not an error the way most other value validation
-    in this package is; a gauge's whole point is a live reading that
-    can legitimately go out of its expected range) as a needle
-    (`draw_line_aa`, `theme.mark_color`) over `breakpoints`/`band_
-    colors`' colored ring-sector bands (`fill_ring_sector_aa`, the
-    same primitive `Mark.ARC`'s donut mode uses -- falling back to
-    `_gauge_breakpoints()`/`_gauge_band_colors()`'s fixed 20%/80%/
-    100% green/blue/red default when `encode_gauge()`'s `breakpoints`/
-    `band_colors` were left empty, see that method's docstring),
-    plus a small pivot circle at the center and the value itself as a
-    centered text label below it.
+    """Render a `Mark.GAUGE` plot: `encode_gauge()`'s single `value`, clamped
+    to `[min_value, max_value]` (an out-of-range value pins visibly at the
+    end of the dial rather than raising), as a needle (`draw_line_aa`,
+    `theme.mark_color`) over `breakpoints`/`band_colors`' colored
+    ring-sector bands (`fill_ring_sector_aa`), falling back to
+    `_gauge_breakpoints()`/`_gauge_band_colors()` when either was left
+    empty. Plus a pivot circle at the center and the value as a centered
+    text label below it. Dial geometry comes from `plot._mark_style`'s
+    `gauge_start_angle`/`gauge_sweep_angle`/`gauge_band_inner_fraction`/
+    `gauge_needle_fraction`.
 
-    `min_value` must be strictly less than `max_value` (checked at
-    render() time) -- a zero-or-negative span has no dial to sweep.
-    A non-default `breakpoints`/`band_colors` pair must be the same
-    length, non-empty, strictly ascending, and stay within `(0, 1]` --
-    each entry is a fraction of the full dial sweep, so anything
-    outside that range (or a non-ascending order, which would draw a
-    band backwards) has no dial position to mean. No axis frame, no
-    legend -- a gauge has exactly one value and no categories to key
-    either by.
+    `min_value` must be strictly less than `max_value`. `breakpoints`/
+    `band_colors` must be the same length, non-empty, strictly ascending,
+    and within `(0, 1]` (each is a fraction of the full sweep). No axis
+    frame, no legend.
     """
     var theme = plot._theme
     if plot._gauge.min_value >= plot._gauge.max_value:
@@ -177,12 +159,13 @@ def gauge(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A gauge chart -- `Mark.GAUGE`, a single `value` (clamped to
-    `[min_value, max_value]`) shown as a needle over a 270-degree
-    color-banded dial (green/blue/red at the default 20%/80%/100%
-    breakpoints, or `breakpoints`/`band_colors`' custom bands --
-    see `Plot.encode_gauge()`'s docstring for the sentinel-empty-
-    means-default convention and validation). See `_render_gauge`'s docstring for the full reasoning.
+    """A gauge chart.
+
+    `Mark.GAUGE`: a single `value` (clamped to `[min_value, max_value]`)
+    shown as a needle over a 270-degree color-banded dial (green/blue/red
+    at the default 20%/80%/100% breakpoints, or `breakpoints`/
+    `band_colors`' custom bands; see `Plot.encode_gauge()`). See
+    `_render_gauge`.
 
     Args:
         value: The reading to show, clamped (not rejected) to

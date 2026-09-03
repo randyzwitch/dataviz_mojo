@@ -22,43 +22,25 @@ from dataviz.violin import _KDE_SAMPLES, _kde_bandwidth, _kde_density
 def _render_ridgeline[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.RIDGELINE` plot: the exact same per-category
-    kernel-density estimate `Mark.VIOLIN` computes (`_kde_bandwidth`/
-    `_kde_density`, reused unchanged from violin.mojo), but drawn as
-    one row per category on a *horizontal* categorical frame instead
-    of a vertical one -- `_draw_horizontal_categorical_axis_frame`
-    (`Mark.GANTT`'s core: categories along `y`, top to bottom; a
-    continuous `x` for the value domain along the bottom), each
-    category's curve rising *upward* from its row's bottom
-    edge (the baseline) instead of `Mark.VIOLIN`'s left-right-symmetric
-    silhouette. Called with `padding=0.0`, *not* that function's 0.2
-    default: a ridgeline plot needs rows to sit edge-to-edge (any
-    nonzero gap leaves a sliver of background between rows, only
-    inconsistently covered by `plot._mark_style.ridgeline_overlap`'s rise, which
-    reads as a spurious notch).
+    """Render a `Mark.RIDGELINE` plot: the same per-category kernel-density
+    estimate `Mark.VIOLIN` computes (`_kde_bandwidth`/`_kde_density`/
+    `_KDE_SAMPLES`, from violin.mojo), drawn as one row per category on
+    `_draw_horizontal_categorical_axis_frame` (categories along `y`, top
+    to bottom; continuous `x` along the bottom), each curve rising upward
+    from its row's bottom edge. The frame is built with `padding=0.0` so
+    rows sit edge-to-edge; any gap would show as a notch between rows.
 
-    Each row's curve may rise up to `plot._mark_style.ridgeline_overlap` times the
-    row's height above its baseline -- deliberately more than
-    one row tall, so a tall category's peak overlaps into the row
-    above it. Categories are drawn top to bottom, in `x_categories`' given order (not reordered by value the way `Mark.FUNNEL`
-    sorts) -- since a later (lower) row is drawn *after* an earlier
-    (higher) one, a lower row's curve is what's on top wherever
-    two overlap, the same "later in the list, closer to the viewer"
-    reading real ridgeline/joyplot charts conventionally use.
+    Each row's curve may rise up to `plot._mark_style.ridgeline_overlap`
+    times the row height, so a tall peak overlaps into the row above. Rows
+    are drawn top to bottom in `x_categories`' order, so where two
+    overlap, the lower row is on top.
 
-    Each category's density is still independently scaled to its peak (not a shared cross-category maximum) -- the same
-    `scale = "width"`-style reasoning `Mark.VIOLIN`'s docstring
-    gives, applied to height instead of width here. `mark_ridgeline()`'s `scale_by_count=True` switches to `scale = "area"` the same way
-    `mark_violin()`'s does -- see that method's docstring.
-
-    Reuses `Mark.VIOLIN`'s `_kde_bandwidth`/`_kde_density` and
-    `_KDE_SAMPLES` sample count completely unchanged -- only the axis
-    orientation and the curve's baseline/direction differ.
-
-    `mark_ridgeline()`'s `bandwidth`, when given (checked positive
-    at render() time), replaces every category's Silverman's-rule
-    `_kde_bandwidth(values)` with one shared value instead -- the same
-    override `Mark.VIOLIN` shares, see `mark_violin()`'s docstring.
+    Each category's density is scaled to its own peak (ggplot2's
+    `scale = "width"`), or by `sqrt(n_i / max(n))` on top of that when
+    `mark_ridgeline(scale_by_count=True)` (`scale = "area"`), the same as
+    `mark_violin()`. `mark_ridgeline()`'s `bandwidth`, when positive,
+    replaces every category's Silverman's-rule `_kde_bandwidth(values)`
+    with one shared value.
     """
     var theme = plot._theme
     if len(plot.x_categories) == 0:
@@ -90,13 +72,10 @@ def _render_ridgeline[
     for i in range(len(plot.x_categories)):
         var values = plot._distribution.values[i].copy()
         var baseline_y = frame.y_scale.band_start(i) + row_height
-        # The bottom-most row's baseline lands exactly on the drawn
-        # bottom axis line (padding=0.0 above tiles every row edge to
-        # edge, and this is the last one) -- pulled 1px up so a tall
-        # enough curve's flat closing edge doesn't paint over the
-        # line's own antialiasing, the same `_pull_off_axis_line`
-        # reasoning (plot.mojo) applied to this fill's flat lower
-        # boundary instead of a rect edge.
+        # The bottom-most row's baseline lands exactly on the drawn bottom axis
+        # line (padding=0.0 tiles rows edge to edge). Pulled 1px up so the
+        # curve's flat closing edge doesn't paint over the line's antialiasing,
+        # the same `_pull_off_axis_line` reasoning (plot.mojo).
         if _round_to_int(baseline_y) == frame.py1:
             baseline_y -= 1.0
         var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
@@ -144,14 +123,14 @@ def ridgeline(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A ridgeline plot -- `Mark.RIDGELINE`, one overlapping density-
-    estimate row per category, top to bottom (`bandwidth`, left at its
-    default `0.0`, overrides every category's Silverman's-rule
-    bandwidth with one shared value; `scale_by_count`, left at its
-    default `False`, switches from ggplot2's `scale = "width"` to
-    `scale = "area"` -- see `Plot.mark_violin()`'s docstring for
-    both). See `Plot.encode_distribution()`'s docstring (plot.mojo)
-    for the exact shape (the same one `beeswarm()`/`violin()` take).
+    """A ridgeline plot.
+
+    `Mark.RIDGELINE`: one overlapping density-estimate row per category,
+    top to bottom. `bandwidth` (when positive) overrides every category's
+    Silverman's-rule bandwidth with one shared value; `scale_by_count=True`
+    switches from ggplot2's `scale = "width"` to `scale = "area"` (see
+    `Plot.mark_violin()`). See `Plot.encode_distribution()` (plot.mojo)
+    for the data shape, shared with `beeswarm()`/`violin()`.
 
     Args:
         categories: One overlapping density row per entry, top to
@@ -223,9 +202,9 @@ def ridgeline[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`ridgeline()`, generalized over numeric element type for
-    `values` -- see `beeswarm()`'s own `DType`-generic overload for
-    the full reasoning. Delegates to the concrete `ridgeline()` above.
+    """`ridgeline()` generalized over numeric element type for `values`; see
+    `beeswarm()`'s `DType` overload. Delegates to the concrete overload
+    above.
     """
     return ridgeline(
         categories, _materialize_nested_scalar_list(values), bandwidth=bandwidth,

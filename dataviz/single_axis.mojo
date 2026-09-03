@@ -21,11 +21,10 @@ from dataviz.theme import Theme
 
 
 struct _SingleAxisFrame(Movable):
-    """`_draw_single_axis_frame`'s finished layout -- one continuous
-    `x_scale` and nothing else: `Mark.SINGLE_AXIS` is the only mark
-    with exactly *one* axis drawn (not two, not zero -- `Mark.ARC`/
-    `CHORD` draw none, every other mark here draws two). See that
-    function's docstring for what this computes."""
+    """`_draw_single_axis_frame`'s finished layout: one continuous `x_scale`
+    and no y-axis. `Mark.SINGLE_AXIS` is the only mark that draws exactly
+    one axis.
+    """
 
     var x_scale: LinearScale
     var sc: _Scaled
@@ -69,14 +68,12 @@ def _draw_single_axis_frame[
     ox1: Int,
     oy1: Int,
 ) raises -> _SingleAxisFrame:
-    """`Mark.SINGLE_AXIS`'s frame: one continuous `x_scale` along
-    the bottom (ticks, gridlines, labels -- the exact same x half
-    `_draw_continuous_axis_frame` already draws), no y-axis at all --
-    the whole point of this mark is showing a distribution along one
-    dimension, not a second one. `_render_single_axis` places every
-    point at a fixed pixel row in between (see its docstring for
-    how), not on this frame's bottom axis line, so points never
-    visually merge with tick marks.
+    """`Mark.SINGLE_AXIS`'s frame: one continuous `x_scale` along the bottom
+    (ticks, gridlines, labels, the same x half
+    `_draw_continuous_axis_frame` draws) and no y-axis.
+    `_render_single_axis` places every point at a fixed pixel row between
+    the top and bottom of this frame, not on the axis line, so points
+    never merge with tick marks.
     """
     var sc = _Scaled(theme)
 
@@ -121,17 +118,16 @@ def _draw_single_axis_frame[
 def _render_single_axis[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.SINGLE_AXIS` plot: every point from `encode_
-    single_axis()`'s `x` at a fixed pixel row (the plot area's vertical center, `(py0 + py1) / 2`), on `_draw_single_axis_frame`'s
-    one-axis frame. Reuses `Mark.POINT`'s `_draw_point_layer`
-    (color/size channels, categorical/continuous legends, all of it)
-    completely unchanged, via one trick: a degenerate `y_scale` whose
-    `range_min == range_max == point_y` -- `LinearScale.to_pixel`'s formula (`range_min + (value - domain_min) * scale()`) collapses to
-    a constant `range_min` whenever the range span is zero, regardless
-    of `value`, so every point lands on the same row no matter what
-    `plot.y_data[i]` actually holds. `encode_single_axis()` fills
-    `y_data` with one placeholder `0.0` per row purely so this loop's `range(len(plot.x_data))` has a same-length list to index --
-    never read as a real value.
+    """Render a `Mark.SINGLE_AXIS` plot: every point from
+    `encode_single_axis()`'s `x` at the plot area's vertical center,
+    `(py0 + py1) / 2`, on `_draw_single_axis_frame`'s one-axis frame.
+    Reuses `Mark.POINT`'s `_draw_point_layer` (color/size channels,
+    legends) unchanged through a degenerate `y_scale` whose
+    `range_min == range_max == point_y`: `LinearScale.to_pixel` collapses
+    to a constant `range_min` when the range span is zero, so every point
+    lands on the same row regardless of `plot.y_data[i]`.
+    `encode_single_axis()` fills `y_data` with one placeholder `0.0` per
+    row so the loop has a same-length list to index.
     """
     _validate_continuous_encoding(plot, "Plot.encode_single_axis()")
 
@@ -168,11 +164,12 @@ def single_axis(
     subtitle: String = "",
     x_title: String = "",
 ) raises -> Plot:
-    """A single-axis chart -- `Mark.SINGLE_AXIS`, every value in `x`
-    plotted along one horizontal axis (no y-axis at all), useful for
-    seeing the distribution/clustering of one-dimensional data. See
-    `Plot.encode_single_axis()`'s docstring (plot.mojo) for the
-    optional `color`/`color_categories`/`size` channels.
+    """A single-axis chart.
+
+    `Mark.SINGLE_AXIS`: every value in `x` plotted along one horizontal
+    axis with no y-axis, for seeing the distribution of one-dimensional
+    data. See `Plot.encode_single_axis()` (plot.mojo) for the optional
+    `color`/`color_categories`/`size` channels.
 
     Args:
         x: The continuous column, one entry per point, plotted along
@@ -234,12 +231,11 @@ def single_axis[
     subtitle: String = "",
     x_title: String = "",
 ) raises -> Plot:
-    """`single_axis()`, generalized over numeric element type for
-    `x` -- see `scatter()`'s own `DType`-generic overload (plot.mojo)
-    for the full reasoning. `color`/`color_categories`/`size` stay
-    concrete here, the same restriction `Plot.encode()`'s own array-
-    like overloads already have. Delegates to the concrete
-    `single_axis()` above.
+    """`single_axis()` generalized over numeric element type for `x`; see
+    `scatter()`'s `DType` overload (plot.mojo).
+    `color`/`color_categories`/`size` stay concrete, as in
+    `Plot.encode()`'s array-like overloads. Delegates to the concrete
+    overload above.
     """
     return single_axis(
         _materialize_scalar_list(x), color=color, color_categories=color_categories, size=size,

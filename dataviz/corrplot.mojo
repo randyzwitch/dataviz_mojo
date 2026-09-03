@@ -22,11 +22,9 @@ from dataviz.theme import Theme
 
 
 struct _CorrplotData(Movable):
-    """
-    Mark.CORRPLOT only -- a square correlation matrix over a shared
-    variable list, plus display options. See encode_corrplot()'s docstring.
-
-    Grouped onto `Plot._corrplot` -- see `Plot`'s docstring.
+    """A square correlation matrix over a shared variable list, plus display
+    options, for `Mark.CORRPLOT`. See `encode_corrplot()`. Stored on
+    `Plot._corrplot`.
     """
 
     var variables: List[String]
@@ -47,37 +45,21 @@ def _render_corrplot[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.CORRPLOT` plot: `encode_corrplot()`'s square
-    correlation `matrix` over `variables`, one bubble per surviving
-    cell on `Mark.HEATMAP`'s `_draw_grid_axis_frame` -- the same
-    variable list on *both* axes (a correlation matrix is always
-    square), unlike `HEATMAP`'s two independent category domains.
-    Bubble radius scales linearly with `abs(matrix[row][col])`
-    (`plot._mark_style.corrplot_bubble_fraction` of the cell's smaller dimension at
-    exactly +-1.0), bubble color through the same continuous
-    `ColorScale` vocabulary `HEATMAP` uses, but spanning the fixed
-    `[-1.0, 1.0]` correlation domain (not the data's [min, max] --
-    a correlation matrix's domain is always exactly that range by
-    definition, so there's nothing to derive from the data the way
-    `HEATMAP`'s value domain has to be).
+    correlation `matrix` over `variables`, one bubble per surviving cell
+    on `Mark.HEATMAP`'s `_draw_grid_axis_frame` with the same variable
+    list on both axes. Bubble radius scales linearly with
+    `abs(matrix[row][col])` (`plot._mark_style.corrplot_bubble_fraction`
+    of the cell's smaller dimension at +-1.0); bubble color comes from a
+    `ColorScale` over the fixed `[-1.0, 1.0]` domain rather than the
+    data's range.
 
-    `Plot.mark_corrplot(layout=...)` keeps only the cells a given
-    `layout` calls for: `"full"` (every cell, the default), `"lower"`
-    (row index >= col index, into `variables`' given order), or
-    `"upper"` (row index <= col index) -- the same lower/upper-
-    triangle convention ECharts.jl's `corrplot()` uses, since a
-    correlation matrix is symmetric and showing both triangles is
-    often pure redundancy. `diag=False` additionally drops every
-    row-equals-col cell (always 1.0 for a real correlation matrix,
-    rarely informative). `labels=True` (the default) draws each
-    surviving cell's value, formatted to two decimal places,
-    centered inside its bubble.
+    `Plot.mark_corrplot(layout=...)` keeps only the cells `layout` calls
+    for: `"full"` (every cell, the default), `"lower"` (row index >= col
+    index), or `"upper"` (row index <= col index). `diag=False` drops
+    every row-equals-col cell. `labels=True` (the default) draws each
+    surviving cell's value to two decimal places, centered in its bubble.
 
-    Every value must be in `[-1.0, 1.0]` -- checked at render() time,
-    the same "raise, don't silently misrepresent" stance every other
-    value-validated mark here takes; a real correlation coefficient is
-    mathematically bounded to that range by definition, so anything
-    outside it means the caller handed this something that isn't
-    actually a correlation matrix.
+    Every value must be in `[-1.0, 1.0]`, checked at render() time.
     """
     if len(plot._corrplot.matrix) != len(plot._corrplot.variables):
         raise Error(
@@ -185,11 +167,12 @@ def corrplot(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A correlation plot -- `Mark.CORRPLOT`, one bubble per cell of a
-    square correlation `matrix` over `variables`, sized and colored by
-    `abs`/sign of each pairwise correlation. `layout` ("full" (the
-    default), "lower", or "upper") and `diag` (default True) match
-    ECharts.jl's `corrplot()` keyword names. See `_render_corrplot`'s docstring for the full reasoning.
+    """A correlation plot.
+
+    `Mark.CORRPLOT`: one bubble per cell of a square correlation `matrix`
+    over `variables`, sized by `abs` and colored by sign of each pairwise
+    correlation. `layout` (`"full"`, `"lower"`, `"upper"`) and `diag`
+    match ECharts.jl's `corrplot()` keyword names. See `_render_corrplot`.
 
     Args:
         variables: One row and one column per entry -- `matrix` must
@@ -258,11 +241,10 @@ def corrplot[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`corrplot()`, generalized over numeric element type for
-    `matrix` -- the nested-list counterpart to `scatter()`'s own
-    `DType`-generic overload (plot.mojo), using `_materialize_nested_
-    scalar_list` (array_like.mojo). Delegates to the concrete
-    `corrplot()` above.
+    """`corrplot()` generalized over numeric element type for `matrix`, via
+    `_materialize_nested_scalar_list` (array_like.mojo); see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
+    above.
     """
     return corrplot(
         variables, _materialize_nested_scalar_list(matrix), layout=layout, diag=diag, labels=labels,

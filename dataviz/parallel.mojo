@@ -19,12 +19,9 @@ from dataviz.theme import Theme
 
 
 struct _ParallelData(Movable):
-    """
-    Mark.PARALLEL only -- one named axis per dimension, one named row
-    per observation, one value per (row, dimension) pair. See
-    encode_parallel()'s docstring.
-
-    Grouped onto `Plot._parallel` -- see `Plot`'s docstring.
+    """One named axis per dimension, one named row per observation, and one
+    value per (row, dimension) pair, for `Mark.PARALLEL`. See
+    `encode_parallel()`. Stored on `Plot._parallel`.
     """
 
     var dims: List[String]
@@ -39,21 +36,20 @@ struct _ParallelData(Movable):
 
 
 def _axis_x(plot_x0: Int, plot_x1: Int, n: Int, d: Int) -> Float64:
-    """The pixel x of dimension `d`'s vertical axis -- `n` axes
-    evenly spaced with the first pinned to `plot_x0` and the last to
-    `plot_x1` (a single-axis plot, `n == 1`, is a degenerate case with
-    no "spacing" to speak of, so it just centers)."""
+    """The pixel x of dimension `d`'s vertical axis: `n` axes evenly spaced
+    with the first at `plot_x0` and the last at `plot_x1`. A single axis
+    centers.
+    """
     if n == 1:
         return Float64(plot_x0 + plot_x1) / 2.0
     return Float64(plot_x0) + Float64(d) * Float64(plot_x1 - plot_x0) / Float64(n - 1)
 
 
 def _value_y(plot_y0: Int, plot_y1: Int, dim_min: Float64, dim_max: Float64, value: Float64) -> Float64:
-    """`value`'s pixel y along one dimension's axis -- top
-    (`plot_y0`) is that dimension's max, bottom (`plot_y1`) its min, the same "more/bigger is up" convention every y-axis in
-    this package already uses. A zero-span dimension (every row
-    identical on this one) places `value` at the axis's vertical
-    center rather than dividing by zero."""
+    """`value`'s pixel y along one dimension's axis: top (`plot_y0`) is the
+    dimension's max, bottom (`plot_y1`) its min. A zero-span dimension
+    places `value` at the vertical center rather than dividing by zero.
+    """
     var span = dim_max - dim_min
     var frac = 0.5
     if span != 0.0:
@@ -64,30 +60,18 @@ def _value_y(plot_y0: Int, plot_y1: Int, dim_min: Float64, dim_max: Float64, val
 def _render_parallel[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.PARALLEL` plot: `encode_parallel()`'s `dims`
-    (one vertical axis each, evenly spaced left to right -- the first
-    axis at the plot's left edge, the last at its right edge,
-    matching every real parallel-coordinates chart's layout, not
-    `Mark.RADAR`'s "spokes radiate from a shared center" arrangement)
-    and one row per `row_names` entry (`data[row]`, one value per
-    dimension), each drawn as a straight polyline connecting its per-dimension positions left to right.
+    """Render a `Mark.PARALLEL` plot: `encode_parallel()`'s `dims` (one
+    vertical axis each, evenly spaced from the plot's left edge to its
+    right edge) and one row per `row_names` entry (`data[row]`, one value
+    per dimension), each drawn as a straight polyline across the axes.
 
-    Each dimension gets its *own* independent domain (`_min_max` over
-    that column across every row -- unpadded, the same choice
-    `_data_extent` makes for continuous color/size domains), unlike
-    `Mark.RADAR`'s caller-supplied `max_values`:
-    ECharts.jl's `parallel()` has no per-dimension max parameter
-    either, and different dimensions here are typically wildly
-    differently scaled (horsepower vs. price vs. 0-60 time, the
-    chart type's classic use), so auto-scaling each axis to its column is the only sensible default. A zero-span column (every
-    row has the identical value on that dimension) places every row at
-    that axis's vertical center rather than dividing by zero.
+    Each dimension gets its own domain, `_min_max` over that column across
+    every row (unpadded), since dimensions are typically differently
+    scaled. A zero-span column places every row at that axis's vertical
+    center.
 
-    No axis tick labels beyond each dimension's name at the
-    bottom -- the same simplification `Mark.POLAR`'s `_draw_polar_grid`
-    makes for numeric axis readout. Legend keyed by `row_names` (always drawn, even for one
-    row -- the same "`Theme.show_legend` is the only real toggle"
-    convention every other legend-bearing mark here follows).
+    No axis tick labels beyond each dimension's name at the bottom. Legend
+    keyed by `row_names`, drawn whenever `Theme.show_legend` is on.
     """
     if len(plot._parallel.dims) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
@@ -108,10 +92,7 @@ def _render_parallel[
 
     var n = len(plot._parallel.dims)
 
-    # Each dimension's [min, max] across every row -- one _min_max
-    # per column, not per row (the whole point of a parallel-
-    # coordinates axis is comparing every row *on that one dimension's
-    # own scale*).
+    # Each dimension's [min, max] across every row: one _min_max per column.
     var dim_min = List[Float64]()
     var dim_max = List[Float64]()
     for d in range(n):
@@ -167,15 +148,14 @@ def parallel(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A parallel-coordinates chart -- `Mark.PARALLEL`, one row per
-    `row_names` entry (`data[row]`, one value per `dims` entry) drawn
-    as a polyline across evenly spaced vertical axes, each
-    independently scaled to its column's `[min, max]`.
-    `row_names` is required, unlike ECharts.jl's `parallel(data,
-    dims)` (which auto-numbers rows) -- every other named-series
-    `encode_*` in this package takes its names explicitly rather
-    than generating them, and this stays consistent with that. See
-    `_render_parallel`'s docstring for the full reasoning.
+    """A parallel-coordinates chart.
+
+    `Mark.PARALLEL`: one row per `row_names` entry (`data[row]`, one value
+    per `dims` entry) drawn as a polyline across evenly spaced vertical
+    axes, each independently scaled to its column's `[min, max]`.
+    `row_names` is required, unlike ECharts.jl's `parallel(data, dims)`,
+    matching every other named-series `encode_*` here. See
+    `_render_parallel`.
 
     Args:
         data: `data[row]` is `row_names[row]`'s polyline, one value
@@ -233,11 +213,10 @@ def parallel[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`parallel()`, generalized over numeric element type for
-    `data` -- the nested-list counterpart to `scatter()`'s own
-    `DType`-generic overload (plot.mojo), using `_materialize_nested_
-    scalar_list` (array_like.mojo). Delegates to the concrete
-    `parallel()` above.
+    """`parallel()` generalized over numeric element type for `data`, via
+    `_materialize_nested_scalar_list` (array_like.mojo); see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
+    above.
     """
     return parallel(
         _materialize_nested_scalar_list(data), dims, row_names, theme=theme, width=width, height=height,

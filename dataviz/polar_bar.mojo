@@ -24,24 +24,17 @@ from dataviz.theme import Theme
 def _render_polar_bar[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.POLAR_BAR` plot: "bars radiate outward from the
-    centre of a circle" (ECharts.jl's `polarbar` docs) -- one bar
-    per category (`encode_categorical`'s `x`), each its equal-width
-    angular slot (`2*pi/N`, `Mark.NIGHTINGALE`'s convention), bar
-    length (radius) proportional to `value / max(values)` (always
-    linear -- unlike `NIGHTINGALE`, there's no `rose_type="area"`
-    equivalent here; ECharts' polarbar has no such mode). The one
-    real difference from `NIGHTINGALE`'s wedges: `theme.polar_
-    bar_padding` carves a gap out of each bar's angular slot (split
-    evenly on both sides), so bars read as separated columns -- the
-    same "separated bands vs. edge-to-edge cells" distinction `Mark.
-    HEATMAP`'s docstring already draws against `Mark.BAR`, applied
-    here to `NIGHTINGALE`'s edge-to-edge sectors instead.
+    """Render a `Mark.POLAR_BAR` plot: bars radiating outward from the
+    center of a circle (ECharts.jl's `polarbar`). One bar per category
+    (`encode_categorical`'s `x`) in an equal-width angular slot
+    (`2*pi/N`), bar length proportional to `value / max(values)`, always
+    linear (no `NIGHTINGALE`-style area mode).
+    `plot._mark_style.polar_bar_padding` carves a gap out of each slot,
+    split evenly on both sides, so bars read as separated columns.
 
-    Shares `NIGHTINGALE`'s identical validation (non-negative values,
-    at least one positive), palette, legend, and margin-box layout,
-    but needs its own render path: the padding changes the actual
-    angle math, not just which primitive draws the result.
+    Shares `NIGHTINGALE`'s validation (non-negative values, at least one
+    positive), palette, legend, and margin-box layout, but has its own
+    render path because the padding changes the angle math.
     """
     _validate_categorical_encoding(plot)
 
@@ -99,13 +92,13 @@ def polarbar(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A circular column chart -- `Mark.POLAR_BAR` over a categorical
-    `x` and continuous `y` (the same shape `bar()`/`pie()` take; every
-    value must be non-negative, and at least one positive). Bars
-    radiate outward from the chart's center, one equal-width
-    angular slot per category, length proportional to `value /
-    max(values)` -- see `_render_polar_bar`'s docstring for how
-    this differs from `nightingale()`'s edge-to-edge wedges.
+    """A circular column chart.
+
+    `Mark.POLAR_BAR` over a categorical `x` and continuous `y` (the same
+    shape `bar()`/`pie()` take; values must be non-negative, with at least
+    one positive). Bars radiate from the center, one equal-width angular
+    slot per category, length proportional to `value / max(values)`. See
+    `_render_polar_bar` for how this differs from `nightingale()`.
 
     Args:
         categories: One equal-width angular slot per entry, in the
@@ -161,9 +154,9 @@ def polarbar[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`polarbar()`, generalized over numeric element type -- see
-    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
-    full reasoning. Delegates to the concrete `polarbar()` above.
+    """`polarbar()` generalized over numeric element type; see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
+    above.
     """
     return polarbar(
         categories, _materialize_scalar_list(values), padding=padding, theme=theme, width=width, height=height,

@@ -15,11 +15,13 @@ def effect_scatter(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A scatter plot with a halo drawn under each point -- `Mark.
-    EFFECT_SCATTER` over continuous `x`/`y`, the static equivalent of
-    ECharts' animated-ripple effect scatter. `Mark.POINT`'s `encode()` unchanged (`color`/`color_categories`/`size` channels
-    included) -- use `Plot().mark_effect_scatter(tooltips=tooltips).encode(...)`
-    directly for those, the same relationship `scatter()`'s minimal signature has to `Mark.POINT`'s full one.
+    """A scatter plot with a halo drawn under each point.
+
+    `Mark.EFFECT_SCATTER` over continuous `x`/`y`, the static equivalent
+    of ECharts' effect scatter. Accepts the same `encode()` channels as
+    `Mark.POINT` (`color`/`color_categories`/`size`); use
+    `Plot().mark_effect_scatter(tooltips=tooltips).encode(...)` directly
+    for those.
 
     Args:
         x: The continuous x column, one entry per point.
@@ -74,10 +76,9 @@ def effect_scatter[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`effect_scatter()`, generalized over numeric element type --
-    see `scatter()`'s own `DType`-generic overload (plot.mojo) for
-    the full reasoning. Delegates to the concrete `effect_scatter()`
-    above.
+    """`effect_scatter()` generalized over numeric element type; see
+    `scatter()`'s `DType` overload (plot.mojo). Delegates to the concrete
+    overload above.
     """
     return effect_scatter(
         _materialize_scalar_list(x), _materialize_scalar_list(y), tooltips=tooltips, theme=theme, width=width,

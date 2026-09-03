@@ -22,12 +22,9 @@ from dataviz.theme import Theme
 
 
 struct _RadarData(Movable):
-    """
-    Mark.RADAR only -- one named indicator (axis) per entry, each with
-    its max, plus one or more named series each with a value per
-    indicator. See encode_radar()'s docstring.
-
-    Grouped onto `Plot._radar` -- see `Plot`'s docstring.
+    """One named indicator (axis) per entry with its max, plus one or more
+    named series each with a value per indicator, for `Mark.RADAR`. See
+    `encode_radar()`. Stored on `Plot._radar`.
     """
 
     var indicators: List[String]
@@ -45,19 +42,13 @@ struct _RadarData(Movable):
 def _draw_radar_grid[
     T: DrawTarget
 ](mut target: T, cx: Float64, cy: Float64, max_radius: Float64, n: Int, theme: Theme, grid_rings: Int) raises:
-    """The radar coordinate system: `n` straight spokes from the
-    center out to `max_radius` (one per indicator axis, `_polar_point`
-    at each axis's angle), plus `plot._mark_style.radar_grid_rings` concentric
-    "web" rings -- each ring a straight-edged `n`-sided polygon
-    connecting every spoke's tip at that ring's radius fraction,
-    *not* a circle the way `polar.mojo`'s `_draw_polar_grid` rings
-    are. This is deliberate, not a missed reuse opportunity: a radar
-    chart's axes are discrete (one per named indicator, not a
-    continuous angle), so there's no meaningful position *between*
-    two spokes for a circular ring to pass through that isn't already
-    implied by straight-line interpolation between them -- the
-    standard "polygon grid" reading every radar chart (ECharts
-    included, its default `shape: 'polygon'`) uses.
+    """The radar coordinate system: `n` spokes from the center out to
+    `max_radius` (one per indicator, via `_polar_point`), plus
+    `grid_rings` concentric web rings, each a straight-edged `n`-sided
+    polygon connecting every spoke at that ring's radius fraction.
+    Polygons rather than circles (as in `polar.mojo`'s `_draw_polar_grid`)
+    because a radar's axes are discrete; this matches ECharts' default
+    `shape: 'polygon'`.
     """
     for i in range(n):
         var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
@@ -81,37 +72,22 @@ def _draw_radar_grid[
 def _render_radar[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.RADAR` plot: `encode_radar()`'s named
-    `indicators` (one spoke each, evenly spaced, starting at 12
-    o'clock and sweeping clockwise -- the same convention every other
-    polar mark in this package shares), each with its own
-    `max_values`, and one or more `series` (name + one value per
-    indicator) drawn as a closed polygon each: a straight `line_to`
-    from one indicator's point to the next, back to the first, no
-    smoothing -- the same "the shape *is* the data" stance `Mark.POLAR`
-    takes for its polyline.
+    """Render a `Mark.RADAR` plot: `encode_radar()`'s `indicators` (one
+    spoke each, evenly spaced, starting at 12 o'clock and sweeping
+    clockwise), each with its own `max_values`, and one or more series
+    (name + one value per indicator) drawn as a closed polygon each with
+    straight `line_to` segments.
 
-    Each indicator's value is *not* clamped to `[0, max_values[i]]`
-    -- a value past its axis's max draws past the outer ring,
-    visibly (not silently) flagging a caller's max as too low,
-    rather than hiding the overshoot. Each axis has its independent max (unlike `Mark.POLAR`'s single shared radius
-    domain) -- a real radar chart's whole point is comparing
-    differently-scaled dimensions (e.g. "Attack" out of 100, "Crit
-    Chance" out of 1.0) on one shared-looking grid.
+    Values are not clamped to `[0, max_values[i]]`: a value past its axis
+    max draws past the outer ring. Each axis has an independent max
+    (unlike `Mark.POLAR`'s single shared radius domain), so differently
+    scaled dimensions share one grid.
 
-    Each series polygon is filled (`_lighten`'d palette color, the
-    same halo-tint helper `Mark.EFFECT_SCATTER` already uses, so
-    overlapping series stay legible) and stroked (the full, unlightened
-    palette color) -- unlike every other filled-and-stroked shape in
-    this package, both drawn from the identical path, since there's no
-    Theme flag to skip the fill: a radar chart with several series and
-    no fill at all is unreadable overlapping-outline soup, so this
-    isn't optional the way, say, `Mark.AREA`'s stroke is.
-
-    Legend keyed by `series_names` (only relevant with 2+ series --
-    still drawn for one, the same "always draw it, `Theme.show_legend`
-    is the only real toggle" convention every other legend-bearing
-    mark here follows).
+    Each series polygon is filled with the `_lighten`'d palette color
+    (`theme.radar_fill_alpha`) and stroked with the full palette color,
+    both from the same path; there is no flag to skip the fill, since
+    overlapping unfilled outlines are unreadable. Legend keyed by
+    `series_names`, drawn whenever `Theme.show_legend` is on.
     """
     if len(plot._radar.indicators) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
@@ -154,10 +130,9 @@ def _render_radar[
         target.fill_path_aa(poly, _lighten(color, theme.radar_fill_alpha))
         target.stroke_path_aa(poly, color, sc.line_width)
 
-    # Axis labels, placed just outside each spoke's tip -- aligned
-    # by which side of center the tip falls on (LEFT for the right
-    # half, RIGHT for the left half, CENTER for the top/bottom-most
-    # spokes) so a label never reads as overlapping its spoke.
+    # Axis labels just outside each spoke's tip, aligned by which side of
+    # center the tip falls on (LEFT for the right half, RIGHT for the left
+    # half, CENTER for top/bottom).
     for i in range(n):
         var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
         var tip = _polar_point(cx, cy, angle, max_radius + Float64(sc.label_gap))
@@ -201,8 +176,12 @@ def radar(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A radar/spider chart -- `Mark.RADAR` over `Plot.encode_radar()`'s shape: `indicators` (one spoke per name, each its `max_values`), and one polygon per series (`series_names` + a
-    value per indicator, `series_values`). See `_render_radar`'s docstring for the full reasoning.
+    """A radar/spider chart.
+
+    `Mark.RADAR` over `Plot.encode_radar()`'s shape: `indicators` (one
+    spoke per name, each with its `max_values` entry) and one polygon per
+    series (`series_names` + a value per indicator in `series_values`).
+    See `_render_radar`.
 
     Args:
         indicators: One spoke per entry, in the given order.
@@ -268,12 +247,11 @@ def radar[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`radar()`, generalized over numeric element type for
-    `series_values` -- the nested-list counterpart to `scatter()`'s
-    own `DType`-generic overload (plot.mojo), using `_materialize_
-    nested_scalar_list` (array_like.mojo). `max_values` stays
-    concrete here -- see the overload right below for its own flat-
-    list axis instead. Delegates to the concrete `radar()` above.
+    """`radar()` generalized over numeric element type for `series_values`,
+    via `_materialize_nested_scalar_list` (array_like.mojo); see
+    `scatter()`'s `DType` overload (plot.mojo). `max_values` stays
+    concrete here (the overload below covers it). Delegates to the
+    concrete overload above.
     """
     return radar(
         indicators, max_values, series_names, _materialize_nested_scalar_list(series_values), grid_rings=grid_rings, theme=theme,
@@ -297,11 +275,9 @@ def radar[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`radar()`, generalized over numeric element type for
-    `max_values` -- the flat-list counterpart to `scatter()`'s own
-    `DType`-generic overload (plot.mojo), using `_materialize_scalar_
-    list` (array_like.mojo). `series_values` stays concrete here.
-    Delegates to the concrete `radar()` above.
+    """`radar()` generalized over numeric element type for `max_values`, via
+    `_materialize_scalar_list`. `series_values` stays concrete here.
+    Delegates to the concrete overload above.
     """
     return radar(
         indicators, _materialize_scalar_list(max_values), series_names, series_values, grid_rings=grid_rings, theme=theme,

@@ -24,22 +24,12 @@ comptime _KDE_SAMPLES = 30
 
 
 def _kde_bandwidth(values: List[Float64]) -> Float64:
-    """Silverman's rule of thumb, the standard default kernel-density-
-    estimate bandwidth: `0.9 * std * n^(-1/5)` -- the plain std-only
-    version, not the fuller IQR-adjusted variant real stats packages
-    default to (`0.9 * min(std, IQR/1.34) * n^(-1/5)`, more robust to
-    outliers but needs a second, percentile-based computation on top of
-    this one). A deliberate simplification, not an oversight: the
-    plain version is exactly as easy to get wrong and much easier to
-    hand-verify (mean/variance only, no percentile-interpolation
-    formula alongside it) -- revisit if a real skewed-distribution case
-    ever needs the more robust one.
-
-    Falls back to a fixed `1.0` when `std` comes out `<= 0.0` (a single
-    value, or every value identical) -- the formula would otherwise
-    collapse the whole kernel to a single infinitely-narrow spike
-    (equivalent to dividing by zero in `_kde_density`'s formula),
-    not a meaningful "no spread" answer to draw.
+    """Silverman's rule of thumb for kernel-density bandwidth,
+    `0.9 * std * n^(-1/5)`: the std-only version, not the IQR-adjusted
+    variant (`0.9 * min(std, IQR/1.34) * n^(-1/5)`), which is more robust
+    to outliers but needs a percentile computation on top. Falls back to
+    `1.0` when `std <= 0.0` (a single value, or all identical), where the
+    formula would collapse the kernel to a spike.
     """
     var n = len(values)
     var mean = 0.0
@@ -57,10 +47,9 @@ def _kde_bandwidth(values: List[Float64]) -> Float64:
 
 
 def _kde_density(values: List[Float64], bandwidth: Float64, y: Float64) -> Float64:
-    """The Gaussian-kernel density estimate at `y`: the average, over
-    every one of `values`' points, of a standard normal curve
-    centered on that point and scaled by `bandwidth` -- the textbook
-    KDE formula, `(1 / (n*h)) * sum(gaussian((y - v_i) / h))`.
+    """The Gaussian-kernel density estimate at `y`:
+    `(1 / (n*h)) * sum(gaussian((y - v_i) / h))` over every point in
+    `values`.
     """
     var n = len(values)
     var sum_density = 0.0
@@ -79,26 +68,23 @@ def _draw_violin_silhouettes[
     value_scale: LinearScale,
     orient: _Orientation,
 ) raises:
-    """Every category's KDE silhouette, written once for both
-    orientations -- `_Orientation.path_move_to`/`path_line_to` carry
-    the only difference (which of the pair is x and which is y).
+    """Every category's KDE silhouette, written once for both orientations;
+    `_Orientation.path_move_to`/`path_line_to` carry the only difference
+    (which coordinate is x and which is y).
 
     Each silhouette is one closed `Path`: `_KDE_SAMPLES` points up one
     side at `center + density * scale`, then the same samples back down
-    the other at `center - density * scale`, so it is symmetric about
-    the band's center by construction.
+    the other at `center - density * scale`, symmetric about the band's
+    center.
 
-    Each violin is scaled *independently* -- its own peak density maps
-    to `mark_violin(width_fraction=...)` of its band, matching ggplot2's
-    default `scale = "width"` (every violin the same maximum width
-    regardless of sample count) rather than `scale = "area"`.
-    `scale_by_count=True` multiplies that maximum by
-    `sqrt(n_i / max(n))` instead, so a category built from fewer points
-    draws visibly narrower.
+    Each violin is scaled independently: its own peak density maps to
+    `mark_violin(width_fraction=...)` of its band (ggplot2's
+    `scale = "width"`). `scale_by_count=True` multiplies that maximum by
+    `sqrt(n_i / max(n))` (`scale = "area"`).
 
     An all-identical category (`span == 0`) samples the same value
-    `_KDE_SAMPLES` times, and a zero `max_density` collapses `scale` to
-    `0.0` -- a degenerate silhouette with no width rather than a NaN.
+    `_KDE_SAMPLES` times; a zero `max_density` collapses `scale` to `0.0`
+    rather than producing NaN.
     """
     var theme = plot._theme
     var max_n = 0
@@ -132,9 +118,8 @@ def _draw_violin_silhouettes[
             max_density = max(max_density, d)
 
         if theme.svg_tooltips:
-            # A silhouette encodes a distribution, not a value, so the
-            # useful hover text is what shaped it: how many points went
-            # in, and over what range.
+            # A silhouette encodes a distribution, not a value, so the hover text
+            # is what shaped it: how many points and over what range.
             target.begin_annotated_group(
                 plot.x_categories[i]
                 + ": n="
@@ -174,38 +159,17 @@ def _render_violin[
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.VIOLIN` plot: `encode_distribution()`'s raw
     per-category values (the same data `Mark.BEESWARM` takes), each
-    category drawn as a symmetric density-estimate silhouette instead
-    of individual jittered points -- a smoothed, continuous view of the
-    same distribution `Mark.BOX`'s five-number summary and `Mark.
-    BEESWARM`'s raw points each show a different, coarser or more
-    literal way.
+    category drawn as a symmetric density-estimate silhouette.
 
     Each violin is sampled at `_KDE_SAMPLES` evenly spaced points across
-    its category's `[min(values), max(values)]` -- not the full
-    shared y-axis domain -- so the visible shape spans exactly the
-    observed data range, the same convention most from-scratch violin
-    implementations use (a KDE's tails technically extend forever,
-    but drawing them out to the shared axis's padding would just be
-    a long, visually meaningless near-zero-width sliver).
+    its category's own `[min(values), max(values)]`, not the shared axis
+    domain, so the shape spans exactly the observed range. Width scaling
+    and the `bandwidth`/`scale_by_count` overrides are described in
+    `_draw_violin_silhouettes`. `bandwidth` must be positive when given.
 
-    Each violin's width is scaled *independently* -- its peak
-    density maps to `plot._mark_style.violin_width_fraction` of its category's band
-    width, not a shared cross-category maximum -- matching ggplot2's default `scale = "width"` behavior (every violin the same
-    maximum width, regardless of how many points went into it) rather
-    than `scale = "area"` (equal area, proportional peak width). The
-    default; `mark_violin()`'s `scale_by_count=True` switches to
-    the `scale = "area"` behavior instead, multiplying each category's maximum width by `sqrt(n_i / max(n))` -- see that method's docstring for why.
-
-    Reuses `_draw_categorical_axis_frame` (the same vertical-
-    categorical-x/continuous-y core `Mark.BAR`/`BOX`/`BEESWARM` share),
-    with `_data_extent` over every value across every category for the
-    shared axis domain, the same choice `Mark.BOX`/`BEESWARM` make for
-    this data shape.
-
-    `mark_violin()`'s `bandwidth`, when given (checked positive at
-    render() time), replaces every category's Silverman's-rule
-    `_kde_bandwidth(values)` with one shared value instead -- see that
-    method's docstring for why.
+    Reuses `_draw_categorical_axis_frame` with `_data_extent` over every
+    value across every category, the same domain choice `Mark.BOX`/
+    `BEESWARM` make.
     """
     var theme = plot._theme
     if len(plot.x_categories) == 0:
@@ -234,22 +198,14 @@ def _render_violin[
 def _render_horizontal_violin[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """`_render_violin`'s mirror image for `Plot.mark_violin(
-    horizontal=True)` (#121) -- exactly `_render_horizontal_bar`'s own
-    categorical y-axis / continuous x-axis (`_draw_horizontal_
-    categorical_axis_frame`, gantt.mojo, shared -- see that function's
-    docstring), each category's silhouette sampled across the
-    continuous `x_scale` and bulging *vertically* (up/down) around its
-    own row's center instead of horizontally (left/right) around its
-    own column's center -- otherwise the identical per-category KDE
-    computation `_render_violin`'s own docstring explains (`_kde_
-    bandwidth`/`_kde_density`, `mark_violin()`'s `bandwidth`/`scale_
-    by_count` overrides, each violin's own `[min(values), max(values)]`
-    sampling range), none of which depends on which axis is which.
-
-    Deliberately its own function, not an orientation flag threaded
-    through `_render_violin` -- see `_render_horizontal_bar`'s own
-    docstring (bar.mojo) for the full reasoning, identical here.
+    """`_render_violin`'s mirror image for
+    `Plot.mark_violin(horizontal=True)` (#121): `_render_horizontal_bar`'s
+    categorical y-axis / continuous x-axis
+    (`_draw_horizontal_categorical_axis_frame`, gantt.mojo), each
+    silhouette sampled along `x_scale` and bulging vertically around its
+    row's center. The KDE computation is identical. Its own function
+    rather than an orientation flag, for the reasons in
+    `_render_horizontal_bar`'s docstring (bar.mojo).
     """
     var theme = plot._theme
     if len(plot.x_categories) == 0:
@@ -292,14 +248,14 @@ def violin(
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """A violin plot -- `Mark.VIOLIN`, a symmetric kernel-density-
-    estimate silhouette per category (`bandwidth`, left at its default
-    `0.0`, overrides every category's Silverman's-rule bandwidth
-    with one shared value; `scale_by_count`, left at its default
-    `False`, switches from ggplot2's `scale = "width"` to `scale =
-    "area"` -- see `Plot.mark_violin()`'s docstring for both). See
-    `Plot.encode_distribution()`'s docstring (plot.mojo) for the
-    exact shape (the same one `beeswarm()`/`ridgeline()` take).
+    """A violin plot.
+
+    `Mark.VIOLIN`: a symmetric kernel-density-estimate silhouette per
+    category. `bandwidth` (when positive) overrides every category's
+    Silverman's-rule bandwidth with one shared value; `scale_by_count=True`
+    switches from ggplot2's `scale = "width"` to `scale = "area"` (see
+    `Plot.mark_violin()`). See `Plot.encode_distribution()` (plot.mojo)
+    for the data shape, shared with `beeswarm()`/`ridgeline()`.
 
     Args:
         categories: One silhouette per entry, in the given order.
@@ -377,9 +333,9 @@ def violin[
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """`violin()`, generalized over numeric element type for
-    `values` -- see `beeswarm()`'s own `DType`-generic overload for
-    the full reasoning. Delegates to the concrete `violin()` above.
+    """`violin()` generalized over numeric element type for `values`; see
+    `beeswarm()`'s `DType` overload. Delegates to the concrete overload
+    above.
     """
     return violin(
         categories, _materialize_nested_scalar_list(values), bandwidth=bandwidth,

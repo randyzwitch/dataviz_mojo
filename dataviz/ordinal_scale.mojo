@@ -1,17 +1,12 @@
-"""OrdinalScale -- maps a fixed-order list of discrete categories onto
-evenly spaced pixel bands, the standard "band scale" every bar-chart-
-style categorical axis needs (matches d3's `scaleBand` in spirit: one
-`padding` fraction, applied as an equal gap on both sides of every
-band, not separate inner/outer padding knobs).
+"""OrdinalScale maps a fixed-order list of discrete categories onto
+evenly spaced pixel bands, the band scale every bar-chart-style
+categorical axis uses (like d3's `scaleBand`, with a single `padding`
+fraction applied as an equal gap on both sides of every band).
 
-Purely index-based (`band_start(i)`/`center(i)`, not `band_start
-(category_string)`) -- a bar chart's data already gives each row's
-category and its position in that same row, so there's never a need
-to search the domain by string equality to answer "where does this
-category go." `Plot`'s `x_categories` list *is* this scale's
-domain, index for index; a caller wanting repeated categories
-(grouped/stacked bars) uses a different encoding (`Plot.encode_
-grouped_bar()`), not this one.
+Index-based (`band_start(i)`/`center(i)`), never looked up by category
+string: `Plot.x_categories` is this scale's domain, index for index.
+Repeated categories (grouped/stacked bars) go through
+`Plot.encode_grouped_bar()` instead.
 """
 
 
@@ -51,10 +46,8 @@ struct OrdinalScale(Movable):
         self.padding = padding
 
     def step(self) -> Float64:
-        """The pixel width of one category's full slot, band plus its
-        padding -- 0.0 for an empty domain rather than dividing by
-        zero (an empty categorical axis is a real, if unusual, input:
-        a bar chart with no data at all).
+        """The pixel width of one category's full slot, band plus padding; 0.0
+        for an empty domain.
 
         Returns:
             The pixel width of one full slot.
@@ -64,8 +57,8 @@ struct OrdinalScale(Movable):
         return (self.range_max - self.range_min) / Float64(len(self.domain))
 
     def bandwidth(self) -> Float64:
-        """The pixel width of the band itself (a bar's width),
-        `step()` minus the padding taken off both sides.
+        """The pixel width of the band itself (a bar's width): `step()` minus the
+        padding on both sides.
 
         Returns:
             The pixel width of the band itself.
@@ -73,10 +66,8 @@ struct OrdinalScale(Movable):
         return self.step() * (1.0 - self.padding)
 
     def band_start(self, index: Int) -> Float64:
-        """The left pixel edge of the band at `index` -- half the
-        step's padding in from that index's slot start, so the
-        padding is split evenly between a band and each of its
-        neighbors.
+        """The left pixel edge of the band at `index`: half the slot's padding in
+        from the slot start.
 
         Args:
             index: The category's position in `domain`.

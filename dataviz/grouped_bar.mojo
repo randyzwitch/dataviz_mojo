@@ -28,19 +28,12 @@ from dataviz.theme import Theme
 
 
 def _validate_grouped_bar_series(plot: Plot) raises:
-    """`Plot.encode_grouped_bar()`'s deferred length checks --
+    """`Plot.encode_grouped_bar()`'s deferred length checks:
     `series_names`/`values` the same length, and every `values[j]` the
-    same length as `categories` (see that method's docstring in
-    plot.mojo for why they're deferred to render() time rather than
-    raised there).
-
-    Lives here, next to `Mark.GROUPED_BAR`'s rendering, and is
-    imported by stacked_bar.mojo rather than duplicated into it: both
-    marks are drawn from the exact same `encode_grouped_bar()` data
-    (only the drawing differs -- see `_render_stacked_bar`'s docstring), so they necessarily have the identical thing to
-    check. `Mark.STACKED_BAR` already depends on `Mark.GROUPED_BAR`
-    conceptually for its whole data shape; a real import keeps the two
-    from drifting apart.
+    same length as `categories` (deferred to render() time; see that
+    method). Lives here next to `Mark.GROUPED_BAR`'s rendering and is
+    imported by stacked_bar.mojo, bump.mojo, and streamgraph.mojo, which
+    draw from the same data.
     """
     if len(plot._grouped_bar.series_names) != len(plot._grouped_bar.values):
         raise Error(
@@ -66,14 +59,10 @@ def _validate_grouped_bar_series(plot: Plot) raises:
 
 
 def _series_legend_reserve(plot: Plot, sc: _Scaled) raises -> Int:
-    """How much width the series-name legend `Mark.GROUPED_BAR`/
-    `STACKED_BAR` both draw needs, or `0` when `Theme.show_legend` is
-    off -- shared here for the same reason `_validate_grouped_bar_
-    series` is (see that function's docstring). Subtracted from the
-    *outer* `ox1` before
-    `_draw_categorical_axis_frame` is called, the same "shrink the rect
-    from outside, don't thread a flag through the shared core" pattern
-    `_apply_labels` established (see `_render_grouped_bar`'s docstring).
+    """The width the series-name legend needs, or `0` when
+    `Theme.show_legend` is off. Subtracted from the outer `ox1` before the
+    axis frame is built, the same shrink-the-rect-from-outside pattern
+    `_apply_labels` uses.
     """
     if not plot._theme.show_legend:
         return 0
@@ -92,19 +81,12 @@ def _draw_series_legend[
     legend_y: Int,
     theme: Theme,
 ) raises:
-    """The one `_draw_legend` call `Mark.GROUPED_BAR`/`STACKED_BAR` both
-    make, in both orientations (4 call sites total -- grouped_bar.mojo's
-    own `_render_grouped_bar`/`_render_horizontal_grouped_bar`, plus
-    stacked_bar.mojo's `_render_stacked_bar`/`_render_horizontal_
-    stacked_bar` importing this) -- shared here for the same reason
-    `_series_legend_reserve` above is (see its own docstring).
-
-    `legend_range_max + sc.margin_right` is always the x position (the
-    frame's own continuous scale's `range_max`, whichever axis carries
-    it, passed in already-rounded by the caller); only `legend_y`
-    differs between orientations -- a vertical frame's own `y_scale.
-    range_max` vs a horizontal frame's own `py0` -- see `_render_
-    horizontal_grouped_bar`'s docstring for why.
+    """The one `_draw_legend` call `Mark.GROUPED_BAR`/`STACKED_BAR` make in
+    both orientations. `legend_range_max + sc.margin_right` is the x
+    position (the frame's continuous scale's `range_max`, already rounded
+    by the caller); `legend_y` is the vertical frame's
+    `y_scale.range_max` or the horizontal frame's `py0`, both the plot's
+    top pixel.
     """
     _draw_legend(
         target,
@@ -129,22 +111,20 @@ def _draw_grouped_bars[
     palette: List[Color],
     mut text_requests: List[_TextRequest],
 ) raises:
-    """Every sub-bar of every category, written once for both
-    orientations -- `_Orientation` carries the only two differences
-    (which way a rect is emitted, where its label sits).
+    """Every sub-bar of every category, written once for both orientations;
+    `_Orientation` carries the two differences (which way a rect is
+    emitted, where its label sits).
 
-    Each category's band is divided into `n_series` equal sub-bands,
-    and each sub-band's two edges are rounded to pixels *independently*
-    (`band_start + j * sub` and `band_start + (j+1) * sub`) rather than
-    rounding a width once and stepping it. Doing it the other way
-    leaves a visible 1px seam or overlap between neighbouring sub-bars
-    wherever the unrounded width lands mid-pixel: rounding both edges
-    from the same unrounded origin makes sub-bar `j`'s far edge and
-    `j+1`'s near edge the identical integer by construction.
+    Each category's band is divided into `n_series` equal sub-bands, and
+    each sub-band's two edges are rounded to pixels independently from
+    the same unrounded origin (`band_start + j * sub` and
+    `band_start + (j+1) * sub`) rather than rounding a width once and
+    stepping it, so sub-bar `j`'s far edge and `j+1`'s near edge are the
+    identical integer with no seam or overlap.
 
-    `band_scale`/`value_scale` come from whichever frame the caller
-    built, and `baseline_edge` is that frame's own axis line (`py1`
-    vertically, `px0` horizontally).
+    `band_scale`/`value_scale` come from the caller's frame, and
+    `baseline_edge` is that frame's axis line (`py1` vertically, `px0`
+    horizontally).
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
@@ -190,41 +170,20 @@ def _draw_grouped_bars[
 def _render_grouped_bar[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.GROUPED_BAR` plot: `_render_bar`'s categorical
-    x-axis / zero-baseline y-axis (`_draw_categorical_axis_frame`,
-    shared -- see its docstring), but each category's band is
-    subdivided into `len(series_names)` equal-width sub-bars, one per
-    series, side by side, instead of one bar spanning the whole band.
-    `default_categorical_palette()` colors each series (cycled `j %
-    len(palette)`, the same convention `Mark.POINT`'s categorical
-    color encoding and `Mark.ARC`'s wedge coloring already use) --
-    unlike `Mark.BAR`'s `Theme.color_by_sign`, there's no sign here
-    to color by; the whole point of a *grouped* bar chart is telling
-    series apart by color, not telling positive from negative.
+    """Render a `Mark.GROUPED_BAR` plot: `_render_bar`'s categorical x-axis /
+    zero-baseline y-axis (`_draw_categorical_axis_frame`), with each
+    category's band subdivided into `len(series_names)` equal-width
+    sub-bars, one per series, colored by `default_categorical_palette()`
+    (`j % len(palette)`). No sign coloring: series are told apart by
+    color.
 
-    Sub-bar boundaries round each *boundary* pixel once (`len(
-    series_names) + 1` boundary points, not `len(series_names)`
-    independently-rounded widths) and take consecutive boundaries as a
-    sub-bar's left/right edges, guaranteeing adjacent sub-bars share an
-    exact pixel edge (no 1px gap, no 1px overlap) -- the standard
-    fencepost-safe way to subdivide a span into rounded pixel segments;
-    independently rounding each sub-bar's width instead can accumulate
-    exactly that kind of off-by-one drift across a whole band.
+    The series-name legend is reserved via `Theme.show_legend` by
+    subtracting its width from the outer `ox1` passed to
+    `_draw_categorical_axis_frame`, the same pattern `_apply_labels` uses
+    for title/axis-title margins.
 
-    The one other new thing no other categorical-x-axis mark needs: a
-    legend (series name -> color), reserved via the same `Theme.
-    show_legend` flag and `sc.legend_width` column `Mark.POINT`'s categorical color legend uses (see `_render_generic`'s `show_
-    legend`/`legend_reserve` logic) -- but subtracted from the *outer*
-    `ox1` passed into `_draw_categorical_axis_frame` rather than
-    threaded through that shared function as a new parameter -- the
-    same "shrink the rect from outside, don't touch the shared core"
-    pattern `_apply_labels` uses for `Plot.labels()`'s title/axis-title
-    margins.
-
-    `Theme.show_data_labels` draws each sub-bar's own value above (or
-    below, for a negative value) it, centered on that sub-bar's own
-    narrower width -- see `Theme.show_data_labels`'s own docstring and
-    `_render_bar`'s identical placement logic for `Mark.BAR`.
+    `Theme.show_data_labels` draws each sub-bar's value above (or below,
+    for a negative value) it, centered on the sub-bar's width.
     """
     _validate_grouped_bar_series(plot)
 
@@ -270,35 +229,20 @@ def _render_grouped_bar[
 def _render_horizontal_grouped_bar[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """`_render_grouped_bar`'s mirror image for `Plot.mark_grouped_bar(
-    horizontal=True)` (#121) -- exactly `_render_horizontal_bar`'s own
-    categorical y-axis / zero-baseline x-axis (`_draw_horizontal_
-    categorical_axis_frame`, gantt.mojo, shared -- see that function's
-    docstring), but each category's row is subdivided into `len(
-    series_names)` equal-*height* sub-bars stacked within it instead of
-    equal-*width* sub-bars side by side -- every role `_render_grouped_
-    bar` gives `x_scale`/`band_start`/sub-bar width belongs to `y_
-    scale`/`band_start`/sub-bar height here instead, and vice versa,
-    otherwise the exact same logic (including the "round each boundary
-    once" fencepost-safe subdivision that function's own docstring
-    explains).
+    """`_render_grouped_bar`'s mirror image for
+    `Plot.mark_grouped_bar(horizontal=True)` (#121):
+    `_render_horizontal_bar`'s categorical y-axis / zero-baseline x-axis
+    (`_draw_horizontal_categorical_axis_frame`, gantt.mojo), with each
+    category's row subdivided into equal-height sub-bars stacked within
+    it. Its own function rather than an orientation flag, for the reasons
+    in `_render_horizontal_bar`'s docstring (bar.mojo).
 
-    Deliberately its own function, not an orientation flag threaded
-    through `_render_grouped_bar` -- see `_render_horizontal_bar`'s own
-    docstring (bar.mojo) for the full reasoning, identical here.
-
-    The series-name legend still reserves space from the outer `ox1`
-    exactly like `_render_grouped_bar`'s own `_series_legend_reserve`
-    call -- `frame.x_scale.range_max` lands at that same reduced
-    boundary regardless of orientation, since `x_scale` is always the
-    frame's continuous scale, just carried by a different axis here.
-    Positioned at the frame's own top-left corner (`frame.px1 +
-    margin_right`, `frame.py0`) rather than `_render_grouped_bar`'s
-    `frame.y_scale.range_max` -- the vertical frame's `y_scale` is
-    itself the continuous scale there, so its own `range_max` (the
-    plot's top pixel) is a shortcut for the same corner; here `y_scale`
-    is categorical, so `frame.py0` (the frame's own top pixel, carried
-    unchanged either way) reaches that corner directly instead.
+    The legend still reserves space from the outer `ox1`;
+    `frame.x_scale.range_max` lands at that reduced boundary in both
+    orientations. It is positioned at the frame's top-left corner
+    (`frame.px1 + margin_right`, `frame.py0`); the vertical version uses
+    `frame.y_scale.range_max` for the same corner because there `y_scale`
+    is the continuous scale.
     """
     _validate_grouped_bar_series(plot)
 
@@ -354,10 +298,11 @@ def grouped_bar(
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """A grouped bar chart -- `Mark.GROUPED_BAR`, several bars side
-    by side per category, one per series (`values[j]` is series
-    `series_names[j]`'s value per category). See `Plot.
-    encode_grouped_bar()`'s docstring (plot.mojo) for the exact
+    """A grouped bar chart.
+
+    `Mark.GROUPED_BAR`: several bars side by side per category, one per
+    series (`values[j]` is series `series_names[j]`'s value per
+    category). See `Plot.encode_grouped_bar()` (plot.mojo) for the data
     shape.
 
     Args:
@@ -429,11 +374,10 @@ def grouped_bar[
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """`grouped_bar()`, generalized over numeric element type for
-    `values` (`List[List[Int]]`, `List[List[Float32]]`, ...) -- the
-    nested-list counterpart to `scatter()`'s own `DType`-generic
-    overload (plot.mojo), using `_materialize_nested_scalar_list`
-    (array_like.mojo). Delegates to the concrete `grouped_bar()`
+    """`grouped_bar()` generalized over numeric element type for `values`
+    (`List[List[Int]]`, `List[List[Float32]]`, ...), via
+    `_materialize_nested_scalar_list` (array_like.mojo); see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
     above.
     """
     return grouped_bar(

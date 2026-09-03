@@ -23,38 +23,23 @@ from dataviz.theme import Theme
 def _render_arc_diagram[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.ARC_DIAGRAM` plot: reuses `Mark.CHORD`'s
-    edge-list shape (`encode_chord()`'s `from`/`to`/`value`, one row
-    per flow) unchanged, drawn as a simpler network layout instead:
-    every distinct node on one straight line, evenly spaced, edges
-    drawn as semicircular arcs bulging upward above it. This is
-    ECharts.jl's "Arc Diagram," a node-link diagram -- *not* this
-    package's `Mark.ARC` (pie/donut wedges), a different chart type
-    that happens to share a name.
+    """Render a `Mark.ARC_DIAGRAM` plot: `Mark.CHORD`'s edge list
+    (`encode_chord()`'s `from`/`to`/`value`) drawn as nodes on one
+    straight, evenly spaced line with edges as semicircular arcs bulging
+    upward. ECharts.jl's "Arc Diagram", unrelated to this package's
+    `Mark.ARC` (pie/donut wedges).
 
-    Each node's x is `index / (n - 1)` of the way across the plot
-    (a single node centers). Each edge's arc has its center at the
-    horizontal midpoint between its two nodes, on the shared baseline
-    (`plot_y1`, the bottom of the inner plot rect), radius half the
-    distance between them -- so nodes far apart get tall arcs, nodes
-    close together get shallow ones, the defining arc-diagram look.
-    Not scaled down to fit any particular height: the true geometry
-    is shown as it is, so a caller with far-apart nodes sees exactly
-    why (and can choose a wider `width`/taller `height` accordingly)
-    rather than a chart quietly compressing relative distance.
+    Each node's x is `index / (n - 1)` of the way across the plot (a
+    single node centers). Each arc is centered at the horizontal midpoint
+    between its two nodes on the baseline (`plot_y1`), with radius half
+    the distance between them, so far-apart nodes get tall arcs. Arcs are
+    not scaled down to fit the plot height.
 
-    Edge stroke width scales linearly with `value / max(values)`
-    (thinnest at the theme's `line_width`, up to 3x that at the
-    maximum). Edge and node marker color both follow the edge's
-    `from` node's palette color (`default_categorical_palette()`,
-    indexed by first-seen node position). A self-loop
-    (`from[i] == to[i]`) draws nothing (a zero-diameter arc has no
-    shape) rather than raising.
-
-    Every node's name is labeled directly beneath its marker; unlike
-    `Mark.CHORD`, which relies on a legend instead, an arc diagram's
-    nodes sit in one open row with room for direct labels, so no
-    legend is drawn here.
+    Edge stroke width scales linearly with `value / max(values)`, from
+    `line_width` up to 3x that. Edge and node color follow the edge's
+    `from` node's palette color (`default_categorical_palette()` by
+    first-seen node position). A self-loop draws nothing. Node names are
+    labeled beneath each marker; no legend is drawn.
     """
     _validate_edge_encoding(plot, "Mark.ARC_DIAGRAM")
 
@@ -129,11 +114,11 @@ def arc_diagram(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """An arc diagram -- `Mark.ARC_DIAGRAM`, `Mark.CHORD`'s edge
-    list (`Plot.encode_chord()`'s `from_categories`/`to_categories`/
-    `values`) drawn as nodes on one line connected by semicircular
-    arcs instead of a circular ribbon diagram. See `_render_arc_
-    diagram`'s docstring for the full reasoning.
+    """An arc diagram.
+
+    `Mark.ARC_DIAGRAM`: `Mark.CHORD`'s edge list (`Plot.encode_chord()`)
+    drawn as nodes on one line connected by semicircular arcs. See
+    `_render_arc_diagram`.
 
     Args:
         from_categories: Each edge's source node, one entry per row.

@@ -24,34 +24,23 @@ from dataviz.theme import Theme
 def _render_nightingale[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.NIGHTINGALE` plot (a rose/coxcomb chart): one
-    wedge per category (`encode_categorical`'s `x`), every wedge the
-    *same* angular width (`2*pi / N`) -- unlike `Mark.ARC`'s value-proportional angle, a nightingale wedge's magnitude is
-    always encoded by its radius instead, so categories stay easy to
-    compare by eye (equal angular slots) while their values still read
-    as a real visual magnitude, not just an angle.
+    """Render a `Mark.NIGHTINGALE` plot (a rose/coxcomb chart): one wedge per
+    category (`encode_categorical`'s `x`), every wedge the same angular
+    width (`2*pi / N`), with each value encoded by the wedge's radius
+    rather than its angle.
 
-    `Plot.mark_nightingale(area=True)`'s `plot._nightingale_area`
-    switches which of ECharts' two `rose_type` modes each wedge's radius uses, both scaled against the *largest* value in the data
-    (not the total the way `Mark.ARC`'s angle is -- there's no
-    "share of a whole" reading here, a nightingale answers "how big is
-    each category," not "what fraction of the total is each category"):
-    `"radius"` (the default) scales radius linearly by `value / max`;
-    `"area"` scales by `sqrt(value / max)` instead, so a wedge's *area* -- not just its radius -- is proportional to its value.
-    Plain radius scaling alone visually exaggerates large values (a
-    circle's area grows with the *square* of its radius), which
-    `"area"` mode corrects for at the cost of compressing small values
-    together near the center.
+    `plot._nightingale_area` (`Plot.mark_nightingale(area=True)`) picks
+    between ECharts' two `rose_type` modes, both scaled against the
+    largest value: `"radius"` (the default) sets radius to `value / max`;
+    `"area"` uses `sqrt(value / max)` so wedge area, not radius, is
+    proportional to value. Radius scaling visually exaggerates large
+    values since area grows with the square of radius; area scaling
+    corrects that at the cost of compressing small values near the center.
 
-    Reuses `Mark.ARC`'s start-at-12-o'clock, sweep-clockwise wedge
-    convention (see `_render_arc`'s docstring for why that's
-    clockwise here) and its identical non-negative/at-least-one-
-    positive value validation, `default_categorical_palette()` for
-    wedge colors by category index, and the same margin-box/legend
-    layout `_render_arc` uses. No axis frame at all -- a circle has
-    no x/y axes. The per-wedge angle/radius formula genuinely differs
-    from `_render_arc`'s, so this is its own render path rather than
-    a branch inside that one.
+    Reuses `Mark.ARC`'s start-at-12-o'clock clockwise sweep, its
+    non-negative/at-least-one-positive validation,
+    `default_categorical_palette()` by category index, and the same
+    margin-box/legend layout. No axis frame.
     """
     _validate_categorical_encoding(plot)
 
@@ -108,11 +97,13 @@ def nightingale(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A rose/coxcomb chart -- `Mark.NIGHTINGALE` over a categorical
-    `x` and continuous `y` (the same shape `pie()`/`bar()` take; every
-    value must be non-negative, and at least one positive). Pass
-    `area=True` for ECharts' `rose_type="area"` mode instead of the
-    default `"radius"` mode -- see `_render_nightingale`'s docstring for what each mode means.
+    """A rose/coxcomb chart.
+
+    `Mark.NIGHTINGALE` over a categorical `x` and continuous `y` (the same
+    shape `pie()`/`bar()` take; values must be non-negative, with at least
+    one positive). Pass `area=True` for ECharts' `rose_type="area"` mode
+    instead of the default `"radius"` mode; see `_render_nightingale` for
+    what each means.
 
     Args:
         categories: One wedge per entry, in the given order.
@@ -165,9 +156,9 @@ def nightingale[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`nightingale()`, generalized over numeric element type -- see
-    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
-    full reasoning. Delegates to the concrete `nightingale()` above.
+    """`nightingale()` generalized over numeric element type; see
+    `scatter()`'s `DType` overload (plot.mojo). Delegates to the concrete
+    overload above.
     """
     return nightingale(
         categories, _materialize_scalar_list(values), area=area, theme=theme, width=width,

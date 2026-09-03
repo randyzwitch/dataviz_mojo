@@ -19,11 +19,9 @@ from dataviz.theme import Theme
 
 
 struct _PyramidData(Movable):
-    """
-    Mark.POPULATION_PYRAMID only -- one magnitude per side per category,
-    plus each side's legend name. See encode_population_pyramid()'s docstring.
-
-    Grouped onto `Plot._pyramid` -- see `Plot`'s docstring.
+    """One magnitude per side per category, plus each side's legend name,
+    for `Mark.POPULATION_PYRAMID`. See `encode_population_pyramid()`.
+    Stored on `Plot._pyramid`.
     """
 
     var left: List[Float64]
@@ -40,17 +38,13 @@ struct _PyramidData(Movable):
 
 
 def _symmetric_zero_baseline_x_extent(left: List[Float64], right: List[Float64]) raises -> LinearScale:
-    """The x-domain for `Mark.POPULATION_PYRAMID`: always `[-bound,
-    bound]`, `bound` the largest magnitude across *both* sides (plus a
-    5% pad, the same padding fraction `_data_extent`/`_zero_baseline_y_
-    extent` use elsewhere) -- unlike `_zero_baseline_y_extent`'s
-    independent low/high padding, this is forced symmetric on purpose:
-    a pyramid's whole point is comparing left vs. right at a glance, so
-    both sides have to share one scale, or a longer bar could just mean
-    "this side's axis happens to be stretched less," not "this
-    category is actually bigger." Every value is read as a magnitude
-    (`max(v, -v)`) regardless of sign -- see `encode_population_
-    pyramid()`'s docstring for why."""
+    """The x-domain for `Mark.POPULATION_PYRAMID`: always `[-bound, bound]`,
+    with `bound` the largest magnitude across both sides plus a 5% pad
+    (the same fraction `_data_extent`/`_zero_baseline_y_extent` use).
+    Forced symmetric so both sides share one scale. Every value is read
+    as a magnitude (`max(v, -v)`) regardless of sign; see
+    `encode_population_pyramid()`.
+    """
     var max_abs = 0.0
     for v in left:
         max_abs = max(max_abs, max(v, -v))
@@ -64,35 +58,20 @@ def _symmetric_zero_baseline_x_extent(left: List[Float64], right: List[Float64])
 def _render_population_pyramid[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.POPULATION_PYRAMID` plot: `_draw_horizontal_
-    categorical_axis_frame`'s horizontal categorical axis (the
-    exact frame `Mark.GANTT` uses, reused unchanged -- categories along
-    `y`, top-to-bottom, a continuous `x`-domain along the bottom), but
-    with `_symmetric_zero_baseline_x_extent`'s always-centered
-    domain instead of `Gantt`'s data-extent one, and two mirrored bars
-    per row instead of one floating span: `left_values[i]` fills from
-    the center leftward, `right_values[i]` from the center rightward,
-    each in its color from `default_categorical_palette()` (index
-    0/1 -- the same two-color convention `Mark.GROUPED_BAR`'s per-series coloring establishes, just fixed at two series instead
-    of `n_series`).
+    """Render a `Mark.POPULATION_PYRAMID` plot:
+    `_draw_horizontal_categorical_axis_frame` (the frame `Mark.GANTT`
+    uses) with `_symmetric_zero_baseline_x_extent`'s centered domain, and
+    two mirrored bars per row: `left_values[i]` fills from the center
+    leftward and `right_values[i]` rightward, in
+    `default_categorical_palette()` indices 0 and 1.
 
-    A zero-magnitude side draws no bar at all (width 0, skipped) --
-    deliberately *not* `Mark.GANTT`'s zero-length-span-floors-to-
-    1px rule: a gantt milestone is real, informative data at a single
-    point; a population-pyramid category with nothing on one side (no
-    data for that side, or a genuine zero count) has nothing to mark
-    there, so drawing a 1px sliver would misrepresent it as data.
+    A zero-magnitude side draws no bar (not floored to 1px the way
+    `Mark.GANTT`'s zero-length span is): nothing on that side means
+    nothing to mark.
 
     Draws a two-entry legend (`left_name`/`right_name`, defaulting to
-    "Left"/"Right") via the same `_draw_legend`/`_dynamic_legend_width`
-    pair `Mark.GROUPED_BAR`/`STACKED_BAR` use, reserved from the outer
-    `ox1` the same "shrink the rect from outside" way -- shown whenever
-    `Theme.show_legend` is on, unconditionally (unlike `Mark.GROUPED_
-    BAR`, whose legend already has a real series name per entry from
-    `encode_grouped_bar()`, a population pyramid's two sides are
-    meaningful even with no name given at all, so the legend still
-    draws with its "Left"/"Right" fallback rather than being suppressed
-    for lack of one).
+    "Left"/"Right") via `_draw_legend`/`_dynamic_legend_width`, reserved
+    from the outer `ox1`, whenever `Theme.show_legend` is on.
     """
     if len(plot.x_categories) != len(plot._pyramid.left) or len(plot._pyramid.right) != len(plot._pyramid.left):
         raise Error(
@@ -168,9 +147,10 @@ def population_pyramid(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A population pyramid -- `Mark.POPULATION_PYRAMID`, two mirrored
-    horizontal bars per category growing outward from a shared, always-
-    centered zero baseline.
+    """A population pyramid.
+
+    `Mark.POPULATION_PYRAMID`: two mirrored horizontal bars per category
+    growing outward from a shared, always-centered zero baseline.
 
     Args:
         categories: One row of two mirrored bars per entry, top to
@@ -234,10 +214,10 @@ def population_pyramid[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`population_pyramid()`, generalized over numeric element type
-    -- see `scatter()`'s own `DType`-generic overload (plot.mojo) for
-    the full reasoning. `left_values`/`right_values` share one dtype.
-    Delegates to the concrete `population_pyramid()` above.
+    """`population_pyramid()` generalized over numeric element type; see
+    `scatter()`'s `DType` overload (plot.mojo). `left_values`/
+    `right_values` share one dtype. Delegates to the concrete overload
+    above.
     """
     return population_pyramid(
         categories, _materialize_scalar_list(left_values), _materialize_scalar_list(right_values),

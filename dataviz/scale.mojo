@@ -1,19 +1,15 @@
-"""LinearScale -- maps a continuous data domain onto a pixel range,
-and picks "nice" tick positions within that domain for axis labeling.
-This is the piece canvas.geometry.Transform2D's docstring already
-named as deferred here: `scale()`/`translate()` below compute exactly
-the slope/intercept Transform2D's affine map takes, so Plot builds one
-Transform2D from an x-scale and a y-scale (with the y-scale's range
-reversed -- pixel y increases downward, data y conventionally
-increases upward, the same "negative scale_y" trick Transform2D's docstring documents) rather than reimplementing the linear map here.
+"""LinearScale maps a continuous data domain onto a pixel range and
+picks "nice" tick positions within that domain for axis labeling.
+`scale()`/`translate()` compute the slope/intercept
+`canvas.geometry.Transform2D`'s affine map takes, so `Plot` builds a
+Transform2D from an x-scale and a y-scale (the y-scale's range
+reversed, since pixel y increases downward).
 
-`ticks()` is the one genuinely new algorithm in this package: Paul
-Heckbert's "nice numbers for graph labels" (Graphics Gems, 1990), the
-same approach d3/matplotlib/most charting libraries use in spirit --
-round the ideal step size for a target tick count up to the nearest
-"nice" multiple (1, 2, 5, or 10 times a power of ten) so labels read
-as 0.2/0.4/0.6, not 0.1934/0.3868/0.5802. Every example in this
-module's docstring below was independently computed by hand.
+`ticks()` implements Paul Heckbert's "nice numbers for graph labels"
+(Graphics Gems, 1990), the approach d3/matplotlib use: round the
+ideal step for a target tick count up to the nearest 1, 2, 5, or 10
+times a power of ten, so labels read as 0.2/0.4/0.6 rather than
+0.1934/0.3868/0.5802.
 """
 
 from std.math import ceil, floor, log10, pow
@@ -22,14 +18,11 @@ from canvas.geometry import _round_to_int
 
 
 struct MinMax(ImplicitlyCopyable, Movable):
-    """A column's [min, max] -- a small named struct rather than a
-    positional tuple (see scale.mojo's sibling `Ticks`/`_NiceStep` for
-    the same reasoning), and the shared starting point for every kind
-    of domain this package computes: `Plot._data_extent` pads it for
-    spatial (x/y) axes, `ColorScale`/size encoding use it exactly as-
-    is (no padding -- a color/size legend's extremes should mean
-    exactly the data's extremes, not a padded approximation of
-    them)."""
+    """A column's [min, max], the starting point for every domain this
+    package computes: `Plot._data_extent` pads it for spatial axes;
+    `ColorScale`/size encoding use it as-is, so a legend's extremes are
+    exactly the data's.
+    """
 
     var min: Float64
     """The column's smallest value."""
@@ -48,17 +41,10 @@ struct MinMax(ImplicitlyCopyable, Movable):
 
 
 def _min_max(data: List[Float64]) raises -> MinMax:
-    """`data`'s [min, max]. Raises on an empty list rather than
-    indexing `data[0]` out of bounds.
-
-    No caller can currently reach that (every one guards on its data being non-empty first, and the render paths return early
-    before this on an empty plot), so this raises rather than
-    inventing a fallback: there is no honest [min, max] of nothing, and
-    a silent `MinMax(0.0, 0.0)` would hand back a degenerate domain
-    that renders as a real axis, which is exactly the "silently
-    misrepresent the data" failure this package's encode/render
-    checks exist to prevent. A clear error at the boundary beats a
-    plausible-looking wrong chart.
+    """`data`'s [min, max]. Raises on an empty list. No caller can currently
+    reach that (each guards on non-empty data first), and there is no
+    honest [min, max] of nothing; a silent `MinMax(0.0, 0.0)` would render
+    as a real axis.
     """
     if len(data) == 0:
         raise Error("_min_max(): can't take the min/max of an empty column")
@@ -73,9 +59,7 @@ def _min_max(data: List[Float64]) raises -> MinMax:
 
 
 struct _NiceStep(ImplicitlyCopyable, Movable):
-    """`_nice_step`'s result -- a small struct instead of a positional
-    tuple, matching this workspace's general aversion to positional
-    magic values (see e.g. canvas_mojo/tests/test_text.mojo's _InkBBox)."""
+    """`_nice_step`'s result."""
 
     var step: Float64
     var exponent: Int
@@ -86,22 +70,17 @@ struct _NiceStep(ImplicitlyCopyable, Movable):
 
 
 def _nice_step(domain_min: Float64, domain_max: Float64, target_count: Int) -> _NiceStep:
-    """The step size and its base-10 exponent for `target_count`-ish
-    ticks spanning [domain_min, domain_max]. The exponent is what
-    tells _format_fixed how many decimal places a tick actually needs
-    -- can't just be re-derived from the step value via another log10
-    call afterward: a step of exactly 5.0 needs 0 decimals, but
-    -log10(5.0) is positive, not the 0-or-negative value that
-    reasoning alone would suggest without tracking the exponent
-    through nice_m's possible bump to the next power of ten.
+    """The step size and its base-10 exponent for `target_count`-ish ticks
+    spanning [domain_min, domain_max]. The exponent tells `_format_fixed`
+    how many decimal places a tick needs; it can't be re-derived from the
+    step via log10 afterward (a step of exactly 5.0 needs 0 decimals, but
+    log10(5.0) is positive), and must track `nice_m`'s possible bump to
+    the next power of ten.
 
-    Hand-verified (see this file's module docstring):
-    domain [0,100], target 5 -> step 20.0 (raw step 20, already nice);
-    domain [3,27], target 5 -> step 5.0 (raw step 4.8, rounds up to
-    the next nice value, not down); domain [-50,50], target 5 -> step
-    20.0 (negative domains work the same way, no special-casing
-    needed since only the span and log10 of a positive raw step ever
-    get computed).
+    Examples: domain [0,100], target 5 -> step 20.0; domain [3,27],
+    target 5 -> step 5.0 (raw step 4.8 rounds up); domain [-50,50],
+    target 5 -> step 20.0 (only the span and log10 of a positive raw step
+    are ever computed, so negative domains need no special case).
     """
     var raw_step = (domain_max - domain_min) / Float64(target_count)
     var exponent = Int(floor(log10(raw_step)))
@@ -124,16 +103,13 @@ def _nice_step(domain_min: Float64, domain_max: Float64, target_count: Int) -> _
 
 
 def _format_fixed(value: Float64, decimals: Int) -> String:
-    """Format `value` to exactly `decimals` decimal places -- plain
-    `String(Float64)` isn't usable for tick labels: e.g. 0.0 + 3*0.1
-    prints as "0.30000000000000004", ordinary binary-floating-point
-    drift with nothing to do with this module's math. Rounds to the
-    nearest representable value at `decimals`
-    places first (round-half-away-from-zero, via the same
-    `_round_to_int` geometry.mojo's pixel rounding uses), then splits
-    into integer and fractional parts and builds the string by hand
-    rather than trusting float formatting a second time. `decimals` of
-    0 skips the decimal point entirely rather than printing "20.".
+    """Format `value` to exactly `decimals` decimal places. Plain
+    `String(Float64)` isn't usable for tick labels (0.0 + 3*0.1 prints as
+    "0.30000000000000004"). Rounds to the nearest representable value at
+    `decimals` places first (round-half-away-from-zero via
+    `_round_to_int`), then builds the string from integer and fractional
+    parts by hand. `decimals` of 0 skips the decimal point rather than
+    printing "20.".
     """
     if decimals <= 0:
         return String(_round_to_int(value))
@@ -154,26 +130,13 @@ def _format_fixed(value: Float64, decimals: Int) -> String:
 
 def _label_decimals(value: Float64, max_decimals: Int = 2) -> Int:
     """The fewest decimal places (up to `max_decimals`) that represent
-    `value` with no visible rounding error -- `Theme.show_data_labels`'s
-    own formatting, deliberately *not* tied to whatever decimal count
-    the axis's own `Ticks.decimals` happens to use: an axis stepping by
-    whole 10s still needs a data label to show `15.3` as `15.3`, not
-    round it down to the tick grid's own coarser `15` the way reusing
-    `Ticks.decimals` directly would -- the entire point of a value
-    label is showing the real number a bar's height alone can't convey
-    exactly, so silently dropping real precision there would defeat
-    it.
+    `value` with no visible rounding error, for `Theme.show_data_labels`.
+    Not tied to the axis's `Ticks.decimals`: an axis stepping by whole
+    10s still needs a data label to show `15.3` as `15.3`.
 
-    Checked by re-scaling and rounding at each candidate decimal count
-    in turn, not string comparison -- plain binary floating-point
-    values almost never land on an exact decimal (`_format_fixed`'s
-    own docstring gives the same "0.30000000000000004" class of drift
-    the reason floating-point equality can't be trusted here), so a
-    1e-9 tolerance (many orders of magnitude below anything a rendered
-    label could visibly show) stands in for exact equality. Returns
-    `max_decimals` itself if no smaller count clears that tolerance,
-    the same "give up gracefully rather than looping forever" contract
-    a bounded search should have.
+    Checked by re-scaling and rounding at each candidate count with a
+    1e-9 tolerance rather than exact float equality. Returns
+    `max_decimals` if no smaller count clears that tolerance.
     """
     for d in range(max_decimals + 1):
         var scale = pow(10.0, Float64(d))
@@ -184,34 +147,21 @@ def _label_decimals(value: Float64, max_decimals: Int = 2) -> Int:
 
 
 def _log_ticks(domain_min: Float64, domain_max: Float64) -> Ticks:
-    """Tick positions for a log10-scaled `LinearScale` -- `domain_min`/
-    `domain_max` are already in log10-space (a log scale's own
-    `domain_min`/`domain_max`, per `LinearScale.to_pixel()`'s
-    docstring), so `10.0**domain_min`/`10.0**domain_max` are the
-    real-unit bounds ticks must fall within. Returns real-unit values
-    (1, 10, 100, ..., never their own log) -- ready to feed straight
-    into the same `to_pixel()` every other value on this axis already
-    goes through, which itself takes `log10()` of whatever it's given
-    when `is_log` is set; passing an already-logged position here
-    would double-transform it.
+    """Tick positions for a log10-scaled `LinearScale`. `domain_min`/
+    `domain_max` are in log10-space (per `LinearScale.to_pixel()`), so
+    `10.0**domain_min`/`10.0**domain_max` are the real-unit bounds.
+    Returns real-unit values (1, 10, 100, ...), since `to_pixel()` takes
+    `log10()` of its input itself when `is_log` is set.
 
-    Major ticks only (`1 * 10^k`) whenever the visible span covers
-    more than 2 decades -- the standard log-axis convention
-    (matplotlib's `LogLocator` does the same) to avoid a cluttered
-    1/2/5-per-decade axis on a wide range. `1 * 10^k`/`2 * 10^k`/
-    `5 * 10^k` within each covered decade otherwise, for a genuinely
-    readable axis when there's only one or two decades to show.
-    Hand-verified: domain `[0, 3]` (real `[1, 1000]`, a 3-decade span)
-    -> majors only, `[1, 10, 100, 1000]`; domain `[0, 1]` (real
-    `[1, 10]`, one decade) -> the full 1/2/5 set, `[1, 2, 5, 10]`.
+    Major ticks only (`1 * 10^k`) when the visible span covers more than
+    2 decades (matplotlib's `LogLocator` convention); `1`/`2`/`5 * 10^k`
+    per decade otherwise. Domain `[0, 3]` (real `[1, 1000]`) gives
+    `[1, 10, 100, 1000]`; domain `[0, 1]` (real `[1, 10]`) gives
+    `[1, 2, 5, 10]`.
 
-    A degenerate zero-span domain (shouldn't reach here in practice --
-    `_log_data_extent()` always pads -- but handled the same defensive
-    way `LinearScale.ticks()`'s own zero-span case is) returns a
-    single tick at the one real value. A domain narrow enough to miss
-    every `1`/`2`/`5` multiple in its own decade (e.g. `[35, 40]`,
-    between the `2*10^1` and `5*10^1` ticks) falls back to its own two
-    real endpoints rather than an empty axis.
+    A zero-span domain returns a single tick at the one real value. A
+    domain too narrow to contain any `1`/`2`/`5` multiple (e.g.
+    `[35, 40]`) falls back to its two real endpoints.
     """
     if domain_min == domain_max:
         var v = pow(10.0, domain_min)
@@ -232,12 +182,9 @@ def _log_ticks(domain_min: Float64, domain_max: Float64) -> Ticks:
         var mults: List[Float64] = [1.0] if wide else [1.0, 2.0, 5.0]
         for m in mults:
             var v = m * decade
-            # A tiny relative tolerance against the real bounds, not an
-            # exact >=/<=, so a tick that should land exactly on a
-            # padded boundary (computed through pow()/floor()/ceil())
-            # isn't dropped by ordinary floating-point rounding --
-            # the same reasoning LinearScale.ticks()'s own boundary-
-            # inclusive comment gives for the linear case.
+            # A tiny relative tolerance against the real bounds, so a tick that
+            # should land exactly on a padded boundary (computed through
+            # pow()/floor()/ceil()) isn't dropped by floating-point rounding.
             if v >= lo * (1.0 - 1e-9) and v <= hi * (1.0 + 1e-9):
                 values.append(v)
                 labels.append(_format_fixed(v, max(0, -e)))
@@ -253,33 +200,29 @@ def _log_ticks(domain_min: Float64, domain_max: Float64) -> Ticks:
 
 
 struct Ticks(Movable):
-    """LinearScale.ticks()'s result: the tick positions themselves
-    plus how many decimal places they need for display -- both
-    returned together since the decimal count falls straight out of
-    the same step computation _nice_step already did, not a separate
-    thing to re-derive from a tick value afterward."""
+    """`LinearScale.ticks()`'s result: the tick positions plus how many
+    decimal places they need for display, both from the same
+    `_nice_step` computation.
+    """
 
     var values: List[Float64]
     """The tick positions themselves, in the scale's data domain."""
     var decimals: Int
-    """How many decimal places every tick value needs for display --
-    falls straight out of `_nice_step`'s own step computation. Unused
-    (but still present) whenever `override_labels` is non-empty."""
+    """How many decimal places every tick value needs for display, from
+    `_nice_step`. Unused when `override_labels` is non-empty.
+    """
     var override_labels: List[String]
-    """Pre-formatted labels, one per `values` entry, empty (the
-    default) for the ordinary case where every tick shares one
-    `decimals` count. Non-empty only for `_log_ticks()`'s log-scaled
-    ticks, where a decade-spanning axis needs a *different* decimal
-    count per tick (0.01 needs 2 places, 100 needs 0) -- something one
-    shared `decimals` can't express, unlike every linear-scale case
-    `_nice_step` ever produces."""
+    """Pre-formatted labels, one per `values` entry; empty (the default)
+    when every tick shares one `decimals` count. Non-empty only for
+    `_log_ticks()`, where each tick needs its own decimal count (0.01
+    needs 2 places, 100 needs 0).
+    """
 
     def __init__(
         out self, var values: List[Float64], decimals: Int, var override_labels: List[String] = List[String]()
     ):
-        """Construct a `Ticks` from already-computed positions and a
-        decimal count -- normally built by `LinearScale.ticks()`, not
-        called directly.
+        """Construct a `Ticks` from already-computed positions and a decimal
+        count; normally built by `LinearScale.ticks()`.
 
         Args:
             values: The tick positions, in the scale's data domain.
@@ -294,11 +237,8 @@ struct Ticks(Movable):
         self.override_labels = override_labels^
 
     def labels(self) -> List[String]:
-        """Each tick value formatted via _format_fixed at this
-        Ticks' `decimals` -- the convenience an axis-drawing
-        caller actually wants, without needing to know
-        _format_fixed exists. Returns `override_labels` unchanged
-        instead, when set (see its own docstring for why).
+        """Each tick value formatted via `_format_fixed` at this `Ticks`'
+        `decimals`, or `override_labels` unchanged when set.
 
         Returns:
             One formatted string per `values` entry, same order.
@@ -312,13 +252,11 @@ struct Ticks(Movable):
 
 
 struct LinearScale(ImplicitlyCopyable, Movable):
-    """A linear map from [domain_min, domain_max] to [range_min,
-    range_max] -- `range_min`/`range_max` are the pixel positions
-    `domain_min`/`domain_max` land on, not necessarily numerically
-    increasing (a y-axis scale passes range_min=plot_bottom_pixel,
-    range_max=plot_top_pixel, a *smaller* pixel value, since pixel y
-    increases downward -- the map comes out with a negative slope
-    automatically, no separate "flip" flag needed).
+    """A linear map from [domain_min, domain_max] to [range_min, range_max].
+    `range_min`/`range_max` are the pixel positions `domain_min`/
+    `domain_max` land on, not necessarily increasing: a y-axis scale
+    passes range_min=plot_bottom_pixel and range_max=plot_top_pixel, and
+    the map comes out with a negative slope.
     """
 
     var domain_min: Float64
@@ -328,22 +266,17 @@ struct LinearScale(ImplicitlyCopyable, Movable):
     var range_min: Float64
     """The pixel position `domain_min` maps to."""
     var range_max: Float64
-    """The pixel position `domain_max` maps to -- not necessarily
-    greater than `range_min` (a y-axis scale passes a *smaller* pixel
-    value here, since pixel y increases downward)."""
+    """The pixel position `domain_max` maps to; not necessarily greater
+    than `range_min` (a y-axis scale passes a smaller pixel value here).
+    """
     var is_log: Bool
-    """`False` (the default -- every pre-existing `LinearScale` keeps
-    mapping exactly as it always has) for a plain linear scale.
-    `True` for a log10-scaled axis (`Plot.scale_y_log()`/
-    `scale_x_log()`): `domain_min`/`domain_max` are then themselves
-    already in log10-space (see `_log_data_extent()`, plot.mojo), and
-    `to_pixel()` takes `log10()` of whatever real-unit value it's
-    given before applying the same affine map -- every caller
-    (data points, gridlines, tick marks, `Plot.annotate_line()`/
-    `annotate_area()`/`annotate_vline()`/`annotate_point()`, all of
-    which already go through `to_pixel()`/`_axis_pixel()`, plot.mojo)
-    keeps passing real-unit values exactly as it does for a linear
-    scale, unaware which kind of scale it's actually talking to."""
+    """`False` (the default) for a plain linear scale. `True` for a
+    log10-scaled axis (`Plot.scale_y_log()`/`scale_x_log()`):
+    `domain_min`/`domain_max` are then in log10-space (see
+    `_log_data_extent()`, plot.mojo) and `to_pixel()` takes `log10()` of
+    the real-unit value it's given before applying the affine map, so
+    every caller keeps passing real-unit values.
+    """
 
     def __init__(
         out self,
@@ -372,12 +305,10 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         self.is_log = is_log
 
     def scale(self) -> Float64:
-        """The slope for a Transform2D built from this axis --
-        (range_max - range_min) / (domain_max - domain_min). Zero
-        domain span (a constant-valued column) returns 0.0 rather than
-        dividing by zero; every input then maps to range_min via
-        to_pixel's translate term, a single point/line rather than
-        a crash.
+        """The slope for a Transform2D built from this axis:
+        (range_max - range_min) / (domain_max - domain_min). A zero domain
+        span returns 0.0 rather than dividing by zero; every input then maps
+        to range_min.
         """
         var span = self.domain_max - self.domain_min
         if span == 0.0:
@@ -385,19 +316,15 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         return (self.range_max - self.range_min) / span
 
     def translate(self) -> Float64:
-        """The intercept for a Transform2D built from this axis --
-        derived from scale() so domain_min always maps to exactly
-        range_min (to_pixel(domain_min) == range_min, not just
-        approximately -- see
-        test_linear_scale_endpoints_map_to_range_exactly)."""
+        """The intercept for a Transform2D built from this axis, derived from
+        scale() so `to_pixel(domain_min) == range_min` exactly.
+        """
         return self.range_min - self.domain_min * self.scale()
 
     def to_pixel(self, value: Float64) -> Float64:
-        """Map a data value onto its pixel position -- `scale()`'s
-        slope times `value`, plus `translate()`'s intercept. Takes
-        `log10(value)` first when `is_log` is set (see that field's
-        docstring) -- `value` itself is always the real, untransformed
-        data value; every caller stays the same either way.
+        """Map a data value onto its pixel position: `scale()` times `value`
+        plus `translate()`. Takes `log10(value)` first when `is_log` is set;
+        `value` is always the real, untransformed data value.
 
         Args:
             value: The data value to map, in real units (never
@@ -411,17 +338,13 @@ struct LinearScale(ImplicitlyCopyable, Movable):
 
     def ticks(self, target_count: Int = 5) -> Ticks:
         """"Nice" tick positions within [domain_min, domain_max] (see
-        _nice_step), generated *within* the domain, not extending it
-        -- ceil(domain_min/step)*step up to floor(domain_max/step)*step
-        -- so an axis's visible range always matches its scale's domain exactly; a tick landing exactly on a boundary is
-        included (matches this file's hand-verified examples,
-        e.g. domain [0,100] includes both the 0 and 100 ticks).
+        `_nice_step`), from ceil(domain_min/step)*step to
+        floor(domain_max/step)*step, so ticks never extend past the domain; a
+        tick landing exactly on a boundary is included (domain [0,100]
+        includes both 0 and 100).
 
-        A zero-span domain (every data value identical) returns a
-        single tick at domain_min with 0 decimals rather than running
-        the nice-step math against a zero raw step (which would need
-        log10(0), undefined) -- a real, reachable case (e.g. a column
-        of constant values), not just a defensive check.
+        A zero-span domain returns a single tick at domain_min with 0
+        decimals, since the nice-step math would need log10(0).
 
         Args:
             target_count: Roughly how many ticks to aim for; the

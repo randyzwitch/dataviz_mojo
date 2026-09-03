@@ -21,39 +21,30 @@ from dataviz.theme import Theme
 
 
 def _beeswarm_offsets(y_pixels: List[Int], spacing: Int) -> List[Int]:
-    """One x-offset per entry of `y_pixels` (same order in, same order
-    out), spreading points that would otherwise overlap vertically out
-    sideways -- the simplest real swarm layout: points within `spacing`
-    pixels of their neighbor (sorted by `y_pixels`) join one
-    "row," each row's points alternate `0, +spacing, -spacing,
-    +2*spacing, -2*spacing, ...` outward from center in the order they
-    fall into that row. Not a full physics-style swarm (which would
-    consider every nearby point continuously, not just a chain of
-    consecutive sorted neighbors) -- this is deterministic and cheap,
-    which matters more here: a real swarm's point positions depend
-    on placement order in ways that are hard to predict by hand, and
-    this package's whole test methodology depends on hand-derivable
-    output (see the wiki).
+    """One x-offset per entry of `y_pixels` (same order in, same order out),
+    spreading points that would otherwise overlap vertically out
+    sideways. Points within `spacing` pixels of their neighbor (sorted by
+    `y_pixels`) join one row; each row's points alternate
+    `0, +spacing, -spacing, +2*spacing, -2*spacing, ...` outward from
+    center in the order they fall into that row. A deterministic
+    chain-of-neighbors layout rather than a physics-style swarm, so
+    output is hand-derivable for tests.
 
-    O(n log n) overall: one sort of the point indices, then a single
-    linear pass assigning each row's alternating offsets.
+    O(n log n): one sort of the point indices, then a single linear pass
+    assigning each row's alternating offsets.
 
-    A row never checks whether its alternating spread actually fits
-    inside a category's band width -- not clipped here, a caller
-    with an unusually dense category may see a swarm wider than its column. A real, documented scope limit, not an oversight.
+    A row's spread is never clipped to the category's band width, so an
+    unusually dense category can swarm wider than its column.
     """
     var n = len(y_pixels)
     var order = List[Int](capacity=n)
     for i in range(n):
         order.append(i)
 
-    # Ascending by pixel row, ties broken by the point's own original
-    # index -- a total order over `order`'s entries, so the result is
-    # identical whether or not the underlying sort is stable. That tie
-    # rule is not cosmetic: it's what decides which of two points
-    # sharing a pixel row gets the `0` offset and which gets pushed
-    # `+spacing` sideways, so changing it would move real pixels and
-    # break this file's hand-derived tests.
+    # Ascending by pixel row, ties broken by original index: a total order,
+    # so the result is identical whether or not the sort is stable. The tie
+    # rule decides which of two points on the same pixel row gets the `0`
+    # offset, so changing it moves real pixels.
     @parameter
     def _before(a: Int, b: Int) -> Bool:
         if y_pixels[a] != y_pixels[b]:
@@ -82,9 +73,9 @@ def _beeswarm_offsets(y_pixels: List[Int], spacing: Int) -> List[Int]:
 
 
 def _distribution_domain(plot: Plot) raises -> LinearScale:
-    """The value-axis domain over every value across every category --
-    orientation-independent, and the same choice `Mark.BOX` makes for
-    this data shape."""
+    """The value-axis domain over every value across every category;
+    orientation-independent, and the same choice `Mark.BOX` makes.
+    """
     var all_values = List[Float64]()
     for series in plot._distribution.values:
         for v in series:
@@ -103,14 +94,11 @@ def _draw_beeswarm_points[
     radius: Int,
 ) raises:
     """Every category's points, spread sideways within its band so
-    overlapping values stay individually visible -- written once for
-    both orientations, with `_Orientation.band_point` carrying the only
-    difference.
-
-    `_beeswarm_offsets` itself is orientation-agnostic already: it
-    takes pixel positions along the *value* axis and returns offsets
-    along the *band* axis, which is true whichever way those map onto
-    x/y. Spacing is one point diameter, so neighbours in the same row
+    overlapping values stay individually visible. Written once for both
+    orientations, with `_Orientation.band_point` carrying the only
+    difference. `_beeswarm_offsets` takes pixel positions along the value
+    axis and returns offsets along the band axis, whichever way those map
+    onto x/y. Spacing is one point diameter, so neighbors in the same row
     just touch.
     """
     var theme = plot._theme
@@ -137,18 +125,12 @@ def _draw_beeswarm_points[
 def _render_beeswarm[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.BEESWARM` plot: `encode_distribution()`'s per-category raw values, one point per value, jittered sideways
-    within its category's band via `_beeswarm_offsets` so points
-    at similar values don't sit directly on top of each other -- the
-    same "see every individual point, not a summary" reading `Mark.
-    BOX` gives up in exchange for its five-number-summary shape.
-
-    Reuses `_draw_categorical_axis_frame` (the same vertical-
-    categorical-x/continuous-y core `Mark.BAR`/`BOX`/... share), with
-    `_data_extent` (not `_zero_baseline_y_extent`) over every value
-    across every category: this data encodes where something falls
-    within a range, not magnitude from a baseline, the same reasoning
-    `Mark.BOX` uses for its shape.
+    """Render a `Mark.BEESWARM` plot: `encode_distribution()`'s per-category
+    raw values, one point per value, jittered sideways within its
+    category's band via `_beeswarm_offsets`. Reuses
+    `_draw_categorical_axis_frame` with `_data_extent` (not
+    `_zero_baseline_y_extent`) over every value across every category,
+    the same domain choice `Mark.BOX` makes.
     """
     var theme = plot._theme
     if len(plot.x_categories) == 0:
@@ -169,21 +151,13 @@ def _render_beeswarm[
 def _render_horizontal_beeswarm[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """`_render_beeswarm`'s mirror image for `Plot.mark_beeswarm(
-    horizontal=True)` (#121) -- exactly `_render_horizontal_bar`'s own
-    categorical y-axis / continuous x-axis (`_draw_horizontal_
-    categorical_axis_frame`, gantt.mojo, shared -- see that function's
-    docstring), with each category's raw values placed along the
-    continuous `x_scale` and jittered *vertically* within their own
-    row via `_beeswarm_offsets` instead of horizontally within their
-    own column -- `_beeswarm_offsets` itself is unchanged, since it
-    only ever reasons about one continuous pixel axis (the one values
-    are placed along) and one perpendicular jitter axis, never which
-    is which.
-
-    Deliberately its own function, not an orientation flag threaded
-    through `_render_beeswarm` -- see `_render_horizontal_bar`'s own
-    docstring (bar.mojo) for the full reasoning, identical here.
+    """`_render_beeswarm`'s mirror image for
+    `Plot.mark_beeswarm(horizontal=True)` (#121): `_render_horizontal_bar`'s
+    categorical y-axis / continuous x-axis
+    (`_draw_horizontal_categorical_axis_frame`, gantt.mojo), with each
+    category's values placed along `x_scale` and jittered vertically
+    within their row. Its own function rather than an orientation flag,
+    for the reasons in `_render_horizontal_bar`'s docstring (bar.mojo).
     """
     var theme = plot._theme
     if len(plot.x_categories) == 0:
@@ -216,10 +190,11 @@ def beeswarm(
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """A beeswarm plot -- `Mark.BEESWARM`, one point per raw value,
-    jittered sideways to avoid overlap, one swarm per category. See
-    `Plot.encode_distribution()`'s docstring (plot.mojo) for the
-    exact shape (the same one `violin()`/`ridgeline()` take).
+    """A beeswarm plot.
+
+    `Mark.BEESWARM`: one point per raw value, jittered sideways to avoid
+    overlap, one swarm per category. See `Plot.encode_distribution()`
+    (plot.mojo) for the data shape, shared with `violin()`/`ridgeline()`.
 
     Args:
         categories: One swarm per entry, in the given order.
@@ -283,11 +258,10 @@ def beeswarm[
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """`beeswarm()`, generalized over numeric element type for
-    `values` -- the nested-list counterpart to `scatter()`'s own
-    `DType`-generic overload (plot.mojo), using `_materialize_nested_
-    scalar_list` (array_like.mojo). Delegates to the concrete
-    `beeswarm()` above.
+    """`beeswarm()` generalized over numeric element type for `values`, via
+    `_materialize_nested_scalar_list` (array_like.mojo); see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
+    above.
     """
     return beeswarm(
         categories, _materialize_nested_scalar_list(values), tooltips=tooltips, theme=theme, width=width, height=height,

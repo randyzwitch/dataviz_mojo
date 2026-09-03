@@ -10,192 +10,76 @@ mojo = ">=1.0.0,<2"
 canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.13.0" }
 hugo = ">=0.165.0,<0.166"
 go = ">=1.26.7,<2"
-# Dev/test-only, same as hugo/go above -- neither appears in
-# [package.run-dependencies] below, so installing dataviz_mojo itself
-# never pulls numpy/pandas in. They're here only so the numpy adapter
-# (numpy_interop.mojo) has something real to compile and test against
-# locally and in CI -- a caller who actually uses that adapter needs
-# numpy installed in *their own* environment regardless (Python.
-# import_module("numpy") raises a clear error if it isn't), same as
-# any optional Python interop.
+# Dev/test-only, like hugo/go: not in [package.run-dependencies], so
+# installing dataviz_mojo never pulls them in. Present so
+# numpy_interop.mojo has something to compile and test against; a
+# caller using that adapter needs numpy in their own environment.
 numpy = ">=2.0,<3"
 pandas = ">=2.0,<3"
 
 [tasks]
-# `test` runs every file in parallel via scripts/run_parallel.sh
-# (capped at the machine's own CPU count -- see that script's own
-# docstring) instead of one `mojo run` per file chained with `&&`:
-# each `mojo run` process pays Mojo's own from-source recompile cost
-# independently (no shared build cache across files), so this whole
-# suite was dominated by that fixed per-file cost times the file count,
-# not real work -- exactly what running the independent, unrelated
-# files in parallel fixes. `example` shares the same script, over a
-# dynamic file list `extract_docstring_examples.mojo` writes first
-# (see that script's own docstring) rather than a hand-maintained one:
-# every `Example:` docstring section becomes its own real, compiled,
-# run `.mojo` program under docs/src/examples/, the same load-bearing-
-# test role `examples/*.mojo` used to have before #131 moved each
-# one's runnable code into its own function's docstring. Also globs
-# docs/src/cookbook_recipes/*.mojo directly, no extraction step needed
-# there -- a contributed Cookbook recipe is already a complete,
-# standalone program by its own README.md's contract, so the same
-# load-bearing-test property holds with no intermediate file.
+# `test` runs every tests/test_*.mojo file in parallel via
+# scripts/run_parallel.sh, capped at the machine's CPU count. Each
+# `mojo run` recompiles the package from source (no shared build cache),
+# so the suite's cost is that fixed per-file compile times the file
+# count; the glob picks up new test files automatically.
 #
-# What actually gets compiled is neither of those directly, though:
-# `build_verify_batches.mojo` first rewrites all 117 standalone
-# programs into 8 batch drivers under docs/src/examples/verify/, and
-# only those get run. Same reason the test files are grouped (see
-# below) -- a single `save()` call monomorphizes the whole ~50-mark
-# `_render_generic[T: DrawTarget]` dispatch tree, and that is a
-# per-process cost, so 117 one-chart programs paid it 117 times.
-# Cold, over the whole corpus:
+# `example` uses the same script over a generated file list:
+# extract_docstring_examples.mojo writes every `Example:` docstring
+# section to docs/src/examples/*.mojo, and
+# docs/src/cookbook_recipes/*.mojo are complete standalone programs
+# already. build_verify_batches.mojo then rewrites all of those into 8
+# batch drivers under docs/src/examples/verify/, and only the batches
+# are run: a single `save()` call monomorphizes the whole ~50-mark
+# `_render_generic` dispatch tree, a per-process cost of ~50 CPU-s, so
+# 117 one-chart programs paid it 117 times (cold: 9787 CPU-s / 174s
+# wall vs 688 CPU-s / 43s wall for the batches, with byte-identical
+# out_* images). The standalone programs are still written out and left
+# alone; verify/ is a throwaway artifact.
 #
-#   117 programs   9787 CPU-s   (174s wall, 64 cores)
-#     8 batches      688 / 688 CPU-s   (43s / 42s wall)
+# Precompiling the package (`mojo precompile dataviz`) was measured and
+# not worth it: it halves warm per-file time only via the local build
+# cache, and cold CI runs gained ~4.6% CPU and ~0.4% wall.
 #
-# The standalone programs are deliberately still written out and left
-# alone -- a Cookbook recipe being one complete, readable file is the
-# whole point of docs/src/cookbook_recipes/, and the site renders from
-# the docstrings and out_*.svg either way. verify/ is a throwaway
-# build artifact nothing else reads.
+# The same per-process monomorphization cost is why tests/ is grouped
+# into ~12 family modules (test_marks_basic.mojo, test_marks_polar.mojo,
+# ...) rather than one file per mark: 86 files cost 6956 CPU-s cold, 13
+# files 1344 CPU-s. Test function names stayed unique, so a failure
+# still names the mark. test_numpy_interop.mojo stays separate because
+# it is the only test needing numpy. Add new tests to the family module
+# they belong to.
 #
-# 14x less CPU, and all 120 out_*.svg/png/bmp images come out
-# byte-identical -- verified by md5 across the whole corpus, since
-# producing those images is the other half of what this task is for.
-#
-# `test` takes a plain `tests/test_*.mojo` glob, in whatever order the
-# shell expands it. An earlier version hand-listed every file
-# most-expensive-first, on the "longest job first" theory that a slow
-# file at the end of the list starts late and finishes alone. Two
-# things turned out to be wrong with that. The ranking came from each
-# file's `TestSuite` Summary line, and that number is not wall-clock:
-# test_theme.mojo reports 712s but takes 5.8s, test_bar.mojo reports
-# 238s against test_sankey.mojo's 90s while their real times are 5.1s
-# and 4.8s. It isn't even proportional, so the ordering it produced was
-# noise. And there is little to order: every file costs roughly 5-7s,
-# nearly all of it the fixed cost of recompiling this package from
-# source for that file, so the jobs are close enough to uniform that
-# order does not matter. The glob also can't drift the way the hand
-# list did -- a new test file is picked up by writing it, with no
-# second place to remember to update.
-#
-# Precompiling the package (`mojo precompile dataviz` once, then
-# running tests against the built package instead of `-I .`) looks
-# like the obvious lever and is NOT worth wiring up -- measured, not
-# assumed. It halves each file's *warm* time (6.7s -> 3.3s for
-# test_bar.mojo), but that is only the build cache under
-# .pixi/envs/default/share/max/cache/.mojo_cache being hit; CI starts
-# cold every time. Cold, over the whole suite, two runs each:
-#
-#   source, -I .          6956 / 7013 CPU-s   (127s / 126s wall, 64 cores)
-#   precompiled package   6649 / 6682 CPU-s   (126s / 126s wall), incl.
-#                                              the ~5s precompile itself
-#
-# ~4.6% of CPU and ~0.4% of wall -- not worth a build step that can go
-# stale.
-#
-# What the suite actually spends its time on, and why tests/ is laid
-# out the way it is: a test file that only imports a leaf module costs
-# 23 CPU-s cold, one that renders anything costs 60-85. The gap is
-# `_render_generic[T: DrawTarget]`, which names every one of the ~50
-# `_render_*` functions, so a single `render()` call monomorphizes the
-# entire mark dispatch tree -- ~50 CPU-s whether the test draws a bar
-# chart or a sankey. That cost is per *process*, not per test, so it is
-# paid once per file no matter how many tests the file holds.
-#
-# So the 86 one-mark-per-file test modules were merged into 12 family
-# modules (test_marks_basic.mojo, test_marks_polar.mojo,
-# test_horizontal.mojo, ...), each keeping its sources' own tests and
-# docstrings verbatim under a `# from tests/test_<name>.mojo` banner.
-# Same 600 tests, cold, two runs each:
-#
-#   86 files   6956 / 7013 CPU-s   (127s / 126s wall, 64 cores)
-#   13 files   1344 / 1334 CPU-s   ( 63s /  61s wall)
-#
-# 5.2x less CPU, which is what a 2-4 core CI runner is actually
-# bottlenecked on. test_numpy_interop.mojo stays its own file: it is
-# the only test needing a real numpy in the environment, so an import
-# failure there stays attributable instead of taking an unrelated
-# family down with it.
-#
-# The tradeoff is coarser failure attribution -- a red X now names a
-# family rather than a mark. Test function names were already unique
-# across all 86 files and were kept unchanged, so the failing test
-# name still identifies exactly which mark broke. Add new tests to the
-# family module they belong to rather than starting a new file, or
-# this grows back one file at a time.
-#
-# EXCEPTION: docs/src/examples/quickstart/ (step1..step5_quickplot.mojo
-# + their out_*.svg) is NOT part of this pipeline -- this task's own
-# `rm -f docs/src/examples/*.mojo docs/src/examples/out_*` is a flat
-# glob, one directory level only, so it never touches that
-# subdirectory. Those five back docs/src/quickstart.md's own "A first
-# chart" walkthrough (progressive Plot-builder steps, then the one-
-# call `scatter()` equivalent) -- real, `mojo run`-verified output like
-# everything else on this site, but hand-written and NOT extracted from
-# a docstring (a deliberate scope call for a docs-only tutorial
-# sequence, not package API documentation -- see the PR that added
-# them). Regenerated by their own `example-quickstart` task below
-# instead, called separately (both locally and by both CI paths that
-# build this site -- ci.yml's `docs-build` status check and
-# docs-build.yml's push-to-main deploy) rather than folded into this
-# task, so it stays obvious that these five don't come from a
-# docstring the way everything else here does.
+# docs/src/examples/quickstart/ (step1..step5_quickplot.mojo + their
+# out_*.svg) is not part of this pipeline: `example`'s `rm -f` globs
+# are one directory level only. Those five back docs/src/quickstart.md's
+# walkthrough, hand-written rather than extracted from a docstring, and
+# are regenerated by the separate `example-quickstart` task, which CI
+# calls alongside this one.
 example = "mkdir -p docs/src/examples && rm -rf docs/src/examples/verify && rm -f docs/src/examples/*.mojo docs/src/examples/out_* && mojo run -I . -I scripts scripts/extract_docstring_examples.mojo && mojo run -I . -I scripts scripts/build_verify_batches.mojo && bash scripts/run_parallel.sh docs/src/examples/verify/*.mojo"
 example-quickstart = "bash scripts/run_parallel.sh docs/src/examples/quickstart/*.mojo"
 test = "bash scripts/run_parallel.sh tests/test_*.mojo"
-# Regenerates docs/site/content (nothing docs-build itself produces is
-# committed -- not that, not docs/site/public further downstream, not
-# docs/src/examples/, gen_example_docs.mojo's own output). Everything
-# deployed by docs/docs-serve below is deployed straight to GitHub
-# Pages by .github/workflows/docs.yml's own Actions-based deploy,
-# regenerated fresh each time. Only docs/src/_index.md (the hand-
-# written landing page), docs/src/quickstart.md (ditto), docs/modo.yaml,
-# and docs/site/'s own Hugo project files (hugo.yaml, go.mod/go.sum) are
-# real, committed source -- see docs/modo.yaml's own comments for the
-# Hugo-over-plain-markdown reasoning, and gen_example_docs.mojo's own
-# docstring for how it turns dataviz/*.mojo's own `Example:`
-# docstring sections into docs/src/examples/ pages (a Mojo script, not
-# Python -- this repo's own tooling stays in the language it's
-# showcasing). Assumes `pixi run example` has already been run at least
-# once -- that's what actually renders docs/src/examples/out_*.svg and
-# writes each extracted `Example:` program's own *.mojo there too (this
-# task only ever removes *.md and *.json there, never touches
-# *.svg/*.png/*.bmp/*.mojo, the same "separate, independently-invoked
-# task" split this file's own example/test tasks already have). The
-# `*.json` clear (added alongside the dataviz_mojo -> dataviz Mojo-
-# import rename) exists purely so a stale one from a previous run
-# under the old output name can't sit next to the new one and get fed
-# into modo alongside it -- `mojo doc`'s own `-o` filename is only
-# ever whatever this task's own `-o docs/src/dataviz.json` says right
-# now, but modo's `input: - src/` (modo.yaml) scans every `*.json` file
-# under docs/src/ unconditionally, not just the one this task just
-# wrote -- caught this exact double-content bug locally while doing
-# that rename, from a leftover docs/src/dataviz_mojo.json a pre-rename
-# run had left behind (gitignored, so `git status` never flagged it). Left-
-# sidebar order falls straight out of each section's own front-matter
-# `weight` -- docs/src/quickstart.md pins itself to 100, gen_example_
-# docs.mojo pins Examples to 200 and Cookbook to 300, and modo's own
-# generated dataviz/_index.md is left at whatever `modo build`
-# emits for a package's own root section (400, as of writing, with no
-# config flag to override -- `modo build --help` has nothing for it,
-# and there's no local modo source to safely override via
-# `--templates`) -- Quickstart, then Examples, then Cookbook, then the
-# API reference, no `sed` patch needed since 400
-# already sorts after both. A `sed` patch IS needed for that section's
-# own front-matter `title` though: modo always emits `title:
-# dataviz` (the package name) for a package's own root section,
-# same "no config flag to override" gap as weight above -- but the top
-# nav's own menu entry for this section already reads "API Reference"
-# (hugo.yaml), so the left sidebar entry/breadcrumb links/browser tab
-# for the section itself read as the odd one out next to it, all
-# three sourced from this one `title` field. Pinned to "API Reference"
-# post-build for consistency with the nav; every individual module
-# page under it (plot/_index.md, theme/_index.md, ...) keeps its own
-# real title untouched -- the `^title: dataviz$` anchor only
-# matches that one root _index.md's own front-matter line, not a
-# module page whose title happens to equal the package name in body
-# text elsewhere.
+# Regenerates docs/site/content. Nothing docs-build produces is
+# committed (not docs/site/content, docs/site/public, or
+# docs/src/examples/ pages); .github/workflows/docs.yml deploys a fresh
+# build to GitHub Pages. Committed source is docs/src/_index.md,
+# docs/src/quickstart.md, docs/modo.yaml, and docs/site/'s Hugo project
+# files. Assumes `pixi run example` has already run, which renders
+# docs/src/examples/out_* and writes each extracted Example's *.mojo;
+# this task removes only *.md and *.json there.
+#
+# The `*.json` clear exists because modo's `input: - src/` (modo.yaml)
+# scans every *.json under docs/src/, so a stale
+# docs/src/dataviz_mojo.json from before the dataviz_mojo -> dataviz
+# import rename would be fed in alongside the new one (gitignored, so
+# `git status` never flagged it).
+#
+# Sidebar order comes from each section's front-matter `weight`:
+# quickstart.md pins 100, gen_example_docs.mojo pins Examples to 200
+# and Cookbook to 300, and modo emits 400 for the package root with no
+# config flag to change it. modo also always emits `title: dataviz` for
+# that root section, so the `sed` pins it to "API Reference" to match
+# the top nav (hugo.yaml); the `^title: dataviz$` anchor matches only
+# that one line.
 docs-install = "bash scripts/install-modo.sh"
 docs-build = { cmd = "rm -rf docs/site/content docs/site/public && mkdir -p docs/src/examples && rm -f docs/src/examples/*.md docs/src/*.json && mojo run -I . -I scripts scripts/gen_example_docs.mojo && mojo doc -I . -o docs/src/dataviz.json dataviz && .tools/modo build docs -c modo.yaml && sed -i 's/^title: dataviz$/title: API Reference/' docs/site/content/dataviz/_index.md", depends-on = [
     "docs-install",
@@ -203,22 +87,18 @@ docs-build = { cmd = "rm -rf docs/site/content docs/site/public && mkdir -p docs
 # One-shot build into docs/site/public -- what docs-deploy.yml
 # actually deploys.
 docs = { cmd = "hugo -s docs/site", depends-on = ["docs-build"] }
-# Live-reloading local preview at http://localhost:1313/dataviz_mojo/
-# -- edits under docs/site/content trigger an automatic rebuild, but
-# docs-build's own steps (mojo doc, gen_example_docs.mojo, modo build)
-# don't re-run on their own; re-run `pixi run docs-serve` after
-# changing dataviz/'s docstrings or examples/ itself.
+# Live-reloading local preview at http://localhost:1313/dataviz_mojo/.
+# Edits under docs/site/content rebuild automatically, but docs-build's
+# own steps don't; re-run `pixi run docs-serve` after changing
+# docstrings or examples.
 docs-serve = { cmd = "hugo server -s docs/site", depends-on = ["docs-build"] }
 
 # --- Package declaration -----------------------------------------------
 [package]
-# The conda/pixi distribution name -- what a `[dependencies]` entry
-# elsewhere (`dataviz_mojo = { git = ..., tag = "vX" }`, matching
-# canvas_mojo's own declaration above) and `pixi add` reference. Kept
-# as "dataviz_mojo" for discoverability/collision-avoidance (a bare
-# "dataviz" already exists as an unrelated package on PyPI) even
-# though the Mojo import name itself is the shorter "dataviz" --
-# see [package.build.config.pkg] below for that split.
+# The conda/pixi distribution name, referenced by a `[dependencies]`
+# entry elsewhere and `pixi add`. Kept as "dataviz_mojo" (a bare
+# "dataviz" already exists on PyPI) while the Mojo import name is
+# "dataviz"; see [package.build.config.pkg].
 name = "dataviz_mojo"
 version = "0.7.0"
 description = "Grammar-of-graphics-flavored chart building for Mojo, built on canvas_mojo: a fluent Plot builder, scales, themes, and a growing set of mark types across raster and SVG backends."
@@ -229,13 +109,9 @@ backend = { name = "pixi-build-mojo", version = "0.*" }
 source = { path = "." }
 
 [package.build.config.pkg]
-# The Mojo package name (becomes dataviz.mojopkg -- what code actually
-# imports, `from dataviz import ...`) -- deliberately different from
-# [package] name above (the conda/pixi distribution name, kept as
-# "dataviz_mojo" for discoverability/collision-avoidance on that
-# side): pixi-build-mojo's own docs confirm these two names are
-# independent, the same PyPI-distribution-name-vs-import-name split
-# `beautifulsoup4`/`import bs4` already has in the Python ecosystem.
+# The Mojo package name (dataviz.mojopkg, `from dataviz import ...`),
+# independent of the [package] distribution name above, the same split
+# as PyPI's beautifulsoup4 / `import bs4`.
 name = "dataviz"
 path = "dataviz"
 

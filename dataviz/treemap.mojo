@@ -40,27 +40,20 @@ def _draw_treemap_node[
     sc: _Scaled,
     mut text_requests: List[_TextRequest],
 ) raises:
-    """Fill `node`'s rect `(x0, y0, x1, y1)` if it's a leaf
-    (colored by `branch[node]`'s top-level-ancestor palette entry,
-    the same convention `Mark.SUNBURST`/`TREE` use, plus
-    a centered label in `Theme.treemap_label_color`), otherwise slice-and-dice that rect among its children and recurse: alternating axis by `depth` (even splits the
-    *width*, into side-by-side vertical strips; odd splits the
-    *height*, into stacked horizontal strips), each child's share
-    of the split proportional to its `subtree_value` share of
-    `node`'s total -- the standard, simplest real treemap layout
-    (*not* a real squarified algorithm, which additionally rebalances
-    each slice's aspect ratio toward square instead of letting a
-    row of many small children go arbitrarily thin -- a real,
-    documented simplification, the same tolerance `Mark.TREE`'s `_assign_leaf_positions` docstring takes over a full
-    Reingold-Tilford layout).
+    """Fill `node`'s rect `(x0, y0, x1, y1)` if it's a leaf (colored by
+    `branch[node]`'s top-level-ancestor palette entry, as in
+    `Mark.SUNBURST`/`TREE`, plus a centered label in
+    `Theme.treemap_label_color`); otherwise slice-and-dice the rect among
+    its children and recurse. The split axis alternates by `depth` (even
+    splits the width into side-by-side strips, odd splits the height into
+    stacked strips), each child's share proportional to its
+    `subtree_value` share of `node`'s total. This is plain slice-and-dice,
+    not a squarified layout that rebalances aspect ratios.
 
-    Every boundary along the split axis comes from rounding a
-    *cumulative* fraction of the rect's span, never an
-    independently-rounded width -- the same "round the boundaries, not
-    the size" pattern `Mark.MARIMEKKO`'s docstring already
-    establishes (there for one level of columns; here for every level
-    of the recursion), so adjacent siblings' rects always share an
-    exact pixel edge with no hairline gap.
+    Every boundary along the split axis is the rounded *cumulative*
+    fraction of the rect's span, never an independently rounded width, so
+    adjacent siblings share an exact pixel edge (the same pattern
+    `Mark.MARIMEKKO` uses).
     """
     if len(idx.children[node]) == 0:
         var color = palette[branch[node] % len(palette)] if branch[node] >= 0 else theme.mark_color
@@ -95,16 +88,13 @@ def _draw_treemap_node[
 def _render_treemap[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.TREEMAP` plot: `_build_hierarchy_index`'s `children`/`subtree_value` (hierarchy.mojo), laid out via `_draw_
-    treemap_node`'s slice-and-dice recursion starting from the
-    whole inner plot rect at the root -- see that function's
-    docstring for the full layout reasoning. Reuses `Mark.SUNBURST`'s
-    "one color per top-level branch" idea.
+    """Render a `Mark.TREEMAP` plot: `_build_hierarchy_index`'s `children`/
+    `subtree_value` (hierarchy.mojo) laid out by `_draw_treemap_node`'s
+    slice-and-dice recursion from the whole inner plot rect at the root,
+    with one color per top-level branch as in `Mark.SUNBURST`.
 
-    Every value must be non-negative, and the root's subtree total
-    must be positive -- the same validation `Mark.SUNBURST` already
-    takes for the identical reason (a treemap's leaf areas are a
-    share-of-a-whole reading, same as a pie wedge's angle).
+    Every value must be non-negative and the root's subtree total
+    positive, the same validation `Mark.SUNBURST` applies.
     """
     if (
         len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids)
@@ -182,10 +172,11 @@ def treemap(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A treemap -- `Mark.TREEMAP`, a hierarchy (`Plot.encode_
-    hierarchy()`'s flattened `ids`/`parent_ids`/`values`) laid out
-    as nested, area-proportional rectangles via slice-and-dice. See
-    `_draw_treemap_node`'s docstring for the full reasoning.
+    """A treemap.
+
+    `Mark.TREEMAP`: a hierarchy (`Plot.encode_hierarchy()`'s flattened
+    `ids`/`parent_ids`/`values`) laid out as nested, area-proportional
+    rectangles via slice-and-dice. See `_draw_treemap_node`.
 
     Args:
         ids: Every node's unique id, flattened (not nested), one
@@ -241,9 +232,9 @@ def treemap[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`treemap()`, generalized over numeric element type -- see
-    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
-    full reasoning. Delegates to the concrete `treemap()` above.
+    """`treemap()` generalized over numeric element type; see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
+    above.
     """
     return treemap(
         ids, parent_ids, _materialize_scalar_list(values), theme=theme, width=width, height=height,

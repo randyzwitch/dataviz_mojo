@@ -16,11 +16,9 @@ from dataviz.theme import Theme
 
 
 struct _PunchcardData(Movable):
-    """
-    Mark.PUNCHCARD only -- one (x category, y category, bubble size) row
-    per cell, plus the size->radius divisor. See encode_punchcard()'s docstring.
-
-    Grouped onto `Plot._punchcard` -- see `Plot`'s docstring.
+    """One (x category, y category, bubble size) row per cell, plus the
+    size-to-radius divisor, for `Mark.PUNCHCARD`. See
+    `encode_punchcard()`. Stored on `Plot._punchcard`.
     """
 
     var x: List[String]
@@ -39,38 +37,21 @@ struct _PunchcardData(Movable):
 def _render_punchcard[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.PUNCHCARD` plot: `encode_punchcard()`'s `x`/
-    `y` categorical grid (`Mark.HEATMAP`'s `_draw_grid_axis_frame`
-    and `_categorical_indices` domain derivation, both reused
-    unchanged) with one bubble per row instead of `HEATMAP`'s filled cell -- a "scatter plot on a categorical grid" (ECharts.jl's description), the third-variable magnitude read from bubble
-    *size*, not color, unlike every other grid mark in this package.
+    """Render a `Mark.PUNCHCARD` plot: `encode_punchcard()`'s `x`/`y`
+    categorical grid (`Mark.HEATMAP`'s `_draw_grid_axis_frame` and
+    `_categorical_indices` domain derivation, reused unchanged) with one
+    bubble per row instead of a filled cell, magnitude read from bubble
+    size rather than color.
 
-    Bubble radius is `sizes[i] / scale` -- a plain pixel-space divisor
-    (`Plot.mark_punchcard(scale=10.0)`'s default, matching
-    ECharts.jl's `scale` keyword exactly), *not* normalized
-    against the cell's dimensions the way `Mark.CORRPLOT`'s bubble sizing is: a punchcard's bubbles are meant to visually
-    overflow a small cell when the underlying count is large (real
-    activity-heatmap data commonly does), which is the whole point of
-    reading magnitude from raw size rather than a bounded fraction.
-    Still multiplied by `frame.sc.scale` (`_Scaled`'s bare
-    multiplier -- see that struct's docstring) before use: unlike
-    `Mark.CORRPLOT`'s radius (derived from `frame.x_scale`/`y_
-    scale`'s already-scaled pixel ranges, so it tracks `Theme.
-    scale` for free), this one starts from a caller-given raw number
-    with no relationship to the plot's pixel space at all -- without
-    this multiplication, the radius would render too small whenever
-    `Theme.scale` is anything other than its default (a real HiDPI
-    export is exactly this case, not just a defensive multiply).
+    Bubble radius is `sizes[i] / scale` (`Plot.mark_punchcard(scale=10.0)`
+    's default, matching ECharts.jl's `scale` keyword), a plain
+    pixel-space divisor not normalized against the cell the way
+    `Mark.CORRPLOT`'s bubbles are, so large counts can overflow a small
+    cell. Multiplied by `frame.sc.scale` so the radius tracks
+    `Theme.scale` (a HiDPI export) like every other pixel quantity.
 
-    Multiple rows may share the same `(x, y)` cell -- each still draws
-    its independent bubble (not summed into one), the same
-    "multiple bubbles can occupy the same grid intersection" behavior
-    ECharts.jl's `punchcard()` documents.
-
-    No legend -- there's no categorical color channel to key one by
-    (size is continuous and read directly off each bubble itself, the
-    same reason `Mark.POLAR`'s single series draws none), matching
-    ECharts.jl's `legend=false` default for this chart type too.
+    Multiple rows may share the same `(x, y)` cell; each draws its own
+    bubble. No legend: size is read directly off each bubble.
     """
     if (
         len(plot._punchcard.x) != len(plot._punchcard.y)
@@ -125,10 +106,11 @@ def punchcard(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A punchcard -- `Mark.PUNCHCARD`, a scatter plot on a categorical
-    grid where bubble size (`sizes[i] / scale`) encodes a third
-    variable, GitHub-style. See `_render_punchcard`'s docstring for
-    the full reasoning.
+    """A punchcard.
+
+    `Mark.PUNCHCARD`: a scatter plot on a categorical grid where bubble
+    size (`sizes[i] / scale`) encodes a third variable, GitHub-style. See
+    `_render_punchcard`.
 
     Args:
         x: Each bubble's column category, one entry per row of data.
@@ -192,9 +174,9 @@ def punchcard[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`punchcard()`, generalized over numeric element type -- see
-    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
-    full reasoning. Delegates to the concrete `punchcard()` above.
+    """`punchcard()` generalized over numeric element type; see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
+    above.
     """
     return punchcard(
         x, y, _materialize_scalar_list(sizes), scale=scale, theme=theme, width=width, height=height,

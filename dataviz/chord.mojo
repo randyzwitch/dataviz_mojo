@@ -24,27 +24,16 @@ from dataviz.theme import Theme
 def _draw_chord_ribbon[
     T: DrawTarget
 ](mut target: T, cx: Float64, cy: Float64, r: Float64, a0: Float64, a1: Float64, b0: Float64, b1: Float64, color: Color) raises:
-    """One ribbon: a filled shape bounded by two node-rim arcs (`a0`
-    ->`a1` at node A's inner radius, `b0`->`b1` at node B's) and
-    two curved "cross" connections between them -- the classic chord-
-    diagram ribbon shape. Each rim arc is a real `Path.arc_to` segment
-    (`canvas`'s center/radius/angle convention matches this file's
-    `cos`/`sin` rim-point math exactly, so no angle conversion is
-    needed at the call site); each cross connection is a single
-    `quad_curve_to` pulled toward the circle's center `(cx, cy)`, which
-    bows every ribbon inward through the middle the way a real chord
-    diagram's ribbons do, without needing per-ribbon control-point math
-    of its own. `a0 <= a1`/`b0 <= b1` always hold here (`_render_
-    chord`'s angles only ever advance forward around the circle),
-    matching `arc_to`'s `start_angle <= end_angle` expectation.
-
-    `arc_to` also means `SvgCanvas`'s path output emits a true
-    elliptical-arc command for the rim instead of a polyline, so a
-    chord diagram's vector output is a real curve, not a many-segment
-    approximation of one.
-
-    `r` is the *inner* radius of the node ring (`_render_chord`'s `inner_radius`) -- ribbons visually originate from just inside the
-    ring, not its outer edge, the standard chord-diagram look.
+    """One ribbon: a filled shape bounded by two node-rim arcs (`a0`->`a1`
+    at node A, `b0`->`b1` at node B, both at inner radius `r`) and two
+    curved connections between them. Each rim arc is a `Path.arc_to`
+    segment (`canvas`'s center/radius/angle convention matches the
+    `cos`/`sin` rim-point math here, and `SvgCanvas` emits a true arc
+    command for it); each connection is a single `quad_curve_to` with its
+    control point at the circle's center `(cx, cy)`, which bows every
+    ribbon inward. `a0 <= a1`/`b0 <= b1` always hold, since
+    `_render_chord`'s angles only advance forward, matching `arc_to`'s
+    expectation.
     """
     var path = Path()
     path.move_to(cx + r * cos(a0), cy + r * sin(a0))
@@ -59,32 +48,23 @@ def _draw_chord_ribbon[
 def _render_chord[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.CHORD` plot: one node per distinct category
-    across `encode_chord()`'s `from`/`to` columns (first-seen order
-    across the two concatenated columns -- see `_edge_node_index`'s
-    docstring), arranged
-    as ring sectors around a circle (`Mark.ARC`'s start-at-12-
-    o'clock, sweep-clockwise convention, reused exactly -- see `_render_
-    arc`'s docstring) sized by each node's *total* flow (every
-    value where it's the `from` or the `to`, so a node with several
-    edges gets one contiguous arc, not several) -- then one ribbon per
-    `from`/`to`/`value` row, connecting a sub-arc of its `from` node's ring to a sub-arc of its `to` node's, each sub-arc sized `value
-    / node's total` of that node's full span (`_draw_chord_ribbon`).
+    """Render a `Mark.CHORD` plot: one node per distinct category across
+    `encode_chord()`'s `from`/`to` columns (first-seen order, see
+    `_edge_node_index`), arranged as ring sectors around a circle
+    (starting at 12 o'clock, clockwise) sized by each node's total flow
+    (every value where it is the `from` or the `to`), then one ribbon per
+    row connecting a sub-arc of its `from` node to a sub-arc of its `to`
+    node, each sub-arc sized `value / grand_total` of the full circle
+    (`_draw_chord_ribbon`).
 
-    Sub-arcs are allocated in the order rows are given, each one
-    advancing a per-node running angular cursor (`node_cursor`, starting
-    at that node's `node_start`) -- the same running-total
-    bookkeeping style `Mark.WATERFALL`'s `encode_waterfall` uses, just
-    for angles instead of a bar's running total.
-    A self-loop (`from[i] == to[i]`) allocates two sub-arcs off the
-    same node in sequence rather than one -- not specifically tested,
-    but not rejected either, since nothing here assumes `from[i] !=
-    to[i]`.
+    Sub-arcs are allocated in row order, each advancing a per-node angular
+    cursor (`node_cursor`, starting at the node's `node_start`). A
+    self-loop allocates two sub-arcs off the same node in sequence.
 
-    Ribbons are colored by their `from` node's palette color
-    (`default_categorical_palette()`, the same index-by-node-position
-    convention `Mark.ARC`'s wedge coloring uses) -- a ribbon reads
-    as "flow leaving this node," not a third, edge-specific color.
+    Ribbons take their `from` node's palette color
+    (`default_categorical_palette()` by node position), reading as flow
+    leaving that node. Ring thickness is
+    `plot._mark_style.chord_ring_fraction` of the radius.
     """
     _validate_edge_encoding(plot, "Mark.CHORD")
 
@@ -176,10 +156,11 @@ def chord(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A chord diagram -- `Mark.CHORD`, ring sectors for every distinct
-    node across `from_categories`/`to_categories`, connected by ribbons
-    sized by `values`. See `Plot.encode_chord()`'s docstring
-    (plot.mojo) for the exact shape.
+    """A chord diagram.
+
+    `Mark.CHORD`: ring sectors for every distinct node across
+    `from_categories`/`to_categories`, connected by ribbons sized by
+    `values`. See `Plot.encode_chord()` (plot.mojo) for the data shape.
 
     Args:
         from_categories: Each flow's source node, one entry per row.
@@ -238,9 +219,9 @@ def chord[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`chord()`, generalized over numeric element type -- see
-    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
-    full reasoning. Delegates to the concrete `chord()` above.
+    """`chord()` generalized over numeric element type; see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
+    above.
     """
     return chord(
         from_categories, to_categories, _materialize_scalar_list(values), ring_fraction=ring_fraction, theme=theme, width=width,

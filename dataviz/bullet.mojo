@@ -18,12 +18,9 @@ from dataviz.theme import Theme
 
 
 struct _BulletData(Movable):
-    """
-    Mark.BULLET only -- one measure/target pair, plus a whole list of
-    ascending qualitative-range thresholds, per category. See
-    encode_bullet()'s docstring.
-
-    Grouped onto `Plot._bullet` -- see `Plot`'s docstring.
+    """One measure/target pair plus a list of ascending qualitative-range
+    thresholds per category, for `Mark.BULLET`. See `encode_bullet()`.
+    Stored on `Plot._bullet`.
     """
 
     var measure: List[Float64]
@@ -40,57 +37,21 @@ struct _BulletData(Movable):
 def _render_bullet[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.BULLET` plot (Stephen Few's bullet-chart design):
-    `_draw_categorical_axis_frame`'s shared categorical x-axis, with a
-    zero-baseline y-domain (`_zero_baseline_y_extent`, like `Mark.BAR`/
-    `LOLLIPOP`/`WATERFALL` -- not `Mark.BOX`/`CANDLESTICK`'s padded-around-the-data domain: a bullet chart's whole premise is
-    *progress toward a goal from zero*, the same "magnitude from a
-    baseline" meaning a bar's height encodes, so zero has to stay in
-    view the same way). The domain spans every value actually drawn per
-    category -- `0.0`, the top of its `ranges` (the tallest
-    background band), its `measure`, and its `target` -- the same
-    domain-fits-everything approach `Mark.BOX`/`WATERFALL` take, since
-    a measure or target can legitimately fall outside the qualitative
-    ranges (e.g. exceeding the "good" threshold).
+    """Render a `Mark.BULLET` plot (Stephen Few's bullet chart) on
+    `_draw_categorical_axis_frame` with a zero-baseline y-domain
+    (`_zero_baseline_y_extent`) spanning `0.0`, each category's top range
+    threshold, its `measure`, and its `target`.
 
-    Draws, per category, back to front (the same layering order `Mark.
-    BOX`'s whisker-then-box-then-median gives, generalized: context
-    underneath, the headline value over it, a reference mark on top of
-    everything):
-    1. Every qualitative range band, stacked from `0.0` up through each
-       of `ranges`' ascending thresholds in turn (`fill_rect`, full
-       band width, matching `Mark.BAR`/`BOX`'s "no extra narrowing"
-       choice) -- shaded via a small `ColorScale` built once from
-       `mark_bullet(range_color_light=..., range_color_dark=...)` (the
-       *same* stop-interpolation machinery `Plot.encode(color=...)`'s continuous channel uses, projecting each band's index
-       fraction onto `[0, 1]` instead of a data value), lightest at
-       index 0 through darkest at the top -- Few's convention, and
-       why these are dedicated grayscale `Theme` fields rather than
-       reusing `mark_color`-derived shades (a background band should
-       read as neutral context, not compete with the measure bar for
-       "this is the colored one" attention).
-    2. The measure bar (`fill_rect`, `theme.mark_color`, `theme.
-       bullet_measure_width_fraction` of the full band width and
-       centered within it -- narrower on purpose, so it reads as a distinct
-       overlaid layer rather than just another, taller range band).
-       Deliberately *never* colored by sign (no `mark_color_negative`
-       involved at all, unlike `Mark.CANDLESTICK`/`WATERFALL`) -- a
-       bullet chart's whole comparison is measure-against-target-and-
-       ranges, conveyed by *position*, not by the measure bar's color; Few's design keeps that bar one solid, neutral color
-       for exactly this reason, and this package follows it rather than
-       reusing the sign-coloring convention just because the fields
-       already exist. A `measure` of exactly `0.0` draws a genuine
-       zero-height (so invisible) bar, and deliberately isn't floored
-       to 1px the way `Mark.CANDLESTICK`'s doji case is -- a doji needs
-       a visible mark because it's real, informative market data at a
-       specific price; a zero measure means literally "no progress
-       yet," which an absent bar already represents correctly.
-    3. The target tick (`draw_line_aa`, `theme.axis_color` -- matching
-       `Mark.BOX`'s whisker/median color, both being "the part of
-       the shape that isn't the headline value" -- full band width,
-       exactly `Mark.BOX`'s median-line convention), drawn last so
-       it's never obscured by either the bands or the measure bar under
-       it.
+    Per category, back to front:
+    1. The qualitative range bands, stacked from `0.0` through `ranges`'
+       ascending thresholds at full band width, shaded by a two-stop
+       `ColorScale` from `theme.bullet_range_color_light` to
+       `theme.bullet_range_color_dark`.
+    2. The measure bar (`theme.mark_color`,
+       `plot._mark_style.bullet_measure_width_fraction` of the band,
+       centered). Never colored by sign; a `measure` of `0.0` draws a
+       zero-height bar.
+    3. The target tick (`theme.axis_color`, full band width), drawn last.
     """
     if (
         len(plot.x_categories) != len(plot._bullet.measure)
@@ -144,9 +105,8 @@ def _render_bullet[
     range_color_scale.add_stop(0.0, theme.bullet_range_color_light)
     range_color_scale.add_stop(1.0, theme.bullet_range_color_dark)
 
-    # Every one of these depends only on the scale and theme, never on
-    # the category index -- computed once here, not recomputed inside
-    # the per-category loop below.
+    # These depend only on the scale and theme, so they're computed once
+    # outside the per-category loop.
     var bandwidth = frame.x_scale.bandwidth()
     var band_width = _round_to_int(bandwidth)
     var measure_width = _round_to_int(bandwidth * plot._mark_style.bullet_measure_width_fraction)
@@ -193,10 +153,12 @@ def bullet(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A bullet chart -- `Mark.BULLET` (Stephen Few's design): a
-    measure bar, a target tick, and shaded qualitative-range bands
-    per category. See `Plot.encode_bullet()`'s docstring
-    (plot.mojo) for what `measures`/`targets`/`ranges` mean.
+    """A bullet chart.
+
+    `Mark.BULLET` (Stephen Few's design): a measure bar, a target tick,
+    and shaded qualitative-range bands per category. See
+    `Plot.encode_bullet()` (plot.mojo) for what `measures`/`targets`/
+    `ranges` mean.
 
     Args:
         categories: One row per entry, in the given order.
@@ -267,13 +229,10 @@ def bullet[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`bullet()`, generalized over numeric element type for
-    `measures`/`targets` (sharing one dtype) -- see `scatter()`'s own
-    `DType`-generic overload (plot.mojo) for the full reasoning.
-    `ranges` stays a concrete `List[List[Float64]]` -- a nested-list
-    generalization is a real, separate follow-up (see #158's own
-    tracking issue), not attempted here. Delegates to the concrete
-    `bullet()` above.
+    """`bullet()` generalized over numeric element type for `measures`/
+    `targets` (sharing one dtype); see `scatter()`'s `DType` overload
+    (plot.mojo). `ranges` stays a concrete `List[List[Float64]]` (#158).
+    Delegates to the concrete overload above.
     """
     return bullet(
         categories, _materialize_scalar_list(measures), _materialize_scalar_list(targets), ranges,

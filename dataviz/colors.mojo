@@ -1,48 +1,19 @@
-"""Named colors -- the full CSS Color Module Level 3 / X11 "extended
-color keywords" list (<https://www.w3.org/TR/css-color-3/#svg-color>),
-plus `REBECCAPURPLE` (added in Level 4, but universally bundled
-alongside the rest of this list by every implementation of "the CSS
-named colors" in practice, not just formally part of Level 3), as
-`Color` constants: `Theme(mark_color=CORNFLOWERBLUE)` instead of
-hand-typing `Theme(mark_color=Color(100, 149, 237))` (see #10 -- "make
-'green' and similar colors just available to specify"). Each name is
-the CSS keyword itself, uppercased, with no separators added
-(`CORNFLOWERBLUE`, not `CORNFLOWER_BLUE`) -- that keeps every name a
-direct, greppable match for the CSS spec/any color picker a caller
-already knows the keyword from, rather than a second, dataviz-
-specific spelling to remember. Both spellings CSS itself standardizes
-(`GRAY`/`GREY`, `DARKGRAY`/`DARKGREY`, `DIMGRAY`/`DIMGREY`,
-`LIGHTGRAY`/`LIGHTGREY`, `LIGHTSLATEGRAY`/`LIGHTSLATEGREY`,
-`SLATEGRAY`/`SLATEGREY`) are both included, each the identical `Color`
-value under both names -- picking one and dropping the other would
-just be a different, equally arbitrary standard.
+"""Named colors: the full CSS Color Module Level 3 / X11 "extended color
+keywords" list (<https://www.w3.org/TR/css-color-3/#svg-color>) plus
+`REBECCAPURPLE` (Level 4), as `Color` constants, so
+`Theme(mark_color=CORNFLOWERBLUE)` works instead of
+`Theme(mark_color=Color(100, 149, 237))` (#10). Each name is the CSS
+keyword uppercased with no separators (`CORNFLOWERBLUE`, not
+`CORNFLOWER_BLUE`), so it matches the spec and any color picker
+directly. Both CSS spellings of the gray names (`GRAY`/`GREY`,
+`DARKGRAY`/`DARKGREY`, ...) are included with identical values.
 
-`comptime`, not a `def`-returned value or a `Dict[String, Color]`
-lookup -- a plain, zero-cost constant, importable and usable exactly
-the same way as any other `Color` literal (works as a Theme keyword
-argument, in a List[Color] palette, anywhere `Color` already does),
-with no runtime string-matching/raises path a name-string lookup would
-need. `CSS`-standard names only, not an invented palette -- an actual
-"agreed-upon standard" (the issue's phrasing) beats a curated
-subset that someone would eventually ask to extend one color at a
-time.
+`comptime` constants, usable anywhere a `Color` literal is (a Theme
+keyword argument, a `List[Color]` palette) with no runtime lookup. Not
+part of `canvas.Color` itself; this file depends only on `Color`, so
+it could move to canvas_mojo if another consumer wants the list.
 
-Deliberately not part of `canvas.Color` itself (see color_scale.
-mojo's `default_categorical_palette()` docstring for the same "keep
-the core type minimal" reasoning) -- this file has no dependency on
-anything else in
-dataviz (`Plot`, `Theme`, marks, ...), just `Color` values, so it
-could move to canvas_mojo directly (e.g. as its `named_colors`
-module, re-exported from here) if another canvas_mojo consumer beyond
-this package ever wants the identical list -- nothing here assumes
-dataviz-specific machinery.
-
-Sorted alphabetically by name (matching how the CSS spec itself lists
-them), not grouped by hue/family -- there's no unambiguous single way
-to group 148 colors by "family," and alphabetical is the one order a
-caller can actually predict without scrolling: looking for `orange`
-means jumping to the O's, not guessing whether it counts as "warm" or
-"reds" here.
+Sorted alphabetically by name, matching the CSS spec's own listing.
 """
 
 from canvas.color import Color

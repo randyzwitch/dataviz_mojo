@@ -20,14 +20,10 @@ from dataviz.theme import Theme
 
 
 struct _PolarData(Movable):
-    """
-    Mark.POLAR only -- one (angle, radius) pair per row (encode_
-    polar()), or a shared `angle` domain plus one or more named series
-    (encode_polar_series(), `_polar.series_names` non-empty is what
-    `_render_polar` actually branches on -- `_polar.radius` stays
-    empty in that case). See both methods' docstrings.
-
-    Grouped onto `Plot._polar` -- see `Plot`'s docstring.
+    """One (angle, radius) pair per row (`encode_polar()`), or a shared
+    `angle` plus one or more named series (`encode_polar_series()`;
+    `series_names` non-empty is what `_render_polar` branches on, and
+    `radius` stays empty then), for `Mark.POLAR`. Stored on `Plot._polar`.
     """
 
     var angle: List[Float64]
@@ -43,9 +39,7 @@ struct _PolarData(Movable):
 
 
 struct _PolarPoint(Movable):
-    """`_polar_point`'s return value -- a named struct, not a raw
-    tuple, the same multi-value-return convention every other function
-    here follows (`_LabelsFrame`, `MinMax`, `Ticks`, ...)."""
+    """`_polar_point`'s return value."""
 
     var x: Float64
     var y: Float64
@@ -56,19 +50,11 @@ struct _PolarPoint(Movable):
 
 
 def _polar_point(cx: Float64, cy: Float64, angle: Float64, radius: Float64) -> _PolarPoint:
-    """Angle/radius -> pixel (x, y), the one shared primitive every
-    polar-coordinate mark in this package ultimately reduces to.
-    `angle=0` is 3 o'clock (east), increasing `angle` sweeps clockwise
-    -- not the counterclockwise "east, then north" convention plain
-    trigonometry usually means, but the same clockwise convention
-    `Mark.ARC`/`Mark.CHORD`/`Mark.NIGHTINGALE`/`Mark.POLAR_BAR` already
-    establish (a real-world clock face's reading direction; see
-    `_render_arc`'s docstring for why -- pixel y increases
-    downward, which flips the usual counterclockwise-is-positive
-    reading), kept identical here so every polar mark in this package
-    agrees on which way an angle turns. `radius` is a plain pixel
-    distance from `(cx, cy)`, already scaled by whichever caller needs
-    it -- this function does no scaling of its own.
+    """Angle/radius to pixel (x, y), the shared primitive every polar mark
+    reduces to. `angle=0` is 3 o'clock; increasing `angle` sweeps
+    clockwise (pixel y increases downward), the same convention
+    `Mark.ARC`/`CHORD`/`NIGHTINGALE`/`POLAR_BAR` use. `radius` is a pixel
+    distance from `(cx, cy)`, already scaled by the caller.
     """
     return _PolarPoint(cx + radius * cos(angle), cy + radius * sin(angle))
 
@@ -76,17 +62,11 @@ def _polar_point(cx: Float64, cy: Float64, angle: Float64, radius: Float64) -> _
 def _draw_polar_grid[
     T: DrawTarget
 ](mut target: T, cx: Float64, cy: Float64, max_radius: Float64, theme: Theme, grid_rings: Int, grid_spokes: Int) raises:
-    """The polar coordinate system itself: `plot._mark_style.polar_grid_rings` evenly
-    spaced concentric circles (one full `Path.arc_to` sweep each,
-    stroked) plus `plot._mark_style.polar_grid_spokes` straight radial lines from the
-    center out to `max_radius` -- the polar equivalent of a cartesian
-    plot's gridlines, drawn in `theme.gridline_color` the same way
-    `_draw_categorical_axis_frame`'s gridlines are. No tick labels
-    (neither the radius rings' values nor the angle spokes' degrees):
-    the grid alone communicates the coordinate system's shape, and a
-    numeric label placed *around* a circle (curved baseline, radial
-    orientation) is a typesetting problem this package has no
-    machinery for yet.
+    """The polar coordinate system: `grid_rings` evenly spaced concentric
+    circles (one full `Path.arc_to` sweep each, stroked) plus
+    `grid_spokes` radial lines from the center out to `max_radius`, in
+    `theme.gridline_color`. No tick labels; a label placed around a
+    circle is typesetting this package has no machinery for.
     """
     for i in range(1, grid_rings + 1):
         var r = max_radius * Float64(i) / Float64(grid_rings)
@@ -104,46 +84,23 @@ def _draw_polar_grid[
 def _render_polar[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.POLAR` plot: `encode_polar()`'s `angle`/
-    `radius` pairs (or `encode_polar_series()`'s shared `angle`
-    plus several named series -- see this docstring's last
-    paragraph), connected in row order by one stroked polyline per
-    series (`_build_line_path`-style, but there's no smoothing knob
-    here -- a polar line's shape *is* the data, not a cartesian
-    curve fit) plus a small filled circle marker at each point, drawn
-    over `_draw_polar_grid`'s coordinate system.
+    """Render a `Mark.POLAR` plot: `encode_polar()`'s `angle`/`radius` pairs
+    (or `encode_polar_series()`'s shared `angle` plus several named
+    series), connected in row order by one stroked polyline per series
+    with no smoothing, plus a small filled circle at each point, over
+    `_draw_polar_grid`'s coordinate system.
 
-    `angle` is used exactly as given, in radians, completely
-    unscaled and unwrapped -- unlike every other continuous channel
-    in this package, there's no `_data_extent` padding or domain
-    normalization step: a caller plotting `angle` values beyond
-    `2*pi` (ECharts.jl's "spiral" example, angle extending past a
-    full turn) gets a real spiral outward, not a wrapped-and-
-    overlapping mess `mod 2*pi` would produce. `radius` *is* scaled,
-    linearly, from `[0, max(radius)]` to `[0, max_radius]` -- always
-    zero-anchored (never padded away from zero the way `_data_extent`
-    pads other continuous axes), the same "a magnitude axis must
-    include its zero" reasoning `_zero_baseline_y_extent` already
-    gives for `Mark.BAR`/`Mark.AREA`: the chart's center *is* the
-    zero point a polar radius axis measures from, not an arbitrary
-    coordinate.
+    `angle` is used as given, in radians, unscaled and unwrapped: values
+    beyond `2*pi` spiral outward rather than overlapping. `radius` is
+    scaled linearly from `[0, max(radius)]` to `[0, max_radius]`, always
+    zero-anchored at the center. Every `radius` value must be
+    non-negative.
 
-    Every `radius` value must be non-negative (checked at render()
-    time, the same "raise, don't silently misrepresent" stance every
-    other value-validated mark here takes) -- a negative radius has no
-    polar meaning without redefining the whole coordinate system.
-
-    No axis-frame text either way. `encode_polar()`'s plain single
-    series draws in `theme.mark_color`, no legend -- nothing to key
-    one by, the same reason a plain `Mark.LINE`/`Mark.POINT` series
-    draws none either. `encode_polar_series()`'s several named series
-    each get their `default_categorical_palette()` color and a
-    legend keyed by `series_names` (always drawn, even for one series
-    -- the same "`Theme.show_legend` is the only real toggle"
-    convention every other legend-bearing mark here follows), and
-    share one radius scale: `max(radius)` computed across *every*
-    series together, not each independently, so equal-magnitude points
-    in different series land at the same radius.
+    A single series draws in `theme.mark_color` with no legend. Several
+    named series each get a `default_categorical_palette()` color and a
+    legend keyed by `series_names` (when `Theme.show_legend` is on), and
+    share one radius scale with `max(radius)` computed across every
+    series.
     """
     var is_multi = len(plot._polar.series_names) > 0
     if is_multi:
@@ -271,10 +228,12 @@ def polar(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A polar-coordinate line plot -- `Mark.POLAR` over `angle`
-    (radians, used exactly as given -- values beyond `2*pi` spiral
-    outward rather than wrapping) and `radius` (linearly scaled from
-    `[0, max(radius)]`, always zero-anchored at the chart's center; every value must be non-negative). See `_render_polar`'s docstring for the full reasoning.
+    """A polar-coordinate line plot.
+
+    `Mark.POLAR` over `angle` (radians, used as given; values beyond
+    `2*pi` spiral outward rather than wrapping) and `radius` (linearly
+    scaled from `[0, max(radius)]`, zero-anchored at the center; every
+    value must be non-negative). See `_render_polar`.
 
     Args:
         angle: Radians, used exactly as given and unwrapped -- values
@@ -341,10 +300,9 @@ def polar[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`polar()`, generalized over numeric element type -- see
-    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
-    full reasoning. `angle`/`radius` share one dtype. Delegates to
-    the concrete `polar()` above.
+    """`polar()` generalized over numeric element type; see `scatter()`'s
+    `DType` overload (plot.mojo). `angle`/`radius` share one dtype.
+    Delegates to the concrete overload above.
     """
     return polar(
         _materialize_scalar_list(angle), _materialize_scalar_list(radius), theme=theme, width=width,
@@ -364,15 +322,12 @@ def polar_series(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A multi-series polar-coordinate line plot -- `Mark.POLAR` over
-    `Plot.encode_polar_series()`'s shared `angle` domain plus one
-    or more named series (`series_names` + `series_values`, one radius
-    value per series per angle), sharing one radius scale across every
-    series and a legend keyed by `series_names`. The same relationship
-    `pie()`/`donut()` have to `Mark.ARC` -- one mark, two quickplot
-    entry points for two genuinely different shapes (here: one
-    unlabeled trace vs. several compared side by side). See `_render_
-    polar`'s docstring for the full reasoning.
+    """A multi-series polar-coordinate line plot.
+
+    `Mark.POLAR` over `Plot.encode_polar_series()`'s shared `angle` plus
+    one or more named series (`series_names` + `series_values`, one radius
+    value per series per angle), sharing one radius scale and a legend
+    keyed by `series_names`. See `_render_polar`.
 
     Args:
         angle: Radians, used exactly as given and unwrapped -- shared
@@ -436,11 +391,10 @@ def polar_series[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`polar_series()`, generalized over numeric element type for
-    `series_values` -- the nested-list counterpart to `scatter()`'s
-    own `DType`-generic overload (plot.mojo), using `_materialize_
-    nested_scalar_list` (array_like.mojo). `angle` stays concrete.
-    Delegates to the concrete `polar_series()` above.
+    """`polar_series()` generalized over numeric element type for
+    `series_values`, via `_materialize_nested_scalar_list`
+    (array_like.mojo); see `scatter()`'s `DType` overload (plot.mojo).
+    `angle` stays concrete. Delegates to the concrete overload above.
     """
     return polar_series(
         angle, series_names, _materialize_nested_scalar_list(series_values), theme=theme, width=width,

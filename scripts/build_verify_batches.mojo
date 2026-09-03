@@ -1,47 +1,31 @@
-"""`pixi run example`'s batching step -- rewrites the standalone example
-and Cookbook-recipe programs into a handful of batch drivers, purely so
+"""`pixi run example`'s batching step: rewrites the standalone example
+and Cookbook-recipe programs into a handful of batch drivers so
 `mojo run` compiles them a handful of times instead of once per file.
 
-Why this exists: `_render_generic[T: DrawTarget]` (dataviz/plot.mojo)
-names every one of the ~50 `_render_*` functions, so a single `render()`
-/`save()` call monomorphizes the entire mark dispatch tree -- roughly
-50 CPU-seconds whether the program draws a bar chart or a sankey. That
-cost is paid per *process*, not per chart, so running 117 one-chart
-programs paid it 117 times for work whose actual drawing takes
-milliseconds. See pixi.toml's `[tasks]` comment for the same finding
-and its measurements on the test suite, which is where this technique
-came from.
+`_render_generic[T: DrawTarget]` (dataviz/plot.mojo) names every
+`_render_*` function, so a single `save()` call monomorphizes the
+whole mark dispatch tree, roughly 50 CPU-seconds per process
+regardless of which chart is drawn. See pixi.toml's `[tasks]` comment
+for the measurements.
 
-What this deliberately does NOT do is change the standalone programs.
-`docs/src/cookbook_recipes/*.mojo` stays exactly as a contributor wrote
-it -- one complete, readable, runnable file per recipe, which is the
-whole point of that directory -- and `docs/src/examples/*.mojo` stays
-as `extract_docstring_examples.mojo` wrote it. The batches are a
-throwaway build artifact under `docs/src/examples/verify/`, read by
-nothing but `mojo run`; the docs site's own pages come from the
-docstrings (`_example_docstrings.mojo`) and the `out_*.svg` images,
-never from these files.
+The standalone programs are left untouched:
+`docs/src/cookbook_recipes/*.mojo` stays as contributed and
+`docs/src/examples/*.mojo` as `extract_docstring_examples.mojo` wrote
+it. The batches under `docs/src/examples/verify/` are a throwaway
+build artifact read only by `mojo run`.
 
 Each source program is an optional `# title:` comment, an optional
-module docstring, its imports, optionally some module-level
-declarations of its own (two recipes define a `struct` to demonstrate
-the array-like traits), then exactly one `def main() raises:`. So the
-transform is mechanical: union the imports, hoist any module-level
-declarations as they are, rename each `main` to `_run_<stem>`, and emit
-one `main()` per batch calling them in order. Every `save()` call
-inside a body keeps its original output path, so the batches write
-exactly the same `out_*.svg` set the individual programs did.
+module docstring, imports, optionally some module-level declarations
+(two recipes define a `struct`), then exactly one `def main()
+raises:`. The transform unions the imports, hoists module-level
+declarations as they are, renames each `main` to `_run_<stem>`, and
+emits one `main()` per batch calling them in order. Every `save()`
+keeps its original output path. Two hoisted declarations sharing a
+name are a duplicate-declaration compile error naming both.
 
-Two hoisted declarations sharing a name would be a duplicate
-declaration in the batch, which is a hard compile error naming both --
-loud, not silent -- so there's no name-mangling policy here beyond
-letting the compiler catch it.
-
-Batches, not one single program: a failure names the batch it came from
-(and the `_run_<stem>` frame names the exact recipe), and several
-batches still fill more than one core on a CI runner.
-`_BATCHES_PER_CORPUS` below is the only knob -- more batches means
-better failure attribution, fewer means less total compile time.
+Several batches rather than one program so a failure names its batch
+(and the `_run_<stem>` frame names the recipe) and CI cores stay
+busy. `_BATCHES_PER_CORPUS` is the only knob.
 """
 
 from std.os import listdir, makedirs, path
@@ -88,11 +72,7 @@ struct _Program(Movable):
 
 def _parse(stem: String, source_path: String) raises -> _Program:
     """Split one source program into imports, hoistable preamble, and
-    `main()`'s body.
-
-    Raises rather than guessing if there's no `main()` at all -- better
-    to fail the docs build with a clear reason than to silently drop a
-    chart from verification.
+    `main()`'s body. Raises if there is no `main()`.
     """
     var lines = _read_file(source_path).split("\n")
     var imports = List[String]()
@@ -149,12 +129,9 @@ def _parse(stem: String, source_path: String) raises -> _Program:
 
 
 def _collect(dir: String) raises -> List[_Program]:
-    """Every `*.mojo` directly in `dir`, parsed, in sorted order.
-
-    Sorted so a batch's membership is stable run to run (a batch whose
-    contents shuffled between runs would make a failure harder to
-    reproduce), and non-recursive so `docs/src/examples/quickstart/`
-    and this script's own `verify/` output are both left alone.
+    """Every `*.mojo` directly in `dir`, parsed, in sorted order so batch
+    membership is stable run to run; non-recursive so
+    `docs/src/examples/quickstart/` and `verify/` are left alone.
     """
     var entries = listdir(dir)
     sort(entries)
@@ -170,15 +147,10 @@ def _collect(dir: String) raises -> List[_Program]:
 
 
 def _emit(label: String, programs: List[_Program], batches: Int) raises -> Int:
-    """Write `programs` out as at most `batches` driver files. Returns
-    how many were actually written (fewer than `batches` if there are
-    fewer programs than that).
-
-    Members are strided (`range(b, n, batches)`) rather than taken in
-    contiguous chunks: both corpora are sorted by name and neighbouring
-    names are often the same mark family (`arc`/`arc_diagram`,
-    `horizontal_*`), so contiguous chunks would pile one family's
-    charts into a single batch.
+    """Write `programs` out as at most `batches` driver files, returning how
+    many were written. Members are strided (`range(b, n, batches)`)
+    rather than chunked, so neighbouring names from the same mark family
+    spread across batches.
     """
     var written = 0
     for b in range(batches):
