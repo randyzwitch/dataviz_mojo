@@ -326,6 +326,27 @@ struct Theme(ImplicitlyCopyable, Movable):
     """The ink for a negative value -- `Mark.BAR` when `color_by_sign`
     is `True`, and unconditionally for `Mark.WATERFALL`/`CANDLESTICK`,
     whose falling/down coloring isn't optional."""
+    var bullet_range_color_light: Color
+    """The lightest end of `Mark.BULLET`'s grayscale qualitative-range
+    band gradient (lowest range index)."""
+    var bullet_range_color_dark: Color
+    """The darkest end of `Mark.BULLET`'s grayscale qualitative-range
+    band gradient (highest range index)."""
+    var waterfall_total_color: Color
+    """`Mark.WATERFALL`'s third color, for a row `encode_waterfall()`'s
+    `is_total` marks as a running-total checkpoint -- deliberately
+    distinct from `mark_color`/`mark_color_negative` since a total bar
+    is a different kind of thing, not a big increase or decrease."""
+    var radialbar_track_color: Color
+    """The unfilled background track `Mark.RADIALBAR` sweeps its
+    rings over."""
+    var treemap_label_color: Color
+    """The label color drawn on a `Mark.TREEMAP` leaf rectangle."""
+    var radar_fill_alpha: UInt8
+    """The opacity `Mark.RADAR` blends each series' filled polygon at,
+    before flattening it against white -- a separate field from
+    `halo_alpha` even though both default to the same value, so
+    retheming one never silently moves the other."""
     var shape_by_category: Bool
     """Whether `Mark.POINT`/`SINGLE_AXIS`/`EFFECT_SCATTER` draws each
     `color_categories` row with a distinct point *shape* (`PointShape`,
@@ -450,6 +471,12 @@ struct Theme(ImplicitlyCopyable, Movable):
         scale: Float64 = 1.0,
         color_by_sign: Bool = False,
         mark_color_negative: Color = Color(200, 60, 60),
+        bullet_range_color_light: Color = Color(224, 224, 224),
+        bullet_range_color_dark: Color = Color(120, 120, 120),
+        waterfall_total_color: Color = Color(100, 100, 100),
+        radialbar_track_color: Color = Color(230, 230, 230),
+        treemap_label_color: Color = Color(255, 255, 255),
+        radar_fill_alpha: UInt8 = 90,
         shape_by_category: Bool = False,
         line_smoothing: Float64 = 0.0,
         title_font_size: Float64 = 18.0,
@@ -500,6 +527,12 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.scale = scale
         self.color_by_sign = color_by_sign
         self.mark_color_negative = mark_color_negative
+        self.bullet_range_color_light = bullet_range_color_light
+        self.bullet_range_color_dark = bullet_range_color_dark
+        self.waterfall_total_color = waterfall_total_color
+        self.radialbar_track_color = radialbar_track_color
+        self.treemap_label_color = treemap_label_color
+        self.radar_fill_alpha = radar_fill_alpha
         self.shape_by_category = shape_by_category
         self.line_smoothing = line_smoothing
         self.title_font_size = title_font_size

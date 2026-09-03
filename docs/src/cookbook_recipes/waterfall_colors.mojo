@@ -6,6 +6,7 @@ delta_width_fraction` controls how much of each band a delta bar fills.
 from dataviz import waterfall
 from dataviz.plot import save
 from dataviz.colors import SLATEGRAY
+from dataviz.theme import Theme
 
 def main() raises:
     var cats: List[String] = ["Start", "Product", "Services", "Refunds", "End"]
@@ -16,7 +17,7 @@ def main() raises:
         cats,
         deltas,
         is_total=is_total,
-        total_color=SLATEGRAY,
+        theme=Theme(waterfall_total_color=SLATEGRAY),
         delta_width_fraction=0.85,
         title="Cash Flow",
         subtitle="Starting/ending balances in a distinct color, wider delta bars",

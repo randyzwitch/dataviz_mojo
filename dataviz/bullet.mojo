@@ -141,8 +141,8 @@ def _render_bullet[
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
     var range_color_scale = ColorScale(0.0, 1.0)
-    range_color_scale.add_stop(0.0, plot._mark_style.bullet_range_color_light)
-    range_color_scale.add_stop(1.0, plot._mark_style.bullet_range_color_dark)
+    range_color_scale.add_stop(0.0, theme.bullet_range_color_light)
+    range_color_scale.add_stop(1.0, theme.bullet_range_color_dark)
 
     # Every one of these depends only on the scale and theme, never on
     # the category index -- computed once here, not recomputed inside
@@ -184,8 +184,6 @@ def bullet(
     measures: List[Float64],
     targets: List[Float64],
     ranges: List[List[Float64]],
-    range_color_light: Color = Color(224, 224, 224),
-    range_color_dark: Color = Color(120, 120, 120),
     measure_width_fraction: Float64 = 0.35,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -209,9 +207,6 @@ def bullet(
         ranges: Each category's own list of ascending qualitative-
             range thresholds (poor/satisfactory/good, ...), drawn as
             shaded background bands from lightest to darkest.
-        range_color_light: The lightest qualitative range band; defaults to a light
-            grey.
-        range_color_dark: The darkest qualitative range band; defaults to a mid grey.
         measure_width_fraction: The measure bar's thickness as a fraction of the band
             width; defaults to `0.35`.
         theme: Full styling knobs beyond this function's own
@@ -249,9 +244,7 @@ def bullet(
         ```
     """
     var plot = Plot().mark_bullet(
-        range_color_light=range_color_light,
-        range_color_dark=range_color_dark,
-        measure_width_fraction=measure_width_fraction,
+                        measure_width_fraction=measure_width_fraction,
     ).encode_bullet(
         categories=categories, measures=measures, targets=targets, ranges=ranges
     )
@@ -265,8 +258,6 @@ def bullet[
     measures: List[Scalar[dtype]],
     targets: List[Scalar[dtype]],
     ranges: List[List[Float64]],
-    range_color_light: Color = Color(224, 224, 224),
-    range_color_dark: Color = Color(120, 120, 120),
     measure_width_fraction: Float64 = 0.35,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -286,6 +277,6 @@ def bullet[
     """
     return bullet(
         categories, _materialize_scalar_list(measures), _materialize_scalar_list(targets), ranges,
-        range_color_light=range_color_light, range_color_dark=range_color_dark, measure_width_fraction=measure_width_fraction, theme=theme, width=width, height=height, title=title, subtitle=subtitle, x_title=x_title,
+        measure_width_fraction=measure_width_fraction, theme=theme, width=width, height=height, title=title, subtitle=subtitle, x_title=x_title,
         y_title=y_title,
     )

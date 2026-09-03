@@ -83,7 +83,7 @@ def _render_radialbar[
         var outer = max_radius - ring_slot * Float64(i) - gap / 2.0
         var inner = max_radius - ring_slot * Float64(i + 1) + gap / 2.0
         var color = palette[i % len(palette)]
-        target.fill_ring_sector_aa(cx, cy, inner, outer, start_angle, start_angle + 2.0 * pi, plot._mark_style.radialbar_track_color)
+        target.fill_ring_sector_aa(cx, cy, inner, outer, start_angle, start_angle + 2.0 * pi, theme.radialbar_track_color)
         var frac = plot.y_data[i] / max_v
         if frac > 0.0:
             target.fill_ring_sector_aa(cx, cy, inner, outer, start_angle, start_angle + 2.0 * pi * frac, color)
@@ -99,7 +99,6 @@ def _render_radialbar[
 def radialbar(
     categories: List[String],
     values: List[Float64],
-    track_color: Color = Color(230, 230, 230),
     ring_gap_fraction: Float64 = 0.25,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -125,8 +124,6 @@ def radialbar(
         values: Each ring's sweep, proportional to `value /
             max(values)`; every value must be non-negative, and at
             least one positive.
-        track_color: Fill for each ring's unfilled remainder; defaults to a
-            light grey.
         ring_gap_fraction: Gap between rings as a fraction of each ring's slot;
             defaults to `0.25`.
         theme: Full styling knobs beyond this function's own
@@ -155,7 +152,7 @@ def radialbar(
             save(c, "docs/src/examples/out_radialbar.svg")
         ```
     """
-    var plot = Plot().mark_radialbar(track_color=track_color, ring_gap_fraction=ring_gap_fraction).encode_categorical(x=categories, y=values)
+    var plot = Plot().mark_radialbar(ring_gap_fraction=ring_gap_fraction).encode_categorical(x=categories, y=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
 
@@ -164,7 +161,6 @@ def radialbar[
 ](
     categories: List[String],
     values: List[Scalar[dtype]],
-    track_color: Color = Color(230, 230, 230),
     ring_gap_fraction: Float64 = 0.25,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -179,6 +175,6 @@ def radialbar[
     full reasoning. Delegates to the concrete `radialbar()` above.
     """
     return radialbar(
-        categories, _materialize_scalar_list(values), track_color=track_color, ring_gap_fraction=ring_gap_fraction, theme=theme, width=width, height=height,
+        categories, _materialize_scalar_list(values), ring_gap_fraction=ring_gap_fraction, theme=theme, width=width, height=height,
         title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
     )

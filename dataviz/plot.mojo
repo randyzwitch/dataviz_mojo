@@ -372,21 +372,20 @@ struct _MarkStyle(Movable):
     parameter (or the equivalent one-call convenience function).
 
     These lived on `Theme` until they were moved here. `Theme` had
-    grown to 67 fields, roughly a third of which no more than one mark
-    ever read, so "swap the theme" meant swapping every mark's internal
-    geometry along with the palette, and `Theme`'s constructor grew two
-    or three arguments with every new mark. What's left on `Theme` is
-    what genuinely spans marks: colors, fonts, margins, gridlines,
-    legends, scale.
+    grown to 67 fields, and a third of them were geometry no more than
+    one mark ever read, so "swap the theme" also swapped every mark's
+    internal proportions, and `Theme`'s constructor gained two or three
+    arguments with every new mark.
 
-    The tradeoff taken deliberately here: a per-mark *color*
-    (`treemap_label_color`, `radialbar_track_color`, the bullet range
-    pair, `waterfall_total_color`) can no longer travel inside a
-    reusable `Theme`, so a dark theme can't fix treemap label contrast
-    on its own -- a caller wanting that passes `label_color` at the
-    call site. One rule (a field read by one mark belongs to that mark)
-    was preferred over a split that kept colors on `Theme` and moved
-    only geometry.
+    The line drawn is deliberate: a `Theme` is what a *theme* can
+    restyle, and these are not that. Per-mark **colors** stayed on
+    `Theme` (`treemap_label_color`, `radialbar_track_color`,
+    `waterfall_total_color`, the bullet range pair, `radar_fill_alpha`)
+    precisely because a dark theme has to be able to fix treemap label
+    contrast on its own, without every caller passing a color at every
+    call site. What moved here is geometry -- angles, ring counts,
+    width fractions -- which describes one chart's proportions rather
+    than a look that should travel across charts.
 
     Field names keep their mark prefix -- `gauge_start_angle`, not
     `start_angle` -- since they all share this one struct and several
@@ -398,16 +397,10 @@ struct _MarkStyle(Movable):
     """
 
     var donut_inner_radius_fraction: Float64
-    var bullet_range_color_light: Color
-    var bullet_range_color_dark: Color
     var bullet_measure_width_fraction: Float64
-    var waterfall_total_color: Color
     var waterfall_delta_width_fraction: Float64
     var chord_ring_fraction: Float64
-    var radialbar_track_color: Color
     var radialbar_ring_gap_fraction: Float64
-    var treemap_label_color: Color
-    var radar_fill_alpha: UInt8
     var radar_grid_rings: Int
     var violin_width_fraction: Float64
     var corrplot_bubble_fraction: Float64
@@ -423,16 +416,10 @@ struct _MarkStyle(Movable):
 
     def __init__(out self):
         self.donut_inner_radius_fraction = 0.0
-        self.bullet_range_color_light = Color(224, 224, 224)
-        self.bullet_range_color_dark = Color(120, 120, 120)
         self.bullet_measure_width_fraction = 0.35
-        self.waterfall_total_color = Color(100, 100, 100)
         self.waterfall_delta_width_fraction = 0.6
         self.chord_ring_fraction = 0.08
-        self.radialbar_track_color = Color(230, 230, 230)
         self.radialbar_ring_gap_fraction = 0.25
-        self.treemap_label_color = Color(255, 255, 255)
-        self.radar_fill_alpha = 90
         self.radar_grid_rings = 4
         self.violin_width_fraction = 0.4
         self.corrplot_bubble_fraction = 0.42
@@ -829,7 +816,7 @@ struct Plot(Movable):
         self._mark_style.polar_bar_padding = padding
         return self^
 
-    def mark_radialbar(var self, track_color: Color = Color(230, 230, 230), ring_gap_fraction: Float64 = 0.25) -> Self:
+    def mark_radialbar(var self, ring_gap_fraction: Float64 = 0.25) -> Self:
         """A radial (multi-ring) progress chart: one full concentric
         ring per category, swept clockwise from 12 o'clock over a
         light-gray track to `value / max(values)` of the way around --
@@ -840,7 +827,6 @@ struct Plot(Movable):
         be non-negative, and at least one must be positive -- checked
         at render() time, the same as `mark_polar_bar()`."""
         self._mark = Mark.RADIALBAR
-        self._mark_style.radialbar_track_color = track_color
         self._mark_style.radialbar_ring_gap_fraction = ring_gap_fraction
         return self^
 
@@ -859,12 +845,11 @@ struct Plot(Movable):
         self._mark_style.polar_grid_spokes = grid_spokes
         return self^
 
-    def mark_radar(var self, fill_alpha: UInt8 = 90, grid_rings: Int = 4) -> Self:
+    def mark_radar(var self, grid_rings: Int = 4) -> Self:
         """A radar/spider chart: one spoke per named indicator, one
         polygon per named series -- encoded via `encode_radar()`, not
         `encode()`/`encode_categorical()` (see that method's docstring for the full shape)."""
         self._mark = Mark.RADAR
-        self._mark_style.radar_fill_alpha = fill_alpha
         self._mark_style.radar_grid_rings = grid_rings
         return self^
 
@@ -915,16 +900,13 @@ struct Plot(Movable):
         self._horizontal = horizontal
         return self^
 
-    def mark_waterfall(
-        var self, total_color: Color = Color(100, 100, 100), delta_width_fraction: Float64 = 0.6
-    ) -> Self:
+    def mark_waterfall(var self, delta_width_fraction: Float64 = 0.6) -> Self:
         """A waterfall chart: one floating bar per category, each
         running from the previous bar's cumulative total to the
         next -- encoded via `encode_waterfall()` (a category + a
         *signed delta*, not `encode_categorical()`'s plain value; see
         that method's docstring)."""
         self._mark = Mark.WATERFALL
-        self._mark_style.waterfall_total_color = total_color
         self._mark_style.waterfall_delta_width_fraction = delta_width_fraction
         return self^
 
@@ -956,20 +938,13 @@ struct Plot(Movable):
         self._mark = Mark.CANDLESTICK
         return self^
 
-    def mark_bullet(
-        var self,
-        range_color_light: Color = Color(224, 224, 224),
-        range_color_dark: Color = Color(120, 120, 120),
-        measure_width_fraction: Float64 = 0.35,
-    ) -> Self:
+    def mark_bullet(var self, measure_width_fraction: Float64 = 0.35) -> Self:
         """A bullet chart (Stephen Few's design): one measure-vs-target-
         against-qualitative-ranges composite per category, encoded via
         `encode_bullet()` -- a category plus a measure, a target, and a
         whole list of range thresholds, not `encode_categorical()`'s
         single value."""
         self._mark = Mark.BULLET
-        self._mark_style.bullet_range_color_light = range_color_light
-        self._mark_style.bullet_range_color_dark = range_color_dark
         self._mark_style.bullet_measure_width_fraction = measure_width_fraction
         return self^
 
@@ -1080,13 +1055,12 @@ struct Plot(Movable):
         self._mark = Mark.TREE
         return self^
 
-    def mark_treemap(var self, label_color: Color = Color(255, 255, 255)) -> Self:
+    def mark_treemap(var self) -> Self:
         """A treemap: a hierarchy laid out as nested, area-proportional
         rectangles via slice-and-dice -- encoded via `encode_hierarchy()`,
         the same shape `mark_sunburst()`/`mark_tree()` use (see that
         method's docstring)."""
         self._mark = Mark.TREEMAP
-        self._mark_style.treemap_label_color = label_color
         return self^
 
     def mark_grouped_bar(var self, horizontal: Bool = False) -> Self:

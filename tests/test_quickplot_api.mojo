@@ -115,7 +115,6 @@ from dataviz import (
     waterfall,
 )
 from dataviz.plot import Plot, render, render_svg
-from dataviz.colors import RED
 from dataviz.theme import Theme
 from std.testing import TestSuite, assert_equal
 
@@ -207,14 +206,15 @@ def test_waterfall_matches_manual_plot() raises:
     var cats: List[String] = ["start", "delta", "end"]
     var deltas: List[Float64] = [10.0, -3.0, 0.0]
     var is_total: List[Bool] = [True, False, True]
+    var t = Theme(waterfall_total_color=Color(1, 2, 3))
     var _hoisted7 = waterfall(
-        cats, deltas, is_total=is_total, total_color=Color(1, 2, 3), width=300, height=200
+        cats, deltas, is_total=is_total, theme=t, width=300, height=200
     )
     var got = render(_hoisted7)
 
-    var want_plot = Plot().mark_waterfall(total_color=Color(1, 2, 3)).encode_waterfall(
+    var want_plot = Plot().mark_waterfall().encode_waterfall(
         categories=cats, deltas=deltas, is_total=is_total
-    ).size(300, 200)
+    ).theme(t).size(300, 200)
     _assert_canvas_equal(got, render(want_plot), "waterfall")
 
 
@@ -251,15 +251,15 @@ def test_bullet_matches_manual_plot() raises:
     var measures: List[Float64] = [70.0, 40.0]
     var targets: List[Float64] = [80.0, 60.0]
     var ranges: List[List[Float64]] = [[50.0, 75.0, 100.0], [50.0, 75.0, 100.0]]
+    var t = Theme(bullet_range_color_dark=Color(11, 12, 13))
     var _hoisted10 = bullet(
-        cats, measures, targets, ranges, range_color_dark=Color(11, 12, 13), width=300, height=200
+        cats, measures, targets, ranges, theme=t, width=300, height=200
     )
     var got = render(_hoisted10)
 
     var want_plot = (
-        Plot().mark_bullet(range_color_dark=Color(11, 12, 13))
-        .encode_bullet(categories=cats, measures=measures, targets=targets, ranges=ranges)
-        .size(300, 200)
+        Plot().mark_bullet().encode_bullet(categories=cats, measures=measures, targets=targets, ranges=ranges)
+        .theme(t).size(300, 200)
     )
     _assert_canvas_equal(got, render(want_plot), "bullet")
 
@@ -749,14 +749,16 @@ def test_dtype_generic_overloads_forward_their_mark_style_parameters() raises:
     var _p_con = pie(cats, vals_f, inner_radius_fraction=0.55, width=300, height=300)
     _assert_canvas_equal(render(_p_gen), render(_p_con), "pie inner_radius_fraction")
 
-    # treemap(): a Color-typed parameter, the other shape these take.
-    var ids: List[String] = ["root", "a", "b"]
-    var parents: List[String] = ["", "root", "root"]
-    var tv_f: List[Float64] = [0.0, 3.0, 1.0]
-    var tv_i: List[Int] = [0, 3, 1]
-    var _t_gen = treemap(ids, parents, tv_i, label_color=RED, width=300, height=200)
-    var _t_con = treemap(ids, parents, tv_f, label_color=RED, width=300, height=200)
-    _assert_canvas_equal(render(_t_gen), render(_t_con), "treemap label_color")
+    # radar(): an Int-typed parameter, the other shape these take --
+    # here the generic axis is the per-series value lists.
+    var inds: List[String] = ["a", "b", "c"]
+    var maxes: List[Float64] = [10.0, 10.0, 10.0]
+    var names: List[String] = ["s1"]
+    var sv_f: List[List[Float64]] = [[3.0, 6.0, 9.0]]
+    var sv_i: List[List[Int]] = [[3, 6, 9]]
+    var _r_gen = radar(inds, maxes, names, sv_i, grid_rings=7, width=300, height=250)
+    var _r_con = radar(inds, maxes, names, sv_f, grid_rings=7, width=300, height=250)
+    _assert_canvas_equal(render(_r_gen), render(_r_con), "radar grid_rings")
 
 
 def main() raises:

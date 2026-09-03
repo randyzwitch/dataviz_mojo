@@ -103,7 +103,7 @@ def _render_waterfall[
     sign unconditionally (`theme.mark_color_negative`/`mark_color`, not
     gated by `Theme.color_by_sign` the way `Mark.BAR`'s diverging
     coloring is -- see `encode_waterfall()`'s docstring for why). A
-    total row colors `plot._mark_style.waterfall_total_color` instead and always
+    total row colors `theme.waterfall_total_color` instead and always
     draws the *full* band width (`Mark.BAR`'s convention).
 
     A delta row draws narrower than the full band (`theme.waterfall_
@@ -209,7 +209,7 @@ def _render_waterfall[
         var y1_py = _axis_pixel(frame.y_scale, plot._waterfall.y1[i])
         var rect = _pull_off_axis_line(y0_py, y1_py, frame.py1)
         var bar_color = (
-            plot._mark_style.waterfall_total_color
+            theme.waterfall_total_color
             if row_is_total
             else (theme.mark_color_negative if plot.y_data[i] < 0.0 else theme.mark_color)
         )
@@ -239,7 +239,6 @@ def waterfall(
     categories: List[String],
     deltas: List[Float64],
     is_total: List[Bool] = List[Bool](),
-    total_color: Color = Color(100, 100, 100),
     delta_width_fraction: Float64 = 0.6,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -264,7 +263,6 @@ def waterfall(
             instead of a plain rising/falling delta. Left empty (the
             default), every row is a plain delta -- unchanged
             original behavior.
-        total_color: Fill for the start/end total bars; defaults to a mid grey.
         delta_width_fraction: A delta bar's width as a fraction of the band width;
             defaults to `0.6`.
         theme: Full styling knobs beyond this function's own
@@ -295,7 +293,7 @@ def waterfall(
             save(c, "docs/src/examples/out_waterfall.svg")
         ```
     """
-    var plot = Plot().mark_waterfall(total_color=total_color, delta_width_fraction=delta_width_fraction).encode_waterfall(categories=categories, deltas=deltas, is_total=is_total)
+    var plot = Plot().mark_waterfall(delta_width_fraction=delta_width_fraction).encode_waterfall(categories=categories, deltas=deltas, is_total=is_total)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
 
@@ -305,7 +303,6 @@ def waterfall[
     categories: List[String],
     deltas: List[Scalar[dtype]],
     is_total: List[Bool] = List[Bool](),
-    total_color: Color = Color(100, 100, 100),
     delta_width_fraction: Float64 = 0.6,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -320,6 +317,6 @@ def waterfall[
     full reasoning. Delegates to the concrete `waterfall()` above.
     """
     return waterfall(
-        categories, _materialize_scalar_list(deltas), is_total=is_total, total_color=total_color, delta_width_fraction=delta_width_fraction, theme=theme, width=width,
+        categories, _materialize_scalar_list(deltas), is_total=is_total, delta_width_fraction=delta_width_fraction, theme=theme, width=width,
         height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
     )

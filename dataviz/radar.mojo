@@ -151,7 +151,7 @@ def _render_radar[
             else:
                 poly.line_to(pt.x, pt.y)
         poly.close()
-        target.fill_path_aa(poly, _lighten(color, plot._mark_style.radar_fill_alpha))
+        target.fill_path_aa(poly, _lighten(color, theme.radar_fill_alpha))
         target.stroke_path_aa(poly, color, sc.line_width)
 
     # Axis labels, placed just outside each spoke's tip -- aligned
@@ -192,7 +192,6 @@ def radar(
     max_values: List[Float64],
     series_names: List[String],
     series_values: List[List[Float64]],
-    fill_alpha: UInt8 = 90,
     grid_rings: Int = 4,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -212,7 +211,6 @@ def radar(
         series_names: One polygon per name, used as the legend key.
         series_values: `series_values[j]` is `series_names[j]`'s
             value per indicator.
-        fill_alpha: Alpha for each series' filled polygon; defaults to `90`.
         grid_rings: How many concentric web rings to draw; defaults to `4`.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
@@ -245,7 +243,7 @@ def radar(
             save(c, "docs/src/examples/out_radar.svg")
         ```
     """
-    var plot = Plot().mark_radar(fill_alpha=fill_alpha, grid_rings=grid_rings).encode_radar(
+    var plot = Plot().mark_radar(grid_rings=grid_rings).encode_radar(
         indicators=indicators,
         max_values=max_values,
         series_names=series_names,
@@ -261,7 +259,6 @@ def radar[
     max_values: List[Float64],
     series_names: List[String],
     series_values: List[List[Scalar[dtype]]],
-    fill_alpha: UInt8 = 90,
     grid_rings: Int = 4,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -279,7 +276,7 @@ def radar[
     list axis instead. Delegates to the concrete `radar()` above.
     """
     return radar(
-        indicators, max_values, series_names, _materialize_nested_scalar_list(series_values), fill_alpha=fill_alpha, grid_rings=grid_rings, theme=theme,
+        indicators, max_values, series_names, _materialize_nested_scalar_list(series_values), grid_rings=grid_rings, theme=theme,
         width=width, height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
     )
 
@@ -291,7 +288,6 @@ def radar[
     max_values: List[Scalar[dtype]],
     series_names: List[String],
     series_values: List[List[Float64]],
-    fill_alpha: UInt8 = 90,
     grid_rings: Int = 4,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -308,6 +304,6 @@ def radar[
     Delegates to the concrete `radar()` above.
     """
     return radar(
-        indicators, _materialize_scalar_list(max_values), series_names, series_values, fill_alpha=fill_alpha, grid_rings=grid_rings, theme=theme,
+        indicators, _materialize_scalar_list(max_values), series_names, series_values, grid_rings=grid_rings, theme=theme,
         width=width, height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
     )
