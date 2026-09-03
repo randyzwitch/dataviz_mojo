@@ -17,7 +17,7 @@ from dataviz.plot import (
     _min_max,
     _finished,
 )
-from dataviz.scale import LinearScale
+from dataviz.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.theme import Theme
 
 comptime _KDE_SAMPLES = 30
@@ -131,6 +131,19 @@ def _draw_violin_silhouettes[
             densities.append(d)
             max_density = max(max_density, d)
 
+        if theme.svg_tooltips:
+            # A silhouette encodes a distribution, not a value, so the
+            # useful hover text is what shaped it: how many points went
+            # in, and over what range.
+            target.begin_annotated_group(
+                plot.x_categories[i]
+                + ": n="
+                + String(len(values))
+                + ", range "
+                + _format_fixed(mm.min, _label_decimals(mm.min))
+                + "-"
+                + _format_fixed(mm.max, _label_decimals(mm.max))
+            )
         var path = Path()
         var scale = (half_extent * count_factor) / max_density if max_density > 0.0 else 0.0
         orient.path_move_to(
@@ -152,6 +165,8 @@ def _draw_violin_silhouettes[
             )
         path.close()
         target.fill_path_aa(path, theme.mark_color)
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
 
 def _render_violin[

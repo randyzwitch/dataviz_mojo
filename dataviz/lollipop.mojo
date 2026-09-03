@@ -9,6 +9,7 @@ from dataviz.plot import (
     Plot,
     _Orientation,
     _RenderResult,
+    _tooltip_label,
     _draw_categorical_axis_frame,
     _empty_result,
     _finished,
@@ -58,12 +59,18 @@ def _draw_lollipop_stems[
             if (baseline_on_axis_line and value != baseline)
             else baseline
         )
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _tooltip_label(plot.x_categories[i], plot.y_data[i])
+            )
         target.stroke_path_aa(
             orient.value_stem_path(stem_from, value, center), theme.mark_color, width=line_width
         )
         orient.band_point(
             target, _round_to_int(value), _round_to_int(center), radius, theme.mark_color
         )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
 
 def _render_lollipop[
