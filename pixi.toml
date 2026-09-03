@@ -94,16 +94,36 @@ pandas = ">=2.0,<3"
 # ~4.6% of CPU and ~0.4% of wall -- not worth a build step that can go
 # stale.
 #
-# What the suite actually spends its time on, if anyone picks this up
-# again: a test file that only imports a leaf module costs 23 CPU-s
-# cold (test_scale.mojo), one that renders anything costs 60-85. The
-# gap is `_render_generic[T: DrawTarget]`, which names every one of the
-# ~50 `_render_*` functions, so a single `render()` call monomorphizes
-# the entire mark dispatch tree -- ~50 CPU-s whether the test draws a
-# bar chart or a sankey, paid once per process and so 86 times per run.
-# Merging the 7 tests/test_horizontal_*.mojo files into one (identical
-# 32 tests, all passing) drops 401 CPU-s to 95, a 4.2x cut, purely by
-# paying that cost once instead of seven times.
+# What the suite actually spends its time on, and why tests/ is laid
+# out the way it is: a test file that only imports a leaf module costs
+# 23 CPU-s cold, one that renders anything costs 60-85. The gap is
+# `_render_generic[T: DrawTarget]`, which names every one of the ~50
+# `_render_*` functions, so a single `render()` call monomorphizes the
+# entire mark dispatch tree -- ~50 CPU-s whether the test draws a bar
+# chart or a sankey. That cost is per *process*, not per test, so it is
+# paid once per file no matter how many tests the file holds.
+#
+# So the 86 one-mark-per-file test modules were merged into 12 family
+# modules (test_marks_basic.mojo, test_marks_polar.mojo,
+# test_horizontal.mojo, ...), each keeping its sources' own tests and
+# docstrings verbatim under a `# from tests/test_<name>.mojo` banner.
+# Same 600 tests, cold, two runs each:
+#
+#   86 files   6956 / 7013 CPU-s   (127s / 126s wall, 64 cores)
+#   13 files   1344 / 1334 CPU-s   ( 63s /  61s wall)
+#
+# 5.2x less CPU, which is what a 2-4 core CI runner is actually
+# bottlenecked on. test_numpy_interop.mojo stays its own file: it is
+# the only test needing a real numpy in the environment, so an import
+# failure there stays attributable instead of taking an unrelated
+# family down with it.
+#
+# The tradeoff is coarser failure attribution -- a red X now names a
+# family rather than a mark. Test function names were already unique
+# across all 86 files and were kept unchanged, so the failing test
+# name still identifies exactly which mark broke. Add new tests to the
+# family module they belong to rather than starting a new file, or
+# this grows back one file at a time.
 #
 # EXCEPTION: docs/src/examples/quickstart/ (step1..step5_quickplot.mojo
 # + their out_*.svg) is NOT part of this pipeline -- this task's own
