@@ -3,6 +3,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
+from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
     _BaselineRect,
@@ -14,6 +15,7 @@ from dataviz.plot import (
     _empty_result,
     _finished,
 )
+from dataviz.scale import LinearScale
 from dataviz.theme import Theme
 
 

@@ -1,3 +1,4 @@
+from canvas.color import Color
 from canvas.geometry import _round_to_int
 from canvas.vector.draw_target import DrawTarget
 
@@ -6,7 +7,7 @@ from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.grouped_bar import _draw_series_legend, _series_legend_reserve, _validate_grouped_bar_series
-from dataviz.scale import LinearScale
+from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -20,7 +21,7 @@ from dataviz.plot import (
     _finished,
     _zero_baseline_y_extent,
 )
-from dataviz.scale import _format_fixed, _label_decimals
+from dataviz.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.theme import Theme
 
 

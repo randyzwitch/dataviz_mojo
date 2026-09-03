@@ -6,6 +6,7 @@ from canvas.text.render import TextAlign
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
+from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -21,7 +22,7 @@ from dataviz.plot import (
     _finished,
     _zero_baseline_y_extent,
 )
-from dataviz.scale import _format_fixed, _label_decimals
+from dataviz.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.theme import Theme
 
 
