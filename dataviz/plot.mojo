@@ -3802,6 +3802,52 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         else:
             target.draw_line_aa(across_a, along, across_b, along, color, width=width)
 
+    def baseline_pull(self) -> Float64:
+        """Which direction is *into* the plot area, away from the
+        categorical axis line -- `-1.0` vertically (that line is the
+        frame's bottom, so pulling off it means smaller y) and `+1.0`
+        horizontally (it is the frame's left edge, so larger x).
+
+        Used to nudge a stroked mark 1px clear of the axis line so it
+        doesn't paint over the row that line's own antialiasing
+        occupies. `_pull_off_axis_line` does the same job for filled
+        rects, which is why it needs no equivalent -- it is handed both
+        edges and works out the span itself.
+        """
+        return 1.0 if self.horizontal else -1.0
+
+    def path_move_to(self, mut path: Path, along: Float64, across: Float64) raises:
+        """`Path.move_to` in band/value terms rather than x/y -- for a
+        mark whose outline is built point by point (a violin's KDE
+        silhouette) rather than from rects and lines."""
+        if self.horizontal:
+            path.move_to(along, across)
+        else:
+            path.move_to(across, along)
+
+    def path_line_to(self, mut path: Path, along: Float64, across: Float64) raises:
+        """`Path.line_to` in band/value terms -- see `path_move_to`."""
+        if self.horizontal:
+            path.line_to(along, across)
+        else:
+            path.line_to(across, along)
+
+    def value_stem_path(
+        self, along_from: Float64, along_to: Float64, across: Float64
+    ) raises -> Path:
+        """A straight two-point `Path` running along the value axis at
+        a fixed band position -- a lollipop's stem. A `Path` rather
+        than `value_line` because it is stroked at `Theme.line_width`
+        through `stroke_path_aa`, not drawn as a 1px `draw_line_aa`."""
+        var stem = Path()
+        if self.horizontal:
+            stem.move_to(along_from, across)
+            stem.line_to(along_to, across)
+        else:
+            stem.move_to(across, along_from)
+            stem.line_to(across, along_to)
+        return stem^
+
     def band_point[
         T: DrawTarget
     ](self, mut target: T, along: Int, across: Int, radius: Int, color: Color):
