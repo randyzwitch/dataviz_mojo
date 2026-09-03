@@ -2494,8 +2494,11 @@ struct Plot(Movable):
         Narrower mark support: only `Mark.POINT`/`LINE`/`AREA`/
         `EFFECT_SCATTER`, the marks with a continuous x-axis; a categorical
         x-axis has no numeric value to place a line against (see
-        `_RenderResult`). Raises on an unsupported mark. Wired into
-        `render()`/`render_svg()` only, not facets/layers.
+        `_RenderResult`). Raises on an unsupported mark. Also wired into
+        `render_facets()` (per cell) and `render_layers()` (per layer,
+        against the one shared continuous x-scale every layer uses --
+        raises on a `Mark.BAR` combo chart's categorical x-axis instead,
+        same as a standalone unsupported mark).
 
         Args:
             value: The x-value to draw the line at. Outside the
@@ -2522,8 +2525,10 @@ struct Plot(Movable):
 
         Needs a continuous coordinate on both axes, so only `Mark.POINT`/
         `LINE`/`AREA`/`EFFECT_SCATTER` support it; raises otherwise. A point
-        outside the padded domain on either axis draws nothing. Wired into
-        `render()`/`render_svg()` only, not facets/layers.
+        outside the padded domain on either axis draws nothing. Also wired
+        into `render_facets()` (per cell) and `render_layers()` (per layer,
+        against that layer's own primary or secondary y-scale and the one
+        shared x-scale).
 
         Args:
             x: The point's x-coordinate. Outside the mark's (padded)
@@ -2566,8 +2571,8 @@ struct Plot(Movable):
 
         Only `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER`, as for
         `annotate_point()`. A band is clipped to the overlapping range on
-        both axes; one with no overlap draws nothing. Wired into `render()`/
-        `render_svg()` only.
+        both axes; one with no overlap draws nothing. Same facets/layers
+        wiring as `annotate_point()`.
 
         Args:
             x: The band's x column, one entry per (`y_lower`, `y_upper`)
@@ -2609,7 +2614,10 @@ struct Plot(Movable):
 
         Only `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER`. Raises at render()
         time with fewer than 2 points or when every `x` value is identical.
-        Wired into `render()`/`render_svg()` only.
+        Also wired into `render_facets()` (per cell, fit to that cell's own
+        data) and `render_layers()` (per layer, fit to that layer's own
+        data against its primary or secondary y-scale and the shared
+        x-scale).
 
         Args:
             show_equation: Draw the fitted line's own `y = mx + b`
@@ -5636,10 +5644,10 @@ def _render_facets_generic[
     `cols` columns, enough rows to fit `len(plots)`; a partial final row
     leaves cells blank. Each cell is laid out as a standalone render
     would lay out the whole target, with its own `Plot.labels()` titles
-    and `annotate_area()`/`annotate_line()` annotations, by pointing
-    `_render_generic`'s bounds at the cell's label-shrunk rect. Cell
-    boundaries are `width * col // cols`, so adjacent cells share the
-    exact boundary pixel.
+    and every `annotate_*()` kind (areas, bands, lines, vlines, points,
+    best_fit), by pointing `_render_generic`'s bounds at the cell's
+    label-shrunk rect. Cell boundaries are `width * col // cols`, so
+    adjacent cells share the exact boundary pixel.
 
     `shared_y_scale` gives every cell one y-domain (`_data_extent` over
     the union of every cell's `y_data`). Only `Mark.POINT`/`LINE`/
@@ -5695,13 +5703,35 @@ def _render_facets_generic[
         var label_requests = _label_text_requests(
             plots[i], cell_x0, cell_y0, cell_x1, cell_y1, cell_result.px0, cell_result.py0, cell_result.px1, cell_result.py1
         )
-        # Each cell's annotations draw against that cell's own y_scale, areas
-        # before lines, as in a standalone render.
+        # Each cell's annotations draw against that cell's own x/y scale, in
+        # the same order a standalone render uses (areas and bands
+        # underneath, then lines/vlines, points on top, best_fit last).
+        # cell_result comes straight from _render_generic, so a continuous
+        # mark's cell carries a real x_scale/y_scale and a categorical
+        # mark's cell correctly has has_x_scale=False -- each pass below
+        # raises its own "no continuous axis" error exactly as it would for
+        # a standalone plot, with no extra branching needed here.
         var cell_area_requests = _draw_annotation_areas(target, plots[i], cell_result, plots[i]._theme)
+        var cell_band_requests = _draw_annotation_bands(
+            target, plots[i], cell_result, plots[i]._theme
+        )
+        var cell_vline_requests = _draw_annotation_vlines(
+            target, plots[i], cell_result, plots[i]._theme
+        )
         var cell_line_requests = _draw_annotation_lines(target, plots[i], cell_result, plots[i]._theme)
+        var cell_point_requests = _draw_annotation_points(
+            target, plots[i], cell_result, plots[i]._theme
+        )
+        var cell_best_fit_requests = _draw_annotation_best_fit(
+            target, plots[i], cell_result, plots[i]._theme
+        )
         _extend_text_requests(text_requests, label_requests)
         _extend_text_requests(text_requests, cell_area_requests)
+        _extend_text_requests(text_requests, cell_band_requests)
+        _extend_text_requests(text_requests, cell_vline_requests)
         _extend_text_requests(text_requests, cell_line_requests)
+        _extend_text_requests(text_requests, cell_point_requests)
+        _extend_text_requests(text_requests, cell_best_fit_requests)
         _extend_text_requests(text_requests, cell_result.text_requests)
 
     return text_requests^
@@ -5880,6 +5910,8 @@ def _render_bar_combo_layers[
             or len(plots[i]._annotations.area_y0) > 0
             or len(plots[i]._annotations.vline_values) > 0
             or len(plots[i]._annotations.point_x) > 0
+            or len(plots[i]._annotations.band_x) > 0
+            or plots[i]._annotations.best_fit
         )
         if has_annotations:
             raise Error(
@@ -5998,10 +6030,16 @@ def _render_layers_generic[
     and gets its own (zero-baselined if any layer in its group is
     `Mark.AREA`, else `_data_extent`), drawn mirrored on the right edge
     (axis line, ticks, labels, no gridlines) with its width reserved
-    between the plot rect and the legend column. Each layer's
-    `annotate_area()`/`annotate_line()` draw last against that layer's
-    own y-scale. Returns a `_RenderResult` whose inner rect centers
-    `plots[0]`'s titles.
+    between the plot rect and the legend column. Each layer's own
+    `annotate_*()` (areas, bands, lines, vlines, points, best_fit) draw
+    last against that layer's own y-scale and the one shared x-scale
+    (there is no secondary x-axis). Returns a `_RenderResult` whose inner
+    rect centers `plots[0]`'s titles.
+
+    Not reached by a `Mark.BAR` combo chart (`_render_bar_combo_layers`,
+    dispatched below before any of this runs): that path rejects every
+    `annotate_*()` kind outright rather than drawing them against its
+    categorical x-axis.
     """
     var text_requests = List[_TextRequest]()
     if len(plots) == 0:
@@ -6216,20 +6254,46 @@ def _render_layers_generic[
         elif plots[j]._mark == Mark.AREA:
             _draw_area_layer(target, plots[j], frame.x_scale, layer_y_scale)
 
-    # Each layer's annotate_area()/annotate_line() draw last, against that
-    # layer's own y_scale (primary or secondary). A throwaway
-    # _RenderResult per layer, built from the shared rect plus that
-    # layer's y_scale, is enough to reuse the annotation functions
-    # unmodified.
+    # Each layer's annotate_*() draws last, against that layer's own
+    # y_scale (primary or secondary) and the one shared x_scale (there is
+    # no secondary x-axis). A throwaway _RenderResult per layer, built from
+    # the shared rect plus that layer's y_scale and the frame's x_scale, is
+    # enough to reuse every annotation function unmodified -- same order a
+    # standalone render uses (areas and bands underneath, then lines/
+    # vlines, points on top, best_fit last).
     for j in range(len(plots)):
         var layer_y_scale = out_y_scale2 if plots[j]._secondary_axis else frame.y_scale
         var layer_result = _RenderResult(
-            List[_TextRequest](), frame.px0, frame.py0, frame.px1, frame.py1, layer_y_scale, True
+            List[_TextRequest](),
+            frame.px0,
+            frame.py0,
+            frame.px1,
+            frame.py1,
+            layer_y_scale,
+            True,
+            frame.x_scale,
+            True,
         )
         var layer_area_requests = _draw_annotation_areas(target, plots[j], layer_result, plots[j]._theme)
+        var layer_band_requests = _draw_annotation_bands(
+            target, plots[j], layer_result, plots[j]._theme
+        )
+        var layer_vline_requests = _draw_annotation_vlines(
+            target, plots[j], layer_result, plots[j]._theme
+        )
         var layer_line_requests = _draw_annotation_lines(target, plots[j], layer_result, plots[j]._theme)
+        var layer_point_requests = _draw_annotation_points(
+            target, plots[j], layer_result, plots[j]._theme
+        )
+        var layer_best_fit_requests = _draw_annotation_best_fit(
+            target, plots[j], layer_result, plots[j]._theme
+        )
         _extend_text_requests(text_requests, layer_area_requests)
+        _extend_text_requests(text_requests, layer_band_requests)
+        _extend_text_requests(text_requests, layer_vline_requests)
         _extend_text_requests(text_requests, layer_line_requests)
+        _extend_text_requests(text_requests, layer_point_requests)
+        _extend_text_requests(text_requests, layer_best_fit_requests)
 
     return _RenderResult(text_requests^, frame.px0, frame.py0, frame.px1, frame.py1)
 

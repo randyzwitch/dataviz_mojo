@@ -19,7 +19,7 @@
   .labels(y_title=...), rotated the opposite way from the primary.
 """
 
-from _test_helpers import BG, _assert_color, _count_color
+from _test_helpers import BG, _assert_color, _assert_near_color, _count_color
 from canvas.color import Color
 from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
 from dataviz.color_scale import default_categorical_palette
@@ -78,6 +78,85 @@ def test_render_layers_shares_one_domain_across_a_line_and_a_point() raises:
         "the layered line",
     )
     assert_true('<circle cx="220" cy="135" r="5" fill="#ff0000"/>' in s, "the layered point, same shared domain")
+
+
+def test_render_layers_annotate_vline_and_point_match_standalone_hand_derived_positions() raises:
+    # #204: annotate_vline()/annotate_point() used to be silently dropped by
+    # render_layers()/render_layers_svg() (only annotate_area()/
+    # annotate_line() were wired in). A single-layer list reuses exactly
+    # the same plot/theme/size as test_annotations.mojo's own standalone
+    # "hand-derived position" tests for these two annotate_*() kinds, so
+    # the pixel/SVG values here are identical to those: the frame this one
+    # layer gets is the same continuous axis frame a standalone render of
+    # the same plot would build. annotate_vline(1.5) -> px=220; the point
+    # at (1.2, 15.0) -> (133, 135).
+    var x: List[Float64] = [1.0, 2.0]
+    var y: List[Float64] = [10.0, 20.0]
+    var line = Plot().mark_line().encode(x=x, y=y).annotate_vline(1.5, label="mid").annotate_point(
+        1.2, 15.0, label="here"
+    ).theme(Theme(show_gridlines=False)).size(400, 300)
+    var plots: List[Plot] = [line^]
+
+    var c = render_layers(plots)
+    _assert_near_color(c, 220, 100, Color(150, 150, 150), 40, "the vline's ink, well inside the plot height")
+    _assert_color(c, 133, 135, Color(150, 150, 150), "the point marker's center pixel")
+
+    var svg_line = Plot().mark_line().encode(x=x, y=y).annotate_vline(1.5, label="mid").annotate_point(
+        1.2, 15.0, label="here"
+    ).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg_plots: List[Plot] = [svg_line^]
+    var svg = render_layers_svg(svg_plots)
+    var s = svg.to_string()
+    assert_true(
+        '<line x1="220" y1="20" x2="220" y2="250" stroke="#969696" stroke-width="1.000"'
+        ' stroke-linecap="round"/>' in s,
+        "the vertical reference line itself",
+    )
+    assert_true(
+        '<text x="224" y="32" font-size="12.000" font-family="sans-serif" fill="#969696"'
+        ' text-anchor="start">mid</text>' in s,
+        "the vline's label",
+    )
+    assert_true('<circle cx="133" cy="135" r="4" fill="#969696"/>' in s, "the point marker itself")
+    assert_true(
+        '<text x="133" y="127" font-size="12.000" font-family="sans-serif" fill="#969696"'
+        ' text-anchor="middle">here</text>' in s,
+        "the point's label",
+    )
+
+
+def test_render_layers_svg_annotate_band_and_best_fit_draw_against_the_layers_frame() raises:
+    # #204: annotate_band()/annotate_best_fit() used to be silently dropped
+    # the same way. x=[1,2,3,4], y=[10,12,13,15] on a single-layer list;
+    # OLS gives slope=1.6, intercept=8.5 (n=4, sum_x=10, sum_y=50,
+    # sum_xy=133, sum_xx=30: slope=(4*133-10*50)/(4*30-100)=32/20=1.6,
+    # intercept=12.5-1.6*2.5=8.5), matching the label text asserted below.
+    var x: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var y: List[Float64] = [10.0, 12.0, 13.0, 15.0]
+    var band_x: List[Float64] = [1.0, 4.0]
+    var band_lo: List[Float64] = [8.0, 13.0]
+    var band_hi: List[Float64] = [12.0, 17.0]
+    var line = Plot().mark_line().encode(x=x, y=y).annotate_band(
+        x=band_x, y_lower=band_lo, y_upper=band_hi, label="band"
+    ).annotate_best_fit(show_equation=True).theme(Theme(show_gridlines=False)).size(400, 300)
+    var plots: List[Plot] = [line^]
+    var svg = render_layers_svg(plots)
+    var s = svg.to_string()
+    assert_true(
+        '<path d="M74.545,155.909 L365.455,20.000 L365.455,114.091 L74.545,250.000 Z"'
+        ' fill="#e0ecf6" fill-opacity="0.784"/>' in s,
+        "the confidence band's filled region",
+    )
+    assert_true(
+        '<line x1="60" y1="245" x2="380" y2="25" stroke="#969696" stroke-width="1.000"'
+        ' stroke-linecap="round"/>' in s,
+        "the best-fit line",
+    )
+    assert_true(
+        '<text x="376" y="32" font-size="12.000" font-family="sans-serif" fill="#969696"'
+        ' text-anchor="end">y = 1.600x + 8.500</text>' in s,
+        "the best-fit line's equation label",
+    )
 
 
 def test_render_layers_svg_title_from_plots0_centers_on_shared_inner_rect() raises:
@@ -541,6 +620,41 @@ def test_render_layers_raises_on_annotate_line_in_a_bar_combo() raises:
     with assert_raises():
         _ = render_layers_svg(plots)
 
+
+def test_render_layers_raises_on_annotate_band_in_a_bar_combo() raises:
+    # #204: annotate_band()/annotate_best_fit() weren't part of the
+    # has_annotations guard at all, so a bar-combo layer using either used
+    # to render with no annotation drawn and no error -- the same
+    # silent-drop bug the standalone annotate_line() check above already
+    # guarded against for the other four annotate_*() kinds.
+    var cats: List[String] = ["A", "B"]
+    var bar_y: List[Float64] = [10.0, 20.0]
+    var idx: List[Float64] = [0.0, 1.0]
+    var line_y: List[Float64] = [15.0, 5.0]
+    var band_x: List[Float64] = [0.0, 1.0]
+    var band_lo: List[Float64] = [1.0, 2.0]
+    var band_hi: List[Float64] = [3.0, 4.0]
+    var bars = Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
+    var line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300).annotate_band(
+        x=band_x, y_lower=band_lo, y_upper=band_hi
+    )
+    var plots: List[Plot] = [bars^, line^]
+    with assert_raises():
+        _ = render_layers_svg(plots)
+
+
+def test_render_layers_raises_on_annotate_best_fit_in_a_bar_combo() raises:
+    # See test_render_layers_raises_on_annotate_band_in_a_bar_combo above.
+    var cats: List[String] = ["A", "B"]
+    var bar_y: List[Float64] = [10.0, 20.0]
+    var idx: List[Float64] = [0.0, 1.0]
+    var line_y: List[Float64] = [15.0, 5.0]
+    var bars = Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
+    var line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300).annotate_best_fit()
+    var plots: List[Plot] = [bars^, line^]
+    with assert_raises():
+        _ = render_layers_svg(plots)
+
 # ---------------------------------------------------------------
 # from tests/test_facets.mojo
 # ---------------------------------------------------------------
@@ -563,6 +677,42 @@ def test_render_facets_lays_out_independent_plots_side_by_side() raises:
 
     _assert_color(c, 220, 135, Theme.default().mark_color, "cell 0's point, unshifted")
     _assert_color(c, 620, 135, RED, "cell 1's point, +400px shifted")
+
+
+def test_render_facets_svg_draws_annotate_vline_and_best_fit_in_different_cells() raises:
+    # #204: render_facets()/render_facets_svg() used to draw only
+    # annotate_area()/annotate_line() per cell; annotate_vline()/
+    # annotate_point()/annotate_band()/annotate_best_fit() were silently
+    # dropped. Cell 0 (a Mark.LINE plot with annotate_vline(1.5)) reuses
+    # the same geometry as the standalone/layers hand-derived vline
+    # position (px=220); cell 1 (a Mark.POINT plot with
+    # annotate_best_fit()) sits at cell 1's origin (+400px), where the
+    # best-fit line for x=[1,2,3] y=[5,7,9] (a perfect fit, slope=2,
+    # intercept=3) spans the cell's full inner width at its own padded
+    # y-domain.
+    var xa: List[Float64] = [1.0, 2.0]
+    var ya: List[Float64] = [10.0, 20.0]
+    var cell_a = Plot().mark_line().encode(x=xa, y=ya).annotate_vline(1.5).theme(
+        Theme(show_gridlines=False)
+    ).size(400, 300)
+    var xb: List[Float64] = [1.0, 2.0, 3.0]
+    var yb: List[Float64] = [5.0, 7.0, 9.0]
+    var cell_b = Plot().mark_point().encode(x=xb, y=yb).annotate_best_fit().theme(
+        Theme(show_gridlines=False)
+    ).size(400, 300)
+    var plots: List[Plot] = [cell_a^, cell_b^]
+    var svg = render_facets_svg(plots, cols=2)
+    var s = svg.to_string()
+    assert_true(
+        '<line x1="220" y1="20" x2="220" y2="250" stroke="#969696" stroke-width="1.000"'
+        ' stroke-linecap="round"/>' in s,
+        "cell 0's vline, at the same pixel a standalone render of the same plot would use",
+    )
+    assert_true(
+        '<line x1="460" y1="250" x2="780" y2="20" stroke="#969696" stroke-width="1.000"'
+        ' stroke-linecap="round"/>' in s,
+        "cell 1's best-fit line, spanning its own +400px-shifted inner rect",
+    )
 
 
 def test_render_facets_leaves_trailing_cells_blank_when_plots_dont_fill_the_grid() raises:
