@@ -52,7 +52,7 @@ def _render_corrplot[
     variable list on *both* axes (a correlation matrix is always
     square), unlike `HEATMAP`'s two independent category domains.
     Bubble radius scales linearly with `abs(matrix[row][col])`
-    (`theme.corrplot_bubble_fraction` of the cell's smaller dimension at
+    (`plot._mark_style.corrplot_bubble_fraction` of the cell's smaller dimension at
     exactly +-1.0), bubble color through the same continuous
     `ColorScale` vocabulary `HEATMAP` uses, but spanning the fixed
     `[-1.0, 1.0]` correlation domain (not the data's [min, max] --
@@ -133,7 +133,7 @@ def _render_corrplot[
 
     var cell_width = frame.x_scale.bandwidth()
     var cell_height = frame.y_scale.bandwidth()
-    var max_radius = min(cell_width, cell_height) / 2.0 * theme.corrplot_bubble_fraction
+    var max_radius = min(cell_width, cell_height) / 2.0 * plot._mark_style.corrplot_bubble_fraction
     var n = len(plot._corrplot.variables)
 
     for row in range(n):
@@ -176,6 +176,7 @@ def corrplot(
     layout: String = "full",
     diag: Bool = True,
     labels: Bool = True,
+    bubble_fraction: Float64 = 0.42,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -201,6 +202,8 @@ def corrplot(
             against itself); defaults to `True`.
         labels: Whether to draw `variables`' names along the axes;
             defaults to `True`.
+        bubble_fraction: Each bubble's maximum radius as a fraction of the cell's
+            smaller dimension; defaults to `0.42`.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -232,7 +235,7 @@ def corrplot(
             save(c, "docs/src/examples/out_corrplot.svg")
         ```
     """
-    var plot = Plot().mark_corrplot(layout=layout, diag=diag, labels=labels).encode_corrplot(
+    var plot = Plot().mark_corrplot(layout=layout, diag=diag, labels=labels, bubble_fraction=bubble_fraction).encode_corrplot(
         variables=variables, matrix=matrix
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
@@ -246,6 +249,7 @@ def corrplot[
     layout: String = "full",
     diag: Bool = True,
     labels: Bool = True,
+    bubble_fraction: Float64 = 0.42,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -262,6 +266,6 @@ def corrplot[
     """
     return corrplot(
         variables, _materialize_nested_scalar_list(matrix), layout=layout, diag=diag, labels=labels,
-        theme=theme, width=width, height=height, title=title, subtitle=subtitle, x_title=x_title,
+        bubble_fraction=bubble_fraction, theme=theme, width=width, height=height, title=title, subtitle=subtitle, x_title=x_title,
         y_title=y_title,
     )

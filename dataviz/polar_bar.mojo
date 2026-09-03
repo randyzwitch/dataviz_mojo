@@ -69,7 +69,7 @@ def _render_polar_bar[
     var palette = default_categorical_palette()
     var n = len(plot.x_categories)
     var slot = 2.0 * pi / Float64(n)
-    var gap = slot * theme.polar_bar_padding
+    var gap = slot * plot._mark_style.polar_bar_padding
     var slot_start = -pi / 2.0
     for i in range(n):
         var start = slot_start + gap / 2.0
@@ -90,6 +90,7 @@ def _render_polar_bar[
 def polarbar(
     categories: List[String],
     values: List[Float64],
+    padding: Float64 = 0.2,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -112,6 +113,8 @@ def polarbar(
         values: Each bar's length, proportional to `value /
             max(values)`; every value must be non-negative, and at
             least one positive.
+        padding: Gap taken out of each bar's angular slot; defaults to
+            `0.2`.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -140,7 +143,7 @@ def polarbar(
             save(c, "docs/src/examples/out_polarbar.svg")
         ```
     """
-    var plot = Plot().mark_polar_bar().encode_categorical(x=categories, y=values)
+    var plot = Plot().mark_polar_bar(padding=padding).encode_categorical(x=categories, y=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
 
@@ -149,6 +152,7 @@ def polarbar[
 ](
     categories: List[String],
     values: List[Scalar[dtype]],
+    padding: Float64 = 0.2,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -162,6 +166,6 @@ def polarbar[
     full reasoning. Delegates to the concrete `polarbar()` above.
     """
     return polarbar(
-        categories, _materialize_scalar_list(values), theme=theme, width=width, height=height,
+        categories, _materialize_scalar_list(values), padding=padding, theme=theme, width=width, height=height,
         title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
     )

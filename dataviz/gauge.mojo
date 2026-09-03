@@ -1,3 +1,5 @@
+from std.math import pi
+
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 from canvas.text.render import TextAlign
@@ -123,11 +125,11 @@ def _render_gauge[
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
     var max_radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
-    var inner_radius = max_radius * theme.gauge_band_inner_fraction
+    var inner_radius = max_radius * plot._mark_style.gauge_band_inner_fraction
 
-    var band_start = theme.gauge_start_angle
+    var band_start = plot._mark_style.gauge_start_angle
     for i in range(len(breakpoints)):
-        var band_end = theme.gauge_start_angle + theme.gauge_sweep_angle * breakpoints[i]
+        var band_end = plot._mark_style.gauge_start_angle + plot._mark_style.gauge_sweep_angle * breakpoints[i]
         target.fill_ring_sector_aa(cx, cy, inner_radius, max_radius, band_start, band_end, colors[i])
         band_start = band_end
 
@@ -137,8 +139,8 @@ def _render_gauge[
     if value > plot._gauge.max_value:
         value = plot._gauge.max_value
     var frac = (value - plot._gauge.min_value) / (plot._gauge.max_value - plot._gauge.min_value)
-    var needle_angle = theme.gauge_start_angle + theme.gauge_sweep_angle * frac
-    var tip = _polar_point(cx, cy, needle_angle, max_radius * theme.gauge_needle_fraction)
+    var needle_angle = plot._mark_style.gauge_start_angle + plot._mark_style.gauge_sweep_angle * frac
+    var tip = _polar_point(cx, cy, needle_angle, max_radius * plot._mark_style.gauge_needle_fraction)
     target.draw_line_aa(Int(cx), Int(cy), Int(tip.x), Int(tip.y), theme.mark_color, sc.line_width * 2.0)
     target.fill_circle_aa(Int(cx), Int(cy), Int(sc.point_radius), theme.mark_color)
 
@@ -163,6 +165,10 @@ def gauge(
     max_value: Float64 = 100.0,
     breakpoints: List[Float64] = List[Float64](),
     band_colors: List[Color] = List[Color](),
+    band_inner_fraction: Float64 = 0.7,
+    needle_fraction: Float64 = 0.9,
+    start_angle: Float64 = 3.0 * pi / 4.0,
+    sweep_angle: Float64 = 3.0 * pi / 2.0,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -192,6 +198,13 @@ def gauge(
         band_colors: One color per `breakpoints` band, same length;
             left empty (the default), reproduces ECharts' fixed
             green/blue/red bands unchanged.
+        band_inner_fraction: The band ring's inner radius as a fraction of the dial
+            radius; defaults to `0.7`.
+        needle_fraction: The needle's length as a fraction of the dial radius;
+            defaults to `0.9`.
+        start_angle: Where the dial begins, in radians; defaults to `3*pi/4`.
+        sweep_angle: How far the dial sweeps, in radians; defaults to `3*pi/2`
+            (270 degrees).
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -217,7 +230,12 @@ def gauge(
             save(c, "docs/src/examples/out_gauge.svg")
         ```
     """
-    var plot = Plot().mark_gauge().encode_gauge(
+    var plot = Plot().mark_gauge(
+        band_inner_fraction=band_inner_fraction,
+        needle_fraction=needle_fraction,
+        start_angle=start_angle,
+        sweep_angle=sweep_angle,
+    ).encode_gauge(
         value=value, min_value=min_value, max_value=max_value, breakpoints=breakpoints, band_colors=band_colors
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)

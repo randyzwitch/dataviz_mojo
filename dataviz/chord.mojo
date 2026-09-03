@@ -137,7 +137,7 @@ def _render_chord[
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
     var radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
-    var inner_radius = radius * (1.0 - theme.chord_ring_fraction)
+    var inner_radius = radius * (1.0 - plot._mark_style.chord_ring_fraction)
 
     var palette = default_categorical_palette()
 
@@ -167,6 +167,7 @@ def chord(
     from_categories: List[String],
     to_categories: List[String],
     values: List[Float64],
+    ring_fraction: Float64 = 0.08,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -186,6 +187,8 @@ def chord(
             row (paired with `from_categories[i]`).
         values: Each flow's magnitude, sizing its ribbon; must be
             non-negative.
+        ring_fraction: The node rim's thickness as a fraction of the circle
+            radius; defaults to `0.08`.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -214,7 +217,7 @@ def chord(
             save(c, "docs/src/examples/out_chord.svg")
         ```
     """
-    var plot = Plot().mark_chord().encode_chord(
+    var plot = Plot().mark_chord(ring_fraction=ring_fraction).encode_chord(
         from_categories=from_categories, to_categories=to_categories, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
@@ -226,6 +229,7 @@ def chord[
     from_categories: List[String],
     to_categories: List[String],
     values: List[Scalar[dtype]],
+    ring_fraction: Float64 = 0.08,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -239,6 +243,6 @@ def chord[
     full reasoning. Delegates to the concrete `chord()` above.
     """
     return chord(
-        from_categories, to_categories, _materialize_scalar_list(values), theme=theme, width=width,
+        from_categories, to_categories, _materialize_scalar_list(values), ring_fraction=ring_fraction, theme=theme, width=width,
         height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
     )

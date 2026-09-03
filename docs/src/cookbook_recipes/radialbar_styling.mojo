@@ -6,8 +6,8 @@ gray.
 """
 from dataviz import radialbar
 from dataviz.plot import save
-from canvas.color import Color
 from dataviz.theme import Theme
+from canvas.color import Color
 
 def main() raises:
     var goals: List[String] = ["Move", "Exercise", "Stand"]
@@ -16,7 +16,8 @@ def main() raises:
     var plot = radialbar(
         goals,
         percent_complete,
-        theme=Theme(radialbar_track_color=Color(200, 200, 200), radialbar_ring_gap_fraction=0.45),
+        theme=Theme(radialbar_track_color=Color(200, 200, 200)),
+        ring_gap_fraction=0.45,
         title="Daily Activity",
     )
     save(plot, "docs/src/examples/out_radialbar_styling.svg")

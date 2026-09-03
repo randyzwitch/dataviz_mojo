@@ -191,7 +191,7 @@ def _render_sankey[
         node_value.append(max(total_in[i], total_out[i]))
 
     var sc = _Scaled(theme)
-    var node_width = theme.sankey_node_width * sc.scale
+    var node_width = plot._mark_style.sankey_node_width * sc.scale
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
     var plot_x1 = ox1 - sc.margin_right
@@ -272,6 +272,7 @@ def sankey(
     from_categories: List[String],
     to_categories: List[String],
     values: List[Float64],
+    node_width: Float64 = 12.0,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -294,6 +295,8 @@ def sankey(
             row (paired with `from_categories[i]`).
         values: Each flow's magnitude, sizing its ribbon; must be
             non-negative.
+        node_width: Each node bar's pixel width before `Theme.scale`; defaults
+            to `12.0`.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -321,7 +324,7 @@ def sankey(
             save(c, "docs/src/examples/out_sankey.svg")
         ```
     """
-    var plot = Plot().mark_sankey().encode_chord(
+    var plot = Plot().mark_sankey(node_width=node_width).encode_chord(
         from_categories=from_categories, to_categories=to_categories, values=values
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
@@ -333,6 +336,7 @@ def sankey[
     from_categories: List[String],
     to_categories: List[String],
     values: List[Scalar[dtype]],
+    node_width: Float64 = 12.0,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -346,6 +350,6 @@ def sankey[
     full reasoning. Delegates to the concrete `sankey()` above.
     """
     return sankey(
-        from_categories, to_categories, _materialize_scalar_list(values), theme=theme, width=width,
+        from_categories, to_categories, _materialize_scalar_list(values), node_width=node_width, theme=theme, width=width,
         height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
     )

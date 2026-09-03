@@ -5,7 +5,6 @@ grid once there are enough cells that each one shrinks.
 """
 from dataviz import corrplot
 from dataviz.plot import save
-from dataviz.theme import Theme
 
 def main() raises:
     var variables: List[String] = ["Price", "Sqft", "Bedrooms", "Age", "Distance", "Rating"]
@@ -19,6 +18,6 @@ def main() raises:
     ]
 
     var plot = corrplot(
-        variables, matrix, theme=Theme(corrplot_bubble_fraction=0.28), title="Housing Feature Correlation"
+        variables, matrix, bubble_fraction=0.28, title="Housing Feature Correlation"
     )
     save(plot, "docs/src/examples/out_dense_corrplot.svg")

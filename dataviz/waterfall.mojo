@@ -1,3 +1,4 @@
+from canvas.color import Color
 from canvas.geometry import _round_to_int
 from canvas.vector.draw_target import DrawTarget
 
@@ -112,7 +113,7 @@ def _render_waterfall[
     actually opts into at least one total row does the narrow-vs-full
     distinction have anything to distinguish, and only then does it
     apply. The two intentionally read as visually distinct at a glance
-    in that case, not just by color (see `Theme.waterfall_total_color`'s
+    in that case, not just by color (see `mark_waterfall(total_color=...)`'s
     docstring).
 
     Every bar's actual left/right pixel edges are computed once,
@@ -196,7 +197,7 @@ def _render_waterfall[
             bar_x = _round_to_int(band_start)
             bar_width = _round_to_int(bandwidth)
         else:
-            var narrow_width = bandwidth * theme.waterfall_delta_width_fraction
+            var narrow_width = bandwidth * plot._mark_style.waterfall_delta_width_fraction
             var inset = (bandwidth - narrow_width) / 2.0
             bar_x = _round_to_int(band_start + inset)
             bar_width = _round_to_int(band_start + inset + narrow_width) - bar_x
@@ -238,6 +239,7 @@ def waterfall(
     categories: List[String],
     deltas: List[Float64],
     is_total: List[Bool] = List[Bool](),
+    delta_width_fraction: Float64 = 0.6,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -257,10 +259,12 @@ def waterfall(
             the running total before it to the running total after
             it, starting the cumulative sum from `0.0`.
         is_total: Marks specific rows as running-total checkpoints
-            (drawn full band width in `Theme.waterfall_total_color`)
+            (drawn full band width in `mark_waterfall(total_color=...)`)
             instead of a plain rising/falling delta. Left empty (the
             default), every row is a plain delta -- unchanged
             original behavior.
+        delta_width_fraction: A delta bar's width as a fraction of the band width;
+            defaults to `0.6`.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -289,7 +293,7 @@ def waterfall(
             save(c, "docs/src/examples/out_waterfall.svg")
         ```
     """
-    var plot = Plot().mark_waterfall().encode_waterfall(categories=categories, deltas=deltas, is_total=is_total)
+    var plot = Plot().mark_waterfall(delta_width_fraction=delta_width_fraction).encode_waterfall(categories=categories, deltas=deltas, is_total=is_total)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
 
@@ -299,6 +303,7 @@ def waterfall[
     categories: List[String],
     deltas: List[Scalar[dtype]],
     is_total: List[Bool] = List[Bool](),
+    delta_width_fraction: Float64 = 0.6,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -312,6 +317,6 @@ def waterfall[
     full reasoning. Delegates to the concrete `waterfall()` above.
     """
     return waterfall(
-        categories, _materialize_scalar_list(deltas), is_total=is_total, theme=theme, width=width,
+        categories, _materialize_scalar_list(deltas), is_total=is_total, delta_width_fraction=delta_width_fraction, theme=theme, width=width,
         height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
     )

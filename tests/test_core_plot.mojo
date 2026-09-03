@@ -950,12 +950,12 @@ def test_theme_mark_style_fields_actually_change_output() raises:
     var base = render(_hoisted8)
     var _hoisted9 = waterfall(
         cats, vals, totals,
-        theme=Theme(waterfall_delta_width_fraction=0.95), width=200, height=150,
+        delta_width_fraction=0.95, width=200, height=150,
     )
     var wide = render(_hoisted9)
     assert_true(
         _count_color(base, Theme().mark_color) != _count_color(wide, Theme().mark_color),
-        "waterfall_delta_width_fraction changes how much band a delta bar covers",
+        "delta_width_fraction changes how much band a delta bar covers",
     )
 
     var measure: List[Float64] = [7.0]
@@ -965,12 +965,12 @@ def test_theme_mark_style_fields_actually_change_output() raises:
     var b_thin = render(_hoisted10)
     var _hoisted11 = bullet(
         cats0(), measure, target, ranges,
-        theme=Theme(bullet_measure_width_fraction=0.9), width=200, height=150,
+        measure_width_fraction=0.9, width=200, height=150,
     )
     var b_fat = render(_hoisted11)
     assert_true(
         _count_color(b_thin, Theme().mark_color) != _count_color(b_fat, Theme().mark_color),
-        "bullet_measure_width_fraction changes the measure bar's thickness",
+        "measure_width_fraction changes the measure bar's thickness",
     )
 
 

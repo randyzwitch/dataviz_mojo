@@ -366,6 +366,74 @@ struct _DistributionData(Movable):
         self.kde_scale_by_count = False
 
 
+struct _MarkStyle(Movable):
+    """Per-mark appearance knobs -- each one read by exactly one mark's
+    render function, and set only through that mark's own `mark_*()`
+    parameter (or the equivalent one-call convenience function).
+
+    These lived on `Theme` until they were moved here. `Theme` had
+    grown to 67 fields, and a third of them were geometry no more than
+    one mark ever read, so "swap the theme" also swapped every mark's
+    internal proportions, and `Theme`'s constructor gained two or three
+    arguments with every new mark.
+
+    The line drawn is deliberate: a `Theme` is what a *theme* can
+    restyle, and these are not that. Per-mark **colors** stayed on
+    `Theme` (`treemap_label_color`, `radialbar_track_color`,
+    `waterfall_total_color`, the bullet range pair, `radar_fill_alpha`)
+    precisely because a dark theme has to be able to fix treemap label
+    contrast on its own, without every caller passing a color at every
+    call site. What moved here is geometry -- angles, ring counts,
+    width fractions -- which describes one chart's proportions rather
+    than a look that should travel across charts.
+
+    Field names keep their mark prefix -- `gauge_start_angle`, not
+    `start_angle` -- since they all share this one struct and several
+    would otherwise collide (`polar_grid_rings`/`radar_grid_rings`).
+    The *parameters* that set them drop it, because there the mark is
+    already named: `mark_gauge(start_angle=...)`.
+
+    Grouped onto `Plot._mark_style` -- see `Plot`'s docstring.
+    """
+
+    var donut_inner_radius_fraction: Float64
+    var bullet_measure_width_fraction: Float64
+    var waterfall_delta_width_fraction: Float64
+    var chord_ring_fraction: Float64
+    var radialbar_ring_gap_fraction: Float64
+    var radar_grid_rings: Int
+    var violin_width_fraction: Float64
+    var corrplot_bubble_fraction: Float64
+    var gauge_band_inner_fraction: Float64
+    var gauge_needle_fraction: Float64
+    var gauge_start_angle: Float64
+    var gauge_sweep_angle: Float64
+    var ridgeline_overlap: Float64
+    var polar_bar_padding: Float64
+    var polar_grid_rings: Int
+    var polar_grid_spokes: Int
+    var sankey_node_width: Float64
+
+    def __init__(out self):
+        self.donut_inner_radius_fraction = 0.0
+        self.bullet_measure_width_fraction = 0.35
+        self.waterfall_delta_width_fraction = 0.6
+        self.chord_ring_fraction = 0.08
+        self.radialbar_ring_gap_fraction = 0.25
+        self.radar_grid_rings = 4
+        self.violin_width_fraction = 0.4
+        self.corrplot_bubble_fraction = 0.42
+        self.gauge_band_inner_fraction = 0.7
+        self.gauge_needle_fraction = 0.9
+        self.gauge_start_angle = 3.0 * pi / 4.0
+        self.gauge_sweep_angle = 3.0 * pi / 2.0
+        self.ridgeline_overlap = 1.3
+        self.polar_bar_padding = 0.2
+        self.polar_grid_rings = 4
+        self.polar_grid_spokes = 12
+        self.sankey_node_width = 12.0
+
+
 struct _LabelData(Movable):
     """
     Chart/axis title text, set via .labels() -- see that method's docstring. Empty string means "not set", the same "absent means
@@ -552,6 +620,7 @@ struct Plot(Movable):
     var _hierarchy: _HierarchyData
     var _labels: _LabelData
     var _annotations: _AnnotationData
+    var _mark_style: _MarkStyle
     # Set via .secondary_axis() -- render_layers()/render_layers_svg()
     # only: this layer's y values scale against a second,
     # independent y-domain drawn on the plot's right edge, instead of
@@ -623,6 +692,7 @@ struct Plot(Movable):
         self._hierarchy = _HierarchyData()
         self._labels = _LabelData()
         self._annotations = _AnnotationData()
+        self._mark_style = _MarkStyle()
         self._secondary_axis = False
         self._y_log = False
         self._x_log = False
@@ -692,7 +762,7 @@ struct Plot(Movable):
         self._mark = Mark.AREA
         return self^
 
-    def mark_arc(var self) -> Self:
+    def mark_arc(var self, inner_radius_fraction: Float64 = 0.0) -> Self:
         """A pie chart: one wedge per category, its angular span
         proportional to its value -- encoded via `encode_categorical()`
         (the same category + value data shape `mark_bar()` uses; a pie
@@ -702,6 +772,7 @@ struct Plot(Movable):
         the same "raise, don't silently misrepresent the data" stance
         `_zero_baseline_y_extent` takes for BAR/AREA's baseline."""
         self._mark = Mark.ARC
+        self._mark_style.donut_inner_radius_fraction = inner_radius_fraction
         return self^
 
     def mark_nightingale(var self, area: Bool = False) -> Self:
@@ -730,7 +801,7 @@ struct Plot(Movable):
         self._nightingale_area = area
         return self^
 
-    def mark_polar_bar(var self) -> Self:
+    def mark_polar_bar(var self, padding: Float64 = 0.2) -> Self:
         """A circular column chart: bars radiate outward from the
         chart's center, one equal-width angular slot per category
         (like `mark_nightingale()`'s wedges, but with a small gap
@@ -742,9 +813,10 @@ struct Plot(Movable):
         non-negative, and at least one must be positive -- checked at
         render() time, the same as `mark_arc()`/`mark_nightingale()`."""
         self._mark = Mark.POLAR_BAR
+        self._mark_style.polar_bar_padding = padding
         return self^
 
-    def mark_radialbar(var self) -> Self:
+    def mark_radialbar(var self, ring_gap_fraction: Float64 = 0.25) -> Self:
         """A radial (multi-ring) progress chart: one full concentric
         ring per category, swept clockwise from 12 o'clock over a
         light-gray track to `value / max(values)` of the way around --
@@ -755,9 +827,10 @@ struct Plot(Movable):
         be non-negative, and at least one must be positive -- checked
         at render() time, the same as `mark_polar_bar()`."""
         self._mark = Mark.RADIALBAR
+        self._mark_style.radialbar_ring_gap_fraction = ring_gap_fraction
         return self^
 
-    def mark_polar(var self) -> Self:
+    def mark_polar(var self, grid_rings: Int = 4, grid_spokes: Int = 12) -> Self:
         """A polar-coordinate line plot: (angle, radius) pairs
         connected in row order, drawn over a polar grid -- encoded via
         `encode_polar()` (one unnamed series) or `encode_polar_series()`
@@ -768,20 +841,33 @@ struct Plot(Movable):
         full reasoning, including why `angle` is never wrapped `mod
         2*pi`."""
         self._mark = Mark.POLAR
+        self._mark_style.polar_grid_rings = grid_rings
+        self._mark_style.polar_grid_spokes = grid_spokes
         return self^
 
-    def mark_radar(var self) -> Self:
+    def mark_radar(var self, grid_rings: Int = 4) -> Self:
         """A radar/spider chart: one spoke per named indicator, one
         polygon per named series -- encoded via `encode_radar()`, not
         `encode()`/`encode_categorical()` (see that method's docstring for the full shape)."""
         self._mark = Mark.RADAR
+        self._mark_style.radar_grid_rings = grid_rings
         return self^
 
-    def mark_gauge(var self) -> Self:
+    def mark_gauge(
+        var self,
+        band_inner_fraction: Float64 = 0.7,
+        needle_fraction: Float64 = 0.9,
+        start_angle: Float64 = 3.0 * pi / 4.0,
+        sweep_angle: Float64 = 3.0 * pi / 2.0,
+    ) -> Self:
         """A gauge chart: a single value shown as a needle over a
         color-banded dial (bands customizable via `encode_gauge()`'s `breakpoints`/`band_colors`) -- encoded via `encode_gauge()`,
         not `encode()`/`encode_categorical()` (see that method's docstring for the full shape)."""
         self._mark = Mark.GAUGE
+        self._mark_style.gauge_band_inner_fraction = band_inner_fraction
+        self._mark_style.gauge_needle_fraction = needle_fraction
+        self._mark_style.gauge_start_angle = start_angle
+        self._mark_style.gauge_sweep_angle = sweep_angle
         return self^
 
     def mark_parallel(var self) -> Self:
@@ -814,13 +900,14 @@ struct Plot(Movable):
         self._horizontal = horizontal
         return self^
 
-    def mark_waterfall(var self) -> Self:
+    def mark_waterfall(var self, delta_width_fraction: Float64 = 0.6) -> Self:
         """A waterfall chart: one floating bar per category, each
         running from the previous bar's cumulative total to the
         next -- encoded via `encode_waterfall()` (a category + a
         *signed delta*, not `encode_categorical()`'s plain value; see
         that method's docstring)."""
         self._mark = Mark.WATERFALL
+        self._mark_style.waterfall_delta_width_fraction = delta_width_fraction
         return self^
 
     def mark_box(var self, horizontal: Bool = False) -> Self:
@@ -851,13 +938,14 @@ struct Plot(Movable):
         self._mark = Mark.CANDLESTICK
         return self^
 
-    def mark_bullet(var self) -> Self:
+    def mark_bullet(var self, measure_width_fraction: Float64 = 0.35) -> Self:
         """A bullet chart (Stephen Few's design): one measure-vs-target-
         against-qualitative-ranges composite per category, encoded via
         `encode_bullet()` -- a category plus a measure, a target, and a
         whole list of range thresholds, not `encode_categorical()`'s
         single value."""
         self._mark = Mark.BULLET
+        self._mark_style.bullet_measure_width_fraction = measure_width_fraction
         return self^
 
     def mark_gantt(var self) -> Self:
@@ -889,7 +977,13 @@ struct Plot(Movable):
         self._mark = Mark.CALENDAR_HEATMAP
         return self^
 
-    def mark_corrplot(var self, layout: String = "full", diag: Bool = True, labels: Bool = True) -> Self:
+    def mark_corrplot(
+        var self,
+        layout: String = "full",
+        diag: Bool = True,
+        labels: Bool = True,
+        bubble_fraction: Float64 = 0.42,
+    ) -> Self:
         """A correlation plot: one bubble per cell of a square
         correlation matrix, sized/colored by strength and sign --
         encoded via `encode_corrplot()`, not `encode()`/`encode_
@@ -903,6 +997,9 @@ struct Plot(Movable):
                 `True`.
             labels: Whether to draw variable names along the axes;
                 defaults to `True`.
+            bubble_fraction: Each bubble's maximum radius as a
+                fraction of the cell's smaller dimension, at
+                `abs(r) == 1`; defaults to `0.42`.
 
         Returns:
             Self, for further chaining.
@@ -911,6 +1008,7 @@ struct Plot(Movable):
         self._corrplot.layout = layout
         self._corrplot.diag = diag
         self._corrplot.labels = labels
+        self._mark_style.corrplot_bubble_fraction = bubble_fraction
         return self^
 
     def mark_punchcard(var self, scale: Float64 = 10.0) -> Self:
@@ -1045,13 +1143,14 @@ struct Plot(Movable):
         self._mark = Mark.HEATMAP
         return self^
 
-    def mark_chord(var self) -> Self:
+    def mark_chord(var self, ring_fraction: Float64 = 0.08) -> Self:
         """A chord diagram: ring sectors for every distinct node across
         an edge list's `from`/`to` columns, connected by ribbons
         sized by each flow's value -- encoded via `encode_chord()`.
         No x/y axis frame at all, the same as `Mark.ARC`, whose ring-
         sector conventions this reuses directly."""
         self._mark = Mark.CHORD
+        self._mark_style.chord_ring_fraction = ring_fraction
         return self^
 
     def mark_arc_diagram(var self) -> Self:
@@ -1070,12 +1169,13 @@ struct Plot(Movable):
         self._mark = Mark.GRAPH
         return self^
 
-    def mark_sankey(var self) -> Self:
+    def mark_sankey(var self, node_width: Float64 = 12.0) -> Self:
         """A Sankey diagram: `mark_chord()`'s edge list, laid out
         left-to-right by column and drawn as proportionally sized flow
         ribbons instead of a circular ribbon diagram -- encoded via
         `encode_chord()`, the exact same shape (see that method's docstring). The edges must form a DAG (no cycles)."""
         self._mark = Mark.SANKEY
+        self._mark_style.sankey_node_width = node_width
         return self^
 
     def mark_single_axis(var self) -> Self:
@@ -1141,7 +1241,8 @@ struct Plot(Movable):
         return self^
 
     def mark_violin(
-        var self, bandwidth: Float64 = 0.0, scale_by_count: Bool = False, horizontal: Bool = False
+        var self, bandwidth: Float64 = 0.0, scale_by_count: Bool = False, horizontal: Bool = False,
+        width_fraction: Float64 = 0.4
     ) -> Self:
         """A violin plot: a symmetric kernel-density-estimate
         silhouette per category -- encoded via `encode_distribution()`,
@@ -1185,6 +1286,9 @@ struct Plot(Movable):
                 `_draw_horizontal_categorical_axis_frame` (gantt.mojo)
                 -- see `_render_horizontal_violin`'s own docstring
                 (violin.mojo).
+            width_fraction: Each violin's maximum half-width as a
+                fraction of its category's band width; defaults to
+                `0.4`.
 
         Returns:
             Self, for further chaining.
@@ -1193,9 +1297,12 @@ struct Plot(Movable):
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
         self._horizontal = horizontal
+        self._mark_style.violin_width_fraction = width_fraction
         return self^
 
-    def mark_ridgeline(var self, bandwidth: Float64 = 0.0, scale_by_count: Bool = False) -> Self:
+    def mark_ridgeline(
+        var self, bandwidth: Float64 = 0.0, scale_by_count: Bool = False, overlap: Float64 = 1.3
+    ) -> Self:
         """A ridgeline plot: one overlapping kernel-density-estimate
         row per category, top to bottom -- encoded via `encode_
         distribution()`, the same data `mark_beeswarm()`/`mark_violin()`
@@ -1214,6 +1321,10 @@ struct Plot(Movable):
                 gives every category's peak the same maximum rise;
                 `True` (`scale = "area"`) additionally scales a
                 category's maximum rise by `sqrt(n_i / max(n))`.
+            overlap: How far each row's silhouette may rise into the
+                rows above it, as a multiple of the row height;
+                defaults to `1.3`, deliberately more than one so the
+                ridges interleave.
 
         Returns:
             Self, for further chaining.
@@ -1221,6 +1332,7 @@ struct Plot(Movable):
         self._mark = Mark.RIDGELINE
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
+        self._mark_style.ridgeline_overlap = overlap
         return self^
 
     def encode(
@@ -1780,7 +1892,7 @@ struct Plot(Movable):
         `Theme.color_by_sign`, since that coloring *is* what a
         waterfall chart conventionally shows, not an opt-in extra. A
         total row's `deltas[i]` is stored the same way but never
-        read for coloring -- see `Theme.waterfall_total_color`'s docstring for what colors a total bar instead.
+        read for coloring -- see `mark_waterfall(total_color=...)` for what colors a total bar instead.
 
         Args:
             categories: One floating bar per entry, in the given
@@ -6288,7 +6400,7 @@ def _draw_continuous_axis_frame[
 def _lighten(color: Color, alpha: UInt8) -> Color:
     """`color` blended toward opaque white by `alpha` -- `Mark.
     EFFECT_SCATTER`'s halo tint (see `_draw_point_layer`'s `draw_halo` paragraph) and `Mark.RADAR`'s series-polygon fill,
-    which pass `Theme.halo_alpha` and `Theme.radar_fill_alpha`
+    which pass `Theme.halo_alpha` and `mark_radar(fill_alpha=...)`
     respectively. `alpha` is a parameter, not a fixed constant, because
     the two callers are unrelated -- a single shared number would
     silently tie a scatter halo's tint to a radar fill's. Built via

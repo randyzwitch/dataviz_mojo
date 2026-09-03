@@ -17,7 +17,8 @@ def main() raises:
         cats,
         deltas,
         is_total=is_total,
-        theme=Theme(waterfall_total_color=SLATEGRAY, waterfall_delta_width_fraction=0.85),
+        theme=Theme(waterfall_total_color=SLATEGRAY),
+        delta_width_fraction=0.85,
         title="Cash Flow",
         subtitle="Starting/ending balances in a distinct color, wider delta bars",
     )

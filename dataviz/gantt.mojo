@@ -135,7 +135,7 @@ def _draw_horizontal_categorical_axis_frame[
     sliver of background shows between one row's baseline and the
     next row's top, only sometimes covered by the row below's curve
     rising into it, which reads as a spurious notch cut into the row
-    above. With `padding=0.0`, only `theme.ridgeline_overlap` itself
+    above. With `padding=0.0`, only `plot._mark_style.ridgeline_overlap` itself
     controls whether/how far one row's peak crosses into another's.
     """
     var sc = _Scaled(theme)

@@ -18,7 +18,8 @@ def main() raises:
         measures,
         targets,
         ranges,
-        theme=Theme(bullet_range_color_light=ALICEBLUE, bullet_range_color_dark=STEELBLUE, bullet_measure_width_fraction=0.55),
+        theme=Theme(bullet_range_color_light=ALICEBLUE, bullet_range_color_dark=STEELBLUE),
+        measure_width_fraction=0.55,
         title="KPI Progress",
     )
     save(plot, "docs/src/examples/out_bullet_styling.svg")

@@ -57,10 +57,10 @@ def _render_arc[
     nothing to divide 2*pi by) -- both raise a clear error rather than
     silently drawing a degenerate or misleading chart.
 
-    `theme.donut_inner_radius_fraction > 0.0` switches each wedge from
+    `plot._mark_style.donut_inner_radius_fraction > 0.0` switches each wedge from
     `target.fill_arc_aa` to `target.fill_ring_sector_aa` -- a donut
     instead of a pie, everything else (angles, colors, legend)
-    unchanged; see `Theme`'s docstring for what the fraction means
+    unchanged; see `Plot.mark_arc()`'s docstring for what the fraction means
     and why it's relative to the outer radius rather than a fixed
     pixel value.
     """
@@ -83,10 +83,10 @@ def _render_arc[
             + String(total)
             + ")"
         )
-    if theme.donut_inner_radius_fraction < 0.0 or theme.donut_inner_radius_fraction >= 1.0:
+    if plot._mark_style.donut_inner_radius_fraction < 0.0 or plot._mark_style.donut_inner_radius_fraction >= 1.0:
         raise Error(
-            "Theme.donut_inner_radius_fraction must be in [0.0, 1.0) (got "
-            + String(theme.donut_inner_radius_fraction)
+            "mark_arc(inner_radius_fraction=...) must be in [0.0, 1.0) (got "
+            + String(plot._mark_style.donut_inner_radius_fraction)
             + ")"
         )
 
@@ -104,8 +104,8 @@ def _render_arc[
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
     var radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
-    var is_donut = theme.donut_inner_radius_fraction > 0.0
-    var inner_radius = radius * theme.donut_inner_radius_fraction
+    var is_donut = plot._mark_style.donut_inner_radius_fraction > 0.0
+    var inner_radius = radius * plot._mark_style.donut_inner_radius_fraction
 
     var palette = default_categorical_palette()
     var start = -pi / 2.0
@@ -130,6 +130,7 @@ def _render_arc[
 def pie(
     categories: List[String],
     values: List[Float64],
+    inner_radius_fraction: Float64 = 0.0,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -140,17 +141,18 @@ def pie(
 ) raises -> Plot:
     """A pie chart -- `Mark.ARC` over a categorical `x` and continuous
     `y` (the same shape `bar()` takes; every value must be
-    non-negative, and at least one positive). Pass `theme=Theme(
-    donut_inner_radius_fraction=0.55)` (or any value in `[0.0, 1.0)`)
-    for a donut instead -- see `Theme`'s docstring.
+    non-negative, and at least one positive). Pass
+    `inner_radius_fraction=0.55` (or any value in `[0.0, 1.0)`) for a
+    donut instead -- see `Plot.mark_arc()`'s docstring.
 
     Args:
         categories: One wedge per entry, in the given order.
         values: Each category's share; every value must be
             non-negative, and at least one positive.
+        inner_radius_fraction: Hole radius as a fraction of the pie radius -- above
+            `0.0` makes a donut; defaults to `0.0`.
         theme: Full styling knobs beyond this function's own
-            parameters, including `donut_inner_radius_fraction` for
-            a donut -- see `Theme`'s docstring.
+            parameters -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot` (`.size()`).
         height: Pixel height of the returned `Plot` (`.size()`).
         title: The chart's title, shown above the plot.
@@ -187,14 +189,14 @@ def pie(
             var c_donut = pie(
                 browsers,
                 share,
-                theme=Theme(donut_inner_radius_fraction=0.55),
+                inner_radius_fraction=0.55,
                 width=400,
                 height=300,
             )
             save(c_donut, "docs/src/examples/out_pie_donut.svg")
         ```
     """
-    var plot = Plot().mark_arc().encode_categorical(x=categories, y=values)
+    var plot = Plot().mark_arc(inner_radius_fraction=inner_radius_fraction).encode_categorical(x=categories, y=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
 
@@ -203,6 +205,7 @@ def pie[
 ](
     categories: List[String],
     values: List[Scalar[dtype]],
+    inner_radius_fraction: Float64 = 0.0,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -216,6 +219,6 @@ def pie[
     full reasoning. Delegates to the concrete `pie()` above.
     """
     return pie(
-        categories, _materialize_scalar_list(values), theme=theme, width=width, height=height,
+        categories, _materialize_scalar_list(values), inner_radius_fraction=inner_radius_fraction, theme=theme, width=width, height=height,
         title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
     )

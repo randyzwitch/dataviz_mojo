@@ -184,11 +184,10 @@ def test_bar_matches_manual_plot() raises:
 def test_pie_matches_manual_plot() raises:
     var cats: List[String] = ["a", "b", "c"]
     var values: List[Float64] = [30.0, 50.0, 20.0]
-    var t = Theme(donut_inner_radius_fraction=0.5)
-    var _hoisted5 = pie(cats, values, theme=t, width=300, height=300)
+    var _hoisted5 = pie(cats, values, inner_radius_fraction=0.5, width=300, height=300)
     var got = render(_hoisted5)
 
-    var want_plot = Plot().mark_arc().encode_categorical(x=cats, y=values).theme(t).size(300, 300)
+    var want_plot = Plot().mark_arc(inner_radius_fraction=0.5).encode_categorical(x=cats, y=values).size(300, 300)
     _assert_canvas_equal(got, render(want_plot), "pie")
 
 
@@ -208,7 +207,9 @@ def test_waterfall_matches_manual_plot() raises:
     var deltas: List[Float64] = [10.0, -3.0, 0.0]
     var is_total: List[Bool] = [True, False, True]
     var t = Theme(waterfall_total_color=Color(1, 2, 3))
-    var _hoisted7 = waterfall(cats, deltas, is_total=is_total, theme=t, width=300, height=200)
+    var _hoisted7 = waterfall(
+        cats, deltas, is_total=is_total, theme=t, width=300, height=200
+    )
     var got = render(_hoisted7)
 
     var want_plot = Plot().mark_waterfall().encode_waterfall(
@@ -251,7 +252,9 @@ def test_bullet_matches_manual_plot() raises:
     var targets: List[Float64] = [80.0, 60.0]
     var ranges: List[List[Float64]] = [[50.0, 75.0, 100.0], [50.0, 75.0, 100.0]]
     var t = Theme(bullet_range_color_dark=Color(11, 12, 13))
-    var _hoisted10 = bullet(cats, measures, targets, ranges, theme=t, width=300, height=200)
+    var _hoisted10 = bullet(
+        cats, measures, targets, ranges, theme=t, width=300, height=200
+    )
     var got = render(_hoisted10)
 
     var want_plot = (
@@ -720,6 +723,42 @@ def test_polar_series_accepts_nested_list_int_matching_list_float64() raises:
         render_svg(polar_series(angle, names, vi)).to_string(),
         render_svg(polar_series(angle, names, vf)).to_string(),
     )
+
+
+def test_dtype_generic_overloads_forward_their_mark_style_parameters() raises:
+    """A `[dtype]`-generic quickplot overload must pass its own
+    mark-style parameters down to the concrete one, not just accept
+    and drop them.
+
+    This is a regression test for a real bug: when the per-mark style
+    knobs moved off `Theme` onto the `mark_*()`/quickplot parameters,
+    the generic overloads gained the parameters but kept delegating
+    without forwarding them. Nothing failed loudly -- the value was
+    silently ignored and the chart rendered with the default, which
+    only showed up as one changed image in the docs corpus. Comparing
+    the two overloads against each other is what catches it.
+    """
+    var cats: List[String] = ["a", "b"]
+    var vals_f: List[Float64] = [1.0, 3.0]
+    var vals_i: List[Int] = [1, 3]
+
+    # pie(): List[Int] takes the generic overload, List[Float64] the
+    # concrete one -- same data, so same pixels, only if the generic
+    # one forwards inner_radius_fraction.
+    var _p_gen = pie(cats, vals_i, inner_radius_fraction=0.55, width=300, height=300)
+    var _p_con = pie(cats, vals_f, inner_radius_fraction=0.55, width=300, height=300)
+    _assert_canvas_equal(render(_p_gen), render(_p_con), "pie inner_radius_fraction")
+
+    # radar(): an Int-typed parameter, the other shape these take --
+    # here the generic axis is the per-series value lists.
+    var inds: List[String] = ["a", "b", "c"]
+    var maxes: List[Float64] = [10.0, 10.0, 10.0]
+    var names: List[String] = ["s1"]
+    var sv_f: List[List[Float64]] = [[3.0, 6.0, 9.0]]
+    var sv_i: List[List[Int]] = [[3, 6, 9]]
+    var _r_gen = radar(inds, maxes, names, sv_i, grid_rings=7, width=300, height=250)
+    var _r_con = radar(inds, maxes, names, sv_f, grid_rings=7, width=300, height=250)
+    _assert_canvas_equal(render(_r_gen), render(_r_con), "radar grid_rings")
 
 
 def main() raises:

@@ -1,3 +1,4 @@
+from canvas.color import Color
 from canvas.geometry import _round_to_int
 from canvas.vector.draw_target import DrawTarget
 
@@ -60,7 +61,7 @@ def _render_bullet[
        of `ranges`' ascending thresholds in turn (`fill_rect`, full
        band width, matching `Mark.BAR`/`BOX`'s "no extra narrowing"
        choice) -- shaded via a small `ColorScale` built once from
-       `Theme.bullet_range_color_light`/`bullet_range_color_dark` (the
+       `mark_bullet(range_color_light=..., range_color_dark=...)` (the
        *same* stop-interpolation machinery `Plot.encode(color=...)`'s continuous channel uses, projecting each band's index
        fraction onto `[0, 1]` instead of a data value), lightest at
        index 0 through darkest at the top -- Few's convention, and
@@ -148,8 +149,8 @@ def _render_bullet[
     # the per-category loop below.
     var bandwidth = frame.x_scale.bandwidth()
     var band_width = _round_to_int(bandwidth)
-    var measure_width = _round_to_int(bandwidth * theme.bullet_measure_width_fraction)
-    var measure_inset = bandwidth * theme.bullet_measure_width_fraction / 2.0
+    var measure_width = _round_to_int(bandwidth * plot._mark_style.bullet_measure_width_fraction)
+    var measure_inset = bandwidth * plot._mark_style.bullet_measure_width_fraction / 2.0
     var baseline_py = _axis_pixel(frame.y_scale, 0.0)
 
     for i in range(len(plot.x_categories)):
@@ -183,6 +184,7 @@ def bullet(
     measures: List[Float64],
     targets: List[Float64],
     ranges: List[List[Float64]],
+    measure_width_fraction: Float64 = 0.35,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -205,6 +207,8 @@ def bullet(
         ranges: Each category's own list of ascending qualitative-
             range thresholds (poor/satisfactory/good, ...), drawn as
             shaded background bands from lightest to darkest.
+        measure_width_fraction: The measure bar's thickness as a fraction of the band
+            width; defaults to `0.35`.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -239,7 +243,9 @@ def bullet(
             save(c, "docs/src/examples/out_bullet.svg")
         ```
     """
-    var plot = Plot().mark_bullet().encode_bullet(
+    var plot = Plot().mark_bullet(
+                        measure_width_fraction=measure_width_fraction,
+    ).encode_bullet(
         categories=categories, measures=measures, targets=targets, ranges=ranges
     )
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
@@ -252,6 +258,7 @@ def bullet[
     measures: List[Scalar[dtype]],
     targets: List[Scalar[dtype]],
     ranges: List[List[Float64]],
+    measure_width_fraction: Float64 = 0.35,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -270,6 +277,6 @@ def bullet[
     """
     return bullet(
         categories, _materialize_scalar_list(measures), _materialize_scalar_list(targets), ranges,
-        theme=theme, width=width, height=height, title=title, subtitle=subtitle, x_title=x_title,
+        measure_width_fraction=measure_width_fraction, theme=theme, width=width, height=height, title=title, subtitle=subtitle, x_title=x_title,
         y_title=y_title,
     )

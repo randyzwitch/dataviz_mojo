@@ -997,7 +997,7 @@ def test_render_waterfall_total_rows_matches_hand_derived_bars() raises:
     #
     # OrdinalScale over [60,380], 4 categories, step=80, bandwidth=64 ->
     # band_start: Start=68, A=148, B=228, End=308. Total bars draw full
-    # band width (64px); delta bars draw theme.waterfall_delta_width_fraction
+    # band width (64px); delta bars draw mark_waterfall(delta_width_fraction=...)
     # (0.6) of it, centered -- narrow=38.4, inset=12.8, so A/B's bars are inset ~13px from their band's edges on both sides.
     #
     # Every position independently re-derived via python3 (LinearScale's
@@ -1006,11 +1006,13 @@ def test_render_waterfall_total_rows_matches_hand_derived_bars() raises:
     var deltas: List[Float64] = [50.0, 20.0, -10.0, 0.0]
     var is_total: List[Bool] = [True, False, False, True]
     var t = Theme(show_gridlines=False)
+    # mark_waterfall()'s own default, now that it isn't a Theme field.
+    var total_color = Color(100, 100, 100)
     var _hoisted3 = waterfall(cats, deltas, is_total=is_total, theme=t, width=400, height=300)
     var c = render(_hoisted3)
 
     # Start (total): x:[68,132), y:[94,250) -- full band width.
-    _assert_color(c, 100, 200, t.waterfall_total_color, "Start (total), well inside")
+    _assert_color(c, 100, 200, total_color, "Start (total), well inside")
     # A (delta +20, narrower): x:[161,199), y:[31,94).
     _assert_color(c, 180, 60, t.mark_color, "A (delta +20), well inside its narrower rect")
     # A's band still has real background on either side of the
@@ -1020,7 +1022,7 @@ def test_render_waterfall_total_rows_matches_hand_derived_bars() raises:
     # B (delta -10, narrower): x:[241,279), y:[31,62).
     _assert_color(c, 260, 45, t.mark_color_negative, "B (delta -10), colored by sign")
     # End (total): x:[308,372), y:[62,250) -- full band width again.
-    _assert_color(c, 340, 150, t.waterfall_total_color, "End (total), well inside")
+    _assert_color(c, 340, 150, total_color, "End (total), well inside")
 
 
 def test_render_svg_waterfall_total_rows_matches_confirmed_rects() raises:
