@@ -387,6 +387,12 @@ struct _MarkStyle(Movable):
     width fractions -- which describes one chart's proportions rather
     than a look that should travel across charts.
 
+    `point_tooltips` is the one behavioural rather than geometric
+    entry here, and it belongs for the same reason the rest do: whether
+    a scatter can afford an SVG `<title>` per point depends on how many
+    points *this chart* has, which a `Theme` cannot know. See
+    `mark_point()`'s own `tooltips` parameter.
+
     Field names keep their mark prefix -- `gauge_start_angle`, not
     `start_angle` -- since they all share this one struct and several
     would otherwise collide (`polar_grid_rings`/`radar_grid_rings`).
@@ -396,6 +402,7 @@ struct _MarkStyle(Movable):
     Grouped onto `Plot._mark_style` -- see `Plot`'s docstring.
     """
 
+    var point_tooltips: Bool
     var donut_inner_radius_fraction: Float64
     var bullet_measure_width_fraction: Float64
     var waterfall_delta_width_fraction: Float64
@@ -415,6 +422,7 @@ struct _MarkStyle(Movable):
     var sankey_node_width: Float64
 
     def __init__(out self):
+        self.point_tooltips = False
         self.donut_inner_radius_fraction = 0.0
         self.bullet_measure_width_fraction = 0.35
         self.waterfall_delta_width_fraction = 0.6
@@ -712,9 +720,37 @@ struct Plot(Movable):
         self.height = height
         return self^
 
-    def mark_point(var self) -> Self:
-        """A scatter plot: one point per (x, y) pair."""
+    def mark_point(var self, tooltips: Bool = False) -> Self:
+        """A scatter plot: one point per (x, y) pair.
+
+        `tooltips` (default `False`) gives each point an SVG `<title>`
+        a browser shows on hover -- a row's own `encode(labels=...)`
+        text when it has one, otherwise its coordinates.
+
+        Off by default, unlike the categorical marks, and the reason is
+        size rather than taste. A `<circle>` here is about 48 bytes and
+        a title adds about 39, so turning this on roughly *doubles* a
+        dense scatter's SVG and its DOM node count with it -- measured
+        at 234 KB -> 425 KB for 5000 points. A bar chart's tooltips are
+        nearly free by comparison because there are a handful of bars;
+        a scatter's are proportional to the data.
+
+        So this is a per-chart decision, not a per-theme one, which is
+        why it lives here and not on `Theme` alongside
+        `Theme.svg_tooltips`: a theme cannot know whether this
+        particular scatter has fifty points or fifty thousand. Both
+        must be on for a title to be emitted -- `Theme.svg_tooltips`
+        turns tooltips off globally, this turns them on for a chart
+        that can afford them.
+
+        Args:
+            tooltips: Whether each point carries a hover `<title>`.
+
+        Returns:
+            Self, for further chaining.
+        """
         self._mark = Mark.POINT
+        self._mark_style.point_tooltips = tooltips
         return self^
 
     def mark_line(var self) -> Self:
@@ -1186,7 +1222,7 @@ struct Plot(Movable):
         self._mark = Mark.SINGLE_AXIS
         return self^
 
-    def mark_effect_scatter(var self) -> Self:
+    def mark_effect_scatter(var self, tooltips: Bool = False) -> Self:
         """A scatter plot with a halo drawn under each point -- the
         static equivalent of ECharts' animated-ripple effect
         scatter (see `_draw_point_layer`'s `draw_halo` paragraph in
@@ -1194,6 +1230,7 @@ struct Plot(Movable):
         no dedicated `encode_*` method, same continuous `x`/`y` plus the
         same optional `color`/`color_categories`/`size` channels."""
         self._mark = Mark.EFFECT_SCATTER
+        self._mark_style.point_tooltips = tooltips
         return self^
 
     def mark_funnel(var self) -> Self:
@@ -1222,7 +1259,7 @@ struct Plot(Movable):
         self._mark = Mark.STREAMGRAPH
         return self^
 
-    def mark_beeswarm(var self, horizontal: Bool = False) -> Self:
+    def mark_beeswarm(var self, horizontal: Bool = False, tooltips: Bool = False) -> Self:
         """A beeswarm plot: one point per raw value, jittered sideways
         within its category's band to avoid overlap -- encoded via
         `encode_distribution()`, the same data `mark_violin()`/`mark_
@@ -1238,6 +1275,7 @@ struct Plot(Movable):
         """
         self._mark = Mark.BEESWARM
         self._horizontal = horizontal
+        self._mark_style.point_tooltips = tooltips
         return self^
 
     def mark_violin(
@@ -5423,6 +5461,22 @@ def _series_tooltip_label(category: String, series: String, value: Float64) -> S
     return category + " / " + series + ": " + _format_fixed(value, _label_decimals(value))
 
 
+def _point_tooltip_label(plot: Plot, i: Int) -> String:
+    """One scatter point's hover text.
+
+    A row's own `encode(labels=...)` entry when it has one -- that text
+    was chosen by the caller to identify the point, so it beats
+    anything derived. Otherwise the coordinates, `"3.5, 12"`, formatted
+    the same way every other label here is."""
+    if len(plot.point_labels) > 0 and plot.point_labels[i] != "":
+        return plot.point_labels[i]
+    return (
+        _format_fixed(plot.x_data[i], _label_decimals(plot.x_data[i]))
+        + ", "
+        + _format_fixed(plot.y_data[i], _label_decimals(plot.y_data[i]))
+    )
+
+
 def _replay_text_requests(mut canvas: Canvas, requests: List[_TextRequest], mut cache: FontCache) raises:
     """Draw every `_TextRequest` in `requests` into `canvas` via
     `canvas.text.draw_text` -- the raster half of replaying the
@@ -6733,6 +6787,12 @@ def _draw_point_layer[
             if ch.has_size
             else _round_to_int(sc.point_radius)
         )
+        # One group per point, covering its error bar, halo and marker
+        # -- all one datum. The deferred label sits outside it, since
+        # text is replayed after this pass (see _TextRequest).
+        var tooltip = theme.svg_tooltips and plot._mark_style.point_tooltips
+        if tooltip:
+            target.begin_annotated_group(_point_tooltip_label(plot, i))
         if len(plot.y_err_data) > 0 or len(plot.y_err_lower_data) > 0:
             # Whisker first, point on top -- the same back-to-front
             # order _render_box draws its own whisker/box/median in,
@@ -6768,6 +6828,8 @@ def _draw_point_layer[
             _fill_shape_aa(target, px, py, radius, ch.shapes[ch.cat.indices[i] % len(ch.shapes)], color)
         else:
             target.fill_circle_aa(px, py, radius, color)
+        if tooltip:
+            target.end_annotated_group()
         if len(plot.point_labels) > 0 and plot.point_labels[i] != "":
             # Baseline placed label_gap above the point's own top edge
             # (py - radius), the same "baseline where the text should
@@ -8430,6 +8492,7 @@ def _finished(
 def scatter(
     x: List[Float64],
     y: List[Float64],
+    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -8442,6 +8505,11 @@ def scatter(
     Args:
         x: The continuous x column, one entry per point.
         y: The continuous y column, one entry per point.
+        tooltips: Whether each point carries an SVG `<title>` a browser
+            shows on hover; defaults to `False`. Off by default because
+            a title costs roughly as much as the point element itself,
+            so a dense scatter's SVG about doubles -- see
+            `Plot.mark_point()`'s own `tooltips` parameter.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -8467,7 +8535,7 @@ def scatter(
             save(c, "docs/src/examples/out_scatter.svg")
         ```
     """
-    var plot = Plot().mark_point().encode(x=x, y=y)
+    var plot = Plot().mark_point(tooltips=tooltips).encode(x=x, y=y)
     return _finished(plot^, theme, width, height, title, x_title, y_title)
 
 
@@ -8476,6 +8544,7 @@ def scatter[
 ](
     x: List[Scalar[dtype]],
     y: List[Scalar[dtype]],
+    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -8490,7 +8559,7 @@ def scatter[
     concrete `scatter()` above.
     """
     return scatter(
-        _materialize_scalar_list(x), _materialize_scalar_list(y), theme=theme, width=width,
+        _materialize_scalar_list(x), _materialize_scalar_list(y), tooltips=tooltips, theme=theme, width=width,
         height=height, title=title, x_title=x_title, y_title=y_title,
     )
 

@@ -8,6 +8,7 @@ from dataviz.plot import (
     Plot,
     _Orientation,
     _RenderResult,
+    _tooltip_label,
     _Scaled,
     _axis_pixel,
     _data_extent,
@@ -120,10 +121,17 @@ def _draw_beeswarm_points[
         for v in plot._distribution.values[i]:
             value_pixels.append(_axis_pixel(value_scale, v))
         var offsets = _beeswarm_offsets(value_pixels, spacing)
+        var tooltip = theme.svg_tooltips and plot._mark_style.point_tooltips
         for j in range(len(value_pixels)):
+            if tooltip:
+                target.begin_annotated_group(
+                    _tooltip_label(plot.x_categories[i], plot._distribution.values[i][j])
+                )
             orient.band_point(
                 target, value_pixels[j], center + offsets[j], radius, theme.mark_color
             )
+            if tooltip:
+                target.end_annotated_group()
 
 
 def _render_beeswarm[
@@ -198,6 +206,7 @@ def _render_horizontal_beeswarm[
 def beeswarm(
     categories: List[String],
     values: List[List[Float64]],
+    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -216,6 +225,11 @@ def beeswarm(
         categories: One swarm per entry, in the given order.
         values: Each category's raw values (`values[i]`, not a
             summary statistic) -- one point drawn per value.
+        tooltips: Whether each point carries an SVG `<title>` a browser
+            shows on hover; defaults to `False`. Off by default because
+            a title costs roughly as much as the point element itself,
+            so a dense scatter's SVG about doubles -- see
+            `Plot.mark_point()`'s own `tooltips` parameter.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -250,7 +264,7 @@ def beeswarm(
             save(c, "docs/src/examples/out_beeswarm.svg")
         ```
     """
-    var plot = Plot().mark_beeswarm(horizontal=horizontal).encode_distribution(categories=categories, values=values)
+    var plot = Plot().mark_beeswarm(horizontal=horizontal, tooltips=tooltips).encode_distribution(categories=categories, values=values)
     return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
 
 
@@ -259,6 +273,7 @@ def beeswarm[
 ](
     categories: List[String],
     values: List[List[Scalar[dtype]]],
+    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -275,6 +290,6 @@ def beeswarm[
     `beeswarm()` above.
     """
     return beeswarm(
-        categories, _materialize_nested_scalar_list(values), theme=theme, width=width, height=height,
+        categories, _materialize_nested_scalar_list(values), tooltips=tooltips, theme=theme, width=width, height=height,
         title=title, subtitle=subtitle, x_title=x_title, y_title=y_title, horizontal=horizontal,
     )
