@@ -57,12 +57,31 @@ pandas = ">=2.0,<3"
 # list did -- a new test file is picked up by writing it, with no
 # second place to remember to update.
 #
-# The real lever on suite time is that per-file recompile, not
-# scheduling: `mojo precompile dataviz` once, then running the tests
-# against the built package instead of `-I .`, roughly halves each
-# file's warm time (6.7s -> 3.3s for test_bar.mojo). Not wired up here
-# yet -- it needs the cold-cache case CI actually pays to be measured
-# first.
+# Precompiling the package (`mojo precompile dataviz` once, then
+# running tests against the built package instead of `-I .`) looks
+# like the obvious lever and is NOT worth wiring up -- measured, not
+# assumed. It halves each file's *warm* time (6.7s -> 3.3s for
+# test_bar.mojo), but that is only the build cache under
+# .pixi/envs/default/share/max/cache/.mojo_cache being hit; CI starts
+# cold every time. Cold, over the whole suite, two runs each:
+#
+#   source, -I .          6956 / 7013 CPU-s   (127s / 126s wall, 64 cores)
+#   precompiled package   6649 / 6682 CPU-s   (126s / 126s wall), incl.
+#                                              the ~5s precompile itself
+#
+# ~4.6% of CPU and ~0.4% of wall -- not worth a build step that can go
+# stale.
+#
+# What the suite actually spends its time on, if anyone picks this up
+# again: a test file that only imports a leaf module costs 23 CPU-s
+# cold (test_scale.mojo), one that renders anything costs 60-85. The
+# gap is `_render_generic[T: DrawTarget]`, which names every one of the
+# ~50 `_render_*` functions, so a single `render()` call monomorphizes
+# the entire mark dispatch tree -- ~50 CPU-s whether the test draws a
+# bar chart or a sankey, paid once per process and so 86 times per run.
+# Merging the 7 tests/test_horizontal_*.mojo files into one (identical
+# 32 tests, all passing) drops 401 CPU-s to 95, a 4.2x cut, purely by
+# paying that cost once instead of seven times.
 #
 # EXCEPTION: docs/src/examples/quickstart/ (step1..step5_quickplot.mojo
 # + their out_*.svg) is NOT part of this pipeline -- this task's own
