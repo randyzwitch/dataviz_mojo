@@ -1,43 +1,12 @@
-"""Merged test module -- one process for a whole family of test
-files, instead of one per file. Each `render()` call monomorphizes
-`_render_generic[T: DrawTarget]` over every ~50 `_render_*`
-function, and that cost is paid per process, so merging is what
-keeps it from being paid once per file (see pixi.toml's `[tasks]`
-comment for the measurements).
-
-- `test_arc.mojo`: Tests for Mark.ARC (pie/donut): wedge colors, inner_radius donut
-  behavior, SVG wedge paths.
-
-- `test_nightingale.mojo`: Tests for Mark.NIGHTINGALE (rose/coxcomb chart): equal-angle wedge
-  colors, the radius-vs-area rose_type distinction, SVG wedge paths.
-
-- `test_polar.mojo`: Tests for Mark.POLAR (polar-coordinate line plot): the shared
-  `_polar_point` angle/radius -> pixel primitive, the polyline/marker
-  geometry it drives, the surrounding polar grid, and encode_polar_
-  series()'s multi-series generalization.
-
-- `test_polar_bar.mojo`: Tests for Mark.POLAR_BAR (circular column chart): equal-slot bar
-  colors, the angular gap between bars, SVG bar paths.
-
-- `test_radialbar.mojo`: Tests for Mark.RADIALBAR (multi-ring progress chart): per-ring
-  track color, swept-vs-unswept ring color, the radial gap between
-  rings, SVG bar paths.
-
-- `test_radar.mojo`: Tests for Mark.RADAR (spider chart): polygon fill/outline geometry,
-  encode_radar()'s length-mismatch validation.
-
-- `test_gauge.mojo`: Tests for Mark.GAUGE: the needle's angle, the three color-band
-  sectors, out-of-range value clamping, encode_gauge()'s min/max
-  validation, and custom breakpoints/band_colors.
-
-- `test_parallel.mojo`: Tests for Mark.PARALLEL (parallel-coordinates chart): per-dimension
-  auto-scaling, polyline geometry, encode_parallel()'s length
-  validation.
-
-- `test_single_axis.mojo`: Tests for Mark.SINGLE_AXIS: one continuous axis, every point on a
-  fixed row (raster + SVG) -- see single_axis.mojo's docstrings for
-  the degenerate-y_scale trick verified here.
-
+"""Merged test module (one process per test family; see pixi.toml's
+`[tasks]` comment for why). Covers Mark.ARC (wedges, donut, SVG
+paths), Mark.NIGHTINGALE (equal-angle wedges, radius vs area mode),
+Mark.POLAR (_polar_point, polyline/markers, the grid,
+encode_polar_series()), Mark.POLAR_BAR (bar gaps), Mark.RADIALBAR
+(track, rings, radial gap), Mark.RADAR (polygon fill/outline,
+validation), Mark.GAUGE (needle, bands, clamping, custom
+breakpoints), Mark.PARALLEL (per-dimension scaling, polylines), and
+Mark.SINGLE_AXIS (every point on one row).
 """
 
 from _test_helpers import BG, _assert_color, _count_color
@@ -78,21 +47,13 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 # ---------------------------------------------------------------
 
 def test_render_arc_mark_matches_hand_derived_wedge_colors() raises:
-    # Two equal-value wedges -- each spans exactly half the circle.
-    # Wedges start at 12 o'clock (-pi/2) and sweep clockwise (see
-    # _render_arc's docstring for why increasing angle is
-    # clockwise here): wedge 0 covers -pi/2 -> pi/2 (12 o'clock down
-    # to 6 o'clock, passing through 3 o'clock/angle 0) -- a point
-    # straight right of center is inside it. Wedge 1 covers pi/2 ->
-    # 3pi/2 (6 o'clock back up to 12, passing through 9 o'clock/angle
-    # pi) -- a point straight left of center is inside it. Center and
-    # radius solved directly from the same margin-box math every
-    # other mark uses, minus the 130px legend column reserved on the
-    # right by default (theme.show_legend defaults True -- see
-    # _render_arc's docstring): canvas 400x300, default margins ->
-    # plot area x:[60,250], y:[20,250], center (155,135), radius =
-    # min(190,230)/2*0.9 = 85.5 -- both test points sit only 50px out,
-    # well inside that.
+    # Two equal wedges, each half the circle, starting at 12 o'clock
+    # (-pi/2) and sweeping clockwise: wedge 0 covers -pi/2..pi/2 (a point
+    # straight right of center is inside it), wedge 1 covers pi/2..3pi/2
+    # (straight left). Canvas 400x300, default margins, the 130px legend
+    # reserved by default: plot area x:[60,250], y:[20,250], center
+    # (155,135), radius = min(190,230)/2*0.9 = 85.5; both test points sit
+    # 50px out.
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1.0, 1.0]
     var _hoisted1 = pie(x, y, width=400, height=300)
@@ -128,17 +89,12 @@ def test_render_arc_raises_on_mismatched_category_length() raises:
 
 
 def test_render_svg_arc_mark_matches_confirmed_wedge_paths() raises:
-    # 2 categories, values [1, 3] (total 4) -- wedge 0 spans pi/2 (a
-    # small arc, large-arc-flag 0), wedge 1 spans 3*pi/2 (large-arc-
-    # flag 1) -- deliberately not a 50/50 split, whose each-wedge span
-    # would land exactly on the pi boundary the large-arc-flag itself
-    # switches on, an ambiguous case not worth testing. Endpoint
-    # coordinates formatted through
-    # `_format_svg_float`'s 3-decimal rounding (see the LINE
-    # test's comment) -- which also resolves what would otherwise
-    # print as 219.99999999999997 (pi's finite representation
-    # leaking through) down to a clean 220.000, the expected value on
-    # both ends of the full circle these two wedges split.
+    # 2 categories, values [1, 3] (total 4): wedge 0 spans pi/2
+    # (large-arc-flag 0), wedge 1 spans 3*pi/2 (large-arc-flag 1); not a
+    # 50/50 split, whose spans would land exactly on the pi boundary the
+    # flag switches on. Endpoints go through `_format_svg_float`'s
+    # 3-decimal rounding, which also resolves 219.99999999999997 to
+    # 220.000.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
     var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
@@ -157,16 +113,11 @@ def test_render_svg_arc_mark_matches_confirmed_wedge_paths() raises:
 
 
 def test_render_donut_leaves_the_center_unfilled_and_fills_the_ring() raises:
-    # Same 2-category [1, 3] data (and the same hand-solved center/
-    # radius: cx=220, cy=135, radius=103.5, no legend) test_render_
-    # svg_arc_mark_matches_confirmed_wedge_paths already uses --
-    # inner_radius_fraction=0.5 makes inner_radius=51.75, so the
-    # exact center (220, 135) must stay background (the donut hole),
-    # while a point on wedge 0's angular bisector (start=-pi/2,
-    # end=0, bisector=-pi/4) at the ring's midpoint radius
-    # ((51.75+103.5)/2=77.625) -- (275, 80), lands deep inside the
-    # filled ring, not near either edge where AA blending would make
-    # an exact color match unreliable.
+    # Same [1, 3] data and center/radius as the SVG test (cx=220, cy=135,
+    # radius=103.5, no legend); inner_radius_fraction=0.5 gives
+    # inner_radius=51.75, so the center (220, 135) stays background while
+    # a point on wedge 0's bisector (-pi/4) at the ring's mid radius
+    # 77.625, (275, 80), is inside the ring.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
     var _hoisted5 = pie(
@@ -181,9 +132,8 @@ def test_render_donut_leaves_the_center_unfilled_and_fills_the_ring() raises:
 
 
 def test_render_donut_svg_matches_confirmed_ring_sector_paths() raises:
-    # Same data/theme as the raster donut test above, through
-    # render_svg() instead -- formatted through SvgCanvas's
-    # 3-decimal `_format_svg_float`.
+    # Same data/theme as the raster donut test through render_svg(),
+    # formatted with 3-decimal `_format_svg_float`.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
     var plot = Plot().mark_arc(inner_radius_fraction=0.5).encode_categorical(x=cats, y=vals).theme(
@@ -218,21 +168,12 @@ def test_render_donut_raises_on_out_of_range_inner_radius_fraction() raises:
 # ---------------------------------------------------------------
 
 def test_render_nightingale_matches_hand_derived_wedge_colors() raises:
-    # Three equal-value wedges -- each spans exactly 2*pi/3 (120
-    # degrees). Wedges start at 12 o'clock (-pi/2) and sweep clockwise
-    # (Mark.ARC's convention, reused unchanged -- see _render_
-    # nightingale's docstring): wedge 0 spans -90.30 degrees
-    # (bisector -30), wedge 1 spans 30.150 (bisector 90, straight
-    # down), wedge 2 spans 150.270 (bisector 210). Same center/radius
-    # as test_arc.mojo's "a"/"b" case (single-char category labels
-    # reserve the same legend width regardless of how many rows, since
-    # legend width depends on the widest label, not the row count):
-    # canvas 400x300, default margins -> plot area x:[60,250],
-    # y:[20,250], center (155,135), max radius 85.5 -- all three
-    # wedges reach that same radius here (equal values -> frac=1.0
-    # each). Test points at radius 50 (well inside, away from any
-    # edge/AA blending) along each wedge's bisector, offsets
-    # computed by hand from cos/sin of each bisector angle.
+    # Three equal wedges, each 2*pi/3, from 12 o'clock clockwise: wedge 0
+    # spans -90..30 degrees (bisector -30), wedge 1 30..150 (bisector 90),
+    # wedge 2 150..270 (bisector 210). Same center/radius as the arc test's
+    # single-char-label case: canvas 400x300, plot area x:[60,250],
+    # y:[20,250], center (155,135), max radius 85.5, and every wedge
+    # reaches it (frac 1.0). Test points at radius 50 along each bisector.
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 1.0, 1.0]
     var _hoisted1 = nightingale(x, y, width=400, height=300)
@@ -245,20 +186,15 @@ def test_render_nightingale_matches_hand_derived_wedge_colors() raises:
 
 
 def test_render_nightingale_area_mode_scales_radius_by_sqrt() raises:
-    # Two categories, values [1, 4] (max 4): wedge 0 spans -90.90
-    # degrees (bisector 0, straight right of center), wedge 1 spans
-    # 90.270 (bisector 180, straight left). Same center/radius as
-    # above (400x300, default margins, single-char labels): center
+    # Two categories, values [1, 4]: wedge 0 spans -90..90 degrees
+    # (bisector 0, right of center), wedge 1 90..270 (bisector 180). Center
     # (155,135), max radius 85.5.
     #
-    # rose_type="radius" (area=False, the default): wedge 0's radius = 85.5 * (1/4) = 21.375 -- a point at radius 30 along its
-    # bisector (185, 135) falls *outside* it, background.
-    # rose_type="area" (area=True): wedge 0's radius =
-    # 85.5 * sqrt(1/4) = 85.5 * 0.5 = 42.75 -- that same point (185,
-    # 135) now falls *inside* it. This is the one pixel that actually
-    # discriminates the two modes; wedge 1 (value equals the max, frac
-    # 1.0 either way -- sqrt(1) = 1) reaches full radius in both modes
-    # -- unaffected, at (125, 135).
+    # area=False: wedge 0's radius = 85.5 * (1/4) = 21.375, so a point at
+    # radius 30 on its bisector, (185, 135), is background. area=True:
+    # radius = 85.5 * sqrt(1/4) = 42.75, so (185, 135) is inside. Wedge 1
+    # (frac 1.0, sqrt(1) = 1) reaches full radius either way, at
+    # (125, 135).
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1.0, 4.0]
     var palette = default_categorical_palette()
@@ -275,12 +211,10 @@ def test_render_nightingale_area_mode_scales_radius_by_sqrt() raises:
 
 
 def test_render_nightingale_svg_matches_confirmed_wedge_paths() raises:
-    # Same 2-category [1, 3] data test_arc.mojo's SVG test uses,
-    # default rose_type="radius" mode -- center/radius solved the same
-    # way (400x300, no legend): cx=220, cy=135, max radius=103.5.
-    # Equal angles this time (not ARC's value-proportional ones):
-    # wedge 0 spans -90.90 degrees at radius 103.5*(1/3)=34.5, wedge 1
-    # spans 90.270 at radius 103.5*(3/3)=103.5, formatted through SvgCanvas's 3-decimal `_format_svg_float`.
+    # Same [1, 3] data as the arc SVG test in the default radius mode:
+    # cx=220, cy=135, max radius=103.5, no legend. Equal angles: wedge 0
+    # spans -90..90 degrees at radius 103.5/3=34.5, wedge 1 spans 90..270
+    # at 103.5.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
     var plot = Plot().mark_nightingale().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
@@ -334,26 +268,15 @@ def test_render_nightingale_empty_categories_only_fills_background() raises:
 # ---------------------------------------------------------------
 
 def test_render_polar_matches_hand_derived_line_and_markers() raises:
-    # Three points -- angle 0, pi, pi/2 -- radius [2, 2, 9] (max 9).
-    # Canvas 400x300, default theme (no legend ever drawn for this
-    # mark -- see _render_polar's docstring): plot area x:[60,380],
-    # y:[20,250] (no legend column to subtract, unlike Mark.ARC/
-    # NIGHTINGALE/POLAR_BAR's margin math), center (220,135), max
-    # radius = min(320,230)/2*0.9 = 103.5 -- the same 103.5 test_arc.
-    # mojo/test_nightingale.mojo's no-legend SVG tests already
-    # derive for this exact canvas size.
+    # Three points, angles 0, pi, pi/2, radius [2, 2, 9] (max 9). Canvas
+    # 400x300, default theme (no legend for this mark): plot area
+    # x:[60,380], y:[20,250], center (220,135), max radius 103.5.
     #
     # Point 0 (angle 0, value 2): radius_px = 103.5*(2/9) = 23.0 ->
-    # (220+23, 135) = (243, 135). Point 1 (angle pi, value 2): same
-    # radius, opposite side -> (220-23, 135) = (197, 135). Point 2
-    # (angle pi/2, value 9, the one that sets max) reaches the full
-    # 103.5 -- right at the plot edge, not sampled directly (AA/
-    # clipping risk at an exact boundary). Both sampled points
-    # land squarely on the stroked polyline through the center (points
-    # 0 and 1 sit on the same horizontal line as the center), so
-    # either the line stroke or the point's marker circle explains
-    # the color -- both paint in the same theme.mark_color, so this
-    # doesn't need to distinguish which one.
+    # (243, 135). Point 1 (angle pi): (197, 135). Point 2 (angle pi/2,
+    # value 9) sits at the plot edge and isn't sampled. Both sampled points
+    # are on the polyline through the center, and line and marker share
+    # theme.mark_color.
     var angle: List[Float64] = [0.0, 3.14159265358979, 1.5707963267949]
     var radius: List[Float64] = [2.0, 2.0, 9.0]
     var _hoisted1 = polar(angle, radius, width=400, height=300)
@@ -364,18 +287,10 @@ def test_render_polar_matches_hand_derived_line_and_markers() raises:
 
 
 def test_render_polar_draws_a_grid_even_with_no_data_on_it() raises:
-    # A single point at the origin (radius 0) still gets the full
-    # polar grid drawn -- confirmed by scanning a small column near the
-    # outermost ring's nominal position, at least one pixel of which
-    # must differ from a plain white background (see _render_polar's
-    # docstring: no tick labels, but the rings/spokes themselves always
-    # draw). A window scan, not one exact pixel: `render()`'s
-    # supersample-then-downsample (`_RASTER_SUPERSAMPLE`, plot.mojo)
-    # spreads a 1px ring's faint ink across a couple of columns rather
-    # than concentrating it at one exact, stable position -- see
-    # `_assert_near_color`'s docstring (tests/_test_helpers.mojo) for
-    # the same underlying reason applied to a stroke's *color* instead
-    # of its *position*.
+    # A single point at the origin still gets the full polar grid: a small
+    # column near the outermost ring's position must contain at least one
+    # non-background pixel. A window scan, since supersampling spreads a
+    # 1px ring's ink across a couple of columns.
     var angle: List[Float64] = [0.0]
     var radius: List[Float64] = [0.0]
     var _hoisted2 = polar(angle, radius, width=400, height=300)
@@ -416,31 +331,18 @@ def test_render_polar_empty_data_only_fills_background() raises:
 
 
 def test_render_polar_series_matches_hand_derived_line_and_markers() raises:
-    # Two series, two single-char names ("A"/"B") -- the identical
-    # dynamic-legend-width case test_nightingale.mojo's/test_polar_
-    # bar.mojo's three-category cases establish for this
-    # exact 400x300 canvas: center (155,135), max radius 85.5 (a short
-    # label never grows the legend column past Theme's fixed 130px
-    # default). Three angles 120 degrees apart (0, 2*pi/3, 4*pi/3) --
-    # deliberately *not* the single-series test's 0/pi pair, which
-    # would put two points on the same horizontal line through the
-    # center and let one series' connecting segment fully overpaint
-    # the other's identical-y marker; spread around a triangle instead,
-    # so no segment coincides with another series' sample point.
+    # Two series, single-char names, so the same legend width as the
+    # nightingale/polar-bar three-category cases: center (155,135), max
+    # radius 85.5. Three angles 120 degrees apart (0, 2*pi/3, 4*pi/3)
+    # rather than 0/pi, so no segment of one series overpaints another
+    # series' marker.
     #
-    # Series A = [3, 6, 9], series B = [9, 3, 6] -- shared global max 9
-    # (each series contains the max once, so both share one radius
-    # scale exactly). Sampling each series' non-edge fractions
-    # (skipping every point at fraction 1.0 -- the plot's outer
-    # edge, the same AA/clipping risk test_render_polar_matches_hand_
-    # derived_line_and_markers already avoids):
-    #   A, angle 0, value 3 (frac 1/3): radius_px 28.5 -> (183.5, 135)
-    #   A, angle 120, value 6 (frac 2/3): radius_px 57.0 ->
-    #     (155+57*cos120, 135+57*sin120) = (126.5, 184.36)
-    #   B, angle 120, value 3 (frac 1/3): radius_px 28.5 ->
-    #     (155+28.5*cos120, 135+28.5*sin120) = (140.75, 159.68)
-    #   B, angle 240, value 6 (frac 2/3): radius_px 57.0 ->
-    #     (155+57*cos240, 135+57*sin240) = (126.5, 85.64)
+    # Series A = [3, 6, 9], B = [9, 3, 6], shared max 9. Sampling the
+    # non-edge fractions:
+    # A, angle 0, value 3: radius_px 28.5 -> (183.5, 135)
+    # A, angle 120, value 6: radius_px 57.0 -> (126.5, 184.36)
+    # B, angle 120, value 3: radius_px 28.5 -> (140.75, 159.68)
+    # B, angle 240, value 6: radius_px 57.0 -> (126.5, 85.64)
     var angle: List[Float64] = [0.0, 2.0943951023932, 4.1887902047864]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[3.0, 6.0, 9.0], [9.0, 3.0, 6.0]]
@@ -493,13 +395,10 @@ def test_render_polar_series_empty_angle_only_fills_background() raises:
 # ---------------------------------------------------------------
 
 def test_render_polar_bar_matches_hand_derived_bar_colors() raises:
-    # Three equal-value categories -- same equal-angle slots (2*pi/3,
-    # bisectors -30/90/210 degrees) and center/radius (400x300,
-    # default margins, single-char labels -> center (155,135), max
-    # radius 85.5) test_nightingale.mojo's three-category case
-    # uses -- the 20% angular padding narrows each bar's span
-    # around that same bisector but doesn't move it, so the same
-    # radius-50 test points along each bisector stay inside their bar.
+    # Three equal-value categories: the same equal-angle slots (bisectors
+    # -30/90/210 degrees) and center/radius (155,135)/85.5 as the
+    # nightingale test; the 20% angular padding narrows each bar around
+    # its bisector, so radius-50 points on each bisector stay inside.
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 1.0, 1.0]
     var _hoisted1 = polarbar(x, y, width=400, height=300)
@@ -512,15 +411,10 @@ def test_render_polar_bar_matches_hand_derived_bar_colors() raises:
 
 
 def test_render_polar_bar_leaves_a_gap_between_bars() raises:
-    # Same three-category setup as above. Slot boundaries sit at
-    # -90/30/150 degrees; the 20% padding (mark_polar_bar(padding=...)) carves
-    # a 24-degree gap (2*pi/3 * 0.2) centered on each boundary, so at
-    # radius 50 along the boundary between bar 0 and bar 1 (angle 30
-    # degrees exactly -- offset (155 + 50*cos(30), 135 + 50*sin(30)) =
-    # (198.3, 160)) neither bar has reached yet: background, not
-    # either bar's color -- the one thing that actually distinguishes
-    # this mark from Mark.NIGHTINGALE's edge-to-edge wedges (see
-    # test_nightingale.mojo, which has no such gap to test).
+    # Same setup. Slot boundaries at -90/30/150 degrees; the 20% padding
+    # carves a 24-degree gap centered on each, so at radius 50 along the
+    # 30-degree boundary, (198.3, 160), neither bar has reached:
+    # background.
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 1.0, 1.0]
     var _hoisted2 = polarbar(x, y, width=400, height=300)
@@ -567,29 +461,19 @@ comptime _TRACK = Color(230, 230, 230)
 
 
 def test_render_radialbar_ring_colors_and_track() raises:
-    # Same 400x300, single-char "a"/"b"/"c" labels test_polar_bar.mojo
-    # uses -> identical center (155,135) and max_radius 85.5
-    # (default margins, dynamic legend width for three one-char labels).
-    # Values [1, 2, 4] (max 4) give clean fractions: ring 0 (outermost,
-    # category "a") sweeps 1/4 of the way around (90 degrees), ring 1
-    # ("b") sweeps 1/2 (180 degrees), ring 2 (innermost, "c") sweeps the
-    # full circle.
+    # Same 400x300 canvas and single-char labels as the polar-bar test:
+    # center (155,135), max_radius 85.5. Values [1, 2, 4] (max 4): ring 0
+    # (outermost, "a") sweeps 90 degrees, ring 1 ("b") 180, ring 2 ("c")
+    # the full circle.
     #
-    # n=3 -> ring_slot = 85.5/3 = 28.5, gap = 28.5*0.25 = 7.125.
-    # Ring 0: outer = 85.5 - 7.125/2 = 81.9375, inner = 85.5 - 28.5 +
-    #   7.125/2 = 60.5625 (mid-radius 71.25).
-    # Ring 1: outer = 85.5 - 28.5 - 7.125/2 = 53.4375, inner =
-    #   85.5 - 57 + 7.125/2 = 32.0625 (mid-radius 42.75).
-    # Ring 2: outer = 85.5 - 57 - 7.125/2 = 24.9375, inner =
-    #   85.5 - 85.5 + 7.125/2 = 3.5625 (mid-radius 14.25).
+    # n=3 -> ring_slot = 28.5, gap = 7.125.
+    # Ring 0: outer 81.9375, inner 60.5625 (mid 71.25).
+    # Ring 1: outer 53.4375, inner 32.0625 (mid 42.75).
+    # Ring 2: outer 24.9375, inner 3.5625 (mid 14.25).
     #
-    # Angle 0 = 3 o'clock (east), -90 = 12 o'clock, sweeping clockwise.
-    # Ring 0's 90-degree sweep runs -90 -> 0; its angular
-    # midpoint (-45, safely 45 degrees from either edge -- ~55.7px of
-    # arc at this radius) sits at (155 + 71.25*cos(-45), 135 +
-    # 71.25*sin(-45)) = (205.4, 84.6). Ring 1's 180-degree sweep
-    # runs -90 -> 90; its midpoint (0 degrees, due east) sits at
-    # (155 + 42.75, 135) = (197.75, 135).
+    # Angle 0 is 3 o'clock, -90 is 12 o'clock, sweeping clockwise. Ring 0's
+    # sweep runs -90..0; its midpoint (-45) sits at (205.4, 84.6). Ring 1's
+    # runs -90..90; its midpoint (0) sits at (197.75, 135).
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0, 4.0]
     var _hoisted1 = radialbar(x, y, width=400, height=300)
@@ -600,19 +484,16 @@ def test_render_radialbar_ring_colors_and_track() raises:
     _assert_color(c, 198, 135, palette[1], "ring 1, swept half at 0 degrees (due east)")
     _assert_color(c, 155, 149, palette[2], "ring 2 (innermost), fully swept -- any angle")
 
-    # Unswept portions of ring 0 / ring 1 (due west, 180 degrees --
-    # nowhere near either ring's swept range) show the light-gray
-    # track, not the category color or the plain background.
+    # Unswept portions of rings 0/1 (due west) show the track color, not
+    # the category color or the background.
     _assert_color(c, 84, 135, _TRACK, "ring 0, unswept portion (due west) shows the track color")
     _assert_color(c, 112, 135, _TRACK, "ring 1, unswept portion (due west) shows the track color")
 
 
 def test_render_radialbar_leaves_a_radial_gap_between_rings() raises:
-    # Same setup as above. The radial gap between ring 0's inner
-    # edge (60.5625) and ring 1's outer edge (53.4375) is centered
-    # on radius 57, due east (angle 0): (155 + 57, 135) = (212, 135) --
-    # untouched by either ring, so plain background, not the track
-    # color (the track only covers each ring's inner/outer band).
+    # Same setup. The radial gap between ring 0's inner edge (60.5625) and
+    # ring 1's outer edge (53.4375) is centered on radius 57, due east:
+    # (212, 135) is background, not the track color.
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0, 4.0]
     var _hoisted2 = radialbar(x, y, width=400, height=300)
@@ -653,13 +534,10 @@ def test_render_radialbar_empty_categories_only_fills_background() raises:
 
 
 def test_render_radialbar_svg_matches_confirmed_ring_paths() raises:
-    # Two categories (no legend, to keep the geometry simple), values
-    # [1, 3] -- ring 0 ("a", outermost) sweeps 1/3 of the way around,
-    # ring 1 ("b", innermost) sweeps the full circle: each ring draws its gray
-    # track first (a full-circle ring-sector path, `#e6e6e6`), then its
-    # own value arc on top -- ring 1's value arc is a second, identical
-    # full-circle path in its category color, since a fraction of
-    # 1.0 sweeps the same full turn the track itself does.
+    # Two categories (no legend), values [1, 3]: ring 0 sweeps 1/3 of the
+    # way, ring 1 the full circle. Each ring draws its gray track first (a
+    # full-circle path, `#e6e6e6`), then its value arc; ring 1's value arc
+    # is a second full-circle path in its category color.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
     var plot = Plot().mark_radialbar().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
@@ -686,22 +564,16 @@ def test_render_radialbar_svg_matches_confirmed_ring_paths() raises:
 # ---------------------------------------------------------------
 
 def test_render_radar_matches_hand_derived_polygon_fill() raises:
-    # Three indicators, all max 100, one series at [100, 100, 100] --
-    # every vertex sits exactly at the outer radius, an equilateral
-    # triangle inscribed in the circle. Spokes at -90/30/150 degrees
-    # (Mark.NIGHTINGALE's three-way angle split, reused here too).
-    # No legend (show_legend=False, same no-legend margin math test_
-    # arc.mojo's SVG tests derive): canvas 400x300 -> center
-    # (220,135), max radius 103.5.
+    # Three indicators, all max 100, one series at [100, 100, 100]: every
+    # vertex at the outer radius, an equilateral triangle. Spokes at
+    # -90/30/150 degrees. No legend: canvas 400x300 -> center (220,135),
+    # max radius 103.5.
     #
-    # The centroid of an equilateral triangle inscribed in a circle is
-    # the circle's center -- always inside the filled polygon.
-    # The median from center toward a vertex (angle -90, radius 50,
-    # well short of the 103.5 vertex) also always lies inside a convex
-    # polygon. A point *between* two vertices near the circle's edge, though (angle 90 -- exactly opposite the triangle's top edge, at radius 100 -- the edge itself sits at the triangle's
-    # apothem, 103.5*cos(60)=51.75, well short of 100) falls
-    # *outside* the triangle: still background, not the fill color --
-    # confirming the polygon is a real triangle, not a full disk.
+    # The centroid (the center) and a point on the median toward a vertex
+    # (angle -90, radius 50) lie inside the polygon. A point between two
+    # vertices near the edge (angle 90, radius 100; the edge sits at the
+    # apothem, 103.5*cos(60)=51.75) falls outside, confirming a real
+    # triangle rather than a disk.
     var indicators: List[String] = ["Attack", "Defense", "Speed"]
     var max_values: List[Float64] = [100.0, 100.0, 100.0]
     var series_names: List[String] = ["Team A"]
@@ -712,8 +584,8 @@ def test_render_radar_matches_hand_derived_polygon_fill() raises:
     )
     var c = render(_hoisted1)
 
-    # mark_radar(fill_alpha=...)'s default -- the same tint the render
-    # path uses, passed explicitly since _lighten takes alpha as a parameter.
+    # mark_radar(fill_alpha=...)'s default, passed explicitly since
+    # _lighten takes alpha as a parameter.
     var fill = _lighten(default_categorical_palette()[0], 90)
     _assert_color(c, 220, 135, fill, "centroid of the fully-maxed triangle -- inside")
     _assert_color(c, 220, 85, fill, "median from center toward the -90 degree vertex -- inside")
@@ -764,17 +636,11 @@ def test_render_radar_empty_indicators_only_fills_background() raises:
 # ---------------------------------------------------------------
 
 def test_render_gauge_matches_hand_derived_needle_and_pivot() raises:
-    # value=50 over the default [0, 100] range -> fraction 0.5 ->
-    # needle angle = 3*pi/4 + 3*pi/2*0.5 = 3*pi/2 (270 degrees) --
-    # straight up (`_polar_point`'s convention: 270 degrees is due
-    # north, since angle 0 is east and angle increases clockwise).
-    # Canvas 400x300, no legend needed (a gauge has one value, nothing
-    # to key one by): center (220,135), max radius 103.5 -- the same
-    # no-legend numbers test_polar.mojo's tests derive for
-    # this exact canvas size. Needle reaches 0.9*103.5=93.15; two
-    # points straight up from center (at pixel rows 50 and 42, both
-    # well short of that) fall on the needle. The center pivot dot is
-    # also theme.mark_color.
+    # value=50 over [0, 100] -> fraction 0.5 -> needle angle = 3*pi/4 +
+    # 3*pi/2*0.5 = 3*pi/2 (270 degrees, straight up). Canvas 400x300, no
+    # legend: center (220,135), max radius 103.5. The needle reaches
+    # 0.9*103.5=93.15; two points straight up from center (rows 50 and 42)
+    # fall on it. The pivot dot is also theme.mark_color.
     var _hoisted1 = gauge(50.0, width=400, height=300)
     var c = render(_hoisted1)
     var mark_color = Theme().mark_color
@@ -784,15 +650,12 @@ def test_render_gauge_matches_hand_derived_needle_and_pivot() raises:
 
 
 def test_render_gauge_matches_hand_derived_band_colors() raises:
-    # Same center/radius as above. Three points at radius 88 (inside
-    # the color band ring, between its 72.45 inner and 103.5 outer
-    # radius), one per breakpoint band, each angle chosen well clear
-    # of its band boundary and of the needle's angle (so the
-    # needle line itself never explains the color): 180 degrees (west,
-    # fraction (180-135)/270 = 0.167, inside the default [0, 0.2)
-    # green band) -> (132, 135); 200 degrees (fraction 0.241, inside
-    # [0.2, 0.8) blue) -> (137, 105); 18 degrees/378 unwrapped
-    # (fraction 0.9, inside [0.8, 1.0] red) -> (304, 162).
+    # Same center/radius. Three points at radius 88 (inside the band ring,
+    # between 72.45 and 103.5), one per band, each angle clear of its band
+    # boundary and the needle: 180 degrees (fraction (180-135)/270 =
+    # 0.167, the [0, 0.2) green band) -> (132, 135); 200 degrees (fraction
+    # 0.241, blue) -> (137, 105); 18 degrees / 378 unwrapped (fraction 0.9,
+    # red) -> (304, 162).
     var _hoisted2 = gauge(50.0, width=400, height=300)
     var c = render(_hoisted2)
     var breakpoint_colors = [Color(46, 139, 87), Color(30, 144, 255), Color(220, 20, 60)]
@@ -802,21 +665,17 @@ def test_render_gauge_matches_hand_derived_band_colors() raises:
 
 
 def test_render_gauge_leaves_a_gap_at_the_bottom() raises:
-    # The dial sweeps 270 degrees (135.405/45), leaving a 90-degree
-    # gap centered on due south (90 degrees) -- a point at radius 88
-    # straight down from center (220, 223) is neither a band nor the
-    # needle: background.
+    # The dial sweeps 270 degrees (135 to 405), leaving a 90-degree gap
+    # centered on due south: (220, 223) at radius 88 is background.
     var _hoisted3 = gauge(50.0, width=400, height=300)
     var c = render(_hoisted3)
     _assert_color(c, 220, 223, BG, "the 90-degree gap at the bottom of the dial")
 
 
 def test_render_gauge_clamps_values_beyond_the_range() raises:
-    # value=1000 (way past max_value=100) clamps to fraction 1.0 ->
-    # needle angle 405 degrees (= 45 degrees unwrapped), *not* an
-    # error; value=-1000 clamps to fraction 0.0 -> needle angle 135
-    # degrees. Both checked at a point along each needle's direction,
-    # well short of its 93.15-pixel length.
+    # value=1000 clamps to fraction 1.0 -> needle angle 405 degrees (45
+    # unwrapped); value=-1000 clamps to 0.0 -> 135 degrees. Checked along
+    # each needle's direction, short of its length.
     var mark_color = Theme().mark_color
     var _hoisted4 = gauge(1000.0, width=400, height=300)
     var high = render(_hoisted4)
@@ -836,14 +695,10 @@ def test_render_gauge_raises_when_min_value_is_not_less_than_max_value() raises:
 
 
 def test_render_gauge_custom_breakpoints_matches_hand_derived_band_colors() raises:
-    # Same center (220,135)/radius (103.5 outer, 72.45 inner) as every
-    # other test above -- breakpoints/band_colors only change which
-    # color a given angle falls under, not the dial's geometry, so
-    # the same three test points reused: (132,135) and (137,105) sit at
-    # fractions 0.167/0.241 (both test_render_gauge_matches_hand_
-    # derived_band_colors' green/blue bands under the *default*
-    # split), which a two-band [0.5, 1.0] split both place in band
-    # 0; (304,162) sits at fraction 0.9, in band 1 either way.
+    # Same center/radius; breakpoints/band_colors only change which color
+    # an angle falls under. (132,135) and (137,105) sit at fractions
+    # 0.167/0.241, both in band 0 of a [0.5, 1.0] split; (304,162) at
+    # fraction 0.9 is in band 1.
     var bps: List[Float64] = [0.5, 1.0]
     var cols: List[Color] = [Color(10, 20, 30), Color(200, 100, 50)]
     var _hoisted8 = gauge(50.0, width=400, height=300, breakpoints=bps, band_colors=cols)
@@ -854,13 +709,9 @@ def test_render_gauge_custom_breakpoints_matches_hand_derived_band_colors() rais
 
 
 def test_render_gauge_custom_breakpoints_default_empty_matches_original() raises:
-    # Leaving breakpoints/band_colors at their default (empty lists)
-    # must reproduce the fixed 20%/80%/100% green/blue/red default
-    # exactly -- the same "purely additive" guarantee every other
-    # optional feature in this package makes. Same test points/colors
-    # as test_render_gauge_matches_hand_derived_band_colors, called
-    # through the explicit-empty-list form instead of omitting the
-    # parameters, so this exercises the actual sentinel-check code path.
+    # Empty breakpoints/band_colors (passed explicitly) reproduce the
+    # 20%/80%/100% green/blue/red default, exercising the sentinel check
+    # itself.
     var empty_bps = List[Float64]()
     var empty_cols = List[Color]()
     var _hoisted9 = gauge(50.0, width=400, height=300, breakpoints=empty_bps, band_colors=empty_cols)
@@ -903,24 +754,16 @@ def test_render_gauge_raises_on_out_of_range_breakpoint() raises:
 # ---------------------------------------------------------------
 
 def test_render_parallel_matches_hand_derived_polylines() raises:
-    # Two dimensions (A, B), four rows -- two "real" rows (r1, r2)
-    # plus two extra rows (r3=[0,0], r4=[10,10]) whose only job is to
-    # set each column's domain to a clean [0, 10] without
-    # themselves landing at a boundary pixel this test samples (a
-    # point exactly at the plot's edge is prone to AA/stroke-cap
-    # blending that isn't an exact color match).
+    # Two dimensions (A, B), four rows: r1, r2, plus r3=[0,0] and
+    # r4=[10,10], whose job is to set each column's domain to [0, 10]
+    # without being sampled at a boundary pixel.
     #
-    # Canvas 400x300, no legend (show_legend=False): plot area
-    # x:[60,380], y:[20,250] -- the same no-legend numbers test_polar.
-    # mojo's tests derive for this exact canvas size. Two
-    # axes (n=2) pin to the plot's left/right edges: A at x=60, B
-    # at x=380.
+    # Canvas 400x300, no legend: plot area x:[60,380], y:[20,250]. Two axes
+    # pin to the edges: A at x=60, B at x=380.
     #
-    # r1 = [3, 7]: A's frac 3/10=0.3 -> y = 250 - 0.3*230 = 181.
-    # B's frac 7/10=0.7 -> y = 250 - 0.7*230 = 89. r2 = [7, 3]:
-    # the mirror image, A -> y=89, B -> y=181. Both endpoints (the
-    # polyline's first vertex, x=60) and an interior point 25% of
-    # the way to the second axis (x=140, y linearly interpolated).
+    # r1 = [3, 7]: A's frac 0.3 -> y = 250 - 0.3*230 = 181; B's frac 0.7 ->
+    # y = 89. r2 = [7, 3]: the mirror. Sampled at the first vertex (x=60)
+    # and 25% of the way to the second axis (x=140, y interpolated).
     var dims: List[String] = ["A", "B"]
     var row_names: List[String] = ["r1", "r2", "r3", "r4"]
     var data: List[List[Float64]] = [[3.0, 7.0], [7.0, 3.0], [0.0, 0.0], [10.0, 10.0]]
@@ -965,14 +808,11 @@ def test_render_parallel_empty_dims_only_fills_background() raises:
 # ---------------------------------------------------------------
 
 def test_render_single_axis_matches_hand_derived_points() raises:
-    # 3 values (10, 20, 30). Canvas 400x300, show_gridlines=False,
-    # default margins -> plot area x:[60,380], y:[20,250]. x-domain =
-    # _data_extent([10,20,30]): span 20, 5% pad 1.0 -> [9, 31]; scale
-    # = (380-60)/(31-9) = 14.5454. -> pixel x's 75/220/365 (each
-    # independently computed via python3 from LinearScale's to_
-    # pixel formula). Every point lands on the same row, the plot area's
-    # vertical center: (20+250)/2 = 135 exactly. Default point_
-    # radius 3.5 rounds to 4.
+    # 3 values (10, 20, 30). Canvas 400x300, no gridlines, default margins
+    # -> plot area x:[60,380], y:[20,250]. x-domain =
+    # _data_extent([10,20,30]) = [9, 31], scale 14.5454 -> pixel x
+    # 75/220/365. Every point lands on the vertical center row, (20+250)/2
+    # = 135. point_radius 3.5 rounds to 4.
     var x: List[Float64] = [10.0, 20.0, 30.0]
     var t = Theme(show_gridlines=False)
     var _hoisted1 = single_axis(x, theme=t, width=400, height=300)
@@ -995,12 +835,9 @@ def test_render_single_axis_svg_matches_confirmed_circles() raises:
 
 
 def test_render_single_axis_color_encoding_reuses_point_channels() raises:
-    # Two points (x=0, x=10 -> pixel columns 75/365, the same _data_
-    # extent math the first test confirms for a different pair
-    # of values), colored by a continuous channel spanning the same
-    # [0, 10] domain -- confirms Mark.POINT's _draw_point_layer
-    # channel logic really is reused unchanged here, not just the
-    # plain flat-color path.
+    # Two points (x=0, x=10 -> columns 75/365) colored by a continuous
+    # channel over [0, 10]: _draw_point_layer's channel logic is reused
+    # unchanged here.
     var x: List[Float64] = [0.0, 10.0]
     var color: List[Float64] = [0.0, 10.0]
     var t = Theme(show_gridlines=False, show_legend=False)

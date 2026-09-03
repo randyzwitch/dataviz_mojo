@@ -1,51 +1,22 @@
-"""Merged test module -- one process for a whole family of test
-files, instead of one per file. Each `render()` call monomorphizes
-`_render_generic[T: DrawTarget]` over every ~50 `_render_*`
-function, and that cost is paid per process, so merging is what
-keeps it from being paid once per file (see pixi.toml's `[tasks]`
-comment for the measurements).
+"""Merged test module (one process per test family; see pixi.toml's
+`[tasks]` comment for why). Covers:
 
-- `test_layers.mojo`: Tests for render_layers/render_layers_svg: shared-domain layering of
-  Mark.POINT/LINE/AREA, per-layer color/size encoding and legends, and the
-  raises-guards for every mark type layering doesn't support.
-
-- `test_layers_bar_combo.mojo`: Tests for render_layers()'s Mark.BAR combo path (_render_bar_combo_
-  layers): a shared categorical x-axis (the bar layer's own categories)
-  with Mark.LINE/POINT/AREA layers positioned by index, not by their own
-  x values. Hand-derived (cross-checked against a real render) bar/line
-  positions, POINT/AREA layer types too, the always-forced zero baseline,
-  bars-always-behind draw order, Theme.show_data_labels on the bar layer
-  (_draw_bar_rects, shared with the standalone Mark.BAR path), and every
-  raise path (a second Mark.BAR layer, a length mismatch, secondary_axis,
-  scale_y_log, color/color_categories/size/y_err encoding on a non-bar
-  layer, and annotate_*()).
-
-- `test_facets.mojo`: Tests for render_facets/render_facets_svg: independent per-cell layout,
+- render_layers()/render_layers_svg(): shared-domain layering of
+  POINT/LINE/AREA, per-layer color/size encoding and legends, and the
+  raise for every unsupported mark.
+- The Mark.BAR combo path (_render_bar_combo_layers): a shared
+  categorical x-axis with LINE/POINT/AREA layers positioned by index,
+  the forced zero baseline, bars drawn first, show_data_labels on the
+  bar layer, and every raise path.
+- render_facets()/render_facets_svg(): independent per-cell layout,
   titles, empty-grid/invalid-cols guards.
-
-- `test_facets_shared_scale.mojo`: Tests for render_facets(shared_y_scale=True): every cell sharing one
-  y-domain computed from the union of all cells' own data, instead of
-  each computing its own independently. Hand-derived pixel positions
-  confirming the shared domain is actually used (not just accepted and
-  ignored), and every raise path (an incompatible mark, Mark.AREA
-  specifically, Plot.scale_y_log(), and Plot.encode(y_err=...)).
-
-- `test_secondary_axis.mojo`: Tests for Plot.secondary_axis(): render_layers()'s dual-y-axis
-  support -- the mirrored right-edge axis line/ticks/labels (SVG + a
-  raster ink companion), independent per-axis domains (two very
-  differently-shaped series drawing at genuinely different pixel paths,
-  not one silently reusing the other's scale), no gridlines drawn for
-  the secondary domain, coexistence with a legend column (the two never
-  overlap), and both raise paths (a standalone plot, and every layer
-  calling .secondary_axis() with none left on the primary axis).
-
-- `test_secondary_axis_caption.mojo`: Tests for the secondary y-axis caption: a layer with .secondary_
-  axis() set captions that axis via its .labels(y_title=.), read
-  by render_layers()/render_layers_svg() from that specific layer (not
-  plots[0]), mirrored onto the plot's right edge with the opposite
-  rotation the primary y_title uses. Absent entirely when no secondary-
-  axis layer sets one -- the pre-existing, still-default behavior.
-
+- render_facets(shared_y_scale=True): one y-domain from the union of
+  every cell's data, and every raise path.
+- Plot.secondary_axis(): the mirrored right-edge axis, independent
+  per-axis domains, no secondary gridlines, coexistence with a
+  legend, and both raise paths.
+- The secondary y-axis caption from the secondary layer's own
+  .labels(y_title=...), rotated the opposite way from the primary.
 """
 
 from _test_helpers import BG, _assert_color, _count_color
@@ -72,17 +43,11 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 # ---------------------------------------------------------------
 
 def test_render_layers_shares_one_domain_across_a_line_and_a_point() raises:
-    # A LINE plot (x=[0,10], y=[0,10], default theme) layered with a
-    # POINT plot (a single (5,5) point, custom red color + radius 5)
-    # -- the combined domain (both plots' x/y data
-    # together) pads to [-0.5, 10.5] on both axes, landing the shared
-    # point (5,5) -- coincidentally, since 5.0 is that domain's midpoint -- on the same (220, 135) pixel many other single-plot
-    # tests in this file already use, and the line's two endpoints
-    # at (74.545, 239.545) and (365.455, 30.455).
-    #
-    # render_layers() derives its 400x300 canvas from every layer's own
-    # .size(400, 300) (all layers must agree -- see _require_uniform_
-    # size's docstring).
+    # A LINE plot (x=[0,10], y=[0,10]) layered with a POINT plot (one (5,5)
+    # point, red, radius 5): the combined domain pads to [-0.5, 10.5] on
+    # both axes, so the point lands at (220, 135) and the line's endpoints
+    # at (74.545, 239.545) and (365.455, 30.455). Both layers are
+    # .size(400, 300).
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var point_x: List[Float64] = [5.0]
@@ -116,20 +81,11 @@ def test_render_layers_shares_one_domain_across_a_line_and_a_point() raises:
 
 
 def test_render_layers_svg_title_from_plots0_centers_on_shared_inner_rect() raises:
-    # Same LINE+POINT layered setup as the test just above, now with
-    # plots[0] (the LINE plot) setting a chart title via .labels() --
-    # confirming render_layers()'s Plot.labels() support
-    # (the wiki's Changelog, its "Plot.labels() reaches
-    # render_facets/render_layers" entry): the title comes from
-    # plots[0] only (the same "shared chrome from plots[0]" convention
-    # Theme follows here -- see render_layers()'s docstring), and its extra_top=Int(18.0)+4=22 reservation
-    # shifts the *shared* plot_y0 from 20 to 42 -- affecting every
-    # layer's geometry together, not just plots[0]'s own, since
-    # every layer draws into the identical shared inner rect (the
-    # point's cy moves from 135 to 146; the line's endpoints
-    # re-solved below via the same to_pixel formula the un-titled test
-    # above confirmed, just against range_max=42 instead of 20).
-    # Title itself centers at ((60+380)//2, Int(18.0*0.8))=(220,14).
+    # Same LINE+POINT setup with plots[0] setting a title: the title comes
+    # from plots[0] only, and its extra_top=22 reservation shifts the
+    # shared plot_y0 from 20 to 42 for every layer (the point's cy moves
+    # from 135 to 146; the line's endpoints re-solve against range_max=42).
+    # The title centers at ((60+380)//2, Int(18.0*0.8)) = (220, 14).
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var point_x: List[Float64] = [5.0]
@@ -165,35 +121,16 @@ def test_render_layers_svg_title_from_plots0_centers_on_shared_inner_rect() rais
 
 
 def test_render_layers_svg_point_layer_color_categories_matches_hand_derived_legend() raises:
-    # A single Mark.POINT layer (no other layers) with color_categories
-    # encoding -- confirming render_layers()'s per-point encoding +
-    # legend support (the wiki's Changelog, its "render_layers
-    # per-point encoding and legends" entry). x=[0,10], y=[0.0,0.0]
-    # (constant -- zero-span domain, padded to [-1,1], the same pattern
-    # test_render_color_encoding_matches_hand_derived_colors above
-    # establishes), color_categories=["A","B"] -- short labels,
-    # so the default 130px Theme.legend_width governs (not grown), and
-    # plot_x1 becomes 400-20-130=250 (not 380, the no-legend value other
-    # single-layer tests in this file use).
+    # A single Mark.POINT layer with color_categories encoding. x=[0,10],
+    # y=[0.0,0.0] (domain padded to [-1,1]), color_categories=["A","B"]:
+    # short labels, so the default 130px legend width applies and
+    # plot_x1=250.
     #
-    # x-domain pads [0,10] to [-0.5,10.5]; with plot_x0=60 (unaffected,
-    # no dynamic left-margin growth -- short y=[-1,1] tick labels) and
-    # this narrowed plot_x1=250, to_pixel(0)=68.636->69,
-    # to_pixel(10)=241.364->241 (re-solved via the same LinearScale
-    # slope/intercept formula every hand-derived pixel test in this file
-    # uses, cross-checked in Python, not read off the code's output). y=[−1,1] domain's midpoint (value 0.0) lands at the
-    # exact vertical center of [plot_y0=20, plot_y1=250] -> 135, for
-    # both points (constant y). Point 0 ("A") gets the default palette's
-    # first color (#1f77b4), point 1 ("B") the second (#ff7f0e) --
-    # the identical two colors/ordering the single-plot categorical-
-    # color tests in this file confirm, reused unchanged since
-    # render_layers's per-layer encoding is exactly Mark.POINT's single-plot logic, not a reimplementation.
+    # x-domain [-0.5,10.5] with plot_x0=60, plot_x1=250: to_pixel(0)=68.636
+    # -> 69, to_pixel(10)=241.364 -> 241; y=0.0 lands at 135. Point 0
+    # ("A") gets #1f77b4, point 1 ("B") #ff7f0e.
     #
-    # Legend column at legend_x=plot_x1+margin_right=250+20=270, row 0
-    # (swatch "A") at y=plot_y0=20, row 1 ("B") at y=20+(14+8)=42 -- the
-    # identical swatch_size=14/row_gap=8 spacing test_render_point_
-    # legend_width_grows_to_fit_long_category_names above
-    # establishes.
+    # Legend at legend_x=270, row 0 at y=20, row 1 at y=42.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
     var cats: List[String] = ["A", "B"]
@@ -217,13 +154,9 @@ def test_render_layers_svg_point_layer_color_categories_matches_hand_derived_leg
 
 
 def test_render_layers_raises_when_a_line_layer_uses_color_categories() raises:
-    # The identical "only Mark.POINT" restriction Plot.encode's
-    # single-plot path already enforces (see _render_generic's
-    # validation) -- render_layers() raises the same way rather than
-    # silently ignoring a LINE/AREA layer's color/color_categories/
-    # size. A single-element list is trivially uniform-sized (default
-    # 640x420, never set explicitly) -- irrelevant here since the
-    # mark-type check raises before size would matter.
+    # The same "only Mark.POINT" restriction as the single-plot path:
+    # render_layers() raises for a LINE/AREA layer with
+    # color/color_categories/size.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var line_cats: List[String] = ["a", "b"]
@@ -234,27 +167,17 @@ def test_render_layers_raises_when_a_line_layer_uses_color_categories() raises:
 
 
 def test_render_layers_with_empty_list_and_a_title_raises() raises:
-    # A prior version of this function took a caller-supplied canvas
-    # and treated an empty plots list (with or without a title-bearing
-    # plots[0], which doesn't exist for an empty list either way) as a
-    # no-op against it; now that render_layers() builds its own canvas
-    # from the plots list, there's no plot left to derive a size (or a
-    # title) from, so an empty list raises instead (see _require_
-    # uniform_size's docstring).
+    # render_layers() builds its own canvas from the plots list, so an
+    # empty list has no size to derive and raises.
     var plots = List[Plot]()
     with assert_raises():
         _ = render_layers(plots)
 
 
 def test_render_layers_no_longer_raises_when_a_single_bar_plot_is_included() raises:
-    # Mark.BAR used to be a plain deny-listed mark here, same as every
-    # other categorical-x-axis mark below -- render_layers()'s own
-    # bar-combo path (_render_bar_combo_layers, plot.mojo) now handles
-    # exactly one Mark.BAR layer instead of rejecting it outright (see
-    # tests/test_layers_bar_combo.mojo for that path's own dedicated,
-    # hand-derived coverage) -- this is deliberately no longer a raise
-    # test, confirming the lift actually took effect rather than
-    # leaving a stale assertion pointing at removed behavior.
+    # Mark.BAR used to be rejected here; exactly one Mark.BAR layer now
+    # dispatches to _render_bar_combo_layers (see the bar-combo tests), so
+    # this is no longer a raise test.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var bar_x: List[String] = ["a", "b"]
@@ -272,14 +195,9 @@ def test_render_layers_with_empty_list_raises() raises:
 
 
 def test_render_layers_raises_when_a_lollipop_plot_is_included() raises:
-    # render_layers()'s Mark.POINT/LINE/AREA-only allow-list, checked
-    # for Mark.LOLLIPOP -- unlike Mark.BAR (now specially handled by
-    # _render_bar_combo_layers, see test_render_layers_no_longer_
-    # raises_when_a_single_bar_plot_is_included), every other
-    # categorical-x-axis mark still falls straight through to this
-    # plain deny-by-omission check, unaffected by that carve-out. This
-    # test exists to confirm that holds in practice, not just by
-    # reading the condition.
+    # render_layers()'s POINT/LINE/AREA allow-list, checked for
+    # Mark.LOLLIPOP: every categorical mark other than Mark.BAR still falls
+    # through to this check.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var lolli_x: List[String] = ["a", "b"]
@@ -292,10 +210,7 @@ def test_render_layers_raises_when_a_lollipop_plot_is_included() raises:
 
 
 def test_render_layers_raises_when_a_candlestick_plot_is_included() raises:
-    # The same Mark.POINT/LINE/AREA-only allow-list checked again for
-    # Mark.CANDLESTICK -- see test_render_layers_raises_when_a_
-    # lollipop_plot_is_included's docstring for why this needs no
-    # change to render_layers()'s check.
+    # The same allow-list checked for Mark.CANDLESTICK.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var cats: List[String] = ["a", "b"]
@@ -308,10 +223,7 @@ def test_render_layers_raises_when_a_candlestick_plot_is_included() raises:
 
 
 def test_render_layers_raises_when_a_bullet_plot_is_included() raises:
-    # The same Mark.POINT/LINE/AREA-only allow-list checked again for
-    # Mark.BULLET -- see test_render_layers_raises_when_a_
-    # lollipop_plot_is_included's docstring for why this needs no
-    # change to render_layers()'s check.
+    # The same allow-list checked for Mark.BULLET.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var cats: List[String] = ["a", "b"]
@@ -325,10 +237,7 @@ def test_render_layers_raises_when_a_bullet_plot_is_included() raises:
 
 
 def test_render_layers_raises_when_a_gantt_plot_is_included() raises:
-    # The same Mark.POINT/LINE/AREA-only allow-list checked again for
-    # Mark.GANTT -- see test_render_layers_raises_when_a_lollipop_
-    # plot_is_included's docstring for why this needs no change to
-    # render_layers()'s check.
+    # The same allow-list checked for Mark.GANTT.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var cats: List[String] = ["a", "b"]
@@ -341,10 +250,7 @@ def test_render_layers_raises_when_a_gantt_plot_is_included() raises:
 
 
 def test_render_layers_raises_when_a_grouped_bar_plot_is_included() raises:
-    # The same Mark.POINT/LINE/AREA-only allow-list checked again for
-    # Mark.GROUPED_BAR -- see test_render_layers_raises_when_a_lollipop_
-    # plot_is_included's docstring for why this needs no change to
-    # render_layers()'s check.
+    # The same allow-list checked for Mark.GROUPED_BAR.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var cats: List[String] = ["a", "b"]
@@ -358,10 +264,7 @@ def test_render_layers_raises_when_a_grouped_bar_plot_is_included() raises:
 
 
 def test_render_layers_raises_when_a_stacked_bar_plot_is_included() raises:
-    # The same Mark.POINT/LINE/AREA-only allow-list checked again for
-    # Mark.STACKED_BAR -- see test_render_layers_raises_when_a_lollipop_
-    # plot_is_included's docstring for why this needs no change to
-    # render_layers()'s check.
+    # The same allow-list checked for Mark.STACKED_BAR.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var cats: List[String] = ["a", "b"]
@@ -376,20 +279,14 @@ def test_render_layers_raises_when_a_stacked_bar_plot_is_included() raises:
 
 def test_render_layers_line_honors_theme_line_smoothing() raises:
     # Both paths go through _draw_line_layer/_build_line_path, so a
-    # single-layer render_layers() must match render() of that same
-    # plot exactly. Guards against the two drifting apart again: a
-    # layer building its own Path inline instead would silently ignore
-    # Theme.line_smoothing, always drawing straight segments no matter
-    # what it asked for, while the identical plot through render()
-    # curved.
+    # single-layer render_layers() must match render() of the same plot
+    # exactly; a layer building its own Path inline would ignore
+    # Theme.line_smoothing.
     #
-    # Exactly test_render_line_smoothing_bows_the_curve_away_from_the_
-    # straight_path's setup (test_line.mojo -- see its comment for
-    # where (147,135) comes from): one layer means the combined domain
-    # is just that plot's own, so every pixel it hand-derived applies
-    # here unchanged. Both the layered and standalone plots share the
-    # same explicit .size(400, 300) so their canvases -- and the
-    # hand-derived (147, 135) pixel -- line up.
+    # Same setup as
+    # test_render_line_smoothing_bows_the_curve_away_from_the_straight_path
+    # (see its comment for (147,135)); with one layer the combined domain
+    # is that plot's own. Both plots use .size(400, 300).
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
     var theme = Theme(line_smoothing=1.0, show_gridlines=False)
@@ -409,10 +306,8 @@ def test_render_layers_line_honors_theme_line_smoothing() raises:
             assert_equal(p_layered.g, p_standalone.g)
             assert_equal(p_layered.b, p_standalone.b)
 
-    # .and that the shared output is genuinely the *curved* one, not
-    # two identically-straight renders agreeing with each other: the
-    # straight path's segment midpoint is background under a fully
-    # smoothed curve.
+    # ...and the shared output is the curved one: the straight path's
+    # segment midpoint is background under a fully smoothed curve.
     var mid = c_layered.get_pixel(147, 135)
     assert_equal(mid.r, BG.r)
     assert_equal(mid.g, BG.g)
@@ -420,11 +315,9 @@ def test_render_layers_line_honors_theme_line_smoothing() raises:
 
 
 def test_render_layers_area_honors_theme_line_smoothing() raises:
-    # test_render_layers_line_honors_theme_line_smoothing's case
-    # for Mark.AREA, which had the identical inline-Path problem (and
-    # whose y-domain, unlike LINE's, is forced through zero -- so this
-    # also confirms the shared _zero_baseline_y_extent rule survives
-    # the single-layer round trip).
+    # The same check for Mark.AREA, whose y-domain is forced through zero,
+    # confirming _zero_baseline_y_extent survives the single-layer round
+    # trip.
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
     var theme = Theme(line_smoothing=1.0, show_gridlines=False)
@@ -446,10 +339,8 @@ def test_render_layers_area_honors_theme_line_smoothing() raises:
 
 
 def test_render_layers_raises_on_out_of_range_smoothing() raises:
-    # The same [0.0, 1.0] guard test_render_line_raises_on_out_of_range_
-    # smoothing (test_line.mojo) confirms for render() -- the
-    # layered path shares this check via _draw_line_layer, rejecting a
-    # value Theme.line_smoothing's docstring assigns no meaning to.
+    # The same [0.0, 1.0] guard render() applies, shared through
+    # _draw_line_layer.
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
 
@@ -468,20 +359,13 @@ def test_render_layers_raises_on_out_of_range_smoothing() raises:
 # ---------------------------------------------------------------
 
 def test_render_layers_svg_bar_combo_matches_hand_derived_positions() raises:
-    # 2 categories, canvas 400x300, no gridlines -- plot rect
-    # x:[60,380] y:[20,250]. Bar y=[10,20], line y=[15,5] (its own
-    # x=[0,1] never read -- see _render_bar_combo_layers's own
-    # docstring for why). combined_y=[10,20,15,5] -> zero-baseline
-    # domain [0,21] (20's span padded 5% -> +1.0), range [250,20].
-    # slope = (20-250)/21 = -10.952380952...
-    # Bar A (10): pixel 140.48 -> rect y=140. Bar B (20): pixel
-    # 30.95 -> rect y=31. OrdinalScale over 2 categories, range
-    # [60,380]: bandwidth=128, center(0)=140, center(1)=300 (this
-    # package's usual 0.2-padding split, same as every other 2-
-    # category test in this suite). Line: (140, 15->85.714),
-    # (300, 5->195.238).
-    # Every position independently re-derived via python3 and cross-
-    # checked against the actual rendered SVG.
+    # 2 categories, canvas 400x300, no gridlines: plot rect x:[60,380]
+    # y:[20,250]. Bar y=[10,20], line y=[15,5] (its x=[0,1] is never
+    # read). combined_y=[10,20,15,5] -> zero-baseline domain [0,21], range
+    # [250,20], slope -10.952. Bar A (10): 140.48 -> rect y=140; Bar B
+    # (20): 30.95 -> y=31. OrdinalScale over 2 categories, range [60,380]:
+    # bandwidth=128, center(0)=140, center(1)=300. Line: (140, 85.714),
+    # (300, 195.238).
     var cats: List[String] = ["A", "B"]
     var bar_y: List[Float64] = [10.0, 20.0]
     var idx: List[Float64] = [0.0, 1.0]
@@ -503,12 +387,9 @@ def test_render_layers_svg_bar_combo_matches_hand_derived_positions() raises:
 
 
 def test_render_layers_svg_bar_combo_draws_the_bar_layer_first() raises:
-    # The bar layer's own <rect>s appear before the line's <path> in
-    # the SVG's own draw order, regardless of the bar layer's position
-    # in the plots list -- see _render_bar_combo_layers's own
-    # docstring for why bars always draw first (beneath every other
-    # layer). Line listed *before* the bar in `plots` here, the
-    # opposite of the test above, to actually exercise that claim.
+    # The bar layer's <rect>s appear before the line's <path> regardless of
+    # the bar layer's position in `plots`; the line is listed first here to
+    # exercise that.
     var cats: List[String] = ["A", "B"]
     var bar_y: List[Float64] = [10.0, 20.0]
     var idx: List[Float64] = [0.0, 1.0]
@@ -553,9 +434,8 @@ def test_render_layers_svg_bar_combo_supports_an_area_layer() raises:
     var plots: List[Plot] = [bars^, area^]
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
-    # Closed down to the zero baseline (pixel 250), pulled 1px to 249
-    # since the baseline lands exactly on the axis line -- the same
-    # _draw_area_layer technique this reuses (see its own docstring).
+    # Closed down to the zero baseline (pixel 250), pulled 1px to 249 since
+    # the baseline lands on the axis line, as _draw_area_layer does.
     assert_true(
         '<path d="M140.000,85.714 L300.000,195.238 L300.000,249.000 L140.000,249.000 Z"'
         ' fill="#1e64b4"/>' in s,
@@ -564,12 +444,10 @@ def test_render_layers_svg_bar_combo_supports_an_area_layer() raises:
 
 
 def test_render_layers_svg_bar_combo_supports_show_data_labels() raises:
-    # Theme.show_data_labels on the bar layer's own Theme -- read via
-    # _draw_bar_rects, the same primitive _render_bar's standalone
-    # path shares (see that function's own docstring). Same frame as
-    # test_render_layers_svg_bar_combo_matches_hand_derived_positions
-    # (bar A: rect y=140,h=109 -> label baseline 140-4=136 at x=140;
-    # bar B: rect y=31,h=218 -> label baseline 31-4=27 at x=300).
+    # Theme.show_data_labels on the bar layer's own Theme, through
+    # _draw_bar_rects. Same frame as the positions test: bar A rect y=140
+    # -> label baseline 136 at x=140; bar B rect y=31 -> baseline 27 at
+    # x=300.
     var cats: List[String] = ["A", "B"]
     var bar_y: List[Float64] = [10.0, 20.0]
     var idx: List[Float64] = [0.0, 1.0]
@@ -668,23 +546,12 @@ def test_render_layers_raises_on_annotate_line_in_a_bar_combo() raises:
 # ---------------------------------------------------------------
 
 def test_render_facets_lays_out_independent_plots_side_by_side() raises:
-    # Two cells, 400x300 each, side by side on an 800x300 canvas (cols=2,
-    # so rows=1) -- cell 0 is x:[0,400], y:[0,300], the *exact* same
-    # dimensions test_render_point_mark_centers_on_the_hand_derived_pixel
-    # already hand-solved for a single (5.0, 5.0) point with Theme's
-    # default margins: plot area x:[60,380], y:[20,250], point pixel
-    # (220, 135). Cell 1 is x:[400,800], y:[0,300] -- identical geometry,
-    # just shifted +400 in x (`render()`'s ox0 offsets everything,
-    # including the margins, so the whole plot area shifts by the same
-    # +400, not just its origin) -- plot area x:[460,780], point pixel
-    # (620, 135) confirmed by the same offset, not re-solved from
-    # scratch. Two different mark_colors (one per plot's Theme)
-    # confirm each cell actually rendered its independent plot, not
-    # one plot's output bleeding into or overwriting the other's cell.
-    #
-    # render_facets() derives its 800x300 canvas from each plot's own
-    # .size(400, 300) (both plots must agree -- see _require_uniform_
-    # size's docstring), rather than a canvas the caller builds by hand.
+    # Two cells, 400x300 each, side by side on an 800x300 canvas (cols=2).
+    # Cell 0 is the single-(5.0, 5.0)-point setup: plot area x:[60,380],
+    # y:[20,250], point at (220, 135). Cell 1 is the same geometry shifted
+    # +400 in x: plot area x:[460,780], point at (620, 135). Two different
+    # mark_colors confirm each cell rendered its own plot. The 800x300
+    # canvas comes from each plot's .size(400, 300).
     var xy: List[Float64] = [5.0]
     var plot0 = Plot().mark_point().encode(x=xy, y=xy).size(400, 300)
     var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED)).size(400, 300)
@@ -699,21 +566,12 @@ def test_render_facets_lays_out_independent_plots_side_by_side() raises:
 
 
 def test_render_facets_leaves_trailing_cells_blank_when_plots_dont_fill_the_grid() raises:
-    # 3 plots, cols=2 -> rows=ceil(3/2)=2, a 2x2 grid of 400x300 cells
-    # on an 800x600 canvas (800/2=400, 600/2=300 -- divides evenly, no
-    # rounding to reason about here). Plots fill row-major: (0,0),
-    # (0,1), (1,0); (1,1) has no 4th plot and is never touched.
-    #
-    # Each filled cell reuses the same hand-solved single-(5.0,5.0)-point
-    # geometry as the side-by-side test above, offset by its cell's
-    # origin: (0,0) -> point at (220,135) [unshifted]; (0,1) -> (620,135)
-    # [+400 in x]; (1,0) -> plot area y:[320,550] (cell_y0=300, so
-    # +300 in y throughout), point at (220,435) [+300 in y].
-    #
-    # Every plot's Theme.background is set to a color no default Theme
-    # ever produces (10,20,30, not white) specifically so a genuinely
-    # untouched cell (the render()-constructed canvas's own default
-    # white fill) is distinguishable from one that was rendered.
+    # 3 plots, cols=2 -> a 2x2 grid of 400x300 cells on 800x600. Plots fill
+    # row-major: (0,0), (0,1), (1,0); (1,1) is never touched. Each filled
+    # cell reuses the single-point geometry offset by its cell origin:
+    # (220,135), (620,135), (220,435). Every plot's background is
+    # (10,20,30), so an untouched cell (the canvas's white default) is
+    # distinguishable from a rendered one.
     var xy: List[Float64] = [5.0]
     var theme = Theme(background=Color(10, 20, 30))
     var plot0 = Plot().mark_point().encode(x=xy, y=xy).theme(theme).size(400, 300)
@@ -734,10 +592,8 @@ def test_render_facets_leaves_trailing_cells_blank_when_plots_dont_fill_the_grid
 
 
 def test_render_facets_raises_on_non_positive_cols() raises:
-    # A non-empty, uniformly sized list -- cols<=0 is what this test
-    # means to exercise, not the separate "plots must not be empty"
-    # guard _require_uniform_size raises first for an empty list (see
-    # test_render_facets_with_empty_list_raises below).
+    # A non-empty, uniformly sized list, so cols<=0 is what raises, not the
+    # empty-list guard.
     var xy: List[Float64] = [5.0]
     var plots = List[Plot]()
     plots.append(Plot().mark_point().encode(x=xy, y=xy).size(400, 300))
@@ -748,25 +604,17 @@ def test_render_facets_raises_on_non_positive_cols() raises:
 
 
 def test_render_facets_with_empty_list_raises() raises:
-    # A prior version of this function took a caller-supplied canvas
-    # and treated an empty plots list as a no-op against it; now that
-    # render_facets() builds its own canvas from the plots list, there's
-    # no plot left to derive a size from, so an empty list raises
-    # instead (see _require_uniform_size's docstring).
+    # render_facets() builds its own canvas from the plots list, so an
+    # empty list has no size to derive and raises.
     var plots = List[Plot]()
     with assert_raises():
         _ = render_facets(plots, cols=2)
 
 
 def test_render_facets_svg_lays_out_independent_plots_side_by_side() raises:
-    # The exact same setup test_render_facets_lays_out_independent_
-    # plots_side_by_side already hand-solved for the raster path: two
-    # 400x300 cells side by side on an 800x300 canvas (cols=2, rows=1),
-    # each a single (5.0, 5.0) point -- cell 0's point at (220,
-    # 135) [unshifted], cell 1's at (620, 135) [+400 in x, the same
-    # cell-origin-offset reasoning that test's comment explains].
-    # Two different mark_colors confirm each cell rendered its independent plot into the shared SvgCanvas, not one overwriting
-    # the other.
+    # The same two-cell setup as the raster test: cell 0's point at
+    # (220, 135), cell 1's at (620, 135). Two mark_colors confirm each cell
+    # rendered into the shared SvgCanvas.
     var xy: List[Float64] = [5.0]
     var plot0 = Plot().mark_point().encode(x=xy, y=xy).size(400, 300)
     var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED)).size(400, 300)
@@ -788,20 +636,11 @@ def test_render_facets_svg_lays_out_independent_plots_side_by_side() raises:
 
 
 def test_render_facets_svg_each_cell_gets_its_own_independent_title() raises:
-    # Same two-cell 800x300 layout (cols=2) as the test just above, but
-    # cell 0's Plot sets a title (via .labels()) and cell 1's
-    # doesn't -- confirming render_facets()'s per-cell Plot.labels()
-    # support (the wiki's Changelog, its "Plot.labels() reaches
-    # render_facets/render_layers" entry): the title reserves space
-    # *only* in cell 0 -- its point shifts from (220,135), the
-    # no-title baseline the test above established, down to
-    # (220,146) (extra_top=Int(18.0)+4=22 pushes plot_y0 from 20 to 42,
-    # moving the y=[4,6]-padded-domain midpoint pixel from
-    # (20+250)/2=135 to (42+250)/2=146) -- while cell 1's point
-    # stays exactly where it was (620,135), no title there to reserve
-    # room for. The title itself centers at
-    # ((60+380)//2, Int(18.0*0.8))=(220,14), cell 0's inner rect,
-    # unaffected by cell 1's layout.
+    # Same two-cell layout, with cell 0's Plot setting a title and cell 1's
+    # not: the title reserves space only in cell 0 (extra_top=22 pushes
+    # plot_y0 from 20 to 42, moving the point from (220,135) to (220,146))
+    # while cell 1's point stays at (620,135). The title centers at
+    # (220, 14).
     var xy: List[Float64] = [5.0]
     var plot0 = Plot().mark_point().encode(x=xy, y=xy).labels(title="Left").size(400, 300)
     var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED)).size(400, 300)
@@ -836,21 +675,11 @@ def test_render_facets_svg_raises_on_non_positive_cols() raises:
 
 
 def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() raises:
-    # render_facets() fills each cell's full rect, the same contract
-    # render() documents ("the whole original rect is filled . so a
-    # title's reserved margin strip gets painted too") -- a titled
-    # cell's reserved title strip must get painted, not left showing
-    # whatever the canvas held beforehand.
-    #
-    # Proven via a distinctive Theme.background (MAGENTA) rather than a
-    # caller-prefilled canvas -- render_facets() builds its own canvas
-    # now (always starting from Canvas's own white default), so the
-    # only way pixel (2,2) ends up MAGENTA is a real fill_rect reaching
-    # it, exactly the same proof the old MAGENTA-prefilled-canvas
-    # version made, just inverted (white -> MAGENTA instead of
-    # MAGENTA -> white). One cell (cols=1), title_font_size=18.0 and
-    # label_gap=4 make extra_top=22, so y=2 sits inside the reserved
-    # strip and above the plot area entirely.
+    # render_facets() fills each cell's full rect, including a titled
+    # cell's reserved title strip. A distinctive Theme.background (MAGENTA)
+    # on the canvas's white default proves a real fill_rect reached pixel
+    # (2,2); with cols=1, title_font_size=18.0 and label_gap=4,
+    # extra_top=22, so y=2 is inside the reserved strip.
     var xy: List[Float64] = [5.0]
     var plots = List[Plot]()
     plots.append(
@@ -860,9 +689,8 @@ def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() r
     var c = render_facets(plots, 1)
     _assert_color(c, 2, 2, MAGENTA, "a titled cell's reserved title strip")
 
-    # .and the same for an untitled cell, where the strip doesn't
-    # exist but the corner is still outside the plot area -- confirming
-    # the fill covers the ordinary case too, not just the titled one.
+    # ...and the same for an untitled cell, where the corner is still
+    # outside the plot area.
     var untitled = List[Plot]()
     untitled.append(Plot().mark_point().encode(x=xy, y=xy).theme(Theme(background=MAGENTA)).size(400, 300))
     var c2 = render_facets(untitled, 1)
@@ -873,22 +701,18 @@ def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() r
 # ---------------------------------------------------------------
 
 def test_render_facets_svg_shared_y_scale_matches_hand_derived_positions() raises:
-    # Two cells, one point each: y=10 and y=110. Combined domain data
-    # [10, 110] -- span 100, padded 5% (5.0) -> [5, 115]. Each cell is
-    # 400x300 (rows=1, cols=2 -> cell height stays the full 300), default
-    # theme -> plot_y0 = margin_top (20), plot_y1 = height - margin_bottom
-    # (300-50=250) for *both* cells (same row).
+    # Two cells, one point each (y=10 and y=110): combined domain [10, 110],
+    # padded 5% (5.0) -> [5, 115]. Each cell is 400x300 (rows=1), default
+    # theme -> plot_y0=20, plot_y1=250.
     #
-    # scale() = (20-250)/(115-5) = -230/110 = -2.0909...
+    # scale() = (20-250)/(115-5) = -2.0909...
     # translate() = 250 - 5*scale() = 260.4545...
-    # to_pixel(10)  = 239.545... -> rounds to 240 (cell 0's own point)
-    # to_pixel(110) = 30.454...  -> rounds to 30  (cell 1's own point)
+    # to_pixel(10) = 239.545 -> 240 (cell 0)
+    # to_pixel(110) = 30.454 -> 30 (cell 1)
     #
-    # If each cell computed its own independent domain instead (the
-    # shared_y_scale=False default), cell 0's lone y=10 point would be a
-    # zero-span domain (pad=1.0 fallback -> domain [9,11]) landing at a
-    # completely different pixel row -- so this also confirms the shared
-    # domain is genuinely being used, not silently ignored.
+    # With independent domains, cell 0's lone y=10 would be a zero-span
+    # domain [9,11] landing on a different row, so this also confirms the
+    # shared domain is used.
     var x: List[Float64] = [1.0]
     var y0: List[Float64] = [10.0]
     var y1: List[Float64] = [110.0]
@@ -911,9 +735,8 @@ def test_render_facets_raises_on_an_incompatible_mark_with_shared_y_scale() rais
 
 
 def test_render_facets_raises_on_mark_area_with_shared_y_scale() raises:
-    # Mark.AREA is deliberately excluded even though it's otherwise
-    # part of the "continuous" family -- its own forced zero baseline
-    # has no principled way to compose with an externally shared domain.
+    # Mark.AREA is excluded: its forced zero baseline can't compose with an
+    # external shared domain.
     var x: List[Float64] = [1.0, 2.0]
     var y0: List[Float64] = [5.0, 6.0]
     var y1: List[Float64] = [50.0, 60.0]
@@ -936,12 +759,9 @@ def test_render_facets_raises_on_scale_y_log_with_shared_y_scale() raises:
 
 
 def test_render_facets_raises_on_y_err_with_shared_y_scale() raises:
-    # The shared union (_render_facets_generic's own combined_y) is
-    # computed over plain plot.y_data, not widened for whisker
-    # endpoints the way a standalone plot's own y_domain_data is --
-    # so this combination raises rather than silently risking a
-    # clipped whisker. Mark.POINT, not Mark.LINE (Mark.LINE doesn't
-    # support y_err at all, a separate, pre-existing restriction).
+    # The shared union is computed over plain plot.y_data, not widened for
+    # whisker endpoints, so this combination raises. Mark.POINT, since
+    # Mark.LINE doesn't support y_err in this context.
     var x: List[Float64] = [1.0, 2.0]
     var y0: List[Float64] = [5.0, 6.0]
     var y1: List[Float64] = [50.0, 60.0]
@@ -954,13 +774,8 @@ def test_render_facets_raises_on_y_err_with_shared_y_scale() raises:
 
 
 def test_render_facets_svg_default_keeps_each_cells_independent_scale() raises:
-    # shared_y_scale defaults to False -- confirms the existing,
-    # already-tested independent-per-cell behavior is unchanged: two
-    # single-point cells (zero-span domains) each get their own
-    # domain_min/max +/- the 1.0 fallback pad, landing both points at
-    # the exact same pixel row (each cell's own point sits dead center
-    # of its own [y-1, y+1] domain), unlike the shared case above where
-    # they land at very different rows.
+    # shared_y_scale defaults False: two single-point cells each get their
+    # own [y-1, y+1] domain, landing both points on the same row.
     var x: List[Float64] = [1.0]
     var y0: List[Float64] = [10.0]
     var y1: List[Float64] = [110.0]
@@ -968,8 +783,8 @@ def test_render_facets_svg_default_keeps_each_cells_independent_scale() raises:
     var p1 = Plot().size(400, 300).mark_point().encode(x=x, y=y1)
     var plots: List[Plot] = [p0^, p1^]
     var s = render_facets_svg(plots, 2).to_string()
-    # domain [9, 11], range [250, 20] -> to_pixel(10) = 135.0 exactly,
-    # the same middle row for *both* cells independently.
+    # domain [9, 11], range [250, 20] -> to_pixel(10) = 135.0 exactly, the
+    # same middle row for both cells.
     var count = 0
     var search_from = 0
     while True:
@@ -985,17 +800,12 @@ def test_render_facets_svg_default_keeps_each_cells_independent_scale() raises:
 # ---------------------------------------------------------------
 
 def test_render_layers_svg_secondary_axis_matches_hand_derived_position() raises:
-    # 2 layers, no color/size encoding (so legend_reserve is 0) --
-    # gridlines stay on (default Theme) specifically to confirm the
-    # *secondary* domain draws none of its own (see the gridline-count
-    # assertion below). Two points each,
-    # canvas 400x300: primary line rises 10->20 (matches test_layers.
-    # mojo's no-legend geometry -- plot area x:[60,342], y:[20,250]
-    # before the secondary axis's reserve shrinks px1 further, to
-    # 350). Secondary line falls 50->10 -- a deliberately different
-    # shape/scale from the primary series, so a wrong implementation
-    # that silently reused the primary y_scale would draw a visibly
-    # different (flattened/off-plot) path instead of this one.
+    # 2 layers, no color/size encoding (legend_reserve 0), gridlines on to
+    # confirm the secondary domain draws none. Canvas 400x300: the primary
+    # line rises 10->20 (plot area x:[60,342], y:[20,250], px1 shrunk to
+    # 350 by the secondary axis's reserve). The secondary line falls
+    # 50->10, a different shape so a reused primary scale would draw a
+    # visibly different path.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
@@ -1037,11 +847,9 @@ def test_render_layers_svg_secondary_axis_matches_hand_derived_position() raises
 
 
 def test_render_layers_svg_secondary_axis_draws_no_gridlines_of_its_own() raises:
-    # Same setup as above -- exactly 6 gridlines expected (3 vertical
-    # from the shared x-axis, 3 horizontal from the *primary* y-domain's
-    # own 3 ticks: 10/15/20), even though the secondary y-domain has 5
-    # ticks of its own (10/20/30/40/50) -- confirms none of those 5
-    # spawn a 4th, 5th, 6th, 7th, 8th gridline of their own.
+    # Exactly 6 gridlines: 3 vertical from the shared x-axis, 3 horizontal
+    # from the primary y-domain's ticks (10/15/20). The secondary domain's
+    # 5 ticks add none.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
@@ -1064,14 +872,9 @@ def test_render_layers_svg_secondary_axis_draws_no_gridlines_of_its_own() raises
 
 
 def test_render_layers_secondary_axis_raster_draws_ink_at_the_hand_derived_row() raises:
-    # Raster-side companion to the SVG tests above -- confirms canvas_
-    # mojo's draw_line_aa actually painted the secondary axis's tick at
-    # the same (350, 135) position, not just that the SVG backend's
-    # line/text plumbing is correct. x=349, not the axis line's own
-    # nominal x=350 -- render_layers()'s supersample-then-downsample
-    # (`_RASTER_SUPERSAMPLE`, plot.mojo) spreads the tick's 1px-wide ink
-    # across columns 349-354 rather than concentrating it at exactly
-    # one; 349 is where it happens to land fully opaque.
+    # Raster companion: confirms draw_line_aa painted the secondary axis's
+    # tick at (350, 135). Sampled at x=349, where the supersampled 1px tick
+    # happens to land fully opaque.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
@@ -1085,14 +888,11 @@ def test_render_layers_secondary_axis_raster_draws_ink_at_the_hand_derived_row()
 
 
 def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap() raises:
-    # A color-categories-encoded Mark.POINT primary layer (so a real
-    # legend column draws) alongside a secondary-axis Mark.LINE layer --
-    # confirms the legend column shifts right past the secondary axis's
-    # reserved tick-label width instead of overlapping it. The
-    # secondary axis's line lands at x=220 (shrunk further than the
-    # no-legend case's x=350 above, since legend_reserve is folded in
-    # too), its widest tick label ("50") ends well before x=270, where the first
-    # legend swatch actually starts.
+    # A color-categories Mark.POINT primary layer (so a legend draws)
+    # alongside a secondary-axis Mark.LINE layer: the legend column shifts
+    # right past the secondary axis's reserved width. The secondary axis
+    # lands at x=220, and its widest tick label ("50") ends before x=270,
+    # where the first swatch starts.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var cats: List[String] = ["a", "b"]
@@ -1116,10 +916,8 @@ def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap
 
 
 def test_render_secondary_axis_raises_on_standalone_render() raises:
-    # Plot.secondary_axis() only means anything inside render_layers()/
-    # render_layers_svg() -- a standalone render() call must raise
-    # rather than silently ignoring it (there's no second series for it
-    # to pair against).
+    # Plot.secondary_axis() only means anything inside render_layers(); a
+    # standalone render() raises.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var plot = Plot().mark_line().encode(x=x, y=y).secondary_axis().size(200, 150)
@@ -1128,10 +926,8 @@ def test_render_secondary_axis_raises_on_standalone_render() raises:
 
 
 def test_render_layers_raises_when_every_layer_is_secondary() raises:
-    # At least one layer must stay on the primary axis -- every layer
-    # calling .secondary_axis() leaves nothing for "secondary" to mean
-    # relative to, so render_layers() must raise rather than silently
-    # treating it as an ordinary single shared axis.
+    # At least one layer must stay on the primary axis; every layer calling
+    # .secondary_axis() raises.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
@@ -1148,13 +944,11 @@ def test_render_layers_raises_when_every_layer_is_secondary() raises:
 # ---------------------------------------------------------------
 
 def test_render_layers_svg_secondary_axis_caption_matches_hand_derived_position() raises:
-    # Primary layer (y:[10,20]) with no caption, secondary layer
-    # (y:[50,10]) captioned "Growth" via its .labels(y_title=.) --
-    # canvas 400x300, no gridlines: the secondary axis's line shrinks
-    # further left (to x=332, from the no-caption case's x=350) to
-    # make room, and the caption itself draws rotated +90 degrees
-    # (the opposite of the primary y_title's -90), centered at
-    # (389, 135) -- the vertical midpoint of the shared plot rect.
+    # Primary layer (y:[10,20]) with no caption, secondary layer (y:[50,10])
+    # captioned "Growth" via .labels(y_title=...), canvas 400x300, no
+    # gridlines: the secondary axis line moves left to x=332 (from 350) to
+    # make room, and the caption draws rotated +90 degrees, centered at
+    # (389, 135).
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
@@ -1186,11 +980,8 @@ def test_render_layers_svg_secondary_axis_caption_matches_hand_derived_position(
 
 
 def test_render_layers_svg_no_caption_when_secondary_axis_has_no_y_title() raises:
-    # The pre-existing, still-default case: a secondary-axis layer with
-    # no .labels(y_title=.) draws no caption at all, and the
-    # secondary axis's line lands at its no-caption position
-    # (x=350, not x=332 -- matching tests/test_secondary_axis.
-    # mojo's already-established geometry for this exact setup).
+    # A secondary-axis layer with no y_title draws no caption, and the axis
+    # line stays at x=350.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
@@ -1210,9 +1001,8 @@ def test_render_layers_svg_no_caption_when_secondary_axis_has_no_y_title() raise
 
 
 def test_render_layers_svg_primary_layers_own_y_title_is_not_mistaken_for_a_caption() raises:
-    # plots[0] (the primary layer) setting its y_title must still
-    # draw on the *left* the normal way -- only a layer that actually
-    # called .secondary_axis() triggers the right-side caption logic.
+    # plots[0]'s y_title still draws on the left; only a layer that called
+    # .secondary_axis() gets the right-side caption.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]

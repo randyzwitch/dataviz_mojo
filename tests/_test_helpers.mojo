@@ -1,12 +1,8 @@
-"""Shared helpers for the tests/test_*.mojo files -- kept in its
-module (not a *.mojo file with its main()) so every test file can
-import these instead of redefining them; not a real dataviz
-sub-package (tests/ itself stays a plain sibling directory of the
-importable package, not one, since every file in here has a main()
-and Mojo refuses to `mojo package`/`mojo precompile` a package
-directory containing one). Callers need an extra `-I tests` alongside
-the usual `-I .` to resolve `from _test_helpers import .` -- see
-pixi.toml's test task.
+"""Shared helpers for tests/test_*.mojo, kept in a module without a
+`main()` so every test file can import them. Not a dataviz
+sub-package: tests/ contains files with `main()`, which `mojo
+package` refuses. Callers pass `-I tests` alongside `-I .` (see
+pixi.toml's test task).
 """
 
 from canvas.color import Color
@@ -36,20 +32,14 @@ def _assert_color(c: Canvas, x: Int, y: Int, expected: Color, label: String) rai
 
 
 def _assert_near_color(c: Canvas, x: Int, y: Int, expected: Color, tolerance: Int, label: String) raises:
-    """`_assert_color()`'s tolerant sibling, for a *stroked* position
-    (an axis line, a gridline, an annotation line -- anything whose
-    footprint is only 1-2px wide) rather than a filled mark's solid
-    interior. `render()`'s supersample-then-downsample (`_RASTER_
-    SUPERSAMPLE`, plot.mojo) genuinely has no single output pixel that
-    lands fully opaque for a stroke that thin -- the stroke's true
-    (supersampled) footprint straddles a downsample block boundary
-    unevenly almost regardless of position, so averaging never fully
-    saturates any one output pixel the way it would for a filled
-    shape's own interior (see `_RASTER_SUPERSAMPLE`'s own docstring for
-    why a *filled* region's interior doesn't have this problem: every
-    subpixel already agrees, so nothing there ever blends). `_assert_
-    color()` remains the right choice for anything with real interior
-    area to sample away from its own edge."""
+    """`_assert_color()`'s tolerant sibling for a stroked position (an axis
+    line, gridline, or annotation line, 1-2px wide) rather than a filled
+    mark's interior. `render()`'s supersample-then-downsample
+    (`_RASTER_SUPERSAMPLE`, plot.mojo) never lands a stroke that thin
+    fully opaque in one output pixel, since its footprint straddles a
+    downsample block unevenly; a filled region's interior averages to
+    the exact color and can use `_assert_color()`.
+    """
     var p = c.get_pixel(x, y)
     assert_true(
         abs(Int(p.r) - Int(expected.r)) <= tolerance
@@ -61,17 +51,11 @@ def _assert_near_color(c: Canvas, x: Int, y: Int, expected: Color, tolerance: In
 
 
 def _unique_categories(data: List[String]) -> List[String]:
-    """Every distinct value in `data`, in first-seen order, by a plain
-    O(n^2) scan.
-
-    A deliberately naive reference implementation, kept here rather
-    than in the package: `dataviz.plot._categorical_indices` and
-    `dataviz.edges._edge_node_index` resolve the same domain in one
-    hashed pass, and the tests that check them assert agreement against
-    this. Both of these used to live in plot.mojo and be called by the
-    render paths, until those two replaced them; keeping the obvious
-    version around as an oracle is worth more than deleting it, but it
-    has no business shipping inside the package.
+    """Every distinct value in `data` in first-seen order, by a plain O(n^2)
+    scan: a naive reference implementation kept as an oracle for
+    `dataviz.plot._categorical_indices` and
+    `dataviz.edges._edge_node_index`, which resolve the same domain in
+    one hashed pass.
     """
     var result = List[String]()
     for v in data:

@@ -1,56 +1,10 @@
-"""Merged test module -- one process for a whole family of test
-files, instead of one per file. Each `render()` call monomorphizes
-`_render_generic[T: DrawTarget]` over every ~50 `_render_*`
-function, and that cost is paid per process, so merging is what
-keeps it from being paid once per file (see pixi.toml's `[tasks]`
-comment for the measurements).
-
-- `test_grouped_bar.mojo`: Tests for Mark.GROUPED_BAR: per-series rectangles and legend (raster +
-  SVG).
-
-- `test_stacked_bar.mojo`: Tests for Mark.STACKED_BAR: per-series stacked rectangles and legend,
-  including independent positive/negative stacking (raster + SVG).
-
-- `test_percent_stacked_bar.mojo`: Tests for `Plot.mark_stacked_bar(percent=True)`: each category's
-  segments rescaled to sum to exactly 100, fixed [0, 100] y-axis, the
-  non-negative-value requirement, and the all-zero-category edge case.
-
-- `test_marimekko.mojo`: Tests for Mark.MARIMEKKO (mosaic chart): proportional column
-  widths, 0-100% stacked segment heights, encode_marimekko()'s validation (raster + SVG) -- see marimekko.mojo's docstrings for
-  the rules verified here.
-
-- `test_population_pyramid.mojo`: Tests for Mark.POPULATION_PYRAMID: two mirrored magnitude bars per
-  category, growing outward from a shared, always-centered zero baseline
-  (raster + SVG) -- see population_pyramid.mojo's docstrings for the
-  domain/rendering rules verified here.
-
-- `test_span_chart.mojo`: Tests for Mark.SPAN_CHART (Mark.GANTT's mirror image: floating
-  vertical bars per category) -- raster + SVG.
-
-- `test_gantt.mojo`: Tests for Mark.GANTT: bars from start/end spans (raster + SVG).
-
-- `test_funnel.mojo`: Tests for Mark.FUNNEL: tapering trapezoids, largest value first
-  (raster + SVG) -- see funnel.mojo's docstrings for the sort/taper
-  rules verified here.
-
-- `test_heatmap.mojo`: Tests for Mark.HEATMAP: one colored grid cell per (x, y) category
-  pair (raster + SVG) -- see heatmap.mojo's docstrings for the
-  grid-frame/color-scale rules verified here.
-
-- `test_punchcard.mojo`: Tests for Mark.PUNCHCARD: bubble radius = size/scale on a
-  categorical grid, independent bubbles for repeated (x, y) pairs,
-  encode_punchcard()'s validation (raster + SVG) -- see
-  punchcard.mojo's docstrings for the rules verified here.
-
-- `test_corrplot.mojo`: Tests for Mark.CORRPLOT: bubble size/color per correlation cell,
-  layout/diag filtering, encode_corrplot()'s validation (raster +
-  SVG) -- see corrplot.mojo's docstrings for the rules verified
-  here.
-
-- `test_calendar_heatmap.mojo`: Tests for Mark.CALENDAR_HEATMAP: date-to-grid-cell placement
-  (day-of-week row, week-of-year column) and color-scale reuse from
-  Mark.HEATMAP (raster + SVG) -- see calendar_heatmap.mojo's docstrings for the date-math rules verified here.
-
+"""Merged test module (one process per test family; see pixi.toml's
+`[tasks]` comment for why). Covers Mark.GROUPED_BAR, Mark.STACKED_BAR
+(including independent positive/negative stacking and percent=True),
+Mark.MARIMEKKO, Mark.POPULATION_PYRAMID, Mark.SPAN_CHART, Mark.GANTT,
+Mark.FUNNEL, Mark.HEATMAP, Mark.PUNCHCARD, Mark.CORRPLOT, and
+Mark.CALENDAR_HEATMAP, each raster + SVG plus its encode_*()
+validation.
 """
 
 from _test_helpers import BG, _assert_color, _count_color
@@ -90,32 +44,16 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 # ---------------------------------------------------------------
 
 def test_render_grouped_bar_matches_hand_derived_rectangles() raises:
-    # 2 categories ("A"/"B", short labels -- dynamic left margin stays
-    # at Theme's default 60, the same short-label convention every
-    # other hand-derived test in this file relies on), 2 series
-    # -- `values[0]` (North) = [10, 20] (North's value for A, then
-    # B), `values[1]` (South) = [5, 15] (South's value for A, then
-    # B): North_A=10, North_B=20, South_A=5, South_B=15 -- easy to
-    # mis-cross with North_A/South_A both "the first number," so
-    # double-check against this mapping before changing either list.
-    # Canvas 400x300, default margins,
-    # show_gridlines=False, show_legend left at its default (True)
-    # -- grouped bar always reserves a legend column, unlike plain
-    # Mark.BAR, so the OrdinalScale's range is [60, 250], not
-    # [60, 380] (270 = 400 - Theme's default 130px legend_width,
-    # minus margin_right=20).
+    # 2 categories ("A"/"B"), 2 series: values[0] (North) = [10, 20],
+    # values[1] (South) = [5, 15] (North_A=10, North_B=20, South_A=5,
+    # South_B=15). Canvas 400x300, default margins, no gridlines, legend
+    # reserved -> OrdinalScale range [60, 250].
     #
-    # y-domain: _zero_baseline_y_extent over every value (10, 20, 5, 15)
-    # -> [0, 21] (zero already exact, so unpadded; 20's +5% pad ->
-    # 21). OrdinalScale over [60, 250], 2 categories, step=95,
-    # bandwidth=76 (0.2 padding) -> band_start(A)=69.5, band_start(B)=
-    # 164.5. sub_width = bandwidth/2 = 38. Every sub-bar's left/
-    # right edge computed as a *rounded boundary*, not an independently
-    # rounded width -- see _render_grouped_bar's docstring for why.
-    #
-    # Every position independently re-derived via python3 (LinearScale's
-    # slope/intercept for the y-axis, OrdinalScale's band formula for
-    # x, both re-solved for this shrunk-by-the-legend range).
+    # y-domain: _zero_baseline_y_extent over every value -> [0, 21].
+    # OrdinalScale over [60, 250], 2 categories: step=95, bandwidth=76 ->
+    # band_start(A)=69.5, band_start(B)=164.5, sub_width=38. Each sub-bar's
+    # edges are rounded boundaries, not an independently rounded width (see
+    # _draw_grouped_bars).
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
@@ -132,11 +70,9 @@ def test_render_grouped_bar_matches_hand_derived_rectangles() raises:
     _assert_color(c, 184, 100, palette[0], "B/North bar, well inside")
     # B, South (series 1, value 15): x:[203,241), y:[86,250)
     _assert_color(c, 222, 150, palette[1], "B/South bar, well inside")
-    # The gap between A's two sub-bars and B's two sub-bars is
-    # zero (consecutive-boundary rounding, no gap within a category) --
-    # but there IS a real gap *between* categories A and B (OrdinalScale's
-    # 0.2 padding, band_start(B)=164.5 vs A's band ending at
-    # 69.5+76=145.5): x=155 sits in that inter-category gap at any y.
+    # No gap within a category (consecutive-boundary rounding), but a real
+    # gap between A and B (band_start(B)=164.5 vs A's end at 145.5): x=155
+    # is background at any y.
     _assert_color(c, 155, 150, BG, "the inter-category gap between A and B -- background")
 
 
@@ -150,20 +86,16 @@ def test_render_svg_grouped_bar_matches_confirmed_rects_and_legend() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
 
-    # Every sub-bar here is non-negative, so every one's bottom edge
-    # lands exactly on the drawn bottom axis line -- each height
-    # pulled 1px off it. See _pull_off_axis_line's docstring (plot.mojo).
+    # Every sub-bar is non-negative, so every bottom edge lands on the axis
+    # line and each height is pulled 1px (see _pull_off_axis_line).
     assert_true('<rect x="70" y="140" width="38" height="109" fill="#1f77b4"/>' in s, "A/North")
     assert_true('<rect x="108" y="195" width="38" height="54" fill="#ff7f0e"/>' in s, "A/South")
     assert_true('<rect x="165" y="31" width="38" height="218" fill="#1f77b4"/>' in s, "B/North")
     assert_true('<rect x="203" y="86" width="38" height="163" fill="#ff7f0e"/>' in s, "B/South")
 
-    # Legend: _draw_legend's row layout (legend_swatch_size=14,
-    # legend_row_gap=8) is already covered by Mark.POINT's/Mark.ARC's
-    # hand-derived legend tests -- this only confirms _render_
-    # grouped_bar actually calls it with the right labels/palette/
-    # starting position: x=plot_x1+margin_right=250+20=270, y=plot_y0=
-    # 20 (row 0), row 1 at y=20+(14+8)=42.
+    # _draw_legend's row layout is covered by the POINT/ARC legend tests;
+    # this confirms the labels/palette/start: x=250+20=270, y=20 (row 0),
+    # row 1 at y=42.
     assert_true(
         '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s, "North's legend swatch"
     )
@@ -203,22 +135,12 @@ def test_render_grouped_bar_raises_on_mismatched_value_series_length() raises:
 # ---------------------------------------------------------------
 
 def test_render_stacked_bar_matches_hand_derived_rectangles() raises:
-    # Same 2-category/2-series data test_render_grouped_bar_matches_
-    # hand_derived_rectangles already hand-solved the axis frame for
-    # (canvas 400x300, default margins, show_gridlines=False, legend
-    # reserved -> OrdinalScale range [60,250], band_start(A)=69.5 ->70,
-    # band_start(B)=164.5->165, bandwidth=76) -- all positive values
-    # here, so only the *positive* running total ever moves. Per
-    # category: North stacks first (bottom=0), South stacks on top of
-    # it (bottom=North's value). y-domain: _zero_baseline_y_extent
-    # over each category's *final* running total (A: 10+5=15, B:
-    # 20+15=35) plus the always-included zero -> padded [0, 36.75].
-    #
-    # Every position independently re-derived via python3 (LinearScale's
-    # slope/intercept for the y-axis against this stacked-total
-    # domain, OrdinalScale's band formula for x, unchanged from
-    # Mark.GROUPED_BAR's -- full band width per segment here, not
-    # divided sub-bars).
+    # Same 2-category/2-series data and frame as the grouped-bar test (range
+    # [60,250], band_start(A)=70, band_start(B)=165, bandwidth=76); all
+    # positive, so only the positive running total moves. North stacks
+    # first (bottom=0), South on top. y-domain: _zero_baseline_y_extent
+    # over each category's final total (15, 35) -> [0, 36.75]. Full band
+    # width per segment.
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
@@ -235,10 +157,8 @@ def test_render_stacked_bar_matches_hand_derived_rectangles() raises:
     _assert_color(c, 195, 200, palette[0], "B/North segment, well inside")
     # B, South (top segment, value 15, stacked on North): x:[165,241), y:[31,125)
     _assert_color(c, 195, 80, palette[1], "B/South segment, stacked on top of North")
-    # Unlike Mark.GROUPED_BAR, a stacked bar's segments share the
-    # *full* band width, so there's no gap between series within a
-    # category -- but the inter-category gap (OrdinalScale's 0.2
-    # padding) is still there: x=155 sits in it at any y.
+    # Segments share the full band width, so no gap within a category; the
+    # inter-category gap remains: x=155 is background.
     _assert_color(c, 155, 150, BG, "the inter-category gap between A and B -- background")
 
 
@@ -252,11 +172,8 @@ def test_render_svg_stacked_bar_matches_confirmed_rects_and_legend() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
 
-    # Only each column's bottom-most segment (North, seg_bottom=0)
-    # touches the drawn bottom axis line -- South stacks on top of
-    # North, sharing North's top edge, never the axis line itself --
-    # so only North's height is pulled 1px off it (63->62, 125->124).
-    # See _pull_off_axis_line's docstring (plot.mojo).
+    # Only each column's bottom segment (North, seg_bottom=0) touches the
+    # axis line, so only its height is pulled 1px (63->62, 125->124).
     assert_true('<rect x="70" y="187" width="76" height="62" fill="#1f77b4"/>' in s, "A/North")
     assert_true('<rect x="70" y="156" width="76" height="31" fill="#ff7f0e"/>' in s, "A/South")
     assert_true('<rect x="165" y="125" width="76" height="124" fill="#1f77b4"/>' in s, "B/North")
@@ -270,18 +187,10 @@ def test_render_svg_stacked_bar_matches_confirmed_rects_and_legend() raises:
 
 
 def test_render_svg_stacked_bar_mixed_sign_stacks_independently_each_direction() raises:
-    # One category ("A"), two series: North=10 (positive), South=-5
-    # (negative) -- the one case test_render_stacked_bar_matches_hand_
-    # derived_rectangles' all-positive data can't exercise: a
-    # negative value must stack *downward* from its running
-    # negative total (independent of North's positive stack), not
-    # slide North's segment down by 5. y-domain: _zero_baseline_y_
-    # extent over [pos_total=10, neg_total=-5] -> padded [-5.75, 10.75]
-    # (span 15, 5% pad 0.75 each end, zero always included/kept exact).
-    # band_start(0)=79 (1 category spans the whole OrdinalScale range,
-    # no inter-category gap to speak of), bandwidth=152.
-    #
-    # Every position independently re-derived via python3.
+    # One category, North=10 and South=-5: a negative value stacks downward
+    # from its own running negative total rather than sliding North's
+    # segment down. y-domain: _zero_baseline_y_extent over [10, -5] ->
+    # [-5.75, 10.75]. band_start(0)=79, bandwidth=152.
     var cats: List[String] = ["A"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0], [-5.0]]
@@ -328,18 +237,11 @@ def test_render_stacked_bar_raises_on_mismatched_value_series_length() raises:
 # ---------------------------------------------------------------
 
 def test_render_svg_percent_stacked_bar_matches_hand_derived_rectangles() raises:
-    # Same axis frame as test_stacked_bar.mojo's tests (canvas 400x300,
-    # default margins, show_gridlines=False, legend reserved ->
-    # x_scale range [60,250], band_start(A)=70, band_start(B)=165,
-    # bandwidth=76) -- percent=True fixes the y-domain to exactly
-    # [0, 100] regardless of the data, so frame.y_scale maps 0 -> py1
-    # (250, the drawn axis line) and 100 -> py0 (20, the top margin),
-    # a plain 230px span with no 5%-padding the way a real-valued
-    # domain gets from _zero_baseline_y_extent.
-    #
-    # A: North=30, South=10 -> total 40 -> North 75%, South 25%.
-    # B: North=20, South=30 -> total 50 -> North 40%, South 60%.
-    # Every position independently re-derived via python3 (percent = value / category_total * 100 for the segment span, then 0..100 -> 250..20 linearly) and cross-checked against the rendered SVG.
+    # Same frame as the stacked-bar tests (range [60,250],
+    # band_start(A)=70, band_start(B)=165, bandwidth=76); percent=True
+    # fixes the y-domain to [0, 100], so 0 -> 250 and 100 -> 20 with no
+    # padding. A: North=30, South=10 -> 75%/25%. B: North=20, South=30 ->
+    # 40%/60%.
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[30.0, 20.0], [10.0, 30.0]]
@@ -360,11 +262,9 @@ def test_render_svg_percent_stacked_bar_matches_hand_derived_rectangles() raises
 
 
 def test_render_svg_percent_stacked_bar_all_zero_category_is_an_empty_column() raises:
-    # Category B's values are all zero -- category_total is 0.0, so
-    # scale_factor falls to the 0.0 branch (not a divide-by-zero) and
-    # every segment in that column draws at zero height, sitting right
-    # on the axis line. Category A (North=30, South=20, unaffected)
-    # still renders normally.
+    # Category B's values are all zero: category_total is 0.0,
+    # scale_factor takes the 0.0 branch, and every segment draws at zero
+    # height on the axis line. Category A renders normally.
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[30.0, 0.0], [20.0, 0.0]]
@@ -390,9 +290,8 @@ def test_render_raises_on_percent_stacked_bar_with_a_negative_value() raises:
 
 
 def test_render_svg_non_percent_stacked_bar_is_unaffected_by_percent_flag() raises:
-    # percent=False (the default) must keep behaving exactly as
-    # test_stacked_bar.mojo already confirms -- raw values, no
-    # rescaling. Regression check against sharing the drawing loop.
+    # percent=False (the default) keeps the raw-value behavior the
+    # stacked-bar tests confirm.
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
@@ -420,17 +319,13 @@ def test_stacked_bar_quickplot_accepts_percent_kwarg() raises:
 # ---------------------------------------------------------------
 
 def test_render_marimekko_matches_hand_derived_columns() raises:
-    # 2 categories ("A", "B"), 2 subcategories ("X", "Y"). values[X] =
-    # [30, 10], values[Y] = [10, 30] -- column A totals 40 (75% X, 25%
-    # Y), column B totals 40 too (25% X, 75% Y), grand total 80 -> both
-    # columns get exactly half the plot width (equal totals here, not
-    # a coincidence of the chart type -- just this test's data).
-    # Canvas 400x300, show_gridlines=False, show_legend=False: plot
-    # area x:[60,380], y:[20,250] -> each column 160px wide, column A
-    # x:[60,220), column B x:[220,380). Column A: X segment (75% of
-    # 230px height = 172.5 -> 172) sits at the bottom, y:[78,250);
-    # column B: Y segment (75%) sits at the bottom instead, y:[193,
-    # 250) (see this file's SVG test).
+    # 2 categories, 2 subcategories: values[X] = [30, 10], values[Y] =
+    # [10, 30]. Both columns total 40 (grand total 80), so each gets half
+    # the width. Canvas 400x300, no gridlines, no legend: plot area
+    # x:[60,380], y:[20,250] -> column A x:[60,220), column B x:[220,380).
+    # Column A's X segment (75% of 230 = 172.5 -> 172) sits at the bottom,
+    # y:[78,250); column B's Y segment (75%) sits at the bottom,
+    # y:[193,250).
     var cats: List[String] = ["A", "B"]
     var subs: List[String] = ["X", "Y"]
     var values: List[List[Float64]] = [[30.0, 10.0], [10.0, 30.0]]
@@ -509,21 +404,11 @@ def test_render_marimekko_empty_data_only_fills_background() raises:
 # ---------------------------------------------------------------
 
 def test_render_population_pyramid_matches_hand_derived_bars() raises:
-    # 2 categories ("A", "B"), left=[10, 30], right=[20, 10]. Canvas
-    # 400x300, show_gridlines=False, show_legend=False (isolates the
-    # bars from the legend's column reservation). The largest
-    # magnitude across both sides is 30 -> 5% pad 1.5 -> symmetric
-    # x-domain [-31.5, 31.5], mapped to plot x:[60, 380] (short "A"/"B"
-    # labels keep the dynamic left margin at Theme's default 60,
-    # the same margin test_render_gantt_matches_hand_derived_bars
-    # confirms for this identical setup) -- a symmetric
-    # domain's midpoint (0.0) always maps to the pixel range's midpoint, so the center baseline lands exactly on pixel 220. y is
-    # the categorical axis: OrdinalScale over [20, 250] (2 categories,
-    # step 115, bandwidth 92) -- the exact same numbers that same gantt
-    # test confirms, since Mark.POPULATION_PYRAMID reuses Mark.
-    # GANTT's horizontal frame unchanged. Every x pixel below
-    # independently computed via python3 from LinearScale's to_
-    # pixel formula.
+    # 2 categories, left=[10, 30], right=[20, 10]. Canvas 400x300, no
+    # gridlines, no legend. The largest magnitude is 30 -> pad 1.5 ->
+    # symmetric x-domain [-31.5, 31.5] over x:[60, 380], so the center
+    # baseline lands at pixel 220. OrdinalScale over y:[20, 250] (step
+    # 115, bandwidth 92), the same numbers as the gantt test.
     var cats: List[String] = ["A", "B"]
     var left: List[Float64] = [10.0, 30.0]
     var right: List[Float64] = [20.0, 10.0]
@@ -562,10 +447,8 @@ def test_render_population_pyramid_svg_matches_confirmed_rects() raises:
 
 
 def test_render_population_pyramid_zero_magnitude_draws_no_bar() raises:
-    # A zero on one side means nothing to mark there -- unlike Mark.
-    # GANTT's zero-length-span-floors-to-1px rule (a real milestone
-    # marker), see _render_population_pyramid's docstring for why
-    # this mark deliberately does not floor.
+    # A zero on one side draws no bar, unlike Mark.GANTT's 1px milestone
+    # floor.
     var cats: List[String] = ["Only"]
     var left: List[Float64] = [0.0]
     var right: List[Float64] = [10.0]
@@ -579,8 +462,8 @@ def test_render_population_pyramid_zero_magnitude_draws_no_bar() raises:
 
 
 def test_render_population_pyramid_legend_uses_left_right_fallback_names() raises:
-    # No left_name/right_name given -- _render_population_pyramid's docstring says the legend still draws, falling back to "Left"/
-    # "Right", unlike Mark.GROUPED_BAR's legend which needs real names.
+    # With no left_name/right_name the legend still draws, falling back to
+    # "Left"/"Right".
     var cats: List[String] = ["A"]
     var left: List[Float64] = [10.0]
     var right: List[Float64] = [10.0]
@@ -626,18 +509,12 @@ def test_render_population_pyramid_empty_data_only_fills_background() raises:
 # ---------------------------------------------------------------
 
 def test_render_span_chart_matches_hand_derived_bars() raises:
-    # 2 categories ("A", "B" -- short labels, default left margin).
-    # "A" spans [10,40], "B" spans [50,90] -- the exact same numbers
-    # test_gantt.mojo's hand-derived case uses, transposed onto
-    # the vertical categorical frame here instead. Canvas 400x300,
-    # show_gridlines=False: plot area x:[60,380], y:[20,250]. Domain
-    # data = [10,40,50,90] -> _data_extent pads 5% of the 80-span
-    # (4.0) -> y-domain [6, 94]. x is now the *categorical* axis:
-    # OrdinalScale over [60,380] (2 categories, step=160, padding 0.2
-    # -> bandwidth 128), band A: x:[76,204], band B: x:[236,364].
-    # Bar A (low 10, high 40) -> rect (76, 161, 128, 79); bar B (low
-    # 50, high 90) -> rect (236, 30, 128, 105) (see this file's SVG
-    # test).
+    # 2 categories: "A" spans [10,40], "B" spans [50,90], the gantt test's
+    # numbers on the vertical frame. Canvas 400x300, no gridlines: plot
+    # area x:[60,380], y:[20,250]. _data_extent pads the 80-span by 4.0 ->
+    # y-domain [6, 94]. OrdinalScale over [60,380] (step=160, bandwidth
+    # 128): band A x:[76,204], band B x:[236,364]. Bar A -> rect (76, 161,
+    # 128, 79); bar B -> rect (236, 30, 128, 105).
     var cats: List[String] = ["A", "B"]
     var low: List[Float64] = [10.0, 50.0]
     var high: List[Float64] = [40.0, 90.0]
@@ -669,8 +546,8 @@ def test_render_span_chart_zero_length_span_floors_to_one_pixel() raises:
     var high: List[Float64] = [10.0]
     var _hoisted2 = span_chart(cats, low, high, width=200, height=150)
     var c = render(_hoisted2)
-    # No assertion failure means a zero-height bar didn't raise or
-    # vanish -- the same "real, visible data" floor Mark.GANTT's equivalent test confirms.
+    # A zero-height bar neither raises nor vanishes: floored to 1px, as
+    # Mark.GANTT's is.
     _ = c
 
 
@@ -696,19 +573,11 @@ def test_render_span_chart_empty_data_only_fills_background() raises:
 # ---------------------------------------------------------------
 
 def test_render_gantt_matches_hand_derived_bars() raises:
-    # 2 categories ("A", "B" -- short labels, so the dynamic left margin
-    # stays at Theme's default 60, the same "A"/short-label convention
-    # test_render_left_margin_unchanged_for_short_y_axis_labels already
-    # established, sidestepping real font-metric dependence). Canvas
-    # 400x300, plot area x:[60,380], y:[20,250], show_gridlines=False.
-    # "A" spans [10,40], "B" spans [50,90]. Domain data = every start/end
-    # value = [10,40,50,90] -> _data_extent pads 5% of the 80-span (4.0)
-    # -> x-domain [6, 94]. y is now the *categorical* axis: OrdinalScale
-    # over [20,250] (2 categories, step=115, padding 0.2 -> bandwidth
-    # 92), category 0 ("A") landing nearer the *top* (smaller pixel y)
-    # than category 1 ("B") -- see below.
-    # Every pixel independently computed via python3 from LinearScale's/
-    # OrdinalScale's formulas.
+    # 2 categories (short labels keep the left margin at 60). Canvas
+    # 400x300, plot area x:[60,380], y:[20,250], no gridlines. "A" spans
+    # [10,40], "B" spans [50,90]: _data_extent pads the 80-span by 4.0 ->
+    # x-domain [6, 94]. OrdinalScale over y:[20,250] (step=115, bandwidth
+    # 92), with category 0 at the top.
     var cats: List[String] = ["A", "B"]
     var start: List[Float64] = [10.0, 50.0]
     var end: List[Float64] = [40.0, 90.0]
@@ -735,11 +604,8 @@ def test_render_gantt_svg_matches_confirmed_rects() raises:
 
 
 def test_render_gantt_zero_length_span_floors_to_one_pixel() raises:
-    # A milestone: start == end. _render_gantt's docstring is
-    # explicit this is real, informative data (a deadline marker), not
-    # an absent value the way Mark.BULLET's zero-measure case is --
-    # floored to 1px rather than drawn as a genuinely zero-width
-    # (invisible) rect the way a naive fill_rect call would.
+    # A milestone (start == end) is real data, floored to 1px rather than
+    # drawn as a zero-width rect.
     var cats: List[String] = ["Launch"]
     var start: List[Float64] = [50.0]
     var end: List[Float64] = [50.0]
@@ -769,18 +635,13 @@ def test_render_gantt_empty_data_only_fills_background() raises:
 # ---------------------------------------------------------------
 
 def test_render_funnel_matches_hand_derived_trapezoids() raises:
-    # 3 categories, already given largest-to-smallest (100, 60, 20) so
-    # display order matches input order -- isolates the taper/palette
-    # math from the sort itself (see the dedicated sort test below for
-    # that). Canvas 400x300, show_legend=False: plot area x:[60,380],
-    # y:[20,250], center x=220, max_width=320, row_height=(250-20)/3 =
-    # 76.667. top_width[i] = value[i]/100*320 -> 320/192/64; bottom_
-    # width[i] = top_width[i+1] (192/64), except the last row, whose
-    # bottom matches its top (64, flat). See this file's SVG test
-    # for the exact path data. Sampled at
-    # each row's vertical midpoint, x=220 (dead center -- always
-    # inside every trapezoid, symmetric around cx, regardless of its
-    # width), so no left/right-edge math is needed here at all.
+    # 3 categories already in descending order (100, 60, 20), isolating the
+    # taper math from the sort. Canvas 400x300, no legend: plot area
+    # x:[60,380], y:[20,250], center x=220, max_width=320,
+    # row_height=76.667. top_width = 320/192/64; bottom_width = the next
+    # row's top (192/64), and the last row's bottom matches its top.
+    # Sampled at each row's vertical midpoint at x=220, always inside a
+    # symmetric trapezoid.
     var cats: List[String] = ["A", "B", "C"]
     var vals: List[Float64] = [100.0, 60.0, 20.0]
     var t = Theme(show_legend=False)
@@ -861,31 +722,17 @@ def test_render_funnel_empty_data_only_fills_background() raises:
 # ---------------------------------------------------------------
 
 def test_render_heatmap_matches_hand_derived_cells() raises:
-    # 2 x-categories ("Mon", "Tue"), 2 y-categories ("AM", "PM"), one
-    # row per cell: (Mon,AM)=1.0, (Mon,PM)=2.0, (Tue,AM)=3.0, (Tue,PM)
-    # =4.0. Canvas 400x300, show_gridlines=False, show_legend=False.
-    # Short "AM"/"PM" labels keep the dynamic left margin at Theme's
-    # default 60 (the same margin every other categorical-mark
-    # test with short labels confirms). x_scale/y_scale both use
-    # padding=0.0 (see _draw_grid_axis_frame's docstring), so with
-    # exactly 2 categories on each axis and plot area x:[60,380],
-    # y:[20,250], every band is exactly half that span: cell width 160
-    # (x:[60,220) for "Mon", x:[220,380) for "Tue"), cell height 115
-    # (y:[20,135) for "AM", y:[135,250) for "PM") -- category index 0
-    # lands first (top/left), the same reading-order convention Mark.
-    # GANTT's y-axis uses.
+    # 2 x-categories ("Mon", "Tue"), 2 y-categories ("AM", "PM"), values
+    # 1.0/2.0/3.0/4.0. Canvas 400x300, no gridlines, no legend; short
+    # labels keep the left margin at 60. padding=0.0 on both axes, so each
+    # cell is half the span: width 160 (x:[60,220) for "Mon"), height 115
+    # (y:[20,135) for "AM"), index 0 at the top/left.
     #
-    # value=1.0 is the color domain's min -> exactly Theme's
-    # color_scale_low, Color(60,110,200); value=4.0 is the max ->
-    # exactly color_scale_high, Color(220,90,40) -- both read directly
-    # off Theme, not re-derived. The two in-between cells' colors
-    # (t=1/3 and t=2/3 through the now-three-stop gradient -- low at
-    # 0.0, color_scale_mid at 0.5, high at 1.0, see Theme.color_scale_
-    # mid's docstring for why a middle stop exists at all) aren't
-    # hand-derived here -- ColorScale's interpolation is already
-    # covered by test_color_scale.mojo: Color(177,193,223) (t=1/3,
-    # bracketed between low and mid) and Color(230,187,170) (t=2/3,
-    # bracketed between mid and high).
+    # value=1.0 is the domain min -> exactly color_scale_low,
+    # Color(60,110,200); value=4.0 -> exactly color_scale_high,
+    # Color(220,90,40). The two in-between cells (t=1/3, t=2/3 through the
+    # three-stop gradient) are Color(177,193,223) and Color(230,187,170);
+    # ColorScale's interpolation is covered by its own tests.
     var x: List[String] = ["Mon", "Mon", "Tue", "Tue"]
     var y: List[String] = ["AM", "PM", "AM", "PM"]
     var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
@@ -916,8 +763,8 @@ def test_render_heatmap_svg_matches_confirmed_rects() raises:
 
 
 def test_render_heatmap_missing_cell_leaves_background() raises:
-    # A sparse grid -- no (Tue, PM) row at all. _render_heatmap's docstring: a missing combination just isn't drawn, not an error
-    # or a zero.
+    # A sparse grid with no (Tue, PM) row: a missing combination just isn't
+    # drawn.
     var x: List[String] = ["Mon", "Mon", "Tue"]
     var y: List[String] = ["AM", "PM", "AM"]
     var v: List[Float64] = [1.0, 2.0, 3.0]
@@ -960,12 +807,10 @@ def test_render_heatmap_empty_data_only_fills_background() raises:
 # ---------------------------------------------------------------
 
 def test_render_punchcard_matches_hand_derived_bubbles() raises:
-    # 2 x-categories ("Mon", "Tue"), 2 y-categories ("9am", "10am"),
-    # 3 rows -- (Mon,9am)=50, (Mon,10am)=100, (Tue,9am)=20, scale=10.0
-    # (the default): radius = size/scale -> 5, 10, 2. Canvas 400x300,
-    # show_gridlines=False, show_legend=False: Mark.HEATMAP's _draw_grid_axis_frame, plot area x:[60,380], y:[20,250], 2
-    # categories on each axis -> centers (140, 78)/(140, 193)/(300, 78)
-    # (see this file's SVG test).
+    # 2 x-categories, 2 y-categories, 3 rows: (Mon,9am)=50, (Mon,10am)=100,
+    # (Tue,9am)=20, scale=10.0 -> radii 5, 10, 2. Canvas 400x300, no
+    # gridlines, no legend: plot area x:[60,380], y:[20,250], centers
+    # (140, 78)/(140, 193)/(300, 78).
     var x: List[String] = ["Mon", "Mon", "Tue"]
     var y: List[String] = ["9am", "10am", "9am"]
     var sizes: List[Float64] = [50.0, 100.0, 20.0]
@@ -994,15 +839,10 @@ def test_render_punchcard_svg_matches_confirmed_circles() raises:
 
 
 def test_render_punchcard_repeated_cell_draws_two_independent_bubbles() raises:
-    # Two rows share the exact same (x, y) cell with different sizes
-    # -- both bubbles draw (the smaller nested inside the larger,
-    # since both share a center), not merged/summed into one. Only one
-    # x-category ("Mon") and one y-category ("9am") here, so the
-    # shared center is the plot area's full midpoint (220, 135),
-    # not a divided-grid cell center. A pixel just outside the smaller
-    # bubble's radius (r=2) but still inside the larger one (r=10)
-    # confirms the larger bubble is really there, not silently dropped
-    # in favor of the last-drawn row.
+    # Two rows share the same cell with different sizes: both bubbles draw
+    # (the smaller nested inside the larger), not merged. One category on
+    # each axis, so the shared center is (220, 135). A pixel just outside
+    # the r=2 bubble but inside the r=10 one confirms the larger is there.
     var x: List[String] = ["Mon", "Mon"]
     var y: List[String] = ["9am", "9am"]
     var sizes: List[Float64] = [20.0, 100.0]
@@ -1044,21 +884,15 @@ def test_render_punchcard_empty_data_only_fills_background() raises:
 # ---------------------------------------------------------------
 
 def test_render_corrplot_matches_hand_derived_bubbles() raises:
-    # 2 variables ("A", "B"), matrix [[1, -0.5], [-0.5, 1]]. Canvas
-    # 400x300, show_gridlines=False, show_legend=False:
-    # _draw_grid_axis_frame (padding=0.0), 2 categories on each
-    # axis over plot area x:[60,380], y:[20,250] -> cell width 160,
-    # cell height 115. max bubble radius = min(160,115)/2*0.42 =
-    # 57.5*0.42 = 24.15 -> 24 at |value|=1.0.
+    # 2 variables, matrix [[1, -0.5], [-0.5, 1]]. Canvas 400x300, no
+    # gridlines, no legend: cells 160 x 115 over plot area x:[60,380],
+    # y:[20,250]; max bubble radius = min(160,115)/2*0.42 = 24.15 -> 24 at
+    # |value|=1.0.
     #
-    # Cell (A,A) [row 0, col 0, value 1.0]: center (140, 78), radius
-    # 24, color exactly Theme's color_scale_high (the domain's max). Cell (A,B) [row 0, col 1, value -0.5]: center (300, 78),
-    # radius round(24.15*0.5)=12, color at t=0.25 through the [-1,1]
-    # gradient -- (148,173,218), bracketed between color_scale_low and
-    # color_scale_mid (Theme's three-stop gradient, see that
-    # field's docstring; see this file's SVG test) -- not re-derived
-    # from ColorScale's interpolation math again, already covered by
-    # test_color_scale.mojo.
+    # Cell (A,A) [value 1.0]: center (140, 78), radius 24, color exactly
+    # color_scale_high. Cell (A,B) [value -0.5]: center (300, 78), radius
+    # round(24.15*0.5)=12, color at t=0.25 through the [-1,1] gradient,
+    # (148,173,218), between color_scale_low and color_scale_mid.
     var vars: List[String] = ["A", "B"]
     var m: List[List[Float64]] = [[1.0, -0.5], [-0.5, 1.0]]
     var t = Theme(show_gridlines=False, show_legend=False)
@@ -1087,10 +921,8 @@ def test_render_corrplot_svg_matches_confirmed_circles() raises:
 
 
 def test_render_corrplot_lower_layout_without_diag_keeps_only_below_diagonal() raises:
-    # layout="lower" (row >= col), diag=False (row == col dropped
-    # too) over a 2x2 matrix keeps exactly one cell: (B, A), row=1 >
-    # col=0. (A,A)/( B,B) (the diagonal) and (A,B) (row < col, the
-    # upper triangle) all stay background.
+    # layout="lower" (row >= col) with diag=False keeps exactly one cell of
+    # a 2x2 matrix, (B, A); the diagonal and (A,B) stay background.
     var vars: List[String] = ["A", "B"]
     var m: List[List[Float64]] = [[1.0, -0.5], [-0.5, 1.0]]
     var t = Theme(show_gridlines=False, show_legend=False)
@@ -1139,29 +971,18 @@ def test_render_corrplot_empty_variables_only_fills_background() raises:
 # ---------------------------------------------------------------
 
 def test_render_calendar_heatmap_matches_hand_derived_cells() raises:
-    # 2024-01-01 (a real-world Monday), 2024-01-07 (the following
-    # Sunday -- 6 days later, wrapping to the *next* week's column since Sunday starts a new week here), and 2024-12-31 (a
-    # real-world Tuesday, the year's last day, in the year's last column). Values [1.0, 2.0, 3.0] -- min/mid/max of the color
-    # domain, so the first and third cells read directly off Theme's
-    # color_scale_low/high, no ColorScale interpolation math to
-    # re-derive here.
+    # 2024-01-01 (a Monday), 2024-01-07 (the following Sunday, which starts
+    # the next week's column), and 2024-12-31 (a Tuesday, in the last
+    # column). Values [1.0, 2.0, 3.0]: min/mid/max of the color domain, so
+    # the cells read directly off Theme's color_scale_low/mid/high (the mid
+    # value lands exactly on the 0.5 stop with no interpolation).
     #
-    # Canvas 900x300, show_legend=False: plot area x:[60,880],
-    # y:[20,250] (top margin grows by one font-size + label-gap for
-    # the month-label row above the grid). 2024 is a leap year (366
-    # days) -> 53 week-columns. Every rect below (see this file's SVG test):
-    # Jan 1 (Mon, row 1, col 0) -> rect(60,67,15,31); Jan 7 (Sun, row
-    # 0, col 1) -> rect(75,36,15,31); Dec 31 (Tue, row 2, col 52) ->
-    # rect(865,97,15,31). Interior points sampled well inside each
-    # rect's bounds, not on an edge.
-    #
-    # value=2.0 sits at the color domain's exact midpoint (t=0.5)
-    # -- lands on Theme's color_scale_mid exactly, not an
-    # interpolated blend: ColorScale.from_theme() adds that as a real
-    # stop at offset 0.5 (see its docstring), and _color_at_t
-    # brackets an exact-offset match to itself (before == after), no
-    # RGB-space interpolation involved at all. Read directly off Theme
-    # the same way the min/max cells already are, not hand-derived.
+    # Canvas 900x300, no legend: plot area x:[60,880], y:[20,250] (the top
+    # margin grows by a font size + label gap for the month labels). 2024
+    # is a leap year -> 53 week columns. Jan 1 (row 1, col 0) ->
+    # rect(60,67,15,31); Jan 7 (row 0, col 1) -> rect(75,36,15,31); Dec 31
+    # (row 2, col 52) -> rect(865,97,15,31). Sampled well inside each
+    # rect.
     var dates: List[String] = ["2024-01-01", "2024-01-07", "2024-12-31"]
     var values: List[Float64] = [1.0, 2.0, 3.0]
     var t = Theme(show_legend=False)
