@@ -430,6 +430,29 @@ struct Theme(ImplicitlyCopyable, Movable):
     defaults to `OutputFormat.SVG` (see that struct's docstring for why
     vector is the default). `render()`/`render_svg()` ignore this field
     entirely; it only governs `save()`'s own choice."""
+    var svg_tooltips: Bool
+    """Whether each datum gets an SVG `<title>`, which a browser shows
+    as a native hover tooltip -- `True` by default for the categorical
+    marks that support it (see below), and a no-op on the raster
+    backend, which has nowhere to put one.
+
+    Emitted through `DrawTarget.begin_annotated_group`/`end_annotated_
+    group` (canvas_mojo >= 0.13.0), so a mark wraps however many
+    primitives one datum happens to draw -- a box plot's box, whiskers,
+    caps and median are one tooltip, not five. `SvgCanvas` turns that
+    into `<g><title>...</title>...</g>`; `Canvas` ignores both calls.
+    Titles are XML-escaped by canvas_mojo, so a label may contain `&`,
+    `<` and `>` freely.
+
+    Only the marks whose group is one *category* carry titles today --
+    `Mark.BAR`, `GROUPED_BAR`, `STACKED_BAR`, `BOX`, `LOLLIPOP`,
+    `VIOLIN`. The point-per-datum marks (`POINT`, `EFFECT_SCATTER`,
+    `BEESWARM`) deliberately don't yet: a title costs about 39 bytes
+    against a `<circle>`'s 48, so a dense scatter's SVG roughly
+    doubles (measured: 234 KB -> 425 KB at 5000 points, and the DOM
+    node count doubles with it). That wants its own opt-in rather than
+    riding on this flag -- see the tracking issue.
+    """
     var show_data_labels: Bool
     """Whether `Mark.BAR`/`GROUPED_BAR`/`STACKED_BAR` draws each bar's
     own value as text -- `False` (the default, every existing render
@@ -498,6 +521,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         margin_buffer: Int = 8,
         error_bar_cap_width: Float64 = 4.0,
         output_format: OutputFormat = OutputFormat.SVG,
+        svg_tooltips: Bool = True,
         show_data_labels: Bool = False,
     ):
         """Construct a `Theme`, overriding any subset of its fields by
@@ -554,6 +578,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.margin_buffer = margin_buffer
         self.error_bar_cap_width = error_bar_cap_width
         self.output_format = output_format
+        self.svg_tooltips = svg_tooltips
         self.show_data_labels = show_data_labels
 
     @staticmethod

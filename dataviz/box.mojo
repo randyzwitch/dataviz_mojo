@@ -9,13 +9,14 @@ from dataviz.plot import (
     _BaselineRect,
     _Orientation,
     _RenderResult,
+    _tooltip_label,
     _axis_pixel,
     _data_extent,
     _draw_categorical_axis_frame,
     _empty_result,
     _finished,
 )
-from dataviz.scale import LinearScale
+from dataviz.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.theme import Theme
 
 
@@ -186,6 +187,26 @@ def _draw_box_glyphs[
         var low = value_scale.to_pixel(plot._box.low[i])
         var high = value_scale.to_pixel(plot._box.high[i])
 
+        if theme.svg_tooltips:
+            # The five-number summary, which is exactly what the shape
+            # encodes -- a box plot's whole point is those numbers, and
+            # reading them off the axis by eye is the thing a tooltip
+            # saves. Low cardinality by construction (one per
+            # category), so the longer label costs nothing that
+            # matters.
+            target.begin_annotated_group(
+                plot.x_categories[i]
+                + ": median "
+                + _format_fixed(plot._box.median[i], _label_decimals(plot._box.median[i]))
+                + ", Q1 "
+                + _format_fixed(plot._box.q1[i], _label_decimals(plot._box.q1[i]))
+                + ", Q3 "
+                + _format_fixed(plot._box.q3[i], _label_decimals(plot._box.q3[i]))
+                + ", range "
+                + _format_fixed(plot._box.low[i], _label_decimals(plot._box.low[i]))
+                + "-"
+                + _format_fixed(plot._box.high[i], _label_decimals(plot._box.high[i]))
+            )
         # Whiskers: high -> q3 and q1 -> low, along the value axis.
         orient.value_line(
             target, _round_to_int(high), _round_to_int(q3), center_i, theme.axis_color, theme.scale
@@ -213,8 +234,20 @@ def _draw_box_glyphs[
             target, _round_to_int(median), _round_to_int(center - half),
             _round_to_int(center + half), theme.axis_color, theme.scale,
         )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
+    # Outliers sit outside the per-category groups deliberately: each
+    # is its own datum, not part of the box's five-number summary, so
+    # it carries its own title naming the value that made it an outlier.
     for j in range(len(plot._box.outlier_value)):
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _tooltip_label(
+                    plot.x_categories[plot._box.outlier_cat[j]], plot._box.outlier_value[j]
+                )
+                + " (outlier)"
+            )
         orient.band_point(
             target,
             _axis_pixel(value_scale, plot._box.outlier_value[j]),
@@ -222,6 +255,8 @@ def _draw_box_glyphs[
             point_radius,
             theme.mark_color,
         )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
 
 def _render_box[

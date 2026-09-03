@@ -12,6 +12,7 @@ from dataviz.plot import (
     _RenderResult,
     _Orientation,
     _Scaled,
+    _tooltip_label,
     _TextRequest,
     _axis_pixel,
     _draw_categorical_axis_frame,
@@ -86,7 +87,11 @@ def _draw_bar_rects[
         var band_pos = _round_to_int(band_scale.band_start(i))
         var value = plot.y_data[i]
         var extent = _pull_off_axis_line(baseline, _axis_pixel(value_scale, value), baseline_edge)
+        if theme.svg_tooltips:
+            target.begin_annotated_group(_tooltip_label(plot.x_categories[i], value))
         orient.fill_band_rect(target, extent, band_pos, band_size, _bar_fill_color(theme, value))
+        if theme.svg_tooltips:
+            target.end_annotated_group()
         if theme.show_data_labels:
             var at = orient.outside_band_label(
                 extent, band_pos, band_size, value < 0.0, sc.label_gap, sc.font_size

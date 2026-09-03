@@ -169,7 +169,7 @@ from dataviz.marker import PointShape, _fill_shape_aa, default_marker_shapes
 from dataviz.mark import Mark
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.output_format import OutputFormat
-from dataviz.scale import LinearScale, MinMax, _format_fixed, _min_max
+from dataviz.scale import LinearScale, MinMax, _format_fixed, _label_decimals, _min_max
 from dataviz.theme import Theme
 
 from dataviz.arc import _render_arc
@@ -5395,6 +5395,32 @@ def _draw_annotation_best_fit[
             )
         )
     return text_requests^
+
+
+def _tooltip_label(category: String, value: Float64) -> String:
+    """One datum's hover text: `"Group A: 42"`.
+
+    The same `_label_decimals` formatting `Theme.show_data_labels`
+    uses, so a chart showing both never disagrees with itself about
+    what a value is -- the fewest decimals that represent that
+    specific value exactly, not the axis's coarser tick formatting.
+
+    No escaping here: canvas_mojo's `begin_annotated_group` escapes the
+    title for XML itself, so a category containing `&` or `<` is safe
+    to pass through raw. Escaping in both places would double-encode
+    it.
+    """
+    return category + ": " + _format_fixed(value, _label_decimals(value))
+
+
+def _series_tooltip_label(category: String, series: String, value: Float64) -> String:
+    """A grouped/stacked datum's hover text: `"Group A / Q1: 42"`.
+
+    Both names, because neither alone identifies the datum -- a
+    grouped bar chart has one bar per (category, series) pair, and a
+    tooltip naming only one of them would be ambiguous exactly where
+    the chart is densest."""
+    return category + " / " + series + ": " + _format_fixed(value, _label_decimals(value))
 
 
 def _replay_text_requests(mut canvas: Canvas, requests: List[_TextRequest], mut cache: FontCache) raises:

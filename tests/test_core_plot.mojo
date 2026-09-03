@@ -50,6 +50,8 @@ from canvas.color import Color
 from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
 from dataviz import (
     PointShape,
+    bar,
+    box,
     bullet,
     default_marker_shapes,
     line,
@@ -1530,6 +1532,94 @@ def test_accessible_svg_string_preserves_the_chart_body_unchanged() raises:
     var body_start = original.find(">") + 1
     var body = String(original[byte=body_start:])
     assert_true(body in accessible, "the original chart body survives completely unchanged")
+
+
+def test_svg_tooltips_wrap_each_datum_in_a_titled_group() raises:
+    """Each bar gets a `<g><title>` a browser shows on hover, with the
+    title XML-escaped by canvas_mojo (so a category containing `&` or
+    `<` is safe to pass through raw) and the value formatted the same
+    way `Theme.show_data_labels` formats it."""
+    var cats: List[String] = ["A & B", "C<D>", "E"]
+    var vals: List[Float64] = [10.0, -5.5, 20.25]
+    var svg = render_svg(bar(cats, vals, width=300, height=200)).to_string()
+
+    assert_true("<title>A &amp; B: 10</title>" in svg, "ampersand escaped, value formatted")
+    assert_true("<title>C&lt;D&gt;: -5.5</title>" in svg, "angle brackets escaped, negative value")
+    assert_true("<title>E: 20.25</title>" in svg, "decimals kept only where they matter")
+    # One group per bar, each closed.
+    assert_equal(svg.count("<g>"), 3, "one group per bar")
+    assert_equal(svg.count("</g>"), 3, "every group closed")
+
+
+def test_svg_tooltips_off_emits_no_groups_at_all() raises:
+    var cats: List[String] = ["a", "b"]
+    var vals: List[Float64] = [1.0, 2.0]
+    var svg = render_svg(
+        bar(cats, vals, theme=Theme(svg_tooltips=False), width=200, height=150)
+    ).to_string()
+    assert_true("<g>" not in svg, "no groups when tooltips are off")
+    assert_true("<title>" not in svg, "no titles when tooltips are off")
+
+
+def test_svg_tooltips_leave_the_raster_backend_byte_identical() raises:
+    """`Canvas` no-ops both group calls, so a raster render is
+    unaffected by the flag -- the asymmetry is the point, since a
+    bitmap has nowhere to put a title."""
+    var cats: List[String] = ["a", "b", "c"]
+    var vals: List[Float64] = [3.0, 1.0, 2.0]
+    var on = bar(cats, vals, theme=Theme(svg_tooltips=True), width=200, height=150)
+    var off = bar(cats, vals, theme=Theme(svg_tooltips=False), width=200, height=150)
+    var c_on = render(on)
+    var c_off = render(off)
+    assert_equal(c_on.width, c_off.width, "same width")
+    assert_equal(c_on.height, c_off.height, "same height")
+    for y in range(c_on.height):
+        for x in range(c_on.width):
+            var a = c_on.get_pixel(x, y)
+            var b = c_off.get_pixel(x, y)
+            if a.r != b.r or a.g != b.g or a.b != b.b:
+                assert_true(False, "raster differs at " + String(x) + "," + String(y))
+
+
+def test_svg_tooltips_are_purely_additive_markup() raises:
+    """Turning tooltips on adds `<g>`/`<title>`/`</g>` lines and
+    changes nothing else -- the property that makes this safe to
+    default on. Strip those lines back out and the two documents are
+    identical."""
+    var cats: List[String] = ["a", "b"]
+    var vals: List[Float64] = [4.0, 9.0]
+    var on = render_svg(bar(cats, vals, width=200, height=150)).to_string()
+    var off = render_svg(
+        bar(cats, vals, theme=Theme(svg_tooltips=False), width=200, height=150)
+    ).to_string()
+
+    var stripped = String("")
+    var first = True
+    for line in on.split("\n"):
+        var t = String(line).strip()
+        if t == "<g>" or t == "</g>" or (t.startswith("<title>") and t.endswith("</title>")):
+            continue
+        if not first:
+            stripped += "\n"
+        stripped += line
+        first = False
+    assert_equal(stripped, off, "tooltip markup is additive; nothing else moves")
+
+
+def test_svg_tooltip_for_a_box_is_its_five_number_summary() raises:
+    """A box plot's group covers all five primitives (box, whiskers,
+    caps, median) as one datum, and says what the shape encodes.
+    Outliers sit outside that group with their own title, since each is
+    its own datum rather than part of the summary."""
+    var cats: List[String] = ["Group A"]
+    var vals: List[List[Float64]] = [[20.0, 55.0, 70.0, 75.0, 80.0, 82.0, 140.0]]
+    var svg = render_svg(box(cats, vals, width=300, height=200)).to_string()
+
+    assert_true("median 75" in svg, "median in the summary")
+    assert_true("Q1 62.5" in svg, "first quartile in the summary")
+    assert_true("range 55-82" in svg, "whisker range in the summary")
+    assert_true("<title>Group A: 20 (outlier)</title>" in svg, "low outlier titled separately")
+    assert_true("<title>Group A: 140 (outlier)</title>" in svg, "high outlier titled separately")
 
 
 def main() raises:

@@ -12,6 +12,7 @@ from dataviz.plot import (
     _RenderResult,
     _Orientation,
     _Scaled,
+    _series_tooltip_label,
     _TextRequest,
     _axis_pixel,
     _draw_categorical_axis_frame,
@@ -160,7 +161,15 @@ def _draw_grouped_bars[
             var extent = _pull_off_axis_line(
                 baseline, _axis_pixel(value_scale, value), baseline_edge
             )
+            if theme.svg_tooltips:
+                target.begin_annotated_group(
+                    _series_tooltip_label(
+                        plot.x_categories[i], plot._grouped_bar.series_names[j], value
+                    )
+                )
             orient.fill_band_rect(target, extent, near, far - near, palette[j % len(palette)])
+            if theme.svg_tooltips:
+                target.end_annotated_group()
             if theme.show_data_labels:
                 var at = orient.outside_band_label(
                     extent, near, far - near, value < 0.0, sc.label_gap, sc.font_size

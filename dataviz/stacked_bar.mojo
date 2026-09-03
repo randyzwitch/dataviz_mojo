@@ -13,6 +13,7 @@ from dataviz.plot import (
     _RenderResult,
     _Orientation,
     _Scaled,
+    _series_tooltip_label,
     _TextRequest,
     _axis_pixel,
     _draw_categorical_axis_frame,
@@ -140,7 +141,15 @@ def _draw_stacked_segments[
             var extent = _pull_off_axis_line(
                 _axis_pixel(value_scale, seg_far), _axis_pixel(value_scale, seg_near), baseline_edge
             )
+            if theme.svg_tooltips:
+                target.begin_annotated_group(
+                    _series_tooltip_label(
+                        plot.x_categories[i], plot._grouped_bar.series_names[j], v
+                    )
+                )
             orient.fill_band_rect(target, extent, band_pos, band_size, palette[j % len(palette)])
+            if theme.svg_tooltips:
+                target.end_annotated_group()
             if theme.show_data_labels:
                 var at = orient.band_label_point(extent, band_pos, band_size, sc.font_size)
                 text_requests.append(
