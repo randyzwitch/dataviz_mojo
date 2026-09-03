@@ -10,6 +10,7 @@ from dataviz.scale import LinearScale
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _Orientation,
     _Scaled,
     _TextRequest,
     _axis_pixel,
@@ -21,6 +22,137 @@ from dataviz.plot import (
 )
 from dataviz.scale import _format_fixed, _label_decimals
 from dataviz.theme import Theme
+
+
+def _stacked_bar_domain(plot: Plot, n_series: Int) raises -> LinearScale:
+    """The value-axis domain a `Mark.STACKED_BAR` needs, orientation-
+    independent: fixed `[0, 100]` for `percent=True` (every column is
+    definitionally exactly 100% long, so a padded [0, 105]-ish axis
+    would misrepresent that), otherwise `_zero_baseline_y_extent` over
+    each category's *final* positive and negative running totals --
+    always the most extreme point each direction reaches, so the raw
+    per-segment values never need to enter the domain."""
+    if plot._stacked_bar_percent:
+        return LinearScale(0.0, 100.0, 0.0, 1.0)
+    var domain_data = List[Float64]()
+    for i in range(len(plot.x_categories)):
+        var pos_total = 0.0
+        var neg_total = 0.0
+        for j in range(n_series):
+            var v = plot._grouped_bar.values[j][i]
+            if v >= 0.0:
+                pos_total += v
+            else:
+                neg_total += v
+        domain_data.append(pos_total)
+        domain_data.append(neg_total)
+    return _zero_baseline_y_extent(domain_data)
+
+
+def _validate_stacked_bar_percent(plot: Plot, n_series: Int) raises:
+    """`percent=True` needs every value non-negative -- a negative
+    share has no meaning. Orientation-independent."""
+    if not plot._stacked_bar_percent:
+        return
+    for j in range(n_series):
+        for v in plot._grouped_bar.values[j]:
+            if v < 0.0:
+                raise Error(
+                    "Plot.mark_stacked_bar(percent=True): every value must be >= 0 (a negative"
+                    " share has no meaning) -- got " + String(v)
+                )
+
+
+def _draw_stacked_segments[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    band_scale: OrdinalScale,
+    value_scale: LinearScale,
+    baseline_edge: Int,
+    orient: _Orientation,
+    palette: List[Color],
+    mut text_requests: List[_TextRequest],
+) raises:
+    """Every segment of every category's stack, written once for both
+    orientations -- `_Orientation` carries the only two differences
+    (which way a rect is emitted, where its label sits). `band_scale`/
+    `value_scale` come from whichever frame the caller built, and
+    `baseline_edge` is that frame's own axis line (`py1` vertically,
+    `px0` horizontally) for `_pull_off_axis_line`'s
+    don't-paint-over-the-axis check.
+
+    Mixed-sign values stack in two independent running totals per
+    category, not one: a non-negative value's segment sits on the
+    running *positive* total and extends it, a negative value's on the
+    running *negative* total. That is the convention most charting
+    libraries use for a mixed-sign stack -- positive parts build away
+    from zero one way, negative parts the other, independently --
+    rather than one running sum where a negative value part-way up
+    would slide every segment above it back down, which is visually
+    nonsensical for a composition chart.
+
+    No pixel-boundary-rounding trick is needed the way `Mark.GROUPED_
+    BAR`'s sub-bar division needs one: a segment's far edge and the
+    next segment's near edge are the *identical* `Float64` running
+    total, so `_axis_pixel` rounds both to the same pixel on its own.
+
+    `Theme.show_data_labels` centers each segment's own value *inside*
+    it, not outside the way `Mark.BAR`/`GROUPED_BAR` place theirs -- a
+    stacked segment usually has neighbors on both sides, so there is no
+    clear outside edge to anchor to.
+    """
+    var theme = plot._theme
+    var sc = _Scaled(theme)
+    var n_series = len(plot._grouped_bar.series_names)
+    var band_size = _round_to_int(band_scale.bandwidth())
+
+    for i in range(len(plot.x_categories)):
+        var band_pos = _round_to_int(band_scale.band_start(i))
+        # percent=True rescales each category against its own total --
+        # every other category's total is unrelated, so this is per
+        # category, not once for the chart. An all-zero category
+        # divides by nothing; a 0.0 factor just draws an empty column
+        # rather than a NaN.
+        var scale_factor = 1.0
+        if plot._stacked_bar_percent:
+            var category_total = 0.0
+            for j in range(n_series):
+                category_total += plot._grouped_bar.values[j][i]
+            scale_factor = 100.0 / category_total if category_total > 0.0 else 0.0
+
+        var pos_running = 0.0
+        var neg_running = 0.0
+        for j in range(n_series):
+            var v = plot._grouped_bar.values[j][i] * scale_factor
+            var seg_near: Float64
+            var seg_far: Float64
+            if v >= 0.0:
+                seg_near = pos_running
+                seg_far = pos_running + v
+                pos_running = seg_far
+            else:
+                seg_far = neg_running
+                seg_near = neg_running + v
+                neg_running = seg_near
+            var extent = _pull_off_axis_line(
+                _axis_pixel(value_scale, seg_far), _axis_pixel(value_scale, seg_near), baseline_edge
+            )
+            orient.fill_band_rect(target, extent, band_pos, band_size, palette[j % len(palette)])
+            if theme.show_data_labels:
+                var at = orient.band_label_point(extent, band_pos, band_size, sc.font_size)
+                text_requests.append(
+                    _TextRequest(
+                        at.x,
+                        at.y,
+                        _format_fixed(v, _label_decimals(v)),
+                        theme.text_color,
+                        sc.font_size,
+                        TextAlign.CENTER,
+                        theme.font_family,
+                    )
+                )
 
 
 def _render_stacked_bar[
@@ -88,107 +220,22 @@ def _render_stacked_bar[
         return _empty_result(ox0, oy0, ox1, oy1)
 
     var n_series = len(plot._grouped_bar.series_names)
-
-    if plot._stacked_bar_percent:
-        for j in range(n_series):
-            for v in plot._grouped_bar.values[j]:
-                if v < 0.0:
-                    raise Error(
-                        "Plot.mark_stacked_bar(percent=True): every value must be >= 0 (a negative"
-                        " share has no meaning) -- got " + String(v)
-                    )
-
-    var y_scale: LinearScale
-    if plot._stacked_bar_percent:
-        # Fixed to exactly [0, 100] -- there's no "padding" a
-        # percentage the way _zero_baseline_y_extent pads a real-valued
-        # domain; every column is definitionally exactly 100% tall, so
-        # a padded [0, 105]-ish axis would misrepresent that.
-        y_scale = LinearScale(0.0, 100.0, 0.0, 1.0)
-    else:
-        var domain_data = List[Float64]()
-        for i in range(len(plot.x_categories)):
-            var pos_total = 0.0
-            var neg_total = 0.0
-            for j in range(n_series):
-                var v = plot._grouped_bar.values[j][i]
-                if v >= 0.0:
-                    pos_total += v
-                else:
-                    neg_total += v
-            domain_data.append(pos_total)
-            domain_data.append(neg_total)
-        y_scale = _zero_baseline_y_extent(domain_data)
+    _validate_stacked_bar_percent(plot, n_series)
+    var y_scale = _stacked_bar_domain(plot, n_series)
 
     var sc = _Scaled(theme)
-    var show_legend = theme.show_legend
     var legend_reserve = _series_legend_reserve(plot, sc)
-
     var frame = _draw_categorical_axis_frame(
         target, plot.x_categories, y_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
     )
 
     var palette = default_categorical_palette()
+    _draw_stacked_segments(
+        target, plot, frame.x_scale, frame.y_scale, frame.py1, _Orientation(False), palette,
+        frame.text_requests,
+    )
 
-    var band_width = _round_to_int(frame.x_scale.bandwidth())
-    for i in range(len(plot.x_categories)):
-        var band_x = _round_to_int(frame.x_scale.band_start(i))
-        # percent=True: each category's own total (validated non-
-        # negative above, so a plain sum is also that category's own
-        # magnitude) rescales its own series values to sum to 100 --
-        # every other category's own total is unrelated, so this is
-        # recomputed per category, not once for the whole chart. A
-        # category whose values are all zero divides by nothing;
-        # `scale_factor` of 0.0 in that case just draws every segment
-        # at zero height instead (an empty column), not a NaN.
-        var scale_factor = 1.0
-        if plot._stacked_bar_percent:
-            var category_total = 0.0
-            for j in range(n_series):
-                category_total += plot._grouped_bar.values[j][i]
-            scale_factor = 100.0 / category_total if category_total > 0.0 else 0.0
-        var pos_running = 0.0
-        var neg_running = 0.0
-        for j in range(n_series):
-            var v = plot._grouped_bar.values[j][i] * scale_factor
-            var seg_bottom: Float64
-            var seg_top: Float64
-            if v >= 0.0:
-                seg_bottom = pos_running
-                seg_top = pos_running + v
-                pos_running = seg_top
-            else:
-                seg_top = neg_running
-                seg_bottom = neg_running + v
-                neg_running = seg_bottom
-            var top_py = _axis_pixel(frame.y_scale, seg_top)
-            var bottom_py = _axis_pixel(frame.y_scale, seg_bottom)
-            var rect = _pull_off_axis_line(top_py, bottom_py, frame.py1)
-            target.fill_rect(band_x, rect.y, band_width, rect.height, palette[j % len(palette)])
-            if theme.show_data_labels:
-                # Centered *inside* the segment, unlike Mark.BAR/
-                # GROUPED_BAR's above/below-the-bar placement -- a
-                # stacked segment usually has neighbors directly above
-                # and below it, so there's no clear "outside" edge to
-                # anchor a label to the way a standalone bar's single
-                # top edge gives one. The segment's own value (v), not
-                # its cumulative running position -- see Theme.show_
-                # data_labels's own docstring for the same "show the
-                # real value" reasoning Mark.BAR's labels already
-                # follow.
-                frame.text_requests.append(
-                    _TextRequest(
-                        band_x + band_width // 2,
-                        (rect.y + rect.height // 2) + Int(sc.font_size * 0.35),
-                        _format_fixed(v, _label_decimals(v)),
-                        theme.text_color,
-                        sc.font_size,
-                        TextAlign.CENTER,
-                        theme.font_family,
-                    )
-                )
-
-    if show_legend:
+    if theme.show_legend:
         _draw_series_legend(
             target,
             frame.text_requests,
@@ -237,85 +284,22 @@ def _render_horizontal_stacked_bar[
         return _empty_result(ox0, oy0, ox1, oy1)
 
     var n_series = len(plot._grouped_bar.series_names)
-
-    if plot._stacked_bar_percent:
-        for j in range(n_series):
-            for v in plot._grouped_bar.values[j]:
-                if v < 0.0:
-                    raise Error(
-                        "Plot.mark_stacked_bar(percent=True): every value must be >= 0 (a negative"
-                        " share has no meaning) -- got " + String(v)
-                    )
-
-    var x_scale: LinearScale
-    if plot._stacked_bar_percent:
-        x_scale = LinearScale(0.0, 100.0, 0.0, 1.0)
-    else:
-        var domain_data = List[Float64]()
-        for i in range(len(plot.x_categories)):
-            var pos_total = 0.0
-            var neg_total = 0.0
-            for j in range(n_series):
-                var v = plot._grouped_bar.values[j][i]
-                if v >= 0.0:
-                    pos_total += v
-                else:
-                    neg_total += v
-            domain_data.append(pos_total)
-            domain_data.append(neg_total)
-        x_scale = _zero_baseline_y_extent(domain_data)
+    _validate_stacked_bar_percent(plot, n_series)
+    var x_scale = _stacked_bar_domain(plot, n_series)
 
     var sc = _Scaled(theme)
-    var show_legend = theme.show_legend
     var legend_reserve = _series_legend_reserve(plot, sc)
-
     var frame = _draw_horizontal_categorical_axis_frame(
         target, plot.x_categories, x_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
     )
 
     var palette = default_categorical_palette()
+    _draw_stacked_segments(
+        target, plot, frame.y_scale, frame.x_scale, frame.px0, _Orientation(True), palette,
+        frame.text_requests,
+    )
 
-    var band_height = _round_to_int(frame.y_scale.bandwidth())
-    for i in range(len(plot.x_categories)):
-        var band_y = _round_to_int(frame.y_scale.band_start(i))
-        var scale_factor = 1.0
-        if plot._stacked_bar_percent:
-            var category_total = 0.0
-            for j in range(n_series):
-                category_total += plot._grouped_bar.values[j][i]
-            scale_factor = 100.0 / category_total if category_total > 0.0 else 0.0
-        var pos_running = 0.0
-        var neg_running = 0.0
-        for j in range(n_series):
-            var v = plot._grouped_bar.values[j][i] * scale_factor
-            var seg_low: Float64
-            var seg_high: Float64
-            if v >= 0.0:
-                seg_low = pos_running
-                seg_high = pos_running + v
-                pos_running = seg_high
-            else:
-                seg_high = neg_running
-                seg_low = neg_running + v
-                neg_running = seg_low
-            var low_px = _axis_pixel(frame.x_scale, seg_low)
-            var high_px = _axis_pixel(frame.x_scale, seg_high)
-            var rect = _pull_off_axis_line(low_px, high_px, frame.px0)
-            target.fill_rect(rect.y, band_y, rect.height, band_height, palette[j % len(palette)])
-            if theme.show_data_labels:
-                frame.text_requests.append(
-                    _TextRequest(
-                        rect.y + rect.height // 2,
-                        (band_y + band_height // 2) + Int(sc.font_size * 0.35),
-                        _format_fixed(v, _label_decimals(v)),
-                        theme.text_color,
-                        sc.font_size,
-                        TextAlign.CENTER,
-                        theme.font_family,
-                    )
-                )
-
-    if show_legend:
+    if theme.show_legend:
         _draw_series_legend(
             target,
             frame.text_requests,

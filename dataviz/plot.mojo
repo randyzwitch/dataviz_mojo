@@ -3699,6 +3699,176 @@ struct _BaselineRect(Movable):
         self.height = height
 
 
+struct _BandLabelPoint(Copyable, ImplicitlyCopyable, Movable):
+    """A label's baseline point, already resolved to real pixels --
+    `_Orientation.band_label_point`'s result, kept a named struct
+    rather than a positional pair for the same reason `MinMax` and
+    `Ticks` are (see scale.mojo)."""
+
+    var x: Int
+    var y: Int
+
+    def __init__(out self, x: Int, y: Int):
+        self.x = x
+        self.y = y
+
+
+struct _BandLabel(Copyable, ImplicitlyCopyable, Movable):
+    """A label placed just past a band rect's far end -- position plus
+    the `TextAlign` that goes with it, since which side the text hangs
+    off depends on the same sign the position does."""
+
+    var x: Int
+    var y: Int
+    var align: TextAlign
+
+    def __init__(out self, x: Int, y: Int, align: TextAlign):
+        self.x = x
+        self.y = y
+        self.align = align
+
+
+struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
+    """Which way a categorical mark's bands run, and the two places
+    that actually differ because of it.
+
+    Every categorical mark has a *band* axis (one slot per category,
+    an `OrdinalScale`) and a *value* axis (the continuous
+    `LinearScale` a value maps onto). Drawing one of these marks is the
+    same arithmetic either way -- the running totals of a stack, a
+    box's quartiles, a violin's silhouette -- right up to the two
+    moments where band and value have to become concrete x/y pixels:
+    emitting a rect, and placing a label. This holds those two moments,
+    so a mark's drawing loop can be written once instead of mirrored.
+
+    Deliberately *not* an attempt to make the axis frames themselves
+    bidirectional. `_draw_categorical_axis_frame` and
+    `_draw_horizontal_categorical_axis_frame` (gantt.mojo) stay two
+    functions -- which scale is which type, which axis reverses, which
+    margin grows dynamically are genuinely different there, and
+    threading a flag through every line of those would be the trade
+    this type exists to avoid making. The frames stay mirrored; what
+    they hand back is `band_scale`/`value_scale`, and from that point
+    on there is one code path.
+
+    `_CategoricalFrame` and `_HorizontalCategoricalFrame` name their
+    fields identically (`x_scale`/`y_scale`) with the types swapped, so
+    a caller unpacks its own frame into band/value and passes those --
+    no trait over the two frame types is needed.
+    """
+
+    var horizontal: Bool
+    """`False`: categories run left-to-right, values upward (the
+    default). `True`: categories run top-to-bottom, values rightward."""
+
+    def __init__(out self, horizontal: Bool):
+        """Construct an orientation.
+
+        Args:
+            horizontal: Whether categories run down the y-axis.
+        """
+        self.horizontal = horizontal
+
+    def fill_band_rect[
+        T: DrawTarget
+    ](self, mut target: T, extent: _BaselineRect, band_pos: Int, band_size: Int, color: Color):
+        """Fill one band's rect: `extent` spans the *value* axis (what
+        `_pull_off_axis_line` returns), `band_pos`/`band_size` the
+        band axis. The only place a mark's rect drawing cares which way
+        it is pointing."""
+        if self.horizontal:
+            target.fill_rect(extent.y, band_pos, extent.height, band_size, color)
+        else:
+            target.fill_rect(band_pos, extent.y, band_size, extent.height, color)
+
+    def value_line[
+        T: DrawTarget
+    ](self, mut target: T, along_a: Int, along_b: Int, across: Int, color: Color, width: Float64):
+        """A line running *along* the value axis at a fixed band
+        position -- a box's whisker, a lollipop's stem."""
+        if self.horizontal:
+            target.draw_line_aa(along_a, across, along_b, across, color, width=width)
+        else:
+            target.draw_line_aa(across, along_a, across, along_b, color, width=width)
+
+    def band_line[
+        T: DrawTarget
+    ](self, mut target: T, along: Int, across_a: Int, across_b: Int, color: Color, width: Float64):
+        """A line running *across* the band at a fixed value -- a box's
+        median line and whisker caps. The perpendicular of
+        `value_line`."""
+        if self.horizontal:
+            target.draw_line_aa(along, across_a, along, across_b, color, width=width)
+        else:
+            target.draw_line_aa(across_a, along, across_b, along, color, width=width)
+
+    def band_point[
+        T: DrawTarget
+    ](self, mut target: T, along: Int, across: Int, radius: Int, color: Color):
+        """A filled circle at (value, band) -- a box's outlier, a
+        beeswarm's point."""
+        if self.horizontal:
+            target.fill_circle_aa(along, across, radius, color)
+        else:
+            target.fill_circle_aa(across, along, radius, color)
+
+    def outside_band_label(
+        self,
+        extent: _BaselineRect,
+        band_pos: Int,
+        band_size: Int,
+        negative: Bool,
+        label_gap: Int,
+        font_size: Float64,
+    ) -> _BandLabel:
+        """Where a label just *past* the bar's far end goes -- `Mark.
+        BAR`/`GROUPED_BAR`'s placement, as opposed to `band_label_
+        point`'s centered-inside one.
+
+        `negative` flips which end it hangs off, so a bar extending
+        below (or left of) the baseline never has its label collide
+        with the bar itself.
+
+        The two orientations differ in more than a swap here, which is
+        why this is its method rather than a flag on the one above.
+        Vertically the text sits above the bar's top edge and needs a
+        whole `font_size` added when it moves below (a baseline is at
+        the bottom of the glyph, so the text has to be pushed down past
+        its own height); horizontally it hangs off the end and is
+        vertically centered on the band with the usual `font_size *
+        0.35` nudge, and it is the `TextAlign` that flips instead.
+        """
+        var across = band_pos + band_size // 2
+        if self.horizontal:
+            var x = extent.y - label_gap if negative else extent.y + extent.height + label_gap
+            var align = TextAlign.RIGHT if negative else TextAlign.LEFT
+            return _BandLabel(x, across + Int(font_size * 0.35), align)
+        var y = (
+            extent.y + extent.height + label_gap + Int(font_size)
+            if negative
+            else extent.y - label_gap
+        )
+        return _BandLabel(across, y, TextAlign.CENTER)
+
+
+    def band_label_point(
+        self, extent: _BaselineRect, band_pos: Int, band_size: Int, font_size: Float64
+    ) -> _BandLabelPoint:
+        """Where a label centered inside `extent` x `band_pos` goes.
+
+        `TextAlign` has no vertical option, so the returned `y` already
+        carries the usual `font_size * 0.35` baseline-centering nudge
+        (the same one treemap.mojo/sankey.mojo/stacked_bar.mojo place
+        by hand) -- callers pass the point straight to `_TextRequest`.
+        """
+        var along = extent.y + extent.height // 2
+        var across = band_pos + band_size // 2
+        var nudge = Int(font_size * 0.35)
+        if self.horizontal:
+            return _BandLabelPoint(along, across + nudge)
+        return _BandLabelPoint(across, along + nudge)
+
+
 def _pull_off_axis_line(edge_a: Int, edge_b: Int, axis_line_py: Int) -> _BaselineRect:
     """The `(y, height)` of a fill spanning `edge_a`..`edge_b` (order
     doesn't matter), with whichever edge sits exactly on `axis_line_py`
@@ -7770,7 +7940,10 @@ def _render_bar_combo_layers[
     var theme = plots[0]._theme
     var frame = _draw_categorical_axis_frame(target, bar_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
-    _draw_bar_rects(target, plots[bar_index], frame.x_scale, frame.y_scale, frame.py1, frame.text_requests)
+    _draw_bar_rects(
+        target, plots[bar_index], frame.x_scale, frame.y_scale, frame.py1, _Orientation(False),
+        frame.text_requests,
+    )
 
     for i in range(len(plots)):
         if i == bar_index:
