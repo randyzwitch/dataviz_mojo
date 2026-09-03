@@ -7,6 +7,7 @@ from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.plot import (
     Plot,
+    _Orientation,
     _RenderResult,
     _axis_pixel,
     _data_extent,
@@ -67,6 +68,90 @@ def _kde_density(values: List[Float64], bandwidth: Float64, y: Float64) -> Float
     return sum_density / (Float64(n) * bandwidth)
 
 
+def _draw_violin_silhouettes[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    band_scale: OrdinalScale,
+    value_scale: LinearScale,
+    orient: _Orientation,
+) raises:
+    """Every category's KDE silhouette, written once for both
+    orientations -- `_Orientation.path_move_to`/`path_line_to` carry
+    the only difference (which of the pair is x and which is y).
+
+    Each silhouette is one closed `Path`: `_KDE_SAMPLES` points up one
+    side at `center + density * scale`, then the same samples back down
+    the other at `center - density * scale`, so it is symmetric about
+    the band's center by construction.
+
+    Each violin is scaled *independently* -- its own peak density maps
+    to `mark_violin(width_fraction=...)` of its band, matching ggplot2's
+    default `scale = "width"` (every violin the same maximum width
+    regardless of sample count) rather than `scale = "area"`.
+    `scale_by_count=True` multiplies that maximum by
+    `sqrt(n_i / max(n))` instead, so a category built from fewer points
+    draws visibly narrower.
+
+    An all-identical category (`span == 0`) samples the same value
+    `_KDE_SAMPLES` times, and a zero `max_density` collapses `scale` to
+    `0.0` -- a degenerate silhouette with no width rather than a NaN.
+    """
+    var theme = plot._theme
+    var max_n = 0
+    for series in plot._distribution.values:
+        if len(series) > max_n:
+            max_n = len(series)
+    var half_extent = band_scale.bandwidth() * plot._mark_style.violin_width_fraction
+
+    for i in range(len(plot.x_categories)):
+        var values = plot._distribution.values[i].copy()
+        var center = band_scale.center(i)
+        var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
+            plot._distribution.kde_scale_by_count and max_n > 0
+        ) else 1.0
+        var bandwidth = (
+            plot._distribution.kde_bandwidth_override
+            if plot._distribution.kde_bandwidth_override > 0.0
+            else _kde_bandwidth(values)
+        )
+        var mm = _min_max(values)
+
+        var densities = List[Float64](capacity=_KDE_SAMPLES)
+        var sample_values = List[Float64](capacity=_KDE_SAMPLES)
+        var max_density = 0.0
+        var span = mm.max - mm.min
+        for s in range(_KDE_SAMPLES):
+            var v = mm.min if span == 0.0 else mm.min + span * Float64(s) / Float64(_KDE_SAMPLES - 1)
+            var d = _kde_density(values, bandwidth, v)
+            sample_values.append(v)
+            densities.append(d)
+            max_density = max(max_density, d)
+
+        var path = Path()
+        var scale = (half_extent * count_factor) / max_density if max_density > 0.0 else 0.0
+        orient.path_move_to(
+            path,
+            Float64(_axis_pixel(value_scale, sample_values[0])),
+            center + densities[0] * scale,
+        )
+        for s in range(1, _KDE_SAMPLES):
+            orient.path_line_to(
+                path,
+                Float64(_axis_pixel(value_scale, sample_values[s])),
+                center + densities[s] * scale,
+            )
+        for s in range(_KDE_SAMPLES - 1, -1, -1):
+            orient.path_line_to(
+                path,
+                Float64(_axis_pixel(value_scale, sample_values[s])),
+                center - densities[s] * scale,
+            )
+        path.close()
+        target.fill_path_aa(path, theme.mark_color)
+
+
 def _render_violin[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
@@ -117,53 +202,14 @@ def _render_violin[
         )
 
     var all_values = List[Float64]()
-    var max_n = 0
     for series in plot._distribution.values:
-        if len(series) > max_n:
-            max_n = len(series)
         for v in series:
             all_values.append(v)
-    var y_scale = _data_extent(all_values)
+    var value_scale = _data_extent(all_values)
 
-    var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
+    var frame = _draw_categorical_axis_frame(target, plot.x_categories, value_scale, theme, ox0, oy0, ox1, oy1)
 
-    var half_width = frame.x_scale.bandwidth() * plot._mark_style.violin_width_fraction
-
-    for i in range(len(plot.x_categories)):
-        var values = plot._distribution.values[i].copy()
-        var center_x = frame.x_scale.center(i)
-        var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
-            plot._distribution.kde_scale_by_count and max_n > 0
-        ) else 1.0
-        var bandwidth = plot._distribution.kde_bandwidth_override if plot._distribution.kde_bandwidth_override > 0.0 else _kde_bandwidth(
-            values
-        )
-        var mm = _min_max(values)
-
-        var densities = List[Float64](capacity=_KDE_SAMPLES)
-        var y_values = List[Float64](capacity=_KDE_SAMPLES)
-        var max_density = 0.0
-        var span = mm.max - mm.min
-        for s in range(_KDE_SAMPLES):
-            var y_value = mm.min if span == 0.0 else mm.min + span * Float64(s) / Float64(_KDE_SAMPLES - 1)
-            var d = _kde_density(values, bandwidth, y_value)
-            y_values.append(y_value)
-            densities.append(d)
-            max_density = max(max_density, d)
-
-        var path = Path()
-        var scale = (half_width * count_factor) / max_density if max_density > 0.0 else 0.0
-        path.move_to(center_x + densities[0] * scale, Float64(_axis_pixel(frame.y_scale, y_values[0])))
-        for s in range(1, _KDE_SAMPLES):
-            path.line_to(
-                center_x + densities[s] * scale, Float64(_axis_pixel(frame.y_scale, y_values[s]))
-            )
-        for s in range(_KDE_SAMPLES - 1, -1, -1):
-            path.line_to(
-                center_x - densities[s] * scale, Float64(_axis_pixel(frame.y_scale, y_values[s]))
-            )
-        path.close()
-        target.fill_path_aa(path, theme.mark_color)
+    _draw_violin_silhouettes(target, plot, frame.x_scale, frame.y_scale, _Orientation(False))
 
     return frame.result()
 
@@ -200,55 +246,16 @@ def _render_horizontal_violin[
         )
 
     var all_values = List[Float64]()
-    var max_n = 0
     for series in plot._distribution.values:
-        if len(series) > max_n:
-            max_n = len(series)
         for v in series:
             all_values.append(v)
-    var x_scale = _data_extent(all_values)
+    var value_scale = _data_extent(all_values)
 
     var frame = _draw_horizontal_categorical_axis_frame(
-        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
+        target, plot.x_categories, value_scale, theme, ox0, oy0, ox1, oy1
     )
 
-    var half_height = frame.y_scale.bandwidth() * plot._mark_style.violin_width_fraction
-
-    for i in range(len(plot.x_categories)):
-        var values = plot._distribution.values[i].copy()
-        var center_y = frame.y_scale.center(i)
-        var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
-            plot._distribution.kde_scale_by_count and max_n > 0
-        ) else 1.0
-        var bandwidth = plot._distribution.kde_bandwidth_override if plot._distribution.kde_bandwidth_override > 0.0 else _kde_bandwidth(
-            values
-        )
-        var mm = _min_max(values)
-
-        var densities = List[Float64](capacity=_KDE_SAMPLES)
-        var x_values = List[Float64](capacity=_KDE_SAMPLES)
-        var max_density = 0.0
-        var span = mm.max - mm.min
-        for s in range(_KDE_SAMPLES):
-            var x_value = mm.min if span == 0.0 else mm.min + span * Float64(s) / Float64(_KDE_SAMPLES - 1)
-            var d = _kde_density(values, bandwidth, x_value)
-            x_values.append(x_value)
-            densities.append(d)
-            max_density = max(max_density, d)
-
-        var path = Path()
-        var scale = (half_height * count_factor) / max_density if max_density > 0.0 else 0.0
-        path.move_to(Float64(_axis_pixel(frame.x_scale, x_values[0])), center_y + densities[0] * scale)
-        for s in range(1, _KDE_SAMPLES):
-            path.line_to(
-                Float64(_axis_pixel(frame.x_scale, x_values[s])), center_y + densities[s] * scale
-            )
-        for s in range(_KDE_SAMPLES - 1, -1, -1):
-            path.line_to(
-                Float64(_axis_pixel(frame.x_scale, x_values[s])), center_y - densities[s] * scale
-            )
-        path.close()
-        target.fill_path_aa(path, theme.mark_color)
+    _draw_violin_silhouettes(target, plot, frame.y_scale, frame.x_scale, _Orientation(True))
 
     return frame.result()
 

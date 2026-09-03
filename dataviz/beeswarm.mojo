@@ -5,6 +5,7 @@ from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.plot import (
     Plot,
+    _Orientation,
     _RenderResult,
     _Scaled,
     _axis_pixel,
@@ -77,6 +78,52 @@ def _beeswarm_offsets(y_pixels: List[Int], spacing: Int) -> List[Int]:
     return offset^
 
 
+def _distribution_domain(plot: Plot) raises -> LinearScale:
+    """The value-axis domain over every value across every category --
+    orientation-independent, and the same choice `Mark.BOX` makes for
+    this data shape."""
+    var all_values = List[Float64]()
+    for series in plot._distribution.values:
+        for v in series:
+            all_values.append(v)
+    return _data_extent(all_values)
+
+
+def _draw_beeswarm_points[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    band_scale: OrdinalScale,
+    value_scale: LinearScale,
+    orient: _Orientation,
+    radius: Int,
+) raises:
+    """Every category's points, spread sideways within its band so
+    overlapping values stay individually visible -- written once for
+    both orientations, with `_Orientation.band_point` carrying the only
+    difference.
+
+    `_beeswarm_offsets` itself is orientation-agnostic already: it
+    takes pixel positions along the *value* axis and returns offsets
+    along the *band* axis, which is true whichever way those map onto
+    x/y. Spacing is one point diameter, so neighbours in the same row
+    just touch.
+    """
+    var theme = plot._theme
+    var spacing = 2 * radius
+    for i in range(len(plot.x_categories)):
+        var center = _round_to_int(band_scale.center(i))
+        var value_pixels = List[Int]()
+        for v in plot._distribution.values[i]:
+            value_pixels.append(_axis_pixel(value_scale, v))
+        var offsets = _beeswarm_offsets(value_pixels, spacing)
+        for j in range(len(value_pixels)):
+            orient.band_point(
+                target, value_pixels[j], center + offsets[j], radius, theme.mark_color
+            )
+
+
 def _render_beeswarm[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
@@ -97,26 +144,14 @@ def _render_beeswarm[
     if len(plot.x_categories) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    var all_values = List[Float64]()
-    for series in plot._distribution.values:
-        for v in series:
-            all_values.append(v)
-    var y_scale = _data_extent(all_values)
+    var value_scale = _distribution_domain(plot)
 
-    var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
+    var frame = _draw_categorical_axis_frame(target, plot.x_categories, value_scale, theme, ox0, oy0, ox1, oy1)
 
     var sc = _Scaled(theme)
-    var radius = _round_to_int(sc.point_radius)
-    var spacing = 2 * radius
-
-    for i in range(len(plot.x_categories)):
-        var center_x = _round_to_int(frame.x_scale.center(i))
-        var y_pixels = List[Int]()
-        for v in plot._distribution.values[i]:
-            y_pixels.append(_axis_pixel(frame.y_scale, v))
-        var offsets = _beeswarm_offsets(y_pixels, spacing)
-        for j in range(len(y_pixels)):
-            target.fill_circle_aa(center_x + offsets[j], y_pixels[j], radius, theme.mark_color)
+    _draw_beeswarm_points(
+        target, plot, frame.x_scale, frame.y_scale, _Orientation(False), _round_to_int(sc.point_radius)
+    )
 
     return frame.result()
 
@@ -144,28 +179,16 @@ def _render_horizontal_beeswarm[
     if len(plot.x_categories) == 0:
         return _empty_result(ox0, oy0, ox1, oy1)
 
-    var all_values = List[Float64]()
-    for series in plot._distribution.values:
-        for v in series:
-            all_values.append(v)
-    var x_scale = _data_extent(all_values)
+    var value_scale = _distribution_domain(plot)
 
     var frame = _draw_horizontal_categorical_axis_frame(
-        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
+        target, plot.x_categories, value_scale, theme, ox0, oy0, ox1, oy1
     )
 
     var sc = _Scaled(theme)
-    var radius = _round_to_int(sc.point_radius)
-    var spacing = 2 * radius
-
-    for i in range(len(plot.x_categories)):
-        var center_y = _round_to_int(frame.y_scale.center(i))
-        var x_pixels = List[Int]()
-        for v in plot._distribution.values[i]:
-            x_pixels.append(_axis_pixel(frame.x_scale, v))
-        var offsets = _beeswarm_offsets(x_pixels, spacing)
-        for j in range(len(x_pixels)):
-            target.fill_circle_aa(x_pixels[j], center_y + offsets[j], radius, theme.mark_color)
+    _draw_beeswarm_points(
+        target, plot, frame.y_scale, frame.x_scale, _Orientation(True), _round_to_int(sc.point_radius)
+    )
 
     return frame.result()
 

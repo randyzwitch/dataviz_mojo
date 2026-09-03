@@ -6,6 +6,7 @@ from dataviz.array_like import _materialize_scalar_list
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.plot import (
     Plot,
+    _Orientation,
     _RenderResult,
     _draw_categorical_axis_frame,
     _empty_result,
@@ -14,6 +15,53 @@ from dataviz.plot import (
     _validate_categorical_encoding,
 )
 from dataviz.theme import Theme
+
+
+def _draw_lollipop_stems[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    band_scale: OrdinalScale,
+    value_scale: LinearScale,
+    baseline_edge: Int,
+    orient: _Orientation,
+    line_width: Float64,
+    radius: Int,
+) raises:
+    """Every category's stem and head, written once for both
+    orientations -- `_Orientation` carries the three places band and
+    value become concrete pixels (the stem's path, the head's circle,
+    and which way to nudge off the axis line).
+
+    The stem is pulled 1px clear of the categorical axis line so it
+    doesn't paint over the row that line's own antialiasing occupies --
+    but only when the baseline actually sits *on* that line, which is
+    exactly when every value is non-negative (the one case
+    `_zero_baseline_y_extent`'s domain puts 0 at the drawn edge). A
+    zero-value stem is left alone either way, so it doesn't grow a real
+    stem out of nothing. `_Orientation.baseline_pull` supplies the
+    direction, since "off the axis line" is upward vertically and
+    rightward horizontally.
+    """
+    var theme = plot._theme
+    var baseline = value_scale.to_pixel(0.0)
+    var baseline_on_axis_line = _round_to_int(baseline) == baseline_edge
+
+    for i in range(len(plot.x_categories)):
+        var center = band_scale.center(i)
+        var value = value_scale.to_pixel(plot.y_data[i])
+        var stem_from = (
+            baseline + orient.baseline_pull()
+            if (baseline_on_axis_line and value != baseline)
+            else baseline
+        )
+        target.stroke_path_aa(
+            orient.value_stem_path(stem_from, value, center), theme.mark_color, width=line_width
+        )
+        orient.band_point(
+            target, _round_to_int(value), _round_to_int(center), radius, theme.mark_color
+        )
 
 
 def _render_lollipop[
@@ -44,30 +92,10 @@ def _render_lollipop[
     var y_scale = _zero_baseline_y_extent(plot.y_data)
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
-    var baseline_py = frame.y_scale.to_pixel(0.0)
-    # True only when every value here is non-negative (the only case
-    # _zero_baseline_y_extent's domain puts 0 exactly at the drawn
-    # bottom axis line) -- see _pull_off_axis_line's docstring
-    # (plot.mojo) for the same reasoning, applied to a stroked stem
-    # here instead of a filled rect.
-    var baseline_on_axis_line = _round_to_int(baseline_py) == frame.py1
-    for i in range(len(plot.x_categories)):
-        var center = frame.x_scale.center(i)
-        var value_py = frame.y_scale.to_pixel(plot.y_data[i])
-        # Pulled 1px off the axis line so a nonzero stem doesn't paint
-        # over the row the line's own antialiasing occupies -- left
-        # alone for a zero-value stem (value_py == baseline_py) so it
-        # doesn't grow a real stem out of nothing.
-        var stem_start_py = baseline_py - 1.0 if (baseline_on_axis_line and value_py != baseline_py) else baseline_py
-
-        var stem = Path()
-        stem.move_to(center, stem_start_py)
-        stem.line_to(center, value_py)
-        target.stroke_path_aa(stem, theme.mark_color, width=frame.sc.line_width)
-
-        target.fill_circle_aa(
-            _round_to_int(center), _round_to_int(value_py), _round_to_int(frame.sc.point_radius), theme.mark_color
-        )
+    _draw_lollipop_stems(
+        target, plot, frame.x_scale, frame.y_scale, frame.py1, _Orientation(False),
+        frame.sc.line_width, _round_to_int(frame.sc.point_radius),
+    )
 
     return frame.result()
 
@@ -101,30 +129,10 @@ def _render_horizontal_lollipop[
         target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
     )
 
-    var baseline_px = frame.x_scale.to_pixel(0.0)
-    # True only when every value here is non-negative (the only case
-    # _zero_baseline_y_extent's domain puts 0 exactly at the drawn
-    # left axis line) -- the horizontal mirror of _render_lollipop's
-    # own "baseline on the bottom axis line" check.
-    var baseline_on_axis_line = _round_to_int(baseline_px) == frame.px0
-    for i in range(len(plot.x_categories)):
-        var center = frame.y_scale.center(i)
-        var value_px = frame.x_scale.to_pixel(plot.y_data[i])
-        # Pulled 1px off the axis line, the same reasoning as
-        # _render_lollipop's own vertical stem, rotated: don't paint
-        # over the row the vertical axis line's own antialiasing
-        # occupies; left alone for a zero-value stem so it doesn't
-        # grow a real stem out of nothing.
-        var stem_start_px = baseline_px + 1.0 if (baseline_on_axis_line and value_px != baseline_px) else baseline_px
-
-        var stem = Path()
-        stem.move_to(stem_start_px, center)
-        stem.line_to(value_px, center)
-        target.stroke_path_aa(stem, theme.mark_color, width=frame.sc.line_width)
-
-        target.fill_circle_aa(
-            _round_to_int(value_px), _round_to_int(center), _round_to_int(frame.sc.point_radius), theme.mark_color
-        )
+    _draw_lollipop_stems(
+        target, plot, frame.y_scale, frame.x_scale, frame.px0, _Orientation(True),
+        frame.sc.line_width, _round_to_int(frame.sc.point_radius),
+    )
 
     return frame.result()
 
