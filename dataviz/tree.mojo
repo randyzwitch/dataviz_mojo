@@ -21,24 +21,13 @@ from dataviz.theme import Theme
 
 
 def _assign_leaf_positions(node: Int, idx: _HierarchyIndex, mut x: List[Float64], next_leaf: Int) -> Int:
-    """A deliberately simplified tree layout -- not a real Reingold-
-    Tilford algorithm (which additionally shifts whole subtrees
-    sideways to avoid sibling overlap when subtrees have uneven
-    shapes).
-
-    Every leaf gets the next sequential integer x-slot, left to right
-    in `idx.children`'s given sibling order (`next_leaf`, threaded
-    through the recursion's return value rather than a shared
-    mutable counter -- this package's established way of avoiding
-    Mojo's lack of closures over an outer `var`, the same shape
-    `_build_hierarchy_index`'s iterative BFS uses a plain counter
-    for, just recursive here since depth-first sibling order is what
-    matters, not breadth-first). Every internal node's x-slot is
-    the plain average of its children's, which can overlap two
-    unrelated subtrees' leaves when their shapes are lopsided --
-    a real, visible limitation for an unbalanced tree, accepted here
-    (revisit with a real Reingold-Tilford pass if a concrete case
-    needs it).
+    """A simplified tree layout, not Reingold-Tilford (which also shifts
+    whole subtrees sideways to avoid overlap between unevenly shaped
+    siblings). Every leaf gets the next sequential integer x-slot, left
+    to right in `idx.children`'s sibling order; `next_leaf` is threaded
+    through the return value rather than a shared mutable counter. Every
+    internal node's x-slot is the average of its children's, which can
+    overlap two unrelated subtrees' leaves in a lopsided tree.
     """
     if len(idx.children[node]) == 0:
         x[node] = Float64(next_leaf)
@@ -53,27 +42,18 @@ def _assign_leaf_positions(node: Int, idx: _HierarchyIndex, mut x: List[Float64]
 
 
 def _assign_branch_colors(node: Int, branch: Int, idx: _HierarchyIndex, mut out: List[Int]):
-    """Every node in `node`'s subtree gets the same `branch` index
-    (the root's direct children are numbered 0, 1, 2, ... by
-    `_render_tree`; everything under one of them shares its number) -- the same "one color per top-level branch, shared by
-    every descendant" convention `Mark.SUNBURST`'s recursive
-    `color` parameter uses, for the same reason: a glance shows which
-    top-level branch a deeply nested node belongs to. A plain `List[Int]` computed once up front here
-    instead of threaded through the draw recursion the way `Mark.
-    SUNBURST` does it -- `Mark.TREE` draws edges and node markers as
-    two separate passes (see `_render_tree`'s docstring for why),
-    so there's no single recursive draw call to thread a parameter
-    through in the first place.
+    """Every node in `node`'s subtree gets the same `branch` index (the
+    root's direct children are numbered 0, 1, 2, ... by `_render_tree`),
+    the same one-color-per-top-level-branch convention `Mark.SUNBURST`
+    uses. Computed once into a `List[Int]` rather than threaded through a
+    draw recursion, because `Mark.TREE` draws edges and markers in two
+    separate passes.
 
-    Walks an explicit worklist rather than recursing. Order doesn't
-    matter -- every node in the subtree gets the same `branch` -- so
-    this is exactly equivalent, it can't exhaust the stack on a deep
-    tree, and it doesn't trip the compiler's "self recursive call will
-    cause an infinite loop" false positive, which was the only warning
-    this package emitted. Termination is guaranteed upstream:
-    `_hierarchy_index` (hierarchy.mojo) already rejects a cycle or a
-    disconnected component by checking that its own traversal reaches
-    every row.
+    Walks an explicit worklist rather than recursing: order doesn't
+    matter, it can't exhaust the stack on a deep tree, and it avoids the
+    compiler's "self recursive call will cause an infinite loop" false
+    positive. Termination is guaranteed by `_build_hierarchy_index`
+    (hierarchy.mojo), which rejects cycles and disconnected components.
     """
     var pending = List[Int]()
     pending.append(node)
@@ -85,21 +65,20 @@ def _assign_branch_colors(node: Int, branch: Int, idx: _HierarchyIndex, mut out:
 
 
 def _tree_node_x(leaf_x: Float64, num_leaves: Int, plot_x0: Int, plot_x1: Int) -> Float64:
-    """A node's pixel x from its `_assign_leaf_positions`-derived
-    `leaf_x` slot -- slot `0` pins to `plot_x0`, slot `num_leaves - 1`
-    to `plot_x1`, everything else linearly between (an internal node's fractional slot, the average of its children's, lands
-    proportionally between them too). A single-leaf tree (`num_leaves
-    <= 1`) has no span to divide by, so it just centers."""
+    """A node's pixel x from its `_assign_leaf_positions` slot: slot `0` at
+    `plot_x0`, slot `num_leaves - 1` at `plot_x1`, linear between (an
+    internal node's fractional slot lands proportionally). A single-leaf
+    tree centers.
+    """
     if num_leaves <= 1:
         return Float64(plot_x0 + plot_x1) / 2.0
     return Float64(plot_x0) + (leaf_x / Float64(num_leaves - 1)) * Float64(plot_x1 - plot_x0)
 
 
 def _tree_node_y(depth: Int, max_depth: Int, plot_y0: Int, plot_y1: Int) -> Float64:
-    """A node's pixel y from its `depth` -- depth 0 (the root)
-    pins to `plot_y0`, `max_depth` to `plot_y1`. A single-node tree
-    (`max_depth <= 0`) has no span to divide by, so it just pins to
-    the top."""
+    """A node's pixel y from its `depth`: depth 0 at `plot_y0`, `max_depth`
+    at `plot_y1`. A single-node tree pins to the top.
+    """
     if max_depth <= 0:
         return Float64(plot_y0)
     return Float64(plot_y0) + (Float64(depth) / Float64(max_depth)) * Float64(plot_y1 - plot_y0)
@@ -108,28 +87,20 @@ def _tree_node_y(depth: Int, max_depth: Int, plot_y0: Int, plot_y1: Int) -> Floa
 def _render_tree[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.TREE` plot: `_build_hierarchy_index`'s `children`/`depth` (hierarchy.mojo), laid out top-to-bottom (root
-    at the top, `depth` picks each node's row) with `_assign_leaf_
-    positions`'s simplified horizontal placement -- a classic
-    node-link tree diagram, not `Mark.SUNBURST`'s radial one.
+    """Render a `Mark.TREE` plot: `_build_hierarchy_index`'s `children`/
+    `depth` (hierarchy.mojo) laid out top-to-bottom (root at the top,
+    `depth` picks each node's row) with `_assign_leaf_positions`'s
+    horizontal placement, as a node-link diagram.
 
-    Two separate passes, not one recursive draw the way `Mark.
-    SUNBURST` does it: every edge (a straight line from each non-root
-    node to its parent) first, then every node marker (a filled
-    circle) plus its label on top -- so a marker is never drawn
-    underneath the edge leading into the *next* level down, which a
-    single top-down recursive pass drawing "this node, then its edges to children" would risk depending on visit order. Edge/
-    marker color follows `_assign_branch_colors`'s per-top-level-
-    branch assignment, the same "one color per top-level branch"
-    convention `Mark.SUNBURST` uses -- the root itself
-    stays `Theme.text_color` (it belongs to every branch equally, so
-    none of them).
+    Two passes rather than one recursive draw: every edge (a straight line
+    from each non-root node to its parent) first, then every node marker
+    (a filled circle) plus its label, so no marker is drawn under an edge.
+    Edge and marker color follow `_assign_branch_colors`'s
+    per-top-level-branch assignment; the root stays `Theme.text_color`.
 
-    Every value must be non-negative -- checked for consistency with
-    every other `encode_hierarchy()`-based mark even though `Mark.TREE`
-    itself never actually reads `values` (a tree's layout depends
-    only on its shape, not any node's magnitude) -- see `Mark.
-    TREEMAP`'s docstring for the one hierarchy mark that does.
+    Every value must be non-negative, for consistency with the other
+    `encode_hierarchy()` marks, even though the tree layout never reads
+    `values`.
     """
     if (
         len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids)
@@ -234,9 +205,11 @@ def tree(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A tree diagram -- `Mark.TREE`, a hierarchy (`Plot.encode_
-    hierarchy()`'s flattened `ids`/`parent_ids`/`values`) drawn as
-    a top-to-bottom node-link diagram. See `_render_tree`'s docstring for the full reasoning.
+    """A tree diagram.
+
+    `Mark.TREE`: a hierarchy (`Plot.encode_hierarchy()`'s flattened
+    `ids`/`parent_ids`/`values`) drawn as a top-to-bottom node-link
+    diagram. See `_render_tree`.
 
     Args:
         ids: Every node's unique id, flattened (not nested), one
@@ -294,9 +267,9 @@ def tree[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`tree()`, generalized over numeric element type -- see
-    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
-    full reasoning. Delegates to the concrete `tree()` above.
+    """`tree()` generalized over numeric element type; see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
+    above.
     """
     return tree(
         ids, parent_ids, _materialize_scalar_list(values), theme=theme, width=width, height=height,

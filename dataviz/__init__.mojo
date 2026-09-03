@@ -1,26 +1,16 @@
-"""This package's public surface: everything a caller is meant to
-import, re-exported here so `from dataviz import bar, Plot, Theme`
-works without anyone needing to know which file inside the package a
-given name actually lives in.
+"""The package's public surface. Everything a caller imports is
+re-exported here so `from dataviz import bar, Plot, Theme` works
+without knowing which file a name lives in.
 
-That indirection matters most for the one-call convenience functions
-(`bar`, `scatter`, `pie`, ...): each one lives in its mark's file,
-next to that mark's rendering code (see plot.mojo's module
-docstring, its "one-call convenience functions" section, for the rule
-and why), so their real module paths -- `dataviz.bar.bar`,
-`dataviz.arc.pie` -- are an internal layout detail that would be
-noisy and surprising to import directly. Import them from the package,
-not from the file.
+The one-call convenience functions (`bar`, `scatter`, `pie`, ...) each
+live in their mark's file next to its rendering code (see plot.mojo's
+module docstring), so their real module paths (`dataviz.bar.bar`,
+`dataviz.arc.pie`) are an internal layout detail. Import them from the
+package.
 
-Every name below is listed explicitly -- a deliberate, considered
-addition to this package's public surface -- with one exception:
-`colors.mojo`'s ~148 CSS-named `Color` constants (`from dataviz.
-colors import *`, the one wildcard import in this file). Those aren't
-individually-designed features to enumerate one by one, just a single
-fixed, already-standard vocabulary (see that file's docstring) --
-listing `RED`, `BLUE`, `CORNFLOWERBLUE`, ... by hand here would be
-pure noise a spec already settled, not documentation of a real choice
-made in this package.
+Every name is listed explicitly except `colors.mojo`'s ~148 CSS-named
+`Color` constants, which come in through the one wildcard import: they
+are a fixed standard vocabulary, not individually chosen additions.
 """
 
 from dataviz.array_like import Float64Sequence, StringSequence
@@ -48,9 +38,7 @@ from dataviz.plot import (
     scatter,
 )
 
-# The remaining one-call convenience functions, each from its mark's
-# file -- see this module's docstring for why these are re-exported
-# rather than imported from there directly.
+# The remaining one-call convenience functions, each from its mark's file.
 from dataviz.arc import pie
 from dataviz.bar import bar
 from dataviz.beeswarm import beeswarm

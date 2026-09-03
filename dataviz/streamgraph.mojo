@@ -23,16 +23,12 @@ from dataviz.theme import Theme
 
 
 def _symmetric_zero_baseline_y_extent(values: List[List[Float64]], n_categories: Int) raises -> LinearScale:
-    """The y-domain for `Mark.STREAMGRAPH`: symmetric around 0, wide
-    enough for the *tallest* category's full stack -- `max_total`,
-    the largest per-category sum across every series (`_render_
-    streamgraph`'s per-category baseline is `-total_i / 2`, so a
-    shorter category's band just doesn't use the full vertical
-    span, the "wavy river narrowing" look a streamgraph is for). The
-    same forced-symmetric domain `Mark.POPULATION_PYRAMID`'s
-    `_symmetric_zero_baseline_x_extent` uses, just for a stacked total
-    instead of two independent magnitudes -- both exist so unrelated
-    rows/categories still read on one shared, honest scale.
+    """The y-domain for `Mark.STREAMGRAPH`: symmetric around 0, wide enough
+    for the tallest category's full stack (`max_total`, the largest
+    per-category sum across every series). `_render_streamgraph`'s
+    per-category baseline is `-total_i / 2`, so shorter categories don't
+    use the full vertical span. Same forced-symmetric idea as
+    `Mark.POPULATION_PYRAMID`'s `_symmetric_zero_baseline_x_extent`.
     """
     var max_total = 0.0
     for i in range(n_categories):
@@ -46,12 +42,13 @@ def _symmetric_zero_baseline_y_extent(values: List[List[Float64]], n_categories:
 
 
 def _append_smoothed_edge(mut path: Path, px: List[Float64], py: List[Float64], smoothing: Float64) raises:
-    """Appends `line_to`/`cubic_curve_to` for `px[0]->...->px[n-1]`
-    onto `path`, continuing from its current point (no `move_to`) --
-    same Catmull-Rom math as `_build_line_path` (plot.mojo), kept as
-    its own copy here since a streamgraph band needs to run this twice
-    on one continuous `Path` (top edge, then bottom edge), and `_build_
-    line_path` always starts a fresh subpath."""
+    """Append `line_to`/`cubic_curve_to` segments for `px[0]->...->px[n-1]`
+    onto `path`, continuing from its current point (no `move_to`). Same
+    Catmull-Rom math as `_build_line_path` (plot.mojo), duplicated because
+    a streamgraph band runs it twice on one continuous `Path` (top edge,
+    then bottom edge) and `_build_line_path` always starts a fresh
+    subpath.
+    """
     if len(px) <= 1:
         return
     if smoothing <= 0.0:
@@ -73,29 +70,20 @@ def _append_smoothed_edge(mut path: Path, px: List[Float64], py: List[Float64], 
 def _render_streamgraph[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.STREAMGRAPH` plot: `encode_grouped_bar()`'s data (categories, one name and one value per series) stacked the
-    same running-total way `Mark.STACKED_BAR` already does, but two
-    things differ. First, each category's stack starts from `-total_
-    i / 2` (`_symmetric_zero_baseline_y_extent`'s per-category
-    baseline), not a shared zero, so the whole stack floats centered
-    around zero instead of sitting on a fixed baseline -- the
-    "silhouette" look. Second, each series is drawn as one *flowing
-    band* connecting every category's top/bottom edge in turn, filled
-    via `DrawTarget.fill_path_aa` -- not `Mark.STACKED_BAR`'s
-    one-rect-per-category-per-series.
+    """Render a `Mark.STREAMGRAPH` plot: `encode_grouped_bar()`'s data
+    stacked the same running-total way as `Mark.STACKED_BAR`, with two
+    differences. Each category's stack starts from `-total_i / 2` rather
+    than a shared zero, so the whole stack floats centered around zero.
+    And each series is drawn as one flowing band connecting every
+    category's top/bottom edge in turn, filled via `fill_path_aa`, rather
+    than one rect per category.
 
     `Theme.line_smoothing` curves both the top and bottom edges
-    (`_append_smoothed_edge` above; `0.0` stays plain straight
-    segments). The two "cap" edges connecting them at the first/last
-    category always stay straight -- they're not real data.
+    (`_append_smoothed_edge`; `0.0` gives straight segments). The two cap
+    edges at the first/last category always stay straight.
 
-    Every value must be non-negative -- the same reason `Mark.ARC`/
-    `FUNNEL` require it: a negative flow has no meaning as a stacked
-    band's height.
-
-    Reuses `_draw_categorical_axis_frame` (the vertical-categorical-x/
-    continuous-y core `Mark.BAR`/`GROUPED_BAR`/`STACKED_BAR` already
-    share) unchanged, just fed `_symmetric_zero_baseline_y_extent`'s domain instead of `_zero_baseline_y_extent`'s fixed-at-zero one.
+    Every value must be non-negative. Reuses `_draw_categorical_axis_frame`
+    fed `_symmetric_zero_baseline_y_extent`'s domain.
     """
     _validate_grouped_bar_series(plot)
 
@@ -123,10 +111,8 @@ def _render_streamgraph[
         target, plot.x_categories, y_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
     )
 
-    # running[i]: each category's stack cursor, starting at its centered baseline (-total_i / 2) and advancing upward series by
-    # series -- the same running-total bookkeeping style Mark.WATERFALL/
-    # STACKED_BAR already use, just per-category here instead of a
-    # single shared one.
+    # running[i]: each category's stack cursor, starting at its centered
+    # baseline (-total_i / 2) and advancing upward series by series.
     var running = List[Float64]()
     for i in range(n_categories):
         var total = 0.0
@@ -143,10 +129,9 @@ def _render_streamgraph[
             running[i] += plot._grouped_bar.values[j][i]
             top.append(running[i])
 
-        # Top edge in category order, bottom edge in *reverse*
-        # category order -- see this function's own docstring for why
-        # tracing bottom in reverse still produces the geometrically
-        # correct smoothed curve.
+        # Top edge in category order, then bottom edge in reverse, so the path
+        # traces one closed outline (Catmull-Rom is symmetric, so the reversed
+        # bottom edge smooths identically).
         var top_px = List[Float64](capacity=n_categories)
         var top_py = List[Float64](capacity=n_categories)
         for i in range(n_categories):
@@ -187,10 +172,11 @@ def streamgraph(
     subtitle: String = "",
     x_title: String = "",
 ) raises -> Plot:
-    """A streamgraph -- `Mark.STREAMGRAPH`, `Mark.STACKED_BAR`'s running-total stack, floated centered around zero instead of
-    sitting on a fixed baseline, and drawn as flowing bands instead of
-    discrete rects. Same data shape `grouped_bar()`/`stacked_bar()`/
-    `bump()` all take.
+    """A streamgraph.
+
+    `Mark.STREAMGRAPH`: `Mark.STACKED_BAR`'s running-total stack, floated
+    centered around zero and drawn as flowing bands instead of discrete
+    rects. Same data shape `grouped_bar()`/`stacked_bar()`/`bump()` take.
 
     Args:
         categories: One position along the x-axis per entry, in the
@@ -257,10 +243,9 @@ def streamgraph[
     subtitle: String = "",
     x_title: String = "",
 ) raises -> Plot:
-    """`streamgraph()`, generalized over numeric element type for
-    `values` -- see `grouped_bar()`'s own `DType`-generic overload for
-    the full reasoning. Delegates to the concrete `streamgraph()`
-    above.
+    """`streamgraph()` generalized over numeric element type for `values`;
+    see `grouped_bar()`'s `DType` overload. Delegates to the concrete
+    overload above.
     """
     return streamgraph(
         categories, series_names, _materialize_nested_scalar_list(values), theme=theme, smoothing=smoothing,

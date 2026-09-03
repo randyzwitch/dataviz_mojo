@@ -1,23 +1,14 @@
-"""`pixi run example`'s own script -- extracts every `Example:` block
-this package's docstrings declare (`_example_docstrings.mojo`'s
-`_pages()`) into a real, standalone `.mojo` file under docs/src/
-examples/ (already entirely generated/gitignored, same as the .md
-pages gen_example_docs.mojo writes there and the .svg/.png/.bmp images
-each extracted program's own save() call writes there too -- one
-generated-docs-content location, not a second, separately-gitignored
-build directory for no real benefit), so `scripts/run_parallel.sh` can
-compile and run every one of them for real, same as `examples/*.mojo`
-used to. This is what makes an `Example:` section a load-bearing test,
-not just documentation text: a broken one fails to compile or run
-here, the same way a broken `examples/*.mojo` file always did.
+"""`pixi run example`'s extraction step: writes every `Example:` block
+the package's docstrings declare (`_example_docstrings.mojo`'s
+`_pages()`) into a standalone `.mojo` file under docs/src/examples/
+(generated and gitignored, alongside the .md pages and rendered
+images), so `scripts/run_parallel.sh` can compile and run each one. A
+broken `Example:` section therefore fails the build.
 
-Deduplicated by (`file`, `fn_name`) -- `line`'s and `slope`'s pages
-both come from `line()`'s own docstring (`slope` shows only one of its
-two `Example:` blocks, `line` shows both, see `ExamplePage.block`'s
-docstring), so extracting once per unique function, every block it
-has, covers both pages' needs without compiling the same program
-twice under two different pages' names. One temp file per block,
-named `<fn_name>[_<slug of its own heading>].mojo`.
+Deduplicated by (`file`, `fn_name`): `line`'s and `slope`'s pages both
+come from `line()`'s docstring, so each unique function is extracted
+once with every block it has. One file per block, named
+`<fn_name>[_<slug of its heading>].mojo`.
 """
 
 from _example_docstrings import _extract_example_blocks, _pages, _write_file
@@ -26,10 +17,11 @@ comptime _OUT_DIR = "docs/src/examples"
 
 
 def _slug(heading: String) -> String:
-    """A plain filename-safe fragment out of an `Example (<heading>):`
-    block's own heading text -- lowercased, every run of non-alphanumeric
-    characters collapsed to one underscore, so "Diverging bars
-    (color_by_sign)" becomes "diverging_bars_color_by_sign"."""
+    """A filename-safe fragment from an `Example (<heading>):` heading:
+    lowercased, every run of non-alphanumeric characters collapsed to one
+    underscore, so "Diverging bars (color_by_sign)" becomes
+    "diverging_bars_color_by_sign".
+    """
     var out = String("")
     var prev_was_sep = True  # leading separators are dropped, same as trailing ones below
     for ch in heading.lower():

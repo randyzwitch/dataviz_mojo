@@ -17,28 +17,19 @@ from dataviz.theme import Theme
 def _render_span_chart[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.SPAN_CHART` plot: `Mark.GANTT`'s mirror
-    image -- one floating bar per category from `plot._gantt.start[i]`
-    (the low end) to `plot._gantt.end[i]` (the high end), but *vertical*
-    on the normal `_draw_categorical_axis_frame` (categories along `x`,
-    a continuous `y` for the value domain) instead of `Mark.GANTT`'s horizontal frame -- ECharts.jl's `spanchart`, "an invisible
-    spacer bar extends from 0 to lows[i], and the visible span bar
-    extends from lows[i] to highs[i]," the same "a range with no
-    anchor to zero" reading `Mark.CANDLESTICK`'s high-low wick
-    gives, generalized to a filled bar instead of a thin line.
+    """Render a `Mark.SPAN_CHART` plot: one floating vertical bar per
+    category from `plot._gantt.start[i]` to `plot._gantt.end[i]`, on the
+    normal `_draw_categorical_axis_frame` (categories along `x`,
+    continuous `y`). `Mark.GANTT`'s vertical mirror image, and ECharts.jl's
+    `spanchart`.
 
-    Reuses `encode_gantt()`'s data shape completely unchanged
+    Reuses `encode_gantt()`'s data shape unchanged
     (`Plot.mark_span_chart().encode_gantt(categories=..., start=lows,
-    end=highs)`) rather than a new `encode_*` method -- identical
-    data, purely an orientation/rendering difference. `_gantt`'s `start`/
-    `end` don't need `start[i] <= end[i]` -- same as `Mark.GANTT`'s lack of that requirement, this draws from `min`/`max` of the two,
-    not literally `start` to `end` in that order.
+    end=highs)`). `start[i] <= end[i]` is not required: bars draw from
+    `min` to `max` of the two.
 
-    Bar width comes from `frame.x_scale.bandwidth()` (the ordinal
-    x-axis's per-category band, full width -- `Mark.BAR`'s convention, not narrowed the way `Mark.WATERFALL`'s delta bars
-    are), bar height floored to at least 1 pixel (`max(1, ...)`, the
-    same "a zero-length span is real, visible data, not nothing to
-    show" reasoning `Mark.GANTT`'s docstring gives for its zero-width case).
+    Bar width is the ordinal x-axis's full `bandwidth()`; bar height is
+    floored to 1 pixel so a zero-length span stays visible.
     """
     if len(plot.x_categories) != len(plot._gantt.start) or len(plot._gantt.end) != len(plot._gantt.start):
         raise Error(
@@ -91,11 +82,12 @@ def span_chart(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A span chart -- `Mark.SPAN_CHART`, one floating vertical bar per
-    category from `low[i]` to `high[i]` (`Mark.GANTT`'s mirror
-    image; ECharts.jl's `spanchart`, useful for confidence
-    intervals, error bounds, or a range like a daily temperature
-    high/low that isn't anchored to zero the way `bar()` assumes).
+    """A span chart.
+
+    `Mark.SPAN_CHART`: one floating vertical bar per category from
+    `low[i]` to `high[i]`, for confidence intervals, error bounds, or a
+    range like a daily temperature high/low that isn't anchored to zero
+    the way `bar()` is.
 
     Args:
         categories: One floating vertical bar per entry, in the
@@ -149,10 +141,9 @@ def span_chart[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`span_chart()`, generalized over numeric element type -- see
-    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
-    full reasoning. `low`/`high` share one dtype. Delegates to the
-    concrete `span_chart()` above.
+    """`span_chart()` generalized over numeric element type; see
+    `scatter()`'s `DType` overload (plot.mojo). `low`/`high` share one
+    dtype. Delegates to the concrete overload above.
     """
     return span_chart(
         categories, _materialize_scalar_list(low), _materialize_scalar_list(high), theme=theme,

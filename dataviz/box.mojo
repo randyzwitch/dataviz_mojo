@@ -21,13 +21,10 @@ from dataviz.theme import Theme
 
 
 struct _BoxData(Movable):
-    """
-    Mark.BOX only -- the five-number summary encode_boxplot() computes per
-    category up front, plus every outlier tagged with which category (by
-    index into x_categories) it belongs to. See that method's docstring for
-    the quartile/whisker/outlier math.
-
-    Grouped onto `Plot._box` -- see `Plot`'s docstring.
+    """The five-number summary `encode_boxplot()` computes per category, plus
+    every outlier tagged with its category index, for `Mark.BOX`. See
+    that method for the quartile/whisker/outlier math. Stored on
+    `Plot._box`.
     """
 
     var q1: List[Float64]
@@ -50,13 +47,11 @@ struct _BoxData(Movable):
 
 
 def _percentile(sorted_values: List[Float64], p: Float64) -> Float64:
-    """The `p`-th percentile (`p` in `[0, 1]`) of `sorted_values`
-    (already sorted ascending -- callers, not this function, own that,
-    since `_box_stats` already needs a sorted copy for its whisker
-    scan and there's no reason to sort twice) via linear interpolation
-    between the two nearest ranks -- the same method `numpy.percentile`'s default (`"linear"`) uses. `sorted_values` must be non-empty;
-    `_box_stats`'s caller (`Plot.encode_boxplot()`) raises before
-    this could ever run on an empty list.
+    """The `p`-th percentile (`p` in `[0, 1]`) of `sorted_values` (already
+    sorted ascending by the caller) via linear interpolation between the
+    two nearest ranks, `numpy.percentile`'s default method.
+    `sorted_values` must be non-empty; `Plot.encode_boxplot()` raises
+    before that can happen.
     """
     var n = len(sorted_values)
     var idx = p * Float64(n - 1)
@@ -67,11 +62,11 @@ def _percentile(sorted_values: List[Float64], p: Float64) -> Float64:
 
 
 struct _BoxStats(Movable):
-    """`_box_stats()`'s result -- a box plot's conventional five-
-    number summary (`q1`/`median`/`q3`/`low`/`high`, `low`/`high` being
-    the whisker ends, not the raw min/max) plus every value beyond the
-    whiskers, kept separately since a box plot draws those as
-    individual points, not folded into the whisker range."""
+    """`_box_stats()`'s result: the five-number summary (`q1`/`median`/`q3`/
+    `low`/`high`, with `low`/`high` the whisker ends rather than the raw
+    min/max) plus every value beyond the whiskers, drawn as individual
+    points.
+    """
 
     var q1: Float64
     var median: Float64
@@ -98,23 +93,15 @@ struct _BoxStats(Movable):
 
 
 def _box_stats(values: List[Float64]) -> _BoxStats:
-    """Tukey's five-number summary plus outliers, the conventional box-
-    plot algorithm: quartiles via `_percentile`'s linear interpolation,
-    then the low/high whisker as the most extreme value still *within*
-    1.5*IQR of the box (not simply `values`' min/max -- a whisker
-    stops at the last real data point inside the fence, the entire
-    point of separating "whisker" from "outlier"), and every value
-    beyond that fence as its outlier. `values` must be non-empty --
-    `Plot.encode_boxplot()`, this function's only caller, raises before
-    this could ever run on an empty list.
+    """Tukey's five-number summary plus outliers: quartiles via
+    `_percentile`, then the low/high whisker as the most extreme value
+    still within 1.5*IQR of the box, and every value beyond that fence as
+    an outlier. `values` must be non-empty; `Plot.encode_boxplot()` raises
+    before that can happen.
 
-    The whisker scan relies on `sorted_values` already being sorted
-    ascending: the first value `>= low_fence` is the smallest one still
-    inside the fence (so `low_whisker`), and the last value `<=
-    high_fence` scanned before the first one that isn't is the largest
-    one still inside it (so `high_whisker`, found by breaking out of
-    the loop the moment a value exceeds the fence -- correct precisely
-    because the list is sorted, every later value would too).
+    The whisker scan relies on the sorted order: the first value
+    `>= low_fence` is the low whisker, and the last value `<= high_fence`
+    before the first that exceeds it is the high whisker.
     """
     var sorted_values = values.copy()
     sort(sorted_values)
@@ -159,19 +146,16 @@ def _draw_box_glyphs[
     point_radius: Int,
 ) raises:
     """Every category's box, whiskers, caps, median line and outliers,
-    written once for both orientations -- `_Orientation` carries the
-    four places band/value have to become concrete x/y pixels (rect,
-    line along the value axis, line across the band, point).
+    written once for both orientations; `_Orientation` carries the four
+    places band/value become x/y pixels (rect, line along the value axis,
+    line across the band, point).
 
     Whisker caps are half the band's width, the box the full band, and
-    the median line spans the box -- the conventional Tukey proportions
-    each expressed against `band_scale.bandwidth()` rather than fixed
-    pixels, so they hold at any canvas size.
+    the median line spans the box, all expressed against
+    `band_scale.bandwidth()`.
 
     `to_pixel` (not `_axis_pixel`) for the five box statistics, since
-    these are already-computed positions rather than data values
-    needing the axis's own rounding -- the outliers use `_axis_pixel`
-    for the same reason `_render_box` always did.
+    these are already-computed positions; outliers use `_axis_pixel`.
     """
     var theme = plot._theme
     var band_size = band_scale.bandwidth()
@@ -188,12 +172,8 @@ def _draw_box_glyphs[
         var high = value_scale.to_pixel(plot._box.high[i])
 
         if theme.svg_tooltips:
-            # The five-number summary, which is exactly what the shape
-            # encodes -- a box plot's whole point is those numbers, and
-            # reading them off the axis by eye is the thing a tooltip
-            # saves. Low cardinality by construction (one per
-            # category), so the longer label costs nothing that
-            # matters.
+            # The five-number summary is what the shape encodes, so that's the
+            # hover text. One per category, so the longer label is cheap.
             target.begin_annotated_group(
                 plot.x_categories[i]
                 + ": median "
@@ -237,9 +217,8 @@ def _draw_box_glyphs[
         if theme.svg_tooltips:
             target.end_annotated_group()
 
-    # Outliers sit outside the per-category groups deliberately: each
-    # is its own datum, not part of the box's five-number summary, so
-    # it carries its own title naming the value that made it an outlier.
+    # Outliers sit outside the per-category groups: each is its own datum
+    # with its own title.
     for j in range(len(plot._box.outlier_value)):
         if theme.svg_tooltips:
             target.begin_annotated_group(
@@ -263,23 +242,15 @@ def _render_box[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.BOX` plot: `_draw_categorical_axis_frame`'s
-    shared categorical x-axis, but a y-domain spanning every point that
-    will actually be drawn (`_data_extent` -- padded, but *not* forced
-    to include zero the way `Mark.BAR`/`LOLLIPOP`/`WATERFALL`'s domains
-    are; a box plot shows a distribution's spread, which has no
-    inherent reason to include zero) over each category's whiskers
-    and outliers (`_box`'s `low`/`high`/`outlier_value` --
-    exactly the values this function goes on to draw, so the domain is
-    guaranteed to fit every one of them with no separate pass over the
-    original raw data `encode_boxplot()` already reduced away).
+    categorical x-axis, with a y-domain (`_data_extent`, padded but not
+    forced to include zero) over each category's whiskers and outliers
+    (`_box`'s `low`/`high`/`outlier_value`, exactly the values drawn).
 
-    Draws, per category, back to front: the two whiskers (`Q3` up to
-    `high`, `Q1` down to `low`) with a small horizontal cap at each end,
-    then the box itself (`Q1` to `Q3`, `theme.mark_color`) over the
-    whiskers' center so the box visually "contains" them, then the
-    median line (`theme.axis_color`) on top of the box fill. Outliers
-    are drawn in one final pass *after* every category's box/
-    whiskers, not interleaved per category -- so one category's outlier point is never occluded by a neighboring category's box.
+    Per category, back to front: the two whiskers (`Q3` to `high`, `Q1`
+    to `low`) with a cap at each end, then the box (`Q1` to `Q3`,
+    `theme.mark_color`), then the median line (`theme.axis_color`).
+    Outliers are drawn in one final pass after every category's box so no
+    outlier is occluded by a neighboring box.
     """
     if len(plot.x_categories) != len(plot._box.q1):
         raise Error(
@@ -316,28 +287,15 @@ def _render_box[
 def _render_horizontal_box[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """`_render_box`'s mirror image for `Plot.mark_box(horizontal=
-    True)` (#121) -- exactly `_render_horizontal_bar`'s own categorical
-    y-axis (`_draw_horizontal_categorical_axis_frame`, gantt.mojo,
-    shared -- see that function's docstring) instead of a categorical
-    x-axis, with the continuous axis (`_data_extent`, not zero-forced --
-    see `_render_box`'s own docstring for why) carried along the
-    bottom instead of up the left side.
-
-    Every role `_render_box` gives `x_scale`/`y_scale` swaps here:
-    the two whiskers become horizontal lines (`Q3` out to `high`, `Q1`
-    out to `low`) with a small *vertical* cap at each end instead of a
-    horizontal one, the box itself becomes a horizontal rect (`Q1` to
-    `Q3`) spanning the category's own band *height*, and the median
-    line is drawn vertically across the box's own height instead of
-    horizontally across its width. Outliers plot at `(value's x pixel,
-    category's y-center)` instead of the reverse. Otherwise the exact
-    same per-category five-number-summary drawing `_render_box`'s own
-    docstring explains, just rotated.
-
-    Deliberately its own function, not an orientation flag threaded
-    through `_render_box` -- see `_render_horizontal_bar`'s own
-    docstring (bar.mojo) for the full reasoning, identical here.
+    """`_render_box`'s mirror image for `Plot.mark_box(horizontal=True)`
+    (#121): `_render_horizontal_bar`'s categorical y-axis
+    (`_draw_horizontal_categorical_axis_frame`, gantt.mojo) with the
+    continuous axis (`_data_extent`, not zero-forced) along the bottom.
+    Whiskers become horizontal lines with vertical caps, the box spans
+    the category's band height, the median line runs vertically, and
+    outliers plot at `(value's x, category's y-center)`. Its own function
+    rather than an orientation flag, for the reasons in
+    `_render_horizontal_bar`'s docstring (bar.mojo).
     """
     if len(plot.x_categories) != len(plot._box.q1):
         raise Error(
@@ -385,9 +343,10 @@ def box(
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """A box plot -- `Mark.BOX`, one box-and-whiskers per category
-    summarizing a whole distribution of raw values (`values[i]`, not
-    a single number). See `Plot.encode_boxplot()`'s docstring
+    """A box plot.
+
+    `Mark.BOX`: one box-and-whiskers per category summarizing a
+    distribution of raw values (`values[i]`). See `Plot.encode_boxplot()`
     (plot.mojo) for the quartile/whisker/outlier computation.
 
     Args:
@@ -450,9 +409,9 @@ def box[
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """`box()`, generalized over numeric element type for `values`
-    -- see `beeswarm()`'s own `DType`-generic overload for the full
-    reasoning. Delegates to the concrete `box()` above.
+    """`box()` generalized over numeric element type for `values`; see
+    `beeswarm()`'s `DType` overload. Delegates to the concrete overload
+    above.
     """
     return box(
         categories, _materialize_nested_scalar_list(values), theme=theme, width=width, height=height,

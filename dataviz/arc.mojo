@@ -24,45 +24,28 @@ def _render_arc[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.ARC` plot (a pie chart): one wedge per category
-    (`encode_categorical`'s `x`), its angular span proportional to its value (`y`) divided by the total. No x/y axis frame at all
-    (no ticks, gridlines, or axis lines) -- a pie chart doesn't have a
-    coordinate system the way every other mark here does, so this is
-    its own function. Generic over
-    `T: DrawTarget`, returning the legend's labels as
-    `_TextRequest`s rather than drawing them -- see `_render_generic`'s docstring for why every render path here works this way.
+    (`encode_categorical`'s `x`), its angular span proportional to its
+    value (`y`) divided by the total. No axis frame; a pie has no
+    coordinate system. Generic over `T: DrawTarget`, returning the
+    legend's labels as `_TextRequest`s rather than drawing them (see
+    `_render_generic`). `ox0`/`oy0`/`ox1`/`oy1` are `render()`'s
+    already-resolved outer bounds.
 
-    `ox0`/`oy0`/`ox1`/`oy1` are `render()`'s already-resolved outer
-    bounds (see `_render_bar`'s docstring for why this function
-    never reads a target's width/height directly either).
+    Wedges start at 12 o'clock and proceed clockwise. In `fill_arc_aa`'s
+    convention, increasing angle sweeps clockwise on screen because pixel
+    y increases downward: starting at `-pi/2` (up) and increasing sweeps
+    through 3, 6, and 9 o'clock. `SvgCanvas.fill_arc_aa` draws the
+    identical wedge in the same y-down space.
 
-    Wedges start at the 12-o'clock position and proceed clockwise,
-    matching the conventional real-world pie chart reading direction.
-    Increasing angle in `fill_arc_aa`'s convention sweeps clockwise on
-    screen, since pixel y increases downward: starting at `-pi/2`
-    (pointing toward
-    -y, i.e. up) and increasing angle sweeps toward +x (3 o'clock),
-    then +y (6 o'clock), then -x (9 o'clock), back to 12 -- clockwise
-    exactly as a real clock face reads. `SvgCanvas.fill_arc_aa` draws
-    the identical wedge shape through SVG's arc-path markup, in
-    the same y-down coordinate space with no sign flip needed -- see
-    its docstring for why the two conventions already agree.
+    Wedge colors come from `default_categorical_palette()` by category
+    index, as with `Plot.encode(color_categories=...)`.
 
-    Wedge colors reuse `default_categorical_palette()` by category
-    index, same as `Plot.encode(color_categories=...)` -- a pie chart
-    and a categorical-color scatter plot describing the same data get
-    visually consistent colors, not two unrelated defaults.
+    Every value must be non-negative and the total positive; both raise
+    otherwise.
 
-    Every value must be non-negative (a negative angular span has no
-    meaning) and the total must be positive (an all-zero pie has
-    nothing to divide 2*pi by) -- both raise a clear error rather than
-    silently drawing a degenerate or misleading chart.
-
-    `plot._mark_style.donut_inner_radius_fraction > 0.0` switches each wedge from
-    `target.fill_arc_aa` to `target.fill_ring_sector_aa` -- a donut
-    instead of a pie, everything else (angles, colors, legend)
-    unchanged; see `Plot.mark_arc()`'s docstring for what the fraction means
-    and why it's relative to the outer radius rather than a fixed
-    pixel value.
+    `plot._mark_style.donut_inner_radius_fraction > 0.0` switches each
+    wedge from `fill_arc_aa` to `fill_ring_sector_aa` (a donut),
+    everything else unchanged; see `Plot.mark_arc()`.
     """
     _validate_categorical_encoding(plot)
 
@@ -139,11 +122,12 @@ def pie(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A pie chart -- `Mark.ARC` over a categorical `x` and continuous
-    `y` (the same shape `bar()` takes; every value must be
-    non-negative, and at least one positive). Pass
-    `inner_radius_fraction=0.55` (or any value in `[0.0, 1.0)`) for a
-    donut instead -- see `Plot.mark_arc()`'s docstring.
+    """A pie chart.
+
+    `Mark.ARC` over a categorical `x` and continuous `y` (the same shape
+    `bar()` takes; values must be non-negative, with at least one
+    positive). Pass `inner_radius_fraction=0.55` (any value in
+    `[0.0, 1.0)`) for a donut; see `Plot.mark_arc()`.
 
     Args:
         categories: One wedge per entry, in the given order.
@@ -214,9 +198,9 @@ def pie[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`pie()`, generalized over numeric element type -- see
-    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
-    full reasoning. Delegates to the concrete `pie()` above.
+    """`pie()` generalized over numeric element type; see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
+    above.
     """
     return pie(
         categories, _materialize_scalar_list(values), inner_radius_fraction=inner_radius_fraction, theme=theme, width=width, height=height,

@@ -24,11 +24,10 @@ from dataviz.theme import Theme
 def _fill_ring_sector[
     T: DrawTarget
 ](mut target: T, cx: Float64, cy: Float64, inner: Float64, outer: Float64, a0: Float64, a1: Float64, color: Color) raises:
-    """A ring sector, or -- when `inner == 0.0` -- a real wedge (the
-    innermost ring of a sunburst touches the center, so it isn't a
-    true "ring" with a hole at all): `fill_arc_aa` for the wedge case,
-    `fill_ring_sector_aa` once there's a real inner radius, the same
-    pie-vs-donut split `Mark.ARC` uses.
+    """A ring sector, or a full wedge when `inner == 0.0` (the innermost ring
+    touches the center): `fill_arc_aa` for the wedge case,
+    `fill_ring_sector_aa` otherwise, the same pie-vs-donut split
+    `Mark.ARC` uses.
     """
     if inner <= 0.0:
         target.fill_arc_aa(cx, cy, outer, a0, a1, color)
@@ -49,13 +48,11 @@ def _draw_sunburst_node[
     ring_width: Float64,
     color: Color,
 ) raises:
-    """Draw `node`'s ring sector (`idx.depth[node]` picks the ring
-    -- depth 1 is innermost, touching the center; the root itself,
-    depth 0, is never passed in here at all, see `_render_sunburst`'s docstring for why), then recurse into its children,
-    dividing `[start_angle, end_angle)` by each child's share of
-    `node`'s subtree total -- `color` stays fixed through the
-    whole recursion, so this is always called with one already-chosen
-    top-level branch color, never re-picked partway down.
+    """Draw `node`'s ring sector (`idx.depth[node]` picks the ring; depth 1
+    is innermost, and the depth-0 root is never passed in), then recurse
+    into its children, dividing `[start_angle, end_angle)` by each child's
+    share of `node`'s subtree total. `color` stays fixed through the whole
+    recursion: one top-level branch color.
     """
     var depth = idx.depth[node]
     var inner = ring_width * Float64(depth - 1)
@@ -76,29 +73,20 @@ def _draw_sunburst_node[
 def _render_sunburst[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.SUNBURST` plot: `_build_hierarchy_index`'s `children`/`depth`/`subtree_value` (hierarchy.mojo), drawn as
-    concentric ring sectors -- `Mark.ARC`'s `fill_ring_sector_aa`
-    primitive, reused directly, one call per node.
+    """Render a `Mark.SUNBURST` plot: `_build_hierarchy_index`'s `children`/
+    `depth`/`subtree_value` (hierarchy.mojo) drawn as concentric ring
+    sectors, one `fill_ring_sector_aa` call per node.
 
-    The root itself is never drawn (there's no ring at depth 0 -- a
-    sunburst's center is either empty or, in some real
-    implementations, a clickable "zoom out" button this package has no
-    equivalent interaction model for) -- rendering starts from each of
-    the root's direct children instead, each claiming an angular
-    slice proportional to its share of the root's subtree total and a
-    freshly chosen palette color (`default_categorical_palette()`,
-    indexed by that child's position among its siblings -- the same
-    palette `_draw_legend` colors its swatches from below) that then
-    stays fixed through every
-    one of its descendants -- so the whole ring stack under one
-    top-level branch reads as one consistent color, the same "which
-    branch does this belong to" legibility a real sunburst needs that
-    a per-node color would lose.
+    The root itself is never drawn (there is no ring at depth 0).
+    Rendering starts from each of the root's direct children, each
+    claiming an angular slice proportional to its share of the root's
+    subtree total and a palette color (`default_categorical_palette()` by
+    position among siblings, the same palette `_draw_legend` uses) that
+    stays fixed through all of its descendants.
 
-    Every value must be non-negative, and the root's subtree total
-    (the sum of every leaf) must be positive -- the same "raise,
-    don't silently misrepresent" stance `Mark.ARC`'s validation
-    takes for its share-of-a-whole data.
+    Every value must be non-negative and the root's subtree total
+    positive, the same validation `Mark.ARC` applies to its
+    share-of-a-whole data.
     """
     if (
         len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids)
@@ -176,10 +164,11 @@ def sunburst(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A sunburst chart -- `Mark.SUNBURST`, a hierarchy (`Plot.encode_
-    hierarchy()`'s flattened `ids`/`parent_ids`/`values`) drawn as
-    concentric ring sectors, one ring per depth level. See `_render_
-    sunburst`'s docstring for the full reasoning.
+    """A sunburst chart.
+
+    `Mark.SUNBURST`: a hierarchy (`Plot.encode_hierarchy()`'s flattened
+    `ids`/`parent_ids`/`values`) drawn as concentric ring sectors, one
+    ring per depth level. See `_render_sunburst`.
 
     Args:
         ids: Every node's unique id, flattened (not nested), one
@@ -234,9 +223,9 @@ def sunburst[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`sunburst()`, generalized over numeric element type -- see
-    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
-    full reasoning. Delegates to the concrete `sunburst()` above.
+    """`sunburst()` generalized over numeric element type; see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
+    above.
     """
     return sunburst(
         ids, parent_ids, _materialize_scalar_list(values), theme=theme, width=width, height=height,

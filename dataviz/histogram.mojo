@@ -5,9 +5,10 @@ from dataviz.theme import Theme
 
 
 struct _HistogramBins(Movable):
-    """One bin-range label plus count per bin, in bin order -- exactly
-    the `(x_categories, y_data)` pair `Plot.encode_histogram()` (plot.
-    mojo) assigns onto itself once `_bin_histogram()` returns."""
+    """One bin-range label plus count per bin, in bin order: the
+    `(x_categories, y_data)` pair `Plot.encode_histogram()` assigns once
+    `_bin_histogram()` returns.
+    """
 
     var labels: List[String]
     var counts: List[Float64]
@@ -18,13 +19,10 @@ struct _HistogramBins(Movable):
 
 
 def _bin_histogram(data: List[Float64], bins: Int) raises -> _HistogramBins:
-    """Bins `data` into `bins` equal-width intervals -- extracted out
-    of `Plot.encode_histogram()`'s body (plot.mojo). Raises on empty
-    data, zero span, or non-positive `bins`; half-open bins except the
-    last, which is closed so `data`'s maximum lands in the last
-    bin instead of nowhere; labels formatted to one decimal place via
-    `_format_fixed`, the same formatter `LinearScale.ticks()` uses for
-    axis labels.
+    """Bin `data` into `bins` equal-width intervals. Raises on empty data,
+    zero span, or non-positive `bins`. Bins are half-open except the last,
+    which is closed so the maximum lands in it. Labels use `_format_fixed`
+    at one decimal place.
     """
     if len(data) == 0:
         raise Error("Plot.encode_histogram(): data must not be empty")
@@ -69,13 +67,11 @@ def histogram(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A histogram -- `Mark.BAR` fed binned counts via `Plot.
-    encode_histogram()` (see that method's docstring for the
-    binning itself: equal-width intervals, half-open except the last).
-    Named after what it plots, not the mark underneath, the same way
-    `pie()`/`donut` share `Mark.ARC`. Takes the same `theme`/`width`/
-    `height`/`title`/`x_title`/`y_title` parameters every one-call
-    convenience function does (see plot.mojo's module docstring).
+    """A histogram.
+
+    `Mark.BAR` fed binned counts via `Plot.encode_histogram()` (equal-width
+    intervals, half-open except the last). Named after what it plots
+    rather than the mark underneath, like `pie()`/`donut` over `Mark.ARC`.
 
     Args:
         data: The raw values to bin -- not pre-counted; binning
@@ -133,9 +129,9 @@ def histogram[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`histogram()`, generalized over numeric element type -- see
-    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
-    full reasoning. Delegates to the concrete `histogram()` above.
+    """`histogram()` generalized over numeric element type; see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
+    above.
     """
     return histogram(
         _materialize_scalar_list(data), bins=bins, theme=theme, width=width, height=height,

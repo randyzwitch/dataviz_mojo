@@ -26,30 +26,22 @@ def _render_radialbar[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.RADIALBAR` plot: one concentric ring per category
-    (`encode_categorical`'s `x`/`y`, the identical shape `Mark.ARC`/
-    `Mark.POLAR_BAR`/`Mark.NIGHTINGALE` already share -- a radial-bar
-    chart is the same category+value data as a polar bar chart, just
-    read as concentric progress rings instead of bars radiating from
-    the center), each ring's value drawn as a clockwise-from-12-
-    o'clock arc (`_polar_point`'s convention, reused by every polar
-    mark in this package) over a full light-gray "track" circle, swept
-    to `value / max(values)` of the way around -- the same always-
-    linear-against-the-data's-max normalization `Mark.POLAR_BAR`
-    already uses (no per-category goal; every ring answers "how does
-    this compare to the largest value here", not "how close is this to
-    its separate target").
+    (`encode_categorical`'s `x`/`y`, the same shape `Mark.ARC`/
+    `POLAR_BAR`/`NIGHTINGALE` take), each value drawn as a
+    clockwise-from-12-o'clock arc over a full track circle
+    (`theme.radialbar_track_color`), swept to `value / max(values)` of the
+    way around. Same normalization as `Mark.POLAR_BAR`: against the data's
+    max, with no per-category goal.
 
-    The first category's ring is drawn *outermost* (largest,
-    most prominent), each later category nesting one ring further in
-    -- the "primary metric outermost" convention real multi-ring
-    progress widgets (Apple Watch's activity rings, GitHub's contribution-ring widgets) already use. This is the opposite
-    ordering from `Mark.SUNBURST`'s innermost-first rings, which
-    encode hierarchy *depth* (a real structural property), not display
-    prominence -- there's no hierarchy here for depth to mean anything.
+    The first category's ring is outermost, each later category nesting
+    one ring further in (the "primary metric outermost" convention of
+    multi-ring progress widgets). This is the opposite of `Mark.SUNBURST`,
+    whose ring order encodes hierarchy depth.
+    `plot._mark_style.radialbar_ring_gap_fraction` sets the gap between
+    rings as a fraction of each ring's slot.
 
-    Same validation as `POLAR_BAR`: every value non-negative, at least
-    one strictly positive (otherwise there's no max to normalize
-    against).
+    Same validation as `POLAR_BAR`: every value non-negative, at least one
+    positive.
     """
     _validate_categorical_encoding(plot)
 
@@ -108,14 +100,14 @@ def radialbar(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A radial (multi-ring) progress chart -- `Mark.RADIALBAR` over
-    the same categorical `x` + continuous `y` shape `bar()`/`pie()`/
-    `polarbar()` take (every value must be non-negative, and at least
-    one positive). Each category becomes its concentric ring, swept
-    clockwise from 12 o'clock to `value / max(values)` of the way
-    around a light-gray track -- the first category's ring drawn
-    outermost. See `_render_radialbar`'s docstring for the full
-    reasoning, including how this differs from `polarbar()`'s radiating
+    """A radial (multi-ring) progress chart.
+
+    `Mark.RADIALBAR` over the same categorical `x` + continuous `y` shape
+    `bar()`/`pie()`/`polarbar()` take (values must be non-negative, with
+    at least one positive). Each category becomes a concentric ring, swept
+    clockwise from 12 o'clock to `value / max(values)` of the way around a
+    track, with the first category's ring outermost. See
+    `_render_radialbar` for how this differs from `polarbar()`'s radiating
     bars.
 
     Args:
@@ -170,9 +162,9 @@ def radialbar[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`radialbar()`, generalized over numeric element type -- see
-    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
-    full reasoning. Delegates to the concrete `radialbar()` above.
+    """`radialbar()` generalized over numeric element type; see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
+    above.
     """
     return radialbar(
         categories, _materialize_scalar_list(values), ring_gap_fraction=ring_gap_fraction, theme=theme, width=width, height=height,

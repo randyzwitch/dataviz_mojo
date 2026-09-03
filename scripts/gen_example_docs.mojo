@@ -1,49 +1,31 @@
-"""Generates docs/src/examples/*.md and docs/src/cookbook/*.md --
-Examples straight from dataviz/*.mojo's own docstrings, Cookbook
-from docs/src/cookbook_recipes/ (community-contributed, self-contained
-files -- see that directory's own README.md for the contributor-facing
-side of this). Every Cookbook page used to be docstring-sourced too,
-the same mechanism Examples still uses -- all migrated away (see
-`_cookbook()`'s own docstring for why, and why that path is kept
-working rather than deleted). Run as part of `pixi run docs` (see
-pixi.toml), before `mojo doc`/`modo build`.
+"""Generates docs/src/examples/*.md and docs/src/cookbook/*.md: Examples
+from dataviz/*.mojo's docstrings, Cookbook from
+docs/src/cookbook_recipes/ (self-contained contributed files; see that
+directory's README.md). Run as part of `pixi run docs` (pixi.toml),
+before `mojo doc`/`modo build`.
 
-The actual per-function docstring parsing (`_pages()`'s master list,
-`_quickplot_hook()`, `_extract_args_lines()`, `_extract_example_
-blocks()`) lives in `_example_docstrings.mojo`, shared with
-`extract_docstring_examples.mojo` (the `pixi run example` companion
-that compiles and runs every one of the same `Example:` blocks this
-file only reads) -- see that module's own docstring for the full
-picture of how a page's content maps back to one function's docstring.
+The per-function docstring parsing (`_pages()`, `_quickplot_hook()`,
+`_extract_args_lines()`, `_extract_example_blocks()`) lives in
+`_example_docstrings.mojo`, shared with
+`extract_docstring_examples.mojo`, which compiles and runs the same
+`Example:` blocks this file only reads.
 
-This file itself does three things: `_titles()`/`_categories()`/
-`_cookbook()` below, the hand-curated title/navigation-grouping
-metadata every *docstring-sourced* page needs beyond what any
-docstring could reasonably say about itself; `_build_page()`/
-`_build_contributed_page()`, which turn a docstring-sourced page or a
-`docs/src/cookbook_recipes/` file (respectively) into markdown; and
-`main()`, which discovers/assembles both kinds into the final Examples
-and Cookbook pages -- see `_cookbook()`'s own docstring for why
-Cookbook is a whole separate top-level page rather than a category on
-Examples, and `_build_contributed_page()`'s own docstring for why a
-Cookbook recipe doesn't need a docstring host the way an Example does.
+This file holds the hand-curated title/category metadata
+(`_titles()`/`_categories()`/`_cookbook()`), the page builders
+(`_build_page()` for a docstring-sourced page,
+`_build_contributed_page()` for a recipe file), and `main()`, which
+assembles both into the Examples and Cookbook pages plus their
+`_index.md`.
 
-Adding a new *Example*: add its function's own `Example:` section,
-then add it to `_example_docstrings.mojo`'s `_pages()`, to `_titles()`
-below, and to exactly one category in `_categories()` below OR to
-`_cookbook()`'s own list (not both) -- `main()`'s own assertions catch
-a missing/misplaced entry either way (a function placed nowhere, in
-two places at once, or a category/cookbook entry referencing a name
-that doesn't exist) rather than silently skipping it or crashing deep
-in string formatting. Adding a new *Cookbook recipe* needs none of
-that -- drop a file in `docs/src/cookbook_recipes/`; see its own
-README.md.
+Adding an Example: add the function's `Example:` section, then add it
+to `_example_docstrings.mojo`'s `_pages()`, to `_titles()`, and to
+exactly one category in `_categories()` (or `_cookbook()`'s list, not
+both); `main()`'s assertions catch a missing or doubly placed entry.
+Adding a Cookbook recipe needs none of that: drop a file in
+`docs/src/cookbook_recipes/`.
 
-A Mojo script, not Python -- this repo's own tooling stays in the
-language it's showcasing, string-matching primitives (`.strip()`,
-`.startswith()`, `.find()`, `in`) doing the job Python's `re` module
-did in an earlier version of this file, without needing Mojo to have
-its own regex module (it doesn't, as of this writing).
+A Mojo script rather than Python, using `.strip()`/`.startswith()`/
+`.find()`/`in` in place of regexes.
 """
 
 from std.collections import Dict
@@ -116,10 +98,8 @@ def _titles() -> Dict[String, String]:
     d["sankey"] = "Sankey"
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
-    # Every Cookbook title used to be listed here too -- migrated to
-    # docs/src/cookbook_recipes/ (title comes from each recipe's own
-    # filename or its optional `# title:` override, see that
-    # directory's README.md), so there's nothing left to add here.
+    # Cookbook titles come from each recipe's filename or its `# title:`
+    # override (see cookbook_recipes/README.md), not from here.
     return d^
 
 
@@ -135,17 +115,8 @@ struct Category(Copyable, Movable):
 
 
 def _categories() -> List[Category]:
-    # Every example here is a distinct, recognizable chart type -- no
-    # feature demos (facets, layers, titles, dynamic margins, color/
-    # size encoding, line/area smoothing) mixed in among them; those
-    # are real dataviz capabilities, just not chart types of their
-    # own. annotate_line, svg_accessibility, annotate_area, dual_axis,
-    # annotate_vline, and annotate_point used to be the exceptions,
-    # filed under whichever category their own example's mark happened
-    # to belong to (a chart-type category being the only kind that
-    # existed yet) -- see `_cookbook()` below for where they live now,
-    # and why a whole separate top-level page instead of a category on
-    # this one.
+    # Every example here is a distinct chart type; feature demos (facets,
+    # layers, annotations, ...) live in the Cookbook instead.
     var cats = List[Category]()
     cats.append(Category(
         "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
@@ -193,25 +164,12 @@ def _categories() -> List[Category]:
 
 
 def _cookbook() -> Category:
-    """The Cookbook page's own docstring-sourced list -- always empty
-    now (see `main()`'s own comment next to where this is called):
-    every one-off technique for customizing a plot you already have
-    (a reference line/band/point marker, a second y-axis, accessible
-    SVG output, a grid of several independent plots, color/size
-    encoding, theme overrides, layered-combo recipes, ...) migrated to
-    `docs/src/cookbook_recipes/` -- see that directory's own README.md
-    for why a Cookbook recipe doesn't need a docstring host the way an
-    Example does, and `main()`'s own recipe-discovery block for how
-    those pages actually get built now.
-
-    Kept as a real, working mechanism rather than deleted outright --
-    `main()`'s own assertions still catch a docstring-sourced page
-    placed nowhere or in both a category and here, and a future recipe
-    that genuinely is about documenting one function's own API (the
-    way an Example is) has a place to go without re-inventing this.
-    Still a `Category` like the rest of `_categories()`'s list, not a
-    distinct type, since `main()` builds an `_index.md` from one
-    exactly the same way either page needs.
+    """The Cookbook page's docstring-sourced list, empty now that every
+    recipe lives in `docs/src/cookbook_recipes/` (see its README.md).
+    Kept as a working mechanism so a future recipe that documents one
+    function's API has a place to go, and so `main()`'s placement
+    assertions still cover it. A `Category` like the rest, since `main()`
+    builds an `_index.md` from it the same way.
     """
     return Category(
         "Cookbook",
@@ -284,19 +242,10 @@ def _build_page(name: String, title: String, page: ExamplePage, image_prefix: St
 
 
 def _title_case_filename(stem: String) -> String:
-    """`bold_points` -> `"Bold Points"` -- a Cookbook recipe's title,
-    for the one kind of page that has no docstring-sourced `_titles()`
-    entry to look up (see `_build_contributed_page()`'s own
-    docstring). Every underscore-separated word gets its first letter
-    uppercased, everything else lowercased -- a deliberately plain
-    rule (no acronym table, no manual override map) so a contributor
-    never needs to touch this file at all; a recipe wanting different
-    capitalization (an acronym like "SVG") can still get it by simply
-    naming the file that way (`svg_something.mojo` won't title-case
-    "SVG" correctly on its own, but a contributor who cares can spell
-    a word in a way this function happens to preserve, or a maintainer
-    can rename the file post-hoc -- not worth a config knob for the
-    rare case)."""
+    """`bold_points` -> `"Bold Points"`: a Cookbook recipe's title when it
+    has no `# title:` override. Each underscore-separated word gets its
+    first letter uppercased and the rest lowercased; no acronym table.
+    """
     var words = stem.split("_")
     var out = List[String]()
     for w in words:
@@ -309,22 +258,12 @@ def _title_case_filename(stem: String) -> String:
 
 
 def _title_override(content: String) -> String:
-    """A recipe file's own optional `# title: <text>` first line --
-    `""` (no override) if the file's first line doesn't start with
-    that exact prefix, in which case the caller falls back to
-    `_title_case_filename()`. Exists because that plain per-word-
-    capitalize rule can't produce every real title on its own -- an
-    acronym ("SVG Accessibility"), a deliberately different word order
-    ("Smoothed Line" from `line_smoothing.mojo`), a hyphenated
-    compound ("High-DPI Export"), or a lowercase preposition ("Color
-    by Category") -- without forcing a contributor to pick a filename
-    that happens to title-case correctly instead of the name they
-    actually want. A plain leading comment line, not a second
-    docstring or a structured header, so it costs nothing when unused
-    (the common case, see `bold_points.mojo`) and doesn't complicate
-    the docstring/code split `_build_contributed_page()` does
-    (a `#` comment before the module docstring is ordinary, valid
-    Mojo, confirmed directly rather than assumed)."""
+    """A recipe file's optional `# title: <text>` first line, or `""` when
+    absent (the caller then falls back to `_title_case_filename()`).
+    Covers titles the plain rule can't produce: acronyms ("SVG
+    Accessibility"), reordered words, hyphens, lowercase prepositions. A
+    leading `#` comment before the module docstring is valid Mojo.
+    """
     var first_line_end = content.find("\n")
     var first_line = String(content[byte=0:first_line_end]) if first_line_end != -1 else content
     var prefix = "# title: "
@@ -334,28 +273,15 @@ def _title_override(content: String) -> String:
 
 
 def _build_contributed_page(title: String, content: String) raises -> String:
-    """A `docs/src/cookbook_recipes/*.mojo` file's own content, turned
-    into the same markdown shape `_build_page()` produces for a
-    docstring-sourced page -- title/hook/image/Usage, minus an `Args:`
-    section (there's no host function's own parameter docs to pull one
-    from; a recipe is a technique, not one function's own API
-    surface, see that directory's README.md for why this path exists
-    at all) and minus any named-variant support (`_extract_example_
-    blocks()`'s `Example (<heading>):` mechanism -- one recipe file is
-    always exactly one page, one code block).
+    """A `docs/src/cookbook_recipes/*.mojo` file turned into the same
+    markdown shape `_build_page()` produces (title/hook/image/Usage),
+    minus an `Args:` section and named-variant support: one recipe file
+    is one page with one code block.
 
-    `content` must have a leading `\"\"\"...\"\"\"` module docstring
-    (`_extract_docstring()`, the exact same primitive `_quickplot_
-    hook()` already uses on a function's docstring, just pointed at a
-    whole file's leading one instead) -- its first sentence
-    (`_first_sentence()`) becomes the hook line, everything else in
-    the docstring is for the contributor's own benefit and never
-    reaches the page. Everything *after* that docstring's closing
-    `\"\"\"` is shown verbatim as the page's own Usage code block --
-    already a complete, real, runnable program by the README's own
-    contract, so there's no fenced-block extraction to do the way
-    `_extract_example_blocks()` needs for a block embedded inside a
-    larger function's docstring.
+    `content` must start with a `\"\"\"...\"\"\"` module docstring; its
+    first sentence (`_first_sentence()`) becomes the hook, and everything
+    after the closing `\"\"\"` is shown verbatim as the Usage code block,
+    since a recipe is already a complete runnable program.
     """
     var doc_start = content.find('"""')
     if doc_start == -1:
@@ -427,26 +353,11 @@ def main() raises:
 
     for p in pages:
         if p.name in cookbook.names:
-            # Cookbook pages live in their own top-level docs/src/
-            # cookbook/ directory (own top-nav/sidebar entry, same
-            # treatment as Examples -- see the _index.md written
-            # below), but their rendered .svg files still land under
-            # docs/src/examples/out_*.svg: that path comes straight
-            # from each Example: docstring's own hardcoded save() call
-            # in dataviz/*.mojo (extract_docstring_examples.mojo
-            # extracts and runs it verbatim, see pixi.toml's `example`
-            # task), unrelated to which docs/src/ directory this
-            # script writes the *page* into -- moving the six pages
-            # doesn't move those files, so the image reference needs a
-            # relative prefix back to them. Two levels, not one: a
-            # cookbook page's own published URL is /cookbook/<name>/,
-            # two path segments below the site root, vs. quickstart.md
-            # (one segment, /quickstart/, correctly just "../examples/"
-            # for that page's own images) -- one ".." only pops back to
-            # /cookbook/, landing on the non-existent /cookbook/
-            # examples/... instead of /examples/... (caught by hand:
-            # the wrong path still 404s quietly, an <img> with a dead
-            # src doesn't fail the build).
+            # Cookbook pages live under docs/src/cookbook/, but their rendered
+            # .svg files land under docs/src/examples/out_*.svg (the path is
+            # hardcoded in each Example's save() call), so the image reference
+            # needs a relative prefix. Two levels because a cookbook page's URL is
+            # /cookbook/<name>/, two segments below the site root.
             var page_md = _build_page(p.name, titles[p.name], p, image_prefix="../../examples/")
             _write_file(_COOKBOOK_OUT_DIR + "/" + p.name + ".md", page_md)
         else:
@@ -520,13 +431,8 @@ def main() raises:
         idx.append("")
     _write_file(_OUT_DIR + "/_index.md", String("\n").join(idx))
 
-    # Weight 300 -- between Examples (200) and modo's own dataviz/
-    # _index.md (400, pinned to title "API Reference" post-build, see
-    # pixi.toml's own docs-build task) -- puts Cookbook's left-sidebar/
-    # top-nav entry (docs/site/hugo.yaml) right after Examples, ahead of
-    # the API reference, the same weight-drives-sidebar-order mechanism
-    # Quickstart/Examples/API reference already use (see pixi.toml's
-    # own comment next to docs-build for the fuller picture).
+    # Weight 300 sits between Examples (200) and modo's API reference
+    # (400), placing Cookbook after Examples in the sidebar/top nav.
     var cookbook_idx = List[String]()
     cookbook_idx.append("---")
     cookbook_idx.append("title: Cookbook")

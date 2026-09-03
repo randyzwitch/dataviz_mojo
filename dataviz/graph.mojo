@@ -24,36 +24,19 @@ def _render_graph[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.GRAPH` plot: `Mark.CHORD`'s edge-list shape
-    (`encode_chord()`'s `from`/`to`/`value`), reused completely
-    unchanged, drawn as a third genuinely different network layout: every distinct node
-    evenly spaced *around* a circle (`Mark.ARC`'s start-at-12-
-    o'clock, sweep-clockwise convention, reused for node position only
-    -- there's no wedge here), edges drawn as *straight* lines cutting
-    across the interior, rather than `Mark.CHORD`'s ring sectors
-    plus curved ribbons hugging the rim, or `Mark.ARC_DIAGRAM`'s nodes-on-a-line-plus-arcs-above.
+    (`encode_chord()`'s `from`/`to`/`value`) drawn as nodes evenly spaced
+    around a circle (starting at 12 o'clock, clockwise) with edges as
+    straight lines across the interior. A fixed circular layout, not a
+    force-directed simulation, so positions are deterministic and
+    hand-verifiable.
 
-    A deliberately simple, deterministic circular layout -- not a real
-    force-directed simulation (which iteratively repositions nodes to
-    minimize edge crossings/overlap, the layout most general-purpose
-    graph-drawing tools actually use), a real scope choice: a fixed
-    node order around a circle is easy to hand-verify pixel-for-pixel,
-    which this package's whole test methodology depends on, while a
-    physics simulation's settled positions generally aren't (see
-    `Mark.BEESWARM`'s docstring for the identical "not a full
-    physics simulation, a deterministic swarm instead" reasoning
-    applied to a completely different layout problem).
-
-    Edge stroke width scales with `value/max(values)`, edge and node
-    marker color both follow the edge's `from` node's palette
-    color -- the same conventions `Mark.ARC_DIAGRAM` uses for this
-    identical data shape. A self-loop (`from[i]
-    == to[i]`) draws nothing. Every node is labeled just outside its position on the circle, aligned by which side of center it
-    falls on (left-aligned on the right half, right-aligned on the
-    left half, centered at the top/bottom -- the same alignment rule
-    `Mark.RADAR`'s axis labels use for the identical
-    "label sits just outside a point on a circle" problem) -- no
-    legend, the same "already labeled directly, nothing left for a
-    legend to add" reasoning `Mark.ARC_DIAGRAM` gives.
+    Edge stroke width scales with `value/max(values)`, from `line_width`
+    up to 3x that; edge and node color follow the edge's `from` node's
+    palette color, as in `Mark.ARC_DIAGRAM`. A self-loop draws nothing.
+    Each node is labeled just outside its position, aligned by which side
+    of center it falls on (left-aligned on the right half, right-aligned
+    on the left half, centered at top/bottom, the same rule as
+    `Mark.RADAR`'s axis labels). No legend.
     """
     _validate_edge_encoding(plot, "Mark.GRAPH")
 
@@ -136,10 +119,11 @@ def graph(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A network graph -- `Mark.GRAPH`, `Mark.CHORD`'s edge list
-    (`Plot.encode_chord()`'s `from_categories`/`to_categories`/
-    `values`) drawn as nodes evenly spaced around a circle, connected
-    by straight lines cutting across the interior. See `_render_graph`'s docstring for the full reasoning.
+    """A network graph.
+
+    `Mark.GRAPH`: `Mark.CHORD`'s edge list (`Plot.encode_chord()`) drawn
+    as nodes evenly spaced around a circle, connected by straight lines.
+    See `_render_graph`.
 
     Args:
         from_categories: Each edge's source node, one entry per row.
@@ -194,9 +178,9 @@ def graph[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`graph()`, generalized over numeric element type -- see
-    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
-    full reasoning. Delegates to the concrete `graph()` above.
+    """`graph()` generalized over numeric element type; see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
+    above.
     """
     return graph(
         from_categories, to_categories, _materialize_scalar_list(values), theme=theme, width=width,

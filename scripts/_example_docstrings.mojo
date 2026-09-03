@@ -1,48 +1,36 @@
-"""Shared source for `gen_example_docs.mojo` and `extract_docstring_
-examples.mojo` -- the master list of which function's docstring backs
-each docs page (`_pages()`), and the extraction primitives both
-scripts need (`_quickplot_hook()`, `_extract_args_lines()`,
-`_extract_example_blocks()`). Kept in its own module (not a *.mojo
-file with its own `main()`) so both callers can import it -- the same
-reason tests/_test_helpers.mojo isn't a real dataviz sub-package
-either; a directory containing a file with `main()` can't be `mojo
-package`d/`precompile`d. Callers need an extra `-I scripts` alongside
-the usual `-I .` to resolve `from _example_docstrings import ...` --
-see pixi.toml's own docs-build/example tasks.
+"""Shared by `gen_example_docs.mojo` and `extract_docstring_examples.mojo`:
+the master list of which function's docstring backs each docs page
+(`_pages()`) and the extraction primitives both need
+(`_quickplot_hook()`, `_extract_args_lines()`,
+`_extract_example_blocks()`). Its own module with no `main()` so both
+scripts can import it; callers pass `-I scripts` alongside `-I .`
+(see pixi.toml's docs-build/example tasks).
 
-Every example page's content -- the hook, the runnable snippet, and
-the `Args:` reference -- comes from exactly one place: the backing
-quickplot function's (or, for the handful with no quickplot function,
-a `Plot` method's) own docstring in `dataviz/*.mojo`. There is no
-separate `examples/*.mojo` file to keep in sync by hand any more: the
-`Example:` section (a peer of `Args:`/`Returns:`) *is* the shown
-snippet, verbatim -- a complete, standalone, runnable program (real
-imports, `def main() raises:`, a real `save()` call), not a fragment
-reconstructed from a bigger file.
+Every example page's content (hook, runnable snippet, `Args:`
+reference) comes from exactly one function's docstring in
+`dataviz/*.mojo`. The `Example:` section (a peer of `Args:`/
+`Returns:`) is the shown snippet verbatim: a complete standalone
+program with real imports, `def main() raises:`, and a real `save()`
+call.
 
-`_pages()` is the master list: one entry per docs page, naming which
-function's docstring backs it (`file`/`fn_name`/`is_method`), and, for
-the rare case where a function's docstring holds more than one
-`Example:` block but a page wants only one of them (`slope` wants only
-`line()`'s "Slope Chart" variant, not its primary one), which block by
-name. Adding a new example: add its function's own `Example:` section,
-then add it to `_pages()`, `_titles()`, and exactly one category in
-`_categories()` (gen_example_docs.mojo) -- that script's own `main()`
-assertions catch a missing entry either way.
+`_pages()` has one entry per docs page naming the backing function
+(`file`/`fn_name`/`is_method`) and, for a page that wants only one of
+a function's several `Example:` blocks (`slope` wants `line()`'s
+"Slope Chart" variant), which block by heading. Adding an example:
+add the function's `Example:` section, then add it to `_pages()`,
+`_titles()`, and exactly one category in `_categories()`
+(gen_example_docs.mojo).
 """
 
 from std.collections import Dict
 
 
 struct ExamplePage(Copyable, Movable):
-    """One docs page's own source: `fn_name` (`is_method`'s own struct
-    method, or a free function) in `dataviz/<file>.mojo`. `block`
-    is "" for the common case (show/run every `Example:` section that
-    function's docstring has -- one page section per block, `bar()`/
-    `pie()`'s own diverging-bars/donut variants included); non-empty
-    picks out exactly one named block by its own heading (`slope`
-    wants only `line()`'s "Slope Chart" variant, not its primary
-    one)."""
+    """One docs page's source: `fn_name` (a `Plot` method when `is_method`,
+    else a free function) in `dataviz/<file>.mojo`. `block` is `""` to
+    show every `Example:` block the function has (one page section per
+    block), or a heading to pick exactly one.
+    """
     var name: String
     var file: String
     var fn_name: String
@@ -104,31 +92,18 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("histogram", "histogram", "histogram"),
         ExamplePage("grouped_bar", "grouped_bar", "grouped_bar"),
         ExamplePage("stacked_bar", "stacked_bar", "stacked_bar"),
-        # Every Cookbook page used to be listed here too (annotate_area/
-        # annotate_line/annotate_vline/annotate_point/dual_axis (secondary_
-        # axis)/svg_accessibility (write_accessible_svg)/facets (save_
-        # facets)/log_scale_y (scale_y_log)/log_scale_x (scale_x_log)/
-        # error_bars (encode)) -- all migrated to docs/src/cookbook_
-        # recipes/ (see that directory's own README.md), which needs no
-        # entry here at all. This list is now Examples-only: a docstring-
-        # sourced Cookbook page is still possible (gen_example_docs.
-        # mojo's _cookbook() wasn't removed, just emptied) for the rare
-        # recipe that really is about documenting one function, but
-        # isn't the default path any more.
+        # Cookbook pages used to be listed here too; all migrated to
+        # docs/src/cookbook_recipes/ (see its README.md), which needs no entry
+        # here. A docstring-sourced Cookbook page is still possible via
+        # gen_example_docs.mojo's _cookbook().
     ]
 
 
 def _hook_overrides() -> Dict[String, String]:
-    """Page-level hooks that shouldn't come from their backing
-    function's own docstring (`_build_page()`'s usual default) -- an
-    explicit, hand-maintained exception list, the same shape `_titles()`/
-    `_categories()` (gen_example_docs.mojo) already are. `slope` is the
-    one entry: it calls the general-purpose `line()`, but reads as its
-    own chart type, not a variant of "Line" -- line()'s own docstring
-    has no reason to say "slope chart" anywhere in its main
-    description. (`facets` used to be the other entry here, for the
-    same reason -- migrated away along with the rest of the Cookbook,
-    see `_pages()`'s own comment.)"""
+    """Page-level hooks that shouldn't come from the backing function's
+    docstring. `slope` calls the general-purpose `line()` but reads as
+    its own chart type.
+    """
     var d = Dict[String, String]()
     d["slope"] = "A slope chart."
     return d^
@@ -187,16 +162,11 @@ def _first_sentence(docstring: String) -> String:
 
 
 def _def_index(lines: List[String], fn_name: String, want_indent: Int) raises -> Int:
-    """The line index of `fn_name`'s own `def` line, at exactly
-    `want_indent` leading spaces (0 for a free function, 4 for a `Plot`
-    method) -- disambiguates a file with more than one `def <fn_name>(`
-    at different nesting (plot.mojo has both a free `line()` and, at a
-    different indent, unrelated methods that could share a short
-    name). A line starting with more leading spaces than `want_indent`
-    can't match this exact prefix either (its own character right at
-    that position is still a space, not `d`), so a plain `startswith`
-    already disambiguates both directions without per-character
-    indexing."""
+    """The line index of `fn_name`'s `def` line at exactly `want_indent`
+    leading spaces (0 for a free function, 4 for a `Plot` method), which
+    disambiguates a file with the same name at different nesting. A plain
+    `startswith` on the indented prefix already rejects deeper indents.
+    """
     var prefix = " " * want_indent + "def " + fn_name + "("
     for i in range(len(lines)):
         if lines[i].startswith(prefix):
@@ -205,12 +175,10 @@ def _def_index(lines: List[String], fn_name: String, want_indent: Int) raises ->
 
 
 def _lines_of(file: String) raises -> List[String]:
-    """dataviz/<file>.mojo's own lines, as real `List[String]` --
-    `String.split()` itself returns lifetime-bound `StringSpan`s tied
-    to the source string's own storage, which doesn't survive being
-    passed across a function boundary the way every caller here needs
-    (`_def_index()` chief among them), so this copies each line into
-    its own owned `String` once, right after reading."""
+    """dataviz/<file>.mojo's lines as owned `String`s: `String.split()`
+    returns spans tied to the source string, which don't survive being
+    passed across a function boundary.
+    """
     var raw = _read_file("dataviz/" + file + ".mojo").split("\n")
     var lines = List[String](capacity=len(raw))
     for l in raw:
@@ -219,9 +187,10 @@ def _lines_of(file: String) raises -> List[String]:
 
 
 def _quickplot_hook(fn_name: String, file: String, is_method: Bool) raises -> String:
-    """The one-line "what is this chart" hook shown at the top of a
-    docs page, pulled from `fn_name`'s own docstring in dataviz/
-    <file>.mojo via `_extract_docstring()`/`_first_sentence()`."""
+    """The one-line hook shown at the top of a docs page: `fn_name`'s
+    docstring's first sentence (`_extract_docstring()`/
+    `_first_sentence()`).
+    """
     var lines = _lines_of(file)
     var want_indent = 4 if is_method else 0
     var def_idx = _def_index(lines, fn_name, want_indent)
@@ -230,29 +199,20 @@ def _quickplot_hook(fn_name: String, file: String, is_method: Bool) raises -> St
 
 
 def _extract_args_lines(fn_name: String, file: String, is_method: Bool) raises -> List[String]:
-    """The `Args:` section's own bullet lines out of `fn_name`'s
-    docstring in dataviz/<file>.mojo, formatted as markdown --
-    `[]` if that function has no `Args:` section. Every docstring
-    shares one consistent indent relative to its own `def` (8 spaces
-    for a bullet's `name: description` line, 12 for a continuation,
-    for a free function; 12/16 for a method, one level deeper) --
-    confirmed across every quickplot function's own docstring, not
-    assumed. Skips the type annotation entirely -- reliably parsing
-    each argument's real type back out of the function's own
-    multi-line signature (`Theme`'s own giant default-value literal,
-    `List[Float64]`, ...) isn't worth it for what the snippet's own
-    real usage, shown right above, already makes clear."""
+    """The `Args:` section's bullet lines from `fn_name`'s docstring in
+    dataviz/<file>.mojo, as markdown; `[]` if there is no `Args:`
+    section. Relies on the consistent indent every docstring uses
+    relative to its `def` (8 spaces for a bullet, 12 for a continuation,
+    one level deeper for a method). Type annotations are not included.
+    """
     var lines = _lines_of(file)
     var want_indent = 4 if is_method else 0
     var def_idx = _def_index(lines, fn_name, want_indent)
     var bullet_indent = want_indent + 8
 
-    # Bounded to this function's own docstring (its closing `"""` line,
-    # at the docstring's own base indent) -- unbounded would happily
-    # keep scanning into whatever function comes next in the file and
-    # find *its* "Args:" instead, for any function with no Args:
-    # section of its own (secondary_axis() takes no documented
-    # parameters at all).
+    # Bounded to this function's own docstring (its closing line at the
+    # docstring's base indent); scanning further would find the next
+    # function's Args: for a function without one.
     var doc_indent_str = " " * (want_indent + 4)
     var doc_close = -1
     for i in range(def_idx + 1, len(lines)):
@@ -301,15 +261,13 @@ struct _ExampleBlock(Copyable, Movable):
 
 
 def _extract_example_blocks(fn_name: String, file: String, is_method: Bool) raises -> List[_ExampleBlock]:
-    """Every `Example:`/`Example (<heading>):` section's own fenced
-    ` ```mojo ` block out of `fn_name`'s docstring, each already a
-    complete, ready-to-embed program (the docstring text itself is
-    exactly what's shown and exactly what `extract_docstring_examples.
-    mojo` compiles and runs -- no cleanup step). Same 8-spaces-per-
-    indent-level convention `_extract_args_lines()` already relies on:
-    the fence and its code sit one level deeper than `Example:`'s own
-    line, which sits at the docstring's own base indent (4 for a free
-    function, 8 for a method)."""
+    """Every `Example:`/`Example (<heading>):` section's fenced ` ```mojo `
+    block from `fn_name`'s docstring, each a complete program shown and
+    run as-is. Same indent convention as `_extract_args_lines()`: the
+    fence and its code sit one level deeper than the `Example:` line,
+    which sits at the docstring's base indent (4 for a free function, 8
+    for a method).
+    """
     var lines = _lines_of(file)
     var want_indent = 4 if is_method else 0
     var def_idx = _def_index(lines, fn_name, want_indent)
@@ -369,11 +327,11 @@ def _extract_example_blocks(fn_name: String, file: String, is_method: Bool) rais
 
 
 def _output_svg_name(code_lines: List[String]) -> String:
-    """The bare filename (e.g. "out_bar.svg") this block's own save()/
-    write_accessible_svg() call writes into docs/src/examples/ --
-    parsed straight out of the shown code's own path argument, not
-    derived a second, independent way, so the image reference on the
-    page always matches exactly what the code actually writes."""
+    """The bare filename (e.g. "out_bar.svg") this block's `save()`/
+    `write_accessible_svg()` call writes into docs/src/examples/, parsed
+    from the code's own path argument so the page's image reference
+    always matches what the code writes.
+    """
     comptime marker = "docs/src/examples/"
     for line in code_lines:
         var idx = line.find(marker)

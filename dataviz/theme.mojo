@@ -1,250 +1,45 @@
-"""Visual defaults for a Plot -- colors, sizes, margins -- kept as one
-small struct with sensible defaults rather than a dozen optional
-parameters scattered across Plot's builder methods. This is
-deliberately the one place in this early vertical slice that borrows
-ECharts' "config object" ergonomics (a bundle of display knobs) rather
-than the grammar-of-graphics vocabulary the rest of dataviz follows --
-appropriate here specifically because a theme isn't part of the data
-grammar (it doesn't change what a mark or scale *means*), just how it
-looks.
+"""Visual defaults for a Plot (colors, sizes, margins) as one struct
+with defaults, rather than optional parameters scattered across
+Plot's builder methods. A theme changes how a mark looks, not what
+it means. Every `Color` field takes a `dataviz.colors` constant as
+readily as a `Color(r, g, b)`: `Theme(mark_color=CORNFLOWERBLUE)`.
 
-Every field below typed `Color` takes a `dataviz.colors` named
-constant exactly as it does a hand-built `Color(r, g, b)` -- `Theme(
-mark_color=CORNFLOWERBLUE)` instead of `Theme(mark_color=Color(100,
-149, 237))` -- see that module's docstring for the full list.
+`scale` (default 1.0) uniformly multiplies every other pixel-sized
+quantity render() computes (font size, margins, point radius, line
+width, tick length, legend layout). Pair `Theme(scale=2.0)` with a
+canvas twice the width/height to render the same chart at higher
+pixel density; the logical layout is identical at every scale.
+Separate from `render()`'s internal raster supersampling
+(`_RASTER_SUPERSAMPLE`, plot.mojo).
 
-`scale` (default 1.0, purely multiplicative, so every existing Theme
-keeps rendering exactly as it always has) uniformly multiplies every
-*other* pixel-sized quantity render() computes -- font size, margins,
-point radius, line width, tick length, legend layout, all of it --
-without changing what any individual field means at scale=1.0. Meant
-for rendering the exact same chart at a higher pixel density (pair
-`Theme(scale=2.0)` with a Canvas twice the width/height) so text and
-strokes stay crisp when a viewer displays the output larger than its
-native pixel size -- see the wiki for the concrete case
-that motivated this (a small raster canvas, viewed upscaled in an
-Electron/webview-based image preview, loses sharpness to the
-viewer's interpolation; more native pixels per glyph is the fix
-that holds regardless of which viewer is doing the upscaling). Not a
-crop/zoom -- the plot's logical layout (data domain, tick
-positions, legend contents) is identical at every scale, only the
-pixel measurements of everything drawn change.
+`color_by_sign` (default `False`) makes `Mark.BAR` color negative
+bars `mark_color_negative`; `Mark.WATERFALL`/`CANDLESTICK` use that
+color unconditionally.
 
-Every one-call convenience function (`bar()`, `scatter()`, ...)
-reads `scale` exactly the same way a hand-built `Plot` does -- it
-returns a plain `Plot` (`dataviz.plot._finished`'s docstring),
-not a rendered `Canvas`, so there's no separate quickplot-only
-scaling behavior to distinguish `scale` from here at all.
+`color_scale_low`/`color_scale_mid`/`color_scale_high` are the three
+stops of the continuous color gradient (`ColorScale.from_theme`). The
+middle stop exists because interpolating two saturated, hue-opposite
+colors in RGB passes through a muddy grey that dominates a legend; a
+light neutral grey at 0.5 is what diverging colormaps like
+`coolwarm`/`RdBu` do.
 
-Distinct from `render()`'s own internal supersampling
-(`_RASTER_SUPERSAMPLE`, plot.mojo): that's a fixed, unconditional
-multiplier `render()` applies and un-applies around one raster render
-pass so PNG/BMP output just looks good, not a `Theme` field or
-something this value composes with explicitly -- `scale` is the one
-knob a caller actually sets to ask for a bigger/sharper export;
-`render()`'s own supersampling is invisible plumbing underneath that
-choice, not a second version of it.
+`line_smoothing` (default `0.0`) controls how much `_build_line_path`
+(plot.mojo) curves a `Mark.LINE`/`AREA` through its points via a
+Catmull-Rom-derived cubic Bezier: `0.0` is straight segments, `1.0`
+the full curve. Must be in `[0.0, 1.0]`. `Mark.AREA` smooths only
+its top edge.
 
-`color_by_sign` (default `False` -- every `Mark.BAR` bar stays
-`mark_color`, unchanged) switches `_render_bar` to color each bar by
-whether its value is negative (`mark_color_negative`) or not
-(`mark_color`) -- what a diverging bar chart's coloring
-conventionally means (`Mark.BAR` already draws bars extending below a
-zero baseline for negative values with no changes needed -- see
-`_zero_baseline_y_extent`'s docstring; this is the one further
-thing a genuinely *diverging* bar chart adds on top of that: making
-the sign visually obvious by color too, not just by direction). An
-explicit opt-in flag, not inferred from whether `mark_color_negative`
-differs from `mark_color`, so there's no ambiguous default to guess
-at from color equality.
+`font_family` (default `"sans-serif"`) is baked into each
+`_TextRequest` where it is built, since `render_facets()`/
+`render_layers()` combine independently themed `Plot`s into one draw
+pass. `"sans-serif"` resolves as a fontconfig generic alias on the
+raster path and as a CSS `font-family` value in SVG; a specific
+installed font name works in both, but a CSS fallback stack only
+means anything on the SVG side.
 
-`Mark.WATERFALL` and `Mark.CANDLESTICK` also use `mark_color`/
-`mark_color_negative`, but unconditionally, with no `color_by_sign`
-equivalent of their own -- sign coloring isn't an optional extra for
-either (a waterfall's rising/falling color and a candlestick's up/down
-color both *are* what the chart conventionally shows), the way it is
-for an otherwise-complete plain bar chart. See either mark's `_render_*` docstring in plot.mojo.
-
-`color_scale_low`/`color_scale_mid`/`color_scale_high` are `Plot.encode(
-color=...)`'s continuous channel (and every mark built directly on
-`dataviz.color_scale.ColorScale` over its data domain --
-`Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`, see each one's
-`_render_*` docstring) -- three stops, not two: a real,
-rendering-caught readability bug. Two stops alone (the
-low/high colors directly, no `color_scale_mid`) linearly interpolate
-in plain RGB space, and the *midpoint* of two saturated, hue-opposite
-colors (the default low/high pair is blue/orange, chosen for
-contrast) in RGB space is a desaturated, muddy brownish-grey -- not a
-blend a viewer reads as "partway between blue and orange" at all. A
-mark whose data happens to sit near the domain's extremes never shows
-this, but the *legend* always spans the full domain end to end, so
-that muddy
-middle dominated most of its length -- reading as "one flat color"
-even though the underlying gradient math was working correctly the
-whole time. `color_scale_mid` (default a light neutral grey, `Color(
-235, 235, 235)`) is the fix every real diverging colormap (matplotlib's
-`coolwarm`, ColorBrewer's `RdBu`, ...) already uses: route the
-transition through a genuine third, deliberately desaturated color
-instead of letting linear RGB interpolation pick an accidental one.
-Added at gradient offset `0.5` alongside the existing `0.0`/`1.0`
-stops everywhere a `ColorScale` gets built from `Theme` (see `dataviz_
-mojo.color_scale.ColorScale.from_theme`'s docstring) -- a caller
-who genuinely wants a plain two-hue transition (a sequential, not
-diverging, scale) can still set `color_scale_mid` to whatever reads
-right for that specific pair, the same way every other color field
-here is a real, overridable default, not a hardcoded internal.
-
-`line_smoothing` (default `0.0` -- `Mark.LINE`/`Mark.AREA` draw exactly
-the straight point-to-point segments they always have) controls how
-much `_build_line_path` curves a line (or an area's top edge)
-through its data points, via a Catmull-Rom-derived cubic Bezier
-spline -- `0.0` builds a plain straight-segment `Path` (no curve math
-touched at all, not merely a degenerate curve that happens to look
-straight, so the default is byte-for-byte identical to every pre-
-existing `Mark.LINE`/`AREA` render, not just visually close), `1.0` the
-full, standard Catmull-Rom curve through every point, and anything in
-between scales each segment's tangent vector by that fraction --
-so `0.5` bows exactly half as far from the straight path as `1.0` does
-at the same point. Must be in `[0.0, 1.0]` -- `_render_generic` raises
-otherwise, an overshoot tension this package assigns no meaning to
-rather than silently rendering an unbounded, likely-self-intersecting
-curve. `Mark.AREA` only smooths its *top* edge (through the data
-points) -- the bottom edge down to/along the zero baseline stays
-straight, since baseline is a fixed reference line, not data, with
-nothing to curve through. See `_build_line_path`'s docstring
-(plot.mojo) for the control-point formula, shared unchanged by both
-marks.
-
-`title_font_size`/`subtitle_font_size`/`axis_title_font_size` are the
-three sizes `Plot.labels()` needs (see that method's docstring for
-the four strings themselves -- `title`/`subtitle`/`x_title`/`y_title`
--- and the layout math that uses these): a chart title reads as a
-heading, so it defaults larger than everything else on the plot (18.0,
-vs. `font_size`'s 12.0 for tick/legend labels); an axis title (a
-caption under the x-axis or rotated alongside the y-axis, e.g.
-"Revenue ($)") reads as a subordinate label, not body text or a
-heading, so it defaults between the two (14.0); `subtitle` shares that
-same 14.0 default -- the classic editorial two-tier headline reads
-title-then-subtitle as "heading, then a smaller supporting line," the
-identical size relationship an axis title already has to the title,
-not a fourth distinct size this package would need to separately
-justify. All three are plain `Float64` points, scaled by `Theme.scale`
-the same as `font_size` itself -- see `_Scaled`'s docstring
-(plot.mojo) for why every pixel-sized quantity goes through that one
-struct rather than each render path applying `* scale` itself. No
-titles are drawn by default (`Plot._labels`'s `title`/`subtitle`/
-`x_title`/`y_title` all default to `""`), so these three sizes only matter
-once a caller actually calls `.labels(...)` -- an empty string never
-reserves layout space or emits a `_TextRequest`, the same "absent
-means absent, not a zero-size version of present" rule `Plot.encode_
-gantt`'s start/end
-pair and every other optional feature in this file follow.
-
-`subtitle_color` (default a muted gray, `Color(110, 110, 110)`,
-distinct from `text_color`'s default `Color(40, 40, 40)`) is
-`subtitle`'s dedicated color, not `text_color` reused -- the
-second half of the two-tier-headline reading `title_bold`'s docstring gives for the title itself: a subtitle is
-supporting context, not body text or a heading, so it recedes rather
-than competing with either -- the same "a genuinely distinct visual
-role gets its color, not a borrowed one" reasoning `waterfall_
-total_color` below gives.
-
-`halo_alpha` (default 90) is the opacity `Mark.EFFECT_SCATTER` blends
-each point's halo at, before flattening it against white -- see
-`_lighten`'s docstring for why it is flattened rather than drawn
-translucent. `Mark.RADAR`'s filled series polygons get the same
-treatment from `mark_radar(fill_alpha=...)`, which is a mark
-parameter rather than a field here.
-
-Two separate numbers rather than one shared "tint alpha", even though
-both default to 90: a single shared constant would silently couple a
-scatter halo's tint to a radar fill's. Nothing connects those two
-beyond the number having happened to suit both, so retheming one
-should not move the other.
-
-`annotation_color` (default a plain medium gray, `Color(150, 150,
-150)`) is `Plot.annotate_line()`'s color -- both the reference
-line itself and its optional label share this one color, reading as
-one cohesive annotation rather than two independently colored pieces.
-Distinct from `mark_color` (a reference line is explicitly *not* data,
-so borrowing the data's color would blur that distinction) and
-from `axis_color`/`gridline_color` (this needs to read as more present
-than either -- a reference line is meant to be noticed, not recede
-into the chrome). Not `subtitle_color` reused either, even though both
-default to a similarly muted gray -- two different roles that happen
-to share a similar visual weight today, not a promise they'll always
-share a value; each gets its field so retheming one doesn't
-silently retheme the other.
-
-`annotation_area_color` (default a pale blue-gray at partial opacity,
-`Color(224, 236, 246, 200)`) is `Plot.annotate_area()`'s fill -- a
-genuinely separate field from `annotation_color`, not that same gray
-reused, because a *filled* rectangle needs to read very differently
-from a *line*: solid medium gray as a fill would read as an opaque,
-obtrusive block, while a 1px stroke in the same gray reads as a thin,
-unobtrusive mark. `Plot.annotate_area()`'s label text still uses
-`annotation_color`, not this field -- ink and fill are two different
-jobs even on the same annotation, the same split `mark_color`/
-`text_color` already have everywhere else. Real alpha (`a=200`, not
-the `_lighten()`-style pre-blend-against-white `halo_alpha` and
-`mark_radar(fill_alpha=...)` use), unlike those two: a halo/radar fill wants a
-*consistent* tint regardless of what happens to be behind it, but a
-reference band's whole point is marking a region on the *existing*
-chart, so it should let whatever the mark drew there keep showing
-through instead of painting fully over it. Both canvas backends
-already composite `Color.a` correctly (`Canvas.write_pixel`'s
-`blend_over`, `SvgCanvas.fill_rect`'s `fill-opacity`), so this is a
-plain color value, not special-cased draw logic. Tuned so the over-white look
-stays close to the old fully-opaque pale fill (`a=200` over white
-lands within a few units of `(224, 236, 246)`), while a mark's own
-color still visibly shows through wherever a band overlaps it.
-
-`font_family` (default `"sans-serif"`) is every `_TextRequest`'s typeface -- tick/legend labels, axis titles, the chart title, all of
-it, baked into each `_TextRequest` at the point it's built (the same
-"read straight off `theme`, per construction site" convention every
-other `_TextRequest` field -- `color`, `size` -- follows,
-*not* a single value read once by `render()`/`render_svg()`'s final draw loop: `render_facets()`/`render_layers()` combine several
-independently themed `Plot`s into one shared draw pass, so a family
-read once, globally, would silently apply the wrong plot's choice
-to every other plot sharing that canvas). `"sans-serif"` is
-deliberately a value valid in *both* worlds a caller's chosen family
-ends up in -- `canvas.text.draw_text`'s raster path resolves
-it as a fontconfig family/alias (fontconfig ships `sans-serif` as a
-recognized generic alias, the same generic-substitution concept CSS's `sans-serif` keyword is, alongside its older capitalized `Sans`
-form), while `SvgCanvas.draw_text`'s `family` parameter is a
-literal CSS `font-family` value the SVG viewer interprets directly --
-two genuinely different value spaces (a fontconfig alias resolves to
-one concrete font *file*; a CSS value is interpreted by whatever's
-rendering the SVG, with no file resolution on this package's side
-at all), which happen to agree on this one generic keyword. A caller
-naming a *specific* installed font instead (`"Georgia"`, `"Helvetica
-Neue"`) gets that request honored identically by both backends too,
-as long as it's a real, installed font name -- but a real CSS fallback
-*stack* (`"Helvetica Neue, Arial, sans-serif"`) only means anything to
-the SVG side; fontconfig has no comma-separated-list syntax of its
-own, so a raster render would treat the whole string as one (almost
-certainly unmatched) family name. Threading a stack through safely for
-both backends is a real, separate feature, not something this single
-string field takes on implicitly.
-
-`title_bold` (default `True`) bolds `Plot.labels()`'s chart
-title -- and only the title: `x_title`/`y_title` and every other
-`_TextRequest` (tick/legend labels) stay normal weight always, not
-configurable here, the same "one deliberate exception, not a general
-knob" scope this field itself is. The one default in this whole
-struct that isn't backward-compatible: every other field's default
-reproduces exactly what `render()` already produces without it (see
-`font_family`'s docstring for why that one does); this one exists
-because a plain-weight title doesn't read as polished enough on its
-own -- the one place a caller-visible aesthetic default, not just a
-new capability, changed. Still overridable
-(`Theme(title_bold=False)` reproduces the old look exactly) for a
-caller who wants it. Threaded the identical way `font_family` is --
-`_TextRequest`'s `bold: Bool = False` field, left untouched at
-every construction site except the title's in `_label_text_
-requests` (`bold=theme.title_bold`) -- rather than baked in
-everywhere `font_family` needed to be, since nothing else ever wants
-`True`."""
+`title_bold` (default `True`) is the one default here that changes
+pre-existing output; `Theme(title_bold=False)` restores the old look.
+"""
 
 from std.math import pi
 
@@ -298,10 +93,9 @@ struct Theme(ImplicitlyCopyable, Movable):
     """The low end of the default continuous color gradient (`Plot.
     encode(color=...)`, `Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`)."""
     var color_scale_mid: Color
-    """The midpoint of the default continuous color gradient -- a
-    deliberate third stop, not a two-color blend; see this struct's
-    own module docstring for why a plain low/high interpolation reads
-    as a muddy, desaturated middle."""
+    """The midpoint of the default continuous color gradient, a deliberate
+    third stop; see the module docstring.
+    """
     var color_scale_high: Color
     """The high end of the default continuous color gradient."""
     var size_range_min: Float64
@@ -333,44 +127,36 @@ struct Theme(ImplicitlyCopyable, Movable):
     """The darkest end of `Mark.BULLET`'s grayscale qualitative-range
     band gradient (highest range index)."""
     var waterfall_total_color: Color
-    """`Mark.WATERFALL`'s third color, for a row `encode_waterfall()`'s
-    `is_total` marks as a running-total checkpoint -- deliberately
-    distinct from `mark_color`/`mark_color_negative` since a total bar
-    is a different kind of thing, not a big increase or decrease."""
+    """`Mark.WATERFALL`'s color for a row `encode_waterfall()`'s `is_total`
+    marks as a running-total checkpoint, distinct from `mark_color`/
+    `mark_color_negative`.
+    """
     var radialbar_track_color: Color
     """The unfilled background track `Mark.RADIALBAR` sweeps its
     rings over."""
     var treemap_label_color: Color
     """The label color drawn on a `Mark.TREEMAP` leaf rectangle."""
     var radar_fill_alpha: UInt8
-    """The opacity `Mark.RADAR` blends each series' filled polygon at,
-    before flattening it against white -- a separate field from
-    `halo_alpha` even though both default to the same value, so
-    retheming one never silently moves the other."""
+    """The opacity `Mark.RADAR` blends each series' filled polygon at before
+    flattening against white; a separate field from `halo_alpha`.
+    """
     var shape_by_category: Bool
     """Whether `Mark.POINT`/`SINGLE_AXIS`/`EFFECT_SCATTER` draws each
-    `color_categories` row with a distinct point *shape* (`PointShape`,
-    marker.mojo) on top of its resolved color, cycling `default_
-    marker_shapes()` the same `% len(palette)` way `color_categories`'s
-    own color cycles. Defaults to `False` (every point stays a circle,
-    the shape every render before this field existed already drew). A
-    no-op without `color_categories` set -- there's no category to
-    draw more than one shape for, the same "a `Theme` flag only some
-    marks/encodings read" precedent `color_by_sign` already sets.
-
-    The one channel this package draws purely as redundant coding, not
-    a distinct data encoding of its own: a legend row's shape and
-    color both identify the same category, so a chart printed,
-    projected, or viewed by someone who can't rely on color -- where
-    every `color_categories` swatch collapses toward the same gray --
-    still reads as one series per distinct glyph."""
+    `color_categories` row with a distinct point shape (`PointShape`,
+    marker.mojo) on top of its color, cycling `default_marker_shapes()`
+    the same `% len` way the palette cycles. Defaults to `False`. A no-op
+    without `color_categories`. Redundant coding for charts viewed
+    without reliable color: a legend row's shape and color identify the
+    same category.
+    """
     var line_smoothing: Float64
     """How much `Mark.LINE`/`AREA` curves through its data points, via
     a Catmull-Rom-derived spline -- `0.0` (the default) draws plain
     straight segments; `1.0` the full curve; must be in `[0.0, 1.0]`."""
     var title_font_size: Float64
-    """The chart title's font size, in points; defaults larger than
-    `font_size` since a title reads as a heading."""
+    """The chart title's font size, in points; 18.0 against `font_size`'s
+    12.0 for tick/legend labels, scaled by `scale` like every other size.
+    """
     var subtitle_font_size: Float64
     """The subtitle's font size, in points -- the same size an axis
     title uses, both reading as a subordinate label under the title."""
@@ -381,23 +167,28 @@ struct Theme(ImplicitlyCopyable, Movable):
     var axis_title_font_size: Float64
     """The x/y-axis title's font size, in points."""
     var annotation_color: Color
-    """`Plot.annotate_line()`/`annotate_vline()`/`annotate_point()`'s
-    color -- the reference mark itself and its optional label."""
+    """`Plot.annotate_line()`/`annotate_vline()`/`annotate_point()`/
+    `annotate_best_fit()`'s color, for the mark and its label. Distinct
+    from `mark_color` (an annotation is not data) and from `axis_color`/
+    `gridline_color` (it should read as more present than chrome).
+    """
     var annotation_area_color: Color
-    """`Plot.annotate_area()`'s fill -- a separate field from
-    `annotation_color` since a filled band needs real partial opacity
-    to let the mark underneath keep showing through, unlike a line."""
+    """`Plot.annotate_area()`/`annotate_band()`'s fill, with real alpha
+    (`a=200`) so the mark underneath shows through; both canvas backends
+    composite `Color.a`. Label text still uses `annotation_color`.
+    """
     var font_family: String
     """Every `_TextRequest`'s typeface; defaults to `"sans-serif"`, a
     generic keyword both the raster (fontconfig) and SVG (CSS) text
     backends resolve consistently."""
     var title_bold: Bool
-    """Whether the chart title draws bold; defaults to `True`. The one
-    field in this struct whose default isn't backward-compatible with
-    pre-existing renders -- see this struct's own module docstring."""
+    """Whether the chart title draws bold; defaults to `True`. The one field
+    whose default changes pre-existing renders; see the module docstring.
+    """
     var halo_alpha: UInt8
-    """The opacity `Mark.EFFECT_SCATTER` blends each point's halo at,
-    before flattening it against white."""
+    """The opacity `Mark.EFFECT_SCATTER` blends each point's halo at before
+    flattening it against white (`_lighten`, plot.mojo).
+    """
     var tick_length: Int
     """The pixel length of each axis tick mark."""
     var label_gap: Int
@@ -418,57 +209,39 @@ struct Theme(ImplicitlyCopyable, Movable):
     """Extra breathing-room padding, in pixels, added after a
     margin's own tick-label-width/tick-length/label-gap computation."""
     var error_bar_cap_width: Float64
-    """Half the pixel width of the horizontal cap `Plot.encode()`'s
-    `y_err` channel draws at each end of a point's error-bar whisker --
-    `Mark.BOX`'s own whisker caps are sized from each category's own
-    band width instead (there's a natural width to derive one from,
-    a `Mark.BOX` category has no equivalent), so this is a real,
-    independent `Theme` field, not a reuse of anything else here."""
+    """Half the pixel width of the horizontal cap `Plot.encode()`'s `y_err`
+    channel draws at each end of an error bar. `Mark.BOX`'s whisker caps
+    are sized from the band width instead.
+    """
     var output_format: OutputFormat
-    """The file format `save()` (plot.mojo) writes when given a `Plot`
-    and a path, with no `canvas` backend named at the call site --
-    defaults to `OutputFormat.SVG` (see that struct's docstring for why
-    vector is the default). `render()`/`render_svg()` ignore this field
-    entirely; it only governs `save()`'s own choice."""
+    """The file format `save()` (plot.mojo) writes when given a `Plot` and a
+    path; defaults to `OutputFormat.SVG`. `render()`/`render_svg()`
+    ignore this field.
+    """
     var svg_tooltips: Bool
-    """Whether each datum gets an SVG `<title>`, which a browser shows
-    as a native hover tooltip -- `True` by default for the categorical
-    marks that support it (see below), and a no-op on the raster
-    backend, which has nowhere to put one.
+    """Whether each datum gets an SVG `<title>`, which a browser shows as a
+    hover tooltip; `True` by default, and a no-op on the raster backend.
 
-    Emitted through `DrawTarget.begin_annotated_group`/`end_annotated_
-    group` (canvas_mojo >= 0.13.0), so a mark wraps however many
-    primitives one datum happens to draw -- a box plot's box, whiskers,
-    caps and median are one tooltip, not five. `SvgCanvas` turns that
-    into `<g><title>...</title>...</g>`; `Canvas` ignores both calls.
-    Titles are XML-escaped by canvas_mojo, so a label may contain `&`,
-    `<` and `>` freely.
+    Emitted through `DrawTarget.begin_annotated_group`/
+    `end_annotated_group` (canvas_mojo >= 0.13.0), so one datum's
+    primitives (a box plot's box, whiskers, caps and median) share one
+    tooltip. `SvgCanvas` turns that into `<g><title>...</title>...</g>`;
+    `Canvas` ignores both calls. Titles are XML-escaped by canvas_mojo.
 
-    Only the marks whose group is one *category* carry titles today --
-    `Mark.BAR`, `GROUPED_BAR`, `STACKED_BAR`, `BOX`, `LOLLIPOP`,
-    `VIOLIN`. The point-per-datum marks (`POINT`, `EFFECT_SCATTER`,
-    `BEESWARM`) deliberately don't yet: a title costs about 39 bytes
-    against a `<circle>`'s 48, so a dense scatter's SVG roughly
-    doubles (measured: 234 KB -> 425 KB at 5000 points, and the DOM
-    node count doubles with it). That wants its own opt-in rather than
-    riding on this flag -- see the tracking issue.
+    The category-grouped marks (`Mark.BAR`, `GROUPED_BAR`, `STACKED_BAR`,
+    `BOX`, `LOLLIPOP`, `VIOLIN`) carry titles under this flag alone. The
+    point-per-datum marks (`POINT`, `EFFECT_SCATTER`, `BEESWARM`) also
+    need their mark's `tooltips=True`, since a title roughly doubles a
+    dense scatter's SVG.
     """
     var show_data_labels: Bool
-    """Whether `Mark.BAR`/`GROUPED_BAR`/`STACKED_BAR` draws each bar's
-    own value as text -- `False` (the default, every existing render
-    stays byte-identical) draws nothing extra; `True` draws the same
-    value the bar's own height already encodes, in `text_color` at
-    `font_size`. Formatted via `_label_decimals()` (scale.mojo) --
-    the fewest decimal places that represent that specific value
-    exactly, deliberately *not* the y-axis's own (coarser) `Ticks.
-    decimals`, so a label always shows the real number a bar's height
-    alone can't convey precisely, not the tick grid's rounded version
-    of it. An opt-in flag on `Theme` rather than a new `encode()`
-    channel, the same "changes how a mark draws, not new data" pattern
-    `color_by_sign` already sets -- unlike `color_by_sign`, this is a
-    single flag shared by every categorical-bar mark (`Mark.POINT`'s
-    own data-label case needs a genuine text column via `encode()`,
-    a real, separate feature -- not attempted here)."""
+    """Whether `Mark.BAR`/`GROUPED_BAR`/`STACKED_BAR` draws each bar's value
+    as text, in `text_color` at `font_size`; defaults to `False`.
+    Formatted via `_label_decimals()` (scale.mojo), the fewest decimal
+    places that represent the value exactly, rather than the y-axis's
+    coarser `Ticks.decimals`. A `Theme` flag rather than an `encode()`
+    channel, like `color_by_sign`.
+    """
 
     def __init__(
         out self,
@@ -524,11 +297,10 @@ struct Theme(ImplicitlyCopyable, Movable):
         svg_tooltips: Bool = True,
         show_data_labels: Bool = False,
     ):
-        """Construct a `Theme`, overriding any subset of its fields by
-        keyword -- every parameter here is one field, same name, same
-        default; see each field's own docstring above for what it
-        controls rather than this method repeating it, so a change to
-        one never has a second copy elsewhere to fall out of sync."""
+        """Construct a `Theme`, overriding any subset of its fields by keyword.
+        Every parameter is one field with the same name and default; see
+        each field's docstring.
+        """
         self.background = background
         self.mark_color = mark_color
         self.axis_color = axis_color
@@ -583,10 +355,7 @@ struct Theme(ImplicitlyCopyable, Movable):
 
     @staticmethod
     def default() -> Self:
-        """Named the same way `FontSlant.NORMAL`-style call sites in
-        this workspace read -- `Theme.default()` rather than relying
-        on every caller remembering that `Theme()` alone already means
-        the same thing (it does; this is purely for readability at
-        call sites like `.theme(Theme.default())`).
+        """`Theme()` under a name that reads clearly at call sites like
+        `.theme(Theme.default())`.
         """
         return Self()

@@ -1,27 +1,22 @@
 """The shared tree-indexing core behind the hierarchy family
-(`Mark.SUNBURST`/`TREE`/`TREEMAP`): every one of those marks needs the
-exact same three answers about `Plot.encode_hierarchy()`'s flat
-`ids`/`parent_ids`/`values` rows -- who is whose child, how deep is
-each node, and what's each node's subtree total -- before any
-mark-specific layout (a ring sector, a node position, a rectangle) can
-be computed. Shared by all three callers.
+(`Mark.SUNBURST`/`TREE`/`TREEMAP`). All three need the same three
+things from `Plot.encode_hierarchy()`'s flat `ids`/`parent_ids`/
+`values` rows before any mark-specific layout: who is whose child, how
+deep each node is, and each node's subtree total.
 
-A flat `(id, parent_id, value)` row list rather than a real tree/graph
-type of its own -- exactly `d3.stratify()`'s flattening trick (a
-parent-pointer array instead of nested objects), chosen so this
-package's "plain columnar arrays, no Table" data model (see the wiki)
-covers a hierarchy without inventing a new kind of value to hold one.
+A flat `(id, parent_id, value)` row list rather than a tree type, the
+same flattening `d3.stratify()` uses, so the package's
+plain-columnar-arrays data model covers a hierarchy without a new kind
+of value.
 """
 
 from std.collections import Dict
 
 
 struct _HierarchyData(Movable):
-    """
-    Mark.SUNBURST/TREE/TREEMAP only -- a flattened hierarchy, one (id,
-    parent_id, value) row per node. See encode_hierarchy()'s docstring.
-
-    Grouped onto `Plot._hierarchy` -- see `Plot`'s docstring.
+    """A flattened hierarchy, one (id, parent_id, value) row per node, for
+    `Mark.SUNBURST`/`TREE`/`TREEMAP`. See `encode_hierarchy()`. Stored on
+    `Plot._hierarchy`.
     """
 
     var ids: List[String]
@@ -62,28 +57,17 @@ struct _HierarchyIndex(Movable):
 def _build_hierarchy_index(
     ids: List[String], parent_ids: List[String], values: List[Float64]
 ) raises -> _HierarchyIndex:
-    """Turn `encode_hierarchy()`'s flat rows into what every mark
-    in the hierarchy family actually needs: `children[i]` (every row
-    index whose `parent_ids` points at `ids[i]`), `depth[i]` (0 at
-    the single root, +1 per level -- computed by one BFS pass from the
-    root, the same "root's children have index 0 at the top"
-    top-down reading `_draw_horizontal_categorical_axis_frame`'s category order uses elsewhere), and `subtree_value
-    [i]` (a leaf's `values[i]`; an internal node's *sum of
-    every descendant leaf's value*, not whatever `values[i]` happened
-    to be given as -- the standard "a parent's size is its
-    children's total" convention every real treemap/sunburst uses,
-    computed bottom-up in one reverse-BFS pass once `depth` is known,
-    deepest nodes first).
+    """Turn `encode_hierarchy()`'s flat rows into what the hierarchy family
+    needs: `children[i]` (every row index whose `parent_ids` points at
+    `ids[i]`), `depth[i]` (0 at the root, +1 per level, from one BFS
+    pass), and `subtree_value[i]` (a leaf's `values[i]`; an internal
+    node's sum of every descendant leaf's value, ignoring its own
+    `values[i]`, computed bottom-up in one reverse-BFS pass).
 
-    An empty `parent_ids[i]` (`""`) marks the single root -- raises if
-    zero or more than one row qualifies, the same "raise on a
-    genuinely inconsistent input" stance `Mark.CALENDAR_HEATMAP`'s single-year requirement takes: a forest (multiple roots)
-    is a real, if less common, hierarchy shape, but out of scope (see
-    this module's docstring's `d3.stratify()` comparison -- that
-    function has the identical single-root restriction by default).
-    Also raises on a duplicate `id`, or
-    a `parent_ids[i]` that doesn't match any given `id` (other than
-    the empty-string root sentinel).
+    An empty `parent_ids[i]` (`""`) marks the single root. Raises if zero
+    or more than one row qualifies (a forest is out of scope, matching
+    `d3.stratify()`'s default), on a duplicate `id`, or on a
+    `parent_ids[i]` that matches no `id`.
     """
     var n = len(ids)
     var id_to_row = Dict[String, Int]()
@@ -133,35 +117,20 @@ def _build_hierarchy_index(
                 max_depth = depth[c]
             order.append(c)
 
-    # Every row must be reachable from the root. The checks above catch
-    # duplicate ids, unresolvable parent_ids, and a wrong root count --
-    # but none of them catches a *cycle*, because every node in one
-    # still has exactly one parent that resolves fine. Given
-    #     ids     = ["root", "leaf", "a", "b"]
-    #     parent_ids = ["",   "root", "b", "a"]
-    # "a" and "b" are each other's parent: a two-node cycle hanging off
-    # nothing. Every existing check passes, the traversal above simply
-    # never reaches either one, and both rows -- with their values --
-    # would silently vanish from the chart.
+    # Every row must be reachable from the root. The checks above don't
+    # catch a cycle: given
+    #     ids        = ["root", "leaf", "a", "b"]
+    #     parent_ids = ["",     "root", "b", "a"]
+    # "a" and "b" are each other's parent, every check passes, the BFS
+    # never reaches either, and both rows would silently vanish from the
+    # chart. Comparing the traversal's reach against `n` catches cycles and
+    # disconnected components alike.
     #
-    # This is the same "raise, don't silently misrepresent the data"
-    # stance `mark_arc()`'s non-negative check takes: a
-    # chart that quietly drops rows is worse than one that refuses to
-    # draw, because nothing about the result looks wrong. Comparing the
-    # traversal's reach against `n` catches cycles and disconnected
-    # components alike, without a separate cycle-detection pass.
-    #
-    # It also guarantees the thing tree.mojo's recursive
-    # `_assign_branch_colors`/`_assign_leaf_positions` quietly depend
-    # on: that the structure they walk really is a tree. A cycle can
-    # never be *reachable* from the root anyway -- each row names
-    # exactly one parent, so a node inside a cycle can't also be some
-    # reachable node's child -- which is why those two functions have
-    # never actually been able to recurse forever, whatever the
-    # compiler's "self recursive call will cause an infinite loop"
-    # warning on that file suggests (that warning is a false positive:
-    # the recursion is over `children[node]`, which is empty at every
-    # leaf).
+    # This also guarantees that tree.mojo's recursive
+    # `_assign_branch_colors`/`_assign_leaf_positions` walk a real tree. The
+    # compiler's "self recursive call will cause an infinite loop" warning
+    # on that file is a false positive: the recursion is over
+    # `children[node]`, which is empty at every leaf.
     if len(order) != n:
         raise Error(
             "Plot.encode_hierarchy(): "

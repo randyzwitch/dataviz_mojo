@@ -1,13 +1,9 @@
-"""ColorScale -- maps a continuous data domain onto a color gradient,
-for data-driven color encoding (`Plot.encode(color=...)`). Shares its
-stop-interpolation logic with `canvas.gradient`'s `LinearGradient`/
-`RadialGradient` via that module's `_color_at_t`/`_GradientStop`
--- identical math (bracket the two nearest stops, linearly
-interpolate), only the projection differs: those two project a pixel
-position (an axis, or a radial distance) onto [0, 1]; this one
-projects a *data value* onto [0, 1] via a plain domain, the same
-domain-to-[0,1] idea `LinearScale` uses for position, generalized to
-color instead of a pixel coordinate.
+"""ColorScale maps a continuous data domain onto a color gradient, for
+data-driven color encoding (`Plot.encode(color=...)`). Stop
+interpolation is shared with `canvas.gradient`'s `LinearGradient`/
+`RadialGradient` through `_color_at_t`/`_GradientStop`; only the
+projection differs. Those project a pixel position onto [0, 1]; this
+projects a data value, the way `LinearScale` does for position.
 """
 
 from canvas.color import Color
@@ -16,14 +12,10 @@ from dataviz.theme import Theme
 
 
 struct ColorScale(Movable):
-    """A linear color gradient over [domain_min, domain_max] -- no
-    "pixel range" the way LinearScale has, since a color has no
-    spatial position to map onto; `color_at(value)` is the whole
-    interface. A zero-span domain (every value identical) always
-    projects to t=0.0 -- the lowest-offset stop's color (not
-    necessarily whichever was added first; see `_color_at_t`'s
-    bracketing-by-offset-value search), not a crash -- the same
-    degenerate-domain handling `LinearScale.scale()` gives.
+    """A linear color gradient over [domain_min, domain_max]. There is no
+    pixel range as in LinearScale; `color_at(value)` is the whole
+    interface. A zero-span domain projects every value to t=0.0, the
+    lowest-offset stop's color.
     """
 
     var domain_min: Float64
@@ -32,19 +24,16 @@ struct ColorScale(Movable):
     """The high end of the data domain this scale's colors span."""
     var stops: List[_GradientStop]
     """The gradient's own color stops, added via `add_stop()`."""
-    # The smallest-/largest-offset stop so far -- tracked incrementally
-    # here instead of scanned from `stops` by _color_at_t on every
-    # call, matching LinearGradient/RadialGradient's pattern (see
-    # canvas.gradient's docstring for why _color_at_t takes
-    # these pre-found rather than scanning itself).
+    # The smallest-/largest-offset stop so far, tracked incrementally so
+    # `_color_at_t` needn't scan `stops` on every call (same pattern as
+    # LinearGradient/RadialGradient).
     var _lowest: _GradientStop
     var _highest: _GradientStop
 
     def __init__(out self, domain_min: Float64, domain_max: Float64):
-        """Construct an empty `ColorScale` over `[domain_min,
-        domain_max]` -- a real, valid starting point with no stops
-        yet; add them via `add_stop()`, or build one pre-filled with
-        `Theme`'s own stops via `from_theme()`.
+        """Construct an empty `ColorScale` over `[domain_min, domain_max]`. Add
+        stops via `add_stop()`, or use `from_theme()` for one pre-filled with
+        `Theme`'s stops.
 
         Args:
             domain_min: The low end of the data domain.
@@ -53,9 +42,8 @@ struct ColorScale(Movable):
         self.domain_min = domain_min
         self.domain_max = domain_max
         self.stops = List[_GradientStop]()
-        # Overwritten by the first real add_stop() call; _color_at_t
-        # never reads these unless len(stops) >= 2, so this placeholder
-        # (transparent black at offset 0.0) is never actually observed.
+        # Overwritten by the first add_stop() call; _color_at_t never reads
+        # these unless len(stops) >= 2.
         self._lowest = _GradientStop(0.0, Color(0, 0, 0, 0))
         self._highest = self._lowest
 
@@ -75,10 +63,9 @@ struct ColorScale(Movable):
         self.stops.append(stop)
 
     def color_at(self, value: Float64) -> Color:
-        """Project `value` onto this scale's `[domain_min,
-        domain_max]` domain, then interpolate its color between the
-        two nearest stops (see this struct's own docstring for the
-        zero-span-domain case).
+        """Project `value` onto `[domain_min, domain_max]`, then interpolate
+        between the two nearest stops (see the struct docstring for the
+        zero-span case).
 
         Args:
             value: The data value to look up a color for.
@@ -94,21 +81,12 @@ struct ColorScale(Movable):
 
     @staticmethod
     def from_theme(theme: Theme, domain_min: Float64, domain_max: Float64) -> Self:
-        """The one, shared way every continuous color-encoded mark in
-        this package (`Plot.encode(color=...)`'s point channel,
-        `Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`) builds its
-        `ColorScale` from `theme`'s three color-scale stops -- `low` at
-        offset `0.0`, `mid` at `0.5`, `high` at `1.0`, not just `low`/
-        `high` alone -- see `Theme.color_scale_mid`'s docstring for the
-        real, rendering-caught readability bug a missing middle stop
-        causes.
-
-        A plain `@staticmethod`, not a change to `__init__` itself --
-        `ColorScale(domain_min, domain_max)` alone (no stops) stays a
-        real, valid, if empty, starting point (`tests/test_color_scale.
-        mojo`'s hand-built black/white and blue/red scales, for
-        instance, have nothing to do with any `Theme` at all and
-        shouldn't need one just to construct a `ColorScale`).
+        """How every continuous color-encoded mark (`Plot.encode(color=...)`,
+        `Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`) builds its `ColorScale`
+        from `theme`'s three stops: `low` at `0.0`, `mid` at `0.5`, `high` at
+        `1.0`. See `Theme.color_scale_mid` for why the middle stop exists. A
+        `@staticmethod` so `ColorScale(domain_min, domain_max)` with no stops
+        stays a valid starting point.
 
         Args:
             theme: Supplies the three color-scale stops
@@ -127,23 +105,13 @@ struct ColorScale(Movable):
 
 
 def default_categorical_palette() -> List[Color]:
-    """A default qualitative (discrete, unordered) color palette for
-    categorical color encoding -- 8 colors chosen to read as visually
-    distinct from each other (the same well-known "tab10"-style set
-    most charting libraries ship a version of), cycled via modulo if a
-    column has more unique categories than this (see
-    `Plot.encode`'s docstring).
+    """A default qualitative color palette for categorical color encoding: 8
+    visually distinct colors (the common "tab10"-style set), cycled via
+    modulo when a column has more unique categories (see `Plot.encode`).
 
-    Deliberately a plain function, not a `Theme` field: adding a
-    `List` field to `Theme` would break its `ImplicitlyCopyable`
-    conformance -- Mojo can't synthesize an implicit copy constructor
-    once a struct holds a `List` -- which every existing `var theme =
-    plot._theme`-style copy throughout
-    this package already depends on. The same reasoning keeps named
-    palettes out of `canvas.Color` itself: a fixed default is
-    enough until per-Theme palette customization is an actual,
-    concrete need, not a reason to change how `Theme` itself copies
-    today.
+    A plain function rather than a `Theme` field: a `List` field would
+    break `Theme`'s `ImplicitlyCopyable` conformance, which the
+    `var theme = plot._theme` copies throughout the package depend on.
 
     Returns:
         8 visually distinct colors, cycled via modulo for more

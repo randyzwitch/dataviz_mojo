@@ -15,11 +15,8 @@ from dataviz.theme import Theme
 
 
 struct _CandleData(Movable):
-    """
-    Mark.CANDLESTICK only -- one open/high/low/close value per category,
-    from encode_candlestick(). See that method's docstring.
-
-    Grouped onto `Plot._candle` -- see `Plot`'s docstring.
+    """One open/high/low/close value per category, for `Mark.CANDLESTICK`.
+    See `encode_candlestick()`. Stored on `Plot._candle`.
     """
 
     var open_price: List[Float64]
@@ -39,34 +36,21 @@ def _render_candlestick[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
     """Render a `Mark.CANDLESTICK` plot: `_draw_categorical_axis_frame`'s
-    shared categorical x-axis, with a y-domain spanning every open/high/
-    low/close value actually drawn (`_data_extent`, padded but *not*
-    forced through zero: a candlestick chart's whole point is showing
-    fine detail in a price range that's typically nowhere near zero,
-    so forcing zero into view would flatten exactly the detail the
-    chart exists to show -- the same choice `Mark.BOX` makes).
+    categorical x-axis, with a y-domain spanning every open/high/low/close
+    value (`_data_extent`, padded but not forced through zero, since price
+    ranges are typically nowhere near zero; the same choice `Mark.BOX`
+    makes).
 
-    Draws, per category, back to front (whisker under body, the same
-    order `_render_box` uses, so a wick with a short body still reads
-    as one shape, not two disconnected pieces): a thin wick
-    (`draw_line_aa`, `theme.axis_color` -- matching `Mark.
-    BOX`'s whisker color, both being "the part of the shape that
-    isn't the headline value") from `high` to `low`, then the body
-    itself (`fill_rect`, full band width, `Mark.BAR`/`BOX`'s
-    convention) from `open` to `close`, colored by `close >= open`:
-    `theme.mark_color` (closed up) or `theme.mark_color_negative`
-    (closed down). These are the *same* two fields `Mark.WATERFALL`
-    reuses for its unconditional sign coloring, not new dedicated
-    bullish/bearish fields: a candlestick's whole reason for being
-    colored by sign *is* the chart, unlike `Mark.BAR`'s `Theme.
-    color_by_sign`, which stays a real opt-in since a plain bar chart
-    is still a complete, correct chart without it.
+    Per category, back to front: a thin wick (`draw_line_aa`,
+    `theme.axis_color`, matching `Mark.BOX`'s whisker color) from `high`
+    to `low`, then the body (`fill_rect`, full band width) from `open` to
+    `close`, colored `theme.mark_color` when `close >= open` and
+    `theme.mark_color_negative` otherwise. These are the same two fields
+    `Mark.WATERFALL` uses for its sign coloring; unlike `Mark.BAR`'s
+    opt-in `Theme.color_by_sign`, a candlestick is always colored by sign.
 
-    A doji (`open == close` exactly) would otherwise draw a zero-height
-    rect -- `fill_rect` treats that as a no-op (see its tests), which
-    would make the body invisible against its wick, when a real
-    candlestick chart shows a doji as a thin flat body -- so body height
-    is floored at 1px, not left to `fill_rect`'s zero-size handling.
+    Body height is floored at 1px so a doji (`open == close`) draws as a
+    thin flat body rather than `fill_rect`'s zero-height no-op.
     """
     if len(plot.x_categories) != len(plot._candle.open_price):
         raise Error(
@@ -146,8 +130,9 @@ def candlestick(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A candlestick chart -- `Mark.CANDLESTICK`, one open/high/low/
-    close bar per category.
+    """A candlestick chart.
+
+    `Mark.CANDLESTICK`: one open/high/low/close bar per category.
 
     Args:
         categories: One bar per entry, in the given order.
@@ -211,10 +196,10 @@ def candlestick[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`candlestick()`, generalized over numeric element type --
-    see `scatter()`'s own `DType`-generic overload (plot.mojo) for
-    the full reasoning. `open`/`high`/`low`/`close` share one dtype.
-    Delegates to the concrete `candlestick()` above.
+    """`candlestick()` generalized over numeric element type; see
+    `scatter()`'s `DType` overload (plot.mojo).
+    `open`/`high`/`low`/`close` share one dtype. Delegates to the concrete
+    overload above.
     """
     return candlestick(
         categories, _materialize_scalar_list(open), _materialize_scalar_list(high),

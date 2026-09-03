@@ -21,15 +21,9 @@ from dataviz.theme import Theme
 
 
 def _descending_value_order(values: List[Float64]) -> List[Int]:
-    """`values`' indices, sorted largest-first -- a plain selection
-    sort (values are always `Mark.BAR`-sized, a handful to a few dozen
-    stages, never large enough to need anything better; the same "a
-    simple O(n^2) scan over a small n" tolerance `_unique_categories`
-    already has). Ties keep their original relative order (a stable
-    sort, picking the first not-yet-placed index whenever two values
-    are equal) -- not load-bearing for anything, just avoids an
-    arbitrary-looking swap a caller with equal-valued stages might
-    notice.
+    """`values`' indices sorted largest-first by a stable selection sort
+    (ties keep their original relative order). Inputs are a handful of
+    stages, so O(n^2) is fine.
     """
     var n = len(values)
     var order = List[Int]()
@@ -70,29 +64,19 @@ def _fill_trapezoid[
 def _render_funnel[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
-    """Render a `Mark.FUNNEL` plot: `encode_categorical()`'s category+value shape (the same data `Mark.BAR`/`ARC` already take),
-    drawn largest-value-first top to bottom (`_descending_value_order`
-    -- matching ECharts' "highest to lowest" default, not left to
-    the caller's row order the way every other categorical mark
-    here is) as one trapezoid per row, no axis frame at all -- like
-    `_render_arc`, a funnel's whole point is the taper, not a value
-    read off an axis.
+    """Render a `Mark.FUNNEL` plot: `encode_categorical()`'s category+value
+    shape drawn largest-value-first top to bottom
+    (`_descending_value_order`, matching ECharts' default) as one
+    trapezoid per row, with no axis frame.
 
-    Equal row heights spanning the whole plot rect; each row's top
-    width is `value / largest_value` of the available width (so the
-    largest stage always spans edge to edge) and its *bottom*
-    width equals the *next* row's top width -- a continuous taper
-    from stage to stage, the standard funnel look. The last row's bottom width matches its top (a flat bottom, not tapering to a
-    point) -- there's no "next" value to taper into.
+    Rows have equal heights spanning the plot rect. Each row's top width
+    is `value / largest_value` of the available width, and its bottom
+    width equals the next row's top width, for a continuous taper. The
+    last row's bottom matches its top.
 
-    Colors cycle `default_categorical_palette()` by *display row*
-    (post-sort position), not original category index -- unlike `Mark.
-    ARC`'s palette-by-category-index, a funnel's row order is
-    itself data-dependent (`_descending_value_order`), so coloring by
-    final position keeps row 0 always the same color across different
-    inputs, the same "the picture reads the same way every time" reason
-    the legend below is drawn in that same sorted order, not the
-    caller's original one.
+    Colors cycle `default_categorical_palette()` by display row (post-sort
+    position), not original category index, so row 0 is always the same
+    color; the legend is drawn in that same sorted order.
     """
     _validate_categorical_encoding(plot)
 
@@ -163,11 +147,13 @@ def funnel(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A funnel chart -- `Mark.FUNNEL` over a categorical `x` and
-    continuous `y` (the same shape `bar()`/`pie()` take), drawn
-    largest-value-first as tapering trapezoids. See `_render_funnel`'s docstring for the taper/ordering rules. `x_title`/`y_title` are
-    accepted for signature consistency with every other quickplot here
-    but have no axis to label, the same as `pie()`'s two.
+    """A funnel chart.
+
+    `Mark.FUNNEL` over a categorical `x` and continuous `y` (the same
+    shape `bar()`/`pie()` take), drawn largest-value-first as tapering
+    trapezoids. See `_render_funnel` for the taper and ordering rules.
+    `x_title`/`y_title` are accepted for signature consistency but have no
+    axis to label, as with `pie()`.
 
     Args:
         categories: One trapezoid per entry -- drawn largest-value-
@@ -218,9 +204,9 @@ def funnel[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`funnel()`, generalized over numeric element type -- see
-    `scatter()`'s own `DType`-generic overload (plot.mojo) for the
-    full reasoning. Delegates to the concrete `funnel()` above.
+    """`funnel()` generalized over numeric element type; see `scatter()`'s
+    `DType` overload (plot.mojo). Delegates to the concrete overload
+    above.
     """
     return funnel(
         categories, _materialize_scalar_list(values), theme=theme, width=width, height=height,
