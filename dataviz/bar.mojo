@@ -10,6 +10,7 @@ from dataviz.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _Orientation,
     _Scaled,
     _TextRequest,
     _axis_pixel,
@@ -25,7 +26,7 @@ from dataviz.theme import Theme
 
 
 def _bar_fill_color(theme: Theme, value: Float64) -> Color:
-    """The one fill color `_draw_bar_rects`/`_draw_horizontal_bar_rects`
+    """The one fill color `_draw_bar_rects`
     both pick per bar -- `Theme.mark_color_negative` when `Theme.
     color_by_sign` is on and this bar's own value is negative, `Theme.
     mark_color` otherwise. Color doesn't depend on which axis is
@@ -40,82 +41,64 @@ def _draw_bar_rects[
 ](
     mut target: T,
     plot: Plot,
-    x_scale: OrdinalScale,
-    y_scale: LinearScale,
-    py1: Int,
+    band_scale: OrdinalScale,
+    value_scale: LinearScale,
+    baseline_edge: Int,
+    orient: _Orientation,
     mut text_requests: List[_TextRequest],
 ) raises:
     """Draw one `Mark.BAR` plot's rectangles (and, when `Theme.show_
     data_labels` is set, each one's value label) into an already-laid-
-    out categorical axis frame -- the exact loop `_render_bar` runs
-    against its own freshly-built frame, factored out so `render_
-    layers()`'s bar-combo path (`_render_bar_combo_layers`, plot.mojo)
-    can draw a `Mark.BAR` layer against a frame *it* built (shared
-    across every layer), instead of `_render_bar` building its own
-    standalone one -- the same "share the drawing primitive, not just
-    the layout" split `_draw_point_layer`/`_draw_line_layer`/`_draw_
-    area_layer` (plot.mojo) already use for the continuous marks
-    `render()` and `render_layers()` both draw.
+    out categorical axis frame -- written once for both orientations,
+    with `_Orientation` carrying the only two differences (which way a
+    rect is emitted, where its label sits).
 
-    `py1` is the frame's own bottom pixel row (`_pull_off_axis_line`'s
-    "don't paint over the axis line's antialiasing" check needs it) --
-    passed separately rather than bundled with `x_scale`/`y_scale`
-    since neither scale type carries a plot rect's edges itself.
-    `text_requests` is the caller's own list to append any labels
-    into (`frame.text_requests` for `_render_bar`'s standalone case,
-    a list threaded through the whole combo render for the layered
-    case) -- this function never draws text directly itself, the same
-    "collect while drawing shapes, replay afterward" split every other
-    render path here uses (see `_TextRequest`'s own docstring).
+    Factored out of `_render_bar` so `render_layers()`'s bar-combo path
+    (`_render_bar_combo_layers`, plot.mojo) can draw a `Mark.BAR` layer
+    against a frame *it* built, shared across every layer, instead of
+    `_render_bar` building its own standalone one -- the same "share
+    the drawing primitive, not just the layout" split `_draw_point_
+    layer`/`_draw_line_layer`/`_draw_area_layer` (plot.mojo) already
+    use for the continuous marks. That combo path is vertical-only and
+    passes `_Orientation(False)`; it raises on a horizontal bar layer
+    rather than trying to lay out a horizontal categorical axis
+    alongside continuous line/point/area layers.
+
+    `band_scale`/`value_scale` come from whichever frame the caller
+    built, and `baseline_edge` is that frame's own axis line (`py1`
+    vertically, `px0` horizontally) for `_pull_off_axis_line`'s
+    don't-paint-over-the-antialiasing check.
 
     Colored by sign (`Theme.color_by_sign`) and labeled per bar
-    (`Theme.show_data_labels`) exactly like a standalone `Mark.BAR`
-    render -- both are plain `Theme` flags this function reads off
-    `plot._theme` itself (via its own `_Scaled(theme)`, not whatever
-    scale the caller's own frame happened to use -- a layered bar's
-    label sizing follows its *own* `Theme.scale`, the same per-layer
-    styling independence `_render_bar_combo_layers`'s other layers
-    already have), unaffected by whether the caller is `_render_bar`
-    or a layered combo.
+    (`Theme.show_data_labels`) off `plot._theme` itself, via this
+    function's own `_Scaled(theme)` rather than whatever scale the
+    caller's frame happened to use -- a layered bar's label sizing
+    follows its *own* `Theme.scale`.
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
-    var baseline_py = _axis_pixel(y_scale, 0.0)
-    # bandwidth() depends only on the scale's domain length and
-    # pixel range, never on the category index -- hoisted here (and in
-    # every other mark's loop) rather than recomputing its division
-    # once per category.
-    var bar_width = _round_to_int(x_scale.bandwidth())
+    var baseline = _axis_pixel(value_scale, 0.0)
+    # bandwidth() depends only on the scale's domain length and pixel
+    # range, never on the category index -- hoisted rather than
+    # recomputing its division once per category.
+    var band_size = _round_to_int(band_scale.bandwidth())
     for i in range(len(plot.x_categories)):
-        var bar_x = _round_to_int(x_scale.band_start(i))
-        var top_py = _axis_pixel(y_scale, plot.y_data[i])
-        var rect = _pull_off_axis_line(baseline_py, top_py, py1)
-        var bar_color = _bar_fill_color(theme, plot.y_data[i])
-        target.fill_rect(bar_x, rect.y, bar_width, rect.height, bar_color)
+        var band_pos = _round_to_int(band_scale.band_start(i))
+        var value = plot.y_data[i]
+        var extent = _pull_off_axis_line(baseline, _axis_pixel(value_scale, value), baseline_edge)
+        orient.fill_band_rect(target, extent, band_pos, band_size, _bar_fill_color(theme, value))
         if theme.show_data_labels:
-            # Positive value: baseline sits label_gap above the bar's
-            # own top edge (rect.y), the same "baseline placed where
-            # the text should visually end up, not its top" convention
-            # _draw_annotation_points's label uses. Negative value:
-            # below the bar's bottom edge instead (rect.y + rect.
-            # height), mirroring the "below" placement every category
-            # tick label on this same axis already uses (frame.py1 +
-            # tick_length + label_gap + font_size) -- a bar that
-            # extends downward gets its label below it, not colliding
-            # with the bar itself.
-            var label_y = (
-                rect.y + rect.height + sc.label_gap + Int(sc.font_size)
-                if plot.y_data[i] < 0.0
-                else rect.y - sc.label_gap
+            var at = orient.outside_band_label(
+                extent, band_pos, band_size, value < 0.0, sc.label_gap, sc.font_size
             )
             text_requests.append(
                 _TextRequest(
-                    bar_x + bar_width // 2,
-                    label_y,
-                    _format_fixed(plot.y_data[i], _label_decimals(plot.y_data[i])),
+                    at.x,
+                    at.y,
+                    _format_fixed(value, _label_decimals(value)),
                     theme.text_color,
                     sc.font_size,
-                    TextAlign.CENTER,
+                    at.align,
                     theme.font_family,
                 )
             )
@@ -167,7 +150,9 @@ def _render_bar[
     var y_scale = _zero_baseline_y_extent(plot.y_data)
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
-    _draw_bar_rects(target, plot, frame.x_scale, frame.y_scale, frame.py1, frame.text_requests)
+    _draw_bar_rects(
+        target, plot, frame.x_scale, frame.y_scale, frame.py1, _Orientation(False), frame.text_requests
+    )
 
     # A `.copy()`, not a `^` transfer -- Mojo's ownership checker
     # rejects moving a single field out of `frame` at all (even here,
@@ -178,84 +163,6 @@ def _render_bar[
     # trade for not having to hand-unpack every field `_CategoricalFrame`
     # carries just to satisfy this.
     return frame.result()
-
-
-def _draw_horizontal_bar_rects[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    x_scale: LinearScale,
-    y_scale: OrdinalScale,
-    px0: Int,
-    mut text_requests: List[_TextRequest],
-) raises:
-    """`_draw_bar_rects`'s mirror image for a horizontal `Mark.BAR`
-    (`Plot.mark_bar(horizontal=True)`, #121) -- categories run down the
-    `y_scale` (`OrdinalScale`) instead of across an x-axis, and each
-    bar is a horizontal rect extending from a zero baseline along the
-    continuous `x_scale` (`LinearScale`) instead of a vertical one.
-    Every role `_draw_bar_rects` gives `x_scale`/`bar_x`/`bar_width`
-    here belongs to `y_scale`/`bar_y`/`bar_height` instead, and vice
-    versa -- otherwise the exact same logic, including `Theme.color_
-    by_sign`/`show_data_labels` support.
-
-    `px0` is the frame's own *left* pixel column -- `_pull_off_axis_
-    line`'s "don't paint over the axis line's antialiasing" check
-    needs it here instead of `_draw_bar_rects`'s `py1` (the bottom
-    row), since a horizontal bar's zero baseline can land on the
-    vertical categorical axis line drawn at the frame's left edge, the
-    exact rotated equivalent of a vertical bar's baseline landing on
-    the horizontal axis line at the bottom.
-
-    Not shared with `render_layers()`'s bar-combo path the way `_draw_
-    bar_rects` is -- `_render_bar_combo_layers` raises clearly on a
-    horizontal bar layer instead (see its own docstring) rather than
-    trying to lay out a horizontal categorical axis alongside
-    continuous line/point/area layers, a real, separate feature this
-    doesn't attempt.
-    """
-    var theme = plot._theme
-    var sc = _Scaled(theme)
-    var baseline_px = _axis_pixel(x_scale, 0.0)
-    # bandwidth() depends only on the scale's domain length and pixel
-    # range, never on the category index -- hoisted here exactly like
-    # _draw_bar_rects' own bar_width.
-    var bar_height = _round_to_int(y_scale.bandwidth())
-    for i in range(len(plot.x_categories)):
-        var bar_y = _round_to_int(y_scale.band_start(i))
-        var value_px = _axis_pixel(x_scale, plot.y_data[i])
-        var rect = _pull_off_axis_line(baseline_px, value_px, px0)
-        var bar_color = _bar_fill_color(theme, plot.y_data[i])
-        target.fill_rect(rect.y, bar_y, rect.height, bar_height, bar_color)
-        if theme.show_data_labels:
-            # Positive value (bar extends right): label sits label_gap
-            # to the right of the bar's own right edge, left-aligned --
-            # the horizontal-axis mirror of _draw_bar_rects' "above the
-            # bar" placement. Negative value (bar extends left): to the
-            # left of the bar's left edge instead, right-aligned, so
-            # the label never collides with a bar that extends left of
-            # the baseline. Vertically centered on the bar's own row
-            # (TextAlign has no vertical option -- the same `font_size
-            # * 0.35` baseline-centering offset treemap.mojo/sankey.mojo/
-            # stacked_bar.mojo's own labels already use).
-            var label_x = (
-                rect.y - sc.label_gap
-                if plot.y_data[i] < 0.0
-                else rect.y + rect.height + sc.label_gap
-            )
-            var label_align = TextAlign.RIGHT if plot.y_data[i] < 0.0 else TextAlign.LEFT
-            text_requests.append(
-                _TextRequest(
-                    label_x,
-                    bar_y + bar_height // 2 + Int(sc.font_size * 0.35),
-                    _format_fixed(plot.y_data[i], _label_decimals(plot.y_data[i])),
-                    theme.text_color,
-                    sc.font_size,
-                    label_align,
-                    theme.font_family,
-                )
-            )
 
 
 def _render_horizontal_bar[
@@ -277,14 +184,16 @@ def _render_horizontal_bar[
     from `_draw_categorical_axis_frame` (which scale is which type,
     which axis reverses, which margin grows dynamically -- exactly the
     branches a bidirectional version would need on nearly every line).
+    That reasoning covers the *frame* only: the rect drawing itself is
+    shared, since `_Orientation` isolates the two places it differs.
 
     The axis frame itself is `_draw_horizontal_categorical_axis_frame`'s
     job (gantt.mojo) -- already shared by `Mark.GANTT`/
     `POPULATION_PYRAMID`/`RIDGELINE` before this became its fourth
     caller, not new machinery built for this. What's left here is the
-    one genuinely bar-specific thing, `_draw_horizontal_bar_rects`
-    (this file), the exact mirror of `_render_bar`'s own `_draw_bar_
-    rects` call.
+    one genuinely bar-specific thing, `_draw_bar_rects` (this file) --
+    the same call `_render_bar` makes, differing only in which of the
+    frame's two scales is the band one and an `_Orientation(True)`.
 
     No y-gridlines (the horizontal mirror of `_render_bar`'s own "no
     x-gridlines" -- the bars themselves already visually separate
@@ -301,7 +210,9 @@ def _render_horizontal_bar[
         target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
     )
 
-    _draw_horizontal_bar_rects(target, plot, frame.x_scale, frame.y_scale, frame.px0, frame.text_requests)
+    _draw_bar_rects(
+        target, plot, frame.y_scale, frame.x_scale, frame.px0, _Orientation(True), frame.text_requests
+    )
 
     return frame.result()
 

@@ -9,6 +9,7 @@ from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _Orientation,
     _Scaled,
     _TextRequest,
     _axis_pixel,
@@ -114,6 +115,68 @@ def _draw_series_legend[
     )
 
 
+def _draw_grouped_bars[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    band_scale: OrdinalScale,
+    value_scale: LinearScale,
+    baseline_edge: Int,
+    orient: _Orientation,
+    palette: List[Color],
+    mut text_requests: List[_TextRequest],
+) raises:
+    """Every sub-bar of every category, written once for both
+    orientations -- `_Orientation` carries the only two differences
+    (which way a rect is emitted, where its label sits).
+
+    Each category's band is divided into `n_series` equal sub-bands,
+    and each sub-band's two edges are rounded to pixels *independently*
+    (`band_start + j * sub` and `band_start + (j+1) * sub`) rather than
+    rounding a width once and stepping it. Doing it the other way
+    leaves a visible 1px seam or overlap between neighbouring sub-bars
+    wherever the unrounded width lands mid-pixel: rounding both edges
+    from the same unrounded origin makes sub-bar `j`'s far edge and
+    `j+1`'s near edge the identical integer by construction.
+
+    `band_scale`/`value_scale` come from whichever frame the caller
+    built, and `baseline_edge` is that frame's own axis line (`py1`
+    vertically, `px0` horizontally).
+    """
+    var theme = plot._theme
+    var sc = _Scaled(theme)
+    var n_series = len(plot._grouped_bar.series_names)
+    var baseline = _axis_pixel(value_scale, 0.0)
+    var sub_size = band_scale.bandwidth() / Float64(n_series)
+
+    for i in range(len(plot.x_categories)):
+        var band_start = band_scale.band_start(i)
+        for j in range(n_series):
+            var near = _round_to_int(band_start + Float64(j) * sub_size)
+            var far = _round_to_int(band_start + Float64(j + 1) * sub_size)
+            var value = plot._grouped_bar.values[j][i]
+            var extent = _pull_off_axis_line(
+                baseline, _axis_pixel(value_scale, value), baseline_edge
+            )
+            orient.fill_band_rect(target, extent, near, far - near, palette[j % len(palette)])
+            if theme.show_data_labels:
+                var at = orient.outside_band_label(
+                    extent, near, far - near, value < 0.0, sc.label_gap, sc.font_size
+                )
+                text_requests.append(
+                    _TextRequest(
+                        at.x,
+                        at.y,
+                        _format_fixed(value, _label_decimals(value)),
+                        theme.text_color,
+                        sc.font_size,
+                        at.align,
+                        theme.font_family,
+                    )
+                )
+
+
 def _render_grouped_bar[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
@@ -174,38 +237,10 @@ def _render_grouped_bar[
     )
 
     var palette = default_categorical_palette()
-    var n_series = len(plot._grouped_bar.series_names)
-    var baseline_py = _axis_pixel(frame.y_scale, 0.0)
-
-    var sub_width = frame.x_scale.bandwidth() / Float64(n_series)
-    for i in range(len(plot.x_categories)):
-        var band_start = frame.x_scale.band_start(i)
-        for j in range(n_series):
-            var left = _round_to_int(band_start + Float64(j) * sub_width)
-            var right = _round_to_int(band_start + Float64(j + 1) * sub_width)
-            var value = plot._grouped_bar.values[j][i]
-            var top_py = _axis_pixel(frame.y_scale, value)
-            var rect = _pull_off_axis_line(baseline_py, top_py, frame.py1)
-            target.fill_rect(left, rect.y, right - left, rect.height, palette[j % len(palette)])
-            if theme.show_data_labels:
-                # Same above-positive/below-negative placement Mark.
-                # BAR's own labels use (see _render_bar's docstring),
-                # centered on this sub-bar's own narrower width rather
-                # than the whole category band.
-                var label_y = (
-                    rect.y + rect.height + sc.label_gap + Int(sc.font_size) if value < 0.0 else rect.y - sc.label_gap
-                )
-                frame.text_requests.append(
-                    _TextRequest(
-                        (left + right) // 2,
-                        label_y,
-                        _format_fixed(value, _label_decimals(value)),
-                        theme.text_color,
-                        sc.font_size,
-                        TextAlign.CENTER,
-                        theme.font_family,
-                    )
-                )
+    _draw_grouped_bars(
+        target, plot, frame.x_scale, frame.y_scale, frame.py1, _Orientation(False), palette,
+        frame.text_requests,
+    )
 
     if show_legend:
         _draw_series_legend(
@@ -276,41 +311,10 @@ def _render_horizontal_grouped_bar[
     )
 
     var palette = default_categorical_palette()
-    var n_series = len(plot._grouped_bar.series_names)
-    var baseline_px = _axis_pixel(frame.x_scale, 0.0)
-
-    var sub_height = frame.y_scale.bandwidth() / Float64(n_series)
-    for i in range(len(plot.x_categories)):
-        var band_start = frame.y_scale.band_start(i)
-        for j in range(n_series):
-            var top = _round_to_int(band_start + Float64(j) * sub_height)
-            var bottom = _round_to_int(band_start + Float64(j + 1) * sub_height)
-            var value = plot._grouped_bar.values[j][i]
-            var value_px = _axis_pixel(frame.x_scale, value)
-            var rect = _pull_off_axis_line(baseline_px, value_px, frame.px0)
-            target.fill_rect(rect.y, top, rect.height, bottom - top, palette[j % len(palette)])
-            if theme.show_data_labels:
-                # The horizontal mirror of _render_grouped_bar's own
-                # above-positive/below-negative placement: right of a
-                # positive sub-bar's own right edge (left-aligned), left
-                # of a negative sub-bar's own left edge (right-aligned)
-                # -- _draw_horizontal_bar_rects' identical convention
-                # (bar.mojo).
-                var label_x = (
-                    rect.y - sc.label_gap if value < 0.0 else rect.y + rect.height + sc.label_gap
-                )
-                var label_align = TextAlign.RIGHT if value < 0.0 else TextAlign.LEFT
-                frame.text_requests.append(
-                    _TextRequest(
-                        label_x,
-                        (top + bottom) // 2 + Int(sc.font_size * 0.35),
-                        _format_fixed(value, _label_decimals(value)),
-                        theme.text_color,
-                        sc.font_size,
-                        label_align,
-                        theme.font_family,
-                    )
-                )
+    _draw_grouped_bars(
+        target, plot, frame.y_scale, frame.x_scale, frame.px0, _Orientation(True), palette,
+        frame.text_requests,
+    )
 
     if show_legend:
         _draw_series_legend(

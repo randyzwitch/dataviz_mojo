@@ -5,6 +5,8 @@ from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.plot import (
     Plot,
+    _BaselineRect,
+    _Orientation,
     _RenderResult,
     _axis_pixel,
     _data_extent,
@@ -143,6 +145,83 @@ def _box_stats(values: List[Float64]) -> _BoxStats:
     return _BoxStats(q1, median, q3, low_whisker, high_whisker, outliers^)
 
 
+def _draw_box_glyphs[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    band_scale: OrdinalScale,
+    value_scale: LinearScale,
+    orient: _Orientation,
+    point_radius: Int,
+) raises:
+    """Every category's box, whiskers, caps, median line and outliers,
+    written once for both orientations -- `_Orientation` carries the
+    four places band/value have to become concrete x/y pixels (rect,
+    line along the value axis, line across the band, point).
+
+    Whisker caps are half the band's width, the box the full band, and
+    the median line spans the box -- the conventional Tukey proportions
+    each expressed against `band_scale.bandwidth()` rather than fixed
+    pixels, so they hold at any canvas size.
+
+    `to_pixel` (not `_axis_pixel`) for the five box statistics, since
+    these are already-computed positions rather than data values
+    needing the axis's own rounding -- the outliers use `_axis_pixel`
+    for the same reason `_render_box` always did.
+    """
+    var theme = plot._theme
+    var band_size = band_scale.bandwidth()
+    var half = band_size / 2.0
+    var cap_half = band_size / 4.0
+
+    for i in range(len(plot.x_categories)):
+        var center = band_scale.center(i)
+        var center_i = _round_to_int(center)
+        var q1 = value_scale.to_pixel(plot._box.q1[i])
+        var q3 = value_scale.to_pixel(plot._box.q3[i])
+        var median = value_scale.to_pixel(plot._box.median[i])
+        var low = value_scale.to_pixel(plot._box.low[i])
+        var high = value_scale.to_pixel(plot._box.high[i])
+
+        # Whiskers: high -> q3 and q1 -> low, along the value axis.
+        orient.value_line(
+            target, _round_to_int(high), _round_to_int(q3), center_i, theme.axis_color, theme.scale
+        )
+        orient.value_line(
+            target, _round_to_int(q1), _round_to_int(low), center_i, theme.axis_color, theme.scale
+        )
+        # Caps across each whisker's end.
+        orient.band_line(
+            target, _round_to_int(high), _round_to_int(center - cap_half),
+            _round_to_int(center + cap_half), theme.axis_color, theme.scale,
+        )
+        orient.band_line(
+            target, _round_to_int(low), _round_to_int(center - cap_half),
+            _round_to_int(center + cap_half), theme.axis_color, theme.scale,
+        )
+        # The interquartile box, then the median line across it.
+        var box_near = _round_to_int(min(q1, q3))
+        var box_span = _round_to_int(max(q1, q3) - min(q1, q3))
+        orient.fill_band_rect(
+            target, _BaselineRect(box_near, box_span), _round_to_int(center - half),
+            _round_to_int(band_size), theme.mark_color,
+        )
+        orient.band_line(
+            target, _round_to_int(median), _round_to_int(center - half),
+            _round_to_int(center + half), theme.axis_color, theme.scale,
+        )
+
+    for j in range(len(plot._box.outlier_value)):
+        orient.band_point(
+            target,
+            _axis_pixel(value_scale, plot._box.outlier_value[j]),
+            _round_to_int(band_scale.center(plot._box.outlier_cat[j])),
+            point_radius,
+            theme.mark_color,
+        )
+
+
 def _render_box[
     T: DrawTarget
 ](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
@@ -190,53 +269,9 @@ def _render_box[
 
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
-    var band_w = frame.x_scale.bandwidth()
-    for i in range(len(plot.x_categories)):
-        var center = frame.x_scale.center(i)
-        var half_w = band_w / 2.0
-        var cap_half_w = band_w / 4.0
-
-        var q1_py = frame.y_scale.to_pixel(plot._box.q1[i])
-        var q3_py = frame.y_scale.to_pixel(plot._box.q3[i])
-        var median_py = frame.y_scale.to_pixel(plot._box.median[i])
-        var low_py = frame.y_scale.to_pixel(plot._box.low[i])
-        var high_py = frame.y_scale.to_pixel(plot._box.high[i])
-
-        var center_i = _round_to_int(center)
-        target.draw_line_aa(center_i, _round_to_int(high_py), center_i, _round_to_int(q3_py), theme.axis_color, width=theme.scale)
-        target.draw_line_aa(center_i, _round_to_int(q1_py), center_i, _round_to_int(low_py), theme.axis_color, width=theme.scale)
-        target.draw_line_aa(
-            _round_to_int(center - cap_half_w),
-            _round_to_int(high_py),
-            _round_to_int(center + cap_half_w),
-            _round_to_int(high_py),
-            theme.axis_color,
-            width=theme.scale,
-        )
-        target.draw_line_aa(
-            _round_to_int(center - cap_half_w),
-            _round_to_int(low_py),
-            _round_to_int(center + cap_half_w),
-            _round_to_int(low_py),
-            theme.axis_color,
-            width=theme.scale,
-        )
-
-        var box_x = _round_to_int(center - half_w)
-        var box_y = _round_to_int(min(q1_py, q3_py))
-        var box_h = _round_to_int(max(q1_py, q3_py) - min(q1_py, q3_py))
-        target.fill_rect(box_x, box_y, _round_to_int(band_w), box_h, theme.mark_color)
-
-        target.draw_line_aa(
-            _round_to_int(center - half_w), _round_to_int(median_py), _round_to_int(center + half_w),
-            _round_to_int(median_py), theme.axis_color, width=theme.scale,
-        )
-
-    for j in range(len(plot._box.outlier_value)):
-        var cat_i = plot._box.outlier_cat[j]
-        var center_px = _round_to_int(frame.x_scale.center(cat_i))
-        var value_py = _axis_pixel(frame.y_scale, plot._box.outlier_value[j])
-        target.fill_circle_aa(center_px, value_py, _round_to_int(frame.sc.point_radius), theme.mark_color)
+    _draw_box_glyphs(
+        target, plot, frame.x_scale, frame.y_scale, _Orientation(False), _round_to_int(frame.sc.point_radius)
+    )
 
     return frame.result()
 
@@ -294,53 +329,9 @@ def _render_horizontal_box[
         target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
     )
 
-    var band_h = frame.y_scale.bandwidth()
-    for i in range(len(plot.x_categories)):
-        var center = frame.y_scale.center(i)
-        var half_h = band_h / 2.0
-        var cap_half_h = band_h / 4.0
-
-        var q1_px = frame.x_scale.to_pixel(plot._box.q1[i])
-        var q3_px = frame.x_scale.to_pixel(plot._box.q3[i])
-        var median_px = frame.x_scale.to_pixel(plot._box.median[i])
-        var low_px = frame.x_scale.to_pixel(plot._box.low[i])
-        var high_px = frame.x_scale.to_pixel(plot._box.high[i])
-
-        var center_i = _round_to_int(center)
-        target.draw_line_aa(_round_to_int(q3_px), center_i, _round_to_int(high_px), center_i, theme.axis_color, width=theme.scale)
-        target.draw_line_aa(_round_to_int(low_px), center_i, _round_to_int(q1_px), center_i, theme.axis_color, width=theme.scale)
-        target.draw_line_aa(
-            _round_to_int(high_px),
-            _round_to_int(center - cap_half_h),
-            _round_to_int(high_px),
-            _round_to_int(center + cap_half_h),
-            theme.axis_color,
-            width=theme.scale,
-        )
-        target.draw_line_aa(
-            _round_to_int(low_px),
-            _round_to_int(center - cap_half_h),
-            _round_to_int(low_px),
-            _round_to_int(center + cap_half_h),
-            theme.axis_color,
-            width=theme.scale,
-        )
-
-        var box_y = _round_to_int(center - half_h)
-        var box_x = _round_to_int(min(q1_px, q3_px))
-        var box_w = _round_to_int(max(q1_px, q3_px) - min(q1_px, q3_px))
-        target.fill_rect(box_x, box_y, box_w, _round_to_int(band_h), theme.mark_color)
-
-        target.draw_line_aa(
-            _round_to_int(median_px), _round_to_int(center - half_h), _round_to_int(median_px),
-            _round_to_int(center + half_h), theme.axis_color, width=theme.scale,
-        )
-
-    for j in range(len(plot._box.outlier_value)):
-        var cat_i = plot._box.outlier_cat[j]
-        var center_py = _round_to_int(frame.y_scale.center(cat_i))
-        var value_px = _axis_pixel(frame.x_scale, plot._box.outlier_value[j])
-        target.fill_circle_aa(value_px, center_py, _round_to_int(frame.sc.point_radius), theme.mark_color)
+    _draw_box_glyphs(
+        target, plot, frame.y_scale, frame.x_scale, _Orientation(True), _round_to_int(frame.sc.point_radius)
+    )
 
     return frame.result()
 
