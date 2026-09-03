@@ -19,7 +19,6 @@ grepping `from_categories` and noticing four unrelated marks in the
 results.
 """
 
-from std.collections import Dict
 
 from dataviz.plot import Plot, _categorical_indices, _require_non_negative
 

@@ -1,8 +1,6 @@
 from canvas.geometry import _round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
-from canvas.vector.svg import SvgCanvas
-from canvas.buffer import Canvas
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -66,10 +64,24 @@ def _assign_branch_colors(node: Int, branch: Int, idx: _HierarchyIndex, mut out:
     two separate passes (see `_render_tree`'s docstring for why),
     so there's no single recursive draw call to thread a parameter
     through in the first place.
+
+    Walks an explicit worklist rather than recursing. Order doesn't
+    matter -- every node in the subtree gets the same `branch` -- so
+    this is exactly equivalent, it can't exhaust the stack on a deep
+    tree, and it doesn't trip the compiler's "self recursive call will
+    cause an infinite loop" false positive, which was the only warning
+    this package emitted. Termination is guaranteed upstream:
+    `_hierarchy_index` (hierarchy.mojo) already rejects a cycle or a
+    disconnected component by checking that its own traversal reaches
+    every row.
     """
-    out[node] = branch
-    for c in idx.children[node]:
-        _assign_branch_colors(c, branch, idx, out)
+    var pending = List[Int]()
+    pending.append(node)
+    while len(pending) > 0:
+        var current = pending.pop()
+        out[current] = branch
+        for c in idx.children[current]:
+            pending.append(c)
 
 
 def _tree_node_x(leaf_x: Float64, num_leaves: Int, plot_x0: Int, plot_x1: Int) -> Float64:

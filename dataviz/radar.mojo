@@ -1,15 +1,11 @@
 from std.math import cos, pi
 
-from canvas.color import Color
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
-from canvas.vector.svg import SvgCanvas
-from canvas.buffer import Canvas
 from canvas.text.render import TextAlign
 
 from dataviz.array_like import _materialize_nested_scalar_list, _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette
-from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,

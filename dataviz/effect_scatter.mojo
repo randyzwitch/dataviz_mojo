@@ -1,5 +1,3 @@
-from canvas.buffer import Canvas
-
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.plot import Plot, _finished
 from dataviz.theme import Theme

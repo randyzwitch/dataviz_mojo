@@ -58,3 +58,37 @@ def _assert_near_color(c: Canvas, x: Int, y: Int, expected: Color, tolerance: In
         label + " (got (" + String(p.r) + "," + String(p.g) + "," + String(p.b) + "), expected within "
         + String(tolerance) + " of (" + String(expected.r) + "," + String(expected.g) + "," + String(expected.b) + "))",
     )
+
+
+def _unique_categories(data: List[String]) -> List[String]:
+    """Every distinct value in `data`, in first-seen order, by a plain
+    O(n^2) scan.
+
+    A deliberately naive reference implementation, kept here rather
+    than in the package: `dataviz.plot._categorical_indices` and
+    `dataviz.edges._edge_node_index` resolve the same domain in one
+    hashed pass, and the tests that check them assert agreement against
+    this. Both of these used to live in plot.mojo and be called by the
+    render paths, until those two replaced them; keeping the obvious
+    version around as an oracle is worth more than deleting it, but it
+    has no business shipping inside the package.
+    """
+    var result = List[String]()
+    for v in data:
+        var found = False
+        for existing in result:
+            if existing == v:
+                found = True
+                break
+        if not found:
+            result.append(v)
+    return result^
+
+
+def _index_of(data: List[String], value: String) -> Int:
+    """`value`'s position in `data`, or -1 -- the linear search half of
+    the oracle described in `_unique_categories` above."""
+    for i in range(len(data)):
+        if data[i] == value:
+            return i
+    return -1

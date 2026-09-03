@@ -1,11 +1,8 @@
 from std.math import cos, pi, sin
 
-from canvas.color import Color
 from canvas.geometry import _round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
-from canvas.vector.svg import SvgCanvas
-from canvas.buffer import Canvas
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette

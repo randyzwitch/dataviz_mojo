@@ -80,8 +80,6 @@ from dataviz.plot import (
     render_layers_svg,
     render_svg,
     _build_line_path,
-    _index_of,
-    _unique_categories,
 )
 from dataviz.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true

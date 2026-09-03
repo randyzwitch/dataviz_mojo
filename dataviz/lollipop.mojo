@@ -1,15 +1,12 @@
 from canvas.geometry import _round_to_int
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
-from canvas.buffer import Canvas
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.mark import Mark
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.plot import (
     Plot,
     _RenderResult,
-    _axis_pixel,
     _draw_categorical_axis_frame,
     _empty_result,
     _finished,

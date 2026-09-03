@@ -1,20 +1,16 @@
 from canvas.geometry import _round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
-from canvas.buffer import Canvas
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.mark import Mark
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
-    _CategoricalFrame,
     _RenderResult,
     _Scaled,
     _TextRequest,
     _axis_pixel,
     _data_extent,
-    _draw_categorical_axis_frame,
     _empty_result,
     _max_label_width,
     _finished,

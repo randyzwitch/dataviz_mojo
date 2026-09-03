@@ -1,6 +1,5 @@
 from canvas.geometry import _round_to_int
 from canvas.vector.draw_target import DrawTarget
-from canvas.buffer import Canvas
 
 from canvas.text.font_cache import FontCache
 from dataviz.array_like import _materialize_scalar_list
