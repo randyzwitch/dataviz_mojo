@@ -110,6 +110,7 @@ from dataviz.parallel import _ParallelData
 from dataviz.calendar_heatmap import _CalendarData
 from dataviz.corrplot import _CorrplotData
 from dataviz.punchcard import _PunchcardData
+from dataviz.barbs import _BarbsData
 from dataviz.marimekko import _MarimekkoData
 from dataviz.edges import _EdgeData
 from dataviz.hierarchy import _HierarchyData
@@ -129,6 +130,7 @@ from dataviz.heatmap import _render_heatmap
 from dataviz.calendar_heatmap import _render_calendar_heatmap
 from dataviz.corrplot import _render_corrplot
 from dataviz.punchcard import _render_punchcard
+from dataviz.barbs import _render_barbs
 from dataviz.marimekko import _render_marimekko
 from dataviz.sunburst import _render_sunburst
 from dataviz.tree import _render_tree
@@ -511,6 +513,7 @@ struct Plot(Copyable, Movable):
     var _calendar: _CalendarData
     var _corrplot: _CorrplotData
     var _punchcard: _PunchcardData
+    var _barbs: _BarbsData
     var _marimekko: _MarimekkoData
     var _hierarchy: _HierarchyData
     var _labels: _LabelData
@@ -571,6 +574,7 @@ struct Plot(Copyable, Movable):
         self._calendar = _CalendarData()
         self._corrplot = _CorrplotData()
         self._punchcard = _PunchcardData()
+        self._barbs = _BarbsData()
         self._marimekko = _MarimekkoData()
         self._hierarchy = _HierarchyData()
         self._labels = _LabelData()
@@ -873,6 +877,28 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.PUNCHCARD
         self._punchcard.scale = scale
+        return self^
+
+    def mark_barbs(
+        var self, length: Float64 = 28.0, flip: Bool = False
+    ) -> Self:
+        """Wind barbs: one station-model glyph per point, its staff pointing
+        upwind and its flags/barbs summing to the speed. Encoded via
+        `encode_barbs()`; see `_render_barbs` for the glyph and
+        `barbs()` for the one-call form.
+
+        Args:
+            length: Staff length in pixels before `Theme.scale`, which
+                every feature on the glyph is sized as a fraction of.
+            flip: Mirror every feature across its staff -- the southern-
+                hemisphere convention (matplotlib's `flip_barb`).
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.BARBS
+        self._barbs.length = length
+        self._barbs.flip = flip
         return self^
 
     def mark_marimekko(var self) -> Self:
@@ -2075,6 +2101,67 @@ struct Plot(Copyable, Movable):
         self._punchcard.y = y.copy()
         self._punchcard.sizes = sizes.copy()
         return self^
+
+    def encode_barbs(
+        var self,
+        x: List[Float64],
+        y: List[Float64],
+        u: List[Float64],
+        v: List[Float64],
+    ) -> Self:
+        """Map `Mark.BARBS`'s four channels: continuous `x`/`y` positions
+        plus the `u`/`v` components of the vector at each. Speed is
+        `hypot(u, v)` in whatever unit the caller supplies -- knots by
+        convention, since the glyph's 50/10/5 increments are the knot ones
+        -- and `v` is positive pointing up the page. Length checking is
+        deferred to render() time.
+
+        Args:
+            x: The continuous x position of each barb.
+            y: The continuous y position of each barb.
+            u: Each barb's x-component, in the same unit as `v`.
+            v: Each barb's y-component, positive pointing up the page.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self.x_categories = List[String]()
+        self.x_data = List[Float64]()
+        self.y_data = List[Float64]()
+        self._barbs.x = x.copy()
+        self._barbs.y = y.copy()
+        self._barbs.u = u.copy()
+        self._barbs.v = v.copy()
+        return self^
+
+    def encode_barbs[
+        dtype: DType
+    ](
+        var self,
+        x: List[Scalar[dtype]],
+        y: List[Scalar[dtype]],
+        u: List[Scalar[dtype]],
+        v: List[Scalar[dtype]],
+    ) -> Self:
+        """`encode_barbs()` generalized over numeric element type via
+        `_materialize_scalar_list` (array_like.mojo). Delegates to the
+        concrete overload.
+
+        Args:
+            x: The continuous x position of each barb.
+            y: The continuous y position of each barb.
+            u: Each barb's x-component -- any numeric `List[Scalar[dtype]]`.
+            v: Each barb's y-component -- any numeric `List[Scalar[dtype]]`.
+
+        Returns:
+            Self, for further chaining.
+        """
+        return self^.encode_barbs(
+            _materialize_scalar_list(x),
+            _materialize_scalar_list(y),
+            _materialize_scalar_list(u),
+            _materialize_scalar_list(v),
+        )
 
     def encode_marimekko(
         var self,
@@ -6359,6 +6446,8 @@ def _render_generic[
         return _render_corrplot(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.PUNCHCARD:
         return _render_punchcard(target, plot, ox0, oy0, ox1, oy1)
+    if plot._mark == Mark.BARBS:
+        return _render_barbs(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.MARIMEKKO:
         return _render_marimekko(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.SUNBURST:

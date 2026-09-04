@@ -7,6 +7,7 @@ EFFECT_SCATTER, `<mark>.mojo` otherwise); its `_render_*` docstring
 describes the drawing. By data shape:
 
 - `encode()` (continuous x/y): POINT, LINE, AREA, EFFECT_SCATTER.
+  BARBS takes `encode_barbs()` (position plus u/v components).
   POLAR takes `encode_polar()`/`encode_polar_series()` (angle +
   radius); SINGLE_AXIS takes `encode_single_axis()` (x only).
 - `encode_categorical()` (category + value): BAR, LOLLIPOP, ARC
@@ -83,6 +84,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime GRAPH = Self(39)
     comptime SANKEY = Self(40)
     comptime RADIALBAR = Self(41)
+    comptime BARBS = Self(42)
 
     def __init__(out self, value: Int):
         self._value = value
