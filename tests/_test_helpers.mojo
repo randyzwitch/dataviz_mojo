@@ -35,10 +35,10 @@ def _assert_near_color(c: Canvas, x: Int, y: Int, expected: Color, tolerance: In
     """`_assert_color()`'s tolerant sibling for a stroked position (an axis
     line, gridline, or annotation line, 1-2px wide) rather than a filled
     mark's interior. `render()`'s supersample-then-downsample
-    (`_RASTER_SUPERSAMPLE`, plot.mojo) never lands a stroke that thin
-    fully opaque in one output pixel, since its footprint straddles a
-    downsample block unevenly; a filled region's interior averages to
-    the exact color and can use `_assert_color()`.
+    (`Theme.raster_supersample`, default 3, theme.mojo) never lands a
+    stroke that thin fully opaque in one output pixel, since its
+    footprint straddles a downsample block unevenly; a filled region's
+    interior averages to the exact color and can use `_assert_color()`.
     """
     var p = c.get_pixel(x, y)
     assert_true(

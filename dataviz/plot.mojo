@@ -4135,14 +4135,22 @@ def _extend_text_requests(mut dst: List[_TextRequest], src: List[_TextRequest]):
         dst.append(req.copy())
 
 
-comptime _RASTER_SUPERSAMPLE = 3
-"""How many times larger than the requested size `render()`/
-`render_facets()`/`render_layers()` draw at internally before
-`canvas.resize.downsample` shrinks the result back, for finer
-anti-aliasing at shape edges (a solid interior averages to the same
-color). Unconditional rather than a `Theme` field. 3x, not
-benchmarked against 2x/4x.
-"""
+def _require_positive_supersample(factor: Int, context: String) raises:
+    """Raise unless `factor >= 1`, naming the caller (`context`). Guards
+    `Theme.raster_supersample` at each of its three read sites
+    (`render()`/`render_facets()`/`render_layers()`) rather than in
+    `Theme`'s own constructor, matching `line_smoothing`'s deferred-to-
+    render-time validation (`_check_line_smoothing`, elsewhere in this
+    file) -- a `Theme` value isn't wrong to construct, only to render
+    with (#231).
+    """
+    if factor < 1:
+        raise Error(
+            context
+            + "(): Theme.raster_supersample must be >= 1 (got "
+            + String(factor)
+            + ")"
+        )
 
 
 def _scaled_copy(plots: List[Plot], factor: Int) -> List[Plot]:
@@ -4164,17 +4172,18 @@ def _scaled_copy(plots: List[Plot], factor: Int) -> List[Plot]:
 
 def render(plot: Plot) raises -> Canvas:
     """Render `plot` into a fresh `Canvas` sized `plot.width` x `plot.height`
-    and return it, supersampled by `_RASTER_SUPERSAMPLE`: a copy of
-    `plot` has its `_theme.scale` bumped by that factor, `_render_into`
-    draws into a scratch canvas that many times larger from that copy,
-    and `downsample` shrinks the result.
+    and return it, supersampled by `plot._theme.raster_supersample`
+    (default 3): a copy of `plot` has its `_theme.scale` bumped by that
+    factor, `_render_into` draws into a scratch canvas that many times
+    larger from that copy, and `downsample` shrinks the result.
 
     `plot` is a plain borrow (#208): copying instead of mutating in
     place means `render(scatter(x, y))` and `save(scatter(x, y), path)`
     both compile inline, with no need to bind a temporary to a variable
     first.
     """
-    var factor = _RASTER_SUPERSAMPLE
+    var factor = plot._theme.raster_supersample
+    _require_positive_supersample(factor, "render")
     var scaled = plot.copy()
     scaled._theme.scale = scaled._theme.scale * Float64(factor)
     var scratch = Canvas(
@@ -4202,8 +4211,8 @@ def _render_into(
     `canvas.text.draw_text`.
 
     Scales only by `plot._theme.scale` as given; `render()` applies
-    `_RASTER_SUPERSAMPLE` by bumping that value around this call.
-    Hand-verified pixel tests go through `render()` and so see
+    `Theme.raster_supersample` by bumping that value on a copy before
+    this call. Hand-verified pixel tests go through `render()` and so see
     supersampled output, exact for any solid-color interior point.
     """
     var cx1 = ox1 if ox1 >= 0 else canvas.width
@@ -5614,18 +5623,19 @@ def render_facets(
 ) raises -> Canvas:
     """Render each of `plots` into its grid cell of a fresh `Canvas` sized
     from the plots (`_require_uniform_size`), supersampled by
-    `_RASTER_SUPERSAMPLE` like `render()` (`plots` is a plain borrow,
-    #208 -- a copy is what actually gets the scale bump, so a temporary
-    list literal binds fine). See `_render_facets_generic` for the
-    cell-layout contract. `cols` is checked before anything else, since a
-    non-positive value would divide by zero in the `rows`/canvas-size
-    math.
+    `plots[0]._theme.raster_supersample` like `render()` (`plots` is a
+    plain borrow, #208 -- a copy is what actually gets the scale bump,
+    so a temporary list literal binds fine). See `_render_facets_generic`
+    for the cell-layout contract. `cols` is checked before anything
+    else, since a non-positive value would divide by zero in the
+    `rows`/canvas-size math.
     """
     if cols <= 0:
         raise Error("render_facets(): cols must be positive (got " + String(cols) + ")")
     _require_uniform_size(plots, "render_facets")
     var rows = (len(plots) + cols - 1) // cols
-    var factor = _RASTER_SUPERSAMPLE
+    var factor = plots[0]._theme.raster_supersample
+    _require_positive_supersample(factor, "render_facets")
     var scaled_plots = _scaled_copy(plots, factor)
     var canvas = Canvas(cols * plots[0].width * factor, rows * plots[0].height * factor)
     var text_requests = _render_facets_generic(
@@ -5795,11 +5805,13 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
     axis.
 
     Every `Plot` must share the same `.size()`; an empty list raises.
-    Supersampled like `render()`, bumping every layer's scale together
-    on a copy (`plots` is a plain borrow, #208).
+    Supersampled by `plots[0]._theme.raster_supersample` like `render()`,
+    bumping every layer's scale together on a copy (`plots` is a plain
+    borrow, #208).
     """
     _require_uniform_size(plots, "render_layers")
-    var factor = _RASTER_SUPERSAMPLE
+    var factor = plots[0]._theme.raster_supersample
+    _require_positive_supersample(factor, "render_layers")
     var scaled_plots = _scaled_copy(plots, factor)
     var canvas = Canvas(
         scaled_plots[0].width * factor, scaled_plots[0].height * factor
