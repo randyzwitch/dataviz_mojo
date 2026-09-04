@@ -190,6 +190,70 @@ def test_label_decimals_avoids_binary_floating_point_drift() raises:
     assert_equal(_label_decimals(drifted), 1)
 
 
+def test_format_fixed_falls_back_past_2_53_instead_of_overflowing() raises:
+    # #205: _format_fixed rounds value*10^decimals through Int(Float64),
+    # which silently wraps to garbage once that product exceeds what a
+    # Float64 (or, sooner, Int) can represent exactly, rather than
+    # raising. 1e19/1e17*100/-3e18*10 each used to produce wrong digits
+    # (or, for -3e18, a doubled leading minus sign from an Int64-min
+    # negation overflow) instead of failing loudly. Mojo's own
+    # String(Float64) is the fallback and is used verbatim, so these
+    # match its scientific-notation output exactly.
+    assert_equal(_format_fixed(1e19, 0), "1e+19")
+    assert_equal(_format_fixed(1e17, 2), "1e+17")
+    assert_equal(_format_fixed(-3e18, 1), "-3e+18")
+    assert_equal(_format_fixed(-3e18, 1), String(-3e18))
+
+
+def test_format_fixed_exact_int_boundary_still_uses_the_precise_path() raises:
+    # 2^53 is the largest magnitude every integer is still exactly
+    # representable in a Float64 (see
+    # test_materialize_scalar_list_converts_int_exactly_up_to_2_pow_53 in
+    # this same file for array_like.mojo's own take on this boundary);
+    # _format_fixed must keep using its precise digit-by-digit path here,
+    # not the scientific-notation fallback, since nothing is lost yet.
+    assert_equal(_format_fixed(9007199254740992.0, 0), "9007199254740992")
+    assert_equal(_format_fixed(-9007199254740992.0, 0), "-9007199254740992")
+
+
+def test_format_fixed_normal_range_values_are_unaffected_by_the_overflow_guard() raises:
+    # The overflow guard must not change any ordinary value's output --
+    # same assertions as test_format_fixed_matches_hand_computed_strings,
+    # re-run to pin that the new early-return branches are true no-ops
+    # below the threshold.
+    assert_equal(_format_fixed(20.0, 0), "20")
+    assert_equal(_format_fixed(-40.0, 0), "-40")
+    assert_equal(_format_fixed(0.002, 3), "0.002")
+    assert_equal(_format_fixed(123.456, 2), "123.46")
+
+
+def test_label_decimals_returns_zero_past_2_53_instead_of_overflowing() raises:
+    # #205's other call site: _label_decimals' own search loop rounds
+    # through the same Int(Float64) cast per candidate decimal count, so
+    # it must short-circuit before entering the loop rather than run it
+    # (harmlessly, since Int overflow doesn't crash here, but pointlessly)
+    # against an already-integral magnitude with no fractional part left
+    # to discover.
+    assert_equal(_label_decimals(1e19), 0)
+    assert_equal(_label_decimals(-3e18), 0)
+    assert_equal(_label_decimals(9007199254740992.0), 0)
+
+
+def test_ticks_labels_on_a_huge_domain_uses_the_overflow_fallback_not_garbage() raises:
+    # A domain far past 2^53 used to produce 19-digit labels built from
+    # wrapped/garbage Int arithmetic once decimals happened to be
+    # positive, or merely-unwieldy-but-correct all-digits labels at
+    # decimals=0 (the case _nice_step actually produces here, since its
+    # exponent is always >= 0 for a domain this large). This pins that
+    # such a domain's ticks are readable and never garbage.
+    var s = LinearScale(0.0, 5e18, 0.0, 1.0)
+    var t = s.ticks()
+    var labels = t.labels()
+    assert_equal(labels[0], "0")
+    assert_equal(labels[1], "1e+18")
+    assert_equal(labels[len(labels) - 1], "5e+18")
+
+
 def test_ticks_labels_uses_format_fixed_per_tick() raises:
     var s = LinearScale(0.0, 0.01, 0.0, 600.0)
     var t = s.ticks(5)

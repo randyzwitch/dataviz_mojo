@@ -102,6 +102,40 @@ def _nice_step(domain_min: Float64, domain_max: Float64, target_count: Int) -> _
     return _NiceStep(nice_m * pow(10.0, Float64(exponent)), exponent)
 
 
+comptime _FORMAT_FIXED_MAX_EXACT_MAGNITUDE = 9007199254740992.0
+"""2^53, the largest magnitude at or below which every integer is
+exactly representable in a `Float64` (a `Float64` has a 52-bit mantissa
+plus an implicit leading bit; 2^53 itself is exact, 2^53+1 is the first
+value that isn't). `_format_fixed`'s digit-by-digit path rounds `value
+* 10^decimals` through `_round_to_int`'s `Int(Float64)` cast, which is
+exact only up to this bound and silently wraps to garbage past it
+(`Int` overflow on a float-to-int conversion is not checked); well
+before that, `Int`'s own range (~9.223e18) would overflow outright for
+a large enough `value`/`decimals` combination. Since a `Float64` past
+this magnitude already has no representable fractional bits, treating
+it as more precise than its own `String(Float64)` conversion is false
+in the first place, so `_format_fixed`/`_label_decimals` defer to
+`_format_fixed_overflow`/return `0` rather than risk either failure
+mode (#205).
+"""
+
+
+def _format_fixed_overflow(value: Float64) -> String:
+    """`_format_fixed`'s fallback for `abs(value) * 10^decimals` past
+    `_FORMAT_FIXED_MAX_EXACT_MAGNITUDE`: Mojo's own `String(Float64)`,
+    which switches to scientific notation at exactly this kind of
+    magnitude ("1e+19", "-3e+18") and never overflows, unlike the
+    digit-by-digit `Int`-based path this replaces. `decimals` is ignored
+    here -- a magnitude this large has no representable fractional
+    digits for it to mean anything against. Plain fixed/scientific
+    notation, not the SI-prefixed or significant-digit-limited form a
+    real large-magnitude tick formatter would use (see #210); this
+    exists only so `_format_fixed` never produces incorrect output,
+    not to make it pretty.
+    """
+    return String(value)
+
+
 def _format_fixed(value: Float64, decimals: Int) -> String:
     """Format `value` to exactly `decimals` decimal places. Plain
     `String(Float64)` isn't usable for tick labels (0.0 + 3*0.1 prints as
@@ -110,11 +144,22 @@ def _format_fixed(value: Float64, decimals: Int) -> String:
     `_round_to_int`), then builds the string from integer and fractional
     parts by hand. `decimals` of 0 skips the decimal point rather than
     printing "20.".
+
+    Falls back to `_format_fixed_overflow` when `abs(value) *
+    10^decimals` exceeds `_FORMAT_FIXED_MAX_EXACT_MAGNITUDE`: past that
+    point the digit-by-digit path below silently produces wrong digits
+    (or, past `Int`'s own range, outright garbage -- see
+    `_FORMAT_FIXED_MAX_EXACT_MAGNITUDE`'s own docstring) rather than
+    raising, so this must catch it before ever calling `_round_to_int`.
     """
     if decimals <= 0:
+        if abs(value) > _FORMAT_FIXED_MAX_EXACT_MAGNITUDE:
+            return _format_fixed_overflow(value)
         return String(_round_to_int(value))
 
     var scale = pow(10.0, Float64(decimals))
+    if abs(value) * scale > _FORMAT_FIXED_MAX_EXACT_MAGNITUDE:
+        return _format_fixed_overflow(value)
     var scaled = _round_to_int(value * scale)
     var sign = "-" if scaled < 0 else ""
     var digits = scaled if scaled >= 0 else -scaled
@@ -137,7 +182,16 @@ def _label_decimals(value: Float64, max_decimals: Int = 2) -> Int:
     Checked by re-scaling and rounding at each candidate count with a
     1e-9 tolerance rather than exact float equality. Returns
     `max_decimals` if no smaller count clears that tolerance.
+
+    Returns `0` immediately for `abs(value) >
+    _FORMAT_FIXED_MAX_EXACT_MAGNITUDE` rather than entering the loop: a
+    `Float64` that large has no representable fractional part for any
+    decimal count to expose, and the loop's own `_round_to_int(value *
+    scale)` would hit the same overflow `_format_fixed` guards against
+    (#205).
     """
+    if abs(value) > _FORMAT_FIXED_MAX_EXACT_MAGNITUDE:
+        return 0
     for d in range(max_decimals + 1):
         var scale = pow(10.0, Float64(d))
         var rounded = Float64(_round_to_int(value * scale)) / scale
