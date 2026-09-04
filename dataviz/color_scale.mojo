@@ -1,13 +1,14 @@
 """ColorScale maps a continuous data domain onto a color gradient, for
 data-driven color encoding (`Plot.encode(color=...)`). Stop
 interpolation is shared with `canvas.gradient`'s `LinearGradient`/
-`RadialGradient` through `_color_at_t`/`_GradientStop`; only the
-projection differs. Those project a pixel position onto [0, 1]; this
-projects a data value, the way `LinearScale` does for position.
+`RadialGradient` through `_color_at_t`/`_GradientStop`/`_insert_stop`;
+only the projection differs. Those project a pixel position onto
+[0, 1]; this projects a data value, the way `LinearScale` does for
+position.
 """
 
 from canvas.color import Color
-from canvas.gradient import _GradientStop, _color_at_t
+from canvas.gradient import _GradientStop, _color_at_t, _insert_stop
 from dataviz.theme import Theme
 
 
@@ -23,12 +24,9 @@ struct ColorScale(Movable):
     var domain_max: Float64
     """The high end of the data domain this scale's colors span."""
     var stops: List[_GradientStop]
-    """The gradient's own color stops, added via `add_stop()`."""
-    # The smallest-/largest-offset stop so far, tracked incrementally so
-    # `_color_at_t` needn't scan `stops` on every call (same pattern as
-    # LinearGradient/RadialGradient).
-    var _lowest: _GradientStop
-    var _highest: _GradientStop
+    """The gradient's own color stops, added via `add_stop()`, always kept
+    sorted by offset (see `_insert_stop`) so `_color_at_t` can binary-search
+    for the bracketing pair."""
 
     def __init__(out self, domain_min: Float64, domain_max: Float64):
         """Construct an empty `ColorScale` over `[domain_min, domain_max]`. Add
@@ -42,25 +40,17 @@ struct ColorScale(Movable):
         self.domain_min = domain_min
         self.domain_max = domain_max
         self.stops = List[_GradientStop]()
-        # Overwritten by the first add_stop() call; _color_at_t never reads
-        # these unless len(stops) >= 2.
-        self._lowest = _GradientStop(0.0, Color(0, 0, 0, 0))
-        self._highest = self._lowest
 
     def add_stop(mut self, offset: Float64, color: Color):
         """Add one color stop to the gradient.
 
         Args:
             offset: The stop's position in `[0.0, 1.0]` along the
-                gradient.
+                gradient. Stops need not be added in offset order; each is
+                inserted into place.
             color: The color at that offset.
         """
-        var stop = _GradientStop(offset, color)
-        if len(self.stops) == 0 or offset < self._lowest.offset:
-            self._lowest = stop
-        if len(self.stops) == 0 or offset > self._highest.offset:
-            self._highest = stop
-        self.stops.append(stop)
+        _insert_stop(self.stops, offset, color)
 
     def color_at(self, value: Float64) -> Color:
         """Project `value` onto `[domain_min, domain_max]`, then interpolate
@@ -77,7 +67,7 @@ struct ColorScale(Movable):
         var t = 0.0
         if span != 0.0:
             t = (value - self.domain_min) / span
-        return _color_at_t(self.stops, self._lowest, self._highest, t)
+        return _color_at_t(self.stops, t)
 
     @staticmethod
     def from_theme(

@@ -587,13 +587,13 @@ def test_render_streamgraph_svg_matches_confirmed_paths() raises:
     var s = svg.to_string()
     assert_true(
         '<path d="M140.000,135.000 L300.000,135.000 L300.000,240.000'
-        ' L140.000,240.000 Z" fill="#1f77b4"/>'
+        ' L140.000,240.000 Z" fill="#1f77b4" fill-rule="evenodd"/>'
         in s,
         "A's band",
     )
     assert_true(
         '<path d="M140.000,30.000 L300.000,30.000 L300.000,135.000'
-        ' L140.000,135.000 Z" fill="#ff7f0e"/>'
+        ' L140.000,135.000 Z" fill="#ff7f0e" fill-rule="evenodd"/>'
         in s,
         "B's band",
     )
@@ -626,7 +626,8 @@ def test_render_streamgraph_svg_smoothing_matches_confirmed_cubic_path() raises:
         '<path d="M113.333,114.000 C131.111,114.000 184.444,107.667'
         " 220.000,114.000 C255.556,120.333 308.889,145.667 326.667,152.000"
         " L326.667,219.000 C308.889,222.500 255.556,243.500 220.000,240.000"
-        ' C184.444,236.500 131.111,205.000 113.333,198.000 Z" fill="#1f77b4"/>'
+        ' C184.444,236.500 131.111,205.000 113.333,198.000 Z" fill="#1f77b4"'
+        ' fill-rule="evenodd"/>'
         in s,
         (
             "A's band: smoothed top edge, straight cap, smoothed bottom edge"
@@ -696,13 +697,13 @@ def test_streamgraph_smoothing_zero_reproduces_straight_bands() raises:
     var s = svg.to_string()
     assert_true(
         '<path d="M140.000,135.000 L300.000,135.000 L300.000,240.000'
-        ' L140.000,240.000 Z" fill="#1f77b4"/>'
+        ' L140.000,240.000 Z" fill="#1f77b4" fill-rule="evenodd"/>'
         in s,
         "A's band, straight",
     )
     assert_true(
         '<path d="M140.000,30.000 L300.000,30.000 L300.000,135.000'
-        ' L140.000,135.000 Z" fill="#ff7f0e"/>'
+        ' L140.000,135.000 Z" fill="#ff7f0e" fill-rule="evenodd"/>'
         in s,
         "B's band, straight",
     )
