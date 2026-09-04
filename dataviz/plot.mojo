@@ -330,6 +330,29 @@ struct _MarkStyle(Copyable, Movable):
         self.sankey_node_width = 12.0
 
 
+struct _DomainOverride(Copyable, Movable):
+    """An explicit `[min, max]` axis domain set via `.scale_x_domain()`/
+    `.scale_y_domain()` (#209), overriding the padded/zero-baselined
+    domain `_data_extent()`/`_zero_baseline_y_extent()` would otherwise
+    compute. `has` is `False` (the default -- no override) until one of
+    those builder methods sets it. Stored on `Plot._x_domain`/`_y_domain`.
+    """
+
+    var has: Bool
+    var min: Float64
+    var max: Float64
+
+    def __init__(out self):
+        self.has = False
+        self.min = 0.0
+        self.max = 0.0
+
+    def __init__(out self, min: Float64, max: Float64):
+        self.has = True
+        self.min = min
+        self.max = max
+
+
 struct _LabelData(Copyable, Movable):
     """Chart/axis title text set via `.labels()`; an empty string means not
     set. Stored on `Plot._labels`.
@@ -494,6 +517,9 @@ struct Plot(Copyable, Movable):
     # Set via .scale_y_log()/.scale_x_log().
     var _y_log: Bool
     var _x_log: Bool
+    # Set via .scale_x_domain()/.scale_y_domain() (#209).
+    var _x_domain: _DomainOverride
+    var _y_domain: _DomainOverride
     # Set only via a mark_*(horizontal=True) parameter (#121); there is no
     # `.horizontal()` builder method, so this is only ever `True` alongside
     # a `_mark` whose `mark_*()` reads it.
@@ -546,6 +572,8 @@ struct Plot(Copyable, Movable):
         self._secondary_axis = False
         self._y_log = False
         self._x_log = False
+        self._x_domain = _DomainOverride()
+        self._y_domain = _DomainOverride()
         self._horizontal = False
         self._mark = Mark.POINT
         self._theme = Theme.default()
@@ -2954,6 +2982,64 @@ struct Plot(Copyable, Movable):
         cookbook_recipes/log_scale_x.mojo) for a full worked example.
         """
         self._x_log = True
+        return self^
+
+    def scale_x_domain(var self, min: Float64, max: Float64) -> Self:
+        """Pin the x-axis domain to `[min, max]` exactly (#209), replacing
+        `_data_extent()`'s 5%-padded domain (or `_log_data_extent()`'s
+        when `scale_x_log()` is also set). For comparable charts across
+        runs, a fixed reference range, or a zoomed-in view, without
+        padding the data with fake points.
+
+        `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER` only (the same marks
+        `_render_generic`'s continuous path draws), standalone `render()`/
+        `render_svg()` and `render_facets()` only -- `render_layers()`
+        raises if any layer sets this, since a shared axis across several
+        layers needs one shared answer, not one per layer; the categorical
+        marks (`Mark.BAR`, `LOLLIPOP`, ...) raise too, left for a
+        follow-up. `render_facets()` applies this per cell, so every cell
+        sharing the same override reads as one shared domain -- the
+        facets counterpart to `shared_y_scale=True` for the x-axis (which
+        has no `shared_y_scale` equivalent otherwise).
+
+        A point outside `[min, max]` still computes a real (off-plot)
+        pixel position via `LinearScale.to_pixel()`, same as it would if
+        it merely fell outside a padded auto-computed domain; the SVG
+        `viewBox`'s own default `overflow: hidden` clips it at the canvas
+        edge, and the raster `Canvas`'s own pixel buffer bounds-checks
+        every draw call, so nothing paints outside the plot in either
+        backend.
+
+        Args:
+            min: The domain's lower bound. For a log x-axis
+                (`scale_x_log()`), must be `> 0`.
+            max: The domain's upper bound; must be `> min`.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later if `min >= max`, the mark doesn't support this,
+            or (with `scale_x_log()`) `min <= 0`.
+        """
+        self._x_domain = _DomainOverride(min, max)
+        return self^
+
+    def scale_y_domain(var self, min: Float64, max: Float64) -> Self:
+        """`scale_x_domain()`'s y-axis mirror -- see that method's own
+        docstring for the shared rules. Overrides `_zero_baseline_y_
+        extent()`'s forced-zero domain on `Mark.AREA` too: an explicit
+        `[min, max]` is what the caller asked for, zero baseline or not.
+
+        Args:
+            min: The domain's lower bound. For a log y-axis
+                (`scale_y_log()`), must be `> 0`.
+            max: The domain's upper bound; must be `> min`.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later if `min >= max`, the mark doesn't support this,
+            or (with `scale_y_log()`) `min <= 0`.
+        """
+        self._y_domain = _DomainOverride(min, max)
         return self^
 
     def secondary_axis(var self) -> Self:
@@ -5480,6 +5566,49 @@ def _validate_log_scale_annotations(plot: Plot) raises:
                 )
 
 
+def _validate_domain_override(
+    override: _DomainOverride, is_log: Bool, context: String
+) raises:
+    """`Plot.scale_x_domain()`/`scale_y_domain()`'s (#209) own value
+    checks: `min < max` always, and (mirroring `_log_data_extent()`'s
+    positivity requirement) `min > 0` when the matching axis is
+    log-scaled. A no-op when `override.has` is `False`.
+    """
+    if not override.has:
+        return
+    if override.min >= override.max:
+        raise Error(
+            context
+            + "(): min must be less than max (got min="
+            + String(override.min)
+            + ", max="
+            + String(override.max)
+            + ")"
+        )
+    if is_log and override.min <= 0.0:
+        raise Error(
+            context
+            + "(): min must be > 0 for a log-scaled axis (log10(0) and"
+            " log10(negative) are undefined) -- got "
+            + String(override.min)
+        )
+
+
+def _domain_override_scale(
+    override: _DomainOverride, is_log: Bool
+) -> LinearScale:
+    """`override` as a `LinearScale` with a `[0, 1]` placeholder range
+    (the caller's frame-building step resolves the real pixel range, same
+    as `_data_extent()`'s own return), in log10-space when `is_log` --
+    already validated positive by `_validate_domain_override()`.
+    """
+    if is_log:
+        return LinearScale(
+            log10(override.min), log10(override.max), 0.0, 1.0, is_log=True
+        )
+    return LinearScale(override.min, override.max, 0.0, 1.0)
+
+
 def _check_line_smoothing(theme: Theme) raises:
     """`Theme.line_smoothing`'s `[0.0, 1.0]` range check. Called by
     `_draw_line_layer`/`_draw_area_layer`, so it covers the layered
@@ -6101,6 +6230,24 @@ def _render_generic[
             " always forced through a zero baseline (see"
             " _zero_baseline_y_extent()'s docstring), and zero has no logarithm"
         )
+    if (plot._x_domain.has or plot._y_domain.has) and not (
+        plot._mark == Mark.POINT
+        or plot._mark == Mark.LINE
+        or plot._mark == Mark.AREA
+        or plot._mark == Mark.EFFECT_SCATTER
+    ):
+        raise Error(
+            "Plot.scale_x_domain()/scale_y_domain() only apply to"
+            " Mark.POINT/LINE/AREA/EFFECT_SCATTER today -- a categorical-x-axis"
+            " (or other non-continuous) mark isn't wired up to an explicit"
+            " domain override yet"
+        )
+    _validate_domain_override(
+        plot._x_domain, plot._x_log, "Plot.scale_x_domain"
+    )
+    _validate_domain_override(
+        plot._y_domain, plot._y_log, "Plot.scale_y_domain"
+    )
     if has_shared_y_domain and not (
         plot._mark == Mark.POINT
         or plot._mark == Mark.LINE
@@ -6261,17 +6408,25 @@ def _render_generic[
     else:
         for v in plot.y_data:
             y_domain_data.append(v)
-    var y_scale = LinearScale(
-        shared_y_min, shared_y_max, 0.0, 1.0, is_log=shared_y_is_log
-    ) if has_shared_y_domain else (
-        _log_data_extent(y_domain_data) if plot._y_log else (
-            _zero_baseline_y_extent(y_domain_data) if plot._mark
-            == Mark.AREA else _data_extent(y_domain_data)
+    var y_scale = _domain_override_scale(
+        plot._y_domain, plot._y_log
+    ) if plot._y_domain.has else (
+        LinearScale(
+            shared_y_min, shared_y_max, 0.0, 1.0, is_log=shared_y_is_log
+        ) if has_shared_y_domain else (
+            _log_data_extent(y_domain_data) if plot._y_log else (
+                _zero_baseline_y_extent(y_domain_data) if plot._mark
+                == Mark.AREA else _data_extent(y_domain_data)
+            )
         )
     )
-    var x_scale = _log_data_extent(
-        plot.x_data
-    ) if plot._x_log else _data_extent(plot.x_data)
+    var x_scale = _domain_override_scale(
+        plot._x_domain, plot._x_log
+    ) if plot._x_domain.has else (
+        _log_data_extent(plot.x_data) if plot._x_log else _data_extent(
+            plot.x_data
+        )
+    )
 
     var frame = _draw_continuous_axis_frame(
         target,
@@ -7188,6 +7343,12 @@ def _render_layers_generic[
                 " only as the lone categorical layer in a bar-combo chart, see"
                 " _render_bar_combo_layers; Mark.ARC still isn't supported at"
                 " all)"
+            )
+        if plots[i]._x_domain.has or plots[i]._y_domain.has:
+            raise Error(
+                "render_layers(): Plot.scale_x_domain()/scale_y_domain() aren't"
+                " supported here yet (#209) -- layer "
+                + String(i)
             )
         if not x_log_seen:
             x_log_seen = True

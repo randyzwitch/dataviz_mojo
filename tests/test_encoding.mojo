@@ -21,6 +21,13 @@
   scale_y_log()/scale_x_log() (#217): a shared log domain, primary vs.
   secondary y-axis log-ness decided independently, Mark.AREA still
   excluded, and every mix-raise path (naming the disagreeing layer).
+- Plot.scale_x_domain()/scale_y_domain() (#209): a pinned domain wins
+  over both the data extent and Mark.AREA's forced zero baseline, an
+  out-of-domain point computes a real off-plot pixel rather than
+  raising or clamping, render_facets() applies the same override per
+  cell as a shared-domain equivalent, and every raise path (min >= max,
+  a non-positive min on a log axis, an unsupported mark,
+  render_layers()).
 - Theme.show_data_labels on Mark.BAR/GROUPED_BAR/STACKED_BAR: label
   placement and formatting, and the default-off case.
 - Plot.encode()'s labels channel on Mark.POINT/EFFECT_SCATTER.
@@ -33,6 +40,7 @@ from dataviz.colors import TOMATO
 from dataviz.plot import (
     Plot,
     render,
+    render_facets_svg,
     render_layers,
     render_layers_svg,
     render_svg,
@@ -663,6 +671,176 @@ def test_render_raises_on_a_non_positive_annotate_vline_value_with_scale_x_log()
     )
     with assert_raises():
         _ = render(plot)
+
+
+# ---------------------------------------------------------------
+# from tests/test_axis_domain_overrides.mojo (#209)
+# ---------------------------------------------------------------
+
+
+def test_render_svg_scale_y_domain_matches_hand_derived_positions() raises:
+    # Pinned y-domain [0, 100], ignoring the data's own [10, 90] range.
+    # Canvas 400x300, default theme -> plot_y0=20, plot_y1=250.
+    #
+    # scale() = (20-250)/(100-0) = -2.3, translate() = 250.
+    # to_pixel(10) = 227, to_pixel(50) = 135, to_pixel(90) = 43.
+    #
+    # Ticks: _nice_step(0, 100, 5) -> step 20 -> [0, 20, 40, 60, 80, 100],
+    # the same hand-derived set test_ticks_matches_hand_computed_values_
+    # domain_0_100 (test_primitives.mojo) uses for this exact domain.
+    var x: List[Float64] = [1.0, 2.0, 3.0]
+    var y: List[Float64] = [10.0, 50.0, 90.0]
+    var plot = (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .scale_y_domain(0.0, 100.0)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var s = render_svg(plot).to_string()
+    for tick in ["0", "20", "40", "60", "80", "100"]:
+        assert_true(">" + tick + "<" in s, "tick " + tick + " is drawn")
+    assert_true('cy="227"' in s, "y=10 lands at the pinned domain's own row")
+    assert_true('cy="135"' in s, "y=50 lands at the pinned domain's own row")
+    assert_true('cy="43"' in s, "y=90 lands at the pinned domain's own row")
+
+
+def test_render_svg_scale_y_domain_wins_over_the_data_extent() raises:
+    # Data tightly clustered around 42-45 still shows the pinned [0, 100]
+    # domain and its ticks -- not a padded [~40, ~47] auto-computed one.
+    var x: List[Float64] = [1.0, 2.0, 3.0]
+    var y: List[Float64] = [42.0, 44.0, 45.0]
+    var plot = (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .scale_y_domain(0.0, 100.0)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true(">0<" in s, "the pinned domain's own low tick draws")
+    assert_true(">100<" in s, "the pinned domain's own high tick draws")
+
+
+def test_render_svg_scale_y_domain_overrides_mark_area_forced_zero_baseline() raises:
+    # #209: an explicit domain wins even over Mark.AREA's usual forced
+    # zero baseline -- [30, 70] shows no 0 tick at all.
+    var x: List[Float64] = [1.0, 2.0, 3.0]
+    var y: List[Float64] = [40.0, 50.0, 60.0]
+    var plot = (
+        Plot()
+        .mark_area()
+        .encode(x=x, y=y)
+        .scale_y_domain(30.0, 70.0)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true(">30<" in s, "the pinned lower bound's own tick draws")
+    assert_true(">0<" not in s, "zero is no longer forced into view")
+
+
+def test_render_svg_point_outside_scale_domain_computes_an_off_plot_pixel() raises:
+    # y=150 is outside the pinned [0, 100] domain: to_pixel(150) =
+    # 250 + 150*(-2.3) = -95, a real (negative, off-plot) pixel row --
+    # not clamped, not garbage, not a raise. The SVG's own viewBox clips
+    # it visually (default overflow: hidden on the root <svg>); nothing
+    # further to do on the raster backend, which bounds-checks its own
+    # pixel buffer.
+    var x: List[Float64] = [1.0, 2.0, 3.0]
+    var y: List[Float64] = [10.0, 50.0, 150.0]
+    var plot = (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .scale_y_domain(0.0, 100.0)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true(
+        'cy="-95"' in s,
+        "the out-of-domain point still computes its real off-plot pixel",
+    )
+    var c = render(plot)  # must not crash on the raster backend either
+    _ = c
+
+
+def test_render_raises_when_scale_domain_min_is_not_less_than_max() raises:
+    var x: List[Float64] = [1.0, 2.0]
+    var y: List[Float64] = [1.0, 2.0]
+    var plot = Plot().mark_point().encode(x=x, y=y).scale_y_domain(100.0, 0.0)
+    with assert_raises():
+        _ = render(plot)
+
+
+def test_render_raises_on_scale_domain_with_a_non_positive_min_on_a_log_axis() raises:
+    var x: List[Float64] = [1.0, 2.0]
+    var y: List[Float64] = [1.0, 2.0]
+    var plot = (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .scale_y_log()
+        .scale_y_domain(-1.0, 100.0)
+    )
+    with assert_raises():
+        _ = render(plot)
+
+
+def test_render_raises_on_scale_domain_with_an_incompatible_mark() raises:
+    var cats: List[String] = ["a", "b"]
+    var vals: List[Float64] = [1.0, 2.0]
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=vals)
+        .scale_y_domain(0.0, 10.0)
+    )
+    with assert_raises():
+        _ = render(plot)
+
+
+def test_render_layers_raises_on_a_layer_with_scale_y_domain() raises:
+    var x: List[Float64] = [1.0, 2.0]
+    var y: List[Float64] = [1.0, 2.0]
+    var a = Plot().mark_line().encode(x=x, y=y).scale_y_domain(0.0, 10.0)
+    var b = Plot().mark_point().encode(x=x, y=y)
+    var plots: List[Plot] = [a^, b^]
+    with assert_raises():
+        _ = render_layers(plots)
+
+
+def test_render_facets_svg_scale_y_domain_applies_per_cell_like_a_shared_domain() raises:
+    # #209: the same override on every cell reads as one shared domain --
+    # the facets counterpart to shared_y_scale=True, with no extra
+    # facets-specific wiring (each cell independently resolves the same
+    # pinned [0, 100] via _render_generic).
+    var x: List[Float64] = [1.0, 2.0]
+    var y0: List[Float64] = [5.0, 6.0]
+    var y1: List[Float64] = [95.0, 96.0]
+    var p0 = (
+        Plot()
+        .size(300, 220)
+        .mark_point()
+        .encode(x=x, y=y0)
+        .scale_y_domain(0.0, 100.0)
+        .theme(Theme(show_gridlines=False))
+    )
+    var p1 = (
+        Plot()
+        .size(300, 220)
+        .mark_point()
+        .encode(x=x, y=y1)
+        .scale_y_domain(0.0, 100.0)
+        .theme(Theme(show_gridlines=False))
+    )
+    var plots: List[Plot] = [p0^, p1^]
+    var s = render_facets_svg(plots, 2).to_string()
+    assert_true(">0<" in s, "the shared pinned domain's low tick draws")
+    assert_true(">100<" in s, "the shared pinned domain's high tick draws")
 
 
 def test_render_layers_raises_on_a_layer_with_scale_y_log() raises:
