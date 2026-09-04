@@ -343,6 +343,12 @@ struct _LabelData(Copyable, Movable):
     """A longer SVG `<desc>` than `subtitle` need be (#212); see
     `Plot.labels()`'s own docstring. `save()`/`save_layers()`/
     `save_facets()` fall back to `subtitle` when this is empty."""
+    var series_name: String
+    """This layer's name in `render_layers()`'s per-layer legend (#215);
+    see `Plot.series_name()`'s own docstring. Empty (the default) draws
+    no legend row for this layer. `render()`/`render_svg()` ignore it --
+    a standalone plot has only one series, nothing for a legend entry to
+    distinguish."""
 
     def __init__(out self):
         self.title = ""
@@ -350,6 +356,7 @@ struct _LabelData(Copyable, Movable):
         self.x_title = ""
         self.y_title = ""
         self.description = ""
+        self.series_name = ""
 
 
 struct _AnnotationData(Copyable, Movable):
@@ -2682,6 +2689,36 @@ struct Plot(Copyable, Movable):
         self._labels.x_title = x_title
         self._labels.y_title = y_title
         self._labels.description = description
+        return self^
+
+    def series_name(var self, name: String) -> Self:
+        """Name this layer for `render_layers()`'s/`render_layers_svg()`'s
+        per-layer legend (#215): a swatch (this layer's own
+        `Theme.mark_color`) plus `name`, one row per named layer, drawn
+        before any per-point `color`/`color_categories` legend a `Mark.
+        POINT` layer has of its own. A `Plot.secondary_axis()` layer's row
+        gets `" (right axis)"` appended, so the reader knows which axis it
+        reads against.
+
+        `render_layers()`/`render_layers_svg()` and
+        `_render_bar_combo_layers` (the `Mark.BAR`-combo path) only;
+        `render()`/`render_svg()` ignore it, since a standalone plot has
+        only one series, nothing for a legend entry to distinguish.
+        Layers with no name draw no row -- an all-unnamed `plots` list
+        renders exactly as before this existed.
+
+        Args:
+            name: This layer's label in the per-layer legend. Left
+                empty (the default, via not calling this), the layer
+                draws no legend row.
+
+        Returns:
+            Self, for further chaining.
+
+        See the Cookbook's own "Layer Legend" recipe (docs/src/
+        cookbook_recipes/layer_legend.mojo) for a full worked example.
+        """
+        self._labels.series_name = name
         return self^
 
     def annotate_line(var self, value: Float64, label: String = "") -> Self:
@@ -7049,9 +7086,43 @@ def _render_bar_combo_layers[
     var y_scale = _zero_baseline_y_extent(combined_y)
 
     var theme = plots[0]._theme
-    var frame = _draw_categorical_axis_frame(
-        target, bar_categories, y_scale, theme, ox0, oy0, ox1, oy1
+    var sc = _Scaled(theme)
+
+    # #215: one legend row per named layer (Plot.series_name()), the bar
+    # layer included, each in that layer's own Theme.mark_color.
+    var series_names = List[String]()
+    var series_colors = List[Color]()
+    for i in range(len(plots)):
+        if plots[i]._labels.series_name.byte_length() > 0:
+            series_names.append(plots[i]._labels.series_name)
+            series_colors.append(plots[i]._theme.mark_color)
+    var legend_reserve = (
+        _dynamic_legend_width(series_names, sc.legend_swatch_size, sc) if len(
+            series_names
+        )
+        > 0 else 0
     )
+
+    var frame = _draw_categorical_axis_frame(
+        target,
+        bar_categories,
+        y_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1 - legend_reserve,
+        oy1,
+    )
+    if len(series_names) > 0:
+        _draw_legend(
+            target,
+            frame.text_requests,
+            series_names,
+            series_colors,
+            frame.px1 + sc.margin_right,
+            frame.py0,
+            theme,
+        )
 
     _draw_bar_rects(
         target,
@@ -7365,6 +7436,21 @@ def _render_layers_generic[
             + sc.margin_buffer
         )
 
+    # #215: one legend row per named layer (Plot.series_name()), in that
+    # layer's own Theme.mark_color -- a secondary-axis layer's row is
+    # suffixed so the reader knows which axis it reads against. Collected
+    # once here and reused both for legend_reserve's width measurement
+    # and the actual draw below.
+    var series_names = List[String]()
+    var series_colors = List[Color]()
+    for j in range(len(plots)):
+        if plots[j]._labels.series_name.byte_length() > 0:
+            var name = plots[j]._labels.series_name
+            if plots[j]._secondary_axis:
+                name += " (right axis)"
+            series_names.append(name)
+            series_colors.append(plots[j]._theme.mark_color)
+
     # legend_reserve is the widest legend section across every
     # encoding-using Mark.POINT layer, each measured with that layer's own
     # _Scaled; sections stack vertically, so the column width is a max,
@@ -7376,6 +7462,13 @@ def _render_layers_generic[
         legend_reserve = max(
             legend_reserve,
             _legend_reserve_for(plots[j], ch_j, p_sc_j, cache=measure_cache),
+        )
+    if len(series_names) > 0:
+        legend_reserve = max(
+            legend_reserve,
+            _dynamic_legend_width(
+                series_names, sc.legend_swatch_size, sc, cache=measure_cache
+            ),
         )
 
     var frame = _draw_continuous_axis_frame(
@@ -7437,6 +7530,19 @@ def _render_layers_generic[
     # each layer's section(s).
     var legend_x = frame.px1 + secondary_axis_reserve + sc.margin_right
     var legend_y = frame.py0
+    if len(series_names) > 0:
+        _draw_legend(
+            target,
+            text_requests,
+            series_names,
+            series_colors,
+            legend_x,
+            legend_y,
+            theme,
+        )
+        legend_y += len(series_names) * (
+            sc.legend_swatch_size + sc.legend_row_gap
+        )
     for j in range(len(plots)):
         if len(plots[j].x_data) == 0:
             continue

@@ -18,13 +18,17 @@
   legend, and both raise paths.
 - The secondary y-axis caption from the secondary layer's own
   .labels(y_title=...), rotated the opposite way from the primary.
+- Plot.series_name() (#215): one legend row per named layer, each in
+  that layer's own Theme.mark_color, in layer order, with no row for
+  an unnamed layer; the secondary-axis suffix; and the same for the
+  Mark.BAR combo path's bar layer.
 """
 
 from _test_helpers import BG, _assert_color, _assert_near_color, _count_color
 from canvas.color import Color
 from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
 from dataviz.color_scale import default_categorical_palette
-from dataviz.colors import MAGENTA, RED
+from dataviz.colors import CORNFLOWERBLUE, MAGENTA, RED, TOMATO
 from dataviz.plot import (
     Plot,
     render,
@@ -544,6 +548,94 @@ def test_render_layers_raises_on_out_of_range_smoothing() raises:
         _ = render_layers(high)
 
 
+def test_render_layers_svg_named_layers_get_one_legend_row_each_in_order() raises:
+    # #215: three layers, two named -- exactly two legend rows, each in
+    # that layer's own Theme.mark_color, in the order the layers were
+    # given; the unnamed layer draws no row at all.
+    var x: List[Float64] = [1.0, 2.0, 3.0]
+    var y1: List[Float64] = [1.0, 2.0, 3.0]
+    var y2: List[Float64] = [3.0, 2.0, 1.0]
+    var y3: List[Float64] = [2.0, 2.0, 2.0]
+    var a = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y1)
+        .theme(Theme(mark_color=CORNFLOWERBLUE))
+        .series_name("A")
+        .size(400, 300)
+    )
+    var b = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y2)
+        .theme(Theme(mark_color=TOMATO))
+        .series_name("B")
+        .size(400, 300)
+    )
+    var c = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y3)
+        .theme(Theme(mark_color=RED))
+        .size(400, 300)
+    )  # unnamed
+    var plots: List[Plot] = [a^, b^, c^]
+    var s = render_layers_svg(plots).to_string()
+    var a_idx = s.find(">A<")
+    var b_idx = s.find(">B<")
+    assert_true(a_idx != -1, "layer A's legend row draws")
+    assert_true(b_idx != -1, "layer B's legend row draws")
+    assert_true(a_idx < b_idx, "rows draw in the layers' own order")
+    assert_true(
+        'fill="#6495ed"' in s, "A's swatch uses its own layer's mark_color"
+    )
+    assert_true(
+        'fill="#ff6347"' in s, "B's swatch uses its own layer's mark_color"
+    )
+    assert_equal(
+        s.count('<rect x="') - 1, 2
+    )  # the canvas background rect, plus exactly 2 swatches
+
+
+def test_render_layers_svg_no_named_layers_draws_no_legend_at_all() raises:
+    var x: List[Float64] = [1.0, 2.0, 3.0]
+    var y: List[Float64] = [1.0, 2.0, 3.0]
+    var a = Plot().mark_line().encode(x=x, y=y).size(400, 300)
+    var b = Plot().mark_point().encode(x=x, y=y).size(400, 300)
+    var plots: List[Plot] = [a^, b^]
+    var s = render_layers_svg(plots).to_string()
+    assert_equal(
+        s.count('<rect x="'), 1
+    )  # only the canvas background rect -- no legend swatch
+
+
+def test_render_layers_svg_secondary_axis_layer_name_is_suffixed() raises:
+    var x: List[Float64] = [1.0, 2.0, 3.0]
+    var y: List[Float64] = [1.0, 2.0, 3.0]
+    var primary = (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .series_name("Primary")
+        .size(400, 300)
+    )
+    var secondary = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .series_name("Secondary")
+        .secondary_axis()
+        .size(400, 300)
+    )
+    var plots: List[Plot] = [primary^, secondary^]
+    var s = render_layers_svg(plots).to_string()
+    assert_true(">Primary<" in s, "the primary layer's plain name draws")
+    assert_true(
+        "Secondary (right axis)" in s,
+        "the secondary layer's name is suffixed so its axis is clear",
+    )
+
+
 # ---------------------------------------------------------------
 # from tests/test_layers_bar_combo.mojo
 # ---------------------------------------------------------------
@@ -850,6 +942,38 @@ def test_render_layers_raises_on_annotate_best_fit_in_a_bar_combo() raises:
     var plots: List[Plot] = [bars^, line^]
     with assert_raises():
         _ = render_layers_svg(plots)
+
+
+def test_render_layers_svg_bar_combo_named_layers_get_a_legend_row_each() raises:
+    # #215: the bar-combo path (_render_bar_combo_layers) needs the same
+    # per-layer legend the generic path has -- the bar layer included.
+    var cats: List[String] = ["A", "B", "C"]
+    var bar_y: List[Float64] = [10.0, 20.0, 15.0]
+    var idx: List[Float64] = [0.0, 1.0, 2.0]
+    var line_y: List[Float64] = [5.0, 8.0, 12.0]
+    var bars = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=bar_y)
+        .theme(Theme(mark_color=CORNFLOWERBLUE))
+        .series_name("Sales")
+        .size(400, 300)
+    )
+    var line = (
+        Plot()
+        .mark_line()
+        .encode(x=idx, y=line_y)
+        .theme(Theme(mark_color=TOMATO))
+        .series_name("Trend")
+        .size(400, 300)
+    )
+    var plots: List[Plot] = [bars^, line^]
+    var s = render_layers_svg(plots).to_string()
+    assert_true(">Sales<" in s, "the bar layer's own legend row draws")
+    assert_true(">Trend<" in s, "the line layer's own legend row draws")
+    assert_true(
+        'fill="#6495ed"' in s, "the bar layer's swatch uses its own mark_color"
+    )
 
 
 # ---------------------------------------------------------------
