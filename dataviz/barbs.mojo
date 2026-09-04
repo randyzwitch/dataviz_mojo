@@ -1,5 +1,6 @@
 from std.math import atan2, sqrt
 
+from canvas.fill_rule import FillRule
 from canvas.geometry import Transform2D, _round_to_int
 from canvas.path import Path
 from canvas.text.font_cache import FontCache
@@ -283,7 +284,9 @@ def _render_barbs[
         )
         if counts.flags > 0:
             target.fill_path_aa(
-                pennants[slot].transformed(xform), theme.mark_color
+                pennants[slot].transformed(xform),
+                theme.mark_color,
+                fill_rule=FillRule.NONZERO,
             )
 
     return frame.result()

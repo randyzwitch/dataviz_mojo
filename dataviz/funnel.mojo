@@ -1,4 +1,5 @@
 from canvas.color import Color
+from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
@@ -57,7 +58,7 @@ def _fill_trapezoid[
     path.line_to(bottom_right, Float64(y1))
     path.line_to(bottom_left, Float64(y1))
     path.close()
-    target.fill_path_aa(path, color)
+    target.fill_path_aa(path, color, fill_rule=FillRule.NONZERO)
 
 
 def _render_funnel[

@@ -45,6 +45,7 @@ from std.math import cos, log10, pi, sin
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.gradient import LinearGradient
+from canvas.fill_rule import FillRule
 from canvas.io.bmp import write_bmp
 from canvas.io.png import write_png
 from canvas.resize import downsample
@@ -4387,7 +4388,9 @@ def _draw_annotation_bands[
         for i in range(len(xs) - 1, -1, -1):
             path.line_to(px_lower[i], py_lower[i])
         path.close()
-        target.fill_path_aa(path, theme.annotation_area_color)
+        target.fill_path_aa(
+            path, theme.annotation_area_color, fill_rule=FillRule.NONZERO
+        )
 
         var label = plot._annotations.band_labels[k]
         if label.byte_length() > 0:
@@ -6283,7 +6286,7 @@ def _draw_area_layer[
     path.line_to(thinned.px[len(thinned.px) - 1], baseline_py)
     path.line_to(thinned.px[0], baseline_py)
     path.close()
-    target.fill_path_aa(path, theme.mark_color)
+    target.fill_path_aa(path, theme.mark_color, fill_rule=FillRule.NONZERO)
 
 
 def _render_generic[
@@ -7420,7 +7423,9 @@ def _render_bar_combo_layers[
             path.line_to(px[len(px) - 1], baseline_py)
             path.line_to(px[0], baseline_py)
             path.close()
-            target.fill_path_aa(path, layer_theme.mark_color)
+            target.fill_path_aa(
+                path, layer_theme.mark_color, fill_rule=FillRule.NONZERO
+            )
 
     return frame.result()
 

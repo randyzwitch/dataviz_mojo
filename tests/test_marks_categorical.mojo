@@ -932,19 +932,19 @@ def test_render_funnel_svg_matches_confirmed_paths() raises:
     var s = svg.to_string()
     assert_true(
         '<path d="M60.000,20.000 L380.000,20.000 L316.000,96.000'
-        ' L124.000,96.000 Z" fill="#1f77b4" fill-rule="evenodd"/>'
+        ' L124.000,96.000 Z" fill="#1f77b4"/>'
         in s,
         "row 0",
     )
     assert_true(
         '<path d="M124.000,96.000 L316.000,96.000 L252.000,173.000'
-        ' L188.000,173.000 Z" fill="#ff7f0e" fill-rule="evenodd"/>'
+        ' L188.000,173.000 Z" fill="#ff7f0e"/>'
         in s,
         "row 1",
     )
     assert_true(
         '<path d="M188.000,173.000 L252.000,173.000 L252.000,250.000'
-        ' L188.000,250.000 Z" fill="#2ca02c" fill-rule="evenodd"/>'
+        ' L188.000,250.000 Z" fill="#2ca02c"/>'
         in s,
         "row 2 -- flat bottom, matching its top",
     )

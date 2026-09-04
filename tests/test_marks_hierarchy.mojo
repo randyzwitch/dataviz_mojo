@@ -696,7 +696,7 @@ def test_render_sankey_svg_matches_confirmed_geometry() raises:
     var s = svg.to_string()
     assert_true(
         '<path d="M72.000,20.000 L72.000,250.000 L368.000,250.000'
-        ' L368.000,20.000 Z" fill="#1f77b4" fill-rule="evenodd"/>'
+        ' L368.000,20.000 Z" fill="#1f77b4"/>'
         in s,
         "the ribbon, A's column edge to B's column edge",
     )

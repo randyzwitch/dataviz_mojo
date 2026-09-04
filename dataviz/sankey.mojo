@@ -1,3 +1,4 @@
+from canvas.fill_rule import FillRule
 from canvas.geometry import _round_to_int
 from canvas.path import Path
 from canvas.text.render import TextAlign
@@ -223,7 +224,11 @@ def _render_sankey[
         path.line_to(tgt_x, tgt_bottom)
         path.line_to(tgt_x, tgt_top)
         path.close()
-        target.fill_path_aa(path, palette[edge_origin[e] % len(palette)])
+        target.fill_path_aa(
+            path,
+            palette[edge_origin[e] % len(palette)],
+            fill_rule=FillRule.NONZERO,
+        )
 
     var text_requests = List[_TextRequest]()
     for i in range(n):

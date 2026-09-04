@@ -14,6 +14,7 @@ same way `default_categorical_palette()`'s first color does.
 """
 
 from canvas.color import Color
+from canvas.fill_rule import FillRule
 from canvas.geometry import _round_to_int
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
@@ -100,7 +101,7 @@ def _fill_shape_aa[
         path.line_to(Float64(cx) + r * _COS_30, Float64(cy) + r * 0.5)
         path.line_to(Float64(cx) - r * _COS_30, Float64(cy) + r * 0.5)
         path.close()
-        target.fill_path_aa(path, color)
+        target.fill_path_aa(path, color, fill_rule=FillRule.NONZERO)
     elif shape == PointShape.DIAMOND:
         var r = Float64(radius)
         var path = Path()
@@ -109,7 +110,7 @@ def _fill_shape_aa[
         path.line_to(Float64(cx), Float64(cy) + r)
         path.line_to(Float64(cx) - r, Float64(cy))
         path.close()
-        target.fill_path_aa(path, color)
+        target.fill_path_aa(path, color, fill_rule=FillRule.NONZERO)
     elif shape == PointShape.CROSS:
         var width = Float64(radius) * 0.65
         target.draw_line_aa(

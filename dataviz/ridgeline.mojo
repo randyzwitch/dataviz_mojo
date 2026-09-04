@@ -1,5 +1,6 @@
 from std.math import sqrt
 
+from canvas.fill_rule import FillRule
 from canvas.geometry import _round_to_int
 from canvas.path import Path
 from canvas.text.font_cache import FontCache
@@ -118,7 +119,7 @@ def _render_ridgeline[
             path.line_to(Float64(xs[s]), baseline_y - densities[s] * scale)
         path.line_to(Float64(xs[_KDE_SAMPLES - 1]), baseline_y)
         path.close()
-        target.fill_path_aa(path, theme.mark_color)
+        target.fill_path_aa(path, theme.mark_color, fill_rule=FillRule.NONZERO)
 
     return frame.result()
 

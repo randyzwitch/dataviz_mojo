@@ -1,6 +1,7 @@
 from std.math import cos, pi, sin
 
 from canvas.color import Color
+from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
@@ -43,6 +44,12 @@ def _draw_chord_ribbon[
     ribbon inward. `a0 <= a1`/`b0 <= b1` always hold, since
     `_render_chord`'s angles only advance forward, matching `arc_to`'s
     expectation.
+
+    Filled `NONZERO` (#256). Both connections bow through the circle's
+    center, so a ribbon between two nearly-opposite nodes can pinch to a
+    point there and cross itself. Even-odd would read that overlap as
+    outside and punch a hole in the middle of the ribbon; nonzero fills
+    it solid, which is what a ribbon is meant to look like.
     """
     var path = Path()
     path.move_to(cx + r * cos(a0), cy + r * sin(a0))
@@ -51,7 +58,7 @@ def _draw_chord_ribbon[
     path.arc_to(cx, cy, r, b0, b1)
     path.quad_curve_to(cx, cy, cx + r * cos(a0), cy + r * sin(a0))
     path.close()
-    target.fill_path_aa(path, color)
+    target.fill_path_aa(path, color, fill_rule=FillRule.NONZERO)
 
 
 def _render_chord[
