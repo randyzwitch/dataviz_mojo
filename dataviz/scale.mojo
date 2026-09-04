@@ -13,6 +13,7 @@ times a power of ten, so labels read as 0.2/0.4/0.6 rather than
 """
 
 from std.math import ceil, floor, log10, pow
+from std.utils.numerics import isfinite
 
 from canvas.geometry import _round_to_int
 
@@ -41,16 +42,42 @@ struct MinMax(ImplicitlyCopyable, Movable):
 
 
 def _min_max(data: List[Float64]) raises -> MinMax:
-    """`data`'s [min, max]. Raises on an empty list. No caller can currently
-    reach that (each guards on non-empty data first), and there is no
-    honest [min, max] of nothing; a silent `MinMax(0.0, 0.0)` would render
-    as a real axis.
+    """`data`'s [min, max]. Raises on an empty list, and on any non-finite
+    (`NaN`/`inf`) value.
+
+    Every list this package computes a spatial or color/size domain from
+    passes through here first (`_data_extent`, `_zero_baseline_y_extent`,
+    `_log_data_extent`, and every mark's own color/size `MinMax`), and the
+    same list is what later gets mapped point-by-point onto pixels -- so
+    this is the single narrow chokepoint (#190) where a `NaN`/`inf` value
+    can be caught before it reaches a scale at all. Left unchecked, a
+    non-finite value either poisons the whole domain into `(NaN, NaN)`
+    (comparisons against `NaN` are always false, so `lo`/`hi` never
+    recover once seeded from one) or survives the comparisons (`inf` has a
+    well-defined order) and produces a domain no tick generator can label
+    -- and either way, `Int(nan_or_inf)` later hands the SVG output
+    `Int64::MIN` as a literal pixel coordinate with no error raised.
+
+    An empty list has no honest [min, max]; a silent `MinMax(0.0, 0.0)`
+    would hand back a degenerate domain that renders as a real axis,
+    which is exactly the "silently misrepresent the data" failure this
+    package's encode/render checks exist to prevent. A clear error at the
+    boundary beats a plausible-looking wrong chart -- the same reasoning
+    applies to non-finite values.
     """
     if len(data) == 0:
         raise Error("_min_max(): can't take the min/max of an empty column")
     var lo = data[0]
     var hi = data[0]
-    for v in data:
+    for i in range(len(data)):
+        var v = data[i]
+        if not isfinite(v):
+            raise Error(
+                "_min_max(): every value must be finite -- got "
+                + String(v)
+                + " at index "
+                + String(i)
+            )
         if v < lo:
             lo = v
         if v > hi:
