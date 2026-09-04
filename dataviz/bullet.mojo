@@ -6,7 +6,10 @@ from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import ColorScale
 from dataviz.plot import (
     Plot,
+    _Orientation,
     _RenderResult,
+    _Scaled,
+    _TextRequest,
     _axis_pixel,
     _draw_categorical_axis_frame,
     _pull_off_axis_line,
@@ -14,6 +17,7 @@ from dataviz.plot import (
     _require_non_empty,
     _zero_baseline_y_extent,
 )
+from dataviz.scale import _format_tick, _label_decimals
 from dataviz.theme import Theme
 
 
@@ -119,6 +123,8 @@ def _render_bullet[
         bandwidth * plot._mark_style.bullet_measure_width_fraction / 2.0
     )
     var baseline_py = _axis_pixel(frame.y_scale, 0.0)
+    var sc = _Scaled(theme)
+    var orient = _Orientation(False)  # Mark.BULLET has no horizontal variant
 
     for i in range(len(plot.x_categories)):
         var band_x = _round_to_int(frame.x_scale.band_start(i))
@@ -150,6 +156,29 @@ def _render_bullet[
             measure_rect.height,
             theme.mark_color,
         )
+        if theme.show_data_labels:
+            var measure = plot._bullet.measure[i]
+            var at = orient.outside_band_label(
+                measure_rect,
+                band_x,
+                band_width,
+                measure < 0.0,
+                sc.label_gap,
+                sc.font_size,
+            )
+            frame.text_requests.append(
+                _TextRequest(
+                    at.x,
+                    at.y,
+                    _format_tick(
+                        measure, _label_decimals(measure), theme.y_tick_format
+                    ),
+                    theme.text_color,
+                    sc.font_size,
+                    at.align,
+                    theme.font_family,
+                )
+            )
 
         var target_py = _axis_pixel(frame.y_scale, plot._bullet.target[i])
         var band_end = band_x + band_width

@@ -5,7 +5,10 @@ from canvas.vector.draw_target import DrawTarget
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.plot import (
     Plot,
+    _Orientation,
     _RenderResult,
+    _Scaled,
+    _TextRequest,
     _axis_pixel,
     _draw_categorical_axis_frame,
     _pull_off_axis_line,
@@ -13,6 +16,7 @@ from dataviz.plot import (
     _require_non_empty,
     _zero_baseline_y_extent,
 )
+from dataviz.scale import _format_tick, _label_decimals
 from dataviz.theme import Theme
 
 
@@ -138,6 +142,8 @@ def _render_waterfall[
     # Delta bars only narrow when is_total is in use; otherwise every bar
     # stays full band width.
     var using_totals = len(plot._waterfall.is_total) > 0
+    var sc = _Scaled(theme)
+    var orient = _Orientation(False)  # Mark.WATERFALL has no horizontal variant
 
     # Only recorded when is_total is in use: that's the only case the
     # connector pass reads them back (a delta bar can be narrower than its
@@ -176,6 +182,24 @@ def _render_waterfall[
             < 0.0 else theme.mark_color
         )
         target.fill_rect(bar_x, rect.y, bar_width, rect.height, bar_color)
+        if theme.show_data_labels:
+            var delta = plot.y_data[i]
+            var at = orient.outside_band_label(
+                rect, bar_x, bar_width, delta < 0.0, sc.label_gap, sc.font_size
+            )
+            frame.text_requests.append(
+                _TextRequest(
+                    at.x,
+                    at.y,
+                    _format_tick(
+                        delta, _label_decimals(delta), theme.y_tick_format
+                    ),
+                    theme.text_color,
+                    sc.font_size,
+                    at.align,
+                    theme.font_family,
+                )
+            )
 
         if i > 0:
             var prev_end_py = _axis_pixel(
