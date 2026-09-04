@@ -6029,6 +6029,7 @@ def _render_generic[
     has_shared_y_domain: Bool = False,
     shared_y_min: Float64 = 0.0,
     shared_y_max: Float64 = 0.0,
+    shared_y_is_log: Bool = False,
 ) raises -> _RenderResult:
     """The dispatch, layout, and shape-drawing core `render()`/
     `render_svg()` (and the facet/layer variants) delegate to, generic
@@ -6049,8 +6050,14 @@ def _render_generic[
     `Plot.secondary_axis()`, a log scale on a non-continuous mark or on
     `Mark.AREA`'s y-axis, and `render_facets(shared_y_scale=True)`
     (`has_shared_y_domain`) on anything but `Mark.POINT`/`LINE`/
-    `EFFECT_SCATTER`, together with a log scale, or together with
-    `y_err*`.
+    `EFFECT_SCATTER`, or together with `y_err*`.
+
+    `shared_y_is_log` (#217) is `_render_facets_generic`'s own decision,
+    already validated there (every cell agrees, `shared_y_min`/
+    `shared_y_max` already computed in log10-space via `_log_data_extent`)
+    -- this only requires `plot._y_log` to match it, a defensive check
+    against calling this directly with an inconsistent combination rather
+    than a real per-cell decision point.
     """
     if plot._secondary_axis:
         raise Error(
@@ -6087,11 +6094,10 @@ def _render_generic[
             " (Mark.AREA's own forced zero baseline has no principled way to"
             " compose with an externally supplied shared domain)"
         )
-    if has_shared_y_domain and plot._y_log:
+    if has_shared_y_domain and plot._y_log != shared_y_is_log:
         raise Error(
-            "render_facets(shared_y_scale=True): not supported together with"
-            " Plot.scale_y_log() -- the shared domain is computed in real"
-            " (linear) units, log-scaling it isn't wired up"
+            "render_facets(shared_y_scale=True): every cell must agree on"
+            " Plot.scale_y_log() -- got a mix of log and linear cells"
         )
     if has_shared_y_domain and (
         len(plot.y_err_data) > 0
@@ -6238,7 +6244,7 @@ def _render_generic[
         for v in plot.y_data:
             y_domain_data.append(v)
     var y_scale = LinearScale(
-        shared_y_min, shared_y_max, 0.0, 1.0
+        shared_y_min, shared_y_max, 0.0, 1.0, is_log=shared_y_is_log
     ) if has_shared_y_domain else (
         _log_data_extent(y_domain_data) if plot._y_log else (
             _zero_baseline_y_extent(y_domain_data) if plot._mark
@@ -6634,11 +6640,12 @@ def _render_facets_generic[
     adjacent cells share the exact boundary pixel.
 
     `shared_y_scale` gives every cell one y-domain (`_data_extent` over
-    the union of every cell's `y_data`). Only `Mark.POINT`/`LINE`/
-    `EFFECT_SCATTER` support it, every cell must use one of those marks,
-    and it doesn't combine with `Plot.scale_y_log()` or `y_err*` (the
-    shared union is linear and not widened for whiskers);
-    `_render_generic` raises for each case.
+    the union of every cell's `y_data`, or `_log_data_extent` when every
+    cell agrees on `Plot.scale_y_log()` -- #217). Only `Mark.POINT`/
+    `LINE`/`EFFECT_SCATTER` support it, every cell must use one of those
+    marks, and it doesn't combine with `y_err*` (the shared union isn't
+    widened for whiskers); `_render_generic` raises for each case,
+    including a log/linear mix.
     """
     var text_requests = List[_TextRequest]()
     if cols <= 0:
@@ -6649,15 +6656,20 @@ def _render_facets_generic[
         return text_requests^
 
     # Computed once up front when asked for, so every cell reads the same
-    # two numbers.
+    # two numbers. shared_y_is_log follows plots[0]; a mix raises inside
+    # _render_generic's own per-cell check rather than here, so the error
+    # names which cell disagrees.
     var shared_y_min = 0.0
     var shared_y_max = 0.0
+    var shared_y_is_log = shared_y_scale and plots[0]._y_log
     if shared_y_scale:
         var combined_y = List[Float64]()
         for i in range(len(plots)):
             for v in plots[i].y_data:
                 combined_y.append(v)
-        var domain = _data_extent(combined_y)
+        var domain = _log_data_extent(
+            combined_y
+        ) if shared_y_is_log else _data_extent(combined_y)
         shared_y_min = domain.domain_min
         shared_y_max = domain.domain_max
 
@@ -6689,6 +6701,7 @@ def _render_facets_generic[
             has_shared_y_domain=shared_y_scale,
             shared_y_min=shared_y_min,
             shared_y_max=shared_y_max,
+            shared_y_is_log=shared_y_is_log,
         )
         var label_requests = _label_text_requests(
             plots[i],
@@ -7130,6 +7143,18 @@ def _render_layers_generic[
             target, plots, bar_layer_index, ox0, oy0, ox1, oy1
         )
 
+    # Log-ness (#217) is decided per axis -- x is shared by every layer
+    # (there is no secondary x-axis), while y splits into the primary
+    # group and the Plot.secondary_axis() group, each independently. Every
+    # layer sharing an axis must agree; the first layer on each axis sets
+    # that axis's value and every later one is checked against it, so the
+    # raised message names the first layer that disagrees.
+    var x_log_seen = False
+    var x_log_value = False
+    var y_log_seen = False
+    var y_log_value = False
+    var y2_log_seen = False
+    var y2_log_value = False
     for i in range(len(plots)):
         # Layering-specific check: a standalone Mark.BAR is legal, a layered
         # one alongside these isn't. A lone Mark.BAR already dispatched above,
@@ -7146,18 +7171,53 @@ def _render_layers_generic[
                 " _render_bar_combo_layers; Mark.ARC still isn't supported at"
                 " all)"
             )
-        if plots[i]._y_log or plots[i]._x_log:
+        if not x_log_seen:
+            x_log_seen = True
+            x_log_value = plots[i]._x_log
+        elif plots[i]._x_log != x_log_value:
             raise Error(
-                "render_layers(): Plot.scale_y_log()/scale_x_log() aren't"
-                " supported here yet -- every layer's domain gets combined into"
-                " one shared linear scale (see combined_x/combined_y below),"
-                " which doesn't have a log-space equivalent built yet (layer "
+                "render_layers(): every layer must agree on"
+                " Plot.scale_x_log() -- got a mix of log and linear x-axes"
+                " (layer "
+                + String(i)
+                + ")"
+            )
+        if plots[i]._secondary_axis:
+            if not y2_log_seen:
+                y2_log_seen = True
+                y2_log_value = plots[i]._y_log
+            elif plots[i]._y_log != y2_log_value:
+                raise Error(
+                    "render_layers(): every Plot.secondary_axis() layer must"
+                    " agree on Plot.scale_y_log() -- got a mix of log and"
+                    " linear secondary y-axes (layer "
+                    + String(i)
+                    + ")"
+                )
+        else:
+            if not y_log_seen:
+                y_log_seen = True
+                y_log_value = plots[i]._y_log
+            elif plots[i]._y_log != y_log_value:
+                raise Error(
+                    "render_layers(): every primary-axis layer must agree on"
+                    " Plot.scale_y_log() -- got a mix of log and linear"
+                    " y-axes (layer "
+                    + String(i)
+                    + ")"
+                )
+        if plots[i]._y_log and plots[i]._mark == Mark.AREA:
+            raise Error(
+                "render_layers(): Plot.scale_y_log() isn't supported on a"
+                " Mark.AREA layer -- its y-domain is always forced through a"
+                " zero baseline, and zero has no logarithm (layer "
                 + String(i)
                 + ")"
             )
         _validate_continuous_encoding(
             plots[i], "render_layers(): layer " + String(i)
         )
+        _validate_log_scale_annotations(plots[i])
 
     var has_secondary = False
     var has_primary = False
@@ -7240,18 +7300,28 @@ def _render_layers_generic[
     var sc = _Scaled(theme)
 
     # Both domains span every primary-axis layer's data. A Mark.AREA layer
-    # anywhere in a group forces the zero baseline for that group's axis.
-    var y_scale = _zero_baseline_y_extent(
-        combined_y
-    ) if any_area else _data_extent(combined_y)
-    var x_scale = _data_extent(combined_x)
+    # anywhere in a group forces the zero baseline for that group's axis
+    # (already checked above to be incompatible with that group being log).
+    # y_log_value/x_log_value default to False when no layer set them
+    # (y_log_seen/x_log_seen stay False only when plots is empty, already
+    # returned above).
+    var y_scale = _log_data_extent(combined_y) if y_log_value else (
+        _zero_baseline_y_extent(combined_y) if any_area else _data_extent(
+            combined_y
+        )
+    )
+    var x_scale = _log_data_extent(combined_x) if x_log_value else _data_extent(
+        combined_x
+    )
 
     var has_secondary_data = has_secondary and len(combined_y2) > 0
     var y_scale2 = LinearScale(0.0, 0.0, 0.0, 1.0)
     if has_secondary_data:
-        y_scale2 = _zero_baseline_y_extent(
-            combined_y2
-        ) if any_area2 else _data_extent(combined_y2)
+        y_scale2 = _log_data_extent(combined_y2) if y2_log_value else (
+            _zero_baseline_y_extent(combined_y2) if any_area2 else _data_extent(
+                combined_y2
+            )
+        )
 
     # secondary_axis_reserve is sized the way _draw_continuous_axis_frame
     # sizes the left margin: measure the secondary domain's tick labels,

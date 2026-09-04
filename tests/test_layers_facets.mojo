@@ -11,7 +11,8 @@
 - render_facets()/render_facets_svg(): independent per-cell layout,
   titles, empty-grid/invalid-cols guards.
 - render_facets(shared_y_scale=True): one y-domain from the union of
-  every cell's data, and every raise path.
+  every cell's data (linear, or log via _log_data_extent when every
+  cell agrees on scale_y_log() -- #217), and every raise path.
 - Plot.secondary_axis(): the mirrored right-edge axis, independent
   per-axis domains, no secondary gridlines, coexistence with a
   legend, and both raise paths.
@@ -1170,12 +1171,47 @@ def test_render_facets_raises_on_mark_area_with_shared_y_scale() raises:
         _ = render_facets(plots, 2, shared_y_scale=True)
 
 
-def test_render_facets_raises_on_scale_y_log_with_shared_y_scale() raises:
+def test_render_facets_svg_shared_y_scale_supports_log_when_every_cell_agrees() raises:
+    # #217: two log-y cells, y0=[5,6] and y1=[50,60]. Verified by
+    # construction: the combined log-space domain gives both cells the
+    # identical tick set 5/10/20/50 at rows 163/125/87/37 -- an
+    # independent per-cell domain would put cell 0's [5,6] and cell 1's
+    # [50,60] on very different scales instead.
+    var x: List[Float64] = [1.0, 2.0]
+    var y0: List[Float64] = [5.0, 6.0]
+    var y1: List[Float64] = [50.0, 60.0]
+    var p0 = (
+        Plot()
+        .size(300, 220)
+        .mark_line()
+        .encode(x=x, y=y0)
+        .scale_y_log()
+        .theme(Theme(show_gridlines=False))
+    )
+    var p1 = (
+        Plot()
+        .size(300, 220)
+        .mark_line()
+        .encode(x=x, y=y1)
+        .scale_y_log()
+        .theme(Theme(show_gridlines=False))
+    )
+    var plots: List[Plot] = [p0^, p1^]
+    var s = render_facets_svg(plots, 2, shared_y_scale=True).to_string()
+    for row in ["163", "125", "87", "37"]:
+        assert_true(
+            'y1="' + row + '"' in s and 'y2="' + row + '"' in s,
+            "both cells share a gridline-free tick row at " + row,
+        )
+    assert_true(">50<" in s, "cell 1's own high value labels a shared tick")
+
+
+def test_render_facets_raises_on_a_scale_y_log_mix_with_shared_y_scale() raises:
     var x: List[Float64] = [1.0, 2.0]
     var y0: List[Float64] = [5.0, 6.0]
     var y1: List[Float64] = [50.0, 60.0]
     var p0 = Plot().size(300, 220).mark_line().encode(x=x, y=y0).scale_y_log()
-    var p1 = Plot().size(300, 220).mark_line().encode(x=x, y=y1).scale_y_log()
+    var p1 = Plot().size(300, 220).mark_line().encode(x=x, y=y1)
     var plots: List[Plot] = [p0^, p1^]
     with assert_raises():
         _ = render_facets(plots, 2, shared_y_scale=True)
