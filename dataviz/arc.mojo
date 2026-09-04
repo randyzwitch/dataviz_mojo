@@ -21,7 +21,9 @@ from dataviz.theme import Theme
 
 def _render_arc[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.ARC` plot (a pie chart): one wedge per category
     (`encode_categorical`'s `x`), its angular span proportional to its
     value (`y`) divided by the total. No axis frame; a pie has no
@@ -62,7 +64,10 @@ def _render_arc[
             + String(total)
             + ")"
         )
-    if plot._mark_style.donut_inner_radius_fraction < 0.0 or plot._mark_style.donut_inner_radius_fraction >= 1.0:
+    if (
+        plot._mark_style.donut_inner_radius_fraction < 0.0
+        or plot._mark_style.donut_inner_radius_fraction >= 1.0
+    ):
         raise Error(
             "mark_arc(inner_radius_fraction=...) must be in [0.0, 1.0) (got "
             + String(plot._mark_style.donut_inner_radius_fraction)
@@ -74,7 +79,9 @@ def _render_arc[
     var sc = _Scaled(theme)
 
     var show_legend = theme.show_legend
-    var legend_reserve = _dynamic_legend_width(plot.x_categories, sc.legend_swatch_size, sc) if show_legend else 0
+    var legend_reserve = _dynamic_legend_width(
+        plot.x_categories, sc.legend_swatch_size, sc
+    ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
@@ -93,14 +100,22 @@ def _render_arc[
         var end = start + span
         var color = palette[i % len(palette)]
         if is_donut:
-            target.fill_ring_sector_aa(cx, cy, inner_radius, radius, start, end, color)
+            target.fill_ring_sector_aa(
+                cx, cy, inner_radius, radius, start, end, color
+            )
         else:
             target.fill_arc_aa(cx, cy, radius, start, end, color)
         start = end
 
     if show_legend:
         _draw_legend(
-            target, text_requests, plot.x_categories, palette, plot_x1 + sc.margin_right, plot_y0, theme
+            target,
+            text_requests,
+            plot.x_categories,
+            palette,
+            plot_x1 + sc.margin_right,
+            plot_y0,
+            theme,
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
@@ -176,8 +191,14 @@ def pie(
             save(c_donut, "docs/src/examples/out_pie_donut.svg")
         ```
     """
-    var plot = Plot().mark_arc(inner_radius_fraction=inner_radius_fraction).encode_categorical(x=categories, y=values)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_arc(inner_radius_fraction=inner_radius_fraction)
+        .encode_categorical(x=categories, y=values)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def pie[
@@ -199,6 +220,14 @@ def pie[
     above.
     """
     return pie(
-        categories, _materialize_scalar_list(values), inner_radius_fraction=inner_radius_fraction, theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        categories,
+        _materialize_scalar_list(values),
+        inner_radius_fraction=inner_radius_fraction,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

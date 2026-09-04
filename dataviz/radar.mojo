@@ -4,7 +4,10 @@ from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 from canvas.text.render import TextAlign
 
-from dataviz.array_like import _materialize_nested_scalar_list, _materialize_scalar_list
+from dataviz.array_like import (
+    _materialize_nested_scalar_list,
+    _materialize_scalar_list,
+)
 from dataviz.color_scale import default_categorical_palette
 from dataviz.plot import (
     Plot,
@@ -41,7 +44,15 @@ struct _RadarData(Copyable, Movable):
 
 def _draw_radar_grid[
     T: DrawTarget
-](mut target: T, cx: Float64, cy: Float64, max_radius: Float64, n: Int, theme: Theme, grid_rings: Int) raises:
+](
+    mut target: T,
+    cx: Float64,
+    cy: Float64,
+    max_radius: Float64,
+    n: Int,
+    theme: Theme,
+    grid_rings: Int,
+) raises:
     """The radar coordinate system: `n` spokes from the center out to
     `max_radius` (one per indicator, via `_polar_point`), plus
     `grid_rings` concentric web rings, each a straight-edged `n`-sided
@@ -53,7 +64,9 @@ def _draw_radar_grid[
     for i in range(n):
         var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
         var tip = _polar_point(cx, cy, angle, max_radius)
-        target.draw_line_aa(Int(cx), Int(cy), Int(tip.x), Int(tip.y), theme.gridline_color)
+        target.draw_line_aa(
+            Int(cx), Int(cy), Int(tip.x), Int(tip.y), theme.gridline_color
+        )
 
     for ring in range(1, grid_rings + 1):
         var r = max_radius * Float64(ring) / Float64(grid_rings)
@@ -71,7 +84,9 @@ def _draw_radar_grid[
 
 def _render_radar[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.RADAR` plot: `encode_radar()`'s `indicators` (one
     spoke each, evenly spaced, starting at 12 o'clock and sweeping
     clockwise), each with its own `max_values`, and one or more series
@@ -96,9 +111,9 @@ def _render_radar[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = (
-        _dynamic_legend_width(plot._radar.series_names, sc.legend_swatch_size, sc) if show_legend else 0
-    )
+    var legend_reserve = _dynamic_legend_width(
+        plot._radar.series_names, sc.legend_swatch_size, sc
+    ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
@@ -106,11 +121,21 @@ def _render_radar[
     var plot_y1 = oy1 - sc.margin_bottom
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
-    var max_radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    var max_radius = (
+        Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    )
 
     var n = len(plot._radar.indicators)
     if theme.show_gridlines:
-        _draw_radar_grid(target, cx, cy, max_radius, n, theme, plot._mark_style.radar_grid_rings)
+        _draw_radar_grid(
+            target,
+            cx,
+            cy,
+            max_radius,
+            n,
+            theme,
+            plot._mark_style.radar_grid_rings,
+        )
 
     var palette = default_categorical_palette()
     for s in range(len(plot._radar.series_values)):
@@ -119,7 +144,11 @@ def _render_radar[
         var poly = Path()
         for i in range(n):
             var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
-            var frac = values[i] / plot._radar.max_values[i] if plot._radar.max_values[i] > 0.0 else 0.0
+            var frac = (
+                values[i]
+                / plot._radar.max_values[i] if plot._radar.max_values[i]
+                > 0.0 else 0.0
+            )
             var pt = _polar_point(cx, cy, angle, max_radius * frac)
             if i == 0:
                 poly.move_to(pt.x, pt.y)
@@ -134,7 +163,9 @@ def _render_radar[
     # half, CENTER for top/bottom).
     for i in range(n):
         var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
-        var tip = _polar_point(cx, cy, angle, max_radius + Float64(sc.label_gap))
+        var tip = _polar_point(
+            cx, cy, angle, max_radius + Float64(sc.label_gap)
+        )
         var c = cos(angle)
         var align = TextAlign.CENTER
         if c > 0.3:
@@ -143,7 +174,13 @@ def _render_radar[
             align = TextAlign.RIGHT
         text_requests.append(
             _TextRequest(
-                Int(tip.x), Int(tip.y), plot._radar.indicators[i], theme.text_color, sc.font_size, align, theme.font_family
+                Int(tip.x),
+                Int(tip.y),
+                plot._radar.indicators[i],
+                theme.text_color,
+                sc.font_size,
+                align,
+                theme.font_family,
             )
         )
 
@@ -221,13 +258,19 @@ def radar(
             save(c, "docs/src/examples/out_radar.svg")
         ```
     """
-    var plot = Plot().mark_radar(grid_rings=grid_rings).encode_radar(
-        indicators=indicators,
-        max_values=max_values,
-        series_names=series_names,
-        series_values=series_values,
+    var plot = (
+        Plot()
+        .mark_radar(grid_rings=grid_rings)
+        .encode_radar(
+            indicators=indicators,
+            max_values=max_values,
+            series_names=series_names,
+            series_values=series_values,
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def radar[
@@ -253,8 +296,18 @@ def radar[
     concrete overload above.
     """
     return radar(
-        indicators, max_values, series_names, _materialize_nested_scalar_list(series_values), grid_rings=grid_rings, theme=theme,
-        width=width, height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        indicators,
+        max_values,
+        series_names,
+        _materialize_nested_scalar_list(series_values),
+        grid_rings=grid_rings,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )
 
 
@@ -279,6 +332,16 @@ def radar[
     Delegates to the concrete overload above.
     """
     return radar(
-        indicators, _materialize_scalar_list(max_values), series_names, series_values, grid_rings=grid_rings, theme=theme,
-        width=width, height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        indicators,
+        _materialize_scalar_list(max_values),
+        series_names,
+        series_values,
+        grid_rings=grid_rings,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

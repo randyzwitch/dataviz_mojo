@@ -6,7 +6,11 @@ from canvas.text.render import TextAlign
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
-from dataviz.grouped_bar import _draw_series_legend, _series_legend_reserve, _validate_grouped_bar_series
+from dataviz.grouped_bar import (
+    _draw_series_legend,
+    _series_legend_reserve,
+    _validate_grouped_bar_series,
+)
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
@@ -58,8 +62,9 @@ def _validate_stacked_bar_percent(plot: Plot, n_series: Int) raises:
         for v in plot._grouped_bar.values[j]:
             if v < 0.0:
                 raise Error(
-                    "Plot.mark_stacked_bar(percent=True): every value must be >= 0 (a negative"
-                    " share has no meaning) -- got " + String(v)
+                    "Plot.mark_stacked_bar(percent=True): every value must be"
+                    " >= 0 (a negative share has no meaning) -- got "
+                    + String(v)
                 )
 
 
@@ -111,7 +116,9 @@ def _draw_stacked_segments[
             var category_total = 0.0
             for j in range(n_series):
                 category_total += plot._grouped_bar.values[j][i]
-            scale_factor = 100.0 / category_total if category_total > 0.0 else 0.0
+            scale_factor = (
+                100.0 / category_total if category_total > 0.0 else 0.0
+            )
 
         var pos_running = 0.0
         var neg_running = 0.0
@@ -128,19 +135,27 @@ def _draw_stacked_segments[
                 seg_near = neg_running + v
                 neg_running = seg_near
             var extent = _pull_off_axis_line(
-                _axis_pixel(value_scale, seg_far), _axis_pixel(value_scale, seg_near), baseline_edge
+                _axis_pixel(value_scale, seg_far),
+                _axis_pixel(value_scale, seg_near),
+                baseline_edge,
             )
             if theme.svg_tooltips:
                 target.begin_annotated_group(
                     _series_tooltip_label(
-                        plot.x_categories[i], plot._grouped_bar.series_names[j], v
+                        plot.x_categories[i],
+                        plot._grouped_bar.series_names[j],
+                        v,
                     )
                 )
-            orient.fill_band_rect(target, extent, band_pos, band_size, palette[j % len(palette)])
+            orient.fill_band_rect(
+                target, extent, band_pos, band_size, palette[j % len(palette)]
+            )
             if theme.svg_tooltips:
                 target.end_annotated_group()
             if theme.show_data_labels:
-                var at = orient.band_label_point(extent, band_pos, band_size, sc.font_size)
+                var at = orient.band_label_point(
+                    extent, band_pos, band_size, sc.font_size
+                )
                 text_requests.append(
                     _TextRequest(
                         at.x,
@@ -156,7 +171,9 @@ def _draw_stacked_segments[
 
 def _render_stacked_bar[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.STACKED_BAR` plot: the same `encode_grouped_bar()` data
     `Mark.GROUPED_BAR` uses, with each category's series stacked as
     full-band-width segments on top of each other instead of side-by-side
@@ -179,12 +196,25 @@ def _render_stacked_bar[
     var sc = _Scaled(theme)
     var legend_reserve = _series_legend_reserve(plot, sc)
     var frame = _draw_categorical_axis_frame(
-        target, plot.x_categories, y_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
+        target,
+        plot.x_categories,
+        y_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1 - legend_reserve,
+        oy1,
     )
 
     var palette = default_categorical_palette()
     _draw_stacked_segments(
-        target, plot, frame.x_scale, frame.y_scale, frame.py1, _Orientation(False), palette,
+        target,
+        plot,
+        frame.x_scale,
+        frame.y_scale,
+        frame.py1,
+        _Orientation(False),
+        palette,
         frame.text_requests,
     )
 
@@ -205,7 +235,9 @@ def _render_stacked_bar[
 
 def _render_horizontal_stacked_bar[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """`_render_stacked_bar`'s mirror image for
     `Plot.mark_stacked_bar(horizontal=True)` (#121):
     `_render_horizontal_bar`'s categorical y-axis / zero-baseline (or
@@ -227,12 +259,25 @@ def _render_horizontal_stacked_bar[
     var sc = _Scaled(theme)
     var legend_reserve = _series_legend_reserve(plot, sc)
     var frame = _draw_horizontal_categorical_axis_frame(
-        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
+        target,
+        plot.x_categories,
+        x_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1 - legend_reserve,
+        oy1,
     )
 
     var palette = default_categorical_palette()
     _draw_stacked_segments(
-        target, plot, frame.y_scale, frame.x_scale, frame.px0, _Orientation(True), palette,
+        target,
+        plot,
+        frame.y_scale,
+        frame.x_scale,
+        frame.px0,
+        _Orientation(True),
+        palette,
         frame.text_requests,
     )
 
@@ -323,10 +368,16 @@ def stacked_bar(
             save(c, "docs/src/examples/out_stacked_bar.svg")
         ```
     """
-    var plot = Plot().mark_stacked_bar(percent=percent, horizontal=horizontal).encode_grouped_bar(
-        categories=categories, series_names=series_names, values=values
+    var plot = (
+        Plot()
+        .mark_stacked_bar(percent=percent, horizontal=horizontal)
+        .encode_grouped_bar(
+            categories=categories, series_names=series_names, values=values
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def stacked_bar[
@@ -350,7 +401,16 @@ def stacked_bar[
     overload above.
     """
     return stacked_bar(
-        categories, series_names, _materialize_nested_scalar_list(values), theme=theme, width=width,
-        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title, percent=percent,
+        categories,
+        series_names,
+        _materialize_nested_scalar_list(values),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+        percent=percent,
         horizontal=horizontal,
     )

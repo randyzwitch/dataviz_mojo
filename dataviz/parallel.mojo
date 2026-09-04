@@ -34,7 +34,6 @@ struct _ParallelData(Copyable, Movable):
         self.data = List[List[Float64]]()
 
 
-
 def _axis_x(plot_x0: Int, plot_x1: Int, n: Int, d: Int) -> Float64:
     """The pixel x of dimension `d`'s vertical axis: `n` axes evenly spaced
     with the first at `plot_x0` and the last at `plot_x1`. A single axis
@@ -42,10 +41,18 @@ def _axis_x(plot_x0: Int, plot_x1: Int, n: Int, d: Int) -> Float64:
     """
     if n == 1:
         return Float64(plot_x0 + plot_x1) / 2.0
-    return Float64(plot_x0) + Float64(d) * Float64(plot_x1 - plot_x0) / Float64(n - 1)
+    return Float64(plot_x0) + Float64(d) * Float64(plot_x1 - plot_x0) / Float64(
+        n - 1
+    )
 
 
-def _value_y(plot_y0: Int, plot_y1: Int, dim_min: Float64, dim_max: Float64, value: Float64) -> Float64:
+def _value_y(
+    plot_y0: Int,
+    plot_y1: Int,
+    dim_min: Float64,
+    dim_max: Float64,
+    value: Float64,
+) -> Float64:
     """`value`'s pixel y along one dimension's axis: top (`plot_y0`) is the
     dimension's max, bottom (`plot_y1`) its min. A zero-span dimension
     places `value` at the vertical center rather than dividing by zero.
@@ -59,7 +66,9 @@ def _value_y(plot_y0: Int, plot_y1: Int, dim_min: Float64, dim_max: Float64, val
 
 def _render_parallel[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.PARALLEL` plot: `encode_parallel()`'s `dims` (one
     vertical axis each, evenly spaced from the plot's left edge to its
     right edge) and one row per `row_names` entry (`data[row]`, one value
@@ -80,9 +89,9 @@ def _render_parallel[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = (
-        _dynamic_legend_width(plot._parallel.row_names, sc.legend_swatch_size, sc) if show_legend else 0
-    )
+    var legend_reserve = _dynamic_legend_width(
+        plot._parallel.row_names, sc.legend_swatch_size, sc
+    ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
@@ -108,8 +117,13 @@ def _render_parallel[
             target.draw_line_aa(x, plot_y0, x, plot_y1, theme.axis_color)
             text_requests.append(
                 _TextRequest(
-                    x, plot_y1 + sc.label_gap + Int(sc.font_size), plot._parallel.dims[d],
-                    theme.text_color, sc.font_size, TextAlign.CENTER, theme.font_family,
+                    x,
+                    plot_y1 + sc.label_gap + Int(sc.font_size),
+                    plot._parallel.dims[d],
+                    theme.text_color,
+                    sc.font_size,
+                    TextAlign.CENTER,
+                    theme.font_family,
                 )
             )
 
@@ -129,7 +143,13 @@ def _render_parallel[
 
     if show_legend:
         _draw_legend(
-            target, text_requests, plot._parallel.row_names, palette, plot_x1 + sc.margin_right, plot_y0, theme
+            target,
+            text_requests,
+            plot._parallel.row_names,
+            palette,
+            plot_x1 + sc.margin_right,
+            plot_y0,
+            theme,
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
@@ -194,8 +214,14 @@ def parallel(
             save(c, "docs/src/examples/out_parallel.svg")
         ```
     """
-    var plot = Plot().mark_parallel().encode_parallel(dims=dims, row_names=row_names, data=data)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_parallel()
+        .encode_parallel(dims=dims, row_names=row_names, data=data)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def parallel[
@@ -218,6 +244,14 @@ def parallel[
     above.
     """
     return parallel(
-        _materialize_nested_scalar_list(data), dims, row_names, theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        _materialize_nested_scalar_list(data),
+        dims,
+        row_names,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

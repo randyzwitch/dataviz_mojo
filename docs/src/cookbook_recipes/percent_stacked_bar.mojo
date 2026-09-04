@@ -4,6 +4,7 @@ composition (relative share) instead of an absolute total.
 """
 from dataviz.plot import Plot, save
 
+
 def main() raises:
     var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4"]
     var series_names: List[String] = ["North", "South", "East"]

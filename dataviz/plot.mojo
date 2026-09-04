@@ -51,7 +51,12 @@ from canvas.resize import downsample
 from canvas.vector.draw_target import DrawTarget
 from canvas.geometry import _round_to_int
 from canvas.path import Path
-from canvas.vector.svg import SvgCanvas, write_svg, _escape_xml_text, _escape_xml_attr
+from canvas.vector.svg import (
+    SvgCanvas,
+    write_svg,
+    _escape_xml_text,
+    _escape_xml_attr,
+)
 from canvas.text.render import draw_text, measure_text, FontWeight, TextAlign
 from canvas.text.font_cache import FontCache
 
@@ -70,7 +75,13 @@ from dataviz.marker import PointShape, _fill_shape_aa, default_marker_shapes
 from dataviz.mark import Mark
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.output_format import OutputFormat
-from dataviz.scale import LinearScale, MinMax, _format_fixed, _label_decimals, _min_max
+from dataviz.scale import (
+    LinearScale,
+    MinMax,
+    _format_fixed,
+    _label_decimals,
+    _min_max,
+)
 from dataviz.theme import Theme
 
 from dataviz.arc import _render_arc
@@ -108,7 +119,10 @@ from dataviz.span_chart import _render_span_chart
 from dataviz.bump import _render_bump
 from dataviz.chord import _render_chord
 from dataviz.funnel import _render_funnel
-from dataviz.grouped_bar import _render_grouped_bar, _render_horizontal_grouped_bar
+from dataviz.grouped_bar import (
+    _render_grouped_bar,
+    _render_horizontal_grouped_bar,
+)
 from dataviz.heatmap import _render_heatmap
 from dataviz.calendar_heatmap import _render_calendar_heatmap
 from dataviz.corrplot import _render_corrplot
@@ -125,7 +139,10 @@ from dataviz.histogram import _bin_histogram
 from dataviz.lollipop import _render_lollipop, _render_horizontal_lollipop
 from dataviz.single_axis import _render_single_axis
 from dataviz.population_pyramid import _render_population_pyramid
-from dataviz.stacked_bar import _render_stacked_bar, _render_horizontal_stacked_bar
+from dataviz.stacked_bar import (
+    _render_stacked_bar,
+    _render_horizontal_stacked_bar,
+)
 from dataviz.streamgraph import _render_streamgraph
 from dataviz.waterfall import _render_waterfall, _waterfall_running_totals
 
@@ -187,8 +204,12 @@ struct _Scaled(Movable):
         self.title_font_size = theme.title_font_size * s
         self.subtitle_font_size = theme.subtitle_font_size * s
         self.axis_title_font_size = theme.axis_title_font_size * s
-        self.continuous_legend_bar_width = Int(Float64(theme.continuous_legend_bar_width) * s)
-        self.continuous_legend_bar_height = Int(Float64(theme.continuous_legend_bar_height) * s)
+        self.continuous_legend_bar_width = Int(
+            Float64(theme.continuous_legend_bar_width) * s
+        )
+        self.continuous_legend_bar_height = Int(
+            Float64(theme.continuous_legend_bar_height) * s
+        )
         self.error_bar_cap_width = theme.error_bar_cap_width * s
 
 
@@ -629,7 +650,9 @@ struct Plot(Copyable, Movable):
         self._mark_style.radialbar_ring_gap_fraction = ring_gap_fraction
         return self^
 
-    def mark_polar(var self, grid_rings: Int = 4, grid_spokes: Int = 12) -> Self:
+    def mark_polar(
+        var self, grid_rings: Int = 4, grid_spokes: Int = 12
+    ) -> Self:
         """A polar-coordinate line plot: (angle, radius) pairs connected in row
         order over a polar grid of `grid_rings` circles and `grid_spokes`
         radial lines. Encoded via `encode_polar()` (one unnamed series) or
@@ -846,7 +869,9 @@ struct Plot(Copyable, Movable):
         self._horizontal = horizontal
         return self^
 
-    def mark_stacked_bar(var self, percent: Bool = False, horizontal: Bool = False) -> Self:
+    def mark_stacked_bar(
+        var self, percent: Bool = False, horizontal: Bool = False
+    ) -> Self:
         """A stacked bar chart: one bar per category, each series' value stacked
         as a segment on the previous running total. Encoded via
         `encode_grouped_bar()`, the same data as `mark_grouped_bar()`.
@@ -968,7 +993,9 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.STREAMGRAPH
         return self^
 
-    def mark_beeswarm(var self, horizontal: Bool = False, tooltips: Bool = False) -> Self:
+    def mark_beeswarm(
+        var self, horizontal: Bool = False, tooltips: Bool = False
+    ) -> Self:
         """A beeswarm plot: one point per raw value, jittered sideways within
         its category's band. Encoded via `encode_distribution()`.
         `horizontal` (default `False`) draws categories top-to-bottom with
@@ -982,8 +1009,11 @@ struct Plot(Copyable, Movable):
         return self^
 
     def mark_violin(
-        var self, bandwidth: Float64 = 0.0, scale_by_count: Bool = False, horizontal: Bool = False,
-        width_fraction: Float64 = 0.4
+        var self,
+        bandwidth: Float64 = 0.0,
+        scale_by_count: Bool = False,
+        horizontal: Bool = False,
+        width_fraction: Float64 = 0.4,
     ) -> Self:
         """A violin plot: a symmetric kernel-density-estimate silhouette per
         category. Encoded via `encode_distribution()`.
@@ -1029,7 +1059,10 @@ struct Plot(Copyable, Movable):
         return self^
 
     def mark_ridgeline(
-        var self, bandwidth: Float64 = 0.0, scale_by_count: Bool = False, overlap: Float64 = 1.3
+        var self,
+        bandwidth: Float64 = 0.0,
+        scale_by_count: Bool = False,
+        overlap: Float64 = 1.3,
     ) -> Self:
         """A ridgeline plot: one overlapping kernel-density-estimate row per
         category, top to bottom. Encoded via `encode_distribution()`.
@@ -1325,7 +1358,9 @@ struct Plot(Copyable, Movable):
         self.y_data = y.copy()
         return self^
 
-    def encode_categorical[Tx: StringSequence](var self, x: Tx, y: List[Float64]) -> Self:
+    def encode_categorical[
+        Tx: StringSequence
+    ](var self, x: Tx, y: List[Float64]) -> Self:
         """`encode_categorical()`'s `x` generalized to anything conforming to
         `StringSequence` (array_like.mojo), as `encode()`'s `Float64Sequence`
         overload does for its `x`/`y`. `y` stays a concrete `List[Float64]`;
@@ -1343,7 +1378,9 @@ struct Plot(Copyable, Movable):
         """
         return self^.encode_categorical(_materialize_strings(x), y)
 
-    def encode_categorical[dtype: DType](var self, x: List[String], y: List[Scalar[dtype]]) -> Self:
+    def encode_categorical[
+        dtype: DType
+    ](var self, x: List[String], y: List[Scalar[dtype]]) -> Self:
         """`encode_categorical()`'s `y` generalized over numeric element type
         (`List[Int]`, `List[Float32]`, ...), as `encode()`'s `DType` overload
         is. `x` stays a concrete `List[String]`. Materializes `y` via
@@ -1359,7 +1396,9 @@ struct Plot(Copyable, Movable):
         """
         return self^.encode_categorical(x, _materialize_scalar_list(y))
 
-    def encode_categorical(var self, x: List[String], y: PythonObject) raises -> Self:
+    def encode_categorical(
+        var self, x: List[String], y: PythonObject
+    ) raises -> Self:
         """`encode_categorical()`'s `y` generalized to a numpy `ndarray`/pandas
         `Series`/plain Python number list, as `encode()`'s `PythonObject`
         overload is (see numpy_interop.mojo). `x` stays a concrete
@@ -1376,7 +1415,9 @@ struct Plot(Copyable, Movable):
         """
         return self^.encode_categorical(x, _materialize_python_floats(y))
 
-    def encode_histogram(var self, data: List[Float64], bins: Int = 10) raises -> Self:
+    def encode_histogram(
+        var self, data: List[Float64], bins: Int = 10
+    ) raises -> Self:
         """Bin `data` into `bins` equal-width intervals and map the result onto
         `encode_categorical()`'s shape (each bin's formatted range as its
         category label, its count as the value), for `Mark.BAR`. The binning
@@ -1444,7 +1485,9 @@ struct Plot(Copyable, Movable):
         self._waterfall.y1 = bars.y1.copy()
         return self^
 
-    def encode_boxplot(var self, categories: List[String], values: List[List[Float64]]) raises -> Self:
+    def encode_boxplot(
+        var self, categories: List[String], values: List[List[Float64]]
+    ) raises -> Self:
         """Map a category column and, per category, a list of raw values onto
         `Mark.BOX`'s box-and-whiskers shape. Each category's distribution is
         summarized immediately into a five-number summary (quartiles via
@@ -1518,7 +1561,9 @@ struct Plot(Copyable, Movable):
 
     def encode_boxplot[
         dtype: DType
-    ](var self, categories: List[String], values: List[List[Scalar[dtype]]]) raises -> Self:
+    ](
+        var self, categories: List[String], values: List[List[Scalar[dtype]]]
+    ) raises -> Self:
         """`encode_boxplot()`'s `values` generalized over numeric element type
         (`List[List[Int]]`, `List[List[Float32]]`, ...) via
         `_materialize_nested_scalar_list` (array_like.mojo). `categories`
@@ -1536,7 +1581,9 @@ struct Plot(Copyable, Movable):
             If `categories`/`values` lengths don't match, or any
             category's value list is empty.
         """
-        return self^.encode_boxplot(categories, _materialize_nested_scalar_list(values))
+        return self^.encode_boxplot(
+            categories, _materialize_nested_scalar_list(values)
+        )
 
     def encode_candlestick(
         var self,
@@ -1605,7 +1652,12 @@ struct Plot(Copyable, Movable):
         self._bullet.ranges = ranges.copy()
         return self^
 
-    def encode_gantt(var self, categories: List[String], start: List[Float64], end: List[Float64]) -> Self:
+    def encode_gantt(
+        var self,
+        categories: List[String],
+        start: List[Float64],
+        end: List[Float64],
+    ) -> Self:
         """Map a category column and two value columns (`start`/`end`) onto
         `Mark.GANTT`/`SPAN_CHART`'s span shape. Plain `Float64`, not a
         date/time type (this package has none); a schedule's dates are
@@ -1662,7 +1714,12 @@ struct Plot(Copyable, Movable):
 
     def encode_grouped_bar[
         Tx: StringSequence
-    ](var self, categories: Tx, series_names: List[String], values: List[List[Float64]]) -> Self:
+    ](
+        var self,
+        categories: Tx,
+        series_names: List[String],
+        values: List[List[Float64]],
+    ) -> Self:
         """`encode_grouped_bar()`'s `categories` generalized to anything
         conforming to `StringSequence` (array_like.mojo), as
         `encode_categorical()`'s `StringSequence` overload is.
@@ -1680,12 +1737,17 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        return self^.encode_grouped_bar(_materialize_strings(categories), series_names, values)
+        return self^.encode_grouped_bar(
+            _materialize_strings(categories), series_names, values
+        )
 
     def encode_grouped_bar[
         dtype: DType
     ](
-        var self, categories: List[String], series_names: List[String], values: List[List[Scalar[dtype]]]
+        var self,
+        categories: List[String],
+        series_names: List[String],
+        values: List[List[Scalar[dtype]]],
     ) -> Self:
         """`encode_grouped_bar()`'s `values` generalized over numeric element
         type (`List[List[Int]]`, `List[List[Float32]]`, ...) via
@@ -1702,7 +1764,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        return self^.encode_grouped_bar(categories, series_names, _materialize_nested_scalar_list(values))
+        return self^.encode_grouped_bar(
+            categories, series_names, _materialize_nested_scalar_list(values)
+        )
 
     def encode_population_pyramid(
         var self,
@@ -1744,7 +1808,9 @@ struct Plot(Copyable, Movable):
         self._pyramid.right_name = right_name
         return self^
 
-    def encode_heatmap(var self, x: List[String], y: List[String], value: List[Float64]) -> Self:
+    def encode_heatmap(
+        var self, x: List[String], y: List[String], value: List[Float64]
+    ) -> Self:
         """Map two category columns plus a value column onto `Mark.HEATMAP`'s
         grid-cell shape: one row per cell (`x[i]`, `y[i]`, `value[i]`). Each
         axis's domain is derived from `x`/`y`'s distinct values in first-seen
@@ -1769,7 +1835,9 @@ struct Plot(Copyable, Movable):
         self._heatmap.value = value.copy()
         return self^
 
-    def encode_calendar(var self, dates: List[String], values: List[Float64]) -> Self:
+    def encode_calendar(
+        var self, dates: List[String], values: List[Float64]
+    ) -> Self:
         """Map a date column and a value column onto `Mark.CALENDAR_HEATMAP`'s
         shape: one row per day, `dates[i]` a `"YYYY-MM-DD"` string (parsed
         only for grid placement; see calendar_heatmap.mojo's `_parse_date`/
@@ -1794,7 +1862,9 @@ struct Plot(Copyable, Movable):
         self._calendar.values = values.copy()
         return self^
 
-    def encode_corrplot(var self, variables: List[String], matrix: List[List[Float64]]) -> Self:
+    def encode_corrplot(
+        var self, variables: List[String], matrix: List[List[Float64]]
+    ) -> Self:
         """Map a variable-name list and a square correlation `matrix` onto
         `Mark.CORRPLOT`'s shape: `matrix[row][col]` is the correlation
         between `variables[row]` and `variables[col]`. Squareness and every
@@ -1815,7 +1885,9 @@ struct Plot(Copyable, Movable):
 
     def encode_corrplot[
         dtype: DType
-    ](var self, variables: List[String], matrix: List[List[Scalar[dtype]]]) -> Self:
+    ](
+        var self, variables: List[String], matrix: List[List[Scalar[dtype]]]
+    ) -> Self:
         """`encode_corrplot()`'s `matrix` generalized over numeric element type
         via `_materialize_nested_scalar_list` (array_like.mojo). `variables`
         stays concrete. Delegates to the concrete overload.
@@ -1829,9 +1901,13 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        return self^.encode_corrplot(variables, _materialize_nested_scalar_list(matrix))
+        return self^.encode_corrplot(
+            variables, _materialize_nested_scalar_list(matrix)
+        )
 
-    def encode_punchcard(var self, x: List[String], y: List[String], sizes: List[Float64]) -> Self:
+    def encode_punchcard(
+        var self, x: List[String], y: List[String], sizes: List[Float64]
+    ) -> Self:
         """Map two category columns plus a size column onto `Mark.PUNCHCARD`'s
         shape, with the same `x`/`y` domain derivation as `encode_heatmap()`
         and `sizes` in place of `value`. A repeated `(x, y)` pair is not
@@ -1856,7 +1932,10 @@ struct Plot(Copyable, Movable):
         return self^
 
     def encode_marimekko(
-        var self, categories: List[String], subcategories: List[String], values: List[List[Float64]]
+        var self,
+        categories: List[String],
+        subcategories: List[String],
+        values: List[List[Float64]],
     ) -> Self:
         """Map `Mark.MARIMEKKO`'s three channels: `categories` (one column
         each), `subcategories` (one stacked segment each), and `values`,
@@ -1884,7 +1963,10 @@ struct Plot(Copyable, Movable):
     def encode_marimekko[
         dtype: DType
     ](
-        var self, categories: List[String], subcategories: List[String], values: List[List[Scalar[dtype]]]
+        var self,
+        categories: List[String],
+        subcategories: List[String],
+        values: List[List[Scalar[dtype]]],
     ) -> Self:
         """`encode_marimekko()`'s `values` generalized over numeric element type
         via `_materialize_nested_scalar_list` (array_like.mojo).
@@ -1901,9 +1983,16 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        return self^.encode_marimekko(categories, subcategories, _materialize_nested_scalar_list(values))
+        return self^.encode_marimekko(
+            categories, subcategories, _materialize_nested_scalar_list(values)
+        )
 
-    def encode_hierarchy(var self, ids: List[String], parent_ids: List[String], values: List[Float64]) -> Self:
+    def encode_hierarchy(
+        var self,
+        ids: List[String],
+        parent_ids: List[String],
+        values: List[Float64],
+    ) -> Self:
         """Map a flattened hierarchy onto `Mark.SUNBURST`/`TREE`/`TREEMAP`'s
         shared shape: one row per node, `ids[i]` its name, `parent_ids[i]`
         its parent's id (`""` for the single root, as in `d3.stratify()`),
@@ -1932,7 +2021,10 @@ struct Plot(Copyable, Movable):
         return self^
 
     def encode_chord(
-        var self, from_categories: List[String], to_categories: List[String], values: List[Float64]
+        var self,
+        from_categories: List[String],
+        to_categories: List[String],
+        values: List[Float64],
     ) -> Self:
         """Map an edge list onto `Mark.CHORD`'s shape (also used by
         `ARC_DIAGRAM`/`GRAPH`/`SANKEY`): one row per flow from
@@ -1960,7 +2052,9 @@ struct Plot(Copyable, Movable):
         self._edges.values = values.copy()
         return self^
 
-    def encode_polar(var self, angle: List[Float64], radius: List[Float64]) -> Self:
+    def encode_polar(
+        var self, angle: List[Float64], radius: List[Float64]
+    ) -> Self:
         """Map an angle column (radians) and a radius column onto `Mark.POLAR`'s
         two channels: one point per row, connected in row order (not sorted
         by angle, so a spiral past `2*pi` draws correctly). A single unnamed
@@ -1982,7 +2076,10 @@ struct Plot(Copyable, Movable):
         return self^
 
     def encode_polar_series(
-        var self, angle: List[Float64], series_names: List[String], series_values: List[List[Float64]]
+        var self,
+        angle: List[Float64],
+        series_names: List[String],
+        series_values: List[List[Float64]],
     ) -> Self:
         """Map a shared angle column (radians) plus one or more named series
         onto `Mark.POLAR`'s two channels, the multi-series form of
@@ -2011,7 +2108,10 @@ struct Plot(Copyable, Movable):
     def encode_polar_series[
         dtype: DType
     ](
-        var self, angle: List[Float64], series_names: List[String], series_values: List[List[Scalar[dtype]]]
+        var self,
+        angle: List[Float64],
+        series_names: List[String],
+        series_values: List[List[Scalar[dtype]]],
     ) -> Self:
         """`encode_polar_series()`'s `series_values` generalized over numeric
         element type via `_materialize_nested_scalar_list` (array_like.mojo).
@@ -2029,7 +2129,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        return self^.encode_polar_series(angle, series_names, _materialize_nested_scalar_list(series_values))
+        return self^.encode_polar_series(
+            angle, series_names, _materialize_nested_scalar_list(series_values)
+        )
 
     def encode_radar(
         var self,
@@ -2063,8 +2165,8 @@ struct Plot(Copyable, Movable):
         """
         if len(indicators) != len(max_values):
             raise Error(
-                "Plot.encode_radar(): indicators and max_values must have the same length"
-                " (got "
+                "Plot.encode_radar(): indicators and max_values must have the"
+                " same length (got "
                 + String(len(indicators))
                 + " and "
                 + String(len(max_values))
@@ -2072,8 +2174,8 @@ struct Plot(Copyable, Movable):
             )
         if len(series_names) != len(series_values):
             raise Error(
-                "Plot.encode_radar(): series_names and series_values must have the same length"
-                " (got "
+                "Plot.encode_radar(): series_names and series_values must have"
+                " the same length (got "
                 + String(len(series_names))
                 + " and "
                 + String(len(series_values))
@@ -2082,8 +2184,8 @@ struct Plot(Copyable, Movable):
         for values in series_values:
             if len(values) != len(indicators):
                 raise Error(
-                    "Plot.encode_radar(): every series in series_values must have one value per"
-                    " indicator (expected "
+                    "Plot.encode_radar(): every series in series_values must"
+                    " have one value per indicator (expected "
                     + String(len(indicators))
                     + ", got "
                     + String(len(values))
@@ -2128,7 +2230,10 @@ struct Plot(Copyable, Movable):
             series' value count doesn't match `indicators`'s count.
         """
         return self^.encode_radar(
-            indicators, max_values, series_names, _materialize_nested_scalar_list(series_values)
+            indicators,
+            max_values,
+            series_names,
+            _materialize_nested_scalar_list(series_values),
         )
 
     def encode_radar[
@@ -2162,7 +2267,10 @@ struct Plot(Copyable, Movable):
             series' value count doesn't match `indicators`'s count.
         """
         return self^.encode_radar(
-            indicators, _materialize_scalar_list(max_values), series_names, series_values
+            indicators,
+            _materialize_scalar_list(max_values),
+            series_names,
+            series_values,
         )
 
     def encode_gauge(
@@ -2208,7 +2316,10 @@ struct Plot(Copyable, Movable):
         return self^
 
     def encode_parallel(
-        var self, dims: List[String], row_names: List[String], data: List[List[Float64]]
+        var self,
+        dims: List[String],
+        row_names: List[String],
+        data: List[List[Float64]],
     ) raises -> Self:
         """Map `Mark.PARALLEL`'s three channels: `dims` (one vertical axis per
         name, each scaled to its column's `[min, max]`), `row_names` (one
@@ -2232,8 +2343,8 @@ struct Plot(Copyable, Movable):
         """
         if len(row_names) != len(data):
             raise Error(
-                "Plot.encode_parallel(): row_names and data must have the same length"
-                " (got "
+                "Plot.encode_parallel(): row_names and data must have the same"
+                " length (got "
                 + String(len(row_names))
                 + " and "
                 + String(len(data))
@@ -2242,8 +2353,8 @@ struct Plot(Copyable, Movable):
         for row in data:
             if len(row) != len(dims):
                 raise Error(
-                    "Plot.encode_parallel(): every row in data must have one value per"
-                    " dimension (expected "
+                    "Plot.encode_parallel(): every row in data must have one"
+                    " value per dimension (expected "
                     + String(len(dims))
                     + ", got "
                     + String(len(row))
@@ -2256,7 +2367,12 @@ struct Plot(Copyable, Movable):
 
     def encode_parallel[
         dtype: DType
-    ](var self, dims: List[String], row_names: List[String], data: List[List[Scalar[dtype]]]) raises -> Self:
+    ](
+        var self,
+        dims: List[String],
+        row_names: List[String],
+        data: List[List[Scalar[dtype]]],
+    ) raises -> Self:
         """`encode_parallel()`'s `data` generalized over numeric element type
         via `_materialize_nested_scalar_list` (array_like.mojo). `dims`/
         `row_names` stay concrete. Delegates to the concrete overload.
@@ -2276,9 +2392,13 @@ struct Plot(Copyable, Movable):
             If `row_names`/`data` lengths don't match, or any row's
             value count doesn't match `dims`'s count.
         """
-        return self^.encode_parallel(dims, row_names, _materialize_nested_scalar_list(data))
+        return self^.encode_parallel(
+            dims, row_names, _materialize_nested_scalar_list(data)
+        )
 
-    def encode_distribution(var self, categories: List[String], values: List[List[Float64]]) raises -> Self:
+    def encode_distribution(
+        var self, categories: List[String], values: List[List[Float64]]
+    ) raises -> Self:
         """Map a category column and, per category, a list of raw values onto
         the shape `Mark.BEESWARM`/`VIOLIN`/`RIDGELINE` share: the same
         outer-list-per-category shape as `encode_boxplot()`, but kept as raw
@@ -2325,7 +2445,9 @@ struct Plot(Copyable, Movable):
 
     def encode_distribution[
         dtype: DType
-    ](var self, categories: List[String], values: List[List[Scalar[dtype]]]) raises -> Self:
+    ](
+        var self, categories: List[String], values: List[List[Scalar[dtype]]]
+    ) raises -> Self:
         """`encode_distribution()`'s `values` generalized over numeric element
         type via `_materialize_nested_scalar_list` (array_like.mojo).
         `categories` stays concrete. Delegates to the concrete overload.
@@ -2343,7 +2465,9 @@ struct Plot(Copyable, Movable):
             If `categories`/`values` lengths don't match, or any
             category's value list is empty.
         """
-        return self^.encode_distribution(categories, _materialize_nested_scalar_list(values))
+        return self^.encode_distribution(
+            categories, _materialize_nested_scalar_list(values)
+        )
 
     def encode_single_axis(
         var self,
@@ -2399,7 +2523,11 @@ struct Plot(Copyable, Movable):
         return self^
 
     def labels(
-        var self, title: String = "", subtitle: String = "", x_title: String = "", y_title: String = ""
+        var self,
+        title: String = "",
+        subtitle: String = "",
+        x_title: String = "",
+        y_title: String = "",
     ) -> Self:
         """Set the chart title/subtitle and/or axis titles. Named `x_title`/
         `y_title` rather than `x`/`y` so a call next to
@@ -2468,7 +2596,9 @@ struct Plot(Copyable, Movable):
         self._annotations.line_labels.append(label)
         return self^
 
-    def annotate_area(var self, y0: Float64, y1: Float64, label: String = "") -> Self:
+    def annotate_area(
+        var self, y0: Float64, y1: Float64, label: String = ""
+    ) -> Self:
         """Add a shaded horizontal band from `y0` to `y1` on the y-axis
         (ECharts' `markArea` with a fixed pair). Each call adds a band.
         `label`, when non-empty, draws inside the band near its top edge in
@@ -2533,7 +2663,9 @@ struct Plot(Copyable, Movable):
         self._annotations.vline_labels.append(label)
         return self^
 
-    def annotate_point(var self, x: Float64, y: Float64, label: String = "") -> Self:
+    def annotate_point(
+        var self, x: Float64, y: Float64, label: String = ""
+    ) -> Self:
         """Add a single labeled point at `(x, y)` (ECharts' `markPoint` with a
         fixed coordinate): a small filled marker in `Theme.annotation_color`,
         with `label` just above it when non-empty. Each call adds a point.
@@ -2567,7 +2699,11 @@ struct Plot(Copyable, Movable):
         return self^
 
     def annotate_band(
-        var self, x: List[Float64], y_lower: List[Float64], y_upper: List[Float64], label: String = ""
+        var self,
+        x: List[Float64],
+        y_lower: List[Float64],
+        y_upper: List[Float64],
+        label: String = "",
     ) -> Self:
         """Shade the region between two curves that vary with `x`: a confidence
         band around a trend line, or a min/max envelope (matplotlib's
@@ -2614,7 +2750,10 @@ struct Plot(Copyable, Movable):
         return self^
 
     def annotate_best_fit(
-        var self, show_equation: Bool = False, show_r_squared: Bool = False, label: String = ""
+        var self,
+        show_equation: Bool = False,
+        show_r_squared: Bool = False,
+        label: String = "",
     ) -> Self:
         """Overlay an ordinary-least-squares best-fit line computed from this
         plot's own `x_data`/`y_data` at render() time, so it works whether
@@ -2829,35 +2968,70 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
 
     def fill_band_rect[
         T: DrawTarget
-    ](self, mut target: T, extent: _BaselineRect, band_pos: Int, band_size: Int, color: Color):
+    ](
+        self,
+        mut target: T,
+        extent: _BaselineRect,
+        band_pos: Int,
+        band_size: Int,
+        color: Color,
+    ):
         """Fill one band's rect: `extent` spans the value axis (what
         `_pull_off_axis_line` returns), `band_pos`/`band_size` the band axis.
         """
         if self.horizontal:
-            target.fill_rect(extent.y, band_pos, extent.height, band_size, color)
+            target.fill_rect(
+                extent.y, band_pos, extent.height, band_size, color
+            )
         else:
-            target.fill_rect(band_pos, extent.y, band_size, extent.height, color)
+            target.fill_rect(
+                band_pos, extent.y, band_size, extent.height, color
+            )
 
     def value_line[
         T: DrawTarget
-    ](self, mut target: T, along_a: Int, along_b: Int, across: Int, color: Color, width: Float64):
+    ](
+        self,
+        mut target: T,
+        along_a: Int,
+        along_b: Int,
+        across: Int,
+        color: Color,
+        width: Float64,
+    ):
         """A line running *along* the value axis at a fixed band
         position -- a box's whisker, a lollipop's stem."""
         if self.horizontal:
-            target.draw_line_aa(along_a, across, along_b, across, color, width=width)
+            target.draw_line_aa(
+                along_a, across, along_b, across, color, width=width
+            )
         else:
-            target.draw_line_aa(across, along_a, across, along_b, color, width=width)
+            target.draw_line_aa(
+                across, along_a, across, along_b, color, width=width
+            )
 
     def band_line[
         T: DrawTarget
-    ](self, mut target: T, along: Int, across_a: Int, across_b: Int, color: Color, width: Float64):
+    ](
+        self,
+        mut target: T,
+        along: Int,
+        across_a: Int,
+        across_b: Int,
+        color: Color,
+        width: Float64,
+    ):
         """A line running *across* the band at a fixed value -- a box's
         median line and whisker caps. The perpendicular of
         `value_line`."""
         if self.horizontal:
-            target.draw_line_aa(along, across_a, along, across_b, color, width=width)
+            target.draw_line_aa(
+                along, across_a, along, across_b, color, width=width
+            )
         else:
-            target.draw_line_aa(across_a, along, across_b, along, color, width=width)
+            target.draw_line_aa(
+                across_a, along, across_b, along, color, width=width
+            )
 
     def baseline_pull(self) -> Float64:
         """Which direction is into the plot area, away from the categorical
@@ -2868,7 +3042,9 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         """
         return 1.0 if self.horizontal else -1.0
 
-    def path_move_to(self, mut path: Path, along: Float64, across: Float64) raises:
+    def path_move_to(
+        self, mut path: Path, along: Float64, across: Float64
+    ) raises:
         """`Path.move_to` in band/value terms rather than x/y -- for a
         mark whose outline is built point by point (a violin's KDE
         silhouette) rather than from rects and lines."""
@@ -2877,7 +3053,9 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         else:
             path.move_to(across, along)
 
-    def path_line_to(self, mut path: Path, along: Float64, across: Float64) raises:
+    def path_line_to(
+        self, mut path: Path, along: Float64, across: Float64
+    ) raises:
         """`Path.line_to` in band/value terms -- see `path_move_to`."""
         if self.horizontal:
             path.line_to(along, across)
@@ -2933,19 +3111,29 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         """
         var across = band_pos + band_size // 2
         if self.horizontal:
-            var x = extent.y - label_gap if negative else extent.y + extent.height + label_gap
+            var x = (
+                extent.y
+                - label_gap if negative else extent.y
+                + extent.height
+                + label_gap
+            )
             var align = TextAlign.RIGHT if negative else TextAlign.LEFT
             return _BandLabel(x, across + Int(font_size * 0.35), align)
         var y = (
-            extent.y + extent.height + label_gap + Int(font_size)
-            if negative
-            else extent.y - label_gap
+            extent.y
+            + extent.height
+            + label_gap
+            + Int(font_size) if negative else extent.y
+            - label_gap
         )
         return _BandLabel(across, y, TextAlign.CENTER)
 
-
     def band_label_point(
-        self, extent: _BaselineRect, band_pos: Int, band_size: Int, font_size: Float64
+        self,
+        extent: _BaselineRect,
+        band_pos: Int,
+        band_size: Int,
+        font_size: Float64,
     ) -> _BandLabelPoint:
         """Where a label centered inside `extent` x `band_pos` goes. `TextAlign`
         has no vertical option, so the returned `y` already carries the
@@ -2960,7 +3148,9 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         return _BandLabelPoint(across, along + nudge)
 
 
-def _pull_off_axis_line(edge_a: Int, edge_b: Int, axis_line_py: Int) -> _BaselineRect:
+def _pull_off_axis_line(
+    edge_a: Int, edge_b: Int, axis_line_py: Int
+) -> _BaselineRect:
     """The `(y, height)` of a fill spanning `edge_a`..`edge_b` (in either
     order), with whichever edge sits exactly on `axis_line_py` nudged 1px
     toward the other edge.
@@ -2988,7 +3178,9 @@ def _pull_off_axis_line(edge_a: Int, edge_b: Int, axis_line_py: Int) -> _Baselin
     return _BaselineRect(y, height)
 
 
-def _build_line_path(px: List[Float64], py: List[Float64], smoothing: Float64) raises -> Path:
+def _build_line_path(
+    px: List[Float64], py: List[Float64], smoothing: Float64
+) raises -> Path:
     """The `Path` a `Mark.LINE` plot strokes through its
     already-pixel-projected points, and the curve `Mark.AREA` fills down
     to the baseline from.
@@ -3024,7 +3216,14 @@ def _build_line_path(px: List[Float64], py: List[Float64], smoothing: Float64) r
         var t1y = (py[i + 1] - py[prev]) / 6.0 * smoothing
         var t2x = (px[next2] - px[i]) / 6.0 * smoothing
         var t2y = (py[next2] - py[i]) / 6.0 * smoothing
-        path.cubic_curve_to(px[i] + t1x, py[i] + t1y, px[i + 1] - t2x, py[i + 1] - t2y, px[i + 1], py[i + 1])
+        path.cubic_curve_to(
+            px[i] + t1x,
+            py[i] + t1y,
+            px[i + 1] - t2x,
+            py[i + 1] - t2y,
+            px[i + 1],
+            py[i + 1],
+        )
     return path^
 
 
@@ -3037,13 +3236,17 @@ struct _Decimated(Movable):
     var py: List[Float64]
     var applied: Bool
 
-    def __init__(out self, var px: List[Float64], var py: List[Float64], applied: Bool):
+    def __init__(
+        out self, var px: List[Float64], var py: List[Float64], applied: Bool
+    ):
         self.px = px^
         self.py = py^
         self.applied = applied
 
 
-def _decimate_to_pixel_columns(px: List[Float64], py: List[Float64]) -> _Decimated:
+def _decimate_to_pixel_columns(
+    px: List[Float64], py: List[Float64]
+) -> _Decimated:
     """Reduce a dense polyline to at most two points per horizontal pixel
     column.
 
@@ -3119,7 +3322,9 @@ def _decimate_to_pixel_columns(px: List[Float64], py: List[Float64]) -> _Decimat
     return _Decimated(out_x^, out_y^, True)
 
 
-def _max_label_width(labels: List[String], font_size: Float64) raises -> Float64:
+def _max_label_width(
+    labels: List[String], font_size: Float64
+) raises -> Float64:
     """The widest rendered ink width among `labels` at `font_size`, used to
     size the left margin to the y-axis tick labels before the plot area's
     pixel range is finalized (tick values depend only on the data domain,
@@ -3149,7 +3354,9 @@ def _max_label_width(
     return max_width
 
 
-def _dynamic_legend_width(labels: List[String], content_width: Int, sc: _Scaled) raises -> Int:
+def _dynamic_legend_width(
+    labels: List[String], content_width: Int, sc: _Scaled
+) raises -> Int:
     """How wide a legend column needs to be to fit `labels` next to
     `content_width`-wide content (a swatch, a gradient bar, or the widest
     size-legend circle): `content_width` + `label_gap` + the widest label
@@ -3164,7 +3371,11 @@ def _dynamic_legend_width(labels: List[String], content_width: Int, sc: _Scaled)
 
 
 def _dynamic_legend_width(
-    labels: List[String], content_width: Int, sc: _Scaled, *, mut cache: FontCache
+    labels: List[String],
+    content_width: Int,
+    sc: _Scaled,
+    *,
+    mut cache: FontCache,
 ) raises -> Int:
     """`_dynamic_legend_width` resolving fonts through `cache`; see the
     overload above.
@@ -3224,7 +3435,9 @@ struct _TextRequest(Copyable, Movable):
         self.rotation = rotation
 
 
-def _draw_legend[T: DrawTarget](
+def _draw_legend[
+    T: DrawTarget
+](
     mut target: T,
     mut text_requests: List[_TextRequest],
     labels: List[String],
@@ -3251,10 +3464,17 @@ def _draw_legend[T: DrawTarget](
         if len(shapes) > 0:
             var radius = sc.legend_swatch_size // 2
             _fill_shape_aa(
-                target, x + radius, row_y + radius, radius, shapes[i % len(shapes)], color
+                target,
+                x + radius,
+                row_y + radius,
+                radius,
+                shapes[i % len(shapes)],
+                color,
             )
         else:
-            target.fill_rect(x, row_y, sc.legend_swatch_size, sc.legend_swatch_size, color)
+            target.fill_rect(
+                x, row_y, sc.legend_swatch_size, sc.legend_swatch_size, color
+            )
         text_requests.append(
             _TextRequest(
                 x + sc.legend_swatch_size + sc.label_gap,
@@ -3268,7 +3488,9 @@ def _draw_legend[T: DrawTarget](
         )
 
 
-def _draw_continuous_color_legend[T: DrawTarget](
+def _draw_continuous_color_legend[
+    T: DrawTarget
+](
     mut target: T,
     mut text_requests: List[_TextRequest],
     color_scale: ColorScale,
@@ -3293,7 +3515,9 @@ def _draw_continuous_color_legend[T: DrawTarget](
     var sc = _Scaled(theme)
     var bar_width = sc.continuous_legend_bar_width
     var bar_height = sc.continuous_legend_bar_height
-    var gradient = LinearGradient(Float64(x), Float64(y), Float64(x), Float64(y + bar_height))
+    var gradient = LinearGradient(
+        Float64(x), Float64(y), Float64(x), Float64(y + bar_height)
+    )
 
     # Stops are emitted in ascending offset order, which SVG requires (the
     # raster backend doesn't care). SVG's <linearGradient> clamps each
@@ -3350,7 +3574,9 @@ def _draw_continuous_color_legend[T: DrawTarget](
     return y + bar_height + sc.legend_row_gap
 
 
-def _draw_continuous_size_legend[T: DrawTarget](
+def _draw_continuous_size_legend[
+    T: DrawTarget
+](
     mut target: T,
     mut text_requests: List[_TextRequest],
     size_mm: MinMax,
@@ -3437,8 +3663,10 @@ def _log_data_extent(data: List[Float64]) raises -> LinearScale:
     for v in data:
         if v <= 0.0:
             raise Error(
-                "scale_y_log()/scale_x_log(): every value must be > 0 for a log-scaled axis"
-                " (log10(0) and log10(negative) are undefined) -- got " + String(v)
+                "scale_y_log()/scale_x_log(): every value must be > 0 for a"
+                " log-scaled axis (log10(0) and log10(negative) are undefined)"
+                " -- got "
+                + String(v)
             )
     var mm = _min_max(data)
     var log_lo = log10(mm.min)
@@ -3521,7 +3749,9 @@ struct _RenderResult(Movable):
         self.has_x_scale = has_x_scale
 
 
-def _apply_labels(plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _LabelsFrame:
+def _apply_labels(
+    plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _LabelsFrame:
     """Reserve margin space for `Plot.labels()`'s chart/axis titles, given
     the original outer bounds. Called by `_render_into`/
     `_render_svg_into` (and the facet/layer variants) before
@@ -3538,7 +3768,10 @@ def _apply_labels(plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> 
     `Mark.ARC` has no axes, so `x_title`/`y_title` raise on an `ARC`
     plot; `title` works for any mark.
     """
-    if (plot._labels.x_title.byte_length() > 0 or plot._labels.y_title.byte_length() > 0) and plot._mark == Mark.ARC:
+    if (
+        plot._labels.x_title.byte_length() > 0
+        or plot._labels.y_title.byte_length() > 0
+    ) and plot._mark == Mark.ARC:
         raise Error(
             "Plot.labels(): x_title/y_title don't apply to Mark.ARC (it"
             " has no x/y axes to caption) -- only title applies to a"
@@ -3546,20 +3779,42 @@ def _apply_labels(plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> 
         )
 
     var sc = _Scaled(plot._theme)
-    var extra_top = Int(sc.title_font_size) + sc.label_gap if plot._labels.title.byte_length() > 0 else 0
-    extra_top += Int(sc.subtitle_font_size) + sc.label_gap if plot._labels.subtitle.byte_length() > 0 else 0
+    var extra_top = (
+        Int(sc.title_font_size)
+        + sc.label_gap if plot._labels.title.byte_length()
+        > 0 else 0
+    )
+    extra_top += (
+        Int(sc.subtitle_font_size)
+        + sc.label_gap if plot._labels.subtitle.byte_length()
+        > 0 else 0
+    )
     var extra_bottom = (
-        Int(sc.axis_title_font_size) + sc.label_gap if plot._labels.x_title.byte_length() > 0 else 0
+        Int(sc.axis_title_font_size)
+        + sc.label_gap if plot._labels.x_title.byte_length()
+        > 0 else 0
     )
     var extra_left = (
-        Int(sc.axis_title_font_size) + sc.label_gap if plot._labels.y_title.byte_length() > 0 else 0
+        Int(sc.axis_title_font_size)
+        + sc.label_gap if plot._labels.y_title.byte_length()
+        > 0 else 0
     )
 
-    return _LabelsFrame(ox0 + extra_left, oy0 + extra_top, ox1, oy1 - extra_bottom)
+    return _LabelsFrame(
+        ox0 + extra_left, oy0 + extra_top, ox1, oy1 - extra_bottom
+    )
 
 
 def _label_text_requests(
-    plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int, px0: Int, py0: Int, px1: Int, py1: Int
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    px0: Int,
+    py0: Int,
+    px1: Int,
+    py1: Int,
 ) raises -> List[_TextRequest]:
     """Build `Plot.labels()`'s title/subtitle/x_title/y_title
     `_TextRequest`s after `_render_generic` returns. Each title's
@@ -3589,7 +3844,11 @@ def _label_text_requests(
     if plot._labels.subtitle.byte_length() > 0:
         # Stacks directly below the title's reserved band, which is 0 when
         # there is no title, so a lone subtitle draws at the very top.
-        var title_band = Int(sc.title_font_size) + sc.label_gap if plot._labels.title.byte_length() > 0 else 0
+        var title_band = (
+            Int(sc.title_font_size)
+            + sc.label_gap if plot._labels.title.byte_length()
+            > 0 else 0
+        )
         text_requests.append(
             _TextRequest(
                 (px0 + px1) // 2,
@@ -3634,7 +3893,9 @@ def _label_text_requests(
 
 def _draw_annotation_areas[
     T: DrawTarget
-](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises -> List[_TextRequest]:
+](
+    mut target: T, plot: Plot, result: _RenderResult, theme: Theme
+) raises -> List[_TextRequest]:
     """Draw every `Plot.annotate_area()` shaded band directly (a `fill_rect`
     needs no text machinery) and return each one's optional label as a
     `_TextRequest`.
@@ -3655,9 +3916,12 @@ def _draw_annotation_areas[
         return text_requests^
     if not result.has_y_scale:
         raise Error(
-            "Plot.annotate_area(): this mark has no continuous y-axis to place a shaded band"
-            " against. Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER and every mark sharing"
-            " _CategoricalFrame (BAR/LOLLIPOP/WATERFALL/BOX/CANDLESTICK/BULLET/GROUPED_BAR/"
+            "Plot.annotate_area(): this mark has no continuous y-axis to place"
+            " a shaded band"
+            " against. Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER and"
+            " every mark sharing"
+            " _CategoricalFrame"
+            " (BAR/LOLLIPOP/WATERFALL/BOX/CANDLESTICK/BULLET/GROUPED_BAR/"
             "STACKED_BAR/STREAMGRAPH)"
         )
 
@@ -3676,7 +3940,11 @@ def _draw_annotation_areas[
         if draw_top >= draw_bottom:
             continue
         target.fill_rect(
-            result.px0, draw_top, result.px1 - result.px0, draw_bottom - draw_top, theme.annotation_area_color
+            result.px0,
+            draw_top,
+            result.px1 - result.px0,
+            draw_bottom - draw_top,
+            theme.annotation_area_color,
         )
         var label = plot._annotations.area_labels[i]
         if label.byte_length() > 0:
@@ -3696,7 +3964,9 @@ def _draw_annotation_areas[
 
 def _draw_annotation_bands[
     T: DrawTarget
-](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises -> List[_TextRequest]:
+](
+    mut target: T, plot: Plot, result: _RenderResult, theme: Theme
+) raises -> List[_TextRequest]:
     """Draw every `Plot.annotate_band()` filled region with the same
     `fill_path_aa` closed-polygon technique `_draw_area_layer` uses,
     built from `y_upper` left-to-right then `y_lower` right-to-left, and
@@ -3719,8 +3989,9 @@ def _draw_annotation_bands[
         return text_requests^
     if not result.has_x_scale or not result.has_y_scale:
         raise Error(
-            "Plot.annotate_band(): this mark has no continuous x/y axes to place a band against."
-            " Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
+            "Plot.annotate_band(): this mark has no continuous x/y axes to"
+            " place a band against. Supported today:"
+            " Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
         )
 
     var sc = _Scaled(theme)
@@ -3734,7 +4005,8 @@ def _draw_annotation_bands[
         var ys_upper = plot._annotations.band_y_upper[k].copy()
         if len(xs) != len(ys_lower) or len(xs) != len(ys_upper):
             raise Error(
-                "Plot.annotate_band(): x/y_lower/y_upper must be the same length (got "
+                "Plot.annotate_band(): x/y_lower/y_upper must be the same"
+                " length (got "
                 + String(len(xs))
                 + ", "
                 + String(len(ys_lower))
@@ -3751,7 +4023,8 @@ def _draw_annotation_bands[
         for i in range(len(xs)):
             if ys_upper[i] < ys_lower[i]:
                 raise Error(
-                    "Plot.annotate_band(): y_upper must be >= y_lower at every index (got y_lower="
+                    "Plot.annotate_band(): y_upper must be >= y_lower at every"
+                    " index (got y_lower="
                     + String(ys_lower[i])
                     + " and y_upper="
                     + String(ys_upper[i])
@@ -3759,11 +4032,21 @@ def _draw_annotation_bands[
                     + String(i)
                     + ")"
                 )
-            var this_px = min(max(result.x_scale.to_pixel(xs[i]), px_left), px_right)
+            var this_px = min(
+                max(result.x_scale.to_pixel(xs[i]), px_left), px_right
+            )
             px_upper.append(this_px)
             px_lower.append(this_px)
-            py_upper.append(min(max(result.y_scale.to_pixel(ys_upper[i]), py_top), py_bottom))
-            py_lower.append(min(max(result.y_scale.to_pixel(ys_lower[i]), py_top), py_bottom))
+            py_upper.append(
+                min(
+                    max(result.y_scale.to_pixel(ys_upper[i]), py_top), py_bottom
+                )
+            )
+            py_lower.append(
+                min(
+                    max(result.y_scale.to_pixel(ys_lower[i]), py_top), py_bottom
+                )
+            )
         var path = Path()
         path.move_to(px_upper[0], py_upper[0])
         for i in range(1, len(xs)):
@@ -3792,7 +4075,9 @@ def _draw_annotation_bands[
 
 def _draw_annotation_lines[
     T: DrawTarget
-](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises -> List[_TextRequest]:
+](
+    mut target: T, plot: Plot, result: _RenderResult, theme: Theme
+) raises -> List[_TextRequest]:
     """Draw every `Plot.annotate_line()` reference line directly (a
     horizontal `draw_line_aa` needs no text machinery) and return each
     one's optional label as a `_TextRequest`.
@@ -3814,9 +4099,12 @@ def _draw_annotation_lines[
         return text_requests^
     if not result.has_y_scale:
         raise Error(
-            "Plot.annotate_line(): this mark has no continuous y-axis to place a reference line"
-            " against. Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER and every mark sharing"
-            " _CategoricalFrame (BAR/LOLLIPOP/WATERFALL/BOX/CANDLESTICK/BULLET/GROUPED_BAR/"
+            "Plot.annotate_line(): this mark has no continuous y-axis to place"
+            " a reference line"
+            " against. Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER and"
+            " every mark sharing"
+            " _CategoricalFrame"
+            " (BAR/LOLLIPOP/WATERFALL/BOX/CANDLESTICK/BULLET/GROUPED_BAR/"
             "STACKED_BAR/STREAMGRAPH)"
         )
 
@@ -3827,7 +4115,14 @@ def _draw_annotation_lines[
         var py = _axis_pixel(result.y_scale, plot._annotations.line_values[i])
         if py < py_top or py > py_bottom:
             continue
-        target.draw_line_aa(result.px0, py, result.px1, py, theme.annotation_color, width=sc.scale)
+        target.draw_line_aa(
+            result.px0,
+            py,
+            result.px1,
+            py,
+            theme.annotation_color,
+            width=sc.scale,
+        )
         var label = plot._annotations.line_labels[i]
         if label.byte_length() > 0:
             text_requests.append(
@@ -3846,7 +4141,9 @@ def _draw_annotation_lines[
 
 def _draw_annotation_vlines[
     T: DrawTarget
-](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises -> List[_TextRequest]:
+](
+    mut target: T, plot: Plot, result: _RenderResult, theme: Theme
+) raises -> List[_TextRequest]:
     """`_draw_annotation_lines`'s mirror image for `Plot.annotate_vline()`:
     a vertical line at an x `value`, using `result.x_scale`/
     `has_x_scale`, spanning the inner rect's full height, skipping an
@@ -3858,8 +4155,9 @@ def _draw_annotation_vlines[
         return text_requests^
     if not result.has_x_scale:
         raise Error(
-            "Plot.annotate_vline(): this mark has no continuous x-axis to place a reference line"
-            " against. Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
+            "Plot.annotate_vline(): this mark has no continuous x-axis to place"
+            " a reference line against. Supported today:"
+            " Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
         )
 
     var sc = _Scaled(theme)
@@ -3871,7 +4169,9 @@ def _draw_annotation_vlines[
         var px = _axis_pixel(result.x_scale, plot._annotations.vline_values[i])
         if px < px_left or px > px_right:
             continue
-        target.draw_line_aa(px, py_top, px, py_bottom, theme.annotation_color, width=sc.scale)
+        target.draw_line_aa(
+            px, py_top, px, py_bottom, theme.annotation_color, width=sc.scale
+        )
         var label = plot._annotations.vline_labels[i]
         if label.byte_length() > 0:
             text_requests.append(
@@ -3890,7 +4190,9 @@ def _draw_annotation_vlines[
 
 def _draw_annotation_points[
     T: DrawTarget
-](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises -> List[_TextRequest]:
+](
+    mut target: T, plot: Plot, result: _RenderResult, theme: Theme
+) raises -> List[_TextRequest]:
     """Draw every `Plot.annotate_point()` marker directly and return each
     one's optional label as a `_TextRequest`. Called last among the
     annotation passes so a point draws on top of every other layer. Needs
@@ -3906,8 +4208,9 @@ def _draw_annotation_points[
         return text_requests^
     if not result.has_x_scale or not result.has_y_scale:
         raise Error(
-            "Plot.annotate_point(): this mark has no continuous x/y axes to place a point"
-            " against. Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
+            "Plot.annotate_point(): this mark has no continuous x/y axes to"
+            " place a point against. Supported today:"
+            " Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
         )
 
     var sc = _Scaled(theme)
@@ -3940,7 +4243,9 @@ def _draw_annotation_points[
 
 def _draw_annotation_best_fit[
     T: DrawTarget
-](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises -> List[_TextRequest]:
+](
+    mut target: T, plot: Plot, result: _RenderResult, theme: Theme
+) raises -> List[_TextRequest]:
     """Draw `Plot.annotate_best_fit()`'s ordinary-least-squares line and
     return its optional label/equation/R-squared text as `_TextRequest`s.
 
@@ -3961,13 +4266,15 @@ def _draw_annotation_best_fit[
         return text_requests^
     if not result.has_x_scale or not result.has_y_scale:
         raise Error(
-            "Plot.annotate_best_fit(): this mark has no continuous x/y axes to fit a line against."
-            " Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
+            "Plot.annotate_best_fit(): this mark has no continuous x/y axes to"
+            " fit a line against. Supported today:"
+            " Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
         )
     var n_points = len(plot.x_data)
     if n_points < 2:
         raise Error(
-            "Plot.annotate_best_fit(): needs at least 2 points to fit a line through (got "
+            "Plot.annotate_best_fit(): needs at least 2 points to fit a line"
+            " through (got "
             + String(n_points)
             + ")"
         )
@@ -3985,8 +4292,8 @@ def _draw_annotation_best_fit[
     var denom = n * sum_xx - sum_x * sum_x
     if denom == 0.0:
         raise Error(
-            "Plot.annotate_best_fit(): every x value is identical -- there is no honest"
-            " non-vertical line to fit through a vertical scatter"
+            "Plot.annotate_best_fit(): every x value is identical -- there is"
+            " no honest non-vertical line to fit through a vertical scatter"
         )
     var slope = (n * sum_xy - sum_x * sum_y) / denom
     var mean_x = sum_x / n
@@ -4000,9 +4307,22 @@ def _draw_annotation_best_fit[
     var x_right = result.x_scale.domain_max
     var px_left = _axis_pixel(result.x_scale, x_left)
     var px_right = _axis_pixel(result.x_scale, x_right)
-    var py_left = min(max(_axis_pixel(result.y_scale, slope * x_left + intercept), py_top), py_bottom)
-    var py_right = min(max(_axis_pixel(result.y_scale, slope * x_right + intercept), py_top), py_bottom)
-    target.draw_line_aa(px_left, py_left, px_right, py_right, theme.annotation_color, width=sc.scale)
+    var py_left = min(
+        max(_axis_pixel(result.y_scale, slope * x_left + intercept), py_top),
+        py_bottom,
+    )
+    var py_right = min(
+        max(_axis_pixel(result.y_scale, slope * x_right + intercept), py_top),
+        py_bottom,
+    )
+    target.draw_line_aa(
+        px_left,
+        py_left,
+        px_right,
+        py_right,
+        theme.annotation_color,
+        width=sc.scale,
+    )
 
     var text_x = max(result.px0, result.px1) - sc.label_gap
     var text_y = py_top + Int(sc.font_size)
@@ -4027,7 +4347,15 @@ def _draw_annotation_best_fit[
         else:
             eq = "y = " + slope_str + "x - " + _format_fixed(-intercept, 3)
         text_requests.append(
-            _TextRequest(text_x, text_y, eq, theme.annotation_color, sc.font_size, TextAlign.RIGHT, theme.font_family)
+            _TextRequest(
+                text_x,
+                text_y,
+                eq,
+                theme.annotation_color,
+                sc.font_size,
+                TextAlign.RIGHT,
+                theme.font_family,
+            )
         )
         text_y += Int(sc.font_size) + sc.label_gap
     if plot._annotations.best_fit_show_r_squared:
@@ -4065,12 +4393,20 @@ def _tooltip_label(category: String, value: Float64) -> String:
     return category + ": " + _format_fixed(value, _label_decimals(value))
 
 
-def _series_tooltip_label(category: String, series: String, value: Float64) -> String:
+def _series_tooltip_label(
+    category: String, series: String, value: Float64
+) -> String:
     """A grouped/stacked datum's hover text: `"Group A / Q1: 42"`. Both
     names, since one bar per (category, series) pair needs both to be
     identified.
     """
-    return category + " / " + series + ": " + _format_fixed(value, _label_decimals(value))
+    return (
+        category
+        + " / "
+        + series
+        + ": "
+        + _format_fixed(value, _label_decimals(value))
+    )
 
 
 def _point_tooltip_label(plot: Plot, i: Int) -> String:
@@ -4086,7 +4422,9 @@ def _point_tooltip_label(plot: Plot, i: Int) -> String:
     )
 
 
-def _replay_text_requests(mut canvas: Canvas, requests: List[_TextRequest], mut cache: FontCache) raises:
+def _replay_text_requests(
+    mut canvas: Canvas, requests: List[_TextRequest], mut cache: FontCache
+) raises:
     """Draw every `_TextRequest` in `requests` into `canvas` via
     `canvas.text.draw_text`, the raster half of replaying the deferred
     labels. Shared by every raster entry point.
@@ -4107,7 +4445,9 @@ def _replay_text_requests(mut canvas: Canvas, requests: List[_TextRequest], mut 
         )
 
 
-def _replay_text_requests_svg(mut svg: SvgCanvas, requests: List[_TextRequest]) raises:
+def _replay_text_requests_svg(
+    mut svg: SvgCanvas, requests: List[_TextRequest]
+) raises:
     """`_replay_text_requests`' counterpart for `SvgCanvas`, via
     `SvgCanvas.draw_text`. A separate function because `DrawTarget` has
     no `draw_text` to dispatch through.
@@ -4194,7 +4534,12 @@ def render(plot: Plot) raises -> Canvas:
 
 
 def _render_into(
-    mut canvas: Canvas, plot: Plot, ox0: Int = 0, oy0: Int = 0, ox1: Int = -1, oy1: Int = -1
+    mut canvas: Canvas,
+    plot: Plot,
+    ox0: Int = 0,
+    oy0: Int = 0,
+    ox1: Int = -1,
+    oy1: Int = -1,
 ) raises:
     """Render `plot` into `canvas` within the outer bounds (background, then
     the axis frame and mark, then annotations and text). `ox1`/`oy1`
@@ -4219,16 +4564,30 @@ def _render_into(
     var cy1 = oy1 if oy1 >= 0 else canvas.height
     canvas.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
     var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
-    var result = _render_generic(canvas, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1)
+    var result = _render_generic(
+        canvas, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1
+    )
     var label_requests = _label_text_requests(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
-    var area_annotation_requests = _draw_annotation_areas(canvas, plot, result, plot._theme)
-    var band_annotation_requests = _draw_annotation_bands(canvas, plot, result, plot._theme)
-    var vline_annotation_requests = _draw_annotation_vlines(canvas, plot, result, plot._theme)
-    var annotation_requests = _draw_annotation_lines(canvas, plot, result, plot._theme)
-    var point_annotation_requests = _draw_annotation_points(canvas, plot, result, plot._theme)
-    var best_fit_annotation_requests = _draw_annotation_best_fit(canvas, plot, result, plot._theme)
+    var area_annotation_requests = _draw_annotation_areas(
+        canvas, plot, result, plot._theme
+    )
+    var band_annotation_requests = _draw_annotation_bands(
+        canvas, plot, result, plot._theme
+    )
+    var vline_annotation_requests = _draw_annotation_vlines(
+        canvas, plot, result, plot._theme
+    )
+    var annotation_requests = _draw_annotation_lines(
+        canvas, plot, result, plot._theme
+    )
+    var point_annotation_requests = _draw_annotation_points(
+        canvas, plot, result, plot._theme
+    )
+    var best_fit_annotation_requests = _draw_annotation_best_fit(
+        canvas, plot, result, plot._theme
+    )
     # One FontCache shared by every label this render draws; draw_text
     # otherwise resolves its font from scratch (twice, since it measures
     # then renders).
@@ -4254,7 +4613,12 @@ def render_svg(plot: Plot) raises -> SvgCanvas:
 
 
 def _render_svg_into(
-    mut svg: SvgCanvas, plot: Plot, ox0: Int = 0, oy0: Int = 0, ox1: Int = -1, oy1: Int = -1
+    mut svg: SvgCanvas,
+    plot: Plot,
+    ox0: Int = 0,
+    oy0: Int = 0,
+    ox1: Int = -1,
+    oy1: Int = -1,
 ) raises:
     """`_render_into`'s counterpart for `SvgCanvas`: same bounds resolution,
     `_apply_labels`/`_render_generic` core, and annotation passes, with
@@ -4265,16 +4629,30 @@ def _render_svg_into(
     var cy1 = oy1 if oy1 >= 0 else svg.height
     svg.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
     var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
-    var result = _render_generic(svg, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1)
+    var result = _render_generic(
+        svg, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1
+    )
     var label_requests = _label_text_requests(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
-    var area_annotation_requests = _draw_annotation_areas(svg, plot, result, plot._theme)
-    var band_annotation_requests = _draw_annotation_bands(svg, plot, result, plot._theme)
-    var vline_annotation_requests = _draw_annotation_vlines(svg, plot, result, plot._theme)
-    var annotation_requests = _draw_annotation_lines(svg, plot, result, plot._theme)
-    var point_annotation_requests = _draw_annotation_points(svg, plot, result, plot._theme)
-    var best_fit_annotation_requests = _draw_annotation_best_fit(svg, plot, result, plot._theme)
+    var area_annotation_requests = _draw_annotation_areas(
+        svg, plot, result, plot._theme
+    )
+    var band_annotation_requests = _draw_annotation_bands(
+        svg, plot, result, plot._theme
+    )
+    var vline_annotation_requests = _draw_annotation_vlines(
+        svg, plot, result, plot._theme
+    )
+    var annotation_requests = _draw_annotation_lines(
+        svg, plot, result, plot._theme
+    )
+    var point_annotation_requests = _draw_annotation_points(
+        svg, plot, result, plot._theme
+    )
+    var best_fit_annotation_requests = _draw_annotation_best_fit(
+        svg, plot, result, plot._theme
+    )
     _replay_text_requests_svg(svg, label_requests)
     _replay_text_requests_svg(svg, area_annotation_requests)
     _replay_text_requests_svg(svg, band_annotation_requests)
@@ -4285,7 +4663,9 @@ def _render_svg_into(
     _replay_text_requests_svg(svg, result.text_requests)
 
 
-def _resolve_output_format(theme_format: OutputFormat, path: String) -> OutputFormat:
+def _resolve_output_format(
+    theme_format: OutputFormat, path: String
+) -> OutputFormat:
     """The format `save()`/`save_layers()`/`save_facets()` use: `path`'s
     extension when it's `.svg`/`.png`/`.bmp` (case-insensitive),
     otherwise `theme_format` (`Theme.output_format`).
@@ -4384,7 +4764,9 @@ def save_facets(
         write_bmp(render_facets(plots, cols, shared_y_scale), path)
 
 
-def accessible_svg_string(svg: SvgCanvas, title: String, description: String = "") raises -> String:
+def accessible_svg_string(
+    svg: SvgCanvas, title: String, description: String = ""
+) raises -> String:
     """`svg.to_string()` with SVG accessibility markup added: `role="img"`
     and `aria-label` on the root `<svg>` element, plus a `<title>` (and a
     `<desc>` when `description` is non-empty) as its first child
@@ -4407,23 +4789,32 @@ def accessible_svg_string(svg: SvgCanvas, title: String, description: String = "
     var tag_end = s.find(">")
     if tag_end == -1:
         raise Error(
-            "accessible_svg_string: svg.to_string() produced no root element to attach"
-            " accessibility markup to"
+            "accessible_svg_string: svg.to_string() produced no root element to"
+            " attach accessibility markup to"
         )
     var opening_tag = String(s[byte=0:tag_end])
     var rest = String(s[byte=tag_end:])
 
     var escaped_title_attr = _escape_xml_attr(title)
-    var accessible_tag = opening_tag + ' role="img" aria-label="' + escaped_title_attr + '"'
+    var accessible_tag = (
+        opening_tag + ' role="img" aria-label="' + escaped_title_attr + '"'
+    )
 
     var children = "<title>" + _escape_xml_text(title) + "</title>\n"
     if description.byte_length() > 0:
         children += "<desc>" + _escape_xml_text(description) + "</desc>\n"
 
-    return accessible_tag + String(rest[byte=0:1]) + children + String(rest[byte=1:])
+    return (
+        accessible_tag
+        + String(rest[byte=0:1])
+        + children
+        + String(rest[byte=1:])
+    )
 
 
-def write_accessible_svg(svg: SvgCanvas, path: String, title: String, description: String = "") raises:
+def write_accessible_svg(
+    svg: SvgCanvas, path: String, title: String, description: String = ""
+) raises:
     """`accessible_svg_string()` written to `path`. See the Cookbook's "SVG
     Accessibility" recipe
     (docs/src/cookbook_recipes/svg_accessibility.mojo).
@@ -4489,18 +4880,31 @@ struct _PointChannels(Movable):
                 if name in plot.color_map:
                     self.palette.append(plot.color_map[name])
                 else:
-                    self.palette.append(default_palette[i % len(default_palette)])
-        self.has_shapes = self.has_color_categories and plot._theme.shape_by_category
+                    self.palette.append(
+                        default_palette[i % len(default_palette)]
+                    )
+        self.has_shapes = (
+            self.has_color_categories and plot._theme.shape_by_category
+        )
         self.shapes = List[PointShape]()
         if self.has_shapes:
             var default_shapes = default_marker_shapes()
             for i in range(len(self.cat.domain)):
                 self.shapes.append(default_shapes[i % len(default_shapes)])
-        var color_mm = _min_max(plot.color_data) if self.has_color else MinMax(0.0, 1.0)
-        self.color_scale = ColorScale.from_theme(plot._theme, color_mm.min, color_mm.max)
-        self.size_mm = _min_max(plot.size_data) if self.has_size else MinMax(0.0, 1.0)
+        var color_mm = _min_max(plot.color_data) if self.has_color else MinMax(
+            0.0, 1.0
+        )
+        self.color_scale = ColorScale.from_theme(
+            plot._theme, color_mm.min, color_mm.max
+        )
+        self.size_mm = _min_max(plot.size_data) if self.has_size else MinMax(
+            0.0, 1.0
+        )
         self.size_scale = LinearScale(
-            self.size_mm.min, self.size_mm.max, sc.size_range_min, sc.size_range_max
+            self.size_mm.min,
+            self.size_mm.max,
+            sc.size_range_min,
+            sc.size_range_max,
         )
 
 
@@ -4518,7 +4922,9 @@ def _require_non_empty(count: Int, context: String) raises:
     most other length checks in this package).
     """
     if count == 0:
-        raise Error(context + ": there is no data to draw (every column is empty)")
+        raise Error(
+            context + ": there is no data to draw (every column is empty)"
+        )
 
 
 def _validate_categorical_encoding(plot: Plot) raises:
@@ -4528,8 +4934,7 @@ def _validate_categorical_encoding(plot: Plot) raises:
     """
     if len(plot.x_categories) != len(plot.y_data):
         raise Error(
-            "Plot.encode_categorical(): x and y must have the same length"
-            " (got "
+            "Plot.encode_categorical(): x and y must have the same length (got "
             + String(len(plot.x_categories))
             + " and "
             + String(len(plot.y_data))
@@ -4545,11 +4950,17 @@ def _require_non_negative(values: List[Float64], mark_name: String) raises:
     for v in values:
         if v < 0.0:
             raise Error(
-                "Plot: " + mark_name + " values must be non-negative (got " + String(v) + ")"
+                "Plot: "
+                + mark_name
+                + " values must be non-negative (got "
+                + String(v)
+                + ")"
             )
 
 
-def _require_some_positive(values: List[Float64], mark_name: String) raises -> Float64:
+def _require_some_positive(
+    values: List[Float64], mark_name: String
+) raises -> Float64:
     """The largest of `values`, having checked at least one is strictly
     positive; for the marks whose geometry divides by the maximum
     (`value / max`), where all-zero input has no layout. Returns the
@@ -4624,10 +5035,13 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             + ")"
         )
     if (has_color or has_color_categories or has_size) and not (
-        plot._mark == Mark.POINT or plot._mark == Mark.SINGLE_AXIS or plot._mark == Mark.EFFECT_SCATTER
+        plot._mark == Mark.POINT
+        or plot._mark == Mark.SINGLE_AXIS
+        or plot._mark == Mark.EFFECT_SCATTER
     ):
         raise Error(
-            context + ": color/size encoding is only supported for"
+            context
+            + ": color/size encoding is only supported for"
             " Mark.POINT/SINGLE_AXIS/EFFECT_SCATTER today"
         )
     var has_y_err = len(plot.y_err_data) > 0
@@ -4643,29 +5057,40 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
     if has_y_err:
         for v in plot.y_err_data:
             if v < 0.0:
-                raise Error(context + ": y_err values must be >= 0 (got " + String(v) + ")")
+                raise Error(
+                    context
+                    + ": y_err values must be >= 0 (got "
+                    + String(v)
+                    + ")"
+                )
     # No Mark.SINGLE_AXIS here: a single-axis plot has no y-domain for an
     # error bar. Mark.LINE is included, unlike color/size, since a
     # per-point confidence whisker on a line is common (see
     # _draw_line_layer).
     if has_y_err and not (
-        plot._mark == Mark.POINT or plot._mark == Mark.LINE or plot._mark == Mark.EFFECT_SCATTER
+        plot._mark == Mark.POINT
+        or plot._mark == Mark.LINE
+        or plot._mark == Mark.EFFECT_SCATTER
     ):
         raise Error(
-            context + ": y_err is only supported for Mark.POINT/LINE/EFFECT_SCATTER today"
+            context
+            + ": y_err is only supported for Mark.POINT/LINE/EFFECT_SCATTER"
+            " today"
         )
 
     var has_y_err_lower = len(plot.y_err_lower_data) > 0
     var has_y_err_upper = len(plot.y_err_upper_data) > 0
     if has_y_err_lower != has_y_err_upper:
         raise Error(
-            context + ": y_err_lower and y_err_upper must be given together (got only one)"
+            context
+            + ": y_err_lower and y_err_upper must be given together (got only"
+            " one)"
         )
     if (has_y_err_lower or has_y_err_upper) and has_y_err:
         raise Error(
             context
-            + ": y_err and y_err_lower/y_err_upper are mutually exclusive -- pass one or the"
-            " other, not both"
+            + ": y_err and y_err_lower/y_err_upper are mutually exclusive --"
+            " pass one or the other, not both"
         )
     if has_y_err_lower and len(plot.y_err_lower_data) != len(plot.x_data):
         raise Error(
@@ -4688,22 +5113,35 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
     if has_y_err_lower:
         for v in plot.y_err_lower_data:
             if v < 0.0:
-                raise Error(context + ": y_err_lower values must be >= 0 (got " + String(v) + ")")
+                raise Error(
+                    context
+                    + ": y_err_lower values must be >= 0 (got "
+                    + String(v)
+                    + ")"
+                )
     if has_y_err_upper:
         for v in plot.y_err_upper_data:
             if v < 0.0:
-                raise Error(context + ": y_err_upper values must be >= 0 (got " + String(v) + ")")
+                raise Error(
+                    context
+                    + ": y_err_upper values must be >= 0 (got "
+                    + String(v)
+                    + ")"
+                )
     if (has_y_err_lower or has_y_err_upper) and not (
         plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER
     ):
         raise Error(
-            context + ": y_err_lower/y_err_upper are only supported for Mark.POINT/EFFECT_SCATTER"
-            " today"
+            context
+            + ": y_err_lower/y_err_upper are only supported for"
+            " Mark.POINT/EFFECT_SCATTER today"
         )
 
     if len(plot.color_map) > 0 and not has_color_categories:
         raise Error(
-            context + ": color_map is only meaningful alongside color_categories -- got a"
+            context
+            + ": color_map is only meaningful alongside color_categories --"
+            " got a"
             " color_map with color_categories empty"
         )
 
@@ -4717,8 +5155,13 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             + String(len(plot.x_data))
             + ")"
         )
-    if has_labels and not (plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER):
-        raise Error(context + ": labels is only supported for Mark.POINT/EFFECT_SCATTER today")
+    if has_labels and not (
+        plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER
+    ):
+        raise Error(
+            context
+            + ": labels is only supported for Mark.POINT/EFFECT_SCATTER today"
+        )
 
 
 def _validate_log_scale_annotations(plot: Plot) raises:
@@ -4733,39 +5176,51 @@ def _validate_log_scale_annotations(plot: Plot) raises:
         for v in plot._annotations.line_values:
             if v <= 0.0:
                 raise Error(
-                    "Plot.annotate_line(): value must be > 0 when Plot.scale_y_log() is set"
-                    " (got " + String(v) + ")"
+                    "Plot.annotate_line(): value must be > 0 when"
+                    " Plot.scale_y_log() is set (got "
+                    + String(v)
+                    + ")"
                 )
         for v in plot._annotations.area_y0:
             if v <= 0.0:
                 raise Error(
-                    "Plot.annotate_area(): y0 must be > 0 when Plot.scale_y_log() is set"
-                    " (got " + String(v) + ")"
+                    "Plot.annotate_area(): y0 must be > 0 when"
+                    " Plot.scale_y_log() is set (got "
+                    + String(v)
+                    + ")"
                 )
         for v in plot._annotations.area_y1:
             if v <= 0.0:
                 raise Error(
-                    "Plot.annotate_area(): y1 must be > 0 when Plot.scale_y_log() is set"
-                    " (got " + String(v) + ")"
+                    "Plot.annotate_area(): y1 must be > 0 when"
+                    " Plot.scale_y_log() is set (got "
+                    + String(v)
+                    + ")"
                 )
         for v in plot._annotations.point_y:
             if v <= 0.0:
                 raise Error(
-                    "Plot.annotate_point(): y must be > 0 when Plot.scale_y_log() is set"
-                    " (got " + String(v) + ")"
+                    "Plot.annotate_point(): y must be > 0 when"
+                    " Plot.scale_y_log() is set (got "
+                    + String(v)
+                    + ")"
                 )
     if plot._x_log:
         for v in plot._annotations.vline_values:
             if v <= 0.0:
                 raise Error(
-                    "Plot.annotate_vline(): value must be > 0 when Plot.scale_x_log() is set"
-                    " (got " + String(v) + ")"
+                    "Plot.annotate_vline(): value must be > 0 when"
+                    " Plot.scale_x_log() is set (got "
+                    + String(v)
+                    + ")"
                 )
         for v in plot._annotations.point_x:
             if v <= 0.0:
                 raise Error(
-                    "Plot.annotate_point(): x must be > 0 when Plot.scale_x_log() is set"
-                    " (got " + String(v) + ")"
+                    "Plot.annotate_point(): x must be > 0 when"
+                    " Plot.scale_x_log() is set (got "
+                    + String(v)
+                    + ")"
                 )
 
 
@@ -4776,11 +5231,15 @@ def _check_line_smoothing(theme: Theme) raises:
     """
     if theme.line_smoothing < 0.0 or theme.line_smoothing > 1.0:
         raise Error(
-            "Theme.line_smoothing must be in [0.0, 1.0] (got " + String(theme.line_smoothing) + ")"
+            "Theme.line_smoothing must be in [0.0, 1.0] (got "
+            + String(theme.line_smoothing)
+            + ")"
         )
 
 
-def _legend_reserve_for(plot: Plot, ch: _PointChannels, sc: _Scaled) raises -> Int:
+def _legend_reserve_for(
+    plot: Plot, ch: _PointChannels, sc: _Scaled
+) raises -> Int:
     """How much width `plot`'s legend column needs, or `0` when it has no
     legend (`Theme.show_legend` off, not a point mark, or no data-driven
     channel). A plot combining continuous color and size stacks both
@@ -4801,7 +5260,9 @@ def _legend_reserve_for(
     if not plot._theme.show_legend:
         return 0
     if not (
-        plot._mark == Mark.POINT or plot._mark == Mark.SINGLE_AXIS or plot._mark == Mark.EFFECT_SCATTER
+        plot._mark == Mark.POINT
+        or plot._mark == Mark.SINGLE_AXIS
+        or plot._mark == Mark.EFFECT_SCATTER
     ):
         return 0
     if not (ch.has_color_categories or ch.has_color or ch.has_size):
@@ -4810,7 +5271,10 @@ def _legend_reserve_for(
     var reserve = 0
     if ch.has_color_categories:
         reserve = max(
-            reserve, _dynamic_legend_width(ch.cat.domain, sc.legend_swatch_size, sc, cache=cache)
+            reserve,
+            _dynamic_legend_width(
+                ch.cat.domain, sc.legend_swatch_size, sc, cache=cache
+            ),
         )
     elif ch.has_color:
         var color_labels = List[String]()
@@ -4818,16 +5282,23 @@ def _legend_reserve_for(
         color_labels.append(_format_fixed(ch.color_scale.domain_min, 1))
         reserve = max(
             reserve,
-            _dynamic_legend_width(color_labels, sc.continuous_legend_bar_width, sc, cache=cache),
+            _dynamic_legend_width(
+                color_labels, sc.continuous_legend_bar_width, sc, cache=cache
+            ),
         )
     if ch.has_size:
         var size_labels = List[String]()
         size_labels.append(_format_fixed(ch.size_mm.max, 1))
-        size_labels.append(_format_fixed((ch.size_mm.min + ch.size_mm.max) / 2.0, 1))
+        size_labels.append(
+            _format_fixed((ch.size_mm.min + ch.size_mm.max) / 2.0, 1)
+        )
         size_labels.append(_format_fixed(ch.size_mm.min, 1))
         var circle_content_width = 2 * _round_to_int(sc.size_range_max)
         reserve = max(
-            reserve, _dynamic_legend_width(size_labels, circle_content_width, sc, cache=cache)
+            reserve,
+            _dynamic_legend_width(
+                size_labels, circle_content_width, sc, cache=cache
+            ),
         )
     return reserve
 
@@ -4951,19 +5422,34 @@ def _draw_continuous_axis_frame[
     if theme.show_gridlines:
         for i in range(len(x_ticks.values)):
             var px = _axis_pixel(out_x_scale, x_ticks.values[i])
-            target.draw_line_aa(px, plot_y0, px, plot_y1, theme.gridline_color, width=sc.scale)
+            target.draw_line_aa(
+                px, plot_y0, px, plot_y1, theme.gridline_color, width=sc.scale
+            )
         for i in range(len(y_ticks.values)):
             var py = _axis_pixel(out_y_scale, y_ticks.values[i])
-            target.draw_line_aa(plot_x0, py, plot_x1, py, theme.gridline_color, width=sc.scale)
+            target.draw_line_aa(
+                plot_x0, py, plot_x1, py, theme.gridline_color, width=sc.scale
+            )
 
-    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale)
-    target.draw_line_aa(plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale)
+    target.draw_line_aa(
+        plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale
+    )
+    target.draw_line_aa(
+        plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale
+    )
 
     var text_requests = List[_TextRequest]()
 
     for i in range(len(x_ticks.values)):
         var px = _axis_pixel(out_x_scale, x_ticks.values[i])
-        target.draw_line_aa(px, plot_y1, px, plot_y1 + sc.tick_length, theme.axis_color, width=sc.scale)
+        target.draw_line_aa(
+            px,
+            plot_y1,
+            px,
+            plot_y1 + sc.tick_length,
+            theme.axis_color,
+            width=sc.scale,
+        )
         text_requests.append(
             _TextRequest(
                 px,
@@ -4981,7 +5467,14 @@ def _draw_continuous_axis_frame[
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for i in range(len(y_ticks.values)):
         var py = _axis_pixel(out_y_scale, y_ticks.values[i])
-        target.draw_line_aa(plot_x0 - sc.tick_length, py, plot_x0, py, theme.axis_color, width=sc.scale)
+        target.draw_line_aa(
+            plot_x0 - sc.tick_length,
+            py,
+            plot_x0,
+            py,
+            theme.axis_color,
+            width=sc.scale,
+        )
         text_requests.append(
             _TextRequest(
                 plot_x0 - sc.tick_length - sc.label_gap,
@@ -4995,7 +5488,14 @@ def _draw_continuous_axis_frame[
         )
 
     return _ContinuousFrame(
-        out_x_scale, out_y_scale, sc^, text_requests^, plot_x0, plot_y0, plot_x1, plot_y1
+        out_x_scale,
+        out_y_scale,
+        sc^,
+        text_requests^,
+        plot_x0,
+        plot_y0,
+        plot_x1,
+        plot_y1,
     )
 
 
@@ -5007,7 +5507,9 @@ def _lighten(color: Color, alpha: UInt8) -> Color:
     opaque) rather than real alpha on the shape, so the tint is the same
     regardless of what's behind it.
     """
-    return Color(color.r, color.g, color.b, alpha).blend_over(Color(255, 255, 255))
+    return Color(color.r, color.g, color.b, alpha).blend_over(
+        Color(255, 255, 255)
+    )
 
 
 def _draw_point_layer[
@@ -5060,11 +5562,9 @@ def _draw_point_layer[
             color = ch.palette[ch.cat.indices[i] % len(ch.palette)]
         else:
             color = theme.mark_color
-        var radius = (
-            _round_to_int(ch.size_scale.to_pixel(plot.size_data[i]))
-            if ch.has_size
-            else _round_to_int(sc.point_radius)
-        )
+        var radius = _round_to_int(
+            ch.size_scale.to_pixel(plot.size_data[i])
+        ) if ch.has_size else _round_to_int(sc.point_radius)
         # One group per point, covering its error bar, halo and marker
         # -- all one datum. The deferred label sits outside it, since
         # text is replayed after this pass (see _TextRequest).
@@ -5088,14 +5588,40 @@ def _draw_point_layer[
             var py_lo = _axis_pixel(y_scale, lo)
             var cap_half = _round_to_int(sc.error_bar_cap_width)
             target.draw_line_aa(px, py_hi, px, py_lo, color, width=sc.scale)
-            target.draw_line_aa(px - cap_half, py_hi, px + cap_half, py_hi, color, width=sc.scale)
-            target.draw_line_aa(px - cap_half, py_lo, px + cap_half, py_lo, color, width=sc.scale)
+            target.draw_line_aa(
+                px - cap_half,
+                py_hi,
+                px + cap_half,
+                py_hi,
+                color,
+                width=sc.scale,
+            )
+            target.draw_line_aa(
+                px - cap_half,
+                py_lo,
+                px + cap_half,
+                py_lo,
+                color,
+                width=sc.scale,
+            )
         if draw_halo:
-            target.fill_circle_aa(px, py, _round_to_int(Float64(radius) * 2.2), _lighten(color, theme.halo_alpha))
+            target.fill_circle_aa(
+                px,
+                py,
+                _round_to_int(Float64(radius) * 2.2),
+                _lighten(color, theme.halo_alpha),
+            )
         if ch.has_shapes:
             # Same lookup as `color`'s categorical branch; ch.shapes is sized to
             # ch.cat.domain like ch.palette.
-            _fill_shape_aa(target, px, py, radius, ch.shapes[ch.cat.indices[i] % len(ch.shapes)], color)
+            _fill_shape_aa(
+                target,
+                px,
+                py,
+                radius,
+                ch.shapes[ch.cat.indices[i] % len(ch.shapes)],
+                color,
+            )
         else:
             target.fill_circle_aa(px, py, radius, color)
         if tooltip:
@@ -5121,15 +5647,32 @@ def _draw_point_layer[
 
     var next_y = legend_y
     if ch.has_color_categories:
-        _draw_legend(target, text_requests, ch.cat.domain, ch.palette, legend_x, next_y, theme, shapes=ch.shapes)
-        next_y += len(ch.cat.domain) * (sc.legend_swatch_size + sc.legend_row_gap)
+        _draw_legend(
+            target,
+            text_requests,
+            ch.cat.domain,
+            ch.palette,
+            legend_x,
+            next_y,
+            theme,
+            shapes=ch.shapes,
+        )
+        next_y += len(ch.cat.domain) * (
+            sc.legend_swatch_size + sc.legend_row_gap
+        )
     elif ch.has_color:
         next_y = _draw_continuous_color_legend(
             target, text_requests, ch.color_scale, legend_x, next_y, theme
         )
     if ch.has_size:
         next_y = _draw_continuous_size_legend(
-            target, text_requests, ch.size_mm, ch.size_scale, legend_x, next_y, theme
+            target,
+            text_requests,
+            ch.size_mm,
+            ch.size_scale,
+            legend_x,
+            next_y,
+            theme,
         )
     return next_y
 
@@ -5157,12 +5700,24 @@ def _draw_line_layer[
             var err = plot.y_err_data[i]
             var py_hi = _axis_pixel(y_scale, plot.y_data[i] + err)
             var py_lo = _axis_pixel(y_scale, plot.y_data[i] - err)
-            target.draw_line_aa(px_i, py_hi, px_i, py_lo, theme.mark_color, width=sc.scale)
             target.draw_line_aa(
-                px_i - cap_half, py_hi, px_i + cap_half, py_hi, theme.mark_color, width=sc.scale
+                px_i, py_hi, px_i, py_lo, theme.mark_color, width=sc.scale
             )
             target.draw_line_aa(
-                px_i - cap_half, py_lo, px_i + cap_half, py_lo, theme.mark_color, width=sc.scale
+                px_i - cap_half,
+                py_hi,
+                px_i + cap_half,
+                py_hi,
+                theme.mark_color,
+                width=sc.scale,
+            )
+            target.draw_line_aa(
+                px_i - cap_half,
+                py_lo,
+                px_i + cap_half,
+                py_lo,
+                theme.mark_color,
+                width=sc.scale,
             )
     var px = List[Float64](capacity=len(plot.x_data))
     var py = List[Float64](capacity=len(plot.x_data))
@@ -5256,38 +5811,46 @@ def _render_generic[
         or plot._mark == Mark.EFFECT_SCATTER
     ):
         raise Error(
-            "Plot.scale_y_log()/scale_x_log() only apply to Mark.POINT/LINE/AREA/EFFECT_SCATTER"
-            " -- a categorical-x-axis (or other non-continuous) mark has no continuous domain for"
-            " a log scale to mean anything against"
+            "Plot.scale_y_log()/scale_x_log() only apply to"
+            " Mark.POINT/LINE/AREA/EFFECT_SCATTER -- a categorical-x-axis (or"
+            " other non-continuous) mark has no continuous domain for a log"
+            " scale to mean anything against"
         )
     if plot._y_log and plot._mark == Mark.AREA:
         raise Error(
-            "Plot.scale_y_log(): not supported on Mark.AREA -- its y-domain is always forced"
-            " through a zero baseline (see _zero_baseline_y_extent()'s docstring), and zero has"
-            " no logarithm"
+            "Plot.scale_y_log(): not supported on Mark.AREA -- its y-domain is"
+            " always forced through a zero baseline (see"
+            " _zero_baseline_y_extent()'s docstring), and zero has no logarithm"
         )
     if has_shared_y_domain and not (
-        plot._mark == Mark.POINT or plot._mark == Mark.LINE or plot._mark == Mark.EFFECT_SCATTER
+        plot._mark == Mark.POINT
+        or plot._mark == Mark.LINE
+        or plot._mark == Mark.EFFECT_SCATTER
     ):
         raise Error(
-            "render_facets(shared_y_scale=True): only Mark.POINT/LINE/EFFECT_SCATTER support a"
-            " shared y-scale today (Mark.AREA's own forced zero baseline has no principled way to"
+            "render_facets(shared_y_scale=True): only"
+            " Mark.POINT/LINE/EFFECT_SCATTER support a shared y-scale today"
+            " (Mark.AREA's own forced zero baseline has no principled way to"
             " compose with an externally supplied shared domain)"
         )
     if has_shared_y_domain and plot._y_log:
         raise Error(
-            "render_facets(shared_y_scale=True): not supported together with Plot.scale_y_log() --"
-            " the shared domain is computed in real (linear) units, log-scaling it isn't wired up"
+            "render_facets(shared_y_scale=True): not supported together with"
+            " Plot.scale_y_log() -- the shared domain is computed in real"
+            " (linear) units, log-scaling it isn't wired up"
         )
     if has_shared_y_domain and (
-        len(plot.y_err_data) > 0 or len(plot.y_err_lower_data) > 0 or len(plot.y_err_upper_data) > 0
+        len(plot.y_err_data) > 0
+        or len(plot.y_err_lower_data) > 0
+        or len(plot.y_err_upper_data) > 0
     ):
         # The shared union is computed over plain plot.y_data and isn't widened
         # for whisker endpoints, so a whisker could extend past the shared
         # axis.
         raise Error(
-            "render_facets(shared_y_scale=True): not supported together with Plot.encode(y_err=...)"
-            "/y_err_lower/y_err_upper -- the shared domain isn't widened for whisker endpoints yet"
+            "render_facets(shared_y_scale=True): not supported together with"
+            " Plot.encode(y_err=...)/y_err_lower/y_err_upper -- the shared"
+            " domain isn't widened for whisker endpoints yet"
         )
     _validate_log_scale_annotations(plot)
     if plot._mark == Mark.BAR:
@@ -5310,11 +5873,15 @@ def _render_generic[
         return _render_bullet(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.GROUPED_BAR:
         if plot._horizontal:
-            return _render_horizontal_grouped_bar(target, plot, ox0, oy0, ox1, oy1)
+            return _render_horizontal_grouped_bar(
+                target, plot, ox0, oy0, ox1, oy1
+            )
         return _render_grouped_bar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.STACKED_BAR:
         if plot._horizontal:
-            return _render_horizontal_stacked_bar(target, plot, ox0, oy0, ox1, oy1)
+            return _render_horizontal_stacked_bar(
+                target, plot, ox0, oy0, ox1, oy1
+            )
         return _render_stacked_bar(target, plot, ox0, oy0, ox1, oy1)
     if plot._mark == Mark.GANTT:
         return _render_gantt(target, plot, ox0, oy0, ox1, oy1)
@@ -5416,17 +5983,29 @@ def _render_generic[
     else:
         for v in plot.y_data:
             y_domain_data.append(v)
-    var y_scale = (
-        LinearScale(shared_y_min, shared_y_max, 0.0, 1.0) if has_shared_y_domain else (
-            _log_data_extent(y_domain_data) if plot._y_log else (
-                _zero_baseline_y_extent(y_domain_data) if plot._mark == Mark.AREA else _data_extent(y_domain_data)
-            )
+    var y_scale = LinearScale(
+        shared_y_min, shared_y_max, 0.0, 1.0
+    ) if has_shared_y_domain else (
+        _log_data_extent(y_domain_data) if plot._y_log else (
+            _zero_baseline_y_extent(y_domain_data) if plot._mark
+            == Mark.AREA else _data_extent(y_domain_data)
         )
     )
-    var x_scale = _log_data_extent(plot.x_data) if plot._x_log else _data_extent(plot.x_data)
+    var x_scale = _log_data_extent(
+        plot.x_data
+    ) if plot._x_log else _data_extent(plot.x_data)
 
     var frame = _draw_continuous_axis_frame(
-        target, x_scale, y_scale, theme, legend_reserve, ox0, oy0, ox1, oy1, cache=measure_cache
+        target,
+        x_scale,
+        y_scale,
+        theme,
+        legend_reserve,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=measure_cache,
     )
 
     if plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER:
@@ -5495,7 +6074,13 @@ struct _CategoricalFrame(Movable):
         frame `Plot.annotate_line()`/`annotate_area()` support.
         """
         return _RenderResult(
-            self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1, self.y_scale, True
+            self.text_requests.copy(),
+            self.px0,
+            self.py0,
+            self.px1,
+            self.py1,
+            self.y_scale,
+            True,
         )
 
 
@@ -5529,7 +6114,10 @@ def _draw_categorical_axis_frame[
     var y_ticks = y_scale.ticks()
     var y_labels = y_ticks.labels()
     var dynamic_left_margin = (
-        Int(_max_label_width(y_labels, sc.font_size)) + sc.tick_length + sc.label_gap + sc.margin_buffer
+        Int(_max_label_width(y_labels, sc.font_size))
+        + sc.tick_length
+        + sc.label_gap
+        + sc.margin_buffer
     )
 
     var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
@@ -5537,7 +6125,9 @@ def _draw_categorical_axis_frame[
     var plot_x1 = ox1 - sc.margin_right
     var plot_y1 = oy1 - sc.margin_bottom
 
-    var x_scale = OrdinalScale(categories.copy(), Float64(plot_x0), Float64(plot_x1))
+    var x_scale = OrdinalScale(
+        categories.copy(), Float64(plot_x0), Float64(plot_x1)
+    )
 
     # y range is reversed: domain_min lands at the *bottom* of the
     # plot area (the larger pixel y), domain_max at the top -- see
@@ -5549,17 +6139,30 @@ def _draw_categorical_axis_frame[
     if theme.show_gridlines:
         for i in range(len(y_ticks.values)):
             var py = _axis_pixel(out_y_scale, y_ticks.values[i])
-            target.draw_line_aa(plot_x0, py, plot_x1, py, theme.gridline_color, width=sc.scale)
+            target.draw_line_aa(
+                plot_x0, py, plot_x1, py, theme.gridline_color, width=sc.scale
+            )
 
-    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale)
-    target.draw_line_aa(plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale)
+    target.draw_line_aa(
+        plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale
+    )
+    target.draw_line_aa(
+        plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale
+    )
 
     var text_requests = List[_TextRequest]()
 
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for i in range(len(y_ticks.values)):
         var py = _axis_pixel(out_y_scale, y_ticks.values[i])
-        target.draw_line_aa(plot_x0 - sc.tick_length, py, plot_x0, py, theme.axis_color, width=sc.scale)
+        target.draw_line_aa(
+            plot_x0 - sc.tick_length,
+            py,
+            plot_x0,
+            py,
+            theme.axis_color,
+            width=sc.scale,
+        )
         text_requests.append(
             _TextRequest(
                 plot_x0 - sc.tick_length - sc.label_gap,
@@ -5574,7 +6177,14 @@ def _draw_categorical_axis_frame[
 
     for i in range(len(categories)):
         var center_px = _round_to_int(x_scale.center(i))
-        target.draw_line_aa(center_px, plot_y1, center_px, plot_y1 + sc.tick_length, theme.axis_color, width=sc.scale)
+        target.draw_line_aa(
+            center_px,
+            plot_y1,
+            center_px,
+            plot_y1 + sc.tick_length,
+            theme.axis_color,
+            width=sc.scale,
+        )
         text_requests.append(
             _TextRequest(
                 center_px,
@@ -5587,7 +6197,16 @@ def _draw_categorical_axis_frame[
             )
         )
 
-    return _CategoricalFrame(x_scale^, out_y_scale, sc^, text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+    return _CategoricalFrame(
+        x_scale^,
+        out_y_scale,
+        sc^,
+        text_requests^,
+        plot_x0,
+        plot_y0,
+        plot_x1,
+        plot_y1,
+    )
 
 
 def _require_uniform_size(plots: List[Plot], caller: String) raises:
@@ -5631,13 +6250,17 @@ def render_facets(
     `rows`/canvas-size math.
     """
     if cols <= 0:
-        raise Error("render_facets(): cols must be positive (got " + String(cols) + ")")
+        raise Error(
+            "render_facets(): cols must be positive (got " + String(cols) + ")"
+        )
     _require_uniform_size(plots, "render_facets")
     var rows = (len(plots) + cols - 1) // cols
     var factor = plots[0]._theme.raster_supersample
     _require_positive_supersample(factor, "render_facets")
     var scaled_plots = _scaled_copy(plots, factor)
-    var canvas = Canvas(cols * plots[0].width * factor, rows * plots[0].height * factor)
+    var canvas = Canvas(
+        cols * plots[0].width * factor, rows * plots[0].height * factor
+    )
     var text_requests = _render_facets_generic(
         canvas, canvas.width, canvas.height, scaled_plots, cols, shared_y_scale
     )
@@ -5647,16 +6270,24 @@ def render_facets(
     return downsample(canvas, factor)
 
 
-def render_facets_svg(plots: List[Plot], cols: Int, shared_y_scale: Bool = False) raises -> SvgCanvas:
+def render_facets_svg(
+    plots: List[Plot], cols: Int, shared_y_scale: Bool = False
+) raises -> SvgCanvas:
     """`render_facets()`'s counterpart for `SvgCanvas`, with the same `cols`
     guard and `_render_facets_generic` core.
     """
     if cols <= 0:
-        raise Error("render_facets_svg(): cols must be positive (got " + String(cols) + ")")
+        raise Error(
+            "render_facets_svg(): cols must be positive (got "
+            + String(cols)
+            + ")"
+        )
     _require_uniform_size(plots, "render_facets_svg")
     var rows = (len(plots) + cols - 1) // cols
     var svg = SvgCanvas(cols * plots[0].width, rows * plots[0].height)
-    var text_requests = _render_facets_generic(svg, svg.width, svg.height, plots, cols, shared_y_scale)
+    var text_requests = _render_facets_generic(
+        svg, svg.width, svg.height, plots, cols, shared_y_scale
+    )
     _replay_text_requests_svg(svg, text_requests)
     return svg^
 
@@ -5692,7 +6323,9 @@ def _render_facets_generic[
     """
     var text_requests = List[_TextRequest]()
     if cols <= 0:
-        raise Error("render_facets(): cols must be positive (got " + String(cols) + ")")
+        raise Error(
+            "render_facets(): cols must be positive (got " + String(cols) + ")"
+        )
     if len(plots) == 0:
         return text_requests^
 
@@ -5720,7 +6353,11 @@ def _render_facets_generic[
         # Each cell's full rect is filled with that cell's background,
         # including the strip a title's margin reserves.
         target.fill_rect(
-            cell_x0, cell_y0, cell_x1 - cell_x0, cell_y1 - cell_y0, plots[i]._theme.background
+            cell_x0,
+            cell_y0,
+            cell_x1 - cell_x0,
+            cell_y1 - cell_y0,
+            plots[i]._theme.background,
         )
         var frame = _apply_labels(plots[i], cell_x0, cell_y0, cell_x1, cell_y1)
         var cell_result = _render_generic(
@@ -5735,7 +6372,15 @@ def _render_facets_generic[
             shared_y_max=shared_y_max,
         )
         var label_requests = _label_text_requests(
-            plots[i], cell_x0, cell_y0, cell_x1, cell_y1, cell_result.px0, cell_result.py0, cell_result.px1, cell_result.py1
+            plots[i],
+            cell_x0,
+            cell_y0,
+            cell_x1,
+            cell_y1,
+            cell_result.px0,
+            cell_result.py0,
+            cell_result.px1,
+            cell_result.py1,
         )
         # Each cell's annotations draw against that cell's own x/y scale, in
         # the same order a standalone render uses (areas and bands
@@ -5745,14 +6390,18 @@ def _render_facets_generic[
         # mark's cell correctly has has_x_scale=False -- each pass below
         # raises its own "no continuous axis" error exactly as it would for
         # a standalone plot, with no extra branching needed here.
-        var cell_area_requests = _draw_annotation_areas(target, plots[i], cell_result, plots[i]._theme)
+        var cell_area_requests = _draw_annotation_areas(
+            target, plots[i], cell_result, plots[i]._theme
+        )
         var cell_band_requests = _draw_annotation_bands(
             target, plots[i], cell_result, plots[i]._theme
         )
         var cell_vline_requests = _draw_annotation_vlines(
             target, plots[i], cell_result, plots[i]._theme
         )
-        var cell_line_requests = _draw_annotation_lines(target, plots[i], cell_result, plots[i]._theme)
+        var cell_line_requests = _draw_annotation_lines(
+            target, plots[i], cell_result, plots[i]._theme
+        )
         var cell_point_requests = _draw_annotation_points(
             target, plots[i], cell_result, plots[i]._theme
         )
@@ -5778,7 +6427,10 @@ def _secondary_axis_y_title(plots: List[Plot]) -> String:
     shared chrome. Empty when no secondary-axis layer set one.
     """
     for i in range(len(plots)):
-        if plots[i]._secondary_axis and plots[i]._labels.y_title.byte_length() > 0:
+        if (
+            plots[i]._secondary_axis
+            and plots[i]._labels.y_title.byte_length() > 0
+        ):
             return plots[i]._labels.y_title
     return ""
 
@@ -5827,9 +6479,19 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
         # y_title, on the right edge; _apply_labels only sees plots[0], not the
         # layer that owns the secondary caption.
         frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
-    var result = _render_layers_generic(canvas, scaled_plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1)
+    var result = _render_layers_generic(
+        canvas, scaled_plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1
+    )
     var label_requests = _label_text_requests(
-        scaled_plots[0], 0, 0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
+        scaled_plots[0],
+        0,
+        0,
+        cx1,
+        cy1,
+        result.px0,
+        result.py0,
+        result.px1,
+        result.py1,
     )
     if y2_title.byte_length() > 0:
         # The mirror of _label_text_requests's primary y_title: rotated +pi/2
@@ -5869,7 +6531,9 @@ def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
     var frame = _apply_labels(plots[0], 0, 0, cx1, cy1)
     if y2_title.byte_length() > 0:
         frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
-    var result = _render_layers_generic(svg, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1)
+    var result = _render_layers_generic(
+        svg, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1
+    )
     var label_requests = _label_text_requests(
         plots[0], 0, 0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
@@ -5893,7 +6557,15 @@ def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
 
 def _render_bar_combo_layers[
     T: DrawTarget
-](mut target: T, plots: List[Plot], bar_index: Int, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T,
+    plots: List[Plot],
+    bar_index: Int,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+) raises -> _RenderResult:
     """`_render_layers_generic`'s dispatch target when exactly one layer is
     `Mark.BAR`: a bar-plus-line combo chart sharing the bar layer's
     categorical x-axis instead of a continuous one.
@@ -5922,25 +6594,26 @@ def _render_bar_combo_layers[
     for i in range(len(plots)):
         if plots[i]._secondary_axis:
             raise Error(
-                "render_layers(): Plot.secondary_axis() isn't supported yet on a Mark.BAR combo"
-                " chart (layer "
+                "render_layers(): Plot.secondary_axis() isn't supported yet on"
+                " a Mark.BAR combo chart (layer "
                 + String(i)
                 + ")"
             )
         if plots[i]._y_log or plots[i]._x_log:
             raise Error(
-                "render_layers(): Plot.scale_y_log()/scale_x_log() aren't supported yet on a"
-                " Mark.BAR combo chart (layer "
+                "render_layers(): Plot.scale_y_log()/scale_x_log() aren't"
+                " supported yet on a Mark.BAR combo chart (layer "
                 + String(i)
                 + ")"
             )
         if plots[i]._horizontal:
             raise Error(
-                "render_layers(): Plot.mark_bar(horizontal=True) isn't supported yet on a Mark.BAR"
-                " combo chart (layer "
+                "render_layers(): Plot.mark_bar(horizontal=True) isn't"
+                " supported yet on a Mark.BAR combo chart (layer "
                 + String(i)
-                + ") -- a horizontal categorical axis alongside continuous line/point/area layers is"
-                " a real, separate feature this doesn't attempt"
+                + ") -- a horizontal categorical axis alongside continuous"
+                " line/point/area layers is a real, separate feature this"
+                " doesn't attempt"
             )
         var has_annotations = (
             len(plots[i]._annotations.line_values) > 0
@@ -5952,24 +6625,29 @@ def _render_bar_combo_layers[
         )
         if has_annotations:
             raise Error(
-                "render_layers(): Plot.annotate_*() isn't supported yet on a Mark.BAR combo chart"
-                " (layer "
+                "render_layers(): Plot.annotate_*() isn't supported yet on a"
+                " Mark.BAR combo chart (layer "
                 + String(i)
                 + ")"
             )
         if i == bar_index:
             continue
-        if not (plots[i]._mark == Mark.POINT or plots[i]._mark == Mark.LINE or plots[i]._mark == Mark.AREA):
+        if not (
+            plots[i]._mark == Mark.POINT
+            or plots[i]._mark == Mark.LINE
+            or plots[i]._mark == Mark.AREA
+        ):
             raise Error(
-                "render_layers(): alongside a Mark.BAR layer, every other layer must be"
-                " Mark.POINT/LINE/AREA (layer "
+                "render_layers(): alongside a Mark.BAR layer, every other layer"
+                " must be Mark.POINT/LINE/AREA (layer "
                 + String(i)
                 + ")"
             )
         if len(plots[i].x_data) != len(bar_categories):
             raise Error(
-                "render_layers(): with a Mark.BAR layer present, every other layer's own data"
-                " must have one entry per bar category -- layer "
+                "render_layers(): with a Mark.BAR layer present, every other"
+                " layer's own data must have one entry per bar category --"
+                " layer "
                 + String(i)
                 + " has "
                 + String(len(plots[i].x_data))
@@ -5997,8 +6675,10 @@ def _render_bar_combo_layers[
             or len(plots[i].point_labels) > 0
         ):
             raise Error(
-                "render_layers(): color/color_categories/size/y_err/y_err_lower/y_err_upper/labels"
-                " encoding isn't supported yet on a Mark.BAR combo chart's non-bar layers (layer "
+                "render_layers():"
+                " color/color_categories/size/y_err/y_err_lower/y_err_upper/labels"
+                " encoding isn't supported yet on a Mark.BAR combo chart's"
+                " non-bar layers (layer "
                 + String(i)
                 + ")"
             )
@@ -6010,10 +6690,17 @@ def _render_bar_combo_layers[
     var y_scale = _zero_baseline_y_extent(combined_y)
 
     var theme = plots[0]._theme
-    var frame = _draw_categorical_axis_frame(target, bar_categories, y_scale, theme, ox0, oy0, ox1, oy1)
+    var frame = _draw_categorical_axis_frame(
+        target, bar_categories, y_scale, theme, ox0, oy0, ox1, oy1
+    )
 
     _draw_bar_rects(
-        target, plots[bar_index], frame.x_scale, frame.y_scale, frame.py1, _Orientation(False),
+        target,
+        plots[bar_index],
+        frame.x_scale,
+        frame.y_scale,
+        frame.py1,
+        _Orientation(False),
         frame.text_requests,
     )
 
@@ -6031,16 +6718,25 @@ def _render_bar_combo_layers[
         if plots[i]._mark == Mark.POINT:
             var radius = _round_to_int(layer_sc.point_radius)
             for k in range(len(px)):
-                target.fill_circle_aa(_round_to_int(px[k]), _round_to_int(py[k]), radius, layer_theme.mark_color)
+                target.fill_circle_aa(
+                    _round_to_int(px[k]),
+                    _round_to_int(py[k]),
+                    radius,
+                    layer_theme.mark_color,
+                )
         elif plots[i]._mark == Mark.LINE:
             var path = _build_line_path(px, py, layer_theme.line_smoothing)
-            target.stroke_path_aa(path, layer_theme.mark_color, width=layer_sc.line_width)
+            target.stroke_path_aa(
+                path, layer_theme.mark_color, width=layer_sc.line_width
+            )
         else:
             # Mark.AREA -- same closed-down-to-baseline technique
             # _draw_area_layer uses, just against this frame's
             # categorical x positions instead of a continuous x_scale.
             var baseline_py = frame.y_scale.to_pixel(0.0)
-            if _round_to_int(baseline_py) == _round_to_int(frame.y_scale.range_min):
+            if _round_to_int(baseline_py) == _round_to_int(
+                frame.y_scale.range_min
+            ):
                 baseline_py -= 1.0
             var path = _build_line_path(px, py, layer_theme.line_smoothing)
             path.line_to(px[len(px) - 1], baseline_py)
@@ -6053,7 +6749,9 @@ def _render_bar_combo_layers[
 
 def _render_layers_generic[
     T: DrawTarget
-](mut target: T, plots: List[Plot], ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plots: List[Plot], ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """The shared-domain layout/draw core `render_layers()`/
     `render_layers_svg()` delegate to, built from the same pieces
     `_render_generic` uses (`_draw_continuous_axis_frame`,
@@ -6096,34 +6794,42 @@ def _render_layers_generic[
         raise Error(
             "render_layers(): at most one Mark.BAR layer is supported (got "
             + String(bar_layer_count)
-            + ") -- combining several categorical bar layers has no principled shared-axis"
-            " meaning yet"
+            + ") -- combining several categorical bar layers has no principled"
+            " shared-axis meaning yet"
         )
     if bar_layer_count == 1:
-        return _render_bar_combo_layers(target, plots, bar_layer_index, ox0, oy0, ox1, oy1)
+        return _render_bar_combo_layers(
+            target, plots, bar_layer_index, ox0, oy0, ox1, oy1
+        )
 
     for i in range(len(plots)):
         # Layering-specific check: a standalone Mark.BAR is legal, a layered
         # one alongside these isn't. A lone Mark.BAR already dispatched above,
         # so this fires only for Mark.ARC and other unsupported marks.
         if not (
-            plots[i]._mark == Mark.POINT or plots[i]._mark == Mark.LINE or plots[i]._mark == Mark.AREA
+            plots[i]._mark == Mark.POINT
+            or plots[i]._mark == Mark.LINE
+            or plots[i]._mark == Mark.AREA
         ):
             raise Error(
-                "render_layers(): only Mark.POINT/Mark.LINE/Mark.AREA can be layered here"
-                " (got a different mark -- Mark.BAR is supported only as the lone categorical"
-                " layer in a bar-combo chart, see _render_bar_combo_layers; Mark.ARC still isn't"
-                " supported at all)"
+                "render_layers(): only Mark.POINT/Mark.LINE/Mark.AREA can be"
+                " layered here (got a different mark -- Mark.BAR is supported"
+                " only as the lone categorical layer in a bar-combo chart, see"
+                " _render_bar_combo_layers; Mark.ARC still isn't supported at"
+                " all)"
             )
         if plots[i]._y_log or plots[i]._x_log:
             raise Error(
-                "render_layers(): Plot.scale_y_log()/scale_x_log() aren't supported here yet -- every"
-                " layer's domain gets combined into one shared linear scale (see combined_x/combined_y"
-                " below), which doesn't have a log-space equivalent built yet (layer "
+                "render_layers(): Plot.scale_y_log()/scale_x_log() aren't"
+                " supported here yet -- every layer's domain gets combined into"
+                " one shared linear scale (see combined_x/combined_y below),"
+                " which doesn't have a log-space equivalent built yet (layer "
                 + String(i)
                 + ")"
             )
-        _validate_continuous_encoding(plots[i], "render_layers(): layer " + String(i))
+        _validate_continuous_encoding(
+            plots[i], "render_layers(): layer " + String(i)
+        )
 
     var has_secondary = False
     var has_primary = False
@@ -6134,9 +6840,9 @@ def _render_layers_generic[
             has_primary = True
     if has_secondary and not has_primary:
         raise Error(
-            "render_layers(): at least one layer must stay on the primary y-axis"
-            " (every layer calling .secondary_axis() leaves nothing for"
-            " \"secondary\" to mean relative to)"
+            "render_layers(): at least one layer must stay on the primary"
+            " y-axis (every layer calling .secondary_axis() leaves nothing for"
+            ' "secondary" to mean relative to)'
         )
 
     var theme = plots[0]._theme
@@ -6157,12 +6863,20 @@ def _render_layers_generic[
         if plots[i]._secondary_axis:
             if has_y_err:
                 for j in range(len(plots[i].y_data)):
-                    combined_y2.append(plots[i].y_data[j] - plots[i].y_err_data[j])
-                    combined_y2.append(plots[i].y_data[j] + plots[i].y_err_data[j])
+                    combined_y2.append(
+                        plots[i].y_data[j] - plots[i].y_err_data[j]
+                    )
+                    combined_y2.append(
+                        plots[i].y_data[j] + plots[i].y_err_data[j]
+                    )
             elif has_y_err_lower:
                 for j in range(len(plots[i].y_data)):
-                    combined_y2.append(plots[i].y_data[j] - plots[i].y_err_lower_data[j])
-                    combined_y2.append(plots[i].y_data[j] + plots[i].y_err_upper_data[j])
+                    combined_y2.append(
+                        plots[i].y_data[j] - plots[i].y_err_lower_data[j]
+                    )
+                    combined_y2.append(
+                        plots[i].y_data[j] + plots[i].y_err_upper_data[j]
+                    )
             else:
                 for v in plots[i].y_data:
                     combined_y2.append(v)
@@ -6171,12 +6885,20 @@ def _render_layers_generic[
         else:
             if has_y_err:
                 for j in range(len(plots[i].y_data)):
-                    combined_y.append(plots[i].y_data[j] - plots[i].y_err_data[j])
-                    combined_y.append(plots[i].y_data[j] + plots[i].y_err_data[j])
+                    combined_y.append(
+                        plots[i].y_data[j] - plots[i].y_err_data[j]
+                    )
+                    combined_y.append(
+                        plots[i].y_data[j] + plots[i].y_err_data[j]
+                    )
             elif has_y_err_lower:
                 for j in range(len(plots[i].y_data)):
-                    combined_y.append(plots[i].y_data[j] - plots[i].y_err_lower_data[j])
-                    combined_y.append(plots[i].y_data[j] + plots[i].y_err_upper_data[j])
+                    combined_y.append(
+                        plots[i].y_data[j] - plots[i].y_err_lower_data[j]
+                    )
+                    combined_y.append(
+                        plots[i].y_data[j] + plots[i].y_err_upper_data[j]
+                    )
             else:
                 for v in plots[i].y_data:
                     combined_y.append(v)
@@ -6191,13 +6913,17 @@ def _render_layers_generic[
 
     # Both domains span every primary-axis layer's data. A Mark.AREA layer
     # anywhere in a group forces the zero baseline for that group's axis.
-    var y_scale = _zero_baseline_y_extent(combined_y) if any_area else _data_extent(combined_y)
+    var y_scale = _zero_baseline_y_extent(
+        combined_y
+    ) if any_area else _data_extent(combined_y)
     var x_scale = _data_extent(combined_x)
 
     var has_secondary_data = has_secondary and len(combined_y2) > 0
     var y_scale2 = LinearScale(0.0, 0.0, 0.0, 1.0)
     if has_secondary_data:
-        y_scale2 = _zero_baseline_y_extent(combined_y2) if any_area2 else _data_extent(combined_y2)
+        y_scale2 = _zero_baseline_y_extent(
+            combined_y2
+        ) if any_area2 else _data_extent(combined_y2)
 
     # secondary_axis_reserve is sized the way _draw_continuous_axis_frame
     # sizes the left margin: measure the secondary domain's tick labels,
@@ -6211,7 +6937,11 @@ def _render_layers_generic[
         var y2_ticks_for_margin = y_scale2.ticks()
         var y2_labels_for_margin = y2_ticks_for_margin.labels()
         secondary_axis_reserve = (
-            Int(_max_label_width(y2_labels_for_margin, sc.font_size, cache=measure_cache))
+            Int(
+                _max_label_width(
+                    y2_labels_for_margin, sc.font_size, cache=measure_cache
+                )
+            )
             + sc.tick_length
             + sc.label_gap
             + sc.margin_buffer
@@ -6226,7 +6956,8 @@ def _render_layers_generic[
         var p_sc_j = _Scaled(plots[j]._theme)
         var ch_j = _PointChannels(plots[j], p_sc_j)
         legend_reserve = max(
-            legend_reserve, _legend_reserve_for(plots[j], ch_j, p_sc_j, cache=measure_cache)
+            legend_reserve,
+            _legend_reserve_for(plots[j], ch_j, p_sc_j, cache=measure_cache),
         )
 
     var frame = _draw_continuous_axis_frame(
@@ -6253,11 +6984,23 @@ def _render_layers_generic[
         var y2_ticks = out_y_scale2.ticks()
         var y2_labels = y2_ticks.labels()
         var y2_label_baseline_offset = Int(sc.font_size * 0.35)
-        target.draw_line_aa(frame.px1, frame.py0, frame.px1, frame.py1, theme.axis_color, width=sc.scale)
+        target.draw_line_aa(
+            frame.px1,
+            frame.py0,
+            frame.px1,
+            frame.py1,
+            theme.axis_color,
+            width=sc.scale,
+        )
         for i in range(len(y2_ticks.values)):
             var py = _axis_pixel(out_y_scale2, y2_ticks.values[i])
             target.draw_line_aa(
-                frame.px1, py, frame.px1 + sc.tick_length, py, theme.axis_color, width=sc.scale
+                frame.px1,
+                py,
+                frame.px1 + sc.tick_length,
+                py,
+                theme.axis_color,
+                width=sc.scale,
             )
             text_requests.append(
                 _TextRequest(
@@ -6279,12 +7022,21 @@ def _render_layers_generic[
     for j in range(len(plots)):
         if len(plots[j].x_data) == 0:
             continue
-        var layer_y_scale = out_y_scale2 if plots[j]._secondary_axis else frame.y_scale
+        var layer_y_scale = out_y_scale2 if plots[
+            j
+        ]._secondary_axis else frame.y_scale
         if plots[j]._mark == Mark.POINT:
             var p_sc = _Scaled(plots[j]._theme)
             var ch_j = _PointChannels(plots[j], p_sc)
             legend_y = _draw_point_layer(
-                target, text_requests, plots[j], ch_j, frame.x_scale, layer_y_scale, legend_x, legend_y
+                target,
+                text_requests,
+                plots[j],
+                ch_j,
+                frame.x_scale,
+                layer_y_scale,
+                legend_x,
+                legend_y,
             )
         elif plots[j]._mark == Mark.LINE:
             _draw_line_layer(target, plots[j], frame.x_scale, layer_y_scale)
@@ -6299,7 +7051,9 @@ def _render_layers_generic[
     # standalone render uses (areas and bands underneath, then lines/
     # vlines, points on top, best_fit last).
     for j in range(len(plots)):
-        var layer_y_scale = out_y_scale2 if plots[j]._secondary_axis else frame.y_scale
+        var layer_y_scale = out_y_scale2 if plots[
+            j
+        ]._secondary_axis else frame.y_scale
         var layer_result = _RenderResult(
             List[_TextRequest](),
             frame.px0,
@@ -6311,14 +7065,18 @@ def _render_layers_generic[
             frame.x_scale,
             True,
         )
-        var layer_area_requests = _draw_annotation_areas(target, plots[j], layer_result, plots[j]._theme)
+        var layer_area_requests = _draw_annotation_areas(
+            target, plots[j], layer_result, plots[j]._theme
+        )
         var layer_band_requests = _draw_annotation_bands(
             target, plots[j], layer_result, plots[j]._theme
         )
         var layer_vline_requests = _draw_annotation_vlines(
             target, plots[j], layer_result, plots[j]._theme
         )
-        var layer_line_requests = _draw_annotation_lines(target, plots[j], layer_result, plots[j]._theme)
+        var layer_line_requests = _draw_annotation_lines(
+            target, plots[j], layer_result, plots[j]._theme
+        )
         var layer_point_requests = _draw_annotation_points(
             target, plots[j], layer_result, plots[j]._theme
         )
@@ -6332,7 +7090,9 @@ def _render_layers_generic[
         _extend_text_requests(text_requests, layer_point_requests)
         _extend_text_requests(text_requests, layer_best_fit_requests)
 
-    return _RenderResult(text_requests^, frame.px0, frame.py0, frame.px1, frame.py1)
+    return _RenderResult(
+        text_requests^, frame.px0, frame.py0, frame.px1, frame.py1
+    )
 
 
 def _finished(
@@ -6356,7 +7116,6 @@ def _finished(
     return plot^.labels(
         title=title, subtitle=subtitle, x_title=x_title, y_title=y_title
     ).theme(theme).size(width, height)
-
 
 
 def scatter(
@@ -6429,8 +7188,15 @@ def scatter[
     array_like.mojo. Delegates to the concrete overload above.
     """
     return scatter(
-        _materialize_scalar_list(x), _materialize_scalar_list(y), tooltips=tooltips, theme=theme, width=width,
-        height=height, title=title, x_title=x_title, y_title=y_title,
+        _materialize_scalar_list(x),
+        _materialize_scalar_list(y),
+        tooltips=tooltips,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        x_title=x_title,
+        y_title=y_title,
     )
 
 
@@ -6538,8 +7304,14 @@ def line[
     `DType` overload above. Delegates to the concrete overload above.
     """
     return line(
-        _materialize_scalar_list(x), _materialize_scalar_list(y), theme=theme, width=width,
-        height=height, title=title, x_title=x_title, y_title=y_title,
+        _materialize_scalar_list(x),
+        _materialize_scalar_list(y),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        x_title=x_title,
+        y_title=y_title,
     )
 
 
@@ -6614,6 +7386,12 @@ def area[
     `DType` overload above. Delegates to the concrete overload above.
     """
     return area(
-        _materialize_scalar_list(x), _materialize_scalar_list(y), theme=theme, width=width,
-        height=height, title=title, x_title=x_title, y_title=y_title,
+        _materialize_scalar_list(x),
+        _materialize_scalar_list(y),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        x_title=x_title,
+        y_title=y_title,
     )

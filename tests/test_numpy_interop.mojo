@@ -56,7 +56,9 @@ def test_materialize_python_floats_accepts_a_pandas_series() raises:
 
 def test_materialize_python_floats_raises_on_a_2d_array() raises:
     var np = Python.import_module("numpy")
-    var arr2d = np.array(Python.evaluate("[[1.0, 2.0], [3.0, 4.0]]"), dtype="float64")
+    var arr2d = np.array(
+        Python.evaluate("[[1.0, 2.0], [3.0, 4.0]]"), dtype="float64"
+    )
     with assert_raises():
         _ = _materialize_python_floats(arr2d)
 
@@ -87,11 +89,15 @@ def test_encode_categorical_accepts_a_pandas_series_y_matching_the_list_float64_
     var pd = Python.import_module("pandas")
     var cats: List[String] = ["A", "B", "C"]
     var series = pd.Series(Python.evaluate("[10, 20, -5]"))
-    var plot_from_pandas = Plot().mark_bar().encode_categorical(x=cats, y=series).size(400, 300)
+    var plot_from_pandas = (
+        Plot().mark_bar().encode_categorical(x=cats, y=series).size(400, 300)
+    )
     var svg_from_pandas = render_svg(plot_from_pandas).to_string()
 
     var yf: List[Float64] = [10.0, 20.0, -5.0]
-    var plot_from_list = Plot().mark_bar().encode_categorical(x=cats, y=yf).size(400, 300)
+    var plot_from_list = (
+        Plot().mark_bar().encode_categorical(x=cats, y=yf).size(400, 300)
+    )
     var svg_from_list = render_svg(plot_from_list).to_string()
 
     assert_equal(svg_from_pandas, svg_from_list)

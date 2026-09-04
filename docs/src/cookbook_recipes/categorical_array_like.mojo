@@ -6,12 +6,14 @@ plugs into `encode()`'s `x`/`y`.
 from dataviz.array_like import StringSequence
 from dataviz.plot import Plot, save
 
-struct UppercaseLabels(StringSequence, Copyable, Movable):
+
+struct UppercaseLabels(Copyable, Movable, StringSequence):
     """Stands in for a real-world array-like source (a dataframe
     column, a database result column) -- upper-cases each entry on the
     fly, without ever copying the underlying list into a new one
     itself.
     """
+
     var data: List[String]
 
     def __init__(out self, var data: List[String]):
@@ -22,6 +24,7 @@ struct UppercaseLabels(StringSequence, Copyable, Movable):
 
     def __getitem__(self, idx: Int) -> String:
         return self.data[idx].upper()
+
 
 def main() raises:
     var raw: List[String] = ["mon", "tue", "wed", "thu", "fri"]

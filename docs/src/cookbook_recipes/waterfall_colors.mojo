@@ -8,6 +8,7 @@ from dataviz.plot import save
 from dataviz.colors import SLATEGRAY
 from dataviz.theme import Theme
 
+
 def main() raises:
     var cats: List[String] = ["Start", "Product", "Services", "Refunds", "End"]
     var deltas: List[Float64] = [50.0, 20.0, 12.0, -10.0, 0.0]
@@ -20,6 +21,8 @@ def main() raises:
         theme=Theme(waterfall_total_color=SLATEGRAY),
         delta_width_fraction=0.85,
         title="Cash Flow",
-        subtitle="Starting/ending balances in a distinct color, wider delta bars",
+        subtitle=(
+            "Starting/ending balances in a distinct color, wider delta bars"
+        ),
     )
     save(plot, "docs/src/examples/out_waterfall_colors.svg")

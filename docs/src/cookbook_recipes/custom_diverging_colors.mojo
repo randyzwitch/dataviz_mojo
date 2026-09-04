@@ -8,6 +8,7 @@ from dataviz.plot import save
 from dataviz.colors import SEAGREEN, GOLDENROD
 from dataviz.theme import Theme
 
+
 def main() raises:
     var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"]
     var net_change: List[Float64] = [15.0, -8.0, 22.0, -3.0, 10.0, -12.0]
@@ -15,6 +16,10 @@ def main() raises:
     var plot = bar(
         quarters,
         net_change,
-        theme=Theme(color_by_sign=True, mark_color=SEAGREEN, mark_color_negative=GOLDENROD),
+        theme=Theme(
+            color_by_sign=True,
+            mark_color=SEAGREEN,
+            mark_color_negative=GOLDENROD,
+        ),
     )
     save(plot, "docs/src/examples/out_custom_diverging_colors.svg")

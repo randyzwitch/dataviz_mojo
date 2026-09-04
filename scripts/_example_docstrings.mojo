@@ -31,13 +31,21 @@ struct ExamplePage(Copyable, Movable):
     show every `Example:` block the function has (one page section per
     block), or a heading to pick exactly one.
     """
+
     var name: String
     var file: String
     var fn_name: String
     var is_method: Bool
     var block: String
 
-    def __init__(out self, name: String, file: String, fn_name: String, is_method: Bool = False, block: String = ""):
+    def __init__(
+        out self,
+        name: String,
+        file: String,
+        fn_name: String,
+        is_method: Bool = False,
+        block: String = "",
+    ):
         self.name = name
         self.file = file
         self.fn_name = fn_name
@@ -59,7 +67,9 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("candlestick", "candlestick", "candlestick"),
         ExamplePage("bullet", "bullet", "bullet"),
         ExamplePage("gantt", "gantt", "gantt"),
-        ExamplePage("population_pyramid", "population_pyramid", "population_pyramid"),
+        ExamplePage(
+            "population_pyramid", "population_pyramid", "population_pyramid"
+        ),
         ExamplePage("heatmap", "heatmap", "heatmap"),
         ExamplePage("chord", "chord", "chord"),
         ExamplePage("single_axis", "single_axis", "single_axis"),
@@ -139,7 +149,9 @@ def _first_sentence(docstring: String) -> String:
     # single flowing line, then cut at the first " -- " boundary (the
     # hook) if there is one, else keep the whole first sentence.
     var para_end = docstring.find("\n\n")
-    var first_para = String(docstring[byte=0:para_end]) if para_end != -1 else docstring
+    var first_para = (
+        String(docstring[byte=0:para_end]) if para_end != -1 else docstring
+    )
 
     var words = List[String]()
     for line in first_para.split("\n"):
@@ -153,7 +165,9 @@ def _first_sentence(docstring: String) -> String:
     var trimmed = String(sentence.strip())
     sentence = trimmed
     if sentence.endswith("."):
-        var without_dot = String(sentence[byte=0 : sentence.byte_length() - 1])
+        var without_dot = String(
+            sentence[byte = 0 : sentence.byte_length() - 1]
+        )
         sentence = without_dot
     sentence = sentence + "."
 
@@ -161,7 +175,9 @@ def _first_sentence(docstring: String) -> String:
     return first_char + String(sentence[byte=1:])
 
 
-def _def_index(lines: List[String], fn_name: String, want_indent: Int) raises -> Int:
+def _def_index(
+    lines: List[String], fn_name: String, want_indent: Int
+) raises -> Int:
     """The line index of `fn_name`'s `def` line at exactly `want_indent`
     leading spaces (0 for a free function, 4 for a `Plot` method), which
     disambiguates a file with the same name at different nesting. A plain
@@ -171,7 +187,13 @@ def _def_index(lines: List[String], fn_name: String, want_indent: Int) raises ->
     for i in range(len(lines)):
         if lines[i].startswith(prefix):
             return i
-    raise Error("gen_example_docs: no `def " + fn_name + "(` at indent " + String(want_indent) + " found")
+    raise Error(
+        "gen_example_docs: no `def "
+        + fn_name
+        + "(` at indent "
+        + String(want_indent)
+        + " found"
+    )
 
 
 def _lines_of(file: String) raises -> List[String]:
@@ -186,7 +208,9 @@ def _lines_of(file: String) raises -> List[String]:
     return lines^
 
 
-def _quickplot_hook(fn_name: String, file: String, is_method: Bool) raises -> String:
+def _quickplot_hook(
+    fn_name: String, file: String, is_method: Bool
+) raises -> String:
     """The one-line hook shown at the top of a docs page: `fn_name`'s
     docstring's first sentence (`_extract_docstring()`/
     `_first_sentence()`).
@@ -198,7 +222,9 @@ def _quickplot_hook(fn_name: String, file: String, is_method: Bool) raises -> St
     return _first_sentence(_extract_docstring(from_def))
 
 
-def _extract_args_lines(fn_name: String, file: String, is_method: Bool) raises -> List[String]:
+def _extract_args_lines(
+    fn_name: String, file: String, is_method: Bool
+) raises -> List[String]:
     """The `Args:` section's bullet lines from `fn_name`'s docstring in
     dataviz/<file>.mojo, as markdown; `[]` if there is no `Args:`
     section. Relies on the consistent indent every docstring uses
@@ -220,7 +246,9 @@ def _extract_args_lines(fn_name: String, file: String, is_method: Bool) raises -
             doc_close = i
             break
     if doc_close == -1:
-        raise Error("gen_example_docs: no closing docstring line found for " + fn_name)
+        raise Error(
+            "gen_example_docs: no closing docstring line found for " + fn_name
+        )
 
     var args_idx = -1
     var end_idx = -1
@@ -241,7 +269,9 @@ def _extract_args_lines(fn_name: String, file: String, is_method: Bool) raises -
         var raw = lines[i]
         if raw.strip() == "":
             continue
-        if raw.startswith(" " * bullet_indent) and not raw.startswith(" " * (bullet_indent + 1)):
+        if raw.startswith(" " * bullet_indent) and not raw.startswith(
+            " " * (bullet_indent + 1)
+        ):
             var colon = raw.find(": ")
             var arg_name = String(raw[byte=bullet_indent:colon])
             var desc = String(raw[byte = colon + 2 :])
@@ -260,7 +290,9 @@ struct _ExampleBlock(Copyable, Movable):
         self.lines = lines^
 
 
-def _extract_example_blocks(fn_name: String, file: String, is_method: Bool) raises -> List[_ExampleBlock]:
+def _extract_example_blocks(
+    fn_name: String, file: String, is_method: Bool
+) raises -> List[_ExampleBlock]:
     """Every `Example:`/`Example (<heading>):` section's fenced ` ```mojo `
     block from `fn_name`'s docstring, each a complete program shown and
     run as-is. Same indent convention as `_extract_args_lines()`: the
@@ -281,26 +313,36 @@ def _extract_example_blocks(fn_name: String, file: String, is_method: Bool) rais
             close_idx = i
             break
     if close_idx == -1:
-        raise Error("gen_example_docs: no closing docstring line found for " + fn_name)
+        raise Error(
+            "gen_example_docs: no closing docstring line found for " + fn_name
+        )
 
     var blocks = List[_ExampleBlock]()
     var i = def_idx + 1
     while i < close_idx:
         var line = lines[i]
         var is_default = line == doc_indent_str + "Example:"
-        var is_named = line.startswith(doc_indent_str + "Example (") and line.endswith("):")
+        var is_named = line.startswith(
+            doc_indent_str + "Example ("
+        ) and line.endswith("):")
         if not (is_default or is_named):
             i += 1
             continue
 
         var heading = ""
         if is_named:
-            var prefix_len = doc_indent_str.byte_length() + 9  # 9 == len("Example (")
-            heading = String(line[byte=prefix_len : line.byte_length() - 2])
+            var prefix_len = (
+                doc_indent_str.byte_length() + 9
+            )  # 9 == len("Example (")
+            heading = String(line[byte = prefix_len : line.byte_length() - 2])
 
         i += 1
         if i >= close_idx or lines[i] != code_indent_str + "```mojo":
-            raise Error("gen_example_docs: Example: in " + fn_name + " has no opening ```mojo fence")
+            raise Error(
+                "gen_example_docs: Example: in "
+                + fn_name
+                + " has no opening ```mojo fence"
+            )
         i += 1
 
         var code_lines = List[String]()
@@ -313,16 +355,27 @@ def _extract_example_blocks(fn_name: String, file: String, is_method: Bool) rais
             if lines[i].strip() == "":
                 code_lines.append("")
             elif lines[i].startswith(code_indent_str):
-                code_lines.append(String(lines[i][byte = code_indent_str.byte_length() :]))
+                code_lines.append(
+                    String(lines[i][byte = code_indent_str.byte_length() :])
+                )
             else:
-                raise Error("gen_example_docs: Example: code line wrongly indented in " + fn_name + ": " + lines[i])
+                raise Error(
+                    "gen_example_docs: Example: code line wrongly indented in "
+                    + fn_name
+                    + ": "
+                    + lines[i]
+                )
             i += 1
         if not closed:
-            raise Error("gen_example_docs: Example: fence never closed for " + fn_name)
+            raise Error(
+                "gen_example_docs: Example: fence never closed for " + fn_name
+            )
         blocks.append(_ExampleBlock(heading, code_lines^))
 
     if len(blocks) == 0:
-        raise Error("gen_example_docs: no Example: section found for " + fn_name)
+        raise Error(
+            "gen_example_docs: no Example: section found for " + fn_name
+        )
     return blocks^
 
 
@@ -337,7 +390,9 @@ def _output_svg_name(code_lines: List[String]) -> String:
         var idx = line.find(marker)
         if idx == -1:
             continue
-        var after = String(line[byte = idx + 18 :])  # 18 == len("docs/src/examples/")
+        var after = String(
+            line[byte = idx + 18 :]
+        )  # 18 == len("docs/src/examples/")
         var quote = after.find('"')
         if quote != -1:
             return String(after[byte=0:quote])

@@ -48,7 +48,20 @@ def _calendar_month_labels() -> List[String]:
     """The 12 month labels; a plain function for the reason in
     `_calendar_day_labels()`.
     """
-    return ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    return [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+    ]
 
 
 struct _Date(Copyable, Movable):
@@ -101,7 +114,9 @@ def _day_of_week(days_since_epoch: Int) -> Int:
 
 def _render_calendar_heatmap[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.CALENDAR_HEATMAP` plot: `encode_calendar()`'s `dates`/
     `values` in a GitHub-contributions-style grid, one column per week
     and one row per day of the week (`_calendar_day_labels()`, Sunday at
@@ -158,7 +173,10 @@ def _render_calendar_heatmap[
     # the legend's labels below.
     var measure_cache = FontCache()
     var dynamic_left_margin = (
-        Int(_max_label_width(day_labels, sc.font_size, cache=measure_cache)) + sc.tick_length + sc.label_gap + sc.margin_buffer
+        Int(_max_label_width(day_labels, sc.font_size, cache=measure_cache))
+        + sc.tick_length
+        + sc.label_gap
+        + sc.margin_buffer
     )
 
     var value_mm = _min_max(plot._calendar.values)
@@ -169,7 +187,12 @@ def _render_calendar_heatmap[
         var legend_labels = List[String]()
         legend_labels.append(_format_fixed(color_scale.domain_max, 1))
         legend_labels.append(_format_fixed(color_scale.domain_min, 1))
-        legend_reserve = _dynamic_legend_width(legend_labels, sc.continuous_legend_bar_width, sc, cache=measure_cache)
+        legend_reserve = _dynamic_legend_width(
+            legend_labels,
+            sc.continuous_legend_bar_width,
+            sc,
+            cache=measure_cache,
+        )
 
     var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
     var plot_y0 = oy0 + sc.margin_top + Int(sc.font_size) + sc.label_gap
@@ -183,7 +206,9 @@ def _render_calendar_heatmap[
 
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for row in range(7):
-        var cy = _round_to_int(Float64(plot_y0) + (Float64(row) + 0.5) * cell_height)
+        var cy = _round_to_int(
+            Float64(plot_y0) + (Float64(row) + 0.5) * cell_height
+        )
         text_requests.append(
             _TextRequest(
                 plot_x0 - sc.tick_length - sc.label_gap,
@@ -202,8 +227,13 @@ def _render_calendar_heatmap[
         var cx = _round_to_int(Float64(plot_x0) + Float64(col) * cell_width)
         text_requests.append(
             _TextRequest(
-                cx, plot_y0 - sc.label_gap, month_labels[month - 1], theme.text_color, sc.font_size,
-                TextAlign.LEFT, theme.font_family,
+                cx,
+                plot_y0 - sc.label_gap,
+                month_labels[month - 1],
+                theme.text_color,
+                sc.font_size,
+                TextAlign.LEFT,
+                theme.font_family,
             )
         )
 
@@ -212,12 +242,27 @@ def _render_calendar_heatmap[
         var col = (days + jan1_dow) // 7
         var row = _day_of_week(days + jan1_days)
         var cell_x = _round_to_int(Float64(plot_x0) + Float64(col) * cell_width)
-        var cell_y = _round_to_int(Float64(plot_y0) + Float64(row) * cell_height)
+        var cell_y = _round_to_int(
+            Float64(plot_y0) + Float64(row) * cell_height
+        )
         var color = color_scale.color_at(plot._calendar.values[i])
-        target.fill_rect(cell_x, cell_y, _round_to_int(cell_width), _round_to_int(cell_height), color)
+        target.fill_rect(
+            cell_x,
+            cell_y,
+            _round_to_int(cell_width),
+            _round_to_int(cell_height),
+            color,
+        )
 
     if theme.show_legend:
-        _ = _draw_continuous_color_legend(target, text_requests, color_scale, plot_x1 + sc.margin_right, plot_y0, theme)
+        _ = _draw_continuous_color_legend(
+            target,
+            text_requests,
+            color_scale,
+            plot_x1 + sc.margin_right,
+            plot_y0,
+            theme,
+        )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
@@ -279,8 +324,14 @@ def calendar_heatmap(
             save(c, "docs/src/examples/out_calendar_heatmap.svg")
         ```
     """
-    var plot = Plot().mark_calendar_heatmap().encode_calendar(dates=dates, values=values)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_calendar_heatmap()
+        .encode_calendar(dates=dates, values=values)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def calendar_heatmap[
@@ -301,6 +352,13 @@ def calendar_heatmap[
     overload above.
     """
     return calendar_heatmap(
-        dates, _materialize_scalar_list(values), theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        dates,
+        _materialize_scalar_list(values),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

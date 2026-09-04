@@ -38,7 +38,6 @@ struct _HeatmapData(Copyable, Movable):
         self.value = List[Float64]()
 
 
-
 struct _GridFrame(Movable):
     """`_draw_grid_axis_frame`'s finished layout: the two-categorical-axis
     analog of `_CategoricalFrame`/`_HorizontalCategoricalFrame` (both
@@ -80,7 +79,9 @@ struct _GridFrame(Movable):
         """This frame as the `_RenderResult` `_render_heatmap` returns; mirrors
         `_CategoricalFrame.result`.
         """
-        return _RenderResult(self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1)
+        return _RenderResult(
+            self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1
+        )
 
 
 def _draw_grid_axis_frame[
@@ -111,7 +112,10 @@ def _draw_grid_axis_frame[
     var sc = _Scaled(theme)
 
     var dynamic_left_margin = (
-        Int(_max_label_width(y_categories, sc.font_size, cache=cache)) + sc.tick_length + sc.label_gap + sc.margin_buffer
+        Int(_max_label_width(y_categories, sc.font_size, cache=cache))
+        + sc.tick_length
+        + sc.label_gap
+        + sc.margin_buffer
     )
 
     var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
@@ -119,18 +123,33 @@ def _draw_grid_axis_frame[
     var plot_x1 = ox1 - sc.margin_right
     var plot_y1 = oy1 - sc.margin_bottom
 
-    var x_scale = OrdinalScale(x_categories.copy(), Float64(plot_x0), Float64(plot_x1), padding=0.0)
-    var y_scale = OrdinalScale(y_categories.copy(), Float64(plot_y0), Float64(plot_y1), padding=0.0)
+    var x_scale = OrdinalScale(
+        x_categories.copy(), Float64(plot_x0), Float64(plot_x1), padding=0.0
+    )
+    var y_scale = OrdinalScale(
+        y_categories.copy(), Float64(plot_y0), Float64(plot_y1), padding=0.0
+    )
 
-    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale)
-    target.draw_line_aa(plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale)
+    target.draw_line_aa(
+        plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale
+    )
+    target.draw_line_aa(
+        plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale
+    )
 
     var text_requests = List[_TextRequest]()
 
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for i in range(len(y_categories)):
         var center_py = _round_to_int(y_scale.center(i))
-        target.draw_line_aa(plot_x0 - sc.tick_length, center_py, plot_x0, center_py, theme.axis_color, width=sc.scale)
+        target.draw_line_aa(
+            plot_x0 - sc.tick_length,
+            center_py,
+            plot_x0,
+            center_py,
+            theme.axis_color,
+            width=sc.scale,
+        )
         text_requests.append(
             _TextRequest(
                 plot_x0 - sc.tick_length - sc.label_gap,
@@ -145,7 +164,14 @@ def _draw_grid_axis_frame[
 
     for i in range(len(x_categories)):
         var center_px = _round_to_int(x_scale.center(i))
-        target.draw_line_aa(center_px, plot_y1, center_px, plot_y1 + sc.tick_length, theme.axis_color, width=sc.scale)
+        target.draw_line_aa(
+            center_px,
+            plot_y1,
+            center_px,
+            plot_y1 + sc.tick_length,
+            theme.axis_color,
+            width=sc.scale,
+        )
         text_requests.append(
             _TextRequest(
                 center_px,
@@ -158,12 +184,23 @@ def _draw_grid_axis_frame[
             )
         )
 
-    return _GridFrame(x_scale^, y_scale^, sc^, text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+    return _GridFrame(
+        x_scale^,
+        y_scale^,
+        sc^,
+        text_requests^,
+        plot_x0,
+        plot_y0,
+        plot_x1,
+        plot_y1,
+    )
 
 
 def _render_heatmap[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.HEATMAP` plot: `_draw_grid_axis_frame`'s
     two-categorical-axis grid, one filled cell per `encode_heatmap()` row,
     colored through `ColorScale.from_theme` over `value`'s [min, max] (the
@@ -177,7 +214,9 @@ def _render_heatmap[
     Draws a continuous color legend (`_draw_continuous_color_legend`)
     when `Theme.show_legend` is on, reserved from the outer `ox1`.
     """
-    if len(plot._heatmap.x) != len(plot._heatmap.y) or len(plot._heatmap.value) != len(plot._heatmap.x):
+    if len(plot._heatmap.x) != len(plot._heatmap.y) or len(
+        plot._heatmap.value
+    ) != len(plot._heatmap.x):
         raise Error(
             "Plot.encode_heatmap(): x, y, and value must all have the same"
             " length (got "
@@ -208,12 +247,22 @@ def _render_heatmap[
         legend_labels.append(_format_fixed(color_scale.domain_max, 1))
         legend_labels.append(_format_fixed(color_scale.domain_min, 1))
         legend_reserve = _dynamic_legend_width(
-            legend_labels, sc.continuous_legend_bar_width, sc, cache=measure_cache
+            legend_labels,
+            sc.continuous_legend_bar_width,
+            sc,
+            cache=measure_cache,
         )
 
     var frame = _draw_grid_axis_frame(
-        target, x_idx.domain, y_idx.domain, theme, ox0, oy0, ox1 - legend_reserve, oy1,
-        cache=measure_cache
+        target,
+        x_idx.domain,
+        y_idx.domain,
+        theme,
+        ox0,
+        oy0,
+        ox1 - legend_reserve,
+        oy1,
+        cache=measure_cache,
     )
 
     var cell_width = _round_to_int(frame.x_scale.bandwidth())
@@ -289,7 +338,9 @@ def heatmap(
         ```
     """
     var plot = Plot().mark_heatmap().encode_heatmap(x=x, y=y, value=value)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def heatmap[
@@ -311,6 +362,14 @@ def heatmap[
     above.
     """
     return heatmap(
-        x, y, _materialize_scalar_list(value), theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        x,
+        y,
+        _materialize_scalar_list(value),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

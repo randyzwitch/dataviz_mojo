@@ -7,9 +7,18 @@ from dataviz.plot import Plot, save
 from dataviz.colors import DODGERBLUE
 from dataviz.theme import Theme
 
+
 def main() raises:
     var days: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
-    var active_users: List[Float64] = [820.0, 910.0, 875.0, 1040.0, 1180.0, 1120.0, 1260.0]
+    var active_users: List[Float64] = [
+        820.0,
+        910.0,
+        875.0,
+        1040.0,
+        1180.0,
+        1120.0,
+        1260.0,
+    ]
 
     var plot = (
         Plot()

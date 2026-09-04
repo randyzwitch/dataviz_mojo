@@ -80,7 +80,9 @@ struct ColorScale(Movable):
         return _color_at_t(self.stops, self._lowest, self._highest, t)
 
     @staticmethod
-    def from_theme(theme: Theme, domain_min: Float64, domain_max: Float64) -> Self:
+    def from_theme(
+        theme: Theme, domain_min: Float64, domain_max: Float64
+    ) -> Self:
         """How every continuous color-encoded mark (`Plot.encode(color=...)`,
         `Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`) builds its `ColorScale`
         from `theme`'s three stops: `low` at `0.0`, `mid` at `0.5`, `high` at

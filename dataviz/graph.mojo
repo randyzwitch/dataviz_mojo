@@ -21,7 +21,9 @@ from dataviz.theme import Theme
 
 def _render_graph[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.GRAPH` plot: `Mark.CHORD`'s edge-list shape
     (`encode_chord()`'s `from`/`to`/`value`) drawn as nodes evenly spaced
     around a circle (starting at 12 o'clock, clockwise) with edges as
@@ -40,7 +42,9 @@ def _render_graph[
     _validate_edge_encoding(plot, "Mark.GRAPH")
 
     var theme = plot._theme
-    var edges = _edge_node_index(plot._edges.from_categories, plot._edges.to_categories)
+    var edges = _edge_node_index(
+        plot._edges.from_categories, plot._edges.to_categories
+    )
     ref nodes = edges.nodes
     var n = len(nodes)
 
@@ -51,7 +55,9 @@ def _render_graph[
     var plot_y1 = oy1 - sc.margin_bottom
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
-    var max_radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    var max_radius = (
+        Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    )
 
     var node_x = List[Float64](capacity=n)
     var node_y = List[Float64](capacity=n)
@@ -69,12 +75,18 @@ def _render_graph[
         var to_idx = edges.to_idx[row]
         if from_idx == to_idx:
             continue
-        var frac = plot._edges.values[row] / max_value if max_value > 0.0 else 0.0
+        var frac = (
+            plot._edges.values[row] / max_value if max_value > 0.0 else 0.0
+        )
         var width = sc.line_width + sc.line_width * 2.0 * frac
         var color = palette[from_idx % len(palette)]
         target.draw_line_aa(
-            _round_to_int(node_x[from_idx]), _round_to_int(node_y[from_idx]),
-            _round_to_int(node_x[to_idx]), _round_to_int(node_y[to_idx]), color, width,
+            _round_to_int(node_x[from_idx]),
+            _round_to_int(node_y[from_idx]),
+            _round_to_int(node_x[to_idx]),
+            _round_to_int(node_y[to_idx]),
+            color,
+            width,
         )
 
     var text_requests = List[_TextRequest]()
@@ -95,8 +107,13 @@ def _render_graph[
             align = TextAlign.RIGHT
         text_requests.append(
             _TextRequest(
-                _round_to_int(label_x), _round_to_int(label_y) + Int(sc.font_size * 0.35), nodes[i],
-                theme.text_color, sc.font_size, align, theme.font_family,
+                _round_to_int(label_x),
+                _round_to_int(label_y) + Int(sc.font_size * 0.35),
+                nodes[i],
+                theme.text_color,
+                sc.font_size,
+                align,
+                theme.font_family,
             )
         )
 
@@ -154,10 +171,18 @@ def graph(
             save(c, "docs/src/examples/out_graph.svg")
         ```
     """
-    var plot = Plot().mark_graph().encode_chord(
-        from_categories=from_categories, to_categories=to_categories, values=values
+    var plot = (
+        Plot()
+        .mark_graph()
+        .encode_chord(
+            from_categories=from_categories,
+            to_categories=to_categories,
+            values=values,
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def graph[
@@ -179,6 +204,14 @@ def graph[
     above.
     """
     return graph(
-        from_categories, to_categories, _materialize_scalar_list(values), theme=theme, width=width,
-        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        from_categories,
+        to_categories,
+        _materialize_scalar_list(values),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

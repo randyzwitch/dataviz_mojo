@@ -108,7 +108,9 @@ struct Category(Copyable, Movable):
     var blurb: String
     var names: List[String]
 
-    def __init__(out self, title: String, blurb: String, var names: List[String]):
+    def __init__(
+        out self, title: String, blurb: String, var names: List[String]
+    ):
         self.title = title
         self.blurb = blurb
         self.names = names^
@@ -118,48 +120,121 @@ def _categories() -> List[Category]:
     # Every example here is a distinct chart type; feature demos (facets,
     # layers, annotations, ...) live in the Cookbook instead.
     var cats = List[Category]()
-    cats.append(Category(
-        "Basic marks", "The core chart types -- one mark, default theme (donut is pie's own ring variant).",
-        ["scatter", "line", "bar", "area", "pie", "single_axis", "effect_scatter"],
-    ))
-    cats.append(Category(
-        "Categorical business charts",
-        "Chart types built around one categorical dimension: rankings, timelines, progress,"
-        " period-over-period comparisons, and process stages.",
-        [
-            "lollipop", "waterfall", "gantt", "span_chart", "population_pyramid", "bullet",
-            "grouped_bar", "stacked_bar", "slope", "funnel", "bump", "streamgraph",
-        ],
-    ))
-    cats.append(Category(
-        "Statistical & financial", "Distributions, binned counts, grid/matrix data, and OHLC price data.",
-        ["box", "histogram", "heatmap", "candlestick", "beeswarm", "violin", "ridgeline"],
-    ))
-    cats.append(Category(
-        "Relationships & flows", "Weighted connections between entities, not a value per category.",
-        ["chord", "arc_diagram", "graph", "sankey"],
-    ))
-    cats.append(Category(
-        "Radial & polar",
-        "Chart types built on a polar (angle + radius) coordinate system instead of a cartesian one.",
-        ["nightingale", "polarbar", "radialbar", "polar", "polar_series", "radar", "gauge"],
-    ))
-    cats.append(Category(
-        "Multivariate",
-        "Several numeric dimensions compared at once on one shared layout, not a single value per category.",
-        ["parallel"],
-    ))
-    cats.append(Category(
-        "Grid & matrix",
-        "Two categorical dimensions laid out as a grid, extending Mark.HEATMAP's own grid-cell idea.",
-        ["calendar_heatmap", "corrplot", "punchcard", "marimekko"],
-    ))
-    cats.append(Category(
-        "Hierarchical data",
-        "A tree, not a value per category -- one flattened id/parent_id/value row per node,"
-        " see Plot.encode_hierarchy().",
-        ["sunburst", "tree", "treemap"],
-    ))
+    cats.append(
+        Category(
+            "Basic marks",
+            (
+                "The core chart types -- one mark, default theme (donut is"
+                " pie's own ring variant)."
+            ),
+            [
+                "scatter",
+                "line",
+                "bar",
+                "area",
+                "pie",
+                "single_axis",
+                "effect_scatter",
+            ],
+        )
+    )
+    cats.append(
+        Category(
+            "Categorical business charts",
+            (
+                "Chart types built around one categorical dimension: rankings,"
+                " timelines, progress, period-over-period comparisons, and"
+                " process stages."
+            ),
+            [
+                "lollipop",
+                "waterfall",
+                "gantt",
+                "span_chart",
+                "population_pyramid",
+                "bullet",
+                "grouped_bar",
+                "stacked_bar",
+                "slope",
+                "funnel",
+                "bump",
+                "streamgraph",
+            ],
+        )
+    )
+    cats.append(
+        Category(
+            "Statistical & financial",
+            (
+                "Distributions, binned counts, grid/matrix data, and OHLC price"
+                " data."
+            ),
+            [
+                "box",
+                "histogram",
+                "heatmap",
+                "candlestick",
+                "beeswarm",
+                "violin",
+                "ridgeline",
+            ],
+        )
+    )
+    cats.append(
+        Category(
+            "Relationships & flows",
+            "Weighted connections between entities, not a value per category.",
+            ["chord", "arc_diagram", "graph", "sankey"],
+        )
+    )
+    cats.append(
+        Category(
+            "Radial & polar",
+            (
+                "Chart types built on a polar (angle + radius) coordinate"
+                " system instead of a cartesian one."
+            ),
+            [
+                "nightingale",
+                "polarbar",
+                "radialbar",
+                "polar",
+                "polar_series",
+                "radar",
+                "gauge",
+            ],
+        )
+    )
+    cats.append(
+        Category(
+            "Multivariate",
+            (
+                "Several numeric dimensions compared at once on one shared"
+                " layout, not a single value per category."
+            ),
+            ["parallel"],
+        )
+    )
+    cats.append(
+        Category(
+            "Grid & matrix",
+            (
+                "Two categorical dimensions laid out as a grid, extending"
+                " Mark.HEATMAP's own grid-cell idea."
+            ),
+            ["calendar_heatmap", "corrplot", "punchcard", "marimekko"],
+        )
+    )
+    cats.append(
+        Category(
+            "Hierarchical data",
+            (
+                "A tree, not a value per category -- one flattened"
+                " id/parent_id/value row per node, see Plot.encode_hierarchy()."
+            ),
+            ["sunburst", "tree", "treemap"],
+        )
+    )
     return cats^
 
 
@@ -173,13 +248,18 @@ def _cookbook() -> Category:
     """
     return Category(
         "Cookbook",
-        "One-off techniques for customizing a plot you already have -- not chart types of their own,"
-        " so each is filed by what it does rather than what it looks like.",
+        (
+            "One-off techniques for customizing a plot you already have -- not"
+            " chart types of their own, so each is filed by what it does rather"
+            " than what it looks like."
+        ),
         [],
     )
 
 
-def _build_page(name: String, title: String, page: ExamplePage, image_prefix: String = "") raises -> String:
+def _build_page(
+    name: String, title: String, page: ExamplePage, image_prefix: String = ""
+) raises -> String:
     var hook_overrides = _hook_overrides()
     var hook: String
     if name in hook_overrides:
@@ -187,8 +267,12 @@ def _build_page(name: String, title: String, page: ExamplePage, image_prefix: St
     else:
         hook = _quickplot_hook(page.fn_name, page.file, page.is_method)
 
-    var args_lines = _extract_args_lines(page.fn_name, page.file, page.is_method)
-    var all_blocks = _extract_example_blocks(page.fn_name, page.file, page.is_method)
+    var args_lines = _extract_args_lines(
+        page.fn_name, page.file, page.is_method
+    )
+    var all_blocks = _extract_example_blocks(
+        page.fn_name, page.file, page.is_method
+    )
     var blocks = List[_ExampleBlock]()
     if page.block:
         for b in all_blocks:
@@ -196,8 +280,13 @@ def _build_page(name: String, title: String, page: ExamplePage, image_prefix: St
                 blocks.append(b.copy())
         if len(blocks) == 0:
             raise Error(
-                "gen_example_docs: page '" + name + "' wants Example (" + page.block + "): but "
-                + page.fn_name + " has no block with that heading"
+                "gen_example_docs: page '"
+                + name
+                + "' wants Example ("
+                + page.block
+                + "): but "
+                + page.fn_name
+                + " has no block with that heading"
             )
     else:
         blocks = all_blocks^
@@ -265,7 +354,10 @@ def _title_override(content: String) -> String:
     leading `#` comment before the module docstring is valid Mojo.
     """
     var first_line_end = content.find("\n")
-    var first_line = String(content[byte=0:first_line_end]) if first_line_end != -1 else content
+    var first_line = (
+        String(content[byte=0:first_line_end]) if first_line_end
+        != -1 else content
+    )
     var prefix = "# title: "
     if first_line.startswith(prefix):
         return String(String(first_line[byte = prefix.byte_length() :]).strip())
@@ -285,11 +377,17 @@ def _build_contributed_page(title: String, content: String) raises -> String:
     """
     var doc_start = content.find('"""')
     if doc_start == -1:
-        raise Error("gen_example_docs: cookbook recipe has no leading docstring (see cookbook_recipes/README.md)")
+        raise Error(
+            "gen_example_docs: cookbook recipe has no leading docstring (see"
+            " cookbook_recipes/README.md)"
+        )
     var doc_content_start = doc_start + 3
     var doc_end = content.find('"""', doc_content_start)
     if doc_end == -1:
-        raise Error("gen_example_docs: cookbook recipe's leading docstring is never closed")
+        raise Error(
+            "gen_example_docs: cookbook recipe's leading docstring is never"
+            " closed"
+        )
     var hook = _first_sentence(_extract_docstring(content))
     var code = String(content[byte = doc_end + 3 :]).strip()
 
@@ -338,15 +436,21 @@ def main() raises:
             categorized.append(n)
     for n in cookbook.names:
         if n in categorized:
-            raise Error("Example placed in both a category and the cookbook: " + n)
+            raise Error(
+                "Example placed in both a category and the cookbook: " + n
+            )
         categorized.append(n)
 
     for n in all_names:
         if n not in categorized:
-            raise Error("Example not placed in any category or the cookbook: " + n)
+            raise Error(
+                "Example not placed in any category or the cookbook: " + n
+            )
     for n in categorized:
         if n not in all_names:
-            raise Error("Category/cookbook references a non-existent example: " + n)
+            raise Error(
+                "Category/cookbook references a non-existent example: " + n
+            )
     for n in all_names:
         if n not in titles:
             raise Error("Example has no title: " + n)
@@ -358,7 +462,9 @@ def main() raises:
             # hardcoded in each Example's save() call), so the image reference
             # needs a relative prefix. Two levels because a cookbook page's URL is
             # /cookbook/<name>/, two segments below the site root.
-            var page_md = _build_page(p.name, titles[p.name], p, image_prefix="../../examples/")
+            var page_md = _build_page(
+                p.name, titles[p.name], p, image_prefix="../../examples/"
+            )
             _write_file(_COOKBOOK_OUT_DIR + "/" + p.name + ".md", page_md)
         else:
             var page_md = _build_page(p.name, titles[p.name], p)
@@ -384,8 +490,11 @@ def main() raises:
         var stem = String(e[byte = 0 : e.byte_length() - 5])
         if stem in all_names:
             raise Error(
-                "gen_example_docs: cookbook_recipes/" + e + " collides with an existing Examples/Cookbook"
-                " page name '" + stem + "' -- rename the file"
+                "gen_example_docs: cookbook_recipes/"
+                + e
+                + " collides with an existing Examples/Cookbook page name '"
+                + stem
+                + "' -- rename the file"
             )
         var content = _read_file(_RECIPES_DIR + "/" + e)
         var override = _title_override(content)
@@ -457,9 +566,17 @@ def main() raises:
     for n in recipe_names:
         cookbook_idx.append("- [" + recipe_titles[n] + "](" + n + "/)")
     cookbook_idx.append("")
-    _write_file(_COOKBOOK_OUT_DIR + "/_index.md", String("\n").join(cookbook_idx))
+    _write_file(
+        _COOKBOOK_OUT_DIR + "/_index.md", String("\n").join(cookbook_idx)
+    )
 
     print(
-        "Wrote", len(all_names), "example pages,", len(recipe_names),
-        "contributed cookbook recipes, + _index.md to", _OUT_DIR, "and", _COOKBOOK_OUT_DIR,
+        "Wrote",
+        len(all_names),
+        "example pages,",
+        len(recipe_names),
+        "contributed cookbook recipes, + _index.md to",
+        _OUT_DIR,
+        "and",
+        _COOKBOOK_OUT_DIR,
     )

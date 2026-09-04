@@ -27,7 +27,11 @@ def _bin_histogram(data: List[Float64], bins: Int) raises -> _HistogramBins:
     if len(data) == 0:
         raise Error("Plot.encode_histogram(): data must not be empty")
     if bins <= 0:
-        raise Error("Plot.encode_histogram(): bins must be positive (got " + String(bins) + ")")
+        raise Error(
+            "Plot.encode_histogram(): bins must be positive (got "
+            + String(bins)
+            + ")"
+        )
 
     var mm = _min_max(data)
     if mm.max == mm.min:
@@ -113,7 +117,9 @@ def histogram(
         ```
     """
     var plot = Plot().mark_bar().encode_histogram(data, bins=bins)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def histogram[
@@ -134,6 +140,13 @@ def histogram[
     above.
     """
     return histogram(
-        _materialize_scalar_list(data), bins=bins, theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        _materialize_scalar_list(data),
+        bins=bins,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

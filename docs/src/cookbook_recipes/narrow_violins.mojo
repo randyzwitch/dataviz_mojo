@@ -6,6 +6,7 @@ side by side.
 from dataviz import violin
 from dataviz.plot import save
 
+
 def main() raises:
     var teams: List[String] = ["A", "B", "C", "D", "E", "F", "G", "H"]
     var scores: List[List[Float64]] = [
@@ -20,6 +21,10 @@ def main() raises:
     ]
 
     var plot = violin(
-        teams, scores, width_fraction=0.2, title="Test Scores by Team", subtitle="Eight categories, narrowed to keep them from touching"
+        teams,
+        scores,
+        width_fraction=0.2,
+        title="Test Scores by Team",
+        subtitle="Eight categories, narrowed to keep them from touching",
     )
     save(plot, "docs/src/examples/out_narrow_violins.svg")

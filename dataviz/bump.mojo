@@ -32,7 +32,9 @@ def _bump_rank_pixel(rank: Int, n_series: Int, py0: Int, py1: Int) -> Int:
     """
     if n_series <= 1:
         return (py0 + py1) // 2
-    return py0 + _round_to_int(Float64(rank - 1) / Float64(n_series - 1) * Float64(py1 - py0))
+    return py0 + _round_to_int(
+        Float64(rank - 1) / Float64(n_series - 1) * Float64(py1 - py0)
+    )
 
 
 struct _BumpFrame(Movable):
@@ -71,7 +73,9 @@ struct _BumpFrame(Movable):
         self.n_series = n_series
 
     def result(self) -> _RenderResult:
-        return _RenderResult(self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1)
+        return _RenderResult(
+            self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1
+        )
 
 
 def _draw_bump_axis_frame[
@@ -102,7 +106,10 @@ def _draw_bump_axis_frame[
     for r in range(1, n_series + 1):
         rank_labels.append(String(r))
     var dynamic_left_margin = (
-        Int(_max_label_width(rank_labels, sc.font_size, cache=cache)) + sc.tick_length + sc.label_gap + sc.margin_buffer
+        Int(_max_label_width(rank_labels, sc.font_size, cache=cache))
+        + sc.tick_length
+        + sc.label_gap
+        + sc.margin_buffer
     )
 
     var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
@@ -110,22 +117,37 @@ def _draw_bump_axis_frame[
     var plot_x1 = ox1 - sc.margin_right
     var plot_y1 = oy1 - sc.margin_bottom
 
-    var x_scale = OrdinalScale(categories.copy(), Float64(plot_x0), Float64(plot_x1))
+    var x_scale = OrdinalScale(
+        categories.copy(), Float64(plot_x0), Float64(plot_x1)
+    )
 
     if theme.show_gridlines:
         for r in range(1, n_series + 1):
             var py = _bump_rank_pixel(r, n_series, plot_y0, plot_y1)
-            target.draw_line_aa(plot_x0, py, plot_x1, py, theme.gridline_color, width=sc.scale)
+            target.draw_line_aa(
+                plot_x0, py, plot_x1, py, theme.gridline_color, width=sc.scale
+            )
 
-    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale)
-    target.draw_line_aa(plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale)
+    target.draw_line_aa(
+        plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale
+    )
+    target.draw_line_aa(
+        plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale
+    )
 
     var text_requests = List[_TextRequest]()
 
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for r in range(1, n_series + 1):
         var py = _bump_rank_pixel(r, n_series, plot_y0, plot_y1)
-        target.draw_line_aa(plot_x0 - sc.tick_length, py, plot_x0, py, theme.axis_color, width=sc.scale)
+        target.draw_line_aa(
+            plot_x0 - sc.tick_length,
+            py,
+            plot_x0,
+            py,
+            theme.axis_color,
+            width=sc.scale,
+        )
         text_requests.append(
             _TextRequest(
                 plot_x0 - sc.tick_length - sc.label_gap,
@@ -140,7 +162,14 @@ def _draw_bump_axis_frame[
 
     for i in range(len(categories)):
         var center_px = _round_to_int(x_scale.center(i))
-        target.draw_line_aa(center_px, plot_y1, center_px, plot_y1 + sc.tick_length, theme.axis_color, width=sc.scale)
+        target.draw_line_aa(
+            center_px,
+            plot_y1,
+            center_px,
+            plot_y1 + sc.tick_length,
+            theme.axis_color,
+            width=sc.scale,
+        )
         text_requests.append(
             _TextRequest(
                 center_px,
@@ -153,12 +182,23 @@ def _draw_bump_axis_frame[
             )
         )
 
-    return _BumpFrame(x_scale^, sc^, text_requests^, plot_x0, plot_y0, plot_x1, plot_y1, n_series)
+    return _BumpFrame(
+        x_scale^,
+        sc^,
+        text_requests^,
+        plot_x0,
+        plot_y0,
+        plot_x1,
+        plot_y1,
+        n_series,
+    )
 
 
 def _render_bump[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.BUMP` plot: `encode_grouped_bar()`'s data (categories,
     one name and one value per series), plotting each series' rank among
     every series at each category (`_descending_value_order`, one sort
@@ -184,17 +224,23 @@ def _render_bump[
     # here, then the rank-axis labels inside _draw_bump_axis_frame.
     var measure_cache = FontCache()
 
-    var legend_reserve = (
-        _dynamic_legend_width(
-            plot._grouped_bar.series_names, sc.legend_swatch_size, sc, cache=measure_cache
-        )
-        if show_legend
-        else 0
-    )
+    var legend_reserve = _dynamic_legend_width(
+        plot._grouped_bar.series_names,
+        sc.legend_swatch_size,
+        sc,
+        cache=measure_cache,
+    ) if show_legend else 0
 
     var frame = _draw_bump_axis_frame(
-        target, plot.x_categories, n_series, theme, ox0, oy0, ox1 - legend_reserve, oy1,
-        cache=measure_cache
+        target,
+        plot.x_categories,
+        n_series,
+        theme,
+        ox0,
+        oy0,
+        ox1 - legend_reserve,
+        oy1,
+        cache=measure_cache,
     )
 
     # rank[j][i]: series j's rank (1 = highest value) at category i.
@@ -220,14 +266,25 @@ def _render_bump[
         var py = List[Float64](capacity=n_categories)
         for i in range(n_categories):
             px.append(frame.x_scale.center(i))
-            py.append(Float64(_bump_rank_pixel(rank[j][i], n_series, frame.py0, frame.py1)))
+            py.append(
+                Float64(
+                    _bump_rank_pixel(rank[j][i], n_series, frame.py0, frame.py1)
+                )
+            )
         var path = _build_line_path(px, py, theme.line_smoothing)
-        target.stroke_path_aa(path, palette[j % len(palette)], width=sc.line_width)
+        target.stroke_path_aa(
+            path, palette[j % len(palette)], width=sc.line_width
+        )
 
     if show_legend:
         _draw_legend(
-            target, frame.text_requests, plot._grouped_bar.series_names, palette,
-            frame.px1 + sc.margin_right, frame.py0, theme,
+            target,
+            frame.text_requests,
+            plot._grouped_bar.series_names,
+            palette,
+            frame.px1 + sc.margin_right,
+            frame.py0,
+            theme,
         )
 
     return frame.result()
@@ -289,10 +346,16 @@ def bump(
             save(c, "docs/src/examples/out_bump.svg")
         ```
     """
-    var plot = Plot().mark_bump().encode_grouped_bar(
-        categories=categories, series_names=series_names, values=values
+    var plot = (
+        Plot()
+        .mark_bump()
+        .encode_grouped_bar(
+            categories=categories, series_names=series_names, values=values
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, "Rank", subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, "Rank", subtitle=subtitle
+    )
 
 
 def bump[
@@ -313,6 +376,13 @@ def bump[
     above.
     """
     return bump(
-        categories, series_names, _materialize_nested_scalar_list(values), theme=theme, width=width,
-        height=height, title=title, subtitle=subtitle, x_title=x_title,
+        categories,
+        series_names,
+        _materialize_nested_scalar_list(values),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
     )

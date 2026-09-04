@@ -6,6 +6,7 @@ from dataviz.plot import Plot, save_facets
 from dataviz.colors import CORNFLOWERBLUE, SEAGREEN
 from dataviz.theme import Theme
 
+
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
     var small: List[Float64] = [2.0, 3.0, 2.5, 3.5, 3.0]
@@ -29,4 +30,9 @@ def main() raises:
     )
 
     var plots: List[Plot] = [plot_small^, plot_big^]
-    save_facets(plots, 2, "docs/src/examples/out_shared_facet_scale.svg", shared_y_scale=True)
+    save_facets(
+        plots,
+        2,
+        "docs/src/examples/out_shared_facet_scale.svg",
+        shared_y_scale=True,
+    )

@@ -48,7 +48,10 @@ struct _EdgeNodeIndex(Movable):
     var to_idx: List[Int]
 
     def __init__(
-        out self, var nodes: List[String], var from_idx: List[Int], var to_idx: List[Int]
+        out self,
+        var nodes: List[String],
+        var from_idx: List[Int],
+        var to_idx: List[Int],
     ):
         self.nodes = nodes^
         self.from_idx = from_idx^
@@ -64,7 +67,9 @@ def _edge_node_index(
     order is deterministic) and the resulting indices split back apart at
     `len(from_categories)`.
     """
-    var combined = List[String](capacity=len(from_categories) + len(to_categories))
+    var combined = List[String](
+        capacity=len(from_categories) + len(to_categories)
+    )
     for v in from_categories:
         combined.append(v)
     for v in to_categories:
@@ -90,9 +95,9 @@ def _validate_edge_encoding(plot: Plot, mark_name: String) raises:
     empty-data check (`_require_non_empty`, #206), shared by `Mark.CHORD`/
     `ARC_DIAGRAM`/`GRAPH`/`SANKEY`.
     """
-    if len(plot._edges.from_categories) != len(plot._edges.to_categories) or len(plot._edges.values) != len(
-        plot._edges.from_categories
-    ):
+    if len(plot._edges.from_categories) != len(
+        plot._edges.to_categories
+    ) or len(plot._edges.values) != len(plot._edges.from_categories):
         raise Error(
             "Plot.encode_chord(): from_categories, to_categories, and"
             " values must all have the same length (got "

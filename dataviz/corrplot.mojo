@@ -43,7 +43,9 @@ struct _CorrplotData(Copyable, Movable):
 
 def _render_corrplot[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.CORRPLOT` plot: `encode_corrplot()`'s square
     correlation `matrix` over `variables`, one bubble per surviving cell
     on `Mark.HEATMAP`'s `_draw_grid_axis_frame` with the same variable
@@ -87,7 +89,9 @@ def _render_corrplot[
         for v in row:
             if v < -1.0 or v > 1.0:
                 raise Error(
-                    "Plot: Mark.CORRPLOT values must be in [-1.0, 1.0] (got " + String(v) + ")"
+                    "Plot: Mark.CORRPLOT values must be in [-1.0, 1.0] (got "
+                    + String(v)
+                    + ")"
                 )
 
     var sc = _Scaled(theme)
@@ -103,17 +107,31 @@ def _render_corrplot[
         legend_labels.append(_format_fixed(color_scale.domain_max, 1))
         legend_labels.append(_format_fixed(color_scale.domain_min, 1))
         legend_reserve = _dynamic_legend_width(
-            legend_labels, sc.continuous_legend_bar_width, sc, cache=measure_cache
+            legend_labels,
+            sc.continuous_legend_bar_width,
+            sc,
+            cache=measure_cache,
         )
 
     var frame = _draw_grid_axis_frame(
-        target, plot._corrplot.variables, plot._corrplot.variables, theme, ox0, oy0,
-        ox1 - legend_reserve, oy1, cache=measure_cache
+        target,
+        plot._corrplot.variables,
+        plot._corrplot.variables,
+        theme,
+        ox0,
+        oy0,
+        ox1 - legend_reserve,
+        oy1,
+        cache=measure_cache,
     )
 
     var cell_width = frame.x_scale.bandwidth()
     var cell_height = frame.y_scale.bandwidth()
-    var max_radius = min(cell_width, cell_height) / 2.0 * plot._mark_style.corrplot_bubble_fraction
+    var max_radius = (
+        min(cell_width, cell_height)
+        / 2.0
+        * plot._mark_style.corrplot_bubble_fraction
+    )
     var n = len(plot._corrplot.variables)
 
     for row in range(n):
@@ -132,8 +150,13 @@ def _render_corrplot[
             if plot._corrplot.labels:
                 frame.text_requests.append(
                     _TextRequest(
-                        cx, cy + Int(sc.font_size * 0.35), _format_fixed(value, 2), theme.text_color,
-                        sc.font_size, TextAlign.CENTER, theme.font_family,
+                        cx,
+                        cy + Int(sc.font_size * 0.35),
+                        _format_fixed(value, 2),
+                        theme.text_color,
+                        sc.font_size,
+                        TextAlign.CENTER,
+                        theme.font_family,
                     )
                 )
 
@@ -216,10 +239,19 @@ def corrplot(
             save(c, "docs/src/examples/out_corrplot.svg")
         ```
     """
-    var plot = Plot().mark_corrplot(layout=layout, diag=diag, labels=labels, bubble_fraction=bubble_fraction).encode_corrplot(
-        variables=variables, matrix=matrix
+    var plot = (
+        Plot()
+        .mark_corrplot(
+            layout=layout,
+            diag=diag,
+            labels=labels,
+            bubble_fraction=bubble_fraction,
+        )
+        .encode_corrplot(variables=variables, matrix=matrix)
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def corrplot[
@@ -245,7 +277,17 @@ def corrplot[
     above.
     """
     return corrplot(
-        variables, _materialize_nested_scalar_list(matrix), layout=layout, diag=diag, labels=labels,
-        bubble_fraction=bubble_fraction, theme=theme, width=width, height=height, title=title, subtitle=subtitle, x_title=x_title,
+        variables,
+        _materialize_nested_scalar_list(matrix),
+        layout=layout,
+        diag=diag,
+        labels=labels,
+        bubble_fraction=bubble_fraction,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
         y_title=y_title,
     )

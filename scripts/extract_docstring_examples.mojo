@@ -23,7 +23,9 @@ def _slug(heading: String) -> String:
     "diverging_bars_color_by_sign".
     """
     var out = String("")
-    var prev_was_sep = True  # leading separators are dropped, same as trailing ones below
+    var prev_was_sep = (
+        True  # leading separators are dropped, same as trailing ones below
+    )
     for ch in heading.lower():
         if (ch >= "a" and ch <= "z") or (ch >= "0" and ch <= "9"):
             out += ch

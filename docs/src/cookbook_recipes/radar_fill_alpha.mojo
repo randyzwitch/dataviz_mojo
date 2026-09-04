@@ -7,8 +7,15 @@ from dataviz import radar
 from dataviz.plot import save
 from dataviz.theme import Theme
 
+
 def main() raises:
-    var indicators: List[String] = ["Speed", "Power", "Defense", "Stamina", "Agility"]
+    var indicators: List[String] = [
+        "Speed",
+        "Power",
+        "Defense",
+        "Stamina",
+        "Agility",
+    ]
     var max_values: List[Float64] = [100.0, 100.0, 100.0, 100.0, 100.0]
     var series_names: List[String] = ["Team A", "Team B", "Team C"]
     var series_values: List[List[Float64]] = [
@@ -24,6 +31,8 @@ def main() raises:
         series_values,
         theme=Theme(radar_fill_alpha=45),
         title="Player Attributes",
-        subtitle="Three overlapping series, each still visible through the others",
+        subtitle=(
+            "Three overlapping series, each still visible through the others"
+        ),
     )
     save(plot, "docs/src/examples/out_radar_fill_alpha.svg")

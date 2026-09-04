@@ -59,7 +59,9 @@ def effect_scatter(
         ```
     """
     var plot = Plot().mark_effect_scatter().encode(x=x, y=y)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def effect_scatter[
@@ -81,6 +83,14 @@ def effect_scatter[
     overload above.
     """
     return effect_scatter(
-        _materialize_scalar_list(x), _materialize_scalar_list(y), tooltips=tooltips, theme=theme, width=width,
-        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        _materialize_scalar_list(x),
+        _materialize_scalar_list(y),
+        tooltips=tooltips,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

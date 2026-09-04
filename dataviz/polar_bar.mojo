@@ -22,7 +22,9 @@ from dataviz.theme import Theme
 
 def _render_polar_bar[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.POLAR_BAR` plot: bars radiating outward from the
     center of a circle (ECharts.jl's `polarbar`). One bar per category
     (`encode_categorical`'s `x`) in an equal-width angular slot
@@ -45,7 +47,9 @@ def _render_polar_bar[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = _dynamic_legend_width(plot.x_categories, sc.legend_swatch_size, sc) if show_legend else 0
+    var legend_reserve = _dynamic_legend_width(
+        plot.x_categories, sc.legend_swatch_size, sc
+    ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
@@ -53,7 +57,9 @@ def _render_polar_bar[
     var plot_y1 = oy1 - sc.margin_bottom
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
-    var max_radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    var max_radius = (
+        Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    )
 
     var palette = default_categorical_palette()
     var n = len(plot.x_categories)
@@ -70,7 +76,13 @@ def _render_polar_bar[
 
     if show_legend:
         _draw_legend(
-            target, text_requests, plot.x_categories, palette, plot_x1 + sc.margin_right, plot_y0, theme
+            target,
+            text_requests,
+            plot.x_categories,
+            palette,
+            plot_x1 + sc.margin_right,
+            plot_y0,
+            theme,
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
@@ -132,8 +144,14 @@ def polarbar(
             save(c, "docs/src/examples/out_polarbar.svg")
         ```
     """
-    var plot = Plot().mark_polar_bar(padding=padding).encode_categorical(x=categories, y=values)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_polar_bar(padding=padding)
+        .encode_categorical(x=categories, y=values)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def polarbar[
@@ -155,6 +173,14 @@ def polarbar[
     above.
     """
     return polarbar(
-        categories, _materialize_scalar_list(values), padding=padding, theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        categories,
+        _materialize_scalar_list(values),
+        padding=padding,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

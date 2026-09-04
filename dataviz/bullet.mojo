@@ -33,10 +33,11 @@ struct _BulletData(Copyable, Movable):
         self.ranges = List[List[Float64]]()
 
 
-
 def _render_bullet[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.BULLET` plot (Stephen Few's bullet chart) on
     `_draw_categorical_axis_frame` with a zero-baseline y-domain
     (`_zero_baseline_y_extent`) spanning `0.0`, each category's top range
@@ -92,12 +93,16 @@ def _render_bullet[
     var domain_data = List[Float64]()
     for i in range(len(plot.x_categories)):
         domain_data.append(0.0)
-        domain_data.append(plot._bullet.ranges[i][len(plot._bullet.ranges[i]) - 1])
+        domain_data.append(
+            plot._bullet.ranges[i][len(plot._bullet.ranges[i]) - 1]
+        )
         domain_data.append(plot._bullet.measure[i])
         domain_data.append(plot._bullet.target[i])
     var y_scale = _zero_baseline_y_extent(domain_data)
 
-    var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
+    var frame = _draw_categorical_axis_frame(
+        target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1
+    )
 
     var range_color_scale = ColorScale(0.0, 1.0)
     range_color_scale.add_stop(0.0, theme.bullet_range_color_light)
@@ -107,8 +112,12 @@ def _render_bullet[
     # outside the per-category loop.
     var bandwidth = frame.x_scale.bandwidth()
     var band_width = _round_to_int(bandwidth)
-    var measure_width = _round_to_int(bandwidth * plot._mark_style.bullet_measure_width_fraction)
-    var measure_inset = bandwidth * plot._mark_style.bullet_measure_width_fraction / 2.0
+    var measure_width = _round_to_int(
+        bandwidth * plot._mark_style.bullet_measure_width_fraction
+    )
+    var measure_inset = (
+        bandwidth * plot._mark_style.bullet_measure_width_fraction / 2.0
+    )
     var baseline_py = _axis_pixel(frame.y_scale, 0.0)
 
     for i in range(len(plot.x_categories)):
@@ -117,22 +126,41 @@ def _render_bullet[
 
         var prev_threshold = 0.0
         for j in range(band_count):
-            var t = Float64(j) / Float64(band_count - 1) if band_count > 1 else 0.0
+            var t = (
+                Float64(j) / Float64(band_count - 1) if band_count > 1 else 0.0
+            )
             var band_color = range_color_scale.color_at(t)
             var top_py = _axis_pixel(frame.y_scale, plot._bullet.ranges[i][j])
             var bottom_py = _axis_pixel(frame.y_scale, prev_threshold)
             var band_rect = _pull_off_axis_line(top_py, bottom_py, frame.py1)
-            target.fill_rect(band_x, band_rect.y, band_width, band_rect.height, band_color)
+            target.fill_rect(
+                band_x, band_rect.y, band_width, band_rect.height, band_color
+            )
             prev_threshold = plot._bullet.ranges[i][j]
 
         var measure_x = _round_to_int(frame.x_scale.center(i) - measure_inset)
         var measure_py = _axis_pixel(frame.y_scale, plot._bullet.measure[i])
-        var measure_rect = _pull_off_axis_line(baseline_py, measure_py, frame.py1)
-        target.fill_rect(measure_x, measure_rect.y, measure_width, measure_rect.height, theme.mark_color)
+        var measure_rect = _pull_off_axis_line(
+            baseline_py, measure_py, frame.py1
+        )
+        target.fill_rect(
+            measure_x,
+            measure_rect.y,
+            measure_width,
+            measure_rect.height,
+            theme.mark_color,
+        )
 
         var target_py = _axis_pixel(frame.y_scale, plot._bullet.target[i])
         var band_end = band_x + band_width
-        target.draw_line_aa(band_x, target_py, band_end, target_py, theme.axis_color, width=theme.scale)
+        target.draw_line_aa(
+            band_x,
+            target_py,
+            band_end,
+            target_py,
+            theme.axis_color,
+            width=theme.scale,
+        )
 
     return frame.result()
 
@@ -203,12 +231,21 @@ def bullet(
             save(c, "docs/src/examples/out_bullet.svg")
         ```
     """
-    var plot = Plot().mark_bullet(
-                        measure_width_fraction=measure_width_fraction,
-    ).encode_bullet(
-        categories=categories, measures=measures, targets=targets, ranges=ranges
+    var plot = (
+        Plot()
+        .mark_bullet(
+            measure_width_fraction=measure_width_fraction,
+        )
+        .encode_bullet(
+            categories=categories,
+            measures=measures,
+            targets=targets,
+            ranges=ranges,
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def bullet[
@@ -233,7 +270,16 @@ def bullet[
     Delegates to the concrete overload above.
     """
     return bullet(
-        categories, _materialize_scalar_list(measures), _materialize_scalar_list(targets), ranges,
-        measure_width_fraction=measure_width_fraction, theme=theme, width=width, height=height, title=title, subtitle=subtitle, x_title=x_title,
+        categories,
+        _materialize_scalar_list(measures),
+        _materialize_scalar_list(targets),
+        ranges,
+        measure_width_fraction=measure_width_fraction,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
         y_title=y_title,
     )

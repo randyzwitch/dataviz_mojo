@@ -48,7 +48,9 @@ def _gauge_band_colors() -> List[Color]:
 
 def _render_gauge[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.GAUGE` plot: `encode_gauge()`'s single `value`, clamped
     to `[min_value, max_value]` (an out-of-range value pins visibly at the
     end of the dial rather than raising), as a needle (`draw_line_aa`,
@@ -75,11 +77,18 @@ def _render_gauge[
             + ")"
         )
 
-    var breakpoints = plot._gauge.breakpoints.copy() if len(plot._gauge.breakpoints) > 0 else _gauge_breakpoints()
-    var colors = plot._gauge.band_colors.copy() if len(plot._gauge.band_colors) > 0 else _gauge_band_colors()
+    var breakpoints = (
+        plot._gauge.breakpoints.copy() if len(plot._gauge.breakpoints)
+        > 0 else _gauge_breakpoints()
+    )
+    var colors = (
+        plot._gauge.band_colors.copy() if len(plot._gauge.band_colors)
+        > 0 else _gauge_band_colors()
+    )
     if len(breakpoints) != len(colors):
         raise Error(
-            "Plot.encode_gauge(): breakpoints and band_colors must be the same length (got "
+            "Plot.encode_gauge(): breakpoints and band_colors must be the same"
+            " length (got "
             + String(len(breakpoints))
             + " and "
             + String(len(colors))
@@ -90,7 +99,8 @@ def _render_gauge[
         var b = breakpoints[i]
         if b <= prev or b > 1.0:
             raise Error(
-                "Plot.encode_gauge(): breakpoints must be strictly ascending and within (0, 1] (got "
+                "Plot.encode_gauge(): breakpoints must be strictly ascending"
+                " and within (0, 1] (got "
                 + String(b)
                 + " after "
                 + String(prev)
@@ -106,13 +116,20 @@ def _render_gauge[
     var plot_y1 = oy1 - sc.margin_bottom
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
-    var max_radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    var max_radius = (
+        Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    )
     var inner_radius = max_radius * plot._mark_style.gauge_band_inner_fraction
 
     var band_start = plot._mark_style.gauge_start_angle
     for i in range(len(breakpoints)):
-        var band_end = plot._mark_style.gauge_start_angle + plot._mark_style.gauge_sweep_angle * breakpoints[i]
-        target.fill_ring_sector_aa(cx, cy, inner_radius, max_radius, band_start, band_end, colors[i])
+        var band_end = (
+            plot._mark_style.gauge_start_angle
+            + plot._mark_style.gauge_sweep_angle * breakpoints[i]
+        )
+        target.fill_ring_sector_aa(
+            cx, cy, inner_radius, max_radius, band_start, band_end, colors[i]
+        )
         band_start = band_end
 
     var value = plot._gauge.value
@@ -120,11 +137,30 @@ def _render_gauge[
         value = plot._gauge.min_value
     if value > plot._gauge.max_value:
         value = plot._gauge.max_value
-    var frac = (value - plot._gauge.min_value) / (plot._gauge.max_value - plot._gauge.min_value)
-    var needle_angle = plot._mark_style.gauge_start_angle + plot._mark_style.gauge_sweep_angle * frac
-    var tip = _polar_point(cx, cy, needle_angle, max_radius * plot._mark_style.gauge_needle_fraction)
-    target.draw_line_aa(Int(cx), Int(cy), Int(tip.x), Int(tip.y), theme.mark_color, sc.line_width * 2.0)
-    target.fill_circle_aa(Int(cx), Int(cy), Int(sc.point_radius), theme.mark_color)
+    var frac = (value - plot._gauge.min_value) / (
+        plot._gauge.max_value - plot._gauge.min_value
+    )
+    var needle_angle = (
+        plot._mark_style.gauge_start_angle
+        + plot._mark_style.gauge_sweep_angle * frac
+    )
+    var tip = _polar_point(
+        cx,
+        cy,
+        needle_angle,
+        max_radius * plot._mark_style.gauge_needle_fraction,
+    )
+    target.draw_line_aa(
+        Int(cx),
+        Int(cy),
+        Int(tip.x),
+        Int(tip.y),
+        theme.mark_color,
+        sc.line_width * 2.0,
+    )
+    target.fill_circle_aa(
+        Int(cx), Int(cy), Int(sc.point_radius), theme.mark_color
+    )
 
     text_requests.append(
         _TextRequest(
@@ -213,12 +249,22 @@ def gauge(
             save(c, "docs/src/examples/out_gauge.svg")
         ```
     """
-    var plot = Plot().mark_gauge(
-        band_inner_fraction=band_inner_fraction,
-        needle_fraction=needle_fraction,
-        start_angle=start_angle,
-        sweep_angle=sweep_angle,
-    ).encode_gauge(
-        value=value, min_value=min_value, max_value=max_value, breakpoints=breakpoints, band_colors=band_colors
+    var plot = (
+        Plot()
+        .mark_gauge(
+            band_inner_fraction=band_inner_fraction,
+            needle_fraction=needle_fraction,
+            start_angle=start_angle,
+            sweep_angle=sweep_angle,
+        )
+        .encode_gauge(
+            value=value,
+            min_value=min_value,
+            max_value=max_value,
+            breakpoints=breakpoints,
+            band_colors=band_colors,
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )

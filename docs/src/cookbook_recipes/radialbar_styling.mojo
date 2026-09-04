@@ -9,6 +9,7 @@ from dataviz.plot import save
 from dataviz.theme import Theme
 from canvas.color import Color
 
+
 def main() raises:
     var goals: List[String] = ["Move", "Exercise", "Stand"]
     var percent_complete: List[Float64] = [92.0, 68.0, 100.0]
