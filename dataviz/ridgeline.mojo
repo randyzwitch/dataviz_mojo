@@ -2,6 +2,7 @@ from std.math import sqrt
 
 from canvas.geometry import _round_to_int
 from canvas.path import Path
+from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
@@ -60,6 +61,7 @@ def _render_ridgeline[
             all_values.append(v)
     var x_scale = _data_extent(all_values)
 
+    var measure_cache = FontCache()
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -70,6 +72,7 @@ def _render_ridgeline[
         ox1,
         oy1,
         padding=0.0,
+        cache=measure_cache,
     )
 
     var row_height = frame.y_scale.bandwidth()
