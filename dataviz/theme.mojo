@@ -252,15 +252,22 @@ struct Theme(ImplicitlyCopyable, Movable):
     tooltip. `SvgCanvas` turns that into `<g><title>...</title>...</g>`;
     `Canvas` ignores both calls. Titles are XML-escaped by canvas_mojo.
 
-    The category-grouped marks (`Mark.BAR`, `GROUPED_BAR`, `STACKED_BAR`,
-    `BOX`, `LOLLIPOP`, `VIOLIN`) carry titles under this flag alone. The
-    point-per-datum marks (`POINT`, `EFFECT_SCATTER`, `BEESWARM`) also
-    need their mark's `tooltips=True`, since a title roughly doubles a
-    dense scatter's SVG.
+    The category-grouped marks carry titles under this flag alone:
+    `Mark.BAR`, `GROUPED_BAR`, `STACKED_BAR`, `BOX`, `LOLLIPOP`,
+    `VIOLIN`, and (#213) `WATERFALL`, `BULLET`, `POPULATION_PYRAMID`,
+    `SPAN_CHART`, `CANDLESTICK` and `FUNNEL`. Where a mark encodes more
+    than one number, the title carries all of them rather than picking
+    one -- a bullet row's measure and target, a candle's four prices, a
+    span's two ends -- since that combination is what the shape says.
+    The point-per-datum marks (`POINT`, `EFFECT_SCATTER`, `BEESWARM`)
+    also need their mark's `tooltips=True`, since a title roughly
+    doubles a dense scatter's SVG.
     """
     var show_data_labels: Bool
-    """Whether `Mark.BAR`/`GROUPED_BAR`/`STACKED_BAR` draws each bar's value
-    as text, in `text_color` at `font_size`; defaults to `False`.
+    """Whether a mark draws each value as text, in `text_color` at
+    `font_size`; defaults to `False`. Covers `Mark.BAR`/`GROUPED_BAR`/
+    `STACKED_BAR` and, since #213, `LOLLIPOP`/`WATERFALL`/`BULLET`/
+    `POPULATION_PYRAMID`.
     Formatted via `_label_decimals()` (scale.mojo), the fewest decimal
     places that represent the value exactly, rather than the y-axis's
     coarser `Ticks.decimals`. A `Theme` flag rather than an `encode()`

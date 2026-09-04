@@ -18,7 +18,7 @@ from dataviz.plot import (
     _require_non_empty,
     _zero_baseline_y_extent,
 )
-from dataviz.scale import _format_tick, _label_decimals
+from dataviz.scale import _format_fixed, _format_tick, _label_decimals
 from dataviz.theme import Theme
 
 
@@ -36,6 +36,24 @@ struct _BulletData(Copyable, Movable):
         self.measure = List[Float64]()
         self.target = List[Float64]()
         self.ranges = List[List[Float64]]()
+
+
+def _bullet_tooltip_label(
+    category: String, measure: Float64, target: Float64
+) -> String:
+    """One row's hover text: `"Revenue: 72 (target 80)"`. Its own helper
+    rather than `_tooltip_label` (plot.mojo) because a bullet row encodes
+    two numbers against each other, the way `Mark.BOX`'s tooltip carries
+    its whole five-number summary.
+    """
+    return (
+        category
+        + ": "
+        + _format_fixed(measure, _label_decimals(measure))
+        + " (target "
+        + _format_fixed(target, _label_decimals(target))
+        + ")"
+    )
 
 
 def _render_bullet[
@@ -159,6 +177,18 @@ def _render_bullet[
         var measure_rect = _pull_off_axis_line(
             baseline_py, measure_py, frame.py1
         )
+        if theme.svg_tooltips:
+            # Measure and target together: a bullet chart's whole point is
+            # the one against the other, so reading either alone off the
+            # hover text would miss what the row is saying. The range
+            # bands are background and stay outside the group.
+            target.begin_annotated_group(
+                _bullet_tooltip_label(
+                    plot.x_categories[i],
+                    plot._bullet.measure[i],
+                    plot._bullet.target[i],
+                )
+            )
         target.fill_rect(
             measure_x,
             measure_rect.y,
@@ -200,6 +230,8 @@ def _render_bullet[
             theme.axis_color,
             width=theme.scale,
         )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     return frame.result()
 

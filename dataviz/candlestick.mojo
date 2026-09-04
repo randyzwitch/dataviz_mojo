@@ -12,6 +12,7 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
+from dataviz.scale import _format_fixed, _label_decimals
 from dataviz.theme import Theme
 
 
@@ -30,6 +31,30 @@ struct _CandleData(Copyable, Movable):
         self.high = List[Float64]()
         self.low = List[Float64]()
         self.close_price = List[Float64]()
+
+
+def _candle_tooltip_label(
+    category: String,
+    open_price: Float64,
+    high: Float64,
+    low: Float64,
+    close_price: Float64,
+) -> String:
+    """One candle's hover text: `"Mon: O 10, H 14, L 9, C 13"`. All four
+    prices, since that quadruple is exactly what the wick and body
+    encode -- the same reasoning as `Mark.BOX`'s five-number tooltip.
+    """
+    return (
+        category
+        + ": O "
+        + _format_fixed(open_price, _label_decimals(open_price))
+        + ", H "
+        + _format_fixed(high, _label_decimals(high))
+        + ", L "
+        + _format_fixed(low, _label_decimals(low))
+        + ", C "
+        + _format_fixed(close_price, _label_decimals(close_price))
+    )
 
 
 def _render_candlestick[
@@ -112,6 +137,18 @@ def _render_candlestick[
         var center_px = _round_to_int(frame.x_scale.center(i))
         var high_py = _axis_pixel(frame.y_scale, plot._candle.high[i])
         var low_py = _axis_pixel(frame.y_scale, plot._candle.low[i])
+        if theme.svg_tooltips:
+            # Wick and body in one group: they are two halves of a single
+            # datum, so hovering either should name the same candle.
+            target.begin_annotated_group(
+                _candle_tooltip_label(
+                    plot.x_categories[i],
+                    plot._candle.open_price[i],
+                    plot._candle.high[i],
+                    plot._candle.low[i],
+                    plot._candle.close_price[i],
+                )
+            )
         target.draw_line_aa(
             center_px,
             high_py,
@@ -133,6 +170,8 @@ def _render_candlestick[
             >= plot._candle.open_price[i] else theme.mark_color_negative
         )
         target.fill_rect(body_x, body_y, body_width, body_height, body_color)
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     return frame.result()
 
