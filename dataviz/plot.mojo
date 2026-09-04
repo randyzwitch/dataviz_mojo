@@ -40,7 +40,7 @@ would. Facets, layering, and `color`/`size` encoding still need the
 """
 
 from std.collections import Dict
-from std.math import log10, pi
+from std.math import cos, log10, pi, sin
 
 from canvas.buffer import Canvas
 from canvas.color import Color
@@ -83,6 +83,7 @@ from dataviz.scale import (
     _min_max,
 )
 from dataviz.theme import Theme
+from dataviz.x_label_rotation import XAxisLabelRotation
 
 from dataviz.arc import _render_arc
 from dataviz.nightingale import _render_nightingale
@@ -6270,6 +6271,33 @@ struct _CategoricalFrame(Movable):
         )
 
 
+def _resolve_x_label_rotation(
+    override: XAxisLabelRotation, max_label_width: Float64, step: Float64
+) -> Float64:
+    """The radians `_draw_categorical_axis_frame` rotates x-axis category
+    labels by (#214): `0.0` (drawn horizontal, centered under the tick),
+    or `pi / 4`/`pi / 2` (drawn right-aligned at the tick; see that
+    function's own call site for why). `AUTO` escalates only as far as
+    needed: horizontal if every label already fits its band
+    (`OrdinalScale.step()`), 45 degrees if that alone clears it
+    (measuring the rotated label's own narrower horizontal footprint,
+    `max_label_width * cos(45deg)`, against `step`), 90 otherwise. An
+    explicit override always wins, with no measurement needed.
+    """
+    if override == XAxisLabelRotation.DEG_0:
+        return 0.0
+    if override == XAxisLabelRotation.DEG_45:
+        return pi / 4.0
+    if override == XAxisLabelRotation.DEG_90:
+        return pi / 2.0
+
+    if max_label_width <= step:
+        return 0.0
+    if max_label_width * cos(pi / 4.0) <= step:
+        return pi / 4.0
+    return pi / 2.0
+
+
 def _draw_categorical_axis_frame[
     T: DrawTarget
 ](
@@ -6294,6 +6322,13 @@ def _draw_categorical_axis_frame[
     `y_scale`'s domain must already be decided (its range is the `[0, 1]`
     placeholder), since the marks differ there: `Mark.BAR`/`LOLLIPOP`/
     `WATERFALL` include a zero baseline, `Mark.BOX` fits the data spread.
+
+    Long category labels rotate per `Theme.x_label_rotation` (#214,
+    `_resolve_x_label_rotation`) once `x_scale` (and so its `step()`) is
+    known, before `plot_y1` is finalized -- a rotated label needs extra
+    bottom margin (`sin(rotation) * widest label`) reserved for it, the
+    same "measure before finalizing the pixel range" pattern
+    `dynamic_left_margin` already uses for the y-axis.
     """
     var sc = _Scaled(theme)
 
@@ -6307,13 +6342,25 @@ def _draw_categorical_axis_frame[
     )
 
     var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
-    var plot_y0 = oy0 + sc.margin_top
     var plot_x1 = ox1 - sc.margin_right
-    var plot_y1 = oy1 - sc.margin_bottom
 
     var x_scale = OrdinalScale(
         categories.copy(), Float64(plot_x0), Float64(plot_x1)
     )
+
+    var x_label_max_width = _max_label_width(categories, sc.font_size)
+    var x_label_rotation = _resolve_x_label_rotation(
+        theme.x_label_rotation, x_label_max_width, x_scale.step()
+    )
+    var x_label_extra_bottom = (
+        _round_to_int(
+            sin(x_label_rotation) * x_label_max_width
+        ) if x_label_rotation
+        > 0.0 else 0
+    )
+
+    var plot_y0 = oy0 + sc.margin_top
+    var plot_y1 = oy1 - sc.margin_bottom - x_label_extra_bottom
 
     # y range is reversed: domain_min lands at the *bottom* of the
     # plot area (the larger pixel y), domain_max at the top -- see
@@ -6371,17 +6418,36 @@ def _draw_categorical_axis_frame[
             theme.axis_color,
             width=sc.scale,
         )
-        text_requests.append(
-            _TextRequest(
-                center_px,
-                plot_y1 + sc.tick_length + sc.label_gap + Int(sc.font_size),
-                categories[i],
-                theme.text_color,
-                sc.font_size,
-                TextAlign.CENTER,
-                theme.font_family,
+        if x_label_rotation > 0.0:
+            # Right-aligned at the tick and rotated clockwise (screen y
+            # increases downward): the anchor is the label's own last
+            # character, so the label reads bottom-to-top running away
+            # from the tick, the same convention ggplot2's `angle=45,
+            # hjust=1` axis text produces.
+            text_requests.append(
+                _TextRequest(
+                    center_px,
+                    plot_y1 + sc.tick_length + sc.label_gap,
+                    categories[i],
+                    theme.text_color,
+                    sc.font_size,
+                    TextAlign.RIGHT,
+                    theme.font_family,
+                    rotation=-x_label_rotation,
+                )
             )
-        )
+        else:
+            text_requests.append(
+                _TextRequest(
+                    center_px,
+                    plot_y1 + sc.tick_length + sc.label_gap + Int(sc.font_size),
+                    categories[i],
+                    theme.text_color,
+                    sc.font_size,
+                    TextAlign.CENTER,
+                    theme.font_family,
+                )
+            )
 
     return _CategoricalFrame(
         x_scale^,

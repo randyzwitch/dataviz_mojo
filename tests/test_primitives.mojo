@@ -50,6 +50,7 @@ from dataviz.scale import (
 )
 from dataviz.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
+from std.utils.numerics import inf, nan
 
 
 # ---------------------------------------------------------------
@@ -339,6 +340,50 @@ def test_min_max_raises_on_an_empty_column() raises:
     # MinMax(0, 0) would render as a degenerate axis, so this raises.
     with assert_raises():
         _ = _min_max(List[Float64]())
+
+
+def test_min_max_raises_on_nan_anywhere_not_only_at_the_extremes() raises:
+    # #190: NaN at index 0 used to poison lo/hi into (NaN, NaN) silently
+    # (every comparison against NaN is false); NaN elsewhere used to be
+    # skipped by those same comparisons and survive as a garbage
+    # Int64::MIN pixel coordinate downstream. Both must now raise here,
+    # the single chokepoint every domain computation passes through.
+    with assert_raises():
+        _ = _min_max([nan[DType.float64](), 2.0, 3.0])
+    with assert_raises():
+        _ = _min_max([1.0, nan[DType.float64](), 3.0])
+
+
+def test_min_max_raises_on_inf() raises:
+    # inf has a well-defined order, so it survives _min_max's
+    # comparisons and used to produce a real-but-infinite domain no
+    # tick generator could label.
+    with assert_raises():
+        _ = _min_max([1.0, inf[DType.float64](), 3.0])
+    with assert_raises():
+        _ = _min_max([1.0, 2.0, -inf[DType.float64]()])
+
+
+def test_render_raises_on_nan_or_inf_in_encoded_data() raises:
+    # End-to-end: a non-finite value reaching encode()/render() must
+    # raise, not silently emit Int64::MIN as an SVG coordinate.
+    var xs: List[Float64] = [1.0, 2.0, 3.0]
+    with assert_raises():
+        var plot = (
+            Plot()
+            .mark_point()
+            .encode(x=xs, y=[1.0, nan[DType.float64](), 3.0])
+            .size(200, 150)
+        )
+        _ = render(plot)
+    with assert_raises():
+        var plot = (
+            Plot()
+            .mark_point()
+            .encode(x=xs, y=[1.0, inf[DType.float64](), 3.0])
+            .size(200, 150)
+        )
+        _ = render(plot)
 
 
 # ---------------------------------------------------------------

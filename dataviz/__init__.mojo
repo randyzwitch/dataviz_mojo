@@ -17,6 +17,7 @@ from dataviz.array_like import Float64Sequence, StringSequence
 from dataviz.theme import Theme
 from dataviz.mark import Mark
 from dataviz.output_format import OutputFormat
+from dataviz.x_label_rotation import XAxisLabelRotation
 from dataviz.scale import LinearScale, MinMax, Ticks
 from dataviz.color_scale import ColorScale, default_categorical_palette
 from dataviz.marker import PointShape, default_marker_shapes
