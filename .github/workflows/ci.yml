@@ -106,6 +106,109 @@ jobs:
       - name: Run tests
         run: pixi run test
 
+  # The only install path the README and quickstart actually document is
+  # a pixi dependency that builds this package with pixi-build-mojo and
+  # installs the resulting .mojopkg -- and until this job, nothing in CI
+  # went anywhere near it (#227). `test` and `docs-build` both compile
+  # from source with `-I .`, which never runs `mojo package` at all, so a
+  # break in [package.build.config.pkg], a new file `mojo package`
+  # rejects, or a canvas_mojo tag bump that breaks host-dependency
+  # resolution would all reach main green and surface first for a
+  # downstream user.
+  #
+  # A `path` dependency rather than `git`, deliberately: git would
+  # resolve to whatever is already pushed, so a PR would test main's tree
+  # instead of its own. `path` points the throwaway workspace at the
+  # checked-out PR, which is the thing under test.
+  #
+  # The consumer writes both an .svg and a .png because they exercise
+  # different halves of the installed package -- the SVG backend is pure
+  # Mojo string building, while the PNG path goes through the raster
+  # canvas and canvas_mojo's font discovery, which is where a broken
+  # runtime dependency actually shows up. Both are asserted non-empty
+  # rather than merely created, since save() opens the file before it
+  # renders.
+  #
+  # libfontconfig/fonts-dejavu-core for the same reason the `test` job
+  # needs them (see its own comment): save() renders axis and tick
+  # labels, so this resolves a real font through fontconfig.
+  package:
+    name: Build the package and compile a consumer against it
+    runs-on: ubuntu-latest
+    # `pixi build` compiles the whole package plus canvas_mojo from
+    # source, then the consumer workspace builds it a second time in its
+    # own environment -- two full Mojo compiles, so this is closer to
+    # `test` than to the cheap text-only jobs above.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install libfontconfig
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1 fonts-dejavu-core
+
+      - uses: prefix-dev/setup-pixi@v0.9.0
+        with:
+          pixi-version: v0.76.2
+          cache: true
+
+      - name: Build the package
+        run: pixi build
+
+      # Under $RUNNER_TEMP rather than inside the checkout, so the
+      # consumer workspace's own .pixi/ and lockfile can't be mistaken
+      # for repo state by a later step.
+      - name: Create a throwaway consumer workspace
+        run: |
+          mkdir -p "$RUNNER_TEMP/consumer"
+          cat > "$RUNNER_TEMP/consumer/pixi.toml" <<EOF
+          [workspace]
+          name = "dataviz-consumer-check"
+          version = "0.0.0"
+          channels = ["https://conda.modular.com/max", "https://repo.prefix.dev/modular-community", "conda-forge"]
+          platforms = ["linux-64"]
+          preview = ["pixi-build"]
+
+          [dependencies]
+          dataviz_mojo = { path = "$GITHUB_WORKSPACE" }
+          EOF
+          cat > "$RUNNER_TEMP/consumer/consumer.mojo" <<'EOF'
+          from dataviz import bar
+          from dataviz.plot import save
+
+          def main() raises:
+              var cats: List[String] = ["a", "b", "c"]
+              var vals: List[Float64] = [3.0, 1.0, 2.0]
+              var c = bar(cats, vals, title="Consumer check")
+              save(c, "out.svg")
+              save(c, "out.png")
+              print("consumer ok")
+          EOF
+
+      - name: Compile and run the consumer
+        working-directory: ${{ runner.temp }}/consumer
+        run: pixi run mojo run consumer.mojo
+
+      - name: Assert both outputs exist and are non-empty
+        working-directory: ${{ runner.temp }}/consumer
+        run: |
+          test -s out.svg || { echo "out.svg missing or empty"; exit 1; }
+          test -s out.png || { echo "out.png missing or empty"; exit 1; }
+          head -c 64 out.svg; echo
+          ls -l out.svg out.png
+
+      # Prints, doesn't assert: #225/#239 concluded that the
+      # unconditional PythonObject import costs a consumer nothing, and
+      # this is the cheap standing evidence for that claim rather than a
+      # gate. If libpython ever does appear here, the log says so on the
+      # PR that introduced it.
+      - name: Report the consumer's dynamic dependencies
+        working-directory: ${{ runner.temp }}/consumer
+        run: |
+          pixi run mojo build consumer.mojo -o consumer_bin
+          ldd consumer_bin || true
+          echo "--- python linkage ---"
+          ldd consumer_bin | grep -i python || echo "no libpython in the consumer's dynamic dependencies"
+
   # PR-status-only docs build -- used to be a separate workflow
   # (docs.yml, deleted) that called the same reusable docs-build.yml
   # push-to-main deploys still use (docs-deploy.yml). Folded in here
