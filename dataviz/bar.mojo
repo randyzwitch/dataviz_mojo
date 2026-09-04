@@ -35,6 +35,28 @@ def _bar_fill_color(theme: Theme, value: Float64) -> Color:
     ) else theme.mark_color
 
 
+def _bar_y_domain_data(plot: Plot) -> List[Float64]:
+    """`plot.y_data`, or every error-bar whisker endpoint when `y_err`
+    (or `y_err_lower`/`y_err_upper`) is set (#216), so the y-domain spans
+    everything `_draw_bar_rects` actually draws -- the same
+    `y_domain_data` pattern `_render_generic` uses for `POINT`/`LINE`/
+    `EFFECT_SCATTER`.
+    """
+    var domain_data = List[Float64]()
+    if len(plot.y_err_data) > 0:
+        for i in range(len(plot.y_data)):
+            domain_data.append(plot.y_data[i] - plot.y_err_data[i])
+            domain_data.append(plot.y_data[i] + plot.y_err_data[i])
+    elif len(plot.y_err_lower_data) > 0:
+        for i in range(len(plot.y_data)):
+            domain_data.append(plot.y_data[i] - plot.y_err_lower_data[i])
+            domain_data.append(plot.y_data[i] + plot.y_err_upper_data[i])
+    else:
+        for v in plot.y_data:
+            domain_data.append(v)
+    return domain_data^
+
+
 def _draw_bar_rects[
     T: DrawTarget
 ](
@@ -63,6 +85,11 @@ def _draw_bar_rects[
     horizontally) for `_pull_off_axis_line`. Color-by-sign and label
     sizing read `plot._theme` through this function's own
     `_Scaled(theme)`, so a layered bar follows its own `Theme.scale`.
+
+    `Plot.encode_categorical()`'s `y_err`/`y_err_lower`/`y_err_upper`
+    (#216), when set, draws a capped whisker at each bar's value edge
+    first, in that bar's own resolved color, the same "whisker first,
+    mark on top" order `_draw_point_layer` uses.
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
@@ -70,19 +97,50 @@ def _draw_bar_rects[
     # bandwidth() doesn't depend on the category index, so it's hoisted out
     # of the loop.
     var band_size = _round_to_int(band_scale.bandwidth())
+    var has_y_err = len(plot.y_err_data) > 0 or len(plot.y_err_lower_data) > 0
+    var cap_half = _round_to_int(sc.error_bar_cap_width)
     for i in range(len(plot.x_categories)):
         var band_pos = _round_to_int(band_scale.band_start(i))
         var value = plot.y_data[i]
         var extent = _pull_off_axis_line(
             baseline, _axis_pixel(value_scale, value), baseline_edge
         )
+        var color = _bar_fill_color(theme, value)
         if theme.svg_tooltips:
             target.begin_annotated_group(
                 _tooltip_label(plot.x_categories[i], value)
             )
-        orient.fill_band_rect(
-            target, extent, band_pos, band_size, _bar_fill_color(theme, value)
-        )
+        if has_y_err:
+            var lo: Float64
+            var hi: Float64
+            if len(plot.y_err_data) > 0:
+                var err = plot.y_err_data[i]
+                lo = value - err
+                hi = value + err
+            else:
+                lo = value - plot.y_err_lower_data[i]
+                hi = value + plot.y_err_upper_data[i]
+            var center_i = _round_to_int(band_scale.center(i))
+            var py_hi = _axis_pixel(value_scale, hi)
+            var py_lo = _axis_pixel(value_scale, lo)
+            orient.value_line(target, py_hi, py_lo, center_i, color, sc.scale)
+            orient.band_line(
+                target,
+                py_hi,
+                center_i - cap_half,
+                center_i + cap_half,
+                color,
+                sc.scale,
+            )
+            orient.band_line(
+                target,
+                py_lo,
+                center_i - cap_half,
+                center_i + cap_half,
+                color,
+                sc.scale,
+            )
+        orient.fill_band_rect(target, extent, band_pos, band_size, color)
         if theme.svg_tooltips:
             target.end_annotated_group()
         if theme.show_data_labels:
@@ -136,7 +194,7 @@ def _render_bar[
     # y-domain computed before the frame's dynamic left margin is
     # finalized; see _draw_categorical_axis_frame for why it takes y_scale
     # as an input.
-    var y_scale = _zero_baseline_y_extent(plot.y_data)
+    var y_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))
     var frame = _draw_categorical_axis_frame(
         target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1
     )
@@ -179,7 +237,7 @@ def _render_horizontal_bar[
     _validate_categorical_encoding(plot)
 
     var theme = plot._theme
-    var x_scale = _zero_baseline_y_extent(plot.y_data)
+    var x_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))
     var frame = _draw_horizontal_categorical_axis_frame(
         target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
     )

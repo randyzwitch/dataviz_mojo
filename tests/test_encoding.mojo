@@ -9,6 +9,12 @@
 - y_err on Mark.LINE: a whisker per original data point in
   Theme.mark_color, independent of the path decimation; Mark.AREA
   still raises.
+- Plot.encode_categorical()'s y_err channel on Mark.BAR, and
+  encode_grouped_bar()'s errors channel on Mark.GROUPED_BAR (#216):
+  whisker placement in the bar's/sub-bar's own resolved color, the
+  value-axis domain widening to the whisker endpoints, and the raise
+  paths (including the other categorical marks these two encode
+  methods feed, which don't support either channel).
 - Plot.scale_y_log()/scale_x_log(): pixel placement through the shared
   to_pixel() path and every raise path.
 - Theme.show_data_labels on Mark.BAR/GROUPED_BAR/STACKED_BAR: label
@@ -288,6 +294,268 @@ def test_render_raises_on_y_err_with_mark_area() raises:
     var y: List[Float64] = [10.0, 20.0]
     var err: List[Float64] = [1.0, 1.0]
     var plot = Plot().mark_area().encode(x=x, y=y, y_err=err)
+    with assert_raises():
+        _ = render(plot)
+
+
+# ---------------------------------------------------------------
+# from tests/test_error_bars_on_bar.mojo (#216)
+# ---------------------------------------------------------------
+
+
+def test_render_svg_bar_error_bar_matches_hand_derived_positions() raises:
+    # One bar, category "A", y=10, y_err=2: domain data becomes [8, 12].
+    # _zero_baseline_y_extent keeps lo at 0 (8 > 0, not padded) and pads
+    # only the top: hi=12, pad=12*0.05=0.6 -> domain [0, 12.6]. Canvas
+    # 400x200, default theme -> plot_y0=20, plot_y1=150.
+    #
+    # scale() = (20-150)/12.6 = -10.3174...
+    # translate() = 150 (domain_min is 0)
+    # to_pixel(8) = 67.46 -> 67 (bottom whisker/cap)
+    # to_pixel(12) = 26.19 -> 26 (top whisker/cap)
+    # to_pixel(10) = 46.83 -> 47 (the bar's own top edge)
+    var cats: List[String] = ["A"]
+    var y: List[Float64] = [10.0]
+    var err: List[Float64] = [2.0]
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=y, y_err=err)
+        .size(400, 200)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true(
+        'y1="67"' in s and 'y2="67"' in s,
+        "the bottom whisker/cap sits at y-2's hand-derived row",
+    )
+    assert_true(
+        'y1="26"' in s and 'y2="26"' in s,
+        "the top whisker/cap sits at y+2's hand-derived row",
+    )
+    assert_true(
+        '<rect x="92" y="47"' in s,
+        "the bar's own top edge sits at y=10's hand-derived row",
+    )
+
+
+def test_render_svg_bar_error_bar_uses_the_bars_own_resolved_color() raises:
+    # Theme(color_by_sign=True): a negative bar's whisker must use
+    # mark_color_negative, the same color _bar_fill_color resolves for
+    # its rect, not a fixed axis/whisker color.
+    var cats: List[String] = ["pos", "neg"]
+    var y: List[Float64] = [10.0, -10.0]
+    var err: List[Float64] = [1.0, 1.0]
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=y, y_err=err)
+        .theme(Theme(color_by_sign=True))
+        .size(400, 300)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true(
+        'stroke="#1e64b4"' in s, "the positive bar's whisker uses mark_color"
+    )
+    assert_true(
+        'stroke="#c83c3c"' in s,
+        "the negative bar's whisker uses mark_color_negative",
+    )
+
+
+def test_render_bar_widens_the_y_domain_to_include_the_whisker_extent() raises:
+    # y=[10], y_err=[20]: the whisker reaches -10, so domain data becomes
+    # [-10, 30] -- a negative tick only reachable if the domain widened,
+    # the same check test_render_widens_the_y_domain_to_include_the_
+    # whisker_extent makes for Mark.POINT.
+    var cats: List[String] = ["A"]
+    var y: List[Float64] = [10.0]
+    var err: List[Float64] = [20.0]
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=y, y_err=err)
+        .size(400, 300)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true(
+        ">-10<" in s,
+        (
+            "a negative-valued y tick, only reachable if the domain widened"
+            " for y_err"
+        ),
+    )
+
+
+def test_render_bar_raises_on_a_negative_y_err_value() raises:
+    var cats: List[String] = ["A", "B"]
+    var y: List[Float64] = [10.0, 20.0]
+    var err: List[Float64] = [1.0, -1.0]
+    var plot = Plot().mark_bar().encode_categorical(x=cats, y=y, y_err=err)
+    with assert_raises():
+        _ = render(plot)
+
+
+def test_render_bar_raises_on_a_y_err_length_mismatch() raises:
+    var cats: List[String] = ["A", "B", "C"]
+    var y: List[Float64] = [10.0, 20.0, 30.0]
+    var err: List[Float64] = [1.0, 1.0]
+    var plot = Plot().mark_bar().encode_categorical(x=cats, y=y, y_err=err)
+    with assert_raises():
+        _ = render(plot)
+
+
+def test_render_bar_raises_when_y_err_and_asymmetric_bounds_are_both_given() raises:
+    var cats: List[String] = ["A", "B"]
+    var y: List[Float64] = [10.0, 20.0]
+    var sym: List[Float64] = [1.0, 1.0]
+    var lower: List[Float64] = [1.0, 1.0]
+    var upper: List[Float64] = [1.0, 1.0]
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(
+            x=cats, y=y, y_err=sym, y_err_lower=lower, y_err_upper=upper
+        )
+    )
+    with assert_raises():
+        _ = render(plot)
+
+
+def test_render_raises_on_y_err_with_an_incompatible_categorical_mark() raises:
+    # Mark.LOLLIPOP shares encode_categorical() with Mark.BAR, but y_err
+    # is Mark.BAR-only today.
+    var cats: List[String] = ["A", "B"]
+    var y: List[Float64] = [10.0, 20.0]
+    var err: List[Float64] = [1.0, 1.0]
+    var plot = Plot().mark_lollipop().encode_categorical(x=cats, y=y, y_err=err)
+    with assert_raises():
+        _ = render(plot)
+
+
+# ---------------------------------------------------------------
+# from tests/test_error_bars_on_grouped_bar.mojo (#216)
+# ---------------------------------------------------------------
+
+
+def test_render_svg_grouped_bar_error_bar_matches_hand_derived_positions() raises:
+    # One category "A", two series: s1=10 (err 1), s2=20 (err 2). Verified
+    # by construction (this file's own convention): s1's whisker sits at
+    # y1="88"/y2="99" (11 and 9), s2's at y1="26"/y2="49" (22 and 18), each
+    # in its own series palette color.
+    var cats: List[String] = ["A"]
+    var names: List[String] = ["s1", "s2"]
+    var values: List[List[Float64]] = [[10.0], [20.0]]
+    var errs: List[List[Float64]] = [[1.0], [2.0]]
+    var plot = (
+        Plot()
+        .mark_grouped_bar()
+        .encode_grouped_bar(cats, names, values, errors=errs)
+        .size(400, 200)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true(
+        'y1="88"' in s and 'y2="88"' in s,
+        "s1's upper whisker/cap sits at 10+1's hand-derived row",
+    )
+    assert_true(
+        'y1="99"' in s and 'y2="99"' in s,
+        "s1's lower whisker/cap sits at 10-1's hand-derived row",
+    )
+    assert_true(
+        'y1="26"' in s and 'y2="26"' in s,
+        "s2's upper whisker/cap sits at 20+2's hand-derived row",
+    )
+    assert_true(
+        'y1="49"' in s and 'y2="49"' in s,
+        "s2's lower whisker/cap sits at 20-2's hand-derived row",
+    )
+    assert_true(
+        'stroke="#1f77b4"' in s,
+        "s1's whisker uses its own series palette color",
+    )
+    assert_true(
+        'stroke="#ff7f0e"' in s,
+        "s2's whisker uses its own series palette color",
+    )
+
+
+def test_render_grouped_bar_widens_the_y_domain_to_include_the_whisker_extent() raises:
+    # One category, one series: s1=10, err=20 -- the whisker reaches -10,
+    # same widening check as Mark.BAR's own test above.
+    var cats: List[String] = ["A"]
+    var names: List[String] = ["s1"]
+    var values: List[List[Float64]] = [[10.0]]
+    var errs: List[List[Float64]] = [[20.0]]
+    var plot = (
+        Plot()
+        .mark_grouped_bar()
+        .encode_grouped_bar(cats, names, values, errors=errs)
+        .size(400, 300)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true(
+        ">-10<" in s,
+        (
+            "a negative-valued y tick, only reachable if the domain widened"
+            " for errors"
+        ),
+    )
+
+
+def test_render_grouped_bar_raises_on_a_negative_errors_value() raises:
+    var cats: List[String] = ["A"]
+    var names: List[String] = ["s1", "s2"]
+    var values: List[List[Float64]] = [[10.0], [20.0]]
+    var errs: List[List[Float64]] = [[1.0], [-1.0]]
+    var plot = (
+        Plot()
+        .mark_grouped_bar()
+        .encode_grouped_bar(cats, names, values, errors=errs)
+    )
+    with assert_raises():
+        _ = render(plot)
+
+
+def test_render_grouped_bar_raises_on_an_errors_series_length_mismatch() raises:
+    var cats: List[String] = ["A", "B"]
+    var names: List[String] = ["s1"]
+    var values: List[List[Float64]] = [[10.0, 20.0]]
+    var errs: List[List[Float64]] = [[1.0]]
+    var plot = (
+        Plot()
+        .mark_grouped_bar()
+        .encode_grouped_bar(cats, names, values, errors=errs)
+    )
+    with assert_raises():
+        _ = render(plot)
+
+
+def test_render_grouped_bar_raises_on_an_errors_and_values_series_count_mismatch() raises:
+    var cats: List[String] = ["A"]
+    var names: List[String] = ["s1", "s2"]
+    var values: List[List[Float64]] = [[10.0], [20.0]]
+    var errs: List[List[Float64]] = [[1.0]]
+    var plot = (
+        Plot()
+        .mark_grouped_bar()
+        .encode_grouped_bar(cats, names, values, errors=errs)
+    )
+    with assert_raises():
+        _ = render(plot)
+
+
+def test_render_raises_on_errors_with_an_incompatible_mark() raises:
+    # Mark.STACKED_BAR shares encode_grouped_bar()'s data shape with
+    # Mark.GROUPED_BAR, but errors is Mark.GROUPED_BAR-only today.
+    var cats: List[String] = ["A"]
+    var names: List[String] = ["s1"]
+    var values: List[List[Float64]] = [[10.0]]
+    var errs: List[List[Float64]] = [[1.0]]
+    var plot = (
+        Plot()
+        .mark_stacked_bar()
+        .encode_grouped_bar(cats, names, values, errors=errs)
+    )
     with assert_raises():
         _ = render(plot)
 
