@@ -6,6 +6,7 @@ from canvas.text.render import TextAlign
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
+from dataviz.mark import Mark
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
@@ -63,6 +64,45 @@ def _validate_grouped_bar_series(plot: Plot) raises:
         len(plot._grouped_bar.series_names), "Plot.encode_grouped_bar()"
     )
 
+    # errors (#216): shaped like values, Mark.GROUPED_BAR only among the
+    # marks that share this validator.
+    if len(plot._grouped_bar.errors) == 0:
+        return
+    if not (plot._mark == Mark.GROUPED_BAR):
+        raise Error(
+            "Plot.encode_grouped_bar(): errors is only supported for"
+            " Mark.GROUPED_BAR today"
+        )
+    if len(plot._grouped_bar.errors) != len(plot._grouped_bar.values):
+        raise Error(
+            "Plot.encode_grouped_bar(): errors and values must have the"
+            " same length (got "
+            + String(len(plot._grouped_bar.errors))
+            + " and "
+            + String(len(plot._grouped_bar.values))
+            + ")"
+        )
+    for j in range(len(plot._grouped_bar.errors)):
+        if len(plot._grouped_bar.errors[j]) != len(plot.x_categories):
+            raise Error(
+                "Plot.encode_grouped_bar(): every series' errors must have"
+                " the same length as categories (series "
+                + String(j)
+                + " has "
+                + String(len(plot._grouped_bar.errors[j]))
+                + ", categories has "
+                + String(len(plot.x_categories))
+                + ")"
+            )
+        for v in plot._grouped_bar.errors[j]:
+            if v < 0.0:
+                raise Error(
+                    "Plot.encode_grouped_bar(): errors values must be >= 0"
+                    " (got "
+                    + String(v)
+                    + ")"
+                )
+
 
 def _series_legend_reserve(plot: Plot, sc: _Scaled) raises -> Int:
     """The width the series-name legend needs, or `0` when
@@ -107,6 +147,27 @@ def _draw_series_legend[
     )
 
 
+def _grouped_bar_domain_data(plot: Plot) -> List[Float64]:
+    """Every `plot._grouped_bar.values[j][i]`, widened to that series'
+    error-bar endpoints (`values[j][i] +/- errors[j][i]`) when `errors`
+    is set (#216) -- so the y-domain spans everything `_draw_grouped_bars`
+    actually draws, the same pattern `_bar_y_domain_data` (bar.mojo) uses
+    for `Mark.BAR`.
+    """
+    var has_errors = len(plot._grouped_bar.errors) > 0
+    var domain_data = List[Float64]()
+    for j in range(len(plot._grouped_bar.values)):
+        for i in range(len(plot._grouped_bar.values[j])):
+            var v = plot._grouped_bar.values[j][i]
+            if has_errors:
+                var err = plot._grouped_bar.errors[j][i]
+                domain_data.append(v - err)
+                domain_data.append(v + err)
+            else:
+                domain_data.append(v)
+    return domain_data^
+
+
 def _draw_grouped_bars[
     T: DrawTarget
 ](
@@ -133,12 +194,19 @@ def _draw_grouped_bars[
     `band_scale`/`value_scale` come from the caller's frame, and
     `baseline_edge` is that frame's axis line (`py1` vertically, `px0`
     horizontally).
+
+    `Plot.encode_grouped_bar()`'s `errors` (#216), when set, draws a
+    capped symmetric whisker at each sub-bar's value edge first, in that
+    sub-bar's own series color, the same "whisker first, mark on top"
+    order `_draw_bar_rects` uses for `Mark.BAR`.
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
     var n_series = len(plot._grouped_bar.series_names)
     var baseline = _axis_pixel(value_scale, 0.0)
     var sub_size = band_scale.bandwidth() / Float64(n_series)
+    var has_errors = len(plot._grouped_bar.errors) > 0
+    var cap_half = _round_to_int(sc.error_bar_cap_width)
 
     for i in range(len(plot.x_categories)):
         var band_start = band_scale.band_start(i)
@@ -149,6 +217,7 @@ def _draw_grouped_bars[
             var extent = _pull_off_axis_line(
                 baseline, _axis_pixel(value_scale, value), baseline_edge
             )
+            var color = palette[j % len(palette)]
             if theme.svg_tooltips:
                 target.begin_annotated_group(
                     _series_tooltip_label(
@@ -157,9 +226,31 @@ def _draw_grouped_bars[
                         value,
                     )
                 )
-            orient.fill_band_rect(
-                target, extent, near, far - near, palette[j % len(palette)]
-            )
+            if has_errors:
+                var err = plot._grouped_bar.errors[j][i]
+                var center_j = _round_to_int(Float64(near + far) / 2.0)
+                var py_hi = _axis_pixel(value_scale, value + err)
+                var py_lo = _axis_pixel(value_scale, value - err)
+                orient.value_line(
+                    target, py_hi, py_lo, center_j, color, sc.scale
+                )
+                orient.band_line(
+                    target,
+                    py_hi,
+                    center_j - cap_half,
+                    center_j + cap_half,
+                    color,
+                    sc.scale,
+                )
+                orient.band_line(
+                    target,
+                    py_lo,
+                    center_j - cap_half,
+                    center_j + cap_half,
+                    color,
+                    sc.scale,
+                )
+            orient.fill_band_rect(target, extent, near, far - near, color)
             if theme.svg_tooltips:
                 target.end_annotated_group()
             if theme.show_data_labels:
@@ -207,11 +298,7 @@ def _render_grouped_bar[
     _validate_grouped_bar_series(plot)
 
     var theme = plot._theme
-    var domain_data = List[Float64]()
-    for j in range(len(plot._grouped_bar.values)):
-        for i in range(len(plot._grouped_bar.values[j])):
-            domain_data.append(plot._grouped_bar.values[j][i])
-    var y_scale = _zero_baseline_y_extent(domain_data)
+    var y_scale = _zero_baseline_y_extent(_grouped_bar_domain_data(plot))
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
@@ -278,11 +365,7 @@ def _render_horizontal_grouped_bar[
     _validate_grouped_bar_series(plot)
 
     var theme = plot._theme
-    var domain_data = List[Float64]()
-    for j in range(len(plot._grouped_bar.values)):
-        for i in range(len(plot._grouped_bar.values[j])):
-            domain_data.append(plot._grouped_bar.values[j][i])
-    var x_scale = _zero_baseline_y_extent(domain_data)
+    var x_scale = _zero_baseline_y_extent(_grouped_bar_domain_data(plot))
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend

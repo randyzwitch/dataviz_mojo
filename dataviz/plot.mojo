@@ -91,7 +91,12 @@ from dataviz.polar_bar import _render_polar_bar
 from dataviz.gauge import _render_gauge
 from dataviz.parallel import _render_parallel
 from dataviz.radar import _render_radar
-from dataviz.bar import _render_bar, _render_horizontal_bar, _draw_bar_rects
+from dataviz.bar import (
+    _render_bar,
+    _render_horizontal_bar,
+    _draw_bar_rects,
+    _bar_y_domain_data,
+)
 from dataviz.beeswarm import _render_beeswarm, _render_horizontal_beeswarm
 from dataviz.ridgeline import _render_ridgeline
 from dataviz.violin import _render_violin, _render_horizontal_violin
@@ -234,10 +239,16 @@ struct _GroupedBarData(Copyable, Movable):
 
     var series_names: List[String]
     var values: List[List[Float64]]
+    var errors: List[List[Float64]]
+    """Optional per-(series, category) symmetric error-bar half-width
+    (#216), shaped like `values`; empty when `encode_grouped_bar()`'s
+    `errors` wasn't given. `Mark.GROUPED_BAR` only, checked in
+    `_validate_grouped_bar_series`."""
 
     def __init__(out self):
         self.series_names = List[String]()
         self.values = List[List[Float64]]()
+        self.errors = List[List[Float64]]()
 
 
 struct _DistributionData(Copyable, Movable):
@@ -1337,18 +1348,43 @@ struct Plot(Copyable, Movable):
             color_map=color_map,
         )
 
-    def encode_categorical(var self, x: List[String], y: List[Float64]) -> Self:
+    def encode_categorical(
+        var self,
+        x: List[String],
+        y: List[Float64],
+        y_err: List[Float64] = List[Float64](),
+        y_err_lower: List[Float64] = List[Float64](),
+        y_err_upper: List[Float64] = List[Float64](),
+    ) -> Self:
         """Map a categorical x column and a continuous y column onto the x/y
         channels, for `Mark.BAR` and the other category-plus-value marks.
         `x` is treated as the axis's category order as given, not
         deduplicated or re-sorted; repeated categories go through
         `encode_grouped_bar()`.
 
+        `y_err`/`y_err_lower`/`y_err_upper` (#216) work exactly as they do on
+        `encode()` -- see that method's own docstring for the shared rules
+        (mutually exclusive forms, every value `>= 0`) -- except `Mark.BAR`
+        is the only mark among `encode_categorical()`'s that draws them
+        today; every other mark this method feeds (`LOLLIPOP`, `WATERFALL`,
+        `NIGHTINGALE`, `FUNNEL`, `POLAR_BAR`, `RADIALBAR`, ...) raises if
+        given one.
+
         Args:
             x: One category per entry, in the given order -- treated
                 as already being the axis's category order, not
                 deduplicated or re-sorted.
             y: Each category's value.
+            y_err: Optional symmetric error-bar half-width per bar,
+                continuous only, every value `>= 0`; mutually
+                exclusive with `y_err_lower`/`y_err_upper`. `Mark.BAR`
+                only.
+            y_err_lower: Optional asymmetric error-bar downward extent
+                per bar; must be given together with `y_err_upper`,
+                every value `>= 0`. `Mark.BAR` only.
+            y_err_upper: Optional asymmetric error-bar upward extent
+                per bar; must be given together with `y_err_lower`,
+                every value `>= 0`. `Mark.BAR` only.
 
         Returns:
             Self, for further chaining.
@@ -1356,11 +1392,21 @@ struct Plot(Copyable, Movable):
         self.x_categories = x.copy()
         self.x_data = List[Float64]()
         self.y_data = y.copy()
+        self.y_err_data = y_err.copy()
+        self.y_err_lower_data = y_err_lower.copy()
+        self.y_err_upper_data = y_err_upper.copy()
         return self^
 
     def encode_categorical[
         Tx: StringSequence
-    ](var self, x: Tx, y: List[Float64]) -> Self:
+    ](
+        var self,
+        x: Tx,
+        y: List[Float64],
+        y_err: List[Float64] = List[Float64](),
+        y_err_lower: List[Float64] = List[Float64](),
+        y_err_upper: List[Float64] = List[Float64](),
+    ) -> Self:
         """`encode_categorical()`'s `x` generalized to anything conforming to
         `StringSequence` (array_like.mojo), as `encode()`'s `Float64Sequence`
         overload does for its `x`/`y`. `y` stays a concrete `List[Float64]`;
@@ -1372,15 +1418,31 @@ struct Plot(Copyable, Movable):
             x: One category per entry, in the given order -- anything
                 conforming to `StringSequence`.
             y: Each category's value -- a concrete `List[Float64]`.
+            y_err: See `encode_categorical()`'s own docstring.
+            y_err_lower: See `encode_categorical()`'s own docstring.
+            y_err_upper: See `encode_categorical()`'s own docstring.
 
         Returns:
             Self, for further chaining.
         """
-        return self^.encode_categorical(_materialize_strings(x), y)
+        return self^.encode_categorical(
+            _materialize_strings(x),
+            y,
+            y_err=y_err,
+            y_err_lower=y_err_lower,
+            y_err_upper=y_err_upper,
+        )
 
     def encode_categorical[
         dtype: DType
-    ](var self, x: List[String], y: List[Scalar[dtype]]) -> Self:
+    ](
+        var self,
+        x: List[String],
+        y: List[Scalar[dtype]],
+        y_err: List[Float64] = List[Float64](),
+        y_err_lower: List[Float64] = List[Float64](),
+        y_err_upper: List[Float64] = List[Float64](),
+    ) -> Self:
         """`encode_categorical()`'s `y` generalized over numeric element type
         (`List[Int]`, `List[Float32]`, ...), as `encode()`'s `DType` overload
         is. `x` stays a concrete `List[String]`. Materializes `y` via
@@ -1390,14 +1452,28 @@ struct Plot(Copyable, Movable):
             x: One category per entry, in the given order.
             y: Each category's value -- any numeric `List[Scalar[
                 dtype]]`.
+            y_err: See `encode_categorical()`'s own docstring.
+            y_err_lower: See `encode_categorical()`'s own docstring.
+            y_err_upper: See `encode_categorical()`'s own docstring.
 
         Returns:
             Self, for further chaining.
         """
-        return self^.encode_categorical(x, _materialize_scalar_list(y))
+        return self^.encode_categorical(
+            x,
+            _materialize_scalar_list(y),
+            y_err=y_err,
+            y_err_lower=y_err_lower,
+            y_err_upper=y_err_upper,
+        )
 
     def encode_categorical(
-        var self, x: List[String], y: PythonObject
+        var self,
+        x: List[String],
+        y: PythonObject,
+        y_err: List[Float64] = List[Float64](),
+        y_err_lower: List[Float64] = List[Float64](),
+        y_err_upper: List[Float64] = List[Float64](),
     ) raises -> Self:
         """`encode_categorical()`'s `y` generalized to a numpy `ndarray`/pandas
         `Series`/plain Python number list, as `encode()`'s `PythonObject`
@@ -1409,11 +1485,20 @@ struct Plot(Copyable, Movable):
             x: One category per entry, in the given order.
             y: Each category's value -- a numpy `ndarray`, a pandas
                 `Series`, or a plain Python list of numbers.
+            y_err: See `encode_categorical()`'s own docstring.
+            y_err_lower: See `encode_categorical()`'s own docstring.
+            y_err_upper: See `encode_categorical()`'s own docstring.
 
         Returns:
             Self, for further chaining.
         """
-        return self^.encode_categorical(x, _materialize_python_floats(y))
+        return self^.encode_categorical(
+            x,
+            _materialize_python_floats(y),
+            y_err=y_err,
+            y_err_lower=y_err_lower,
+            y_err_upper=y_err_upper,
+        )
 
     def encode_histogram(
         var self, data: List[Float64], bins: Int = 10
@@ -1688,6 +1773,7 @@ struct Plot(Copyable, Movable):
         categories: List[String],
         series_names: List[String],
         values: List[List[Float64]],
+        errors: List[List[Float64]] = List[List[Float64]](),
     ) -> Self:
         """Map a category column plus several value series onto
         `Mark.GROUPED_BAR`'s shape (also used by `STACKED_BAR`/`BUMP`/
@@ -1695,12 +1781,23 @@ struct Plot(Copyable, Movable):
         for `categories[i]`. Length checking (`series_names`/`values`, and
         every `values[j]` against `categories`) is deferred to render() time.
 
+        `errors` (#216), left empty by default, is `values`' per-(series,
+        category) symmetric error-bar half-width shape: `errors[j][i]` is
+        series `series_names[j]`'s error bar for `categories[i]`. Every
+        value must be `>= 0`; `Mark.GROUPED_BAR` only among the marks this
+        method feeds -- `STACKED_BAR`/`BUMP`/`STREAMGRAPH` raise if given
+        one, the same restriction `encode_categorical()`'s `y_err` has
+        against its own wider mark family.
+
         Args:
             categories: One group of side-by-side bars per entry, in
                 the given order.
             series_names: One sub-bar per name.
             values: `values[j]` is `series_names[j]`'s value per
                 category.
+            errors: Optional per-(series, category) symmetric
+                error-bar half-width, shaped like `values`, every
+                value `>= 0`. `Mark.GROUPED_BAR` only.
 
         Returns:
             Self, for further chaining.
@@ -1710,6 +1807,7 @@ struct Plot(Copyable, Movable):
         self.y_data = List[Float64]()
         self._grouped_bar.series_names = series_names.copy()
         self._grouped_bar.values = values.copy()
+        self._grouped_bar.errors = errors.copy()
         return self^
 
     def encode_grouped_bar[
@@ -1719,6 +1817,7 @@ struct Plot(Copyable, Movable):
         categories: Tx,
         series_names: List[String],
         values: List[List[Float64]],
+        errors: List[List[Float64]] = List[List[Float64]](),
     ) -> Self:
         """`encode_grouped_bar()`'s `categories` generalized to anything
         conforming to `StringSequence` (array_like.mojo), as
@@ -1733,12 +1832,16 @@ struct Plot(Copyable, Movable):
             series_names: One sub-bar per name.
             values: `values[j]` is `series_names[j]`'s value per
                 category.
+            errors: See `encode_grouped_bar()`'s own docstring.
 
         Returns:
             Self, for further chaining.
         """
         return self^.encode_grouped_bar(
-            _materialize_strings(categories), series_names, values
+            _materialize_strings(categories),
+            series_names,
+            values,
+            errors=errors,
         )
 
     def encode_grouped_bar[
@@ -1748,6 +1851,7 @@ struct Plot(Copyable, Movable):
         categories: List[String],
         series_names: List[String],
         values: List[List[Scalar[dtype]]],
+        errors: List[List[Float64]] = List[List[Float64]](),
     ) -> Self:
         """`encode_grouped_bar()`'s `values` generalized over numeric element
         type (`List[List[Int]]`, `List[List[Float32]]`, ...) via
@@ -1760,12 +1864,16 @@ struct Plot(Copyable, Movable):
             series_names: One sub-bar per name.
             values: `values[j]` is `series_names[j]`'s value per
                 category -- any numeric `List[List[Scalar[dtype]]]`.
+            errors: See `encode_grouped_bar()`'s own docstring.
 
         Returns:
             Self, for further chaining.
         """
         return self^.encode_grouped_bar(
-            categories, series_names, _materialize_nested_scalar_list(values)
+            categories,
+            series_names,
+            _materialize_nested_scalar_list(values),
+            errors=errors,
         )
 
     def encode_population_pyramid(
@@ -4930,7 +5038,10 @@ def _require_non_empty(count: Int, context: String) raises:
 def _validate_categorical_encoding(plot: Plot) raises:
     """`Plot.encode_categorical()`'s length check plus its empty-data check
     (`_require_non_empty`, #206), shared by every mark reading a
-    category/value pair.
+    category/value pair. Also validates `y_err`/`y_err_lower`/`y_err_upper`
+    (#216) when set, mirroring `_validate_continuous_encoding`'s rules for
+    `encode()`'s same three channels but against `x_categories`' length and
+    restricted to `Mark.BAR` -- the only categorical mark drawing them today.
     """
     if len(plot.x_categories) != len(plot.y_data):
         raise Error(
@@ -4941,6 +5052,81 @@ def _validate_categorical_encoding(plot: Plot) raises:
             + ")"
         )
     _require_non_empty(len(plot.x_categories), "Plot.encode_categorical()")
+
+    var has_y_err = len(plot.y_err_data) > 0
+    var has_y_err_lower = len(plot.y_err_lower_data) > 0
+    var has_y_err_upper = len(plot.y_err_upper_data) > 0
+    if not (has_y_err or has_y_err_lower or has_y_err_upper):
+        return
+
+    if has_y_err_lower != has_y_err_upper:
+        raise Error(
+            "Plot.encode_categorical(): y_err_lower and y_err_upper must be"
+            " given together (got only one)"
+        )
+    if (has_y_err_lower or has_y_err_upper) and has_y_err:
+        raise Error(
+            "Plot.encode_categorical(): y_err and y_err_lower/y_err_upper are"
+            " mutually exclusive -- pass one or the other, not both"
+        )
+    if not (plot._mark == Mark.BAR):
+        raise Error(
+            "Plot.encode_categorical(): y_err/y_err_lower/y_err_upper is only"
+            " supported for Mark.BAR today"
+        )
+    if has_y_err and len(plot.y_err_data) != len(plot.x_categories):
+        raise Error(
+            "Plot.encode_categorical(): y_err must be the same length as"
+            " x/y (got "
+            + String(len(plot.y_err_data))
+            + " and "
+            + String(len(plot.x_categories))
+            + ")"
+        )
+    if has_y_err:
+        for v in plot.y_err_data:
+            if v < 0.0:
+                raise Error(
+                    "Plot.encode_categorical(): y_err values must be >= 0 (got "
+                    + String(v)
+                    + ")"
+                )
+    if has_y_err_lower and len(plot.y_err_lower_data) != len(plot.x_categories):
+        raise Error(
+            "Plot.encode_categorical(): y_err_lower must be the same length"
+            " as x/y (got "
+            + String(len(plot.y_err_lower_data))
+            + " and "
+            + String(len(plot.x_categories))
+            + ")"
+        )
+    if has_y_err_upper and len(plot.y_err_upper_data) != len(plot.x_categories):
+        raise Error(
+            "Plot.encode_categorical(): y_err_upper must be the same length"
+            " as x/y (got "
+            + String(len(plot.y_err_upper_data))
+            + " and "
+            + String(len(plot.x_categories))
+            + ")"
+        )
+    if has_y_err_lower:
+        for v in plot.y_err_lower_data:
+            if v < 0.0:
+                raise Error(
+                    "Plot.encode_categorical(): y_err_lower values must be"
+                    " >= 0 (got "
+                    + String(v)
+                    + ")"
+                )
+    if has_y_err_upper:
+        for v in plot.y_err_upper_data:
+            if v < 0.0:
+                raise Error(
+                    "Plot.encode_categorical(): y_err_upper values must be"
+                    " >= 0 (got "
+                    + String(v)
+                    + ")"
+                )
 
 
 def _require_non_negative(values: List[Float64], mark_name: String) raises:
@@ -6683,10 +6869,19 @@ def _render_bar_combo_layers[
                 + ")"
             )
 
+    # The bar layer's own y_err/y_err_lower/y_err_upper (#216, allowed here
+    # since _validate_categorical_encoding above already restricts them to
+    # Mark.BAR) widens the shared domain to its whisker endpoints, same as
+    # the standalone _render_bar does; every other layer's y_err* is
+    # rejected above, so its own y_data is all it ever contributes.
     var combined_y = List[Float64]()
     for i in range(len(plots)):
-        for v in plots[i].y_data:
-            combined_y.append(v)
+        if i == bar_index:
+            for v in _bar_y_domain_data(plots[i]):
+                combined_y.append(v)
+        else:
+            for v in plots[i].y_data:
+                combined_y.append(v)
     var y_scale = _zero_baseline_y_extent(combined_y)
 
     var theme = plots[0]._theme
