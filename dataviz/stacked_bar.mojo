@@ -25,7 +25,7 @@ from dataviz.plot import (
     _finished,
     _zero_baseline_y_extent,
 )
-from dataviz.scale import LinearScale, _format_fixed, _label_decimals
+from dataviz.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.theme import Theme
 
 
@@ -160,7 +160,11 @@ def _draw_stacked_segments[
                     _TextRequest(
                         at.x,
                         at.y,
-                        _format_fixed(v, _label_decimals(v)),
+                        _format_tick(
+                            v,
+                            _label_decimals(v),
+                            theme.x_tick_format if orient.horizontal else theme.y_tick_format,
+                        ),
                         theme.text_color,
                         sc.font_size,
                         TextAlign.CENTER,

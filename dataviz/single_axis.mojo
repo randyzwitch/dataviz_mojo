@@ -89,7 +89,7 @@ def _draw_single_axis_frame[
     out_x_scale.range_max = Float64(plot_x1)
 
     var x_ticks = out_x_scale.ticks()
-    var x_labels = x_ticks.labels()
+    var x_labels = x_ticks.labels(theme.x_tick_format)
 
     if theme.show_gridlines:
         for i in range(len(x_ticks.values)):

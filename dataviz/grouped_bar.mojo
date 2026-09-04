@@ -24,7 +24,7 @@ from dataviz.plot import (
     _require_non_empty,
     _zero_baseline_y_extent,
 )
-from dataviz.scale import LinearScale, _format_fixed, _label_decimals
+from dataviz.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.theme import Theme
 
 
@@ -266,7 +266,11 @@ def _draw_grouped_bars[
                     _TextRequest(
                         at.x,
                         at.y,
-                        _format_fixed(value, _label_decimals(value)),
+                        _format_tick(
+                            value,
+                            _label_decimals(value),
+                            theme.x_tick_format if orient.horizontal else theme.y_tick_format,
+                        ),
                         theme.text_color,
                         sc.font_size,
                         at.align,

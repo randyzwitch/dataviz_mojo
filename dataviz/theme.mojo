@@ -50,6 +50,7 @@ from canvas.color import Color
 
 from dataviz.colors import WHITE
 from dataviz.output_format import OutputFormat
+from dataviz.scale import TickFormat
 from dataviz.x_label_rotation import XAxisLabelRotation
 
 
@@ -270,6 +271,19 @@ struct Theme(ImplicitlyCopyable, Movable):
     labels rotate when they would otherwise overlap; see
     `XAxisLabelRotation`'s own docstring. Defaults to `AUTO` (#214).
     """
+    var x_tick_format: TickFormat
+    """How the x-axis's own tick labels render (#210); see
+    `TickFormat`'s own docstring for the available kinds. Defaults to
+    `AUTO`, `Ticks.labels()`'s pre-#210 behavior. Log-axis ticks
+    (`Plot.scale_x_log()`) aren't covered yet -- see `Ticks.labels()`.
+    """
+    var y_tick_format: TickFormat
+    """`x_tick_format`'s y-axis counterpart. Also what `show_data_labels`
+    formats a value with (the x-axis's own format for a
+    `horizontal=True` categorical mark, whichever axis is the value
+    axis there), and what a continuous color/size legend's endpoint
+    labels use.
+    """
 
     def __init__(
         out self,
@@ -326,6 +340,8 @@ struct Theme(ImplicitlyCopyable, Movable):
         svg_tooltips: Bool = True,
         show_data_labels: Bool = False,
         x_label_rotation: XAxisLabelRotation = XAxisLabelRotation.AUTO,
+        x_tick_format: TickFormat = TickFormat.AUTO,
+        y_tick_format: TickFormat = TickFormat.AUTO,
     ):
         """Construct a `Theme`, overriding any subset of its fields by keyword.
         Every parameter is one field with the same name and default; see
@@ -384,6 +400,8 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.svg_tooltips = svg_tooltips
         self.show_data_labels = show_data_labels
         self.x_label_rotation = x_label_rotation
+        self.x_tick_format = x_tick_format
+        self.y_tick_format = y_tick_format
 
     @staticmethod
     def default() -> Self:
