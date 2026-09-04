@@ -17,6 +17,10 @@
 - PointShape/Theme.shape_by_category: the shape cycle, per-shape
   geometry (SVG), legend icons, and the no-op without color_categories.
 - accessible_svg_string()/write_accessible_svg() and SVG tooltips.
+- _svg_output_string()/_resolve_description() (#212): save()/save_layers()/
+  save_facets() add accessible SVG markup automatically once a title is
+  set, an explicit Plot.labels(description=...) over subtitle, and an
+  untitled plot's output staying byte-identical.
 """
 
 from _test_helpers import (
@@ -59,7 +63,9 @@ from dataviz.plot import (
     _build_line_path,
     _categorical_indices,
     _decimate_to_pixel_columns,
+    _resolve_description,
     _resolve_x_label_rotation,
+    _svg_output_string,
 )
 from dataviz.theme import Theme
 from dataviz.x_label_rotation import XAxisLabelRotation
@@ -1956,6 +1962,113 @@ def test_accessible_svg_string_preserves_the_chart_body_unchanged() raises:
     assert_true(
         body in accessible,
         "the original chart body survives completely unchanged",
+    )
+
+
+def test_svg_output_string_adds_accessible_markup_when_a_title_is_set() raises:
+    # #212: save()/save_layers()/save_facets() all funnel through
+    # _svg_output_string() rather than writing plain svg.to_string(), so
+    # this is what actually decides whether a titled plot's SVG file gets
+    # role="img"/<title>/<desc> -- tested here with no disk I/O, since
+    # save() itself is a thin file-write wrapper around this string.
+    var cats: List[String] = ["A", "B"]
+    var vals: List[Float64] = [10.0, 20.0]
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=vals)
+        .labels(title="Widget Sales", subtitle="By category")
+        .size(400, 300)
+    )
+    var s = _svg_output_string(render_svg(plot), plot._labels)
+    assert_true('role="img"' in s, "accessible markup added for a titled plot")
+    assert_true(
+        "<title>Widget Sales</title>" in s, "the title becomes the SVG <title>"
+    )
+    assert_true(
+        "<desc>By category</desc>" in s,
+        "subtitle becomes the <desc> when description is left unset",
+    )
+
+
+def test_svg_output_string_leaves_an_untitled_plot_unchanged() raises:
+    var cats: List[String] = ["A", "B"]
+    var vals: List[Float64] = [10.0, 20.0]
+    var plot = (
+        Plot().mark_bar().encode_categorical(x=cats, y=vals).size(400, 300)
+    )
+    var svg = render_svg(plot)
+    var plain = svg.to_string()
+    var s = _svg_output_string(render_svg(plot), plot._labels)
+    assert_equal(s, plain, "an untitled plot's SVG output is byte-identical")
+
+
+def test_resolve_description_prefers_explicit_description_over_subtitle() raises:
+    var cats: List[String] = ["A", "B"]
+    var vals: List[Float64] = [10.0, 20.0]
+    var with_both = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=vals)
+        .labels(
+            title="Widget Sales",
+            subtitle="By category",
+            description="A longer screen-reader-only description.",
+        )
+    )
+    assert_equal(
+        _resolve_description(with_both._labels),
+        "A longer screen-reader-only description.",
+        "an explicit description wins over subtitle",
+    )
+
+    var subtitle_only = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=vals)
+        .labels(title="Widget Sales", subtitle="By category")
+    )
+    assert_equal(
+        _resolve_description(subtitle_only._labels),
+        "By category",
+        "falls back to subtitle when description is left unset",
+    )
+
+    var neither = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=vals)
+        .labels(title="Widget Sales")
+    )
+    assert_equal(
+        _resolve_description(neither._labels),
+        "",
+        "empty when neither description nor subtitle is set",
+    )
+
+
+def test_svg_output_string_explicit_description_wins_over_subtitle() raises:
+    var cats: List[String] = ["A", "B"]
+    var vals: List[Float64] = [10.0, 20.0]
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=vals)
+        .labels(
+            title="Widget Sales",
+            subtitle="By category",
+            description="A longer screen-reader-only description.",
+        )
+        .size(400, 300)
+    )
+    var s = _svg_output_string(render_svg(plot), plot._labels)
+    assert_true(
+        "<desc>A longer screen-reader-only description.</desc>" in s,
+        "the explicit description wins over subtitle",
+    )
+    assert_true(
+        "<desc>By category</desc>" not in s,
+        "subtitle doesn't also become its own <desc> -- only one wins",
     )
 
 

@@ -51,12 +51,7 @@ from canvas.resize import downsample
 from canvas.vector.draw_target import DrawTarget
 from canvas.geometry import _round_to_int
 from canvas.path import Path
-from canvas.vector.svg import (
-    SvgCanvas,
-    write_svg,
-    _escape_xml_text,
-    _escape_xml_attr,
-)
+from canvas.vector.svg import SvgCanvas, _escape_xml_text, _escape_xml_attr
 from canvas.text.render import draw_text, measure_text, FontWeight, TextAlign
 from canvas.text.font_cache import FontCache
 
@@ -343,12 +338,17 @@ struct _LabelData(Copyable, Movable):
     var subtitle: String
     var x_title: String
     var y_title: String
+    var description: String
+    """A longer SVG `<desc>` than `subtitle` need be (#212); see
+    `Plot.labels()`'s own docstring. `save()`/`save_layers()`/
+    `save_facets()` fall back to `subtitle` when this is empty."""
 
     def __init__(out self):
         self.title = ""
         self.subtitle = ""
         self.x_title = ""
         self.y_title = ""
+        self.description = ""
 
 
 struct _AnnotationData(Copyable, Movable):
@@ -2637,20 +2637,28 @@ struct Plot(Copyable, Movable):
         subtitle: String = "",
         x_title: String = "",
         y_title: String = "",
+        description: String = "",
     ) -> Self:
         """Set the chart title/subtitle and/or axis titles. Named `x_title`/
         `y_title` rather than `x`/`y` so a call next to
         `.encode(x=..., y=...)` never reads as setting data.
 
-        Each of the four is independent and defaults to `""` (not set);
-        layout space is reserved only for the non-empty ones. `subtitle`
+        Each is independent and defaults to `""` (not set); layout space is
+        reserved only for the non-empty visible ones (`title`/`subtitle`/
+        `x_title`/`y_title` -- `description` draws nothing). `subtitle`
         draws directly beneath `title`, smaller and in `Theme.subtitle_color`;
         with no `title` it draws at the top position `title` would have used.
 
         `x_title`/`y_title` caption whatever is drawn along the bottom/left
         edge, whichever axis that is for the mark's orientation. `Mark.ARC`
         has no axes, so `x_title`/`y_title` raise at render() time there;
-        only `title`/`subtitle` apply.
+        only `title`/`subtitle`/`description` apply.
+
+        `description` (#212) is an SVG `<desc>` -- longer, screen-reader-only
+        context `subtitle` alone can't carry since it's drawn on the chart
+        itself. `save()`/`save_layers()`/`save_facets()` write it (falling
+        back to `subtitle` when empty) automatically whenever `title` is set;
+        see `accessible_svg_string()`'s own docstring for the full markup.
 
         Args:
             title: The chart's title. Left empty (the default),
@@ -2661,6 +2669,9 @@ struct Plot(Copyable, Movable):
                 edge; raises at render() time on `Mark.ARC`.
             y_title: Caption for whatever's drawn along the left edge;
                 raises at render() time on `Mark.ARC`.
+            description: Optional longer SVG `<desc>` text, drawn
+                nowhere on the chart itself; falls back to `subtitle`
+                when left empty.
 
         Returns:
             Self, for further chaining.
@@ -2669,6 +2680,7 @@ struct Plot(Copyable, Movable):
         self._labels.subtitle = subtitle
         self._labels.x_title = x_title
         self._labels.y_title = y_title
+        self._labels.description = description
         return self^
 
     def annotate_line(var self, value: Float64, label: String = "") -> Self:
@@ -4789,6 +4801,32 @@ def _resolve_output_format(
     return theme_format
 
 
+def _resolve_description(labels: _LabelData) -> String:
+    """`labels.description`, or `labels.subtitle` when that's empty (#212)
+    -- the `<desc>` `_svg_output_string()` passes to
+    `accessible_svg_string()`, so a title-and-subtitle chart gets a
+    reasonable screen-reader description with no extra call needed.
+    """
+    return (
+        labels.description if labels.description.byte_length()
+        > 0 else labels.subtitle
+    )
+
+
+def _svg_output_string(svg: SvgCanvas, labels: _LabelData) raises -> String:
+    """What `save()`/`save_layers()`/`save_facets()` write for SVG output
+    (#212): `accessible_svg_string()`'s markup when `labels.title` is set
+    (`_resolve_description()`'s `<desc>`), or plain `svg.to_string()`
+    otherwise. A pure string decision, factored out of the file-writing
+    `save*()` functions so it's directly testable with no disk I/O.
+    """
+    if labels.title.byte_length() > 0:
+        return accessible_svg_string(
+            svg, labels.title, _resolve_description(labels)
+        )
+    return svg.to_string()
+
+
 def save(plot: Plot, path: String) raises:
     """Render `plot` and write it to `path` in one call (#112). The format
     comes from `_resolve_output_format()` (the path's extension, falling
@@ -4801,10 +4839,19 @@ def save(plot: Plot, path: String) raises:
     itself. `save_layers()`/`save_facets()` are the `List[Plot]`
     counterparts; the `save(canvas: Canvas, path)` overload below writes
     an already-rendered `Canvas`.
+
+    SVG output with a non-empty `.labels(title=...)` writes accessible
+    markup automatically (#212), via `_svg_output_string()`/
+    `accessible_svg_string()` with that title and `_resolve_description()`'s
+    `<desc>` -- the same markup `write_accessible_svg()` adds explicitly,
+    for callers who don't need a title that differs from the visible one.
+    An untitled plot's SVG is unaffected.
     """
     var format = _resolve_output_format(plot._theme.output_format, path)
     if format == OutputFormat.SVG:
-        write_svg(render_svg(plot), path)
+        var f = open(path, "w")
+        f.write(_svg_output_string(render_svg(plot), plot._labels))
+        f.close()
     elif format == OutputFormat.PNG:
         write_png(render(plot), path)
     else:
@@ -4833,12 +4880,19 @@ def save_layers(plots: List[Plot], path: String) raises:
     """`save()`'s `render_layers()`/`render_layers_svg()` counterpart. The
     format comes from `plots[0]`'s theme when the path's extension
     doesn't decide it. Raises on an empty `plots`.
+
+    SVG output writes accessible markup automatically (#212) from
+    `plots[0]`'s `.labels()`, the same one whose title/subtitle
+    `render_layers()` itself draws (only the first layer's labels apply
+    to a layered chart); see `save()`'s own docstring.
     """
     if len(plots) == 0:
         raise Error("save_layers(): plots must not be empty")
     var format = _resolve_output_format(plots[0]._theme.output_format, path)
     if format == OutputFormat.SVG:
-        write_svg(render_layers_svg(plots), path)
+        var f = open(path, "w")
+        f.write(_svg_output_string(render_layers_svg(plots), plots[0]._labels))
+        f.close()
     elif format == OutputFormat.PNG:
         write_png(render_layers(plots), path)
     else:
@@ -4861,12 +4915,25 @@ def save_facets(
 
     See the Cookbook's "Facets" and "Shared Facet Scale" recipes
     (docs/src/cookbook_recipes/).
+
+    SVG output writes accessible markup automatically (#212) from
+    `plots[0]`'s `.labels()`, as a best-effort document title for the
+    whole grid -- each cell can carry its own visible title, but the
+    `<svg>` root needs exactly one `aria-label`/`<title>`. Give `plots[0]`
+    a title that describes the grid as a whole (or call
+    `write_accessible_svg()` directly) when that matters.
     """
     if len(plots) == 0:
         raise Error("save_facets(): plots must not be empty")
     var format = _resolve_output_format(plots[0]._theme.output_format, path)
     if format == OutputFormat.SVG:
-        write_svg(render_facets_svg(plots, cols, shared_y_scale), path)
+        var f = open(path, "w")
+        f.write(
+            _svg_output_string(
+                render_facets_svg(plots, cols, shared_y_scale), plots[0]._labels
+            )
+        )
+        f.close()
     elif format == OutputFormat.PNG:
         write_png(render_facets(plots, cols, shared_y_scale), path)
     else:
