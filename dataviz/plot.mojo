@@ -4145,45 +4145,42 @@ benchmarked against 2x/4x.
 """
 
 
-def _bump_scale(mut plots: List[Plot], factor: Int) -> List[Float64]:
-    """Multiply every `Plot` in `plots`' `_theme.scale` by `factor` in
-    place, returning the original values so `_restore_scale()` can put
-    them back: the list version of the temporary scale bump `render()`
+def _scaled_copy(plots: List[Plot], factor: Int) -> List[Plot]:
+    """A copy of `plots` with every `Plot`'s own `_theme.scale` multiplied
+    by `factor`: the list version of the temporary scale bump `render()`
     does for supersampling, so every plot in a facet grid/layer stack
-    scales its own mark styling.
+    scales its own mark styling. Returns a new list rather than mutating
+    `plots` in place (#208), so `render_facets()`/`render_layers()` can
+    take `plots` by borrow -- a temporary list literal binds to a borrow
+    but not to `mut`.
     """
-    var originals = List[Float64]()
+    var out = List[Plot](capacity=len(plots))
     for i in range(len(plots)):
-        originals.append(plots[i]._theme.scale)
-        plots[i]._theme.scale = plots[i]._theme.scale * Float64(factor)
-    return originals^
+        var scaled = plots[i].copy()
+        scaled._theme.scale = scaled._theme.scale * Float64(factor)
+        out.append(scaled^)
+    return out^
 
 
-def _restore_scale(mut plots: List[Plot], originals: List[Float64]):
-    """Undoes `_bump_scale()` -- see its docstring."""
-    for i in range(len(plots)):
-        plots[i]._theme.scale = originals[i]
-
-
-def render(mut plot: Plot) raises -> Canvas:
+def render(plot: Plot) raises -> Canvas:
     """Render `plot` into a fresh `Canvas` sized `plot.width` x `plot.height`
-    and return it, supersampled by `_RASTER_SUPERSAMPLE`:
-    `plot._theme.scale` is bumped by that factor, `_render_into` draws
-    into a scratch canvas that many times larger, the scale is restored,
+    and return it, supersampled by `_RASTER_SUPERSAMPLE`: a copy of
+    `plot` has its `_theme.scale` bumped by that factor, `_render_into`
+    draws into a scratch canvas that many times larger from that copy,
     and `downsample` shrinks the result.
 
-    `plot` is `mut` only for that temporary bump; it is unchanged
-    afterward, so `save(plot, "a.svg"); save(plot, "a.png")` on the same
-    variable works. Since a temporary can't bind to `mut`,
-    `render(scatter(x, y))` inline doesn't compile; bind it to a variable
+    `plot` is a plain borrow (#208): copying instead of mutating in
+    place means `render(scatter(x, y))` and `save(scatter(x, y), path)`
+    both compile inline, with no need to bind a temporary to a variable
     first.
     """
     var factor = _RASTER_SUPERSAMPLE
-    var original_scale = plot._theme.scale
-    plot._theme.scale = original_scale * Float64(factor)
-    var scratch = Canvas(plot.width * factor, plot.height * factor, plot._theme.background)
-    _render_into(scratch, plot)
-    plot._theme.scale = original_scale
+    var scaled = plot.copy()
+    scaled._theme.scale = scaled._theme.scale * Float64(factor)
+    var scratch = Canvas(
+        plot.width * factor, plot.height * factor, scaled._theme.background
+    )
+    _render_into(scratch, scaled)
     return downsample(scratch, factor)
 
 
@@ -4294,19 +4291,18 @@ def _resolve_output_format(theme_format: OutputFormat, path: String) -> OutputFo
     return theme_format
 
 
-def save(mut plot: Plot, path: String) raises:
+def save(plot: Plot, path: String) raises:
     """Render `plot` and write it to `path` in one call (#112). The format
     comes from `_resolve_output_format()` (the path's extension, falling
     back to `plot._theme.output_format`); `PNG`/`BMP` both go through
     `render()` and differ only in the writer.
 
-    `plot` is `mut` only because `render()` is; it is unchanged
-    afterward. A temporary can't bind to `mut`, so
-    `save(scatter(x, y), path)` inline doesn't compile. Call `render()`/
-    `render_svg()` directly to get the `Canvas`/`SvgCanvas` itself.
-    `save_layers()`/`save_facets()` are the `List[Plot]` counterparts;
-    the `save(canvas: Canvas, path)` overload below writes an
-    already-rendered `Canvas`.
+    `plot` is a plain borrow (#208): `save(scatter(x, y), path)` compiles
+    inline, with no need to bind the temporary to a variable first. Call
+    `render()`/`render_svg()` directly to get the `Canvas`/`SvgCanvas`
+    itself. `save_layers()`/`save_facets()` are the `List[Plot]`
+    counterparts; the `save(canvas: Canvas, path)` overload below writes
+    an already-rendered `Canvas`.
     """
     var format = _resolve_output_format(plot._theme.output_format, path)
     if format == OutputFormat.SVG:
@@ -4335,11 +4331,10 @@ def save(canvas: Canvas, path: String) raises:
         write_png(canvas, path)
 
 
-def save_layers(mut plots: List[Plot], path: String) raises:
+def save_layers(plots: List[Plot], path: String) raises:
     """`save()`'s `render_layers()`/`render_layers_svg()` counterpart. The
     format comes from `plots[0]`'s theme when the path's extension
-    doesn't decide it. Raises on an empty `plots`. `plots` is `mut` only
-    because `render_layers()` is.
+    doesn't decide it. Raises on an empty `plots`.
     """
     if len(plots) == 0:
         raise Error("save_layers(): plots must not be empty")
@@ -4352,9 +4347,11 @@ def save_layers(mut plots: List[Plot], path: String) raises:
         write_bmp(render_layers(plots), path)
 
 
-def save_facets(mut plots: List[Plot], cols: Int, path: String, shared_y_scale: Bool = False) raises:
+def save_facets(
+    plots: List[Plot], cols: Int, path: String, shared_y_scale: Bool = False
+) raises:
     """`save()`'s `render_facets()`/`render_facets_svg()` counterpart; see
-    `save_layers()` for the shared format/empty/`mut` behavior.
+    `save_layers()` for the shared format/empty behavior.
 
     Each entry in `plots` is an independent `Plot` (its own data, labels,
     theme, mark), laid out into a grid of `cols` columns;
@@ -5612,29 +5609,31 @@ def _require_uniform_size(plots: List[Plot], caller: String) raises:
             )
 
 
-def render_facets(mut plots: List[Plot], cols: Int, shared_y_scale: Bool = False) raises -> Canvas:
+def render_facets(
+    plots: List[Plot], cols: Int, shared_y_scale: Bool = False
+) raises -> Canvas:
     """Render each of `plots` into its grid cell of a fresh `Canvas` sized
     from the plots (`_require_uniform_size`), supersampled by
-    `_RASTER_SUPERSAMPLE` like `render()` (with the same `mut`
-    restriction: bind the list to a variable first). See
-    `_render_facets_generic` for the cell-layout contract. `cols` is
-    checked before anything else, since a non-positive value would divide
-    by zero in the `rows`/canvas-size math.
+    `_RASTER_SUPERSAMPLE` like `render()` (`plots` is a plain borrow,
+    #208 -- a copy is what actually gets the scale bump, so a temporary
+    list literal binds fine). See `_render_facets_generic` for the
+    cell-layout contract. `cols` is checked before anything else, since a
+    non-positive value would divide by zero in the `rows`/canvas-size
+    math.
     """
     if cols <= 0:
         raise Error("render_facets(): cols must be positive (got " + String(cols) + ")")
     _require_uniform_size(plots, "render_facets")
     var rows = (len(plots) + cols - 1) // cols
     var factor = _RASTER_SUPERSAMPLE
-    var originals = _bump_scale(plots, factor)
+    var scaled_plots = _scaled_copy(plots, factor)
     var canvas = Canvas(cols * plots[0].width * factor, rows * plots[0].height * factor)
     var text_requests = _render_facets_generic(
-        canvas, canvas.width, canvas.height, plots, cols, shared_y_scale
+        canvas, canvas.width, canvas.height, scaled_plots, cols, shared_y_scale
     )
     # One FontCache for every cell's labels -- see render()'s own.
     var text_cache = FontCache()
     _replay_text_requests(canvas, text_requests, text_cache)
-    _restore_scale(plots, originals)
     return downsample(canvas, factor)
 
 
@@ -5774,7 +5773,7 @@ def _secondary_axis_y_title(plots: List[Plot]) -> String:
     return ""
 
 
-def render_layers(mut plots: List[Plot]) raises -> Canvas:
+def render_layers(plots: List[Plot]) raises -> Canvas:
     """Render every `Plot` in `plots` onto one shared coordinate system: one
     combined x/y domain across every layer, one set of axes/gridlines/
     ticks, each mark drawn over the last in the order given.
@@ -5796,27 +5795,29 @@ def render_layers(mut plots: List[Plot]) raises -> Canvas:
     axis.
 
     Every `Plot` must share the same `.size()`; an empty list raises.
-    Supersampled like `render()`, bumping every layer's scale together;
-    the same `mut` restriction applies.
+    Supersampled like `render()`, bumping every layer's scale together
+    on a copy (`plots` is a plain borrow, #208).
     """
     _require_uniform_size(plots, "render_layers")
     var factor = _RASTER_SUPERSAMPLE
-    var originals = _bump_scale(plots, factor)
-    var canvas = Canvas(plots[0].width * factor, plots[0].height * factor)
+    var scaled_plots = _scaled_copy(plots, factor)
+    var canvas = Canvas(
+        scaled_plots[0].width * factor, scaled_plots[0].height * factor
+    )
     var cx1 = canvas.width
     var cy1 = canvas.height
-    canvas.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
-    var sc = _Scaled(plots[0]._theme)
-    var y2_title = _secondary_axis_y_title(plots)
-    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1)
+    canvas.fill_rect(0, 0, cx1, cy1, scaled_plots[0]._theme.background)
+    var sc = _Scaled(scaled_plots[0]._theme)
+    var y2_title = _secondary_axis_y_title(scaled_plots)
+    var frame = _apply_labels(scaled_plots[0], 0, 0, cx1, cy1)
     if y2_title.byte_length() > 0:
         # Mirrors _apply_labels's extra_left reservation for the primary
         # y_title, on the right edge; _apply_labels only sees plots[0], not the
         # layer that owns the secondary caption.
         frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
-    var result = _render_layers_generic(canvas, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1)
+    var result = _render_layers_generic(canvas, scaled_plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1)
     var label_requests = _label_text_requests(
-        plots[0], 0, 0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
+        scaled_plots[0], 0, 0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
     if y2_title.byte_length() > 0:
         # The mirror of _label_text_requests's primary y_title: rotated +pi/2
@@ -5827,10 +5828,10 @@ def render_layers(mut plots: List[Plot]) raises -> Canvas:
                 cx1 - Int(sc.axis_title_font_size * 0.8),
                 (result.py0 + result.py1) // 2,
                 y2_title,
-                plots[0]._theme.text_color,
+                scaled_plots[0]._theme.text_color,
                 sc.axis_title_font_size,
                 TextAlign.CENTER,
-                plots[0]._theme.font_family,
+                scaled_plots[0]._theme.font_family,
                 rotation=pi / 2.0,
             )
         )
@@ -5838,7 +5839,6 @@ def render_layers(mut plots: List[Plot]) raises -> Canvas:
     var text_cache = FontCache()
     _replay_text_requests(canvas, label_requests, text_cache)
     _replay_text_requests(canvas, result.text_requests, text_cache)
-    _restore_scale(plots, originals)
     return downsample(canvas, factor)
 
 
