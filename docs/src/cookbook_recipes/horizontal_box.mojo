@@ -8,6 +8,7 @@ from dataviz.plot import Plot, save
 from dataviz.colors import ROYALBLUE
 from dataviz.theme import Theme
 
+
 def main() raises:
     var groups: List[String] = ["Group A", "Group B", "Group C", "Group D"]
     var scores: List[List[Int]] = [

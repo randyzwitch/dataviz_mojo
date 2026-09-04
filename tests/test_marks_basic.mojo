@@ -10,7 +10,17 @@ Mark.CANDLESTICK, Mark.WATERFALL, and Mark.BULLET, each raster + SVG.
 from _test_helpers import BG, _assert_color, _assert_near_color, _count_color
 from canvas.color import Color
 from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
-from dataviz import area, bar, box, bullet, candlestick, line, lollipop, scatter, waterfall
+from dataviz import (
+    area,
+    bar,
+    box,
+    bullet,
+    candlestick,
+    line,
+    lollipop,
+    scatter,
+    waterfall,
+)
 from dataviz.color_scale import default_categorical_palette
 from dataviz.colors import BLACK, WHITE
 from dataviz.plot import (
@@ -30,6 +40,7 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 # ---------------------------------------------------------------
 # from tests/test_point.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_point_mark_centers_on_the_hand_derived_pixel() raises:
     # Single point (5.0, 5.0): zero domain span, so _data_extent pads
@@ -66,7 +77,13 @@ def test_render_color_encoding_matches_hand_derived_colors() raises:
     var t = Theme(
         color_scale_low=BLACK, color_scale_high=WHITE, show_legend=False
     )
-    var plot = Plot().mark_point().encode(x=x, y=y, color=color).theme(t).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y, color=color)
+        .theme(t)
+        .size(400, 300)
+    )
     var c = render(plot)
 
     var p0 = c.get_pixel(75, 135)
@@ -91,9 +108,14 @@ def test_render_size_encoding_matches_hand_derived_radii() raises:
     var y: List[Float64] = [0.0, 0.0]
     var size: List[Float64] = [0.0, 100.0]
     var t = Theme(
-        size_range_min=2.0, size_range_max=10.0, show_gridlines=False, show_legend=False
+        size_range_min=2.0,
+        size_range_max=10.0,
+        show_gridlines=False,
+        show_legend=False,
     )
-    var plot = Plot().mark_point().encode(x=x, y=y, size=size).theme(t).size(400, 300)
+    var plot = (
+        Plot().mark_point().encode(x=x, y=y, size=size).theme(t).size(400, 300)
+    )
     var c = render(plot)
 
     var mark_color = t.mark_color
@@ -101,8 +123,16 @@ def test_render_size_encoding_matches_hand_derived_radii() raises:
     _assert_color(c, 78, 135, BG, "3px from small (radius 2) point -- outside")
 
     _assert_color(c, 365, 135, mark_color, "large point center")
-    _assert_color(c, 368, 135, mark_color, "3px from large (radius 10) point -- still inside")
-    _assert_color(c, 376, 135, BG, "11px from large (radius 10) point -- outside")
+    _assert_color(
+        c,
+        368,
+        135,
+        mark_color,
+        "3px from large (radius 10) point -- still inside",
+    )
+    _assert_color(
+        c, 376, 135, BG, "11px from large (radius 10) point -- outside"
+    )
 
 
 def test_render_categorical_color_matches_hand_derived_palette_entries() raises:
@@ -113,7 +143,12 @@ def test_render_categorical_color_matches_hand_derived_palette_entries() raises:
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
     var cats: List[String] = ["A", "B"]
-    var plot = Plot().mark_point().encode(x=x, y=y, color_categories=cats).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y, color_categories=cats)
+        .size(400, 300)
+    )
     var c = render(plot)
 
     var palette = default_categorical_palette()
@@ -133,9 +168,11 @@ def test_render_svg_point_mark_matches_hand_derived_coordinates() raises:
         "encode()'s point, same pixel render() already hand-derives",
     )
 
+
 # ---------------------------------------------------------------
 # from tests/test_line.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_line_mark_draws_ink_between_the_two_endpoints() raises:
     # A horizontal line from (0,0) to (10,0): zero-span y padded to
@@ -211,7 +248,9 @@ def test_render_line_smoothing_default_matches_straight_line_output_exactly() ra
     var y: List[Float64] = [0.0, 10.0, 0.0]
     var _hoisted2 = line(x, y, width=400, height=300)
     var c_default = render(_hoisted2)
-    var _hoisted3 = line(x, y, theme=Theme(line_smoothing=0.0), width=400, height=300)
+    var _hoisted3 = line(
+        x, y, theme=Theme(line_smoothing=0.0), width=400, height=300
+    )
     var c_explicit = render(_hoisted3)
 
     for yy in range(c_default.height):
@@ -234,11 +273,19 @@ def test_render_line_smoothing_bows_the_curve_away_from_the_straight_path() rais
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
     var _hoisted4 = line(
-        x, y, theme=Theme(line_smoothing=0.0, show_gridlines=False), width=400, height=300
+        x,
+        y,
+        theme=Theme(line_smoothing=0.0, show_gridlines=False),
+        width=400,
+        height=300,
     )
     var c_straight = render(_hoisted4)
     var _hoisted5 = line(
-        x, y, theme=Theme(line_smoothing=1.0, show_gridlines=False), width=400, height=300
+        x,
+        y,
+        theme=Theme(line_smoothing=1.0, show_gridlines=False),
+        width=400,
+        height=300,
     )
     var c_smooth = render(_hoisted5)
 
@@ -259,13 +306,20 @@ def test_render_svg_line_smoothing_matches_confirmed_cubic_path() raises:
     # formula.
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).theme(Theme(line_smoothing=1.0, show_gridlines=False)).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .theme(Theme(line_smoothing=1.0, show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     assert_true(
         '<path d="M74.545,239.545 C98.788,204.697 171.515,30.455 220.000,30.455'
         ' C268.485,30.455 341.212,204.697 365.455,239.545" fill="none"'
         ' stroke="#1e64b4" stroke-width="2.000" stroke-linecap="round"'
-        ' stroke-linejoin="round"/>' in svg.to_string(),
+        ' stroke-linejoin="round"/>'
+        in svg.to_string(),
         "the fully-smoothed LINE mark's two cubic segments",
     )
 
@@ -274,10 +328,14 @@ def test_render_line_raises_on_out_of_range_smoothing() raises:
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     with assert_raises():
-        var _hoisted6 = line(x, y, theme=Theme(line_smoothing=-0.1), width=200, height=150)
+        var _hoisted6 = line(
+            x, y, theme=Theme(line_smoothing=-0.1), width=200, height=150
+        )
         _ = render(_hoisted6)
     with assert_raises():
-        var _hoisted7 = line(x, y, theme=Theme(line_smoothing=1.1), width=200, height=150)
+        var _hoisted7 = line(
+            x, y, theme=Theme(line_smoothing=1.1), width=200, height=150
+        )
         _ = render(_hoisted7)
 
 
@@ -296,18 +354,27 @@ def test_render_svg_line_mark_matches_confirmed_path_coordinates() raises:
     # `_format_svg_float` (3 decimals).
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).theme(Theme(show_gridlines=False)).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     assert_true(
         '<path d="M74.545,135.000 L365.455,135.000" fill="none"'
         ' stroke="#1e64b4" stroke-width="2.000" stroke-linecap="round"'
-        ' stroke-linejoin="round"/>' in svg.to_string(),
+        ' stroke-linejoin="round"/>'
+        in svg.to_string(),
         "LINE mark's stroked path",
     )
+
 
 # ---------------------------------------------------------------
 # from tests/test_area.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_area_mark_matches_hand_derived_fill_region() raises:
     # x=[0,10], y=[0,10] on 400x300, default margins (plot area x:[60,380],
@@ -334,15 +401,23 @@ def test_render_svg_area_smoothing_matches_hand_derived_curve() raises:
     # the axis line it is pulled to 249 first (see _pull_off_axis_line).
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [2.0, 10.0, 4.0]
-    var plot = Plot().mark_area().encode(x=x, y=y).theme(
-        Theme(line_smoothing=1.0, show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_area()
+        .encode(x=x, y=y)
+        .theme(Theme(line_smoothing=1.0, show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     assert_true(
         '<path d="M74.545,206.190 C98.788,176.984 171.515,38.254 220.000,30.952'
-        ' C268.485,23.651 341.212,140.476 365.455,162.381 L365.455,249.000'
-        ' L74.545,249.000 Z" fill="#1e64b4"/>' in svg.to_string(),
-        "the smoothed top edge, then two straight line_to()s down to baseline, closed",
+        " C268.485,23.651 341.212,140.476 365.455,162.381 L365.455,249.000"
+        ' L74.545,249.000 Z" fill="#1e64b4"/>'
+        in svg.to_string(),
+        (
+            "the smoothed top edge, then two straight line_to()s down to"
+            " baseline, closed"
+        ),
     )
 
 
@@ -353,7 +428,9 @@ def test_render_area_smoothing_default_matches_straight_output_exactly() raises:
     var y: List[Float64] = [2.0, 10.0, 4.0]
     var _hoisted2 = area(x, y, width=400, height=300)
     var c_default = render(_hoisted2)
-    var _hoisted3 = area(x, y, theme=Theme(line_smoothing=0.0), width=400, height=300)
+    var _hoisted3 = area(
+        x, y, theme=Theme(line_smoothing=0.0), width=400, height=300
+    )
     var c_explicit = render(_hoisted3)
 
     for yy in range(c_default.height):
@@ -369,15 +446,21 @@ def test_render_area_raises_on_out_of_range_smoothing() raises:
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 10.0]
     with assert_raises():
-        var _hoisted4 = area(x, y, theme=Theme(line_smoothing=-0.1), width=200, height=150)
+        var _hoisted4 = area(
+            x, y, theme=Theme(line_smoothing=-0.1), width=200, height=150
+        )
         _ = render(_hoisted4)
     with assert_raises():
-        var _hoisted5 = area(x, y, theme=Theme(line_smoothing=1.1), width=200, height=150)
+        var _hoisted5 = area(
+            x, y, theme=Theme(line_smoothing=1.1), width=200, height=150
+        )
         _ = render(_hoisted5)
+
 
 # ---------------------------------------------------------------
 # from tests/test_bar.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_bar_mark_matches_hand_derived_bar_rectangles() raises:
     # 3 categories, y=[10,20,15], canvas 400x300 with default margins (plot
@@ -419,7 +502,9 @@ def test_render_bar_raises_on_no_data() raises:
     # axes and no error; _validate_categorical_encoding now raises before
     # any layout.
     with assert_raises():
-        var plot = Plot().mark_bar().size(50, 40)  # no encode_categorical() call
+        var plot = (
+            Plot().mark_bar().size(50, 40)
+        )  # no encode_categorical() call
         _ = render(plot)
 
 
@@ -435,7 +520,9 @@ def test_render_bar_negative_values_extend_below_the_baseline() raises:
 
     # Baseline (value 0) is the domain's unpadded top, pixel y=20; a pixel
     # just below it, inside the bar's band, is the mark color.
-    _assert_color(c, 220, 25, t.mark_color, "just below the zero baseline, inside the bar")
+    _assert_color(
+        c, 220, 25, t.mark_color, "just below the zero baseline, inside the bar"
+    )
     # Well above the plot area entirely -- background regardless.
     _assert_color(c, 220, 5, BG, "above the plot area")
 
@@ -446,13 +533,21 @@ def test_render_svg_bar_mark_matches_confirmed_rect() raises:
     # height from 219 to 218.
     var cats: List[String] = ["a", "b", "c"]
     var vals: List[Float64] = [10.0, 20.0, 15.0]
-    var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=vals)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     assert_true(
-        '<rect x="177" y="31" width="85" height="218" fill="#1e64b4"/>' in svg.to_string(),
-        "BAR mark's middle bar, same rectangle render()'s hand-derived test finds",
+        '<rect x="177" y="31" width="85" height="218" fill="#1e64b4"/>'
+        in svg.to_string(),
+        (
+            "BAR mark's middle bar, same rectangle render()'s hand-derived test"
+            " finds"
+        ),
     )
 
 
@@ -465,7 +560,13 @@ def test_render_bar_color_by_sign_colors_negative_bars_differently() raises:
     var t = Theme(show_gridlines=False, color_by_sign=True)
     var _hoisted4 = bar(x, y, theme=t, width=400, height=300)
     var c = render(_hoisted4)
-    _assert_color(c, 220, 25, t.mark_color_negative, "negative bar uses mark_color_negative")
+    _assert_color(
+        c,
+        220,
+        25,
+        t.mark_color_negative,
+        "negative bar uses mark_color_negative",
+    )
 
 
 def test_render_bar_color_by_sign_leaves_positive_bars_at_mark_color() raises:
@@ -476,7 +577,13 @@ def test_render_bar_color_by_sign_leaves_positive_bars_at_mark_color() raises:
     var t = Theme(show_gridlines=False, color_by_sign=True)
     var _hoisted5 = bar(x, y, theme=t, width=400, height=300)
     var c = render(_hoisted5)
-    _assert_color(c, 220, 245, t.mark_color, "positive bar stays mark_color even with color_by_sign on")
+    _assert_color(
+        c,
+        220,
+        245,
+        t.mark_color,
+        "positive bar stays mark_color even with color_by_sign on",
+    )
 
 
 def test_render_bar_color_by_sign_defaults_off() raises:
@@ -486,11 +593,15 @@ def test_render_bar_color_by_sign_defaults_off() raises:
     var t = Theme(show_gridlines=False)
     var _hoisted6 = bar(x, y, theme=t, width=400, height=300)
     var c = render(_hoisted6)
-    _assert_color(c, 220, 25, t.mark_color, "color_by_sign defaults off: still mark_color")
+    _assert_color(
+        c, 220, 25, t.mark_color, "color_by_sign defaults off: still mark_color"
+    )
+
 
 # ---------------------------------------------------------------
 # from tests/test_histogram.mojo
 # ---------------------------------------------------------------
+
 
 def test_encode_histogram_bins_match_hand_derived_counts() raises:
     # 10 values, 5 bins: bin_width=(9.0-1.0)/5=1.6, counts [3, 3, 2, 0, 2].
@@ -533,19 +644,32 @@ def test_render_histogram_draws_as_an_ordinary_bar_chart() raises:
     # A smoke test for the wiring; Mark.BAR's rendering math is covered by
     # its own tests.
     var data: List[Float64] = [1.0, 1.0, 1.0, 5.0, 9.0]
-    var plot = Plot().mark_bar().encode_histogram(data, bins=3).theme(Theme(show_gridlines=False)).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_histogram(data, bins=3)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var c = render(plot)
     # Bin 0 ([1.0, 3.667)) holds 3 of the 5 values, so its bar is the
     # tallest and covers the plot's vertical center.
     var mid_of_plot_area = c.get_pixel(113, 135)
     assert_true(
-        mid_of_plot_area.r != 255 or mid_of_plot_area.g != 255 or mid_of_plot_area.b != 255,
-        "bin 0's bar (3 of 5 values) reaches well above the plot area's midpoint",
+        mid_of_plot_area.r != 255
+        or mid_of_plot_area.g != 255
+        or mid_of_plot_area.b != 255,
+        (
+            "bin 0's bar (3 of 5 values) reaches well above the plot area's"
+            " midpoint"
+        ),
     )
+
 
 # ---------------------------------------------------------------
 # from tests/test_lollipop.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_lollipop_matches_hand_derived_stem_and_point() raises:
     # Same data/canvas/theme as the bar rectangles test: category "b"'s
@@ -557,8 +681,16 @@ def test_render_lollipop_matches_hand_derived_stem_and_point() raises:
     var _hoisted1 = lollipop(x, y, theme=t, width=400, height=300)
     var c = render(_hoisted1)
 
-    _assert_color(c, 220, 31, t.mark_color, "circle center, category b's value pixel")
-    _assert_color(c, 220, 150, t.mark_color, "stem midpoint, well within the 2px-wide stroke")
+    _assert_color(
+        c, 220, 31, t.mark_color, "circle center, category b's value pixel"
+    )
+    _assert_color(
+        c,
+        220,
+        150,
+        t.mark_color,
+        "stem midpoint, well within the 2px-wide stroke",
+    )
     _assert_color(c, 210, 150, BG, "off the stem entirely -- background")
     _assert_color(c, 220, 10, BG, "above the point -- nothing drawn there")
 
@@ -568,15 +700,26 @@ def test_render_lollipop_svg_matches_confirmed_stem_and_point() raises:
     # starts at 249.000 (see _pull_off_axis_line).
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [10.0, 20.0, 15.0]
-    var plot = Plot().mark_lollipop().encode_categorical(x=x, y=y).theme(Theme(show_gridlines=False)).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_lollipop()
+        .encode_categorical(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<path d="M220.000,249.000 L220.000,30.952" fill="none" stroke="#1e64b4"'
-        ' stroke-width="2.000" stroke-linecap="round" stroke-linejoin="round"/>' in s,
+        '<path d="M220.000,249.000 L220.000,30.952" fill="none"'
+        ' stroke="#1e64b4" stroke-width="2.000" stroke-linecap="round"'
+        ' stroke-linejoin="round"/>'
+        in s,
         "category b's stem",
     )
-    assert_true('<circle cx="220" cy="31" r="4" fill="#1e64b4"/>' in s, "category b's point")
+    assert_true(
+        '<circle cx="220" cy="31" r="4" fill="#1e64b4"/>' in s,
+        "category b's point",
+    )
 
 
 def test_render_lollipop_raises_on_mismatched_category_length() raises:
@@ -586,9 +729,11 @@ def test_render_lollipop_raises_on_mismatched_category_length() raises:
         var _hoisted2 = lollipop(x, y, width=200, height=150)
         _ = render(_hoisted2)
 
+
 # ---------------------------------------------------------------
 # from tests/test_box.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_boxplot_matches_hand_derived_box_whiskers_and_outlier() raises:
     # 2 categories: "A" = [2,4,4,4,5,5,7,9,20] (q1=4, median=5, q3=7,
@@ -604,21 +749,45 @@ def test_render_boxplot_matches_hand_derived_box_whiskers_and_outlier() raises:
         [10.0, 12.0, 14.0, 15.0, 18.0],
     ]
     var t = Theme(show_gridlines=False)
-    var _hoisted1 = Plot().mark_box().encode_boxplot(cats, values).theme(t).size(400, 300)
+    var _hoisted1 = (
+        Plot().mark_box().encode_boxplot(cats, values).theme(t).size(400, 300)
+    )
     var c = render(_hoisted1)
 
-    _assert_color(c, 140, 200, t.mark_color, "A: inside the box (between q1 and q3)")
+    _assert_color(
+        c, 140, 200, t.mark_color, "A: inside the box (between q1 and q3)"
+    )
     # Median line and whisker checks use _assert_near_color(), since both
     # are 1px strokes; the high-whisker cap lands exact at its sampled
     # position.
-    _assert_near_color(c, 140, 205, t.axis_color, 70, "A: the median line, drawn over the box fill")
-    _assert_near_color(c, 140, 170, t.axis_color, 60, "A: the upper whisker, between q3 and high")
+    _assert_near_color(
+        c,
+        140,
+        205,
+        t.axis_color,
+        70,
+        "A: the median line, drawn over the box fill",
+    )
+    _assert_near_color(
+        c,
+        140,
+        170,
+        t.axis_color,
+        60,
+        "A: the upper whisker, between q3 and high",
+    )
     _assert_color(c, 120, 158, t.axis_color, "A: the high-whisker cap")
-    _assert_color(c, 140, 30, t.mark_color, "A: the one outlier point, at value 20")
+    _assert_color(
+        c, 140, 30, t.mark_color, "A: the one outlier point, at value 20"
+    )
     _assert_color(c, 300, 105, t.mark_color, "B: inside the box")
     _assert_near_color(c, 300, 100, t.axis_color, 40, "B: the median line")
-    _assert_near_color(c, 300, 70, t.axis_color, 60, "B: the lower whisker, between q1 and low")
-    _assert_color(c, 190, 150, BG, "the gap between A's and B's bands -- background")
+    _assert_near_color(
+        c, 300, 70, t.axis_color, 60, "B: the lower whisker, between q1 and low"
+    )
+    _assert_color(
+        c, 190, 150, BG, "the gap between A's and B's bands -- background"
+    )
 
 
 def test_render_boxplot_svg_matches_confirmed_rects_and_outlier() raises:
@@ -627,12 +796,27 @@ def test_render_boxplot_svg_matches_confirmed_rects_and_outlier() raises:
         [2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0, 20.0],
         [10.0, 12.0, 14.0, 15.0, 18.0],
     ]
-    var plot = Plot().mark_box().encode_boxplot(cats, values).theme(Theme(show_gridlines=False)).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_box()
+        .encode_boxplot(cats, values)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    assert_true('<rect x="76" y="181" width="128" height="35" fill="#1e64b4"/>' in s, "A's box (q1 to q3)")
-    assert_true('<rect x="236" y="89" width="128" height="35" fill="#1e64b4"/>' in s, "B's box (q1 to q3)")
-    assert_true('<circle cx="140" cy="30" r="4" fill="#1e64b4"/>' in s, "A's single outlier, at value 20")
+    assert_true(
+        '<rect x="76" y="181" width="128" height="35" fill="#1e64b4"/>' in s,
+        "A's box (q1 to q3)",
+    )
+    assert_true(
+        '<rect x="236" y="89" width="128" height="35" fill="#1e64b4"/>' in s,
+        "B's box (q1 to q3)",
+    )
+    assert_true(
+        '<circle cx="140" cy="30" r="4" fill="#1e64b4"/>' in s,
+        "A's single outlier, at value 20",
+    )
 
 
 def test_encode_boxplot_raises_on_mismatched_length() raises:
@@ -650,9 +834,11 @@ def test_encode_boxplot_raises_on_empty_category_values() raises:
         var _hoisted3 = box(cats, values)
         _ = render(_hoisted3)
 
+
 # ---------------------------------------------------------------
 # from tests/test_candlestick.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_candlestick_matches_hand_derived_wicks_and_bodies() raises:
     # 2 categories, canvas 400x300, default margins (plot area x:[60,380],
@@ -669,16 +855,64 @@ def test_render_candlestick_matches_hand_derived_wicks_and_bodies() raises:
     var low: List[Float64] = [8.0, 16.0]
     var close: List[Float64] = [13.0, 17.0]
     var t = Theme(show_gridlines=False)
-    var _hoisted1 = Plot().mark_candlestick().encode_candlestick(cats, open, high, low, close).theme(t).size(400, 300)
+    var _hoisted1 = (
+        Plot()
+        .mark_candlestick()
+        .encode_candlestick(cats, open, high, low, close)
+        .theme(t)
+        .size(400, 300)
+    )
     var c = render(_hoisted1)
 
-    _assert_color(c, 140, 200, t.mark_color, "A: inside the body (open=210 to close=165), closed up")
-    _assert_near_color(c, 140, 150, t.axis_color, 60, "A: the wick, above the body (between high=135 and the body top)")
-    _assert_near_color(c, 140, 225, t.axis_color, 60, "A: the wick, below the body (between the body bottom and low=240)")
-    _assert_color(c, 300, 80, t.mark_color_negative, "B: inside the body (open=60 to close=105), closed down")
-    _assert_near_color(c, 300, 45, t.axis_color, 60, "B: the wick, above the body (between high=30 and the body top)")
-    _assert_near_color(c, 300, 115, t.axis_color, 60, "B: the wick, below the body (between the body bottom and low=120)")
-    _assert_color(c, 190, 150, BG, "no ink here -- off the wick's x, above A's body")
+    _assert_color(
+        c,
+        140,
+        200,
+        t.mark_color,
+        "A: inside the body (open=210 to close=165), closed up",
+    )
+    _assert_near_color(
+        c,
+        140,
+        150,
+        t.axis_color,
+        60,
+        "A: the wick, above the body (between high=135 and the body top)",
+    )
+    _assert_near_color(
+        c,
+        140,
+        225,
+        t.axis_color,
+        60,
+        "A: the wick, below the body (between the body bottom and low=240)",
+    )
+    _assert_color(
+        c,
+        300,
+        80,
+        t.mark_color_negative,
+        "B: inside the body (open=60 to close=105), closed down",
+    )
+    _assert_near_color(
+        c,
+        300,
+        45,
+        t.axis_color,
+        60,
+        "B: the wick, above the body (between high=30 and the body top)",
+    )
+    _assert_near_color(
+        c,
+        300,
+        115,
+        t.axis_color,
+        60,
+        "B: the wick, below the body (between the body bottom and low=120)",
+    )
+    _assert_color(
+        c, 190, 150, BG, "no ink here -- off the wick's x, above A's body"
+    )
 
 
 def test_render_candlestick_svg_matches_confirmed_wicks_and_bodies() raises:
@@ -687,24 +921,34 @@ def test_render_candlestick_svg_matches_confirmed_wicks_and_bodies() raises:
     var high: List[Float64] = [15.0, 22.0]
     var low: List[Float64] = [8.0, 16.0]
     var close: List[Float64] = [13.0, 17.0]
-    var plot = Plot().mark_candlestick().encode_candlestick(cats, open, high, low, close).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_candlestick()
+        .encode_candlestick(cats, open, high, low, close)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<line x1="140" y1="135" x2="140" y2="240" stroke="#505050" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
+        '<line x1="140" y1="135" x2="140" y2="240" stroke="#505050"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
         "A's wick, from high=135 to low=240",
     )
-    assert_true('<rect x="76" y="165" width="128" height="45" fill="#1e64b4"/>' in s, "A's body, closed up")
     assert_true(
-        '<line x1="300" y1="30" x2="300" y2="120" stroke="#505050" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
+        '<rect x="76" y="165" width="128" height="45" fill="#1e64b4"/>' in s,
+        "A's body, closed up",
+    )
+    assert_true(
+        '<line x1="300" y1="30" x2="300" y2="120" stroke="#505050"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
         "B's wick, from high=30 to low=120",
     )
     assert_true(
-        '<rect x="236" y="60" width="128" height="45" fill="#c83c3c"/>' in s, "B's body, closed down"
+        '<rect x="236" y="60" width="128" height="45" fill="#c83c3c"/>' in s,
+        "B's body, closed down",
     )
 
 
@@ -715,7 +959,9 @@ def test_render_candlestick_raises_on_mismatched_category_length() raises:
     var low: List[Float64] = [1.0, 2.0]
     var close: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        var _hoisted2 = candlestick(cats, open, high, low, close, width=200, height=150)
+        var _hoisted2 = candlestick(
+            cats, open, high, low, close, width=200, height=150
+        )
         _ = render(_hoisted2)
 
 
@@ -726,12 +972,16 @@ def test_render_candlestick_raises_on_mismatched_ohlc_length() raises:
     var low: List[Float64] = [1.0, 2.0]
     var close: List[Float64] = [1.0]
     with assert_raises():
-        var _hoisted3 = candlestick(cats, open, high, low, close, width=200, height=150)
+        var _hoisted3 = candlestick(
+            cats, open, high, low, close, width=200, height=150
+        )
         _ = render(_hoisted3)
+
 
 # ---------------------------------------------------------------
 # from tests/test_waterfall.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_waterfall_colors_by_sign_and_matches_hand_derived_bars() raises:
     # 3 categories, deltas=[10, -4, 6]: running totals y0/y1 = [0,10, 10,6,
@@ -746,41 +996,65 @@ def test_render_waterfall_colors_by_sign_and_matches_hand_derived_bars() raises:
     var _hoisted1 = waterfall(cats, deltas, theme=t, width=400, height=300)
     var c = render(_hoisted1)
 
-    _assert_color(c, 113, 150, t.mark_color, "bar 0 (delta +10), well inside its rect")
-    _assert_color(c, 220, 100, t.mark_color_negative, "bar 1 (delta -4), colored by sign")
-    _assert_color(c, 327, 80, t.mark_color, "bar 2 (delta +6), back to mark_color")
+    _assert_color(
+        c, 113, 150, t.mark_color, "bar 0 (delta +10), well inside its rect"
+    )
+    _assert_color(
+        c, 220, 100, t.mark_color_negative, "bar 1 (delta -4), colored by sign"
+    )
+    _assert_color(
+        c, 327, 80, t.mark_color, "bar 2 (delta +6), back to mark_color"
+    )
     _assert_color(c, 165, 67, t.axis_color, "connector between bar 0 and bar 1")
-    _assert_color(c, 273, 140, t.axis_color, "connector between bar 1 and bar 2")
+    _assert_color(
+        c, 273, 140, t.axis_color, "connector between bar 1 and bar 2"
+    )
     _assert_color(c, 350, 10, BG, "far from every bar -- background")
 
 
 def test_render_waterfall_svg_matches_confirmed_rects_and_connectors() raises:
     var cats: List[String] = ["a", "b", "c"]
     var deltas: List[Float64] = [10.0, -4.0, 6.0]
-    var plot = Plot().mark_waterfall().encode_waterfall(cats, deltas).theme(Theme(show_gridlines=False)).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_waterfall()
+        .encode_waterfall(cats, deltas)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         # Bar 0's y0=0 lands on the bottom axis line, so its height shrinks 183
         # -> 182 (see _pull_off_axis_line); bars 1/2 never touch 0.
-        '<rect x="71" y="67" width="85" height="182" fill="#1e64b4"/>' in s, "bar 0 (delta +10): y0=0 to y1=10"
+        '<rect x="71" y="67" width="85" height="182" fill="#1e64b4"/>' in s,
+        "bar 0 (delta +10): y0=0 to y1=10",
     )
     assert_true(
         '<rect x="177" y="67" width="85" height="73" fill="#c83c3c"/>' in s,
         "bar 1 (delta -4): y0=10 down to y1=6, colored by sign",
     )
     assert_true(
-        '<rect x="284" y="31" width="85" height="109" fill="#1e64b4"/>' in s, "bar 2 (delta +6): y0=6 to y1=12"
+        '<rect x="284" y="31" width="85" height="109" fill="#1e64b4"/>' in s,
+        "bar 2 (delta +6): y0=6 to y1=12",
     )
     assert_true(
-        '<line x1="156" y1="67" x2="177" y2="67" stroke="#505050" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
-        "connector between bar 0 and bar 1, at the shared y1=10/y0=10 pixel height",
+        '<line x1="156" y1="67" x2="177" y2="67" stroke="#505050"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
+        (
+            "connector between bar 0 and bar 1, at the shared y1=10/y0=10 pixel"
+            " height"
+        ),
     )
     assert_true(
-        '<line x1="263" y1="140" x2="284" y2="140" stroke="#505050" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
-        "connector between bar 1 and bar 2, at the shared y1=6/y0=6 pixel height",
+        '<line x1="263" y1="140" x2="284" y2="140" stroke="#505050"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
+        (
+            "connector between bar 1 and bar 2, at the shared y1=6/y0=6 pixel"
+            " height"
+        ),
     )
 
 
@@ -808,19 +1082,27 @@ def test_render_waterfall_total_rows_matches_hand_derived_bars() raises:
     var t = Theme(show_gridlines=False)
     # mark_waterfall()'s own default, now that it isn't a Theme field.
     var total_color = Color(100, 100, 100)
-    var _hoisted3 = waterfall(cats, deltas, is_total=is_total, theme=t, width=400, height=300)
+    var _hoisted3 = waterfall(
+        cats, deltas, is_total=is_total, theme=t, width=400, height=300
+    )
     var c = render(_hoisted3)
 
     # Start (total): x:[68,132), y:[94,250) -- full band width.
     _assert_color(c, 100, 200, total_color, "Start (total), well inside")
     # A (delta +20, narrower): x:[161,199), y:[31,94).
-    _assert_color(c, 180, 60, t.mark_color, "A (delta +20), well inside its narrower rect")
+    _assert_color(
+        c, 180, 60, t.mark_color, "A (delta +20), well inside its narrower rect"
+    )
     # A's band still has real background on either side of the
     # narrow bar -- confirming it actually IS narrower, not just a
     # differently-colored full-width bar.
-    _assert_color(c, 150, 60, BG, "A's band, left of its narrow bar -- background")
+    _assert_color(
+        c, 150, 60, BG, "A's band, left of its narrow bar -- background"
+    )
     # B (delta -10, narrower): x:[241,279), y:[31,62).
-    _assert_color(c, 260, 45, t.mark_color_negative, "B (delta -10), colored by sign")
+    _assert_color(
+        c, 260, 45, t.mark_color_negative, "B (delta -10), colored by sign"
+    )
     # End (total): x:[308,372), y:[62,250) -- full band width again.
     _assert_color(c, 340, 150, total_color, "End (total), well inside")
 
@@ -829,38 +1111,53 @@ def test_render_svg_waterfall_total_rows_matches_confirmed_rects() raises:
     var cats: List[String] = ["Start", "A", "B", "End"]
     var deltas: List[Float64] = [50.0, 20.0, -10.0, 0.0]
     var is_total: List[Bool] = [True, False, False, True]
-    var plot = Plot().mark_waterfall().encode_waterfall(cats, deltas, is_total).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_waterfall()
+        .encode_waterfall(cats, deltas, is_total)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         # Both total rows' y0=0 lands on the bottom axis line, so each height
         # is pulled 1px (156->155, 188->187); A/B never touch 0.
-        '<rect x="68" y="94" width="64" height="155" fill="#646464"/>' in s, "Start (total): 0 -> 50"
+        '<rect x="68" y="94" width="64" height="155" fill="#646464"/>' in s,
+        "Start (total): 0 -> 50",
     )
-    assert_true('<rect x="161" y="31" width="38" height="63" fill="#1e64b4"/>' in s, "A: 50 -> 70")
-    assert_true('<rect x="241" y="31" width="38" height="31" fill="#c83c3c"/>' in s, "B: 70 -> 60")
     assert_true(
-        '<rect x="308" y="62" width="64" height="187" fill="#646464"/>' in s, "End (total): 0 -> 60"
+        '<rect x="161" y="31" width="38" height="63" fill="#1e64b4"/>' in s,
+        "A: 50 -> 70",
+    )
+    assert_true(
+        '<rect x="241" y="31" width="38" height="31" fill="#c83c3c"/>' in s,
+        "B: 70 -> 60",
+    )
+    assert_true(
+        '<rect x="308" y="62" width="64" height="187" fill="#646464"/>' in s,
+        "End (total): 0 -> 60",
     )
     # Connectors reference each bar's actual drawn edge (bar_x_list[i-1] +
     # bar_width_list[i-1]) once total rows are in play: Start's right edge
     # (132) -> A's left (161); A's right (199) -> B's left (241); B's
     # right (279) -> End's left (308).
     assert_true(
-        '<line x1="132" y1="94" x2="161" y2="94" stroke="#505050" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
+        '<line x1="132" y1="94" x2="161" y2="94" stroke="#505050"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
         "connector: Start's actual right edge -> A's left edge",
     )
     assert_true(
-        '<line x1="199" y1="31" x2="241" y2="31" stroke="#505050" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
+        '<line x1="199" y1="31" x2="241" y2="31" stroke="#505050"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
         "connector: A's actual right edge -> B's left edge",
     )
     assert_true(
-        '<line x1="279" y1="62" x2="308" y2="62" stroke="#505050" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
+        '<line x1="279" y1="62" x2="308" y2="62" stroke="#505050"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
         "connector: B's actual right edge -> End's left edge",
     )
 
@@ -870,12 +1167,16 @@ def test_render_waterfall_raises_on_mismatched_is_total_length() raises:
     var deltas: List[Float64] = [10.0, -4.0, 6.0]
     var is_total: List[Bool] = [True, False]
     with assert_raises():
-        var _hoisted4 = waterfall(cats, deltas, is_total=is_total, width=400, height=300)
+        var _hoisted4 = waterfall(
+            cats, deltas, is_total=is_total, width=400, height=300
+        )
         _ = render(_hoisted4)
+
 
 # ---------------------------------------------------------------
 # from tests/test_bullet.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_bullet_matches_hand_derived_bands_measure_and_target() raises:
     # 2 categories, canvas 400x300, default margins (plot area x:[60,380],
@@ -889,21 +1190,68 @@ def test_render_bullet_matches_hand_derived_bands_measure_and_target() raises:
     var targets: List[Float64] = [65.0, 50.0]
     var ranges: List[List[Float64]] = [[40.0, 70.0, 100.0], [30.0, 60.0, 90.0]]
     var t = Theme(show_gridlines=False)
-    var _hoisted1 = Plot().mark_bullet().encode_bullet(cats, measures, targets, ranges).theme(t).size(400, 300)
+    var _hoisted1 = (
+        Plot()
+        .mark_bullet()
+        .encode_bullet(cats, measures, targets, ranges)
+        .theme(t)
+        .size(400, 300)
+    )
     var c = render(_hoisted1)
 
-    _assert_color(c, 90, 200, Color(224, 224, 224), "A: lightest range band [0,40], off the measure bar")
-    _assert_color(c, 90, 130, Color(172, 172, 172), "A: middle range band [40,70], off the measure bar")
-    _assert_color(c, 90, 60, Color(120, 120, 120), "A: darkest range band [70,100], off the measure bar")
-    _assert_color(c, 140, 200, t.mark_color, "A: inside the measure bar (0 to 55), over the bands")
+    _assert_color(
+        c,
+        90,
+        200,
+        Color(224, 224, 224),
+        "A: lightest range band [0,40], off the measure bar",
+    )
+    _assert_color(
+        c,
+        90,
+        130,
+        Color(172, 172, 172),
+        "A: middle range band [40,70], off the measure bar",
+    )
+    _assert_color(
+        c,
+        90,
+        60,
+        Color(120, 120, 120),
+        "A: darkest range band [70,100], off the measure bar",
+    )
+    _assert_color(
+        c,
+        140,
+        200,
+        t.mark_color,
+        "A: inside the measure bar (0 to 55), over the bands",
+    )
     # A's target tick rather than B's: supersampling doesn't land this
     # particular 1px stroke fully opaque at this column, while B's tick
     # below does.
-    _assert_near_color(c, 90, 108, t.axis_color, 65, "A: the target tick (65), off the measure bar")
+    _assert_near_color(
+        c,
+        90,
+        108,
+        t.axis_color,
+        65,
+        "A: the target tick (65), off the measure bar",
+    )
     _assert_color(c, 140, 10, BG, "A: above every band -- background")
-    _assert_color(c, 300, 150, t.mark_color, "B: inside the measure bar (0 to 75)")
-    _assert_color(c, 250, 140, t.axis_color, "B: the target tick (50), off the measure bar")
-    _assert_color(c, 220, 150, BG, "the gap between A's and B's bands -- background")
+    _assert_color(
+        c, 300, 150, t.mark_color, "B: inside the measure bar (0 to 75)"
+    )
+    _assert_color(
+        c,
+        250,
+        140,
+        t.axis_color,
+        "B: the target tick (50), off the measure bar",
+    )
+    _assert_color(
+        c, 220, 150, BG, "the gap between A's and B's bands -- background"
+    )
 
 
 def test_render_bullet_svg_matches_confirmed_bands_measure_and_target() raises:
@@ -911,22 +1259,39 @@ def test_render_bullet_svg_matches_confirmed_bands_measure_and_target() raises:
     var measures: List[Float64] = [55.0, 75.0]
     var targets: List[Float64] = [65.0, 50.0]
     var ranges: List[List[Float64]] = [[40.0, 70.0, 100.0], [30.0, 60.0, 90.0]]
-    var plot = Plot().mark_bullet().encode_bullet(cats, measures, targets, ranges).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_bullet()
+        .encode_bullet(cats, measures, targets, ranges)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     # The lightest band's bottom (prev_threshold=0) and the measure bar's
     # bottom (baseline=0) both land on the bottom axis line, so both
     # heights are pulled 1px (88->87, 120->119); the other bands and the
     # target tick never touch 0.
-    assert_true('<rect x="76" y="162" width="128" height="87" fill="#e0e0e0"/>' in s, "A's lightest band [0,40]")
-    assert_true('<rect x="76" y="97" width="128" height="65" fill="#acacac"/>' in s, "A's middle band [40,70]")
-    assert_true('<rect x="76" y="31" width="128" height="66" fill="#787878"/>' in s, "A's darkest band [70,100]")
-    assert_true('<rect x="118" y="130" width="45" height="119" fill="#1e64b4"/>' in s, "A's measure bar")
     assert_true(
-        '<line x1="76" y1="108" x2="204" y2="108" stroke="#505050" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
+        '<rect x="76" y="162" width="128" height="87" fill="#e0e0e0"/>' in s,
+        "A's lightest band [0,40]",
+    )
+    assert_true(
+        '<rect x="76" y="97" width="128" height="65" fill="#acacac"/>' in s,
+        "A's middle band [40,70]",
+    )
+    assert_true(
+        '<rect x="76" y="31" width="128" height="66" fill="#787878"/>' in s,
+        "A's darkest band [70,100]",
+    )
+    assert_true(
+        '<rect x="118" y="130" width="45" height="119" fill="#1e64b4"/>' in s,
+        "A's measure bar",
+    )
+    assert_true(
+        '<line x1="76" y1="108" x2="204" y2="108" stroke="#505050"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
         "A's target tick, full band width",
     )
 

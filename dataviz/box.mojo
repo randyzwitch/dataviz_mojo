@@ -44,7 +44,6 @@ struct _BoxData(Copyable, Movable):
         self.outlier_value = List[Float64]()
 
 
-
 def _percentile(sorted_values: List[Float64], p: Float64) -> Float64:
     """The `p`-th percentile (`p` in `[0, 1]`) of `sorted_values` (already
     sorted ascending by the caller) via linear interpolation between the
@@ -176,42 +175,77 @@ def _draw_box_glyphs[
             target.begin_annotated_group(
                 plot.x_categories[i]
                 + ": median "
-                + _format_fixed(plot._box.median[i], _label_decimals(plot._box.median[i]))
+                + _format_fixed(
+                    plot._box.median[i], _label_decimals(plot._box.median[i])
+                )
                 + ", Q1 "
-                + _format_fixed(plot._box.q1[i], _label_decimals(plot._box.q1[i]))
+                + _format_fixed(
+                    plot._box.q1[i], _label_decimals(plot._box.q1[i])
+                )
                 + ", Q3 "
-                + _format_fixed(plot._box.q3[i], _label_decimals(plot._box.q3[i]))
+                + _format_fixed(
+                    plot._box.q3[i], _label_decimals(plot._box.q3[i])
+                )
                 + ", range "
-                + _format_fixed(plot._box.low[i], _label_decimals(plot._box.low[i]))
+                + _format_fixed(
+                    plot._box.low[i], _label_decimals(plot._box.low[i])
+                )
                 + "-"
-                + _format_fixed(plot._box.high[i], _label_decimals(plot._box.high[i]))
+                + _format_fixed(
+                    plot._box.high[i], _label_decimals(plot._box.high[i])
+                )
             )
         # Whiskers: high -> q3 and q1 -> low, along the value axis.
         orient.value_line(
-            target, _round_to_int(high), _round_to_int(q3), center_i, theme.axis_color, theme.scale
+            target,
+            _round_to_int(high),
+            _round_to_int(q3),
+            center_i,
+            theme.axis_color,
+            theme.scale,
         )
         orient.value_line(
-            target, _round_to_int(q1), _round_to_int(low), center_i, theme.axis_color, theme.scale
+            target,
+            _round_to_int(q1),
+            _round_to_int(low),
+            center_i,
+            theme.axis_color,
+            theme.scale,
         )
         # Caps across each whisker's end.
         orient.band_line(
-            target, _round_to_int(high), _round_to_int(center - cap_half),
-            _round_to_int(center + cap_half), theme.axis_color, theme.scale,
+            target,
+            _round_to_int(high),
+            _round_to_int(center - cap_half),
+            _round_to_int(center + cap_half),
+            theme.axis_color,
+            theme.scale,
         )
         orient.band_line(
-            target, _round_to_int(low), _round_to_int(center - cap_half),
-            _round_to_int(center + cap_half), theme.axis_color, theme.scale,
+            target,
+            _round_to_int(low),
+            _round_to_int(center - cap_half),
+            _round_to_int(center + cap_half),
+            theme.axis_color,
+            theme.scale,
         )
         # The interquartile box, then the median line across it.
         var box_near = _round_to_int(min(q1, q3))
         var box_span = _round_to_int(max(q1, q3) - min(q1, q3))
         orient.fill_band_rect(
-            target, _BaselineRect(box_near, box_span), _round_to_int(center - half),
-            _round_to_int(band_size), theme.mark_color,
+            target,
+            _BaselineRect(box_near, box_span),
+            _round_to_int(center - half),
+            _round_to_int(band_size),
+            theme.mark_color,
         )
         orient.band_line(
-            target, _round_to_int(median), _round_to_int(center - half),
-            _round_to_int(center + half), theme.axis_color, theme.scale,
+            target,
+            _round_to_int(median),
+            _round_to_int(center - half),
+            _round_to_int(center + half),
+            theme.axis_color,
+            theme.scale,
         )
         if theme.svg_tooltips:
             target.end_annotated_group()
@@ -222,7 +256,8 @@ def _draw_box_glyphs[
         if theme.svg_tooltips:
             target.begin_annotated_group(
                 _tooltip_label(
-                    plot.x_categories[plot._box.outlier_cat[j]], plot._box.outlier_value[j]
+                    plot.x_categories[plot._box.outlier_cat[j]],
+                    plot._box.outlier_value[j],
                 )
                 + " (outlier)"
             )
@@ -239,7 +274,9 @@ def _draw_box_glyphs[
 
 def _render_box[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.BOX` plot: `_draw_categorical_axis_frame`'s
     categorical x-axis, with a y-domain (`_data_extent`, padded but not
     forced to include zero) over each category's whiskers and outliers
@@ -271,10 +308,17 @@ def _render_box[
         domain_data.append(v)
     var y_scale = _data_extent(domain_data)
 
-    var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
+    var frame = _draw_categorical_axis_frame(
+        target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1
+    )
 
     _draw_box_glyphs(
-        target, plot, frame.x_scale, frame.y_scale, _Orientation(False), _round_to_int(frame.sc.point_radius)
+        target,
+        plot,
+        frame.x_scale,
+        frame.y_scale,
+        _Orientation(False),
+        _round_to_int(frame.sc.point_radius),
     )
 
     return frame.result()
@@ -282,7 +326,9 @@ def _render_box[
 
 def _render_horizontal_box[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """`_render_box`'s mirror image for `Plot.mark_box(horizontal=True)`
     (#121): `_render_horizontal_bar`'s categorical y-axis
     (`_draw_horizontal_categorical_axis_frame`, gantt.mojo) with the
@@ -318,7 +364,12 @@ def _render_horizontal_box[
     )
 
     _draw_box_glyphs(
-        target, plot, frame.y_scale, frame.x_scale, _Orientation(True), _round_to_int(frame.sc.point_radius)
+        target,
+        plot,
+        frame.y_scale,
+        frame.x_scale,
+        _Orientation(True),
+        _round_to_int(frame.sc.point_radius),
     )
 
     return frame.result()
@@ -384,8 +435,14 @@ def box(
             save(c, "docs/src/examples/out_box.svg")
         ```
     """
-    var plot = Plot().mark_box(horizontal=horizontal).encode_boxplot(categories=categories, values=values)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_box(horizontal=horizontal)
+        .encode_boxplot(categories=categories, values=values)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def box[
@@ -407,6 +464,14 @@ def box[
     above.
     """
     return box(
-        categories, _materialize_nested_scalar_list(values), theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title, horizontal=horizontal,
+        categories,
+        _materialize_nested_scalar_list(values),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+        horizontal=horizontal,
     )

@@ -16,7 +16,9 @@ from dataviz.theme import Theme
 
 def _render_span_chart[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.SPAN_CHART` plot: one floating vertical bar per
     category from `plot._gantt.start[i]` to `plot._gantt.end[i]`, on the
     normal `_draw_categorical_axis_frame` (categories along `x`,
@@ -31,7 +33,9 @@ def _render_span_chart[
     Bar width is the ordinal x-axis's full `bandwidth()`; bar height is
     floored to 1 pixel so a zero-length span stays visible.
     """
-    if len(plot.x_categories) != len(plot._gantt.start) or len(plot._gantt.end) != len(plot._gantt.start):
+    if len(plot.x_categories) != len(plot._gantt.start) or len(
+        plot._gantt.end
+    ) != len(plot._gantt.start):
         raise Error(
             "Plot.encode_gantt(): categories, start, and end must all have"
             " the same length (got "
@@ -52,7 +56,9 @@ def _render_span_chart[
         domain_data.append(v)
     var y_scale = _data_extent(domain_data)
 
-    var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
+    var frame = _draw_categorical_axis_frame(
+        target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1
+    )
 
     var bandwidth = frame.x_scale.bandwidth()
     for i in range(len(plot.x_categories)):
@@ -121,8 +127,14 @@ def span_chart(
             save(c, "docs/src/examples/out_span_chart.svg")
         ```
     """
-    var plot = Plot().mark_span_chart().encode_gantt(categories=categories, start=low, end=high)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_span_chart()
+        .encode_gantt(categories=categories, start=low, end=high)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def span_chart[
@@ -144,6 +156,14 @@ def span_chart[
     dtype. Delegates to the concrete overload above.
     """
     return span_chart(
-        categories, _materialize_scalar_list(low), _materialize_scalar_list(high), theme=theme,
-        width=width, height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        categories,
+        _materialize_scalar_list(low),
+        _materialize_scalar_list(high),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

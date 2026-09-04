@@ -22,7 +22,16 @@ from dataviz.theme import Theme
 
 def _fill_ring_sector[
     T: DrawTarget
-](mut target: T, cx: Float64, cy: Float64, inner: Float64, outer: Float64, a0: Float64, a1: Float64, color: Color) raises:
+](
+    mut target: T,
+    cx: Float64,
+    cy: Float64,
+    inner: Float64,
+    outer: Float64,
+    a0: Float64,
+    a1: Float64,
+    color: Color,
+) raises:
     """A ring sector, or a full wedge when `inner == 0.0` (the innermost ring
     touches the center): `fill_arc_aa` for the wedge case,
     `fill_ring_sector_aa` otherwise, the same pie-vs-donut split
@@ -56,7 +65,9 @@ def _draw_sunburst_node[
     var depth = idx.depth[node]
     var inner = ring_width * Float64(depth - 1)
     var outer = ring_width * Float64(depth)
-    _fill_ring_sector(target, cx, cy, inner, outer, start_angle, end_angle, color)
+    _fill_ring_sector(
+        target, cx, cy, inner, outer, start_angle, end_angle, color
+    )
 
     var total = idx.subtree_value[node]
     if total <= 0.0:
@@ -71,7 +82,9 @@ def _draw_sunburst_node[
 
 def _render_sunburst[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.SUNBURST` plot: `_build_hierarchy_index`'s `children`/
     `depth`/`subtree_value` (hierarchy.mojo) drawn as concentric ring
     sectors, one `fill_ring_sector_aa` call per node.
@@ -87,13 +100,12 @@ def _render_sunburst[
     positive, the same validation `Mark.ARC` applies to its
     share-of-a-whole data.
     """
-    if (
-        len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids)
-        or len(plot._hierarchy.values) != len(plot._hierarchy.ids)
-    ):
+    if len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids) or len(
+        plot._hierarchy.values
+    ) != len(plot._hierarchy.ids):
         raise Error(
-            "Plot.encode_hierarchy(): ids, parent_ids, and values must all have the"
-            " same length (got "
+            "Plot.encode_hierarchy(): ids, parent_ids, and values must all have"
+            " the same length (got "
             + String(len(plot._hierarchy.ids))
             + " ids, "
             + String(len(plot._hierarchy.parent_ids))
@@ -105,7 +117,9 @@ def _render_sunburst[
     var theme = plot._theme
     _require_non_negative(plot._hierarchy.values, "Mark.SUNBURST")
 
-    var idx = _build_hierarchy_index(plot._hierarchy.ids, plot._hierarchy.parent_ids, plot._hierarchy.values)
+    var idx = _build_hierarchy_index(
+        plot._hierarchy.ids, plot._hierarchy.parent_ids, plot._hierarchy.values
+    )
     if idx.subtree_value[idx.root] <= 0.0:
         raise Error(
             "Plot: Mark.SUNBURST requires at least one positive leaf value"
@@ -122,7 +136,9 @@ def _render_sunburst[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = _dynamic_legend_width(legend_labels, sc.legend_swatch_size, sc) if show_legend else 0
+    var legend_reserve = _dynamic_legend_width(
+        legend_labels, sc.legend_swatch_size, sc
+    ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
@@ -130,7 +146,9 @@ def _render_sunburst[
     var plot_y1 = oy1 - sc.margin_bottom
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
-    var max_radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    var max_radius = (
+        Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    )
     var ring_width = max_radius / Float64(max(idx.max_depth, 1))
 
     var palette = default_categorical_palette()
@@ -139,11 +157,29 @@ def _render_sunburst[
     for i in range(len(root_children)):
         var c = root_children[i]
         var end = start + 2.0 * pi * (idx.subtree_value[c] / root_total)
-        _draw_sunburst_node(target, c, start, end, idx, cx, cy, ring_width, palette[i % len(palette)])
+        _draw_sunburst_node(
+            target,
+            c,
+            start,
+            end,
+            idx,
+            cx,
+            cy,
+            ring_width,
+            palette[i % len(palette)],
+        )
         start = end
 
     if show_legend:
-        _draw_legend(target, text_requests, legend_labels, palette, plot_x1 + sc.margin_right, plot_y0, theme)
+        _draw_legend(
+            target,
+            text_requests,
+            legend_labels,
+            palette,
+            plot_x1 + sc.margin_right,
+            plot_y0,
+            theme,
+        )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
@@ -201,8 +237,14 @@ def sunburst(
             save(c, "docs/src/examples/out_sunburst.svg")
         ```
     """
-    var plot = Plot().mark_sunburst().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_sunburst()
+        .encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def sunburst[
@@ -224,6 +266,14 @@ def sunburst[
     above.
     """
     return sunburst(
-        ids, parent_ids, _materialize_scalar_list(values), theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        ids,
+        parent_ids,
+        _materialize_scalar_list(values),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

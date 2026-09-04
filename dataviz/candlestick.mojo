@@ -31,10 +31,11 @@ struct _CandleData(Copyable, Movable):
         self.close_price = List[Float64]()
 
 
-
 def _render_candlestick[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.CANDLESTICK` plot: `_draw_categorical_axis_frame`'s
     categorical x-axis, with a y-domain spanning every open/high/low/close
     value (`_data_extent`, padded but not forced through zero, since price
@@ -92,22 +93,34 @@ def _render_candlestick[
         domain_data.append(v)
     var y_scale = _data_extent(domain_data)
 
-    var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
+    var frame = _draw_categorical_axis_frame(
+        target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1
+    )
 
     var body_width = _round_to_int(frame.x_scale.bandwidth())
     for i in range(len(plot.x_categories)):
         var center_px = _round_to_int(frame.x_scale.center(i))
         var high_py = _axis_pixel(frame.y_scale, plot._candle.high[i])
         var low_py = _axis_pixel(frame.y_scale, plot._candle.low[i])
-        target.draw_line_aa(center_px, high_py, center_px, low_py, theme.axis_color, width=theme.scale)
+        target.draw_line_aa(
+            center_px,
+            high_py,
+            center_px,
+            low_py,
+            theme.axis_color,
+            width=theme.scale,
+        )
 
         var open_py = _axis_pixel(frame.y_scale, plot._candle.open_price[i])
         var close_py = _axis_pixel(frame.y_scale, plot._candle.close_price[i])
         var body_x = _round_to_int(frame.x_scale.band_start(i))
         var body_y = min(open_py, close_py)
-        var body_height = max(1, max(open_py, close_py) - min(open_py, close_py))
+        var body_height = max(
+            1, max(open_py, close_py) - min(open_py, close_py)
+        )
         var body_color = (
-            theme.mark_color if plot._candle.close_price[i] >= plot._candle.open_price[i] else theme.mark_color_negative
+            theme.mark_color if plot._candle.close_price[i]
+            >= plot._candle.open_price[i] else theme.mark_color_negative
         )
         target.fill_rect(body_x, body_y, body_width, body_height, body_color)
 
@@ -172,10 +185,16 @@ def candlestick(
             save(c, "docs/src/examples/out_candlestick.svg")
         ```
     """
-    var plot = Plot().mark_candlestick().encode_candlestick(
-        categories=categories, open=open, high=high, low=low, close=close
+    var plot = (
+        Plot()
+        .mark_candlestick()
+        .encode_candlestick(
+            categories=categories, open=open, high=high, low=low, close=close
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def candlestick[
@@ -200,7 +219,16 @@ def candlestick[
     overload above.
     """
     return candlestick(
-        categories, _materialize_scalar_list(open), _materialize_scalar_list(high),
-        _materialize_scalar_list(low), _materialize_scalar_list(close), theme=theme, width=width,
-        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        categories,
+        _materialize_scalar_list(open),
+        _materialize_scalar_list(high),
+        _materialize_scalar_list(low),
+        _materialize_scalar_list(close),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

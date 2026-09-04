@@ -4,6 +4,7 @@
 from dataviz.plot import Plot, save
 from dataviz.theme import Theme
 
+
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
     var y: List[Float64] = [12.0, 18.0, 15.0, 22.0, 19.0]

@@ -5,6 +5,7 @@ raw `Series` with no `.to_numpy()` step first.
 from dataviz.plot import Plot, save
 from std.python import Python
 
+
 def main() raises:
     var np = Python.import_module("numpy")
     var pd = Python.import_module("pandas")
@@ -19,7 +20,11 @@ def main() raises:
         Plot()
         .mark_point()
         .encode(x=x, y=y)
-        .labels(title="A NumPy Array, Plotted Directly", x_title="x", y_title="sin(x)")
+        .labels(
+            title="A NumPy Array, Plotted Directly",
+            x_title="x",
+            y_title="sin(x)",
+        )
     )
     save(scatter_plot, "docs/src/examples/out_numpy_pandas_data_scatter.svg")
 
@@ -27,6 +32,8 @@ def main() raises:
         Plot()
         .mark_bar()
         .encode_categorical(x=quarters, y=revenue)
-        .labels(title="A pandas Series, Plotted Directly", y_title="Revenue ($M)")
+        .labels(
+            title="A pandas Series, Plotted Directly", y_title="Revenue ($M)"
+        )
     )
     save(bar_plot, "docs/src/examples/out_numpy_pandas_data_bar.svg")

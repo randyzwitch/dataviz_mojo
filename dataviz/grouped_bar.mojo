@@ -72,7 +72,9 @@ def _series_legend_reserve(plot: Plot, sc: _Scaled) raises -> Int:
     """
     if not plot._theme.show_legend:
         return 0
-    return _dynamic_legend_width(plot._grouped_bar.series_names, sc.legend_swatch_size, sc)
+    return _dynamic_legend_width(
+        plot._grouped_bar.series_names, sc.legend_swatch_size, sc
+    )
 
 
 def _draw_series_legend[
@@ -150,15 +152,24 @@ def _draw_grouped_bars[
             if theme.svg_tooltips:
                 target.begin_annotated_group(
                     _series_tooltip_label(
-                        plot.x_categories[i], plot._grouped_bar.series_names[j], value
+                        plot.x_categories[i],
+                        plot._grouped_bar.series_names[j],
+                        value,
                     )
                 )
-            orient.fill_band_rect(target, extent, near, far - near, palette[j % len(palette)])
+            orient.fill_band_rect(
+                target, extent, near, far - near, palette[j % len(palette)]
+            )
             if theme.svg_tooltips:
                 target.end_annotated_group()
             if theme.show_data_labels:
                 var at = orient.outside_band_label(
-                    extent, near, far - near, value < 0.0, sc.label_gap, sc.font_size
+                    extent,
+                    near,
+                    far - near,
+                    value < 0.0,
+                    sc.label_gap,
+                    sc.font_size,
                 )
                 text_requests.append(
                     _TextRequest(
@@ -175,7 +186,9 @@ def _draw_grouped_bars[
 
 def _render_grouped_bar[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.GROUPED_BAR` plot: `_render_bar`'s categorical x-axis /
     zero-baseline y-axis (`_draw_categorical_axis_frame`), with each
     category's band subdivided into `len(series_names)` equal-width
@@ -205,12 +218,25 @@ def _render_grouped_bar[
     var legend_reserve = _series_legend_reserve(plot, sc)
 
     var frame = _draw_categorical_axis_frame(
-        target, plot.x_categories, y_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
+        target,
+        plot.x_categories,
+        y_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1 - legend_reserve,
+        oy1,
     )
 
     var palette = default_categorical_palette()
     _draw_grouped_bars(
-        target, plot, frame.x_scale, frame.y_scale, frame.py1, _Orientation(False), palette,
+        target,
+        plot,
+        frame.x_scale,
+        frame.y_scale,
+        frame.py1,
+        _Orientation(False),
+        palette,
         frame.text_requests,
     )
 
@@ -231,7 +257,9 @@ def _render_grouped_bar[
 
 def _render_horizontal_grouped_bar[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """`_render_grouped_bar`'s mirror image for
     `Plot.mark_grouped_bar(horizontal=True)` (#121):
     `_render_horizontal_bar`'s categorical y-axis / zero-baseline x-axis
@@ -261,12 +289,25 @@ def _render_horizontal_grouped_bar[
     var legend_reserve = _series_legend_reserve(plot, sc)
 
     var frame = _draw_horizontal_categorical_axis_frame(
-        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
+        target,
+        plot.x_categories,
+        x_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1 - legend_reserve,
+        oy1,
     )
 
     var palette = default_categorical_palette()
     _draw_grouped_bars(
-        target, plot, frame.y_scale, frame.x_scale, frame.px0, _Orientation(True), palette,
+        target,
+        plot,
+        frame.y_scale,
+        frame.x_scale,
+        frame.px0,
+        _Orientation(True),
+        palette,
         frame.text_requests,
     )
 
@@ -353,10 +394,16 @@ def grouped_bar(
             save(c, "docs/src/examples/out_grouped_bar.svg")
         ```
     """
-    var plot = Plot().mark_grouped_bar(horizontal=horizontal).encode_grouped_bar(
-        categories=categories, series_names=series_names, values=values
+    var plot = (
+        Plot()
+        .mark_grouped_bar(horizontal=horizontal)
+        .encode_grouped_bar(
+            categories=categories, series_names=series_names, values=values
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def grouped_bar[
@@ -381,6 +428,15 @@ def grouped_bar[
     above.
     """
     return grouped_bar(
-        categories, series_names, _materialize_nested_scalar_list(values), theme=theme, width=width,
-        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title, horizontal=horizontal,
+        categories,
+        series_names,
+        _materialize_nested_scalar_list(values),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+        horizontal=horizontal,
     )

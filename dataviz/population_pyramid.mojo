@@ -36,8 +36,9 @@ struct _PyramidData(Copyable, Movable):
         self.right_name = ""
 
 
-
-def _symmetric_zero_baseline_x_extent(left: List[Float64], right: List[Float64]) raises -> LinearScale:
+def _symmetric_zero_baseline_x_extent(
+    left: List[Float64], right: List[Float64]
+) raises -> LinearScale:
     """The x-domain for `Mark.POPULATION_PYRAMID`: always `[-bound, bound]`,
     with `bound` the largest magnitude across both sides plus a 5% pad
     (the same fraction `_data_extent`/`_zero_baseline_y_extent` use).
@@ -57,7 +58,9 @@ def _symmetric_zero_baseline_x_extent(left: List[Float64], right: List[Float64])
 
 def _render_population_pyramid[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.POPULATION_PYRAMID` plot:
     `_draw_horizontal_categorical_axis_frame` (the frame `Mark.GANTT`
     uses) with `_symmetric_zero_baseline_x_extent`'s centered domain, and
@@ -73,7 +76,9 @@ def _render_population_pyramid[
     "Left"/"Right") via `_draw_legend`/`_dynamic_legend_width`, reserved
     from the outer `ox1`, whenever `Theme.show_legend` is on.
     """
-    if len(plot.x_categories) != len(plot._pyramid.left) or len(plot._pyramid.right) != len(plot._pyramid.left):
+    if len(plot.x_categories) != len(plot._pyramid.left) or len(
+        plot._pyramid.right
+    ) != len(plot._pyramid.left):
         raise Error(
             "Plot.encode_population_pyramid(): categories, left_values, and"
             " right_values must all have the same length (got "
@@ -92,13 +97,30 @@ def _render_population_pyramid[
     var sc = _Scaled(theme)
     var legend_names = List[String]()
     if theme.show_legend:
-        legend_names.append(plot._pyramid.left_name if plot._pyramid.left_name.byte_length() > 0 else "Left")
-        legend_names.append(plot._pyramid.right_name if plot._pyramid.right_name.byte_length() > 0 else "Right")
-    var legend_reserve = _dynamic_legend_width(legend_names, sc.legend_swatch_size, sc) if theme.show_legend else 0
+        legend_names.append(
+            plot._pyramid.left_name if plot._pyramid.left_name.byte_length()
+            > 0 else "Left"
+        )
+        legend_names.append(
+            plot._pyramid.right_name if plot._pyramid.right_name.byte_length()
+            > 0 else "Right"
+        )
+    var legend_reserve = _dynamic_legend_width(
+        legend_names, sc.legend_swatch_size, sc
+    ) if theme.show_legend else 0
 
-    var x_scale = _symmetric_zero_baseline_x_extent(plot._pyramid.left, plot._pyramid.right)
+    var x_scale = _symmetric_zero_baseline_x_extent(
+        plot._pyramid.left, plot._pyramid.right
+    )
     var frame = _draw_horizontal_categorical_axis_frame(
-        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
+        target,
+        plot.x_categories,
+        x_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1 - legend_reserve,
+        oy1,
     )
 
     var palette = default_categorical_palette()
@@ -107,15 +129,21 @@ def _render_population_pyramid[
     for i in range(len(plot.x_categories)):
         var row_y = _round_to_int(frame.y_scale.band_start(i))
 
-        var left_edge_px = _axis_pixel(frame.x_scale, -max(plot._pyramid.left[i], -plot._pyramid.left[i]))
+        var left_edge_px = _axis_pixel(
+            frame.x_scale, -max(plot._pyramid.left[i], -plot._pyramid.left[i])
+        )
         var left_x = min(left_edge_px, center_px)
         var left_w = max(left_edge_px, center_px) - min(left_edge_px, center_px)
         if left_w > 0:
             target.fill_rect(left_x, row_y, left_w, row_height, palette[0])
 
-        var right_edge_px = _axis_pixel(frame.x_scale, max(plot._pyramid.right[i], -plot._pyramid.right[i]))
+        var right_edge_px = _axis_pixel(
+            frame.x_scale, max(plot._pyramid.right[i], -plot._pyramid.right[i])
+        )
         var right_x = min(center_px, right_edge_px)
-        var right_w = max(center_px, right_edge_px) - min(center_px, right_edge_px)
+        var right_w = max(center_px, right_edge_px) - min(
+            center_px, right_edge_px
+        )
         if right_w > 0:
             target.fill_rect(right_x, row_y, right_w, row_height, palette[1])
 
@@ -188,14 +216,20 @@ def population_pyramid(
             save(c, "docs/src/examples/out_population_pyramid.svg")
         ```
     """
-    var plot = Plot().mark_population_pyramid().encode_population_pyramid(
-        categories=categories,
-        left_values=left_values,
-        right_values=right_values,
-        left_name=left_name,
-        right_name=right_name,
+    var plot = (
+        Plot()
+        .mark_population_pyramid()
+        .encode_population_pyramid(
+            categories=categories,
+            left_values=left_values,
+            right_values=right_values,
+            left_name=left_name,
+            right_name=right_name,
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def population_pyramid[
@@ -220,7 +254,16 @@ def population_pyramid[
     above.
     """
     return population_pyramid(
-        categories, _materialize_scalar_list(left_values), _materialize_scalar_list(right_values),
-        left_name=left_name, right_name=right_name, theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        categories,
+        _materialize_scalar_list(left_values),
+        _materialize_scalar_list(right_values),
+        left_name=left_name,
+        right_name=right_name,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

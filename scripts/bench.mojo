@@ -74,7 +74,9 @@ struct _Timing(Copyable, Movable):
     var n: Int
     var seconds: Float64
 
-    def __init__(out self, mark: String, backend: String, n: Int, seconds: Float64):
+    def __init__(
+        out self, mark: String, backend: String, n: Int, seconds: Float64
+    ):
         self.mark = mark
         self.backend = backend
         self.n = n
@@ -170,9 +172,17 @@ def _grid_heatmap(n: Int) -> Tuple[List[String], List[String], List[Float64]]:
     return (xs^, ys^, values^)
 
 
-def _record(mut timings: List[_Timing], mark: String, backend: String, n: Int, seconds: Float64):
+def _record(
+    mut timings: List[_Timing],
+    mark: String,
+    backend: String,
+    n: Int,
+    seconds: Float64,
+):
     timings.append(_Timing(mark, backend, n, seconds))
-    print(mark + " " + backend + " n=" + String(n) + ": " + String(seconds) + "s")
+    print(
+        mark + " " + backend + " n=" + String(n) + ": " + String(seconds) + "s"
+    )
 
 
 def _bench_point_and_line(mut timings: List[_Timing], sizes: List[Int]) raises:
@@ -234,7 +244,13 @@ def _bench_edges(mut timings: List[_Timing], sizes: List[Int]) raises:
     for n in sizes:
         var edges = _chain_edges(n)
 
-        var chord_plot = chord(edges[0].copy(), edges[1].copy(), edges[2].copy(), width=800, height=600)
+        var chord_plot = chord(
+            edges[0].copy(),
+            edges[1].copy(),
+            edges[2].copy(),
+            width=800,
+            height=600,
+        )
         var t0 = perf_counter()
         _ = render(chord_plot)
         _record(timings, "CHORD", "raster", n, perf_counter() - t0)
@@ -242,7 +258,13 @@ def _bench_edges(mut timings: List[_Timing], sizes: List[Int]) raises:
         _ = render_svg(chord_plot)
         _record(timings, "CHORD", "svg", n, perf_counter() - t0)
 
-        var arc_plot = arc_diagram(edges[0].copy(), edges[1].copy(), edges[2].copy(), width=800, height=600)
+        var arc_plot = arc_diagram(
+            edges[0].copy(),
+            edges[1].copy(),
+            edges[2].copy(),
+            width=800,
+            height=600,
+        )
         t0 = perf_counter()
         _ = render(arc_plot)
         _record(timings, "ARC_DIAGRAM", "raster", n, perf_counter() - t0)
@@ -250,7 +272,13 @@ def _bench_edges(mut timings: List[_Timing], sizes: List[Int]) raises:
         _ = render_svg(arc_plot)
         _record(timings, "ARC_DIAGRAM", "svg", n, perf_counter() - t0)
 
-        var graph_plot = graph(edges[0].copy(), edges[1].copy(), edges[2].copy(), width=800, height=600)
+        var graph_plot = graph(
+            edges[0].copy(),
+            edges[1].copy(),
+            edges[2].copy(),
+            width=800,
+            height=600,
+        )
         t0 = perf_counter()
         _ = render(graph_plot)
         _record(timings, "GRAPH", "raster", n, perf_counter() - t0)
@@ -258,7 +286,13 @@ def _bench_edges(mut timings: List[_Timing], sizes: List[Int]) raises:
         _ = render_svg(graph_plot)
         _record(timings, "GRAPH", "svg", n, perf_counter() - t0)
 
-        var sankey_plot = sankey(edges[0].copy(), edges[1].copy(), edges[2].copy(), width=800, height=600)
+        var sankey_plot = sankey(
+            edges[0].copy(),
+            edges[1].copy(),
+            edges[2].copy(),
+            width=800,
+            height=600,
+        )
         t0 = perf_counter()
         _ = render(sankey_plot)
         _record(timings, "SANKEY", "raster", n, perf_counter() - t0)
@@ -271,7 +305,9 @@ def _bench_hierarchy(mut timings: List[_Timing], sizes: List[Int]) raises:
     for n in sizes:
         var h = _star_hierarchy(n)
 
-        var tree_plot = tree(h[0].copy(), h[1].copy(), h[2].copy(), width=800, height=600)
+        var tree_plot = tree(
+            h[0].copy(), h[1].copy(), h[2].copy(), width=800, height=600
+        )
         var t0 = perf_counter()
         _ = render(tree_plot)
         _record(timings, "TREE", "raster", n, perf_counter() - t0)
@@ -279,7 +315,9 @@ def _bench_hierarchy(mut timings: List[_Timing], sizes: List[Int]) raises:
         _ = render_svg(tree_plot)
         _record(timings, "TREE", "svg", n, perf_counter() - t0)
 
-        var treemap_plot = treemap(h[0].copy(), h[1].copy(), h[2].copy(), width=800, height=600)
+        var treemap_plot = treemap(
+            h[0].copy(), h[1].copy(), h[2].copy(), width=800, height=600
+        )
         t0 = perf_counter()
         _ = render(treemap_plot)
         _record(timings, "TREEMAP", "raster", n, perf_counter() - t0)
@@ -287,7 +325,9 @@ def _bench_hierarchy(mut timings: List[_Timing], sizes: List[Int]) raises:
         _ = render_svg(treemap_plot)
         _record(timings, "TREEMAP", "svg", n, perf_counter() - t0)
 
-        var sunburst_plot = sunburst(h[0].copy(), h[1].copy(), h[2].copy(), width=800, height=600)
+        var sunburst_plot = sunburst(
+            h[0].copy(), h[1].copy(), h[2].copy(), width=800, height=600
+        )
         t0 = perf_counter()
         _ = render(sunburst_plot)
         _record(timings, "SUNBURST", "raster", n, perf_counter() - t0)
@@ -299,7 +339,13 @@ def _bench_hierarchy(mut timings: List[_Timing], sizes: List[Int]) raises:
 def _bench_heatmap(mut timings: List[_Timing], sizes: List[Int]) raises:
     for n in sizes:
         var grid = _grid_heatmap(n)
-        var plot = heatmap(grid[0].copy(), grid[1].copy(), grid[2].copy(), width=800, height=600)
+        var plot = heatmap(
+            grid[0].copy(),
+            grid[1].copy(),
+            grid[2].copy(),
+            width=800,
+            height=600,
+        )
         var t0 = perf_counter()
         _ = render(plot)
         _record(timings, "HEATMAP", "raster", n, perf_counter() - t0)
@@ -318,7 +364,10 @@ def _check_scaling(timings: List[_Timing]) raises -> Bool:
     var all_ok = True
     for i in range(len(timings)):
         for j in range(i + 1, len(timings)):
-            if timings[i].mark != timings[j].mark or timings[i].backend != timings[j].backend:
+            if (
+                timings[i].mark != timings[j].mark
+                or timings[i].backend != timings[j].backend
+            ):
                 continue
             if timings[j].n <= timings[i].n:
                 continue
@@ -333,9 +382,20 @@ def _check_scaling(timings: List[_Timing]) raises -> Bool:
                 verdict = "SUSPECT"
                 all_ok = False
             print(
-                timings[i].mark + " " + timings[i].backend + ": " + String(timings[i].n) + " -> "
-                + String(timings[j].n) + " is " + String(size_ratio) + "x the size, "
-                + String(time_ratio) + "x the time [" + verdict + "]"
+                timings[i].mark
+                + " "
+                + timings[i].backend
+                + ": "
+                + String(timings[i].n)
+                + " -> "
+                + String(timings[j].n)
+                + " is "
+                + String(size_ratio)
+                + "x the size, "
+                + String(time_ratio)
+                + "x the time ["
+                + verdict
+                + "]"
             )
     return all_ok
 
@@ -358,7 +418,12 @@ def main() raises:
     _ = render_svg(warmup_plot)
 
     var small_sizes: List[Int] = [100, 1000, 10000]
-    var point_line_sizes: List[Int] = [100, 1000, 10000] if check_mode else [100, 1000, 10000, 100000]
+    var point_line_sizes: List[Int] = [100, 1000, 10000] if check_mode else [
+        100,
+        1000,
+        10000,
+        100000,
+    ]
 
     var timings = List[_Timing]()
     _bench_point_and_line(timings, point_line_sizes)
@@ -374,7 +439,9 @@ def main() raises:
         var ok = _check_scaling(timings)
         if not ok:
             raise Error(
-                "bench.mojo --check: at least one mark's render time scaled worse than "
-                + String(_CHECK_MAX_RATIO) + "x for a ~10x size increase -- see SUSPECT lines above"
+                "bench.mojo --check: at least one mark's render time scaled"
+                " worse than "
+                + String(_CHECK_MAX_RATIO)
+                + "x for a ~10x size increase -- see SUSPECT lines above"
             )
         print("bench.mojo --check: every mark scaled within the expected bound")

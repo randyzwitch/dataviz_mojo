@@ -7,6 +7,7 @@ from dataviz.plot import save
 from dataviz.colors import CORNFLOWERBLUE
 from dataviz.theme import Theme
 
+
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
     var y: List[Float64] = [12.0, 19.0, 14.0, 25.0, 18.0, 29.0, 22.0, 31.0]

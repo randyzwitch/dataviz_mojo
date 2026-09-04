@@ -3,8 +3,13 @@
 from dataviz.plot import Plot, save
 from dataviz.theme import Theme
 
+
 def main() raises:
-    var categories: List[String] = ["Northeast Region", "Southwest Region", "Central Region"]
+    var categories: List[String] = [
+        "Northeast Region",
+        "Southwest Region",
+        "Central Region",
+    ]
     var values: List[Float64] = [420.0, 310.0, 275.0]
 
     var plot = (

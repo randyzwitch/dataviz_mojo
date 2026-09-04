@@ -7,18 +7,25 @@ from dataviz.plot import save
 from dataviz.colors import ALICEBLUE, STEELBLUE
 from dataviz.theme import Theme
 
+
 def main() raises:
     var categories: List[String] = ["Revenue", "Profit Margin"]
     var measures: List[Float64] = [275.0, 18.0]
     var targets: List[Float64] = [300.0, 20.0]
-    var ranges: List[List[Float64]] = [[200.0, 260.0, 340.0], [10.0, 16.0, 24.0]]
+    var ranges: List[List[Float64]] = [
+        [200.0, 260.0, 340.0],
+        [10.0, 16.0, 24.0],
+    ]
 
     var plot = bullet(
         categories,
         measures,
         targets,
         ranges,
-        theme=Theme(bullet_range_color_light=ALICEBLUE, bullet_range_color_dark=STEELBLUE),
+        theme=Theme(
+            bullet_range_color_light=ALICEBLUE,
+            bullet_range_color_dark=STEELBLUE,
+        ),
         measure_width_fraction=0.55,
         title="KPI Progress",
     )

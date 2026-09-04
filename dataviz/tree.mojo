@@ -19,7 +19,9 @@ from dataviz.plot import (
 from dataviz.theme import Theme
 
 
-def _assign_leaf_positions(node: Int, idx: _HierarchyIndex, mut x: List[Float64], next_leaf: Int) -> Int:
+def _assign_leaf_positions(
+    node: Int, idx: _HierarchyIndex, mut x: List[Float64], next_leaf: Int
+) -> Int:
     """A simplified tree layout, not Reingold-Tilford (which also shifts
     whole subtrees sideways to avoid overlap between unevenly shaped
     siblings). Every leaf gets the next sequential integer x-slot, left
@@ -40,7 +42,9 @@ def _assign_leaf_positions(node: Int, idx: _HierarchyIndex, mut x: List[Float64]
     return n
 
 
-def _assign_branch_colors(node: Int, branch: Int, idx: _HierarchyIndex, mut out: List[Int]):
+def _assign_branch_colors(
+    node: Int, branch: Int, idx: _HierarchyIndex, mut out: List[Int]
+):
     """Every node in `node`'s subtree gets the same `branch` index (the
     root's direct children are numbered 0, 1, 2, ... by `_render_tree`),
     the same one-color-per-top-level-branch convention `Mark.SUNBURST`
@@ -63,7 +67,9 @@ def _assign_branch_colors(node: Int, branch: Int, idx: _HierarchyIndex, mut out:
             pending.append(c)
 
 
-def _tree_node_x(leaf_x: Float64, num_leaves: Int, plot_x0: Int, plot_x1: Int) -> Float64:
+def _tree_node_x(
+    leaf_x: Float64, num_leaves: Int, plot_x0: Int, plot_x1: Int
+) -> Float64:
     """A node's pixel x from its `_assign_leaf_positions` slot: slot `0` at
     `plot_x0`, slot `num_leaves - 1` at `plot_x1`, linear between (an
     internal node's fractional slot lands proportionally). A single-leaf
@@ -71,21 +77,29 @@ def _tree_node_x(leaf_x: Float64, num_leaves: Int, plot_x0: Int, plot_x1: Int) -
     """
     if num_leaves <= 1:
         return Float64(plot_x0 + plot_x1) / 2.0
-    return Float64(plot_x0) + (leaf_x / Float64(num_leaves - 1)) * Float64(plot_x1 - plot_x0)
+    return Float64(plot_x0) + (leaf_x / Float64(num_leaves - 1)) * Float64(
+        plot_x1 - plot_x0
+    )
 
 
-def _tree_node_y(depth: Int, max_depth: Int, plot_y0: Int, plot_y1: Int) -> Float64:
+def _tree_node_y(
+    depth: Int, max_depth: Int, plot_y0: Int, plot_y1: Int
+) -> Float64:
     """A node's pixel y from its `depth`: depth 0 at `plot_y0`, `max_depth`
     at `plot_y1`. A single-node tree pins to the top.
     """
     if max_depth <= 0:
         return Float64(plot_y0)
-    return Float64(plot_y0) + (Float64(depth) / Float64(max_depth)) * Float64(plot_y1 - plot_y0)
+    return Float64(plot_y0) + (Float64(depth) / Float64(max_depth)) * Float64(
+        plot_y1 - plot_y0
+    )
 
 
 def _render_tree[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.TREE` plot: `_build_hierarchy_index`'s `children`/
     `depth` (hierarchy.mojo) laid out top-to-bottom (root at the top,
     `depth` picks each node's row) with `_assign_leaf_positions`'s
@@ -101,13 +115,12 @@ def _render_tree[
     `encode_hierarchy()` marks, even though the tree layout never reads
     `values`.
     """
-    if (
-        len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids)
-        or len(plot._hierarchy.values) != len(plot._hierarchy.ids)
-    ):
+    if len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids) or len(
+        plot._hierarchy.values
+    ) != len(plot._hierarchy.ids):
         raise Error(
-            "Plot.encode_hierarchy(): ids, parent_ids, and values must all have the"
-            " same length (got "
+            "Plot.encode_hierarchy(): ids, parent_ids, and values must all have"
+            " the same length (got "
             + String(len(plot._hierarchy.ids))
             + " ids, "
             + String(len(plot._hierarchy.parent_ids))
@@ -119,7 +132,9 @@ def _render_tree[
     var theme = plot._theme
     _require_non_negative(plot._hierarchy.values, "Mark.TREE")
 
-    var idx = _build_hierarchy_index(plot._hierarchy.ids, plot._hierarchy.parent_ids, plot._hierarchy.values)
+    var idx = _build_hierarchy_index(
+        plot._hierarchy.ids, plot._hierarchy.parent_ids, plot._hierarchy.values
+    )
     var n = len(plot._hierarchy.ids)
 
     var parent_row = List[Int](capacity=n)
@@ -148,7 +163,9 @@ def _render_tree[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = _dynamic_legend_width(legend_labels, sc.legend_swatch_size, sc) if show_legend else 0
+    var legend_reserve = _dynamic_legend_width(
+        legend_labels, sc.legend_swatch_size, sc
+    ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
@@ -160,31 +177,60 @@ def _render_tree[
     for row in range(n):
         if row == idx.root:
             continue
-        var color = palette[branch[row] % len(palette)] if branch[row] >= 0 else theme.text_color
+        var color = (
+            palette[branch[row] % len(palette)] if branch[row]
+            >= 0 else theme.text_color
+        )
         var px0 = _round_to_int(
             _tree_node_x(leaf_x[parent_row[row]], num_leaves, plot_x0, plot_x1)
         )
         var py0 = _round_to_int(
-            _tree_node_y(idx.depth[parent_row[row]], idx.max_depth, plot_y0, plot_y1)
+            _tree_node_y(
+                idx.depth[parent_row[row]], idx.max_depth, plot_y0, plot_y1
+            )
         )
-        var px1 = _round_to_int(_tree_node_x(leaf_x[row], num_leaves, plot_x0, plot_x1))
-        var py1 = _round_to_int(_tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1))
+        var px1 = _round_to_int(
+            _tree_node_x(leaf_x[row], num_leaves, plot_x0, plot_x1)
+        )
+        var py1 = _round_to_int(
+            _tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1)
+        )
         target.draw_line_aa(px0, py0, px1, py1, color, sc.line_width)
 
     for row in range(n):
-        var color = palette[branch[row] % len(palette)] if branch[row] >= 0 else theme.text_color
-        var px = _round_to_int(_tree_node_x(leaf_x[row], num_leaves, plot_x0, plot_x1))
-        var py = _round_to_int(_tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1))
+        var color = (
+            palette[branch[row] % len(palette)] if branch[row]
+            >= 0 else theme.text_color
+        )
+        var px = _round_to_int(
+            _tree_node_x(leaf_x[row], num_leaves, plot_x0, plot_x1)
+        )
+        var py = _round_to_int(
+            _tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1)
+        )
         target.fill_circle_aa(px, py, _round_to_int(sc.point_radius), color)
         text_requests.append(
             _TextRequest(
-                px, py + sc.tick_length + sc.label_gap + Int(sc.font_size), plot._hierarchy.ids[row],
-                theme.text_color, sc.font_size, TextAlign.CENTER, theme.font_family,
+                px,
+                py + sc.tick_length + sc.label_gap + Int(sc.font_size),
+                plot._hierarchy.ids[row],
+                theme.text_color,
+                sc.font_size,
+                TextAlign.CENTER,
+                theme.font_family,
             )
         )
 
     if show_legend:
-        _draw_legend(target, text_requests, legend_labels, palette, plot_x1 + sc.margin_right, plot_y0, theme)
+        _draw_legend(
+            target,
+            text_requests,
+            legend_labels,
+            palette,
+            plot_x1 + sc.margin_right,
+            plot_y0,
+            theme,
+        )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
@@ -245,8 +291,14 @@ def tree(
             save(c, "docs/src/examples/out_tree.svg")
         ```
     """
-    var plot = Plot().mark_tree().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_tree()
+        .encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def tree[
@@ -268,6 +320,14 @@ def tree[
     above.
     """
     return tree(
-        ids, parent_ids, _materialize_scalar_list(values), theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        ids,
+        parent_ids,
+        _materialize_scalar_list(values),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

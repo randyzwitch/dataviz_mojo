@@ -69,7 +69,14 @@ comptime _COS_45 = 0.7071067811865476
 
 def _fill_shape_aa[
     T: DrawTarget
-](mut target: T, cx: Int, cy: Int, radius: Int, shape: PointShape, color: Color) raises:
+](
+    mut target: T,
+    cx: Int,
+    cy: Int,
+    radius: Int,
+    shape: PointShape,
+    color: Color,
+) raises:
     """Draw one `shape` centered at `(cx, cy)`, sized to `radius`. Called per
     point by `_draw_point_layer` and per legend swatch by `_draw_legend`
     (plot.mojo) when `Theme.shape_by_category` is on. `radius` is already
@@ -83,7 +90,9 @@ def _fill_shape_aa[
     if shape == PointShape.CIRCLE:
         target.fill_circle_aa(cx, cy, radius, color)
     elif shape == PointShape.SQUARE:
-        target.fill_rect(cx - radius, cy - radius, 2 * radius, 2 * radius, color)
+        target.fill_rect(
+            cx - radius, cy - radius, 2 * radius, 2 * radius, color
+        )
     elif shape == PointShape.TRIANGLE:
         var r = Float64(radius)
         var path = Path()
@@ -103,11 +112,19 @@ def _fill_shape_aa[
         target.fill_path_aa(path, color)
     elif shape == PointShape.CROSS:
         var width = Float64(radius) * 0.65
-        target.draw_line_aa(cx, cy - radius, cx, cy + radius, color, width=width)
-        target.draw_line_aa(cx - radius, cy, cx + radius, cy, color, width=width)
+        target.draw_line_aa(
+            cx, cy - radius, cx, cy + radius, color, width=width
+        )
+        target.draw_line_aa(
+            cx - radius, cy, cx + radius, cy, color, width=width
+        )
     else:
         # PointShape.X: CROSS's two strokes rotated 45 degrees.
         var diag = _round_to_int(Float64(radius) * _COS_45)
         var width = Float64(radius) * 0.65
-        target.draw_line_aa(cx - diag, cy - diag, cx + diag, cy + diag, color, width=width)
-        target.draw_line_aa(cx - diag, cy + diag, cx + diag, cy - diag, color, width=width)
+        target.draw_line_aa(
+            cx - diag, cy - diag, cx + diag, cy + diag, color, width=width
+        )
+        target.draw_line_aa(
+            cx - diag, cy + diag, cx + diag, cy - diag, color, width=width
+        )

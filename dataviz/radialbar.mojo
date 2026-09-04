@@ -23,7 +23,9 @@ from dataviz.theme import Theme
 
 def _render_radialbar[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.RADIALBAR` plot: one concentric ring per category
     (`encode_categorical`'s `x`/`y`, the same shape `Mark.ARC`/
     `POLAR_BAR`/`NIGHTINGALE` take), each value drawn as a
@@ -52,7 +54,9 @@ def _render_radialbar[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = _dynamic_legend_width(plot.x_categories, sc.legend_swatch_size, sc) if show_legend else 0
+    var legend_reserve = _dynamic_legend_width(
+        plot.x_categories, sc.legend_swatch_size, sc
+    ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
@@ -60,7 +64,9 @@ def _render_radialbar[
     var plot_y1 = oy1 - sc.margin_bottom
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
-    var max_radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    var max_radius = (
+        Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    )
 
     var palette = default_categorical_palette()
     var n = len(plot.x_categories)
@@ -71,14 +77,36 @@ def _render_radialbar[
         var outer = max_radius - ring_slot * Float64(i) - gap / 2.0
         var inner = max_radius - ring_slot * Float64(i + 1) + gap / 2.0
         var color = palette[i % len(palette)]
-        target.fill_ring_sector_aa(cx, cy, inner, outer, start_angle, start_angle + 2.0 * pi, theme.radialbar_track_color)
+        target.fill_ring_sector_aa(
+            cx,
+            cy,
+            inner,
+            outer,
+            start_angle,
+            start_angle + 2.0 * pi,
+            theme.radialbar_track_color,
+        )
         var frac = plot.y_data[i] / max_v
         if frac > 0.0:
-            target.fill_ring_sector_aa(cx, cy, inner, outer, start_angle, start_angle + 2.0 * pi * frac, color)
+            target.fill_ring_sector_aa(
+                cx,
+                cy,
+                inner,
+                outer,
+                start_angle,
+                start_angle + 2.0 * pi * frac,
+                color,
+            )
 
     if show_legend:
         _draw_legend(
-            target, text_requests, plot.x_categories, palette, plot_x1 + sc.margin_right, plot_y0, theme
+            target,
+            text_requests,
+            plot.x_categories,
+            palette,
+            plot_x1 + sc.margin_right,
+            plot_y0,
+            theme,
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
@@ -140,8 +168,14 @@ def radialbar(
             save(c, "docs/src/examples/out_radialbar.svg")
         ```
     """
-    var plot = Plot().mark_radialbar(ring_gap_fraction=ring_gap_fraction).encode_categorical(x=categories, y=values)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_radialbar(ring_gap_fraction=ring_gap_fraction)
+        .encode_categorical(x=categories, y=values)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def radialbar[
@@ -163,6 +197,14 @@ def radialbar[
     above.
     """
     return radialbar(
-        categories, _materialize_scalar_list(values), ring_gap_fraction=ring_gap_fraction, theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        categories,
+        _materialize_scalar_list(values),
+        ring_gap_fraction=ring_gap_fraction,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

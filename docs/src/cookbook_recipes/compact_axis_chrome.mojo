@@ -6,9 +6,18 @@ the plot area proportionally more.
 from dataviz.plot import Plot, save
 from dataviz.theme import Theme
 
+
 def main() raises:
     var days: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
-    var visits: List[Float64] = [340.0, 410.0, 380.0, 460.0, 500.0, 470.0, 520.0]
+    var visits: List[Float64] = [
+        340.0,
+        410.0,
+        380.0,
+        460.0,
+        500.0,
+        470.0,
+        520.0,
+    ]
 
     var plot = (
         Plot()

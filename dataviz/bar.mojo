@@ -30,7 +30,9 @@ def _bar_fill_color(theme: Theme, value: Float64) -> Color:
     `Theme.mark_color_negative` when `Theme.color_by_sign` is on and the
     value is negative, `Theme.mark_color` otherwise.
     """
-    return theme.mark_color_negative if (theme.color_by_sign and value < 0.0) else theme.mark_color
+    return theme.mark_color_negative if (
+        theme.color_by_sign and value < 0.0
+    ) else theme.mark_color
 
 
 def _draw_bar_rects[
@@ -71,15 +73,26 @@ def _draw_bar_rects[
     for i in range(len(plot.x_categories)):
         var band_pos = _round_to_int(band_scale.band_start(i))
         var value = plot.y_data[i]
-        var extent = _pull_off_axis_line(baseline, _axis_pixel(value_scale, value), baseline_edge)
+        var extent = _pull_off_axis_line(
+            baseline, _axis_pixel(value_scale, value), baseline_edge
+        )
         if theme.svg_tooltips:
-            target.begin_annotated_group(_tooltip_label(plot.x_categories[i], value))
-        orient.fill_band_rect(target, extent, band_pos, band_size, _bar_fill_color(theme, value))
+            target.begin_annotated_group(
+                _tooltip_label(plot.x_categories[i], value)
+            )
+        orient.fill_band_rect(
+            target, extent, band_pos, band_size, _bar_fill_color(theme, value)
+        )
         if theme.svg_tooltips:
             target.end_annotated_group()
         if theme.show_data_labels:
             var at = orient.outside_band_label(
-                extent, band_pos, band_size, value < 0.0, sc.label_gap, sc.font_size
+                extent,
+                band_pos,
+                band_size,
+                value < 0.0,
+                sc.label_gap,
+                sc.font_size,
             )
             text_requests.append(
                 _TextRequest(
@@ -96,7 +109,9 @@ def _draw_bar_rects[
 
 def _render_bar[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.BAR` plot: a categorical x-axis (`OrdinalScale`, one
     evenly spaced band per category) and a continuous y-axis whose domain
     always includes a zero baseline (`_zero_baseline_y_extent`, not the
@@ -122,10 +137,18 @@ def _render_bar[
     # finalized; see _draw_categorical_axis_frame for why it takes y_scale
     # as an input.
     var y_scale = _zero_baseline_y_extent(plot.y_data)
-    var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
+    var frame = _draw_categorical_axis_frame(
+        target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1
+    )
 
     _draw_bar_rects(
-        target, plot, frame.x_scale, frame.y_scale, frame.py1, _Orientation(False), frame.text_requests
+        target,
+        plot,
+        frame.x_scale,
+        frame.y_scale,
+        frame.py1,
+        _Orientation(False),
+        frame.text_requests,
     )
 
     # `frame.result()` copies `text_requests` rather than moving it: Mojo
@@ -136,7 +159,9 @@ def _render_bar[
 
 def _render_horizontal_bar[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """`_render_bar`'s mirror image for `Plot.mark_bar(horizontal=True)`
     (#121): a categorical y-axis (`OrdinalScale`, top to bottom) and a
     continuous x-axis whose domain includes a zero baseline
@@ -160,7 +185,13 @@ def _render_horizontal_bar[
     )
 
     _draw_bar_rects(
-        target, plot, frame.y_scale, frame.x_scale, frame.px0, _Orientation(True), frame.text_requests
+        target,
+        plot,
+        frame.y_scale,
+        frame.x_scale,
+        frame.px0,
+        _Orientation(True),
+        frame.text_requests,
     )
 
     return frame.result()
@@ -234,8 +265,14 @@ def bar(
             save(c_diverging, "docs/src/examples/out_bar_diverging.svg")
         ```
     """
-    var plot = Plot().mark_bar(horizontal=horizontal).encode_categorical(x=categories, y=values)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_bar(horizontal=horizontal)
+        .encode_categorical(x=categories, y=values)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def bar[
@@ -257,6 +294,14 @@ def bar[
     Delegates to the concrete overload above.
     """
     return bar(
-        categories, _materialize_scalar_list(values), theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title, horizontal=horizontal,
+        categories,
+        _materialize_scalar_list(values),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+        horizontal=horizontal,
     )

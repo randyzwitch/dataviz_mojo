@@ -6,6 +6,7 @@ from dataviz.plot import Plot, save_layers
 from dataviz.colors import CORNFLOWERBLUE, TOMATO
 from dataviz.theme import Theme
 
+
 def main() raises:
     var months: List[String] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
     var revenue: List[Float64] = [42.0, 48.0, 45.0, 61.0, 58.0, 70.0]
@@ -21,7 +22,11 @@ def main() raises:
         .mark_bar()
         .encode_categorical(x=months, y=revenue)
         .theme(Theme(mark_color=CORNFLOWERBLUE))
-        .labels(title="Monthly Revenue vs. Target", x_title="Month", y_title="Revenue ($K)")
+        .labels(
+            title="Monthly Revenue vs. Target",
+            x_title="Month",
+            y_title="Revenue ($K)",
+        )
     )
     var target_line = (
         Plot()

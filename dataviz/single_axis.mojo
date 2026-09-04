@@ -53,7 +53,9 @@ struct _SingleAxisFrame(Movable):
         self.py1 = py1
 
     def result(self) -> _RenderResult:
-        return _RenderResult(self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1)
+        return _RenderResult(
+            self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1
+        )
 
 
 def _draw_single_axis_frame[
@@ -92,14 +94,25 @@ def _draw_single_axis_frame[
     if theme.show_gridlines:
         for i in range(len(x_ticks.values)):
             var px = _axis_pixel(out_x_scale, x_ticks.values[i])
-            target.draw_line_aa(px, plot_y0, px, plot_y1, theme.gridline_color, width=sc.scale)
+            target.draw_line_aa(
+                px, plot_y0, px, plot_y1, theme.gridline_color, width=sc.scale
+            )
 
-    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale)
+    target.draw_line_aa(
+        plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale
+    )
 
     var text_requests = List[_TextRequest]()
     for i in range(len(x_ticks.values)):
         var px = _axis_pixel(out_x_scale, x_ticks.values[i])
-        target.draw_line_aa(px, plot_y1, px, plot_y1 + sc.tick_length, theme.axis_color, width=sc.scale)
+        target.draw_line_aa(
+            px,
+            plot_y1,
+            px,
+            plot_y1 + sc.tick_length,
+            theme.axis_color,
+            width=sc.scale,
+        )
         text_requests.append(
             _TextRequest(
                 px,
@@ -112,12 +125,16 @@ def _draw_single_axis_frame[
             )
         )
 
-    return _SingleAxisFrame(out_x_scale, sc^, text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+    return _SingleAxisFrame(
+        out_x_scale, sc^, text_requests^, plot_x0, plot_y0, plot_x1, plot_y1
+    )
 
 
 def _render_single_axis[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.SINGLE_AXIS` plot: every point from
     `encode_single_axis()`'s `x` at the plot area's vertical center,
     `(py0 + py1) / 2`, on `_draw_single_axis_frame`'s one-axis frame.
@@ -139,13 +156,22 @@ def _render_single_axis[
     var legend_reserve = _legend_reserve_for(plot, ch, sc)
 
     var x_scale = _data_extent(plot.x_data)
-    var frame = _draw_single_axis_frame(target, x_scale, theme, legend_reserve, ox0, oy0, ox1, oy1)
+    var frame = _draw_single_axis_frame(
+        target, x_scale, theme, legend_reserve, ox0, oy0, ox1, oy1
+    )
 
     var point_y = Float64(frame.py0 + frame.py1) / 2.0
     var y_scale = LinearScale(0.0, 1.0, point_y, point_y)
 
     _ = _draw_point_layer(
-        target, frame.text_requests, plot, ch, frame.x_scale, y_scale, frame.px1 + sc.margin_right, frame.py0
+        target,
+        frame.text_requests,
+        plot,
+        ch,
+        frame.x_scale,
+        y_scale,
+        frame.px1 + sc.margin_right,
+        frame.py0,
     )
 
     return frame.result()
@@ -210,10 +236,16 @@ def single_axis(
             save(c, "docs/src/examples/out_single_axis.svg")
         ```
     """
-    var plot = Plot().mark_single_axis().encode_single_axis(
-        x=x, color=color, color_categories=color_categories, size=size
+    var plot = (
+        Plot()
+        .mark_single_axis()
+        .encode_single_axis(
+            x=x, color=color, color_categories=color_categories, size=size
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, "", subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, "", subtitle=subtitle
+    )
 
 
 def single_axis[
@@ -237,6 +269,14 @@ def single_axis[
     overload above.
     """
     return single_axis(
-        _materialize_scalar_list(x), color=color, color_categories=color_categories, size=size,
-        theme=theme, width=width, height=height, title=title, subtitle=subtitle, x_title=x_title,
+        _materialize_scalar_list(x),
+        color=color,
+        color_categories=color_categories,
+        size=size,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
     )

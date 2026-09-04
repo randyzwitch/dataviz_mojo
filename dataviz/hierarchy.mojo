@@ -85,7 +85,8 @@ def _build_hierarchy_index(
         if parent_ids[i] == "":
             if root != -1:
                 raise Error(
-                    "Plot.encode_hierarchy(): more than one root (empty parent_id) found -- "
+                    "Plot.encode_hierarchy(): more than one root (empty"
+                    " parent_id) found -- "
                     + ids[root]
                     + " and "
                     + ids[i]
@@ -94,11 +95,16 @@ def _build_hierarchy_index(
         else:
             if parent_ids[i] not in id_to_row:
                 raise Error(
-                    "Plot.encode_hierarchy(): parent_id " + parent_ids[i] + " not found among ids"
+                    "Plot.encode_hierarchy(): parent_id "
+                    + parent_ids[i]
+                    + " not found among ids"
                 )
             children[id_to_row[parent_ids[i]]].append(i)
     if root == -1:
-        raise Error("Plot.encode_hierarchy(): no root found (exactly one row must have an empty parent_id)")
+        raise Error(
+            "Plot.encode_hierarchy(): no root found (exactly one row must have"
+            " an empty parent_id)"
+        )
 
     var depth = List[Int](capacity=n)
     for _ in range(n):

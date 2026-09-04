@@ -42,6 +42,7 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 # from tests/test_layers.mojo
 # ---------------------------------------------------------------
 
+
 def test_render_layers_shares_one_domain_across_a_line_and_a_point() raises:
     # A LINE plot (x=[0,10], y=[0,10]) layered with a POINT plot (one (5,5)
     # point, red, radius 5): the combined domain pads to [-0.5, 10.5] on
@@ -52,32 +53,56 @@ def test_render_layers_shares_one_domain_across_a_line_and_a_point() raises:
     var line_y: List[Float64] = [0.0, 10.0]
     var point_x: List[Float64] = [5.0]
     var point_y: List[Float64] = [5.0]
-    var plot_a = Plot().mark_line().encode(x=line_x, y=line_y).theme(Theme(show_gridlines=False)).size(400, 300)
-    var plot_b = Plot().mark_point().encode(x=point_x, y=point_y).theme(
-        Theme(mark_color=RED, point_radius=5.0)
-    ).size(400, 300)
+    var plot_a = (
+        Plot()
+        .mark_line()
+        .encode(x=line_x, y=line_y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var plot_b = (
+        Plot()
+        .mark_point()
+        .encode(x=point_x, y=point_y)
+        .theme(Theme(mark_color=RED, point_radius=5.0))
+        .size(400, 300)
+    )
     var plots = List[Plot]()
     plots.append(plot_a^)
     plots.append(plot_b^)
 
     var c = render_layers(plots)
-    _assert_color(c, 220, 135, RED, "the layered point, at the shared domain's pixel")
+    _assert_color(
+        c, 220, 135, RED, "the layered point, at the shared domain's pixel"
+    )
 
     var svg_plots = List[Plot]()
-    svg_plots.append(Plot().mark_line().encode(x=line_x, y=line_y).theme(Theme(show_gridlines=False)).size(400, 300))
     svg_plots.append(
-        Plot().mark_point().encode(x=point_x, y=point_y).theme(
-            Theme(mark_color=RED, point_radius=5.0)
-        ).size(400, 300)
+        Plot()
+        .mark_line()
+        .encode(x=line_x, y=line_y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    svg_plots.append(
+        Plot()
+        .mark_point()
+        .encode(x=point_x, y=point_y)
+        .theme(Theme(mark_color=RED, point_radius=5.0))
+        .size(400, 300)
     )
     var svg = render_layers_svg(svg_plots)
     var s = svg.to_string()
     assert_true(
         '<path d="M74.545,239.545 L365.455,30.455" fill="none" stroke="#1e64b4"'
-        ' stroke-width="2.000" stroke-linecap="round" stroke-linejoin="round"/>' in s,
+        ' stroke-width="2.000" stroke-linecap="round" stroke-linejoin="round"/>'
+        in s,
         "the layered line",
     )
-    assert_true('<circle cx="220" cy="135" r="5" fill="#ff0000"/>' in s, "the layered point, same shared domain")
+    assert_true(
+        '<circle cx="220" cy="135" r="5" fill="#ff0000"/>' in s,
+        "the layered point, same shared domain",
+    )
 
 
 def test_render_layers_annotate_vline_and_point_match_standalone_hand_derived_positions() raises:
@@ -92,35 +117,62 @@ def test_render_layers_annotate_vline_and_point_match_standalone_hand_derived_po
     # at (1.2, 15.0) -> (133, 135).
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
-    var line = Plot().mark_line().encode(x=x, y=y).annotate_vline(1.5, label="mid").annotate_point(
-        1.2, 15.0, label="here"
-    ).theme(Theme(show_gridlines=False)).size(400, 300)
+    var line = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_vline(1.5, label="mid")
+        .annotate_point(1.2, 15.0, label="here")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var plots: List[Plot] = [line^]
 
     var c = render_layers(plots)
-    _assert_near_color(c, 220, 100, Color(150, 150, 150), 40, "the vline's ink, well inside the plot height")
-    _assert_color(c, 133, 135, Color(150, 150, 150), "the point marker's center pixel")
+    _assert_near_color(
+        c,
+        220,
+        100,
+        Color(150, 150, 150),
+        40,
+        "the vline's ink, well inside the plot height",
+    )
+    _assert_color(
+        c, 133, 135, Color(150, 150, 150), "the point marker's center pixel"
+    )
 
-    var svg_line = Plot().mark_line().encode(x=x, y=y).annotate_vline(1.5, label="mid").annotate_point(
-        1.2, 15.0, label="here"
-    ).theme(Theme(show_gridlines=False)).size(400, 300)
+    var svg_line = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_vline(1.5, label="mid")
+        .annotate_point(1.2, 15.0, label="here")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg_plots: List[Plot] = [svg_line^]
     var svg = render_layers_svg(svg_plots)
     var s = svg.to_string()
     assert_true(
-        '<line x1="220" y1="20" x2="220" y2="250" stroke="#969696" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
+        '<line x1="220" y1="20" x2="220" y2="250" stroke="#969696"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
         "the vertical reference line itself",
     )
     assert_true(
-        '<text x="224" y="32" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="start">mid</text>' in s,
+        '<text x="224" y="32" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="start">mid</text>'
+        in s,
         "the vline's label",
     )
-    assert_true('<circle cx="133" cy="135" r="4" fill="#969696"/>' in s, "the point marker itself")
     assert_true(
-        '<text x="133" y="127" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="middle">here</text>' in s,
+        '<circle cx="133" cy="135" r="4" fill="#969696"/>' in s,
+        "the point marker itself",
+    )
+    assert_true(
+        '<text x="133" y="127" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="middle">here</text>'
+        in s,
         "the point's label",
     )
 
@@ -136,25 +188,34 @@ def test_render_layers_svg_annotate_band_and_best_fit_draw_against_the_layers_fr
     var band_x: List[Float64] = [1.0, 4.0]
     var band_lo: List[Float64] = [8.0, 13.0]
     var band_hi: List[Float64] = [12.0, 17.0]
-    var line = Plot().mark_line().encode(x=x, y=y).annotate_band(
-        x=band_x, y_lower=band_lo, y_upper=band_hi, label="band"
-    ).annotate_best_fit(show_equation=True).theme(Theme(show_gridlines=False)).size(400, 300)
+    var line = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_band(x=band_x, y_lower=band_lo, y_upper=band_hi, label="band")
+        .annotate_best_fit(show_equation=True)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var plots: List[Plot] = [line^]
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
-        '<path d="M74.545,155.909 L365.455,20.000 L365.455,114.091 L74.545,250.000 Z"'
-        ' fill="#e0ecf6" fill-opacity="0.784"/>' in s,
+        '<path d="M74.545,155.909 L365.455,20.000 L365.455,114.091'
+        ' L74.545,250.000 Z" fill="#e0ecf6" fill-opacity="0.784"/>'
+        in s,
         "the confidence band's filled region",
     )
     assert_true(
-        '<line x1="60" y1="245" x2="380" y2="25" stroke="#969696" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
+        '<line x1="60" y1="245" x2="380" y2="25" stroke="#969696"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
         "the best-fit line",
     )
     assert_true(
-        '<text x="376" y="32" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="end">y = 1.600x + 8.500</text>' in s,
+        '<text x="376" y="32" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="end">y = 1.600x + 8.500</text>'
+        in s,
         "the best-fit line's equation label",
     )
 
@@ -171,31 +232,45 @@ def test_render_layers_svg_title_from_plots0_centers_on_shared_inner_rect() rais
     var point_y: List[Float64] = [5.0]
     var plots = List[Plot]()
     plots.append(
-        Plot().mark_line().encode(x=line_x, y=line_y).labels(title="Combined").theme(
-            Theme(show_gridlines=False)
-        ).size(400, 300)
+        Plot()
+        .mark_line()
+        .encode(x=line_x, y=line_y)
+        .labels(title="Combined")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
     )
     plots.append(
-        Plot().mark_point().encode(x=point_x, y=point_y).theme(
-            Theme(mark_color=RED, point_radius=5.0)
-        ).size(400, 300)
+        Plot()
+        .mark_point()
+        .encode(x=point_x, y=point_y)
+        .theme(Theme(mark_color=RED, point_radius=5.0))
+        .size(400, 300)
     )
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
 
     assert_true(
-        '<text x="220" y="14" font-size="18.000" font-family="sans-serif" font-weight="bold" fill="#282828"'
-        ' text-anchor="middle">Combined</text>' in s,
+        '<text x="220" y="14" font-size="18.000" font-family="sans-serif"'
+        ' font-weight="bold" fill="#282828"'
+        ' text-anchor="middle">Combined</text>'
+        in s,
         "layered chart title, from plots[0], centered on the shared inner rect",
     )
     assert_true(
         '<path d="M74.545,240.545 L365.455,51.455" fill="none" stroke="#1e64b4"'
-        ' stroke-width="2.000" stroke-linecap="round" stroke-linejoin="round"/>' in s,
-        "the layered line, re-solved against the title-shrunk shared inner rect",
+        ' stroke-width="2.000" stroke-linecap="round" stroke-linejoin="round"/>'
+        in s,
+        (
+            "the layered line, re-solved against the title-shrunk shared inner"
+            " rect"
+        ),
     )
     assert_true(
         '<circle cx="220" cy="146" r="5" fill="#ff0000"/>' in s,
-        "the layered point, same shared domain, shifted down by the shared title reservation",
+        (
+            "the layered point, same shared domain, shifted down by the shared"
+            " title reservation"
+        ),
     )
 
 
@@ -215,13 +290,23 @@ def test_render_layers_svg_point_layer_color_categories_matches_hand_derived_leg
     var cats: List[String] = ["A", "B"]
     var plots = List[Plot]()
     plots.append(
-        Plot().mark_point().encode(x=x, y=y, color_categories=cats).theme(Theme(show_gridlines=False)).size(400, 300)
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y, color_categories=cats)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
     )
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
 
-    assert_true('<circle cx="69" cy="135" r="4" fill="#1f77b4"/>' in s, "layered point 0, category A's color")
-    assert_true('<circle cx="241" cy="135" r="4" fill="#ff7f0e"/>' in s, "layered point 1, category B's color")
+    assert_true(
+        '<circle cx="69" cy="135" r="4" fill="#1f77b4"/>' in s,
+        "layered point 0, category A's color",
+    )
+    assert_true(
+        '<circle cx="241" cy="135" r="4" fill="#ff7f0e"/>' in s,
+        "layered point 1, category B's color",
+    )
     assert_true(
         '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
         "legend row 0 -- narrowed plot area makes room for the legend column",
@@ -240,7 +325,11 @@ def test_render_layers_raises_when_a_line_layer_uses_color_categories() raises:
     var line_y: List[Float64] = [0.0, 10.0]
     var line_cats: List[String] = ["a", "b"]
     var plots = List[Plot]()
-    plots.append(Plot().mark_line().encode(x=line_x, y=line_y, color_categories=line_cats))
+    plots.append(
+        Plot()
+        .mark_line()
+        .encode(x=line_x, y=line_y, color_categories=line_cats)
+    )
     with assert_raises():
         _ = render_layers(plots)
 
@@ -283,7 +372,9 @@ def test_render_layers_raises_when_a_lollipop_plot_is_included() raises:
     var lolli_y: List[Float64] = [1.0, 2.0]
     var plots = List[Plot]()
     plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
-    plots.append(Plot().mark_lollipop().encode_categorical(x=lolli_x, y=lolli_y))
+    plots.append(
+        Plot().mark_lollipop().encode_categorical(x=lolli_x, y=lolli_y)
+    )
     with assert_raises():
         _ = render_layers(plots)
 
@@ -296,7 +387,9 @@ def test_render_layers_raises_when_a_candlestick_plot_is_included() raises:
     var one: List[Float64] = [1.0, 2.0]
     var plots = List[Plot]()
     plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
-    plots.append(Plot().mark_candlestick().encode_candlestick(cats, one, one, one, one))
+    plots.append(
+        Plot().mark_candlestick().encode_candlestick(cats, one, one, one, one)
+    )
     with assert_raises():
         _ = render_layers(plots)
 
@@ -337,7 +430,9 @@ def test_render_layers_raises_when_a_grouped_bar_plot_is_included() raises:
     var values: List[List[Float64]] = [[1.0, 2.0]]
     var plots = List[Plot]()
     plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
-    plots.append(Plot().mark_grouped_bar().encode_grouped_bar(cats, names, values))
+    plots.append(
+        Plot().mark_grouped_bar().encode_grouped_bar(cats, names, values)
+    )
     with assert_raises():
         _ = render_layers(plots)
 
@@ -351,7 +446,9 @@ def test_render_layers_raises_when_a_stacked_bar_plot_is_included() raises:
     var values: List[List[Float64]] = [[1.0, 2.0]]
     var plots = List[Plot]()
     plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
-    plots.append(Plot().mark_stacked_bar().encode_grouped_bar(cats, names, values))
+    plots.append(
+        Plot().mark_stacked_bar().encode_grouped_bar(cats, names, values)
+    )
     with assert_raises():
         _ = render_layers(plots)
 
@@ -371,10 +468,14 @@ def test_render_layers_line_honors_theme_line_smoothing() raises:
     var theme = Theme(line_smoothing=1.0, show_gridlines=False)
 
     var plots = List[Plot]()
-    plots.append(Plot().mark_line().encode(x=x, y=y).theme(theme).size(400, 300))
+    plots.append(
+        Plot().mark_line().encode(x=x, y=y).theme(theme).size(400, 300)
+    )
     var c_layered = render_layers(plots)
 
-    var _hoisted1 = Plot().mark_line().encode(x=x, y=y).theme(theme).size(400, 300)
+    var _hoisted1 = (
+        Plot().mark_line().encode(x=x, y=y).theme(theme).size(400, 300)
+    )
     var c_standalone = render(_hoisted1)
 
     for yy in range(c_layered.height):
@@ -402,10 +503,14 @@ def test_render_layers_area_honors_theme_line_smoothing() raises:
     var theme = Theme(line_smoothing=1.0, show_gridlines=False)
 
     var plots = List[Plot]()
-    plots.append(Plot().mark_area().encode(x=x, y=y).theme(theme).size(400, 300))
+    plots.append(
+        Plot().mark_area().encode(x=x, y=y).theme(theme).size(400, 300)
+    )
     var c_layered = render_layers(plots)
 
-    var _hoisted2 = Plot().mark_area().encode(x=x, y=y).theme(theme).size(400, 300)
+    var _hoisted2 = (
+        Plot().mark_area().encode(x=x, y=y).theme(theme).size(400, 300)
+    )
     var c_standalone = render(_hoisted2)
 
     for yy in range(c_layered.height):
@@ -424,18 +529,24 @@ def test_render_layers_raises_on_out_of_range_smoothing() raises:
     var y: List[Float64] = [0.0, 10.0, 0.0]
 
     var low = List[Plot]()
-    low.append(Plot().mark_line().encode(x=x, y=y).theme(Theme(line_smoothing=-0.1)))
+    low.append(
+        Plot().mark_line().encode(x=x, y=y).theme(Theme(line_smoothing=-0.1))
+    )
     with assert_raises():
         _ = render_layers(low)
 
     var high = List[Plot]()
-    high.append(Plot().mark_area().encode(x=x, y=y).theme(Theme(line_smoothing=1.1)))
+    high.append(
+        Plot().mark_area().encode(x=x, y=y).theme(Theme(line_smoothing=1.1))
+    )
     with assert_raises():
         _ = render_layers(high)
+
 
 # ---------------------------------------------------------------
 # from tests/test_layers_bar_combo.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_layers_svg_bar_combo_matches_hand_derived_positions() raises:
     # 2 categories, canvas 400x300, no gridlines: plot rect x:[60,380]
@@ -449,18 +560,30 @@ def test_render_layers_svg_bar_combo_matches_hand_derived_positions() raises:
     var bar_y: List[Float64] = [10.0, 20.0]
     var idx: List[Float64] = [0.0, 1.0]
     var line_y: List[Float64] = [15.0, 5.0]
-    var bars = Plot().mark_bar().encode_categorical(x=cats, y=bar_y).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var bars = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=bar_y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300)
     var plots: List[Plot] = [bars^, line^]
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
-    assert_true('<rect x="76" y="140" width="128" height="109" fill="#1e64b4"/>' in s, "bar A")
-    assert_true('<rect x="236" y="31" width="128" height="218" fill="#1e64b4"/>' in s, "bar B")
     assert_true(
-        '<path d="M140.000,85.714 L300.000,195.238" fill="none" stroke="#1e64b4" stroke-width="2.000"'
-        ' stroke-linecap="round" stroke-linejoin="round"/>' in s,
+        '<rect x="76" y="140" width="128" height="109" fill="#1e64b4"/>' in s,
+        "bar A",
+    )
+    assert_true(
+        '<rect x="236" y="31" width="128" height="218" fill="#1e64b4"/>' in s,
+        "bar B",
+    )
+    assert_true(
+        '<path d="M140.000,85.714 L300.000,195.238" fill="none"'
+        ' stroke="#1e64b4" stroke-width="2.000" stroke-linecap="round"'
+        ' stroke-linejoin="round"/>'
+        in s,
         "the line, positioned by category index, not its own x values",
     )
 
@@ -474,15 +597,22 @@ def test_render_layers_svg_bar_combo_draws_the_bar_layer_first() raises:
     var idx: List[Float64] = [0.0, 1.0]
     var line_y: List[Float64] = [15.0, 5.0]
     var line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300)
-    var bars = Plot().mark_bar().encode_categorical(x=cats, y=bar_y).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var bars = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=bar_y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var plots: List[Plot] = [line^, bars^]
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     var rect_index = s.find('<rect x="76" y="140"')
     var path_index = s.find("<path d=")
-    assert_true(rect_index != -1 and path_index != -1 and rect_index < path_index, "bar rects precede the line path")
+    assert_true(
+        rect_index != -1 and path_index != -1 and rect_index < path_index,
+        "bar rects precede the line path",
+    )
 
 
 def test_render_layers_svg_bar_combo_supports_a_point_layer() raises:
@@ -490,14 +620,21 @@ def test_render_layers_svg_bar_combo_supports_a_point_layer() raises:
     var bar_y: List[Float64] = [10.0, 20.0]
     var idx: List[Float64] = [0.0, 1.0]
     var point_y: List[Float64] = [15.0, 5.0]
-    var bars = Plot().mark_bar().encode_categorical(x=cats, y=bar_y).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var bars = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=bar_y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var points = Plot().mark_point().encode(x=idx, y=point_y).size(400, 300)
     var plots: List[Plot] = [bars^, points^]
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
-    assert_true('cx="140" cy="86"' in s, "point A, at its category's band center (85.714 rounds to 86)")
+    assert_true(
+        'cx="140" cy="86"' in s,
+        "point A, at its category's band center (85.714 rounds to 86)",
+    )
     assert_true('cx="300" cy="195"' in s, "point B (195.238 rounds to 195)")
 
 
@@ -506,9 +643,13 @@ def test_render_layers_svg_bar_combo_supports_an_area_layer() raises:
     var bar_y: List[Float64] = [10.0, 20.0]
     var idx: List[Float64] = [0.0, 1.0]
     var area_y: List[Float64] = [15.0, 5.0]
-    var bars = Plot().mark_bar().encode_categorical(x=cats, y=bar_y).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var bars = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=bar_y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var area = Plot().mark_area().encode(x=idx, y=area_y).size(400, 300)
     var plots: List[Plot] = [bars^, area^]
     var svg = render_layers_svg(plots)
@@ -516,8 +657,9 @@ def test_render_layers_svg_bar_combo_supports_an_area_layer() raises:
     # Closed down to the zero baseline (pixel 250), pulled 1px to 249 since
     # the baseline lands on the axis line, as _draw_area_layer does.
     assert_true(
-        '<path d="M140.000,85.714 L300.000,195.238 L300.000,249.000 L140.000,249.000 Z"'
-        ' fill="#1e64b4"/>' in s,
+        '<path d="M140.000,85.714 L300.000,195.238 L300.000,249.000'
+        ' L140.000,249.000 Z" fill="#1e64b4"/>'
+        in s,
         "the area, closed down to the shared zero baseline",
     )
 
@@ -531,21 +673,27 @@ def test_render_layers_svg_bar_combo_supports_show_data_labels() raises:
     var bar_y: List[Float64] = [10.0, 20.0]
     var idx: List[Float64] = [0.0, 1.0]
     var line_y: List[Float64] = [15.0, 5.0]
-    var bars = Plot().mark_bar().encode_categorical(x=cats, y=bar_y).theme(
-        Theme(show_gridlines=False, show_data_labels=True)
-    ).size(400, 300)
+    var bars = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=bar_y)
+        .theme(Theme(show_gridlines=False, show_data_labels=True))
+        .size(400, 300)
+    )
     var line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300)
     var plots: List[Plot] = [bars^, line^]
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
-        '<text x="140" y="136" font-size="12.000" font-family="sans-serif" fill="#282828"'
-        ' text-anchor="middle">10</text>' in s,
+        '<text x="140" y="136" font-size="12.000" font-family="sans-serif"'
+        ' fill="#282828" text-anchor="middle">10</text>'
+        in s,
         "bar A's own data label",
     )
     assert_true(
-        '<text x="300" y="27" font-size="12.000" font-family="sans-serif" fill="#282828"'
-        ' text-anchor="middle">20</text>' in s,
+        '<text x="300" y="27" font-size="12.000" font-family="sans-serif"'
+        ' fill="#282828" text-anchor="middle">20</text>'
+        in s,
         "bar B's own data label",
     )
 
@@ -553,8 +701,12 @@ def test_render_layers_svg_bar_combo_supports_show_data_labels() raises:
 def test_render_layers_raises_on_a_second_bar_layer() raises:
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, 20.0]
-    var bars1 = Plot().mark_bar().encode_categorical(x=cats, y=vals).size(400, 300)
-    var bars2 = Plot().mark_bar().encode_categorical(x=cats, y=vals).size(400, 300)
+    var bars1 = (
+        Plot().mark_bar().encode_categorical(x=cats, y=vals).size(400, 300)
+    )
+    var bars2 = (
+        Plot().mark_bar().encode_categorical(x=cats, y=vals).size(400, 300)
+    )
     var plots: List[Plot] = [bars1^, bars2^]
     with assert_raises():
         _ = render_layers_svg(plots)
@@ -565,7 +717,9 @@ def test_render_layers_raises_on_a_non_bar_layer_length_mismatch() raises:
     var bar_y: List[Float64] = [10.0, 20.0, 15.0]
     var bad_idx: List[Float64] = [0.0, 1.0]
     var bad_y: List[Float64] = [5.0, 6.0]
-    var bars = Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
+    var bars = (
+        Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
+    )
     var line = Plot().mark_line().encode(x=bad_idx, y=bad_y).size(400, 300)
     var plots: List[Plot] = [bars^, line^]
     with assert_raises():
@@ -577,8 +731,16 @@ def test_render_layers_raises_on_secondary_axis_in_a_bar_combo() raises:
     var bar_y: List[Float64] = [10.0, 20.0]
     var idx: List[Float64] = [0.0, 1.0]
     var line_y: List[Float64] = [15.0, 5.0]
-    var bars = Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
-    var line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300).secondary_axis()
+    var bars = (
+        Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
+    )
+    var line = (
+        Plot()
+        .mark_line()
+        .encode(x=idx, y=line_y)
+        .size(400, 300)
+        .secondary_axis()
+    )
     var plots: List[Plot] = [bars^, line^]
     with assert_raises():
         _ = render_layers_svg(plots)
@@ -589,8 +751,12 @@ def test_render_layers_raises_on_scale_y_log_in_a_bar_combo() raises:
     var bar_y: List[Float64] = [10.0, 20.0]
     var idx: List[Float64] = [1.0, 2.0]
     var line_y: List[Float64] = [15.0, 5.0]
-    var bars = Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
-    var line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300).scale_y_log()
+    var bars = (
+        Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
+    )
+    var line = (
+        Plot().mark_line().encode(x=idx, y=line_y).size(400, 300).scale_y_log()
+    )
     var plots: List[Plot] = [bars^, line^]
     with assert_raises():
         _ = render_layers_svg(plots)
@@ -602,8 +768,15 @@ def test_render_layers_raises_on_color_categories_on_a_non_bar_layer() raises:
     var idx: List[Float64] = [0.0, 1.0]
     var line_y: List[Float64] = [15.0, 5.0]
     var color_cats: List[String] = ["x", "y"]
-    var bars = Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
-    var points = Plot().mark_point().encode(x=idx, y=line_y, color_categories=color_cats).size(400, 300)
+    var bars = (
+        Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
+    )
+    var points = (
+        Plot()
+        .mark_point()
+        .encode(x=idx, y=line_y, color_categories=color_cats)
+        .size(400, 300)
+    )
     var plots: List[Plot] = [bars^, points^]
     with assert_raises():
         _ = render_layers_svg(plots)
@@ -614,8 +787,16 @@ def test_render_layers_raises_on_annotate_line_in_a_bar_combo() raises:
     var bar_y: List[Float64] = [10.0, 20.0]
     var idx: List[Float64] = [0.0, 1.0]
     var line_y: List[Float64] = [15.0, 5.0]
-    var bars = Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
-    var line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300).annotate_line(15.0)
+    var bars = (
+        Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
+    )
+    var line = (
+        Plot()
+        .mark_line()
+        .encode(x=idx, y=line_y)
+        .size(400, 300)
+        .annotate_line(15.0)
+    )
     var plots: List[Plot] = [bars^, line^]
     with assert_raises():
         _ = render_layers_svg(plots)
@@ -634,9 +815,15 @@ def test_render_layers_raises_on_annotate_band_in_a_bar_combo() raises:
     var band_x: List[Float64] = [0.0, 1.0]
     var band_lo: List[Float64] = [1.0, 2.0]
     var band_hi: List[Float64] = [3.0, 4.0]
-    var bars = Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
-    var line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300).annotate_band(
-        x=band_x, y_lower=band_lo, y_upper=band_hi
+    var bars = (
+        Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
+    )
+    var line = (
+        Plot()
+        .mark_line()
+        .encode(x=idx, y=line_y)
+        .size(400, 300)
+        .annotate_band(x=band_x, y_lower=band_lo, y_upper=band_hi)
     )
     var plots: List[Plot] = [bars^, line^]
     with assert_raises():
@@ -649,15 +836,25 @@ def test_render_layers_raises_on_annotate_best_fit_in_a_bar_combo() raises:
     var bar_y: List[Float64] = [10.0, 20.0]
     var idx: List[Float64] = [0.0, 1.0]
     var line_y: List[Float64] = [15.0, 5.0]
-    var bars = Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
-    var line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300).annotate_best_fit()
+    var bars = (
+        Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
+    )
+    var line = (
+        Plot()
+        .mark_line()
+        .encode(x=idx, y=line_y)
+        .size(400, 300)
+        .annotate_best_fit()
+    )
     var plots: List[Plot] = [bars^, line^]
     with assert_raises():
         _ = render_layers_svg(plots)
 
+
 # ---------------------------------------------------------------
 # from tests/test_facets.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_facets_lays_out_independent_plots_side_by_side() raises:
     # Two cells, 400x300 each, side by side on an 800x300 canvas (cols=2).
@@ -668,14 +865,22 @@ def test_render_facets_lays_out_independent_plots_side_by_side() raises:
     # canvas comes from each plot's .size(400, 300).
     var xy: List[Float64] = [5.0]
     var plot0 = Plot().mark_point().encode(x=xy, y=xy).size(400, 300)
-    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED)).size(400, 300)
+    var plot1 = (
+        Plot()
+        .mark_point()
+        .encode(x=xy, y=xy)
+        .theme(Theme(mark_color=RED))
+        .size(400, 300)
+    )
     var plots = List[Plot]()
     plots.append(plot0^)
     plots.append(plot1^)
 
     var c = render_facets(plots, cols=2)
 
-    _assert_color(c, 220, 135, Theme.default().mark_color, "cell 0's point, unshifted")
+    _assert_color(
+        c, 220, 135, Theme.default().mark_color, "cell 0's point, unshifted"
+    )
     _assert_color(c, 620, 135, RED, "cell 1's point, +400px shifted")
 
 
@@ -692,25 +897,40 @@ def test_render_facets_svg_draws_annotate_vline_and_best_fit_in_different_cells(
     # y-domain.
     var xa: List[Float64] = [1.0, 2.0]
     var ya: List[Float64] = [10.0, 20.0]
-    var cell_a = Plot().mark_line().encode(x=xa, y=ya).annotate_vline(1.5).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var cell_a = (
+        Plot()
+        .mark_line()
+        .encode(x=xa, y=ya)
+        .annotate_vline(1.5)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var xb: List[Float64] = [1.0, 2.0, 3.0]
     var yb: List[Float64] = [5.0, 7.0, 9.0]
-    var cell_b = Plot().mark_point().encode(x=xb, y=yb).annotate_best_fit().theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var cell_b = (
+        Plot()
+        .mark_point()
+        .encode(x=xb, y=yb)
+        .annotate_best_fit()
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var plots: List[Plot] = [cell_a^, cell_b^]
     var svg = render_facets_svg(plots, cols=2)
     var s = svg.to_string()
     assert_true(
-        '<line x1="220" y1="20" x2="220" y2="250" stroke="#969696" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
-        "cell 0's vline, at the same pixel a standalone render of the same plot would use",
+        '<line x1="220" y1="20" x2="220" y2="250" stroke="#969696"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
+        (
+            "cell 0's vline, at the same pixel a standalone render of the same"
+            " plot would use"
+        ),
     )
     assert_true(
-        '<line x1="460" y1="250" x2="780" y2="20" stroke="#969696" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
+        '<line x1="460" y1="250" x2="780" y2="20" stroke="#969696"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
         "cell 1's best-fit line, spanning its own +400px-shifted inner rect",
     )
 
@@ -724,9 +944,15 @@ def test_render_facets_leaves_trailing_cells_blank_when_plots_dont_fill_the_grid
     # distinguishable from a rendered one.
     var xy: List[Float64] = [5.0]
     var theme = Theme(background=Color(10, 20, 30))
-    var plot0 = Plot().mark_point().encode(x=xy, y=xy).theme(theme).size(400, 300)
-    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(theme).size(400, 300)
-    var plot2 = Plot().mark_point().encode(x=xy, y=xy).theme(theme).size(400, 300)
+    var plot0 = (
+        Plot().mark_point().encode(x=xy, y=xy).theme(theme).size(400, 300)
+    )
+    var plot1 = (
+        Plot().mark_point().encode(x=xy, y=xy).theme(theme).size(400, 300)
+    )
+    var plot2 = (
+        Plot().mark_point().encode(x=xy, y=xy).theme(theme).size(400, 300)
+    )
     var plots = List[Plot]()
     plots.append(plot0^)
     plots.append(plot1^)
@@ -738,7 +964,16 @@ def test_render_facets_leaves_trailing_cells_blank_when_plots_dont_fill_the_grid
     _assert_color(c, 220, 135, mark_color, "cell (0,0)'s point")
     _assert_color(c, 620, 135, mark_color, "cell (0,1)'s point")
     _assert_color(c, 220, 435, mark_color, "cell (1,0)'s point")
-    _assert_color(c, 700, 450, Color(255, 255, 255), "cell (1,1) has no 4th plot -- never touched, stays the canvas's own white default")
+    _assert_color(
+        c,
+        700,
+        450,
+        Color(255, 255, 255),
+        (
+            "cell (1,1) has no 4th plot -- never touched, stays the canvas's"
+            " own white default"
+        ),
+    )
 
 
 def test_render_facets_raises_on_non_positive_cols() raises:
@@ -767,7 +1002,13 @@ def test_render_facets_svg_lays_out_independent_plots_side_by_side() raises:
     # rendered into the shared SvgCanvas.
     var xy: List[Float64] = [5.0]
     var plot0 = Plot().mark_point().encode(x=xy, y=xy).size(400, 300)
-    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED)).size(400, 300)
+    var plot1 = (
+        Plot()
+        .mark_point()
+        .encode(x=xy, y=xy)
+        .theme(Theme(mark_color=RED))
+        .size(400, 300)
+    )
     var plots = List[Plot]()
     plots.append(plot0^)
     plots.append(plot1^)
@@ -792,8 +1033,20 @@ def test_render_facets_svg_each_cell_gets_its_own_independent_title() raises:
     # while cell 1's point stays at (620,135). The title centers at
     # (220, 14).
     var xy: List[Float64] = [5.0]
-    var plot0 = Plot().mark_point().encode(x=xy, y=xy).labels(title="Left").size(400, 300)
-    var plot1 = Plot().mark_point().encode(x=xy, y=xy).theme(Theme(mark_color=RED)).size(400, 300)
+    var plot0 = (
+        Plot()
+        .mark_point()
+        .encode(x=xy, y=xy)
+        .labels(title="Left")
+        .size(400, 300)
+    )
+    var plot1 = (
+        Plot()
+        .mark_point()
+        .encode(x=xy, y=xy)
+        .theme(Theme(mark_color=RED))
+        .size(400, 300)
+    )
     var plots = List[Plot]()
     plots.append(plot0^)
     plots.append(plot1^)
@@ -802,8 +1055,9 @@ def test_render_facets_svg_each_cell_gets_its_own_independent_title() raises:
     var s = svg.to_string()
 
     assert_true(
-        '<text x="220" y="14" font-size="18.000" font-family="sans-serif" font-weight="bold" fill="#282828"'
-        ' text-anchor="middle">Left</text>' in s,
+        '<text x="220" y="14" font-size="18.000" font-family="sans-serif"'
+        ' font-weight="bold" fill="#282828" text-anchor="middle">Left</text>'
+        in s,
         "cell 0's title, centered on its inner plot rect",
     )
     assert_true(
@@ -833,7 +1087,12 @@ def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() r
     var xy: List[Float64] = [5.0]
     var plots = List[Plot]()
     plots.append(
-        Plot().mark_point().encode(x=xy, y=xy).labels(title="Titled").theme(Theme(background=MAGENTA)).size(400, 300)
+        Plot()
+        .mark_point()
+        .encode(x=xy, y=xy)
+        .labels(title="Titled")
+        .theme(Theme(background=MAGENTA))
+        .size(400, 300)
     )
 
     var c = render_facets(plots, 1)
@@ -842,13 +1101,21 @@ def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() r
     # ...and the same for an untitled cell, where the corner is still
     # outside the plot area.
     var untitled = List[Plot]()
-    untitled.append(Plot().mark_point().encode(x=xy, y=xy).theme(Theme(background=MAGENTA)).size(400, 300))
+    untitled.append(
+        Plot()
+        .mark_point()
+        .encode(x=xy, y=xy)
+        .theme(Theme(background=MAGENTA))
+        .size(400, 300)
+    )
     var c2 = render_facets(untitled, 1)
     _assert_color(c2, 2, 2, MAGENTA, "an untitled cell's top-left corner")
+
 
 # ---------------------------------------------------------------
 # from tests/test_facets_shared_scale.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_facets_svg_shared_y_scale_matches_hand_derived_positions() raises:
     # Two cells, one point each (y=10 and y=110): combined domain [10, 110],
@@ -870,8 +1137,14 @@ def test_render_facets_svg_shared_y_scale_matches_hand_derived_positions() raise
     var p1 = Plot().size(400, 300).mark_point().encode(x=x, y=y1)
     var plots: List[Plot] = [p0^, p1^]
     var s = render_facets_svg(plots, 2, shared_y_scale=True).to_string()
-    assert_true('cy="240"' in s, "cell 0's own point (y=10) lands at the hand-derived shared-scale row")
-    assert_true('cy="30"' in s, "cell 1's own point (y=110) lands at the hand-derived shared-scale row")
+    assert_true(
+        'cy="240"' in s,
+        "cell 0's own point (y=10) lands at the hand-derived shared-scale row",
+    )
+    assert_true(
+        'cy="30"' in s,
+        "cell 1's own point (y=110) lands at the hand-derived shared-scale row",
+    )
 
 
 def test_render_facets_raises_on_an_incompatible_mark_with_shared_y_scale() raises:
@@ -943,11 +1216,19 @@ def test_render_facets_svg_default_keeps_each_cells_independent_scale() raises:
             break
         count += 1
         search_from = idx + 1
-    assert_true(count == 2, "both cells' own independent domain centers their lone point at row 135")
+    assert_true(
+        count == 2,
+        (
+            "both cells' own independent domain centers their lone point at"
+            " row 135"
+        ),
+    )
+
 
 # ---------------------------------------------------------------
 # from tests/test_secondary_axis.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_layers_svg_secondary_axis_matches_hand_derived_position() raises:
     # 2 layers, no color/size encoding (legend_reserve 0), gridlines on to
@@ -960,7 +1241,9 @@ def test_render_layers_svg_secondary_axis_matches_hand_derived_position() raises
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
     var primary = Plot().mark_line().encode(x=x, y=y1).size(400, 300)
-    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
+    var secondary = (
+        Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
+    )
     var plots = List[Plot]()
     plots.append(primary^)
     plots.append(secondary^)
@@ -968,31 +1251,43 @@ def test_render_layers_svg_secondary_axis_matches_hand_derived_position() raises
     var s = svg.to_string()
 
     assert_true(
-        '<path d="M73.182,239.545 L336.818,30.455" fill="none" stroke="#1e64b4" stroke-width="2.000"'
-        ' stroke-linecap="round" stroke-linejoin="round"/>' in s,
+        '<path d="M73.182,239.545 L336.818,30.455" fill="none" stroke="#1e64b4"'
+        ' stroke-width="2.000" stroke-linecap="round" stroke-linejoin="round"/>'
+        in s,
         "the primary layer's rising path, against the primary (left) y-scale",
     )
     assert_true(
-        '<path d="M73.182,30.455 L336.818,239.545" fill="none" stroke="#1e64b4" stroke-width="2.000"'
-        ' stroke-linecap="round" stroke-linejoin="round"/>' in s,
-        "the secondary layer's falling path -- the opposite slope, against its own"
-        " independent (right) y-scale, not the primary one",
+        '<path d="M73.182,30.455 L336.818,239.545" fill="none" stroke="#1e64b4"'
+        ' stroke-width="2.000" stroke-linecap="round" stroke-linejoin="round"/>'
+        in s,
+        (
+            "the secondary layer's falling path -- the opposite slope, against"
+            " its own independent (right) y-scale, not the primary one"
+        ),
     )
     assert_true(
-        '<line x1="350" y1="20" x2="350" y2="250" stroke="#505050" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
-        "the secondary axis's vertical line, mirrored onto the plot's right edge",
+        '<line x1="350" y1="20" x2="350" y2="250" stroke="#505050"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
+        (
+            "the secondary axis's vertical line, mirrored onto the plot's right"
+            " edge"
+        ),
     )
     assert_true(
-        '<line x1="350" y1="135" x2="355" y2="135" stroke="#505050" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
+        '<line x1="350" y1="135" x2="355" y2="135" stroke="#505050"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
         "one of the secondary axis's ticks, pointing right instead of left",
     )
     assert_true(
-        '<text x="359" y="139" font-size="12.000" font-family="sans-serif" fill="#282828"'
-        ' text-anchor="start">30</text>' in s,
-        "that tick's label, left-aligned just past it -- the mirror of the primary"
-        " axis's right-aligned labels sitting just before its ticks",
+        '<text x="359" y="139" font-size="12.000" font-family="sans-serif"'
+        ' fill="#282828" text-anchor="start">30</text>'
+        in s,
+        (
+            "that tick's label, left-aligned just past it -- the mirror of the"
+            " primary axis's right-aligned labels sitting just before its ticks"
+        ),
     )
 
 
@@ -1004,7 +1299,9 @@ def test_render_layers_svg_secondary_axis_draws_no_gridlines_of_its_own() raises
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
     var primary = Plot().mark_line().encode(x=x, y=y1).size(400, 300)
-    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
+    var secondary = (
+        Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
+    )
     var plots = List[Plot]()
     plots.append(primary^)
     plots.append(secondary^)
@@ -1018,7 +1315,11 @@ def test_render_layers_svg_secondary_axis_draws_no_gridlines_of_its_own() raises
             break
         count += 1
         search_from = idx + 1
-    assert_equal(count, 6, "only the shared x-axis's and the primary y-axis's gridlines draw")
+    assert_equal(
+        count,
+        6,
+        "only the shared x-axis's and the primary y-axis's gridlines draw",
+    )
 
 
 def test_render_layers_secondary_axis_raster_draws_ink_at_the_hand_derived_row() raises:
@@ -1029,12 +1330,20 @@ def test_render_layers_secondary_axis_raster_draws_ink_at_the_hand_derived_row()
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
     var primary = Plot().mark_line().encode(x=x, y=y1).size(400, 300)
-    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
+    var secondary = (
+        Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
+    )
     var plots = List[Plot]()
     plots.append(primary^)
     plots.append(secondary^)
     var c = render_layers(plots)
-    _assert_color(c, 349, 135, Color(80, 80, 80), "the secondary axis's tick, just right of its axis line")
+    _assert_color(
+        c,
+        349,
+        135,
+        Color(80, 80, 80),
+        "the secondary axis's tick, just right of its axis line",
+    )
 
 
 def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap() raises:
@@ -1047,21 +1356,35 @@ def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap
     var y1: List[Float64] = [10.0, 20.0]
     var cats: List[String] = ["a", "b"]
     var y2: List[Float64] = [50.0, 10.0]
-    var primary = Plot().mark_point().encode(x=x, y=y1, color_categories=cats).size(400, 300)
-    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
+    var primary = (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y1, color_categories=cats)
+        .size(400, 300)
+    )
+    var secondary = (
+        Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
+    )
     var plots = List[Plot]()
     plots.append(primary^)
     plots.append(secondary^)
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
-        '<line x1="220" y1="20" x2="220" y2="250" stroke="#505050" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
-        "the secondary axis's line, shrunk further left to also make room for the legend",
+        '<line x1="220" y1="20" x2="220" y2="250" stroke="#505050"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
+        (
+            "the secondary axis's line, shrunk further left to also make room"
+            " for the legend"
+        ),
     )
     assert_true(
         '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
-        "the legend's first swatch, starting well clear of the secondary axis's labels",
+        (
+            "the legend's first swatch, starting well clear of the secondary"
+            " axis's labels"
+        ),
     )
 
 
@@ -1070,7 +1393,9 @@ def test_render_secondary_axis_raises_on_standalone_render() raises:
     # standalone render() raises.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).secondary_axis().size(200, 150)
+    var plot = (
+        Plot().mark_line().encode(x=x, y=y).secondary_axis().size(200, 150)
+    )
     with assert_raises():
         _ = render(plot)
 
@@ -1089,9 +1414,11 @@ def test_render_layers_raises_when_every_layer_is_secondary() raises:
     with assert_raises():
         _ = render_layers(plots)
 
+
 # ---------------------------------------------------------------
 # from tests/test_secondary_axis_caption.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_layers_svg_secondary_axis_caption_matches_hand_derived_position() raises:
     # Primary layer (y:[10,20]) with no caption, secondary layer (y:[50,10])
@@ -1102,7 +1429,13 @@ def test_render_layers_svg_secondary_axis_caption_matches_hand_derived_position(
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
-    var primary = Plot().mark_line().encode(x=x, y=y1).theme(Theme(show_gridlines=False)).size(400, 300)
+    var primary = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y1)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var secondary = (
         Plot()
         .mark_line()
@@ -1118,14 +1451,23 @@ def test_render_layers_svg_secondary_axis_caption_matches_hand_derived_position(
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
-        '<text x="389" y="135" font-size="14.000" font-family="sans-serif" fill="#282828"'
-        ' text-anchor="middle" transform="rotate(90.000 389 135)">Growth</text>' in s,
-        "the secondary axis's caption, rotated the opposite way from the primary y_title",
+        '<text x="389" y="135" font-size="14.000" font-family="sans-serif"'
+        ' fill="#282828" text-anchor="middle" transform="rotate(90.000 389'
+        ' 135)">Growth</text>'
+        in s,
+        (
+            "the secondary axis's caption, rotated the opposite way from the"
+            " primary y_title"
+        ),
     )
     assert_true(
-        '<line x1="332" y1="20" x2="332" y2="250" stroke="#505050" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
-        "the secondary axis's line, shrunk further left to also make room for its caption",
+        '<line x1="332" y1="20" x2="332" y2="250" stroke="#505050"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
+        (
+            "the secondary axis's line, shrunk further left to also make room"
+            " for its caption"
+        ),
     )
 
 
@@ -1135,18 +1477,38 @@ def test_render_layers_svg_no_caption_when_secondary_axis_has_no_y_title() raise
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
-    var primary = Plot().mark_line().encode(x=x, y=y1).theme(Theme(show_gridlines=False)).size(400, 300)
-    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis().theme(Theme(show_gridlines=False)).size(400, 300)
+    var primary = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y1)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var secondary = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y2)
+        .secondary_axis()
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var plots = List[Plot]()
     plots.append(primary^)
     plots.append(secondary^)
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
-    assert_true("rotate(90" not in s, "no secondary-axis caption text draws when y_title is unset")
     assert_true(
-        '<line x1="350" y1="20" x2="350" y2="250" stroke="#505050" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
-        "the secondary axis's line lands at its no-caption position, unaffected",
+        "rotate(90" not in s,
+        "no secondary-axis caption text draws when y_title is unset",
+    )
+    assert_true(
+        '<line x1="350" y1="20" x2="350" y2="250" stroke="#505050"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
+        (
+            "the secondary axis's line lands at its no-caption position,"
+            " unaffected"
+        ),
     )
 
 
@@ -1156,17 +1518,35 @@ def test_render_layers_svg_primary_layers_own_y_title_is_not_mistaken_for_a_capt
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
-    var primary = Plot().mark_line().encode(x=x, y=y1).labels(y_title="Primary").theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
-    var secondary = Plot().mark_line().encode(x=x, y=y2).secondary_axis().theme(Theme(show_gridlines=False)).size(400, 300)
+    var primary = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y1)
+        .labels(y_title="Primary")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var secondary = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y2)
+        .secondary_axis()
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var plots = List[Plot]()
     plots.append(primary^)
     plots.append(secondary^)
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
-    assert_true("rotate(-90" in s, "the primary layer's y_title still draws, rotated the usual way")
-    assert_true("rotate(90.000" not in s, "no right-side caption draws just because plots[0] set a y_title")
+    assert_true(
+        "rotate(-90" in s,
+        "the primary layer's y_title still draws, rotated the usual way",
+    )
+    assert_true(
+        "rotate(90.000" not in s,
+        "no right-side caption draws just because plots[0] set a y_title",
+    )
 
 
 def main() raises:

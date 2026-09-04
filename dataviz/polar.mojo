@@ -3,7 +3,10 @@ from std.math import cos, pi, sin
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_nested_scalar_list, _materialize_scalar_list
+from dataviz.array_like import (
+    _materialize_nested_scalar_list,
+    _materialize_scalar_list,
+)
 from dataviz.color_scale import default_categorical_palette
 from dataviz.mark import Mark
 from dataviz.plot import (
@@ -49,7 +52,9 @@ struct _PolarPoint(Movable):
         self.y = y
 
 
-def _polar_point(cx: Float64, cy: Float64, angle: Float64, radius: Float64) -> _PolarPoint:
+def _polar_point(
+    cx: Float64, cy: Float64, angle: Float64, radius: Float64
+) -> _PolarPoint:
     """Angle/radius to pixel (x, y), the shared primitive every polar mark
     reduces to. `angle=0` is 3 o'clock; increasing `angle` sweeps
     clockwise (pixel y increases downward), the same convention
@@ -61,7 +66,15 @@ def _polar_point(cx: Float64, cy: Float64, angle: Float64, radius: Float64) -> _
 
 def _draw_polar_grid[
     T: DrawTarget
-](mut target: T, cx: Float64, cy: Float64, max_radius: Float64, theme: Theme, grid_rings: Int, grid_spokes: Int) raises:
+](
+    mut target: T,
+    cx: Float64,
+    cy: Float64,
+    max_radius: Float64,
+    theme: Theme,
+    grid_rings: Int,
+    grid_spokes: Int,
+) raises:
     """The polar coordinate system: `grid_rings` evenly spaced concentric
     circles (one full `Path.arc_to` sweep each, stroked) plus
     `grid_spokes` radial lines from the center out to `max_radius`, in
@@ -78,12 +91,16 @@ def _draw_polar_grid[
     for i in range(grid_spokes):
         var angle = 2.0 * pi * Float64(i) / Float64(grid_spokes)
         var tip = _polar_point(cx, cy, angle, max_radius)
-        target.draw_line_aa(Int(cx), Int(cy), Int(tip.x), Int(tip.y), theme.gridline_color)
+        target.draw_line_aa(
+            Int(cx), Int(cy), Int(tip.x), Int(tip.y), theme.gridline_color
+        )
 
 
 def _render_polar[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.POLAR` plot: `encode_polar()`'s `angle`/`radius` pairs
     (or `encode_polar_series()`'s shared `angle` plus several named
     series), connected in row order by one stroked polyline per series
@@ -106,8 +123,8 @@ def _render_polar[
     if is_multi:
         if len(plot._polar.series_radius) != len(plot._polar.series_names):
             raise Error(
-                "Plot.encode_polar_series(): series_names and series_values must have the"
-                " same length (got "
+                "Plot.encode_polar_series(): series_names and series_values"
+                " must have the same length (got "
                 + String(len(plot._polar.series_names))
                 + " and "
                 + String(len(plot._polar.series_radius))
@@ -116,8 +133,8 @@ def _render_polar[
         for values in plot._polar.series_radius:
             if len(values) != len(plot._polar.angle):
                 raise Error(
-                    "Plot.encode_polar_series(): every series must have the same length as"
-                    " angle (got "
+                    "Plot.encode_polar_series(): every series must have the"
+                    " same length as angle (got "
                     + String(len(values))
                     + " and "
                     + String(len(plot._polar.angle))
@@ -126,13 +143,16 @@ def _render_polar[
             for r in values:
                 if r < 0.0:
                     raise Error(
-                        "Plot: Mark.POLAR radius values must be non-negative (got " + String(r) + ")"
+                        "Plot: Mark.POLAR radius values must be non-negative"
+                        " (got "
+                        + String(r)
+                        + ")"
                     )
     else:
         if len(plot._polar.angle) != len(plot._polar.radius):
             raise Error(
-                "Plot.encode_polar(): angle and radius must have the same length"
-                " (got "
+                "Plot.encode_polar(): angle and radius must have the same"
+                " length (got "
                 + String(len(plot._polar.angle))
                 + " and "
                 + String(len(plot._polar.radius))
@@ -140,7 +160,11 @@ def _render_polar[
             )
         for r in plot._polar.radius:
             if r < 0.0:
-                raise Error("Plot: Mark.POLAR radius values must be non-negative (got " + String(r) + ")")
+                raise Error(
+                    "Plot: Mark.POLAR radius values must be non-negative (got "
+                    + String(r)
+                    + ")"
+                )
 
     var theme = plot._theme
     _require_non_empty(
@@ -149,7 +173,9 @@ def _render_polar[
     var text_requests = List[_TextRequest]()
     var sc = _Scaled(theme)
     var show_legend = is_multi and theme.show_legend
-    var legend_reserve = _dynamic_legend_width(plot._polar.series_names, sc.legend_swatch_size, sc) if show_legend else 0
+    var legend_reserve = _dynamic_legend_width(
+        plot._polar.series_names, sc.legend_swatch_size, sc
+    ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
@@ -157,11 +183,19 @@ def _render_polar[
     var plot_y1 = oy1 - sc.margin_bottom
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
-    var max_radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    var max_radius = (
+        Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    )
 
     if theme.show_gridlines:
         _draw_polar_grid(
-            target, cx, cy, max_radius, theme, plot._mark_style.polar_grid_rings, plot._mark_style.polar_grid_spokes
+            target,
+            cx,
+            cy,
+            max_radius,
+            theme,
+            plot._mark_style.polar_grid_rings,
+            plot._mark_style.polar_grid_spokes,
         )
 
     if is_multi:
@@ -177,7 +211,9 @@ def _render_polar[
             var color = palette[s % len(palette)]
             var path = Path()
             for i in range(len(plot._polar.angle)):
-                var radius_px = max_radius * (values[i] / max_r) if max_r > 0.0 else 0.0
+                var radius_px = (
+                    max_radius * (values[i] / max_r) if max_r > 0.0 else 0.0
+                )
                 var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
                 if i == 0:
                     path.move_to(pt.x, pt.y)
@@ -185,13 +221,23 @@ def _render_polar[
                     path.line_to(pt.x, pt.y)
             target.stroke_path_aa(path, color, sc.line_width)
             for i in range(len(plot._polar.angle)):
-                var radius_px = max_radius * (values[i] / max_r) if max_r > 0.0 else 0.0
+                var radius_px = (
+                    max_radius * (values[i] / max_r) if max_r > 0.0 else 0.0
+                )
                 var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
-                target.fill_circle_aa(Int(pt.x), Int(pt.y), Int(sc.point_radius), color)
+                target.fill_circle_aa(
+                    Int(pt.x), Int(pt.y), Int(sc.point_radius), color
+                )
 
         if show_legend:
             _draw_legend(
-                target, text_requests, plot._polar.series_names, palette, plot_x1 + sc.margin_right, plot_y0, theme
+                target,
+                text_requests,
+                plot._polar.series_names,
+                palette,
+                plot_x1 + sc.margin_right,
+                plot_y0,
+                theme,
             )
     else:
         var max_r = 0.0
@@ -201,7 +247,10 @@ def _render_polar[
 
         var path = Path()
         for i in range(len(plot._polar.angle)):
-            var radius_px = max_radius * (plot._polar.radius[i] / max_r) if max_r > 0.0 else 0.0
+            var radius_px = (
+                max_radius * (plot._polar.radius[i] / max_r) if max_r
+                > 0.0 else 0.0
+            )
             var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
             if i == 0:
                 path.move_to(pt.x, pt.y)
@@ -210,9 +259,14 @@ def _render_polar[
         target.stroke_path_aa(path, theme.mark_color, sc.line_width)
 
         for i in range(len(plot._polar.angle)):
-            var radius_px = max_radius * (plot._polar.radius[i] / max_r) if max_r > 0.0 else 0.0
+            var radius_px = (
+                max_radius * (plot._polar.radius[i] / max_r) if max_r
+                > 0.0 else 0.0
+            )
             var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
-            target.fill_circle_aa(Int(pt.x), Int(pt.y), Int(sc.point_radius), theme.mark_color)
+            target.fill_circle_aa(
+                Int(pt.x), Int(pt.y), Int(sc.point_radius), theme.mark_color
+            )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
@@ -284,7 +338,9 @@ def polar(
         ```
     """
     var plot = Plot().mark_polar().encode_polar(angle=angle, radius=radius)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def polar[
@@ -305,8 +361,15 @@ def polar[
     Delegates to the concrete overload above.
     """
     return polar(
-        _materialize_scalar_list(angle), _materialize_scalar_list(radius), theme=theme, width=width,
-        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        _materialize_scalar_list(angle),
+        _materialize_scalar_list(radius),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )
 
 
@@ -371,10 +434,16 @@ def polar_series(
             save(c, "docs/src/examples/out_polar_series.svg")
         ```
     """
-    var plot = Plot().mark_polar().encode_polar_series(
-        angle=angle, series_names=series_names, series_values=series_values
+    var plot = (
+        Plot()
+        .mark_polar()
+        .encode_polar_series(
+            angle=angle, series_names=series_names, series_values=series_values
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def polar_series[
@@ -397,6 +466,14 @@ def polar_series[
     `angle` stays concrete. Delegates to the concrete overload above.
     """
     return polar_series(
-        angle, series_names, _materialize_nested_scalar_list(series_values), theme=theme, width=width,
-        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        angle,
+        series_names,
+        _materialize_nested_scalar_list(series_values),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

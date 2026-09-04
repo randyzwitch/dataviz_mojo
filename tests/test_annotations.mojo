@@ -20,7 +20,13 @@
 from _test_helpers import _assert_color, _assert_near_color
 from canvas.color import Color
 from dataviz import bar
-from dataviz.plot import Plot, render, render_facets_svg, render_layers_svg, render_svg
+from dataviz.plot import (
+    Plot,
+    render,
+    render_facets_svg,
+    render_layers_svg,
+    render_svg,
+)
 from dataviz.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
@@ -28,6 +34,7 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 # ---------------------------------------------------------------
 # from tests/test_annotate.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_svg_annotate_line_matches_hand_derived_position() raises:
     # 2 categories (A=10, B=20), no gridlines/legend: plot area x:[60,380],
@@ -48,13 +55,15 @@ def test_render_svg_annotate_line_matches_hand_derived_position() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<line x1="60" y1="86" x2="380" y2="86" stroke="#969696" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
+        '<line x1="60" y1="86" x2="380" y2="86" stroke="#969696"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
         "the reference line itself, spanning the full inner plot width",
     )
     assert_true(
-        '<text x="376" y="82" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="end">mid</text>' in s,
+        '<text x="376" y="82" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="end">mid</text>'
+        in s,
         "the line's label, right-aligned just above it",
     )
 
@@ -63,15 +72,29 @@ def test_render_annotate_line_raster_draws_ink_at_the_hand_derived_row() raises:
     # Raster companion: confirms draw_line_aa painted at row 86.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, 20.0]
-    var _hoisted1 = bar(cats, vals, width=400, height=300, theme=Theme(show_gridlines=False))
+    var _hoisted1 = bar(
+        cats, vals, width=400, height=300, theme=Theme(show_gridlines=False)
+    )
     var c = render(_hoisted1)
-    var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).annotate_line(15.0).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=vals)
+        .annotate_line(15.0)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var c2 = render(plot)
     # _assert_near_color, since the line is a 1px stroke (see
     # _test_helpers.mojo).
-    _assert_near_color(c2, 220, 86, Color(150, 150, 150), 75, "the reference line's ink, well inside the plot width")
+    _assert_near_color(
+        c2,
+        220,
+        86,
+        Color(150, 150, 150),
+        75,
+        "the reference line's ink, well inside the plot width",
+    )
 
 
 def test_render_annotate_line_out_of_range_value_draws_nothing() raises:
@@ -89,8 +112,14 @@ def test_render_annotate_line_out_of_range_value_draws_nothing() raises:
     )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    assert_true("out of range" not in s, "an out-of-domain annotation draws no label at all")
-    assert_true('stroke="#969696"' not in s, "an out-of-domain annotation draws no line at all")
+    assert_true(
+        "out of range" not in s,
+        "an out-of-domain annotation draws no label at all",
+    )
+    assert_true(
+        'stroke="#969696"' not in s,
+        "an out-of-domain annotation draws no line at all",
+    )
 
 
 def test_render_annotate_line_multiple_calls_all_draw() raises:
@@ -116,20 +145,30 @@ def test_render_annotate_line_multiple_calls_all_draw() raises:
             break
         count += 1
         search_from = idx + 1
-    assert_equal(count, 2, "both annotation lines draw, not just the most recent call")
+    assert_equal(
+        count, 2, "both annotation lines draw, not just the most recent call"
+    )
 
 
 def test_render_annotate_line_raises_on_unsupported_mark() raises:
     # Mark.ARC has no continuous y-axis, so annotate_line() raises.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
-    var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).annotate_line(1.5).size(200, 150)
+    var plot = (
+        Plot()
+        .mark_arc()
+        .encode_categorical(x=cats, y=vals)
+        .annotate_line(1.5)
+        .size(200, 150)
+    )
     with assert_raises():
         var c = render(plot)
+
 
 # ---------------------------------------------------------------
 # from tests/test_annotate_area.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_svg_annotate_area_matches_hand_derived_position() raises:
     # Mark.LINE, 2 points (10 -> 20), no gridlines: domain pads to
@@ -138,20 +177,28 @@ def test_render_svg_annotate_area_matches_hand_derived_position() raises:
     # just inside the band's top edge, right-aligned.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).annotate_area(12.0, 18.0, label="band").theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_area(12.0, 18.0, label="band")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     # annotation_area_color's default alpha (200/255 -> 0.784) emits a
     # fill-opacity attribute.
     assert_true(
-        '<rect x="60" y="72" width="320" height="126" fill="#e0ecf6" fill-opacity="0.784"/>' in s,
+        '<rect x="60" y="72" width="320" height="126" fill="#e0ecf6"'
+        ' fill-opacity="0.784"/>'
+        in s,
         "the band's fill, spanning the full inner plot width",
     )
     assert_true(
-        '<text x="376" y="84" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="end">band</text>' in s,
+        '<text x="376" y="84" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="end">band</text>'
+        in s,
         "the band's label, right-aligned just inside its top edge",
     )
 
@@ -161,15 +208,26 @@ def test_render_annotate_area_raster_draws_ink_at_the_hand_derived_row() raises:
     # inside it.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).annotate_area(12.0, 18.0).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_area(12.0, 18.0)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var c = render(plot)
     # x=90 rather than x=200: at row 150 the line's own path crosses x=200,
     # and x=90 is safely off its diagonal. Expected color is Color(224,
     # 236, 246, 200) blended over the white background, since the band is
     # real alpha.
-    _assert_color(c, 90, 150, Color(230, 240, 247), "the band's fill, well inside the band and away from the line")
+    _assert_color(
+        c,
+        90,
+        150,
+        Color(230, 240, 247),
+        "the band's fill, well inside the band and away from the line",
+    )
 
 
 def test_render_annotate_area_lets_the_mark_underneath_show_through() raises:
@@ -178,13 +236,25 @@ def test_render_annotate_area_lets_the_mark_underneath_show_through() raises:
     # (Color(30, 100, 180)).
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).annotate_area(12.0, 18.0).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_area(12.0, 18.0)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var c = render(plot)
     # _assert_near_color, since x=200 sits on the line's 1px stroke and the
     # blend isn't pixel-exact.
-    _assert_near_color(c, 200, 150, Color(182, 206, 231), 30, "the band blended over the line's own ink, not erasing it")
+    _assert_near_color(
+        c,
+        200,
+        150,
+        Color(182, 206, 231),
+        30,
+        "the band blended over the line's own ink, not erasing it",
+    )
 
 
 def test_render_annotate_area_out_of_range_draws_nothing() raises:
@@ -192,15 +262,28 @@ def test_render_annotate_area_out_of_range_draws_nothing() raises:
     # neither fill nor label.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).annotate_area(25.0, 30.0, label="gone").theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_area(25.0, 30.0, label="gone")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     # ">gone<" rather than the bare "gone": Mark.LINE's path already emits
     # `fill="none"`, so a bare substring could collide with real markup.
-    assert_true(">gone<" not in s, "a fully out-of-domain band draws no label at all")
-    assert_true('fill="#e0ecf6"' not in s, "a fully out-of-domain band draws no fill at all -- the hex color alone, unaffected by the fill-opacity attribute alongside it")
+    assert_true(
+        ">gone<" not in s, "a fully out-of-domain band draws no label at all"
+    )
+    assert_true(
+        'fill="#e0ecf6"' not in s,
+        (
+            "a fully out-of-domain band draws no fill at all -- the hex color"
+            " alone, unaffected by the fill-opacity attribute alongside it"
+        ),
+    )
 
 
 def test_render_annotate_area_partial_overlap_clips_to_visible_portion() raises:
@@ -208,14 +291,24 @@ def test_render_annotate_area_partial_overlap_clips_to_visible_portion() raises:
     # max) clips to y:[20, 72], the plot's top edge down to 18.0's row.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).annotate_area(18.0, 25.0, label="clip").theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_area(18.0, 25.0, label="clip")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="60" y="20" width="320" height="52" fill="#e0ecf6" fill-opacity="0.784"/>' in s,
-        "the band clips to the plot's top edge rather than disappearing or drawing unclipped",
+        '<rect x="60" y="20" width="320" height="52" fill="#e0ecf6"'
+        ' fill-opacity="0.784"/>'
+        in s,
+        (
+            "the band clips to the plot's top edge rather than disappearing or"
+            " drawing unclipped"
+        ),
     )
 
 
@@ -242,20 +335,30 @@ def test_render_annotate_area_multiple_calls_all_draw() raises:
             break
         count += 1
         search_from = idx + 1
-    assert_equal(count, 2, "both annotation bands draw, not just the most recent call")
+    assert_equal(
+        count, 2, "both annotation bands draw, not just the most recent call"
+    )
 
 
 def test_render_annotate_area_raises_on_unsupported_mark() raises:
     # Mark.ARC has no continuous y-axis, so annotate_area() raises.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
-    var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).annotate_area(0.5, 1.5).size(200, 150)
+    var plot = (
+        Plot()
+        .mark_arc()
+        .encode_categorical(x=cats, y=vals)
+        .annotate_area(0.5, 1.5)
+        .size(200, 150)
+    )
     with assert_raises():
         _ = render(plot)
+
 
 # ---------------------------------------------------------------
 # from tests/test_annotate_band.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_svg_annotate_band_matches_hand_derived_path_and_label() raises:
     # Mark.LINE, 2 points (10 -> 20), no gridlines, canvas 400x300, plot
@@ -267,21 +370,31 @@ def test_render_svg_annotate_band_matches_hand_derived_path_and_label() raises:
     var y: List[Float64] = [10.0, 20.0]
     var y_lo: List[Float64] = [8.0, 8.0]
     var y_hi: List[Float64] = [22.0, 22.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).annotate_band(x=x, y_lower=y_lo, y_upper=y_hi, label="CI").theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_band(x=x, y_lower=y_lo, y_upper=y_hi, label="CI")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<path d="M74.545,20.000 L365.455,20.000 L365.455,250.000 L74.545,250.000 Z" fill="#e0ecf6"'
-        ' fill-opacity="0.784"/>' in s,
-        "the band's own filled polygon -- top edge left-to-right, then bottom edge back",
+        '<path d="M74.545,20.000 L365.455,20.000 L365.455,250.000'
+        ' L74.545,250.000 Z" fill="#e0ecf6" fill-opacity="0.784"/>'
+        in s,
+        (
+            "the band's own filled polygon -- top edge left-to-right, then"
+            " bottom edge back"
+        ),
     )
     # The label centers above band_x[len // 2] = band_x[1]: px 365 (Int()
     # truncates 365.455), py = 20 - label_gap(4) = 16.
     assert_true(
-        '<text x="365" y="16" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="middle">CI</text>' in s,
+        '<text x="365" y="16" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="middle">CI</text>'
+        in s,
         "the band's label, centered above its own middle-index point",
     )
 
@@ -293,11 +406,22 @@ def test_render_annotate_band_raster_draws_fill_at_a_hand_derived_point() raises
     var y: List[Float64] = [10.0, 20.0]
     var y_lo: List[Float64] = [8.0, 8.0]
     var y_hi: List[Float64] = [22.0, 22.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).annotate_band(x=x, y_lower=y_lo, y_upper=y_hi).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_band(x=x, y_lower=y_lo, y_upper=y_hi)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var c = render(plot)
-    _assert_color(c, 90, 150, Color(230, 240, 247), "the band's fill, well inside it and away from the line")
+    _assert_color(
+        c,
+        90,
+        150,
+        Color(230, 240, 247),
+        "the band's fill, well inside it and away from the line",
+    )
 
 
 def test_render_raises_on_annotate_band_length_mismatch() raises:
@@ -306,7 +430,12 @@ def test_render_raises_on_annotate_band_length_mismatch() raises:
     var bad_lo: List[Float64] = [8.0, 9.0]
     var hi: List[Float64] = [12.0, 16.0, 22.0]
     with assert_raises():
-        var plot = Plot().mark_line().encode(x=x, y=y).annotate_band(x=x, y_lower=bad_lo, y_upper=hi)
+        var plot = (
+            Plot()
+            .mark_line()
+            .encode(x=x, y=y)
+            .annotate_band(x=x, y_lower=bad_lo, y_upper=hi)
+        )
         _ = render_svg(plot)
 
 
@@ -317,7 +446,12 @@ def test_render_raises_on_annotate_band_inverted_bounds() raises:
     var hi: List[Float64] = [10.0, 20.0]
     with assert_raises():
         # hi[0]=10.0 < lo[0]=12.0 -- inverted at index 0.
-        var plot = Plot().mark_line().encode(x=x, y=y).annotate_band(x=x, y_lower=lo, y_upper=hi)
+        var plot = (
+            Plot()
+            .mark_line()
+            .encode(x=x, y=y)
+            .annotate_band(x=x, y_lower=lo, y_upper=hi)
+        )
         _ = render_svg(plot)
 
 
@@ -328,7 +462,12 @@ def test_render_raises_on_annotate_band_with_an_unsupported_mark() raises:
     var lo: List[Float64] = [0.0, 0.0]
     var hi: List[Float64] = [1.0, 1.0]
     with assert_raises():
-        var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).annotate_band(x=x, y_lower=lo, y_upper=hi)
+        var plot = (
+            Plot()
+            .mark_bar()
+            .encode_categorical(x=cats, y=vals)
+            .annotate_band(x=x, y_lower=lo, y_upper=hi)
+        )
         _ = render_svg(plot)
 
 
@@ -341,22 +480,30 @@ def test_render_svg_annotate_band_clamps_rather_than_crashes_on_overshoot() rais
     var wide_x: List[Float64] = [-50.0, 50.0]
     var wide_lo: List[Float64] = [-1000.0, -1000.0]
     var wide_hi: List[Float64] = [1000.0, 1000.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).annotate_band(x=wide_x, y_lower=wide_lo, y_upper=wide_hi).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_band(x=wide_x, y_lower=wide_lo, y_upper=wide_hi)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     # Every vertex clamps to a corner, so the polygon collapses to the rect
     # itself.
     assert_true(
-        '<path d="M60.000,20.000 L380.000,20.000 L380.000,250.000 L60.000,250.000 Z" fill="#e0ecf6"'
-        ' fill-opacity="0.784"/>' in s,
+        '<path d="M60.000,20.000 L380.000,20.000 L380.000,250.000'
+        ' L60.000,250.000 Z" fill="#e0ecf6" fill-opacity="0.784"/>'
+        in s,
         "every vertex clamped to the plot rect's own corners",
     )
+
 
 # ---------------------------------------------------------------
 # from tests/test_annotate_best_fit.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_svg_annotate_best_fit_matches_hand_derived_fit_and_line() raises:
     # x=[1,2,3,4,5], y=[1,3,2,5,4]: n=5, sum_x=15, sum_y=15, sum_xy=53,
@@ -368,30 +515,39 @@ def test_render_svg_annotate_best_fit_matches_hand_derived_fit_and_line() raises
     # Canvas 400x300, no gridlines, plot rect x:[60,380] y:[20,250].
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
     var y: List[Float64] = [1.0, 3.0, 2.0, 5.0, 4.0]
-    var plot = Plot().mark_point().encode(x=x, y=y).annotate_best_fit(
-        show_equation=True, show_r_squared=True, label="Fit"
-    ).theme(Theme(show_gridlines=False)).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .annotate_best_fit(show_equation=True, show_r_squared=True, label="Fit")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
 
     assert_true(
-        '<line x1="60" y1="227" x2="380" y2="43" stroke="#969696" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
+        '<line x1="60" y1="227" x2="380" y2="43" stroke="#969696"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
         "the fitted line, spanning the full padded x-domain",
     )
     assert_true(
-        '<text x="376" y="32" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="end">Fit</text>' in s,
+        '<text x="376" y="32" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="end">Fit</text>'
+        in s,
         "the label heading, right-aligned near the plot's top-right corner",
     )
     assert_true(
-        '<text x="376" y="48" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="end">y = 0.800x + 0.600</text>' in s,
+        '<text x="376" y="48" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="end">y = 0.800x + 0.600</text>'
+        in s,
         "the fitted equation, below the label",
     )
     assert_true(
-        '<text x="376" y="64" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="end">R² = 0.640</text>' in s,
+        '<text x="376" y="64" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="end">R² = 0.640</text>'
+        in s,
         "R-squared, below the equation",
     )
 
@@ -399,14 +555,20 @@ def test_render_svg_annotate_best_fit_matches_hand_derived_fit_and_line() raises
 def test_render_svg_annotate_best_fit_draws_only_the_line_with_no_options_set() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
     var y: List[Float64] = [1.0, 3.0, 2.0, 5.0, 4.0]
-    var plot = Plot().mark_point().encode(x=x, y=y).annotate_best_fit().theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .annotate_best_fit()
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<line x1="60" y1="227" x2="380" y2="43" stroke="#969696" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
+        '<line x1="60" y1="227" x2="380" y2="43" stroke="#969696"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
         "the line still draws",
     )
     assert_true("y = " not in s, "no equation text without show_equation=True")
@@ -418,10 +580,18 @@ def test_render_svg_annotate_best_fit_all_y_identical_reports_r_squared_of_one()
     # as R^2 = 1.0 rather than 0/0.
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0]
     var y: List[Float64] = [5.0, 5.0, 5.0, 5.0]
-    var plot = Plot().mark_point().encode(x=x, y=y).annotate_best_fit(show_r_squared=True)
+    var plot = (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .annotate_best_fit(show_r_squared=True)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    assert_true("R² = 1.000" in s, "an all-identical y column is a trivially perfect fit")
+    assert_true(
+        "R² = 1.000" in s,
+        "an all-identical y column is a trivially perfect fit",
+    )
 
 
 def test_render_svg_annotate_best_fit_works_when_called_before_encode() raises:
@@ -429,12 +599,20 @@ def test_render_svg_annotate_best_fit_works_when_called_before_encode() raises:
     # .encode() still sees the real data.
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
     var y: List[Float64] = [1.0, 3.0, 2.0, 5.0, 4.0]
-    var plot = Plot().annotate_best_fit(show_equation=True).mark_point().encode(x=x, y=y).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .annotate_best_fit(show_equation=True)
+        .mark_point()
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    assert_true("y = 0.800x + 0.600" in s, "the fit sees the data encoded after this call")
+    assert_true(
+        "y = 0.800x + 0.600" in s,
+        "the fit sees the data encoded after this call",
+    )
 
 
 def test_render_raises_on_annotate_best_fit_with_fewer_than_two_points() raises:
@@ -457,12 +635,19 @@ def test_render_raises_on_annotate_best_fit_with_an_unsupported_mark() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).annotate_best_fit()
+        var plot = (
+            Plot()
+            .mark_bar()
+            .encode_categorical(x=cats, y=vals)
+            .annotate_best_fit()
+        )
         _ = render_svg(plot)
+
 
 # ---------------------------------------------------------------
 # from tests/test_annotate_facets_layers.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_facets_svg_each_cells_own_annotations_use_that_cells_own_scale() raises:
     # 2 cells side by side (800x300, cols=2), no gridlines: cell 1
@@ -472,35 +657,52 @@ def test_render_facets_svg_each_cells_own_annotations_use_that_cells_own_scale()
     var cats: List[String] = ["A", "B"]
     var v1: List[Float64] = [10.0, 20.0]
     var v2: List[Float64] = [5.0, 15.0]
-    var p1 = Plot().mark_bar().encode_categorical(x=cats, y=v1).annotate_line(15.0, label="mid").theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
-    var p2 = Plot().mark_bar().encode_categorical(x=cats, y=v2).annotate_area(8.0, 12.0, label="band").theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var p1 = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=v1)
+        .annotate_line(15.0, label="mid")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var p2 = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=v2)
+        .annotate_area(8.0, 12.0, label="band")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var plots = List[Plot]()
     plots.append(p1^)
     plots.append(p2^)
     var svg = render_facets_svg(plots, 2)
     var s = svg.to_string()
     assert_true(
-        '<line x1="60" y1="86" x2="380" y2="86" stroke="#969696" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
+        '<line x1="60" y1="86" x2="380" y2="86" stroke="#969696"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
         "cell 1's reference line, against its [0,20] domain",
     )
     assert_true(
-        '<text x="376" y="82" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="end">mid</text>' in s,
+        '<text x="376" y="82" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="end">mid</text>'
+        in s,
         "cell 1's reference line label",
     )
     assert_true(
-        '<rect x="460" y="75" width="320" height="58" fill="#e0ecf6" fill-opacity="0.784"/>' in s,
-        "cell 2's reference band, against its [0,15] domain -- a different position"
-        " than it would land at against cell 1's domain",
+        '<rect x="460" y="75" width="320" height="58" fill="#e0ecf6"'
+        ' fill-opacity="0.784"/>'
+        in s,
+        (
+            "cell 2's reference band, against its [0,15] domain -- a different"
+            " position than it would land at against cell 1's domain"
+        ),
     )
     assert_true(
-        '<text x="776" y="87" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="end">band</text>' in s,
+        '<text x="776" y="87" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="end">band</text>'
+        in s,
         "cell 2's reference band label",
     )
 
@@ -513,9 +715,14 @@ def test_render_layers_svg_each_layers_own_annotations_use_that_layers_own_scale
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
-    var primary = Plot().mark_line().encode(x=x, y=y1).annotate_line(12.0, label="primline").theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var primary = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y1)
+        .annotate_line(12.0, label="primline")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var secondary = (
         Plot()
         .mark_line()
@@ -531,30 +738,41 @@ def test_render_layers_svg_each_layers_own_annotations_use_that_layers_own_scale
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
-        '<line x1="60" y1="198" x2="350" y2="198" stroke="#969696" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
-        "the primary layer's reference line, against the primary (left) y-scale",
+        '<line x1="60" y1="198" x2="350" y2="198" stroke="#969696"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
+        (
+            "the primary layer's reference line, against the primary (left)"
+            " y-scale"
+        ),
     )
     assert_true(
-        '<text x="346" y="194" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="end">primline</text>' in s,
+        '<text x="346" y="194" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="end">primline</text>'
+        in s,
         "the primary layer's reference line label",
     )
     assert_true(
-        '<line x1="60" y1="83" x2="350" y2="83" stroke="#969696" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
-        "the secondary layer's reference line, against its (right) y-scale -- a"
-        " different row than the primary layer's line lands at",
+        '<line x1="60" y1="83" x2="350" y2="83" stroke="#969696"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
+        (
+            "the secondary layer's reference line, against its (right) y-scale"
+            " -- a different row than the primary layer's line lands at"
+        ),
     )
     assert_true(
-        '<text x="346" y="79" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="end">secline</text>' in s,
+        '<text x="346" y="79" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="end">secline</text>'
+        in s,
         "the secondary layer's reference line label",
     )
+
 
 # ---------------------------------------------------------------
 # from tests/test_annotate_vline_point.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_svg_annotate_vline_matches_hand_derived_position() raises:
     # Mark.LINE, 2 points (10 -> 20), no gridlines: x-domain pads to
@@ -563,19 +781,29 @@ def test_render_svg_annotate_vline_matches_hand_derived_position() raises:
     # of the line near the top.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).annotate_vline(1.5, label="mid").theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_vline(1.5, label="mid")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<line x1="220" y1="20" x2="220" y2="250" stroke="#969696" stroke-width="1.000"'
-        ' stroke-linecap="round"/>' in s,
-        "the vertical reference line itself, spanning the full inner plot height",
+        '<line x1="220" y1="20" x2="220" y2="250" stroke="#969696"'
+        ' stroke-width="1.000" stroke-linecap="round"/>'
+        in s,
+        (
+            "the vertical reference line itself, spanning the full inner plot"
+            " height"
+        ),
     )
     assert_true(
-        '<text x="224" y="32" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="start">mid</text>' in s,
+        '<text x="224" y="32" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="start">mid</text>'
+        in s,
         "the line's label, left-aligned just right of it, near the top edge",
     )
 
@@ -586,9 +814,14 @@ def test_render_svg_annotate_point_matches_hand_derived_position() raises:
     # tick's row), r=4.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).annotate_point(1.2, 15.0, label="here").theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_point(1.2, 15.0, label="here")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
@@ -596,8 +829,9 @@ def test_render_svg_annotate_point_matches_hand_derived_position() raises:
         "the point marker itself, at the data coordinate's pixel position",
     )
     assert_true(
-        '<text x="133" y="127" font-size="12.000" font-family="sans-serif" fill="#969696"'
-        ' text-anchor="middle">here</text>' in s,
+        '<text x="133" y="127" font-size="12.000" font-family="sans-serif"'
+        ' fill="#969696" text-anchor="middle">here</text>'
+        in s,
         "the point's label, centered just above the marker",
     )
 
@@ -605,46 +839,84 @@ def test_render_svg_annotate_point_matches_hand_derived_position() raises:
 def test_render_annotate_vline_raster_draws_ink_at_the_hand_derived_column() raises:
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).annotate_vline(1.5).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_vline(1.5)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var c = render(plot)
     # _assert_near_color, since the vline is a 1px stroke.
-    _assert_near_color(c, 220, 100, Color(150, 150, 150), 40, "the vline's ink, well inside the plot height")
+    _assert_near_color(
+        c,
+        220,
+        100,
+        Color(150, 150, 150),
+        40,
+        "the vline's ink, well inside the plot height",
+    )
 
 
 def test_render_annotate_point_raster_draws_ink_at_the_hand_derived_position() raises:
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).annotate_point(1.2, 15.0).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_point(1.2, 15.0)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var c = render(plot)
-    _assert_color(c, 133, 135, Color(150, 150, 150), "the point marker's center pixel")
+    _assert_color(
+        c, 133, 135, Color(150, 150, 150), "the point marker's center pixel"
+    )
 
 
 def test_render_annotate_vline_out_of_range_value_draws_nothing() raises:
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).annotate_vline(5.0, label="gonevl").theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_vline(5.0, label="gonevl")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    assert_true(">gonevl<" not in s, "an out-of-domain vline draws no label at all")
-    assert_true('stroke="#969696"' not in s, "an out-of-domain vline draws no line at all")
+    assert_true(
+        ">gonevl<" not in s, "an out-of-domain vline draws no label at all"
+    )
+    assert_true(
+        'stroke="#969696"' not in s,
+        "an out-of-domain vline draws no line at all",
+    )
 
 
 def test_render_annotate_point_out_of_range_draws_nothing() raises:
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
-    var plot = Plot().mark_line().encode(x=x, y=y).annotate_point(1.5, 100.0, label="gonept").theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_point(1.5, 100.0, label="gonept")
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    assert_true(">gonept<" not in s, "an out-of-domain point draws no label at all")
-    assert_true("<circle" not in s, "an out-of-domain point draws no marker at all")
+    assert_true(
+        ">gonept<" not in s, "an out-of-domain point draws no label at all"
+    )
+    assert_true(
+        "<circle" not in s, "an out-of-domain point draws no marker at all"
+    )
 
 
 def test_render_annotate_vline_raises_on_unsupported_mark() raises:
@@ -652,7 +924,13 @@ def test_render_annotate_vline_raises_on_unsupported_mark() raises:
     # unlike annotate_line()/annotate_area().
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
-    var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).annotate_vline(1.5).size(200, 150)
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=vals)
+        .annotate_vline(1.5)
+        .size(200, 150)
+    )
     with assert_raises():
         _ = render(plot)
 
@@ -660,7 +938,13 @@ def test_render_annotate_vline_raises_on_unsupported_mark() raises:
 def test_render_annotate_point_raises_on_unsupported_mark() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
-    var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).annotate_point(0.5, 1.5).size(200, 150)
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=vals)
+        .annotate_point(0.5, 1.5)
+        .size(200, 150)
+    )
     with assert_raises():
         _ = render(plot)
 

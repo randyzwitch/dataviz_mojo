@@ -55,12 +55,20 @@ def _draw_treemap_node[
     `Mark.MARIMEKKO` uses).
     """
     if len(idx.children[node]) == 0:
-        var color = palette[branch[node] % len(palette)] if branch[node] >= 0 else theme.mark_color
+        var color = (
+            palette[branch[node] % len(palette)] if branch[node]
+            >= 0 else theme.mark_color
+        )
         target.fill_rect(x0, y0, x1 - x0, y1 - y0, color)
         text_requests.append(
             _TextRequest(
-                (x0 + x1) // 2, (y0 + y1) // 2 + Int(sc.font_size * 0.35), ids[node], theme.treemap_label_color,
-                sc.font_size, TextAlign.CENTER, theme.font_family,
+                (x0 + x1) // 2,
+                (y0 + y1) // 2 + Int(sc.font_size * 0.35),
+                ids[node],
+                theme.treemap_label_color,
+                sc.font_size,
+                TextAlign.CENTER,
+                theme.font_family,
             )
         )
         return
@@ -78,15 +86,47 @@ def _draw_treemap_node[
         cum += idx.subtree_value[c] / total
         var next_pos = origin + _round_to_int(span * cum)
         if split_x:
-            _draw_treemap_node(target, c, prev, y0, next_pos, y1, depth + 1, idx, ids, branch, palette, theme, sc, text_requests)
+            _draw_treemap_node(
+                target,
+                c,
+                prev,
+                y0,
+                next_pos,
+                y1,
+                depth + 1,
+                idx,
+                ids,
+                branch,
+                palette,
+                theme,
+                sc,
+                text_requests,
+            )
         else:
-            _draw_treemap_node(target, c, x0, prev, x1, next_pos, depth + 1, idx, ids, branch, palette, theme, sc, text_requests)
+            _draw_treemap_node(
+                target,
+                c,
+                x0,
+                prev,
+                x1,
+                next_pos,
+                depth + 1,
+                idx,
+                ids,
+                branch,
+                palette,
+                theme,
+                sc,
+                text_requests,
+            )
         prev = next_pos
 
 
 def _render_treemap[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.TREEMAP` plot: `_build_hierarchy_index`'s `children`/
     `subtree_value` (hierarchy.mojo) laid out by `_draw_treemap_node`'s
     slice-and-dice recursion from the whole inner plot rect at the root,
@@ -95,13 +135,12 @@ def _render_treemap[
     Every value must be non-negative and the root's subtree total
     positive, the same validation `Mark.SUNBURST` applies.
     """
-    if (
-        len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids)
-        or len(plot._hierarchy.values) != len(plot._hierarchy.ids)
-    ):
+    if len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids) or len(
+        plot._hierarchy.values
+    ) != len(plot._hierarchy.ids):
         raise Error(
-            "Plot.encode_hierarchy(): ids, parent_ids, and values must all have the"
-            " same length (got "
+            "Plot.encode_hierarchy(): ids, parent_ids, and values must all have"
+            " the same length (got "
             + String(len(plot._hierarchy.ids))
             + " ids, "
             + String(len(plot._hierarchy.parent_ids))
@@ -113,7 +152,9 @@ def _render_treemap[
     var theme = plot._theme
     _require_non_negative(plot._hierarchy.values, "Mark.TREEMAP")
 
-    var idx = _build_hierarchy_index(plot._hierarchy.ids, plot._hierarchy.parent_ids, plot._hierarchy.values)
+    var idx = _build_hierarchy_index(
+        plot._hierarchy.ids, plot._hierarchy.parent_ids, plot._hierarchy.values
+    )
     if idx.subtree_value[idx.root] <= 0.0:
         raise Error(
             "Plot: Mark.TREEMAP requires at least one positive leaf value"
@@ -137,7 +178,9 @@ def _render_treemap[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = _dynamic_legend_width(legend_labels, sc.legend_swatch_size, sc) if show_legend else 0
+    var legend_reserve = _dynamic_legend_width(
+        legend_labels, sc.legend_swatch_size, sc
+    ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
@@ -146,12 +189,32 @@ def _render_treemap[
 
     var palette = default_categorical_palette()
     _draw_treemap_node(
-        target, idx.root, plot_x0, plot_y0, plot_x1, plot_y1, 0, idx, plot._hierarchy.ids, branch, palette, theme,
-        sc, text_requests,
+        target,
+        idx.root,
+        plot_x0,
+        plot_y0,
+        plot_x1,
+        plot_y1,
+        0,
+        idx,
+        plot._hierarchy.ids,
+        branch,
+        palette,
+        theme,
+        sc,
+        text_requests,
     )
 
     if show_legend:
-        _draw_legend(target, text_requests, legend_labels, palette, plot_x1 + sc.margin_right, plot_y0, theme)
+        _draw_legend(
+            target,
+            text_requests,
+            legend_labels,
+            palette,
+            plot_x1 + sc.margin_right,
+            plot_y0,
+            theme,
+        )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
@@ -210,8 +273,14 @@ def treemap(
             save(c, "docs/src/examples/out_treemap.svg")
         ```
     """
-    var plot = Plot().mark_treemap().encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_treemap()
+        .encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def treemap[
@@ -233,6 +302,14 @@ def treemap[
     above.
     """
     return treemap(
-        ids, parent_ids, _materialize_scalar_list(values), theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        ids,
+        parent_ids,
+        _materialize_scalar_list(values),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

@@ -7,8 +7,15 @@ category instead of one.
 """
 from dataviz.plot import Plot, save
 
+
 def main() raises:
-    var languages: List[String] = ["Python", "JavaScript", "TypeScript", "Rust", "Mojo"]
+    var languages: List[String] = [
+        "Python",
+        "JavaScript",
+        "TypeScript",
+        "Rust",
+        "Mojo",
+    ]
     var series_names: List[String] = ["2024", "2025"]
     var stars_thousands: List[List[Int]] = [
         [58, 95, 90, 78, 12],
@@ -18,7 +25,14 @@ def main() raises:
     var plot = (
         Plot()
         .mark_grouped_bar(horizontal=True)
-        .encode_grouped_bar(categories=languages, series_names=series_names, values=stars_thousands)
-        .labels(title="GitHub Stars by Language, Year over Year", x_title="Stars (thousands)")
+        .encode_grouped_bar(
+            categories=languages,
+            series_names=series_names,
+            values=stars_thousands,
+        )
+        .labels(
+            title="GitHub Stars by Language, Year over Year",
+            x_title="Stars (thousands)",
+        )
     )
     save(plot, "docs/src/examples/out_horizontal_grouped_bar.svg")

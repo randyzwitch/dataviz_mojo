@@ -6,6 +6,7 @@ label; pass `""` for any point that shouldn't get one.
 from dataviz.plot import Plot, save
 from dataviz.theme import Theme
 
+
 def main() raises:
     var city: List[String] = ["Tokyo", "Delhi", "Shanghai", "Chicago", "Lagos"]
     var x: List[Float64] = [37.4, 32.9, 29.2, 8.9, 15.4]

@@ -5,6 +5,7 @@ fixed `(y0, y1)` pair, the band's edges are two curves that vary with
 """
 from dataviz.plot import Plot, save
 
+
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
     var trend: List[Float64] = [10.0, 13.0, 15.0, 19.0, 22.0, 25.0]
