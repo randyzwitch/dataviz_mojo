@@ -167,7 +167,10 @@ def parallel(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A parallel-coordinates chart.
+    """A parallel-coordinates chart, Alfred Inselberg's format for
+    visualizing many dimensions at once: one vertical axis per variable,
+    connected by a line per row, for spotting clusters and correlations
+    across more variables than a scatter plot could show.
 
     `Mark.PARALLEL`: one row per `row_names` entry (`data[row]`, one value
     per `dims` entry) drawn as a polyline across evenly spaced vertical

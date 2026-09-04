@@ -209,7 +209,10 @@ def bar(
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """A bar chart.
+    """A bar chart, the standard choice for comparing a value across
+    discrete categories: one rectangle per category, its length
+    proportional to the value, with negative values extending below the
+    zero baseline.
 
     `Mark.BAR` over a categorical `x` and continuous `y` (see
     `Plot.encode_categorical()`); one bar per entry, with negative values

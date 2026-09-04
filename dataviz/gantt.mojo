@@ -279,7 +279,10 @@ def gantt(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A gantt/span chart.
+    """A gantt/span chart, the project-scheduling format popularized by
+    Henry Gantt in the 1910s: one horizontal bar per category spanning
+    its start and end, for visualizing overlapping durations such as a
+    project's tasks or a schedule's bookings.
 
     `Mark.GANTT`: one horizontal bar per category from `start[i]` to
     `end[i]`.

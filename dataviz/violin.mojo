@@ -258,7 +258,10 @@ def violin(
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """A violin plot.
+    """A violin plot: a box plot's summary combined with a mirrored
+    kernel-density-estimate silhouette per category, for seeing a
+    distribution's actual shape (multiple modes, skew) that a box plot
+    alone would hide.
 
     `Mark.VIOLIN`: a symmetric kernel-density-estimate silhouette per
     category. `bandwidth` (when positive) overrides every category's

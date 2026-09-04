@@ -196,7 +196,10 @@ def sunburst(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A sunburst chart.
+    """A sunburst chart: a hierarchy drawn as concentric rings, each ring
+    a level of depth and each arc's angle proportional to its value, for
+    showing both a hierarchy's structure and its values' relative sizes
+    in one view.
 
     `Mark.SUNBURST`: a hierarchy (`Plot.encode_hierarchy()`'s flattened
     `ids`/`parent_ids`/`values`) drawn as concentric ring sectors, one

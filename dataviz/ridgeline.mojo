@@ -134,7 +134,11 @@ def ridgeline(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A ridgeline plot.
+    """A ridgeline plot, popularized as the "joyplot" after the cover of
+    Joy Division's Unknown Pleasures album: one density-estimate curve
+    per category, stacked with a slight vertical overlap, for comparing
+    many distributions' shapes at once without a box plot's information
+    loss.
 
     `Mark.RIDGELINE`: one overlapping density-estimate row per category,
     top to bottom. `bandwidth` (when positive) overrides every category's

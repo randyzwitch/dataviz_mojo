@@ -188,7 +188,10 @@ def corrplot(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A correlation plot.
+    """A correlation plot: one bubble per cell of a correlation matrix,
+    sized and colored by strength, for spotting which variable pairs
+    move together across a dataset too large to read as a table of
+    numbers.
 
     `Mark.CORRPLOT`: one bubble per cell of a square correlation `matrix`
     over `variables`, sized by `abs` and colored by sign of each pairwise

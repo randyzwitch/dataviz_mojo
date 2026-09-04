@@ -195,7 +195,10 @@ def gauge(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A gauge chart.
+    """A gauge chart: a single value shown as a needle or arc against a
+    min/max range, mimicking an analog dial. Reaches for the familiar
+    speedometer metaphor for one KPI, though `bullet()` packs the same
+    information into far less space.
 
     `Mark.GAUGE`: a single `value` (clamped to `[min_value, max_value]`)
     shown as a needle over a 270-degree color-banded dial (green/blue/red

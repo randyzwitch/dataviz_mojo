@@ -71,7 +71,9 @@ def histogram(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A histogram.
+    """A histogram: continuous data grouped into equal-width bins and
+    drawn as bar heights, for showing a distribution's shape (its center,
+    spread, and skew) rather than each individual value.
 
     `Mark.BAR` fed binned counts via `Plot.encode_histogram()` (equal-width
     intervals, half-open except the last). Named after what it plots

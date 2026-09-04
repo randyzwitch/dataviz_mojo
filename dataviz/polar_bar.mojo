@@ -100,7 +100,9 @@ def polarbar(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A circular column chart.
+    """A circular column chart: `bar()`'s categorical bars bent around a
+    circle instead of a straight baseline, trading precise length
+    comparison for a compact, radial layout.
 
     `Mark.POLAR_BAR` over a categorical `x` and continuous `y` (the same
     shape `bar()`/`pie()` take; values must be non-negative, with at least

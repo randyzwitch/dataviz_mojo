@@ -205,7 +205,10 @@ def beeswarm(
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """A beeswarm plot.
+    """A beeswarm plot: every individual value in a category plotted as
+    its own point, nudged sideways just enough to avoid overlapping its
+    neighbors. Shows a distribution's actual shape and its outliers at
+    once, where a box plot would only summarize it away.
 
     `Mark.BEESWARM`: one point per raw value, jittered sideways to avoid
     overlap, one swarm per category. See `Plot.encode_distribution()`

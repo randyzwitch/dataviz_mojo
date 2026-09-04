@@ -247,7 +247,10 @@ def tree(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A tree diagram.
+    """A tree diagram: a hierarchy drawn as connected nodes from a root,
+    for showing structure and relationships (an org chart, a file tree, a
+    decision tree) rather than each node's value, which a treemap or
+    sunburst would emphasize instead.
 
     `Mark.TREE`: a hierarchy (`Plot.encode_hierarchy()`'s flattened
     `ids`/`parent_ids`/`values`) drawn as a top-to-bottom node-link

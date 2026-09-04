@@ -175,7 +175,10 @@ def population_pyramid(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A population pyramid.
+    """A population pyramid, the standard demographic chart for an
+    age/sex distribution: two mirrored horizontal bars per category (an
+    age band), one extending left and one right, so the two groups'
+    shapes can be compared directly.
 
     `Mark.POPULATION_PYRAMID`: two mirrored horizontal bars per category
     growing outward from a shared, always-centered zero baseline.

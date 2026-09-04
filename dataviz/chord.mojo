@@ -194,7 +194,10 @@ def chord(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A chord diagram.
+    """A chord diagram: nodes arranged around a circle with arcs between
+    them sized by connection strength, for visualizing many-to-many
+    relationships (flows, correlations, co-occurrences) that would be
+    harder to scan as a matrix of numbers.
 
     `Mark.CHORD`: ring sectors for every distinct node across
     `from_categories`/`to_categories`, connected by ribbons sized by

@@ -189,7 +189,11 @@ def marimekko(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A Marimekko/mosaic chart.
+    """A Marimekko/mosaic chart, so named for its resemblance to the
+    Finnish textile company's patterned fabric: column widths
+    proportional to each category's overall share, and segment heights
+    proportional to a sub-category's share within it, encoding two
+    variables' shares in one chart.
 
     `Mark.MARIMEKKO`: column widths proportional to each category's share
     of the grand total, stacked segment heights showing each column's

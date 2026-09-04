@@ -301,7 +301,10 @@ def bump(
     subtitle: String = "",
     x_title: String = "",
 ) raises -> Plot:
-    """A bump chart.
+    """A bump chart: one line per series tracking its rank, not its raw
+    value, over an ordered axis. Useful for showing how competitors trade
+    places over time, such as sports standings, chart rankings, or
+    market-share leaders.
 
     `Mark.BUMP`: one line per series tracking its rank (1 = highest value)
     among every series at each category, not its raw value. Same data

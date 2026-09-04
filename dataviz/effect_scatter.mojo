@@ -15,7 +15,10 @@ def effect_scatter(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A scatter plot with a halo drawn under each point.
+    """A scatter plot with a halo drawn under each point, drawing the eye
+    to it regardless of how dense its neighbors are. Useful when a
+    handful of points (outliers, highlighted items) need to stand out
+    from a busy scatter.
 
     `Mark.EFFECT_SCATTER` over continuous `x`/`y`, the static equivalent
     of ECharts' effect scatter. Accepts the same `encode()` channels as

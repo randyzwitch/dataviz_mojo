@@ -86,7 +86,10 @@ def span_chart(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A span chart.
+    """A span chart: one floating vertical bar per category from a start
+    value to an end value, for visualizing ranges (temperature
+    highs/lows, price ranges, durations) rather than a single
+    measurement per category.
 
     `Mark.SPAN_CHART`: one floating vertical bar per category from
     `low[i]` to `high[i]`, for confidence intervals, error bounds, or a
