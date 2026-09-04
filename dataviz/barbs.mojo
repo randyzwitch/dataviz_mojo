@@ -3,7 +3,7 @@ from std.math import atan2, sqrt
 from canvas.fill_rule import FillRule
 from canvas.geometry import Transform2D, _round_to_int
 from canvas.path import Path
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -163,7 +163,14 @@ def _barb_glyph(
 def _render_barbs[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.BARBS` plot: `encode_barbs()`'s continuous `x`/`y`
     positions with a wind barb at each, the vector field convention
@@ -221,7 +228,6 @@ def _render_barbs[
         )
 
     var theme = plot._theme
-    var measure_cache = FontCache()
     var frame = _draw_continuous_axis_frame(
         target,
         _data_extent(plot._barbs.x),
@@ -232,7 +238,7 @@ def _render_barbs[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     var length = plot._barbs.length * frame.sc.scale

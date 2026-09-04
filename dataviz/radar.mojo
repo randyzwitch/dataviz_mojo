@@ -4,6 +4,7 @@ from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 from canvas.text.render import TextAlign
+from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import (
     _materialize_nested_scalar_list,
@@ -86,7 +87,14 @@ def _draw_radar_grid[
 def _render_radar[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.RADAR` plot: `encode_radar()`'s `indicators` (one
     spoke each, evenly spaced, starting at 12 o'clock and sweeping
@@ -113,7 +121,7 @@ def _render_radar[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend_reserve = _dynamic_legend_width(
-        plot._radar.series_names, sc.legend_swatch_size, sc
+        plot._radar.series_names, sc.legend_swatch_size, sc, cache=cache
     ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left

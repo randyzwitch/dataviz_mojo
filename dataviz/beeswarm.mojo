@@ -1,5 +1,5 @@
 from canvas.geometry import _round_to_int
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
@@ -131,7 +131,14 @@ def _draw_beeswarm_points[
 def _render_beeswarm[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.BEESWARM` plot: `encode_distribution()`'s per-category
     raw values, one point per value, jittered sideways within its
@@ -143,7 +150,6 @@ def _render_beeswarm[
     var theme = plot._theme
     var value_scale = _distribution_domain(plot)
 
-    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -153,7 +159,7 @@ def _render_beeswarm[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     var sc = _Scaled(theme)
@@ -172,7 +178,14 @@ def _render_beeswarm[
 def _render_horizontal_beeswarm[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """`_render_beeswarm`'s mirror image for
     `Plot.mark_beeswarm(horizontal=True)` (#121): `_render_horizontal_bar`'s
@@ -185,7 +198,6 @@ def _render_horizontal_beeswarm[
     var theme = plot._theme
     var value_scale = _distribution_domain(plot)
 
-    var measure_cache = FontCache()
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -195,7 +207,7 @@ def _render_horizontal_beeswarm[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     var sc = _Scaled(theme)

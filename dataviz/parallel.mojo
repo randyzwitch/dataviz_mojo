@@ -1,6 +1,7 @@
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 from canvas.text.render import TextAlign
+from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -67,7 +68,14 @@ def _value_y(
 def _render_parallel[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.PARALLEL` plot: `encode_parallel()`'s `dims` (one
     vertical axis each, evenly spaced from the plot's left edge to its
@@ -90,7 +98,7 @@ def _render_parallel[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend_reserve = _dynamic_legend_width(
-        plot._parallel.row_names, sc.legend_swatch_size, sc
+        plot._parallel.row_names, sc.legend_swatch_size, sc, cache=cache
     ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left

@@ -1,5 +1,5 @@
 from canvas.geometry import _round_to_int
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -60,7 +60,14 @@ def _candle_tooltip_label(
 def _render_candlestick[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.CANDLESTICK` plot: `_draw_categorical_axis_frame`'s
     categorical x-axis, with a y-domain spanning every open/high/low/close
@@ -119,7 +126,6 @@ def _render_candlestick[
         domain_data.append(v)
     var y_scale = _data_extent(domain_data)
 
-    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -129,7 +135,7 @@ def _render_candlestick[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     var body_width = _round_to_int(frame.x_scale.bandwidth())

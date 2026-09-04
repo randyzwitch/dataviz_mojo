@@ -1,7 +1,7 @@
 from canvas.geometry import _round_to_int
 from canvas.vector.draw_target import DrawTarget
 
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.heatmap import _draw_grid_axis_frame
 from dataviz.mark import Mark
@@ -36,7 +36,14 @@ struct _PunchcardData(Copyable, Movable):
 def _render_punchcard[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.PUNCHCARD` plot: `encode_punchcard()`'s `x`/`y`
     categorical grid (`Mark.HEATMAP`'s `_draw_grid_axis_frame` and
@@ -81,7 +88,6 @@ def _render_punchcard[
     var x_idx = _categorical_indices(plot._punchcard.x)
     var y_idx = _categorical_indices(plot._punchcard.y)
 
-    var measure_cache = FontCache()
     var frame = _draw_grid_axis_frame(
         target,
         x_idx.domain,
@@ -91,7 +97,7 @@ def _render_punchcard[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     for i in range(len(plot._punchcard.x)):

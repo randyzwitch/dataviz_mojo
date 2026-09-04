@@ -2,6 +2,7 @@ from std.math import cos, pi, sin
 
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
+from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import (
     _materialize_nested_scalar_list,
@@ -99,7 +100,14 @@ def _draw_polar_grid[
 def _render_polar[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.POLAR` plot: `encode_polar()`'s `angle`/`radius` pairs
     (or `encode_polar_series()`'s shared `angle` plus several named
@@ -174,7 +182,7 @@ def _render_polar[
     var sc = _Scaled(theme)
     var show_legend = is_multi and theme.show_legend
     var legend_reserve = _dynamic_legend_width(
-        plot._polar.series_names, sc.legend_swatch_size, sc
+        plot._polar.series_names, sc.legend_swatch_size, sc, cache=cache
     ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left

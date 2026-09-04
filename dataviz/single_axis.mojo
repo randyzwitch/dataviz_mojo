@@ -1,5 +1,6 @@
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
+from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.plot import (
@@ -133,7 +134,14 @@ def _draw_single_axis_frame[
 def _render_single_axis[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.SINGLE_AXIS` plot: every point from
     `encode_single_axis()`'s `x` at the plot area's vertical center,
@@ -153,7 +161,7 @@ def _render_single_axis[
 
     var sc = _Scaled(theme)
     var ch = _PointChannels(plot, sc)
-    var legend_reserve = _legend_reserve_for(plot, ch, sc)
+    var legend_reserve = _legend_reserve_for(plot, ch, sc, cache=cache)
 
     var x_scale = _data_extent(plot.x_data)
     var frame = _draw_single_axis_frame(

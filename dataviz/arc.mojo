@@ -1,6 +1,7 @@
 from std.math import pi
 
 from canvas.vector.draw_target import DrawTarget
+from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -22,7 +23,14 @@ from dataviz.theme import Theme
 def _render_arc[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.ARC` plot (a pie chart): one wedge per category
     (`encode_categorical`'s `x`), its angular span proportional to its
@@ -80,7 +88,7 @@ def _render_arc[
 
     var show_legend = theme.show_legend
     var legend_reserve = _dynamic_legend_width(
-        plot.x_categories, sc.legend_swatch_size, sc
+        plot.x_categories, sc.legend_swatch_size, sc, cache=cache
     ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left

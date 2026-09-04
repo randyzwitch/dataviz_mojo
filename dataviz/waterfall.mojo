@@ -1,6 +1,6 @@
 from canvas.color import Color
 from canvas.geometry import _round_to_int
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -86,7 +86,14 @@ def _waterfall_running_totals(
 def _render_waterfall[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.WATERFALL` plot on `_draw_categorical_axis_frame`,
     with a y-domain spanning every bar's running-total bounds
@@ -137,7 +144,6 @@ def _render_waterfall[
         combined.append(v)
     var y_scale = _zero_baseline_y_extent(combined)
 
-    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -147,7 +153,7 @@ def _render_waterfall[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     # Delta bars only narrow when is_total is in use; otherwise every bar

@@ -1,6 +1,6 @@
 from canvas.color import Color
 from canvas.geometry import _round_to_int
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from canvas.text.render import TextAlign
@@ -105,7 +105,9 @@ def _validate_grouped_bar_series(plot: Plot) raises:
                 )
 
 
-def _series_legend_reserve(plot: Plot, sc: _Scaled) raises -> Int:
+def _series_legend_reserve(
+    plot: Plot, sc: _Scaled, *, mut cache: _LazyFontCache
+) raises -> Int:
     """The width the series-name legend needs, or `0` when
     `Theme.show_legend` is off. Subtracted from the outer `ox1` before the
     axis frame is built, the same shrink-the-rect-from-outside pattern
@@ -114,7 +116,7 @@ def _series_legend_reserve(plot: Plot, sc: _Scaled) raises -> Int:
     if not plot._theme.show_legend:
         return 0
     return _dynamic_legend_width(
-        plot._grouped_bar.series_names, sc.legend_swatch_size, sc
+        plot._grouped_bar.series_names, sc.legend_swatch_size, sc, cache=cache
     )
 
 
@@ -283,7 +285,14 @@ def _draw_grouped_bars[
 def _render_grouped_bar[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.GROUPED_BAR` plot: `_render_bar`'s categorical x-axis /
     zero-baseline y-axis (`_draw_categorical_axis_frame`), with each
@@ -307,9 +316,8 @@ def _render_grouped_bar[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = _series_legend_reserve(plot, sc)
+    var legend_reserve = _series_legend_reserve(plot, sc, cache=cache)
 
-    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -319,7 +327,7 @@ def _render_grouped_bar[
         oy0,
         ox1 - legend_reserve,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     var palette = default_categorical_palette()
@@ -352,7 +360,14 @@ def _render_grouped_bar[
 def _render_horizontal_grouped_bar[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """`_render_grouped_bar`'s mirror image for
     `Plot.mark_grouped_bar(horizontal=True)` (#121):
@@ -376,9 +391,8 @@ def _render_horizontal_grouped_bar[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = _series_legend_reserve(plot, sc)
+    var legend_reserve = _series_legend_reserve(plot, sc, cache=cache)
 
-    var measure_cache = FontCache()
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -388,7 +402,7 @@ def _render_horizontal_grouped_bar[
         oy0,
         ox1 - legend_reserve,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     var palette = default_categorical_palette()

@@ -2,6 +2,7 @@ from std.math import pi
 
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
+from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -83,7 +84,14 @@ def _draw_sunburst_node[
 def _render_sunburst[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.SUNBURST` plot: `_build_hierarchy_index`'s `children`/
     `depth`/`subtree_value` (hierarchy.mojo) drawn as concentric ring
@@ -137,7 +145,7 @@ def _render_sunburst[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend_reserve = _dynamic_legend_width(
-        legend_labels, sc.legend_swatch_size, sc
+        legend_labels, sc.legend_swatch_size, sc, cache=cache
     ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left

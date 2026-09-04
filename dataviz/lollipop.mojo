@@ -1,6 +1,6 @@
 from canvas.geometry import _round_to_int
 from canvas.path import Path
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -126,7 +126,14 @@ def _draw_lollipop_stems[
 def _render_lollipop[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.LOLLIPOP` plot: `_render_bar`'s categorical x-axis /
     zero-baseline y-axis (`_draw_categorical_axis_frame`), with each
@@ -142,7 +149,6 @@ def _render_lollipop[
 
     var theme = plot._theme
     var y_scale = _zero_baseline_y_extent(plot.y_data)
-    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -152,7 +158,7 @@ def _render_lollipop[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     _draw_lollipop_stems(
@@ -173,7 +179,14 @@ def _render_lollipop[
 def _render_horizontal_lollipop[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """`_render_lollipop`'s mirror image for
     `Plot.mark_lollipop(horizontal=True)` (#121): `_render_horizontal_bar`'s
@@ -188,7 +201,6 @@ def _render_horizontal_lollipop[
 
     var theme = plot._theme
     var x_scale = _zero_baseline_y_extent(plot.y_data)
-    var measure_cache = FontCache()
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -198,7 +210,7 @@ def _render_horizontal_lollipop[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     _draw_lollipop_stems(
