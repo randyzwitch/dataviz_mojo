@@ -140,6 +140,38 @@ def test_render_raises_on_mismatched_size_length() raises:
         var c = render(plot)
 
 
+def test_plot_copy_produces_an_independent_render_unaffected_by_further_mutation() raises:
+    # #207: Plot is Copyable (not ImplicitlyCopyable -- .copy() is
+    # explicit). A base plot copied into two variants, each further
+    # encoded/labeled/re-colored, must render independently: neither
+    # copy's data or theme leaks into the other, and the original base
+    # plot (never itself encoded) still has no data to render.
+    var x: List[Float64] = [0.0, 10.0]
+    var base = Plot().mark_point().theme(Theme(show_gridlines=False)).size(400, 300)
+
+    var y_a: List[Float64] = [0.0, 0.0]
+    var a = base.copy().encode(x=x, y=y_a)
+
+    var y_b: List[Float64] = [0.0, 0.0]
+    var b = base.copy().encode(x=x, y=y_b).theme(Theme(show_gridlines=False, mark_color=RED))
+
+    # Same x-domain and zero-span y-domain on both (padded to the same
+    # pixel positions as test_render_point_mark_centers_on_the_hand_derived_pixel's
+    # sibling cases): points land at (75,135) and (365,135).
+    var ca = render(a)
+    _assert_color(ca, 75, 135, Theme.default().mark_color, "copy a keeps the default mark color")
+    _assert_color(ca, 365, 135, Theme.default().mark_color, "copy a keeps the default mark color")
+
+    var cb = render(b)
+    _assert_color(cb, 75, 135, RED, "copy b's own theme override, not shared with copy a")
+    _assert_color(cb, 365, 135, RED, "copy b's own theme override, not shared with copy a")
+
+    # The original base plot was never .encode()'d itself -- copying it
+    # doesn't retroactively give it either copy's data.
+    assert_equal(len(base.x_data), 0)
+    assert_equal(len(base.y_data), 0)
+
+
 def test_unique_categories_preserves_first_seen_order() raises:
     var data: List[String] = ["b", "a", "b", "c", "a"]
     var unique = _unique_categories(data)

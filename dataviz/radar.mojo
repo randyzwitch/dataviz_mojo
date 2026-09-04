@@ -21,7 +21,7 @@ from dataviz.polar import _polar_point
 from dataviz.theme import Theme
 
 
-struct _RadarData(Movable):
+struct _RadarData(Copyable, Movable):
     """One named indicator (axis) per entry with its max, plus one or more
     named series each with a value per indicator, for `Mark.RADAR`. See
     `encode_radar()`. Stored on `Plot._radar`.

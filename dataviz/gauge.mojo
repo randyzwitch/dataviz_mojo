@@ -10,7 +10,7 @@ from dataviz.scale import _format_fixed
 from dataviz.theme import Theme
 
 
-struct _GaugeData(Movable):
+struct _GaugeData(Copyable, Movable):
     """A single value plus its dial range and optional custom breakpoint
     bands (empty means ECharts' 20%/80%/100% default), for `Mark.GAUGE`.
     See `encode_gauge()`. Stored on `Plot._gauge`.

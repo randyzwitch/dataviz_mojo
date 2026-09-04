@@ -15,7 +15,7 @@ from dataviz.plot import (
 from dataviz.theme import Theme
 
 
-struct _PunchcardData(Movable):
+struct _PunchcardData(Copyable, Movable):
     """One (x category, y category, bubble size) row per cell, plus the
     size-to-radius divisor, for `Mark.PUNCHCARD`. See
     `encode_punchcard()`. Stored on `Plot._punchcard`.

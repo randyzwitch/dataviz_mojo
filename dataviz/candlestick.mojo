@@ -14,7 +14,7 @@ from dataviz.plot import (
 from dataviz.theme import Theme
 
 
-struct _CandleData(Movable):
+struct _CandleData(Copyable, Movable):
     """One open/high/low/close value per category, for `Mark.CANDLESTICK`.
     See `encode_candlestick()`. Stored on `Plot._candle`.
     """

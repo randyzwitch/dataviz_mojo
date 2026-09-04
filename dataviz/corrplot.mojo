@@ -21,7 +21,7 @@ from dataviz.scale import _format_fixed
 from dataviz.theme import Theme
 
 
-struct _CorrplotData(Movable):
+struct _CorrplotData(Copyable, Movable):
     """A square correlation matrix over a shared variable list, plus display
     options, for `Mark.CORRPLOT`. See `encode_corrplot()`. Stored on
     `Plot._corrplot`.

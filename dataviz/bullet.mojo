@@ -17,7 +17,7 @@ from dataviz.plot import (
 from dataviz.theme import Theme
 
 
-struct _BulletData(Movable):
+struct _BulletData(Copyable, Movable):
     """One measure/target pair plus a list of ascending qualitative-range
     thresholds per category, for `Mark.BULLET`. See `encode_bullet()`.
     Stored on `Plot._bullet`.
