@@ -912,6 +912,69 @@ def test_theme_layout_fields_reach_scaled() raises:
     )
 
 
+def test_theme_raster_supersample_actually_changes_antialiased_output() raises:
+    # #231: Theme.raster_supersample (default 3) replaces the old fixed
+    # _RASTER_SUPERSAMPLE constant. A filled interior is exact at any
+    # factor (see _assert_near_color's own docstring), so the effect is
+    # only visible at an antialiased edge; rather than pin a specific
+    # blended color (fragile, and not the point of this test), render
+    # the same plot at factor 1 (no supersampling) and at the default 3
+    # and confirm at least one pixel along a diagonal line's edge
+    # differs -- direct evidence the knob actually reaches the render
+    # path, not just that it's stored on Theme.
+    var x: List[Float64] = [0.0, 10.0]
+    var y: List[Float64] = [0.0, 10.0]
+    var default_plot = Plot().mark_line().encode(x=x, y=y).theme(Theme(show_gridlines=False)).size(120, 90)
+    var c_default = render(default_plot)
+
+    var one_x_plot = Plot().mark_line().encode(x=x, y=y).theme(
+        Theme(show_gridlines=False, raster_supersample=1)
+    ).size(120, 90)
+    var c_one_x = render(one_x_plot)
+
+    assert_equal(c_default.width, c_one_x.width, "both still downsample back to the requested width")
+    assert_equal(c_default.height, c_one_x.height, "both still downsample back to the requested height")
+
+    var any_pixel_differs = False
+    for yy in range(c_default.height):
+        for xx in range(c_default.width):
+            var p1 = c_default.get_pixel(xx, yy)
+            var p2 = c_one_x.get_pixel(xx, yy)
+            if p1.r != p2.r or p1.g != p2.g or p1.b != p2.b:
+                any_pixel_differs = True
+    assert_true(
+        any_pixel_differs,
+        "raster_supersample=1 must produce different antialiasing than the default (3) somewhere along the line",
+    )
+
+
+def test_render_raises_on_non_positive_raster_supersample() raises:
+    var x: List[Float64] = [1.0, 2.0]
+    with assert_raises():
+        var plot = Plot().mark_point().encode(x=x, y=x).theme(Theme(raster_supersample=0)).size(100, 80)
+        _ = render(plot)
+
+
+def test_render_facets_and_layers_read_raster_supersample_from_plots0() raises:
+    # #231: render_facets()/render_layers() read the shared supersample
+    # factor from plots[0]'s theme (the same "shared chrome comes from
+    # plots[0]" convention as background/gridlines/margins), and raise
+    # the same way render() does for an invalid value.
+    var x: List[Float64] = [1.0, 2.0]
+    with assert_raises():
+        var plots: List[Plot] = [
+            scatter(x, x, theme=Theme(raster_supersample=0), width=100, height=80),
+            scatter(x, x, width=100, height=80),
+        ]
+        _ = render_facets(plots, cols=2)
+    with assert_raises():
+        var plots2: List[Plot] = [
+            scatter(x, x, theme=Theme(raster_supersample=0), width=100, height=80),
+            line(x, x, width=100, height=80),
+        ]
+        _ = render_layers(plots2)
+
+
 def test_theme_legend_width_actually_changes_layout() raises:
     # The end-to-end half: a wider legend column must take real space
     # away from the plot area, not just sit in _Scaled.

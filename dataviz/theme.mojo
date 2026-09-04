@@ -9,8 +9,11 @@ quantity render() computes (font size, margins, point radius, line
 width, tick length, legend layout). Pair `Theme(scale=2.0)` with a
 canvas twice the width/height to render the same chart at higher
 pixel density; the logical layout is identical at every scale.
-Separate from `render()`'s internal raster supersampling
-(`_RASTER_SUPERSAMPLE`, plot.mojo).
+Separate from `raster_supersample` (default 3), which controls how
+much extra antialiasing work `render()`/`render_facets()`/
+`render_layers()` do internally before downsampling back to that
+logical size -- the two compose multiplicatively rather than
+substituting for each other; see `raster_supersample`'s own docstring.
 
 `color_by_sign` (default `False`) makes `Mark.BAR` color negative
 bars `mark_color_negative`; `Mark.WATERFALL`/`CANDLESTICK` use that
@@ -112,6 +115,25 @@ struct Theme(ImplicitlyCopyable, Movable):
     `render()` computes (font size, margins, point radius, line
     width, tick length, legend layout, ...); see this struct's own
     module docstring for the full HiDPI-rendering reasoning."""
+    var raster_supersample: Int
+    """How many times larger than the requested size `render()`/
+    `render_facets()`/`render_layers()` draw at internally before
+    downsampling back down, for finer anti-aliasing at shape edges (a
+    solid interior averages to the same color regardless). Defaults to
+    3 (9x the pixel count), matching this package's raster output
+    before this field existed. Composes multiplicatively with `scale`,
+    not a substitute for it: `scale` changes the *logical* pixel size
+    of everything drawn (fonts, margins, line widths, ...) for HiDPI
+    output, while this only controls how much extra antialiasing work
+    a raster render pays before shrinking back to that logical size --
+    `render_svg()`/`render_facets_svg()`/`render_layers_svg()` ignore
+    it entirely, since vector output has no downsample step. Lower it
+    (1 disables supersampling outright) to trade edge quality for speed
+    in batch rendering, or to get exact single-pixel raster output for
+    a test. Must be `>= 1`; checked where it's read (`render()`/
+    `render_facets()`/`render_layers()`), not eagerly here, matching
+    `line_smoothing`'s deferred-to-render-time validation.
+    """
     var color_by_sign: Bool
     """Whether `Mark.BAR` colors each bar by whether its value is
     negative (`mark_color_negative`) or not (`mark_color`); defaults
@@ -265,6 +287,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         size_range_max: Float64 = 15.0,
         show_legend: Bool = True,
         scale: Float64 = 1.0,
+        raster_supersample: Int = 3,
         color_by_sign: Bool = False,
         mark_color_negative: Color = Color(200, 60, 60),
         bullet_range_color_light: Color = Color(224, 224, 224),
@@ -321,6 +344,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.size_range_max = size_range_max
         self.show_legend = show_legend
         self.scale = scale
+        self.raster_supersample = raster_supersample
         self.color_by_sign = color_by_sign
         self.mark_color_negative = mark_color_negative
         self.bullet_range_color_light = bullet_range_color_light
