@@ -339,7 +339,9 @@ def grouped_bar(
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """A grouped bar chart.
+    """A grouped bar chart: several bars side by side per category, one
+    per series, for comparing series values within each category
+    directly rather than reading a stacked total.
 
     `Mark.GROUPED_BAR`: several bars side by side per category, one per
     series (`values[j]` is series `series_names[j]`'s value per

@@ -298,7 +298,9 @@ def heatmap(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A heatmap.
+    """A heatmap: a grid of cells colored by value across two categorical
+    axes, for spotting patterns across a large matrix of numbers faster
+    than a table of the same data would allow.
 
     `Mark.HEATMAP`: one colored grid cell per (x, y) pair, colored by
     `value` through a continuous gradient. See `Plot.encode_heatmap()`

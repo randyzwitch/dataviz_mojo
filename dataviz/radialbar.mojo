@@ -124,7 +124,9 @@ def radialbar(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A radial (multi-ring) progress chart.
+    """A radial (multi-ring) progress chart: `bar()`'s categorical bars
+    bent into concentric rings, each ring's arc length proportional to
+    its value, for a compact multi-category progress display.
 
     `Mark.RADIALBAR` over the same categorical `x` + continuous `y` shape
     `bar()`/`pie()`/`polarbar()` take (values must be non-negative, with

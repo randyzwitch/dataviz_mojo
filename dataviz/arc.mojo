@@ -133,7 +133,10 @@ def pie(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A pie chart.
+    """A pie chart, showing each category's share of a whole as a wedge's
+    angle. Best for a small number of categories (roughly two to six)
+    that sum to a meaningful total; more than that becomes hard to
+    compare by angle alone, where a bar chart usually reads faster.
 
     `Mark.ARC` over a categorical `x` and continuous `y` (the same shape
     `bar()` takes; values must be non-negative, with at least one

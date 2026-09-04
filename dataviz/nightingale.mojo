@@ -107,7 +107,10 @@ def nightingale(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A rose/coxcomb chart.
+    """A rose/coxcomb chart, the polar-area format Florence Nightingale
+    used in 1858 to show causes of mortality: wedges of equal angle but
+    value-proportional radius, giving a categorical comparison a
+    circular form.
 
     `Mark.NIGHTINGALE` over a categorical `x` and continuous `y` (the same
     shape `pie()`/`bar()` take; values must be non-negative, with at least

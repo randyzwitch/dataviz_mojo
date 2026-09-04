@@ -132,7 +132,9 @@ def graph(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A network graph.
+    """A network graph: nodes connected by edges and laid out to minimize
+    crossings, for visualizing relationships without the ordering
+    constraints an arc diagram or chord diagram impose.
 
     `Mark.GRAPH`: `Mark.CHORD`'s edge list (`Plot.encode_chord()`) drawn
     as nodes evenly spaced around a circle, connected by straight lines.

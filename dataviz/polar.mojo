@@ -282,7 +282,10 @@ def polar(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A polar-coordinate line plot.
+    """A polar-coordinate line plot: a line series where `angle` and
+    `radius` place each point around a circle rather than on x/y axes,
+    for cyclical data (compass headings, time of day, seasonal phase)
+    where a circular layout is the natural fit.
 
     `Mark.POLAR` over `angle` (radians, used as given; values beyond
     `2*pi` spiral outward rather than wrapping) and `radius` (linearly
@@ -385,7 +388,9 @@ def polar_series(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A multi-series polar-coordinate line plot.
+    """A multi-series polar-coordinate line plot: `polar()`'s single-series
+    shape extended to several named series sharing one angular axis, for
+    comparing multiple cyclical series at once.
 
     `Mark.POLAR` over `Plot.encode_polar_series()`'s shared `angle` plus
     one or more named series (`series_names` + `series_values`, one radius

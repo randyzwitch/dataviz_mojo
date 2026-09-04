@@ -7129,7 +7129,8 @@ def scatter(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A scatter plot.
+    """A scatter plot: one point per (x, y) pair, the standard choice for
+    showing the relationship between two continuous variables.
 
     `Mark.POINT` over continuous `x`/`y`.
 
@@ -7210,7 +7211,8 @@ def line(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A line chart.
+    """A line chart: continuous x/y data connected in order, the standard
+    choice for showing a trend over a continuous variable such as time.
 
     `Mark.LINE` over continuous `x`/`y`, connected in data order.
 
@@ -7325,7 +7327,9 @@ def area(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """An area chart.
+    """An area chart: a line chart with the region down to a zero
+    baseline filled in, emphasizing a series' magnitude and cumulative
+    feel over its exact trend line.
 
     `Mark.AREA` over continuous `x`/`y`, filled down to a zero baseline.
 

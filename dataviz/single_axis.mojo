@@ -189,7 +189,10 @@ def single_axis(
     subtitle: String = "",
     x_title: String = "",
 ) raises -> Plot:
-    """A single-axis chart.
+    """A single-axis chart: every value plotted along one horizontal
+    line rather than a full x/y plane, for showing a single variable's
+    distribution or spread without the extra axis a scatter plot would
+    need.
 
     `Mark.SINGLE_AXIS`: every value in `x` plotted along one horizontal
     axis with no y-axis, for seeing the distribution of one-dimensional

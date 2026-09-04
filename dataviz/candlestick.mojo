@@ -141,7 +141,10 @@ def candlestick(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A candlestick chart.
+    """A candlestick chart, the open/high/low/close convention that
+    originated with 18th-century Japanese rice traders: each bar's body
+    shows the open-to-close range and its wicks the period's full
+    high/low, so a price's direction and volatility read at a glance.
 
     `Mark.CANDLESTICK`: one open/high/low/close bar per category.
 

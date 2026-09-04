@@ -201,7 +201,11 @@ def streamgraph(
     subtitle: String = "",
     x_title: String = "",
 ) raises -> Plot:
-    """A streamgraph.
+    """A streamgraph: `stacked_bar()`'s running total turned into smooth
+    layers and floated around a central axis instead of a fixed zero
+    baseline. Popularized by Lee Byron and Martin Wattenberg's 2008 work
+    (notably the New York Times' movie box-office chart), for showing how
+    several series' magnitudes ebb and flow over time.
 
     `Mark.STREAMGRAPH`: `Mark.STACKED_BAR`'s running-total stack, floated
     centered around zero and drawn as flowing bands instead of discrete

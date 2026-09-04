@@ -118,7 +118,10 @@ def punchcard(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A punchcard.
+    """A punchcard, in the style of GitHub's old commit-activity graph: a
+    scatter plot on a categorical grid where bubble size encodes a value
+    at each (x, y) cell, for spotting when activity clusters across two
+    categorical dimensions such as day and hour.
 
     `Mark.PUNCHCARD`: a scatter plot on a categorical grid where bubble
     size (`sizes[i] / scale`) encodes a third variable, GitHub-style. See

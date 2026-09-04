@@ -121,7 +121,11 @@ def arc_diagram(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """An arc diagram.
+    """An arc diagram: relationships between nodes on a single line, each
+    connection drawn as a semicircular arc instead of a matrix or a 2D
+    network layout. Well suited to nodes with a natural order (a
+    timeline, a script's cast list), where a force-directed graph layout
+    would add clutter without adding information.
 
     `Mark.ARC_DIAGRAM`: `Mark.CHORD`'s edge list (`Plot.encode_chord()`)
     drawn as nodes on one line connected by semicircular arcs. See

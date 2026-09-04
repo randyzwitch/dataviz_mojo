@@ -155,7 +155,9 @@ def funnel(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A funnel chart.
+    """A funnel chart: a sequence of stages drawn as narrowing bars, each
+    width proportional to its value, for visualizing drop-off through a
+    process such as a sales pipeline or a signup flow.
 
     `Mark.FUNNEL` over a categorical `x` and continuous `y` (the same
     shape `bar()`/`pie()` take), drawn largest-value-first as tapering

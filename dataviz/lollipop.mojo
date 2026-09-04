@@ -159,7 +159,10 @@ def lollipop(
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """A lollipop chart.
+    """A lollipop chart: the same category/value shape as `bar()`, drawn
+    as a thin stem and dot instead of a filled rectangle, reducing
+    visual weight when a chart has many categories or the comparison is
+    really about position, not area.
 
     `Mark.LOLLIPOP`: the same `(categories, values)` shape `bar()` takes,
     drawn as a thin stem plus a point per category instead of a filled

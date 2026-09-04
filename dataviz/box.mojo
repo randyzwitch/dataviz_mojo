@@ -387,7 +387,10 @@ def box(
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """A box plot.
+    """A box plot, John Tukey's five-number summary: a box spanning the
+    interquartile range with a median line and whiskers to the
+    non-outlier extremes, for comparing a distribution's spread and skew
+    across categories at a glance rather than every individual value.
 
     `Mark.BOX`: one box-and-whiskers per category summarizing a
     distribution of raw values (`values[i]`). See `Plot.encode_boxplot()`

@@ -231,7 +231,10 @@ def treemap(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A treemap.
+    """A treemap, Ben Shneiderman's format for visualizing hierarchical
+    data as nested rectangles: each rectangle's area proportional to its
+    value, for showing a hierarchy's structure and its values' relative
+    sizes in a compact, space-filling layout.
 
     `Mark.TREEMAP`: a hierarchy (`Plot.encode_hierarchy()`'s flattened
     `ids`/`parent_ids`/`values`) laid out as nested, area-proportional

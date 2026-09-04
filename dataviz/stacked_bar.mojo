@@ -310,7 +310,10 @@ def stacked_bar(
     percent: Bool = False,
     horizontal: Bool = False,
 ) raises -> Plot:
-    """A stacked bar chart.
+    """A stacked bar chart: the same category/series/value shape as
+    `grouped_bar()`, drawn as one bar per category with series stacked on
+    top of each other, for comparing both each category's total and its
+    composition at once.
 
     `Mark.STACKED_BAR`: the same `(categories, series_names, values)`
     shape `grouped_bar()` takes, each series drawn as a stacked segment
