@@ -1,6 +1,6 @@
 from canvas.color import Color
 from canvas.geometry import _round_to_int
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from canvas.text.render import TextAlign
@@ -177,7 +177,14 @@ def _draw_stacked_segments[
 def _render_stacked_bar[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.STACKED_BAR` plot: the same `encode_grouped_bar()` data
     `Mark.GROUPED_BAR` uses, with each category's series stacked as
@@ -199,8 +206,7 @@ def _render_stacked_bar[
     var y_scale = _stacked_bar_domain(plot, n_series)
 
     var sc = _Scaled(theme)
-    var legend_reserve = _series_legend_reserve(plot, sc)
-    var measure_cache = FontCache()
+    var legend_reserve = _series_legend_reserve(plot, sc, cache=cache)
     var frame = _draw_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -210,7 +216,7 @@ def _render_stacked_bar[
         oy0,
         ox1 - legend_reserve,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     var palette = default_categorical_palette()
@@ -243,7 +249,14 @@ def _render_stacked_bar[
 def _render_horizontal_stacked_bar[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """`_render_stacked_bar`'s mirror image for
     `Plot.mark_stacked_bar(horizontal=True)` (#121):
@@ -264,8 +277,7 @@ def _render_horizontal_stacked_bar[
     var x_scale = _stacked_bar_domain(plot, n_series)
 
     var sc = _Scaled(theme)
-    var legend_reserve = _series_legend_reserve(plot, sc)
-    var measure_cache = FontCache()
+    var legend_reserve = _series_legend_reserve(plot, sc, cache=cache)
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -275,7 +287,7 @@ def _render_horizontal_stacked_bar[
         oy0,
         ox1 - legend_reserve,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     var palette = default_categorical_palette()

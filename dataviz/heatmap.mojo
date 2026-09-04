@@ -4,7 +4,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import ColorScale
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
@@ -96,7 +96,7 @@ def _draw_grid_axis_frame[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: FontCache,
+    mut cache: _LazyFontCache,
 ) raises -> _GridFrame:
     """`Mark.HEATMAP`'s axis-frame core: two `OrdinalScale` axes,
     `x_categories` left-to-right and `y_categories` top-to-bottom (index
@@ -199,7 +199,14 @@ def _draw_grid_axis_frame[
 def _render_heatmap[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.HEATMAP` plot: `_draw_grid_axis_frame`'s
     two-categorical-axis grid, one filled cell per `encode_heatmap()` row,
@@ -237,9 +244,8 @@ def _render_heatmap[
     var value_mm = _min_max(plot._heatmap.value)
     var color_scale = ColorScale.from_theme(theme, value_mm.min, value_mm.max)
 
-    # One FontCache for both measurements: the legend's labels here, then
-    # the y-axis category labels inside _draw_grid_axis_frame.
-    var measure_cache = FontCache()
+    # The render's shared cache serves both measurements: the legend's labels
+    # here, then the y-axis category labels inside _draw_grid_axis_frame.
 
     var legend_reserve = 0
     if theme.show_legend:
@@ -250,7 +256,7 @@ def _render_heatmap[
             legend_labels,
             sc.continuous_legend_bar_width,
             sc,
-            cache=measure_cache,
+            cache=cache,
         )
 
     var frame = _draw_grid_axis_frame(
@@ -262,7 +268,7 @@ def _render_heatmap[
         oy0,
         ox1 - legend_reserve,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     var cell_width = _round_to_int(frame.x_scale.bandwidth())

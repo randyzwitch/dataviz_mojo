@@ -6,7 +6,7 @@ from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
 from dataviz.funnel import _descending_value_order
 from dataviz.grouped_bar import _validate_grouped_bar_series
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
@@ -90,7 +90,7 @@ def _draw_bump_axis_frame[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: FontCache,
+    mut cache: _LazyFontCache,
 ) raises -> _BumpFrame:
     """`Mark.BUMP`'s axis frame: `_draw_categorical_axis_frame`'s
     vertical-categorical-`x` shape, but with the `y` side hand-rolled
@@ -197,7 +197,14 @@ def _draw_bump_axis_frame[
 def _render_bump[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.BUMP` plot: `encode_grouped_bar()`'s data (categories,
     one name and one value per series), plotting each series' rank among
@@ -220,15 +227,14 @@ def _render_bump[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
 
-    # One FontCache for both measurements -- the legend's series names
-    # here, then the rank-axis labels inside _draw_bump_axis_frame.
-    var measure_cache = FontCache()
+    # The render's shared cache serves both measurements -- the legend's series
+    # names here, then the rank-axis labels inside _draw_bump_axis_frame.
 
     var legend_reserve = _dynamic_legend_width(
         plot._grouped_bar.series_names,
         sc.legend_swatch_size,
         sc,
-        cache=measure_cache,
+        cache=cache,
     ) if show_legend else 0
 
     var frame = _draw_bump_axis_frame(
@@ -240,7 +246,7 @@ def _render_bump[
         oy0,
         ox1 - legend_reserve,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     # rank[j][i]: series j's rank (1 = highest value) at category i.

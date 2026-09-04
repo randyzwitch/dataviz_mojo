@@ -2,7 +2,7 @@ from std.math import exp, pi, sqrt
 
 from canvas.fill_rule import FillRule
 from canvas.path import Path
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
@@ -165,7 +165,14 @@ def _draw_violin_silhouettes[
 def _render_violin[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.VIOLIN` plot: `encode_distribution()`'s raw
     per-category values (the same data `Mark.BEESWARM` takes), each
@@ -195,7 +202,6 @@ def _render_violin[
             all_values.append(v)
     var value_scale = _data_extent(all_values)
 
-    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -205,7 +211,7 @@ def _render_violin[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     _draw_violin_silhouettes(
@@ -218,7 +224,14 @@ def _render_violin[
 def _render_horizontal_violin[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """`_render_violin`'s mirror image for
     `Plot.mark_violin(horizontal=True)` (#121): `_render_horizontal_bar`'s
@@ -243,7 +256,6 @@ def _render_horizontal_violin[
             all_values.append(v)
     var value_scale = _data_extent(all_values)
 
-    var measure_cache = FontCache()
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -253,7 +265,7 @@ def _render_horizontal_violin[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     _draw_violin_silhouettes(

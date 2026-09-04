@@ -1,5 +1,5 @@
 from canvas.geometry import _round_to_int
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -63,7 +63,14 @@ def _symmetric_zero_baseline_x_extent(
 def _render_population_pyramid[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.POPULATION_PYRAMID` plot:
     `_draw_horizontal_categorical_axis_frame` (the frame `Mark.GANTT`
@@ -110,13 +117,12 @@ def _render_population_pyramid[
             > 0 else "Right"
         )
     var legend_reserve = _dynamic_legend_width(
-        legend_names, sc.legend_swatch_size, sc
+        legend_names, sc.legend_swatch_size, sc, cache=cache
     ) if theme.show_legend else 0
 
     var x_scale = _symmetric_zero_baseline_x_extent(
         plot._pyramid.left, plot._pyramid.right
     )
-    var measure_cache = FontCache()
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -126,7 +132,7 @@ def _render_population_pyramid[
         oy0,
         ox1 - legend_reserve,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     var palette = default_categorical_palette()

@@ -1,6 +1,7 @@
 from canvas.geometry import _round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
+from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -37,7 +38,14 @@ struct _MarimekkoData(Copyable, Movable):
 def _render_marimekko[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.MARIMEKKO` plot (a mosaic chart): `encode_marimekko()`'s
     `categories` (one column each) and `subcategories` (one stacked
@@ -111,7 +119,7 @@ def _render_marimekko[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend_reserve = _dynamic_legend_width(
-        plot._marimekko.subcategories, sc.legend_swatch_size, sc
+        plot._marimekko.subcategories, sc.legend_swatch_size, sc, cache=cache
     ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left

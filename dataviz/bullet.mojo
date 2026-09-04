@@ -1,6 +1,6 @@
 from canvas.color import Color
 from canvas.geometry import _round_to_int
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -41,7 +41,14 @@ struct _BulletData(Copyable, Movable):
 def _render_bullet[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.BULLET` plot (Stephen Few's bullet chart) on
     `_draw_categorical_axis_frame` with a zero-baseline y-domain
@@ -105,7 +112,6 @@ def _render_bullet[
         domain_data.append(plot._bullet.target[i])
     var y_scale = _zero_baseline_y_extent(domain_data)
 
-    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -115,7 +121,7 @@ def _render_bullet[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     var range_color_scale = ColorScale(0.0, 1.0)

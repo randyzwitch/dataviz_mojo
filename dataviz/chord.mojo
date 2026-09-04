@@ -4,6 +4,7 @@ from canvas.color import Color
 from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
+from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -64,7 +65,14 @@ def _draw_chord_ribbon[
 def _render_chord[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.CHORD` plot: one node per distinct category across
     `encode_chord()`'s `from`/`to` columns (first-seen order, see
@@ -126,7 +134,7 @@ def _render_chord[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend_reserve = _dynamic_legend_width(
-        nodes, sc.legend_swatch_size, sc
+        nodes, sc.legend_swatch_size, sc, cache=cache
     ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left

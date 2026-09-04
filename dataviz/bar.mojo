@@ -1,6 +1,6 @@
 from canvas.color import Color
 from canvas.geometry import _round_to_int
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -173,7 +173,14 @@ def _draw_bar_rects[
 def _render_bar[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.BAR` plot: a categorical x-axis (`OrdinalScale`, one
     evenly spaced band per category) and a continuous y-axis whose domain
@@ -200,7 +207,6 @@ def _render_bar[
     # finalized; see _draw_categorical_axis_frame for why it takes y_scale
     # as an input.
     var y_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))
-    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -210,7 +216,7 @@ def _render_bar[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     _draw_bar_rects(
@@ -232,7 +238,14 @@ def _render_bar[
 def _render_horizontal_bar[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """`_render_bar`'s mirror image for `Plot.mark_bar(horizontal=True)`
     (#121): a categorical y-axis (`OrdinalScale`, top to bottom) and a
@@ -252,7 +265,6 @@ def _render_horizontal_bar[
 
     var theme = plot._theme
     var x_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))
-    var measure_cache = FontCache()
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -262,7 +274,7 @@ def _render_horizontal_bar[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     _draw_bar_rects(

@@ -1,7 +1,7 @@
 from canvas.fill_rule import FillRule
 from canvas.geometry import _round_to_int
 from canvas.path import Path
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
@@ -82,7 +82,14 @@ def _append_smoothed_edge(
 def _render_streamgraph[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.STREAMGRAPH` plot: `encode_grouped_bar()`'s data
     stacked the same running-total way as `Mark.STACKED_BAR`, with two
@@ -118,13 +125,12 @@ def _render_streamgraph[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend_reserve = _dynamic_legend_width(
-        plot._grouped_bar.series_names, sc.legend_swatch_size, sc
+        plot._grouped_bar.series_names, sc.legend_swatch_size, sc, cache=cache
     ) if show_legend else 0
 
     var y_scale = _symmetric_zero_baseline_y_extent(
         plot._grouped_bar.values, n_categories
     )
-    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -134,7 +140,7 @@ def _render_streamgraph[
         oy0,
         ox1 - legend_reserve,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     # running[i]: each category's stack cursor, starting at its centered

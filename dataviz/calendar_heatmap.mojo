@@ -4,7 +4,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import ColorScale
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -115,7 +115,14 @@ def _day_of_week(days_since_epoch: Int) -> Int:
 def _render_calendar_heatmap[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.CALENDAR_HEATMAP` plot: `encode_calendar()`'s `dates`/
     `values` in a GitHub-contributions-style grid, one column per week
@@ -169,11 +176,10 @@ def _render_calendar_heatmap[
     var sc = _Scaled(theme)
     var day_labels = _calendar_day_labels()
     var month_labels = _calendar_month_labels()
-    # One FontCache for both measurements: the y-axis day labels here and
-    # the legend's labels below.
-    var measure_cache = FontCache()
+    # The render's shared cache serves both measurements: the y-axis day labels
+    # here and the legend's labels below.
     var dynamic_left_margin = (
-        Int(_max_label_width(day_labels, sc.font_size, cache=measure_cache))
+        Int(_max_label_width(day_labels, sc.font_size, cache=cache))
         + sc.tick_length
         + sc.label_gap
         + sc.margin_buffer
@@ -191,7 +197,7 @@ def _render_calendar_heatmap[
             legend_labels,
             sc.continuous_legend_bar_width,
             sc,
-            cache=measure_cache,
+            cache=cache,
         )
 
     var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)

@@ -3655,52 +3655,61 @@ def _decimate_to_pixel_columns(
     return _Decimated(out_x^, out_y^, True)
 
 
+struct _LazyFontCache(Movable):
+    """The one `FontCache` a render shares between every label it
+    measures and every label it draws (#255), constructed on first use.
+
+    `FontCache.__init__` is the installed-font scan (about 20 ms on a
+    typical Linux machine), so building one eagerly at the top of every
+    render would charge that to a label-free mark on `SvgCanvas`
+    (`Mark.ARC_DIAGRAM`/`GRAPH`/`SANKEY`, whose whole SVG render is
+    under a millisecond) that never touches a font. `get()` builds it
+    the first time anything measures or draws and hands back the same
+    one after that. Every `_render_*` and axis-frame helper takes one of
+    these by `mut cache`; only `_max_label_width` and
+    `_replay_text_requests` unwrap it, at the two calls into
+    `canvas.text`.
+    """
+
+    var _cache: Optional[FontCache]
+
+    def __init__(out self):
+        """An empty wrapper; no font scan until `get()`."""
+        self._cache = None
+
+    def get(mut self) -> ref[self._cache._value] FontCache:
+        """The shared `FontCache`, scanning the installed fonts on the
+        first call only.
+
+        Returns:
+            A mutable reference to the cache, for `cache=` on
+            `measure_text`/`draw_text`.
+        """
+        if not self._cache:
+            self._cache = FontCache()
+        return self._cache.value()
+
+
 def _max_label_width(
-    labels: List[String], font_size: Float64
+    labels: List[String], font_size: Float64, *, mut cache: _LazyFontCache
 ) raises -> Float64:
     """The widest rendered ink width among `labels` at `font_size`, used to
     size the left margin to the y-axis tick labels before the plot area's
     pixel range is finalized (tick values depend only on the data domain,
     so measuring early is exact).
 
-    Resolves its font fresh in a new `FontCache`. A caller measuring
-    twice in one render (an axis tick list and then a legend's labels)
-    should use the `cache=` overload and share one cache: a fresh cache
-    re-pays font resolution and TTF parsing (0.44ms for a 5-label call
-    against 0.056ms warm).
-    """
-    var cache = FontCache()
-    return _max_label_width(labels, font_size, cache=cache)
-
-
-def _max_label_width(
-    labels: List[String], font_size: Float64, *, mut cache: FontCache
-) raises -> Float64:
-    """`_max_label_width` resolving fonts through `cache`; see the overload
-    above.
+    Measures through the caller's `cache`, the one `FontCache` a render
+    shares between every measurement and every label it draws (#255,
+    `_LazyFontCache`): a fresh cache re-pays the font scan, font
+    resolution and TTF parsing (0.44ms for a 5-label call against
+    0.056ms warm), which is why there is no overload without one.
     """
     var max_width = 0.0
     for label in labels:
-        var m = measure_text(label, font_size, cache=cache)
+        var m = measure_text(label, font_size, cache=cache.get())
         if m.width > max_width:
             max_width = m.width
     return max_width
-
-
-def _dynamic_legend_width(
-    labels: List[String], content_width: Int, sc: _Scaled
-) raises -> Int:
-    """How wide a legend column needs to be to fit `labels` next to
-    `content_width`-wide content (a swatch, a gradient bar, or the widest
-    size-legend circle): `content_width` + `label_gap` + the widest label
-    (`_max_label_width`) + `margin_buffer`, `max`'d against
-    `sc.legend_width` so a column never gets narrower than `Theme`'s
-    fixed default. Every call site measures its real label list before
-    finalizing `plot_x1`. Has a `cache=` overload for the same reason
-    `_max_label_width` does.
-    """
-    var cache = FontCache()
-    return _dynamic_legend_width(labels, content_width, sc, cache=cache)
 
 
 def _dynamic_legend_width(
@@ -3708,10 +3717,16 @@ def _dynamic_legend_width(
     content_width: Int,
     sc: _Scaled,
     *,
-    mut cache: FontCache,
+    mut cache: _LazyFontCache,
 ) raises -> Int:
-    """`_dynamic_legend_width` resolving fonts through `cache`; see the
-    overload above.
+    """How wide a legend column needs to be to fit `labels` next to
+    `content_width`-wide content (a swatch, a gradient bar, or the widest
+    size-legend circle): `content_width` + `label_gap` + the widest label
+    (`_max_label_width`) + `margin_buffer`, `max`'d against
+    `sc.legend_width` so a column never gets narrower than `Theme`'s
+    fixed default. Every call site measures its real label list before
+    finalizing `plot_x1`, through the render's shared `cache` (see
+    `_max_label_width`).
     """
     return max(
         sc.legend_width,
@@ -4759,7 +4774,7 @@ def _point_tooltip_label(plot: Plot, i: Int) -> String:
 
 
 def _replay_text_requests(
-    mut canvas: Canvas, requests: List[_TextRequest], mut cache: FontCache
+    mut canvas: Canvas, requests: List[_TextRequest], mut cache: _LazyFontCache
 ) raises:
     """Draw every `_TextRequest` in `requests` into `canvas` via
     `canvas.text.draw_text`, the raster half of replaying the deferred
@@ -4777,7 +4792,7 @@ def _replay_text_requests(
             family=req.family,
             weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
             rotation=req.rotation,
-            cache=cache,
+            cache=cache.get(),
         )
 
 
@@ -4900,8 +4915,14 @@ def _render_into(
     var cy1 = oy1 if oy1 >= 0 else canvas.height
     canvas.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
     var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
+    # One FontCache for the whole render, built on first use: every
+    # measurement the layout makes (tick labels, legend entries) and then
+    # every label drawn afterwards resolve fonts and rasterize glyphs
+    # through it once, and a render with no text never scans the fonts
+    # (#255, _LazyFontCache).
+    var cache = _LazyFontCache()
     var result = _render_generic(
-        canvas, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1
+        canvas, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
     )
     var label_requests = _label_text_requests(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
@@ -4924,18 +4945,14 @@ def _render_into(
     var best_fit_annotation_requests = _draw_annotation_best_fit(
         canvas, plot, result, plot._theme
     )
-    # One FontCache shared by every label this render draws; draw_text
-    # otherwise resolves its font from scratch (twice, since it measures
-    # then renders).
-    var text_cache = FontCache()
-    _replay_text_requests(canvas, label_requests, text_cache)
-    _replay_text_requests(canvas, area_annotation_requests, text_cache)
-    _replay_text_requests(canvas, band_annotation_requests, text_cache)
-    _replay_text_requests(canvas, vline_annotation_requests, text_cache)
-    _replay_text_requests(canvas, annotation_requests, text_cache)
-    _replay_text_requests(canvas, point_annotation_requests, text_cache)
-    _replay_text_requests(canvas, best_fit_annotation_requests, text_cache)
-    _replay_text_requests(canvas, result.text_requests, text_cache)
+    _replay_text_requests(canvas, label_requests, cache)
+    _replay_text_requests(canvas, area_annotation_requests, cache)
+    _replay_text_requests(canvas, band_annotation_requests, cache)
+    _replay_text_requests(canvas, vline_annotation_requests, cache)
+    _replay_text_requests(canvas, annotation_requests, cache)
+    _replay_text_requests(canvas, point_annotation_requests, cache)
+    _replay_text_requests(canvas, best_fit_annotation_requests, cache)
+    _replay_text_requests(canvas, result.text_requests, cache)
 
 
 def render_svg(plot: Plot) raises -> SvgCanvas:
@@ -4965,8 +4982,10 @@ def _render_svg_into(
     var cy1 = oy1 if oy1 >= 0 else svg.height
     svg.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
     var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
+    # One lazily built FontCache for the whole figure; see _render_into.
+    var cache = _LazyFontCache()
     var result = _render_generic(
-        svg, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1
+        svg, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
     )
     var label_requests = _label_text_requests(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
@@ -5750,24 +5769,14 @@ def _check_line_smoothing(theme: Theme) raises:
 
 
 def _legend_reserve_for(
-    plot: Plot, ch: _PointChannels, sc: _Scaled
+    plot: Plot, ch: _PointChannels, sc: _Scaled, *, mut cache: _LazyFontCache
 ) raises -> Int:
     """How much width `plot`'s legend column needs, or `0` when it has no
     legend (`Theme.show_legend` off, not a point mark, or no data-driven
     channel). A plot combining continuous color and size stacks both
     sections vertically in one column, so the width is the larger of the
-    two, not the sum. Called before the plot rect is finalized. Has a
-    `cache=` overload for the same reason `_max_label_width` does.
-    """
-    var cache = FontCache()
-    return _legend_reserve_for(plot, ch, sc, cache=cache)
-
-
-def _legend_reserve_for(
-    plot: Plot, ch: _PointChannels, sc: _Scaled, *, mut cache: FontCache
-) raises -> Int:
-    """`_legend_reserve_for` measuring through `cache`; see the overload
-    above.
+    two, not the sum. Called before the plot rect is finalized, measuring
+    through the render's shared `cache` (see `_max_label_width`).
     """
     if not plot._theme.show_legend:
         return 0
@@ -5898,7 +5907,7 @@ def _draw_continuous_axis_frame[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: FontCache,
+    mut cache: _LazyFontCache,
 ) raises -> _ContinuousFrame:
     """The layout and axis-frame core every continuous-x render path shares
     (`_render_generic`'s continuous path and `_render_layers_generic`),
@@ -6302,11 +6311,21 @@ def _render_generic[
     shared_y_min: Float64 = 0.0,
     shared_y_max: Float64 = 0.0,
     shared_y_is_log: Bool = False,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """The dispatch, layout, and shape-drawing core `render()`/
     `render_svg()` (and the facet/layer variants) delegate to, generic
     over any `DrawTarget`, returning every axis/tick/legend label as
     `_TextRequest`s.
+
+    `cache` is the render's one `FontCache` (#255, `_LazyFontCache`):
+    threaded into every `_render_*` for its label measurements, then
+    used again by the caller to draw the requests this returns, so a
+    glyph measured during layout is already rasterized by the time it is
+    drawn, and the ~20 ms font scan is paid once per figure (and not at
+    all by a render that draws no text) rather than once per measurement
+    pass plus once per replay.
 
     Every mark other than `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER`
     dispatches to its own `_render_*` function immediately
@@ -6405,100 +6424,128 @@ def _render_generic[
     _validate_log_scale_annotations(plot)
     if plot._mark == Mark.BAR:
         if plot._horizontal:
-            return _render_horizontal_bar(target, plot, ox0, oy0, ox1, oy1)
-        return _render_bar(target, plot, ox0, oy0, ox1, oy1)
+            return _render_horizontal_bar(
+                target, plot, ox0, oy0, ox1, oy1, cache=cache
+            )
+        return _render_bar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.LOLLIPOP:
         if plot._horizontal:
-            return _render_horizontal_lollipop(target, plot, ox0, oy0, ox1, oy1)
-        return _render_lollipop(target, plot, ox0, oy0, ox1, oy1)
+            return _render_horizontal_lollipop(
+                target, plot, ox0, oy0, ox1, oy1, cache=cache
+            )
+        return _render_lollipop(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.WATERFALL:
-        return _render_waterfall(target, plot, ox0, oy0, ox1, oy1)
+        return _render_waterfall(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.BOX:
         if plot._horizontal:
-            return _render_horizontal_box(target, plot, ox0, oy0, ox1, oy1)
-        return _render_box(target, plot, ox0, oy0, ox1, oy1)
+            return _render_horizontal_box(
+                target, plot, ox0, oy0, ox1, oy1, cache=cache
+            )
+        return _render_box(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.CANDLESTICK:
-        return _render_candlestick(target, plot, ox0, oy0, ox1, oy1)
+        return _render_candlestick(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
     if plot._mark == Mark.BULLET:
-        return _render_bullet(target, plot, ox0, oy0, ox1, oy1)
+        return _render_bullet(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.GROUPED_BAR:
         if plot._horizontal:
             return _render_horizontal_grouped_bar(
-                target, plot, ox0, oy0, ox1, oy1
+                target, plot, ox0, oy0, ox1, oy1, cache=cache
             )
-        return _render_grouped_bar(target, plot, ox0, oy0, ox1, oy1)
+        return _render_grouped_bar(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
     if plot._mark == Mark.STACKED_BAR:
         if plot._horizontal:
             return _render_horizontal_stacked_bar(
-                target, plot, ox0, oy0, ox1, oy1
+                target, plot, ox0, oy0, ox1, oy1, cache=cache
             )
-        return _render_stacked_bar(target, plot, ox0, oy0, ox1, oy1)
+        return _render_stacked_bar(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
     if plot._mark == Mark.GANTT:
-        return _render_gantt(target, plot, ox0, oy0, ox1, oy1)
+        return _render_gantt(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.SPAN_CHART:
-        return _render_span_chart(target, plot, ox0, oy0, ox1, oy1)
+        return _render_span_chart(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.POPULATION_PYRAMID:
-        return _render_population_pyramid(target, plot, ox0, oy0, ox1, oy1)
+        return _render_population_pyramid(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
     if plot._mark == Mark.HEATMAP:
-        return _render_heatmap(target, plot, ox0, oy0, ox1, oy1)
+        return _render_heatmap(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.CALENDAR_HEATMAP:
-        return _render_calendar_heatmap(target, plot, ox0, oy0, ox1, oy1)
+        return _render_calendar_heatmap(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
     if plot._mark == Mark.CORRPLOT:
-        return _render_corrplot(target, plot, ox0, oy0, ox1, oy1)
+        return _render_corrplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.PUNCHCARD:
-        return _render_punchcard(target, plot, ox0, oy0, ox1, oy1)
+        return _render_punchcard(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.BARBS:
-        return _render_barbs(target, plot, ox0, oy0, ox1, oy1)
+        return _render_barbs(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.MARIMEKKO:
-        return _render_marimekko(target, plot, ox0, oy0, ox1, oy1)
+        return _render_marimekko(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.SUNBURST:
-        return _render_sunburst(target, plot, ox0, oy0, ox1, oy1)
+        return _render_sunburst(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.TREE:
-        return _render_tree(target, plot, ox0, oy0, ox1, oy1)
+        return _render_tree(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.TREEMAP:
-        return _render_treemap(target, plot, ox0, oy0, ox1, oy1)
+        return _render_treemap(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.CHORD:
-        return _render_chord(target, plot, ox0, oy0, ox1, oy1)
+        return _render_chord(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.ARC_DIAGRAM:
-        return _render_arc_diagram(target, plot, ox0, oy0, ox1, oy1)
+        return _render_arc_diagram(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
     if plot._mark == Mark.GRAPH:
-        return _render_graph(target, plot, ox0, oy0, ox1, oy1)
+        return _render_graph(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.SANKEY:
-        return _render_sankey(target, plot, ox0, oy0, ox1, oy1)
+        return _render_sankey(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.SINGLE_AXIS:
-        return _render_single_axis(target, plot, ox0, oy0, ox1, oy1)
+        return _render_single_axis(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
     if plot._mark == Mark.FUNNEL:
-        return _render_funnel(target, plot, ox0, oy0, ox1, oy1)
+        return _render_funnel(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.BUMP:
-        return _render_bump(target, plot, ox0, oy0, ox1, oy1)
+        return _render_bump(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.STREAMGRAPH:
-        return _render_streamgraph(target, plot, ox0, oy0, ox1, oy1)
+        return _render_streamgraph(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
     if plot._mark == Mark.BEESWARM:
         if plot._horizontal:
-            return _render_horizontal_beeswarm(target, plot, ox0, oy0, ox1, oy1)
-        return _render_beeswarm(target, plot, ox0, oy0, ox1, oy1)
+            return _render_horizontal_beeswarm(
+                target, plot, ox0, oy0, ox1, oy1, cache=cache
+            )
+        return _render_beeswarm(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.VIOLIN:
         if plot._horizontal:
-            return _render_horizontal_violin(target, plot, ox0, oy0, ox1, oy1)
-        return _render_violin(target, plot, ox0, oy0, ox1, oy1)
+            return _render_horizontal_violin(
+                target, plot, ox0, oy0, ox1, oy1, cache=cache
+            )
+        return _render_violin(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.RIDGELINE:
-        return _render_ridgeline(target, plot, ox0, oy0, ox1, oy1)
+        return _render_ridgeline(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.ARC:
-        return _render_arc(target, plot, ox0, oy0, ox1, oy1)
+        return _render_arc(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.NIGHTINGALE:
-        return _render_nightingale(target, plot, ox0, oy0, ox1, oy1)
+        return _render_nightingale(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
     if plot._mark == Mark.POLAR_BAR:
-        return _render_polar_bar(target, plot, ox0, oy0, ox1, oy1)
+        return _render_polar_bar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.RADIALBAR:
-        return _render_radialbar(target, plot, ox0, oy0, ox1, oy1)
+        return _render_radialbar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.POLAR:
-        return _render_polar(target, plot, ox0, oy0, ox1, oy1)
+        return _render_polar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.RADAR:
-        return _render_radar(target, plot, ox0, oy0, ox1, oy1)
+        return _render_radar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.GAUGE:
-        return _render_gauge(target, plot, ox0, oy0, ox1, oy1)
+        return _render_gauge(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.PARALLEL:
-        return _render_parallel(target, plot, ox0, oy0, ox1, oy1)
+        return _render_parallel(target, plot, ox0, oy0, ox1, oy1, cache=cache)
 
     _validate_continuous_encoding(plot, "Plot.encode()")
     _require_non_empty(len(plot.x_data), "Plot.encode()")
@@ -6512,10 +6559,7 @@ def _render_generic[
     # _draw_point_layer so the two agree; see _PointChannels.
     var ch = _PointChannels(plot, sc)
 
-    # One FontCache for every measurement this render makes (legend sizing
-    # and the axis frame's tick labels).
-    var measure_cache = FontCache()
-    var legend_reserve = _legend_reserve_for(plot, ch, sc, cache=measure_cache)
+    var legend_reserve = _legend_reserve_for(plot, ch, sc, cache=cache)
 
     # Mark.AREA forces a zero baseline into the y-domain; every other
     # continuous mark pads around its data. y_domain_data is plot.y_data,
@@ -6565,7 +6609,7 @@ def _render_generic[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     if plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER:
@@ -6683,7 +6727,7 @@ def _draw_categorical_axis_frame[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: FontCache,
+    mut cache: _LazyFontCache,
 ) raises -> _CategoricalFrame:
     """The layout and axis-frame core shared by every vertical categorical
     mark (`Mark.BAR`, `LOLLIPOP`, `WATERFALL`, `BOX`, `CANDLESTICK`,
@@ -6890,12 +6934,18 @@ def render_facets(
     var canvas = Canvas(
         cols * plots[0].width * factor, rows * plots[0].height * factor
     )
+    # One lazily built FontCache for the whole figure; see _render_into.
+    var cache = _LazyFontCache()
     var text_requests = _render_facets_generic(
-        canvas, canvas.width, canvas.height, scaled_plots, cols, shared_y_scale
+        canvas,
+        canvas.width,
+        canvas.height,
+        scaled_plots,
+        cols,
+        shared_y_scale,
+        cache=cache,
     )
-    # One FontCache for every cell's labels -- see render()'s own.
-    var text_cache = FontCache()
-    _replay_text_requests(canvas, text_requests, text_cache)
+    _replay_text_requests(canvas, text_requests, cache)
     return downsample(canvas, factor)
 
 
@@ -6914,8 +6964,10 @@ def render_facets_svg(
     _require_uniform_size(plots, "render_facets_svg")
     var rows = (len(plots) + cols - 1) // cols
     var svg = SvgCanvas(cols * plots[0].width, rows * plots[0].height)
+    # One lazily built FontCache for the whole figure; see _render_into.
+    var cache = _LazyFontCache()
     var text_requests = _render_facets_generic(
-        svg, svg.width, svg.height, plots, cols, shared_y_scale
+        svg, svg.width, svg.height, plots, cols, shared_y_scale, cache=cache
     )
     _replay_text_requests_svg(svg, text_requests)
     return svg^
@@ -6930,6 +6982,8 @@ def _render_facets_generic[
     plots: List[Plot],
     cols: Int,
     shared_y_scale: Bool = False,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> List[_TextRequest]:
     """The shared cell-layout core `render_facets()`/`render_facets_svg()`
     delegate to. `width`/`height` are passed in because `DrawTarget` has
@@ -7006,6 +7060,7 @@ def _render_facets_generic[
             shared_y_min=shared_y_min,
             shared_y_max=shared_y_max,
             shared_y_is_log=shared_y_is_log,
+            cache=cache,
         )
         var label_requests = _label_text_requests(
             plots[i],
@@ -7115,8 +7170,16 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
         # y_title, on the right edge; _apply_labels only sees plots[0], not the
         # layer that owns the secondary caption.
         frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
+    # One lazily built FontCache for the whole figure; see _render_into.
+    var cache = _LazyFontCache()
     var result = _render_layers_generic(
-        canvas, scaled_plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1
+        canvas,
+        scaled_plots,
+        frame.ox0,
+        frame.oy0,
+        frame.ox1,
+        frame.oy1,
+        cache=cache,
     )
     var label_requests = _label_text_requests(
         scaled_plots[0],
@@ -7145,10 +7208,8 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
                 rotation=pi / 2.0,
             )
         )
-    # One FontCache for every layer's labels -- see render()'s own.
-    var text_cache = FontCache()
-    _replay_text_requests(canvas, label_requests, text_cache)
-    _replay_text_requests(canvas, result.text_requests, text_cache)
+    _replay_text_requests(canvas, label_requests, cache)
+    _replay_text_requests(canvas, result.text_requests, cache)
     return downsample(canvas, factor)
 
 
@@ -7167,8 +7228,10 @@ def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
     var frame = _apply_labels(plots[0], 0, 0, cx1, cy1)
     if y2_title.byte_length() > 0:
         frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
+    # One lazily built FontCache for the whole figure; see _render_into.
+    var cache = _LazyFontCache()
     var result = _render_layers_generic(
-        svg, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1
+        svg, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
     )
     var label_requests = _label_text_requests(
         plots[0], 0, 0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
@@ -7201,6 +7264,8 @@ def _render_bar_combo_layers[
     oy0: Int,
     ox1: Int,
     oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """`_render_layers_generic`'s dispatch target when exactly one layer is
     `Mark.BAR`: a bar-plus-line combo chart sharing the bar layer's
@@ -7346,13 +7411,12 @@ def _render_bar_combo_layers[
             series_names.append(plots[i]._labels.series_name)
             series_colors.append(plots[i]._theme.mark_color)
     var legend_reserve = (
-        _dynamic_legend_width(series_names, sc.legend_swatch_size, sc) if len(
-            series_names
-        )
+        _dynamic_legend_width(
+            series_names, sc.legend_swatch_size, sc, cache=cache
+        ) if len(series_names)
         > 0 else 0
     )
 
-    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
         target,
         bar_categories,
@@ -7362,7 +7426,7 @@ def _render_bar_combo_layers[
         oy0,
         ox1 - legend_reserve,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
     if len(series_names) > 0:
         _draw_legend(
@@ -7433,7 +7497,14 @@ def _render_bar_combo_layers[
 def _render_layers_generic[
     T: DrawTarget
 ](
-    mut target: T, plots: List[Plot], ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plots: List[Plot],
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """The shared-domain layout/draw core `render_layers()`/
     `render_layers_svg()` delegate to, built from the same pieces
@@ -7482,7 +7553,7 @@ def _render_layers_generic[
         )
     if bar_layer_count == 1:
         return _render_bar_combo_layers(
-            target, plots, bar_layer_index, ox0, oy0, ox1, oy1
+            target, plots, bar_layer_index, ox0, oy0, ox1, oy1, cache=cache
         )
 
     # Log-ness (#217) is decided per axis -- x is shared by every layer
@@ -7674,9 +7745,9 @@ def _render_layers_generic[
     # secondary_axis_reserve is sized the way _draw_continuous_axis_frame
     # sizes the left margin: measure the secondary domain's tick labels,
     # then add tick_length + label_gap + margin_buffer. 0 with no secondary
-    # axis. One FontCache serves every measurement in this render (the
-    # secondary axis here, then one legend section per layer).
-    var measure_cache = FontCache()
+    # axis. The render's shared `cache` serves every measurement here (the
+    # secondary axis, then one legend section per layer) and the labels
+    # drawn afterwards.
 
     var secondary_axis_reserve = 0
     if has_secondary_data:
@@ -7687,7 +7758,7 @@ def _render_layers_generic[
         secondary_axis_reserve = (
             Int(
                 _max_label_width(
-                    y2_labels_for_margin, sc.font_size, cache=measure_cache
+                    y2_labels_for_margin, sc.font_size, cache=cache
                 )
             )
             + sc.tick_length
@@ -7720,13 +7791,13 @@ def _render_layers_generic[
         var ch_j = _PointChannels(plots[j], p_sc_j)
         legend_reserve = max(
             legend_reserve,
-            _legend_reserve_for(plots[j], ch_j, p_sc_j, cache=measure_cache),
+            _legend_reserve_for(plots[j], ch_j, p_sc_j, cache=cache),
         )
     if len(series_names) > 0:
         legend_reserve = max(
             legend_reserve,
             _dynamic_legend_width(
-                series_names, sc.legend_swatch_size, sc, cache=measure_cache
+                series_names, sc.legend_swatch_size, sc, cache=cache
             ),
         )
 
@@ -7740,7 +7811,7 @@ def _render_layers_generic[
         oy0,
         ox1,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
     _extend_text_requests(text_requests, frame.text_requests)
 

@@ -4,6 +4,7 @@ from canvas.geometry import _round_to_int
 from canvas.path import Path
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
+from dataviz.plot import _LazyFontCache
 
 from dataviz.color_scale import default_categorical_palette
 from dataviz.mark import Mark
@@ -22,7 +23,14 @@ from dataviz.theme import Theme
 def _render_arc_diagram[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.ARC_DIAGRAM` plot: `Mark.CHORD`'s edge list
     (`encode_chord()`'s `from`/`to`/`value`) drawn as nodes on one

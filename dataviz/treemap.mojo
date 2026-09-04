@@ -2,6 +2,7 @@ from canvas.color import Color
 from canvas.geometry import _round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
+from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -125,7 +126,14 @@ def _draw_treemap_node[
 def _render_treemap[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.TREEMAP` plot: `_build_hierarchy_index`'s `children`/
     `subtree_value` (hierarchy.mojo) laid out by `_draw_treemap_node`'s
@@ -179,7 +187,7 @@ def _render_treemap[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend_reserve = _dynamic_legend_width(
-        legend_labels, sc.legend_swatch_size, sc
+        legend_labels, sc.legend_swatch_size, sc, cache=cache
     ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left

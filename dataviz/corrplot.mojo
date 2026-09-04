@@ -4,7 +4,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import ColorScale
-from canvas.text.font_cache import FontCache
+from dataviz.plot import _LazyFontCache
 from dataviz.heatmap import _draw_grid_axis_frame
 from dataviz.mark import Mark
 from dataviz.plot import (
@@ -44,7 +44,14 @@ struct _CorrplotData(Copyable, Movable):
 def _render_corrplot[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.CORRPLOT` plot: `encode_corrplot()`'s square
     correlation `matrix` over `variables`, one bubble per surviving cell
@@ -97,9 +104,8 @@ def _render_corrplot[
     var sc = _Scaled(theme)
     var color_scale = ColorScale.from_theme(theme, -1.0, 1.0)
 
-    # One FontCache for both measurements -- the legend's labels here,
-    # then the axis category labels inside _draw_grid_axis_frame.
-    var measure_cache = FontCache()
+    # The render's shared cache serves both measurements -- the legend's labels
+    # here, then the axis category labels inside _draw_grid_axis_frame.
 
     var legend_reserve = 0
     if theme.show_legend:
@@ -110,7 +116,7 @@ def _render_corrplot[
             legend_labels,
             sc.continuous_legend_bar_width,
             sc,
-            cache=measure_cache,
+            cache=cache,
         )
 
     var frame = _draw_grid_axis_frame(
@@ -122,7 +128,7 @@ def _render_corrplot[
         oy0,
         ox1 - legend_reserve,
         oy1,
-        cache=measure_cache,
+        cache=cache,
     )
 
     var cell_width = frame.x_scale.bandwidth()
