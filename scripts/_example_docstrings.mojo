@@ -93,6 +93,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("corrplot", "corrplot", "corrplot"),
         ExamplePage("punchcard", "punchcard", "punchcard"),
         ExamplePage("barbs", "barbs", "barbs"),
+        ExamplePage("contour", "contour", "contour"),
         ExamplePage("marimekko", "marimekko", "marimekko"),
         ExamplePage("sunburst", "sunburst", "sunburst"),
         ExamplePage("tree", "tree", "tree"),
