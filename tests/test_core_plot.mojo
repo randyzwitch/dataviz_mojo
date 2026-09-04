@@ -9,7 +9,10 @@
   never lands fully opaque after supersampling; the column the ink
   concentrates around is still checked exactly.
 - Plot.labels(): title/subtitle/axis-title placement (raster + SVG),
-  centered on the legend-narrowed inner plot rect.
+  centered on the legend-narrowed inner plot rect. One test pins an actual
+  rasterized tick-label glyph's ink, since every other label assertion here
+  checks SVG <text> position only and would stay green through a canvas_mojo
+  regression that shifted every rasterized glyph uniformly.
 - Theme.scale, Theme.font_family, Theme.title_bold, and the per-mark
   style/layout fields.
 - Legends: swatch positions, continuous color/size legends, dynamic
@@ -829,6 +832,33 @@ def test_render_title_draws_ink_in_its_own_reserved_top_band() raises:
                 found_ink = True
     assert_true(
         found_ink, "the title's ink, somewhere in its reserved top band"
+    )
+
+
+def test_render_y_axis_tick_label_glyph_ink_matches_a_pinned_pixel() raises:
+    # Every other tick-label assertion in this file is an SVG <text>
+    # check, which only pins where a label is *requested*: dataviz hands
+    # both backends the same _TextRequest coordinates, so it says nothing
+    # about where the rasterizer actually puts ink. A canvas_mojo change
+    # that shifts every rasterized glyph -- as one briefly did between
+    # #263 and #264 -- would leave every SVG assertion here green while
+    # every raster label moved. This pins one pixel inside a tick label's
+    # actual glyph strokes so a shift like that fails instead.
+    #
+    # bar(["A"], [10.0]), Theme(show_gridlines=False, show_legend=False),
+    # 400x300: the "10" y-axis tick label sits at SVG (x=51, y=35,
+    # text-anchor="end", font-size 12.0). (49, 28) is the darkest pixel in
+    # that label's glyph box (a scan against Theme's default text_color
+    # (40, 40, 40)) -- inside the "1"'s vertical stroke, a few pixels up
+    # and left of the text's baseline/anchor point.
+    var cats: List[String] = ["A"]
+    var vals: List[Float64] = [10.0]
+    var t = Theme(show_gridlines=False, show_legend=False)
+    var plot = bar(cats, vals, theme=t, width=400, height=300)
+    var c = render(plot)
+
+    _assert_near_color(
+        c, 49, 28, t.text_color, 20, "the '10' y-axis tick label's glyph ink"
     )
 
 
