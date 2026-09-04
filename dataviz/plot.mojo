@@ -6681,6 +6681,8 @@ def _draw_categorical_axis_frame[
     oy0: Int,
     ox1: Int,
     oy1: Int,
+    *,
+    mut cache: FontCache,
 ) raises -> _CategoricalFrame:
     """The layout and axis-frame core shared by every vertical categorical
     mark (`Mark.BAR`, `LOLLIPOP`, `WATERFALL`, `BOX`, `CANDLESTICK`,
@@ -6707,7 +6709,7 @@ def _draw_categorical_axis_frame[
     var y_ticks = y_scale.ticks()
     var y_labels = y_ticks.labels(theme.y_tick_format)
     var dynamic_left_margin = (
-        Int(_max_label_width(y_labels, sc.font_size))
+        Int(_max_label_width(y_labels, sc.font_size, cache=cache))
         + sc.tick_length
         + sc.label_gap
         + sc.margin_buffer
@@ -6720,7 +6722,9 @@ def _draw_categorical_axis_frame[
         categories.copy(), Float64(plot_x0), Float64(plot_x1)
     )
 
-    var x_label_max_width = _max_label_width(categories, sc.font_size)
+    var x_label_max_width = _max_label_width(
+        categories, sc.font_size, cache=cache
+    )
     var x_label_rotation = _resolve_x_label_rotation(
         theme.x_label_rotation, x_label_max_width, x_scale.step()
     )
@@ -7347,6 +7351,7 @@ def _render_bar_combo_layers[
         > 0 else 0
     )
 
+    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
         target,
         bar_categories,
@@ -7356,6 +7361,7 @@ def _render_bar_combo_layers[
         oy0,
         ox1 - legend_reserve,
         oy1,
+        cache=measure_cache,
     )
     if len(series_names) > 0:
         _draw_legend(

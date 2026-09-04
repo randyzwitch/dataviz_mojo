@@ -1,6 +1,7 @@
 from std.math import exp, pi, sqrt
 
 from canvas.path import Path
+from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
@@ -193,8 +194,17 @@ def _render_violin[
             all_values.append(v)
     var value_scale = _data_extent(all_values)
 
+    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
-        target, plot.x_categories, value_scale, theme, ox0, oy0, ox1, oy1
+        target,
+        plot.x_categories,
+        value_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=measure_cache,
     )
 
     _draw_violin_silhouettes(
@@ -232,8 +242,17 @@ def _render_horizontal_violin[
             all_values.append(v)
     var value_scale = _data_extent(all_values)
 
+    var measure_cache = FontCache()
     var frame = _draw_horizontal_categorical_axis_frame(
-        target, plot.x_categories, value_scale, theme, ox0, oy0, ox1, oy1
+        target,
+        plot.x_categories,
+        value_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=measure_cache,
     )
 
     _draw_violin_silhouettes(
