@@ -172,6 +172,45 @@ def test_plot_copy_produces_an_independent_render_unaffected_by_further_mutation
     assert_equal(len(base.y_data), 0)
 
 
+def test_render_and_save_accept_an_unbound_temporary_plot() raises:
+    # #208: render()/render_facets()/render_layers() used to take `mut
+    # plot`/`mut plots` only so a temporary scale bump for supersampling
+    # could be undone afterward; a temporary Plot (a bare quickplot call
+    # or list literal with no `var` binding) can't bind to `mut`, so
+    # `render(scatter(x, y))` used to fail to compile. All three now
+    # take a plain borrow and copy internally, so calling them directly
+    # on a fresh, unbound value is exactly what this test does -- it
+    # would fail to compile at all under the old signatures, not just
+    # fail an assertion.
+    #
+    # Single point (5.0, 5.0): zero-span domain pads to [4.0, 6.0] on
+    # both axes (see test_render_point_mark_centers_on_the_hand_derived_pixel,
+    # test_marks_basic.mojo); on a 400x300 canvas with default margins
+    # (60/20/20/50), that's plot area x:[60,380], y:[20,250], landing the
+    # point at the exact pixel (220, 135).
+    var x: List[Float64] = [5.0]
+
+    var c1 = render(scatter(x, x, width=400, height=300))
+    _assert_color(c1, 220, 135, Theme.default().mark_color, "an unbound scatter() call rendered directly")
+
+    # render_facets: cell 1's geometry is cell 0's shifted +400px in x
+    # (test_render_facets_lays_out_independent_plots_side_by_side).
+    var c2 = render_facets(
+        [
+            scatter(x, x, width=400, height=300),
+            scatter(x, x, theme=Theme(mark_color=RED), width=400, height=300),
+        ],
+        cols=2,
+    )
+    _assert_color(c2, 220, 135, Theme.default().mark_color, "cell 0 of an unbound list literal rendered directly")
+    _assert_color(c2, 620, 135, RED, "cell 1 of an unbound list literal rendered directly")
+
+    # render_layers: an identical-data LINE layer shares the same domain, so
+    # the POINT layer still lands at (220, 135), drawn last (on top).
+    var c3 = render_layers([line(x, x, width=400, height=300), scatter(x, x, width=400, height=300)])
+    _assert_color(c3, 220, 135, Theme.default().mark_color, "an unbound list literal layered directly")
+
+
 def test_unique_categories_preserves_first_seen_order() raises:
     var data: List[String] = ["b", "a", "b", "c", "a"]
     var unique = _unique_categories(data)
