@@ -100,6 +100,18 @@ docs = { cmd = "hugo -s docs/site", depends-on = ["docs-build"] }
 # docstrings or examples.
 docs-serve = { cmd = "hugo server -s docs/site", depends-on = ["docs-build"] }
 
+# Checks that [workspace].version and [package].version below agree
+# (scripts/check_version.sh, #228); pass a git ref/tag as an extra arg
+# (`pixi run check-version v0.8.0`) to also check it against them --
+# useful by hand before tagging a release, though ci.yml's own
+# check-version job (no tag-push trigger exists yet) calls the script
+# directly rather than through this task, and without a ref.
+check-version = "bash scripts/check_version.sh"
+# Bumps both version fields together, commits, and tags
+# (scripts/release.sh, #228): `pixi run release 0.8.0`. Doesn't push --
+# see the script's own header for the review/push step.
+release = "bash scripts/release.sh"
+
 # --- Package declaration -----------------------------------------------
 [package]
 # The conda/pixi distribution name, referenced by a `[dependencies]`

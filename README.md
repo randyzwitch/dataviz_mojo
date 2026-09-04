@@ -61,6 +61,25 @@ required to keep the site in sync. PRs get a status-only docs build
 (the `docs-build` job in `.github/workflows/ci.yml`) that proves the
 site still builds, without deploying anything.
 
+### Releasing
+
+`pixi.toml` carries the version in two places, `[workspace].version`
+and `[package].version`, which must agree (CI's `check-version` job
+checks this on every push/PR). `pixi run release <version>` bumps both
+together, commits, and tags:
+
+```sh
+pixi run release 0.8.0        # bumps, commits, tags v0.8.0 locally
+git push origin main --tags   # review with `git show`/`git log` first
+```
+
+`pixi run check-version` on its own just checks the two fields agree;
+pass a ref/tag as an extra argument (`pixi run check-version v0.8.0`)
+to also check it against them. See `scripts/release.sh`/
+`scripts/check_version.sh` for the full behavior. The wiki
+[Changelog](https://github.com/randyzwitch/dataviz_mojo/wiki/Changelog)
+stays the human-readable release record; update it separately.
+
 ## License
 
 MIT — see `LICENSE`.
