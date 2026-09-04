@@ -1,4 +1,5 @@
 from canvas.geometry import _round_to_int
+from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -115,6 +116,7 @@ def _render_population_pyramid[
     var x_scale = _symmetric_zero_baseline_x_extent(
         plot._pyramid.left, plot._pyramid.right
     )
+    var measure_cache = FontCache()
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -124,6 +126,7 @@ def _render_population_pyramid[
         oy0,
         ox1 - legend_reserve,
         oy1,
+        cache=measure_cache,
     )
 
     var palette = default_categorical_palette()

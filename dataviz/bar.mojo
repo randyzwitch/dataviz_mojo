@@ -1,5 +1,6 @@
 from canvas.color import Color
 from canvas.geometry import _round_to_int
+from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -199,8 +200,17 @@ def _render_bar[
     # finalized; see _draw_categorical_axis_frame for why it takes y_scale
     # as an input.
     var y_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))
+    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
-        target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1
+        target,
+        plot.x_categories,
+        y_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=measure_cache,
     )
 
     _draw_bar_rects(
@@ -242,8 +252,17 @@ def _render_horizontal_bar[
 
     var theme = plot._theme
     var x_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))
+    var measure_cache = FontCache()
     var frame = _draw_horizontal_categorical_axis_frame(
-        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
+        target,
+        plot.x_categories,
+        x_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=measure_cache,
     )
 
     _draw_bar_rects(

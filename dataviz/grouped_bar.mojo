@@ -1,5 +1,6 @@
 from canvas.color import Color
 from canvas.geometry import _round_to_int
+from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from canvas.text.render import TextAlign
@@ -308,6 +309,7 @@ def _render_grouped_bar[
     var show_legend = theme.show_legend
     var legend_reserve = _series_legend_reserve(plot, sc)
 
+    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -317,6 +319,7 @@ def _render_grouped_bar[
         oy0,
         ox1 - legend_reserve,
         oy1,
+        cache=measure_cache,
     )
 
     var palette = default_categorical_palette()
@@ -375,6 +378,7 @@ def _render_horizontal_grouped_bar[
     var show_legend = theme.show_legend
     var legend_reserve = _series_legend_reserve(plot, sc)
 
+    var measure_cache = FontCache()
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -384,6 +388,7 @@ def _render_horizontal_grouped_bar[
         oy0,
         ox1 - legend_reserve,
         oy1,
+        cache=measure_cache,
     )
 
     var palette = default_categorical_palette()
