@@ -14,7 +14,6 @@ from dataviz.plot import (
     _TextRequest,
     _draw_legend,
     _dynamic_legend_width,
-    _empty_result,
     _finished,
     _require_non_negative,
 )
@@ -104,9 +103,6 @@ def _render_sunburst[
         )
 
     var theme = plot._theme
-    if len(plot._hierarchy.ids) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
     _require_non_negative(plot._hierarchy.values, "Mark.SUNBURST")
 
     var idx = _build_hierarchy_index(plot._hierarchy.ids, plot._hierarchy.parent_ids, plot._hierarchy.values)

@@ -14,10 +14,10 @@ from dataviz.plot import (
     _categorical_indices,
     _draw_continuous_color_legend,
     _dynamic_legend_width,
-    _empty_result,
     _max_label_width,
     _min_max,
     _finished,
+    _require_non_empty,
 )
 from dataviz.scale import _format_fixed
 from dataviz.theme import Theme
@@ -190,9 +190,7 @@ def _render_heatmap[
         )
 
     var theme = plot._theme
-    if len(plot._heatmap.x) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
+    _require_non_empty(len(plot._heatmap.x), "Plot.encode_heatmap()")
     var x_idx = _categorical_indices(plot._heatmap.x)
     var y_idx = _categorical_indices(plot._heatmap.y)
 

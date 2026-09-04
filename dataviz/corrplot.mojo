@@ -14,8 +14,8 @@ from dataviz.plot import (
     _TextRequest,
     _draw_continuous_color_legend,
     _dynamic_legend_width,
-    _empty_result,
     _finished,
+    _require_non_empty,
 )
 from dataviz.scale import _format_fixed
 from dataviz.theme import Theme
@@ -82,9 +82,7 @@ def _render_corrplot[
             )
 
     var theme = plot._theme
-    if len(plot._corrplot.variables) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
+    _require_non_empty(len(plot._corrplot.variables), "Plot.encode_corrplot()")
     for row in plot._corrplot.matrix:
         for v in row:
             if v < -1.0 or v > 1.0:

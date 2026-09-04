@@ -9,9 +9,9 @@ from dataviz.plot import (
     _RenderResult,
     _axis_pixel,
     _draw_categorical_axis_frame,
-    _empty_result,
     _pull_off_axis_line,
     _finished,
+    _require_non_empty,
     _zero_baseline_y_extent,
 )
 from dataviz.theme import Theme
@@ -87,10 +87,8 @@ def _render_bullet[
                     " threshold must be >= the one before it"
                 )
 
+    _require_non_empty(len(plot.x_categories), "Plot.encode_bullet()")
     var theme = plot._theme
-    if len(plot.x_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
     var domain_data = List[Float64]()
     for i in range(len(plot.x_categories)):
         domain_data.append(0.0)

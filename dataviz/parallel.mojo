@@ -11,8 +11,8 @@ from dataviz.plot import (
     _TextRequest,
     _draw_legend,
     _dynamic_legend_width,
-    _empty_result,
     _finished,
+    _require_non_empty,
 )
 from dataviz.scale import _min_max
 from dataviz.theme import Theme
@@ -73,8 +73,7 @@ def _render_parallel[
     No axis tick labels beyond each dimension's name at the bottom. Legend
     keyed by `row_names`, drawn whenever `Theme.show_legend` is on.
     """
-    if len(plot._parallel.dims) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
+    _require_non_empty(len(plot._parallel.dims), "Plot.encode_parallel()")
 
     var theme = plot._theme
     var text_requests = List[_TextRequest]()

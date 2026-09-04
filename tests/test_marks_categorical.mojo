@@ -104,13 +104,15 @@ def test_render_svg_grouped_bar_matches_confirmed_rects_and_legend() raises:
     )
 
 
-def test_render_grouped_bar_zero_length_categories_only_fills_background() raises:
+def test_render_grouped_bar_raises_on_zero_length_categories() raises:
+    # #206: _validate_grouped_bar_series now raises on empty
+    # categories/series_names rather than rendering a blank background.
     var cats = List[String]()
     var names: List[String] = ["North"]
     var values: List[List[Float64]] = [List[Float64]()]
-    var _hoisted2 = grouped_bar(cats, names, values, width=200, height=150)
-    var c = render(_hoisted2)
-    _assert_color(c, 100, 75, BG, "no categories -- just the background fill")
+    with assert_raises():
+        var _hoisted2 = grouped_bar(cats, names, values, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_grouped_bar_raises_on_mismatched_series_names_and_values_length() raises:
@@ -206,13 +208,14 @@ def test_render_svg_stacked_bar_mixed_sign_stacks_independently_each_direction()
     assert_true('<rect x="79" y="170" width="152" height="70" fill="#ff7f0e"/>' in s, "South, below zero")
 
 
-def test_render_stacked_bar_zero_length_categories_only_fills_background() raises:
+def test_render_stacked_bar_raises_on_zero_length_categories() raises:
+    # #206: see test_render_grouped_bar_raises_on_zero_length_categories above.
     var cats = List[String]()
     var names: List[String] = ["North"]
     var values: List[List[Float64]] = [List[Float64]()]
-    var _hoisted2 = stacked_bar(cats, names, values, width=200, height=150)
-    var c = render(_hoisted2)
-    _assert_color(c, 100, 75, BG, "no categories -- just the background fill")
+    with assert_raises():
+        var _hoisted2 = stacked_bar(cats, names, values, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def test_render_stacked_bar_raises_on_mismatched_series_names_and_values_length() raises:
@@ -391,13 +394,15 @@ def test_render_marimekko_raises_on_all_zero_values() raises:
         _ = render(_hoisted5)
 
 
-def test_render_marimekko_empty_data_only_fills_background() raises:
+def test_render_marimekko_raises_on_no_data() raises:
+    # #206: an all-empty Plot used to render a plain background with no
+    # error; the render-time empty check now raises before any layout.
     var cats = List[String]()
     var subs = List[String]()
     var values = List[List[Float64]]()
-    var _hoisted6 = marimekko(cats, subs, values, width=100, height=80)
-    var c = render(_hoisted6)
-    _assert_color(c, 50, 40, BG, "no categories: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted6 = marimekko(cats, subs, values, width=100, height=80)
+        _ = render(_hoisted6)
 
 # ---------------------------------------------------------------
 # from tests/test_population_pyramid.mojo
@@ -497,12 +502,13 @@ def test_render_population_pyramid_raises_on_mismatched_length() raises:
         _ = render(_hoisted2)
 
 
-def test_render_population_pyramid_empty_data_only_fills_background() raises:
+def test_render_population_pyramid_raises_on_no_data() raises:
+    # #206: see test_render_marimekko_raises_on_no_data above.
     var cats = List[String]()
     var vals = List[Float64]()
-    var _hoisted3 = population_pyramid(cats, vals, vals, width=200, height=150)
-    var c = render(_hoisted3)
-    _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
+    with assert_raises():
+        var _hoisted3 = population_pyramid(cats, vals, vals, width=200, height=150)
+        _ = render(_hoisted3)
 
 # ---------------------------------------------------------------
 # from tests/test_span_chart.mojo
@@ -560,13 +566,14 @@ def test_render_span_chart_raises_on_mismatched_category_length() raises:
         _ = render(_hoisted3)
 
 
-def test_render_span_chart_empty_data_only_fills_background() raises:
+def test_render_span_chart_raises_on_no_data() raises:
+    # #206: see test_render_marimekko_raises_on_no_data above.
     var cats = List[String]()
     var low = List[Float64]()
     var high = List[Float64]()
-    var _hoisted4 = span_chart(cats, low, high, width=100, height=80)
-    var c = render(_hoisted4)
-    _assert_color(c, 50, 40, BG, "no categories: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted4 = span_chart(cats, low, high, width=100, height=80)
+        _ = render(_hoisted4)
 
 # ---------------------------------------------------------------
 # from tests/test_gantt.mojo
@@ -623,12 +630,13 @@ def test_render_gantt_raises_on_mismatched_category_length() raises:
         _ = render(_hoisted2)
 
 
-def test_render_gantt_empty_data_only_fills_background() raises:
+def test_render_gantt_raises_on_no_data() raises:
+    # #206: see test_render_marimekko_raises_on_no_data above.
     var cats = List[String]()
     var empty = List[Float64]()
-    var _hoisted3 = gantt(cats, empty, empty, width=200, height=150)
-    var c = render(_hoisted3)
-    _assert_color(c, 100, 75, BG, "no categories -- just the background fill")
+    with assert_raises():
+        var _hoisted3 = gantt(cats, empty, empty, width=200, height=150)
+        _ = render(_hoisted3)
 
 # ---------------------------------------------------------------
 # from tests/test_funnel.mojo
@@ -710,12 +718,13 @@ def test_render_funnel_raises_on_mismatched_category_length() raises:
         _ = render(_hoisted4)
 
 
-def test_render_funnel_empty_data_only_fills_background() raises:
+def test_render_funnel_raises_on_no_data() raises:
+    # #206: see test_render_marimekko_raises_on_no_data above.
     var cats = List[String]()
     var vals = List[Float64]()
-    var _hoisted5 = funnel(cats, vals, width=200, height=150)
-    var c = render(_hoisted5)
-    _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
+    with assert_raises():
+        var _hoisted5 = funnel(cats, vals, width=200, height=150)
+        _ = render(_hoisted5)
 
 # ---------------------------------------------------------------
 # from tests/test_heatmap.mojo
@@ -794,13 +803,14 @@ def test_render_heatmap_raises_on_mismatched_length() raises:
         _ = render(_hoisted3)
 
 
-def test_render_heatmap_empty_data_only_fills_background() raises:
+def test_render_heatmap_raises_on_no_data() raises:
+    # #206: see test_render_marimekko_raises_on_no_data above.
     var x = List[String]()
     var y = List[String]()
     var v = List[Float64]()
-    var _hoisted4 = heatmap(x, y, v, width=200, height=150)
-    var c = render(_hoisted4)
-    _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
+    with assert_raises():
+        var _hoisted4 = heatmap(x, y, v, width=200, height=150)
+        _ = render(_hoisted4)
 
 # ---------------------------------------------------------------
 # from tests/test_punchcard.mojo
@@ -871,13 +881,14 @@ def test_render_punchcard_raises_on_mismatched_length() raises:
         _ = render(_hoisted4)
 
 
-def test_render_punchcard_empty_data_only_fills_background() raises:
+def test_render_punchcard_raises_on_no_data() raises:
+    # #206: see test_render_marimekko_raises_on_no_data above.
     var x = List[String]()
     var y = List[String]()
     var sizes = List[Float64]()
-    var _hoisted5 = punchcard(x, y, sizes, width=100, height=80)
-    var c = render(_hoisted5)
-    _assert_color(c, 50, 40, BG, "no data: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted5 = punchcard(x, y, sizes, width=100, height=80)
+        _ = render(_hoisted5)
 
 # ---------------------------------------------------------------
 # from tests/test_corrplot.mojo
@@ -959,12 +970,13 @@ def test_render_corrplot_raises_on_out_of_range_value() raises:
         _ = render(_hoisted5)
 
 
-def test_render_corrplot_empty_variables_only_fills_background() raises:
+def test_render_corrplot_raises_on_no_variables() raises:
+    # #206: see test_render_marimekko_raises_on_no_data above.
     var vars = List[String]()
     var m = List[List[Float64]]()
-    var _hoisted6 = corrplot(vars, m, width=100, height=80)
-    var c = render(_hoisted6)
-    _assert_color(c, 50, 40, BG, "no variables: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted6 = corrplot(vars, m, width=100, height=80)
+        _ = render(_hoisted6)
 
 # ---------------------------------------------------------------
 # from tests/test_calendar_heatmap.mojo
@@ -1024,12 +1036,13 @@ def test_render_calendar_heatmap_raises_on_mismatched_year() raises:
         _ = render(_hoisted3)
 
 
-def test_render_calendar_heatmap_empty_data_only_fills_background() raises:
+def test_render_calendar_heatmap_raises_on_no_data() raises:
+    # #206: see test_render_marimekko_raises_on_no_data above.
     var dates = List[String]()
     var values = List[Float64]()
-    var _hoisted4 = calendar_heatmap(dates, values, width=100, height=80)
-    var c = render(_hoisted4)
-    _assert_color(c, 50, 40, BG, "no dates at all -- background everywhere")
+    with assert_raises():
+        var _hoisted4 = calendar_heatmap(dates, values, width=100, height=80)
+        _ = render(_hoisted4)
 
 
 def main() raises:

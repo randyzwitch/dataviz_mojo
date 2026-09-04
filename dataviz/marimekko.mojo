@@ -12,8 +12,8 @@ from dataviz.plot import (
     _TextRequest,
     _draw_legend,
     _dynamic_legend_width,
-    _empty_result,
     _finished,
+    _require_non_empty,
 )
 from dataviz.theme import Theme
 
@@ -74,9 +74,12 @@ def _render_marimekko[
             )
 
     var theme = plot._theme
-    if len(plot._marimekko.categories) == 0 or len(plot._marimekko.subcategories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
+    _require_non_empty(
+        len(plot._marimekko.categories), "Plot.encode_marimekko()"
+    )
+    _require_non_empty(
+        len(plot._marimekko.subcategories), "Plot.encode_marimekko()"
+    )
     for row in plot._marimekko.values:
         for v in row:
             if v < 0.0:

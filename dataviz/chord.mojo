@@ -14,7 +14,6 @@ from dataviz.plot import (
     _TextRequest,
     _draw_legend,
     _dynamic_legend_width,
-    _empty_result,
     _finished,
 )
 from dataviz.edges import _edge_node_index, _validate_edge_encoding
@@ -69,9 +68,6 @@ def _render_chord[
     _validate_edge_encoding(plot, "Mark.CHORD")
 
     var theme = plot._theme
-    if len(plot._edges.from_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
     var edges = _edge_node_index(plot._edges.from_categories, plot._edges.to_categories)
     ref nodes = edges.nodes
     ref from_idx = edges.from_idx

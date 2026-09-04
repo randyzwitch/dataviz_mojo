@@ -15,7 +15,6 @@ from dataviz.plot import (
     _draw_categorical_axis_frame,
     _draw_legend,
     _dynamic_legend_width,
-    _empty_result,
     _finished,
 )
 from dataviz.scale import LinearScale
@@ -89,9 +88,6 @@ def _render_streamgraph[
 
     var theme = plot._theme
     _check_line_smoothing(theme)
-    if len(plot.x_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
     var n_series = len(plot._grouped_bar.series_names)
     var n_categories = len(plot.x_categories)
 

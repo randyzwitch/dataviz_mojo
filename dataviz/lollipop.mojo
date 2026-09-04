@@ -11,7 +11,6 @@ from dataviz.plot import (
     _RenderResult,
     _tooltip_label,
     _draw_categorical_axis_frame,
-    _empty_result,
     _finished,
     _zero_baseline_y_extent,
     _validate_categorical_encoding,
@@ -84,9 +83,6 @@ def _render_lollipop[
     _validate_categorical_encoding(plot)
 
     var theme = plot._theme
-    if len(plot.x_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
     var y_scale = _zero_baseline_y_extent(plot.y_data)
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
 
@@ -113,9 +109,6 @@ def _render_horizontal_lollipop[
     _validate_categorical_encoding(plot)
 
     var theme = plot._theme
-    if len(plot.x_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
     var x_scale = _zero_baseline_y_extent(plot.y_data)
     var frame = _draw_horizontal_categorical_axis_frame(
         target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1

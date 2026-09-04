@@ -8,9 +8,9 @@ from dataviz.plot import (
     _RenderResult,
     _axis_pixel,
     _draw_categorical_axis_frame,
-    _empty_result,
     _pull_off_axis_line,
     _finished,
+    _require_non_empty,
     _zero_baseline_y_extent,
 )
 from dataviz.theme import Theme
@@ -118,9 +118,7 @@ def _render_waterfall[
         )
 
     var theme = plot._theme
-    if len(plot.x_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
+    _require_non_empty(len(plot.x_categories), "Plot.encode_waterfall()")
     var combined = List[Float64]()
     for v in plot._waterfall.y0:
         combined.append(v)

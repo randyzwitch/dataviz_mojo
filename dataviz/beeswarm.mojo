@@ -13,7 +13,6 @@ from dataviz.plot import (
     _axis_pixel,
     _data_extent,
     _draw_categorical_axis_frame,
-    _empty_result,
     _finished,
 )
 from dataviz.scale import LinearScale
@@ -133,9 +132,6 @@ def _render_beeswarm[
     the same domain choice `Mark.BOX` makes.
     """
     var theme = plot._theme
-    if len(plot.x_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
     var value_scale = _distribution_domain(plot)
 
     var frame = _draw_categorical_axis_frame(target, plot.x_categories, value_scale, theme, ox0, oy0, ox1, oy1)
@@ -160,9 +156,6 @@ def _render_horizontal_beeswarm[
     for the reasons in `_render_horizontal_bar`'s docstring (bar.mojo).
     """
     var theme = plot._theme
-    if len(plot.x_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
     var value_scale = _distribution_domain(plot)
 
     var frame = _draw_horizontal_categorical_axis_frame(
