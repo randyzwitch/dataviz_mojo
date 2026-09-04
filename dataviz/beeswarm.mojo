@@ -1,4 +1,5 @@
 from canvas.geometry import _round_to_int
+from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
@@ -142,8 +143,17 @@ def _render_beeswarm[
     var theme = plot._theme
     var value_scale = _distribution_domain(plot)
 
+    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
-        target, plot.x_categories, value_scale, theme, ox0, oy0, ox1, oy1
+        target,
+        plot.x_categories,
+        value_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=measure_cache,
     )
 
     var sc = _Scaled(theme)
@@ -175,8 +185,17 @@ def _render_horizontal_beeswarm[
     var theme = plot._theme
     var value_scale = _distribution_domain(plot)
 
+    var measure_cache = FontCache()
     var frame = _draw_horizontal_categorical_axis_frame(
-        target, plot.x_categories, value_scale, theme, ox0, oy0, ox1, oy1
+        target,
+        plot.x_categories,
+        value_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=measure_cache,
     )
 
     var sc = _Scaled(theme)

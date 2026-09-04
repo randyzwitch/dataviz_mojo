@@ -1,5 +1,6 @@
 from canvas.geometry import _round_to_int
 from canvas.text.render import TextAlign
+from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -81,6 +82,8 @@ def _draw_horizontal_categorical_axis_frame[
     ox1: Int,
     oy1: Int,
     padding: Float64 = 0.2,
+    *,
+    mut cache: FontCache,
 ) raises -> _HorizontalCategoricalFrame:
     """`_draw_categorical_axis_frame`'s mirror image: categories run along
     an `OrdinalScale` y-axis (index 0 at the top) and the continuous
@@ -109,7 +112,7 @@ def _draw_horizontal_categorical_axis_frame[
     var sc = _Scaled(theme)
 
     var dynamic_left_margin = (
-        Int(_max_label_width(categories, sc.font_size))
+        Int(_max_label_width(categories, sc.font_size, cache=cache))
         + sc.tick_length
         + sc.label_gap
         + sc.margin_buffer
@@ -251,8 +254,17 @@ def _render_gantt[
         domain_data.append(v)
     var x_scale = _data_extent(domain_data)
 
+    var measure_cache = FontCache()
     var frame = _draw_horizontal_categorical_axis_frame(
-        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
+        target,
+        plot.x_categories,
+        x_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=measure_cache,
     )
 
     var row_height = _round_to_int(frame.y_scale.bandwidth())

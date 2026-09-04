@@ -1,4 +1,5 @@
 from canvas.geometry import _round_to_int
+from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -93,8 +94,17 @@ def _render_candlestick[
         domain_data.append(v)
     var y_scale = _data_extent(domain_data)
 
+    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
-        target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1
+        target,
+        plot.x_categories,
+        y_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=measure_cache,
     )
 
     var body_width = _round_to_int(frame.x_scale.bandwidth())

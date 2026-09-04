@@ -1,5 +1,6 @@
 from canvas.color import Color
 from canvas.geometry import _round_to_int
+from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -104,8 +105,17 @@ def _render_bullet[
         domain_data.append(plot._bullet.target[i])
     var y_scale = _zero_baseline_y_extent(domain_data)
 
+    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
-        target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1
+        target,
+        plot.x_categories,
+        y_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=measure_cache,
     )
 
     var range_color_scale = ColorScale(0.0, 1.0)

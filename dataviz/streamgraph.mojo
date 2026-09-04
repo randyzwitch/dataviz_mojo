@@ -1,6 +1,7 @@
 from canvas.fill_rule import FillRule
 from canvas.geometry import _round_to_int
 from canvas.path import Path
+from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
@@ -123,6 +124,7 @@ def _render_streamgraph[
     var y_scale = _symmetric_zero_baseline_y_extent(
         plot._grouped_bar.values, n_categories
     )
+    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
         target,
         plot.x_categories,
@@ -132,6 +134,7 @@ def _render_streamgraph[
         oy0,
         ox1 - legend_reserve,
         oy1,
+        cache=measure_cache,
     )
 
     # running[i]: each category's stack cursor, starting at its centered

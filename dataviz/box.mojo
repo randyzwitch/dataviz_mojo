@@ -1,4 +1,5 @@
 from canvas.geometry import _round_to_int
+from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
@@ -308,8 +309,17 @@ def _render_box[
         domain_data.append(v)
     var y_scale = _data_extent(domain_data)
 
+    var measure_cache = FontCache()
     var frame = _draw_categorical_axis_frame(
-        target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1
+        target,
+        plot.x_categories,
+        y_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=measure_cache,
     )
 
     _draw_box_glyphs(
@@ -359,8 +369,17 @@ def _render_horizontal_box[
         domain_data.append(v)
     var x_scale = _data_extent(domain_data)
 
+    var measure_cache = FontCache()
     var frame = _draw_horizontal_categorical_axis_frame(
-        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1
+        target,
+        plot.x_categories,
+        x_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=measure_cache,
     )
 
     _draw_box_glyphs(
