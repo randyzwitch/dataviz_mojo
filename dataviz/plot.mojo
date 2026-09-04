@@ -1451,8 +1451,8 @@ struct Plot(Movable):
             Self, for further chaining.
 
         Raises:
-            If `categories`/`values` lengths don't match, or any
-            category's value list is empty.
+            If `categories`/`values` lengths don't match, `categories`
+            is empty, or any category's value list is empty.
         """
         if len(categories) != len(values):
             raise Error(
@@ -1463,6 +1463,7 @@ struct Plot(Movable):
                 + String(len(values))
                 + ")"
             )
+        _require_non_empty(len(categories), "Plot.encode_boxplot()")
 
         var q1 = List[Float64]()
         var median = List[Float64]()
@@ -2282,8 +2283,8 @@ struct Plot(Movable):
             Self, for further chaining.
 
         Raises:
-            If `categories`/`values` lengths don't match, or any
-            category's value list is empty.
+            If `categories`/`values` lengths don't match, `categories`
+            is empty, or any category's value list is empty.
         """
         if len(categories) != len(values):
             raise Error(
@@ -2294,6 +2295,7 @@ struct Plot(Movable):
                 + String(len(values))
                 + ")"
             )
+        _require_non_empty(len(categories), "Plot.encode_distribution()")
         for i in range(len(values)):
             if len(values[i]) == 0:
                 raise Error(
@@ -3458,9 +3460,9 @@ struct _RenderResult(Movable):
     (`px0`/`py0`/`px1`/`py1`, with dynamic margins and legend column
     resolved). `_label_text_requests` centers `Plot.labels()`'s titles on
     that rect rather than the outer bounds, so a wide legend or long tick
-    labels don't throw a title off-center. A `_render_*` that returns
-    before any layout (no data) reports the outer bounds instead
-    (`_empty_result`).
+    labels don't throw a title off-center. Every `_render_*` raises before
+    reaching any layout when its own data is empty (`_require_non_empty`,
+    #206), so there is no "no data" `_RenderResult` shape to report here.
 
     `y_scale`/`has_y_scale` expose the real `LinearScale` the mark's
     y-axis used, so the annotation passes (`_draw_annotation_lines`/
@@ -3504,14 +3506,6 @@ struct _RenderResult(Movable):
         self.has_y_scale = has_y_scale
         self.x_scale = x_scale
         self.has_x_scale = has_x_scale
-
-
-def _empty_result(ox0: Int, oy0: Int, ox1: Int, oy1: Int) -> _RenderResult:
-    """The `_RenderResult` a `_render_*` function returns when it has
-    nothing to draw: no text requests, and the outer bounds as the inner
-    rect.
-    """
-    return _RenderResult(List[_TextRequest](), ox0, oy0, ox1, oy1)
 
 
 def _apply_labels(plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _LabelsFrame:
@@ -4491,9 +4485,27 @@ struct _PointChannels(Movable):
         )
 
 
+def _require_non_empty(count: Int, context: String) raises:
+    """Raise when a mark's own data is completely empty (`count == 0`),
+    naming the encode method or mark that populated it. Every `_render_*`
+    function used to silently return a blank `_RenderResult` (no axes, no
+    title, no signal that anything was wrong) for an all-empty `Plot`
+    (#206); this is called instead, since a blank image is the hardest
+    failure to diagnose and the common cause (a filter upstream produced
+    zero rows) is exactly the case where a loud failure saves the most
+    time. Called either from `encode_*()` itself (immediately, for the
+    handful of methods that already validate eagerly) or from the
+    render-time shared validators/`_render_*` functions (deferred, like
+    most other length checks in this package).
+    """
+    if count == 0:
+        raise Error(context + ": there is no data to draw (every column is empty)")
+
+
 def _validate_categorical_encoding(plot: Plot) raises:
-    """`Plot.encode_categorical()`'s length check, shared by every mark
-    reading a category/value pair.
+    """`Plot.encode_categorical()`'s length check plus its empty-data check
+    (`_require_non_empty`, #206), shared by every mark reading a
+    category/value pair.
     """
     if len(plot.x_categories) != len(plot.y_data):
         raise Error(
@@ -4504,6 +4516,7 @@ def _validate_categorical_encoding(plot: Plot) raises:
             + String(len(plot.y_data))
             + ")"
         )
+    _require_non_empty(len(plot.x_categories), "Plot.encode_categorical()")
 
 
 def _require_non_negative(values: List[Float64], mark_name: String) raises:
@@ -5350,10 +5363,9 @@ def _render_generic[
         return _render_parallel(target, plot, ox0, oy0, ox1, oy1)
 
     _validate_continuous_encoding(plot, "Plot.encode()")
+    _require_non_empty(len(plot.x_data), "Plot.encode()")
 
     var theme = plot._theme
-    if len(plot.x_data) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
 
     # Scaled once by theme.scale; see _Scaled.
     var sc = _Scaled(theme)

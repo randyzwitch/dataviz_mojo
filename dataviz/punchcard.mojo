@@ -9,8 +9,8 @@ from dataviz.plot import (
     Plot,
     _RenderResult,
     _categorical_indices,
-    _empty_result,
     _finished,
+    _require_non_empty,
 )
 from dataviz.theme import Theme
 
@@ -69,9 +69,7 @@ def _render_punchcard[
         )
 
     var theme = plot._theme
-    if len(plot._punchcard.x) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
+    _require_non_empty(len(plot._punchcard.x), "Plot.encode_punchcard()")
     for s in plot._punchcard.sizes:
         if s < 0.0:
             raise Error("Plot: Mark.PUNCHCARD sizes must be non-negative (got " + String(s) + ")")

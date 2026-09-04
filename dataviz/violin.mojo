@@ -13,7 +13,6 @@ from dataviz.plot import (
     _axis_pixel,
     _data_extent,
     _draw_categorical_axis_frame,
-    _empty_result,
     _min_max,
     _finished,
 )
@@ -172,9 +171,6 @@ def _render_violin[
     `BEESWARM` make.
     """
     var theme = plot._theme
-    if len(plot.x_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
     if plot._distribution.kde_bandwidth_override < 0.0:
         raise Error(
             "Plot.mark_violin(): bandwidth must be positive (got "
@@ -208,9 +204,6 @@ def _render_horizontal_violin[
     `_render_horizontal_bar`'s docstring (bar.mojo).
     """
     var theme = plot._theme
-    if len(plot.x_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
     if plot._distribution.kde_bandwidth_override < 0.0:
         raise Error(
             "Plot.mark_violin(): bandwidth must be positive (got "

@@ -13,9 +13,9 @@ from dataviz.plot import (
     _TextRequest,
     _draw_legend,
     _dynamic_legend_width,
-    _empty_result,
     _lighten,
     _finished,
+    _require_non_empty,
 )
 from dataviz.polar import _polar_point
 from dataviz.theme import Theme
@@ -89,8 +89,7 @@ def _render_radar[
     overlapping unfilled outlines are unreadable. Legend keyed by
     `series_names`, drawn whenever `Theme.show_legend` is on.
     """
-    if len(plot._radar.indicators) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
+    _require_non_empty(len(plot._radar.indicators), "Plot.encode_radar()")
 
     var theme = plot._theme
     var text_requests = List[_TextRequest]()

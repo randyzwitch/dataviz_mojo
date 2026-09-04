@@ -11,8 +11,8 @@ from dataviz.plot import (
     _axis_pixel,
     _draw_legend,
     _dynamic_legend_width,
-    _empty_result,
     _finished,
+    _require_non_empty,
 )
 from dataviz.scale import LinearScale
 from dataviz.theme import Theme
@@ -86,9 +86,9 @@ def _render_population_pyramid[
         )
 
     var theme = plot._theme
-    if len(plot.x_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
+    _require_non_empty(
+        len(plot.x_categories), "Plot.encode_population_pyramid()"
+    )
     var sc = _Scaled(theme)
     var legend_names = List[String]()
     if theme.show_legend:

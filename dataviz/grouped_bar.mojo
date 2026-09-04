@@ -18,9 +18,9 @@ from dataviz.plot import (
     _draw_categorical_axis_frame,
     _draw_legend,
     _dynamic_legend_width,
-    _empty_result,
     _pull_off_axis_line,
     _finished,
+    _require_non_empty,
     _zero_baseline_y_extent,
 )
 from dataviz.scale import LinearScale, _format_fixed, _label_decimals
@@ -31,8 +31,10 @@ def _validate_grouped_bar_series(plot: Plot) raises:
     """`Plot.encode_grouped_bar()`'s deferred length checks:
     `series_names`/`values` the same length, and every `values[j]` the
     same length as `categories` (deferred to render() time; see that
-    method). Lives here next to `Mark.GROUPED_BAR`'s rendering and is
-    imported by stacked_bar.mojo, bump.mojo, and streamgraph.mojo, which
+    method), plus an empty-data check (`_require_non_empty`, #206) on
+    both `categories` and `series_names`. Lives here next to
+    `Mark.GROUPED_BAR`'s rendering and is imported by stacked_bar.mojo,
+    bump.mojo, and streamgraph.mojo, which
     draw from the same data.
     """
     if len(plot._grouped_bar.series_names) != len(plot._grouped_bar.values):
@@ -56,6 +58,10 @@ def _validate_grouped_bar_series(plot: Plot) raises:
                 + String(len(plot.x_categories))
                 + ")"
             )
+    _require_non_empty(len(plot.x_categories), "Plot.encode_grouped_bar()")
+    _require_non_empty(
+        len(plot._grouped_bar.series_names), "Plot.encode_grouped_bar()"
+    )
 
 
 def _series_legend_reserve(plot: Plot, sc: _Scaled) raises -> Int:
@@ -188,9 +194,6 @@ def _render_grouped_bar[
     _validate_grouped_bar_series(plot)
 
     var theme = plot._theme
-    if len(plot.x_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
     var domain_data = List[Float64]()
     for j in range(len(plot._grouped_bar.values)):
         for i in range(len(plot._grouped_bar.values[j])):
@@ -247,9 +250,6 @@ def _render_horizontal_grouped_bar[
     _validate_grouped_bar_series(plot)
 
     var theme = plot._theme
-    if len(plot.x_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
     var domain_data = List[Float64]()
     for j in range(len(plot._grouped_bar.values)):
         for i in range(len(plot._grouped_bar.values[j])):

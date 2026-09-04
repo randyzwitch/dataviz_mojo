@@ -69,18 +69,14 @@ def test_render_raises_on_mismatched_x_y_lengths() raises:
         var c = render(plot)
 
 
-def test_render_empty_data_only_fills_background() raises:
-    # render() always fills with theme.background, so the canvas's initial
-    # fill color must not survive.
-    var plot = Plot().size(50, 40)  # no encode() call -- x_data/y_data both empty
-    var c = render(plot)
-    var expected = Theme.default().background
-    for y in range(c.height):
-        for x in range(c.width):
-            var p = c.get_pixel(x, y)
-            assert_equal(p.r, expected.r)
-            assert_equal(p.g, expected.g)
-            assert_equal(p.b, expected.b)
+def test_render_raises_on_no_data() raises:
+    # #206: a Plot with no mark_*() call at all defaults to Mark.POINT with
+    # empty x_data/y_data; this used to render a plain background with no
+    # error, and now raises via _require_non_empty("Plot.encode()") before
+    # any layout.
+    with assert_raises():
+        var plot = Plot().size(50, 40)  # no encode() call -- x_data/y_data both empty
+        _ = render(plot)
 
 
 def test_render_respects_custom_theme_colors() raises:

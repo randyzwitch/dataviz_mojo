@@ -17,7 +17,6 @@ from dataviz.plot import (
     _check_line_smoothing,
     _draw_legend,
     _dynamic_legend_width,
-    _empty_result,
     _max_label_width,
     _finished,
 )
@@ -173,9 +172,6 @@ def _render_bump[
     _validate_grouped_bar_series(plot)
 
     var theme = plot._theme
-    if len(plot.x_categories) == 0 or len(plot._grouped_bar.series_names) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
     _check_line_smoothing(theme)
 
     var n_series = len(plot._grouped_bar.series_names)

@@ -12,7 +12,12 @@ the family's marks import. `_EdgeData` lives here rather than on
 """
 
 
-from dataviz.plot import Plot, _categorical_indices, _require_non_negative
+from dataviz.plot import (
+    Plot,
+    _categorical_indices,
+    _require_non_empty,
+    _require_non_negative,
+)
 
 
 struct _EdgeData(Movable):
@@ -81,8 +86,9 @@ def _edge_node_index(
 
 
 def _validate_edge_encoding(plot: Plot, mark_name: String) raises:
-    """`Plot.encode_chord()`'s length check plus its non-negative rule,
-    shared by `Mark.CHORD`/`ARC_DIAGRAM`/`GRAPH`/`SANKEY`.
+    """`Plot.encode_chord()`'s length check, its non-negative rule, and its
+    empty-data check (`_require_non_empty`, #206), shared by `Mark.CHORD`/
+    `ARC_DIAGRAM`/`GRAPH`/`SANKEY`.
     """
     if len(plot._edges.from_categories) != len(plot._edges.to_categories) or len(plot._edges.values) != len(
         plot._edges.from_categories
@@ -97,4 +103,8 @@ def _validate_edge_encoding(plot: Plot, mark_name: String) raises:
             + String(len(plot._edges.values))
             + " values)"
         )
+    _require_non_empty(
+        len(plot._edges.from_categories),
+        "Plot.encode_chord() (" + mark_name + ")",
+    )
     _require_non_negative(plot._edges.values, mark_name)

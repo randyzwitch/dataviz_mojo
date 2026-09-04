@@ -108,11 +108,13 @@ def test_bar_horizontal_matches_plot_mark_bar_horizontal() raises:
     assert_equal(render_svg(from_quickplot).to_string(), render_svg(from_builder).to_string())
 
 
-def test_render_horizontal_bar_empty_data_only_fills_background() raises:
-    var plot = Plot().mark_bar(horizontal=True).size(50, 40)  # no encode_categorical() call
-    var s = render_svg(plot).to_string()
-    assert_true("<rect" in s, "still fills the background")
-    assert_true("<line" not in s, "no axis lines drawn for zero categories")
+def test_render_horizontal_bar_raises_on_no_data() raises:
+    # #206: an all-empty Plot used to render a plain background with no
+    # axes and no error; _validate_categorical_encoding now raises before
+    # any layout, the same as the vertical orientation.
+    with assert_raises():
+        var plot = Plot().mark_bar(horizontal=True).size(50, 40)  # no encode_categorical() call
+        _ = render_svg(plot)
 
 
 def test_render_layers_raises_on_horizontal_bar_in_a_combo() raises:
@@ -172,13 +174,13 @@ def test_render_horizontal_beeswarm_raises_on_mismatched_category_length() raise
         _ = render_svg(plot)
 
 
-def test_render_horizontal_beeswarm_empty_categories_only_fills_background() raises:
+def test_render_horizontal_beeswarm_raises_on_no_data() raises:
+    # #206: encode_distribution() now raises immediately on empty
+    # categories, before beeswarm() even returns a Plot to render.
     var cats = List[String]()
     var vals = List[List[Float64]]()
-    var plot = beeswarm(cats, vals, width=200, height=150, horizontal=True)
-    var s = render_svg(plot).to_string()
-    assert_true("<rect" in s, "still fills the background")
-    assert_true("<line" not in s, "no axis lines drawn for zero categories")
+    with assert_raises():
+        _ = beeswarm(cats, vals, width=200, height=150, horizontal=True)
 
 # ---------------------------------------------------------------
 # from tests/test_horizontal_box.mojo
@@ -302,14 +304,15 @@ def test_grouped_bar_horizontal_matches_plot_mark_grouped_bar_horizontal() raise
     assert_equal(render_svg(from_dtype).to_string(), render_svg(from_builder).to_string())
 
 
-def test_render_horizontal_grouped_bar_zero_length_categories_only_fills_background() raises:
+def test_render_horizontal_grouped_bar_raises_on_zero_length_categories() raises:
+    # #206: _validate_grouped_bar_series now raises on empty
+    # categories/series_names rather than rendering a blank background.
     var cats = List[String]()
     var names: List[String] = ["North"]
     var values: List[List[Float64]] = [List[Float64]()]
-    var plot = Plot().mark_grouped_bar(horizontal=True).encode_grouped_bar(cats, names, values).size(200, 150)
-    var s = render_svg(plot).to_string()
-    assert_true("<rect" in s, "still fills the background")
-    assert_true("<line" not in s, "no axis lines drawn for zero categories")
+    with assert_raises():
+        var plot = Plot().mark_grouped_bar(horizontal=True).encode_grouped_bar(cats, names, values).size(200, 150)
+        _ = render_svg(plot)
 
 # ---------------------------------------------------------------
 # from tests/test_horizontal_lollipop.mojo
@@ -378,11 +381,11 @@ def test_lollipop_dtype_generic_overload_forwards_horizontal() raises:
     assert_equal(render_svg(from_dtype).to_string(), render_svg(from_concrete).to_string())
 
 
-def test_render_horizontal_lollipop_empty_data_only_fills_background() raises:
-    var plot = Plot().mark_lollipop(horizontal=True).size(50, 40)  # no encode_categorical() call
-    var s = render_svg(plot).to_string()
-    assert_true("<rect" in s, "still fills the background")
-    assert_true("<line" not in s, "no axis lines drawn for zero categories")
+def test_render_horizontal_lollipop_raises_on_no_data() raises:
+    # #206: see test_render_horizontal_bar_raises_on_no_data above.
+    with assert_raises():
+        var plot = Plot().mark_lollipop(horizontal=True).size(50, 40)  # no encode_categorical() call
+        _ = render_svg(plot)
 
 # ---------------------------------------------------------------
 # from tests/test_horizontal_stacked_bar.mojo
@@ -459,14 +462,14 @@ def test_stacked_bar_horizontal_matches_plot_mark_stacked_bar_horizontal() raise
     assert_equal(render_svg(from_dtype).to_string(), render_svg(from_builder).to_string())
 
 
-def test_render_horizontal_stacked_bar_zero_length_categories_only_fills_background() raises:
+def test_render_horizontal_stacked_bar_raises_on_zero_length_categories() raises:
+    # #206: see test_render_horizontal_grouped_bar_raises_on_zero_length_categories above.
     var cats = List[String]()
     var names: List[String] = ["North"]
     var values: List[List[Float64]] = [List[Float64]()]
-    var plot = Plot().mark_stacked_bar(horizontal=True).encode_grouped_bar(cats, names, values).size(200, 150)
-    var s = render_svg(plot).to_string()
-    assert_true("<rect" in s, "still fills the background")
-    assert_true("<line" not in s, "no axis lines drawn for zero categories")
+    with assert_raises():
+        var plot = Plot().mark_stacked_bar(horizontal=True).encode_grouped_bar(cats, names, values).size(200, 150)
+        _ = render_svg(plot)
 
 # ---------------------------------------------------------------
 # from tests/test_horizontal_violin.mojo

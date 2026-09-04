@@ -256,12 +256,15 @@ def test_render_nightingale_raises_on_mismatched_category_length() raises:
         _ = render(_hoisted6)
 
 
-def test_render_nightingale_empty_categories_only_fills_background() raises:
+def test_render_nightingale_raises_on_no_data() raises:
+    # #206: an empty categorical mark used to render a plain background
+    # with no error; _validate_categorical_encoding now raises before any
+    # layout.
     var x = List[String]()
     var y = List[Float64]()
-    var _hoisted7 = nightingale(x, y, width=100, height=80)
-    var c = render(_hoisted7)
-    _assert_color(c, 50, 40, BG, "no categories: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted7 = nightingale(x, y, width=100, height=80)
+        _ = render(_hoisted7)
 
 # ---------------------------------------------------------------
 # from tests/test_polar.mojo
@@ -322,12 +325,13 @@ def test_render_polar_raises_on_negative_radius() raises:
         _ = render(_hoisted4)
 
 
-def test_render_polar_empty_data_only_fills_background() raises:
+def test_render_polar_raises_on_no_data() raises:
+    # #206: see test_render_nightingale_raises_on_no_data above.
     var angle = List[Float64]()
     var radius = List[Float64]()
-    var _hoisted5 = polar(angle, radius, width=100, height=80)
-    var c = render(_hoisted5)
-    _assert_color(c, 50, 40, BG, "no data: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted5 = polar(angle, radius, width=100, height=80)
+        _ = render(_hoisted5)
 
 
 def test_render_polar_series_matches_hand_derived_line_and_markers() raises:
@@ -382,13 +386,14 @@ def test_render_polar_series_raises_on_negative_radius() raises:
         _ = render(_hoisted9)
 
 
-def test_render_polar_series_empty_angle_only_fills_background() raises:
+def test_render_polar_series_raises_on_empty_angle() raises:
+    # #206: see test_render_nightingale_raises_on_no_data above.
     var angle = List[Float64]()
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [List[Float64]()]
-    var _hoisted10 = polar_series(angle, names, vals, width=100, height=80)
-    var c = render(_hoisted10)
-    _assert_color(c, 50, 40, BG, "no data: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted10 = polar_series(angle, names, vals, width=100, height=80)
+        _ = render(_hoisted10)
 
 # ---------------------------------------------------------------
 # from tests/test_polar_bar.mojo
@@ -446,12 +451,13 @@ def test_render_polar_bar_raises_on_mismatched_category_length() raises:
         _ = render(_hoisted5)
 
 
-def test_render_polar_bar_empty_categories_only_fills_background() raises:
+def test_render_polar_bar_raises_on_no_data() raises:
+    # #206: see test_render_nightingale_raises_on_no_data above.
     var x = List[String]()
     var y = List[Float64]()
-    var _hoisted6 = polarbar(x, y, width=100, height=80)
-    var c = render(_hoisted6)
-    _assert_color(c, 50, 40, BG, "no categories: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted6 = polarbar(x, y, width=100, height=80)
+        _ = render(_hoisted6)
 
 # ---------------------------------------------------------------
 # from tests/test_radialbar.mojo
@@ -525,12 +531,13 @@ def test_render_radialbar_raises_on_mismatched_category_length() raises:
         _ = render(_hoisted5)
 
 
-def test_render_radialbar_empty_categories_only_fills_background() raises:
+def test_render_radialbar_raises_on_no_data() raises:
+    # #206: see test_render_nightingale_raises_on_no_data above.
     var x = List[String]()
     var y = List[Float64]()
-    var _hoisted6 = radialbar(x, y, width=100, height=80)
-    var c = render(_hoisted6)
-    _assert_color(c, 50, 40, BG, "no categories: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted6 = radialbar(x, y, width=100, height=80)
+        _ = render(_hoisted6)
 
 
 def test_render_radialbar_svg_matches_confirmed_ring_paths() raises:
@@ -622,14 +629,15 @@ def test_render_radar_raises_on_wrong_length_series_values() raises:
         _ = render(_hoisted4)
 
 
-def test_render_radar_empty_indicators_only_fills_background() raises:
+def test_render_radar_raises_on_no_indicators() raises:
+    # #206: see test_render_nightingale_raises_on_no_data above.
     var indicators = List[String]()
     var max_values = List[Float64]()
     var series_names = List[String]()
     var series_values = List[List[Float64]]()
-    var _hoisted5 = radar(indicators, max_values, series_names, series_values, width=100, height=80)
-    var c = render(_hoisted5)
-    _assert_color(c, 50, 40, BG, "no indicators: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted5 = radar(indicators, max_values, series_names, series_values, width=100, height=80)
+        _ = render(_hoisted5)
 
 # ---------------------------------------------------------------
 # from tests/test_gauge.mojo
@@ -795,13 +803,14 @@ def test_render_parallel_raises_on_wrong_length_row() raises:
         _ = render(_hoisted3)
 
 
-def test_render_parallel_empty_dims_only_fills_background() raises:
+def test_render_parallel_raises_on_no_dims() raises:
+    # #206: see test_render_nightingale_raises_on_no_data above.
     var dims = List[String]()
     var row_names = List[String]()
     var data = List[List[Float64]]()
-    var _hoisted4 = parallel(data, dims, row_names, width=100, height=80)
-    var c = render(_hoisted4)
-    _assert_color(c, 50, 40, BG, "no dimensions: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted4 = parallel(data, dims, row_names, width=100, height=80)
+        _ = render(_hoisted4)
 
 # ---------------------------------------------------------------
 # from tests/test_single_axis.mojo
@@ -855,11 +864,12 @@ def test_render_single_axis_raises_on_mismatched_channel_length() raises:
         _ = render(_hoisted3)
 
 
-def test_render_single_axis_empty_data_only_fills_background() raises:
+def test_render_single_axis_raises_on_no_data() raises:
+    # #206: see test_render_nightingale_raises_on_no_data above.
     var x = List[Float64]()
-    var _hoisted4 = single_axis(x, width=200, height=150)
-    var c = render(_hoisted4)
-    _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
+    with assert_raises():
+        var _hoisted4 = single_axis(x, width=200, height=150)
+        _ = render(_hoisted4)
 
 
 def main() raises:

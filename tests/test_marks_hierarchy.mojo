@@ -108,13 +108,17 @@ def test_render_sunburst_raises_on_mismatched_length() raises:
         _ = render(_hoisted8)
 
 
-def test_render_sunburst_empty_data_only_fills_background() raises:
+def test_render_sunburst_raises_on_no_data() raises:
+    # #206: an empty hierarchy used to render a plain background with no
+    # error; _build_hierarchy_index's existing "no root found" raise now
+    # actually fires (the render-time empty guard used to intercept it
+    # first and return a blank result instead).
     var ids = List[String]()
     var parents = List[String]()
     var values = List[Float64]()
-    var _hoisted9 = sunburst(ids, parents, values, width=100, height=80)
-    var c = render(_hoisted9)
-    _assert_color(c, 50, 40, BG, "no hierarchy: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted9 = sunburst(ids, parents, values, width=100, height=80)
+        _ = render(_hoisted9)
 
 
 def test_render_sunburst_raises_on_a_cycle() raises:
@@ -208,13 +212,14 @@ def test_render_tree_raises_on_mismatched_length() raises:
         _ = render(_hoisted4)
 
 
-def test_render_tree_empty_data_only_fills_background() raises:
+def test_render_tree_raises_on_no_data() raises:
+    # #206: see test_render_sunburst_raises_on_no_data above.
     var ids = List[String]()
     var parents = List[String]()
     var values = List[Float64]()
-    var _hoisted5 = tree(ids, parents, values, width=100, height=80)
-    var c = render(_hoisted5)
-    _assert_color(c, 50, 40, BG, "no hierarchy: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted5 = tree(ids, parents, values, width=100, height=80)
+        _ = render(_hoisted5)
 
 # ---------------------------------------------------------------
 # from tests/test_treemap.mojo
@@ -289,13 +294,14 @@ def test_render_treemap_raises_on_mismatched_length() raises:
         _ = render(_hoisted5)
 
 
-def test_render_treemap_empty_data_only_fills_background() raises:
+def test_render_treemap_raises_on_no_data() raises:
+    # #206: see test_render_sunburst_raises_on_no_data above.
     var ids = List[String]()
     var parents = List[String]()
     var values = List[Float64]()
-    var _hoisted6 = treemap(ids, parents, values, width=100, height=80)
-    var c = render(_hoisted6)
-    _assert_color(c, 50, 40, BG, "no hierarchy: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted6 = treemap(ids, parents, values, width=100, height=80)
+        _ = render(_hoisted6)
 
 # ---------------------------------------------------------------
 # from tests/test_chord.mojo
@@ -381,13 +387,15 @@ def test_render_chord_raises_on_all_zero_values() raises:
         _ = render(_hoisted4)
 
 
-def test_render_chord_empty_data_only_fills_background() raises:
+def test_render_chord_raises_on_no_data() raises:
+    # #206: an empty edge list used to render a plain background with no
+    # error; _validate_edge_encoding now raises before any layout.
     var from_cats = List[String]()
     var to_cats = List[String]()
     var values = List[Float64]()
-    var _hoisted5 = chord(from_cats, to_cats, values, width=200, height=150)
-    var c = render(_hoisted5)
-    _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
+    with assert_raises():
+        var _hoisted5 = chord(from_cats, to_cats, values, width=200, height=150)
+        _ = render(_hoisted5)
 
 # ---------------------------------------------------------------
 # from tests/test_arc_diagram.mojo
@@ -466,13 +474,14 @@ def test_render_arc_diagram_raises_on_mismatched_length() raises:
         _ = render(_hoisted4)
 
 
-def test_render_arc_diagram_empty_data_only_fills_background() raises:
+def test_render_arc_diagram_raises_on_no_data() raises:
+    # #206: see test_render_chord_raises_on_no_data above.
     var from_c = List[String]()
     var to_c = List[String]()
     var v = List[Float64]()
-    var _hoisted5 = arc_diagram(from_c, to_c, v, width=100, height=80)
-    var c = render(_hoisted5)
-    _assert_color(c, 50, 40, BG, "no edges: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted5 = arc_diagram(from_c, to_c, v, width=100, height=80)
+        _ = render(_hoisted5)
 
 # ---------------------------------------------------------------
 # from tests/test_graph.mojo
@@ -543,13 +552,14 @@ def test_render_graph_raises_on_mismatched_length() raises:
         _ = render(_hoisted4)
 
 
-def test_render_graph_empty_data_only_fills_background() raises:
+def test_render_graph_raises_on_no_data() raises:
+    # #206: see test_render_chord_raises_on_no_data above.
     var from_c = List[String]()
     var to_c = List[String]()
     var v = List[Float64]()
-    var _hoisted5 = graph(from_c, to_c, v, width=100, height=80)
-    var c = render(_hoisted5)
-    _assert_color(c, 50, 40, BG, "no edges: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted5 = graph(from_c, to_c, v, width=100, height=80)
+        _ = render(_hoisted5)
 
 # ---------------------------------------------------------------
 # from tests/test_sankey.mojo
@@ -668,13 +678,14 @@ def test_render_sankey_raises_on_mismatched_length() raises:
         _ = render(_hoisted6)
 
 
-def test_render_sankey_empty_data_only_fills_background() raises:
+def test_render_sankey_raises_on_no_data() raises:
+    # #206: see test_render_chord_raises_on_no_data above.
     var from_c = List[String]()
     var to_c = List[String]()
     var v = List[Float64]()
-    var _hoisted7 = sankey(from_c, to_c, v, width=100, height=80)
-    var c = render(_hoisted7)
-    _assert_color(c, 50, 40, BG, "no edges: nothing drawn but the background")
+    with assert_raises():
+        var _hoisted7 = sankey(from_c, to_c, v, width=100, height=80)
+        _ = render(_hoisted7)
 
 
 def main() raises:

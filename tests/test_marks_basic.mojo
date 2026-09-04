@@ -414,16 +414,13 @@ def test_render_bar_raises_on_mismatched_category_length() raises:
         _ = render(_hoisted2)
 
 
-def test_render_bar_empty_data_only_fills_background() raises:
-    var plot = Plot().mark_bar().size(50, 40)  # no encode_categorical() call
-    var c = render(plot)
-    var expected = Theme.default().background
-    for y in range(c.height):
-        for x in range(c.width):
-            var p = c.get_pixel(x, y)
-            assert_equal(p.r, expected.r)
-            assert_equal(p.g, expected.g)
-            assert_equal(p.b, expected.b)
+def test_render_bar_raises_on_no_data() raises:
+    # #206: an all-empty Plot used to render a plain background with no
+    # axes and no error; _validate_categorical_encoding now raises before
+    # any layout.
+    with assert_raises():
+        var plot = Plot().mark_bar().size(50, 40)  # no encode_categorical() call
+        _ = render(plot)
 
 
 def test_render_bar_negative_values_extend_below_the_baseline() raises:

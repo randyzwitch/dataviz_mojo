@@ -69,12 +69,13 @@ def test_render_beeswarm_raises_on_empty_category_distribution() raises:
         _ = render(_hoisted3)
 
 
-def test_render_beeswarm_empty_categories_only_fills_background() raises:
+def test_render_beeswarm_raises_on_no_data() raises:
+    # #206: encode_distribution() now raises immediately on empty
+    # categories, before beeswarm() even returns a Plot to render.
     var cats = List[String]()
     var vals = List[List[Float64]]()
-    var _hoisted4 = beeswarm(cats, vals, width=200, height=150)
-    var c = render(_hoisted4)
-    _assert_color(c, 100, 75, BG, "no categories -- background everywhere")
+    with assert_raises():
+        _ = beeswarm(cats, vals, width=200, height=150)
 
 # ---------------------------------------------------------------
 # from tests/test_violin.mojo
@@ -208,12 +209,12 @@ def test_render_violin_raises_on_empty_category_distribution() raises:
         _ = render(_hoisted9)
 
 
-def test_render_violin_empty_categories_only_fills_background() raises:
+def test_render_violin_raises_on_no_data() raises:
+    # #206: see test_render_beeswarm_raises_on_no_data above.
     var cats = List[String]()
     var vals = List[List[Float64]]()
-    var _hoisted10 = violin(cats, vals, width=200, height=150)
-    var c = render(_hoisted10)
-    _assert_color(c, 100, 75, BG, "no categories -- background everywhere")
+    with assert_raises():
+        _ = violin(cats, vals, width=200, height=150)
 
 # ---------------------------------------------------------------
 # from tests/test_ridgeline.mojo
@@ -345,12 +346,12 @@ def test_render_ridgeline_raises_on_empty_category_distribution() raises:
         _ = render(_hoisted8)
 
 
-def test_render_ridgeline_empty_categories_only_fills_background() raises:
+def test_render_ridgeline_raises_on_no_data() raises:
+    # #206: see test_render_beeswarm_raises_on_no_data above.
     var cats = List[String]()
     var vals = List[List[Float64]]()
-    var _hoisted9 = ridgeline(cats, vals, width=200, height=150)
-    var c = render(_hoisted9)
-    _assert_color(c, 100, 75, BG, "no categories -- background everywhere")
+    with assert_raises():
+        _ = ridgeline(cats, vals, width=200, height=150)
 
 # ---------------------------------------------------------------
 # from tests/test_streamgraph.mojo
@@ -473,13 +474,16 @@ def test_render_streamgraph_raises_on_mismatched_series_names_and_values_length(
         _ = render(_hoisted2)
 
 
-def test_render_streamgraph_empty_categories_only_fills_background() raises:
+def test_render_streamgraph_raises_on_no_data() raises:
+    # #206: _validate_grouped_bar_series now raises on empty categories at
+    # render() time (encode_grouped_bar() itself still defers length
+    # checking, per its own docstring).
     var cats = List[String]()
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [List[Float64]()]
-    var _hoisted3 = streamgraph(cats, names, vals, width=200, height=150)
-    var c = render(_hoisted3)
-    _assert_color(c, 100, 75, BG, "no categories -- background everywhere")
+    with assert_raises():
+        var _hoisted3 = streamgraph(cats, names, vals, width=200, height=150)
+        _ = render(_hoisted3)
 
 # ---------------------------------------------------------------
 # from tests/test_bump.mojo
@@ -537,13 +541,14 @@ def test_render_bump_raises_on_mismatched_series_names_and_values_length() raise
         _ = render(_hoisted1)
 
 
-def test_render_bump_empty_categories_only_fills_background() raises:
+def test_render_bump_raises_on_no_data() raises:
+    # #206: see test_render_streamgraph_raises_on_no_data above.
     var cats = List[String]()
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [List[Float64]()]
-    var _hoisted2 = bump(cats, names, vals, width=200, height=150)
-    var c = render(_hoisted2)
-    _assert_color(c, 100, 75, BG, "no categories -- background everywhere")
+    with assert_raises():
+        var _hoisted2 = bump(cats, names, vals, width=200, height=150)
+        _ = render(_hoisted2)
 
 # ---------------------------------------------------------------
 # from tests/test_effect_scatter.mojo
@@ -589,12 +594,14 @@ def test_render_point_mark_draws_no_halo() raises:
     assert_true('r="9"' not in s, "no halo circle for a plain Mark.POINT plot")
 
 
-def test_render_effect_scatter_empty_data_only_fills_background() raises:
+def test_render_effect_scatter_raises_on_no_data() raises:
+    # #206: Plot.encode()'s empty-data check (_require_non_empty) now
+    # raises at render() time for Mark.EFFECT_SCATTER same as Mark.POINT.
     var x = List[Float64]()
     var y = List[Float64]()
-    var _hoisted2 = effect_scatter(x, y, width=200, height=150)
-    var c = render(_hoisted2)
-    _assert_color(c, 100, 75, BG, "no data at all -- background everywhere")
+    with assert_raises():
+        var _hoisted2 = effect_scatter(x, y, width=200, height=150)
+        _ = render(_hoisted2)
 
 
 def main() raises:

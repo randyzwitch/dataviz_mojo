@@ -13,8 +13,8 @@ from dataviz.plot import (
     _TextRequest,
     _draw_legend,
     _dynamic_legend_width,
-    _empty_result,
     _finished,
+    _require_non_empty,
 )
 from dataviz.theme import Theme
 
@@ -143,9 +143,9 @@ def _render_polar[
                 raise Error("Plot: Mark.POLAR radius values must be non-negative (got " + String(r) + ")")
 
     var theme = plot._theme
-    if len(plot._polar.angle) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
+    _require_non_empty(
+        len(plot._polar.angle), "Plot.encode_polar()/encode_polar_series()"
+    )
     var text_requests = List[_TextRequest]()
     var sc = _Scaled(theme)
     var show_legend = is_multi and theme.show_legend

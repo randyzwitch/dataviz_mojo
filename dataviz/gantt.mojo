@@ -11,9 +11,9 @@ from dataviz.plot import (
     _TextRequest,
     _axis_pixel,
     _data_extent,
-    _empty_result,
     _max_label_width,
     _finished,
+    _require_non_empty,
 )
 from dataviz.scale import LinearScale
 from dataviz.theme import Theme
@@ -205,9 +205,7 @@ def _render_gantt[
         )
 
     var theme = plot._theme
-    if len(plot.x_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
+    _require_non_empty(len(plot.x_categories), "Plot.encode_gantt()")
     var domain_data = List[Float64]()
     for v in plot._gantt.start:
         domain_data.append(v)

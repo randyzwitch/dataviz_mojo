@@ -12,7 +12,6 @@ from dataviz.plot import (
     _RenderResult,
     _Scaled,
     _TextRequest,
-    _empty_result,
     _min_max,
     _finished,
 )
@@ -44,9 +43,6 @@ def _render_arc_diagram[
     _validate_edge_encoding(plot, "Mark.ARC_DIAGRAM")
 
     var theme = plot._theme
-    if len(plot._edges.from_categories) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
-
     var edges = _edge_node_index(plot._edges.from_categories, plot._edges.to_categories)
     ref nodes = edges.nodes
     var n = len(nodes)

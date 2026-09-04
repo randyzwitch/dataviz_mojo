@@ -11,9 +11,9 @@ from dataviz.plot import (
     _axis_pixel,
     _data_extent,
     _draw_point_layer,
-    _empty_result,
     _legend_reserve_for,
     _finished,
+    _require_non_empty,
     _validate_continuous_encoding,
 )
 from dataviz.scale import LinearScale
@@ -130,10 +130,9 @@ def _render_single_axis[
     row so the loop has a same-length list to index.
     """
     _validate_continuous_encoding(plot, "Plot.encode_single_axis()")
+    _require_non_empty(len(plot.x_data), "Plot.encode_single_axis()")
 
     var theme = plot._theme
-    if len(plot.x_data) == 0:
-        return _empty_result(ox0, oy0, ox1, oy1)
 
     var sc = _Scaled(theme)
     var ch = _PointChannels(plot, sc)
