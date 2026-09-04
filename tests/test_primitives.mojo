@@ -9,7 +9,7 @@ named color through a real render), and array_like.mojo
 Int conversion up to 2^53, whole-number labels from List[Int]).
 """
 
-from _test_helpers import _count_color
+from _test_helpers import Lcg, _count_color
 from canvas.color import Color
 from dataviz import (
     CORNFLOWERBLUE,
@@ -51,6 +51,7 @@ from dataviz.scale import (
     _nice_step,
 )
 from dataviz.theme import Theme
+from std.math import floor, log10, pow
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from std.utils.numerics import inf, nan
 
@@ -892,6 +893,333 @@ def test_encode_grouped_bar_accepts_a_custom_stringsequence_matching_the_list_pa
     var svg_from_list = render_svg(plot_from_list).to_string()
 
     assert_equal(svg_from_buffer, svg_from_list)
+
+
+# ---------------------------------------------------------------
+# Property-style sweeps (#220)
+#
+# The scale math has crisp invariants that hold for every input, and
+# the hand-picked domains elsewhere in this file only pin a handful of
+# points on them. These sweep a few hundred generated domains per run
+# through a fixed-seed `Lcg` (_test_helpers.mojo), so a failure repeats
+# on the next run and prints the case that produced it -- which is what
+# makes it liftable into a fixed regression test above.
+#
+# Each sweep asserts once, after the loop, rather than per case: a
+# failure message naming the offending domain is worth more than
+# knowing only that some case failed.
+# ---------------------------------------------------------------
+
+
+def _sweep_domain(mut rng: Lcg) -> Tuple[Float64, Float64]:
+    """One random non-empty domain, spanning magnitudes from about
+    1e-6 to 1e9 and straddling zero roughly a third of the time. The
+    exponent is drawn uniformly rather than the value, so tiny and huge
+    spans are sampled equally rather than the sweep spending nearly
+    every case in the largest decade.
+    """
+    var exponent = rng.uniform(-6.0, 9.0)
+    var span = pow(10.0, exponent)
+    var lo = rng.uniform(-span, span) if rng.unit() < 0.33 else rng.uniform(
+        0.0, span
+    )
+    return (lo, lo + span)
+
+
+def test_sweep_linear_ticks_stay_inside_the_domain_and_are_evenly_spaced() raises:
+    """`LinearScale.ticks(n)`: every tick lies inside the domain, ticks
+    strictly increase, and consecutive gaps are equal.
+
+    The gap check compares against the first gap with a relative
+    tolerance: the positions are built by repeated addition, so the
+    last gap can differ from the first in the low bits at large
+    magnitudes without the sequence being anything but even.
+    """
+    var rng = Lcg(20240220)
+    var failure = String("")
+    var checked = 0
+    for _ in range(300):
+        var d = _sweep_domain(rng)
+        var lo = d[0]
+        var hi = d[1]
+        var target = 2 + rng.below(9)
+        var ticks = LinearScale(lo, hi, 0.0, 100.0).ticks(target)
+        ref v = ticks.values
+        checked += 1
+
+        var span = hi - lo
+        for i in range(len(v)):
+            # A tolerance of one part in 1e9 of the span, not an exact
+            # compare: start/stop come from ceil/floor of a division,
+            # which lands a boundary tick a rounding step outside.
+            if v[i] < lo - span * 1e-9 or v[i] > hi + span * 1e-9:
+                failure = (
+                    "tick "
+                    + String(v[i])
+                    + " outside domain ["
+                    + String(lo)
+                    + ", "
+                    + String(hi)
+                    + "]"
+                )
+                break
+        if failure:
+            break
+
+        for i in range(1, len(v)):
+            if v[i] <= v[i - 1]:
+                failure = (
+                    "ticks not strictly increasing at index "
+                    + String(i)
+                    + " for domain ["
+                    + String(lo)
+                    + ", "
+                    + String(hi)
+                    + "]"
+                )
+                break
+        if failure:
+            break
+
+        if len(v) >= 3:
+            var first_gap = v[1] - v[0]
+            for i in range(2, len(v)):
+                var gap = v[i] - v[i - 1]
+                if abs(gap - first_gap) > abs(first_gap) * 1e-6:
+                    failure = (
+                        "uneven gap "
+                        + String(gap)
+                        + " vs "
+                        + String(first_gap)
+                        + " for domain ["
+                        + String(lo)
+                        + ", "
+                        + String(hi)
+                        + "]"
+                    )
+                    break
+        if failure:
+            break
+
+    assert_equal(checked, 300, "every generated domain was checked")
+    assert_true(failure == "", failure)
+
+
+def test_sweep_linear_tick_labels_match_their_values_and_stay_distinct() raises:
+    """`labels()` returns one label per tick, and no two repeat -- the
+    decimal count comes from the step's exponent, so consecutive ticks
+    always differ in a place the label actually shows.
+    """
+    var rng = Lcg(555)
+    var failure = String("")
+    for _ in range(200):
+        var d = _sweep_domain(rng)
+        var ticks = LinearScale(d[0], d[1], 0.0, 100.0).ticks(2 + rng.below(9))
+        var labels = ticks.labels()
+        if len(labels) != len(ticks.values):
+            failure = (
+                "label count "
+                + String(len(labels))
+                + " != tick count "
+                + String(len(ticks.values))
+                + " for domain ["
+                + String(d[0])
+                + ", "
+                + String(d[1])
+                + "]"
+            )
+            break
+        for i in range(1, len(labels)):
+            if labels[i] == labels[i - 1]:
+                failure = (
+                    "repeated label '"
+                    + labels[i]
+                    + "' for domain ["
+                    + String(d[0])
+                    + ", "
+                    + String(d[1])
+                    + "]"
+                )
+                break
+        if failure:
+            break
+    assert_true(failure == "", failure)
+
+
+def test_sweep_nice_step_is_a_1_2_or_5_times_a_power_of_ten() raises:
+    """`_nice_step` returns `{1, 2, 5} * 10^k`, and its exponent is that
+    `k` -- the exponent is reported separately precisely because it
+    can't be recovered from the step by `log10` afterwards.
+    """
+    var rng = Lcg(99)
+    var failure = String("")
+    for _ in range(300):
+        var d = _sweep_domain(rng)
+        var target = 2 + rng.below(9)
+        var nice = _nice_step(d[0], d[1], target)
+        var mantissa = nice.step / pow(10.0, Float64(nice.exponent))
+        var is_nice = (
+            abs(mantissa - 1.0) < 1e-6
+            or abs(mantissa - 2.0) < 1e-6
+            or abs(mantissa - 5.0) < 1e-6
+        )
+        if not is_nice:
+            failure = (
+                "step "
+                + String(nice.step)
+                + " has mantissa "
+                + String(mantissa)
+                + " (exponent "
+                + String(nice.exponent)
+                + ") for domain ["
+                + String(d[0])
+                + ", "
+                + String(d[1])
+                + "]"
+            )
+            break
+    assert_true(failure == "", failure)
+
+
+def test_sweep_nice_step_lands_within_a_factor_of_the_requested_count() raises:
+    """The step divides the span into roughly `target_count` pieces:
+    rounding a raw step up to the next `{1, 2, 5}` can at most double
+    it, so `span / step` stays inside [target/2.5, target*2.5].
+    """
+    var rng = Lcg(4242)
+    var failure = String("")
+    for _ in range(300):
+        var d = _sweep_domain(rng)
+        var target = 2 + rng.below(9)
+        var nice = _nice_step(d[0], d[1], target)
+        var pieces = (d[1] - d[0]) / nice.step
+        if pieces < Float64(target) / 2.5 or pieces > Float64(target) * 2.5:
+            failure = (
+                "span/step = "
+                + String(pieces)
+                + " for target "
+                + String(target)
+                + ", domain ["
+                + String(d[0])
+                + ", "
+                + String(d[1])
+                + "]"
+            )
+            break
+    assert_true(failure == "", failure)
+
+
+def test_sweep_format_fixed_round_trips_within_half_an_ulp_of_its_last_digit() raises:
+    """Parsing `_format_fixed(v, d)` back gives a value within
+    `0.5 * 10^-d` of `v` -- the most the last shown digit can be off by
+    if it rounded correctly -- with no doubled sign and no `-0`.
+    """
+    var rng = Lcg(31337)
+    var failure = String("")
+    for _ in range(400):
+        var magnitude = pow(10.0, rng.uniform(-4.0, 8.0))
+        var value = rng.uniform(-magnitude, magnitude)
+        var decimals = rng.below(7)
+        var text = _format_fixed(value, decimals)
+
+        if text.startswith("--") or "-" in String(text[byte=1:]):
+            failure = "doubled or misplaced sign in '" + text + "'"
+            break
+        if decimals == 0 and text == "-0":
+            failure = (
+                "negative zero from _format_fixed(" + String(value) + ", 0)"
+            )
+            break
+
+        var tolerance = 0.5 * pow(10.0, -Float64(decimals))
+        # The value itself carries relative error at these magnitudes,
+        # so allow the greater of the digit tolerance and 1e-9 relative.
+        var slack = max(tolerance, abs(value) * 1e-9)
+        var parsed = Float64(text)
+        if abs(parsed - value) > slack:
+            failure = (
+                "'"
+                + text
+                + "' parses to "
+                + String(parsed)
+                + ", off from "
+                + String(value)
+                + " by more than "
+                + String(slack)
+            )
+            break
+    assert_true(failure == "", failure)
+
+
+def test_sweep_log_ticks_are_1_2_or_5_decade_positions_inside_the_domain() raises:
+    """`_log_ticks` returns only `{1, 2, 5} * 10^k` positions, all inside
+    the real-unit bounds.
+
+    Its arguments are in log10-space (see its docstring), so the real
+    bounds are `10^domain_min`/`10^domain_max` -- the sweep generates
+    the exponents directly. The documented fallback for a domain too
+    narrow to contain any 1/2/5 multiple returns the two real endpoints
+    instead, which are not decade positions and are exempted here by the
+    same test the function itself uses: exactly two values, equal to the
+    bounds.
+    """
+    var rng = Lcg(1618)
+    var failure = String("")
+    for _ in range(200):
+        var lo_exp = rng.uniform(-6.0, 4.0)
+        var hi_exp = lo_exp + rng.uniform(0.05, 5.0)
+        var lo = pow(10.0, lo_exp)
+        var hi = pow(10.0, hi_exp)
+        var ticks = _log_ticks(lo_exp, hi_exp)
+        ref v = ticks.values
+
+        var is_endpoint_fallback = (
+            len(v) == 2
+            and abs(v[0] - lo) <= abs(lo) * 1e-9
+            and abs(v[1] - hi) <= abs(hi) * 1e-9
+        )
+
+        for i in range(len(v)):
+            if v[i] < lo * (1.0 - 1e-9) or v[i] > hi * (1.0 + 1e-9):
+                failure = (
+                    "log tick "
+                    + String(v[i])
+                    + " outside real bounds ["
+                    + String(lo)
+                    + ", "
+                    + String(hi)
+                    + "] (exponents "
+                    + String(lo_exp)
+                    + ", "
+                    + String(hi_exp)
+                    + ")"
+                )
+                break
+            if is_endpoint_fallback:
+                continue
+            var exponent = floor(log10(v[i]) + 1e-9)
+            var mantissa = v[i] / pow(10.0, exponent)
+            var is_nice = (
+                abs(mantissa - 1.0) < 1e-6
+                or abs(mantissa - 2.0) < 1e-6
+                or abs(mantissa - 5.0) < 1e-6
+            )
+            if not is_nice:
+                failure = (
+                    "log tick "
+                    + String(v[i])
+                    + " has mantissa "
+                    + String(mantissa)
+                    + " (exponents "
+                    + String(lo_exp)
+                    + ", "
+                    + String(hi_exp)
+                    + ")"
+                )
+                break
+        if failure:
+            break
+    assert_true(failure == "", failure)
 
 
 def main() raises:
