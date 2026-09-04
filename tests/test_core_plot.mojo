@@ -1722,7 +1722,7 @@ def test_render_svg_shape_by_category_matches_hand_derived_geometry() raises:
     # straight down (cy+r*0.5, cx+-r*cos(30deg), cos(30deg)=0.8660254).
     assert_true(
         '<path d="M191.000,131.000 L194.464,137.000 L187.536,137.000 Z"'
-        ' fill="#2ca02c"/>'
+        ' fill="#2ca02c" fill-rule="evenodd"/>'
         in s,
         "C -> TRIANGLE",
     )
@@ -1730,7 +1730,7 @@ def test_render_svg_shape_by_category_matches_hand_derived_geometry() raises:
     # per cardinal direction, each exactly radius from center.
     assert_true(
         '<path d="M249.000,131.000 L253.000,135.000 L249.000,139.000'
-        ' L245.000,135.000 Z" fill="#d62728"/>'
+        ' L245.000,135.000 Z" fill="#d62728" fill-rule="evenodd"/>'
         in s,
         "D -> DIAMOND",
     )

@@ -515,13 +515,13 @@ def test_render_arc_diagram_svg_matches_confirmed_geometry() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<path d="M60.000,250.000 A80.000,80.000 0 1,1 220.000,250.000"'
+        '<path d="M60.000,250.000 A80.000,80.000 0 0,1 220.000,250.000"'
         ' fill="none" stroke="#1f77b4" stroke-width="6.000"'
         in s,
         "A->B's arc: center (140,250), radius 80, width 6 (frac 1.0)",
     )
     assert_true(
-        '<path d="M220.000,250.000 A80.000,80.000 0 1,1 380.000,250.000"'
+        '<path d="M220.000,250.000 A80.000,80.000 0 0,1 380.000,250.000"'
         ' fill="none" stroke="#ff7f0e" stroke-width="4.000"'
         in s,
         "B->C's arc: center (300,250), radius 80, width 4 (frac 0.5)",
@@ -696,7 +696,7 @@ def test_render_sankey_svg_matches_confirmed_geometry() raises:
     var s = svg.to_string()
     assert_true(
         '<path d="M72.000,20.000 L72.000,250.000 L368.000,250.000'
-        ' L368.000,20.000 Z" fill="#1f77b4"/>'
+        ' L368.000,20.000 Z" fill="#1f77b4" fill-rule="evenodd"/>'
         in s,
         "the ribbon, A's column edge to B's column edge",
     )

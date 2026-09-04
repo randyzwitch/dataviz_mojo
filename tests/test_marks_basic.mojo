@@ -412,7 +412,7 @@ def test_render_svg_area_smoothing_matches_hand_derived_curve() raises:
     assert_true(
         '<path d="M74.545,206.190 C98.788,176.984 171.515,38.254 220.000,30.952'
         " C268.485,23.651 341.212,140.476 365.455,162.381 L365.455,249.000"
-        ' L74.545,249.000 Z" fill="#1e64b4"/>'
+        ' L74.545,249.000 Z" fill="#1e64b4" fill-rule="evenodd"/>'
         in svg.to_string(),
         (
             "the smoothed top edge, then two straight line_to()s down to"

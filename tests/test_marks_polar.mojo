@@ -287,13 +287,13 @@ def test_render_nightingale_svg_matches_confirmed_wedge_paths() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<path d="M220.000,135.000 L220.000,100.500 A34.500,34.500 0 1,1'
+        '<path d="M220.000,135.000 L220.000,100.500 A34.500,34.500 0 0,1'
         ' 220.000,169.500 Z" fill="#1f77b4"/>'
         in s,
         "wedge 0 (value 1, frac 1/3, radius 34.5, span -90.90)",
     )
     assert_true(
-        '<path d="M220.000,135.000 L220.000,238.500 A103.500,103.500 0 1,1'
+        '<path d="M220.000,135.000 L220.000,238.500 A103.500,103.500 0 0,1'
         ' 220.000,31.500 Z" fill="#ff7f0e"/>'
         in s,
         "wedge 1 (value 3, frac 1.0, radius 103.5, span 90.270)",
