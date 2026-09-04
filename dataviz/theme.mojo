@@ -50,6 +50,7 @@ from canvas.color import Color
 
 from dataviz.colors import WHITE
 from dataviz.output_format import OutputFormat
+from dataviz.x_label_rotation import XAxisLabelRotation
 
 
 struct Theme(ImplicitlyCopyable, Movable):
@@ -264,6 +265,11 @@ struct Theme(ImplicitlyCopyable, Movable):
     coarser `Ticks.decimals`. A `Theme` flag rather than an `encode()`
     channel, like `color_by_sign`.
     """
+    var x_label_rotation: XAxisLabelRotation
+    """Whether/how far `_draw_categorical_axis_frame`'s x-axis tick
+    labels rotate when they would otherwise overlap; see
+    `XAxisLabelRotation`'s own docstring. Defaults to `AUTO` (#214).
+    """
 
     def __init__(
         out self,
@@ -319,6 +325,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         output_format: OutputFormat = OutputFormat.SVG,
         svg_tooltips: Bool = True,
         show_data_labels: Bool = False,
+        x_label_rotation: XAxisLabelRotation = XAxisLabelRotation.AUTO,
     ):
         """Construct a `Theme`, overriding any subset of its fields by keyword.
         Every parameter is one field with the same name and default; see
@@ -376,6 +383,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.output_format = output_format
         self.svg_tooltips = svg_tooltips
         self.show_data_labels = show_data_labels
+        self.x_label_rotation = x_label_rotation
 
     @staticmethod
     def default() -> Self:
