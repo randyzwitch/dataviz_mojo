@@ -14,6 +14,69 @@ from dataviz.colors import WHITE
 comptime BG = WHITE
 
 
+struct Lcg(Movable):
+    """A tiny linear congruential generator, for the property-style
+    sweeps (#220). Its own generator rather than a dependency, and
+    deterministic rather than seeded from the clock: a sweep that fails
+    has to fail again on the next run, and the failing case has to be
+    reproducible from the seed alone so it can be lifted into a fixed
+    regression test.
+
+    Knuth's MMIX constants. The low bits of an LCG are famously poor,
+    so every draw is taken from the high 32 bits.
+    """
+
+    var _state: UInt64
+
+    def __init__(out self, seed: UInt64 = 1):
+        """Construct a generator.
+
+        Args:
+            seed: Starting state; any value gives a distinct stream.
+        """
+        self._state = seed
+
+    def next_bits(mut self) -> UInt64:
+        """The next 32-bit draw, taken from the state's high bits.
+
+        Returns:
+            A value in [0, 2^32).
+        """
+        self._state = self._state * 6364136223846793005 + 1442695040888963407
+        return self._state >> 32
+
+    def unit(mut self) -> Float64:
+        """The next draw as a fraction.
+
+        Returns:
+            A value in [0, 1).
+        """
+        return Float64(self.next_bits()) / 4294967296.0
+
+    def uniform(mut self, lo: Float64, hi: Float64) -> Float64:
+        """The next draw scaled to a range.
+
+        Args:
+            lo: Lower bound, inclusive.
+            hi: Upper bound, exclusive.
+
+        Returns:
+            A value in [lo, hi).
+        """
+        return lo + self.unit() * (hi - lo)
+
+    def below(mut self, n: Int) -> Int:
+        """The next draw as an index.
+
+        Args:
+            n: Exclusive upper bound; must be positive.
+
+        Returns:
+            A value in [0, n).
+        """
+        return Int(self.next_bits() % UInt64(n))
+
+
 def _count_color(c: Canvas, color: Color) -> Int:
     var count = 0
     for y in range(c.height):

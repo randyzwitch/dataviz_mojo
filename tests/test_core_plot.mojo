@@ -33,6 +33,7 @@
 
 from _test_helpers import (
     BG,
+    Lcg,
     _assert_color,
     _assert_near_color,
     _count_color,
@@ -2461,6 +2462,156 @@ def test_svg_tooltips_off_on_the_newly_covered_marks() raises:
         funnel(cats, vals, theme=t, width=250, height=180)
     ).to_string()
     assert_true("<title>" not in fu, "funnel")
+
+
+# ---------------------------------------------------------------
+# Property-style sweeps for _decimate_to_pixel_columns (#220)
+# ---------------------------------------------------------------
+
+
+def test_sweep_decimation_preserves_each_column_envelope() raises:
+    """Decimation's whole claim is that it drops points without moving
+    the envelope: for every horizontal pixel column, the minimum and
+    maximum `py` among that column's input samples both survive into the
+    output. A spike inside one column still reaches its true extent.
+
+    Also checks the length bound (at most two points per column) and
+    that the output keeps `px` non-decreasing, since a path that doubled
+    back would be drawn in a different order than the data.
+    """
+    var rng = Lcg(760813)
+    var failure = String("")
+    for _ in range(120):
+        # Enough points per column to make decimation engage (it declines
+        # unless n > 2 * columns).
+        var columns = 5 + rng.below(60)
+        var per_column = 3 + rng.below(8)
+        var n = columns * per_column
+
+        var px = List[Float64](capacity=n)
+        var py = List[Float64](capacity=n)
+        for i in range(n):
+            # Non-decreasing x spread across `columns` integer columns.
+            px.append(Float64(i) * Float64(columns) / Float64(n))
+            py.append(rng.uniform(-1000.0, 1000.0))
+
+        var d = _decimate_to_pixel_columns(px, py)
+        if not d.applied:
+            # Fine in principle, but this sweep is built so it engages;
+            # if it declines the case is not testing anything.
+            failure = (
+                "decimation declined for n="
+                + String(n)
+                + ", columns="
+                + String(columns)
+            )
+            break
+
+        var span = Int(px[n - 1]) - Int(px[0]) + 1
+        if len(d.px) > 2 * span:
+            failure = (
+                "output length "
+                + String(len(d.px))
+                + " exceeds 2 * "
+                + String(span)
+            )
+            break
+        if len(d.px) != len(d.py):
+            failure = "px/py length mismatch in the decimated output"
+            break
+
+        for i in range(1, len(d.px)):
+            if d.px[i] < d.px[i - 1]:
+                failure = "decimated px went backwards at index " + String(i)
+                break
+        if failure:
+            break
+
+        # Walk the input's columns and require each column's extremes to
+        # appear in the output.
+        var i = 0
+        while i < n:
+            var col = Int(px[i])
+            var lo = py[i]
+            var hi = py[i]
+            var j = i
+            while j + 1 < n and Int(px[j + 1]) == col:
+                j += 1
+                if py[j] < lo:
+                    lo = py[j]
+                if py[j] > hi:
+                    hi = py[j]
+
+            var saw_lo = False
+            var saw_hi = False
+            for k in range(len(d.px)):
+                if Int(d.px[k]) != col:
+                    continue
+                if d.py[k] == lo:
+                    saw_lo = True
+                if d.py[k] == hi:
+                    saw_hi = True
+            if not saw_lo or not saw_hi:
+                failure = (
+                    "column "
+                    + String(col)
+                    + " lost its envelope (min "
+                    + String(lo)
+                    + " kept: "
+                    + String(saw_lo)
+                    + ", max "
+                    + String(hi)
+                    + " kept: "
+                    + String(saw_hi)
+                    + ")"
+                )
+                break
+            i = j + 1
+        if failure:
+            break
+
+    assert_true(failure == "", failure)
+
+
+def test_sweep_decimation_declines_on_any_non_monotonic_x() raises:
+    """One backwards step anywhere in `px` makes decimation decline and
+    hand back the input untouched -- the guard exists because
+    `mark_line()` connects points in data order, so reordering them
+    would redraw the line differently.
+    """
+    var rng = Lcg(4711)
+    var failure = String("")
+    for _ in range(120):
+        var columns = 5 + rng.below(40)
+        var n = columns * 4
+        var px = List[Float64](capacity=n)
+        var py = List[Float64](capacity=n)
+        for i in range(n):
+            px.append(Float64(i) * Float64(columns) / Float64(n))
+            py.append(rng.uniform(-10.0, 10.0))
+
+        # Break monotonicity at one random interior index.
+        var at = 1 + rng.below(n - 1)
+        px[at] = px[at - 1] - 0.5
+
+        var d = _decimate_to_pixel_columns(px, py)
+        if d.applied:
+            failure = (
+                "decimation applied despite a backwards step at " + String(at)
+            )
+            break
+        if len(d.px) != n or len(d.py) != n:
+            failure = "declined output changed length"
+            break
+        for i in range(n):
+            if d.px[i] != px[i] or d.py[i] != py[i]:
+                failure = "declined output differs from the input at " + String(
+                    i
+                )
+                break
+        if failure:
+            break
+    assert_true(failure == "", failure)
 
 
 def main() raises:
