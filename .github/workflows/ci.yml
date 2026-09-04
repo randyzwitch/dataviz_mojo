@@ -10,6 +10,18 @@ permissions:
   contents: read
 
 jobs:
+  check-version:
+    name: Check [workspace]/[package] version agree
+    runs-on: ubuntu-latest
+    # Pure bash against pixi.toml's text -- no pixi/Mojo toolchain needed,
+    # so this doesn't wait on setup-pixi or share a runner with the heavy
+    # `test`/`docs-build` jobs below. See #228: nothing enforced this
+    # before, and each of #164/#187/#201 edited both fields by hand.
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v7
+      - run: bash scripts/check_version.sh
+
   test:
     strategy:
       fail-fast: false
