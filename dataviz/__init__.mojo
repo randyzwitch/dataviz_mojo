@@ -42,6 +42,7 @@ from dataviz.plot import (
 # The remaining one-call convenience functions, each from its mark's file.
 from dataviz.arc import pie
 from dataviz.bar import bar
+from dataviz.barbs import barbs
 from dataviz.beeswarm import beeswarm
 from dataviz.box import box
 from dataviz.bullet import bullet

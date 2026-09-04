@@ -9,10 +9,11 @@ Mark.CANDLESTICK, Mark.WATERFALL, and Mark.BULLET, each raster + SVG.
 
 from _test_helpers import BG, _assert_color, _assert_near_color, _count_color
 from canvas.color import Color
-from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
+from canvas.path import Path, _CLOSE, _CUBIC_TO, _LINE_TO, _MOVE_TO
 from dataviz import (
     area,
     bar,
+    barbs,
     box,
     bullet,
     candlestick,
@@ -21,6 +22,7 @@ from dataviz import (
     scatter,
     waterfall,
 )
+from dataviz.barbs import _barb_counts, _barb_glyph
 from dataviz.color_scale import default_categorical_palette
 from dataviz.colors import BLACK, WHITE
 from dataviz.plot import (
@@ -1321,6 +1323,218 @@ def test_render_bullet_raises_on_non_ascending_range_thresholds() raises:
     with assert_raises():
         var _hoisted4 = bullet(cats, one, one, ranges, width=200, height=150)
         _ = render(_hoisted4)
+
+
+# ---------------------------------------------------------------
+# Mark.BARBS
+# ---------------------------------------------------------------
+
+
+def test_barb_counts_decomposes_speed_against_the_knot_increments() raises:
+    # Speed rounds to the nearest 5 first (matplotlib's _find_tails), so
+    # the boundary cases are the interesting ones: 2.4 rounds to 0 and is
+    # calm, 2.6 rounds to 5 and draws a half barb.
+    var calm = _barb_counts(0.0)
+    assert_true(calm.calm, "0 knots is calm")
+    assert_equal(calm.flags, 0)
+    assert_equal(calm.barbs, 0)
+    assert_true(not calm.half, "0 knots has no half barb")
+
+    assert_true(_barb_counts(2.4).calm, "2.4 rounds down to nothing")
+    assert_true(not _barb_counts(2.6).calm, "2.6 rounds up to a half barb")
+    assert_true(_barb_counts(2.6).half, "2.6 rounds up to a half barb")
+
+    var seven = _barb_counts(7.4)
+    assert_equal(seven.barbs, 0, "7.4 rounds to 5, not 10")
+    assert_true(seven.half, "7.4 rounds to a half barb")
+
+    var thirteen = _barb_counts(12.6)
+    assert_equal(thirteen.barbs, 1, "12.6 rounds to 15: a barb plus a half")
+    assert_true(thirteen.half, "12.6 rounds to 15: a barb plus a half")
+
+    var sixty_five = _barb_counts(65.0)
+    assert_equal(sixty_five.flags, 1)
+    assert_equal(sixty_five.barbs, 1)
+    assert_true(sixty_five.half, "65 = 50 + 10 + 5")
+
+    assert_equal(_barb_counts(100.0).flags, 2, "100 is two flags")
+    assert_equal(_barb_counts(100.0).barbs, 0)
+
+
+def test_barb_glyph_places_features_from_the_tip_inward() raises:
+    # 65 knots on a 28px staff: one flag (width 0.25*28 = 7) at the tip,
+    # then one spacing (0.125*28 = 3.5) of clear staff, a full barb
+    # (height 0.4*28 = 11.2), and the half barb, each stepping one
+    # spacing further inboard. Features hang to -y before rotation.
+    var strokes = List[Path]()
+    var pennants = List[Path]()
+    _barb_glyph(strokes, pennants, _barb_counts(65.0), 28.0, False)
+
+    assert_equal(len(strokes), 1, "one stroke path appended")
+    assert_equal(len(pennants), 1, "one pennant path appended")
+
+    assert_equal(len(strokes[0].commands), 6)
+    # The staff, origin to tip along +x.
+    assert_equal(strokes[0].commands[0].kind, _MOVE_TO)
+    assert_equal(strokes[0].commands[0].p1.x, 0.0)
+    assert_equal(strokes[0].commands[0].p1.y, 0.0)
+    assert_equal(strokes[0].commands[1].kind, _LINE_TO)
+    assert_equal(strokes[0].commands[1].p1.x, 28.0)
+    assert_equal(strokes[0].commands[1].p1.y, 0.0)
+    # The full barb: 28 - 7 (the flag) - 3.5 (a spacing) = 17.5.
+    assert_equal(strokes[0].commands[2].kind, _MOVE_TO)
+    assert_equal(strokes[0].commands[2].p1.x, 17.5)
+    assert_equal(strokes[0].commands[3].kind, _LINE_TO)
+    assert_equal(strokes[0].commands[3].p1.x, 14.0)
+    assert_equal(strokes[0].commands[3].p1.y, -11.200000000000001)
+    # The half barb: one more spacing inboard, half the height.
+    assert_equal(strokes[0].commands[4].kind, _MOVE_TO)
+    assert_equal(strokes[0].commands[4].p1.x, 14.0)
+    assert_equal(strokes[0].commands[5].kind, _LINE_TO)
+    assert_equal(strokes[0].commands[5].p1.x, 12.25)
+    assert_equal(strokes[0].commands[5].p1.y, -5.6000000000000005)
+
+    # The flag is a closed triangle: tip, apex, back down the staff.
+    assert_equal(len(pennants[0].commands), 4)
+    assert_equal(pennants[0].commands[0].kind, _MOVE_TO)
+    assert_equal(pennants[0].commands[0].p1.x, 28.0)
+    assert_equal(pennants[0].commands[1].kind, _LINE_TO)
+    assert_equal(pennants[0].commands[1].p1.y, -11.200000000000001)
+    assert_equal(pennants[0].commands[2].kind, _LINE_TO)
+    assert_equal(pennants[0].commands[2].p1.x, 21.0)
+    assert_equal(pennants[0].commands[3].kind, _CLOSE)
+
+
+def test_barb_glyph_lone_half_barb_insets_from_the_tip() raises:
+    # A 5-knot glyph's only feature sits one spacing in from the tip, so
+    # it cannot be misread as a full barb drawn short.
+    var strokes = List[Path]()
+    var pennants = List[Path]()
+    _barb_glyph(strokes, pennants, _barb_counts(5.0), 28.0, False)
+    assert_equal(len(strokes[0].commands), 4)
+    assert_equal(len(pennants[0].commands), 0, "5 knots has no flag")
+    assert_equal(strokes[0].commands[2].kind, _MOVE_TO)
+    assert_equal(strokes[0].commands[2].p1.x, 24.5, "28 - one 3.5 spacing")
+
+
+def test_barb_glyph_flip_mirrors_features_across_the_staff() raises:
+    # flip=True is the southern-hemisphere convention: same staff, every
+    # feature on the other side.
+    var strokes = List[Path]()
+    var pennants = List[Path]()
+    _barb_glyph(strokes, pennants, _barb_counts(65.0), 28.0, True)
+    assert_equal(strokes[0].commands[1].p1.x, 28.0, "staff is unchanged")
+    assert_equal(strokes[0].commands[1].p1.y, 0.0, "staff is unchanged")
+    assert_equal(strokes[0].commands[3].p1.y, 11.200000000000001)
+    assert_equal(pennants[0].commands[1].p1.y, 11.200000000000001)
+
+
+def test_render_svg_barbs_staff_points_upwind() raises:
+    # A pure easterly component (u > 0, v = 0) is wind blowing east, so it
+    # comes *from* the west and the staff points west: same y on both
+    # endpoints, x decreasing by exactly the 28px staff length. The barb
+    # then hangs off the tip, which is the far (west) end.
+    var x: List[Float64] = [0.0, 1.0]
+    var y: List[Float64] = [0.0, 1.0]
+    var u: List[Float64] = [10.0, 10.0]
+    var v: List[Float64] = [0.0, 0.0]
+    var plot = (
+        Plot().mark_barbs().encode_barbs(x=x, y=y, u=u, v=v).size(400, 300)
+    )
+    var svg = render_svg(plot).to_string()
+    assert_true(
+        '<path d="M74.545,239.545 L46.545,239.545' in svg,
+        "staff runs 28px due west from the first point",
+    )
+    assert_true(
+        "M46.545,239.545 L50.045,250.745" in svg,
+        "the full barb hangs off the west tip",
+    )
+
+
+def test_render_svg_barbs_calm_point_draws_a_circle_not_a_staff() raises:
+    # Under 2.5 knots there is no staff at all, just the small circle
+    # (0.15 * length) meteorologists read as calm.
+    var x: List[Float64] = [0.0, 1.0]
+    var y: List[Float64] = [0.0, 1.0]
+    var u: List[Float64] = [0.0, 10.0]
+    var v: List[Float64] = [0.0, 0.0]
+    var plot = (
+        Plot().mark_barbs().encode_barbs(x=x, y=y, u=u, v=v).size(400, 300)
+    )
+    var svg = render_svg(plot).to_string()
+    assert_true("<ellipse" in svg, "the calm point draws its circle")
+    assert_equal(svg.count("<path"), 1, "only the 10-knot point draws a staff")
+
+
+def test_render_barbs_draws_ink_for_every_point() raises:
+    var x: List[Float64] = [0.0, 1.0, 2.0]
+    var y: List[Float64] = [0.0, 1.0, 2.0]
+    var u: List[Float64] = [10.0, 20.0, 60.0]
+    var v: List[Float64] = [5.0, -5.0, 0.0]
+    var plot = (
+        Plot().mark_barbs().encode_barbs(x=x, y=y, u=u, v=v).size(400, 300)
+    )
+    var c = render(plot)
+    assert_true(
+        _count_color(c, Color(30, 100, 180)) > 0,
+        "the barb field puts the mark color on the canvas",
+    )
+
+
+def test_barbs_dtype_overload_matches_the_float64_path() raises:
+    var xi: List[Int32] = [0, 1]
+    var yi: List[Int32] = [0, 1]
+    var ui: List[Int32] = [10, 10]
+    var vi: List[Int32] = [0, 0]
+    var xf: List[Float64] = [0.0, 1.0]
+    var yf: List[Float64] = [0.0, 1.0]
+    var uf: List[Float64] = [10.0, 10.0]
+    var vf: List[Float64] = [0.0, 0.0]
+    var from_int = barbs(xi, yi, ui, vi, width=400, height=300)
+    var from_float = barbs(xf, yf, uf, vf, width=400, height=300)
+    assert_equal(
+        render_svg(from_int).to_string(),
+        render_svg(from_float).to_string(),
+        "List[Int32] renders identically to List[Float64]",
+    )
+
+
+def test_render_barbs_raises_on_mismatched_channel_lengths() raises:
+    var x: List[Float64] = [0.0, 1.0]
+    var short: List[Float64] = [0.0]
+    with assert_raises():
+        var _hoisted_barbs1 = (
+            Plot()
+            .mark_barbs()
+            .encode_barbs(x=x, y=x, u=x, v=short)
+            .size(200, 150)
+        )
+        _ = render(_hoisted_barbs1)
+
+
+def test_render_barbs_raises_on_empty_data() raises:
+    var empty = List[Float64]()
+    with assert_raises():
+        var _hoisted_barbs2 = (
+            Plot()
+            .mark_barbs()
+            .encode_barbs(x=empty, y=empty, u=empty, v=empty)
+            .size(200, 150)
+        )
+        _ = render(_hoisted_barbs2)
+
+
+def test_render_barbs_raises_on_nonpositive_length() raises:
+    var x: List[Float64] = [0.0, 1.0]
+    with assert_raises():
+        var _hoisted_barbs3 = (
+            Plot()
+            .mark_barbs(length=0.0)
+            .encode_barbs(x=x, y=x, u=x, v=x)
+            .size(200, 150)
+        )
+        _ = render(_hoisted_barbs3)
 
 
 def main() raises:
