@@ -11,6 +11,7 @@ from dataviz.plot import (
     _draw_categorical_axis_frame,
     _finished,
     _require_non_empty,
+    _span_tooltip_label,
 )
 from dataviz.theme import Theme
 
@@ -85,7 +86,17 @@ def _render_span_chart[
         var high_py = _axis_pixel(frame.y_scale, plot._gantt.end[i])
         var bar_y = min(low_py, high_py)
         var bar_height = max(1, max(low_py, high_py) - min(low_py, high_py))
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _span_tooltip_label(
+                    plot.x_categories[i],
+                    plot._gantt.start[i],
+                    plot._gantt.end[i],
+                )
+            )
         target.fill_rect(bar_x, bar_y, bar_width, bar_height, theme.mark_color)
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     return frame.result()
 

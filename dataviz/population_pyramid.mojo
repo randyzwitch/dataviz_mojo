@@ -17,6 +17,7 @@ from dataviz.plot import (
     _dynamic_legend_width,
     _finished,
     _require_non_empty,
+    _series_tooltip_label,
 )
 from dataviz.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.theme import Theme
@@ -106,16 +107,20 @@ def _render_population_pyramid[
         len(plot.x_categories), "Plot.encode_population_pyramid()"
     )
     var sc = _Scaled(theme)
+    # Resolved outside the legend block: Theme.svg_tooltips names the two
+    # sides too, and does it whether or not a legend is drawn.
+    var left_name = (
+        plot._pyramid.left_name if plot._pyramid.left_name.byte_length()
+        > 0 else "Left"
+    )
+    var right_name = (
+        plot._pyramid.right_name if plot._pyramid.right_name.byte_length()
+        > 0 else "Right"
+    )
     var legend_names = List[String]()
     if theme.show_legend:
-        legend_names.append(
-            plot._pyramid.left_name if plot._pyramid.left_name.byte_length()
-            > 0 else "Left"
-        )
-        legend_names.append(
-            plot._pyramid.right_name if plot._pyramid.right_name.byte_length()
-            > 0 else "Right"
-        )
+        legend_names.append(left_name)
+        legend_names.append(right_name)
     var legend_reserve = _dynamic_legend_width(
         legend_names, sc.legend_swatch_size, sc, cache=cache
     ) if theme.show_legend else 0
@@ -148,7 +153,17 @@ def _render_population_pyramid[
         var left_x = min(left_edge_px, center_px)
         var left_w = max(left_edge_px, center_px) - min(left_edge_px, center_px)
         if left_w > 0:
+            if theme.svg_tooltips:
+                target.begin_annotated_group(
+                    _series_tooltip_label(
+                        plot.x_categories[i],
+                        left_name,
+                        plot._pyramid.left[i],
+                    )
+                )
             target.fill_rect(left_x, row_y, left_w, row_height, palette[0])
+            if theme.svg_tooltips:
+                target.end_annotated_group()
             if theme.show_data_labels:
                 var left_value = plot._pyramid.left[i]
                 var at = orient.outside_band_label(
@@ -183,7 +198,17 @@ def _render_population_pyramid[
             center_px, right_edge_px
         )
         if right_w > 0:
+            if theme.svg_tooltips:
+                target.begin_annotated_group(
+                    _series_tooltip_label(
+                        plot.x_categories[i],
+                        right_name,
+                        plot._pyramid.right[i],
+                    )
+                )
             target.fill_rect(right_x, row_y, right_w, row_height, palette[1])
+            if theme.svg_tooltips:
+                target.end_annotated_group()
             if theme.show_data_labels:
                 var right_value = plot._pyramid.right[i]
                 var at2 = orient.outside_band_label(

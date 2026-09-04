@@ -4760,6 +4760,21 @@ def _series_tooltip_label(
     )
 
 
+def _span_tooltip_label(
+    category: String, low: Float64, high: Float64
+) -> String:
+    """A span's hover text: `"Berlin: -4 to 23"`. Both ends, since a
+    span mark encodes the interval rather than any single value.
+    """
+    return (
+        category
+        + ": "
+        + _format_fixed(low, _label_decimals(low))
+        + " to "
+        + _format_fixed(high, _label_decimals(high))
+    )
+
+
 def _point_tooltip_label(plot: Plot, i: Int) -> String:
     """One scatter point's hover text: the row's `encode(labels=...)` entry
     when it has one, otherwise its coordinates, `"3.5, 12"`.

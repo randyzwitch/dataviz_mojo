@@ -17,6 +17,7 @@ from dataviz.plot import (
     _finished,
     _validate_categorical_encoding,
     _require_non_negative,
+    _tooltip_label,
 )
 from dataviz.theme import Theme
 
@@ -127,6 +128,14 @@ def _render_funnel[
         var bottom_width = top_width[i + 1] if i < n - 1 else top_width[i]
         var y0 = plot_y0 + Int(Float64(i) * row_height)
         var y1 = plot_y0 + Int(Float64(i + 1) * row_height)
+        if theme.svg_tooltips:
+            # `order[i]`, not `i`: rows are drawn largest-value first, so
+            # the stage's own name and value live at its pre-sort index.
+            target.begin_annotated_group(
+                _tooltip_label(
+                    plot.x_categories[order[i]], plot.y_data[order[i]]
+                )
+            )
         _fill_trapezoid(
             target,
             cx - top_width[i] / 2.0,
@@ -137,6 +146,8 @@ def _render_funnel[
             y1,
             palette[i % len(palette)],
         )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     var text_requests = List[_TextRequest]()
     if show_legend:

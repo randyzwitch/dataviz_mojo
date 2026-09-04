@@ -15,6 +15,7 @@ from dataviz.plot import (
     _pull_off_axis_line,
     _finished,
     _require_non_empty,
+    _tooltip_label,
     _zero_baseline_y_extent,
 )
 from dataviz.scale import _format_tick, _label_decimals
@@ -197,7 +198,20 @@ def _render_waterfall[
             theme.mark_color_negative if plot.y_data[i]
             < 0.0 else theme.mark_color
         )
+        if theme.svg_tooltips:
+            # Whichever number this bar's height actually encodes: a delta
+            # row is drawn from the running total before it to the total
+            # after, so its height is the delta; a checkpoint row is drawn
+            # from zero, so its height is the running total itself.
+            target.begin_annotated_group(
+                _tooltip_label(
+                    plot.x_categories[i],
+                    plot._waterfall.y1[i] if row_is_total else plot.y_data[i],
+                )
+            )
         target.fill_rect(bar_x, rect.y, bar_width, rect.height, bar_color)
+        if theme.svg_tooltips:
+            target.end_annotated_group()
         if theme.show_data_labels:
             var delta = plot.y_data[i]
             var at = orient.outside_band_label(

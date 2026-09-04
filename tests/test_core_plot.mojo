@@ -19,7 +19,12 @@
   legend-column width.
 - PointShape/Theme.shape_by_category: the shape cycle, per-shape
   geometry (SVG), legend icons, and the no-op without color_categories.
-- accessible_svg_string()/write_accessible_svg() and SVG tooltips.
+- accessible_svg_string()/write_accessible_svg() and SVG tooltips,
+  including (#213) the categorical marks whose hover text names more than
+  one number -- WATERFALL (delta vs running total), BULLET (measure vs
+  target), POPULATION_PYRAMID (both sides), SPAN_CHART (both ends) and
+  CANDLESTICK (all four prices) -- plus FUNNEL, whose rows are drawn in
+  sorted order and so must title from their pre-sort index.
 - _svg_output_string()/_resolve_description() (#212): save()/save_layers()/
   save_facets() add accessible SVG markup automatically once a title is
   set, an explicit Plot.labels(description=...) over subtitle, and an
@@ -28,6 +33,7 @@
 
 from _test_helpers import (
     BG,
+    Lcg,
     _assert_color,
     _assert_near_color,
     _count_color,
@@ -45,8 +51,12 @@ from dataviz import (
     default_marker_shapes,
     line,
     pie,
+    candlestick,
+    funnel,
+    population_pyramid,
     radialbar,
     scatter,
+    span_chart,
     treemap,
     waterfall,
 )
@@ -2297,6 +2307,311 @@ def test_beeswarm_tooltips_name_the_category_and_value() raises:
     ).to_string()
     assert_true("<title>A: 1</title>" in on, "category and value")
     assert_true("<title>A: 2</title>" in on, "one per point, not per category")
+
+
+def test_svg_tooltip_for_a_waterfall_names_what_the_bar_height_encodes() raises:
+    """A delta row's bar runs from the running total before it to the
+    total after, so its height is the delta; a checkpoint row's runs
+    from zero, so its height is the running total. The tooltip follows
+    the bar rather than always reporting the input column."""
+    var stages: List[String] = ["Start", "Revenue", "Costs", "End"]
+    var deltas: List[Float64] = [50.0, 30.0, -20.0, 0.0]
+    var is_total: List[Bool] = [True, False, False, True]
+    var svg = render_svg(
+        waterfall(stages, deltas, is_total=is_total, width=400, height=300)
+    ).to_string()
+
+    assert_true(
+        "<title>Revenue: 30</title>" in svg, "a delta row reports its delta"
+    )
+    assert_true(
+        "<title>Costs: -20</title>" in svg, "including a negative delta"
+    )
+    # Start is a checkpoint whose delta is 50, and the running total after
+    # it is also 50; End's delta is 0 and the running total is 60, so only
+    # End distinguishes the two readings.
+    assert_true(
+        "<title>End: 60</title>" in svg,
+        "a checkpoint row reports the running total, not its 0 delta",
+    )
+    assert_equal(svg.count("<title>"), 4, "one per bar")
+
+
+def test_svg_tooltip_for_a_bullet_pairs_measure_with_target() raises:
+    """A bullet row is a measure read against a target, so the hover
+    text carries both. The range bands are background and are not
+    wrapped."""
+    var kpis: List[String] = ["Revenue"]
+    var measures: List[Float64] = [72.0]
+    var targets: List[Float64] = [80.0]
+    var ranges: List[List[Float64]] = [[50.0, 75.0, 100.0]]
+    var svg = render_svg(
+        bullet(kpis, measures, targets, ranges, width=400, height=300)
+    ).to_string()
+
+    assert_true("<title>Revenue: 72 (target 80)</title>" in svg, "both numbers")
+    assert_equal(
+        svg.count("<title>"), 1, "one group per row, not one per range band"
+    )
+
+
+def test_svg_tooltip_for_a_population_pyramid_names_both_sides() raises:
+    """Each side is its own datum, identified by the side's name -- which
+    the tooltip resolves whether or not a legend is drawn."""
+    var bands: List[String] = ["0-9"]
+    var left: List[Float64] = [12.0]
+    var right: List[Float64] = [11.5]
+    var svg = render_svg(
+        population_pyramid(
+            bands,
+            left,
+            right,
+            left_name="Male",
+            right_name="Female",
+            theme=Theme(show_legend=False),
+            width=400,
+            height=300,
+        )
+    ).to_string()
+
+    assert_true("<title>0-9 / Male: 12</title>" in svg, "left side named")
+    assert_true("<title>0-9 / Female: 11.5</title>" in svg, "right side named")
+
+    # The names default when not given, and still reach the tooltip with
+    # the legend off.
+    var unnamed = render_svg(
+        population_pyramid(
+            bands,
+            left,
+            right,
+            theme=Theme(show_legend=False),
+            width=400,
+            height=300,
+        )
+    ).to_string()
+    assert_true("<title>0-9 / Left: 12</title>" in unnamed, "default left name")
+    assert_true(
+        "<title>0-9 / Right: 11.5</title>" in unnamed, "default right name"
+    )
+
+
+def test_svg_tooltip_for_a_funnel_follows_the_sorted_row_order() raises:
+    """Rows are drawn largest-value first, so a row's title has to come
+    from its pre-sort index -- passing the draw index would label every
+    row with the wrong stage whenever the input is not already sorted."""
+    var stages: List[String] = ["Signups", "Purchases", "Visits"]
+    var counts: List[Float64] = [500.0, 100.0, 1000.0]
+    var svg = render_svg(
+        funnel(stages, counts, width=400, height=300)
+    ).to_string()
+
+    assert_true(
+        "<title>Visits: 1000</title>" in svg, "largest row, drawn first"
+    )
+    assert_true("<title>Signups: 500</title>" in svg, "middle row")
+    assert_true(
+        "<title>Purchases: 100</title>" in svg, "smallest row, drawn last"
+    )
+
+
+def test_svg_tooltip_for_a_span_chart_reports_both_ends() raises:
+    var cities: List[String] = ["Berlin"]
+    var low: List[Float64] = [-4.0]
+    var high: List[Float64] = [23.0]
+    var svg = render_svg(
+        span_chart(cities, low, high, width=400, height=300)
+    ).to_string()
+    assert_true("<title>Berlin: -4 to 23</title>" in svg, "the interval")
+
+
+def test_svg_tooltip_for_a_candlestick_is_its_four_prices() raises:
+    """Wick and body are two halves of one datum, so they share a single
+    group rather than titling separately."""
+    var days: List[String] = ["Mon"]
+    var o: List[Float64] = [10.0]
+    var h: List[Float64] = [14.0]
+    var l: List[Float64] = [9.0]
+    var c: List[Float64] = [13.0]
+    var svg = render_svg(
+        candlestick(days, o, h, l, c, width=400, height=300)
+    ).to_string()
+
+    assert_true("<title>Mon: O 10, H 14, L 9, C 13</title>" in svg, "all four")
+    assert_equal(svg.count("<title>"), 1, "wick and body share one group")
+
+
+def test_svg_tooltips_off_on_the_newly_covered_marks() raises:
+    """Theme.svg_tooltips=False leaves each of them with no groups at
+    all, the same contract Mark.BAR has."""
+    var cats: List[String] = ["a", "b"]
+    var vals: List[Float64] = [1.0, 2.0]
+    var highs: List[Float64] = [3.0, 4.0]
+    var t = Theme(svg_tooltips=False)
+
+    var wf = render_svg(
+        waterfall(cats, vals, theme=t, width=250, height=180)
+    ).to_string()
+    assert_true("<title>" not in wf, "waterfall")
+
+    var sp = render_svg(
+        span_chart(cats, vals, highs, theme=t, width=250, height=180)
+    ).to_string()
+    assert_true("<title>" not in sp, "span_chart")
+
+    var fu = render_svg(
+        funnel(cats, vals, theme=t, width=250, height=180)
+    ).to_string()
+    assert_true("<title>" not in fu, "funnel")
+
+
+# ---------------------------------------------------------------
+# Property-style sweeps for _decimate_to_pixel_columns (#220)
+# ---------------------------------------------------------------
+
+
+def test_sweep_decimation_preserves_each_column_envelope() raises:
+    """Decimation's whole claim is that it drops points without moving
+    the envelope: for every horizontal pixel column, the minimum and
+    maximum `py` among that column's input samples both survive into the
+    output. A spike inside one column still reaches its true extent.
+
+    Also checks the length bound (at most two points per column) and
+    that the output keeps `px` non-decreasing, since a path that doubled
+    back would be drawn in a different order than the data.
+    """
+    var rng = Lcg(760813)
+    var failure = String("")
+    for _ in range(120):
+        # Enough points per column to make decimation engage (it declines
+        # unless n > 2 * columns).
+        var columns = 5 + rng.below(60)
+        var per_column = 3 + rng.below(8)
+        var n = columns * per_column
+
+        var px = List[Float64](capacity=n)
+        var py = List[Float64](capacity=n)
+        for i in range(n):
+            # Non-decreasing x spread across `columns` integer columns.
+            px.append(Float64(i) * Float64(columns) / Float64(n))
+            py.append(rng.uniform(-1000.0, 1000.0))
+
+        var d = _decimate_to_pixel_columns(px, py)
+        if not d.applied:
+            # Fine in principle, but this sweep is built so it engages;
+            # if it declines the case is not testing anything.
+            failure = (
+                "decimation declined for n="
+                + String(n)
+                + ", columns="
+                + String(columns)
+            )
+            break
+
+        var span = Int(px[n - 1]) - Int(px[0]) + 1
+        if len(d.px) > 2 * span:
+            failure = (
+                "output length "
+                + String(len(d.px))
+                + " exceeds 2 * "
+                + String(span)
+            )
+            break
+        if len(d.px) != len(d.py):
+            failure = "px/py length mismatch in the decimated output"
+            break
+
+        for i in range(1, len(d.px)):
+            if d.px[i] < d.px[i - 1]:
+                failure = "decimated px went backwards at index " + String(i)
+                break
+        if failure:
+            break
+
+        # Walk the input's columns and require each column's extremes to
+        # appear in the output.
+        var i = 0
+        while i < n:
+            var col = Int(px[i])
+            var lo = py[i]
+            var hi = py[i]
+            var j = i
+            while j + 1 < n and Int(px[j + 1]) == col:
+                j += 1
+                if py[j] < lo:
+                    lo = py[j]
+                if py[j] > hi:
+                    hi = py[j]
+
+            var saw_lo = False
+            var saw_hi = False
+            for k in range(len(d.px)):
+                if Int(d.px[k]) != col:
+                    continue
+                if d.py[k] == lo:
+                    saw_lo = True
+                if d.py[k] == hi:
+                    saw_hi = True
+            if not saw_lo or not saw_hi:
+                failure = (
+                    "column "
+                    + String(col)
+                    + " lost its envelope (min "
+                    + String(lo)
+                    + " kept: "
+                    + String(saw_lo)
+                    + ", max "
+                    + String(hi)
+                    + " kept: "
+                    + String(saw_hi)
+                    + ")"
+                )
+                break
+            i = j + 1
+        if failure:
+            break
+
+    assert_true(failure == "", failure)
+
+
+def test_sweep_decimation_declines_on_any_non_monotonic_x() raises:
+    """One backwards step anywhere in `px` makes decimation decline and
+    hand back the input untouched -- the guard exists because
+    `mark_line()` connects points in data order, so reordering them
+    would redraw the line differently.
+    """
+    var rng = Lcg(4711)
+    var failure = String("")
+    for _ in range(120):
+        var columns = 5 + rng.below(40)
+        var n = columns * 4
+        var px = List[Float64](capacity=n)
+        var py = List[Float64](capacity=n)
+        for i in range(n):
+            px.append(Float64(i) * Float64(columns) / Float64(n))
+            py.append(rng.uniform(-10.0, 10.0))
+
+        # Break monotonicity at one random interior index.
+        var at = 1 + rng.below(n - 1)
+        px[at] = px[at - 1] - 0.5
+
+        var d = _decimate_to_pixel_columns(px, py)
+        if d.applied:
+            failure = (
+                "decimation applied despite a backwards step at " + String(at)
+            )
+            break
+        if len(d.px) != n or len(d.py) != n:
+            failure = "declined output changed length"
+            break
+        for i in range(n):
+            if d.px[i] != px[i] or d.py[i] != py[i]:
+                failure = "declined output differs from the input at " + String(
+                    i
+                )
+                break
+        if failure:
+            break
+    assert_true(failure == "", failure)
 
 
 def main() raises:
