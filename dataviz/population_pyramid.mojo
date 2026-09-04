@@ -6,15 +6,18 @@ from dataviz.color_scale import default_categorical_palette
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.plot import (
     Plot,
+    _BaselineRect,
+    _Orientation,
     _RenderResult,
     _Scaled,
+    _TextRequest,
     _axis_pixel,
     _draw_legend,
     _dynamic_legend_width,
     _finished,
     _require_non_empty,
 )
-from dataviz.scale import LinearScale
+from dataviz.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.theme import Theme
 
 
@@ -126,6 +129,7 @@ def _render_population_pyramid[
     var palette = default_categorical_palette()
     var center_px = _axis_pixel(frame.x_scale, 0.0)
     var row_height = _round_to_int(frame.y_scale.bandwidth())
+    var orient = _Orientation(True)  # bars grow horizontally from center
     for i in range(len(plot.x_categories)):
         var row_y = _round_to_int(frame.y_scale.band_start(i))
 
@@ -136,6 +140,31 @@ def _render_population_pyramid[
         var left_w = max(left_edge_px, center_px) - min(left_edge_px, center_px)
         if left_w > 0:
             target.fill_rect(left_x, row_y, left_w, row_height, palette[0])
+            if theme.show_data_labels:
+                var left_value = plot._pyramid.left[i]
+                var at = orient.outside_band_label(
+                    _BaselineRect(left_x, left_w),
+                    row_y,
+                    row_height,
+                    True,
+                    sc.label_gap,
+                    sc.font_size,
+                )
+                frame.text_requests.append(
+                    _TextRequest(
+                        at.x,
+                        at.y,
+                        _format_tick(
+                            left_value,
+                            _label_decimals(left_value),
+                            theme.x_tick_format,
+                        ),
+                        theme.text_color,
+                        sc.font_size,
+                        at.align,
+                        theme.font_family,
+                    )
+                )
 
         var right_edge_px = _axis_pixel(
             frame.x_scale, max(plot._pyramid.right[i], -plot._pyramid.right[i])
@@ -146,6 +175,31 @@ def _render_population_pyramid[
         )
         if right_w > 0:
             target.fill_rect(right_x, row_y, right_w, row_height, palette[1])
+            if theme.show_data_labels:
+                var right_value = plot._pyramid.right[i]
+                var at2 = orient.outside_band_label(
+                    _BaselineRect(right_x, right_w),
+                    row_y,
+                    row_height,
+                    False,
+                    sc.label_gap,
+                    sc.font_size,
+                )
+                frame.text_requests.append(
+                    _TextRequest(
+                        at2.x,
+                        at2.y,
+                        _format_tick(
+                            right_value,
+                            _label_decimals(right_value),
+                            theme.x_tick_format,
+                        ),
+                        theme.text_color,
+                        sc.font_size,
+                        at2.align,
+                        theme.font_family,
+                    )
+                )
 
     if theme.show_legend:
         _draw_legend(

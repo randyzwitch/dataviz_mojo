@@ -28,8 +28,9 @@
   cell as a shared-domain equivalent, and every raise path (min >= max,
   a non-positive min on a log axis, an unsupported mark,
   render_layers()).
-- Theme.show_data_labels on Mark.BAR/GROUPED_BAR/STACKED_BAR: label
-  placement and formatting, and the default-off case.
+- Theme.show_data_labels on Mark.BAR/GROUPED_BAR/STACKED_BAR/LOLLIPOP/
+  WATERFALL/BULLET/POPULATION_PYRAMID (#213): label placement and
+  formatting, and the default-off case for every one of them.
 - Plot.encode()'s labels channel on Mark.POINT/EFFECT_SCATTER.
 - Plot.encode()'s color_map: pinned colors, unmapped categories, the
   legend swatch, and the raise without color_categories.
@@ -1098,6 +1099,196 @@ def test_render_svg_stacked_bar_data_labels_match_hand_derived_positions() raise
         ' fill="#282828" text-anchor="middle">8</text>'
         in s,
         "B/South's label",
+    )
+
+
+def test_render_svg_lollipop_data_labels_match_hand_derived_positions() raises:
+    # #213: show_data_labels closes the gap on Mark.LOLLIPOP (previously
+    # BAR/GROUPED_BAR/STACKED_BAR only). Same 2-category frame as the BAR
+    # test above; each label sits past the dot (radius padded on, so it
+    # clears the head circle, not just the stem).
+    var cats: List[String] = ["A", "B"]
+    var vals: List[Float64] = [10.0, -5.5]
+    var plot = (
+        Plot()
+        .mark_lollipop()
+        .encode_categorical(x=cats, y=vals)
+        .theme(Theme(show_gridlines=False, show_data_labels=True))
+        .size(400, 300)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true(
+        '<text x="140" y="22" font-size="12.000" font-family="sans-serif"'
+        ' fill="#282828" text-anchor="middle">10</text>'
+        in s,
+        "A's label, above the positive dot",
+    )
+    assert_true(
+        '<text x="300" y="260" font-size="12.000" font-family="sans-serif"'
+        ' fill="#282828" text-anchor="middle">-5.5</text>'
+        in s,
+        "B's label, below the negative dot",
+    )
+
+
+def test_render_svg_waterfall_data_labels_match_hand_derived_positions() raises:
+    # #213: closes the gap on Mark.WATERFALL. Two plain delta bars (no
+    # is_total), running total 10 then 4.5; each label shows its own
+    # delta, not the running total.
+    var cats: List[String] = ["A", "B"]
+    var deltas: List[Float64] = [10.0, -5.5]
+    var plot = (
+        Plot()
+        .mark_waterfall()
+        .encode_waterfall(cats, deltas)
+        .theme(Theme(show_gridlines=False, show_data_labels=True))
+        .size(400, 300)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true(
+        '<text x="140" y="27" font-size="12.000" font-family="sans-serif"'
+        ' fill="#282828" text-anchor="middle">10</text>'
+        in s,
+        "A's label, its own delta above the rising bar",
+    )
+    assert_true(
+        '<text x="300" y="167" font-size="12.000" font-family="sans-serif"'
+        ' fill="#282828" text-anchor="middle">-5.5</text>'
+        in s,
+        "B's label, its own delta below the falling bar",
+    )
+
+
+def test_render_svg_bullet_data_labels_match_hand_derived_positions() raises:
+    # #213: closes the gap on Mark.BULLET -- the measure value, at full
+    # band width (not the narrower measure bar itself).
+    var cats: List[String] = ["A", "B"]
+    var measures: List[Float64] = [10.0, -5.5]
+    var targets: List[Float64] = [8.0, -6.0]
+    var ranges: List[List[Float64]] = [
+        [5.0, 10.0, 15.0],
+        [-10.0, -5.0, 0.0],
+    ]
+    var plot = (
+        Plot()
+        .mark_bullet()
+        .encode_bullet(cats, measures, targets, ranges)
+        .theme(Theme(show_gridlines=False, show_data_labels=True))
+        .size(400, 300)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true(
+        '<text x="140" y="76" font-size="12.000" font-family="sans-serif"'
+        ' fill="#282828" text-anchor="middle">10</text>'
+        in s,
+        "A's measure label, above the positive bar",
+    )
+    assert_true(
+        '<text x="300" y="251" font-size="12.000" font-family="sans-serif"'
+        ' fill="#282828" text-anchor="middle">-5.5</text>'
+        in s,
+        "B's measure label, below the negative bar",
+    )
+
+
+def test_render_svg_population_pyramid_data_labels_match_hand_derived_positions() raises:
+    # #213: closes the gap on Mark.POPULATION_PYRAMID -- one label per
+    # side, hanging off that side's own bar, right-aligned on the left
+    # and left-aligned on the right.
+    var cats: List[String] = ["A", "B"]
+    var left: List[Float64] = [10.0, 20.0]
+    var right: List[Float64] = [8.0, 15.0]
+    var plot = (
+        Plot()
+        .mark_population_pyramid()
+        .encode_population_pyramid(cats, left, right)
+        .theme(
+            Theme(
+                show_gridlines=False, show_data_labels=True, show_legend=False
+            )
+        )
+        .size(400, 300)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true(
+        '<text x="140" y="82" font-size="12.000" font-family="sans-serif"'
+        ' fill="#282828" text-anchor="end">10</text>'
+        in s,
+        "A's left-side label, right-aligned just left of its bar",
+    )
+    assert_true(
+        '<text x="285" y="82" font-size="12.000" font-family="sans-serif"'
+        ' fill="#282828" text-anchor="start">8</text>'
+        in s,
+        "A's right-side label, left-aligned just right of its bar",
+    )
+    assert_true(
+        '<text x="64" y="197" font-size="12.000" font-family="sans-serif"'
+        ' fill="#282828" text-anchor="end">20</text>'
+        in s,
+        "B's left-side label",
+    )
+    assert_true(
+        '<text x="338" y="197" font-size="12.000" font-family="sans-serif"'
+        ' fill="#282828" text-anchor="start">15</text>'
+        in s,
+        "B's right-side label",
+    )
+
+
+def test_render_svg_lollipop_waterfall_bullet_pyramid_draw_no_labels_by_default() raises:
+    var cats: List[String] = ["A", "B"]
+    var vals: List[Float64] = [10.0, -5.5]
+    var lollipop_plot = (
+        Plot()
+        .mark_lollipop()
+        .encode_categorical(x=cats, y=vals)
+        .theme(Theme(show_gridlines=False))
+    )
+    assert_true(
+        'text-anchor="middle">10</text>'
+        not in render_svg(lollipop_plot).to_string(),
+        "lollipop draws no value label without show_data_labels=True",
+    )
+
+    var waterfall_plot = (
+        Plot()
+        .mark_waterfall()
+        .encode_waterfall(cats, vals)
+        .theme(Theme(show_gridlines=False))
+    )
+    assert_true(
+        'text-anchor="middle">10</text>'
+        not in render_svg(waterfall_plot).to_string(),
+        "waterfall draws no value label without show_data_labels=True",
+    )
+
+    var ranges: List[List[Float64]] = [
+        [5.0, 10.0, 15.0],
+        [-10.0, -5.0, 0.0],
+    ]
+    var bullet_plot = (
+        Plot()
+        .mark_bullet()
+        .encode_bullet(cats, vals, [8.0, -6.0], ranges)
+        .theme(Theme(show_gridlines=False))
+    )
+    assert_true(
+        'text-anchor="middle">10</text>'
+        not in render_svg(bullet_plot).to_string(),
+        "bullet draws no measure label without show_data_labels=True",
+    )
+
+    var pyramid_plot = (
+        Plot()
+        .mark_population_pyramid()
+        .encode_population_pyramid(cats, vals, [8.0, 15.0])
+        .theme(Theme(show_gridlines=False, show_legend=False))
+    )
+    assert_true(
+        'text-anchor="end">10</text>'
+        not in render_svg(pyramid_plot).to_string(),
+        "population pyramid draws no side labels without show_data_labels=True",
     )
 
 
