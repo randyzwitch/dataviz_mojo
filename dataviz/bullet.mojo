@@ -179,7 +179,10 @@ def bullet(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A bullet chart.
+    """A bullet chart, Stephen Few's compact alternative to a dashboard
+    gauge: a single measure bar against qualitative range bands and a
+    target tick, for tracking a KPI against a goal without a
+    speedometer's wasted space.
 
     `Mark.BULLET` (Stephen Few's design): a measure bar, a target tick,
     and shaded qualitative-range bands per category. See

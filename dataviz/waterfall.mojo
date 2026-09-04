@@ -215,7 +215,11 @@ def waterfall(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A waterfall chart.
+    """A waterfall chart: floating bars from a running total, each one
+    showing how a positive or negative change moves the total from its
+    previous value, for visualizing a sequence of additions and
+    subtractions such as a profit bridge or an account balance over
+    time.
 
     `Mark.WATERFALL`: floating bars from a running total. See
     `Plot.encode_waterfall()` (plot.mojo) for what `deltas`/`is_total`

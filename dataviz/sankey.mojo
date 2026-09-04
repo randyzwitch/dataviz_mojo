@@ -263,7 +263,11 @@ def sankey(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A Sankey diagram.
+    """A Sankey diagram, named after Irish engineer Matthew Sankey's 1898
+    diagram of a steam engine's energy losses: nodes connected by flows
+    whose width is proportional to quantity, for tracing how a total
+    splits and moves through stages, such as energy, budget, or
+    user-funnel flows.
 
     `Mark.SANKEY`: `Mark.CHORD`'s edge list (`Plot.encode_chord()`) drawn
     as nodes in left-to-right columns connected by proportionally sized

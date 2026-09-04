@@ -212,7 +212,10 @@ def radar(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A radar/spider chart.
+    """A radar/spider chart: one axis per indicator radiating from a
+    shared center, with each series drawn as a polygon connecting its
+    values, for comparing several items across the same set of metrics
+    at once.
 
     `Mark.RADAR` over `Plot.encode_radar()`'s shape: `indicators` (one
     spoke per name, each with its `max_values` entry) and one polygon per

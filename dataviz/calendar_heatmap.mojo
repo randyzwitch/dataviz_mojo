@@ -278,7 +278,10 @@ def calendar_heatmap(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A calendar heatmap.
+    """A calendar heatmap, in the style GitHub popularized for its
+    contribution graph: one colored cell per day laid out in a year's
+    actual week/weekday grid, for spotting daily patterns and streaks
+    that a plain time series would flatten out.
 
     `Mark.CALENDAR_HEATMAP`: daily `values` laid out in a
     GitHub-contributions-style calendar grid, colored through a
