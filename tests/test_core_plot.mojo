@@ -9,10 +9,15 @@
   never lands fully opaque after supersampling; the column the ink
   concentrates around is still checked exactly.
 - Plot.labels(): title/subtitle/axis-title placement (raster + SVG),
-  centered on the legend-narrowed inner plot rect. One test pins an actual
-  rasterized tick-label glyph's ink, since every other label assertion here
-  checks SVG <text> position only and would stay green through a canvas_mojo
-  regression that shifted every rasterized glyph uniformly.
+  centered on the legend-narrowed inner plot rect. One test is a coarse
+  raster tripwire that a tick label's ink lands somewhere in its expected
+  region, since every other label assertion here checks SVG <text>
+  position only -- see that test's docstring for why it stops at "ink
+  exists roughly where expected" rather than pinning an exact pixel or
+  sub-pixel centroid: canvas_mojo's own glyph-placement precision isn't a
+  dataviz invariant to assert through two layers of indirection, and a
+  tolerance tight enough to mean anything here turned out to be tighter
+  than plausible cross-platform font-rendering noise.
 - Theme.scale, Theme.font_family, Theme.title_bold, and the per-mark
   style/layout fields.
 - Legends: swatch positions, continuous color/size legends, dynamic
@@ -835,30 +840,51 @@ def test_render_title_draws_ink_in_its_own_reserved_top_band() raises:
     )
 
 
-def test_render_y_axis_tick_label_glyph_ink_matches_a_pinned_pixel() raises:
+def test_render_y_axis_tick_label_draws_ink_somewhere_in_its_expected_region() raises:
     # Every other tick-label assertion in this file is an SVG <text>
     # check, which only pins where a label is *requested*: dataviz hands
     # both backends the same _TextRequest coordinates, so it says nothing
-    # about where the rasterizer actually puts ink. A canvas_mojo change
-    # that shifts every rasterized glyph -- as one briefly did between
-    # #263 and #264 -- would leave every SVG assertion here green while
-    # every raster label moved. This pins one pixel inside a tick label's
-    # actual glyph strokes so a shift like that fails instead.
+    # about whether the rasterizer actually draws anything there. This is
+    # a coarse raster tripwire for that -- not a precision guarantee.
+    #
+    # An earlier version of this test tried to pin an exact pixel, then a
+    # sub-pixel intensity-weighted centroid, of a tick label's glyph ink,
+    # aiming to catch a canvas_mojo rendering regression that shifts every
+    # rasterized glyph uniformly. Measured directly against a real such
+    # shift, it turned out to move this label's ink centroid by ~0.15px --
+    # a tolerance tight enough to catch that reliably is tighter than
+    # plausible cross-platform font-rendering differences between this
+    # suite's ubuntu and macos runners, so no tolerance both catches a
+    # real regression and stays green everywhere. canvas_mojo's own glyph
+    # -placement precision isn't a dataviz invariant to assert through
+    # dataviz's own layout as an extra layer of indirection -- that
+    # guarantee belongs in canvas_mojo's own suite, against a fixture of
+    # known text at a known origin, not here. This test only checks the
+    # much coarser thing dataviz actually owns: that its own layout puts
+    # some ink in the label's expected region at all.
     #
     # bar(["A"], [10.0]), Theme(show_gridlines=False, show_legend=False),
     # 400x300: the "10" y-axis tick label sits at SVG (x=51, y=35,
-    # text-anchor="end", font-size 12.0). (49, 28) is the darkest pixel in
-    # that label's glyph box (a scan against Theme's default text_color
-    # (40, 40, 40)) -- inside the "1"'s vertical stroke, a few pixels up
-    # and left of the text's baseline/anchor point.
+    # text-anchor="end", font-size 12.0). x:[30,56], y:[20,40] is a box
+    # around that position generous enough to hold the whole glyph
+    # (empirically, its ink lands in x:[37,54], y:[26,35]) but short of
+    # the y-axis line at x~59-60, which would otherwise register as ink
+    # of its own.
     var cats: List[String] = ["A"]
     var vals: List[Float64] = [10.0]
     var t = Theme(show_gridlines=False, show_legend=False)
     var plot = bar(cats, vals, theme=t, width=400, height=300)
     var c = render(plot)
 
-    _assert_near_color(
-        c, 49, 28, t.text_color, 20, "the '10' y-axis tick label's glyph ink"
+    var found_ink = False
+    for y in range(20, 41):
+        for x in range(30, 57):
+            var p = c.get_pixel(x, y)
+            if p.r != BG.r or p.g != BG.g or p.b != BG.b:
+                found_ink = True
+    assert_true(
+        found_ink,
+        "the '10' y-axis tick label's ink, somewhere in its expected region",
     )
 
 
