@@ -1,5 +1,6 @@
 from std.math import cos, pi
 
+from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 from canvas.text.render import TextAlign
@@ -155,7 +156,11 @@ def _render_radar[
             else:
                 poly.line_to(pt.x, pt.y)
         poly.close()
-        target.fill_path_aa(poly, _lighten(color, theme.radar_fill_alpha))
+        target.fill_path_aa(
+            poly,
+            _lighten(color, theme.radar_fill_alpha),
+            fill_rule=FillRule.NONZERO,
+        )
         target.stroke_path_aa(poly, color, sc.line_width)
 
     # Axis labels just outside each spoke's tip, aligned by which side of

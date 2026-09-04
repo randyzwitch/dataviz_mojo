@@ -1,5 +1,6 @@
 from std.math import exp, pi, sqrt
 
+from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
@@ -155,7 +156,7 @@ def _draw_violin_silhouettes[
                 center - densities[s] * scale,
             )
         path.close()
-        target.fill_path_aa(path, theme.mark_color)
+        target.fill_path_aa(path, theme.mark_color, fill_rule=FillRule.NONZERO)
         if theme.svg_tooltips:
             target.end_annotated_group()
 

@@ -1,3 +1,4 @@
+from canvas.fill_rule import FillRule
 from canvas.geometry import _round_to_int
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
@@ -173,7 +174,9 @@ def _render_streamgraph[
         )  # the straight "cap" at the last category
         _append_smoothed_edge(path, bottom_px, bottom_py, theme.line_smoothing)
         path.close()  # the straight "cap" at the first category
-        target.fill_path_aa(path, palette[j % len(palette)])
+        target.fill_path_aa(
+            path, palette[j % len(palette)], fill_rule=FillRule.NONZERO
+        )
 
     if show_legend:
         _draw_legend(

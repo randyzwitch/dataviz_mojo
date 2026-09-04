@@ -207,7 +207,7 @@ def test_render_layers_svg_annotate_band_and_best_fit_draw_against_the_layers_fr
     var s = svg.to_string()
     assert_true(
         '<path d="M74.545,155.909 L365.455,20.000 L365.455,114.091'
-        ' L74.545,250.000 Z" fill="#e0ecf6" fill-rule="evenodd"'
+        ' L74.545,250.000 Z" fill="#e0ecf6"'
         ' fill-opacity="0.784"/>'
         in s,
         "the confidence band's filled region",
@@ -752,7 +752,7 @@ def test_render_layers_svg_bar_combo_supports_an_area_layer() raises:
     # the baseline lands on the axis line, as _draw_area_layer does.
     assert_true(
         '<path d="M140.000,85.714 L300.000,195.238 L300.000,249.000'
-        ' L140.000,249.000 Z" fill="#1e64b4" fill-rule="evenodd"/>'
+        ' L140.000,249.000 Z" fill="#1e64b4"/>'
         in s,
         "the area, closed down to the shared zero baseline",
     )

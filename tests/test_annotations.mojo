@@ -382,7 +382,7 @@ def test_render_svg_annotate_band_matches_hand_derived_path_and_label() raises:
     var s = svg.to_string()
     assert_true(
         '<path d="M74.545,20.000 L365.455,20.000 L365.455,250.000'
-        ' L74.545,250.000 Z" fill="#e0ecf6" fill-rule="evenodd"'
+        ' L74.545,250.000 Z" fill="#e0ecf6"'
         ' fill-opacity="0.784"/>'
         in s,
         (
@@ -495,7 +495,7 @@ def test_render_svg_annotate_band_clamps_rather_than_crashes_on_overshoot() rais
     # itself.
     assert_true(
         '<path d="M60.000,20.000 L380.000,20.000 L380.000,250.000'
-        ' L60.000,250.000 Z" fill="#e0ecf6" fill-rule="evenodd"'
+        ' L60.000,250.000 Z" fill="#e0ecf6"'
         ' fill-opacity="0.784"/>'
         in s,
         "every vertex clamped to the plot rect's own corners",
