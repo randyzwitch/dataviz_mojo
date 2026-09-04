@@ -370,12 +370,18 @@ def test_render_raises_on_nan_or_inf_in_encoded_data() raises:
     var xs: List[Float64] = [1.0, 2.0, 3.0]
     with assert_raises():
         var plot = (
-            Plot().mark_point().encode(x=xs, y=[1.0, nan[DType.float64](), 3.0]).size(200, 150)
+            Plot()
+            .mark_point()
+            .encode(x=xs, y=[1.0, nan[DType.float64](), 3.0])
+            .size(200, 150)
         )
         _ = render(plot)
     with assert_raises():
         var plot = (
-            Plot().mark_point().encode(x=xs, y=[1.0, inf[DType.float64](), 3.0]).size(200, 150)
+            Plot()
+            .mark_point()
+            .encode(x=xs, y=[1.0, inf[DType.float64](), 3.0])
+            .size(200, 150)
         )
         _ = render(plot)
 
