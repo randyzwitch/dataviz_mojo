@@ -17,6 +17,10 @@
   methods feed, which don't support either channel).
 - Plot.scale_y_log()/scale_x_log(): pixel placement through the shared
   to_pixel() path and every raise path.
+- render_layers() with every layer on an axis agreeing on
+  scale_y_log()/scale_x_log() (#217): a shared log domain, primary vs.
+  secondary y-axis log-ness decided independently, Mark.AREA still
+  excluded, and every mix-raise path (naming the disagreeing layer).
 - Theme.show_data_labels on Mark.BAR/GROUPED_BAR/STACKED_BAR: label
   placement and formatting, and the default-off case.
 - Plot.encode()'s labels channel on Mark.POINT/EFFECT_SCATTER.
@@ -26,7 +30,14 @@
 
 from canvas.color import Color
 from dataviz.colors import TOMATO
-from dataviz.plot import Plot, render, render_layers, render_svg, save_layers
+from dataviz.plot import (
+    Plot,
+    render,
+    render_layers,
+    render_layers_svg,
+    render_svg,
+    save_layers,
+)
 from dataviz.theme import Theme
 from std.collections import Dict
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
@@ -655,8 +666,9 @@ def test_render_raises_on_a_non_positive_annotate_vline_value_with_scale_x_log()
 
 
 def test_render_layers_raises_on_a_layer_with_scale_y_log() raises:
-    # render_layers() combines every layer into one shared linear domain;
-    # a log-scaled layer is rejected.
+    # #217: render_layers() now supports a log axis when every layer on
+    # it agrees; a lone log layer next to a linear one still raises,
+    # naming the disagreeing layer.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [1.0, 10.0]
     var a = Plot().mark_line().encode(x=x, y=y).scale_y_log()
@@ -664,6 +676,95 @@ def test_render_layers_raises_on_a_layer_with_scale_y_log() raises:
     var plots: List[Plot] = [a^, b^]
     with assert_raises():
         _ = render_layers(plots)
+
+
+def test_render_svg_layers_share_one_log_y_domain_when_every_layer_agrees() raises:
+    # #217: two log-y layers, y=[1,10] and y=[10,100]. Combined domain
+    # [1,100] in real units -> log10-space [0,2], padded 5% (0.1) ->
+    # [-0.1, 2.1], the exact domain test_render_svg_scale_y_log_matches_
+    # hand_derived_positions (above) uses for its own [1,10,100] domain
+    # -- same canvas (400x300), same ticks: to_pixel(1)=240, to_pixel(10)
+    # =135, to_pixel(100)=30.
+    var x1: List[Float64] = [1.0, 2.0]
+    var y1: List[Float64] = [1.0, 10.0]
+    var x2: List[Float64] = [1.0, 2.0]
+    var y2: List[Float64] = [10.0, 100.0]
+    var a = (
+        Plot()
+        .mark_point()
+        .encode(x=x1, y=y1)
+        .scale_y_log()
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var b = (
+        Plot()
+        .mark_line()
+        .encode(x=x2, y=y2)
+        .scale_y_log()
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var plots: List[Plot] = [a^, b^]
+    var s = render_layers_svg(plots).to_string()
+    assert_true('">1<' in s or ">1<" in s, "the 1 tick label draws")
+    assert_true(
+        'y1="240"' in s and 'y2="240"' in s, "y=1's tick sits at row 240"
+    )
+    assert_true(
+        'y1="135"' in s and 'y2="135"' in s, "y=10's tick sits at row 135"
+    )
+    assert_true(
+        'y1="30"' in s and 'y2="30"' in s, "y=100's tick sits at row 30"
+    )
+    assert_true(
+        'cx="75" cy="240"' in s, "the point layer's y=1 lands at row 240"
+    )
+    assert_true(
+        "365.455,30.455" in s, "the line layer's y=100 endpoint lands at row 30"
+    )
+
+
+def test_render_layers_raises_on_an_x_axis_log_mix() raises:
+    var x: List[Float64] = [1.0, 2.0]
+    var y: List[Float64] = [1.0, 2.0]
+    var a = Plot().mark_line().encode(x=x, y=y).scale_x_log()
+    var b = Plot().mark_line().encode(x=x, y=y)
+    var plots: List[Plot] = [a^, b^]
+    with assert_raises():
+        _ = render_layers(plots)
+
+
+def test_render_layers_raises_on_scale_y_log_with_a_mark_area_layer() raises:
+    var x: List[Float64] = [1.0, 2.0]
+    var y: List[Float64] = [1.0, 10.0]
+    var a = Plot().mark_area().encode(x=x, y=y).scale_y_log()
+    var b = Plot().mark_point().encode(x=x, y=y).scale_y_log()
+    var plots: List[Plot] = [a^, b^]
+    with assert_raises():
+        _ = render_layers(plots)
+
+
+def test_render_layers_secondary_axis_log_is_independent_of_the_primary_axis() raises:
+    # #217: a linear primary axis alongside a log secondary axis (or the
+    # reverse) is fine -- the two groups are validated independently.
+    var x: List[Float64] = [1.0, 2.0]
+    var y1: List[Float64] = [1.0, 2.0]
+    var y2: List[Float64] = [1.0, 100.0]
+    var a = Plot().mark_point().encode(x=x, y=y1).size(400, 300)
+    var b = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y2)
+        .scale_y_log()
+        .secondary_axis()
+        .size(400, 300)
+    )
+    var plots: List[Plot] = [a^, b^]
+    var s = render_layers_svg(plots).to_string()
+    assert_true(
+        ">100<" in s, "the secondary axis's own log ticks (1, 10, 100) draw"
+    )
 
 
 # ---------------------------------------------------------------
