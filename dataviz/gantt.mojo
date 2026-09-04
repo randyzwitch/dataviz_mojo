@@ -129,7 +129,7 @@ def _draw_horizontal_categorical_axis_frame[
     )
 
     var x_ticks = out_x_scale.ticks()
-    var x_labels = x_ticks.labels()
+    var x_labels = x_ticks.labels(theme.x_tick_format)
 
     if theme.show_gridlines:
         for i in range(len(x_ticks.values)):

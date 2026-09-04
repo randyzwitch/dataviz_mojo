@@ -74,6 +74,7 @@ from dataviz.scale import (
     LinearScale,
     MinMax,
     _format_fixed,
+    _format_tick,
     _label_decimals,
     _min_max,
 )
@@ -3707,8 +3708,9 @@ def _draw_continuous_color_legend[
 ) raises -> Int:
     """A continuous color legend: a vertical gradient bar
     (`DrawTarget.fill_rect_gradient`) with `color_scale`'s high value at
-    the top and low at the bottom, plus two labels (`_format_fixed`, one
-    decimal place) for the domain max at the top and min at the bottom.
+    the top and low at the bottom, plus two labels (`_format_tick` at
+    `theme.y_tick_format`, one decimal place) for the domain max at the
+    top and min at the bottom.
 
     The `LinearGradient` is built from `color_scale.stops` directly. The
     bar runs top to bottom while the scale's offsets run low to high, so
@@ -3760,7 +3762,7 @@ def _draw_continuous_color_legend[
         _TextRequest(
             x + bar_width + sc.label_gap,
             y + label_baseline_offset,
-            _format_fixed(color_scale.domain_max, 1),
+            _format_tick(color_scale.domain_max, 1, theme.y_tick_format),
             theme.text_color,
             sc.font_size,
             TextAlign.LEFT,
@@ -3771,7 +3773,7 @@ def _draw_continuous_color_legend[
         _TextRequest(
             x + bar_width + sc.label_gap,
             y + bar_height + label_baseline_offset,
-            _format_fixed(color_scale.domain_min, 1),
+            _format_tick(color_scale.domain_min, 1, theme.y_tick_format),
             theme.text_color,
             sc.font_size,
             TextAlign.LEFT,
@@ -3819,7 +3821,7 @@ def _draw_continuous_size_legend[
             _TextRequest(
                 cx + radius + sc.label_gap,
                 center_y + label_baseline_offset,
-                _format_fixed(v, 1),
+                _format_tick(v, 1, theme.y_tick_format),
                 theme.text_color,
                 sc.font_size,
                 TextAlign.LEFT,
@@ -5661,8 +5663,16 @@ def _legend_reserve_for(
         )
     elif ch.has_color:
         var color_labels = List[String]()
-        color_labels.append(_format_fixed(ch.color_scale.domain_max, 1))
-        color_labels.append(_format_fixed(ch.color_scale.domain_min, 1))
+        color_labels.append(
+            _format_tick(
+                ch.color_scale.domain_max, 1, plot._theme.y_tick_format
+            )
+        )
+        color_labels.append(
+            _format_tick(
+                ch.color_scale.domain_min, 1, plot._theme.y_tick_format
+            )
+        )
         reserve = max(
             reserve,
             _dynamic_legend_width(
@@ -5671,11 +5681,19 @@ def _legend_reserve_for(
         )
     if ch.has_size:
         var size_labels = List[String]()
-        size_labels.append(_format_fixed(ch.size_mm.max, 1))
         size_labels.append(
-            _format_fixed((ch.size_mm.min + ch.size_mm.max) / 2.0, 1)
+            _format_tick(ch.size_mm.max, 1, plot._theme.y_tick_format)
         )
-        size_labels.append(_format_fixed(ch.size_mm.min, 1))
+        size_labels.append(
+            _format_tick(
+                (ch.size_mm.min + ch.size_mm.max) / 2.0,
+                1,
+                plot._theme.y_tick_format,
+            )
+        )
+        size_labels.append(
+            _format_tick(ch.size_mm.min, 1, plot._theme.y_tick_format)
+        )
         var circle_content_width = 2 * _round_to_int(sc.size_range_max)
         reserve = max(
             reserve,
@@ -5775,7 +5793,7 @@ def _draw_continuous_axis_frame[
     # can be sized to fit their labels, `max`'d against Theme's configured
     # minimum.
     var y_ticks = y_scale.ticks()
-    var y_labels = y_ticks.labels()
+    var y_labels = y_ticks.labels(theme.y_tick_format)
     var dynamic_left_margin = (
         Int(_max_label_width(y_labels, sc.font_size, cache=cache))
         + sc.tick_length
@@ -5800,7 +5818,7 @@ def _draw_continuous_axis_frame[
     out_y_scale.range_max = Float64(plot_y0)
 
     var x_ticks = out_x_scale.ticks()
-    var x_labels = x_ticks.labels()
+    var x_labels = x_ticks.labels(theme.x_tick_format)
 
     if theme.show_gridlines:
         for i in range(len(x_ticks.values)):
@@ -6561,7 +6579,7 @@ def _draw_categorical_axis_frame[
     var sc = _Scaled(theme)
 
     var y_ticks = y_scale.ticks()
-    var y_labels = y_ticks.labels()
+    var y_labels = y_ticks.labels(theme.y_tick_format)
     var dynamic_left_margin = (
         Int(_max_label_width(y_labels, sc.font_size))
         + sc.tick_length
@@ -7494,7 +7512,9 @@ def _render_layers_generic[
     var secondary_axis_reserve = 0
     if has_secondary_data:
         var y2_ticks_for_margin = y_scale2.ticks()
-        var y2_labels_for_margin = y2_ticks_for_margin.labels()
+        var y2_labels_for_margin = y2_ticks_for_margin.labels(
+            theme.y_tick_format
+        )
         secondary_axis_reserve = (
             Int(
                 _max_label_width(
@@ -7541,7 +7561,7 @@ def _render_layers_generic[
     out_y_scale2.range_max = Float64(frame.py0)
     if has_secondary_data:
         var y2_ticks = out_y_scale2.ticks()
-        var y2_labels = y2_ticks.labels()
+        var y2_labels = y2_ticks.labels(theme.y_tick_format)
         var y2_label_baseline_offset = Int(sc.font_size * 0.35)
         target.draw_line_aa(
             frame.px1,

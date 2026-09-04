@@ -42,7 +42,9 @@ from dataviz.plot import Plot, render, render_svg
 from dataviz.scale import (
     LinearScale,
     Ticks,
+    TickFormat,
     _format_fixed,
+    _format_tick,
     _label_decimals,
     _log_ticks,
     _min_max,
@@ -266,6 +268,101 @@ def test_ticks_labels_uses_format_fixed_per_tick() raises:
     assert_equal(labels[0], "0.000")
     assert_equal(labels[1], "0.002")
     assert_equal(labels[len(labels) - 1], "0.010")
+
+
+def test_format_tick_auto_matches_format_fixed() raises:
+    # AUTO is _format_fixed unchanged, decimals as given.
+    assert_equal(_format_tick(20.0, 0, TickFormat.AUTO), "20")
+    assert_equal(_format_tick(0.25, 3, TickFormat.AUTO), "0.250")
+
+
+def test_format_tick_percent_matches_hand_computed_strings() raises:
+    # value*100, decimals-2 (a domain step needing 3 decimals in raw
+    # units needs 1 once scaled to percent).
+    assert_equal(_format_tick(0.25, 3, TickFormat.PERCENT), "25.0%")
+    assert_equal(_format_tick(0.5, 2, TickFormat.PERCENT), "50%")
+    assert_equal(_format_tick(1.0, 2, TickFormat.PERCENT), "100%")
+    assert_equal(_format_tick(0.0, 2, TickFormat.PERCENT), "0%")
+
+
+def test_format_tick_thousands_matches_hand_computed_strings() raises:
+    assert_equal(_format_tick(1500000.0, 0, TickFormat.THOUSANDS), "1,500,000")
+    assert_equal(
+        _format_tick(-1500000.0, 0, TickFormat.THOUSANDS), "-1,500,000"
+    )
+    assert_equal(_format_tick(999.0, 0, TickFormat.THOUSANDS), "999")
+    assert_equal(_format_tick(1234.5, 1, TickFormat.THOUSANDS), "1,234.5")
+
+
+def test_format_tick_si_matches_hand_computed_strings() raises:
+    assert_equal(_format_tick(1500000.0, 0, TickFormat.SI), "1.5M")
+    assert_equal(_format_tick(2000000.0, 0, TickFormat.SI), "2M")
+    assert_equal(_format_tick(2500.0, 0, TickFormat.SI), "2.5k")
+    assert_equal(_format_tick(0.0025, 0, TickFormat.SI), "2.5m")
+    assert_equal(_format_tick(0.0, 0, TickFormat.SI), "0")
+    assert_equal(_format_tick(500.0, 0, TickFormat.SI), "500")
+
+
+def test_format_tick_scientific_matches_hand_computed_strings() raises:
+    assert_equal(_format_tick(1500000.0, 0, TickFormat.SCIENTIFIC), "1.5e+6")
+    assert_equal(_format_tick(0.0025, 0, TickFormat.SCIENTIFIC), "2.5e-3")
+    assert_equal(_format_tick(0.0, 0, TickFormat.SCIENTIFIC), "0e+0")
+    assert_equal(_format_tick(-42.0, 0, TickFormat.SCIENTIFIC), "-4.2e+1")
+
+
+def test_format_tick_fixed_always_uses_its_own_decimal_count() raises:
+    # FIXED(n) ignores the passed-in decimals entirely.
+    assert_equal(_format_tick(19.999, 5, TickFormat.FIXED(2)), "20.00")
+    assert_equal(_format_tick(3.0, 5, TickFormat.FIXED(0)), "3")
+
+
+def test_format_tick_with_affixes_wraps_every_kind() raises:
+    assert_equal(
+        _format_tick(19.99, 0, TickFormat.FIXED(2).with_affixes(prefix="$")),
+        "$19.99",
+    )
+    assert_equal(
+        _format_tick(0.5, 2, TickFormat.PERCENT.with_affixes(suffix=" off")),
+        "50% off",
+    )
+
+
+def test_format_tick_falls_back_to_scientific_past_2_53_regardless_of_format() raises:
+    # #205's overflow boundary applies to every kind here, not just AUTO,
+    # since THOUSANDS/PERCENT/FIXED all still route through _format_fixed
+    # internally.
+    assert_equal(_format_tick(5e18, 0, TickFormat.THOUSANDS), "5e+18")
+    assert_equal(_format_tick(5e18, 0, TickFormat.PERCENT), "5e+18")
+    assert_equal(_format_tick(5e18, 2, TickFormat.FIXED(2)), "5e+18")
+
+
+def test_ticks_labels_accepts_a_tick_format() raises:
+    # Real ticks (not hand-built values) formatted as percent: domain
+    # [0, 1] -> ticks [0, 0.2, 0.4, 0.6, 0.8, 1.0] at decimals=1, which
+    # PERCENT renders at decimals-2 -> max(0, -1) -> 0 decimal places.
+    var s = LinearScale(0.0, 1.0, 0.0, 600.0)
+    var t = s.ticks(5)
+    var labels = t.labels(TickFormat.PERCENT)
+    assert_equal(labels[0], "0%")
+    assert_equal(labels[1], "20%")
+    assert_equal(labels[len(labels) - 1], "100%")
+
+
+def test_render_svg_y_tick_format_reaches_the_axis_labels() raises:
+    # #210: Theme.y_tick_format actually reaches the rendered SVG, not
+    # just the isolated formatter.
+    var x: List[Float64] = [0.0, 1.0, 2.0]
+    var y: List[Float64] = [0.1, 0.5, 0.9]
+    var plot = (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .theme(Theme(y_tick_format=TickFormat.PERCENT))
+        .size(400, 300)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true(">40%<" in s, "a percent-formatted y tick draws")
+    assert_true(">0.4<" not in s, "not also the plain AUTO-formatted label")
 
 
 def test_log_scale_to_pixel_matches_hand_derived_positions() raises:

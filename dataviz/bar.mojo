@@ -6,7 +6,7 @@ from dataviz.array_like import _materialize_scalar_list
 
 from canvas.text.render import TextAlign
 from dataviz.ordinal_scale import OrdinalScale
-from dataviz.scale import LinearScale, _format_fixed, _label_decimals
+from dataviz.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -156,7 +156,11 @@ def _draw_bar_rects[
                 _TextRequest(
                     at.x,
                     at.y,
-                    _format_fixed(value, _label_decimals(value)),
+                    _format_tick(
+                        value,
+                        _label_decimals(value),
+                        theme.x_tick_format if orient.horizontal else theme.y_tick_format,
+                    ),
                     theme.text_color,
                     sc.font_size,
                     at.align,
