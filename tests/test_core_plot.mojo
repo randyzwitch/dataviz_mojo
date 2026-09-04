@@ -59,8 +59,11 @@ from dataviz.plot import (
     _build_line_path,
     _categorical_indices,
     _decimate_to_pixel_columns,
+    _resolve_x_label_rotation,
 )
 from dataviz.theme import Theme
+from dataviz.x_label_rotation import XAxisLabelRotation
+from std.math import pi
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 
@@ -580,6 +583,112 @@ def test_render_bar_left_margin_also_grows_to_fit_wide_y_axis_labels() raises:
         or left_of_old_margin.b != 255,
         "wide tick label's ink reaches left of the plain fixed margin",
     )
+
+
+def test_resolve_x_label_rotation_matches_hand_computed_thresholds() raises:
+    # AUTO: horizontal while the widest label fits its band; 45 degrees
+    # once it doesn't but its rotated (narrower) footprint would; 90
+    # once even that doesn't (#214).
+    assert_equal(
+        _resolve_x_label_rotation(XAxisLabelRotation.AUTO, 50.0, 60.0), 0.0
+    )
+    assert_equal(
+        _resolve_x_label_rotation(XAxisLabelRotation.AUTO, 60.0, 60.0), 0.0
+    )
+    # width=80, step=60: 80 > 60 (needs rotation), 80*cos(45)=56.6 <= 60
+    # (45 degrees clears it).
+    assert_equal(
+        _resolve_x_label_rotation(XAxisLabelRotation.AUTO, 80.0, 60.0),
+        pi / 4.0,
+    )
+    # width=200, step=60: 200*cos(45)=141.4 > 60, so even 45 doesn't fit.
+    assert_equal(
+        _resolve_x_label_rotation(XAxisLabelRotation.AUTO, 200.0, 60.0),
+        pi / 2.0,
+    )
+
+    # An explicit override always wins, regardless of width/step.
+    assert_equal(
+        _resolve_x_label_rotation(XAxisLabelRotation.DEG_0, 200.0, 10.0), 0.0
+    )
+    assert_equal(
+        _resolve_x_label_rotation(XAxisLabelRotation.DEG_45, 10.0, 200.0),
+        pi / 4.0,
+    )
+    assert_equal(
+        _resolve_x_label_rotation(XAxisLabelRotation.DEG_90, 10.0, 200.0),
+        pi / 2.0,
+    )
+
+
+def test_render_svg_x_axis_labels_stay_horizontal_for_short_category_names() raises:
+    # 3 short category names on a 400px-wide bar chart: each easily fits
+    # its band, so AUTO leaves them horizontal and the bottom axis line
+    # stays at Theme's plain default margin (300 - margin_bottom(50) =
+    # 250) -- unaffected by #214, matching this file's pre-existing
+    # 68/135 dynamic-left-margin tests' style of a hand-derived pixel
+    # check.
+    var cats: List[String] = ["A", "B", "C"]
+    var vals: List[Float64] = [1.0, 2.0, 3.0]
+    var t = Theme(show_gridlines=False)
+    var c = bar(cats, vals, theme=t, width=400, height=300)
+    var s = render_svg(c).to_string()
+
+    assert_true("rotate(" not in s, "short labels stay unrotated")
+    assert_true(
+        '<line x1="60" y1="250" x2="380" y2="250"' in s,
+        "bottom axis line at the plain default margin",
+    )
+
+
+def test_render_svg_x_axis_labels_rotate_and_widen_bottom_margin_for_long_names() raises:
+    # 12 long category names on the same 400px-wide bar chart: each
+    # band is far narrower than "Category Number Eleven", so AUTO
+    # escalates all the way to 90 degrees and reserves the label's full
+    # width as extra bottom margin, moving the axis line from y=250 up
+    # to y=98 to make room.
+    var cats: List[String] = [
+        "Category Number One",
+        "Category Number Two",
+        "Category Number Three",
+        "Category Number Four",
+        "Category Number Five",
+        "Category Number Six",
+        "Category Number Seven",
+        "Category Number Eight",
+        "Category Number Nine",
+        "Category Number Ten",
+        "Category Number Eleven",
+        "Category Number Twelve",
+    ]
+    var vals: List[Float64] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    var t = Theme(show_gridlines=False)
+    var c = bar(cats, vals, theme=t, width=400, height=300)
+    var s = render_svg(c).to_string()
+
+    assert_true('transform="rotate(-90.000' in s, "labels rotated 90 degrees")
+    assert_true(
+        '<line x1="60" y1="98" x2="380" y2="98"' in s,
+        "bottom axis line moved up to reserve room for the rotated labels",
+    )
+
+
+def test_render_svg_x_axis_labels_respect_an_explicit_rotation_override() raises:
+    # Theme(x_label_rotation=DEG_0) forces the same long labels back to
+    # horizontal, overlap and all -- AUTO's measurement never runs.
+    var cats: List[String] = [
+        "Category Number One",
+        "Category Number Two",
+        "Category Number Three",
+    ]
+    var vals: List[Float64] = [1.0, 2.0, 3.0]
+    var t = Theme(
+        show_gridlines=False, x_label_rotation=XAxisLabelRotation.DEG_0
+    )
+    var c = bar(cats, vals, theme=t, width=400, height=300)
+    var s = render_svg(c).to_string()
+
+    assert_true("rotate(" not in s, "DEG_0 override stays horizontal")
 
 
 # ---------------------------------------------------------------
