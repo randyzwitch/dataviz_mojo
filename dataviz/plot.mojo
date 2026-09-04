@@ -192,7 +192,7 @@ struct _Scaled(Movable):
         self.error_bar_cap_width = theme.error_bar_cap_width * s
 
 
-struct _GanttData(Movable):
+struct _GanttData(Copyable, Movable):
     """One start/end span per category, for `Mark.GANTT`/`SPAN_CHART`. See
     `encode_gantt()`. Stored on `Plot._gantt`.
     """
@@ -205,7 +205,7 @@ struct _GanttData(Movable):
         self.end = List[Float64]()
 
 
-struct _GroupedBarData(Movable):
+struct _GroupedBarData(Copyable, Movable):
     """One name per series and one value per (series, category) pair, for
     `Mark.GROUPED_BAR`/`STACKED_BAR`/`BUMP`/`STREAMGRAPH`. See
     `encode_grouped_bar()`. Stored on `Plot._grouped_bar`.
@@ -219,7 +219,7 @@ struct _GroupedBarData(Movable):
         self.values = List[List[Float64]]()
 
 
-struct _DistributionData(Movable):
+struct _DistributionData(Copyable, Movable):
     """One list of raw values per category, kept unsummarized, for
     `Mark.BEESWARM`/`VIOLIN`/`RIDGELINE`. See `encode_distribution()`.
     Stored on `Plot._distribution`.
@@ -242,7 +242,7 @@ struct _DistributionData(Movable):
         self.kde_scale_by_count = False
 
 
-struct _MarkStyle(Movable):
+struct _MarkStyle(Copyable, Movable):
     """Per-mark appearance knobs, each read by exactly one mark's render
     function and set only through that mark's `mark_*()` parameters (or
     its one-call convenience function). Stored on `Plot._mark_style`.
@@ -301,7 +301,7 @@ struct _MarkStyle(Movable):
         self.sankey_node_width = 12.0
 
 
-struct _LabelData(Movable):
+struct _LabelData(Copyable, Movable):
     """Chart/axis title text set via `.labels()`; an empty string means not
     set. Stored on `Plot._labels`.
     """
@@ -318,7 +318,7 @@ struct _LabelData(Movable):
         self.y_title = ""
 
 
-struct _AnnotationData(Movable):
+struct _AnnotationData(Copyable, Movable):
     """Annotations, stored on `Plot._annotations`. Each `annotate_*()` method
     appends rather than replaces, so the parallel lists hold one entry
     per call: `line_*` is a horizontal reference line per (value, label)
@@ -379,7 +379,7 @@ struct _AnnotationData(Movable):
         self.best_fit_label = ""
 
 
-struct Plot(Movable):
+struct Plot(Copyable, Movable):
     """One chart's mark, theme, labels and data, built through the fluent
     `mark_*()`/`encode_*()`/`labels()`/`theme()` chain and consumed by
     `render()`.
@@ -391,6 +391,19 @@ struct Plot(Movable):
     `y_err_*`/`color_map`/`point_labels`) stay ungrouped, as do the
     single settings (`_mark`/`_theme`/`_secondary_axis`/
     `_nightingale_area`, ...).
+
+    `Copyable`, not `ImplicitlyCopyable` (#207): every field is a plain
+    data column or a small settings struct, so a member-wise copy is
+    always valid, but `Plot` can carry a lot of data -- an accidental
+    implicit copy (e.g. passing one by value where a borrow was meant)
+    should be visible at the call site. Clone a base plot into facet/
+    layer variants with an explicit `.copy()`:
+
+    ```mojo
+    var base = Plot().mark_line().theme(t).size(400, 300)
+    var a = base.copy().encode(x=xs, y=ys_a).labels(title="A")
+    var b = base.copy().encode(x=xs, y=ys_b).labels(title="B")
+    ```
     """
 
     var x_data: List[Float64]

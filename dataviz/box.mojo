@@ -19,7 +19,7 @@ from dataviz.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.theme import Theme
 
 
-struct _BoxData(Movable):
+struct _BoxData(Copyable, Movable):
     """The five-number summary `encode_boxplot()` computes per category, plus
     every outlier tagged with its category index, for `Mark.BOX`. See
     that method for the quartile/whisker/outlier math. Stored on

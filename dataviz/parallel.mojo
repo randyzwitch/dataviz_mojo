@@ -18,7 +18,7 @@ from dataviz.scale import _min_max
 from dataviz.theme import Theme
 
 
-struct _ParallelData(Movable):
+struct _ParallelData(Copyable, Movable):
     """One named axis per dimension, one named row per observation, and one
     value per (row, dimension) pair, for `Mark.PARALLEL`. See
     `encode_parallel()`. Stored on `Plot._parallel`.

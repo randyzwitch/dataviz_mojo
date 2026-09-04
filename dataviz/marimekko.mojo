@@ -18,7 +18,7 @@ from dataviz.plot import (
 from dataviz.theme import Theme
 
 
-struct _MarimekkoData(Movable):
+struct _MarimekkoData(Copyable, Movable):
     """Categories (columns), subcategories (stacked rows), and a value per
     (subcategory, category) pair, for `Mark.MARIMEKKO`. See
     `encode_marimekko()`. Stored on `Plot._marimekko`.

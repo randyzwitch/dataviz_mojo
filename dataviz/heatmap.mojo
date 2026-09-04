@@ -23,7 +23,7 @@ from dataviz.scale import _format_fixed
 from dataviz.theme import Theme
 
 
-struct _HeatmapData(Movable):
+struct _HeatmapData(Copyable, Movable):
     """One (x category, y category, value) row per grid cell, for
     `Mark.HEATMAP`. See `encode_heatmap()`. Stored on `Plot._heatmap`.
     """

@@ -19,7 +19,7 @@ from dataviz.plot import (
 from dataviz.theme import Theme
 
 
-struct _PolarData(Movable):
+struct _PolarData(Copyable, Movable):
     """One (angle, radius) pair per row (`encode_polar()`), or a shared
     `angle` plus one or more named series (`encode_polar_series()`;
     `series_names` non-empty is what `_render_polar` branches on, and

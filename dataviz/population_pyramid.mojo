@@ -18,7 +18,7 @@ from dataviz.scale import LinearScale
 from dataviz.theme import Theme
 
 
-struct _PyramidData(Movable):
+struct _PyramidData(Copyable, Movable):
     """One magnitude per side per category, plus each side's legend name,
     for `Mark.POPULATION_PYRAMID`. See `encode_population_pyramid()`.
     Stored on `Plot._pyramid`.

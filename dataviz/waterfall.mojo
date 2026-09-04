@@ -16,7 +16,7 @@ from dataviz.plot import (
 from dataviz.theme import Theme
 
 
-struct _WaterfallData(Movable):
+struct _WaterfallData(Copyable, Movable):
     """The running-total bounds `encode_waterfall()` computes from each
     category's signed delta (`y_data`), for `Mark.WATERFALL`. See that
     method. Stored on `Plot._waterfall`.

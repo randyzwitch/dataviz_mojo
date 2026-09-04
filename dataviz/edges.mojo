@@ -20,7 +20,7 @@ from dataviz.plot import (
 )
 
 
-struct _EdgeData(Movable):
+struct _EdgeData(Copyable, Movable):
     """One (from node, to node, value) flow per row, for `Mark.CHORD`/
     `ARC_DIAGRAM`/`GRAPH`/`SANKEY`. See `encode_chord()`. Stored on
     `Plot._edges`.

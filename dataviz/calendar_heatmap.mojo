@@ -21,7 +21,7 @@ from dataviz.scale import _format_fixed
 from dataviz.theme import Theme
 
 
-struct _CalendarData(Movable):
+struct _CalendarData(Copyable, Movable):
     """One (`"YYYY-MM-DD"` date, value) row per day, for
     `Mark.CALENDAR_HEATMAP`. See `encode_calendar()`. Stored on
     `Plot._calendar`.
