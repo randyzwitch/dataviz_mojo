@@ -58,6 +58,11 @@ pandas = ">=2.0,<3"
 example = "mkdir -p docs/src/examples && rm -rf docs/src/examples/verify && rm -f docs/src/examples/*.mojo docs/src/examples/out_* && mojo run -I . -I scripts scripts/extract_docstring_examples.mojo && mojo run -I . -I scripts scripts/build_verify_batches.mojo && bash scripts/run_parallel.sh docs/src/examples/verify/*.mojo"
 example-quickstart = "bash scripts/run_parallel.sh docs/src/examples/quickstart/*.mojo"
 test = "bash scripts/run_parallel.sh tests/test_*.mojo"
+# Formats source in place (#226). `mojo format` has no `--check` flag
+# of its own, so format-check (below, and the CI job of the same name)
+# reformats a checkout and fails on any resulting diff instead.
+format = "mojo format dataviz tests scripts docs/src/cookbook_recipes docs/src/examples/quickstart"
+format-check = "mojo format dataviz tests scripts docs/src/cookbook_recipes docs/src/examples/quickstart && git diff --exit-code -- dataviz tests scripts docs/src/cookbook_recipes docs/src/examples/quickstart"
 # Renders a representative mark per family at increasing sizes and
 # prints wall-clock render times (scripts/bench.mojo, #230) -- a manual
 # "run before a release, or after touching a mark's layout code" check,
