@@ -7,8 +7,15 @@ from dataviz.plot import save
 from dataviz.colors import CORNFLOWERBLUE
 from dataviz.theme import Theme
 
+
 def main() raises:
-    var categories: List[String] = ["Product D", "Product A", "Product C", "Product B", "Product E"]
+    var categories: List[String] = [
+        "Product D",
+        "Product A",
+        "Product C",
+        "Product B",
+        "Product E",
+    ]
     var values: List[Float64] = [18.0, 42.0, 25.0, 31.0, 9.0]
 
     # encode_categorical() draws bars in exactly the order given --
@@ -26,5 +33,7 @@ def main() raises:
         values[j + 1] = v
         categories[j + 1] = c
 
-    var c_sorted = bar(categories, values, theme=Theme(mark_color=CORNFLOWERBLUE))
+    var c_sorted = bar(
+        categories, values, theme=Theme(mark_color=CORNFLOWERBLUE)
+    )
     save(c_sorted, "docs/src/examples/out_bar_sorted.svg")

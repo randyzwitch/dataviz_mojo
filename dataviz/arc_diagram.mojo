@@ -21,7 +21,9 @@ from dataviz.theme import Theme
 
 def _render_arc_diagram[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.ARC_DIAGRAM` plot: `Mark.CHORD`'s edge list
     (`encode_chord()`'s `from`/`to`/`value`) drawn as nodes on one
     straight, evenly spaced line with edges as semicircular arcs bulging
@@ -43,7 +45,9 @@ def _render_arc_diagram[
     _validate_edge_encoding(plot, "Mark.ARC_DIAGRAM")
 
     var theme = plot._theme
-    var edges = _edge_node_index(plot._edges.from_categories, plot._edges.to_categories)
+    var edges = _edge_node_index(
+        plot._edges.from_categories, plot._edges.to_categories
+    )
     ref nodes = edges.nodes
     var n = len(nodes)
 
@@ -74,7 +78,9 @@ def _render_arc_diagram[
         var right_x = max(node_x[from_idx], node_x[to_idx])
         var cx = (left_x + right_x) / 2.0
         var radius = (right_x - left_x) / 2.0
-        var frac = plot._edges.values[row] / max_value if max_value > 0.0 else 0.0
+        var frac = (
+            plot._edges.values[row] / max_value if max_value > 0.0 else 0.0
+        )
         var width = sc.line_width + sc.line_width * 2.0 * frac
         var color = palette[from_idx % len(palette)]
 
@@ -90,8 +96,13 @@ def _render_arc_diagram[
         target.fill_circle_aa(px, py, _round_to_int(sc.point_radius), color)
         text_requests.append(
             _TextRequest(
-                px, py + sc.tick_length + sc.label_gap + Int(sc.font_size), nodes[i], theme.text_color,
-                sc.font_size, TextAlign.CENTER, theme.font_family,
+                px,
+                py + sc.tick_length + sc.label_gap + Int(sc.font_size),
+                nodes[i],
+                theme.text_color,
+                sc.font_size,
+                TextAlign.CENTER,
+                theme.font_family,
             )
         )
 
@@ -149,7 +160,15 @@ def arc_diagram(
             save(c, "docs/src/examples/out_arc_diagram.svg")
         ```
     """
-    var plot = Plot().mark_arc_diagram().encode_chord(
-        from_categories=from_categories, to_categories=to_categories, values=values
+    var plot = (
+        Plot()
+        .mark_arc_diagram()
+        .encode_chord(
+            from_categories=from_categories,
+            to_categories=to_categories,
+            values=values,
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )

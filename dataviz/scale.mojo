@@ -69,7 +69,9 @@ struct _NiceStep(ImplicitlyCopyable, Movable):
         self.exponent = exponent
 
 
-def _nice_step(domain_min: Float64, domain_max: Float64, target_count: Int) -> _NiceStep:
+def _nice_step(
+    domain_min: Float64, domain_max: Float64, target_count: Int
+) -> _NiceStep:
     """The step size and its base-10 exponent for `target_count`-ish ticks
     spanning [domain_min, domain_max]. The exponent tells `_format_fixed`
     how many decimal places a tick needs; it can't be re-derived from the
@@ -220,7 +222,9 @@ def _log_ticks(domain_min: Float64, domain_max: Float64) -> Ticks:
     if domain_min == domain_max:
         var v = pow(10.0, domain_min)
         var single: List[Float64] = [v]
-        var single_label: List[String] = [_format_fixed(v, max(0, -Int(floor(domain_min))))]
+        var single_label: List[String] = [
+            _format_fixed(v, max(0, -Int(floor(domain_min))))
+        ]
         return Ticks(single^, 0, single_label^)
 
     var start_exp = Int(floor(domain_min))
@@ -273,7 +277,10 @@ struct Ticks(Movable):
     """
 
     def __init__(
-        out self, var values: List[Float64], decimals: Int, var override_labels: List[String] = List[String]()
+        out self,
+        var values: List[Float64],
+        decimals: Int,
+        var override_labels: List[String] = List[String](),
     ):
         """Construct a `Ticks` from already-computed positions and a decimal
         count; normally built by `LinearScale.ticks()`.
@@ -391,7 +398,7 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         return v * self.scale() + self.translate()
 
     def ticks(self, target_count: Int = 5) -> Ticks:
-        """"Nice" tick positions within [domain_min, domain_max] (see
+        """ "Nice" tick positions within [domain_min, domain_max] (see
         `_nice_step`), from ceil(domain_min/step)*step to
         floor(domain_max/step)*step, so ticks never extend past the domain; a
         tick landing exactly on a boundary is included (domain [0,100]

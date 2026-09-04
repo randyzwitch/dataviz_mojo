@@ -46,6 +46,7 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 # from tests/test_arc.mojo
 # ---------------------------------------------------------------
 
+
 def test_render_arc_mark_matches_hand_derived_wedge_colors() raises:
     # Two equal wedges, each half the circle, starting at 12 o'clock
     # (-pi/2) and sweeping clockwise: wedge 0 covers -pi/2..pi/2 (a point
@@ -97,17 +98,25 @@ def test_render_svg_arc_mark_matches_confirmed_wedge_paths() raises:
     # 220.000.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var plot = Plot().mark_arc().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_arc()
+        .encode_categorical(x=cats, y=vals)
+        .theme(Theme(show_legend=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<path d="M220.000,135.000 L220.000,31.500 A103.500,103.500 0 0,1 323.500,135.000'
-        ' Z" fill="#1f77b4"/>' in s,
+        '<path d="M220.000,135.000 L220.000,31.500 A103.500,103.500 0 0,1'
+        ' 323.500,135.000 Z" fill="#1f77b4"/>'
+        in s,
         "wedge 0 (value 1, span pi/2): small arc, large-arc-flag 0, palette[0]",
     )
     assert_true(
-        '<path d="M220.000,135.000 L323.500,135.000 A103.500,103.500 0 1,1 220.000,31.500'
-        ' Z" fill="#ff7f0e"/>' in s,
+        '<path d="M220.000,135.000 L323.500,135.000 A103.500,103.500 0 1,1'
+        ' 220.000,31.500 Z" fill="#ff7f0e"/>'
+        in s,
         "wedge 1 (value 3, span 3pi/2): wide arc, large-arc-flag 1, palette[1]",
     )
 
@@ -121,13 +130,24 @@ def test_render_donut_leaves_the_center_unfilled_and_fills_the_ring() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
     var _hoisted5 = pie(
-        cats, vals, theme=Theme(show_legend=False), inner_radius_fraction=0.5, width=400, height=300
+        cats,
+        vals,
+        theme=Theme(show_legend=False),
+        inner_radius_fraction=0.5,
+        width=400,
+        height=300,
     )
     var c = render(_hoisted5)
 
-    _assert_color(c, 220, 135, BG, "donut hole: the exact center stays background")
     _assert_color(
-        c, 275, 80, default_categorical_palette()[0], "wedge 0's ring, well inside its bounds"
+        c, 220, 135, BG, "donut hole: the exact center stays background"
+    )
+    _assert_color(
+        c,
+        275,
+        80,
+        default_categorical_palette()[0],
+        "wedge 0's ring, well inside its bounds",
     )
 
 
@@ -136,19 +156,27 @@ def test_render_donut_svg_matches_confirmed_ring_sector_paths() raises:
     # formatted with 3-decimal `_format_svg_float`.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var plot = Plot().mark_arc(inner_radius_fraction=0.5).encode_categorical(x=cats, y=vals).theme(
-        Theme(show_legend=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_arc(inner_radius_fraction=0.5)
+        .encode_categorical(x=cats, y=vals)
+        .theme(Theme(show_legend=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<path d="M220.000,31.500 A103.500,103.500 0 0,1 323.500,135.000'
-        ' L271.750,135.000 A51.750,51.750 0 0,0 220.000,83.250 Z" fill="#1f77b4"/>' in s,
+        ' L271.750,135.000 A51.750,51.750 0 0,0 220.000,83.250 Z"'
+        ' fill="#1f77b4"/>'
+        in s,
         "wedge 0's ring-sector path, outer arc forward then inner arc backward",
     )
     assert_true(
         '<path d="M323.500,135.000 A103.500,103.500 0 1,1 220.000,31.500'
-        ' L220.000,83.250 A51.750,51.750 0 1,0 271.750,135.000 Z" fill="#ff7f0e"/>' in s,
+        ' L220.000,83.250 A51.750,51.750 0 1,0 271.750,135.000 Z"'
+        ' fill="#ff7f0e"/>'
+        in s,
         "wedge 1's ring-sector path, wide arc (large-arc-flag 1) on both radii",
     )
 
@@ -157,15 +185,21 @@ def test_render_donut_raises_on_out_of_range_inner_radius_fraction() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 1.0]
     with assert_raises():
-        var _hoisted6 = pie(cats, vals, inner_radius_fraction=1.0, width=400, height=300)
+        var _hoisted6 = pie(
+            cats, vals, inner_radius_fraction=1.0, width=400, height=300
+        )
         _ = render(_hoisted6)
     with assert_raises():
-        var _hoisted7 = pie(cats, vals, inner_radius_fraction=-0.1, width=400, height=300)
+        var _hoisted7 = pie(
+            cats, vals, inner_radius_fraction=-0.1, width=400, height=300
+        )
         _ = render(_hoisted7)
+
 
 # ---------------------------------------------------------------
 # from tests/test_nightingale.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_nightingale_matches_hand_derived_wedge_colors() raises:
     # Three equal wedges, each 2*pi/3, from 12 o'clock clockwise: wedge 0
@@ -181,7 +215,9 @@ def test_render_nightingale_matches_hand_derived_wedge_colors() raises:
 
     var palette = default_categorical_palette()
     _assert_color(c, 198, 110, palette[0], "wedge 0, bisector -30 degrees")
-    _assert_color(c, 155, 185, palette[1], "wedge 1, bisector 90 degrees (straight down)")
+    _assert_color(
+        c, 155, 185, palette[1], "wedge 1, bisector 90 degrees (straight down)"
+    )
     _assert_color(c, 112, 110, palette[2], "wedge 2, bisector 210 degrees")
 
 
@@ -201,13 +237,37 @@ def test_render_nightingale_area_mode_scales_radius_by_sqrt() raises:
 
     var _hoisted2 = nightingale(x, y, area=False, width=400, height=300)
     var radius_mode = render(_hoisted2)
-    _assert_color(radius_mode, 185, 135, BG, "radius mode: (1/4) * 85.5 = 21.375, point at r=30 is outside")
-    _assert_color(radius_mode, 125, 135, palette[1], "radius mode: wedge 1 (frac 1.0) still reaches r=30")
+    _assert_color(
+        radius_mode,
+        185,
+        135,
+        BG,
+        "radius mode: (1/4) * 85.5 = 21.375, point at r=30 is outside",
+    )
+    _assert_color(
+        radius_mode,
+        125,
+        135,
+        palette[1],
+        "radius mode: wedge 1 (frac 1.0) still reaches r=30",
+    )
 
     var _hoisted3 = nightingale(x, y, area=True, width=400, height=300)
     var area_mode = render(_hoisted3)
-    _assert_color(area_mode, 185, 135, palette[0], "area mode: sqrt(1/4) * 85.5 = 42.75, point at r=30 is inside")
-    _assert_color(area_mode, 125, 135, palette[1], "area mode: wedge 1 (frac 1.0) still reaches r=30")
+    _assert_color(
+        area_mode,
+        185,
+        135,
+        palette[0],
+        "area mode: sqrt(1/4) * 85.5 = 42.75, point at r=30 is inside",
+    )
+    _assert_color(
+        area_mode,
+        125,
+        135,
+        palette[1],
+        "area mode: wedge 1 (frac 1.0) still reaches r=30",
+    )
 
 
 def test_render_nightingale_svg_matches_confirmed_wedge_paths() raises:
@@ -217,17 +277,25 @@ def test_render_nightingale_svg_matches_confirmed_wedge_paths() raises:
     # at 103.5.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var plot = Plot().mark_nightingale().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_nightingale()
+        .encode_categorical(x=cats, y=vals)
+        .theme(Theme(show_legend=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<path d="M220.000,135.000 L220.000,100.500 A34.500,34.500 0 1,1 220.000,169.500'
-        ' Z" fill="#1f77b4"/>' in s,
+        '<path d="M220.000,135.000 L220.000,100.500 A34.500,34.500 0 1,1'
+        ' 220.000,169.500 Z" fill="#1f77b4"/>'
+        in s,
         "wedge 0 (value 1, frac 1/3, radius 34.5, span -90.90)",
     )
     assert_true(
-        '<path d="M220.000,135.000 L220.000,238.500 A103.500,103.500 0 1,1 220.000,31.500'
-        ' Z" fill="#ff7f0e"/>' in s,
+        '<path d="M220.000,135.000 L220.000,238.500 A103.500,103.500 0 1,1'
+        ' 220.000,31.500 Z" fill="#ff7f0e"/>'
+        in s,
         "wedge 1 (value 3, frac 1.0, radius 103.5, span 90.270)",
     )
 
@@ -266,9 +334,11 @@ def test_render_nightingale_raises_on_no_data() raises:
         var _hoisted7 = nightingale(x, y, width=100, height=80)
         _ = render(_hoisted7)
 
+
 # ---------------------------------------------------------------
 # from tests/test_polar.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_polar_matches_hand_derived_line_and_markers() raises:
     # Three points, angles 0, pi, pi/2, radius [2, 2, 9] (max 9). Canvas
@@ -285,8 +355,20 @@ def test_render_polar_matches_hand_derived_line_and_markers() raises:
     var _hoisted1 = polar(angle, radius, width=400, height=300)
     var c = render(_hoisted1)
 
-    _assert_color(c, 243, 135, Theme().mark_color, "point 0 (angle 0, radius_px 23) -- east of center")
-    _assert_color(c, 197, 135, Theme().mark_color, "point 1 (angle pi, radius_px 23) -- west of center")
+    _assert_color(
+        c,
+        243,
+        135,
+        Theme().mark_color,
+        "point 0 (angle 0, radius_px 23) -- east of center",
+    )
+    _assert_color(
+        c,
+        197,
+        135,
+        Theme().mark_color,
+        "point 1 (angle pi, radius_px 23) -- west of center",
+    )
 
 
 def test_render_polar_draws_a_grid_even_with_no_data_on_it() raises:
@@ -305,7 +387,10 @@ def test_render_polar_draws_a_grid_even_with_no_data_on_it() raises:
             found_ring_ink = True
     assert_true(
         found_ring_ink,
-        "the outer polar grid ring should paint something other than plain background somewhere near y=28-35",
+        (
+            "the outer polar grid ring should paint something other than plain"
+            " background somewhere near y=28-35"
+        ),
     )
 
 
@@ -354,8 +439,12 @@ def test_render_polar_series_matches_hand_derived_line_and_markers() raises:
     var c = render(_hoisted6)
     var palette = default_categorical_palette()
     _assert_color(c, 183, 135, palette[0], "series A, angle 0, radius_px 28.5")
-    _assert_color(c, 126, 184, palette[0], "series A, angle 120, radius_px 57.0")
-    _assert_color(c, 141, 160, palette[1], "series B, angle 120, radius_px 28.5")
+    _assert_color(
+        c, 126, 184, palette[0], "series A, angle 120, radius_px 57.0"
+    )
+    _assert_color(
+        c, 141, 160, palette[1], "series B, angle 120, radius_px 28.5"
+    )
     _assert_color(c, 126, 86, palette[1], "series B, angle 240, radius_px 57.0")
 
 
@@ -395,9 +484,11 @@ def test_render_polar_series_raises_on_empty_angle() raises:
         var _hoisted10 = polar_series(angle, names, vals, width=100, height=80)
         _ = render(_hoisted10)
 
+
 # ---------------------------------------------------------------
 # from tests/test_polar_bar.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_polar_bar_matches_hand_derived_bar_colors() raises:
     # Three equal-value categories: the same equal-angle slots (bisectors
@@ -411,7 +502,9 @@ def test_render_polar_bar_matches_hand_derived_bar_colors() raises:
 
     var palette = default_categorical_palette()
     _assert_color(c, 198, 110, palette[0], "bar 0, bisector -30 degrees")
-    _assert_color(c, 155, 185, palette[1], "bar 1, bisector 90 degrees (straight down)")
+    _assert_color(
+        c, 155, 185, palette[1], "bar 1, bisector 90 degrees (straight down)"
+    )
     _assert_color(c, 112, 110, palette[2], "bar 2, bisector 210 degrees")
 
 
@@ -424,7 +517,13 @@ def test_render_polar_bar_leaves_a_gap_between_bars() raises:
     var y: List[Float64] = [1.0, 1.0, 1.0]
     var _hoisted2 = polarbar(x, y, width=400, height=300)
     var c = render(_hoisted2)
-    _assert_color(c, 198, 160, BG, "the gap between bar 0 and bar 1, at their shared slot boundary")
+    _assert_color(
+        c,
+        198,
+        160,
+        BG,
+        "the gap between bar 0 and bar 1, at their shared slot boundary",
+    )
 
 
 def test_render_polar_bar_raises_on_negative_value() raises:
@@ -459,6 +558,7 @@ def test_render_polar_bar_raises_on_no_data() raises:
         var _hoisted6 = polarbar(x, y, width=100, height=80)
         _ = render(_hoisted6)
 
+
 # ---------------------------------------------------------------
 # from tests/test_radialbar.mojo
 # ---------------------------------------------------------------
@@ -486,14 +586,32 @@ def test_render_radialbar_ring_colors_and_track() raises:
     var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
-    _assert_color(c, 205, 85, palette[0], "ring 0 (outermost), swept half at -45 degrees")
-    _assert_color(c, 198, 135, palette[1], "ring 1, swept half at 0 degrees (due east)")
-    _assert_color(c, 155, 149, palette[2], "ring 2 (innermost), fully swept -- any angle")
+    _assert_color(
+        c, 205, 85, palette[0], "ring 0 (outermost), swept half at -45 degrees"
+    )
+    _assert_color(
+        c, 198, 135, palette[1], "ring 1, swept half at 0 degrees (due east)"
+    )
+    _assert_color(
+        c, 155, 149, palette[2], "ring 2 (innermost), fully swept -- any angle"
+    )
 
     # Unswept portions of rings 0/1 (due west) show the track color, not
     # the category color or the background.
-    _assert_color(c, 84, 135, _TRACK, "ring 0, unswept portion (due west) shows the track color")
-    _assert_color(c, 112, 135, _TRACK, "ring 1, unswept portion (due west) shows the track color")
+    _assert_color(
+        c,
+        84,
+        135,
+        _TRACK,
+        "ring 0, unswept portion (due west) shows the track color",
+    )
+    _assert_color(
+        c,
+        112,
+        135,
+        _TRACK,
+        "ring 1, unswept portion (due west) shows the track color",
+    )
 
 
 def test_render_radialbar_leaves_a_radial_gap_between_rings() raises:
@@ -547,28 +665,45 @@ def test_render_radialbar_svg_matches_confirmed_ring_paths() raises:
     # is a second full-circle path in its category color.
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 3.0]
-    var plot = Plot().mark_radialbar().encode_categorical(x=cats, y=vals).theme(Theme(show_legend=False)).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_radialbar()
+        .encode_categorical(x=cats, y=vals)
+        .theme(Theme(show_legend=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
         '<path d="M220.000,37.969 A97.031,97.031 0 1,1 220.000,37.969'
-        ' L220.000,76.781 A58.219,58.219 0 1,0 220.000,76.781 Z" fill="#e6e6e6"/>' in s,
+        ' L220.000,76.781 A58.219,58.219 0 1,0 220.000,76.781 Z"'
+        ' fill="#e6e6e6"/>'
+        in s,
         "ring 0's full-circle track path",
     )
     assert_true(
         '<path d="M220.000,37.969 A97.031,97.031 0 0,1 304.032,183.516'
-        ' L270.419,164.109 A58.219,58.219 0 0,0 220.000,76.781 Z" fill="#1f77b4"/>' in s,
+        ' L270.419,164.109 A58.219,58.219 0 0,0 220.000,76.781 Z"'
+        ' fill="#1f77b4"/>'
+        in s,
         "ring 0's value arc, swept 1/3 of the way around (no large-arc-flag)",
     )
     assert_true(
         '<path d="M220.000,89.719 A45.281,45.281 0 1,1 220.000,89.719'
-        ' L220.000,128.531 A6.469,6.469 0 1,0 220.000,128.531 Z" fill="#ff7f0e"/>' in s,
-        "ring 1's value arc, fully swept -- identical shape to its track, category color on top",
+        ' L220.000,128.531 A6.469,6.469 0 1,0 220.000,128.531 Z"'
+        ' fill="#ff7f0e"/>'
+        in s,
+        (
+            "ring 1's value arc, fully swept -- identical shape to its track,"
+            " category color on top"
+        ),
     )
+
 
 # ---------------------------------------------------------------
 # from tests/test_radar.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_radar_matches_hand_derived_polygon_fill() raises:
     # Three indicators, all max 100, one series at [100, 100, 100]: every
@@ -586,17 +721,36 @@ def test_render_radar_matches_hand_derived_polygon_fill() raises:
     var series_names: List[String] = ["Team A"]
     var series_values: List[List[Float64]] = [[100.0, 100.0, 100.0]]
     var _hoisted1 = radar(
-        indicators, max_values, series_names, series_values,
-        theme=Theme(show_legend=False), width=400, height=300,
+        indicators,
+        max_values,
+        series_names,
+        series_values,
+        theme=Theme(show_legend=False),
+        width=400,
+        height=300,
     )
     var c = render(_hoisted1)
 
     # mark_radar(fill_alpha=...)'s default, passed explicitly since
     # _lighten takes alpha as a parameter.
     var fill = _lighten(default_categorical_palette()[0], 90)
-    _assert_color(c, 220, 135, fill, "centroid of the fully-maxed triangle -- inside")
-    _assert_color(c, 220, 85, fill, "median from center toward the -90 degree vertex -- inside")
-    _assert_color(c, 220, 235, BG, "angle 90, radius 100 -- beyond the triangle's 51.75 apothem, outside")
+    _assert_color(
+        c, 220, 135, fill, "centroid of the fully-maxed triangle -- inside"
+    )
+    _assert_color(
+        c,
+        220,
+        85,
+        fill,
+        "median from center toward the -90 degree vertex -- inside",
+    )
+    _assert_color(
+        c,
+        220,
+        235,
+        BG,
+        "angle 90, radius 100 -- beyond the triangle's 51.75 apothem, outside",
+    )
 
 
 def test_render_radar_raises_on_mismatched_indicator_length() raises:
@@ -605,7 +759,14 @@ def test_render_radar_raises_on_mismatched_indicator_length() raises:
     var series_names: List[String] = ["s"]
     var series_values: List[List[Float64]] = [[1.0, 1.0, 1.0]]
     with assert_raises():
-        var _hoisted2 = radar(indicators, max_values, series_names, series_values, width=200, height=150)
+        var _hoisted2 = radar(
+            indicators,
+            max_values,
+            series_names,
+            series_values,
+            width=200,
+            height=150,
+        )
         _ = render(_hoisted2)
 
 
@@ -615,7 +776,14 @@ def test_render_radar_raises_on_mismatched_series_length() raises:
     var series_names: List[String] = ["s1", "s2"]
     var series_values: List[List[Float64]] = [[1.0, 1.0]]
     with assert_raises():
-        var _hoisted3 = radar(indicators, max_values, series_names, series_values, width=200, height=150)
+        var _hoisted3 = radar(
+            indicators,
+            max_values,
+            series_names,
+            series_values,
+            width=200,
+            height=150,
+        )
         _ = render(_hoisted3)
 
 
@@ -625,7 +793,14 @@ def test_render_radar_raises_on_wrong_length_series_values() raises:
     var series_names: List[String] = ["s"]
     var series_values: List[List[Float64]] = [[1.0, 1.0]]
     with assert_raises():
-        var _hoisted4 = radar(indicators, max_values, series_names, series_values, width=200, height=150)
+        var _hoisted4 = radar(
+            indicators,
+            max_values,
+            series_names,
+            series_values,
+            width=200,
+            height=150,
+        )
         _ = render(_hoisted4)
 
 
@@ -636,12 +811,21 @@ def test_render_radar_raises_on_no_indicators() raises:
     var series_names = List[String]()
     var series_values = List[List[Float64]]()
     with assert_raises():
-        var _hoisted5 = radar(indicators, max_values, series_names, series_values, width=100, height=80)
+        var _hoisted5 = radar(
+            indicators,
+            max_values,
+            series_names,
+            series_values,
+            width=100,
+            height=80,
+        )
         _ = render(_hoisted5)
+
 
 # ---------------------------------------------------------------
 # from tests/test_gauge.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_gauge_matches_hand_derived_needle_and_pivot() raises:
     # value=50 over [0, 100] -> fraction 0.5 -> needle angle = 3*pi/4 +
@@ -653,7 +837,9 @@ def test_render_gauge_matches_hand_derived_needle_and_pivot() raises:
     var c = render(_hoisted1)
     var mark_color = Theme().mark_color
     _assert_color(c, 220, 50, mark_color, "needle, straight up from center")
-    _assert_color(c, 220, 42, mark_color, "needle, straight up from center (further out)")
+    _assert_color(
+        c, 220, 42, mark_color, "needle, straight up from center (further out)"
+    )
     _assert_color(c, 220, 135, mark_color, "the pivot dot at the dial's center")
 
 
@@ -666,9 +852,17 @@ def test_render_gauge_matches_hand_derived_band_colors() raises:
     # red) -> (304, 162).
     var _hoisted2 = gauge(50.0, width=400, height=300)
     var c = render(_hoisted2)
-    var breakpoint_colors = [Color(46, 139, 87), Color(30, 144, 255), Color(220, 20, 60)]
-    _assert_color(c, 132, 135, breakpoint_colors[0], "green band, fraction 0.167")
-    _assert_color(c, 137, 105, breakpoint_colors[1], "blue band, fraction 0.241")
+    var breakpoint_colors = [
+        Color(46, 139, 87),
+        Color(30, 144, 255),
+        Color(220, 20, 60),
+    ]
+    _assert_color(
+        c, 132, 135, breakpoint_colors[0], "green band, fraction 0.167"
+    )
+    _assert_color(
+        c, 137, 105, breakpoint_colors[1], "blue band, fraction 0.241"
+    )
     _assert_color(c, 304, 162, breakpoint_colors[2], "red band, fraction 0.9")
 
 
@@ -677,7 +871,9 @@ def test_render_gauge_leaves_a_gap_at_the_bottom() raises:
     # centered on due south: (220, 223) at radius 88 is background.
     var _hoisted3 = gauge(50.0, width=400, height=300)
     var c = render(_hoisted3)
-    _assert_color(c, 220, 223, BG, "the 90-degree gap at the bottom of the dial")
+    _assert_color(
+        c, 220, 223, BG, "the 90-degree gap at the bottom of the dial"
+    )
 
 
 def test_render_gauge_clamps_values_beyond_the_range() raises:
@@ -687,18 +883,34 @@ def test_render_gauge_clamps_values_beyond_the_range() raises:
     var mark_color = Theme().mark_color
     var _hoisted4 = gauge(1000.0, width=400, height=300)
     var high = render(_hoisted4)
-    _assert_color(high, 255, 170, mark_color, "clamped to max_value -- needle at 45 degrees")
+    _assert_color(
+        high,
+        255,
+        170,
+        mark_color,
+        "clamped to max_value -- needle at 45 degrees",
+    )
     var _hoisted5 = gauge(-1000.0, width=400, height=300)
     var low = render(_hoisted5)
-    _assert_color(low, 185, 170, mark_color, "clamped to min_value -- needle at 135 degrees")
+    _assert_color(
+        low,
+        185,
+        170,
+        mark_color,
+        "clamped to min_value -- needle at 135 degrees",
+    )
 
 
 def test_render_gauge_raises_when_min_value_is_not_less_than_max_value() raises:
     with assert_raises():
-        var _hoisted6 = gauge(5.0, min_value=10.0, max_value=10.0, width=200, height=150)
+        var _hoisted6 = gauge(
+            5.0, min_value=10.0, max_value=10.0, width=200, height=150
+        )
         _ = render(_hoisted6)
     with assert_raises():
-        var _hoisted7 = gauge(5.0, min_value=10.0, max_value=0.0, width=200, height=150)
+        var _hoisted7 = gauge(
+            5.0, min_value=10.0, max_value=0.0, width=200, height=150
+        )
         _ = render(_hoisted7)
 
 
@@ -709,7 +921,9 @@ def test_render_gauge_custom_breakpoints_matches_hand_derived_band_colors() rais
     # fraction 0.9 is in band 1.
     var bps: List[Float64] = [0.5, 1.0]
     var cols: List[Color] = [Color(10, 20, 30), Color(200, 100, 50)]
-    var _hoisted8 = gauge(50.0, width=400, height=300, breakpoints=bps, band_colors=cols)
+    var _hoisted8 = gauge(
+        50.0, width=400, height=300, breakpoints=bps, band_colors=cols
+    )
     var c = render(_hoisted8)
     _assert_color(c, 132, 135, cols[0], "band 0, fraction 0.167")
     _assert_color(c, 137, 105, cols[0], "band 0, fraction 0.241")
@@ -722,11 +936,25 @@ def test_render_gauge_custom_breakpoints_default_empty_matches_original() raises
     # itself.
     var empty_bps = List[Float64]()
     var empty_cols = List[Color]()
-    var _hoisted9 = gauge(50.0, width=400, height=300, breakpoints=empty_bps, band_colors=empty_cols)
+    var _hoisted9 = gauge(
+        50.0,
+        width=400,
+        height=300,
+        breakpoints=empty_bps,
+        band_colors=empty_cols,
+    )
     var c = render(_hoisted9)
-    var breakpoint_colors = [Color(46, 139, 87), Color(30, 144, 255), Color(220, 20, 60)]
-    _assert_color(c, 132, 135, breakpoint_colors[0], "green band, fraction 0.167")
-    _assert_color(c, 137, 105, breakpoint_colors[1], "blue band, fraction 0.241")
+    var breakpoint_colors = [
+        Color(46, 139, 87),
+        Color(30, 144, 255),
+        Color(220, 20, 60),
+    ]
+    _assert_color(
+        c, 132, 135, breakpoint_colors[0], "green band, fraction 0.167"
+    )
+    _assert_color(
+        c, 137, 105, breakpoint_colors[1], "blue band, fraction 0.241"
+    )
     _assert_color(c, 304, 162, breakpoint_colors[2], "red band, fraction 0.9")
 
 
@@ -734,7 +962,9 @@ def test_render_gauge_raises_on_mismatched_breakpoints_and_band_colors_length() 
     var bps: List[Float64] = [0.5, 1.0]
     var cols: List[Color] = [Color(10, 20, 30)]
     with assert_raises():
-        var _hoisted10 = gauge(50.0, width=200, height=150, breakpoints=bps, band_colors=cols)
+        var _hoisted10 = gauge(
+            50.0, width=200, height=150, breakpoints=bps, band_colors=cols
+        )
         _ = render(_hoisted10)
 
 
@@ -742,7 +972,9 @@ def test_render_gauge_raises_on_non_ascending_breakpoints() raises:
     var bps: List[Float64] = [0.5, 0.3]
     var cols: List[Color] = [Color(10, 20, 30), Color(200, 100, 50)]
     with assert_raises():
-        var _hoisted11 = gauge(50.0, width=200, height=150, breakpoints=bps, band_colors=cols)
+        var _hoisted11 = gauge(
+            50.0, width=200, height=150, breakpoints=bps, band_colors=cols
+        )
         _ = render(_hoisted11)
 
 
@@ -750,16 +982,26 @@ def test_render_gauge_raises_on_out_of_range_breakpoint() raises:
     var too_high: List[Float64] = [0.5, 1.5]
     var cols: List[Color] = [Color(10, 20, 30), Color(200, 100, 50)]
     with assert_raises():
-        var _hoisted12 = gauge(50.0, width=200, height=150, breakpoints=too_high, band_colors=cols)
+        var _hoisted12 = gauge(
+            50.0, width=200, height=150, breakpoints=too_high, band_colors=cols
+        )
         _ = render(_hoisted12)
     var zero_start: List[Float64] = [0.0, 1.0]
     with assert_raises():
-        var _hoisted13 = gauge(50.0, width=200, height=150, breakpoints=zero_start, band_colors=cols)
+        var _hoisted13 = gauge(
+            50.0,
+            width=200,
+            height=150,
+            breakpoints=zero_start,
+            band_colors=cols,
+        )
         _ = render(_hoisted13)
+
 
 # ---------------------------------------------------------------
 # from tests/test_parallel.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_parallel_matches_hand_derived_polylines() raises:
     # Two dimensions (A, B), four rows: r1, r2, plus r3=[0,0] and
@@ -774,15 +1016,33 @@ def test_render_parallel_matches_hand_derived_polylines() raises:
     # and 25% of the way to the second axis (x=140, y interpolated).
     var dims: List[String] = ["A", "B"]
     var row_names: List[String] = ["r1", "r2", "r3", "r4"]
-    var data: List[List[Float64]] = [[3.0, 7.0], [7.0, 3.0], [0.0, 0.0], [10.0, 10.0]]
-    var _hoisted1 = parallel(data, dims, row_names, theme=Theme(show_legend=False), width=400, height=300)
+    var data: List[List[Float64]] = [
+        [3.0, 7.0],
+        [7.0, 3.0],
+        [0.0, 0.0],
+        [10.0, 10.0],
+    ]
+    var _hoisted1 = parallel(
+        data,
+        dims,
+        row_names,
+        theme=Theme(show_legend=False),
+        width=400,
+        height=300,
+    )
     var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
-    _assert_color(c, 60, 181, palette[0], "r1's first vertex, axis A (frac 0.3)")
-    _assert_color(c, 140, 158, palette[0], "r1's polyline, 25% of the way to axis B")
+    _assert_color(
+        c, 60, 181, palette[0], "r1's first vertex, axis A (frac 0.3)"
+    )
+    _assert_color(
+        c, 140, 158, palette[0], "r1's polyline, 25% of the way to axis B"
+    )
     _assert_color(c, 60, 89, palette[1], "r2's first vertex, axis A (frac 0.7)")
-    _assert_color(c, 140, 112, palette[1], "r2's polyline, 25% of the way to axis B")
+    _assert_color(
+        c, 140, 112, palette[1], "r2's polyline, 25% of the way to axis B"
+    )
 
 
 def test_render_parallel_raises_on_mismatched_row_length() raises:
@@ -812,9 +1072,11 @@ def test_render_parallel_raises_on_no_dims() raises:
         var _hoisted4 = parallel(data, dims, row_names, width=100, height=80)
         _ = render(_hoisted4)
 
+
 # ---------------------------------------------------------------
 # from tests/test_single_axis.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_single_axis_matches_hand_derived_points() raises:
     # 3 values (10, 20, 30). Canvas 400x300, no gridlines, default margins
@@ -830,17 +1092,38 @@ def test_render_single_axis_matches_hand_derived_points() raises:
     _assert_color(c, 75, 135, t.mark_color, "the first point (x=10)")
     _assert_color(c, 220, 135, t.mark_color, "the second point (x=20)")
     _assert_color(c, 365, 135, t.mark_color, "the third point (x=30)")
-    _assert_color(c, 75, 100, BG, "same column as the first point, but off its row -- background")
+    _assert_color(
+        c,
+        75,
+        100,
+        BG,
+        "same column as the first point, but off its row -- background",
+    )
 
 
 def test_render_single_axis_svg_matches_confirmed_circles() raises:
     var x: List[Float64] = [10.0, 20.0, 30.0]
-    var plot = Plot().mark_single_axis().encode_single_axis(x=x).theme(Theme(show_gridlines=False)).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_single_axis()
+        .encode_single_axis(x=x)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    assert_true('<circle cx="75" cy="135" r="4" fill="#1e64b4"/>' in s, "the first point")
-    assert_true('<circle cx="220" cy="135" r="4" fill="#1e64b4"/>' in s, "the second point")
-    assert_true('<circle cx="365" cy="135" r="4" fill="#1e64b4"/>' in s, "the third point")
+    assert_true(
+        '<circle cx="75" cy="135" r="4" fill="#1e64b4"/>' in s,
+        "the first point",
+    )
+    assert_true(
+        '<circle cx="220" cy="135" r="4" fill="#1e64b4"/>' in s,
+        "the second point",
+    )
+    assert_true(
+        '<circle cx="365" cy="135" r="4" fill="#1e64b4"/>' in s,
+        "the third point",
+    )
 
 
 def test_render_single_axis_color_encoding_reuses_point_channels() raises:
@@ -852,8 +1135,20 @@ def test_render_single_axis_color_encoding_reuses_point_channels() raises:
     var t = Theme(show_gridlines=False, show_legend=False)
     var _hoisted2 = single_axis(x, color=color, theme=t, width=400, height=300)
     var c = render(_hoisted2)
-    _assert_color(c, 75, 135, t.color_scale_low, "x=0, color=0.0 -- the color domain's min")
-    _assert_color(c, 365, 135, t.color_scale_high, "x=10, color=10.0 -- the color domain's max")
+    _assert_color(
+        c,
+        75,
+        135,
+        t.color_scale_low,
+        "x=0, color=0.0 -- the color domain's min",
+    )
+    _assert_color(
+        c,
+        365,
+        135,
+        t.color_scale_high,
+        "x=10, color=10.0 -- the color domain's max",
+    )
 
 
 def test_render_single_axis_raises_on_mismatched_channel_length() raises:

@@ -20,7 +20,9 @@ from dataviz.violin import _KDE_SAMPLES, _kde_bandwidth, _kde_density
 
 def _render_ridgeline[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.RIDGELINE` plot: the same per-category kernel-density
     estimate `Mark.VIOLIN` computes (`_kde_bandwidth`/`_kde_density`/
     `_KDE_SAMPLES`, from violin.mojo), drawn as one row per category on
@@ -59,7 +61,15 @@ def _render_ridgeline[
     var x_scale = _data_extent(all_values)
 
     var frame = _draw_horizontal_categorical_axis_frame(
-        target, plot.x_categories, x_scale, theme, ox0, oy0, ox1, oy1, padding=0.0
+        target,
+        plot.x_categories,
+        x_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        padding=0.0,
     )
 
     var row_height = frame.y_scale.bandwidth()
@@ -77,8 +87,9 @@ def _render_ridgeline[
         var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
             plot._distribution.kde_scale_by_count and max_n > 0
         ) else 1.0
-        var bandwidth = plot._distribution.kde_bandwidth_override if plot._distribution.kde_bandwidth_override > 0.0 else _kde_bandwidth(
-            values
+        var bandwidth = (
+            plot._distribution.kde_bandwidth_override if plot._distribution.kde_bandwidth_override
+            > 0.0 else _kde_bandwidth(values)
         )
         var mm = _min_max(values)
 
@@ -87,13 +98,17 @@ def _render_ridgeline[
         var max_density = 0.0
         var span = mm.max - mm.min
         for s in range(_KDE_SAMPLES):
-            var value = mm.min if span == 0.0 else mm.min + span * Float64(s) / Float64(_KDE_SAMPLES - 1)
+            var value = mm.min if span == 0.0 else mm.min + span * Float64(
+                s
+            ) / Float64(_KDE_SAMPLES - 1)
             var d = _kde_density(values, bandwidth, value)
             xs.append(_axis_pixel(frame.x_scale, value))
             densities.append(d)
             max_density = max(max_density, d)
 
-        var scale = (max_rise * count_factor) / max_density if max_density > 0.0 else 0.0
+        var scale = (
+            max_rise * count_factor
+        ) / max_density if max_density > 0.0 else 0.0
         var path = Path()
         path.move_to(Float64(xs[0]), baseline_y)
         for s in range(_KDE_SAMPLES):
@@ -176,10 +191,16 @@ def ridgeline(
             save(c, "docs/src/examples/out_ridgeline.svg")
         ```
     """
-    var plot = Plot().mark_ridgeline(bandwidth=bandwidth, scale_by_count=scale_by_count, overlap=overlap).encode_distribution(
-        categories=categories, values=values
+    var plot = (
+        Plot()
+        .mark_ridgeline(
+            bandwidth=bandwidth, scale_by_count=scale_by_count, overlap=overlap
+        )
+        .encode_distribution(categories=categories, values=values)
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def ridgeline[
@@ -203,7 +224,16 @@ def ridgeline[
     above.
     """
     return ridgeline(
-        categories, _materialize_nested_scalar_list(values), bandwidth=bandwidth,
-        scale_by_count=scale_by_count, overlap=overlap, theme=theme, width=width, height=height, title=title,
-        subtitle=subtitle, x_title=x_title, y_title=y_title,
+        categories,
+        _materialize_nested_scalar_list(values),
+        bandwidth=bandwidth,
+        scale_by_count=scale_by_count,
+        overlap=overlap,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

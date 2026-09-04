@@ -6,9 +6,22 @@ the default margin runs out of room.
 from dataviz.plot import Plot, save
 from dataviz.theme import Theme
 
+
 def main() raises:
-    var cities: List[String] = ["Tokyo", "Delhi", "Shanghai", "São Paulo", "Mexico City"]
-    var population_thousands: List[Float64] = [13960.0, 32900.0, 24870.0, 12330.0, 9210.0]
+    var cities: List[String] = [
+        "Tokyo",
+        "Delhi",
+        "Shanghai",
+        "São Paulo",
+        "Mexico City",
+    ]
+    var population_thousands: List[Float64] = [
+        13960.0,
+        32900.0,
+        24870.0,
+        12330.0,
+        9210.0,
+    ]
 
     var plot = (
         Plot()

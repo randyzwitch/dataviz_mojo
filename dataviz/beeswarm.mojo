@@ -112,10 +112,16 @@ def _draw_beeswarm_points[
         for j in range(len(value_pixels)):
             if tooltip:
                 target.begin_annotated_group(
-                    _tooltip_label(plot.x_categories[i], plot._distribution.values[i][j])
+                    _tooltip_label(
+                        plot.x_categories[i], plot._distribution.values[i][j]
+                    )
                 )
             orient.band_point(
-                target, value_pixels[j], center + offsets[j], radius, theme.mark_color
+                target,
+                value_pixels[j],
+                center + offsets[j],
+                radius,
+                theme.mark_color,
             )
             if tooltip:
                 target.end_annotated_group()
@@ -123,7 +129,9 @@ def _draw_beeswarm_points[
 
 def _render_beeswarm[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.BEESWARM` plot: `encode_distribution()`'s per-category
     raw values, one point per value, jittered sideways within its
     category's band via `_beeswarm_offsets`. Reuses
@@ -134,11 +142,18 @@ def _render_beeswarm[
     var theme = plot._theme
     var value_scale = _distribution_domain(plot)
 
-    var frame = _draw_categorical_axis_frame(target, plot.x_categories, value_scale, theme, ox0, oy0, ox1, oy1)
+    var frame = _draw_categorical_axis_frame(
+        target, plot.x_categories, value_scale, theme, ox0, oy0, ox1, oy1
+    )
 
     var sc = _Scaled(theme)
     _draw_beeswarm_points(
-        target, plot, frame.x_scale, frame.y_scale, _Orientation(False), _round_to_int(sc.point_radius)
+        target,
+        plot,
+        frame.x_scale,
+        frame.y_scale,
+        _Orientation(False),
+        _round_to_int(sc.point_radius),
     )
 
     return frame.result()
@@ -146,7 +161,9 @@ def _render_beeswarm[
 
 def _render_horizontal_beeswarm[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """`_render_beeswarm`'s mirror image for
     `Plot.mark_beeswarm(horizontal=True)` (#121): `_render_horizontal_bar`'s
     categorical y-axis / continuous x-axis
@@ -164,7 +181,12 @@ def _render_horizontal_beeswarm[
 
     var sc = _Scaled(theme)
     _draw_beeswarm_points(
-        target, plot, frame.y_scale, frame.x_scale, _Orientation(True), _round_to_int(sc.point_radius)
+        target,
+        plot,
+        frame.y_scale,
+        frame.x_scale,
+        _Orientation(True),
+        _round_to_int(sc.point_radius),
     )
 
     return frame.result()
@@ -232,8 +254,14 @@ def beeswarm(
             save(c, "docs/src/examples/out_beeswarm.svg")
         ```
     """
-    var plot = Plot().mark_beeswarm(horizontal=horizontal, tooltips=tooltips).encode_distribution(categories=categories, values=values)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_beeswarm(horizontal=horizontal, tooltips=tooltips)
+        .encode_distribution(categories=categories, values=values)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def beeswarm[
@@ -257,6 +285,15 @@ def beeswarm[
     above.
     """
     return beeswarm(
-        categories, _materialize_nested_scalar_list(values), tooltips=tooltips, theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title, horizontal=horizontal,
+        categories,
+        _materialize_nested_scalar_list(values),
+        tooltips=tooltips,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+        horizontal=horizontal,
     )

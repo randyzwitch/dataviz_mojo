@@ -9,7 +9,14 @@ Mark.EFFECT_SCATTER (the halo under each point), each raster + SVG.
 from _test_helpers import BG, _assert_color, _assert_near_color
 from canvas.color import Color
 from canvas.vector.svg import SvgCanvas
-from dataviz import beeswarm, bump, effect_scatter, ridgeline, streamgraph, violin
+from dataviz import (
+    beeswarm,
+    bump,
+    effect_scatter,
+    ridgeline,
+    streamgraph,
+    violin,
+)
 from dataviz.color_scale import default_categorical_palette
 from dataviz.plot import Plot, render, render_svg
 from dataviz.theme import Theme
@@ -19,6 +26,7 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 # ---------------------------------------------------------------
 # from tests/test_beeswarm.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_beeswarm_matches_hand_derived_offsets() raises:
     # 1 category, values [10, 11, 50]: 10 and 11 collide in pixel space, 50
@@ -34,23 +42,39 @@ def test_render_beeswarm_matches_hand_derived_offsets() raises:
     var _hoisted1 = beeswarm(cats, vals, theme=t, width=400, height=300)
     var c = render(_hoisted1)
 
-    _assert_color(c, 228, 240, t.mark_color, "value 10 -- offset +8 (second in its row)")
-    _assert_color(c, 220, 234, t.mark_color, "value 11 -- offset 0 (first in its row)")
-    _assert_color(c, 220, 30, t.mark_color, "value 50 -- offset 0 (alone in its row)")
+    _assert_color(
+        c, 228, 240, t.mark_color, "value 10 -- offset +8 (second in its row)"
+    )
+    _assert_color(
+        c, 220, 234, t.mark_color, "value 11 -- offset 0 (first in its row)"
+    )
+    _assert_color(
+        c, 220, 30, t.mark_color, "value 50 -- offset 0 (alone in its row)"
+    )
     _assert_color(c, 10, 10, BG, "well outside the plot area -- background")
 
 
 def test_render_beeswarm_svg_matches_confirmed_circles() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[10.0, 11.0, 50.0]]
-    var plot = Plot().mark_beeswarm().encode_distribution(categories=cats, values=vals).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_beeswarm()
+        .encode_distribution(categories=cats, values=vals)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    assert_true('<circle cx="228" cy="240" r="4" fill="#1e64b4"/>' in s, "value 10")
-    assert_true('<circle cx="220" cy="234" r="4" fill="#1e64b4"/>' in s, "value 11")
-    assert_true('<circle cx="220" cy="30" r="4" fill="#1e64b4"/>' in s, "value 50")
+    assert_true(
+        '<circle cx="228" cy="240" r="4" fill="#1e64b4"/>' in s, "value 10"
+    )
+    assert_true(
+        '<circle cx="220" cy="234" r="4" fill="#1e64b4"/>' in s, "value 11"
+    )
+    assert_true(
+        '<circle cx="220" cy="30" r="4" fill="#1e64b4"/>' in s, "value 50"
+    )
 
 
 def test_render_beeswarm_raises_on_mismatched_category_length() raises:
@@ -77,9 +101,11 @@ def test_render_beeswarm_raises_on_no_data() raises:
     with assert_raises():
         _ = beeswarm(cats, vals, width=200, height=150)
 
+
 # ---------------------------------------------------------------
 # from tests/test_violin.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_violin_matches_hand_derived_silhouette() raises:
     # 1 category, values [1,2,3,4,5]: symmetric, so the KDE is symmetric
@@ -96,23 +122,59 @@ def test_render_violin_matches_hand_derived_silhouette() raises:
     var _hoisted1 = violin(cats, vals, theme=t, width=400, height=300)
     var c = render(_hoisted1)
 
-    _assert_color(c, 220, 135, t.mark_color, "near the peak (y~=3), dead center -- well inside")
-    _assert_color(c, 280, 235, t.mark_color, "near the bottom edge (y=1), still inside the ~74px half-width there")
-    _assert_color(c, 300, 235, BG, "near the bottom edge (y=1), past the ~74px half-width there -- outside")
-    _assert_color(c, 10, 10, BG, "well outside the whole plot area -- background")
+    _assert_color(
+        c,
+        220,
+        135,
+        t.mark_color,
+        "near the peak (y~=3), dead center -- well inside",
+    )
+    _assert_color(
+        c,
+        280,
+        235,
+        t.mark_color,
+        "near the bottom edge (y=1), still inside the ~74px half-width there",
+    )
+    _assert_color(
+        c,
+        300,
+        235,
+        BG,
+        (
+            "near the bottom edge (y=1), past the ~74px half-width there --"
+            " outside"
+        ),
+    )
+    _assert_color(
+        c, 10, 10, BG, "well outside the whole plot area -- background"
+    )
 
 
 def test_render_violin_svg_matches_confirmed_path_points() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
-    var plot = Plot().mark_violin().encode_distribution(categories=cats, values=vals).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_violin()
+        .encode_distribution(categories=cats, values=vals)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    assert_true('<path d="M293.678,240.000' in s, "the path's first point -- right edge at y=1.0 (bottom)")
-    assert_true('322.400,139.000 L322.400,131.000' in s, "the flat peak-density plateau, at its full half_width")
-    assert_true('L146.322,240.000 Z' in s, "the path's last point before closing -- left edge at y=1.0")
+    assert_true(
+        '<path d="M293.678,240.000' in s,
+        "the path's first point -- right edge at y=1.0 (bottom)",
+    )
+    assert_true(
+        "322.400,139.000 L322.400,131.000" in s,
+        "the flat peak-density plateau, at its full half_width",
+    )
+    assert_true(
+        "L146.322,240.000 Z" in s,
+        "the path's last point before closing -- left edge at y=1.0",
+    )
 
 
 def test_render_violin_identical_values_does_not_raise() raises:
@@ -137,9 +199,17 @@ def test_render_violin_custom_bandwidth_widens_the_tapered_edge() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
     var t = Theme(show_gridlines=False)
-    var _hoisted3 = violin(cats, vals, bandwidth=3.0, theme=t, width=400, height=300)
+    var _hoisted3 = violin(
+        cats, vals, bandwidth=3.0, theme=t, width=400, height=300
+    )
     var c = render(_hoisted3)
-    _assert_color(c, 300, 235, t.mark_color, "bandwidth=3.0 widens the tail -- now inside the silhouette")
+    _assert_color(
+        c,
+        300,
+        235,
+        t.mark_color,
+        "bandwidth=3.0 widens the tail -- now inside the silhouette",
+    )
     _assert_color(c, 220, 135, t.mark_color, "still inside near the peak")
     _assert_color(c, 10, 10, BG, "still background, well outside the plot area")
 
@@ -150,11 +220,34 @@ def test_render_violin_explicit_zero_bandwidth_matches_default() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
     var t = Theme(show_gridlines=False)
-    var _hoisted4 = violin(cats, vals, bandwidth=0.0, theme=t, width=400, height=300)
+    var _hoisted4 = violin(
+        cats, vals, bandwidth=0.0, theme=t, width=400, height=300
+    )
     var c = render(_hoisted4)
-    _assert_color(c, 220, 135, t.mark_color, "near the peak (y~=3), dead center -- well inside")
-    _assert_color(c, 280, 235, t.mark_color, "near the bottom edge (y=1), still inside the ~74px half-width there")
-    _assert_color(c, 300, 235, BG, "near the bottom edge (y=1), past the ~74px half-width there -- outside")
+    _assert_color(
+        c,
+        220,
+        135,
+        t.mark_color,
+        "near the peak (y~=3), dead center -- well inside",
+    )
+    _assert_color(
+        c,
+        280,
+        235,
+        t.mark_color,
+        "near the bottom edge (y=1), still inside the ~74px half-width there",
+    )
+    _assert_color(
+        c,
+        300,
+        235,
+        BG,
+        (
+            "near the bottom edge (y=1), past the ~74px half-width there --"
+            " outside"
+        ),
+    )
 
 
 def test_render_violin_scale_by_count_narrows_the_smaller_category() raises:
@@ -168,10 +261,20 @@ def test_render_violin_scale_by_count_narrows_the_smaller_category() raises:
     var cats: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 4.0]]
     var t = Theme(show_gridlines=False)
-    var _hoisted5 = violin(cats, vals, scale_by_count=True, theme=t, width=400, height=300)
+    var _hoisted5 = violin(
+        cats, vals, scale_by_count=True, theme=t, width=400, height=300
+    )
     var c = render(_hoisted5)
-    _assert_color(c, 260, 135, BG, "scale_by_count narrows category B -- now outside")
-    _assert_color(c, 300, 135, t.mark_color, "category B's center, still inside even narrowed")
+    _assert_color(
+        c, 260, 135, BG, "scale_by_count narrows category B -- now outside"
+    )
+    _assert_color(
+        c,
+        300,
+        135,
+        t.mark_color,
+        "category B's center, still inside even narrowed",
+    )
 
 
 def test_render_violin_scale_by_count_false_matches_default() raises:
@@ -180,16 +283,26 @@ def test_render_violin_scale_by_count_false_matches_default() raises:
     var cats: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 4.0]]
     var t = Theme(show_gridlines=False)
-    var _hoisted6 = violin(cats, vals, scale_by_count=False, theme=t, width=400, height=300)
+    var _hoisted6 = violin(
+        cats, vals, scale_by_count=False, theme=t, width=400, height=300
+    )
     var c = render(_hoisted6)
-    _assert_color(c, 260, 135, t.mark_color, "unscaled -- category B still reaches its full half-width here")
+    _assert_color(
+        c,
+        260,
+        135,
+        t.mark_color,
+        "unscaled -- category B still reaches its full half-width here",
+    )
 
 
 def test_render_violin_raises_on_negative_bandwidth() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0]]
     with assert_raises():
-        var _hoisted7 = violin(cats, vals, bandwidth=-1.0, width=200, height=150)
+        var _hoisted7 = violin(
+            cats, vals, bandwidth=-1.0, width=200, height=150
+        )
         _ = render(_hoisted7)
 
 
@@ -216,9 +329,11 @@ def test_render_violin_raises_on_no_data() raises:
     with assert_raises():
         _ = violin(cats, vals, width=200, height=150)
 
+
 # ---------------------------------------------------------------
 # from tests/test_ridgeline.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_ridgeline_matches_hand_derived_rows() raises:
     # 3 categories, all [1,2,3,4,5] (the violin test's distribution, so the
@@ -229,40 +344,74 @@ def test_render_ridgeline_matches_hand_derived_rows() raises:
     # A=96.667, B=173.333, C=250.0.
     var cats: List[String] = ["A", "B", "C"]
     var vals: List[List[Float64]] = [
-        [1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0],
+        [1.0, 2.0, 3.0, 4.0, 5.0],
+        [1.0, 2.0, 3.0, 4.0, 5.0],
+        [1.0, 2.0, 3.0, 4.0, 5.0],
     ]
     var t = Theme(show_gridlines=False)
     var _hoisted1 = ridgeline(cats, vals, theme=t, width=400, height=300)
     var c = render(_hoisted1)
 
-    _assert_color(c, 220, 50, t.mark_color, "inside row A -- between its peak (~-3) and baseline (96.667)")
     _assert_color(
-        c, 220, 98, t.mark_color,
-        "just below row A's baseline (96.667) -- covered by row B's peak rising up to ~73.667,"
-        " the edge-to-edge overlap padding=0.0 gives",
+        c,
+        220,
+        50,
+        t.mark_color,
+        "inside row A -- between its peak (~-3) and baseline (96.667)",
     )
-    _assert_color(c, 10, 10, BG, "well outside the whole plot area -- background")
+    _assert_color(
+        c,
+        220,
+        98,
+        t.mark_color,
+        (
+            "just below row A's baseline (96.667) -- covered by row B's peak"
+            " rising up to ~73.667, the edge-to-edge overlap padding=0.0 gives"
+        ),
+    )
+    _assert_color(
+        c, 10, 10, BG, "well outside the whole plot area -- background"
+    )
 
 
 def test_render_ridgeline_svg_matches_confirmed_path_points() raises:
     var cats: List[String] = ["A", "B", "C"]
     var vals: List[List[Float64]] = [
-        [1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0],
+        [1.0, 2.0, 3.0, 4.0, 5.0],
+        [1.0, 2.0, 3.0, 4.0, 5.0],
+        [1.0, 2.0, 3.0, 4.0, 5.0],
     ]
-    var plot = Plot().mark_ridgeline().encode_distribution(categories=cats, values=vals).theme(
-        Theme(show_gridlines=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_ridgeline()
+        .encode_distribution(categories=cats, values=vals)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    assert_true('<path d="M75.000,96.667 L75.000,24.955' in s, "row A's baseline and left-edge rise")
-    assert_true('225.000,-3.000' in s, "row A's peak, at its two middle samples")
-    assert_true('L365.000,96.667 Z' in s, "row A's closing edge, back down to baseline")
-    assert_true('<path d="M75.000,173.333 L75.000,101.622' in s, "row B's baseline and left-edge rise")
+    assert_true(
+        '<path d="M75.000,96.667 L75.000,24.955' in s,
+        "row A's baseline and left-edge rise",
+    )
+    assert_true(
+        "225.000,-3.000" in s, "row A's peak, at its two middle samples"
+    )
+    assert_true(
+        "L365.000,96.667 Z" in s, "row A's closing edge, back down to baseline"
+    )
+    assert_true(
+        '<path d="M75.000,173.333 L75.000,101.622' in s,
+        "row B's baseline and left-edge rise",
+    )
     # Row C's baseline (250) lands on the bottom axis line, so it is pulled
     # to 249 before its samples are computed, shifting its whole curve up
     # 1px (178.289 -> 177.289). Rows A/B's baselines are interior
     # boundaries and unaffected.
-    assert_true('<path d="M75.000,249.000 L75.000,177.289' in s, "row C's baseline and left-edge rise")
+    assert_true(
+        '<path d="M75.000,249.000 L75.000,177.289' in s,
+        "row C's baseline and left-edge rise",
+    )
 
 
 def test_render_ridgeline_custom_bandwidth_widens_the_tail() raises:
@@ -275,9 +424,17 @@ def test_render_ridgeline_custom_bandwidth_widens_the_tail() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
     var t = Theme(show_gridlines=False)
-    var _hoisted2 = ridgeline(cats, vals, bandwidth=3.0, theme=t, width=400, height=300)
+    var _hoisted2 = ridgeline(
+        cats, vals, bandwidth=3.0, theme=t, width=400, height=300
+    )
     var c = render(_hoisted2)
-    _assert_color(c, 77, 25, t.mark_color, "bandwidth=3.0 widens the tail -- now inside the curve")
+    _assert_color(
+        c,
+        77,
+        25,
+        t.mark_color,
+        "bandwidth=3.0 widens the tail -- now inside the curve",
+    )
     _assert_color(c, 220, 25, t.mark_color, "still inside near the peak")
     _assert_color(c, 10, 10, BG, "still background, well outside the plot area")
 
@@ -288,9 +445,17 @@ def test_render_ridgeline_explicit_zero_bandwidth_matches_default() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
     var t = Theme(show_gridlines=False)
-    var _hoisted3 = ridgeline(cats, vals, bandwidth=0.0, theme=t, width=400, height=300)
+    var _hoisted3 = ridgeline(
+        cats, vals, bandwidth=0.0, theme=t, width=400, height=300
+    )
     var c = render(_hoisted3)
-    _assert_color(c, 75, 25, BG, "default bandwidth still tapers away at the tail -- background")
+    _assert_color(
+        c,
+        75,
+        25,
+        BG,
+        "default bandwidth still tapers away at the tail -- background",
+    )
     _assert_color(c, 220, 25, t.mark_color, "still inside near the peak")
 
 
@@ -305,10 +470,24 @@ def test_render_ridgeline_scale_by_count_shortens_the_smaller_row() raises:
     var cats: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 4.0]]
     var t = Theme(show_gridlines=False)
-    var _hoisted4 = ridgeline(cats, vals, scale_by_count=True, theme=t, width=400, height=300)
+    var _hoisted4 = ridgeline(
+        cats, vals, scale_by_count=True, theme=t, width=400, height=300
+    )
     var c = render(_hoisted4)
-    _assert_color(c, 220, 150, BG, "scale_by_count shortens row B's rise -- now above its curve")
-    _assert_color(c, 220, 200, t.mark_color, "still inside row B's (shorter) curve, closer to its baseline")
+    _assert_color(
+        c,
+        220,
+        150,
+        BG,
+        "scale_by_count shortens row B's rise -- now above its curve",
+    )
+    _assert_color(
+        c,
+        220,
+        200,
+        t.mark_color,
+        "still inside row B's (shorter) curve, closer to its baseline",
+    )
 
 
 def test_render_ridgeline_scale_by_count_false_matches_default() raises:
@@ -317,16 +496,22 @@ def test_render_ridgeline_scale_by_count_false_matches_default() raises:
     var cats: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0], [2.0, 4.0]]
     var t = Theme(show_gridlines=False)
-    var _hoisted5 = ridgeline(cats, vals, scale_by_count=False, theme=t, width=400, height=300)
+    var _hoisted5 = ridgeline(
+        cats, vals, scale_by_count=False, theme=t, width=400, height=300
+    )
     var c = render(_hoisted5)
-    _assert_color(c, 220, 150, t.mark_color, "unscaled -- row B still reaches this height")
+    _assert_color(
+        c, 220, 150, t.mark_color, "unscaled -- row B still reaches this height"
+    )
 
 
 def test_render_ridgeline_raises_on_negative_bandwidth() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0]]
     with assert_raises():
-        var _hoisted6 = ridgeline(cats, vals, bandwidth=-1.0, width=200, height=150)
+        var _hoisted6 = ridgeline(
+            cats, vals, bandwidth=-1.0, width=200, height=150
+        )
         _ = render(_hoisted6)
 
 
@@ -353,9 +538,11 @@ def test_render_ridgeline_raises_on_no_data() raises:
     with assert_raises():
         _ = ridgeline(cats, vals, width=200, height=150)
 
+
 # ---------------------------------------------------------------
 # from tests/test_streamgraph.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_streamgraph_matches_hand_derived_bands() raises:
     # 2 categories, 2 series, every value 10, so each category totals 20
@@ -368,26 +555,48 @@ def test_render_streamgraph_matches_hand_derived_bands() raises:
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[10.0, 10.0], [10.0, 10.0]]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var plot = Plot().mark_streamgraph().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(t).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_streamgraph()
+        .encode_grouped_bar(categories=cats, series_names=names, values=vals)
+        .theme(t)
+        .size(400, 300)
+    )
     var c = render(plot)
 
     var palette = default_categorical_palette()
     _assert_color(c, 220, 187, palette[0], "A's band, midpoint -- y:[135,240]")
     _assert_color(c, 220, 82, palette[1], "B's band, midpoint -- y:[30,135]")
-    _assert_color(c, 10, 10, BG, "well outside the whole plot area -- background")
+    _assert_color(
+        c, 10, 10, BG, "well outside the whole plot area -- background"
+    )
 
 
 def test_render_streamgraph_svg_matches_confirmed_paths() raises:
     var cats: List[String] = ["X", "Y"]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[10.0, 10.0], [10.0, 10.0]]
-    var plot = Plot().mark_streamgraph().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(
-        Theme(show_gridlines=False, show_legend=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_streamgraph()
+        .encode_grouped_bar(categories=cats, series_names=names, values=vals)
+        .theme(Theme(show_gridlines=False, show_legend=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    assert_true('<path d="M140.000,135.000 L300.000,135.000 L300.000,240.000 L140.000,240.000 Z" fill="#1f77b4"/>' in s, "A's band")
-    assert_true('<path d="M140.000,30.000 L300.000,30.000 L300.000,135.000 L140.000,135.000 Z" fill="#ff7f0e"/>' in s, "B's band")
+    assert_true(
+        '<path d="M140.000,135.000 L300.000,135.000 L300.000,240.000'
+        ' L140.000,240.000 Z" fill="#1f77b4"/>'
+        in s,
+        "A's band",
+    )
+    assert_true(
+        '<path d="M140.000,30.000 L300.000,30.000 L300.000,135.000'
+        ' L140.000,135.000 Z" fill="#ff7f0e"/>'
+        in s,
+        "B's band",
+    )
 
 
 def test_render_streamgraph_svg_smoothing_matches_confirmed_cubic_path() raises:
@@ -402,17 +611,27 @@ def test_render_streamgraph_svg_smoothing_matches_confirmed_cubic_path() raises:
     var cats: List[String] = ["X", "Y", "Z"]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[10.0, 15.0, 8.0], [5.0, 10.0, 12.0]]
-    var plot = Plot().mark_streamgraph().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(
-        Theme(show_gridlines=False, show_legend=False, line_smoothing=1.0)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_streamgraph()
+        .encode_grouped_bar(categories=cats, series_names=names, values=vals)
+        .theme(
+            Theme(show_gridlines=False, show_legend=False, line_smoothing=1.0)
+        )
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<path d="M113.333,114.000 C131.111,114.000 184.444,107.667 220.000,114.000'
-        ' C255.556,120.333 308.889,145.667 326.667,152.000 L326.667,219.000'
-        ' C308.889,222.500 255.556,243.500 220.000,240.000 C184.444,236.500 131.111,205.000 113.333,198.000 Z"'
-        ' fill="#1f77b4"/>' in s,
-        "A's band: smoothed top edge, straight cap, smoothed bottom edge (reversed), straight cap via close()",
+        '<path d="M113.333,114.000 C131.111,114.000 184.444,107.667'
+        " 220.000,114.000 C255.556,120.333 308.889,145.667 326.667,152.000"
+        " L326.667,219.000 C308.889,222.500 255.556,243.500 220.000,240.000"
+        ' C184.444,236.500 131.111,205.000 113.333,198.000 Z" fill="#1f77b4"/>'
+        in s,
+        (
+            "A's band: smoothed top edge, straight cap, smoothed bottom edge"
+            " (reversed), straight cap via close()"
+        ),
     )
 
 
@@ -421,14 +640,26 @@ def test_render_streamgraph_raises_on_out_of_range_smoothing() raises:
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        var plot = Plot().mark_streamgraph().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(
-            Theme(line_smoothing=-0.1)
-        ).size(200, 150)
+        var plot = (
+            Plot()
+            .mark_streamgraph()
+            .encode_grouped_bar(
+                categories=cats, series_names=names, values=vals
+            )
+            .theme(Theme(line_smoothing=-0.1))
+            .size(200, 150)
+        )
         _ = render(plot)
     with assert_raises():
-        var plot = Plot().mark_streamgraph().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(
-            Theme(line_smoothing=1.1)
-        ).size(200, 150)
+        var plot = (
+            Plot()
+            .mark_streamgraph()
+            .encode_grouped_bar(
+                categories=cats, series_names=names, values=vals
+            )
+            .theme(Theme(line_smoothing=1.1))
+            .size(200, 150)
+        )
         _ = render(plot)
 
 
@@ -440,7 +671,10 @@ def test_streamgraph_defaults_to_smoothed_bands() raises:
     var vals: List[List[Float64]] = [[10.0, 15.0, 8.0]]
     var _hoisted4 = streamgraph(cats, names, vals, width=400, height=300)
     var svg = render_svg(_hoisted4)
-    assert_true(" C" in svg.to_string(), "default streamgraph() output includes a cubic curve command")
+    assert_true(
+        " C" in svg.to_string(),
+        "default streamgraph() output includes a cubic curve command",
+    )
 
 
 def test_streamgraph_smoothing_zero_reproduces_straight_bands() raises:
@@ -449,11 +683,29 @@ def test_streamgraph_smoothing_zero_reproduces_straight_bands() raises:
     var cats: List[String] = ["X", "Y"]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[10.0, 10.0], [10.0, 10.0]]
-    var _hoisted5 = streamgraph(cats, names, vals, theme=Theme(show_gridlines=False, show_legend=False), smoothing=0.0, width=400, height=300)
+    var _hoisted5 = streamgraph(
+        cats,
+        names,
+        vals,
+        theme=Theme(show_gridlines=False, show_legend=False),
+        smoothing=0.0,
+        width=400,
+        height=300,
+    )
     var svg = render_svg(_hoisted5)
     var s = svg.to_string()
-    assert_true('<path d="M140.000,135.000 L300.000,135.000 L300.000,240.000 L140.000,240.000 Z" fill="#1f77b4"/>' in s, "A's band, straight")
-    assert_true('<path d="M140.000,30.000 L300.000,30.000 L300.000,135.000 L140.000,135.000 Z" fill="#ff7f0e"/>' in s, "B's band, straight")
+    assert_true(
+        '<path d="M140.000,135.000 L300.000,135.000 L300.000,240.000'
+        ' L140.000,240.000 Z" fill="#1f77b4"/>'
+        in s,
+        "A's band, straight",
+    )
+    assert_true(
+        '<path d="M140.000,30.000 L300.000,30.000 L300.000,135.000'
+        ' L140.000,135.000 Z" fill="#ff7f0e"/>'
+        in s,
+        "B's band, straight",
+    )
 
 
 def test_render_streamgraph_raises_on_negative_value() raises:
@@ -485,9 +737,11 @@ def test_render_streamgraph_raises_on_no_data() raises:
         var _hoisted3 = streamgraph(cats, names, vals, width=200, height=150)
         _ = render(_hoisted3)
 
+
 # ---------------------------------------------------------------
 # from tests/test_bump.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_bump_matches_hand_derived_rank_lines() raises:
     # 2 categories, 2 series: A=[10, 30], B=[20, 5]. At X, B outranks A (A
@@ -505,9 +759,13 @@ def test_render_bump_matches_hand_derived_rank_lines() raises:
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[10.0, 30.0], [20.0, 5.0]]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var plot = Plot().mark_bump().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(
-        t
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_bump()
+        .encode_grouped_bar(categories=cats, series_names=names, values=vals)
+        .theme(t)
+        .size(400, 300)
+    )
     var c = render(plot)
 
     var palette = default_categorical_palette()
@@ -521,13 +779,23 @@ def test_render_bump_svg_matches_confirmed_paths_and_ticks() raises:
     var cats: List[String] = ["X", "Y"]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[10.0, 30.0], [20.0, 5.0]]
-    var plot = Plot().mark_bump().encode_grouped_bar(categories=cats, series_names=names, values=vals).theme(
-        Theme(show_gridlines=False, show_legend=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_bump()
+        .encode_grouped_bar(categories=cats, series_names=names, values=vals)
+        .theme(Theme(show_gridlines=False, show_legend=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    assert_true('<path d="M140.000,250.000 L300.000,20.000"' in s, "A's line: rank 2 at X, rank 1 at Y")
-    assert_true('<path d="M140.000,20.000 L300.000,250.000"' in s, "B's line: rank 1 at X, rank 2 at Y")
+    assert_true(
+        '<path d="M140.000,250.000 L300.000,20.000"' in s,
+        "A's line: rank 2 at X, rank 1 at Y",
+    )
+    assert_true(
+        '<path d="M140.000,20.000 L300.000,250.000"' in s,
+        "B's line: rank 1 at X, rank 2 at Y",
+    )
     assert_true('text-anchor="end">1<' in s, "the rank-1 tick label")
     assert_true('text-anchor="end">2<' in s, "the rank-2 tick label")
 
@@ -550,9 +818,11 @@ def test_render_bump_raises_on_no_data() raises:
         var _hoisted2 = bump(cats, names, vals, width=200, height=150)
         _ = render(_hoisted2)
 
+
 # ---------------------------------------------------------------
 # from tests/test_effect_scatter.mojo
 # ---------------------------------------------------------------
+
 
 def test_render_effect_scatter_matches_hand_derived_halo_and_point() raises:
     # One point (5, 5): both axes pad to [4, 6], canvas 400x300, default
@@ -568,27 +838,49 @@ def test_render_effect_scatter_matches_hand_derived_halo_and_point() raises:
     var c = render(_hoisted1)
 
     _assert_color(c, 220, 135, t.mark_color, "the point itself, dead center")
-    _assert_color(c, 220, 128, Color(175, 200, 228), "inside the halo (radius 9) but outside the point (radius 4)")
+    _assert_color(
+        c,
+        220,
+        128,
+        Color(175, 200, 228),
+        "inside the halo (radius 9) but outside the point (radius 4)",
+    )
     _assert_color(c, 220, 100, BG, "well outside the halo -- background")
 
 
 def test_render_effect_scatter_svg_matches_confirmed_circles() raises:
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
-    var plot = Plot().mark_effect_scatter().encode(x=x, y=y).theme(
-        Theme(show_gridlines=False, show_legend=False)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_effect_scatter()
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False, show_legend=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    assert_true('<circle cx="220" cy="135" r="9" fill="#afc8e4"/>' in s, "the halo, drawn first")
-    assert_true('<circle cx="220" cy="135" r="4" fill="#1e64b4"/>' in s, "the point itself, drawn on top")
+    assert_true(
+        '<circle cx="220" cy="135" r="9" fill="#afc8e4"/>' in s,
+        "the halo, drawn first",
+    )
+    assert_true(
+        '<circle cx="220" cy="135" r="4" fill="#1e64b4"/>' in s,
+        "the point itself, drawn on top",
+    )
 
 
 def test_render_point_mark_draws_no_halo() raises:
     # A plain Mark.POINT plot at the same data/theme draws no halo.
     var x: List[Float64] = [5.0]
     var y: List[Float64] = [5.0]
-    var plot = Plot().mark_point().encode(x=x, y=y).theme(Theme(show_gridlines=False, show_legend=False)).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False, show_legend=False))
+        .size(400, 300)
+    )
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true('r="9"' not in s, "no halo circle for a plain Mark.POINT plot")

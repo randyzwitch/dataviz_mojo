@@ -6,9 +6,9 @@ def main() raises:
     var y: List[Float64] = [2.3, 4.1, 3.6, 5.8, 5.1]
 
     var plot = (
-               Plot()
-               .mark_point()
-               .encode(x=x, y=y)
-               .labels(title="Weekly Revenue", x_title="Day", y_title="Revenue ($k)")
-               )
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .labels(title="Weekly Revenue", x_title="Day", y_title="Revenue ($k)")
+    )
     save(plot, "docs/src/examples/quickstart/out_step3.svg")

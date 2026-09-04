@@ -6,6 +6,7 @@ from dataviz import bar
 from dataviz.plot import save
 from dataviz.theme import Theme
 
+
 def main() raises:
     var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"]
     var net_change: List[Float64] = [15.0, -8.0, 22.0, -3.0, 10.0, -12.0]

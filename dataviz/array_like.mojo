@@ -76,7 +76,9 @@ def _materialize_strings[T: StringSequence](data: T) -> List[String]:
     return out^
 
 
-def _materialize_scalar_list[dtype: DType](data: List[Scalar[dtype]]) -> List[Float64]:
+def _materialize_scalar_list[
+    dtype: DType
+](data: List[Scalar[dtype]]) -> List[Float64]:
     """Copy any numeric `List[Scalar[dtype]]` (`List[Int]`, `List[Float32]`,
     `List[Int32]`, ...) into a `List[Float64]`, converting each element
     with `.cast[DType.float64]()`. See the module docstring for why this

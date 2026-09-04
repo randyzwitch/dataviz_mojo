@@ -22,7 +22,17 @@ from dataviz.theme import Theme
 
 def _draw_chord_ribbon[
     T: DrawTarget
-](mut target: T, cx: Float64, cy: Float64, r: Float64, a0: Float64, a1: Float64, b0: Float64, b1: Float64, color: Color) raises:
+](
+    mut target: T,
+    cx: Float64,
+    cy: Float64,
+    r: Float64,
+    a0: Float64,
+    a1: Float64,
+    b0: Float64,
+    b1: Float64,
+    color: Color,
+) raises:
     """One ribbon: a filled shape bounded by two node-rim arcs (`a0`->`a1`
     at node A, `b0`->`b1` at node B, both at inner radius `r`) and two
     curved connections between them. Each rim arc is a `Path.arc_to`
@@ -46,7 +56,9 @@ def _draw_chord_ribbon[
 
 def _render_chord[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.CHORD` plot: one node per distinct category across
     `encode_chord()`'s `from`/`to` columns (first-seen order, see
     `_edge_node_index`), arranged as ring sectors around a circle
@@ -68,7 +80,9 @@ def _render_chord[
     _validate_edge_encoding(plot, "Mark.CHORD")
 
     var theme = plot._theme
-    var edges = _edge_node_index(plot._edges.from_categories, plot._edges.to_categories)
+    var edges = _edge_node_index(
+        plot._edges.from_categories, plot._edges.to_categories
+    )
     ref nodes = edges.nodes
     ref from_idx = edges.from_idx
     ref to_idx = edges.to_idx
@@ -104,7 +118,9 @@ def _render_chord[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = _dynamic_legend_width(nodes, sc.legend_swatch_size, sc) if show_legend else 0
+    var legend_reserve = _dynamic_legend_width(
+        nodes, sc.legend_swatch_size, sc
+    ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
@@ -127,14 +143,40 @@ def _render_chord[
         var t0 = node_cursor[ti]
         var t1 = t0 + (value / grand_total) * 2.0 * pi
         node_cursor[ti] = t1
-        _draw_chord_ribbon(target, cx, cy, inner_radius, f0, f1, t0, t1, palette[fi % len(palette)])
+        _draw_chord_ribbon(
+            target,
+            cx,
+            cy,
+            inner_radius,
+            f0,
+            f1,
+            t0,
+            t1,
+            palette[fi % len(palette)],
+        )
 
     for i in range(n):
-        target.fill_ring_sector_aa(cx, cy, inner_radius, radius, node_start[i], node_end[i], palette[i % len(palette)])
+        target.fill_ring_sector_aa(
+            cx,
+            cy,
+            inner_radius,
+            radius,
+            node_start[i],
+            node_end[i],
+            palette[i % len(palette)],
+        )
 
     var text_requests = List[_TextRequest]()
     if show_legend:
-        _draw_legend(target, text_requests, nodes, palette, plot_x1 + sc.margin_right, plot_y0, theme)
+        _draw_legend(
+            target,
+            text_requests,
+            nodes,
+            palette,
+            plot_x1 + sc.margin_right,
+            plot_y0,
+            theme,
+        )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
@@ -194,10 +236,18 @@ def chord(
             save(c, "docs/src/examples/out_chord.svg")
         ```
     """
-    var plot = Plot().mark_chord(ring_fraction=ring_fraction).encode_chord(
-        from_categories=from_categories, to_categories=to_categories, values=values
+    var plot = (
+        Plot()
+        .mark_chord(ring_fraction=ring_fraction)
+        .encode_chord(
+            from_categories=from_categories,
+            to_categories=to_categories,
+            values=values,
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def chord[
@@ -220,6 +270,15 @@ def chord[
     above.
     """
     return chord(
-        from_categories, to_categories, _materialize_scalar_list(values), ring_fraction=ring_fraction, theme=theme, width=width,
-        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        from_categories,
+        to_categories,
+        _materialize_scalar_list(values),
+        ring_fraction=ring_fraction,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

@@ -7,6 +7,7 @@ from std.math import pi
 from dataviz import gauge
 from dataviz.plot import save
 
+
 def main() raises:
     var plot = gauge(
         72.0,

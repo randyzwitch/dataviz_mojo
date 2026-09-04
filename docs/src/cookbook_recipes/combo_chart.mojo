@@ -6,6 +6,7 @@ from dataviz.plot import Plot, save_layers
 from dataviz.colors import CORNFLOWERBLUE, TOMATO
 from dataviz.theme import Theme
 
+
 def main() raises:
     var months: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
     var actual: List[Float64] = [420.0, 480.0, 450.0, 610.0, 550.0, 580.0]
@@ -16,7 +17,11 @@ def main() raises:
         .mark_area()
         .encode(x=months, y=actual)
         .theme(Theme(mark_color=CORNFLOWERBLUE))
-        .labels(title="Actual vs. Target Revenue", x_title="Month", y_title="Revenue ($K)")
+        .labels(
+            title="Actual vs. Target Revenue",
+            x_title="Month",
+            y_title="Revenue ($K)",
+        )
     )
     var target_layer = (
         Plot()

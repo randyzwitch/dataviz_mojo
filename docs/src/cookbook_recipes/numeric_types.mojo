@@ -6,6 +6,7 @@ showing whole-number labels as `"10"`, never `"10.0"`.
 from dataviz.plot import Plot, save
 from dataviz.theme import Theme
 
+
 def main() raises:
     var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4"]
     var units_sold: List[Int] = [420, 385, 510, 601]

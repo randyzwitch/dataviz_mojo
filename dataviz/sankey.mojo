@@ -19,7 +19,9 @@ from dataviz.theme import Theme
 
 def _render_sankey[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.SANKEY` plot: `encode_chord()`'s edge list laid out
     left-to-right by column. A node's column is the length of the longest
     path reaching it from any source, from one Kahn's-algorithm pass; a
@@ -44,7 +46,9 @@ def _render_sankey[
     _validate_edge_encoding(plot, "Mark.SANKEY")
 
     var theme = plot._theme
-    var edges = _edge_node_index(plot._edges.from_categories, plot._edges.to_categories)
+    var edges = _edge_node_index(
+        plot._edges.from_categories, plot._edges.to_categories
+    )
     ref nodes = edges.nodes
     var n = len(nodes)
 
@@ -90,8 +94,9 @@ def _render_sankey[
                 queue.append(c)
     if len(queue) != n:
         raise Error(
-            "Plot: Mark.SANKEY requires the edges to form a DAG (a cycle was found --"
-            " every real Sankey diagram's flow data must have no cycles)"
+            "Plot: Mark.SANKEY requires the edges to form a DAG (a cycle was"
+            " found -- every real Sankey diagram's flow data must have no"
+            " cycles)"
         )
 
     var max_column = 0
@@ -156,7 +161,10 @@ def _render_sankey[
     var col_x = List[Float64](capacity=max_column + 1)
     for c in range(max_column + 1):
         var frac = 0.5 if max_column == 0 else Float64(c) / Float64(max_column)
-        col_x.append(Float64(plot_x0) + frac * Float64(plot_x1 - plot_x0 - Int(node_width)))
+        col_x.append(
+            Float64(plot_x0)
+            + frac * Float64(plot_x1 - plot_x0 - Int(node_width))
+        )
 
     var nodes_in_column = List[List[Int]]()
     for _ in range(max_column + 1):
@@ -178,9 +186,13 @@ def _render_sankey[
             continue
         var cum = 0.0
         for i in members:
-            node_y0[i] = Float64(plot_y0) + cum / col_total * Float64(plot_y1 - plot_y0)
+            node_y0[i] = Float64(plot_y0) + cum / col_total * Float64(
+                plot_y1 - plot_y0
+            )
             cum += node_value[i]
-            node_y1[i] = Float64(plot_y0) + cum / col_total * Float64(plot_y1 - plot_y0)
+            node_y1[i] = Float64(plot_y0) + cum / col_total * Float64(
+                plot_y1 - plot_y0
+            )
 
     var palette = default_categorical_palette()
     var out_cursor = node_y0.copy()
@@ -188,12 +200,16 @@ def _render_sankey[
     for e in range(len(final_from)):
         var fi = final_from[e]
         var ti = final_to[e]
-        var src_h = (final_value[e] / node_value[fi]) * (node_y1[fi] - node_y0[fi]) if node_value[fi] > 0.0 else 0.0
+        var src_h = (final_value[e] / node_value[fi]) * (
+            node_y1[fi] - node_y0[fi]
+        ) if node_value[fi] > 0.0 else 0.0
         var src_top = out_cursor[fi]
         var src_bottom = src_top + src_h
         out_cursor[fi] = src_bottom
 
-        var tgt_h = (final_value[e] / node_value[ti]) * (node_y1[ti] - node_y0[ti]) if node_value[ti] > 0.0 else 0.0
+        var tgt_h = (final_value[e] / node_value[ti]) * (
+            node_y1[ti] - node_y0[ti]
+        ) if node_value[ti] > 0.0 else 0.0
         var tgt_top = in_cursor[ti]
         var tgt_bottom = tgt_top + tgt_h
         in_cursor[ti] = tgt_bottom
@@ -214,11 +230,21 @@ def _render_sankey[
         var x = _round_to_int(col_x[column[i]])
         var y0 = _round_to_int(node_y0[i])
         var h = max(1, _round_to_int(node_y1[i]) - y0)
-        target.fill_rect(x, y0, _round_to_int(node_width), h, palette[i % len(palette)])
+        target.fill_rect(
+            x, y0, _round_to_int(node_width), h, palette[i % len(palette)]
+        )
         var label_x = x + _round_to_int(node_width) + sc.label_gap
         var label_y = y0 + h // 2 + Int(sc.font_size * 0.35)
         text_requests.append(
-            _TextRequest(label_x, label_y, nodes[i], theme.text_color, sc.font_size, TextAlign.LEFT, theme.font_family)
+            _TextRequest(
+                label_x,
+                label_y,
+                nodes[i],
+                theme.text_color,
+                sc.font_size,
+                TextAlign.LEFT,
+                theme.font_family,
+            )
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
@@ -279,10 +305,18 @@ def sankey(
             save(c, "docs/src/examples/out_sankey.svg")
         ```
     """
-    var plot = Plot().mark_sankey(node_width=node_width).encode_chord(
-        from_categories=from_categories, to_categories=to_categories, values=values
+    var plot = (
+        Plot()
+        .mark_sankey(node_width=node_width)
+        .encode_chord(
+            from_categories=from_categories,
+            to_categories=to_categories,
+            values=values,
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def sankey[
@@ -305,6 +339,15 @@ def sankey[
     above.
     """
     return sankey(
-        from_categories, to_categories, _materialize_scalar_list(values), node_width=node_width, theme=theme, width=width,
-        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        from_categories,
+        to_categories,
+        _materialize_scalar_list(values),
+        node_width=node_width,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

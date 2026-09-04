@@ -6,8 +6,15 @@ when category names are long or there are many of them.
 from dataviz.plot import Plot, save
 from dataviz.theme import Theme
 
+
 def main() raises:
-    var languages: List[String] = ["Python", "JavaScript", "TypeScript", "Rust", "Mojo"]
+    var languages: List[String] = [
+        "Python",
+        "JavaScript",
+        "TypeScript",
+        "Rust",
+        "Mojo",
+    ]
     var stars_thousands: List[Int] = [62, 98, 100, 92, 24]
 
     var plot = (

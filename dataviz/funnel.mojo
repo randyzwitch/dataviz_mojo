@@ -62,7 +62,9 @@ def _fill_trapezoid[
 
 def _render_funnel[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.FUNNEL` plot: `encode_categorical()`'s category+value
     shape drawn largest-value-first top to bottom
     (`_descending_value_order`, matching ECharts' default) as one
@@ -94,7 +96,9 @@ def _render_funnel[
         sorted_categories.append(plot.x_categories[order[i]])
 
     var show_legend = theme.show_legend
-    var legend_reserve = _dynamic_legend_width(sorted_categories, sc.legend_swatch_size, sc) if show_legend else 0
+    var legend_reserve = _dynamic_legend_width(
+        sorted_categories, sc.legend_swatch_size, sc
+    ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
@@ -127,7 +131,15 @@ def _render_funnel[
 
     var text_requests = List[_TextRequest]()
     if show_legend:
-        _draw_legend(target, text_requests, sorted_categories, palette, plot_x1 + sc.margin_right, plot_y0, theme)
+        _draw_legend(
+            target,
+            text_requests,
+            sorted_categories,
+            palette,
+            plot_x1 + sc.margin_right,
+            plot_y0,
+            theme,
+        )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
@@ -184,7 +196,9 @@ def funnel(
         ```
     """
     var plot = Plot().mark_funnel().encode_categorical(x=categories, y=values)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def funnel[
@@ -205,6 +219,13 @@ def funnel[
     above.
     """
     return funnel(
-        categories, _materialize_scalar_list(values), theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        categories,
+        _materialize_scalar_list(values),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

@@ -64,7 +64,9 @@ struct _HorizontalCategoricalFrame(Movable):
         `_CategoricalFrame.result` (plot.mojo), including copying
         `text_requests` rather than moving it.
         """
-        return _RenderResult(self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1)
+        return _RenderResult(
+            self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1
+        )
 
 
 def _draw_horizontal_categorical_axis_frame[
@@ -107,7 +109,10 @@ def _draw_horizontal_categorical_axis_frame[
     var sc = _Scaled(theme)
 
     var dynamic_left_margin = (
-        Int(_max_label_width(categories, sc.font_size)) + sc.tick_length + sc.label_gap + sc.margin_buffer
+        Int(_max_label_width(categories, sc.font_size))
+        + sc.tick_length
+        + sc.label_gap
+        + sc.margin_buffer
     )
 
     var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
@@ -119,7 +124,9 @@ def _draw_horizontal_categorical_axis_frame[
     out_x_scale.range_min = Float64(plot_x0)
     out_x_scale.range_max = Float64(plot_x1)
 
-    var y_scale = OrdinalScale(categories.copy(), Float64(plot_y0), Float64(plot_y1), padding)
+    var y_scale = OrdinalScale(
+        categories.copy(), Float64(plot_y0), Float64(plot_y1), padding
+    )
 
     var x_ticks = out_x_scale.ticks()
     var x_labels = x_ticks.labels()
@@ -127,16 +134,29 @@ def _draw_horizontal_categorical_axis_frame[
     if theme.show_gridlines:
         for i in range(len(x_ticks.values)):
             var px = _axis_pixel(out_x_scale, x_ticks.values[i])
-            target.draw_line_aa(px, plot_y0, px, plot_y1, theme.gridline_color, width=sc.scale)
+            target.draw_line_aa(
+                px, plot_y0, px, plot_y1, theme.gridline_color, width=sc.scale
+            )
 
-    target.draw_line_aa(plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale)
-    target.draw_line_aa(plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale)
+    target.draw_line_aa(
+        plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale
+    )
+    target.draw_line_aa(
+        plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale
+    )
 
     var text_requests = List[_TextRequest]()
 
     for i in range(len(x_ticks.values)):
         var px = _axis_pixel(out_x_scale, x_ticks.values[i])
-        target.draw_line_aa(px, plot_y1, px, plot_y1 + sc.tick_length, theme.axis_color, width=sc.scale)
+        target.draw_line_aa(
+            px,
+            plot_y1,
+            px,
+            plot_y1 + sc.tick_length,
+            theme.axis_color,
+            width=sc.scale,
+        )
         text_requests.append(
             _TextRequest(
                 px,
@@ -152,7 +172,14 @@ def _draw_horizontal_categorical_axis_frame[
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for i in range(len(categories)):
         var center_py = _round_to_int(y_scale.center(i))
-        target.draw_line_aa(plot_x0 - sc.tick_length, center_py, plot_x0, center_py, theme.axis_color, width=sc.scale)
+        target.draw_line_aa(
+            plot_x0 - sc.tick_length,
+            center_py,
+            plot_x0,
+            center_py,
+            theme.axis_color,
+            width=sc.scale,
+        )
         text_requests.append(
             _TextRequest(
                 plot_x0 - sc.tick_length - sc.label_gap,
@@ -166,13 +193,22 @@ def _draw_horizontal_categorical_axis_frame[
         )
 
     return _HorizontalCategoricalFrame(
-        out_x_scale, y_scale^, sc^, text_requests^, plot_x0, plot_y0, plot_x1, plot_y1
+        out_x_scale,
+        y_scale^,
+        sc^,
+        text_requests^,
+        plot_x0,
+        plot_y0,
+        plot_x1,
+        plot_y1,
     )
 
 
 def _render_gantt[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.GANTT` plot: `_draw_horizontal_categorical_axis_frame`'s
     horizontal categorical axis (categories along `y`, top-to-bottom;
     continuous `x` along the bottom).
@@ -192,7 +228,9 @@ def _render_gantt[
     No dependency arrows between bars; `encode_gantt()`'s data has no
     notion of dependencies.
     """
-    if len(plot.x_categories) != len(plot._gantt.start) or len(plot._gantt.end) != len(plot._gantt.start):
+    if len(plot.x_categories) != len(plot._gantt.start) or len(
+        plot._gantt.end
+    ) != len(plot._gantt.start):
         raise Error(
             "Plot.encode_gantt(): categories, start, and end must all have"
             " the same length (got "
@@ -278,8 +316,14 @@ def gantt(
             save(c, "docs/src/examples/out_gantt.svg")
         ```
     """
-    var plot = Plot().mark_gantt().encode_gantt(categories=categories, start=start, end=end)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_gantt()
+        .encode_gantt(categories=categories, start=start, end=end)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def gantt[
@@ -301,6 +345,14 @@ def gantt[
     to the concrete overload above.
     """
     return gantt(
-        categories, _materialize_scalar_list(start), _materialize_scalar_list(end), theme=theme,
-        width=width, height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        categories,
+        _materialize_scalar_list(start),
+        _materialize_scalar_list(end),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

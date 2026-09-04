@@ -33,10 +33,11 @@ struct _PunchcardData(Copyable, Movable):
         self.scale = 0.0
 
 
-
 def _render_punchcard[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.PUNCHCARD` plot: `encode_punchcard()`'s `x`/`y`
     categorical grid (`Mark.HEATMAP`'s `_draw_grid_axis_frame` and
     `_categorical_indices` domain derivation, reused unchanged) with one
@@ -53,10 +54,9 @@ def _render_punchcard[
     Multiple rows may share the same `(x, y)` cell; each draws its own
     bubble. No legend: size is read directly off each bubble.
     """
-    if (
-        len(plot._punchcard.x) != len(plot._punchcard.y)
-        or len(plot._punchcard.sizes) != len(plot._punchcard.x)
-    ):
+    if len(plot._punchcard.x) != len(plot._punchcard.y) or len(
+        plot._punchcard.sizes
+    ) != len(plot._punchcard.x):
         raise Error(
             "Plot.encode_punchcard(): x, y, and sizes must all have the same"
             " length (got "
@@ -72,20 +72,34 @@ def _render_punchcard[
     _require_non_empty(len(plot._punchcard.x), "Plot.encode_punchcard()")
     for s in plot._punchcard.sizes:
         if s < 0.0:
-            raise Error("Plot: Mark.PUNCHCARD sizes must be non-negative (got " + String(s) + ")")
+            raise Error(
+                "Plot: Mark.PUNCHCARD sizes must be non-negative (got "
+                + String(s)
+                + ")"
+            )
 
     var x_idx = _categorical_indices(plot._punchcard.x)
     var y_idx = _categorical_indices(plot._punchcard.y)
 
     var measure_cache = FontCache()
     var frame = _draw_grid_axis_frame(
-        target, x_idx.domain, y_idx.domain, theme, ox0, oy0, ox1, oy1, cache=measure_cache
+        target,
+        x_idx.domain,
+        y_idx.domain,
+        theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=measure_cache,
     )
 
     for i in range(len(plot._punchcard.x)):
         var cx = _round_to_int(frame.x_scale.center(x_idx.indices[i]))
         var cy = _round_to_int(frame.y_scale.center(y_idx.indices[i]))
-        var radius = _round_to_int(plot._punchcard.sizes[i] / plot._punchcard.scale * frame.sc.scale)
+        var radius = _round_to_int(
+            plot._punchcard.sizes[i] / plot._punchcard.scale * frame.sc.scale
+        )
         target.fill_circle_aa(cx, cy, radius, theme.mark_color)
 
     return frame.result()
@@ -153,8 +167,14 @@ def punchcard(
             save(c, "docs/src/examples/out_punchcard.svg")
         ```
     """
-    var plot = Plot().mark_punchcard(scale=scale).encode_punchcard(x=x, y=y, sizes=sizes)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_punchcard(scale=scale)
+        .encode_punchcard(x=x, y=y, sizes=sizes)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def punchcard[
@@ -177,6 +197,15 @@ def punchcard[
     above.
     """
     return punchcard(
-        x, y, _materialize_scalar_list(sizes), scale=scale, theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        x,
+        y,
+        _materialize_scalar_list(sizes),
+        scale=scale,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

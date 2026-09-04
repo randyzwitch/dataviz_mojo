@@ -45,7 +45,9 @@ def _kde_bandwidth(values: List[Float64]) -> Float64:
     return 0.9 * std * Float64(n) ** (-1.0 / 5.0)
 
 
-def _kde_density(values: List[Float64], bandwidth: Float64, y: Float64) -> Float64:
+def _kde_density(
+    values: List[Float64], bandwidth: Float64, y: Float64
+) -> Float64:
     """The Gaussian-kernel density estimate at `y`:
     `(1 / (n*h)) * sum(gaussian((y - v_i) / h))` over every point in
     `values`.
@@ -90,7 +92,9 @@ def _draw_violin_silhouettes[
     for series in plot._distribution.values:
         if len(series) > max_n:
             max_n = len(series)
-    var half_extent = band_scale.bandwidth() * plot._mark_style.violin_width_fraction
+    var half_extent = (
+        band_scale.bandwidth() * plot._mark_style.violin_width_fraction
+    )
 
     for i in range(len(plot.x_categories)):
         var values = plot._distribution.values[i].copy()
@@ -99,9 +103,8 @@ def _draw_violin_silhouettes[
             plot._distribution.kde_scale_by_count and max_n > 0
         ) else 1.0
         var bandwidth = (
-            plot._distribution.kde_bandwidth_override
-            if plot._distribution.kde_bandwidth_override > 0.0
-            else _kde_bandwidth(values)
+            plot._distribution.kde_bandwidth_override if plot._distribution.kde_bandwidth_override
+            > 0.0 else _kde_bandwidth(values)
         )
         var mm = _min_max(values)
 
@@ -110,7 +113,9 @@ def _draw_violin_silhouettes[
         var max_density = 0.0
         var span = mm.max - mm.min
         for s in range(_KDE_SAMPLES):
-            var v = mm.min if span == 0.0 else mm.min + span * Float64(s) / Float64(_KDE_SAMPLES - 1)
+            var v = mm.min if span == 0.0 else mm.min + span * Float64(
+                s
+            ) / Float64(_KDE_SAMPLES - 1)
             var d = _kde_density(values, bandwidth, v)
             sample_values.append(v)
             densities.append(d)
@@ -129,7 +134,9 @@ def _draw_violin_silhouettes[
                 + _format_fixed(mm.max, _label_decimals(mm.max))
             )
         var path = Path()
-        var scale = (half_extent * count_factor) / max_density if max_density > 0.0 else 0.0
+        var scale = (
+            half_extent * count_factor
+        ) / max_density if max_density > 0.0 else 0.0
         orient.path_move_to(
             path,
             Float64(_axis_pixel(value_scale, sample_values[0])),
@@ -155,7 +162,9 @@ def _draw_violin_silhouettes[
 
 def _render_violin[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.VIOLIN` plot: `encode_distribution()`'s raw
     per-category values (the same data `Mark.BEESWARM` takes), each
     category drawn as a symmetric density-estimate silhouette.
@@ -184,16 +193,22 @@ def _render_violin[
             all_values.append(v)
     var value_scale = _data_extent(all_values)
 
-    var frame = _draw_categorical_axis_frame(target, plot.x_categories, value_scale, theme, ox0, oy0, ox1, oy1)
+    var frame = _draw_categorical_axis_frame(
+        target, plot.x_categories, value_scale, theme, ox0, oy0, ox1, oy1
+    )
 
-    _draw_violin_silhouettes(target, plot, frame.x_scale, frame.y_scale, _Orientation(False))
+    _draw_violin_silhouettes(
+        target, plot, frame.x_scale, frame.y_scale, _Orientation(False)
+    )
 
     return frame.result()
 
 
 def _render_horizontal_violin[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """`_render_violin`'s mirror image for
     `Plot.mark_violin(horizontal=True)` (#121): `_render_horizontal_bar`'s
     categorical y-axis / continuous x-axis
@@ -221,7 +236,9 @@ def _render_horizontal_violin[
         target, plot.x_categories, value_scale, theme, ox0, oy0, ox1, oy1
     )
 
-    _draw_violin_silhouettes(target, plot, frame.y_scale, frame.x_scale, _Orientation(True))
+    _draw_violin_silhouettes(
+        target, plot, frame.y_scale, frame.x_scale, _Orientation(True)
+    )
 
     return frame.result()
 
@@ -300,13 +317,19 @@ def violin(
             save(c, "docs/src/examples/out_violin.svg")
         ```
     """
-    var plot = Plot().mark_violin(
-        bandwidth=bandwidth,
-        scale_by_count=scale_by_count,
-        horizontal=horizontal,
-        width_fraction=width_fraction,
-    ).encode_distribution(categories=categories, values=values)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_violin(
+            bandwidth=bandwidth,
+            scale_by_count=scale_by_count,
+            horizontal=horizontal,
+            width_fraction=width_fraction,
+        )
+        .encode_distribution(categories=categories, values=values)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def violin[
@@ -331,7 +354,17 @@ def violin[
     above.
     """
     return violin(
-        categories, _materialize_nested_scalar_list(values), bandwidth=bandwidth,
-        scale_by_count=scale_by_count, width_fraction=width_fraction, theme=theme, width=width, height=height, title=title,
-        subtitle=subtitle, x_title=x_title, y_title=y_title, horizontal=horizontal,
+        categories,
+        _materialize_nested_scalar_list(values),
+        bandwidth=bandwidth,
+        scale_by_count=scale_by_count,
+        width_fraction=width_fraction,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+        horizontal=horizontal,
     )

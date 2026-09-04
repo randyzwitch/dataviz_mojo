@@ -21,7 +21,9 @@ from dataviz.scale import LinearScale
 from dataviz.theme import Theme
 
 
-def _symmetric_zero_baseline_y_extent(values: List[List[Float64]], n_categories: Int) raises -> LinearScale:
+def _symmetric_zero_baseline_y_extent(
+    values: List[List[Float64]], n_categories: Int
+) raises -> LinearScale:
     """The y-domain for `Mark.STREAMGRAPH`: symmetric around 0, wide enough
     for the tallest category's full stack (`max_total`, the largest
     per-category sum across every series). `_render_streamgraph`'s
@@ -40,7 +42,9 @@ def _symmetric_zero_baseline_y_extent(values: List[List[Float64]], n_categories:
     return LinearScale(-bound, bound, 0.0, 1.0)
 
 
-def _append_smoothed_edge(mut path: Path, px: List[Float64], py: List[Float64], smoothing: Float64) raises:
+def _append_smoothed_edge(
+    mut path: Path, px: List[Float64], py: List[Float64], smoothing: Float64
+) raises:
     """Append `line_to`/`cubic_curve_to` segments for `px[0]->...->px[n-1]`
     onto `path`, continuing from its current point (no `move_to`). Same
     Catmull-Rom math as `_build_line_path` (plot.mojo), duplicated because
@@ -63,12 +67,21 @@ def _append_smoothed_edge(mut path: Path, px: List[Float64], py: List[Float64], 
         var t1y = (py[i + 1] - py[prev]) / 6.0 * smoothing
         var t2x = (px[next2] - px[i]) / 6.0 * smoothing
         var t2y = (py[next2] - py[i]) / 6.0 * smoothing
-        path.cubic_curve_to(px[i] + t1x, py[i] + t1y, px[i + 1] - t2x, py[i + 1] - t2y, px[i + 1], py[i + 1])
+        path.cubic_curve_to(
+            px[i] + t1x,
+            py[i] + t1y,
+            px[i + 1] - t2x,
+            py[i + 1] - t2y,
+            px[i + 1],
+            py[i + 1],
+        )
 
 
 def _render_streamgraph[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.STREAMGRAPH` plot: `encode_grouped_bar()`'s data
     stacked the same running-total way as `Mark.STACKED_BAR`, with two
     differences. Each category's stack starts from `-total_i / 2` rather
@@ -94,17 +107,30 @@ def _render_streamgraph[
     for series in plot._grouped_bar.values:
         for v in series:
             if v < 0.0:
-                raise Error("Plot: Mark.STREAMGRAPH values must be non-negative (got " + String(v) + ")")
+                raise Error(
+                    "Plot: Mark.STREAMGRAPH values must be non-negative (got "
+                    + String(v)
+                    + ")"
+                )
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = (
-        _dynamic_legend_width(plot._grouped_bar.series_names, sc.legend_swatch_size, sc) if show_legend else 0
-    )
+    var legend_reserve = _dynamic_legend_width(
+        plot._grouped_bar.series_names, sc.legend_swatch_size, sc
+    ) if show_legend else 0
 
-    var y_scale = _symmetric_zero_baseline_y_extent(plot._grouped_bar.values, n_categories)
+    var y_scale = _symmetric_zero_baseline_y_extent(
+        plot._grouped_bar.values, n_categories
+    )
     var frame = _draw_categorical_axis_frame(
-        target, plot.x_categories, y_scale, theme, ox0, oy0, ox1 - legend_reserve, oy1
+        target,
+        plot.x_categories,
+        y_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1 - legend_reserve,
+        oy1,
     )
 
     # running[i]: each category's stack cursor, starting at its centered
@@ -142,15 +168,22 @@ def _render_streamgraph[
         var path = Path()
         path.move_to(top_px[0], top_py[0])
         _append_smoothed_edge(path, top_px, top_py, theme.line_smoothing)
-        path.line_to(bottom_px[0], bottom_py[0])  # the straight "cap" at the last category
+        path.line_to(
+            bottom_px[0], bottom_py[0]
+        )  # the straight "cap" at the last category
         _append_smoothed_edge(path, bottom_px, bottom_py, theme.line_smoothing)
         path.close()  # the straight "cap" at the first category
         target.fill_path_aa(path, palette[j % len(palette)])
 
     if show_legend:
         _draw_legend(
-            target, frame.text_requests, plot._grouped_bar.series_names, palette,
-            _round_to_int(frame.x_scale.range_max) + sc.margin_right, _round_to_int(frame.y_scale.range_max), theme,
+            target,
+            frame.text_requests,
+            plot._grouped_bar.series_names,
+            palette,
+            _round_to_int(frame.x_scale.range_max) + sc.margin_right,
+            _round_to_int(frame.y_scale.range_max),
+            theme,
         )
 
     return frame.result()
@@ -219,10 +252,16 @@ def streamgraph(
     """
     var t = theme
     t.line_smoothing = smoothing
-    var plot = Plot().mark_streamgraph().encode_grouped_bar(
-        categories=categories, series_names=series_names, values=values
+    var plot = (
+        Plot()
+        .mark_streamgraph()
+        .encode_grouped_bar(
+            categories=categories, series_names=series_names, values=values
+        )
     )
-    return _finished(plot^, t, width, height, title, x_title, "", subtitle=subtitle)
+    return _finished(
+        plot^, t, width, height, title, x_title, "", subtitle=subtitle
+    )
 
 
 def streamgraph[
@@ -244,6 +283,14 @@ def streamgraph[
     overload above.
     """
     return streamgraph(
-        categories, series_names, _materialize_nested_scalar_list(values), theme=theme, smoothing=smoothing,
-        width=width, height=height, title=title, subtitle=subtitle, x_title=x_title,
+        categories,
+        series_names,
+        _materialize_nested_scalar_list(values),
+        theme=theme,
+        smoothing=smoothing,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
     )

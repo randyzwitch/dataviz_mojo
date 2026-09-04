@@ -49,19 +49,26 @@ def _draw_lollipop_stems[
         var center = band_scale.center(i)
         var value = value_scale.to_pixel(plot.y_data[i])
         var stem_from = (
-            baseline + orient.baseline_pull()
-            if (baseline_on_axis_line and value != baseline)
-            else baseline
+            baseline
+            + orient.baseline_pull() if (
+                baseline_on_axis_line and value != baseline
+            ) else baseline
         )
         if theme.svg_tooltips:
             target.begin_annotated_group(
                 _tooltip_label(plot.x_categories[i], plot.y_data[i])
             )
         target.stroke_path_aa(
-            orient.value_stem_path(stem_from, value, center), theme.mark_color, width=line_width
+            orient.value_stem_path(stem_from, value, center),
+            theme.mark_color,
+            width=line_width,
         )
         orient.band_point(
-            target, _round_to_int(value), _round_to_int(center), radius, theme.mark_color
+            target,
+            _round_to_int(value),
+            _round_to_int(center),
+            radius,
+            theme.mark_color,
         )
         if theme.svg_tooltips:
             target.end_annotated_group()
@@ -69,7 +76,9 @@ def _draw_lollipop_stems[
 
 def _render_lollipop[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.LOLLIPOP` plot: `_render_bar`'s categorical x-axis /
     zero-baseline y-axis (`_draw_categorical_axis_frame`), with each
     category drawn as a thin stem (`stroke_path_aa`, `Theme.line_width`)
@@ -84,11 +93,19 @@ def _render_lollipop[
 
     var theme = plot._theme
     var y_scale = _zero_baseline_y_extent(plot.y_data)
-    var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
+    var frame = _draw_categorical_axis_frame(
+        target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1
+    )
 
     _draw_lollipop_stems(
-        target, plot, frame.x_scale, frame.y_scale, frame.py1, _Orientation(False),
-        frame.sc.line_width, _round_to_int(frame.sc.point_radius),
+        target,
+        plot,
+        frame.x_scale,
+        frame.y_scale,
+        frame.py1,
+        _Orientation(False),
+        frame.sc.line_width,
+        _round_to_int(frame.sc.point_radius),
     )
 
     return frame.result()
@@ -96,7 +113,9 @@ def _render_lollipop[
 
 def _render_horizontal_lollipop[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """`_render_lollipop`'s mirror image for
     `Plot.mark_lollipop(horizontal=True)` (#121): `_render_horizontal_bar`'s
     categorical y-axis / zero-baseline x-axis
@@ -115,8 +134,14 @@ def _render_horizontal_lollipop[
     )
 
     _draw_lollipop_stems(
-        target, plot, frame.y_scale, frame.x_scale, frame.px0, _Orientation(True),
-        frame.sc.line_width, _round_to_int(frame.sc.point_radius),
+        target,
+        plot,
+        frame.y_scale,
+        frame.x_scale,
+        frame.px0,
+        _Orientation(True),
+        frame.sc.line_width,
+        _round_to_int(frame.sc.point_radius),
     )
 
     return frame.result()
@@ -179,8 +204,14 @@ def lollipop(
             save(c, "docs/src/examples/out_lollipop.svg")
         ```
     """
-    var plot = Plot().mark_lollipop(horizontal=horizontal).encode_categorical(x=categories, y=values)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_lollipop(horizontal=horizontal)
+        .encode_categorical(x=categories, y=values)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def lollipop[
@@ -202,6 +233,14 @@ def lollipop[
     above.
     """
     return lollipop(
-        categories, _materialize_scalar_list(values), theme=theme, width=width, height=height,
-        title=title, subtitle=subtitle, x_title=x_title, y_title=y_title, horizontal=horizontal,
+        categories,
+        _materialize_scalar_list(values),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+        horizontal=horizontal,
     )

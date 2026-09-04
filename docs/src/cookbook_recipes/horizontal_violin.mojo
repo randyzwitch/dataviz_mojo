@@ -6,6 +6,7 @@ horizontal=True)`, the same "long or many category names" use case
 """
 from dataviz.plot import Plot, save
 
+
 def main() raises:
     var classes: List[String] = ["Section A", "Section B", "Section C"]
     var scores: List[List[Int]] = [
@@ -14,5 +15,9 @@ def main() raises:
         [80, 82, 83, 84, 81, 79, 85],
     ]
 
-    var plot = Plot().mark_violin(horizontal=True).encode_distribution(categories=classes, values=scores)
+    var plot = (
+        Plot()
+        .mark_violin(horizontal=True)
+        .encode_distribution(categories=classes, values=scores)
+    )
     save(plot, "docs/src/examples/out_horizontal_violin.svg")

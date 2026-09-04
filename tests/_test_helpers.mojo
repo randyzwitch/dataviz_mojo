@@ -24,14 +24,18 @@ def _count_color(c: Canvas, color: Color) -> Int:
     return count
 
 
-def _assert_color(c: Canvas, x: Int, y: Int, expected: Color, label: String) raises:
+def _assert_color(
+    c: Canvas, x: Int, y: Int, expected: Color, label: String
+) raises:
     var p = c.get_pixel(x, y)
     assert_equal(p.r, expected.r, label)
     assert_equal(p.g, expected.g, label)
     assert_equal(p.b, expected.b, label)
 
 
-def _assert_near_color(c: Canvas, x: Int, y: Int, expected: Color, tolerance: Int, label: String) raises:
+def _assert_near_color(
+    c: Canvas, x: Int, y: Int, expected: Color, tolerance: Int, label: String
+) raises:
     """`_assert_color()`'s tolerant sibling for a stroked position (an axis
     line, gridline, or annotation line, 1-2px wide) rather than a filled
     mark's interior. `render()`'s supersample-then-downsample
@@ -45,8 +49,22 @@ def _assert_near_color(c: Canvas, x: Int, y: Int, expected: Color, tolerance: In
         abs(Int(p.r) - Int(expected.r)) <= tolerance
         and abs(Int(p.g) - Int(expected.g)) <= tolerance
         and abs(Int(p.b) - Int(expected.b)) <= tolerance,
-        label + " (got (" + String(p.r) + "," + String(p.g) + "," + String(p.b) + "), expected within "
-        + String(tolerance) + " of (" + String(expected.r) + "," + String(expected.g) + "," + String(expected.b) + "))",
+        label
+        + " (got ("
+        + String(p.r)
+        + ","
+        + String(p.g)
+        + ","
+        + String(p.b)
+        + "), expected within "
+        + String(tolerance)
+        + " of ("
+        + String(expected.r)
+        + ","
+        + String(expected.g)
+        + ","
+        + String(expected.b)
+        + "))",
     )
 
 

@@ -56,11 +56,15 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 # from tests/test_scale.mojo
 # ---------------------------------------------------------------
 
-def _assert_ticks_equal(actual: List[Float64], expected: List[Float64], label: String) raises:
+
+def _assert_ticks_equal(
+    actual: List[Float64], expected: List[Float64], label: String
+) raises:
     assert_equal(len(actual), len(expected), label)
     for i in range(len(expected)):
         assert_true(
-            actual[i] > expected[i] - 1e-9 and actual[i] < expected[i] + 1e-9, label
+            actual[i] > expected[i] - 1e-9 and actual[i] < expected[i] + 1e-9,
+            label,
         )
 
 
@@ -336,9 +340,11 @@ def test_min_max_raises_on_an_empty_column() raises:
     with assert_raises():
         _ = _min_max(List[Float64]())
 
+
 # ---------------------------------------------------------------
 # from tests/test_ordinal_scale.mojo
 # ---------------------------------------------------------------
+
 
 def test_band_positions_match_hand_computed_values() raises:
     # domain of 3 categories, range [0, 300] (a clean multiple of 3),
@@ -366,9 +372,11 @@ def test_empty_domain_does_not_divide_by_zero() raises:
     assert_equal(s.step(), 0.0)
     assert_equal(s.bandwidth(), 0.0)
 
+
 # ---------------------------------------------------------------
 # from tests/test_color_scale.mojo
 # ---------------------------------------------------------------
+
 
 def test_color_scale_matches_hand_computed_values() raises:
     var s = ColorScale(0.0, 10.0)
@@ -421,9 +429,11 @@ def test_color_scale_zero_span_domain_returns_the_lowest_offset_stop() raises:
     assert_equal(b.r, 0)
     assert_equal(b.b, 255)
 
+
 # ---------------------------------------------------------------
 # from tests/test_colors.mojo
 # ---------------------------------------------------------------
+
 
 def _assert_rgb(c: Color, r: Int, g: Int, b: Int, label: String) raises:
     assert_equal(Int(c.r), r, label + ": r")
@@ -434,7 +444,9 @@ def _assert_rgb(c: Color, r: Int, g: Int, b: Int, label: String) raises:
 
 def test_primary_colors_match_the_css_spec() raises:
     _assert_rgb(RED, 255, 0, 0, "RED")
-    _assert_rgb(GREEN, 0, 128, 0, "GREEN")  # CSS "green", not the brighter "lime" (0,255,0)
+    _assert_rgb(
+        GREEN, 0, 128, 0, "GREEN"
+    )  # CSS "green", not the brighter "lime" (0,255,0)
     _assert_rgb(BLUE, 0, 0, 255, "BLUE")
     _assert_rgb(BLACK, 0, 0, 0, "BLACK")
     _assert_rgb(WHITE, 255, 255, 255, "WHITE")
@@ -447,10 +459,30 @@ def test_multiword_name_matches_the_css_spec() raises:
 def test_gray_grey_spelling_pairs_are_identical_colors() raises:
     # CSS standardizes both spellings for these six names; both are
     # provided and must agree.
-    _assert_rgb(GREY, Int(GRAY.r), Int(GRAY.g), Int(GRAY.b), "GREY matches GRAY")
-    _assert_rgb(DARKGREY, Int(DARKGRAY.r), Int(DARKGRAY.g), Int(DARKGRAY.b), "DARKGREY matches DARKGRAY")
-    _assert_rgb(DIMGREY, Int(DIMGRAY.r), Int(DIMGRAY.g), Int(DIMGRAY.b), "DIMGREY matches DIMGRAY")
-    _assert_rgb(LIGHTGREY, Int(LIGHTGRAY.r), Int(LIGHTGRAY.g), Int(LIGHTGRAY.b), "LIGHTGREY matches LIGHTGRAY")
+    _assert_rgb(
+        GREY, Int(GRAY.r), Int(GRAY.g), Int(GRAY.b), "GREY matches GRAY"
+    )
+    _assert_rgb(
+        DARKGREY,
+        Int(DARKGRAY.r),
+        Int(DARKGRAY.g),
+        Int(DARKGRAY.b),
+        "DARKGREY matches DARKGRAY",
+    )
+    _assert_rgb(
+        DIMGREY,
+        Int(DIMGRAY.r),
+        Int(DIMGRAY.g),
+        Int(DIMGRAY.b),
+        "DIMGREY matches DIMGRAY",
+    )
+    _assert_rgb(
+        LIGHTGREY,
+        Int(LIGHTGRAY.r),
+        Int(LIGHTGRAY.g),
+        Int(LIGHTGRAY.b),
+        "LIGHTGREY matches LIGHTGRAY",
+    )
     _assert_rgb(
         LIGHTSLATEGREY,
         Int(LIGHTSLATEGRAY.r),
@@ -458,7 +490,13 @@ def test_gray_grey_spelling_pairs_are_identical_colors() raises:
         Int(LIGHTSLATEGRAY.b),
         "LIGHTSLATEGREY matches LIGHTSLATEGRAY",
     )
-    _assert_rgb(SLATEGREY, Int(SLATEGRAY.r), Int(SLATEGRAY.g), Int(SLATEGRAY.b), "SLATEGREY matches SLATEGRAY")
+    _assert_rgb(
+        SLATEGREY,
+        Int(SLATEGRAY.r),
+        Int(SLATEGRAY.g),
+        Int(SLATEGRAY.b),
+        "SLATEGREY matches SLATEGRAY",
+    )
 
 
 def test_named_color_works_as_a_theme_mark_color_through_a_real_render() raises:
@@ -470,13 +508,19 @@ def test_named_color_works_as_a_theme_mark_color_through_a_real_render() raises:
     var _hoisted1 = bar(cats, values, theme=Theme(mark_color=CORNFLOWERBLUE))
     var c = render(_hoisted1)
 
-    assert_equal(_count_color(c, CORNFLOWERBLUE) > 0, True, "bar filled with a named color renders that exact color")
+    assert_equal(
+        _count_color(c, CORNFLOWERBLUE) > 0,
+        True,
+        "bar filled with a named color renders that exact color",
+    )
+
 
 # ---------------------------------------------------------------
 # from tests/test_array_like.mojo
 # ---------------------------------------------------------------
 
-struct _FloatBuffer(Float64Sequence, Copyable, Movable):
+
+struct _FloatBuffer(Copyable, Float64Sequence, Movable):
     """A minimal Float64Sequence-conforming struct standing in for a custom
     buffer wrapper or dataframe column; `List[Float64]` itself doesn't
     conform (see array_like.mojo).
@@ -494,7 +538,7 @@ struct _FloatBuffer(Float64Sequence, Copyable, Movable):
         return self.data[idx]
 
 
-struct _StringBuffer(StringSequence, Copyable, Movable):
+struct _StringBuffer(Copyable, Movable, StringSequence):
     """`_FloatBuffer`'s exact counterpart for `StringSequence`."""
 
     var data: List[String]
@@ -533,12 +577,16 @@ def test_encode_accepts_a_custom_float64sequence_matching_the_list_path() raises
     # materializes it and delegates to the concrete one.
     var x_buf = _FloatBuffer([1.0, 2.0, 3.0])
     var y_buf = _FloatBuffer([10.0, 20.0, 30.0])
-    var plot_from_buffer = Plot().mark_point().encode(x=x_buf, y=y_buf).size(400, 300)
+    var plot_from_buffer = (
+        Plot().mark_point().encode(x=x_buf, y=y_buf).size(400, 300)
+    )
     var svg_from_buffer = render_svg(plot_from_buffer).to_string()
 
     var x_list: List[Float64] = [1.0, 2.0, 3.0]
     var y_list: List[Float64] = [10.0, 20.0, 30.0]
-    var plot_from_list = Plot().mark_point().encode(x=x_list, y=y_list).size(400, 300)
+    var plot_from_list = (
+        Plot().mark_point().encode(x=x_list, y=y_list).size(400, 300)
+    )
     var svg_from_list = render_svg(plot_from_list).to_string()
 
     assert_equal(svg_from_buffer, svg_from_list)
@@ -623,11 +671,15 @@ def test_encode_accepts_list_float32_matching_the_list_float64_path() raises:
 def test_encode_categorical_accepts_list_int_y_matching_the_list_float64_path() raises:
     var cats: List[String] = ["A", "B", "C"]
     var yi: List[Int] = [10, 20, -5]
-    var plot_from_int = Plot().mark_bar().encode_categorical(x=cats, y=yi).size(400, 300)
+    var plot_from_int = (
+        Plot().mark_bar().encode_categorical(x=cats, y=yi).size(400, 300)
+    )
     var svg_from_int = render_svg(plot_from_int).to_string()
 
     var yf: List[Float64] = [10.0, 20.0, -5.0]
-    var plot_from_float = Plot().mark_bar().encode_categorical(x=cats, y=yf).size(400, 300)
+    var plot_from_float = (
+        Plot().mark_bar().encode_categorical(x=cats, y=yf).size(400, 300)
+    )
     var svg_from_float = render_svg(plot_from_float).to_string()
 
     assert_equal(svg_from_int, svg_from_float)
@@ -639,9 +691,13 @@ def test_encode_categorical_list_int_labels_display_as_whole_numbers() raises:
     # original type.
     var cats: List[String] = ["A", "B", "C"]
     var vals: List[Int] = [10, 20, -5]
-    var plot = Plot().mark_bar().encode_categorical(x=cats, y=vals).theme(
-        Theme(show_gridlines=False, show_data_labels=True)
-    ).size(400, 300)
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=vals)
+        .theme(Theme(show_gridlines=False, show_data_labels=True))
+        .size(400, 300)
+    )
     var svg = render_svg(plot).to_string()
     assert_equal("10</text>" in svg, True)
     assert_equal("-5</text>" in svg, True)
@@ -654,11 +710,15 @@ def test_encode_categorical_accepts_a_custom_stringsequence_matching_the_list_pa
     # StringSequence, not just encode()'s x/y.
     var x_buf = _StringBuffer(["A", "B", "C"])
     var vals: List[Float64] = [10.0, 20.0, -5.0]
-    var plot_from_buffer = Plot().mark_bar().encode_categorical(x=x_buf, y=vals).size(400, 300)
+    var plot_from_buffer = (
+        Plot().mark_bar().encode_categorical(x=x_buf, y=vals).size(400, 300)
+    )
     var svg_from_buffer = render_svg(plot_from_buffer).to_string()
 
     var x_list: List[String] = ["A", "B", "C"]
-    var plot_from_list = Plot().mark_bar().encode_categorical(x=x_list, y=vals).size(400, 300)
+    var plot_from_list = (
+        Plot().mark_bar().encode_categorical(x=x_list, y=vals).size(400, 300)
+    )
     var svg_from_list = render_svg(plot_from_list).to_string()
 
     assert_equal(svg_from_buffer, svg_from_list)
@@ -668,15 +728,25 @@ def test_encode_grouped_bar_accepts_a_custom_stringsequence_matching_the_list_pa
     var cats_buf = _StringBuffer(["Q1", "Q2"])
     var names: List[String] = ["North", "South"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
-    var plot_from_buffer = Plot().mark_grouped_bar().encode_grouped_bar(
-        categories=cats_buf, series_names=names, values=values
-    ).size(400, 300)
+    var plot_from_buffer = (
+        Plot()
+        .mark_grouped_bar()
+        .encode_grouped_bar(
+            categories=cats_buf, series_names=names, values=values
+        )
+        .size(400, 300)
+    )
     var svg_from_buffer = render_svg(plot_from_buffer).to_string()
 
     var cats_list: List[String] = ["Q1", "Q2"]
-    var plot_from_list = Plot().mark_grouped_bar().encode_grouped_bar(
-        categories=cats_list, series_names=names, values=values
-    ).size(400, 300)
+    var plot_from_list = (
+        Plot()
+        .mark_grouped_bar()
+        .encode_grouped_bar(
+            categories=cats_list, series_names=names, values=values
+        )
+        .size(400, 300)
+    )
     var svg_from_list = render_svg(plot_from_list).to_string()
 
     assert_equal(svg_from_buffer, svg_from_list)

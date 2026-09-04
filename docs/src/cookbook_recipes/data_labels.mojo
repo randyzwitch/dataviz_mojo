@@ -5,6 +5,7 @@ negative one, or centered inside a stacked segment.
 from dataviz.plot import Plot, save
 from dataviz.theme import Theme
 
+
 def main() raises:
     var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4"]
     var revenue: List[Float64] = [42.5, 48.0, 45.2, 61.0]

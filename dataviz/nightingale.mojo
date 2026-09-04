@@ -22,7 +22,9 @@ from dataviz.theme import Theme
 
 def _render_nightingale[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.NIGHTINGALE` plot (a rose/coxcomb chart): one wedge per
     category (`encode_categorical`'s `x`), every wedge the same angular
     width (`2*pi / N`), with each value encoded by the wedge's radius
@@ -51,7 +53,9 @@ def _render_nightingale[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = _dynamic_legend_width(plot.x_categories, sc.legend_swatch_size, sc) if show_legend else 0
+    var legend_reserve = _dynamic_legend_width(
+        plot.x_categories, sc.legend_swatch_size, sc
+    ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
@@ -59,7 +63,9 @@ def _render_nightingale[
     var plot_y1 = oy1 - sc.margin_bottom
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
-    var max_radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    var max_radius = (
+        Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    )
 
     var palette = default_categorical_palette()
     var n = len(plot.x_categories)
@@ -68,14 +74,22 @@ def _render_nightingale[
     for i in range(n):
         var end = start + span
         var frac = plot.y_data[i] / max_v
-        var radius = max_radius * (sqrt(frac) if plot._nightingale_area else frac)
+        var radius = max_radius * (
+            sqrt(frac) if plot._nightingale_area else frac
+        )
         var color = palette[i % len(palette)]
         target.fill_arc_aa(cx, cy, radius, start, end, color)
         start = end
 
     if show_legend:
         _draw_legend(
-            target, text_requests, plot.x_categories, palette, plot_x1 + sc.margin_right, plot_y0, theme
+            target,
+            text_requests,
+            plot.x_categories,
+            palette,
+            plot_x1 + sc.margin_right,
+            plot_y0,
+            theme,
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
@@ -134,8 +148,14 @@ def nightingale(
             save(c, "docs/src/examples/out_nightingale.svg")
         ```
     """
-    var plot = Plot().mark_nightingale(area=area).encode_categorical(x=categories, y=values)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_nightingale(area=area)
+        .encode_categorical(x=categories, y=values)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def nightingale[
@@ -157,6 +177,14 @@ def nightingale[
     overload above.
     """
     return nightingale(
-        categories, _materialize_scalar_list(values), area=area, theme=theme, width=width,
-        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        categories,
+        _materialize_scalar_list(values),
+        area=area,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

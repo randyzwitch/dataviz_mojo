@@ -8,10 +8,10 @@ def main() raises:
     var y: List[Float64] = [2.3, 4.1, 3.6, 5.8, 5.1]
 
     var plot = (
-               Plot()
-               .mark_point()
-               .encode(x=x, y=y)
-               .labels(title="Weekly Revenue", x_title="Day", y_title="Revenue ($k)")
-               .theme(Theme(mark_color=SEAGREEN, point_radius=6.0))
-               )
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .labels(title="Weekly Revenue", x_title="Day", y_title="Revenue ($k)")
+        .theme(Theme(mark_color=SEAGREEN, point_radius=6.0))
+    )
     save(plot, "docs/src/examples/quickstart/out_step4.svg")

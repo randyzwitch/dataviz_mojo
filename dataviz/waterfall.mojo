@@ -32,7 +32,6 @@ struct _WaterfallData(Copyable, Movable):
         self.is_total = List[Bool]()
 
 
-
 struct _WaterfallBars(Movable):
     """The two running-total bounds `_render_waterfall` draws each bar
     between: `y0[i]`/`y1[i]` are the running total immediately before/
@@ -48,7 +47,9 @@ struct _WaterfallBars(Movable):
         self.y1 = y1^
 
 
-def _waterfall_running_totals(deltas: List[Float64], is_total: List[Bool]) -> _WaterfallBars:
+def _waterfall_running_totals(
+    deltas: List[Float64], is_total: List[Bool]
+) -> _WaterfallBars:
     """Compute each bar's `y0`/`y1` bounds from a running cumulative sum over
     `deltas`, starting at 0.0. Extracted from `Plot.encode_waterfall()`
     (plot.mojo) so the running-sum math sits next to `_render_waterfall`.
@@ -78,7 +79,9 @@ def _waterfall_running_totals(deltas: List[Float64], is_total: List[Bool]) -> _W
 
 def _render_waterfall[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.WATERFALL` plot on `_draw_categorical_axis_frame`,
     with a y-domain spanning every bar's running-total bounds
     (`_waterfall`'s `y0`/`y1`, not the deltas) and forced to include
@@ -107,7 +110,9 @@ def _render_waterfall[
             + String(len(plot.y_data))
             + ")"
         )
-    if len(plot._waterfall.is_total) > 0 and len(plot._waterfall.is_total) != len(plot.x_categories):
+    if len(plot._waterfall.is_total) > 0 and len(
+        plot._waterfall.is_total
+    ) != len(plot.x_categories):
         raise Error(
             "Plot.encode_waterfall(): is_total, if given, must have the"
             " same length as categories (got "
@@ -126,7 +131,9 @@ def _render_waterfall[
         combined.append(v)
     var y_scale = _zero_baseline_y_extent(combined)
 
-    var frame = _draw_categorical_axis_frame(target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1)
+    var frame = _draw_categorical_axis_frame(
+        target, plot.x_categories, y_scale, theme, ox0, oy0, ox1, oy1
+    )
 
     # Delta bars only narrow when is_total is in use; otherwise every bar
     # stays full band width.
@@ -141,14 +148,19 @@ def _render_waterfall[
     var bandwidth = frame.x_scale.bandwidth()
     for i in range(len(plot.x_categories)):
         var band_start = frame.x_scale.band_start(i)
-        var row_is_total = plot._waterfall.is_total[i] if i < len(plot._waterfall.is_total) else False
+        var row_is_total = (
+            plot._waterfall.is_total[i] if i
+            < len(plot._waterfall.is_total) else False
+        )
         var bar_x: Int
         var bar_width: Int
         if row_is_total or not using_totals:
             bar_x = _round_to_int(band_start)
             bar_width = _round_to_int(bandwidth)
         else:
-            var narrow_width = bandwidth * plot._mark_style.waterfall_delta_width_fraction
+            var narrow_width = (
+                bandwidth * plot._mark_style.waterfall_delta_width_fraction
+            )
             var inset = (bandwidth - narrow_width) / 2.0
             bar_x = _round_to_int(band_start + inset)
             bar_width = _round_to_int(band_start + inset + narrow_width) - bar_x
@@ -159,25 +171,33 @@ def _render_waterfall[
         var y0_py = _axis_pixel(frame.y_scale, plot._waterfall.y0[i])
         var y1_py = _axis_pixel(frame.y_scale, plot._waterfall.y1[i])
         var rect = _pull_off_axis_line(y0_py, y1_py, frame.py1)
-        var bar_color = (
-            theme.waterfall_total_color
-            if row_is_total
-            else (theme.mark_color_negative if plot.y_data[i] < 0.0 else theme.mark_color)
+        var bar_color = theme.waterfall_total_color if row_is_total else (
+            theme.mark_color_negative if plot.y_data[i]
+            < 0.0 else theme.mark_color
         )
         target.fill_rect(bar_x, rect.y, bar_width, rect.height, bar_color)
 
         if i > 0:
-            var prev_end_py = _axis_pixel(frame.y_scale, plot._waterfall.y1[i - 1])
+            var prev_end_py = _axis_pixel(
+                frame.y_scale, plot._waterfall.y1[i - 1]
+            )
             # With no totals, the edge comes from the band geometry (band_start +
             # bandwidth, summed then rounded once) since every bar is full band
             # width. With totals, ask the previous bar what it actually drew, since
             # a delta bar can be narrower than its band.
-            var prev_x1 = (
-                bar_x_list[i - 1] + bar_width_list[i - 1]
-                if using_totals
-                else _round_to_int(frame.x_scale.band_start(i - 1) + frame.x_scale.bandwidth())
+            var prev_x1 = bar_x_list[i - 1] + bar_width_list[
+                i - 1
+            ] if using_totals else _round_to_int(
+                frame.x_scale.band_start(i - 1) + frame.x_scale.bandwidth()
             )
-            target.draw_line_aa(prev_x1, prev_end_py, bar_x, prev_end_py, theme.axis_color, width=theme.scale)
+            target.draw_line_aa(
+                prev_x1,
+                prev_end_py,
+                bar_x,
+                prev_end_py,
+                theme.axis_color,
+                width=theme.scale,
+            )
 
     return frame.result()
 
@@ -242,8 +262,16 @@ def waterfall(
             save(c, "docs/src/examples/out_waterfall.svg")
         ```
     """
-    var plot = Plot().mark_waterfall(delta_width_fraction=delta_width_fraction).encode_waterfall(categories=categories, deltas=deltas, is_total=is_total)
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    var plot = (
+        Plot()
+        .mark_waterfall(delta_width_fraction=delta_width_fraction)
+        .encode_waterfall(
+            categories=categories, deltas=deltas, is_total=is_total
+        )
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def waterfall[
@@ -266,6 +294,15 @@ def waterfall[
     above.
     """
     return waterfall(
-        categories, _materialize_scalar_list(deltas), is_total=is_total, delta_width_fraction=delta_width_fraction, theme=theme, width=width,
-        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        categories,
+        _materialize_scalar_list(deltas),
+        is_total=is_total,
+        delta_width_fraction=delta_width_fraction,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

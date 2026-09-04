@@ -34,10 +34,11 @@ struct _MarimekkoData(Copyable, Movable):
         self.values = List[List[Float64]]()
 
 
-
 def _render_marimekko[
     T: DrawTarget
-](mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int) raises -> _RenderResult:
+](
+    mut target: T, plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+) raises -> _RenderResult:
     """Render a `Mark.MARIMEKKO` plot (a mosaic chart): `encode_marimekko()`'s
     `categories` (one column each) and `subcategories` (one stacked
     segment each; `values[sub][cat]`, rows are subcategories and columns
@@ -83,7 +84,11 @@ def _render_marimekko[
     for row in plot._marimekko.values:
         for v in row:
             if v < 0.0:
-                raise Error("Plot: Mark.MARIMEKKO values must be non-negative (got " + String(v) + ")")
+                raise Error(
+                    "Plot: Mark.MARIMEKKO values must be non-negative (got "
+                    + String(v)
+                    + ")"
+                )
 
     var n_cats = len(plot._marimekko.categories)
     var n_subs = len(plot._marimekko.subcategories)
@@ -105,9 +110,9 @@ def _render_marimekko[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = (
-        _dynamic_legend_width(plot._marimekko.subcategories, sc.legend_swatch_size, sc) if show_legend else 0
-    )
+    var legend_reserve = _dynamic_legend_width(
+        plot._marimekko.subcategories, sc.legend_swatch_size, sc
+    ) if show_legend else 0
 
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
@@ -134,10 +139,16 @@ def _render_marimekko[
             var y_cum = 0.0
             for i in range(n_subs):
                 var seg_bottom = _round_to_int(Float64(plot_y1) - y_cum)
-                y_cum += plot_height * (plot._marimekko.values[i][j] / col_totals[j])
+                y_cum += plot_height * (
+                    plot._marimekko.values[i][j] / col_totals[j]
+                )
                 var seg_top = _round_to_int(Float64(plot_y1) - y_cum)
                 target.fill_rect(
-                    col_x0, seg_top, col_x1 - col_x0, seg_bottom - seg_top, palette[i % len(palette)]
+                    col_x0,
+                    seg_top,
+                    col_x1 - col_x0,
+                    seg_bottom - seg_top,
+                    palette[i % len(palette)],
                 )
 
         text_requests.append(
@@ -154,7 +165,13 @@ def _render_marimekko[
 
     if show_legend:
         _draw_legend(
-            target, text_requests, plot._marimekko.subcategories, palette, plot_x1 + sc.margin_right, plot_y0, theme
+            target,
+            text_requests,
+            plot._marimekko.subcategories,
+            palette,
+            plot_x1 + sc.margin_right,
+            plot_y0,
+            theme,
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
@@ -219,10 +236,16 @@ def marimekko(
             save(c, "docs/src/examples/out_marimekko.svg")
         ```
     """
-    var plot = Plot().mark_marimekko().encode_marimekko(
-        categories=categories, subcategories=subcategories, values=values
+    var plot = (
+        Plot()
+        .mark_marimekko()
+        .encode_marimekko(
+            categories=categories, subcategories=subcategories, values=values
+        )
     )
-    return _finished(plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle)
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
 
 
 def marimekko[
@@ -245,6 +268,14 @@ def marimekko[
     above.
     """
     return marimekko(
-        categories, subcategories, _materialize_nested_scalar_list(values), theme=theme, width=width,
-        height=height, title=title, subtitle=subtitle, x_title=x_title, y_title=y_title,
+        categories,
+        subcategories,
+        _materialize_nested_scalar_list(values),
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )
