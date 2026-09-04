@@ -58,6 +58,13 @@ pandas = ">=2.0,<3"
 example = "mkdir -p docs/src/examples && rm -rf docs/src/examples/verify && rm -f docs/src/examples/*.mojo docs/src/examples/out_* && mojo run -I . -I scripts scripts/extract_docstring_examples.mojo && mojo run -I . -I scripts scripts/build_verify_batches.mojo && bash scripts/run_parallel.sh docs/src/examples/verify/*.mojo"
 example-quickstart = "bash scripts/run_parallel.sh docs/src/examples/quickstart/*.mojo"
 test = "bash scripts/run_parallel.sh tests/test_*.mojo"
+# Renders a representative mark per family at increasing sizes and
+# prints wall-clock render times (scripts/bench.mojo, #230) -- a manual
+# "run before a release, or after touching a mark's layout code" check,
+# not part of `test`'s own pass/fail. `pixi run bench --check` adds a
+# coarse quadratic-scaling detector that does fail (see the script's own
+# docstring for both).
+bench = "mojo run -I . -I scripts scripts/bench.mojo"
 # Regenerates docs/site/content. Nothing docs-build produces is
 # committed (not docs/site/content, docs/site/public, or
 # docs/src/examples/ pages); .github/workflows/docs.yml deploys a fresh

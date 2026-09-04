@@ -50,6 +50,7 @@ already have.
 pixi run test      # tests/*.mojo
 pixi run example   # every dataviz/*.mojo `Example:` docstring section, writes docs/src/examples/out_*.svg
 pixi run docs      # regenerates docs/ (served via GitHub Pages) -- run `example` first
+pixi run bench     # render-time table per mark family at increasing sizes; add --check to fail on suspect scaling
 ```
 
 `docs/` also regenerates and deploys itself automatically to GitHub
