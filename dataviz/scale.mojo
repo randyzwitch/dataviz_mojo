@@ -229,6 +229,240 @@ def _label_decimals(value: Float64, max_decimals: Int = 2) -> Int:
     return max_decimals
 
 
+comptime _TICK_FORMAT_AUTO = 0
+comptime _TICK_FORMAT_PERCENT = 1
+comptime _TICK_FORMAT_THOUSANDS = 2
+comptime _TICK_FORMAT_SI = 3
+comptime _TICK_FORMAT_SCIENTIFIC = 4
+comptime _TICK_FORMAT_FIXED = 5
+
+
+struct TickFormat(Copyable, ImplicitlyCopyable, Movable):
+    """How `Theme.x_tick_format`/`y_tick_format` (#210) render a tick
+    label, `Theme.show_data_labels`'s value label, or a continuous
+    legend's endpoint labels -- everywhere `Ticks.labels()`/
+    `_format_tick()` are the formatter. Same small-struct-with-comptime-
+    constants-and-`__eq__` pattern as `Mark`/`OutputFormat`, except
+    `FIXED()` is a `@staticmethod` rather than a fixed comptime instance,
+    since it carries a caller-chosen decimal count.
+
+    - `AUTO` (default): today's behavior, `_format_fixed` at the domain's
+      own nice-step decimal count.
+    - `PERCENT`: `value * 100`, suffixed `%` -- `0.25` -> `"25%"`.
+    - `THOUSANDS`: comma-grouped -- `1500000` -> `"1,500,000"`.
+    - `SI`: SI-prefixed at the nearest 1000-power tier -- `1500000` ->
+      `"1.5M"`, `0.0025` -> `"2.5m"`.
+    - `SCIENTIFIC`: `"1.5e+6"` -- a decimal mantissa plus a signed
+      exponent, unlike `_format_fixed_overflow`'s bare `String(Float64)`
+      fallback. Also the principled version of that same fallback: past
+      `_FORMAT_FIXED_MAX_EXACT_MAGNITUDE`, `_format_tick` defers to this
+      shape regardless of the requested format, so an overflow never
+      produces raw digit garbage.
+    - `FIXED(n)`: always `n` decimal places, ignoring the domain's own
+      nice-step count -- for currency (`FIXED(2)`) or a whole-number axis
+      (`FIXED(0)`) regardless of what step size the data picks.
+
+    `prefix`/`suffix` wrap the formatted number for every kind
+    (`FIXED(2).with_affixes(prefix="$")` -> `"$19.99"`); set via
+    `with_affixes()` since comptime constants can't take a per-call
+    string.
+    """
+
+    var _kind: Int
+    var _n: Int
+    var prefix: String
+    var suffix: String
+
+    comptime AUTO = Self(_TICK_FORMAT_AUTO, 0, "", "")
+    comptime PERCENT = Self(_TICK_FORMAT_PERCENT, 0, "", "")
+    comptime THOUSANDS = Self(_TICK_FORMAT_THOUSANDS, 0, "", "")
+    comptime SI = Self(_TICK_FORMAT_SI, 0, "", "")
+    comptime SCIENTIFIC = Self(_TICK_FORMAT_SCIENTIFIC, 0, "", "")
+
+    def __init__(out self, kind: Int, n: Int, prefix: String, suffix: String):
+        self._kind = kind
+        self._n = n
+        self.prefix = prefix
+        self.suffix = suffix
+
+    def __eq__(self, other: Self) -> Bool:
+        return self._kind == other._kind and self._n == other._n
+
+    @staticmethod
+    def FIXED(decimals: Int) -> Self:
+        """Always `decimals` places, regardless of the axis's own
+        nice-step decimal count.
+
+        Args:
+            decimals: How many decimal places to always show.
+        """
+        return Self(_TICK_FORMAT_FIXED, decimals, "", "")
+
+    def with_affixes(self, prefix: String = "", suffix: String = "") -> Self:
+        """This format with `prefix`/`suffix` wrapped around every
+        formatted number (`"$"`/`"/mo"`, ...).
+
+        Args:
+            prefix: Text prepended to every formatted number.
+            suffix: Text appended to every formatted number.
+
+        Returns:
+            A copy of this format with the given affixes.
+        """
+        return Self(self._kind, self._n, prefix, suffix)
+
+
+def _insert_thousands_separators(digits: String) -> String:
+    """`digits` (an unsigned integer-part string, no sign or decimal
+    point) with a comma inserted every 3 digits from the right --
+    `"1500000"` -> `"1,500,000"`, `"999"` -> `"999"`.
+    """
+    var n = digits.byte_length()
+    if n <= 3:
+        return digits
+    var out = List[String]()
+    var first_group = n % 3
+    if first_group == 0:
+        first_group = 3
+    out.append(String(digits[byte=0:first_group]))
+    var i = first_group
+    while i < n:
+        out.append(String(digits[byte = i : i + 3]))
+        i += 3
+    return String(",").join(out)
+
+
+def _format_thousands(value: Float64, decimals: Int) -> String:
+    """`_format_fixed(value, decimals)` with comma group separators in
+    the integer part (`TickFormat.THOUSANDS`).
+    """
+    var plain = _format_fixed(value, decimals)
+    var sign = ""
+    var rest = plain
+    if plain.startswith("-"):
+        sign = "-"
+        rest = String(plain[byte=1:])
+    var dot = rest.find(".")
+    var int_part = rest if dot == -1 else String(rest[byte=0:dot])
+    var frac_part = "" if dot == -1 else String(rest[byte=dot:])
+    return sign + _insert_thousands_separators(int_part) + frac_part
+
+
+def _si_tier(magnitude: Float64) -> _NiceStep:
+    """The SI divisor (as `.step`) and its base-10 exponent (as
+    `.exponent`, a multiple of 3) for `magnitude`'s tier -- reuses
+    `_NiceStep` as a plain (divisor, tier) pair rather than adding a new
+    struct. `magnitude` is `abs(value)`; `0.0` gets the `1.0`/no-suffix
+    tier (`_si_suffix` returns `""` for exponent `0`).
+    """
+    if magnitude == 0.0:
+        return _NiceStep(1.0, 0)
+    var exponent = Int(floor(log10(magnitude) / 3.0)) * 3
+    if exponent > 12:
+        exponent = 12
+    if exponent < -9:
+        exponent = -9
+    return _NiceStep(pow(10.0, Float64(exponent)), exponent)
+
+
+def _si_suffix(exponent: Int) -> String:
+    """The SI prefix letter for a `_si_tier()` exponent (a multiple of
+    3, `-9`..`12`); `""` for `0` (no scaling needed).
+    """
+    if exponent == 12:
+        return "T"
+    if exponent == 9:
+        return "G"
+    if exponent == 6:
+        return "M"
+    if exponent == 3:
+        return "k"
+    if exponent == -3:
+        return "m"
+    if exponent == -6:
+        return "µ"
+    if exponent == -9:
+        return "n"
+    return ""
+
+
+def _format_si(value: Float64) -> String:
+    """`value` scaled to its nearest SI-prefix tier (`_si_tier`), with
+    the fewest decimals (`_label_decimals`, up to 2) that represent the
+    scaled value exactly -- `1500000.0` -> `"1.5M"`, `2000000.0` ->
+    `"2M"`, `0.0` -> `"0"`.
+    """
+    if value == 0.0:
+        return "0"
+    var tier = _si_tier(abs(value))
+    var scaled = value / tier.step
+    return _format_fixed(scaled, _label_decimals(scaled)) + _si_suffix(
+        tier.exponent
+    )
+
+
+def _format_scientific(value: Float64) -> String:
+    """`value` as a decimal mantissa (1 <= |mantissa| < 10, the fewest
+    decimals up to 2 that represent it exactly) times a signed power of
+    ten -- `1500000.0` -> `"1.5e+6"`, `0.0025` -> `"2.5e-3"`, `0.0` ->
+    `"0e+0"`.
+    """
+    if value == 0.0:
+        return "0e+0"
+    var exponent = Int(floor(log10(abs(value))))
+    var mantissa = value / pow(10.0, Float64(exponent))
+    # Rounding a mantissa like 9.9996 at 2 decimals can round up to
+    # 10.00; renormalize rather than print a two-digit mantissa.
+    if abs(mantissa) >= 9.995:
+        mantissa /= 10.0
+        exponent += 1
+    var sign = "+" if exponent >= 0 else "-"
+    return (
+        _format_fixed(mantissa, _label_decimals(mantissa))
+        + "e"
+        + sign
+        + String(abs(exponent))
+    )
+
+
+def _format_tick(value: Float64, decimals: Int, format: TickFormat) -> String:
+    """`value` formatted per `format` (#210), the shared formatter
+    `Ticks.labels()`, `Theme.show_data_labels`, and a continuous legend's
+    endpoint labels all defer to. `decimals` is the axis's own nice-step
+    decimal count, used as-is for `AUTO` and adjusted for `PERCENT`
+    (`value * 100` needs 2 fewer decimal places for the same precision);
+    `THOUSANDS`/`SI`/`SCIENTIFIC`/`FIXED` each pick their own decimal
+    count instead.
+
+    Falls back to `_format_scientific` regardless of `format` once
+    `abs(value)` exceeds `_FORMAT_FIXED_MAX_EXACT_MAGNITUDE` -- the same
+    boundary `_format_fixed`/`_format_fixed_overflow` guard against,
+    since every kind here except `SCIENTIFIC` itself still routes through
+    `_format_fixed` internally and would hit the identical overflow.
+    """
+    if abs(value) > _FORMAT_FIXED_MAX_EXACT_MAGNITUDE:
+        return format.prefix + _format_scientific(value) + format.suffix
+    if format == TickFormat.AUTO:
+        return format.prefix + _format_fixed(value, decimals) + format.suffix
+    if format == TickFormat.PERCENT:
+        return (
+            format.prefix
+            + _format_fixed(value * 100.0, max(0, decimals - 2))
+            + "%"
+            + format.suffix
+        )
+    if format == TickFormat.THOUSANDS:
+        return (
+            format.prefix + _format_thousands(value, decimals) + format.suffix
+        )
+    if format == TickFormat.SI:
+        return format.prefix + _format_si(value) + format.suffix
+    if format == TickFormat.SCIENTIFIC:
+        return format.prefix + _format_scientific(value) + format.suffix
+    # FIXED(n): the only remaining _kind.
+    return format.prefix + _format_fixed(value, format._n) + format.suffix
+
+
 def _log_ticks(domain_min: Float64, domain_max: Float64) -> Ticks:
     """Tick positions for a log10-scaled `LinearScale`. `domain_min`/
     `domain_max` are in log10-space (per `LinearScale.to_pixel()`), so
@@ -324,9 +558,16 @@ struct Ticks(Movable):
         self.decimals = decimals
         self.override_labels = override_labels^
 
-    def labels(self) -> List[String]:
-        """Each tick value formatted via `_format_fixed` at this `Ticks`'
-        `decimals`, or `override_labels` unchanged when set.
+    def labels(self, format: TickFormat = TickFormat.AUTO) -> List[String]:
+        """Each tick value formatted via `_format_tick()` at this `Ticks`'
+        `decimals` (#210), or `override_labels` unchanged when set --
+        `format` doesn't apply to `override_labels` (only `_log_ticks()`
+        sets it today, and each of its labels already carries its own
+        per-tick decimal count; log-axis tick formatting is a follow-up).
+
+        Args:
+            format: How to render each value; `AUTO` (the default)
+                matches this method's pre-#210 behavior exactly.
 
         Returns:
             One formatted string per `values` entry, same order.
@@ -335,7 +576,7 @@ struct Ticks(Movable):
             return self.override_labels.copy()
         var result = List[String](capacity=len(self.values))
         for v in self.values:
-            result.append(_format_fixed(v, self.decimals))
+            result.append(_format_tick(v, self.decimals, format))
         return result^
 
 
