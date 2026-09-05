@@ -671,7 +671,11 @@ def test_render_svg_x_axis_labels_rotate_and_widen_bottom_margin_for_long_names(
     # band is far narrower than "Category Number Eleven", so AUTO
     # escalates all the way to 90 degrees and reserves the label's full
     # width as extra bottom margin, moving the axis line from y=250 up
-    # to y=98 to make room.
+    # to y=100 to make room.
+    #
+    # y=100 rather than the pre-0.16.0 y=98: canvas_mojo 0.16.0 kerns text
+    # by default, so the widest label measures narrower and two fewer
+    # pixels of bottom margin are reserved.
     var cats: List[String] = [
         "Category Number One",
         "Category Number Two",
@@ -693,7 +697,7 @@ def test_render_svg_x_axis_labels_rotate_and_widen_bottom_margin_for_long_names(
 
     assert_true('transform="rotate(-90.000' in s, "labels rotated 90 degrees")
     assert_true(
-        '<line x1="60" y1="98" x2="380" y2="98"' in s,
+        '<line x1="60" y1="100" x2="380" y2="100"' in s,
         "bottom axis line moved up to reserve room for the rotated labels",
     )
 
@@ -1649,10 +1653,14 @@ def test_render_point_continuous_legends_are_off_by_default_theme_setting() rais
 
 
 def test_render_point_legend_width_grows_to_fit_long_category_names() raises:
-    # "Southeast Region Sales" measures 140.4px at 12pt against this
+    # "Southeast Region Sales" measures 139.84px at 12pt against this
     # environment's "Sans" font, so _dynamic_legend_width = max(130,
-    # 14+4+140+8) = 166 and plot_x1 = 400-20-166 = 214. Legend swatch row 0
-    # at x=214+20=234, y=20.
+    # 14+4+139+8) = 165 and plot_x1 = 400-20-165 = 215. Legend swatch row 0
+    # at x=215+20=235, y=20.
+    #
+    # 139.84 rather than the pre-0.16.0 140.4: canvas_mojo 0.16.0 kerns
+    # text by default, which narrows this label by half a pixel and the
+    # column by one.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
     var cats: List[String] = ["Cat1", "Southeast Region Sales"]
@@ -1666,18 +1674,18 @@ def test_render_point_legend_width_grows_to_fit_long_category_names() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="234" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
+        '<rect x="235" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
         "legend column shifted left to make room for the long label",
     )
     assert_true(
-        '<rect x="234" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
+        '<rect x="235" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
         "the long label's legend swatch",
     )
 
 
 def test_render_grouped_bar_legend_width_grows_to_fit_long_series_names() raises:
-    # Same 140.4px label and math as the Mark.POINT test: plot_x1=214,
-    # swatch row 0 at x=234.
+    # Same 139.84px label and math as the Mark.POINT test: plot_x1=215,
+    # swatch row 0 at x=235.
     var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North", "Southeast Region Sales"]
     var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 15.0]]
@@ -1691,11 +1699,11 @@ def test_render_grouped_bar_legend_width_grows_to_fit_long_series_names() raises
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="234" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
+        '<rect x="235" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
         "North's legend swatch, shifted left to make room for the wider label",
     )
     assert_true(
-        '<rect x="234" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
+        '<rect x="235" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
         "the long label's legend swatch",
     )
 
