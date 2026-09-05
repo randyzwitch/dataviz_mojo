@@ -134,7 +134,7 @@ from dataviz.calendar_heatmap import _render_calendar_heatmap
 from dataviz.corrplot import _render_corrplot
 from dataviz.punchcard import _render_punchcard
 from dataviz.barbs import _render_barbs
-from dataviz.contour import _render_contour
+from dataviz.contour import _render_contour, _render_contourf
 from dataviz.marimekko import _render_marimekko
 from dataviz.sunburst import _render_sunburst
 from dataviz.tree import _render_tree
@@ -922,6 +922,25 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.CONTOUR
+        self._contour.level_count = levels
+        return self^
+
+    def mark_contourf(var self, levels: Int = 8) -> Self:
+        """Filled bands between consecutive levels: `mark_contour()`'s
+        companion, shading each level's region instead of outlining it.
+        Encoded via `encode_contour()`; see `_render_contourf` for the
+        painting order and `contourf()` for the one-call form.
+
+        Args:
+            levels: How many band boundaries to place when
+                `encode_contour()` is not given an explicit list --
+                spaced evenly strictly inside the grid's own range. Must
+                be positive.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.CONTOURF
         self._contour.level_count = levels
         return self^
 
@@ -6825,6 +6844,8 @@ def _render_generic[
         return _render_barbs(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.CONTOUR:
         return _render_contour(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    if plot._mark == Mark.CONTOURF:
+        return _render_contourf(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.MARIMEKKO:
         return _render_marimekko(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.SUNBURST:

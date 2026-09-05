@@ -18,19 +18,23 @@ from dataviz import (
     bullet,
     candlestick,
     contour,
+    contourf,
     line,
     lollipop,
     scatter,
     waterfall,
 )
 from dataviz.barbs import _barb_counts, _barb_glyph
+from canvas.path import Path
 from dataviz.contour import (
+    _append_above_region,
     _auto_levels,
     _chain_segments,
     _contour_segments,
 )
 from dataviz.color_scale import default_categorical_palette
 from dataviz.colors import BLACK, WHITE
+from dataviz.scale import LinearScale
 from dataviz.plot import (
     Plot,
     render,
@@ -1793,6 +1797,237 @@ def test_render_contour_raises_on_non_positive_level_count() raises:
     var z = _ramp_grid(4, 4)
     with assert_raises():
         _ = render(contour(z, level_count=0, width=200, height=150))
+
+
+# ---------------------------------------------------------------
+# Mark.CONTOURF (#260)
+# ---------------------------------------------------------------
+
+
+def _one_cell(
+    a: Float64, b: Float64, cc: Float64, d: Float64
+) -> List[List[Float64]]:
+    """A single-cell grid with the four corners in `_append_above_region`'s
+    own rotation: `a` at (col 0, row 0), `b` at (col 1, row 0), `cc` at
+    (col 1, row 1), `d` at (col 0, row 1).
+    """
+    var z = List[List[Float64]]()
+    var r0 = List[Float64]()
+    r0.append(a)
+    r0.append(b)
+    z.append(r0^)
+    var r1 = List[Float64]()
+    r1.append(d)
+    r1.append(cc)
+    z.append(r1^)
+    return z^
+
+
+def _above_subpaths(
+    z: List[List[Float64]], rows: Int, cols: Int, level: Float64
+) raises -> Int:
+    var unit_x = LinearScale(0.0, 1.0, 0.0, 100.0)
+    var unit_y = LinearScale(0.0, 1.0, 0.0, 100.0)
+    var path = Path()
+    return _append_above_region(path, z, rows, cols, level, unit_x, unit_y)
+
+
+def test_contourf_fills_whole_cells_and_skips_empty_ones() raises:
+    """A cell entirely above the level is one sub-path; entirely below is
+    none. A 4x4 grid all above is one per cell, not one per grid.
+    """
+    assert_equal(
+        _above_subpaths(_one_cell(1.0, 1.0, 1.0, 1.0), 2, 2, 0.0),
+        1,
+        "a fully-above cell fills once",
+    )
+    assert_equal(
+        _above_subpaths(_one_cell(-1.0, -1.0, -1.0, -1.0), 2, 2, 0.0),
+        0,
+        "a fully-below cell fills nothing",
+    )
+
+    var z = List[List[Float64]]()
+    for _ in range(4):
+        var row = List[Float64]()
+        for _ in range(4):
+            row.append(10.0)
+        z.append(row^)
+    assert_equal(
+        _above_subpaths(z, 4, 4, 0.0), 9, "one sub-path per cell, 3x3 cells"
+    )
+
+
+def test_contourf_saddle_splits_only_when_the_centre_is_below() raises:
+    """The subtle case. Diagonal corners above, the other two below: if
+    the cell centre is above, the region is one shape joined through the
+    middle; if it is below, it is two disjoint corner triangles and the
+    middle must stay empty.
+
+    Emitting one polygon in the second case would wrongly paint the
+    middle -- the walk that is right for the other twelve cases is wrong
+    here, which is why the branch exists.
+    """
+    # centre = (1 - 5 + 1 - 5)/4 = -2, below: two triangles.
+    assert_equal(
+        _above_subpaths(_one_cell(1.0, -5.0, 1.0, -5.0), 2, 2, 0.0),
+        2,
+        "centre below splits the saddle into two triangles",
+    )
+    # centre = (5 - 1 + 5 - 1)/4 = +2, above: one joined region.
+    assert_equal(
+        _above_subpaths(_one_cell(5.0, -1.0, 5.0, -1.0), 2, 2, 0.0),
+        1,
+        "centre above joins the saddle through the middle",
+    )
+    # The mirrored saddle (b/d above) behaves the same way.
+    assert_equal(
+        _above_subpaths(_one_cell(-5.0, 1.0, -5.0, 1.0), 2, 2, 0.0),
+        2,
+        "the mirrored saddle also splits when its centre is below",
+    )
+
+
+def test_render_contourf_paints_bands_in_level_order() raises:
+    """On a ramp `z = c`, the bands run left to right in level order, so
+    a pixel on the left sits in a lower band than one on the right and
+    the two differ. Painting back to front is what makes that hold.
+    """
+    var z = List[List[Float64]]()
+    for _ in range(8):
+        var row = List[Float64]()
+        for c in range(21):
+            row.append(Float64(c))
+        z.append(row^)
+
+    var c = render(
+        contourf(
+            z,
+            level_count=4,
+            theme=Theme(show_gridlines=False),
+            width=400,
+            height=300,
+        )
+    )
+    var left = c.get_pixel(80, 150)
+    var right = c.get_pixel(360, 150)
+    assert_true(
+        left.r != right.r or left.g != right.g or left.b != right.b,
+        "the low and high ends of the ramp are in different bands",
+    )
+
+
+def test_render_contourf_leaves_no_unpainted_gaps_inside_the_plot() raises:
+    """Every band paints over the last, and the lowest band covers the
+    whole rect, so no pixel inside the plot area keeps the page colour --
+    a gap would mean a cell's region was missed.
+    """
+    var z = List[List[Float64]]()
+    for r in range(12):
+        var row = List[Float64]()
+        for c in range(12):
+            row.append(Float64(r * c % 7))
+        z.append(row^)
+
+    var c = render(
+        contourf(
+            z,
+            level_count=5,
+            theme=Theme(show_gridlines=False),
+            width=360,
+            height=280,
+        )
+    )
+    var unpainted = 0
+    for y in range(120, 180):
+        for x in range(120, 260):
+            var p = c.get_pixel(x, y)
+            if p.r == WHITE.r and p.g == WHITE.g and p.b == WHITE.b:
+                unpainted += 1
+    assert_equal(unpainted, 0, "no page-coloured pixels inside the plot")
+
+
+def test_render_contourf_svg_fills_one_path_per_level() raises:
+    """Each level is a single filled path of per-cell sub-paths, not one
+    path per cell -- filling per cell would leave an anti-aliased seam at
+    every shared edge.
+    """
+    var z = List[List[Float64]]()
+    for r in range(6):
+        var row = List[Float64]()
+        for c in range(6):
+            row.append(Float64(r + c))
+        z.append(row^)
+
+    var levels: List[Float64] = [3.0, 6.0]
+    var svg = render_svg(
+        contourf(
+            z,
+            levels=levels,
+            theme=Theme(show_gridlines=False),
+            width=320,
+            height=240,
+        )
+    ).to_string()
+    assert_equal(
+        svg.count('fill-rule="evenodd"'), 0, "bands fill nonzero, not even-odd"
+    )
+    # One <path> per level; the background band is a <rect>.
+    assert_equal(svg.count("<path"), 2, "one filled path per level")
+
+
+def test_contourf_flat_grid_renders_without_raising() raises:
+    var z = List[List[Float64]]()
+    for _ in range(3):
+        var row = List[Float64]()
+        for _ in range(3):
+            row.append(4.0)
+        z.append(row^)
+    var svg = render_svg(contourf(z, width=200, height=150)).to_string()
+    assert_true("<svg" in svg, "a flat field still renders its frame")
+
+
+def test_contourf_dtype_overload_matches_the_float64_path() raises:
+    var zf = List[List[Float64]]()
+    var zi = List[List[Int]]()
+    for r in range(6):
+        var rowf = List[Float64]()
+        var rowi = List[Int]()
+        for c in range(7):
+            var v = (r * 7 + c) % 5
+            rowf.append(Float64(v))
+            rowi.append(v)
+        zf.append(rowf^)
+        zi.append(rowi^)
+    var a = render_svg(contourf(zf, level_count=3, width=250, height=180))
+    var b = render_svg(contourf(zi, level_count=3, width=250, height=180))
+    assert_equal(
+        a.to_string(), b.to_string(), "List[Int] matches List[Float64]"
+    )
+
+
+def test_render_contourf_raises_on_a_ragged_grid() raises:
+    var z = List[List[Float64]]()
+    var r0 = List[Float64]()
+    r0.append(1.0)
+    r0.append(2.0)
+    z.append(r0^)
+    var r1 = List[Float64]()
+    r1.append(3.0)
+    z.append(r1^)
+    with assert_raises():
+        _ = render(contourf(z, width=200, height=150))
+
+
+def test_render_contourf_raises_on_non_positive_level_count() raises:
+    var z = List[List[Float64]]()
+    for _ in range(3):
+        var row = List[Float64]()
+        for c in range(3):
+            row.append(Float64(c))
+        z.append(row^)
+    with assert_raises():
+        _ = render(contourf(z, level_count=0, width=200, height=150))
 
 
 def main() raises:

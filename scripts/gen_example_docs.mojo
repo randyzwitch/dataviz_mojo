@@ -91,6 +91,7 @@ def _titles() -> Dict[String, String]:
     d["punchcard"] = "Punchcard"
     d["barbs"] = "Wind Barbs"
     d["contour"] = "Contour"
+    d["contourf"] = "Filled Contour"
     d["marimekko"] = "Marimekko"
     d["sunburst"] = "Sunburst"
     d["tree"] = "Tree"
@@ -214,7 +215,7 @@ def _categories() -> List[Category]:
                 "Several numeric dimensions compared at once on one shared"
                 " layout, not a single value per category."
             ),
-            ["parallel", "barbs", "contour"],
+            ["parallel", "barbs", "contour", "contourf"],
         )
     )
     cats.append(
