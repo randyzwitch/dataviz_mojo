@@ -89,6 +89,16 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime BARBS = Self(42)
     comptime CONTOUR = Self(43)
 
+    comptime COUNT = 43
+    """How many marks exist -- one past the largest value above.
+
+    Only the raster/SVG layout-equivalence sweep reads this (#221): it
+    walks `Mark(0)` through `Mark(COUNT - 1)` and requires a
+    representative dataset for each, so a mark added without one fails
+    loudly instead of silently going untested. Bump it in the same edit
+    that adds the mark above.
+    """
+
     def __init__(out self, value: Int):
         self._value = value
 
