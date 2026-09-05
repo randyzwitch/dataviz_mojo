@@ -36,6 +36,7 @@ from _test_helpers import (
     Lcg,
     _assert_color,
     _assert_near_color,
+    _bbox_of_color,
     _count_color,
     _index_of,
     _unique_categories,
@@ -1472,27 +1473,58 @@ def test_render_legend_swatches_match_hand_derived_positions_and_colors() raises
 
 
 def test_render_legend_disabled_restores_the_full_plot_width() raises:
-    # theme.show_legend=False returns legend_reserve to 0: the points move
-    # back to (75,135)/(365,135), the no-legend positions, since the plot
-    # area regains x:[60,380].
+    # theme.show_legend=False returns legend_reserve to 0, so the plot
+    # area regains the column the legend held. Both effects are
+    # comparative -- the points spread further apart, and the swatch
+    # stops being drawn -- so measure them against the legend-on render
+    # rather than naming the pixels each layout happens to use.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
     var cats: List[String] = ["A", "B"]
-    var t = Theme(show_legend=False)
-    var plot = (
+
+    var on_plot = (
         Plot()
         .mark_point()
         .encode(x=x, y=y, color_categories=cats)
-        .theme(t)
+        .theme(Theme(show_legend=True))
         .size(400, 300)
     )
-    var c = render(plot)
+    var off_plot = (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y, color_categories=cats)
+        .theme(Theme(show_legend=False))
+        .size(400, 300)
+    )
+    var with_legend = render(on_plot)
+    var without = render(off_plot)
 
     var palette = default_categorical_palette()
-    _assert_color(c, 75, 135, palette[0], "category A, full-width layout")
-    _assert_color(c, 365, 135, palette[1], "category B, full-width layout")
-    # Where the legend *would* have been drawn is plain background now.
-    _assert_color(c, 277, 27, BG, "no legend drawn when show_legend=False")
+    var b_on = _bbox_of_color(with_legend, palette[1])
+    var b_off = _bbox_of_color(without, palette[1])
+    assert_true(b_on.found and b_off.found, "category B is drawn either way")
+    assert_true(
+        b_off.center_x() > b_on.center_x(),
+        "the rightmost point moves right when the legend stops reserving"
+        " its column: "
+        + String(b_off.center_x())
+        + " vs "
+        + String(b_on.center_x()),
+    )
+
+    # With the legend on, palette[0] paints both a point and a swatch, so
+    # its bounding box spans them; with it off, only the point remains.
+    var a_on = _bbox_of_color(with_legend, palette[0])
+    var a_off = _bbox_of_color(without, palette[0])
+    assert_true(
+        a_off.width() < a_on.width(),
+        "no swatch is drawn when show_legend=False, so category A's ink"
+        " collapses to the point alone: "
+        + String(a_off.width())
+        + "px wide vs "
+        + String(a_on.width())
+        + "px",
+    )
 
 
 def test_render_svg_continuous_color_legend_matches_hand_derived_gradient() raises:

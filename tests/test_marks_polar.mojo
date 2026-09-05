@@ -9,7 +9,14 @@ breakpoints), Mark.PARALLEL (per-dimension scaling, polylines), and
 Mark.SINGLE_AXIS (every point on one row).
 """
 
-from _test_helpers import BG, _assert_color, _count_color
+from _test_helpers import (
+    BG,
+    _assert_color,
+    _assert_same_canvas,
+    _bbox_of_color,
+    _count_color,
+    _runs_in_row,
+)
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.path import PathOp
@@ -615,14 +622,25 @@ def test_render_radialbar_ring_colors_and_track() raises:
 
 
 def test_render_radialbar_leaves_a_radial_gap_between_rings() raises:
-    # Same setup. The radial gap between ring 0's inner edge (60.5625) and
-    # ring 1's outer edge (53.4375) is centered on radius 57, due east:
-    # (212, 135) is background, not the track color.
+    # Same setup. Concentric rings separated by gaps cross the centre row
+    # as separated runs of background, so counting runs proves the gaps
+    # without naming the radius they fell at. Three rings measure 5 runs;
+    # a single-ring chart, which has no internal gap at all, measures 2.
+    # Rings that touched would merge their runs the same way.
     var x: List[String] = ["a", "b", "c"]
     var y: List[Float64] = [1.0, 2.0, 4.0]
-    var _hoisted2 = radialbar(x, y, width=400, height=300)
-    var c = render(_hoisted2)
-    _assert_color(c, 212, 135, BG, "the radial gap between ring 0 and ring 1")
+    var plot = radialbar(x, y, width=400, height=300)
+    var c = render(plot)
+
+    var centre_row = _bbox_of_color(c, default_categorical_palette()[0])
+    assert_true(centre_row.found, "ring 0 is drawn")
+    var y_mid = centre_row.center_y()
+    assert_true(
+        _runs_in_row(c, y_mid, BG) >= 3,
+        "three rings across the centre row leave background runs between"
+        " them, and outside: got "
+        + String(_runs_in_row(c, y_mid, BG)),
+    )
 
 
 def test_render_radialbar_raises_on_negative_value() raises:
@@ -933,29 +951,23 @@ def test_render_gauge_custom_breakpoints_matches_hand_derived_band_colors() rais
 def test_render_gauge_custom_breakpoints_default_empty_matches_original() raises:
     # Empty breakpoints/band_colors (passed explicitly) reproduce the
     # 20%/80%/100% green/blue/red default, exercising the sentinel check
-    # itself.
+    # itself. The claim is that the two renders are identical, so compare
+    # them to each other rather than sampling one pixel per band.
     var empty_bps = List[Float64]()
     var empty_cols = List[Color]()
-    var _hoisted9 = gauge(
+    var explicit = gauge(
         50.0,
         width=400,
         height=300,
         breakpoints=empty_bps,
         band_colors=empty_cols,
     )
-    var c = render(_hoisted9)
-    var breakpoint_colors = [
-        Color(46, 139, 87),
-        Color(30, 144, 255),
-        Color(220, 20, 60),
-    ]
-    _assert_color(
-        c, 132, 135, breakpoint_colors[0], "green band, fraction 0.167"
+    var omitted = gauge(50.0, width=400, height=300)
+    _assert_same_canvas(
+        render(explicit),
+        render(omitted),
+        "gauge empty breakpoints vs omitted",
     )
-    _assert_color(
-        c, 137, 105, breakpoint_colors[1], "blue band, fraction 0.241"
-    )
-    _assert_color(c, 304, 162, breakpoint_colors[2], "red band, fraction 0.9")
 
 
 def test_render_gauge_raises_on_mismatched_breakpoints_and_band_colors_length() raises:

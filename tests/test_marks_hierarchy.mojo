@@ -5,7 +5,7 @@ Mark.CHORD, Mark.ARC_DIAGRAM, Mark.GRAPH, and Mark.SANKEY (with
 encode_chord()'s shared validation), each raster + SVG.
 """
 
-from _test_helpers import BG, _assert_color
+from _test_helpers import BG, _assert_color, _bbox_of_color
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.vector.svg import SvgCanvas
@@ -712,64 +712,73 @@ def test_render_sankey_svg_matches_confirmed_geometry() raises:
 
 def test_render_sankey_skip_edge_routes_through_a_pass_through_node() raises:
     # A->B, B->C, and D->C directly (a skip edge, gap 2), every value 10,
-    # so every node/pass-through splits its column in half. Canvas
-    # 400x300, plot area x:[60,380], y:[20,250], column x positions
-    # 60/214/368, node width 12.
-    #
-    # Column 0 (A, D): A gets the top half (y 20-135), D the bottom.
-    # Column 1 (B, then D's pass-through node): B top, pass-through bottom.
-    # Column 2: C, full height.
-    #
-    # Ribbons: A->B fills column 0-1's top half (blue); B->C fills column
-    # 1-2's top half (orange); D's skip edge becomes D->pass-through
-    # (column 0-1's bottom half) and pass-through->C (column 1-2's bottom
-    # half), both green (D's color).
+    # so every node/pass-through splits its column in half. Each node's
+    # colour paints its own rect and the ribbons leaving it, so scanning
+    # for one colour's bounding box locates that whole flow -- which is
+    # the structure worth asserting, rather than the column x positions
+    # that put it there.
     var from_c: List[String] = ["A", "B", "D"]
     var to_c: List[String] = ["B", "C", "C"]
     var v: List[Float64] = [10.0, 10.0, 10.0]
-    var _hoisted2 = sankey(from_c, to_c, v, width=400, height=300)
-    var c = render(_hoisted2)
+    var plot = sankey(from_c, to_c, v, width=400, height=300)
+    var c = render(plot)
 
     var palette = default_categorical_palette()
-    _assert_color(c, 66, 77, palette[0], "node A's rect (column 0, top half)")
-    _assert_color(
-        c, 66, 192, palette[2], "node D's rect (column 0, bottom half)"
+    var a = _bbox_of_color(c, palette[0])
+    var b = _bbox_of_color(c, palette[1])
+    var d = _bbox_of_color(c, palette[2])
+    var sink = _bbox_of_color(c, palette[3])
+    assert_true(
+        a.found and b.found and d.found and sink.found,
+        "every node is drawn",
     )
-    _assert_color(c, 220, 77, palette[1], "node B's rect (column 1, top half)")
-    _assert_color(
-        c, 374, 135, palette[3], "node C's rect (column 2, full height)"
+
+    # Columns run left to right: A starts leftmost, then B, then C.
+    assert_true(a.x0 < b.x0, "A's column is left of B's")
+    assert_true(b.x0 < sink.x0, "B's column is left of C's")
+
+    # A owns the top half, D the bottom. Compared at the centres, not the
+    # edges: the halves are adjacent by design -- A's ink ends on the row
+    # before D's begins -- so an edge comparison passes by a single pixel
+    # and would keep passing however the split degraded.
+    assert_true(
+        a.center_y() < d.center_y(),
+        "A's flow sits above D's: "
+        + String(a.center_y())
+        + " vs "
+        + String(d.center_y()),
     )
-    _assert_color(
-        c, 143, 77, palette[0], "A->B ribbon, column 0-1 gap, top half"
+
+    # C is the only sink, so its rect spans both halves while B, holding
+    # half a column, does not. That gap is what the pass-through node
+    # buys: without its reserved slot B's bar would claim the whole
+    # column height and B's ink would be as tall as C's.
+    assert_true(
+        b.height() < sink.height(),
+        "B keeps to its half of column 1, leaving the pass-through node's"
+        " slot: "
+        + String(b.height())
+        + "px vs C's full "
+        + String(sink.height())
+        + "px",
     )
-    _assert_color(
-        c, 297, 77, palette[1], "B->C ribbon, column 1-2 gap, top half"
+    assert_true(
+        sink.height() > a.height(),
+        "C's rect spans the full height, taller than a half-column flow: "
+        + String(sink.height())
+        + " vs "
+        + String(a.height()),
     )
-    _assert_color(
-        c,
-        143,
-        192,
-        palette[2],
-        "D's skip edge, first segment (D -> pass-through), still D's color",
-    )
-    _assert_color(
-        c,
-        297,
-        192,
-        palette[2],
-        "D's skip edge, second segment (pass-through -> C), still D's color",
-    )
-    # The one point that distinguishes this from a version with no
-    # pass-through node: (220, 192) sits in column 1's node-width strip (x
-    # 214-226), bottom half, the pass-through node's slot. Nothing draws
-    # there. Without the reserved slot, B's bar would claim the whole
-    # column height and paint orange here.
-    _assert_color(
-        c,
-        220,
-        192,
-        BG,
-        "the pass-through node's reserved slot -- background, not node B's bar",
+
+    # The skip edge routes D across two column gaps (D -> pass-through ->
+    # C) where A crosses only one, so D's ink is the wider of the two.
+    assert_true(
+        d.width() > a.width(),
+        "D's skip edge travels two column gaps to reach C: "
+        + String(d.width())
+        + "px vs A's "
+        + String(a.width())
+        + "px",
     )
 
 

@@ -7,7 +7,12 @@ Mark.CALENDAR_HEATMAP, each raster + SVG plus its encode_*()
 validation.
 """
 
-from _test_helpers import BG, _assert_color, _count_color
+from _test_helpers import (
+    BG,
+    _assert_color,
+    _bbox_of_color,
+    _count_color,
+)
 from canvas.color import Color
 from canvas.path import PathOp
 from canvas.vector.svg import SvgCanvas
@@ -1317,12 +1322,17 @@ def test_render_corrplot_svg_matches_confirmed_circles() raises:
 
 
 def test_render_corrplot_lower_layout_without_diag_keeps_only_below_diagonal() raises:
-    # layout="lower" (row >= col) with diag=False keeps exactly one cell of
-    # a 2x2 matrix, (B, A); the diagonal and (A,B) stay background.
+    # layout="lower" (row >= col) with diag=False keeps exactly one cell
+    # of a 2x2 matrix, (B, A). Rather than naming that cell's pixel and
+    # the three empty ones, scan for the -0.5 cell colour: a bounding box
+    # is the union of every matching pixel, so finding one roughly square
+    # blob below and left of centre is the same claim -- (A, B) would
+    # stretch the box right, and either diagonal cell would stretch it
+    # into a different quadrant.
     var vars: List[String] = ["A", "B"]
     var m: List[List[Float64]] = [[1.0, -0.5], [-0.5, 1.0]]
     var t = Theme(show_gridlines=False, show_legend=False)
-    var _hoisted2 = corrplot(
+    var plot = corrplot(
         vars,
         m,
         layout="lower",
@@ -1332,16 +1342,27 @@ def test_render_corrplot_lower_layout_without_diag_keeps_only_below_diagonal() r
         width=400,
         height=300,
     )
-    var c = render(_hoisted2)
+    var c = render(plot)
 
-    _assert_color(c, 140, 78, BG, "(A, A) -- diagonal, dropped by diag=False")
-    _assert_color(
-        c, 300, 78, BG, '(A, B) -- upper triangle, dropped by layout="lower"'
+    var cell = _bbox_of_color(c, Color(148, 173, 218))
+    assert_true(cell.found, "the (B, A) cell is drawn")
+    assert_true(
+        cell.center_x() < c.width // 2,
+        "the surviving cell is left of centre (column A), not (A, B)",
     )
-    _assert_color(
-        c, 140, 193, Color(148, 173, 218), "(B, A) -- the one surviving cell"
+    assert_true(
+        cell.center_y() > c.height // 2,
+        "the surviving cell is below centre (row B), not a diagonal cell",
     )
-    _assert_color(c, 300, 193, BG, "(B, B) -- diagonal, dropped by diag=False")
+    # One cell, not two: a 2x2 grid's cell cannot span half the plot.
+    assert_true(
+        cell.width() < c.width // 2 and cell.height() < c.height // 2,
+        "exactly one cell is filled, not a row or column of them ("
+        + String(cell.width())
+        + "x"
+        + String(cell.height())
+        + ")",
+    )
 
 
 def test_render_corrplot_raises_on_non_square_matrix() raises:

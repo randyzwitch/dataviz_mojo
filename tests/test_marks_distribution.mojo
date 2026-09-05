@@ -6,7 +6,15 @@ stacked bands and smoothing), Mark.BUMP (rank lines), and
 Mark.EFFECT_SCATTER (the halo under each point), each raster + SVG.
 """
 
-from _test_helpers import BG, _assert_color, _assert_near_color
+from _test_helpers import (
+    BG,
+    _assert_color,
+    _assert_near_color,
+    _assert_same_canvas,
+    _bbox_of_color,
+    _column_extent,
+    _row_extent,
+)
 from canvas.color import Color
 from canvas.vector.svg import SvgCanvas
 from dataviz import (
@@ -191,62 +199,56 @@ def test_render_violin_identical_values_does_not_raise() raises:
 
 
 def test_render_violin_custom_bandwidth_widens_the_tapered_edge() raises:
-    # Same setup as the silhouette test: Silverman's ~0.9225 bandwidth
-    # tapers the y=1.0/5.0 tails to a ~74px half-width, so (300, 235) is
-    # background. bandwidth=3.0 spreads every Gaussian further, so (300,
-    # 235) falls inside the silhouette, while the interior/exterior sanity
-    # points are unchanged.
+    # The claim is comparative -- a larger bandwidth spreads every
+    # Gaussian further, so the silhouette is wider where it tapers -- so
+    # measure both renders rather than pinning the pixel the default
+    # happens to leave empty. The tail row is taken from the default
+    # silhouette's own extent (90% of the way down it), so no margin,
+    # padding or supersample setting is baked in. There the default
+    # measures 174px against bandwidth=3.0's 182px, and a deliberately
+    # narrow bandwidth=0.3 collapses to 108px, so the comparison has
+    # room either way.
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
     var t = Theme(show_gridlines=False)
-    var _hoisted3 = violin(
+    var default_plot = violin(cats, vals, theme=t, width=400, height=300)
+    var wide_plot = violin(
         cats, vals, bandwidth=3.0, theme=t, width=400, height=300
     )
-    var c = render(_hoisted3)
-    _assert_color(
-        c,
-        300,
-        235,
-        t.mark_color,
-        "bandwidth=3.0 widens the tail -- now inside the silhouette",
+    var default_c = render(default_plot)
+    var wide_c = render(wide_plot)
+
+    var silhouette = _bbox_of_color(default_c, t.mark_color)
+    assert_true(silhouette.found, "the default silhouette is drawn")
+    var tail_y = silhouette.y0 + (silhouette.height() * 9) // 10
+    var default_tail = _row_extent(default_c, tail_y, t.mark_color)
+    var wide_tail = _row_extent(wide_c, tail_y, t.mark_color)
+    assert_true(
+        wide_tail.width() > default_tail.width(),
+        "bandwidth=3.0 widens the tail: "
+        + String(wide_tail.width())
+        + "px vs the default's "
+        + String(default_tail.width())
+        + "px at row "
+        + String(tail_y),
     )
-    _assert_color(c, 220, 135, t.mark_color, "still inside near the peak")
-    _assert_color(c, 10, 10, BG, "still background, well outside the plot area")
 
 
 def test_render_violin_explicit_zero_bandwidth_matches_default() raises:
     # bandwidth=0.0 explicitly passed must produce the same output as
-    # omitting it, exercising the sentinel check itself.
+    # omitting it, exercising the sentinel check itself. The claim is
+    # that the two renders are identical, so compare them to each other:
+    # sampling a few pixels of the silhouette tests something weaker and
+    # goes stale the moment the layout moves.
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
     var t = Theme(show_gridlines=False)
-    var _hoisted4 = violin(
+    var explicit = violin(
         cats, vals, bandwidth=0.0, theme=t, width=400, height=300
     )
-    var c = render(_hoisted4)
-    _assert_color(
-        c,
-        220,
-        135,
-        t.mark_color,
-        "near the peak (y~=3), dead center -- well inside",
-    )
-    _assert_color(
-        c,
-        280,
-        235,
-        t.mark_color,
-        "near the bottom edge (y=1), still inside the ~74px half-width there",
-    )
-    _assert_color(
-        c,
-        300,
-        235,
-        BG,
-        (
-            "near the bottom edge (y=1), past the ~74px half-width there --"
-            " outside"
-        ),
+    var omitted = violin(cats, vals, theme=t, width=400, height=300)
+    _assert_same_canvas(
+        render(explicit), render(omitted), "violin bandwidth=0.0 vs omitted"
     )
 
 
@@ -415,28 +417,37 @@ def test_render_ridgeline_svg_matches_confirmed_path_points() raises:
 
 
 def test_render_ridgeline_custom_bandwidth_widens_the_tail() raises:
-    # Single category, values [1,2,3,4,5], canvas 400x300: Silverman's
-    # default bandwidth tapers the left tail (pixel column x=77) so (77, 25)
-    # is above the curve; bandwidth=3.0 spreads the samples so (77, 25)
-    # falls inside it, while a point near the peak (x~=220) and one outside
-    # the plot are unchanged. x=77 rather than 75 to sit past the curve's
-    # AA edge column.
+    # As for violin: measure the curve's height at its tail column in
+    # both renders instead of pinning the pixel the default leaves
+    # empty. The column is the default curve's own left edge, so it
+    # follows the layout rather than naming it. It has to be the edge
+    # and not a fraction in: the default ramps up to its full height
+    # within about 28 columns, and past that both renders saturate and
+    # the measurement stops discriminating.
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
     var t = Theme(show_gridlines=False)
-    var _hoisted2 = ridgeline(
+    var default_plot = ridgeline(cats, vals, theme=t, width=400, height=300)
+    var wide_plot = ridgeline(
         cats, vals, bandwidth=3.0, theme=t, width=400, height=300
     )
-    var c = render(_hoisted2)
-    _assert_color(
-        c,
-        77,
-        25,
-        t.mark_color,
-        "bandwidth=3.0 widens the tail -- now inside the curve",
+    var default_c = render(default_plot)
+    var wide_c = render(wide_plot)
+
+    var curve = _bbox_of_color(default_c, t.mark_color)
+    assert_true(curve.found, "the default curve is drawn")
+    var tail_x = curve.x0
+    var default_tail = _column_extent(default_c, tail_x, t.mark_color)
+    var wide_tail = _column_extent(wide_c, tail_x, t.mark_color)
+    assert_true(
+        wide_tail.height() > default_tail.height(),
+        "bandwidth=3.0 lifts the tail: "
+        + String(wide_tail.height())
+        + "px vs the default's "
+        + String(default_tail.height())
+        + "px at column "
+        + String(tail_x),
     )
-    _assert_color(c, 220, 25, t.mark_color, "still inside near the peak")
-    _assert_color(c, 10, 10, BG, "still background, well outside the plot area")
 
 
 def test_render_ridgeline_explicit_zero_bandwidth_matches_default() raises:
@@ -445,18 +456,13 @@ def test_render_ridgeline_explicit_zero_bandwidth_matches_default() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
     var t = Theme(show_gridlines=False)
-    var _hoisted3 = ridgeline(
+    var explicit = ridgeline(
         cats, vals, bandwidth=0.0, theme=t, width=400, height=300
     )
-    var c = render(_hoisted3)
-    _assert_color(
-        c,
-        75,
-        25,
-        BG,
-        "default bandwidth still tapers away at the tail -- background",
+    var omitted = ridgeline(cats, vals, theme=t, width=400, height=300)
+    _assert_same_canvas(
+        render(explicit), render(omitted), "ridgeline bandwidth=0.0 vs omitted"
     )
-    _assert_color(c, 220, 25, t.mark_color, "still inside near the peak")
 
 
 def test_render_ridgeline_scale_by_count_shortens_the_smaller_row() raises:

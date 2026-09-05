@@ -346,6 +346,99 @@ def _column_extent(c: Canvas, x: Int, color: Color) -> _Bbox:
     return _bbox_of_color_in(c, color, x, 0, x, c.height - 1)
 
 
+def _row_extent(c: Canvas, y: Int, color: Color) -> _Bbox:
+    """How far `color` runs across row `y`, as a box one pixel tall.
+
+    `_column_extent`'s mirror: a silhouette's width at a given height
+    without computing where the margins put it. Compare two renders'
+    `width()` rather than asserting either one's pixels.
+
+    Args:
+        c: The rendered canvas.
+        y: The row to scan.
+        color: The colour to find.
+
+    Returns:
+        The extent, or a box with `found=False`.
+    """
+    if y < 0 or y >= c.height:
+        return _Bbox()
+    return _bbox_of_color_in(c, color, 0, y, c.width - 1, y)
+
+
+def _runs_in_row(c: Canvas, y: Int, color: Color) -> Int:
+    """How many separated runs of `color` row `y` contains.
+
+    For "these two rings do not touch": a gap is one more run than no
+    gap, whatever radius the gap ended up at.
+
+    Args:
+        c: The rendered canvas.
+        y: The row to scan.
+        color: The colour to find.
+
+    Returns:
+        The number of maximal runs, 0 when the colour is absent.
+    """
+    if y < 0 or y >= c.height:
+        return 0
+    var runs = 0
+    var inside = False
+    for x in range(c.width):
+        var p = c.get_pixel(x, y)
+        var hit = p.r == color.r and p.g == color.g and p.b == color.b
+        if hit and not inside:
+            runs += 1
+        inside = hit
+    return runs
+
+
+def _assert_same_canvas(a: Canvas, b: Canvas, label: String) raises:
+    """Every pixel of `a` matches `b`.
+
+    For a sentinel check -- "passing the default explicitly changes
+    nothing" -- where the claim is that two renders are identical, not
+    that some pixel is a particular colour. Pinning a handful of pixels
+    tests a weaker statement and breaks whenever the layout moves.
+
+    Args:
+        a: One render.
+        b: The render it must equal.
+        label: Message prefix on failure.
+
+    Raises:
+        On the first differing pixel, or a size mismatch.
+    """
+    assert_equal(a.width, b.width, label + ": width")
+    assert_equal(a.height, b.height, label + ": height")
+    for y in range(a.height):
+        for x in range(a.width):
+            var p = a.get_pixel(x, y)
+            var q = b.get_pixel(x, y)
+            if p.r != q.r or p.g != q.g or p.b != q.b:
+                assert_true(
+                    False,
+                    label
+                    + ": pixel ("
+                    + String(x)
+                    + ", "
+                    + String(y)
+                    + ") is ("
+                    + String(p.r)
+                    + ","
+                    + String(p.g)
+                    + ","
+                    + String(p.b)
+                    + ") vs ("
+                    + String(q.r)
+                    + ","
+                    + String(q.g)
+                    + ","
+                    + String(q.b)
+                    + ")",
+                )
+
+
 def _count_color(c: Canvas, color: Color) -> Int:
     var count = 0
     for y in range(c.height):
