@@ -12,7 +12,8 @@ from dataviz.plot import (
     _axis_pixel,
     _data_extent,
     _draw_point_layer,
-    _legend_column_x,
+    _legend_origin_x,
+    _legend_origin_y,
     _LegendLayout,
     _legend_reserve_for,
     _finished,
@@ -180,8 +181,9 @@ def _render_single_axis[
         ch,
         frame.x_scale,
         y_scale,
-        _legend_column_x(legend_reserve, frame.px0, frame.px1, sc),
-        frame.py0,
+        _legend_origin_x(legend_reserve, frame.px0, frame.px1, sc),
+        _legend_origin_y(legend_reserve, frame.py0, frame.py1, sc),
+        legend_horizontal=legend_reserve.position.is_horizontal(),
     )
 
     return frame.result()
