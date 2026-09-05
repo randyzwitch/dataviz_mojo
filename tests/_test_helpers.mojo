@@ -77,6 +77,121 @@ struct Lcg(Movable):
         return Int(self.next_bits() % UInt64(n))
 
 
+# ---------------------------------------------------------------
+# Structural SVG helpers (#219)
+#
+# SVG tests assert on `to_string()` substrings, which catches gross
+# breakage but not structure: a mark emitting its rects outside the
+# annotated tooltip group, an unclosed `<g>`, or a legend drawing the
+# right colours the wrong number of times all pass a substring check.
+#
+# canvas_mojo's SVG is its own output, one element per line with a
+# fixed attribute order, so a line-oriented scan is enough and no XML
+# parser is needed. These stay deliberately dumb for that reason: they
+# read what canvas actually emits, not what SVG permits in general.
+# ---------------------------------------------------------------
+
+
+def _count_tag(svg: String, tag: String) -> Int:
+    """How many `<tag ` elements the document contains.
+
+    Args:
+        svg: The rendered document.
+        tag: Element name, without angle brackets (`"rect"`, `"path"`).
+
+    Returns:
+        The number of occurrences.
+    """
+    return svg.count("<" + tag + " ") + svg.count("<" + tag + ">")
+
+
+def _attr_values(svg: String, tag: String, attr: String) -> List[String]:
+    """Every value of `attr` on every `<tag>` element, in document order.
+
+    Reads only elements of that tag, so `fill` on `<rect>` doesn't pick
+    up `fill` on `<text>` -- telling those apart is most of the point of
+    asserting structurally rather than on substrings.
+
+    Args:
+        svg: The rendered document.
+        tag: Element name, without angle brackets.
+        attr: Attribute name, without the `=`.
+
+    Returns:
+        The values, one per element that carries the attribute.
+    """
+    var out = List[String]()
+    var needle = "<" + tag + " "
+    var key = " " + attr + '="'
+    var rest = svg
+    while True:
+        var at = rest.find(needle)
+        if at < 0:
+            break
+        var after = String(rest[byte = at + needle.byte_length() :])
+        var end = after.find(">")
+        if end < 0:
+            break
+        var element = String(after[byte=0:end])
+        var k = element.find(key)
+        if k >= 0:
+            var vstart = k + key.byte_length()
+            var vend = element.find('"', vstart)
+            if vend > vstart:
+                out.append(String(element[byte=vstart:vend]))
+        rest = after
+    return out^
+
+
+def _group_titles(svg: String) -> List[String]:
+    """The `<title>` text of every annotated group, in document order --
+    what `Theme.svg_tooltips` produces, and what a browser shows on
+    hover.
+
+    Args:
+        svg: The rendered document.
+
+    Returns:
+        One entry per `<title>`, still XML-escaped as canvas wrote it.
+    """
+    var out = List[String]()
+    var rest = svg
+    while True:
+        var at = rest.find("<title>")
+        if at < 0:
+            break
+        var after = String(rest[byte = at + 7 :])
+        var end = after.find("</title>")
+        if end < 0:
+            break
+        out.append(String(after[byte=0:end]))
+        rest = String(after[byte = end + 8 :])
+    return out^
+
+
+def _assert_well_formed_svg(svg: String, label: String) raises:
+    """The document opens and closes, and every `<g>` is closed.
+
+    Not a schema check -- just the two ways canvas's own emitters can go
+    wrong: an element opened and never closed (`begin_annotated_group`
+    without its `end_`), or a truncated document.
+
+    Args:
+        svg: The rendered document.
+        label: Included in any failure message.
+
+    Raises:
+        Error: The document is unbalanced or truncated.
+    """
+    assert_true(svg.startswith("<svg"), "does not open with <svg: " + label)
+    assert_true(
+        svg.strip().endswith("</svg>"), "does not end with </svg>: " + label
+    )
+    var opens = svg.count("<g>") + svg.count("<g ")
+    var closes = svg.count("</g>")
+    assert_equal(opens, closes, "unbalanced <g> in " + label)
+
+
 def _count_color(c: Canvas, color: Color) -> Int:
     var count = 0
     for y in range(c.height):
