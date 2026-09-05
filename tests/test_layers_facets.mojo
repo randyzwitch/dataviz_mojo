@@ -24,7 +24,14 @@
   Mark.BAR combo path's bar layer.
 """
 
-from _test_helpers import BG, _assert_color, _assert_near_color, _count_color
+from _test_helpers import (
+    BG,
+    _assert_color,
+    _assert_near_color,
+    _bbox_of_color,
+    _bbox_of_color_in,
+    _count_color,
+)
 from canvas.color import Color
 from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
 from dataviz.color_scale import default_categorical_palette
@@ -983,12 +990,15 @@ def test_render_layers_svg_bar_combo_named_layers_get_a_legend_row_each() raises
 
 
 def test_render_facets_lays_out_independent_plots_side_by_side() raises:
-    # Two cells, 400x300 each, side by side on an 800x300 canvas (cols=2).
-    # Cell 0 is the single-(5.0, 5.0)-point setup: plot area x:[60,380],
-    # y:[20,250], point at (220, 135). Cell 1 is the same geometry shifted
-    # +400 in x: plot area x:[460,780], point at (620, 135). Two different
-    # mark_colors confirm each cell rendered its own plot. The 800x300
-    # canvas comes from each plot's .size(400, 300).
+    # Two cells, 400x300 each, side by side on an 800x300 canvas (cols=2),
+    # from each plot's .size(400, 300). Two different mark_colors confirm
+    # each cell rendered its own plot rather than one twice.
+    #
+    # Located by scanning rather than by hand-derived pixel (#218): what
+    # this test is about is that each cell drew its own plot in its own
+    # half, which the point's position within its cell states directly.
+    # The exact centre depends on the default margins and the 5% padding,
+    # and is anchored by the hand-derived tests that are about geometry.
     var xy: List[Float64] = [5.0]
     var plot0 = Plot().mark_point().encode(x=xy, y=xy).size(400, 300)
     var plot1 = (
@@ -1004,10 +1014,24 @@ def test_render_facets_lays_out_independent_plots_side_by_side() raises:
 
     var c = render_facets(plots, cols=2)
 
-    _assert_color(
-        c, 220, 135, Theme.default().mark_color, "cell 0's point, unshifted"
+    var left = _bbox_of_color(c, Theme.default().mark_color)
+    var right = _bbox_of_color(c, RED)
+    assert_true(left.found, "cell 0 drew its point")
+    assert_true(right.found, "cell 1 drew its point")
+
+    # Each stays inside its own half, and neither colour appears in the
+    # other's -- which is what "independent plots side by side" means.
+    assert_true(left.x1 < 400, "cell 0's point is in the left half")
+    assert_true(right.x0 >= 400, "cell 1's point is in the right half")
+
+    # The same point in the same place within each cell: cell 1 is cell 0
+    # shifted by exactly one cell width.
+    assert_equal(
+        right.center_x() - left.center_x(),
+        400,
+        "cell 1 is cell 0 shifted one cell width",
     )
-    _assert_color(c, 620, 135, RED, "cell 1's point, +400px shifted")
+    assert_equal(right.center_y(), left.center_y(), "and at the same height")
 
 
 def test_render_facets_svg_draws_annotate_vline_and_best_fit_in_different_cells() raises:
@@ -1086,20 +1110,40 @@ def test_render_facets_leaves_trailing_cells_blank_when_plots_dont_fill_the_grid
 
     var c = render_facets(plots, cols=2)
 
+    # Located per cell rather than by hand-derived pixel (#218): the
+    # claim is that three cells drew a point and the fourth was never
+    # touched, which is about which cell owns the ink, not where in the
+    # cell it landed.
     var mark_color = Theme.default().mark_color
-    _assert_color(c, 220, 135, mark_color, "cell (0,0)'s point")
-    _assert_color(c, 620, 135, mark_color, "cell (0,1)'s point")
-    _assert_color(c, 220, 435, mark_color, "cell (1,0)'s point")
-    _assert_color(
-        c,
-        700,
-        450,
-        Color(255, 255, 255),
-        (
-            "cell (1,1) has no 4th plot -- never touched, stays the canvas's"
-            " own white default"
-        ),
+    var top_left = _bbox_of_color_in(c, mark_color, 0, 0, 399, 299)
+    var top_right = _bbox_of_color_in(c, mark_color, 400, 0, 799, 299)
+    var bottom_left = _bbox_of_color_in(c, mark_color, 0, 300, 399, 599)
+    var bottom_right = _bbox_of_color_in(c, mark_color, 400, 300, 799, 599)
+
+    assert_true(top_left.found, "cell (0,0) drew its point")
+    assert_true(top_right.found, "cell (0,1) drew its point")
+    assert_true(bottom_left.found, "cell (1,0) drew its point")
+    assert_true(
+        not bottom_right.found,
+        "cell (1,1) has no 4th plot, so nothing was drawn there",
     )
+
+    # The three filled cells drew the same plot, so each point sits at the
+    # same offset inside its own cell.
+    assert_equal(
+        top_right.center_x() - top_left.center_x(),
+        400,
+        "cell (0,1) is cell (0,0) shifted one cell width",
+    )
+    assert_equal(
+        bottom_left.center_y() - top_left.center_y(),
+        300,
+        "cell (1,0) is cell (0,0) shifted one cell height",
+    )
+
+    # The empty cell keeps the canvas's own white default, never painted.
+    var blank = _bbox_of_color_in(c, Color(255, 255, 255), 400, 300, 799, 599)
+    assert_true(blank.found, "cell (1,1) is still the untouched background")
 
 
 def test_render_facets_raises_on_non_positive_cols() raises:
