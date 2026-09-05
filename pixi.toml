@@ -41,6 +41,40 @@ pandas = ">=2.0,<3"
 # not worth it: it halves warm per-file time only via the local build
 # cache, and cold CI runs gained ~4.6% CPU and ~0.4% wall.
 #
+# #229 re-measured that with the build cost removed -- the CI-cache idea
+# was that the earlier number included precompiling, so a .mojopkg
+# restored from a warm cache might pay off. It does not. Against a cold
+# compiler cache, a *prebuilt* package saved 4.1% CPU and 7.7% wall
+# (test_horizontal.mojo, 3 passes, spread under 0.5%), which lands on
+# the same ~4.6% CPU as before: the build cost was never what made
+# precompiling not worth it. A cached .mojopkg would also need the Mojo
+# version in its cache key, not just a hash of dataviz/** and the
+# canvas_mojo tag -- a package is tied to the compiler that produced it
+# and errors outright on a mismatch.
+#
+# `mojo test` as a shared-process runner is not an option either: Mojo
+# 1.0.0 has no `test` subcommand (run/build/repl/debug/precompile/
+# format/doc/demangle).
+#
+# What does move the needle is the backend split. A minimal program
+# calling only render_svg() costs 24.0s wall / 54.3 CPU-s cold; adding
+# one render() call to it costs 33.0s / 76.3 CPU-s -- +37.6% wall,
+# +40.3% CPU for the second instantiation of the ~46-mark dispatch tree.
+# On a real module the saving is real but smaller, since only part of a
+# file's cost is the render path: making test_primitives.mojo SVG-only
+# (its two `_ = render(plot)` validation calls become render_svg, and
+# its one pixel-counting test moves to a raster module) took it from
+# 44.7s / 96.5 CPU-s to 35.7s / 73.3 CPU-s, -20% wall and -24% CPU,
+# with all 67 tests still passing.
+#
+# That lever only applies to modules that can go *entirely* SVG-only.
+# Splitting a mixed module into a raster half and an SVG half is a net
+# loss: the second process pays the whole base compile again, which
+# costs more than the 38% the SVG half saves. Already SVG-only:
+# test_horizontal, test_svg_structure, test_numpy_interop,
+# test_backend_equivalence. test_primitives is the only remaining
+# candidate; every other module asserts pixels throughout.
+#
 # The same per-process monomorphization cost is why tests/ is grouped
 # into ~12 family modules (test_marks_basic.mojo, test_marks_polar.mojo,
 # ...) rather than one file per mark: 86 files cost 6956 CPU-s cold, 13
@@ -58,6 +92,13 @@ pandas = ">=2.0,<3"
 example = "mkdir -p docs/src/examples && rm -rf docs/src/examples/verify && rm -f docs/src/examples/*.mojo docs/src/examples/out_* && mojo run -I . -I scripts scripts/extract_docstring_examples.mojo && mojo run -I . -I scripts scripts/build_verify_batches.mojo && bash scripts/run_parallel.sh docs/src/examples/verify/*.mojo"
 example-quickstart = "bash scripts/run_parallel.sh docs/src/examples/quickstart/*.mojo"
 test = "bash scripts/run_parallel.sh tests/test_*.mojo"
+# `test-changed` runs only the family modules a change could affect, by
+# matching a changed dataviz/<x>.mojo against test modules naming "<x>"
+# (#229 item 4). Editing one mark drops the run from 15 modules to 2.
+# It is an iteration aid, not a gate: the name match under-selects when
+# a test exercises a module without naming it, so `test` is still what
+# CI runs and what to run before pushing. See the script's header.
+test-changed = "bash scripts/test_changed.sh"
 # Formats source in place (#226). `mojo format` has no `--check` flag
 # of its own, so format-check (below, and the CI job of the same name)
 # reformats a checkout and fails on any resulting diff instead.
