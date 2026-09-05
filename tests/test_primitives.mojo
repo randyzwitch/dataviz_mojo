@@ -4,6 +4,13 @@ nice-tick algorithm, _format_fixed, _label_decimals, log ticks),
 ordinal_scale.mojo, color_scale.mojo (domain projection and the
 zero-span case; interpolation itself is tested in canvas.gradient),
 time_ticks.mojo (the calendar walk and its labels),
+colors.mojo's re-export, and array_like.mojo. Deliberately SVG-only:
+nothing here needs pixels, and a single render() call would
+instantiate the whole ~46-mark dispatch tree a second time, for
+Canvas as well as SvgCanvas (#229 measured that at +38% wall on a
+minimal program, -20% here). The one test that did count pixels --
+a named colour reaching the rasterizer -- moved to
+test_marks_basic.mojo, which is a raster module already.
 colors.mojo (spot checks against the CSS spec, the gray/grey pairs, a
 named color through a real render), and array_like.mojo
 (Float64Sequence/StringSequence, the DType-generic overloads, exact
@@ -40,7 +47,7 @@ from dataviz.calendar_heatmap import _Date, _days_from_civil
 from dataviz.color_scale import ColorScale
 from dataviz.colors import BLACK, BLUE, RED, WHITE
 from dataviz.ordinal_scale import OrdinalScale
-from dataviz.plot import Plot, render, render_svg
+from dataviz.plot import Plot, render_svg
 from dataviz.scale import (
     LinearScale,
     Ticks,
@@ -475,8 +482,11 @@ def test_min_max_raises_on_inf() raises:
 
 
 def test_render_raises_on_nan_or_inf_in_encoded_data() raises:
-    # End-to-end: a non-finite value reaching encode()/render() must
-    # raise, not silently emit Int64::MIN as an SVG coordinate.
+    # End-to-end: a non-finite value reaching encode() and a render must
+    # raise, not silently emit Int64::MIN as an SVG coordinate. Checked
+    # through render_svg() because the guard is in scale.mojo's _min_max,
+    # which both backends share, and because emitting that coordinate is
+    # what this is guarding against.
     var xs: List[Float64] = [1.0, 2.0, 3.0]
     with assert_raises():
         var plot = (
@@ -485,7 +495,7 @@ def test_render_raises_on_nan_or_inf_in_encoded_data() raises:
             .encode(x=xs, y=[1.0, nan[DType.float64](), 3.0])
             .size(200, 150)
         )
-        _ = render(plot)
+        _ = render_svg(plot)
     with assert_raises():
         var plot = (
             Plot()
@@ -493,7 +503,7 @@ def test_render_raises_on_nan_or_inf_in_encoded_data() raises:
             .encode(x=xs, y=[1.0, inf[DType.float64](), 3.0])
             .size(200, 150)
         )
-        _ = render(plot)
+        _ = render_svg(plot)
 
 
 # ---------------------------------------------------------------
@@ -651,22 +661,6 @@ def test_gray_grey_spelling_pairs_are_identical_colors() raises:
         Int(SLATEGRAY.g),
         Int(SLATEGRAY.b),
         "SLATEGREY matches SLATEGRAY",
-    )
-
-
-def test_named_color_works_as_a_theme_mark_color_through_a_real_render() raises:
-    # A named color reaches the renderer like any other Color literal. A
-    # non-zero count rather than a hand-derived pixel; bar() layout is
-    # covered in its own tests.
-    var cats: List[String] = ["a", "b"]
-    var values: List[Float64] = [3.0, 5.0]
-    var _hoisted1 = bar(cats, values, theme=Theme(mark_color=CORNFLOWERBLUE))
-    var c = render(_hoisted1)
-
-    assert_equal(
-        _count_color(c, CORNFLOWERBLUE) > 0,
-        True,
-        "bar filled with a named color renders that exact color",
     )
 
 

@@ -18,6 +18,7 @@ from _test_helpers import (
 from canvas.color import Color
 from canvas.path import Path, PathOp
 from dataviz import (
+    CORNFLOWERBLUE,
     area,
     bar,
     barbs,
@@ -2319,6 +2320,22 @@ def test_render_tricontour_collinear_samples_render_an_empty_frame() raises:
         tricontour(xs, ys, zs, width=240, height=200)
     ).to_string()
     assert_true("<svg" in svg, "the frame still renders")
+
+
+def test_named_color_works_as_a_theme_mark_color_through_a_real_render() raises:
+    # A named color reaches the renderer like any other Color literal. A
+    # non-zero count rather than a hand-derived pixel; bar() layout is
+    # covered in its own tests.
+    var cats: List[String] = ["a", "b"]
+    var values: List[Float64] = [3.0, 5.0]
+    var _hoisted1 = bar(cats, values, theme=Theme(mark_color=CORNFLOWERBLUE))
+    var c = render(_hoisted1)
+
+    assert_equal(
+        _count_color(c, CORNFLOWERBLUE) > 0,
+        True,
+        "bar filled with a named color renders that exact color",
+    )
 
 
 def main() raises:
