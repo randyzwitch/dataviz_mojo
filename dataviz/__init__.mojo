@@ -49,6 +49,7 @@ from dataviz.box import box
 from dataviz.bullet import bullet
 from dataviz.candlestick import candlestick
 from dataviz.contour import contour, contourf
+from dataviz.tricontour import tricontour
 from dataviz.chord import chord
 from dataviz.arc_diagram import arc_diagram
 from dataviz.graph import graph

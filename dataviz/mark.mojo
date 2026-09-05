@@ -9,7 +9,8 @@ describes the drawing. By data shape:
 - `encode()` (continuous x/y): POINT, LINE, AREA, EFFECT_SCATTER.
   BARBS takes `encode_barbs()` (position plus u/v components).
   CONTOUR and CONTOURF take `encode_contour()` (a rectangular
-  grid of values, in grid-index coordinates).
+  grid of values, in grid-index coordinates); TRICONTOUR takes
+  `encode_tricontour()` (scattered x/y/z samples, triangulated).
   POLAR takes `encode_polar()`/`encode_polar_series()` (angle +
   radius); SINGLE_AXIS takes `encode_single_axis()` (x only).
 - `encode_categorical()` (category + value): BAR, LOLLIPOP, ARC
@@ -89,8 +90,9 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime BARBS = Self(42)
     comptime CONTOUR = Self(43)
     comptime CONTOURF = Self(44)
+    comptime TRICONTOUR = Self(45)
 
-    comptime COUNT = 45
+    comptime COUNT = 46
     """How many marks exist -- one past the largest value above.
 
     Only the raster/SVG layout-equivalence sweep reads this (#221): it
