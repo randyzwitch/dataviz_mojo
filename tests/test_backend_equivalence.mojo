@@ -31,6 +31,7 @@ from dataviz import (
     calendar_heatmap,
     candlestick,
     chord,
+    contour,
     corrplot,
     effect_scatter,
     funnel,
@@ -252,6 +253,14 @@ def _representative_plot(mark: Mark) raises -> Plot:
         var dims: List[String] = ["d1", "d2", "d3"]
         var rows: List[String] = ["r1", "r2"]
         return parallel(_nested(), dims, rows, width=_W, height=_H)
+    if mark == Mark.CONTOUR:
+        var z = List[List[Float64]]()
+        for r in range(6):
+            var row = List[Float64]()
+            for c in range(7):
+                row.append(Float64((r + 1) * (c + 2) % 11))
+            z.append(row^)
+        return contour(z, level_count=4, width=_W, height=_H)
     if mark == Mark.BARBS:
         var u: List[Float64] = [5.0, 10.0, 15.0]
         var v: List[Float64] = [5.0, -10.0, 0.0]
@@ -437,6 +446,29 @@ def test_backends_agree_with_titles_and_rotated_axis_labels() raises:
         height=_H,
     )
     _ = _assert_same_layout(Mark.BAR._value, plot)
+
+
+def test_mark_count_is_one_past_the_newest_mark() raises:
+    """`Mark.COUNT` has to name the newest mark's value plus one, or the
+    sweep above walks a short range and silently stops covering whatever
+    was added last.
+
+    That is not hypothetical: `Mark.CONTOUR` (#259) and `Mark.COUNT`
+    (#221) landed in separate PRs that could not see each other, so main
+    briefly had `CONTOUR = 43` alongside `COUNT = 43` and the sweep
+    skipped contour entirely while still reporting itself green.
+
+    Naming the newest mark explicitly is what makes that loud: adding a
+    mark after this one fails here until both this line and `COUNT` are
+    updated, which is one edit away from the constant itself.
+    """
+    assert_true(
+        Mark.CONTOUR == Mark(Mark.COUNT - 1),
+        (
+            "Mark.COUNT must be one past the newest mark -- update both when"
+            " adding one"
+        ),
+    )
 
 
 def main() raises:
