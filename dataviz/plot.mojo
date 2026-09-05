@@ -114,6 +114,7 @@ from dataviz.corrplot import _CorrplotData
 from dataviz.punchcard import _PunchcardData
 from dataviz.barbs import _BarbsData
 from dataviz.contour import _ContourData
+from dataviz.tricontour import _TriContourData
 from dataviz.marimekko import _MarimekkoData
 from dataviz.edges import _EdgeData
 from dataviz.hierarchy import _HierarchyData
@@ -135,6 +136,7 @@ from dataviz.corrplot import _render_corrplot
 from dataviz.punchcard import _render_punchcard
 from dataviz.barbs import _render_barbs
 from dataviz.contour import _render_contour, _render_contourf
+from dataviz.tricontour import _render_tricontour
 from dataviz.marimekko import _render_marimekko
 from dataviz.sunburst import _render_sunburst
 from dataviz.tree import _render_tree
@@ -519,6 +521,7 @@ struct Plot(Copyable, Movable):
     var _punchcard: _PunchcardData
     var _barbs: _BarbsData
     var _contour: _ContourData
+    var _tricontour: _TriContourData
     var _marimekko: _MarimekkoData
     var _hierarchy: _HierarchyData
     var _labels: _LabelData
@@ -581,6 +584,7 @@ struct Plot(Copyable, Movable):
         self._punchcard = _PunchcardData()
         self._barbs = _BarbsData()
         self._contour = _ContourData()
+        self._tricontour = _TriContourData()
         self._marimekko = _MarimekkoData()
         self._hierarchy = _HierarchyData()
         self._labels = _LabelData()
@@ -942,6 +946,24 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.CONTOURF
         self._contour.level_count = levels
+        return self^
+
+    def mark_tricontour(var self, levels: Int = 8) -> Self:
+        """Isolines over scattered samples: the points are Delaunay-
+        triangulated and each level traced over the triangles. Encoded via
+        `encode_tricontour()`; see `_render_tricontour` for the tracing and
+        `tricontour()` for the one-call form.
+
+        Args:
+            levels: How many levels to place when `encode_tricontour()` is
+                not given an explicit list -- spaced evenly strictly
+                inside the samples' own range. Must be positive.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.TRICONTOUR
+        self._tricontour.level_count = levels
         return self^
 
     def mark_marimekko(var self) -> Self:
@@ -2230,6 +2252,38 @@ struct Plot(Copyable, Movable):
         """
         self._contour.z = z.copy()
         self._contour.levels = levels.copy()
+        return self^
+
+    def encode_tricontour(
+        var self,
+        x: List[Float64],
+        y: List[Float64],
+        z: List[Float64],
+        levels: List[Float64] = List[Float64](),
+    ) -> Self:
+        """Map scattered `(x, y, z)` samples onto `Mark.TRICONTOUR`'s
+        shape.
+
+        The points need not lie on any lattice and need no ordering: the
+        Delaunay triangulation built at render time supplies the
+        connectivity that a grid would otherwise provide. Length checking
+        is deferred to render() time, like every other encode method here.
+
+        Args:
+            x: Each sample's x position.
+            y: Each sample's y position, one per `x` entry.
+            z: Each sample's value, one per `x` entry.
+            levels: The values to trace. Left empty (the default), the
+                count from `mark_tricontour(levels=n)` decides how many
+                are placed inside the data's range.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._tricontour.x = x.copy()
+        self._tricontour.y = y.copy()
+        self._tricontour.z = z.copy()
+        self._tricontour.levels = levels.copy()
         return self^
 
     def encode_marimekko(
@@ -7107,6 +7161,8 @@ def _render_generic[
         return _render_contour(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.CONTOURF:
         return _render_contourf(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    if plot._mark == Mark.TRICONTOUR:
+        return _render_tricontour(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.MARIMEKKO:
         return _render_marimekko(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.SUNBURST:
