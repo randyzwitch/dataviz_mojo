@@ -1,6 +1,6 @@
+from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.geometry import _round_to_int
-from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from canvas.text.render import TextAlign
@@ -184,7 +184,7 @@ def _render_stacked_bar[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.STACKED_BAR` plot: the same `encode_grouped_bar()` data
     `Mark.GROUPED_BAR` uses, with each category's series stacked as
@@ -259,7 +259,7 @@ def _render_horizontal_stacked_bar[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """`_render_stacked_bar`'s mirror image for
     `Plot.mark_stacked_bar(horizontal=True)` (#121):

@@ -1,7 +1,7 @@
+from canvas.text.font_cache import FontCache
 from canvas.geometry import _round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
-from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -46,7 +46,7 @@ def _render_marimekko[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.MARIMEKKO` plot (a mosaic chart): `encode_marimekko()`'s
     `categories` (one column each) and `subcategories` (one stacked

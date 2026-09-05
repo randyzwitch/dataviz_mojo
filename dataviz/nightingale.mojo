@@ -1,7 +1,7 @@
 from std.math import pi, sqrt
 
+from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
-from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -32,7 +32,7 @@ def _render_nightingale[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.NIGHTINGALE` plot (a rose/coxcomb chart): one wedge per
     category (`encode_categorical`'s `x`), every wedge the same angular

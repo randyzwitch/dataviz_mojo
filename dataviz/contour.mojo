@@ -1,5 +1,6 @@
 from std.collections import Dict
 
+from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
@@ -8,7 +9,6 @@ from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import ColorScale
 from dataviz.plot import (
     Plot,
-    _LazyFontCache,
     _LegendLayout,
     _RenderResult,
     _draw_continuous_axis_frame,
@@ -607,7 +607,7 @@ def _render_contour[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.CONTOUR` plot: isolines over a regular grid, the
     shape matplotlib's `contour()` draws.
@@ -702,7 +702,7 @@ def _render_contourf[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.CONTOURF` plot: filled bands between consecutive
     levels, the shape matplotlib's `contourf()` draws.

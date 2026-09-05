@@ -1,3 +1,4 @@
+from canvas.text.font_cache import FontCache
 from canvas.geometry import _round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
@@ -6,7 +7,6 @@ from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
 from dataviz.funnel import _descending_value_order
 from dataviz.grouped_bar import _validate_grouped_bar_series
-from dataviz.plot import _LazyFontCache
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
@@ -91,7 +91,7 @@ def _draw_bump_axis_frame[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _BumpFrame:
     """`Mark.BUMP`'s axis frame: `_draw_categorical_axis_frame`'s
     vertical-categorical-`x` shape, but with the `y` side hand-rolled
@@ -205,7 +205,7 @@ def _render_bump[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.BUMP` plot: `encode_grouped_bar()`'s data (categories,
     one name and one value per series), plotting each series' rank among

@@ -1,6 +1,6 @@
+from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
-from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.plot import (
@@ -144,7 +144,7 @@ def _render_single_axis[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.SINGLE_AXIS` plot: every point from
     `encode_single_axis()`'s `x` at the plot area's vertical center,

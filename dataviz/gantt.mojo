@@ -1,6 +1,6 @@
+from canvas.text.font_cache import FontCache
 from canvas.geometry import _round_to_int
 from canvas.text.render import TextAlign
-from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -83,7 +83,7 @@ def _draw_horizontal_categorical_axis_frame[
     oy1: Int,
     padding: Float64 = 0.2,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _HorizontalCategoricalFrame:
     """`_draw_categorical_axis_frame`'s mirror image: categories run along
     an `OrdinalScale` y-axis (index 0 at the top) and the continuous
@@ -217,7 +217,7 @@ def _render_gantt[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.GANTT` plot: `_draw_horizontal_categorical_axis_frame`'s
     horizontal categorical axis (categories along `y`, top-to-bottom;

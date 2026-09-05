@@ -1,8 +1,8 @@
 from std.math import pi
 
+from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
-from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -92,7 +92,7 @@ def _render_sunburst[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.SUNBURST` plot: `_build_hierarchy_index`'s `children`/
     `depth`/`subtree_value` (hierarchy.mojo) drawn as concentric ring

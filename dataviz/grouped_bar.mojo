@@ -1,6 +1,6 @@
+from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.geometry import _round_to_int
-from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from canvas.text.render import TextAlign
@@ -107,7 +107,7 @@ def _validate_grouped_bar_series(plot: Plot) raises:
 
 
 def _series_legend_reserve(
-    plot: Plot, sc: _Scaled, available_width: Int, *, mut cache: _LazyFontCache
+    plot: Plot, sc: _Scaled, available_width: Int, *, mut cache: FontCache
 ) raises -> _LegendLayout:
     """How much room the series-name legend needs and on which edge, or an
     inactive layout when `Theme.show_legend` is off. Insets the outer
@@ -301,7 +301,7 @@ def _render_grouped_bar[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.GROUPED_BAR` plot: `_render_bar`'s categorical x-axis /
     zero-baseline y-axis (`_draw_categorical_axis_frame`), with each
@@ -379,7 +379,7 @@ def _render_horizontal_grouped_bar[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """`_render_grouped_bar`'s mirror image for
     `Plot.mark_grouped_bar(horizontal=True)` (#121):

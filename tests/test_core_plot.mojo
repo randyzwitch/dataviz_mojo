@@ -41,9 +41,11 @@ from _test_helpers import (
     _unique_categories,
 )
 from canvas.buffer import Canvas
+from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
 from dataviz import (
+    sankey,
     LegendPosition,
     PointShape,
     grouped_bar,
@@ -68,7 +70,6 @@ from dataviz.colors import RED
 from dataviz.edges import _edge_node_index
 from dataviz.plot import (
     Plot,
-    _LazyFontCache,
     _RenderResult,
     _render_generic,
     accessible_svg_string,
@@ -2658,7 +2659,7 @@ def _grouped_series_plot(
 
 
 def _laid_out(plot: Plot) raises -> _RenderResult:
-    var cache = _LazyFontCache()
+    var cache = FontCache()
     var canvas = Canvas(560, 360, BG)
     return _render_generic(canvas, plot, 0, 0, 560, 360, cache=cache)
 
@@ -2935,9 +2936,65 @@ def test_continuous_legend_row_runs_low_to_high_left_to_right() raises:
 
 
 def _laid_out_at(plot: Plot) raises -> _RenderResult:
-    var cache = _LazyFontCache()
+    var cache = FontCache()
     var canvas = Canvas(560, 380, BG)
     return _render_generic(canvas, plot, 0, 0, 560, 380, cache=cache)
+
+
+def test_a_fresh_font_cache_does_not_scan_until_something_needs_a_font() raises:
+    """#255's shared cache used to be wrapped in a `_LazyFontCache`,
+    because `FontCache()` was itself the ~20ms installed-font scan and
+    building one per render charged that to marks that never draw text.
+    canvas_mojo 0.16.0 made `FontCache` lazy itself, so the wrapper is
+    gone -- and `has_scanned()` lets the property be asserted rather than
+    inferred from a stopwatch.
+    """
+    var cache = FontCache()
+    assert_true(not cache.has_scanned(), "constructing a cache scans nothing")
+
+    var cats: List[String] = ["a", "b", "c"]
+    var vals: List[Float64] = [3.0, 1.0, 2.0]
+    var canvas = Canvas(400, 300, BG)
+    _ = _render_generic(
+        canvas,
+        bar(cats, vals, width=400, height=300),
+        0,
+        0,
+        400,
+        300,
+        cache=cache,
+    )
+    assert_true(
+        cache.has_scanned(),
+        "a render that measures axis labels scans once",
+    )
+
+
+def test_a_render_that_measures_no_text_never_scans() raises:
+    """The case the wrapper was built for, still holding without it:
+    `Mark.SANKEY`'s layout pass measures nothing (its node labels are
+    deferred `_TextRequest`s), so a cache handed to it comes back
+    untouched. Eagerly scanning here is exactly what made an
+    under-a-millisecond SVG render cost 20ms in #255's first cut.
+    """
+    var cache = FontCache()
+    var f: List[String] = ["a", "b"]
+    var to: List[String] = ["b", "c"]
+    var v: List[Float64] = [1.0, 2.0]
+    var canvas = Canvas(400, 300, BG)
+    _ = _render_generic(
+        canvas,
+        sankey(f, to, v, width=400, height=300),
+        0,
+        0,
+        400,
+        300,
+        cache=cache,
+    )
+    assert_true(
+        not cache.has_scanned(),
+        "a layout pass that measures no text leaves the cache unscanned",
+    )
 
 
 def main() raises:

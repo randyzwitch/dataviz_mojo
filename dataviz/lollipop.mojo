@@ -1,6 +1,6 @@
+from canvas.text.font_cache import FontCache
 from canvas.geometry import _round_to_int
 from canvas.path import Path
-from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -133,7 +133,7 @@ def _render_lollipop[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.LOLLIPOP` plot: `_render_bar`'s categorical x-axis /
     zero-baseline y-axis (`_draw_categorical_axis_frame`), with each
@@ -186,7 +186,7 @@ def _render_horizontal_lollipop[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """`_render_lollipop`'s mirror image for
     `Plot.mark_lollipop(horizontal=True)` (#121): `_render_horizontal_bar`'s

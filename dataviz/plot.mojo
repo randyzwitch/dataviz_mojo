@@ -3723,43 +3723,8 @@ def _decimate_to_pixel_columns(
     return _Decimated(out_x^, out_y^, True)
 
 
-struct _LazyFontCache(Movable):
-    """The one `FontCache` a render shares between every label it
-    measures and every label it draws (#255), constructed on first use.
-
-    `FontCache.__init__` is the installed-font scan (about 20 ms on a
-    typical Linux machine), so building one eagerly at the top of every
-    render would charge that to a label-free mark on `SvgCanvas`
-    (`Mark.ARC_DIAGRAM`/`GRAPH`/`SANKEY`, whose whole SVG render is
-    under a millisecond) that never touches a font. `get()` builds it
-    the first time anything measures or draws and hands back the same
-    one after that. Every `_render_*` and axis-frame helper takes one of
-    these by `mut cache`; only `_max_label_width` and
-    `_replay_text_requests` unwrap it, at the two calls into
-    `canvas.text`.
-    """
-
-    var _cache: Optional[FontCache]
-
-    def __init__(out self):
-        """An empty wrapper; no font scan until `get()`."""
-        self._cache = None
-
-    def get(mut self) -> ref[self._cache._value] FontCache:
-        """The shared `FontCache`, scanning the installed fonts on the
-        first call only.
-
-        Returns:
-            A mutable reference to the cache, for `cache=` on
-            `measure_text`/`draw_text`.
-        """
-        if not self._cache:
-            self._cache = FontCache()
-        return self._cache.value()
-
-
 def _max_label_width(
-    labels: List[String], font_size: Float64, *, mut cache: _LazyFontCache
+    labels: List[String], font_size: Float64, *, mut cache: FontCache
 ) raises -> Float64:
     """The widest rendered ink width among `labels` at `font_size`, used to
     size the left margin to the y-axis tick labels before the plot area's
@@ -3768,13 +3733,13 @@ def _max_label_width(
 
     Measures through the caller's `cache`, the one `FontCache` a render
     shares between every measurement and every label it draws (#255,
-    `_LazyFontCache`): a fresh cache re-pays the font scan, font
+    `FontCache`): a fresh cache re-pays the font scan, font
     resolution and TTF parsing (0.44ms for a 5-label call against
     0.056ms warm), which is why there is no overload without one.
     """
     var max_width = 0.0
     for label in labels:
-        var m = measure_text(label, font_size, cache=cache.get())
+        var m = measure_text(label, font_size, cache=cache)
         if m.width > max_width:
             max_width = m.width
     return max_width
@@ -3785,7 +3750,7 @@ def _dynamic_legend_width(
     content_width: Int,
     sc: _Scaled,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> Int:
     """How wide a legend column needs to be to fit `labels` next to
     `content_width`-wide content (a swatch, a gradient bar, or the widest
@@ -3898,7 +3863,7 @@ def _legend_layout(
     theme: Theme,
     available_width: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _LegendLayout:
     """Size a legend for `theme.legend_position` and say which edge pays.
 
@@ -5344,7 +5309,7 @@ def _point_tooltip_label(plot: Plot, i: Int) -> String:
 
 
 def _replay_text_requests(
-    mut canvas: Canvas, requests: List[_TextRequest], mut cache: _LazyFontCache
+    mut canvas: Canvas, requests: List[_TextRequest], mut cache: FontCache
 ) raises:
     """Draw every `_TextRequest` in `requests` into `canvas` via
     `canvas.text.draw_text`, the raster half of replaying the deferred
@@ -5362,7 +5327,7 @@ def _replay_text_requests(
             family=req.family,
             weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
             rotation=req.rotation,
-            cache=cache.get(),
+            cache=cache,
         )
 
 
@@ -5489,8 +5454,8 @@ def _render_into(
     # measurement the layout makes (tick labels, legend entries) and then
     # every label drawn afterwards resolve fonts and rasterize glyphs
     # through it once, and a render with no text never scans the fonts
-    # (#255, _LazyFontCache).
-    var cache = _LazyFontCache()
+    # (#255, FontCache).
+    var cache = FontCache()
     var result = _render_generic(
         canvas, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
     )
@@ -5553,7 +5518,7 @@ def _render_svg_into(
     svg.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
     var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
     # One lazily built FontCache for the whole figure; see _render_into.
-    var cache = _LazyFontCache()
+    var cache = FontCache()
     var result = _render_generic(
         svg, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
     )
@@ -6339,7 +6304,7 @@ def _check_line_smoothing(theme: Theme) raises:
 
 
 def _legend_reserve_for(
-    plot: Plot, ch: _PointChannels, sc: _Scaled, *, mut cache: _LazyFontCache
+    plot: Plot, ch: _PointChannels, sc: _Scaled, *, mut cache: FontCache
 ) raises -> _LegendLayout:
     """How much room `plot`'s point-mark legend needs and on which edge,
     or an inactive layout when it has no legend (`Theme.show_legend` off,
@@ -6498,7 +6463,7 @@ def _draw_continuous_axis_frame[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _ContinuousFrame:
     """The layout and axis-frame core every continuous-x render path shares
     (`_render_generic`'s continuous path and `_render_layers_generic`),
@@ -6966,14 +6931,14 @@ def _render_generic[
     shared_y_max: Float64 = 0.0,
     shared_y_is_log: Bool = False,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """The dispatch, layout, and shape-drawing core `render()`/
     `render_svg()` (and the facet/layer variants) delegate to, generic
     over any `DrawTarget`, returning every axis/tick/legend label as
     `_TextRequest`s.
 
-    `cache` is the render's one `FontCache` (#255, `_LazyFontCache`):
+    `cache` is the render's one `FontCache` (#255, `FontCache`):
     threaded into every `_render_*` for its label measurements, then
     used again by the caller to draw the requests this returns, so a
     glyph measured during layout is already rasterized by the time it is
@@ -7386,7 +7351,7 @@ def _draw_categorical_axis_frame[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _CategoricalFrame:
     """The layout and axis-frame core shared by every vertical categorical
     mark (`Mark.BAR`, `LOLLIPOP`, `WATERFALL`, `BOX`, `CANDLESTICK`,
@@ -7594,7 +7559,7 @@ def render_facets(
         cols * plots[0].width * factor, rows * plots[0].height * factor
     )
     # One lazily built FontCache for the whole figure; see _render_into.
-    var cache = _LazyFontCache()
+    var cache = FontCache()
     var text_requests = _render_facets_generic(
         canvas,
         canvas.width,
@@ -7624,7 +7589,7 @@ def render_facets_svg(
     var rows = (len(plots) + cols - 1) // cols
     var svg = SvgCanvas(cols * plots[0].width, rows * plots[0].height)
     # One lazily built FontCache for the whole figure; see _render_into.
-    var cache = _LazyFontCache()
+    var cache = FontCache()
     var text_requests = _render_facets_generic(
         svg, svg.width, svg.height, plots, cols, shared_y_scale, cache=cache
     )
@@ -7642,7 +7607,7 @@ def _render_facets_generic[
     cols: Int,
     shared_y_scale: Bool = False,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> List[_TextRequest]:
     """The shared cell-layout core `render_facets()`/`render_facets_svg()`
     delegate to. `width`/`height` are passed in because `DrawTarget` has
@@ -7830,7 +7795,7 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
         # layer that owns the secondary caption.
         frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
     # One lazily built FontCache for the whole figure; see _render_into.
-    var cache = _LazyFontCache()
+    var cache = FontCache()
     var result = _render_layers_generic(
         canvas,
         scaled_plots,
@@ -7888,7 +7853,7 @@ def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
     if y2_title.byte_length() > 0:
         frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
     # One lazily built FontCache for the whole figure; see _render_into.
-    var cache = _LazyFontCache()
+    var cache = FontCache()
     var result = _render_layers_generic(
         svg, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
     )
@@ -7924,7 +7889,7 @@ def _render_bar_combo_layers[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """`_render_layers_generic`'s dispatch target when exactly one layer is
     `Mark.BAR`: a bar-plus-line combo chart sharing the bar layer's
@@ -8163,7 +8128,7 @@ def _render_layers_generic[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """The shared-domain layout/draw core `render_layers()`/
     `render_layers_svg()` delegate to, built from the same pieces

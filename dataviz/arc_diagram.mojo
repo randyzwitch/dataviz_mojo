@@ -1,10 +1,10 @@
 from std.math import pi
 
+from canvas.text.font_cache import FontCache
 from canvas.geometry import _round_to_int
 from canvas.path import Path
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
-from dataviz.plot import _LazyFontCache
 
 from dataviz.color_scale import default_categorical_palette
 from dataviz.mark import Mark
@@ -30,7 +30,7 @@ def _render_arc_diagram[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.ARC_DIAGRAM` plot: `Mark.CHORD`'s edge list
     (`encode_chord()`'s `from`/`to`/`value`) drawn as nodes on one
