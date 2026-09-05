@@ -17,12 +17,18 @@ from dataviz import (
     box,
     bullet,
     candlestick,
+    contour,
     line,
     lollipop,
     scatter,
     waterfall,
 )
 from dataviz.barbs import _barb_counts, _barb_glyph
+from dataviz.contour import (
+    _auto_levels,
+    _chain_segments,
+    _contour_segments,
+)
 from dataviz.color_scale import default_categorical_palette
 from dataviz.colors import BLACK, WHITE
 from dataviz.plot import (
@@ -36,6 +42,7 @@ from dataviz.plot import (
     _build_line_path,
 )
 from dataviz.theme import Theme
+from std.math import sqrt
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 
@@ -1535,6 +1542,257 @@ def test_render_barbs_raises_on_nonpositive_length() raises:
             .size(200, 150)
         )
         _ = render(_hoisted_barbs3)
+
+
+# ---------------------------------------------------------------
+# Mark.CONTOUR (#259)
+# ---------------------------------------------------------------
+
+
+def _ramp_grid(rows: Int, cols: Int) -> List[List[Float64]]:
+    """`z[r][c] = c`: a linear ramp along x, so the isoline for any level
+    `L` is exactly the straight vertical line `x = L`.
+    """
+    var z = List[List[Float64]]()
+    for _ in range(rows):
+        var row = List[Float64]()
+        for c in range(cols):
+            row.append(Float64(c))
+        z.append(row^)
+    return z^
+
+
+def _bowl_grid(size: Int) -> List[List[Float64]]:
+    """`z = -(dx^2 + dy^2)` about the grid centre, so the isoline for
+    `-r^2` is exactly the circle of radius `r`.
+    """
+    var centre = Float64(size - 1) / 2.0
+    var z = List[List[Float64]]()
+    for r in range(size):
+        var row = List[Float64]()
+        for c in range(size):
+            var dx = Float64(c) - centre
+            var dy = Float64(r) - centre
+            row.append(-(dx * dx + dy * dy))
+        z.append(row^)
+    return z^
+
+
+def test_contour_traces_a_linear_ramp_as_one_straight_line() raises:
+    """On `z = c`, level 5 is the vertical line x = 5. Every crossing is
+    an exact interpolation, so every point lands on x = 5 exactly, and
+    chaining turns the 8 per-cell segments into a single polyline.
+    """
+    var z = _ramp_grid(9, 11)
+    var segs = _contour_segments(z, 9, 11, 5.0)
+    var lines = _chain_segments(segs)
+
+    assert_equal(len(segs.ea), 8, "one segment per cell row")
+    assert_equal(len(lines), 1, "chained into a single polyline")
+    assert_equal(len(lines[0].xs), 9, "n segments chain into n+1 points")
+    for i in range(len(lines[0].xs)):
+        assert_equal(lines[0].xs[i], 5.0, "every point sits exactly on x = 5")
+
+
+def test_contour_traces_a_radial_bowl_as_one_closed_circle() raises:
+    """On `z = -(dx^2 + dy^2)`, level -36 is the circle of radius 6. The
+    chained line closes on itself, and every point sits within the
+    sagitta a unit-cell chord approximation can be off by (~1/(8r)).
+    """
+    var z = _bowl_grid(21)
+    var segs = _contour_segments(z, 21, 21, -36.0)
+    var lines = _chain_segments(segs)
+
+    assert_equal(len(lines), 1, "one closed isoline, not a pile of pieces")
+    ref line = lines[0]
+    var last = len(line.xs) - 1
+    assert_equal(line.xs[0], line.xs[last], "closes in x")
+    assert_equal(line.ys[0], line.ys[last], "closes in y")
+
+    var worst = 0.0
+    for i in range(len(line.xs)):
+        var dx = line.xs[i] - 10.0
+        var dy = line.ys[i] - 10.0
+        var err = abs(sqrt(dx * dx + dy * dy) - 6.0)
+        if err > worst:
+            worst = err
+    assert_true(
+        worst < 0.03,
+        "worst radius error " + String(worst) + " within a chord's sagitta",
+    )
+
+
+def test_contour_chaining_consumes_every_segment_exactly_once() raises:
+    """A chain of n segments is n+1 points, so summed over every polyline
+    the point count is segments + lines. Anything else means a segment
+    was dropped or walked twice.
+    """
+    var z = _bowl_grid(21)
+    var segs = _contour_segments(z, 21, 21, -36.0)
+    var lines = _chain_segments(segs)
+    var points = 0
+    for k in range(len(lines)):
+        points += len(lines[k].xs)
+    assert_equal(
+        points, len(segs.ea) + len(lines), "every segment used exactly once"
+    )
+
+
+def test_contour_saddle_resolves_by_the_cell_centre() raises:
+    """The two ambiguous cases: diagonal corners on the same side of the
+    level. The cell centre decides which pair the isoline separates, and
+    flipping the centre's sign flips the pairing.
+
+    One cell, corners a=(0,0) b=(1,0) cc=(1,1) d=(0,1), level 0.
+
+    With a=3, b=-1, cc=3, d=-1 the centre is +1, so the two *above*
+    corners join through the middle and each *below* corner is cut off in
+    its own corner: bottom-right by a bottom/right segment, top-left by a
+    top/left one.
+    """
+    var above = List[List[Float64]]()
+    var r0 = List[Float64]()
+    r0.append(3.0)
+    r0.append(-1.0)
+    above.append(r0^)
+    var r1 = List[Float64]()
+    r1.append(-1.0)
+    r1.append(3.0)
+    above.append(r1^)
+
+    var segs = _contour_segments(above, 2, 2, 0.0)
+    assert_equal(len(segs.ea), 2, "a saddle emits two segments")
+    # Hand-derived crossings: bottom (0.75, 0), right (1, 0.25),
+    # top (0.25, 1), left (0, 0.75).
+    assert_equal(segs.ax[0], 0.75, "first segment starts on the bottom edge")
+    assert_equal(segs.ay[0], 0.0, "on the bottom edge")
+    assert_equal(segs.bx[0], 1.0, "and ends on the right edge")
+    assert_equal(segs.by[0], 0.25, "on the right edge")
+    assert_equal(segs.ax[1], 0.25, "second segment starts on the top edge")
+    assert_equal(segs.ay[1], 1.0, "on the top edge")
+    assert_equal(segs.bx[1], 0.0, "and ends on the left edge")
+    assert_equal(segs.by[1], 0.75, "on the left edge")
+
+    # Mirror: centre -1, so the below corners join and each above corner
+    # is cut off instead -- bottom-left by a left/bottom segment,
+    # top-right by a right/top one.
+    var below = List[List[Float64]]()
+    var s0 = List[Float64]()
+    s0.append(1.0)
+    s0.append(-3.0)
+    below.append(s0^)
+    var s1 = List[Float64]()
+    s1.append(-3.0)
+    s1.append(1.0)
+    below.append(s1^)
+
+    var segs2 = _contour_segments(below, 2, 2, 0.0)
+    assert_equal(len(segs2.ea), 2, "still two segments")
+    assert_equal(segs2.ax[0], 0.0, "first segment starts on the left edge")
+    assert_equal(segs2.ay[0], 0.25, "on the left edge")
+    assert_equal(segs2.bx[0], 0.25, "and ends on the bottom edge")
+    assert_equal(segs2.by[0], 0.0, "on the bottom edge")
+
+
+def test_contour_auto_levels_sit_strictly_inside_the_data_range() raises:
+    """Levels are placed inside the range, never on it: a level exactly
+    at the minimum or maximum traces the grid boundary or a single point.
+    """
+    var z = _ramp_grid(4, 11)  # values 0 through 10
+    var levels = _auto_levels(z, 4)
+    assert_equal(len(levels), 4, "the requested count")
+    for i in range(len(levels)):
+        assert_true(levels[i] > 0.0, "above the minimum")
+        assert_true(levels[i] < 10.0, "below the maximum")
+    for i in range(1, len(levels)):
+        assert_true(levels[i] > levels[i - 1], "ascending")
+    # Evenly spaced at lo + span * i/(n+1): 2, 4, 6, 8.
+    assert_equal(levels[0], 2.0, "first level")
+    assert_equal(levels[3], 8.0, "last level")
+
+
+def test_contour_flat_grid_produces_no_levels_and_still_renders() raises:
+    """A constant field has no interior to divide, so it draws an empty
+    frame rather than raising -- the axes still report the extent.
+    """
+    var z = List[List[Float64]]()
+    for _ in range(3):
+        var row = List[Float64]()
+        for _ in range(3):
+            row.append(7.0)
+        z.append(row^)
+    assert_equal(len(_auto_levels(z, 5)), 0, "no levels for a flat grid")
+
+    var svg = render_svg(contour(z, width=200, height=150)).to_string()
+    assert_true("<svg" in svg, "renders a frame anyway")
+
+
+def test_render_contour_svg_draws_one_stroked_path_per_isoline() raises:
+    """A ramp with two explicit levels draws exactly two lines, each a
+    stroked path with no fill."""
+    var z = _ramp_grid(5, 11)
+    var levels: List[Float64] = [3.0, 7.0]
+    var svg = render_svg(
+        contour(z, levels=levels, width=300, height=200)
+    ).to_string()
+    assert_equal(svg.count('fill="none"'), 2, "one stroked path per level")
+
+
+def test_render_contour_draws_ink() raises:
+    var z = _bowl_grid(15)
+    var c = render(contour(z, level_count=5, width=300, height=220))
+    assert_true(
+        _count_color(c, WHITE) < 300 * 220, "something was drawn over the page"
+    )
+
+
+def test_contour_dtype_overload_matches_the_float64_path() raises:
+    var zf = List[List[Float64]]()
+    var zi = List[List[Int]]()
+    for r in range(6):
+        var rowf = List[Float64]()
+        var rowi = List[Int]()
+        for c in range(7):
+            var v = (r * 7 + c) % 5
+            rowf.append(Float64(v))
+            rowi.append(v)
+        zf.append(rowf^)
+        zi.append(rowi^)
+
+    var a = render_svg(contour(zf, level_count=3, width=250, height=180))
+    var b = render_svg(contour(zi, level_count=3, width=250, height=180))
+    assert_equal(
+        a.to_string(), b.to_string(), "List[Int] matches List[Float64]"
+    )
+
+
+def test_render_contour_raises_on_a_ragged_grid() raises:
+    var z = List[List[Float64]]()
+    var r0 = List[Float64]()
+    r0.append(1.0)
+    r0.append(2.0)
+    z.append(r0^)
+    var r1 = List[Float64]()
+    r1.append(3.0)
+    z.append(r1^)
+    with assert_raises():
+        _ = render(contour(z, width=200, height=150))
+
+
+def test_render_contour_raises_on_a_grid_too_small_to_have_cells() raises:
+    var z = List[List[Float64]]()
+    var only = List[Float64]()
+    only.append(1.0)
+    only.append(2.0)
+    z.append(only^)
+    with assert_raises():
+        _ = render(contour(z, width=200, height=150))
+
+
+def test_render_contour_raises_on_non_positive_level_count() raises:
+    var z = _ramp_grid(4, 4)
+    with assert_raises():
+        _ = render(contour(z, level_count=0, width=200, height=150))
 
 
 def main() raises:
