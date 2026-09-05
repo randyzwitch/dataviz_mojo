@@ -3650,13 +3650,9 @@ def _build_line_path(
     endpoint +/- (next minus previous)/6 -- with the ends clamped to a
     one-sided tangent, and `smoothing` scaling the tangent length.
 
-    Bit-exactness against the arithmetic this used to do inline:
-    identical at `smoothing == 0.0`, and within 7.1e-15 above it, since
-    canvas folds the divide into the tangent scale (`t / 6.0` once)
-    where this multiplied and divided per component. That is far below
-    what rasterizing to a pixel grid can resolve, and canvas_mojo #235
-    removes even that by adopting the per-component order, so a later
-    tag restores bit-exactness.
+    Bit-identical to the arithmetic this used to do inline: canvas_mojo
+    v0.18.1 divides then scales per component, the same order, so every
+    control point matches to the last bit.
 
     This wrapper stays rather than callers using `curve_through`
     directly because the render paths carry points as parallel
@@ -4302,8 +4298,7 @@ def _draw_continuous_color_legend_h[
     var gradient = LinearGradient(
         Float64(bar_x), Float64(y), Float64(bar_x + bar_length), Float64(y)
     )
-    for i in range(len(color_scale.stops)):
-        var stop = color_scale.stops[i]
+    for stop in color_scale.stops:
         gradient.add_stop(stop.offset, stop.color)
     target.fill_rect_gradient(bar_x, y, bar_length, bar_thickness, gradient)
 
@@ -4442,8 +4437,7 @@ def _draw_continuous_color_legend[
     # in any order. Insertion sort, since the list is three stops long.
     var offsets = List[Float64](capacity=len(color_scale.stops))
     var colors = List[Color](capacity=len(color_scale.stops))
-    for i in range(len(color_scale.stops)):
-        var stop = color_scale.stops[i]
+    for stop in color_scale.stops:
         offsets.append(1.0 - stop.offset)
         colors.append(stop.color)
     for a in range(1, len(offsets)):
