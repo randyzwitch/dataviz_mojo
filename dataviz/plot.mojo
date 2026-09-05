@@ -3654,7 +3654,9 @@ def _build_line_path(
     identical at `smoothing == 0.0`, and within 7.1e-15 above it, since
     canvas folds the divide into the tangent scale (`t / 6.0` once)
     where this multiplied and divided per component. That is far below
-    what rasterizing to a pixel grid can resolve.
+    what rasterizing to a pixel grid can resolve, and canvas_mojo #235
+    removes even that by adopting the per-component order, so a later
+    tag restores bit-exactness.
 
     This wrapper stays rather than callers using `curve_through`
     directly because the render paths carry points as parallel

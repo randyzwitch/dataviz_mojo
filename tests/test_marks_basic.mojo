@@ -241,6 +241,13 @@ def _assert_control_point(
     these magnitudes, so the values are compared with a tolerance well
     inside that rather than bit-for-bit. A wrong formula would miss by
     orders of magnitude, not by an ULP.
+
+    Temporary. canvas_mojo #235 changes `curve_through` to divide then
+    scale per component -- the order these expectations were computed
+    in -- so from the tag that carries it the control points are
+    bit-identical again. Delete this helper at that bump and put the
+    `assert_equal` calls back; the expectations themselves do not
+    change.
     """
     assert_true(
         abs(actual - expected) <= 1e-13,
