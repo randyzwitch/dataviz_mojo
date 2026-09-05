@@ -1,5 +1,5 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
@@ -145,18 +145,18 @@ def _render_marimekko[
     # `_axis_pixel` on each running total.
     var x_cum = 0.0
     for j in range(n_cats):
-        var col_x0 = _round_to_int(Float64(plot_x0) + x_cum)
+        var col_x0 = round_to_int(Float64(plot_x0) + x_cum)
         x_cum += plot_width * (col_totals[j] / grand_total)
-        var col_x1 = _round_to_int(Float64(plot_x0) + x_cum)
+        var col_x1 = round_to_int(Float64(plot_x0) + x_cum)
 
         if col_totals[j] > 0.0:
             var y_cum = 0.0
             for i in range(n_subs):
-                var seg_bottom = _round_to_int(Float64(plot_y1) - y_cum)
+                var seg_bottom = round_to_int(Float64(plot_y1) - y_cum)
                 y_cum += plot_height * (
                     plot._marimekko.values[i][j] / col_totals[j]
                 )
-                var seg_top = _round_to_int(Float64(plot_y1) - y_cum)
+                var seg_top = round_to_int(Float64(plot_y1) - y_cum)
                 target.fill_rect(
                     col_x0,
                     seg_top,

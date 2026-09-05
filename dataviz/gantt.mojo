@@ -1,5 +1,5 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
@@ -174,7 +174,7 @@ def _draw_horizontal_categorical_axis_frame[
 
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for i in range(len(categories)):
-        var center_py = _round_to_int(y_scale.center(i))
+        var center_py = round_to_int(y_scale.center(i))
         target.draw_line_aa(
             plot_x0 - sc.tick_length,
             center_py,
@@ -273,9 +273,9 @@ def _render_gantt[
         cache=cache,
     )
 
-    var row_height = _round_to_int(frame.y_scale.bandwidth())
+    var row_height = round_to_int(frame.y_scale.bandwidth())
     for i in range(len(plot.x_categories)):
-        var row_y = _round_to_int(frame.y_scale.band_start(i))
+        var row_y = round_to_int(frame.y_scale.band_start(i))
         var start_px = _axis_pixel(frame.x_scale, plot._gantt.start[i])
         var end_px = _axis_pixel(frame.x_scale, plot._gantt.end[i])
         var bar_x = min(start_px, end_px)

@@ -50,7 +50,7 @@ from canvas.io.bmp import write_bmp
 from canvas.io.png import write_png
 from canvas.resize import downsample
 from canvas.vector.draw_target import DrawTarget
-from canvas.geometry import _round_to_int
+from canvas.geometry import FPoint, round_to_int
 from canvas.path import Path
 from canvas.vector.svg import SvgCanvas, _escape_xml_text, _escape_xml_attr
 from canvas.text.render import draw_text, measure_text, FontWeight, TextAlign
@@ -3347,7 +3347,7 @@ def _categorical_indices(data: List[String]) raises -> _CategoricalIndex:
 
 
 def _axis_pixel(scale: LinearScale, value: Float64) -> Int:
-    return _round_to_int(scale.to_pixel(value))
+    return round_to_int(scale.to_pixel(value))
 
 
 struct _BaselineRect(Movable):
@@ -3640,45 +3640,31 @@ def _build_line_path(
     already-pixel-projected points, and the curve `Mark.AREA` fills down
     to the baseline from.
 
-    `smoothing == 0.0` builds a `move_to` plus one `line_to` per point
-    through an explicit early branch, so the default render is
-    byte-identical to one that never touched curve math (a flattened
-    cubic Bezier samples at even parameter spacing, not even pixel
-    spacing, so even a straight cubic can flatten to different
-    intermediate points).
+    Delegates to `Path.curve_through`, which canvas_mojo v0.18.0 added
+    with exactly these semantics: `smoothing == 0.0` takes an explicit
+    `line_to` branch, so the default render is command-for-command the
+    one a polyline builds (a flattened cubic samples at even parameter
+    spacing, not even pixel spacing, so even a straight cubic flattens
+    to different intermediate points); above 0.0 it is one cubic per
+    consecutive pair with Catmull-Rom tangents -- control point =
+    endpoint +/- (next minus previous)/6 -- with the ends clamped to a
+    one-sided tangent, and `smoothing` scaling the tangent length.
 
-    `smoothing > 0.0` builds one cubic Bezier segment per consecutive
-    pair of points with Catmull-Rom-derived tangents: control point =
-    endpoint +/- (next point minus previous point)/6, with the first and
-    last points clamped to a one-sided tangent. `smoothing` scales the
-    tangent length directly, so `1.0` is the textbook Catmull-Rom curve
-    and `0.5` bows half as far.
+    Bit-exactness against the arithmetic this used to do inline:
+    identical at `smoothing == 0.0`, and within 7.1e-15 above it, since
+    canvas folds the divide into the tangent scale (`t / 6.0` once)
+    where this multiplied and divided per component. That is far below
+    what rasterizing to a pixel grid can resolve.
+
+    This wrapper stays rather than callers using `curve_through`
+    directly because the render paths carry points as parallel
+    `px`/`py` lists, not `FPoint`s.
     """
+    var points = List[FPoint](capacity=len(px))
+    for i in range(len(px)):
+        points.append(FPoint(px[i], py[i]))
     var path = Path()
-    if len(px) == 0:
-        return path^
-    path.move_to(px[0], py[0])
-    if smoothing <= 0.0:
-        for i in range(1, len(px)):
-            path.line_to(px[i], py[i])
-        return path^
-
-    var n = len(px)
-    for i in range(n - 1):
-        var prev = i - 1 if i > 0 else i
-        var next2 = i + 2 if i + 2 < n else i + 1
-        var t1x = (px[i + 1] - px[prev]) / 6.0 * smoothing
-        var t1y = (py[i + 1] - py[prev]) / 6.0 * smoothing
-        var t2x = (px[next2] - px[i]) / 6.0 * smoothing
-        var t2y = (py[next2] - py[i]) / 6.0 * smoothing
-        path.cubic_curve_to(
-            px[i] + t1x,
-            py[i] + t1y,
-            px[i + 1] - t2x,
-            py[i + 1] - t2y,
-            px[i + 1],
-            py[i + 1],
-        )
+    path.curve_through(points, smoothing)
     return path^
 
 
@@ -4247,7 +4233,7 @@ def _continuous_legend_row_height(sc: _Scaled, has_size: Bool) -> Int:
     """
     var bar = max(sc.continuous_legend_bar_width, Int(sc.font_size))
     var circles = (
-        2 * _round_to_int(sc.size_range_max) + Int(sc.font_size) + sc.label_gap
+        2 * round_to_int(sc.size_range_max) + Int(sc.font_size) + sc.label_gap
     )
     var tallest = max(bar, circles) if has_size else bar
     return tallest + sc.legend_row_gap + sc.margin_buffer
@@ -4314,7 +4300,8 @@ def _draw_continuous_color_legend_h[
     var gradient = LinearGradient(
         Float64(bar_x), Float64(y), Float64(bar_x + bar_length), Float64(y)
     )
-    for stop in color_scale.stops:
+    for i in range(len(color_scale.stops)):
+        var stop = color_scale.stops[i]
         gradient.add_stop(stop.offset, stop.color)
     target.fill_rect_gradient(bar_x, y, bar_length, bar_thickness, gradient)
 
@@ -4362,7 +4349,7 @@ def _draw_continuous_size_legend_h[
         The x just past this section.
     """
     var sc = _Scaled(theme)
-    var max_radius = _round_to_int(sc.size_range_max)
+    var max_radius = round_to_int(sc.size_range_max)
     var cursor = x
     var values = List[Float64]()
     values.append(size_mm.min)
@@ -4371,7 +4358,7 @@ def _draw_continuous_size_legend_h[
 
     for i in range(len(values)):
         var value = values[i]
-        var radius = _round_to_int(size_scale.to_pixel(value))
+        var radius = round_to_int(size_scale.to_pixel(value))
         var centre_x = cursor + max_radius
         var centre_y = y + max_radius
         target.fill_circle_aa(centre_x, centre_y, radius, theme.mark_color)
@@ -4453,7 +4440,8 @@ def _draw_continuous_color_legend[
     # in any order. Insertion sort, since the list is three stops long.
     var offsets = List[Float64](capacity=len(color_scale.stops))
     var colors = List[Color](capacity=len(color_scale.stops))
-    for stop in color_scale.stops:
+    for i in range(len(color_scale.stops)):
+        var stop = color_scale.stops[i]
         offsets.append(1.0 - stop.offset)
         colors.append(stop.color)
     for a in range(1, len(offsets)):
@@ -4525,10 +4513,10 @@ def _draw_continuous_size_legend[
     values.append(size_mm.min)
 
     var label_baseline_offset = Int(sc.font_size * 0.35)
-    var cx = x + _round_to_int(sc.size_range_max)
+    var cx = x + round_to_int(sc.size_range_max)
     var top_y = y
     for v in values:
-        var radius = _round_to_int(size_scale.to_pixel(v))
+        var radius = round_to_int(size_scale.to_pixel(v))
         var center_y = top_y + radius
         target.fill_circle_aa(cx, center_y, radius, theme.mark_color)
         text_requests.append(
@@ -5143,7 +5131,7 @@ def _draw_annotation_points[
     var px_right = max(result.px0, result.px1)
     var py_top = min(result.py0, result.py1)
     var py_bottom = max(result.py0, result.py1)
-    var radius = _round_to_int(sc.point_radius)
+    var radius = round_to_int(sc.point_radius)
     for i in range(len(plot._annotations.point_x)):
         var px = _axis_pixel(result.x_scale, plot._annotations.point_x[i])
         var py = _axis_pixel(result.y_scale, plot._annotations.point_y[i])
@@ -6429,7 +6417,7 @@ def _legend_reserve_for(
         size_labels.append(
             _format_tick(ch.size_mm.min, 1, plot._theme.y_tick_format)
         )
-        var circle_content_width = 2 * _round_to_int(sc.size_range_max)
+        var circle_content_width = 2 * round_to_int(sc.size_range_max)
         reserve = max(
             reserve,
             _dynamic_legend_width(
@@ -6709,9 +6697,9 @@ def _draw_point_layer[
             color = ch.palette[ch.cat.indices[i] % len(ch.palette)]
         else:
             color = theme.mark_color
-        var radius = _round_to_int(
+        var radius = round_to_int(
             ch.size_scale.to_pixel(plot.size_data[i])
-        ) if ch.has_size else _round_to_int(sc.point_radius)
+        ) if ch.has_size else round_to_int(sc.point_radius)
         # One group per point, covering its error bar, halo and marker
         # -- all one datum. The deferred label sits outside it, since
         # text is replayed after this pass (see _TextRequest).
@@ -6733,7 +6721,7 @@ def _draw_point_layer[
                 hi = plot.y_data[i] + plot.y_err_upper_data[i]
             var py_hi = _axis_pixel(y_scale, hi)
             var py_lo = _axis_pixel(y_scale, lo)
-            var cap_half = _round_to_int(sc.error_bar_cap_width)
+            var cap_half = round_to_int(sc.error_bar_cap_width)
             target.draw_line_aa(px, py_hi, px, py_lo, color, width=sc.scale)
             target.draw_line_aa(
                 px - cap_half,
@@ -6755,7 +6743,7 @@ def _draw_point_layer[
             target.fill_circle_aa(
                 px,
                 py,
-                _round_to_int(Float64(radius) * 2.2),
+                round_to_int(Float64(radius) * 2.2),
                 _lighten(color, theme.halo_alpha),
             )
         if ch.has_shapes:
@@ -6902,9 +6890,9 @@ def _draw_line_layer[
     var sc = _Scaled(theme)
     _check_line_smoothing(theme)
     if len(plot.y_err_data) > 0:
-        var cap_half = _round_to_int(sc.error_bar_cap_width)
+        var cap_half = round_to_int(sc.error_bar_cap_width)
         for i in range(len(plot.x_data)):
-            var px_i = _round_to_int(x_scale.to_pixel(plot.x_data[i]))
+            var px_i = round_to_int(x_scale.to_pixel(plot.x_data[i]))
             var err = plot.y_err_data[i]
             var py_hi = _axis_pixel(y_scale, plot.y_data[i] + err)
             var py_lo = _axis_pixel(y_scale, plot.y_data[i] - err)
@@ -6954,7 +6942,7 @@ def _draw_area_layer[
     var theme = plot._theme
     _check_line_smoothing(theme)
     var baseline_py = y_scale.to_pixel(0.0)
-    if _round_to_int(baseline_py) == _round_to_int(y_scale.range_min):
+    if round_to_int(baseline_py) == round_to_int(y_scale.range_min):
         baseline_py -= 1.0
     var px = List[Float64](capacity=len(plot.x_data))
     var py = List[Float64](capacity=len(plot.x_data))
@@ -7454,7 +7442,7 @@ def _draw_categorical_axis_frame[
         theme.x_label_rotation, x_label_max_width, x_scale.step()
     )
     var x_label_extra_bottom = (
-        _round_to_int(
+        round_to_int(
             sin(x_label_rotation) * x_label_max_width
         ) if x_label_rotation
         > 0.0 else 0
@@ -7510,7 +7498,7 @@ def _draw_categorical_axis_frame[
         )
 
     for i in range(len(categories)):
-        var center_px = _round_to_int(x_scale.center(i))
+        var center_px = round_to_int(x_scale.center(i))
         target.draw_line_aa(
             center_px,
             plot_y1,
@@ -8141,11 +8129,11 @@ def _render_bar_combo_layers[
             px.append(frame.x_scale.center(k))
             py.append(frame.y_scale.to_pixel(plots[i].y_data[k]))
         if plots[i]._mark == Mark.POINT:
-            var radius = _round_to_int(layer_sc.point_radius)
+            var radius = round_to_int(layer_sc.point_radius)
             for k in range(len(px)):
                 target.fill_circle_aa(
-                    _round_to_int(px[k]),
-                    _round_to_int(py[k]),
+                    round_to_int(px[k]),
+                    round_to_int(py[k]),
                     radius,
                     layer_theme.mark_color,
                 )
@@ -8159,7 +8147,7 @@ def _render_bar_combo_layers[
             # _draw_area_layer uses, just against this frame's
             # categorical x positions instead of a continuous x_scale.
             var baseline_py = frame.y_scale.to_pixel(0.0)
-            if _round_to_int(baseline_py) == _round_to_int(
+            if round_to_int(baseline_py) == round_to_int(
                 frame.y_scale.range_min
             ):
                 baseline_py -= 1.0

@@ -1,6 +1,6 @@
 from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.path import Path
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
@@ -240,13 +240,13 @@ def _render_sankey[
 
     var text_requests = List[_TextRequest]()
     for i in range(n):
-        var x = _round_to_int(col_x[column[i]])
-        var y0 = _round_to_int(node_y0[i])
-        var h = max(1, _round_to_int(node_y1[i]) - y0)
+        var x = round_to_int(col_x[column[i]])
+        var y0 = round_to_int(node_y0[i])
+        var h = max(1, round_to_int(node_y1[i]) - y0)
         target.fill_rect(
-            x, y0, _round_to_int(node_width), h, palette[i % len(palette)]
+            x, y0, round_to_int(node_width), h, palette[i % len(palette)]
         )
-        var label_x = x + _round_to_int(node_width) + sc.label_gap
+        var label_x = x + round_to_int(node_width) + sc.label_gap
         var label_y = y0 + h // 2 + Int(sc.font_size * 0.35)
         text_requests.append(
             _TextRequest(

@@ -16,7 +16,7 @@ from _test_helpers import (
     _count_color,
 )
 from canvas.color import Color
-from canvas.path import Path, _CLOSE, _CUBIC_TO, _LINE_TO, _MOVE_TO
+from canvas.path import Path, PathOp
 from dataviz import (
     area,
     bar,
@@ -33,7 +33,6 @@ from dataviz import (
     waterfall,
 )
 from dataviz.barbs import _barb_counts, _barb_glyph
-from canvas.path import Path
 from dataviz.delaunay import _in_circumcircle, delaunay
 from dataviz.tricontour import _tricontour_segments
 from dataviz.contour import (
@@ -182,7 +181,7 @@ def test_render_categorical_color_matches_hand_derived_palette_entries() raises:
 def test_render_svg_point_mark_matches_hand_derived_coordinates() raises:
     # The same single-(5.0, 5.0)-point setup as the raster test: (220,
     # 135), radius 4, through render_svg(). Integer coordinates (from
-    # _round_to_int) can't drift between float implementations.
+    # round_to_int) can't drift between float implementations.
     var xy: List[Float64] = [5.0]
     var plot = Plot().mark_point().encode(x=xy, y=xy).size(400, 300)
     var svg = render_svg(plot)
@@ -214,53 +213,107 @@ def test_render_line_mark_draws_ink_between_the_two_endpoints() raises:
 
 def test_build_line_path_zero_smoothing_is_a_plain_polyline() raises:
     # smoothing=0.0 takes the early no-curve-math branch: every command
-    # after move_to is _LINE_TO.
+    # after move_to is PathOp.LINE_TO.
     var px: List[Float64] = [0.0, 10.0, 30.0, 50.0]
     var py: List[Float64] = [0.0, 20.0, 5.0, 25.0]
     var path = _build_line_path(px, py, 0.0)
     assert_equal(len(path.commands), 4)
-    assert_equal(path.commands[0].kind, _MOVE_TO)
+    assert_true(
+        path.commands[0].op == PathOp.MOVE_TO, "path.commands[0] is MOVE_TO"
+    )
     for i in range(1, 4):
-        assert_equal(path.commands[i].kind, _LINE_TO)
+        assert_true(
+            path.commands[i].op == PathOp.LINE_TO, "path.commands[i] is LINE_TO"
+        )
         assert_equal(path.commands[i].p1.x, px[i])
         assert_equal(path.commands[i].p1.y, py[i])
 
 
+def _assert_control_point(
+    actual: Float64, expected: Float64, label: String
+) raises:
+    """One Catmull-Rom control point, to within float-associativity noise.
+
+    `Path.curve_through` (canvas_mojo v0.18.0) folds the divide into the
+    tangent scale -- `tension / 6.0` once, then one multiply per
+    component -- where this test's expectations came from dividing and
+    multiplying per component. The two orders agree to about 7e-15 on
+    these magnitudes, so the values are compared with a tolerance well
+    inside that rather than bit-for-bit. A wrong formula would miss by
+    orders of magnitude, not by an ULP.
+    """
+    assert_true(
+        abs(actual - expected) <= 1e-13,
+        label + ": got " + String(actual) + ", expected " + String(expected),
+    )
+
+
 def test_build_line_path_full_smoothing_matches_hand_derived_control_points() raises:
     # The uniform Catmull-Rom to Bezier conversion (control point =
-    # endpoint +/- (next - previous)/6), reimplemented in python3 with the
-    # same operation order so the Float64s match bit-for-bit, for 4 points
-    # with a bend at each interior point; endpoints clamp to a one-sided
-    # tangent.
+    # endpoint +/- (next - previous)/6), reimplemented in python3 for 4
+    # points with a bend at each interior point; endpoints clamp to a
+    # one-sided tangent. Compared through _assert_control_point rather
+    # than bit-for-bit: the expectations were computed with one operation
+    # order and `Path.curve_through` uses another, which moves the last
+    # ULP without moving a rendered pixel (every smoothed golden is
+    # byte-identical across the change).
     var px: List[Float64] = [0.0, 10.0, 30.0, 50.0]
     var py: List[Float64] = [0.0, 20.0, 5.0, 25.0]
     var path = _build_line_path(px, py, 1.0)
     assert_equal(len(path.commands), 4)
-    assert_equal(path.commands[0].kind, _MOVE_TO)
+    assert_true(
+        path.commands[0].op == PathOp.MOVE_TO, "path.commands[0] is MOVE_TO"
+    )
 
-    assert_equal(path.commands[1].kind, _CUBIC_TO)
-    assert_equal(path.commands[1].p1.x, 1.6666666666666667)
-    assert_equal(path.commands[1].p1.y, 3.3333333333333335)
-    assert_equal(path.commands[1].p2.x, 5.0)
-    assert_equal(path.commands[1].p2.y, 19.166666666666668)
-    assert_equal(path.commands[1].p3.x, 10.0)
-    assert_equal(path.commands[1].p3.y, 20.0)
+    assert_true(
+        path.commands[1].op == PathOp.CUBIC_TO, "path.commands[1] is CUBIC_TO"
+    )
+    _assert_control_point(
+        path.commands[1].p1.x, 1.6666666666666667, "path.commands[1].p1.x"
+    )
+    _assert_control_point(
+        path.commands[1].p1.y, 3.3333333333333335, "path.commands[1].p1.y"
+    )
+    _assert_control_point(path.commands[1].p2.x, 5.0, "path.commands[1].p2.x")
+    _assert_control_point(
+        path.commands[1].p2.y, 19.166666666666668, "path.commands[1].p2.y"
+    )
+    _assert_control_point(path.commands[1].p3.x, 10.0, "path.commands[1].p3.x")
+    _assert_control_point(path.commands[1].p3.y, 20.0, "path.commands[1].p3.y")
 
-    assert_equal(path.commands[2].kind, _CUBIC_TO)
-    assert_equal(path.commands[2].p1.x, 15.0)
-    assert_equal(path.commands[2].p1.y, 20.833333333333332)
-    assert_equal(path.commands[2].p2.x, 23.333333333333332)
-    assert_equal(path.commands[2].p2.y, 4.166666666666667)
-    assert_equal(path.commands[2].p3.x, 30.0)
-    assert_equal(path.commands[2].p3.y, 5.0)
+    assert_true(
+        path.commands[2].op == PathOp.CUBIC_TO, "path.commands[2] is CUBIC_TO"
+    )
+    _assert_control_point(path.commands[2].p1.x, 15.0, "path.commands[2].p1.x")
+    _assert_control_point(
+        path.commands[2].p1.y, 20.833333333333332, "path.commands[2].p1.y"
+    )
+    _assert_control_point(
+        path.commands[2].p2.x, 23.333333333333332, "path.commands[2].p2.x"
+    )
+    _assert_control_point(
+        path.commands[2].p2.y, 4.166666666666667, "path.commands[2].p2.y"
+    )
+    _assert_control_point(path.commands[2].p3.x, 30.0, "path.commands[2].p3.x")
+    _assert_control_point(path.commands[2].p3.y, 5.0, "path.commands[2].p3.y")
 
-    assert_equal(path.commands[3].kind, _CUBIC_TO)
-    assert_equal(path.commands[3].p1.x, 36.666666666666664)
-    assert_equal(path.commands[3].p1.y, 5.833333333333333)
-    assert_equal(path.commands[3].p2.x, 46.666666666666664)
-    assert_equal(path.commands[3].p2.y, 21.666666666666668)
-    assert_equal(path.commands[3].p3.x, 50.0)
-    assert_equal(path.commands[3].p3.y, 25.0)
+    assert_true(
+        path.commands[3].op == PathOp.CUBIC_TO, "path.commands[3] is CUBIC_TO"
+    )
+    _assert_control_point(
+        path.commands[3].p1.x, 36.666666666666664, "path.commands[3].p1.x"
+    )
+    _assert_control_point(
+        path.commands[3].p1.y, 5.833333333333333, "path.commands[3].p1.y"
+    )
+    _assert_control_point(
+        path.commands[3].p2.x, 46.666666666666664, "path.commands[3].p2.x"
+    )
+    _assert_control_point(
+        path.commands[3].p2.y, 21.666666666666668, "path.commands[3].p2.y"
+    )
+    _assert_control_point(path.commands[3].p3.x, 50.0, "path.commands[3].p3.x")
+    _assert_control_point(path.commands[3].p3.y, 25.0, "path.commands[3].p3.y")
 
 
 def test_render_line_smoothing_default_matches_straight_line_output_exactly() raises:
@@ -1427,34 +1480,64 @@ def test_barb_glyph_places_features_from_the_tip_inward() raises:
 
     assert_equal(len(strokes[0].commands), 6)
     # The staff, origin to tip along +x.
-    assert_equal(strokes[0].commands[0].kind, _MOVE_TO)
+    assert_true(
+        strokes[0].commands[0].op == PathOp.MOVE_TO,
+        "strokes[0].commands[0] is MOVE_TO",
+    )
     assert_equal(strokes[0].commands[0].p1.x, 0.0)
     assert_equal(strokes[0].commands[0].p1.y, 0.0)
-    assert_equal(strokes[0].commands[1].kind, _LINE_TO)
+    assert_true(
+        strokes[0].commands[1].op == PathOp.LINE_TO,
+        "strokes[0].commands[1] is LINE_TO",
+    )
     assert_equal(strokes[0].commands[1].p1.x, 28.0)
     assert_equal(strokes[0].commands[1].p1.y, 0.0)
     # The full barb: 28 - 7 (the flag) - 3.5 (a spacing) = 17.5.
-    assert_equal(strokes[0].commands[2].kind, _MOVE_TO)
+    assert_true(
+        strokes[0].commands[2].op == PathOp.MOVE_TO,
+        "strokes[0].commands[2] is MOVE_TO",
+    )
     assert_equal(strokes[0].commands[2].p1.x, 17.5)
-    assert_equal(strokes[0].commands[3].kind, _LINE_TO)
+    assert_true(
+        strokes[0].commands[3].op == PathOp.LINE_TO,
+        "strokes[0].commands[3] is LINE_TO",
+    )
     assert_equal(strokes[0].commands[3].p1.x, 14.0)
     assert_equal(strokes[0].commands[3].p1.y, -11.200000000000001)
     # The half barb: one more spacing inboard, half the height.
-    assert_equal(strokes[0].commands[4].kind, _MOVE_TO)
+    assert_true(
+        strokes[0].commands[4].op == PathOp.MOVE_TO,
+        "strokes[0].commands[4] is MOVE_TO",
+    )
     assert_equal(strokes[0].commands[4].p1.x, 14.0)
-    assert_equal(strokes[0].commands[5].kind, _LINE_TO)
+    assert_true(
+        strokes[0].commands[5].op == PathOp.LINE_TO,
+        "strokes[0].commands[5] is LINE_TO",
+    )
     assert_equal(strokes[0].commands[5].p1.x, 12.25)
     assert_equal(strokes[0].commands[5].p1.y, -5.6000000000000005)
 
     # The flag is a closed triangle: tip, apex, back down the staff.
     assert_equal(len(pennants[0].commands), 4)
-    assert_equal(pennants[0].commands[0].kind, _MOVE_TO)
+    assert_true(
+        pennants[0].commands[0].op == PathOp.MOVE_TO,
+        "pennants[0].commands[0] is MOVE_TO",
+    )
     assert_equal(pennants[0].commands[0].p1.x, 28.0)
-    assert_equal(pennants[0].commands[1].kind, _LINE_TO)
+    assert_true(
+        pennants[0].commands[1].op == PathOp.LINE_TO,
+        "pennants[0].commands[1] is LINE_TO",
+    )
     assert_equal(pennants[0].commands[1].p1.y, -11.200000000000001)
-    assert_equal(pennants[0].commands[2].kind, _LINE_TO)
+    assert_true(
+        pennants[0].commands[2].op == PathOp.LINE_TO,
+        "pennants[0].commands[2] is LINE_TO",
+    )
     assert_equal(pennants[0].commands[2].p1.x, 21.0)
-    assert_equal(pennants[0].commands[3].kind, _CLOSE)
+    assert_true(
+        pennants[0].commands[3].op == PathOp.CLOSE,
+        "pennants[0].commands[3] is CLOSE",
+    )
 
 
 def test_barb_glyph_lone_half_barb_insets_from_the_tip() raises:
@@ -1465,7 +1548,10 @@ def test_barb_glyph_lone_half_barb_insets_from_the_tip() raises:
     _barb_glyph(strokes, pennants, _barb_counts(5.0), 28.0, False)
     assert_equal(len(strokes[0].commands), 4)
     assert_equal(len(pennants[0].commands), 0, "5 knots has no flag")
-    assert_equal(strokes[0].commands[2].kind, _MOVE_TO)
+    assert_true(
+        strokes[0].commands[2].op == PathOp.MOVE_TO,
+        "strokes[0].commands[2] is MOVE_TO",
+    )
     assert_equal(strokes[0].commands[2].p1.x, 24.5, "28 - one 3.5 spacing")
 
 

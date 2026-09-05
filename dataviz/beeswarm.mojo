@@ -1,5 +1,5 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
@@ -104,7 +104,7 @@ def _draw_beeswarm_points[
     var theme = plot._theme
     var spacing = 2 * radius
     for i in range(len(plot.x_categories)):
-        var center = _round_to_int(band_scale.center(i))
+        var center = round_to_int(band_scale.center(i))
         var value_pixels = List[Int]()
         for v in plot._distribution.values[i]:
             value_pixels.append(_axis_pixel(value_scale, v))
@@ -169,7 +169,7 @@ def _render_beeswarm[
         frame.x_scale,
         frame.y_scale,
         _Orientation(False),
-        _round_to_int(sc.point_radius),
+        round_to_int(sc.point_radius),
     )
 
     return frame.result()
@@ -217,7 +217,7 @@ def _render_horizontal_beeswarm[
         frame.y_scale,
         frame.x_scale,
         _Orientation(True),
-        _round_to_int(sc.point_radius),
+        round_to_int(sc.point_radius),
     )
 
     return frame.result()

@@ -1,5 +1,5 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
@@ -212,7 +212,7 @@ def _render_calendar_heatmap[
 
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for row in range(7):
-        var cy = _round_to_int(
+        var cy = round_to_int(
             Float64(plot_y0) + (Float64(row) + 0.5) * cell_height
         )
         text_requests.append(
@@ -230,7 +230,7 @@ def _render_calendar_heatmap[
     for month in range(1, 13):
         var days = _days_from_civil(_Date(year, month, 1)) - jan1_days
         var col = (days + jan1_dow) // 7
-        var cx = _round_to_int(Float64(plot_x0) + Float64(col) * cell_width)
+        var cx = round_to_int(Float64(plot_x0) + Float64(col) * cell_width)
         text_requests.append(
             _TextRequest(
                 cx,
@@ -247,16 +247,14 @@ def _render_calendar_heatmap[
         var days = _days_from_civil(parsed[i]) - jan1_days
         var col = (days + jan1_dow) // 7
         var row = _day_of_week(days + jan1_days)
-        var cell_x = _round_to_int(Float64(plot_x0) + Float64(col) * cell_width)
-        var cell_y = _round_to_int(
-            Float64(plot_y0) + Float64(row) * cell_height
-        )
+        var cell_x = round_to_int(Float64(plot_x0) + Float64(col) * cell_width)
+        var cell_y = round_to_int(Float64(plot_y0) + Float64(row) * cell_height)
         var color = color_scale.color_at(plot._calendar.values[i])
         target.fill_rect(
             cell_x,
             cell_y,
-            _round_to_int(cell_width),
-            _round_to_int(cell_height),
+            round_to_int(cell_width),
+            round_to_int(cell_height),
             color,
         )
 

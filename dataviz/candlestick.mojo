@@ -1,5 +1,5 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -138,9 +138,9 @@ def _render_candlestick[
         cache=cache,
     )
 
-    var body_width = _round_to_int(frame.x_scale.bandwidth())
+    var body_width = round_to_int(frame.x_scale.bandwidth())
     for i in range(len(plot.x_categories)):
-        var center_px = _round_to_int(frame.x_scale.center(i))
+        var center_px = round_to_int(frame.x_scale.center(i))
         var high_py = _axis_pixel(frame.y_scale, plot._candle.high[i])
         var low_py = _axis_pixel(frame.y_scale, plot._candle.low[i])
         if theme.svg_tooltips:
@@ -166,7 +166,7 @@ def _render_candlestick[
 
         var open_py = _axis_pixel(frame.y_scale, plot._candle.open_price[i])
         var close_py = _axis_pixel(frame.y_scale, plot._candle.close_price[i])
-        var body_x = _round_to_int(frame.x_scale.band_start(i))
+        var body_x = round_to_int(frame.x_scale.band_start(i))
         var body_y = min(open_py, close_py)
         var body_height = max(
             1, max(open_py, close_py) - min(open_py, close_py)

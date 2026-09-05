@@ -2,7 +2,7 @@ from std.math import sqrt
 
 from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
@@ -92,7 +92,7 @@ def _render_ridgeline[
         # line (padding=0.0 tiles rows edge to edge). Pulled 1px up so the
         # curve's flat closing edge doesn't paint over the line's antialiasing,
         # the same `_pull_off_axis_line` reasoning (plot.mojo).
-        if _round_to_int(baseline_y) == frame.py1:
+        if round_to_int(baseline_y) == frame.py1:
             baseline_y -= 1.0
         var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
             plot._distribution.kde_scale_by_count and max_n > 0

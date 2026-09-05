@@ -1,5 +1,5 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
@@ -57,11 +57,11 @@ def _draw_lollipop_stems[
     var theme = plot._theme
     var sc = _Scaled(theme)
     var baseline = value_scale.to_pixel(0.0)
-    var baseline_on_axis_line = _round_to_int(baseline) == baseline_edge
-    var band_size = _round_to_int(band_scale.bandwidth())
+    var baseline_on_axis_line = round_to_int(baseline) == baseline_edge
+    var band_size = round_to_int(band_scale.bandwidth())
 
     for i in range(len(plot.x_categories)):
-        var band_pos = _round_to_int(band_scale.band_start(i))
+        var band_pos = round_to_int(band_scale.band_start(i))
         var center = band_scale.center(i)
         var value = value_scale.to_pixel(plot.y_data[i])
         var stem_from = (
@@ -81,8 +81,8 @@ def _draw_lollipop_stems[
         )
         orient.band_point(
             target,
-            _round_to_int(value),
-            _round_to_int(center),
+            round_to_int(value),
+            round_to_int(center),
             radius,
             theme.mark_color,
         )
@@ -169,7 +169,7 @@ def _render_lollipop[
         frame.py1,
         _Orientation(False),
         frame.sc.line_width,
-        _round_to_int(frame.sc.point_radius),
+        round_to_int(frame.sc.point_radius),
         frame.text_requests,
     )
 
@@ -221,7 +221,7 @@ def _render_horizontal_lollipop[
         frame.px0,
         _Orientation(True),
         frame.sc.line_width,
-        _round_to_int(frame.sc.point_radius),
+        round_to_int(frame.sc.point_radius),
         frame.text_requests,
     )
 

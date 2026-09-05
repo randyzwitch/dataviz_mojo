@@ -1,7 +1,7 @@
 from std.math import cos, pi, sin
 
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
@@ -89,10 +89,10 @@ def _render_graph[
         var width = sc.line_width + sc.line_width * 2.0 * frac
         var color = palette[from_idx % len(palette)]
         target.draw_line_aa(
-            _round_to_int(node_x[from_idx]),
-            _round_to_int(node_y[from_idx]),
-            _round_to_int(node_x[to_idx]),
-            _round_to_int(node_y[to_idx]),
+            round_to_int(node_x[from_idx]),
+            round_to_int(node_y[from_idx]),
+            round_to_int(node_x[to_idx]),
+            round_to_int(node_y[to_idx]),
             color,
             width,
         )
@@ -101,9 +101,9 @@ def _render_graph[
     for i in range(n):
         var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
         var color = palette[i % len(palette)]
-        var px = _round_to_int(node_x[i])
-        var py = _round_to_int(node_y[i])
-        target.fill_circle_aa(px, py, _round_to_int(sc.point_radius), color)
+        var px = round_to_int(node_x[i])
+        var py = round_to_int(node_y[i])
+        target.fill_circle_aa(px, py, round_to_int(sc.point_radius), color)
 
         var label_x = cx + (max_radius + Float64(sc.label_gap)) * cos(angle)
         var label_y = cy + (max_radius + Float64(sc.label_gap)) * sin(angle)
@@ -115,8 +115,8 @@ def _render_graph[
             align = TextAlign.RIGHT
         text_requests.append(
             _TextRequest(
-                _round_to_int(label_x),
-                _round_to_int(label_y) + Int(sc.font_size * 0.35),
+                round_to_int(label_x),
+                round_to_int(label_y) + Int(sc.font_size * 0.35),
                 nodes[i],
                 theme.text_color,
                 sc.font_size,

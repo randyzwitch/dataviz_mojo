@@ -33,7 +33,7 @@ from _test_helpers import (
     _count_color,
 )
 from canvas.color import Color
-from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
+from canvas.path import PathOp
 from dataviz.color_scale import default_categorical_palette
 from dataviz.colors import CORNFLOWERBLUE, MAGENTA, RED, TOMATO
 from dataviz.plot import (

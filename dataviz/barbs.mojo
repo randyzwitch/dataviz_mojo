@@ -2,7 +2,7 @@ from std.math import atan2, sqrt
 
 from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
-from canvas.geometry import Transform2D, _round_to_int
+from canvas.geometry import Transform2D, round_to_int
 from canvas.path import Path
 from dataviz.plot import FontCache, _LegendLayout
 from canvas.vector.draw_target import DrawTarget
@@ -244,7 +244,7 @@ def _render_barbs[
 
     var length = plot._barbs.length * frame.sc.scale
     var stroke_width = frame.sc.scale
-    var empty_radius = _round_to_int(_EMPTY_RADIUS * length)
+    var empty_radius = round_to_int(_EMPTY_RADIUS * length)
 
     # One glyph per distinct speed bucket, built lazily. `keys` is the
     # rounded-to-5 speed as an integer; the bucket count is small (a
@@ -264,8 +264,8 @@ def _render_barbs[
 
         if counts.calm:
             target.draw_ellipse_aa(
-                _round_to_int(px),
-                _round_to_int(py),
+                round_to_int(px),
+                round_to_int(py),
                 empty_radius,
                 empty_radius,
                 theme.mark_color,

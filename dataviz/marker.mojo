@@ -15,7 +15,7 @@ same way `default_categorical_palette()`'s first color does.
 
 from canvas.color import Color
 from canvas.fill_rule import FillRule
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
@@ -121,7 +121,7 @@ def _fill_shape_aa[
         )
     else:
         # PointShape.X: CROSS's two strokes rotated 45 degrees.
-        var diag = _round_to_int(Float64(radius) * _COS_45)
+        var diag = round_to_int(Float64(radius) * _COS_45)
         var width = Float64(radius) * 0.65
         target.draw_line_aa(
             cx - diag, cy - diag, cx + diag, cy + diag, color, width=width

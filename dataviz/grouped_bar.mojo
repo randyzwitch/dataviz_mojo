@@ -1,6 +1,6 @@
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from canvas.text.render import TextAlign
@@ -218,13 +218,13 @@ def _draw_grouped_bars[
     var baseline = _axis_pixel(value_scale, 0.0)
     var sub_size = band_scale.bandwidth() / Float64(n_series)
     var has_errors = len(plot._grouped_bar.errors) > 0
-    var cap_half = _round_to_int(sc.error_bar_cap_width)
+    var cap_half = round_to_int(sc.error_bar_cap_width)
 
     for i in range(len(plot.x_categories)):
         var band_start = band_scale.band_start(i)
         for j in range(n_series):
-            var near = _round_to_int(band_start + Float64(j) * sub_size)
-            var far = _round_to_int(band_start + Float64(j + 1) * sub_size)
+            var near = round_to_int(band_start + Float64(j) * sub_size)
+            var far = round_to_int(band_start + Float64(j + 1) * sub_size)
             var value = plot._grouped_bar.values[j][i]
             var extent = _pull_off_axis_line(
                 baseline, _axis_pixel(value_scale, value), baseline_edge
@@ -240,7 +240,7 @@ def _draw_grouped_bars[
                 )
             if has_errors:
                 var err = plot._grouped_bar.errors[j][i]
-                var center_j = _round_to_int(Float64(near + far) / 2.0)
+                var center_j = round_to_int(Float64(near + far) / 2.0)
                 var py_hi = _axis_pixel(value_scale, value + err)
                 var py_lo = _axis_pixel(value_scale, value - err)
                 orient.value_line(

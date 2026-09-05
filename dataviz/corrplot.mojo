@@ -1,5 +1,5 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
@@ -149,9 +149,9 @@ def _render_corrplot[
             if plot._corrplot.layout == "upper" and col < row:
                 continue
             var value = plot._corrplot.matrix[row][col]
-            var cx = _round_to_int(frame.x_scale.center(col))
-            var cy = _round_to_int(frame.y_scale.center(row))
-            var radius = _round_to_int(max_radius * abs(value))
+            var cx = round_to_int(frame.x_scale.center(col))
+            var cy = round_to_int(frame.y_scale.center(row))
+            var radius = round_to_int(max_radius * abs(value))
             target.fill_circle_aa(cx, cy, radius, color_scale.color_at(value))
             if plot._corrplot.labels:
                 frame.text_requests.append(
@@ -171,7 +171,7 @@ def _render_corrplot[
             target,
             frame.text_requests,
             color_scale,
-            _round_to_int(frame.x_scale.range_max) + sc.margin_right,
+            round_to_int(frame.x_scale.range_max) + sc.margin_right,
             frame.py0,
             theme,
         )

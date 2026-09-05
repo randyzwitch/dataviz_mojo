@@ -1,5 +1,5 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -148,10 +148,10 @@ def _render_population_pyramid[
 
     var palette = default_categorical_palette()
     var center_px = _axis_pixel(frame.x_scale, 0.0)
-    var row_height = _round_to_int(frame.y_scale.bandwidth())
+    var row_height = round_to_int(frame.y_scale.bandwidth())
     var orient = _Orientation(True)  # bars grow horizontally from center
     for i in range(len(plot.x_categories)):
-        var row_y = _round_to_int(frame.y_scale.band_start(i))
+        var row_y = round_to_int(frame.y_scale.band_start(i))
 
         var left_edge_px = _axis_pixel(
             frame.x_scale, -max(plot._pyramid.left[i], -plot._pyramid.left[i])
