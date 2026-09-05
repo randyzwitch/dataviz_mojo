@@ -18,8 +18,9 @@ from dataviz.plot import (
     _TextRequest,
     _axis_pixel,
     _draw_categorical_axis_frame,
-    _draw_legend,
-    _dynamic_legend_width,
+    _LegendLayout,
+    _draw_legend_at,
+    _legend_layout,
     _pull_off_axis_line,
     _finished,
     _require_non_empty,
@@ -106,17 +107,22 @@ def _validate_grouped_bar_series(plot: Plot) raises:
 
 
 def _series_legend_reserve(
-    plot: Plot, sc: _Scaled, *, mut cache: _LazyFontCache
-) raises -> Int:
-    """The width the series-name legend needs, or `0` when
-    `Theme.show_legend` is off. Subtracted from the outer `ox1` before the
-    axis frame is built, the same shrink-the-rect-from-outside pattern
-    `_apply_labels` uses.
+    plot: Plot, sc: _Scaled, available_width: Int, *, mut cache: _LazyFontCache
+) raises -> _LegendLayout:
+    """How much room the series-name legend needs and on which edge, or an
+    inactive layout when `Theme.show_legend` is off. Insets the outer
+    bounds before the axis frame is built, the same
+    shrink-the-rect-from-outside pattern `_apply_labels` uses.
     """
     if not plot._theme.show_legend:
-        return 0
-    return _dynamic_legend_width(
-        plot._grouped_bar.series_names, sc.legend_swatch_size, sc, cache=cache
+        return _LegendLayout()
+    return _legend_layout(
+        plot._grouped_bar.series_names,
+        sc.legend_swatch_size,
+        sc,
+        plot._theme,
+        available_width,
+        cache=cache,
     )
 
 
@@ -128,24 +134,27 @@ def _draw_series_legend[
     plot: Plot,
     sc: _Scaled,
     palette: List[Color],
-    legend_range_max: Int,
-    legend_y: Int,
+    legend: _LegendLayout,
+    plot_x0: Int,
+    plot_y0: Int,
+    plot_x1: Int,
+    plot_y1: Int,
     theme: Theme,
 ) raises:
-    """The one `_draw_legend` call `Mark.GROUPED_BAR`/`STACKED_BAR` make in
-    both orientations. `legend_range_max + sc.margin_right` is the x
-    position (the frame's continuous scale's `range_max`, already rounded
-    by the caller); `legend_y` is the vertical frame's
-    `y_scale.range_max` or the horizontal frame's `py0`, both the plot's
-    top pixel.
+    """The one legend call `Mark.GROUPED_BAR`/`STACKED_BAR` make in both
+    orientations, against the plot rect the legend was already reserved
+    out of. `_draw_legend_at` places it on whichever edge `legend` took.
     """
-    _draw_legend(
+    _draw_legend_at(
         target,
         text_requests,
         plot._grouped_bar.series_names,
         palette,
-        legend_range_max + sc.margin_right,
-        legend_y,
+        legend,
+        plot_x0,
+        plot_y0,
+        plot_x1,
+        plot_y1,
         theme,
     )
 
@@ -316,17 +325,17 @@ def _render_grouped_bar[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = _series_legend_reserve(plot, sc, cache=cache)
+    var legend = _series_legend_reserve(plot, sc, ox1 - ox0, cache=cache)
 
     var frame = _draw_categorical_axis_frame(
         target,
         plot.x_categories,
         y_scale,
         theme,
-        ox0,
-        oy0,
-        ox1 - legend_reserve,
-        oy1,
+        ox0 + legend.left,
+        oy0 + legend.top,
+        ox1 - legend.right,
+        oy1 - legend.bottom,
         cache=cache,
     )
 
@@ -349,8 +358,11 @@ def _render_grouped_bar[
             plot,
             sc,
             palette,
-            _round_to_int(frame.x_scale.range_max),
-            _round_to_int(frame.y_scale.range_max),
+            legend,
+            frame.px0,
+            frame.py0,
+            frame.px1,
+            frame.py1,
             theme,
         )
 
@@ -391,17 +403,17 @@ def _render_horizontal_grouped_bar[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = _series_legend_reserve(plot, sc, cache=cache)
+    var legend = _series_legend_reserve(plot, sc, ox1 - ox0, cache=cache)
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         plot.x_categories,
         x_scale,
         theme,
-        ox0,
-        oy0,
-        ox1 - legend_reserve,
-        oy1,
+        ox0 + legend.left,
+        oy0 + legend.top,
+        ox1 - legend.right,
+        oy1 - legend.bottom,
         cache=cache,
     )
 
@@ -424,8 +436,11 @@ def _render_horizontal_grouped_bar[
             plot,
             sc,
             palette,
-            _round_to_int(frame.x_scale.range_max),
+            legend,
+            frame.px0,
             frame.py0,
+            frame.px1,
+            frame.py1,
             theme,
         )
 

@@ -3,7 +3,7 @@ from std.math import atan2, sqrt
 from canvas.fill_rule import FillRule
 from canvas.geometry import Transform2D, _round_to_int
 from canvas.path import Path
-from dataviz.plot import _LazyFontCache
+from dataviz.plot import _LazyFontCache, _LegendLayout
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -233,7 +233,7 @@ def _render_barbs[
         _data_extent(plot._barbs.x),
         _data_extent(plot._barbs.y),
         theme,
-        0,
+        _LegendLayout(),
         ox0,
         oy0,
         ox1,

@@ -8,6 +8,7 @@ from dataviz.color_scale import ColorScale
 from dataviz.plot import (
     Plot,
     _LazyFontCache,
+    _LegendLayout,
     _RenderResult,
     _draw_continuous_axis_frame,
     _finished,
@@ -441,7 +442,7 @@ def _render_contour[
         LinearScale(0.0, Float64(cols - 1), 0.0, 1.0),
         LinearScale(0.0, Float64(rows - 1), 0.0, 1.0),
         theme,
-        0,
+        _LegendLayout(),
         ox0,
         oy0,
         ox1,

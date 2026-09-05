@@ -13,8 +13,9 @@ from dataviz.plot import (
     _Scaled,
     _TextRequest,
     _axis_pixel,
-    _draw_legend,
-    _dynamic_legend_width,
+    _LegendLayout,
+    _draw_legend_at,
+    _legend_layout,
     _finished,
     _require_non_empty,
     _series_tooltip_label,
@@ -121,9 +122,14 @@ def _render_population_pyramid[
     if theme.show_legend:
         legend_names.append(left_name)
         legend_names.append(right_name)
-    var legend_reserve = _dynamic_legend_width(
-        legend_names, sc.legend_swatch_size, sc, cache=cache
-    ) if theme.show_legend else 0
+    var legend = _legend_layout(
+        legend_names,
+        sc.legend_swatch_size,
+        sc,
+        theme,
+        ox1 - ox0,
+        cache=cache,
+    ) if theme.show_legend else _LegendLayout()
 
     var x_scale = _symmetric_zero_baseline_x_extent(
         plot._pyramid.left, plot._pyramid.right
@@ -133,10 +139,10 @@ def _render_population_pyramid[
         plot.x_categories,
         x_scale,
         theme,
-        ox0,
-        oy0,
-        ox1 - legend_reserve,
-        oy1,
+        ox0 + legend.left,
+        oy0 + legend.top,
+        ox1 - legend.right,
+        oy1 - legend.bottom,
         cache=cache,
     )
 
@@ -236,13 +242,16 @@ def _render_population_pyramid[
                 )
 
     if theme.show_legend:
-        _draw_legend(
+        _draw_legend_at(
             target,
             frame.text_requests,
             legend_names,
             palette,
-            _round_to_int(frame.x_scale.range_max) + sc.margin_right,
-            _round_to_int(frame.y_scale.range_max),
+            legend,
+            frame.px0,
+            frame.py0,
+            frame.px1,
+            frame.py1,
             theme,
         )
 
