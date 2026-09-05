@@ -1381,6 +1381,34 @@ def test_zero_span_domain_returns_one_dated_tick() raises:
     assert_equal(t.labels()[0], "4 Mar 2026")
 
 
+def test_time_ticks_before_and_across_the_epoch() raises:
+    # Day and week rungs anchor on the epoch by taking `days % stride`,
+    # which is negative for a pre-1970 domain and needs correcting before
+    # it can be used as an offset. The sweep below only draws positive
+    # day counts, so this covers that branch directly.
+    var t = _time_ticks(_days(1962, 3, 1), _days(1962, 4, 15))
+    var labels = t.labels()
+    assert_equal(labels[0], "1 Mar 1962")
+    assert_equal(labels[1], "8 Mar")
+    for i in range(1, len(t.values)):
+        assert_equal(t.values[i] - t.values[i - 1], 7.0)
+
+    # A domain straddling the epoch: ticks stay on one lattice across the
+    # sign change rather than restarting at day 0, and the year label
+    # appears on the January tick.
+    var across = _time_ticks(_days(1969, 12, 28), _days(1970, 1, 8))
+    var across_labels = across.labels()
+    assert_equal(across_labels[0], "28 Dec 1969")
+    assert_equal(across_labels[2], "1 Jan 1970")
+    for i in range(1, len(across.values)):
+        assert_equal(across.values[i] - across.values[i - 1], 2.0)
+
+    # And the coarse rungs, where the snap divides a negative year.
+    var decades = _time_ticks(_days(1900, 1, 1), _days(1960, 1, 1))
+    assert_equal(decades.labels()[0], "1900")
+    assert_equal(decades.labels()[6], "1960")
+
+
 def test_sweep_time_ticks_stay_inside_the_domain_and_ascend() raises:
     # Random domains from 3 days to ~80 years, against every rung: ticks
     # must be strictly increasing, lie within the domain, carry one label
