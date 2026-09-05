@@ -1,6 +1,6 @@
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -149,8 +149,8 @@ def _render_bullet[
     # These depend only on the scale and theme, so they're computed once
     # outside the per-category loop.
     var bandwidth = frame.x_scale.bandwidth()
-    var band_width = _round_to_int(bandwidth)
-    var measure_width = _round_to_int(
+    var band_width = round_to_int(bandwidth)
+    var measure_width = round_to_int(
         bandwidth * plot._mark_style.bullet_measure_width_fraction
     )
     var measure_inset = (
@@ -161,7 +161,7 @@ def _render_bullet[
     var orient = _Orientation(False)  # Mark.BULLET has no horizontal variant
 
     for i in range(len(plot.x_categories)):
-        var band_x = _round_to_int(frame.x_scale.band_start(i))
+        var band_x = round_to_int(frame.x_scale.band_start(i))
         var band_count = len(plot._bullet.ranges[i])
 
         var prev_threshold = 0.0
@@ -178,7 +178,7 @@ def _render_bullet[
             )
             prev_threshold = plot._bullet.ranges[i][j]
 
-        var measure_x = _round_to_int(frame.x_scale.center(i) - measure_inset)
+        var measure_x = round_to_int(frame.x_scale.center(i) - measure_inset)
         var measure_py = _axis_pixel(frame.y_scale, plot._bullet.measure[i])
         var measure_rect = _pull_off_axis_line(
             baseline_py, measure_py, frame.py1

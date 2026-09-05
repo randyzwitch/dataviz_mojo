@@ -1,6 +1,6 @@
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
@@ -86,7 +86,7 @@ def _draw_treemap_node[
     var prev = origin
     for c in idx.children[node]:
         cum += idx.subtree_value[c] / total
-        var next_pos = origin + _round_to_int(span * cum)
+        var next_pos = origin + round_to_int(span * cum)
         if split_x:
             _draw_treemap_node(
                 target,

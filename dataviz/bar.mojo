@@ -1,6 +1,6 @@
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -97,11 +97,11 @@ def _draw_bar_rects[
     var baseline = _axis_pixel(value_scale, 0.0)
     # bandwidth() doesn't depend on the category index, so it's hoisted out
     # of the loop.
-    var band_size = _round_to_int(band_scale.bandwidth())
+    var band_size = round_to_int(band_scale.bandwidth())
     var has_y_err = len(plot.y_err_data) > 0 or len(plot.y_err_lower_data) > 0
-    var cap_half = _round_to_int(sc.error_bar_cap_width)
+    var cap_half = round_to_int(sc.error_bar_cap_width)
     for i in range(len(plot.x_categories)):
-        var band_pos = _round_to_int(band_scale.band_start(i))
+        var band_pos = round_to_int(band_scale.band_start(i))
         var value = plot.y_data[i]
         var extent = _pull_off_axis_line(
             baseline, _axis_pixel(value_scale, value), baseline_edge
@@ -121,7 +121,7 @@ def _draw_bar_rects[
             else:
                 lo = value - plot.y_err_lower_data[i]
                 hi = value + plot.y_err_upper_data[i]
-            var center_i = _round_to_int(band_scale.center(i))
+            var center_i = round_to_int(band_scale.center(i))
             var py_hi = _axis_pixel(value_scale, hi)
             var py_lo = _axis_pixel(value_scale, lo)
             orient.value_line(target, py_hi, py_lo, center_i, color, sc.scale)

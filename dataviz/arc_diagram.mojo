@@ -1,7 +1,7 @@
 from std.math import pi
 
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.path import Path
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
@@ -99,9 +99,9 @@ def _render_arc_diagram[
 
     for i in range(n):
         var color = palette[i % len(palette)]
-        var px = _round_to_int(node_x[i])
-        var py = _round_to_int(baseline)
-        target.fill_circle_aa(px, py, _round_to_int(sc.point_radius), color)
+        var px = round_to_int(node_x[i])
+        var py = round_to_int(baseline)
+        target.fill_circle_aa(px, py, round_to_int(sc.point_radius), color)
         text_requests.append(
             _TextRequest(
                 px,

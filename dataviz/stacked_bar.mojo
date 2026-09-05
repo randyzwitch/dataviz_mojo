@@ -1,6 +1,6 @@
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from canvas.text.render import TextAlign
@@ -105,10 +105,10 @@ def _draw_stacked_segments[
     var theme = plot._theme
     var sc = _Scaled(theme)
     var n_series = len(plot._grouped_bar.series_names)
-    var band_size = _round_to_int(band_scale.bandwidth())
+    var band_size = round_to_int(band_scale.bandwidth())
 
     for i in range(len(plot.x_categories)):
-        var band_pos = _round_to_int(band_scale.band_start(i))
+        var band_pos = round_to_int(band_scale.band_start(i))
         # percent=True rescales each category against its own total. An
         # all-zero category gets a 0.0 factor and draws an empty column rather
         # than NaN.

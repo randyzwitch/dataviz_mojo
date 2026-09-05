@@ -1,5 +1,5 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -80,8 +80,8 @@ def _render_span_chart[
     var bandwidth = frame.x_scale.bandwidth()
     for i in range(len(plot.x_categories)):
         var band_start = frame.x_scale.band_start(i)
-        var bar_x = _round_to_int(band_start)
-        var bar_width = _round_to_int(bandwidth)
+        var bar_x = round_to_int(band_start)
+        var bar_width = round_to_int(bandwidth)
         var low_py = _axis_pixel(frame.y_scale, plot._gantt.start[i])
         var high_py = _axis_pixel(frame.y_scale, plot._gantt.end[i])
         var bar_y = min(low_py, high_py)

@@ -1,5 +1,5 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
@@ -33,7 +33,7 @@ def _bump_rank_pixel(rank: Int, n_series: Int, py0: Int, py1: Int) -> Int:
     """
     if n_series <= 1:
         return (py0 + py1) // 2
-    return py0 + _round_to_int(
+    return py0 + round_to_int(
         Float64(rank - 1) / Float64(n_series - 1) * Float64(py1 - py0)
     )
 
@@ -162,7 +162,7 @@ def _draw_bump_axis_frame[
         )
 
     for i in range(len(categories)):
-        var center_px = _round_to_int(x_scale.center(i))
+        var center_px = round_to_int(x_scale.center(i))
         target.draw_line_aa(
             center_px,
             plot_y1,

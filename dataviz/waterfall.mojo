@@ -1,6 +1,6 @@
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -178,15 +178,15 @@ def _render_waterfall[
         var bar_x: Int
         var bar_width: Int
         if row_is_total or not using_totals:
-            bar_x = _round_to_int(band_start)
-            bar_width = _round_to_int(bandwidth)
+            bar_x = round_to_int(band_start)
+            bar_width = round_to_int(bandwidth)
         else:
             var narrow_width = (
                 bandwidth * plot._mark_style.waterfall_delta_width_fraction
             )
             var inset = (bandwidth - narrow_width) / 2.0
-            bar_x = _round_to_int(band_start + inset)
-            bar_width = _round_to_int(band_start + inset + narrow_width) - bar_x
+            bar_x = round_to_int(band_start + inset)
+            bar_width = round_to_int(band_start + inset + narrow_width) - bar_x
         if using_totals:
             bar_x_list.append(bar_x)
             bar_width_list.append(bar_width)
@@ -241,7 +241,7 @@ def _render_waterfall[
             # a delta bar can be narrower than its band.
             var prev_x1 = bar_x_list[i - 1] + bar_width_list[
                 i - 1
-            ] if using_totals else _round_to_int(
+            ] if using_totals else round_to_int(
                 frame.x_scale.band_start(i - 1) + frame.x_scale.bandwidth()
             )
             target.draw_line_aa(

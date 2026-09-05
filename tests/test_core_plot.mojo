@@ -44,7 +44,7 @@ from _test_helpers import (
 from canvas.buffer import Canvas
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
-from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
+from canvas.path import PathOp
 from dataviz import (
     sankey,
     LegendPosition,

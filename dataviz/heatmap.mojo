@@ -1,5 +1,5 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
@@ -141,7 +141,7 @@ def _draw_grid_axis_frame[
 
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for i in range(len(y_categories)):
-        var center_py = _round_to_int(y_scale.center(i))
+        var center_py = round_to_int(y_scale.center(i))
         target.draw_line_aa(
             plot_x0 - sc.tick_length,
             center_py,
@@ -163,7 +163,7 @@ def _draw_grid_axis_frame[
         )
 
     for i in range(len(x_categories)):
-        var center_px = _round_to_int(x_scale.center(i))
+        var center_px = round_to_int(x_scale.center(i))
         target.draw_line_aa(
             center_px,
             plot_y1,
@@ -271,11 +271,11 @@ def _render_heatmap[
         cache=cache,
     )
 
-    var cell_width = _round_to_int(frame.x_scale.bandwidth())
-    var cell_height = _round_to_int(frame.y_scale.bandwidth())
+    var cell_width = round_to_int(frame.x_scale.bandwidth())
+    var cell_height = round_to_int(frame.y_scale.bandwidth())
     for i in range(len(plot._heatmap.x)):
-        var cell_x = _round_to_int(frame.x_scale.band_start(x_idx.indices[i]))
-        var cell_y = _round_to_int(frame.y_scale.band_start(y_idx.indices[i]))
+        var cell_x = round_to_int(frame.x_scale.band_start(x_idx.indices[i]))
+        var cell_y = round_to_int(frame.y_scale.band_start(y_idx.indices[i]))
         var color = color_scale.color_at(plot._heatmap.value[i])
         target.fill_rect(cell_x, cell_y, cell_width, cell_height, color)
 
@@ -284,7 +284,7 @@ def _render_heatmap[
             target,
             frame.text_requests,
             color_scale,
-            _round_to_int(frame.x_scale.range_max) + sc.margin_right,
+            round_to_int(frame.x_scale.range_max) + sc.margin_right,
             frame.py0,
             theme,
         )

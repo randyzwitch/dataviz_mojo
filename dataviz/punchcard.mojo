@@ -1,5 +1,5 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -101,9 +101,9 @@ def _render_punchcard[
     )
 
     for i in range(len(plot._punchcard.x)):
-        var cx = _round_to_int(frame.x_scale.center(x_idx.indices[i]))
-        var cy = _round_to_int(frame.y_scale.center(y_idx.indices[i]))
-        var radius = _round_to_int(
+        var cx = round_to_int(frame.x_scale.center(x_idx.indices[i]))
+        var cy = round_to_int(frame.y_scale.center(y_idx.indices[i]))
+        var radius = round_to_int(
             plot._punchcard.sizes[i] / plot._punchcard.scale * frame.sc.scale
         )
         target.fill_circle_aa(cx, cy, radius, theme.mark_color)

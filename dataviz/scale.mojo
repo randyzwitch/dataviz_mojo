@@ -15,7 +15,7 @@ times a power of ten, so labels read as 0.2/0.4/0.6 rather than
 from std.math import ceil, floor, log10, pow
 from std.utils.numerics import isfinite
 
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 
 
 struct MinMax(ImplicitlyCopyable, Movable):
@@ -136,7 +136,7 @@ comptime _FORMAT_FIXED_MAX_EXACT_MAGNITUDE = 9007199254740992.0
 exactly representable in a `Float64` (a `Float64` has a 52-bit mantissa
 plus an implicit leading bit; 2^53 itself is exact, 2^53+1 is the first
 value that isn't). `_format_fixed`'s digit-by-digit path rounds `value
-* 10^decimals` through `_round_to_int`'s `Int(Float64)` cast, which is
+* 10^decimals` through `round_to_int`'s `Int(Float64)` cast, which is
 exact only up to this bound and silently wraps to garbage past it
 (`Int` overflow on a float-to-int conversion is not checked); well
 before that, `Int`'s own range (~9.223e18) would overflow outright for
@@ -170,7 +170,7 @@ def _format_fixed(value: Float64, decimals: Int) -> String:
     `String(Float64)` isn't usable for tick labels (0.0 + 3*0.1 prints as
     "0.30000000000000004"). Rounds to the nearest representable value at
     `decimals` places first (round-half-away-from-zero via
-    `_round_to_int`), then builds the string from integer and fractional
+    `round_to_int`), then builds the string from integer and fractional
     parts by hand. `decimals` of 0 skips the decimal point rather than
     printing "20.".
 
@@ -179,17 +179,17 @@ def _format_fixed(value: Float64, decimals: Int) -> String:
     point the digit-by-digit path below silently produces wrong digits
     (or, past `Int`'s own range, outright garbage -- see
     `_FORMAT_FIXED_MAX_EXACT_MAGNITUDE`'s own docstring) rather than
-    raising, so this must catch it before ever calling `_round_to_int`.
+    raising, so this must catch it before ever calling `round_to_int`.
     """
     if decimals <= 0:
         if abs(value) > _FORMAT_FIXED_MAX_EXACT_MAGNITUDE:
             return _format_fixed_overflow(value)
-        return String(_round_to_int(value))
+        return String(round_to_int(value))
 
     var scale = pow(10.0, Float64(decimals))
     if abs(value) * scale > _FORMAT_FIXED_MAX_EXACT_MAGNITUDE:
         return _format_fixed_overflow(value)
-    var scaled = _round_to_int(value * scale)
+    var scaled = round_to_int(value * scale)
     var sign = "-" if scaled < 0 else ""
     var digits = scaled if scaled >= 0 else -scaled
     var int_part = digits // Int(scale + 0.5)
@@ -215,7 +215,7 @@ def _label_decimals(value: Float64, max_decimals: Int = 2) -> Int:
     Returns `0` immediately for `abs(value) >
     _FORMAT_FIXED_MAX_EXACT_MAGNITUDE` rather than entering the loop: a
     `Float64` that large has no representable fractional part for any
-    decimal count to expose, and the loop's own `_round_to_int(value *
+    decimal count to expose, and the loop's own `round_to_int(value *
     scale)` would hit the same overflow `_format_fixed` guards against
     (#205).
     """
@@ -223,7 +223,7 @@ def _label_decimals(value: Float64, max_decimals: Int = 2) -> Int:
         return 0
     for d in range(max_decimals + 1):
         var scale = pow(10.0, Float64(d))
-        var rounded = Float64(_round_to_int(value * scale)) / scale
+        var rounded = Float64(round_to_int(value * scale)) / scale
         if abs(value - rounded) < 1e-9:
             return d
     return max_decimals
@@ -695,7 +695,7 @@ struct LinearScale(ImplicitlyCopyable, Movable):
 
         var start = ceil(self.domain_min / nice.step) * nice.step
         var stop = floor(self.domain_max / nice.step) * nice.step
-        var count = _round_to_int((stop - start) / nice.step) + 1
+        var count = round_to_int((stop - start) / nice.step) + 1
 
         var result = List[Float64](capacity=count)
         for i in range(count):

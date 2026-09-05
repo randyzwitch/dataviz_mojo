@@ -1,5 +1,5 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import _round_to_int
+from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
@@ -190,18 +190,18 @@ def _render_tree[
             palette[branch[row] % len(palette)] if branch[row]
             >= 0 else theme.text_color
         )
-        var px0 = _round_to_int(
+        var px0 = round_to_int(
             _tree_node_x(leaf_x[parent_row[row]], num_leaves, plot_x0, plot_x1)
         )
-        var py0 = _round_to_int(
+        var py0 = round_to_int(
             _tree_node_y(
                 idx.depth[parent_row[row]], idx.max_depth, plot_y0, plot_y1
             )
         )
-        var px1 = _round_to_int(
+        var px1 = round_to_int(
             _tree_node_x(leaf_x[row], num_leaves, plot_x0, plot_x1)
         )
-        var py1 = _round_to_int(
+        var py1 = round_to_int(
             _tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1)
         )
         target.draw_line_aa(px0, py0, px1, py1, color, sc.line_width)
@@ -211,13 +211,13 @@ def _render_tree[
             palette[branch[row] % len(palette)] if branch[row]
             >= 0 else theme.text_color
         )
-        var px = _round_to_int(
+        var px = round_to_int(
             _tree_node_x(leaf_x[row], num_leaves, plot_x0, plot_x1)
         )
-        var py = _round_to_int(
+        var py = round_to_int(
             _tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1)
         )
-        target.fill_circle_aa(px, py, _round_to_int(sc.point_radius), color)
+        target.fill_circle_aa(px, py, round_to_int(sc.point_radius), color)
         text_requests.append(
             _TextRequest(
                 px,
