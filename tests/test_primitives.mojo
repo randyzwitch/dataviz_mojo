@@ -3,6 +3,7 @@
 nice-tick algorithm, _format_fixed, _label_decimals, log ticks),
 ordinal_scale.mojo, color_scale.mojo (domain projection and the
 zero-span case; interpolation itself is tested in canvas.gradient),
+time_ticks.mojo (the calendar walk and its labels),
 colors.mojo (spot checks against the CSS spec, the gray/grey pairs, a
 named color through a real render), and array_like.mojo
 (Float64Sequence/StringSequence, the DType-generic overloads, exact
@@ -35,6 +36,7 @@ from dataviz.array_like import (
     _materialize_scalar_list,
     _materialize_strings,
 )
+from dataviz.calendar_heatmap import _Date, _days_from_civil
 from dataviz.color_scale import ColorScale
 from dataviz.colors import BLACK, BLUE, RED, WHITE
 from dataviz.ordinal_scale import OrdinalScale
@@ -51,6 +53,16 @@ from dataviz.scale import (
     _nice_step,
 )
 from dataviz.theme import Theme
+from dataviz.time_ticks import (
+    _TimeStep,
+    _TimeUnit,
+    _advance,
+    _civil_from_days,
+    _days_in_month,
+    _is_leap,
+    _pick_step,
+    _time_ticks,
+)
 from std.math import floor, log10, pow
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from std.utils.numerics import inf, nan
@@ -1218,6 +1230,211 @@ def test_sweep_log_ticks_are_1_2_or_5_decade_positions_inside_the_domain() raise
                 )
                 break
         if failure:
+            break
+    assert_true(failure == "", failure)
+
+
+# ---------------------------------------------------------------
+# time_ticks.mojo -- calendar-aware ticks (#195)
+# ---------------------------------------------------------------
+
+
+def _days(year: Int, month: Int, day: Int) raises -> Float64:
+    return Float64(_days_from_civil(_Date(year, month, day)))
+
+
+def test_civil_from_days_round_trips_every_date_across_three_decades() raises:
+    # _civil_from_days is the inverse of the _days_from_civil that
+    # calendar_heatmap already ships, so the pair is checkable against
+    # itself: every day from 2000 through 2031, leap days included, must
+    # survive the trip out and back unchanged.
+    var start = _days_from_civil(_Date(2000, 1, 1))
+    var end = _days_from_civil(_Date(2031, 12, 31))
+    var failure = String("")
+    for d in range(start, end + 1):
+        var date = _civil_from_days(d)
+        if _days_from_civil(date) != d:
+            failure = (
+                "day "
+                + String(d)
+                + " -> "
+                + String(date.year)
+                + "-"
+                + String(date.month)
+                + "-"
+                + String(date.day)
+                + " -> "
+                + String(_days_from_civil(date))
+            )
+            break
+    assert_true(failure == "", failure)
+
+
+def test_civil_from_days_round_trips_before_the_epoch() raises:
+    # The era arithmetic branches on the sign of the shifted day count,
+    # so dates before 1970 exercise a path 2000-2031 never reaches.
+    var start = _days_from_civil(_Date(1899, 1, 1))
+    var end = _days_from_civil(_Date(1905, 12, 31))
+    for d in range(start, end + 1):
+        assert_equal(_days_from_civil(_civil_from_days(d)), d)
+
+
+def test_leap_years_follow_the_century_rule() raises:
+    assert_true(_is_leap(2024), "2024 divisible by 4")
+    assert_true(not _is_leap(2023), "2023 not divisible by 4")
+    assert_true(not _is_leap(2100), "2100 divisible by 100, not by 400")
+    assert_true(_is_leap(2000), "2000 divisible by 400")
+    assert_equal(_days_in_month(2024, 2), 29)
+    assert_equal(_days_in_month(2023, 2), 28)
+    assert_equal(_days_in_month(2023, 4), 30)
+    assert_equal(_days_in_month(2023, 12), 31)
+
+
+def test_six_months_of_daily_data_reads_as_month_names() raises:
+    # The motivating case on #195: a half-year domain should read
+    # Jan/Feb/Mar, not a run of raw epoch day counts.
+    var t = _time_ticks(_days(2026, 1, 1), _days(2026, 6, 1))
+    var labels = t.labels()
+    assert_equal(len(labels), 6)
+    assert_equal(labels[0], "Jan 2026")
+    assert_equal(labels[1], "Feb")
+    assert_equal(labels[2], "Mar")
+    assert_equal(labels[3], "Apr")
+    assert_equal(labels[4], "May")
+    assert_equal(labels[5], "Jun")
+
+
+def test_the_year_is_repeated_only_where_it_changes() raises:
+    # A monthly axis crossing New Year marks the new year once, on the
+    # January tick, rather than appending "2027" to all twelve.
+    var t = _time_ticks(_days(2026, 11, 1), _days(2027, 4, 1))
+    var labels = t.labels()
+    assert_equal(labels[0], "Nov 2026")
+    assert_equal(labels[1], "Dec")
+    assert_equal(labels[2], "Jan 2027")
+    assert_equal(labels[3], "Feb")
+
+
+def test_a_multi_year_span_reads_as_bare_years() raises:
+    var t = _time_ticks(_days(1990, 1, 1), _days(2030, 1, 1))
+    var labels = t.labels()
+    assert_equal(len(labels), 5)
+    assert_equal(labels[0], "1990")
+    assert_equal(labels[4], "2030")
+
+
+def test_quarterly_ticks_snap_to_calendar_quarters() raises:
+    # The domain starts on 17 February; the ticks must still land on
+    # Jan/Apr/Jul/Oct rather than inheriting the data's start day.
+    var t = _time_ticks(_days(2024, 2, 17), _days(2025, 5, 20))
+    var labels = t.labels()
+    assert_equal(len(labels), 5)
+    for i in range(len(t.values)):
+        var d = _civil_from_days(Int(t.values[i]))
+        assert_equal(d.day, 1)
+        assert_true(
+            d.month == 1 or d.month == 4 or d.month == 7 or d.month == 10,
+            "quarter tick on month " + String(d.month) + ": " + labels[i],
+        )
+    assert_equal(labels[0], "Apr 2024")
+
+
+def test_advancing_a_month_from_the_31st_lands_on_a_real_date() raises:
+    # The reason ticks are walked rather than computed: 31 Jan + "one
+    # month" is 28 Feb on the calendar and 3 March in fixed days.
+    var jan31 = _days_from_civil(_Date(2023, 1, 31))
+    var next = _civil_from_days(_advance(jan31, _TimeStep(_TimeUnit.MONTH, 1)))
+    assert_equal(next.year, 2023)
+    assert_equal(next.month, 2)
+    assert_equal(next.day, 28)
+
+    var leap = _civil_from_days(
+        _advance(
+            _days_from_civil(_Date(2024, 1, 31)), _TimeStep(_TimeUnit.MONTH, 1)
+        )
+    )
+    assert_equal(leap.day, 29)
+
+    # And a leap day advanced by a year clamps to 28 February.
+    var feb29 = _civil_from_days(
+        _advance(
+            _days_from_civil(_Date(2024, 2, 29)), _TimeStep(_TimeUnit.YEAR, 1)
+        )
+    )
+    assert_equal(feb29.year, 2025)
+    assert_equal(feb29.month, 2)
+    assert_equal(feb29.day, 28)
+
+
+def test_a_five_month_span_picks_months_not_fortnights() raises:
+    # 4.96 months: the nearest rung, not the coarsest rung clearing the
+    # target. Picking "at least 5 ticks" would drop to fortnightly and
+    # print eleven labels.
+    var step = _pick_step(151.0, 5)
+    assert_true(step.unit == _TimeUnit.MONTH, "unit")
+    assert_equal(step.count, 1)
+
+
+def test_zero_span_domain_returns_one_dated_tick() raises:
+    var t = _time_ticks(_days(2026, 3, 4), _days(2026, 3, 4))
+    assert_equal(len(t.values), 1)
+    assert_equal(t.labels()[0], "4 Mar 2026")
+
+
+def test_sweep_time_ticks_stay_inside_the_domain_and_ascend() raises:
+    # Random domains from 3 days to ~80 years, against every rung: ticks
+    # must be strictly increasing, lie within the domain, carry one label
+    # each, and land near the requested count.
+    var rng = Lcg(20260905)
+    var failure = String("")
+    for _ in range(400):
+        var start = _days_from_civil(_Date(1975, 1, 1)) + Int(rng.below(20000))
+        var span = 3 + Int(rng.below(29000))
+        var target = 3 + Int(rng.below(8))
+        var lo = Float64(start)
+        var hi = Float64(start + span)
+        var t = _time_ticks(lo, hi, target)
+        var labels = t.labels()
+        if len(labels) != len(t.values):
+            failure = "label count differs from tick count"
+            break
+        if len(t.values) == 0:
+            failure = "no ticks for span " + String(span)
+            break
+        for i in range(len(t.values)):
+            if t.values[i] < lo or t.values[i] > hi:
+                failure = (
+                    "tick "
+                    + String(t.values[i])
+                    + " outside ["
+                    + String(lo)
+                    + ", "
+                    + String(hi)
+                    + "]"
+                )
+                break
+            if i > 0 and t.values[i] <= t.values[i - 1]:
+                failure = "ticks not strictly increasing at " + String(i)
+                break
+            if not labels[i]:
+                failure = "empty label at " + String(i)
+                break
+        if failure:
+            break
+        # The ladder is spaced ~2-3x, so the worst a domain landing
+        # between rungs can do is roughly double or halve the target.
+        if len(t.values) > 3 * target or Float64(len(t.values)) < 0.4 * Float64(
+            target
+        ):
+            failure = (
+                "span "
+                + String(span)
+                + " days, target "
+                + String(target)
+                + " -> "
+                + String(len(t.values))
+                + " ticks"
+            )
             break
     assert_true(failure == "", failure)
 
