@@ -51,6 +51,7 @@ from canvas.color import Color
 from dataviz.colors import WHITE
 from dataviz.output_format import OutputFormat
 from dataviz.scale import TickFormat
+from dataviz.legend_position import LegendPosition
 from dataviz.x_label_rotation import XAxisLabelRotation
 
 
@@ -273,6 +274,15 @@ struct Theme(ImplicitlyCopyable, Movable):
     coarser `Ticks.decimals`. A `Theme` flag rather than an `encode()`
     channel, like `color_by_sign`.
     """
+    var legend_position: LegendPosition
+    """Which edge of the plot area the legend is reserved on and drawn
+    against (#211); defaults to `RIGHT`, the column every legend used
+    before this setting existed.
+
+    `RIGHT`/`LEFT` cost plot width, `TOP`/`BOTTOM` cost plot height and
+    lay entries out in wrapping rows. Ignored when `show_legend` is off,
+    and by any mark that draws no legend. See `LegendPosition`.
+    """
     var x_label_rotation: XAxisLabelRotation
     """Whether/how far `_draw_categorical_axis_frame`'s x-axis tick
     labels rotate when they would otherwise overlap; see
@@ -346,6 +356,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         output_format: OutputFormat = OutputFormat.SVG,
         svg_tooltips: Bool = True,
         show_data_labels: Bool = False,
+        legend_position: LegendPosition = LegendPosition.RIGHT,
         x_label_rotation: XAxisLabelRotation = XAxisLabelRotation.AUTO,
         x_tick_format: TickFormat = TickFormat.AUTO,
         y_tick_format: TickFormat = TickFormat.AUTO,
@@ -406,6 +417,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.output_format = output_format
         self.svg_tooltips = svg_tooltips
         self.show_data_labels = show_data_labels
+        self.legend_position = legend_position
         self.x_label_rotation = x_label_rotation
         self.x_tick_format = x_tick_format
         self.y_tick_format = y_tick_format
