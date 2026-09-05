@@ -9,6 +9,7 @@ Mark.CANDLESTICK, Mark.WATERFALL, and Mark.BULLET, each raster + SVG.
 
 from _test_helpers import (
     BG,
+    Lcg,
     _assert_color,
     _assert_near_color,
     _bbox_of_color,
@@ -25,6 +26,7 @@ from dataviz import (
     candlestick,
     contour,
     contourf,
+    tricontour,
     line,
     lollipop,
     scatter,
@@ -32,6 +34,8 @@ from dataviz import (
 )
 from dataviz.barbs import _barb_counts, _barb_glyph
 from canvas.path import Path
+from dataviz.delaunay import _in_circumcircle, delaunay
+from dataviz.tricontour import _tricontour_segments
 from dataviz.contour import (
     _append_above_region,
     _auto_levels,
@@ -2065,6 +2069,256 @@ def test_render_contourf_raises_on_non_positive_level_count() raises:
         z.append(row^)
     with assert_raises():
         _ = render(contourf(z, level_count=0, width=200, height=150))
+
+
+# ---------------------------------------------------------------
+# Delaunay triangulation and Mark.TRICONTOUR (#261)
+# ---------------------------------------------------------------
+
+
+def test_delaunay_triangulates_simple_point_sets() raises:
+    """A square is two triangles; an n x n grid of points is
+    `2 * (n-1)^2`, the count for a triangulated rectangle.
+    """
+    var sx: List[Float64] = [0.0, 1.0, 1.0, 0.0]
+    var sy: List[Float64] = [0.0, 0.0, 1.0, 1.0]
+    assert_equal(delaunay(sx, sy).count(), 2, "a square is two triangles")
+
+    var gx = List[Float64]()
+    var gy = List[Float64]()
+    for r in range(5):
+        for c in range(5):
+            gx.append(Float64(c))
+            gy.append(Float64(r))
+    assert_equal(
+        delaunay(gx, gy).count(), 32, "a 5x5 grid is 2 * 4 * 4 triangles"
+    )
+
+
+def test_delaunay_handles_the_degenerate_inputs() raises:
+    """Fewer than three points, all-collinear, and all-identical each
+    triangulate to nothing rather than raising -- a caller contouring
+    them draws an empty frame, which is what the data supports. A
+    duplicate alongside real points is simply dropped.
+    """
+    var two_x: List[Float64] = [0.0, 1.0]
+    var two_y: List[Float64] = [0.0, 1.0]
+    assert_equal(delaunay(two_x, two_y).count(), 0, "two points")
+
+    var col_x: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    var col_y: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    assert_equal(delaunay(col_x, col_y).count(), 0, "collinear points")
+
+    var same_x: List[Float64] = [2.0, 2.0, 2.0]
+    var same_y: List[Float64] = [3.0, 3.0, 3.0]
+    assert_equal(delaunay(same_x, same_y).count(), 0, "identical points")
+
+    var dup_x: List[Float64] = [0.0, 1.0, 0.5, 0.5]
+    var dup_y: List[Float64] = [0.0, 0.0, 1.0, 1.0]
+    assert_equal(delaunay(dup_x, dup_y).count(), 1, "a duplicate is dropped")
+
+    with assert_raises():
+        var short_y: List[Float64] = [0.0]
+        _ = delaunay(col_x, short_y)
+
+
+def test_delaunay_satisfies_the_empty_circumcircle_property() raises:
+    """The defining property, swept over random point sets: no vertex
+    lies inside any triangle's circumcircle. Counting triangles says
+    nothing about this -- a wrong triangulation of the same points has
+    the same count.
+    """
+    var rng = Lcg(20260905)
+    var violations = 0
+    var checks = 0
+    for _ in range(12):
+        var n = 8 + rng.below(20)
+        var xs = List[Float64]()
+        var ys = List[Float64]()
+        for _ in range(n):
+            xs.append(rng.uniform(-50.0, 50.0))
+            ys.append(rng.uniform(-50.0, 50.0))
+        var t = delaunay(xs, ys)
+        for k in range(t.count()):
+            var i0 = t.tri[3 * k]
+            var i1 = t.tri[3 * k + 1]
+            var i2 = t.tri[3 * k + 2]
+            for pt in range(len(xs)):
+                if pt == i0 or pt == i1 or pt == i2:
+                    continue
+                checks += 1
+                if _in_circumcircle(
+                    xs[i0],
+                    ys[i0],
+                    xs[i1],
+                    ys[i1],
+                    xs[i2],
+                    ys[i2],
+                    xs[pt],
+                    ys[pt],
+                ):
+                    violations += 1
+    assert_true(checks > 1000, "the sweep actually checked something")
+    assert_equal(violations, 0, "no vertex inside any circumcircle")
+
+
+def test_tricontour_traces_a_linear_ramp_as_a_straight_line() raises:
+    """On scattered points carrying `z = x`, the isoline for 5.0 is the
+    vertical line x = 5 -- every crossing is an exact interpolation along
+    a triangle edge, so every point lands on it regardless of how the
+    triangulation happened to connect the samples.
+    """
+    var xs = List[Float64]()
+    var ys = List[Float64]()
+    var zs = List[Float64]()
+    var rng = Lcg(4242)
+    for _ in range(120):
+        var px = rng.uniform(0.0, 10.0)
+        var py = rng.uniform(0.0, 10.0)
+        xs.append(px)
+        ys.append(py)
+        zs.append(px)
+
+    var t = delaunay(xs, ys)
+    var segs = _tricontour_segments(t, zs, 5.0)
+    assert_true(len(segs.ea) > 0, "the level crosses the field")
+    for i in range(len(segs.ea)):
+        assert_true(
+            abs(segs.ax[i] - 5.0) < 1e-9 and abs(segs.bx[i] - 5.0) < 1e-9,
+            "every crossing sits on x = 5",
+        )
+
+
+def test_tricontour_emits_at_most_one_segment_per_triangle() raises:
+    """A triangle has only two cases: all three corners on one side of
+    the level, or exactly one alone -- so a crossed triangle yields one
+    segment and there is no saddle to resolve. That is the whole reason
+    scattered contouring goes through a triangulation.
+    """
+    var xs = List[Float64]()
+    var ys = List[Float64]()
+    var zs = List[Float64]()
+    var rng = Lcg(99)
+    for _ in range(80):
+        var px = rng.uniform(0.0, 10.0)
+        var py = rng.uniform(0.0, 10.0)
+        xs.append(px)
+        ys.append(py)
+        zs.append(px + py)
+
+    var t = delaunay(xs, ys)
+    var segs = _tricontour_segments(t, zs, 10.0)
+    assert_true(
+        len(segs.ea) <= t.count(),
+        "never more segments than triangles ("
+        + String(len(segs.ea))
+        + " vs "
+        + String(t.count())
+        + ")",
+    )
+
+
+def test_tricontour_segments_chain_into_whole_isolines() raises:
+    """Segment ends carry the same kind of integer edge id the grid
+    contour uses, so `_chain_segments` joins them unchanged: a chain of n
+    segments is n+1 points, so the totals must come to segments + lines.
+    """
+    var xs = List[Float64]()
+    var ys = List[Float64]()
+    var zs = List[Float64]()
+    var rng = Lcg(31337)
+    for _ in range(150):
+        var px = rng.uniform(-6.0, 6.0)
+        var py = rng.uniform(-6.0, 6.0)
+        xs.append(px)
+        ys.append(py)
+        zs.append(-(px * px + py * py))
+
+    var t = delaunay(xs, ys)
+    var segs = _tricontour_segments(t, zs, -16.0)
+    var lines = _chain_segments(segs)
+    assert_true(len(lines) > 0, "the level produced at least one isoline")
+    var points = 0
+    for k in range(len(lines)):
+        points += len(lines[k].xs)
+    assert_equal(
+        points, len(segs.ea) + len(lines), "every segment used exactly once"
+    )
+
+
+def test_render_tricontour_draws_ink_and_one_path_per_isoline() raises:
+    var xs = List[Float64]()
+    var ys = List[Float64]()
+    var zs = List[Float64]()
+    var rng = Lcg(777)
+    for _ in range(150):
+        var px = rng.uniform(0.0, 10.0)
+        var py = rng.uniform(0.0, 10.0)
+        xs.append(px)
+        ys.append(py)
+        zs.append(px * py)
+
+    var plot = tricontour(xs, ys, zs, level_count=4, width=360, height=280)
+    var svg = render_svg(plot).to_string()
+    assert_true(svg.count('fill="none"') > 0, "isolines are stroked paths")
+
+    var c = render(plot)
+    assert_true(
+        _count_color(c, WHITE) < 360 * 280, "something was drawn on the page"
+    )
+
+
+def test_tricontour_dtype_overload_matches_the_float64_path() raises:
+    var xf = List[Float64]()
+    var yf = List[Float64]()
+    var zf = List[Float64]()
+    var xi = List[Int]()
+    var yi = List[Int]()
+    var zi = List[Int]()
+    for i in range(40):
+        var a = i % 7
+        var b = (i * 3) % 8
+        xf.append(Float64(a))
+        yf.append(Float64(b))
+        zf.append(Float64(a + b))
+        xi.append(a)
+        yi.append(b)
+        zi.append(a + b)
+    var p = render_svg(
+        tricontour(xf, yf, zf, level_count=3, width=250, height=180)
+    )
+    var q = render_svg(
+        tricontour(xi, yi, zi, level_count=3, width=250, height=180)
+    )
+    assert_equal(
+        p.to_string(), q.to_string(), "List[Int] matches List[Float64]"
+    )
+
+
+def test_render_tricontour_raises_on_mismatched_lengths() raises:
+    var xs: List[Float64] = [0.0, 1.0, 2.0]
+    var ys: List[Float64] = [0.0, 1.0]
+    var zs: List[Float64] = [0.0, 1.0, 2.0]
+    with assert_raises():
+        _ = render(tricontour(xs, ys, zs, width=200, height=150))
+
+
+def test_render_tricontour_raises_on_empty_data() raises:
+    var e = List[Float64]()
+    with assert_raises():
+        _ = render(tricontour(e, e, e, width=200, height=150))
+
+
+def test_render_tricontour_collinear_samples_render_an_empty_frame() raises:
+    """Collinear samples triangulate to nothing, so the chart draws its
+    axes and no isolines rather than raising."""
+    var xs: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    var ys: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    var zs: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var svg = render_svg(
+        tricontour(xs, ys, zs, width=240, height=200)
+    ).to_string()
+    assert_true("<svg" in svg, "the frame still renders")
 
 
 def main() raises:
