@@ -4,8 +4,9 @@ nice-tick algorithm, _format_fixed, _label_decimals, log ticks),
 ordinal_scale.mojo, color_scale.mojo (domain projection and the
 zero-span case; interpolation itself is tested in canvas.gradient),
 time_ticks.mojo (the calendar walk and its labels),
-colors.mojo (spot checks against the CSS spec, the gray/grey pairs, a
-named color through a real render), and array_like.mojo
+colors.mojo (spot checks against the CSS spec and the gray/grey
+pairs; the one named-color-through-a-real-render check lives in
+test_marks_basic.mojo, which rasterizes), and array_like.mojo
 (Float64Sequence/StringSequence, the DType-generic overloads, exact
 Int conversion up to 2^53, whole-number labels from List[Int]).
 """
@@ -651,22 +652,6 @@ def test_gray_grey_spelling_pairs_are_identical_colors() raises:
         Int(SLATEGRAY.g),
         Int(SLATEGRAY.b),
         "SLATEGREY matches SLATEGRAY",
-    )
-
-
-def test_named_color_works_as_a_theme_mark_color_through_a_real_render() raises:
-    # A named color reaches the renderer like any other Color literal. A
-    # non-zero count rather than a hand-derived pixel; bar() layout is
-    # covered in its own tests.
-    var cats: List[String] = ["a", "b"]
-    var values: List[Float64] = [3.0, 5.0]
-    var _hoisted1 = bar(cats, values, theme=Theme(mark_color=CORNFLOWERBLUE))
-    var c = render(_hoisted1)
-
-    assert_equal(
-        _count_color(c, CORNFLOWERBLUE) > 0,
-        True,
-        "bar filled with a named color renders that exact color",
     )
 
 
