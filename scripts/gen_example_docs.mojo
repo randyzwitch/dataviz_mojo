@@ -1,6 +1,6 @@
 """Generates docs/src/examples/*.md and docs/src/cookbook/*.md: Examples
 from dataviz/*.mojo's docstrings, Cookbook from
-docs/src/cookbook_recipes/ (self-contained contributed files; see that
+docs/cookbook_recipes/ (self-contained contributed files; see that
 directory's README.md). Run as part of `pixi run docs` (pixi.toml),
 before `mojo doc`/`modo build`.
 
@@ -22,7 +22,7 @@ to `_example_docstrings.mojo`'s `_pages()`, to `_titles()`, and to
 exactly one category in `_categories()` (or `_cookbook()`'s list, not
 both); `main()`'s assertions catch a missing or doubly placed entry.
 Adding a Cookbook recipe needs none of that: drop a file in
-`docs/src/cookbook_recipes/`.
+`docs/cookbook_recipes/`.
 
 A Mojo script rather than Python, using `.strip()`/`.startswith()`/
 `.find()`/`in` in place of regexes.
@@ -48,7 +48,7 @@ from _example_docstrings import (
 
 comptime _OUT_DIR = "docs/src/examples"
 comptime _COOKBOOK_OUT_DIR = "docs/src/cookbook"
-comptime _RECIPES_DIR = "docs/src/cookbook_recipes"
+comptime _RECIPES_DIR = "docs/cookbook_recipes"
 
 
 def _titles() -> Dict[String, String]:
@@ -243,7 +243,7 @@ def _categories() -> List[Category]:
 
 def _cookbook() -> Category:
     """The Cookbook page's docstring-sourced list, empty now that every
-    recipe lives in `docs/src/cookbook_recipes/` (see its README.md).
+    recipe lives in `docs/cookbook_recipes/` (see its README.md).
     Kept as a working mechanism so a future recipe that documents one
     function's API has a place to go, and so `main()`'s placement
     assertions still cover it. A `Category` like the rest, since `main()`
@@ -368,7 +368,7 @@ def _title_override(content: String) -> String:
 
 
 def _build_contributed_page(title: String, content: String) raises -> String:
-    """A `docs/src/cookbook_recipes/*.mojo` file turned into the same
+    """A `docs/cookbook_recipes/*.mojo` file turned into the same
     markdown shape `_build_page()` produces (title/hook/image/Usage),
     minus an `Args:` section and named-variant support: one recipe file
     is one page with one code block.
@@ -559,7 +559,7 @@ def main() raises:
         "line/band/point marker, a second y-axis, accessible SVG output, a "
         "grid of independent plots -- rather than a distinct chart type of "
         "its own. See [Examples](../examples/) for the chart-type gallery "
-        "these apply to, or `docs/src/cookbook_recipes/`'s own README.md "
+        "these apply to, or `docs/cookbook_recipes/`'s own README.md "
         "in the repo to contribute one yourself -- a Cookbook recipe "
         "doesn't need to be tied to one function the way an Example does."
     )

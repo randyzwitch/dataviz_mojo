@@ -106,7 +106,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("grouped_bar", "grouped_bar", "grouped_bar"),
         ExamplePage("stacked_bar", "stacked_bar", "stacked_bar"),
         # Cookbook pages used to be listed here too; all migrated to
-        # docs/src/cookbook_recipes/ (see its README.md), which needs no entry
+        # docs/cookbook_recipes/ (see its README.md), which needs no entry
         # here. A docstring-sourced Cookbook page is still possible via
         # gen_example_docs.mojo's _cookbook().
     ]

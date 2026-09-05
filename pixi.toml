@@ -27,7 +27,7 @@ pandas = ">=2.0,<3"
 # `example` uses the same script over a generated file list:
 # extract_docstring_examples.mojo writes every `Example:` docstring
 # section to docs/src/examples/*.mojo, and
-# docs/src/cookbook_recipes/*.mojo are complete standalone programs
+# docs/cookbook_recipes/*.mojo are complete standalone programs
 # already. build_verify_batches.mojo then rewrites all of those into 8
 # batch drivers under docs/src/examples/verify/, and only the batches
 # are run: a single `save()` call monomorphizes the whole ~50-mark
@@ -61,8 +61,8 @@ test = "bash scripts/run_parallel.sh tests/test_*.mojo"
 # Formats source in place (#226). `mojo format` has no `--check` flag
 # of its own, so format-check (below, and the CI job of the same name)
 # reformats a checkout and fails on any resulting diff instead.
-format = "mojo format dataviz tests scripts docs/src/cookbook_recipes docs/src/examples/quickstart"
-format-check = "mojo format dataviz tests scripts docs/src/cookbook_recipes docs/src/examples/quickstart && git diff --exit-code -- dataviz tests scripts docs/src/cookbook_recipes docs/src/examples/quickstart"
+format = "mojo format dataviz tests scripts docs/cookbook_recipes docs/src/examples/quickstart"
+format-check = "mojo format dataviz tests scripts docs/cookbook_recipes docs/src/examples/quickstart && git diff --exit-code -- dataviz tests scripts docs/cookbook_recipes docs/src/examples/quickstart"
 # Renders a representative mark per family at increasing sizes and
 # prints wall-clock render times (scripts/bench.mojo, #230) -- a manual
 # "run before a release, or after touching a mark's layout code" check,
