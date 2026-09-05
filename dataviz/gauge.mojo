@@ -1,9 +1,9 @@
 from std.math import pi
 
+from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 from canvas.text.render import TextAlign
-from dataviz.plot import _LazyFontCache
 
 from dataviz.plot import Plot, _RenderResult, _Scaled, _TextRequest, _finished
 from dataviz.polar import _polar_point
@@ -57,7 +57,7 @@ def _render_gauge[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.GAUGE` plot: `encode_gauge()`'s single `value`, clamped
     to `[min_value, max_value]` (an out-of-range value pins visibly at the

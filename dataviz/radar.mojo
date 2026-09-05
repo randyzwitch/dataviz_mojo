@@ -1,10 +1,10 @@
 from std.math import cos, pi
 
+from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 from canvas.text.render import TextAlign
-from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import (
     _materialize_nested_scalar_list,
@@ -95,7 +95,7 @@ def _render_radar[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.RADAR` plot: `encode_radar()`'s `indicators` (one
     spoke each, evenly spaced, starting at 12 o'clock and sweeping

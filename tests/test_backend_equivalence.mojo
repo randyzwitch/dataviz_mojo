@@ -19,6 +19,7 @@ untested.
 """
 
 from canvas.buffer import Canvas
+from canvas.text.font_cache import FontCache
 from canvas.vector.svg import SvgCanvas
 from dataviz import (
     arc_diagram,
@@ -71,7 +72,6 @@ from dataviz.plot import (
     area,
     line,
     scatter,
-    _LazyFontCache,
     _render_generic,
 )
 from dataviz.theme import Theme
@@ -340,8 +340,8 @@ def _assert_same_layout(mark_value: Int, plot: Plot) raises -> Int:
     # A fresh cache per backend, so neither starts from the other's
     # warmed state -- what is being compared is the layout the mark
     # decided, not the order the two runs happened in.
-    var raster_cache = _LazyFontCache()
-    var vector_cache = _LazyFontCache()
+    var raster_cache = FontCache()
+    var vector_cache = FontCache()
     var canvas = Canvas(_W, _H, WHITE)
     var svg = SvgCanvas(_W, _H)
     var raster = _render_generic(canvas, plot, 0, 0, _W, _H, cache=raster_cache)

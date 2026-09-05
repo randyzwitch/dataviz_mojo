@@ -1,8 +1,8 @@
 from std.math import cos, pi, sin
 
+from canvas.text.font_cache import FontCache
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
-from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import (
     _materialize_nested_scalar_list,
@@ -108,7 +108,7 @@ def _render_polar[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.POLAR` plot: `encode_polar()`'s `angle`/`radius` pairs
     (or `encode_polar_series()`'s shared `angle` plus several named

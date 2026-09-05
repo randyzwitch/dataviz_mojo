@@ -1,6 +1,6 @@
+from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.geometry import _round_to_int
-from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -180,7 +180,7 @@ def _render_bar[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.BAR` plot: a categorical x-axis (`OrdinalScale`, one
     evenly spaced band per category) and a continuous y-axis whose domain
@@ -245,7 +245,7 @@ def _render_horizontal_bar[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """`_render_bar`'s mirror image for `Plot.mark_bar(horizontal=True)`
     (#121): a categorical y-axis (`OrdinalScale`, top to bottom) and a

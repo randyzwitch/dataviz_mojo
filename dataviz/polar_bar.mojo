@@ -1,7 +1,7 @@
 from std.math import pi
 
+from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
-from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -32,7 +32,7 @@ def _render_polar_bar[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.POLAR_BAR` plot: bars radiating outward from the
     center of a circle (ECharts.jl's `polarbar`). One bar per category

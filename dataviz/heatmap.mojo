@@ -1,10 +1,10 @@
+from canvas.text.font_cache import FontCache
 from canvas.geometry import _round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import ColorScale
-from dataviz.plot import _LazyFontCache
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
@@ -96,7 +96,7 @@ def _draw_grid_axis_frame[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _GridFrame:
     """`Mark.HEATMAP`'s axis-frame core: two `OrdinalScale` axes,
     `x_categories` left-to-right and `y_categories` top-to-bottom (index
@@ -206,7 +206,7 @@ def _render_heatmap[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.HEATMAP` plot: `_draw_grid_axis_frame`'s
     two-categorical-axis grid, one filled cell per `encode_heatmap()` row,

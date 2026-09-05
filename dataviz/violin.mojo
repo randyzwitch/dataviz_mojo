@@ -1,8 +1,8 @@
 from std.math import exp, pi, sqrt
 
+from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.path import Path
-from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
@@ -172,7 +172,7 @@ def _render_violin[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.VIOLIN` plot: `encode_distribution()`'s raw
     per-category values (the same data `Mark.BEESWARM` takes), each
@@ -231,7 +231,7 @@ def _render_horizontal_violin[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """`_render_violin`'s mirror image for
     `Plot.mark_violin(horizontal=True)` (#121): `_render_horizontal_bar`'s

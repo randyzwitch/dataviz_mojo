@@ -1,9 +1,9 @@
 from std.math import sqrt
 
+from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.geometry import _round_to_int
 from canvas.path import Path
-from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
@@ -30,7 +30,7 @@ def _render_ridgeline[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.RIDGELINE` plot: the same per-category kernel-density
     estimate `Mark.VIOLIN` computes (`_kde_bandwidth`/`_kde_density`/

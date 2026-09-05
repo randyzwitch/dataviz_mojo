@@ -1,7 +1,7 @@
+from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.geometry import _round_to_int
 from canvas.path import Path
-from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
@@ -90,7 +90,7 @@ def _render_streamgraph[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.STREAMGRAPH` plot: `encode_grouped_bar()`'s data
     stacked the same running-total way as `Mark.STACKED_BAR`, with two

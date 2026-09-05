@@ -1,9 +1,9 @@
+from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.geometry import _round_to_int
 from canvas.path import Path
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
-from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -29,7 +29,7 @@ def _render_sankey[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.SANKEY` plot: `encode_chord()`'s edge list laid out
     left-to-right by column. A node's column is the length of the longest

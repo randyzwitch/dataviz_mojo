@@ -1,5 +1,5 @@
+from canvas.text.font_cache import FontCache
 from canvas.geometry import _round_to_int
-from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
@@ -283,7 +283,7 @@ def _render_box[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.BOX` plot: `_draw_categorical_axis_frame`'s
     categorical x-axis, with a y-domain (`_data_extent`, padded but not
@@ -350,7 +350,7 @@ def _render_horizontal_box[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """`_render_box`'s mirror image for `Plot.mark_box(horizontal=True)`
     (#121): `_render_horizontal_bar`'s categorical y-axis

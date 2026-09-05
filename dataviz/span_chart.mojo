@@ -1,5 +1,5 @@
+from canvas.text.font_cache import FontCache
 from canvas.geometry import _round_to_int
-from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -26,7 +26,7 @@ def _render_span_chart[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.SPAN_CHART` plot: one floating vertical bar per
     category from `plot._gantt.start[i]` to `plot._gantt.end[i]`, on the

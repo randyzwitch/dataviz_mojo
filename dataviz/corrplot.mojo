@@ -1,10 +1,10 @@
+from canvas.text.font_cache import FontCache
 from canvas.geometry import _round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import ColorScale
-from dataviz.plot import _LazyFontCache
 from dataviz.heatmap import _draw_grid_axis_frame
 from dataviz.mark import Mark
 from dataviz.plot import (
@@ -51,7 +51,7 @@ def _render_corrplot[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.CORRPLOT` plot: `encode_corrplot()`'s square
     correlation `matrix` over `variables`, one bubble per surviving cell

@@ -1,5 +1,5 @@
+from canvas.text.font_cache import FontCache
 from canvas.geometry import _round_to_int
-from dataviz.plot import _LazyFontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -72,7 +72,7 @@ def _render_population_pyramid[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.POPULATION_PYRAMID` plot:
     `_draw_horizontal_categorical_axis_frame` (the frame `Mark.GANTT`

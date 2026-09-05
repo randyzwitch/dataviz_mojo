@@ -1,9 +1,10 @@
 from std.math import atan2, sqrt
 
+from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.geometry import Transform2D, _round_to_int
 from canvas.path import Path
-from dataviz.plot import _LazyFontCache, _LegendLayout
+from dataviz.plot import FontCache, _LegendLayout
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -170,7 +171,7 @@ def _render_barbs[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.BARBS` plot: `encode_barbs()`'s continuous `x`/`y`
     positions with a wind barb at each, the vector field convention

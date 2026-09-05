@@ -1,7 +1,7 @@
+from canvas.text.font_cache import FontCache
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 from canvas.text.render import TextAlign
-from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -76,7 +76,7 @@ def _render_parallel[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.PARALLEL` plot: `encode_parallel()`'s `dims` (one
     vertical axis each, evenly spaced from the plot's left edge to its

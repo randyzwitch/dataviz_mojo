@@ -1,8 +1,8 @@
+from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from std.math import pi
 
 from canvas.vector.draw_target import DrawTarget
-from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -33,7 +33,7 @@ def _render_radialbar[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.RADIALBAR` plot: one concentric ring per category
     (`encode_categorical`'s `x`/`y`, the same shape `Mark.ARC`/

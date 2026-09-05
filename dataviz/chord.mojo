@@ -1,10 +1,10 @@
 from std.math import cos, pi, sin
 
+from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
-from dataviz.plot import _LazyFontCache
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import default_categorical_palette
@@ -73,7 +73,7 @@ def _render_chord[
     ox1: Int,
     oy1: Int,
     *,
-    mut cache: _LazyFontCache,
+    mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.CHORD` plot: one node per distinct category across
     `encode_chord()`'s `from`/`to` columns (first-seen order, see
