@@ -280,8 +280,15 @@ struct Theme(ImplicitlyCopyable, Movable):
     before this setting existed.
 
     `RIGHT`/`LEFT` cost plot width, `TOP`/`BOTTOM` cost plot height and
-    lay entries out in wrapping rows. Ignored when `show_legend` is off,
-    and by any mark that draws no legend. See `LegendPosition`.
+    lay entries out along a row -- wrapping rows for a categorical
+    legend, and side-by-side sections for a point mark's continuous
+    color bar and size circles. Ignored when `show_legend` is off, and by
+    any mark that draws no legend. See `LegendPosition`.
+
+    One exception: `render_layers()`/`render_facets()` take a column on
+    either side and fall back from `TOP`/`BOTTOM` to `RIGHT`. A layered
+    chart stacks a per-layer point legend under the series legend, and
+    there is no row form of that stack; `LEFT` works there as elsewhere.
     """
     var x_label_rotation: XAxisLabelRotation
     """Whether/how far `_draw_categorical_axis_frame`'s x-axis tick

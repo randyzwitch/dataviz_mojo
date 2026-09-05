@@ -2837,5 +2837,108 @@ def test_legend_position_left_moves_the_swatches_left_of_the_plot() raises:
     )
 
 
+def _continuous_point_plot(position: LegendPosition) raises -> Plot:
+    """A point plot with both continuous channels encoded, so its legend
+    carries a colour bar and a size section -- the two that had no row
+    form until #211's follow-up.
+    """
+    var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    var y: List[Float64] = [2.0, 4.0, 3.0, 5.0, 1.0, 6.0]
+    var col: List[Float64] = [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]
+    var sz: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    return (
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y, color=col, size=sz)
+        .theme(Theme(legend_position=position))
+        .size(560, 380)
+    )
+
+
+def test_continuous_legend_row_costs_height_not_width() raises:
+    """A point mark's colour bar and size circles used to fall back to a
+    column for TOP/BOTTOM. They now lay out along a row, so those
+    positions cost the plot height and leave its width alone.
+    """
+    var right = _laid_out_at(_continuous_point_plot(LegendPosition.RIGHT))
+    var bottom = _laid_out_at(_continuous_point_plot(LegendPosition.BOTTOM))
+    var top = _laid_out_at(_continuous_point_plot(LegendPosition.TOP))
+
+    assert_true(
+        bottom.px1 - bottom.px0 > right.px1 - right.px0,
+        "a row leaves the plot wider than a column",
+    )
+    assert_true(bottom.py1 < 380 - 1, "BOTTOM pulls the bottom edge up")
+    assert_true(top.py0 > right.py0, "TOP pushes the top edge down")
+    assert_equal(top.px0, bottom.px0, "neither row costs width")
+    assert_equal(top.px1, bottom.px1, "neither row costs width")
+
+
+def test_continuous_legend_row_reserves_room_for_the_size_labels() raises:
+    """The size section is the tall one -- a circle diameter plus its
+    label underneath -- so a row carrying it must reserve more height
+    than one with only a colour bar. Sizing to the bar alone clipped
+    those labels off the canvas.
+    """
+    var x: List[Float64] = [1.0, 2.0, 3.0]
+    var y: List[Float64] = [2.0, 1.0, 3.0]
+    var col: List[Float64] = [10.0, 20.0, 30.0]
+    var sz: List[Float64] = [1.0, 2.0, 3.0]
+
+    var color_only = _laid_out_at(
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y, color=col)
+        .theme(Theme(legend_position=LegendPosition.BOTTOM))
+        .size(560, 380)
+    )
+    var with_size = _laid_out_at(
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y, color=col, size=sz)
+        .theme(Theme(legend_position=LegendPosition.BOTTOM))
+        .size(560, 380)
+    )
+    assert_true(
+        with_size.py1 < color_only.py1,
+        "a row with circles reserves more height than one with just a bar",
+    )
+
+    # And the labels actually land on the canvas rather than past it.
+    var svg = render_svg(
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y, color=col, size=sz)
+        .theme(Theme(legend_position=LegendPosition.BOTTOM))
+        .size(560, 380)
+    ).to_string()
+    assert_true("3.0</text>" in svg, "the largest size label is drawn")
+
+
+def test_continuous_legend_row_runs_low_to_high_left_to_right() raises:
+    """The vertical bar puts the domain max at the top and inverts each
+    stop's offset to get there. A row reads left to right instead, so the
+    low end is on the left and no inversion applies.
+    """
+    var svg = render_svg(
+        _continuous_point_plot(LegendPosition.BOTTOM)
+    ).to_string()
+
+    var low_at = svg.find("10.0</text>")
+    var high_at = svg.find("60.0</text>")
+    assert_true(low_at >= 0, "the domain min is labelled")
+    assert_true(high_at >= 0, "the domain max is labelled")
+    assert_true(
+        low_at < high_at,
+        "the low label is emitted before the high one, left to right",
+    )
+
+
+def _laid_out_at(plot: Plot) raises -> _RenderResult:
+    var cache = _LazyFontCache()
+    var canvas = Canvas(560, 380, BG)
+    return _render_generic(canvas, plot, 0, 0, 560, 380, cache=cache)
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
