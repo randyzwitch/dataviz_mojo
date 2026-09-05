@@ -12,8 +12,9 @@ from dataviz.plot import (
     _RenderResult,
     _Scaled,
     _TextRequest,
-    _draw_legend,
-    _dynamic_legend_width,
+    _LegendLayout,
+    _draw_legend_at,
+    _legend_layout,
     _finished,
     _require_non_negative,
 )
@@ -171,14 +172,14 @@ def _render_tree[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = _dynamic_legend_width(
-        legend_labels, sc.legend_swatch_size, sc, cache=cache
-    ) if show_legend else 0
+    var legend = _legend_layout(
+        legend_labels, sc.legend_swatch_size, sc, theme, ox1 - ox0, cache=cache
+    ) if show_legend else _LegendLayout()
 
-    var plot_x0 = ox0 + sc.margin_left
-    var plot_y0 = oy0 + sc.margin_top
-    var plot_x1 = ox1 - sc.margin_right - legend_reserve
-    var plot_y1 = oy1 - sc.margin_bottom
+    var plot_x0 = ox0 + sc.margin_left + legend.left
+    var plot_y0 = oy0 + sc.margin_top + legend.top
+    var plot_x1 = ox1 - sc.margin_right - legend.right
+    var plot_y1 = oy1 - sc.margin_bottom - legend.bottom
 
     var palette = default_categorical_palette()
 
@@ -230,13 +231,16 @@ def _render_tree[
         )
 
     if show_legend:
-        _draw_legend(
+        _draw_legend_at(
             target,
             text_requests,
             legend_labels,
             palette,
-            plot_x1 + sc.margin_right,
+            legend,
+            plot_x0,
             plot_y0,
+            plot_x1,
+            plot_y1,
             theme,
         )
 

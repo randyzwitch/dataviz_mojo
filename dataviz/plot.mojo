@@ -68,6 +68,7 @@ from dataviz.numpy_interop import _materialize_python_floats
 from std.python import PythonObject
 from dataviz.color_scale import ColorScale, default_categorical_palette
 from dataviz.marker import PointShape, _fill_shape_aa, default_marker_shapes
+from dataviz.legend_position import LegendPosition
 from dataviz.mark import Mark
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.output_format import OutputFormat
@@ -3831,6 +3832,265 @@ struct _TextRequest(Copyable, Movable):
         self.rotation = rotation
 
 
+struct _LegendLayout(Movable):
+    """How much room a legend needs and on which edge, plus the packing a
+    horizontal one will draw with (#211).
+
+    `left`/`right`/`top`/`bottom` are the inset each edge of the plot
+    rect takes; exactly one is non-zero. A mark adds them to its rect
+    before laying anything else out, so the legend's cost is paid the
+    same way whichever edge it lands on -- `RIGHT` reproduces the fixed
+    column every mark reserved before this existed.
+
+    `entry_widths`/`row_of` are filled only for `TOP`/`BOTTOM`, where
+    entries pack into wrapping rows: measuring labels twice (once to size
+    the reserve, again to draw) would be both slower and a chance for the
+    two to disagree, so the packing decided here is the packing drawn.
+    """
+
+    var left: Int
+    var right: Int
+    var top: Int
+    var bottom: Int
+    var position: LegendPosition
+    var active: Bool
+    var entry_widths: List[Int]
+    var row_of: List[Int]
+    var rows: Int
+
+    def __init__(out self):
+        """An inactive layout, reserving nothing -- what a mark uses when
+        `Theme.show_legend` is off or it has no legend to draw."""
+        self.left = 0
+        self.right = 0
+        self.top = 0
+        self.bottom = 0
+        self.position = LegendPosition.RIGHT
+        self.active = False
+        self.entry_widths = List[Int]()
+        self.row_of = List[Int]()
+        self.rows = 0
+
+
+def _legend_layout(
+    labels: List[String],
+    content_width: Int,
+    sc: _Scaled,
+    theme: Theme,
+    available_width: Int,
+    *,
+    mut cache: _LazyFontCache,
+) raises -> _LegendLayout:
+    """Size a legend for `theme.legend_position` and say which edge pays.
+
+    A column (`RIGHT`/`LEFT`) is exactly `_dynamic_legend_width`, so the
+    default is byte-for-byte what marks reserved before this setting
+    existed. A row (`TOP`/`BOTTOM`) packs entries left to right, wrapping
+    whenever the next one would run past `available_width`, and reserves
+    the height those rows need.
+
+    Args:
+        labels: The legend's entries, in draw order.
+        content_width: Width of one entry's swatch/bar/circle.
+        sc: The render's scaled layout metrics.
+        theme: Supplies `legend_position`.
+        available_width: The plot rect's full width before the legend is
+            taken out -- what a horizontal legend wraps against.
+        cache: The render's shared font cache, for measuring labels.
+
+    Returns:
+        The layout; `active` is False when `labels` is empty.
+    """
+    var layout = _LegendLayout()
+    if len(labels) == 0:
+        return layout^
+    layout.active = True
+    layout.position = theme.legend_position
+
+    if not theme.legend_position.is_horizontal():
+        var width = _dynamic_legend_width(
+            labels, content_width, sc, cache=cache
+        )
+        if theme.legend_position == LegendPosition.LEFT:
+            layout.left = width
+        else:
+            layout.right = width
+        return layout^
+
+    # A row per entry that fits, wrapping when the next would overrun.
+    # One trailing gap per entry rather than between them: the extra gap
+    # at a row's end is what keeps the last entry clear of the plot edge.
+    var gap = sc.legend_swatch_size + sc.label_gap
+    var row = 0
+    var used = 0
+    for i in range(len(labels)):
+        var one: List[String] = [labels[i]]
+        var entry = (
+            content_width
+            + sc.label_gap
+            + Int(_max_label_width(one, sc.font_size, cache=cache))
+            + gap
+        )
+        if used > 0 and used + entry > available_width:
+            row += 1
+            used = 0
+        layout.entry_widths.append(entry)
+        layout.row_of.append(row)
+        used += entry
+
+    layout.rows = row + 1
+    var height = (
+        layout.rows * (sc.legend_swatch_size + sc.legend_row_gap)
+        + sc.margin_buffer
+    )
+    if theme.legend_position == LegendPosition.TOP:
+        layout.top = height
+    else:
+        layout.bottom = height
+    return layout^
+
+
+def _with_secondary_axis(
+    layout: _LegendLayout, secondary_axis_reserve: Int
+) -> _LegendLayout:
+    """`layout` with a secondary y-axis's own width added to the right
+    inset, since that axis is drawn outside the plot rect on the same
+    side a right-hand legend sits.
+
+    Args:
+        layout: The legend's own reserve.
+        secondary_axis_reserve: Width the secondary axis needs, or 0.
+
+    Returns:
+        A copy with the extra width folded in.
+    """
+    var out = _LegendLayout()
+    out.left = layout.left
+    out.right = layout.right + secondary_axis_reserve
+    out.top = layout.top
+    out.bottom = layout.bottom
+    out.position = layout.position
+    out.active = layout.active
+    out.entry_widths = layout.entry_widths.copy()
+    out.row_of = layout.row_of.copy()
+    out.rows = layout.rows
+    return out^
+
+
+def _legend_column_x(
+    layout: _LegendLayout, plot_x0: Int, plot_x1: Int, sc: _Scaled
+) -> Int:
+    """Where a legend *column* starts, given the plot rect it was already
+    reserved out of: just past the right edge, or inside the space opened
+    on the left.
+
+    Args:
+        layout: What reserved the space.
+        plot_x0: Final plot rect's left edge.
+        plot_x1: Final plot rect's right edge.
+        sc: The render's scaled layout metrics.
+
+    Returns:
+        The column's left x.
+    """
+    if layout.left > 0:
+        return plot_x0 - layout.left + sc.margin_buffer
+    return plot_x1 + sc.margin_right
+
+
+def _draw_legend_at[
+    T: DrawTarget
+](
+    mut target: T,
+    mut text_requests: List[_TextRequest],
+    labels: List[String],
+    palette: List[Color],
+    layout: _LegendLayout,
+    plot_x0: Int,
+    plot_y0: Int,
+    plot_x1: Int,
+    plot_y1: Int,
+    theme: Theme,
+    shapes: List[PointShape] = List[PointShape](),
+) raises:
+    """Draw `labels` on whichever edge `layout` reserved, against a plot
+    rect that already has that reserve taken out of it.
+
+    The column forms hand off to `_draw_legend` unchanged -- `RIGHT` at
+    the same origin every mark used before, `LEFT` in the space now
+    opened on the other side. The row forms draw here, walking the
+    packing `_legend_layout` already decided.
+
+    Args:
+        target: The draw target.
+        text_requests: Collected label draws, appended to.
+        labels: The legend's entries.
+        palette: Colors, indexed `i % len(palette)` as the marks were.
+        layout: What `_legend_layout` returned for these labels.
+        plot_x0: Final plot rect's left edge.
+        plot_y0: Final plot rect's top edge.
+        plot_x1: Final plot rect's right edge.
+        plot_y1: Final plot rect's bottom edge.
+        theme: Supplies colors and font.
+        shapes: Per-entry `PointShape`s, when the mark draws shapes.
+    """
+    if not layout.active:
+        return
+    var sc = _Scaled(theme)
+
+    if not layout.position.is_horizontal():
+        var x = _legend_column_x(layout, plot_x0, plot_x1, sc)
+        _draw_legend(
+            target, text_requests, labels, palette, x, plot_y0, theme, shapes
+        )
+        return
+
+    var row_height = sc.legend_swatch_size + sc.legend_row_gap
+    # TOP sits in the band opened above the plot, below any title.
+    # BOTTOM has to clear the x-axis tick labels, which are drawn in
+    # `margin_bottom` *below* plot_y1 -- starting at plot_y1 would put
+    # the legend straight on top of them.
+    var first_row_y = (
+        plot_y0 - layout.top + sc.margin_buffer if layout.position
+        == LegendPosition.TOP else plot_y1 + sc.margin_bottom
+    )
+
+    var x = plot_x0
+    var row = 0
+    for i in range(len(labels)):
+        if layout.row_of[i] != row:
+            row = layout.row_of[i]
+            x = plot_x0
+        var row_y = first_row_y + row * row_height
+        var color = palette[i % len(palette)]
+        if len(shapes) > 0:
+            var radius = sc.legend_swatch_size // 2
+            _fill_shape_aa(
+                target,
+                x + radius,
+                row_y + radius,
+                radius,
+                shapes[i % len(shapes)],
+                color,
+            )
+        else:
+            target.fill_rect(
+                x, row_y, sc.legend_swatch_size, sc.legend_swatch_size, color
+            )
+        text_requests.append(
+            _TextRequest(
+                x + sc.legend_swatch_size + sc.label_gap,
+                row_y + sc.legend_swatch_size - 3,
+                labels[i],
+                theme.text_color,
+                sc.font_size,
+                TextAlign.LEFT,
+                theme.font_family,
+            )
+        )
+        x += layout.entry_widths[i]
+
+
 def _draw_legend[
     T: DrawTarget
 ](
@@ -5833,24 +6093,32 @@ def _check_line_smoothing(theme: Theme) raises:
 
 def _legend_reserve_for(
     plot: Plot, ch: _PointChannels, sc: _Scaled, *, mut cache: _LazyFontCache
-) raises -> Int:
-    """How much width `plot`'s legend column needs, or `0` when it has no
-    legend (`Theme.show_legend` off, not a point mark, or no data-driven
-    channel). A plot combining continuous color and size stacks both
-    sections vertically in one column, so the width is the larger of the
-    two, not the sum. Called before the plot rect is finalized, measuring
-    through the render's shared `cache` (see `_max_label_width`).
+) raises -> _LegendLayout:
+    """How much room `plot`'s point-mark legend needs and on which edge,
+    or an inactive layout when it has no legend (`Theme.show_legend` off,
+    not a point mark, or no data-driven channel). A plot combining
+    continuous color and size stacks both sections vertically in one
+    column, so the width is the larger of the two, not the sum. Called
+    before the plot rect is finalized, measuring through the render's
+    shared `cache` (see `_max_label_width`).
+
+    This path is a column on either side and never a row: the continuous
+    color bar and the size circles are both laid out vertically, so
+    `LegendPosition.TOP`/`BOTTOM` fall back to `RIGHT` here rather than
+    render sideways. `Theme.legend_position` documents that; horizontal
+    forms of the two continuous legends are the follow-up to #211.
     """
+    var layout = _LegendLayout()
     if not plot._theme.show_legend:
-        return 0
+        return layout^
     if not (
         plot._mark == Mark.POINT
         or plot._mark == Mark.SINGLE_AXIS
         or plot._mark == Mark.EFFECT_SCATTER
     ):
-        return 0
+        return layout^
     if not (ch.has_color_categories or ch.has_color or ch.has_size):
-        return 0
+        return layout^
 
     var reserve = 0
     if ch.has_color_categories:
@@ -5900,7 +6168,14 @@ def _legend_reserve_for(
                 size_labels, circle_content_width, sc, cache=cache
             ),
         )
-    return reserve
+
+    layout.active = True
+    if plot._theme.legend_position == LegendPosition.LEFT:
+        layout.position = LegendPosition.LEFT
+        layout.left = reserve
+    else:
+        layout.right = reserve
+    return layout^
 
 
 struct _ContinuousFrame(Movable):
@@ -5964,7 +6239,7 @@ def _draw_continuous_axis_frame[
     x_scale: LinearScale,
     y_scale: LinearScale,
     theme: Theme,
-    legend_reserve: Int,
+    legend: _LegendLayout,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -5982,7 +6257,8 @@ def _draw_continuous_axis_frame[
     Both scales' domains are decided by the caller (ranges are the
     `[0, 1]` placeholder `_data_extent`/`_zero_baseline_y_extent`
     return): one plot's data for a standalone render, every layer's data
-    combined for a stack. `legend_reserve` is subtracted from the right
+    combined for a stack. `legend` insets whichever edge it reserved (the
+    right column by default), subtracted from the right
     edge before the rect is finalized.
     """
     var sc = _Scaled(theme)
@@ -6000,10 +6276,10 @@ def _draw_continuous_axis_frame[
         + sc.margin_buffer
     )
 
-    var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
-    var plot_y0 = oy0 + sc.margin_top
-    var plot_x1 = ox1 - sc.margin_right - legend_reserve
-    var plot_y1 = oy1 - sc.margin_bottom
+    var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin) + legend.left
+    var plot_y0 = oy0 + sc.margin_top + legend.top
+    var plot_x1 = ox1 - sc.margin_right - legend.right
+    var plot_y1 = oy1 - sc.margin_bottom - legend.bottom
 
     var out_x_scale = x_scale
     out_x_scale.range_min = Float64(plot_x0)
@@ -6685,7 +6961,7 @@ def _render_generic[
             ch,
             frame.x_scale,
             frame.y_scale,
-            frame.px1 + sc.margin_right,
+            _legend_column_x(legend_reserve, frame.px0, frame.px1, sc),
             frame.py0,
             draw_halo=plot._mark == Mark.EFFECT_SCATTER,
         )
@@ -7850,28 +8126,42 @@ def _render_layers_generic[
     # encoding-using Mark.POINT layer, each measured with that layer's own
     # _Scaled; sections stack vertically, so the column width is a max,
     # not a sum.
-    var legend_reserve = 0
+    var legend_width = 0
     for j in range(len(plots)):
         var p_sc_j = _Scaled(plots[j]._theme)
         var ch_j = _PointChannels(plots[j], p_sc_j)
-        legend_reserve = max(
-            legend_reserve,
-            _legend_reserve_for(plots[j], ch_j, p_sc_j, cache=cache),
+        var layer_legend = _legend_reserve_for(
+            plots[j], ch_j, p_sc_j, cache=cache
         )
+        legend_width = max(legend_width, layer_legend.left + layer_legend.right)
     if len(series_names) > 0:
-        legend_reserve = max(
-            legend_reserve,
+        legend_width = max(
+            legend_width,
             _dynamic_legend_width(
                 series_names, sc.legend_swatch_size, sc, cache=cache
             ),
         )
+
+    # A column on one side or the other, never a row: a layered chart
+    # stacks a per-layer point legend under the series legend, and the
+    # point legend's continuous sections are vertical (see
+    # `_legend_reserve_for`). LegendPosition.TOP/BOTTOM therefore fall
+    # back to RIGHT here, as Theme.legend_position documents.
+    var legend_reserve = _LegendLayout()
+    if legend_width > 0:
+        legend_reserve.active = True
+        if theme.legend_position == LegendPosition.LEFT:
+            legend_reserve.position = LegendPosition.LEFT
+            legend_reserve.left = legend_width
+        else:
+            legend_reserve.right = legend_width
 
     var frame = _draw_continuous_axis_frame(
         target,
         x_scale,
         y_scale,
         theme,
-        legend_reserve + secondary_axis_reserve,
+        _with_secondary_axis(legend_reserve, secondary_axis_reserve),
         ox0,
         oy0,
         ox1,

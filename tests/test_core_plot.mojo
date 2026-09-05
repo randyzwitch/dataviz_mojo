@@ -40,10 +40,13 @@ from _test_helpers import (
     _index_of,
     _unique_categories,
 )
+from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.path import _CUBIC_TO, _LINE_TO, _MOVE_TO
 from dataviz import (
+    LegendPosition,
     PointShape,
+    grouped_bar,
     bar,
     beeswarm,
     box,
@@ -65,6 +68,9 @@ from dataviz.colors import RED
 from dataviz.edges import _edge_node_index
 from dataviz.plot import (
     Plot,
+    _LazyFontCache,
+    _RenderResult,
+    _render_generic,
     accessible_svg_string,
     render,
     render_facets,
@@ -2612,6 +2618,215 @@ def test_sweep_decimation_declines_on_any_non_monotonic_x() raises:
         if failure:
             break
     assert_true(failure == "", failure)
+
+
+# ---------------------------------------------------------------
+# Theme.legend_position (#211)
+# ---------------------------------------------------------------
+
+
+def _grouped_series_plot(
+    position: LegendPosition, names: List[String]
+) raises -> Plot:
+    """A four-series grouped bar with the legend on `position`. Grouped
+    bar is the case the issue is about: several series, so the legend is
+    wide enough that where it sits changes the plot's shape.
+    """
+    var cats: List[String] = ["Q1", "Q2", "Q3", "Q4"]
+    var vals = List[List[Float64]]()
+    for s in range(len(names)):
+        var row = List[Float64]()
+        for c in range(4):
+            row.append(Float64((s + 1) * (c + 2)))
+        vals.append(row^)
+    return grouped_bar(
+        cats,
+        names.copy(),
+        vals,
+        theme=Theme(legend_position=position),
+        width=560,
+        height=360,
+    )
+
+
+def _laid_out(plot: Plot) raises -> _RenderResult:
+    var cache = _LazyFontCache()
+    var canvas = Canvas(560, 360, BG)
+    return _render_generic(canvas, plot, 0, 0, 560, 360, cache=cache)
+
+
+def _four_series() -> List[String]:
+    return ["North", "South", "East", "West"]
+
+
+def test_legend_position_takes_its_space_from_the_chosen_edge() raises:
+    """Each position insets exactly one edge of the plot rect, relative to
+    a chart with no legend at all. RIGHT is the default and reproduces
+    what every legend did before this setting existed.
+    """
+    var cats: List[String] = ["Q1", "Q2", "Q3", "Q4"]
+    var vals = List[List[Float64]]()
+    var names = _four_series()
+    for s in range(4):
+        var row = List[Float64]()
+        for c in range(4):
+            row.append(Float64((s + 1) * (c + 2)))
+        vals.append(row^)
+    var none = _laid_out(
+        grouped_bar(
+            cats,
+            names,
+            vals,
+            theme=Theme(show_legend=False),
+            width=560,
+            height=360,
+        )
+    )
+
+    var right = _laid_out(_grouped_series_plot(LegendPosition.RIGHT, names))
+    assert_true(right.px1 < none.px1, "RIGHT pulls the right edge in")
+    assert_equal(right.px0, none.px0, "RIGHT leaves the left edge alone")
+    assert_equal(right.py0, none.py0, "RIGHT leaves the top alone")
+    assert_equal(right.py1, none.py1, "RIGHT leaves the bottom alone")
+
+    var left = _laid_out(_grouped_series_plot(LegendPosition.LEFT, names))
+    assert_true(left.px0 > none.px0, "LEFT pushes the left edge in")
+    assert_equal(left.px1, none.px1, "LEFT leaves the right edge alone")
+
+    # LEFT is RIGHT mirrored, so it costs the plot the same width.
+    assert_equal(
+        left.px1 - left.px0,
+        right.px1 - right.px0,
+        "LEFT and RIGHT cost the same width",
+    )
+
+    var top = _laid_out(_grouped_series_plot(LegendPosition.TOP, names))
+    assert_true(top.py0 > none.py0, "TOP pushes the top edge down")
+    assert_equal(top.px0, none.px0, "TOP costs no width")
+    assert_equal(top.px1, none.px1, "TOP costs no width")
+
+    var bottom = _laid_out(_grouped_series_plot(LegendPosition.BOTTOM, names))
+    assert_true(bottom.py1 < none.py1, "BOTTOM pulls the bottom edge up")
+    assert_equal(bottom.px0, none.px0, "BOTTOM costs no width")
+    assert_equal(bottom.px1, none.px1, "BOTTOM costs no width")
+
+    # A row costs height rather than width, which is the whole point.
+    assert_true(
+        top.px1 - top.px0 > right.px1 - right.px0,
+        "a row leaves the plot wider than a column does",
+    )
+
+
+def test_legend_position_right_is_unchanged_from_the_default() raises:
+    """The default must be byte-identical to not setting it at all --
+    every existing chart's layout depends on that.
+    """
+    var names = _four_series()
+    var explicit = render_svg(
+        _grouped_series_plot(LegendPosition.RIGHT, names)
+    ).to_string()
+
+    var cats: List[String] = ["Q1", "Q2", "Q3", "Q4"]
+    var vals = List[List[Float64]]()
+    for s in range(4):
+        var row = List[Float64]()
+        for c in range(4):
+            row.append(Float64((s + 1) * (c + 2)))
+        vals.append(row^)
+    var default = render_svg(
+        grouped_bar(cats, names, vals, width=560, height=360)
+    ).to_string()
+    assert_equal(explicit, default, "RIGHT is the default")
+
+
+def test_legend_position_horizontal_lays_entries_out_in_a_row() raises:
+    """TOP/BOTTOM put every entry on one row: the swatches share a y and
+    advance in x. A column would do the opposite.
+    """
+    var names = _four_series()
+    var svg = render_svg(
+        _grouped_series_plot(LegendPosition.TOP, names)
+    ).to_string()
+
+    # Swatches are the only 14x14 rects in the document.
+    var swatch = 'width="14" height="14"'
+    assert_equal(svg.count(swatch), 4, "one swatch per series")
+
+    # Every swatch shares the same y attribute, and they sit at four
+    # different x's.
+    var first_y = String("")
+    var seen_xs = List[String]()
+    var rest = svg
+    for _ in range(4):
+        var at = rest.find(swatch)
+        var head = String(rest[byte=0:at])
+        var tag_at = head.rfind("<rect")
+        var tag = String(head[byte=tag_at:])
+        var x_at = tag.find('x="') + 3
+        var x_end = tag.find('"', x_at)
+        var y_at = tag.find('y="') + 3
+        var y_end = tag.find('"', y_at)
+        var this_x = String(tag[byte=x_at:x_end])
+        var this_y = String(tag[byte=y_at:y_end])
+        if first_y == "":
+            first_y = this_y
+        assert_equal(this_y, first_y, "every swatch on the same row")
+        for prior in seen_xs:
+            assert_true(prior != this_x, "swatches advance in x")
+        seen_xs.append(this_x)
+        var tail = String(rest[byte = at + swatch.byte_length() :])
+        rest = tail
+
+
+def test_legend_position_horizontal_wraps_when_a_row_would_overrun() raises:
+    """Names too long to fit one row wrap onto a second, which costs the
+    plot more height than a single row does.
+    """
+    var short = _four_series()
+    var one_row = _laid_out(_grouped_series_plot(LegendPosition.TOP, short))
+
+    var long_names: List[String] = [
+        "Northern region, including islands",
+        "Southern region, excluding islands",
+        "Eastern region and its territories",
+        "Western region and its territories",
+    ]
+    var wrapped = _laid_out(
+        _grouped_series_plot(LegendPosition.TOP, long_names)
+    )
+    assert_true(
+        wrapped.py0 > one_row.py0,
+        "wrapping onto further rows takes more height",
+    )
+    # Still no width taken, however many rows it needs.
+    assert_equal(wrapped.px0, one_row.px0, "a wrapped row still costs no width")
+    assert_equal(wrapped.px1, one_row.px1, "a wrapped row still costs no width")
+
+
+def test_legend_position_left_moves_the_swatches_left_of_the_plot() raises:
+    """The swatch column has to move with the reserve, not just the plot
+    rect -- drawing it on the right of a left-reserved chart would leave
+    it over the marks.
+    """
+    var names = _four_series()
+    var laid = _laid_out(_grouped_series_plot(LegendPosition.LEFT, names))
+    var svg = render_svg(
+        _grouped_series_plot(LegendPosition.LEFT, names)
+    ).to_string()
+
+    var at = svg.find('width="14" height="14"')
+    var head = String(svg[byte=0:at])
+    var tag = String(head[byte = head.rfind("<rect") :])
+    var x_at = tag.find('x="') + 3
+    var swatch_x = Int(Float64(String(tag[byte = x_at : tag.find('"', x_at)])))
+    assert_true(
+        swatch_x < laid.px0,
+        "the swatch column sits left of the plot rect (swatch x "
+        + String(swatch_x)
+        + ", plot x0 "
+        + String(laid.px0)
+        + ")",
+    )
 
 
 def main() raises:

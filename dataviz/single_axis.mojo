@@ -12,6 +12,8 @@ from dataviz.plot import (
     _axis_pixel,
     _data_extent,
     _draw_point_layer,
+    _legend_column_x,
+    _LegendLayout,
     _legend_reserve_for,
     _finished,
     _require_non_empty,
@@ -65,7 +67,7 @@ def _draw_single_axis_frame[
     mut target: T,
     x_scale: LinearScale,
     theme: Theme,
-    legend_reserve: Int,
+    legend: _LegendLayout,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -80,10 +82,10 @@ def _draw_single_axis_frame[
     """
     var sc = _Scaled(theme)
 
-    var plot_x0 = ox0 + sc.margin_left
-    var plot_y0 = oy0 + sc.margin_top
-    var plot_x1 = ox1 - sc.margin_right - legend_reserve
-    var plot_y1 = oy1 - sc.margin_bottom
+    var plot_x0 = ox0 + sc.margin_left + legend.left
+    var plot_y0 = oy0 + sc.margin_top + legend.top
+    var plot_x1 = ox1 - sc.margin_right - legend.right
+    var plot_y1 = oy1 - sc.margin_bottom - legend.bottom
 
     var out_x_scale = x_scale
     out_x_scale.range_min = Float64(plot_x0)
@@ -178,7 +180,7 @@ def _render_single_axis[
         ch,
         frame.x_scale,
         y_scale,
-        frame.px1 + sc.margin_right,
+        _legend_column_x(legend_reserve, frame.px0, frame.px1, sc),
         frame.py0,
     )
 

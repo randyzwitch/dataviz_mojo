@@ -15,8 +15,9 @@ from dataviz.plot import (
     _axis_pixel,
     _check_line_smoothing,
     _draw_categorical_axis_frame,
-    _draw_legend,
-    _dynamic_legend_width,
+    _LegendLayout,
+    _draw_legend_at,
+    _legend_layout,
     _finished,
 )
 from dataviz.scale import LinearScale
@@ -124,9 +125,14 @@ def _render_streamgraph[
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend_reserve = _dynamic_legend_width(
-        plot._grouped_bar.series_names, sc.legend_swatch_size, sc, cache=cache
-    ) if show_legend else 0
+    var legend = _legend_layout(
+        plot._grouped_bar.series_names,
+        sc.legend_swatch_size,
+        sc,
+        theme,
+        ox1 - ox0,
+        cache=cache,
+    ) if show_legend else _LegendLayout()
 
     var y_scale = _symmetric_zero_baseline_y_extent(
         plot._grouped_bar.values, n_categories
@@ -136,10 +142,10 @@ def _render_streamgraph[
         plot.x_categories,
         y_scale,
         theme,
-        ox0,
-        oy0,
-        ox1 - legend_reserve,
-        oy1,
+        ox0 + legend.left,
+        oy0 + legend.top,
+        ox1 - legend.right,
+        oy1 - legend.bottom,
         cache=cache,
     )
 
@@ -188,13 +194,16 @@ def _render_streamgraph[
         )
 
     if show_legend:
-        _draw_legend(
+        _draw_legend_at(
             target,
             frame.text_requests,
             plot._grouped_bar.series_names,
             palette,
-            _round_to_int(frame.x_scale.range_max) + sc.margin_right,
-            _round_to_int(frame.y_scale.range_max),
+            legend,
+            frame.px0,
+            frame.py0,
+            frame.px1,
+            frame.py1,
             theme,
         )
 
