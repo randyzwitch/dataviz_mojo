@@ -7,7 +7,13 @@ color_by_sign), encode_histogram(), Mark.LOLLIPOP, Mark.BOX,
 Mark.CANDLESTICK, Mark.WATERFALL, and Mark.BULLET, each raster + SVG.
 """
 
-from _test_helpers import BG, _assert_color, _assert_near_color, _count_color
+from _test_helpers import (
+    BG,
+    _assert_color,
+    _assert_near_color,
+    _bbox_of_color,
+    _count_color,
+)
 from canvas.color import Color
 from canvas.path import Path, _CLOSE, _CUBIC_TO, _LINE_TO, _MOVE_TO
 from dataviz import (
@@ -522,22 +528,49 @@ def test_render_bar_raises_on_no_data() raises:
 
 
 def test_render_bar_negative_values_extend_below_the_baseline() raises:
-    # A single negative bar: _zero_baseline_y_extent's domain is
-    # [lo-pad, 0] with hi at exactly 0, so the baseline sits at the top of
-    # the bar's rect.
-    var x: List[String] = ["a"]
-    var y: List[Float64] = [-10.0]
-    var t = Theme(show_gridlines=False)
-    var _hoisted3 = bar(x, y, theme=t, width=400, height=300)
-    var c = render(_hoisted3)
+    """A negative bar hangs below the zero baseline and a positive one
+    rises above it, so in one chart carrying both they occupy opposite
+    sides and do not overlap at all.
 
-    # Baseline (value 0) is the domain's unpadded top, pixel y=20; a pixel
-    # just below it, inside the bar's band, is the mark color.
-    _assert_color(
-        c, 220, 25, t.mark_color, "just below the zero baseline, inside the bar"
+    Located by scanning rather than by hand-derived pixel (#218), and
+    stated with both signs in one chart on purpose. A single bar is not
+    the test it looks like: `_zero_baseline_y_extent` pads only the end
+    that is not zero, so a lone -10 spans y 20-238 and a lone +10 spans
+    31-248 -- each anchored to its own end of the plot, but overlapping
+    each other almost entirely. Comparing two separate charts would
+    therefore prove nothing. Colouring by sign is what makes the two bars
+    separately findable here.
+
+    The exact baseline pixel stays anchored by
+    `test_render_bar_mark_matches_hand_derived_bar_rectangles` above.
+    """
+    var cats: List[String] = ["pos", "neg"]
+    var vals: List[Float64] = [10.0, -10.0]
+    var t = Theme(show_gridlines=False, color_by_sign=True)
+    var c = render(bar(cats, vals, theme=t, width=400, height=300))
+
+    var above = _bbox_of_color(c, t.mark_color)
+    var below = _bbox_of_color(c, t.mark_color_negative)
+    assert_true(above.found, "the positive bar was drawn")
+    assert_true(below.found, "the negative bar was drawn")
+    assert_true(
+        above.y1 < below.y0,
+        "the positive bar sits entirely above the negative one (positive y "
+        + String(above.y0)
+        + "-"
+        + String(above.y1)
+        + ", negative y "
+        + String(below.y0)
+        + "-"
+        + String(below.y1)
+        + ")",
     )
-    # Well above the plot area entirely -- background regardless.
-    _assert_color(c, 220, 5, BG, "above the plot area")
+    # They meet at the baseline rather than leaving a gap: one pixel of
+    # separation is the boundary between the two rects.
+    assert_true(
+        below.y0 - above.y1 <= 2,
+        "the two bars meet at the shared zero baseline",
+    )
 
 
 def test_render_svg_bar_mark_matches_confirmed_rect() raises:
@@ -565,37 +598,41 @@ def test_render_svg_bar_mark_matches_confirmed_rect() raises:
 
 
 def test_render_bar_color_by_sign_colors_negative_bars_differently() raises:
-    # The single-negative-bar setup (canvas 400x300, no gridlines, value
-    # -10, baseline at y=20, so (220,25) is inside the bar).
-    # color_by_sign=True switches that pixel to mark_color_negative.
+    """A negative bar under `color_by_sign` is drawn in
+    `mark_color_negative` -- and the ordinary `mark_color` appears
+    nowhere, which a single sampled pixel could not tell you.
+    """
     var x: List[String] = ["a"]
     var y: List[Float64] = [-10.0]
     var t = Theme(show_gridlines=False, color_by_sign=True)
-    var _hoisted4 = bar(x, y, theme=t, width=400, height=300)
-    var c = render(_hoisted4)
-    _assert_color(
-        c,
-        220,
-        25,
-        t.mark_color_negative,
-        "negative bar uses mark_color_negative",
+    var c = render(bar(x, y, theme=t, width=400, height=300))
+
+    assert_true(
+        _bbox_of_color(c, t.mark_color_negative).found,
+        "the negative bar uses mark_color_negative",
+    )
+    assert_true(
+        not _bbox_of_color(c, t.mark_color).found,
+        "and no part of it is drawn in the ordinary mark_color",
     )
 
 
 def test_render_bar_color_by_sign_leaves_positive_bars_at_mark_color() raises:
-    # Same setup with +10: the baseline is now at the bottom (250), so the
-    # inside pixel is (220, 245).
+    """The mirror: a positive bar stays `mark_color` with `color_by_sign`
+    on, and `mark_color_negative` is not drawn at all.
+    """
     var x: List[String] = ["a"]
     var y: List[Float64] = [10.0]
     var t = Theme(show_gridlines=False, color_by_sign=True)
-    var _hoisted5 = bar(x, y, theme=t, width=400, height=300)
-    var c = render(_hoisted5)
-    _assert_color(
-        c,
-        220,
-        245,
-        t.mark_color,
-        "positive bar stays mark_color even with color_by_sign on",
+    var c = render(bar(x, y, theme=t, width=400, height=300))
+
+    assert_true(
+        _bbox_of_color(c, t.mark_color).found,
+        "the positive bar stays mark_color",
+    )
+    assert_true(
+        not _bbox_of_color(c, t.mark_color_negative).found,
+        "and mark_color_negative is never drawn",
     )
 
 
