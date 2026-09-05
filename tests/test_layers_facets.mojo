@@ -1529,8 +1529,10 @@ def test_render_layers_svg_secondary_axis_draws_no_gridlines_of_its_own() raises
 
 def test_render_layers_secondary_axis_raster_draws_ink_at_the_hand_derived_row() raises:
     # Raster companion: confirms draw_line_aa painted the secondary axis's
-    # tick at (350, 135). Sampled at x=349, where the supersampled 1px tick
-    # happens to land fully opaque.
+    # tick at (350, 135). Sampled at x=350: since the supersampling
+    # rewrite the tick lands fully opaque across x=350..354 rather than on
+    # whichever single column the old device-space rounding happened to
+    # fill, so this no longer depends on picking the lucky one.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [10.0, 20.0]
     var y2: List[Float64] = [50.0, 10.0]
@@ -1544,7 +1546,7 @@ def test_render_layers_secondary_axis_raster_draws_ink_at_the_hand_derived_row()
     var c = render_layers(plots)
     _assert_color(
         c,
-        349,
+        350,
         135,
         Color(80, 80, 80),
         "the secondary axis's tick, just right of its axis line",

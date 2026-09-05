@@ -5417,29 +5417,20 @@ def _require_positive_supersample(factor: Int, context: String) raises:
         )
 
 
-def _scaled_copy(plots: List[Plot], factor: Int) -> List[Plot]:
-    """A copy of `plots` with every `Plot`'s own `_theme.scale` multiplied
-    by `factor`: the list version of the temporary scale bump `render()`
-    does for supersampling, so every plot in a facet grid/layer stack
-    scales its own mark styling. Returns a new list rather than mutating
-    `plots` in place (#208), so `render_facets()`/`render_layers()` can
-    take `plots` by borrow -- a temporary list literal binds to a borrow
-    but not to `mut`.
-    """
-    var out = List[Plot](capacity=len(plots))
-    for i in range(len(plots)):
-        var scaled = plots[i].copy()
-        scaled._theme.scale = scaled._theme.scale * Float64(factor)
-        out.append(scaled^)
-    return out^
-
-
 def render(plot: Plot) raises -> Canvas:
     """Render `plot` into a fresh `Canvas` sized `plot.width` x `plot.height`
     and return it, supersampled by `plot._theme.raster_supersample`
-    (default 3): a copy of `plot` has its `_theme.scale` bumped by that
-    factor, `_render_into` draws into a scratch canvas that many times
-    larger from that copy, and `downsample` shrinks the result.
+    (default 3): the scratch canvas is that many times larger, its
+    transform is scaled by the same factor, the layout is drawn at
+    logical coordinates, and `downsample` shrinks the result.
+
+    The factor reaches the drawing through the canvas transform rather
+    than through the layout arithmetic. It used to be folded into
+    `_theme.scale` on a copy, which meant every metric was rounded in
+    supersampled space and the raster and SVG paths measured in
+    different units. `Theme.scale` keeps its own meaning here -- it is
+    the user-facing density knob and still multiplies the layout, which
+    is why this only removes the supersample bump and not `_Scaled`.
 
     `plot` is a plain borrow (#208): copying instead of mutating in
     place means `render(scatter(x, y))` and `save(scatter(x, y), path)`
@@ -5448,12 +5439,19 @@ def render(plot: Plot) raises -> Canvas:
     """
     var factor = plot._theme.raster_supersample
     _require_positive_supersample(factor, "render")
-    var scaled = plot.copy()
-    scaled._theme.scale = scaled._theme.scale * Float64(factor)
     var scratch = Canvas(
-        plot.width * factor, plot.height * factor, scaled._theme.background
+        plot.width * factor, plot.height * factor, plot._theme.background
     )
-    _render_into(scratch, scaled)
+    # The half-pixel that box-downsampling costs: downsample() averages
+    # the device block f*p .. f*p+f-1 into output pixel p, whose centre
+    # sits at user coordinate p + (f-1)/(2f). Scaling alone therefore
+    # lands everything (f-1)/(2f) px early -- 0.25 at factor 2, 0.333 at
+    # 3, 0.375 at 4 -- so the origin shifts by (f-1)/2 device px first.
+    scratch.translate(Float64(factor - 1) / 2.0, Float64(factor - 1) / 2.0)
+    scratch.scale(Float64(factor), Float64(factor))
+    # Logical bounds, not the scratch canvas's own: every coordinate
+    # below is in user space now, and the transform maps it up.
+    _render_into(scratch, plot, 0, 0, plot.width, plot.height)
     return downsample(scratch, factor)
 
 
@@ -7594,17 +7592,25 @@ def render_facets(
     var rows = (len(plots) + cols - 1) // cols
     var factor = plots[0]._theme.raster_supersample
     _require_positive_supersample(factor, "render_facets")
-    var scaled_plots = _scaled_copy(plots, factor)
     var canvas = Canvas(
         cols * plots[0].width * factor, rows * plots[0].height * factor
     )
+    # The half-pixel that box-downsampling costs: downsample() averages
+    # the device block f*p .. f*p+f-1 into output pixel p, whose centre
+    # sits at user coordinate p + (f-1)/(2f). Scaling alone therefore
+    # lands everything (f-1)/(2f) px early -- 0.25 at factor 2, 0.333 at
+    # 3, 0.375 at 4 -- so the origin shifts by (f-1)/2 device px first.
+    canvas.translate(Float64(factor - 1) / 2.0, Float64(factor - 1) / 2.0)
+    canvas.scale(Float64(factor), Float64(factor))
     # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
+    # Logical figure bounds, not the scratch canvas's: the transform maps
+    # user space up to the supersampled device space.
     var text_requests = _render_facets_generic(
         canvas,
-        canvas.width,
-        canvas.height,
-        scaled_plots,
+        cols * plots[0].width,
+        rows * plots[0].height,
+        plots,
         cols,
         shared_y_scale,
         cache=cache,
@@ -7819,16 +7825,21 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
     _require_uniform_size(plots, "render_layers")
     var factor = plots[0]._theme.raster_supersample
     _require_positive_supersample(factor, "render_layers")
-    var scaled_plots = _scaled_copy(plots, factor)
-    var canvas = Canvas(
-        scaled_plots[0].width * factor, scaled_plots[0].height * factor
-    )
-    var cx1 = canvas.width
-    var cy1 = canvas.height
-    canvas.fill_rect(0, 0, cx1, cy1, scaled_plots[0]._theme.background)
-    var sc = _Scaled(scaled_plots[0]._theme)
-    var y2_title = _secondary_axis_y_title(scaled_plots)
-    var frame = _apply_labels(scaled_plots[0], 0, 0, cx1, cy1)
+    var canvas = Canvas(plots[0].width * factor, plots[0].height * factor)
+    # The half-pixel that box-downsampling costs: downsample() averages
+    # the device block f*p .. f*p+f-1 into output pixel p, whose centre
+    # sits at user coordinate p + (f-1)/(2f). Scaling alone therefore
+    # lands everything (f-1)/(2f) px early -- 0.25 at factor 2, 0.333 at
+    # 3, 0.375 at 4 -- so the origin shifts by (f-1)/2 device px first.
+    canvas.translate(Float64(factor - 1) / 2.0, Float64(factor - 1) / 2.0)
+    canvas.scale(Float64(factor), Float64(factor))
+    # Logical bounds; the transform maps them up. See render().
+    var cx1 = plots[0].width
+    var cy1 = plots[0].height
+    canvas.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
+    var sc = _Scaled(plots[0]._theme)
+    var y2_title = _secondary_axis_y_title(plots)
+    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1)
     if y2_title.byte_length() > 0:
         # Mirrors _apply_labels's extra_left reservation for the primary
         # y_title, on the right edge; _apply_labels only sees plots[0], not the
@@ -7838,7 +7849,7 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
     var cache = FontCache()
     var result = _render_layers_generic(
         canvas,
-        scaled_plots,
+        plots,
         frame.ox0,
         frame.oy0,
         frame.ox1,
@@ -7846,7 +7857,7 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
         cache=cache,
     )
     var label_requests = _label_text_requests(
-        scaled_plots[0],
+        plots[0],
         0,
         0,
         cx1,
@@ -7865,10 +7876,10 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
                 cx1 - Int(sc.axis_title_font_size * 0.8),
                 (result.py0 + result.py1) // 2,
                 y2_title,
-                scaled_plots[0]._theme.text_color,
+                plots[0]._theme.text_color,
                 sc.axis_title_font_size,
                 TextAlign.CENTER,
-                scaled_plots[0]._theme.font_family,
+                plots[0]._theme.font_family,
                 rotation=pi / 2.0,
             )
         )

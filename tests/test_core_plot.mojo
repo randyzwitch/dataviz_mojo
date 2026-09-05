@@ -869,10 +869,20 @@ def test_render_y_axis_tick_label_glyph_ink_matches_a_pinned_pixel() raises:
     #
     # bar(["A"], [10.0]), Theme(show_gridlines=False, show_legend=False),
     # 400x300: the "10" y-axis tick label sits at SVG (x=51, y=35,
-    # text-anchor="end", font-size 12.0). (49, 28) is the darkest pixel in
+    # text-anchor="end", font-size 12.0). (45, 33) is the darkest pixel in
     # that label's glyph box (a scan against Theme's default text_color
-    # (40, 40, 40)) -- inside the "1"'s vertical stroke, a few pixels up
-    # and left of the text's baseline/anchor point.
+    # (40, 40, 40)).
+    #
+    # This pin used to be (49, 28). It moved because the supersampling
+    # rewrite fixed where the label lands, not because the label drifted:
+    # rendering the same chart at raster_supersample=1 -- no supersampling
+    # at all, so nothing to get wrong -- puts the darkest pixel at
+    # (45, 33) and the label's ink centroid at x=46.508. Before the
+    # rewrite, raising the factor to 3 moved that centroid to x=48.842 and
+    # the darkest pixel to (49, 28); after it, factor 3 reproduces the
+    # factor-1 centroid to 0.005 px. So the old pin recorded a position
+    # only the supersampled path produced, and this one is the position
+    # every path agrees on.
     var cats: List[String] = ["A"]
     var vals: List[Float64] = [10.0]
     var t = Theme(show_gridlines=False, show_legend=False)
@@ -880,7 +890,7 @@ def test_render_y_axis_tick_label_glyph_ink_matches_a_pinned_pixel() raises:
     var c = render(plot)
 
     _assert_near_color(
-        c, 49, 28, t.text_color, 20, "the '10' y-axis tick label's glyph ink"
+        c, 45, 33, t.text_color, 20, "the '10' y-axis tick label's glyph ink"
     )
 
 
