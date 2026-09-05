@@ -3998,6 +3998,53 @@ def _legend_column_x(
     return plot_x1 + sc.margin_right
 
 
+def _legend_origin_x(
+    layout: _LegendLayout, plot_x0: Int, plot_x1: Int, sc: _Scaled
+) -> Int:
+    """Where a legend starts horizontally: a row begins at the plot's own
+    left edge, a column beside it (`_legend_column_x`).
+
+    Args:
+        layout: What reserved the space.
+        plot_x0: Final plot rect's left edge.
+        plot_x1: Final plot rect's right edge.
+        sc: The render's scaled layout metrics.
+
+    Returns:
+        The legend's left x.
+    """
+    if layout.position.is_horizontal():
+        return plot_x0
+    return _legend_column_x(layout, plot_x0, plot_x1, sc)
+
+
+def _legend_origin_y(
+    layout: _LegendLayout,
+    plot_y0: Int,
+    plot_y1: Int,
+    sc: _Scaled,
+) -> Int:
+    """Where a legend starts vertically: a column at the plot's top, a
+    `TOP` row in the band opened above it, a `BOTTOM` row below the
+    x-axis labels rather than on top of them (the same clearance
+    `_draw_legend_at` gives a categorical row).
+
+    Args:
+        layout: What reserved the space.
+        plot_y0: Final plot rect's top edge.
+        plot_y1: Final plot rect's bottom edge.
+        sc: The render's scaled layout metrics.
+
+    Returns:
+        The legend's top y.
+    """
+    if layout.position == LegendPosition.TOP:
+        return plot_y0 - layout.top + sc.margin_buffer
+    if layout.position == LegendPosition.BOTTOM:
+        return plot_y1 + sc.margin_bottom
+    return plot_y0
+
+
 def _draw_legend_at[
     T: DrawTarget
 ](
@@ -4142,6 +4189,187 @@ def _draw_legend[
                 theme.font_family,
             )
         )
+
+
+def _continuous_legend_row_height(sc: _Scaled, has_size: Bool) -> Int:
+    """How tall one row of horizontal continuous legend is: the tallest
+    section it can contain, plus the gap separating it from the plot.
+
+    The size section is the tall one -- a full circle diameter with its
+    label underneath -- so a row carrying it needs room for both. Sizing
+    to the colour bar alone clips those labels off the canvas, which is
+    exactly what the first version of this did.
+
+    Args:
+        sc: The render's scaled layout metrics.
+        has_size: Whether a size section will be drawn in this row.
+
+    Returns:
+        The height to reserve.
+    """
+    var bar = max(sc.continuous_legend_bar_width, Int(sc.font_size))
+    var circles = (
+        2 * _round_to_int(sc.size_range_max) + Int(sc.font_size) + sc.label_gap
+    )
+    var tallest = max(bar, circles) if has_size else bar
+    return tallest + sc.legend_row_gap + sc.margin_buffer
+
+
+def _draw_continuous_color_legend_h[
+    T: DrawTarget
+](
+    mut target: T,
+    mut text_requests: List[_TextRequest],
+    color_scale: ColorScale,
+    x: Int,
+    y: Int,
+    theme: Theme,
+) raises -> Int:
+    """`_draw_continuous_color_legend` laid out along a row, for
+    `LegendPosition.TOP`/`BOTTOM`.
+
+    The bar runs left to right with the domain's low end at the left,
+    which is the reading order a horizontal scale already implies -- so
+    unlike the vertical form there is no `1.0 - offset` inversion, and
+    the stops go into the gradient exactly as `ColorScale` holds them.
+    `ColorScale` keeps them sorted by offset (canvas's `_insert_stop`),
+    which is what SVG's `<linearGradient>` needs.
+
+    Labels sit inline at either end rather than beside the bar: the
+    whole point of a row legend is that it costs height, so a label
+    stacked under the bar would spend the height it saved.
+
+    Args:
+        target: The draw target.
+        text_requests: Collected label draws, appended to.
+        color_scale: The scale whose stops and domain are shown.
+        x: Section's left edge.
+        y: Section's top edge.
+        theme: Supplies colors and font.
+
+    Returns:
+        The x just past this section, where the next one starts.
+    """
+    var sc = _Scaled(theme)
+    var bar_length = sc.continuous_legend_bar_height
+    var bar_thickness = sc.continuous_legend_bar_width
+    var baseline = (
+        y + bar_thickness - max(0, (bar_thickness - Int(sc.font_size)) // 2)
+    )
+
+    var low = _format_tick(color_scale.domain_min, 1, theme.y_tick_format)
+    var high = _format_tick(color_scale.domain_max, 1, theme.y_tick_format)
+
+    # Low label, then the bar, then the high label.
+    text_requests.append(
+        _TextRequest(
+            x,
+            baseline,
+            low,
+            theme.text_color,
+            sc.font_size,
+            TextAlign.LEFT,
+            theme.font_family,
+        )
+    )
+    var bar_x = x + _text_advance(low, sc) + sc.label_gap
+    var gradient = LinearGradient(
+        Float64(bar_x), Float64(y), Float64(bar_x + bar_length), Float64(y)
+    )
+    for stop in color_scale.stops:
+        gradient.add_stop(stop.offset, stop.color)
+    target.fill_rect_gradient(bar_x, y, bar_length, bar_thickness, gradient)
+
+    var high_x = bar_x + bar_length + sc.label_gap
+    text_requests.append(
+        _TextRequest(
+            high_x,
+            baseline,
+            high,
+            theme.text_color,
+            sc.font_size,
+            TextAlign.LEFT,
+            theme.font_family,
+        )
+    )
+    return high_x + _text_advance(high, sc) + sc.legend_swatch_size
+
+
+def _draw_continuous_size_legend_h[
+    T: DrawTarget
+](
+    mut target: T,
+    mut text_requests: List[_TextRequest],
+    size_mm: MinMax,
+    size_scale: LinearScale,
+    x: Int,
+    y: Int,
+    theme: Theme,
+) raises -> Int:
+    """`_draw_continuous_size_legend` laid out along a row, for
+    `LegendPosition.TOP`/`BOTTOM`: the same three sample circles
+    (min, midpoint, max) side by side with each label under its own
+    circle's centre rather than beside it.
+
+    Args:
+        target: The draw target.
+        text_requests: Collected label draws, appended to.
+        size_mm: The size channel's domain.
+        size_scale: Value to radius.
+        x: Section's left edge.
+        y: Section's top edge.
+        theme: Supplies colors and font.
+
+    Returns:
+        The x just past this section.
+    """
+    var sc = _Scaled(theme)
+    var max_radius = _round_to_int(sc.size_range_max)
+    var cursor = x
+    var values = List[Float64]()
+    values.append(size_mm.min)
+    values.append((size_mm.min + size_mm.max) / 2.0)
+    values.append(size_mm.max)
+
+    for i in range(len(values)):
+        var value = values[i]
+        var radius = _round_to_int(size_scale.to_pixel(value))
+        var centre_x = cursor + max_radius
+        var centre_y = y + max_radius
+        target.fill_circle_aa(centre_x, centre_y, radius, theme.mark_color)
+        text_requests.append(
+            _TextRequest(
+                centre_x,
+                centre_y + max_radius + Int(sc.font_size),
+                _format_tick(value, 1, theme.y_tick_format),
+                theme.text_color,
+                sc.font_size,
+                TextAlign.CENTER,
+                theme.font_family,
+            )
+        )
+        cursor = centre_x + max_radius + sc.label_gap
+    return cursor
+
+
+def _text_advance(text: String, sc: _Scaled) -> Int:
+    """A rough width for `text` at `sc.font_size`, for laying one legend
+    section next to the next without measuring.
+
+    Deliberately an estimate: these are the two-or-three short numeric
+    labels a continuous legend carries, the sections are separated by
+    `label_gap` anyway, and measuring here would mean threading the
+    render's font cache through purely to place a gap. Over-estimating
+    is the safe direction, so this uses a generous per-character width.
+
+    Args:
+        text: The label.
+        sc: The render's scaled layout metrics.
+
+    Returns:
+        An approximate advance width in pixels.
+    """
+    return Int(Float64(text.byte_length()) * sc.font_size * 0.62)
 
 
 def _draw_continuous_color_legend[
@@ -6102,11 +6330,13 @@ def _legend_reserve_for(
     before the plot rect is finalized, measuring through the render's
     shared `cache` (see `_max_label_width`).
 
-    This path is a column on either side and never a row: the continuous
-    color bar and the size circles are both laid out vertically, so
-    `LegendPosition.TOP`/`BOTTOM` fall back to `RIGHT` here rather than
-    render sideways. `Theme.legend_position` documents that; horizontal
-    forms of the two continuous legends are the follow-up to #211.
+    Honours all four positions. `TOP`/`BOTTOM` reserve a row's height
+    rather than a column's width and the sections draw along it
+    (`_draw_continuous_color_legend_h`/`_draw_continuous_size_legend_h`),
+    so a point mark's legend behaves the same way a categorical one does.
+    A plot combining color and size stacks them in a column and lays them
+    side by side in a row, which is why the row's height is one section's
+    and not two.
     """
     var layout = _LegendLayout()
     if not plot._theme.show_legend:
@@ -6170,8 +6400,12 @@ def _legend_reserve_for(
         )
 
     layout.active = True
-    if plot._theme.legend_position == LegendPosition.LEFT:
-        layout.position = LegendPosition.LEFT
+    layout.position = plot._theme.legend_position
+    if plot._theme.legend_position == LegendPosition.TOP:
+        layout.top = _continuous_legend_row_height(sc, ch.has_size)
+    elif plot._theme.legend_position == LegendPosition.BOTTOM:
+        layout.bottom = _continuous_legend_row_height(sc, ch.has_size)
+    elif plot._theme.legend_position == LegendPosition.LEFT:
         layout.left = reserve
     else:
         layout.right = reserve
@@ -6398,6 +6632,7 @@ def _draw_point_layer[
     legend_x: Int,
     legend_y: Int,
     draw_halo: Bool = False,
+    legend_horizontal: Bool = False,
 ) raises -> Int:
     """Draw one `Mark.POINT` plot's points into an already-laid-out
     continuous axis frame, plus the legend sections its encoded channels
@@ -6517,6 +6752,67 @@ def _draw_point_layer[
     if not theme.show_legend:
         return legend_y
     if not (ch.has_color_categories or ch.has_color or ch.has_size):
+        return legend_y
+
+    if legend_horizontal:
+        # One row: sections side by side, in the same order the column
+        # stacks them, so a plot reads the same whichever edge it is on.
+        var cursor = legend_x
+        if ch.has_color_categories:
+            var sc_row = _Scaled(theme)
+            for i in range(len(ch.cat.domain)):
+                var color = ch.palette[i % len(ch.palette)]
+                if len(ch.shapes) > 0:
+                    var radius = sc_row.legend_swatch_size // 2
+                    _fill_shape_aa(
+                        target,
+                        cursor + radius,
+                        legend_y + radius,
+                        radius,
+                        ch.shapes[i % len(ch.shapes)],
+                        color,
+                    )
+                else:
+                    target.fill_rect(
+                        cursor,
+                        legend_y,
+                        sc_row.legend_swatch_size,
+                        sc_row.legend_swatch_size,
+                        color,
+                    )
+                var label_x = (
+                    cursor + sc_row.legend_swatch_size + sc_row.label_gap
+                )
+                text_requests.append(
+                    _TextRequest(
+                        label_x,
+                        legend_y + sc_row.legend_swatch_size - 3,
+                        ch.cat.domain[i],
+                        theme.text_color,
+                        sc_row.font_size,
+                        TextAlign.LEFT,
+                        theme.font_family,
+                    )
+                )
+                cursor = (
+                    label_x
+                    + _text_advance(ch.cat.domain[i], sc_row)
+                    + sc_row.legend_swatch_size
+                )
+        elif ch.has_color:
+            cursor = _draw_continuous_color_legend_h(
+                target, text_requests, ch.color_scale, cursor, legend_y, theme
+            )
+        if ch.has_size:
+            cursor = _draw_continuous_size_legend_h(
+                target,
+                text_requests,
+                ch.size_mm,
+                ch.size_scale,
+                cursor,
+                legend_y,
+                theme,
+            )
         return legend_y
 
     var next_y = legend_y
@@ -6961,9 +7257,10 @@ def _render_generic[
             ch,
             frame.x_scale,
             frame.y_scale,
-            _legend_column_x(legend_reserve, frame.px0, frame.px1, sc),
-            frame.py0,
+            _legend_origin_x(legend_reserve, frame.px0, frame.px1, sc),
+            _legend_origin_y(legend_reserve, frame.py0, frame.py1, sc),
             draw_halo=plot._mark == Mark.EFFECT_SCATTER,
+            legend_horizontal=legend_reserve.position.is_horizontal(),
         )
     elif plot._mark == Mark.LINE:
         _draw_line_layer(target, plot, frame.x_scale, frame.y_scale)
