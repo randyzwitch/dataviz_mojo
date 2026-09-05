@@ -15,8 +15,9 @@ from dataviz.plot import (
     _TextRequest,
     _build_line_path,
     _check_line_smoothing,
-    _draw_legend,
-    _dynamic_legend_width,
+    _LegendLayout,
+    _draw_legend_at,
+    _legend_layout,
     _max_label_width,
     _finished,
 )
@@ -230,22 +231,24 @@ def _render_bump[
     # The render's shared cache serves both measurements -- the legend's series
     # names here, then the rank-axis labels inside _draw_bump_axis_frame.
 
-    var legend_reserve = _dynamic_legend_width(
+    var legend = _legend_layout(
         plot._grouped_bar.series_names,
         sc.legend_swatch_size,
         sc,
+        theme,
+        ox1 - ox0,
         cache=cache,
-    ) if show_legend else 0
+    ) if show_legend else _LegendLayout()
 
     var frame = _draw_bump_axis_frame(
         target,
         plot.x_categories,
         n_series,
         theme,
-        ox0,
-        oy0,
-        ox1 - legend_reserve,
-        oy1,
+        ox0 + legend.left,
+        oy0 + legend.top,
+        ox1 - legend.right,
+        oy1 - legend.bottom,
         cache=cache,
     )
 
@@ -283,13 +286,16 @@ def _render_bump[
         )
 
     if show_legend:
-        _draw_legend(
+        _draw_legend_at(
             target,
             frame.text_requests,
             plot._grouped_bar.series_names,
             palette,
-            frame.px1 + sc.margin_right,
+            legend,
+            frame.px0,
             frame.py0,
+            frame.px1,
+            frame.py1,
             theme,
         )
 

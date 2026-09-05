@@ -206,16 +206,16 @@ def _render_stacked_bar[
     var y_scale = _stacked_bar_domain(plot, n_series)
 
     var sc = _Scaled(theme)
-    var legend_reserve = _series_legend_reserve(plot, sc, cache=cache)
+    var legend = _series_legend_reserve(plot, sc, ox1 - ox0, cache=cache)
     var frame = _draw_categorical_axis_frame(
         target,
         plot.x_categories,
         y_scale,
         theme,
-        ox0,
-        oy0,
-        ox1 - legend_reserve,
-        oy1,
+        ox0 + legend.left,
+        oy0 + legend.top,
+        ox1 - legend.right,
+        oy1 - legend.bottom,
         cache=cache,
     )
 
@@ -238,8 +238,11 @@ def _render_stacked_bar[
             plot,
             sc,
             palette,
-            _round_to_int(frame.x_scale.range_max),
-            _round_to_int(frame.y_scale.range_max),
+            legend,
+            frame.px0,
+            frame.py0,
+            frame.px1,
+            frame.py1,
             theme,
         )
 
@@ -277,16 +280,16 @@ def _render_horizontal_stacked_bar[
     var x_scale = _stacked_bar_domain(plot, n_series)
 
     var sc = _Scaled(theme)
-    var legend_reserve = _series_legend_reserve(plot, sc, cache=cache)
+    var legend = _series_legend_reserve(plot, sc, ox1 - ox0, cache=cache)
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         plot.x_categories,
         x_scale,
         theme,
-        ox0,
-        oy0,
-        ox1 - legend_reserve,
-        oy1,
+        ox0 + legend.left,
+        oy0 + legend.top,
+        ox1 - legend.right,
+        oy1 - legend.bottom,
         cache=cache,
     )
 
@@ -309,8 +312,11 @@ def _render_horizontal_stacked_bar[
             plot,
             sc,
             palette,
-            _round_to_int(frame.x_scale.range_max),
+            legend,
+            frame.px0,
             frame.py0,
+            frame.px1,
+            frame.py1,
             theme,
         )
 
