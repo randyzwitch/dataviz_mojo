@@ -1,5 +1,6 @@
 from std.collections import Dict
 
+from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
@@ -389,6 +390,213 @@ def _chain_segments(segs: _Segments) raises -> List[_Polyline]:
     return out^
 
 
+def _append_above_region(
+    mut path: Path,
+    z: List[List[Float64]],
+    rows: Int,
+    cols: Int,
+    level: Float64,
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+) raises -> Int:
+    """Append every cell's "at or above `level`" area to `path`, one
+    closed sub-path per cell, in pixel coordinates.
+
+    This is the filled counterpart to `_contour_segments`: instead of the
+    boundary between the two sides, it emits the side itself. Walking a
+    cell's four corners in a fixed rotation and emitting each above-corner
+    plus each edge crossing is exactly the polygon of the above-region
+    for twelve of the sixteen cases -- the same clip Sutherland-Hodgman
+    performs against a half-plane, which is what a single cell edge is.
+
+    The saddles need their own branch again. With the centre above, the
+    two above-corners really are joined through the middle and the plain
+    walk is right; with the centre below they are two disjoint corner
+    triangles, and the walk would wrongly fill the middle between them,
+    so each triangle is emitted as its own sub-path.
+
+    Every sub-path is wound the same way, which is what lets the caller
+    fill them all in one `FillRule.NONZERO` pass: same-direction loops
+    union rather than cancel, so cells that share an edge merge into one
+    region with no seam between them. Filling cell by cell instead would
+    leave a hairline at every shared edge where two anti-aliased edges
+    meet.
+
+    Args:
+        path: Path to append sub-paths to.
+        z: The grid, row-major.
+        rows: `len(z)`.
+        cols: `len(z[0])`.
+        level: Values at or above this are inside.
+        x_scale: Grid column to pixel x.
+        y_scale: Grid row to pixel y.
+
+    Returns:
+        How many sub-paths were appended.
+    """
+    var count = 0
+    for r in range(rows - 1):
+        for c in range(cols - 1):
+            var a = z[r][c]
+            var b = z[r][c + 1]
+            var cc = z[r + 1][c + 1]
+            var d = z[r + 1][c]
+
+            var mask = 0
+            if a > level:
+                mask += 1
+            if b > level:
+                mask += 2
+            if cc > level:
+                mask += 4
+            if d > level:
+                mask += 8
+            if mask == 0:
+                continue
+
+            var xs = List[Float64]()
+            var ys = List[Float64]()
+
+            if mask == 5 or mask == 10:
+                var centre = (a + b + cc + d) / 4.0
+                if not (centre > level):
+                    # Two disjoint corner triangles: emit each alone so
+                    # the middle, which is below the level, stays empty.
+                    if mask == 5:
+                        count += _emit_corner_triangle(
+                            path, x_scale, y_scale, r, c, 0, a, b, d, level
+                        )
+                        count += _emit_corner_triangle(
+                            path, x_scale, y_scale, r, c, 2, cc, d, b, level
+                        )
+                    else:
+                        count += _emit_corner_triangle(
+                            path, x_scale, y_scale, r, c, 1, b, cc, a, level
+                        )
+                        count += _emit_corner_triangle(
+                            path, x_scale, y_scale, r, c, 3, d, a, cc, level
+                        )
+                    continue
+
+            # The plain walk: each above-corner, plus a crossing wherever
+            # an edge changes side.
+            var cx = List[Float64](capacity=4)
+            var cy = List[Float64](capacity=4)
+            var cv = List[Float64](capacity=4)
+            cx.append(Float64(c))
+            cy.append(Float64(r))
+            cv.append(a)
+            cx.append(Float64(c + 1))
+            cy.append(Float64(r))
+            cv.append(b)
+            cx.append(Float64(c + 1))
+            cy.append(Float64(r + 1))
+            cv.append(cc)
+            cx.append(Float64(c))
+            cy.append(Float64(r + 1))
+            cv.append(d)
+
+            for i in range(4):
+                var j = (i + 1) % 4
+                if cv[i] > level:
+                    xs.append(cx[i])
+                    ys.append(cy[i])
+                if (cv[i] > level) != (cv[j] > level):
+                    var f = _crossing(cv[i], cv[j], level)
+                    xs.append(cx[i] + (cx[j] - cx[i]) * f)
+                    ys.append(cy[i] + (cy[j] - cy[i]) * f)
+
+            if len(xs) >= 3:
+                _append_subpath(path, xs, ys, x_scale, y_scale)
+                count += 1
+    return count
+
+
+def _emit_corner_triangle(
+    mut path: Path,
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+    r: Int,
+    c: Int,
+    corner: Int,
+    v_here: Float64,
+    v_next: Float64,
+    v_prev: Float64,
+    level: Float64,
+) raises -> Int:
+    """One saddle corner's triangle: the above-corner and the crossing on
+    each of its two edges.
+
+    `corner` is its index in the same rotation `_append_above_region`
+    walks -- 0 at `(c, r)`, then clockwise in grid coordinates -- and
+    `v_next`/`v_prev` are the corner values on the far end of the two
+    edges meeting there.
+
+    Args:
+        path: Path to append to.
+        x_scale: Grid column to pixel x.
+        y_scale: Grid row to pixel y.
+        r: Cell's row.
+        c: Cell's column.
+        corner: Which corner, 0-3.
+        v_here: Value at that corner.
+        v_next: Value at the next corner in rotation.
+        v_prev: Value at the previous corner in rotation.
+        level: The level being filled.
+
+    Returns:
+        1, so callers can total the sub-paths appended.
+    """
+    var corner_x = List[Float64](capacity=4)
+    var corner_y = List[Float64](capacity=4)
+    corner_x.append(Float64(c))
+    corner_y.append(Float64(r))
+    corner_x.append(Float64(c + 1))
+    corner_y.append(Float64(r))
+    corner_x.append(Float64(c + 1))
+    corner_y.append(Float64(r + 1))
+    corner_x.append(Float64(c))
+    corner_y.append(Float64(r + 1))
+
+    var nxt = (corner + 1) % 4
+    var prv = (corner + 3) % 4
+    var f_next = _crossing(v_here, v_next, level)
+    var f_prev = _crossing(v_here, v_prev, level)
+
+    var xs = List[Float64]()
+    var ys = List[Float64]()
+    xs.append(corner_x[corner])
+    ys.append(corner_y[corner])
+    xs.append(corner_x[corner] + (corner_x[nxt] - corner_x[corner]) * f_next)
+    ys.append(corner_y[corner] + (corner_y[nxt] - corner_y[corner]) * f_next)
+    xs.append(corner_x[corner] + (corner_x[prv] - corner_x[corner]) * f_prev)
+    ys.append(corner_y[corner] + (corner_y[prv] - corner_y[corner]) * f_prev)
+    _append_subpath(path, xs, ys, x_scale, y_scale)
+    return 1
+
+
+def _append_subpath(
+    mut path: Path,
+    xs: List[Float64],
+    ys: List[Float64],
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+) raises:
+    """Add one closed sub-path, projecting grid coordinates to pixels.
+
+    Args:
+        path: Path to append to.
+        xs: Grid x coordinates.
+        ys: Grid y coordinates.
+        x_scale: Grid column to pixel x.
+        y_scale: Grid row to pixel y.
+    """
+    path.move_to(x_scale.to_pixel(xs[0]), y_scale.to_pixel(ys[0]))
+    for i in range(1, len(xs)):
+        path.line_to(x_scale.to_pixel(xs[i]), y_scale.to_pixel(ys[i]))
+    path.close()
+
+
 def _render_contour[
     T: DrawTarget
 ](
@@ -480,6 +688,110 @@ def _render_contour[
                         frame.y_scale.to_pixel(line.ys[i]),
                     )
                 target.stroke_path_aa(path, color, width=frame.sc.line_width)
+
+    return frame.result()
+
+
+def _render_contourf[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: _LazyFontCache,
+) raises -> _RenderResult:
+    """Render a `Mark.CONTOURF` plot: filled bands between consecutive
+    levels, the shape matplotlib's `contourf()` draws.
+
+    Painted back to front, the first of the two routes #260 describes.
+    The plot rect is filled with the lowest band's colour, then each
+    level in ascending order fills its whole "at or above" region over
+    the top, so what remains visible between two consecutive levels is
+    the band between them. That is only correct for opaque bands, which
+    is what makes it the cheap route: no band ever needs its own
+    boundary traced, because the next one paints over the part that
+    isn't its own.
+
+    Each level's region is one `Path` of per-cell sub-paths filled in a
+    single `FillRule.NONZERO` pass (`_append_above_region`). One pass,
+    not one per cell, and nonzero specifically: same-direction loops
+    union, so cells sharing an edge merge with no hairline seam where
+    two anti-aliased edges would otherwise meet.
+
+    Colours come from the same `ColorScale` `Mark.CONTOUR` uses, sampled
+    at each band's own lower bound, so a band's colour says where it sits
+    in the stack. Levels and axes are `Mark.CONTOUR`'s exactly -- see
+    `_render_contour`.
+    """
+    var shape = _grid_shape(plot._contour.z)
+    var rows = shape[0]
+    var cols = shape[1]
+    if plot._contour.level_count <= 0:
+        raise Error(
+            "Plot.mark_contourf(): levels must be positive (got "
+            + String(plot._contour.level_count)
+            + ")"
+        )
+
+    var levels = plot._contour.levels.copy() if len(
+        plot._contour.levels
+    ) > 0 else _auto_levels(plot._contour.z, plot._contour.level_count)
+
+    var theme = plot._theme
+    var frame = _draw_continuous_axis_frame(
+        target,
+        LinearScale(0.0, Float64(cols - 1), 0.0, 1.0),
+        LinearScale(0.0, Float64(rows - 1), 0.0, 1.0),
+        theme,
+        _LegendLayout(),
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+    if len(levels) > 0:
+        var lo = levels[0]
+        var hi = levels[0]
+        for v in levels:
+            if v < lo:
+                lo = v
+            if v > hi:
+                hi = v
+        var color_scale = ColorScale.from_theme(theme, lo, hi)
+
+        # The band below the first level, under everything else.
+        target.fill_rect(
+            frame.px0,
+            frame.py0,
+            frame.px1 - frame.px0,
+            frame.py1 - frame.py0,
+            color_scale.color_at(lo),
+        )
+
+        for li in range(len(levels)):
+            var level = levels[li]
+            var path = Path()
+            var appended = _append_above_region(
+                path,
+                plot._contour.z,
+                rows,
+                cols,
+                level,
+                frame.x_scale,
+                frame.y_scale,
+            )
+            if appended > 0:
+                target.fill_path_aa(
+                    path,
+                    color_scale.color_at(level),
+                    fill_rule=FillRule.NONZERO,
+                )
 
     return frame.result()
 
@@ -579,6 +891,115 @@ def contour[
     for r in range(len(z)):
         rows.append(_materialize_scalar_list(z[r]))
     return contour(
+        rows,
+        levels=levels,
+        level_count=level_count,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+    )
+
+
+def contourf(
+    z: List[List[Float64]],
+    levels: List[Float64] = List[Float64](),
+    level_count: Int = 8,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """A filled contour plot: the bands between consecutive levels of a
+    scalar field, shaded rather than outlined -- `contour()`'s companion,
+    and the better read when the field's shape matters more than its
+    exact level lines.
+
+    `Mark.CONTOURF`: the same marching-squares tracing `contour()` uses,
+    filling each level's region instead of stroking its boundary. See
+    `Plot.encode_contour()` (plot.mojo) for the grid's shape.
+
+    Args:
+        z: The grid, row-major (`z[row][col]`), rectangular and at
+            least 2x2. Rows are the y axis, columns the x axis, both
+            in grid-index units.
+        levels: The band boundaries. Left empty (the default),
+            `level_count` of them are spaced evenly inside `z`'s own
+            range.
+        level_count: How many levels to choose when `levels` is empty;
+            defaults to `8`. Ignored when `levels` is given.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from std.math import cos, sin
+
+        from dataviz import contourf
+        from dataviz.plot import save
+
+        def main() raises:
+            var z = List[List[Float64]]()
+            for r in range(40):
+                var row = List[Float64]()
+                for c in range(60):
+                    var x = Float64(c) / 6.0
+                    var y = Float64(r) / 6.0
+                    row.append(sin(x) * cos(y))
+                z.append(row^)
+
+            var c = contourf(z, level_count=10, title="sin(x) cos(y), filled")
+            save(c, "docs/src/examples/out_contourf.svg")
+        ```
+    """
+    var plot = (
+        Plot()
+        .mark_contourf(levels=level_count)
+        .encode_contour(z=z, levels=levels)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def contourf[
+    dtype: DType
+](
+    z: List[List[Scalar[dtype]]],
+    levels: List[Float64] = List[Float64](),
+    level_count: Int = 8,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`contourf()` generalized over numeric element type; see `scatter()`'s
+    `DType` overload (plot.mojo). Each row is materialized in turn.
+    Delegates to the concrete overload above.
+    """
+    var rows = List[List[Float64]](capacity=len(z))
+    for r in range(len(z)):
+        rows.append(_materialize_scalar_list(z[r]))
+    return contourf(
         rows,
         levels=levels,
         level_count=level_count,

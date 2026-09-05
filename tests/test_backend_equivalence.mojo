@@ -32,6 +32,7 @@ from dataviz import (
     candlestick,
     chord,
     contour,
+    contourf,
     corrplot,
     effect_scatter,
     funnel,
@@ -261,6 +262,14 @@ def _representative_plot(mark: Mark) raises -> Plot:
                 row.append(Float64((r + 1) * (c + 2) % 11))
             z.append(row^)
         return contour(z, level_count=4, width=_W, height=_H)
+    if mark == Mark.CONTOURF:
+        var zf = List[List[Float64]]()
+        for r in range(6):
+            var row = List[Float64]()
+            for c in range(7):
+                row.append(Float64((r + 1) * (c + 2) % 11))
+            zf.append(row^)
+        return contourf(zf, level_count=4, width=_W, height=_H)
     if mark == Mark.BARBS:
         var u: List[Float64] = [5.0, 10.0, 15.0]
         var v: List[Float64] = [5.0, -10.0, 0.0]
@@ -456,14 +465,17 @@ def test_mark_count_is_one_past_the_newest_mark() raises:
     That is not hypothetical: `Mark.CONTOUR` (#259) and `Mark.COUNT`
     (#221) landed in separate PRs that could not see each other, so main
     briefly had `CONTOUR = 43` alongside `COUNT = 43` and the sweep
-    skipped contour entirely while still reporting itself green.
+    skipped contour entirely while still reporting itself green. This
+    assertion is what then caught `Mark.CONTOURF` (#260): adding it
+    failed here until both the constant and this line moved, which is
+    the tripwire doing its job on the very next mark.
 
     Naming the newest mark explicitly is what makes that loud: adding a
     mark after this one fails here until both this line and `COUNT` are
     updated, which is one edit away from the constant itself.
     """
     assert_true(
-        Mark.CONTOUR == Mark(Mark.COUNT - 1),
+        Mark.CONTOURF == Mark(Mark.COUNT - 1),
         (
             "Mark.COUNT must be one past the newest mark -- update both when"
             " adding one"
