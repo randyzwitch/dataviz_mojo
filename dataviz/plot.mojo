@@ -112,6 +112,7 @@ from dataviz.calendar_heatmap import _CalendarData
 from dataviz.corrplot import _CorrplotData
 from dataviz.punchcard import _PunchcardData
 from dataviz.barbs import _BarbsData
+from dataviz.contour import _ContourData
 from dataviz.marimekko import _MarimekkoData
 from dataviz.edges import _EdgeData
 from dataviz.hierarchy import _HierarchyData
@@ -132,6 +133,7 @@ from dataviz.calendar_heatmap import _render_calendar_heatmap
 from dataviz.corrplot import _render_corrplot
 from dataviz.punchcard import _render_punchcard
 from dataviz.barbs import _render_barbs
+from dataviz.contour import _render_contour
 from dataviz.marimekko import _render_marimekko
 from dataviz.sunburst import _render_sunburst
 from dataviz.tree import _render_tree
@@ -515,6 +517,7 @@ struct Plot(Copyable, Movable):
     var _corrplot: _CorrplotData
     var _punchcard: _PunchcardData
     var _barbs: _BarbsData
+    var _contour: _ContourData
     var _marimekko: _MarimekkoData
     var _hierarchy: _HierarchyData
     var _labels: _LabelData
@@ -576,6 +579,7 @@ struct Plot(Copyable, Movable):
         self._corrplot = _CorrplotData()
         self._punchcard = _PunchcardData()
         self._barbs = _BarbsData()
+        self._contour = _ContourData()
         self._marimekko = _MarimekkoData()
         self._hierarchy = _HierarchyData()
         self._labels = _LabelData()
@@ -900,6 +904,24 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.BARBS
         self._barbs.length = length
         self._barbs.flip = flip
+        return self^
+
+    def mark_contour(var self, levels: Int = 8) -> Self:
+        """Isolines over a regular grid: marching squares per level, each
+        line stroked in its level's color. Encoded via `encode_contour()`;
+        see `_render_contour` for the tracing and `contour()` for the
+        one-call form.
+
+        Args:
+            levels: How many levels to place when `encode_contour()` is
+                not given an explicit list -- spaced evenly strictly
+                inside the grid's own range. Must be positive.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.CONTOUR
+        self._contour.level_count = levels
         return self^
 
     def mark_marimekko(var self) -> Self:
@@ -2163,6 +2185,32 @@ struct Plot(Copyable, Movable):
             _materialize_scalar_list(u),
             _materialize_scalar_list(v),
         )
+
+    def encode_contour(
+        var self,
+        z: List[List[Float64]],
+        levels: List[Float64] = List[Float64](),
+    ) -> Self:
+        """Map a rectangular grid of values onto `Mark.CONTOUR`'s shape.
+
+        `z` is row-major (`z[row][col]`): rows are the y axis and columns
+        the x axis, both in grid-index units, so a 10x20 grid spans x
+        `[0, 19]` and y `[0, 9]` with row 0 at the bottom. Shape checking
+        (rectangular, at least 2x2) is deferred to render() time, like
+        every other encode method here.
+
+        Args:
+            z: The grid, row-major and rectangular, at least 2x2.
+            levels: The values to trace. Left empty (the default), the
+                count from `mark_contour(levels=n)` decides how many
+                are placed inside the data's range.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._contour.z = z.copy()
+        self._contour.levels = levels.copy()
+        return self^
 
     def encode_marimekko(
         var self,
@@ -6499,6 +6547,8 @@ def _render_generic[
         return _render_punchcard(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.BARBS:
         return _render_barbs(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    if plot._mark == Mark.CONTOUR:
+        return _render_contour(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.MARIMEKKO:
         return _render_marimekko(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.SUNBURST:

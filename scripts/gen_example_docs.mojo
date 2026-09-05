@@ -90,6 +90,7 @@ def _titles() -> Dict[String, String]:
     d["corrplot"] = "Correlation Plot"
     d["punchcard"] = "Punchcard"
     d["barbs"] = "Wind Barbs"
+    d["contour"] = "Contour"
     d["marimekko"] = "Marimekko"
     d["sunburst"] = "Sunburst"
     d["tree"] = "Tree"
@@ -213,7 +214,7 @@ def _categories() -> List[Category]:
                 "Several numeric dimensions compared at once on one shared"
                 " layout, not a single value per category."
             ),
-            ["parallel", "barbs"],
+            ["parallel", "barbs", "contour"],
         )
     )
     cats.append(
