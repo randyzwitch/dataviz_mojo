@@ -192,6 +192,160 @@ def _assert_well_formed_svg(svg: String, label: String) raises:
     assert_equal(opens, closes, "unbalanced <g> in " + label)
 
 
+# ---------------------------------------------------------------
+# Locating features by scanning (#218)
+#
+# Most raster assertions name a pixel computed by hand from the default
+# margins, the 5% padding, the legend width and the supersample factor.
+# That makes them precise, and it also means any change to one of those
+# defaults breaks dozens of tests that were not about layout at all --
+# which is what makes layout work (legend position, label rotation,
+# domain overrides) expensive to land.
+#
+# These find a feature instead of assuming where it is, so a test can
+# say "the bar is left of the other bar" or "this cell got a point and
+# that one did not". A handful of exact hand-derived assertions stay per
+# family as the "geometry is exactly right" anchor; everything relational
+# can move here.
+# ---------------------------------------------------------------
+
+
+struct _Bbox(Copyable, Movable):
+    """The rectangle a colour occupies, or `found=False` if it is absent.
+
+    `x1`/`y1` are inclusive, so a single matching pixel gives a box with
+    `x0 == x1`; `width()`/`height()` count that as 1.
+    """
+
+    var x0: Int
+    var y0: Int
+    var x1: Int
+    var y1: Int
+    var found: Bool
+
+    def __init__(out self):
+        self.x0 = 0
+        self.y0 = 0
+        self.x1 = 0
+        self.y1 = 0
+        self.found = False
+
+    def width(self) -> Int:
+        return self.x1 - self.x0 + 1 if self.found else 0
+
+    def height(self) -> Int:
+        return self.y1 - self.y0 + 1 if self.found else 0
+
+    def center_x(self) -> Int:
+        return (self.x0 + self.x1) // 2
+
+    def center_y(self) -> Int:
+        return (self.y0 + self.y1) // 2
+
+
+def _bbox_of_color_in(
+    c: Canvas, color: Color, x0: Int, y0: Int, x1: Int, y1: Int
+) -> _Bbox:
+    """`color`'s bounding box within the region `[x0, x1] x [y0, y1]`,
+    inclusive, clamped to the canvas.
+
+    Compares r/g/b exactly, like `_assert_color`: a mark's interior
+    averages to its exact colour after downsampling, so an exact match
+    finds the mark without also catching its anti-aliased edge.
+
+    Args:
+        c: The rendered canvas.
+        color: The colour to find.
+        x0: Region's left edge, inclusive.
+        y0: Region's top edge, inclusive.
+        x1: Region's right edge, inclusive.
+        y1: Region's bottom edge, inclusive.
+
+    Returns:
+        The bounding box, or a box with `found=False`.
+    """
+    var out = _Bbox()
+    var lo_x = max(0, x0)
+    var lo_y = max(0, y0)
+    var hi_x = min(c.width - 1, x1)
+    var hi_y = min(c.height - 1, y1)
+    for y in range(lo_y, hi_y + 1):
+        for x in range(lo_x, hi_x + 1):
+            var p = c.get_pixel(x, y)
+            if p.r == color.r and p.g == color.g and p.b == color.b:
+                if not out.found:
+                    out.found = True
+                    out.x0 = x
+                    out.x1 = x
+                    out.y0 = y
+                    out.y1 = y
+                else:
+                    if x < out.x0:
+                        out.x0 = x
+                    if x > out.x1:
+                        out.x1 = x
+                    if y < out.y0:
+                        out.y0 = y
+                    if y > out.y1:
+                        out.y1 = y
+    return out^
+
+
+def _bbox_of_color(c: Canvas, color: Color) -> _Bbox:
+    """`_bbox_of_color_in` over the whole canvas.
+
+    Args:
+        c: The rendered canvas.
+        color: The colour to find.
+
+    Returns:
+        The bounding box, or a box with `found=False`.
+    """
+    return _bbox_of_color_in(c, color, 0, 0, c.width - 1, c.height - 1)
+
+
+def _first_pixel_in_row(c: Canvas, y: Int, color: Color) -> Int:
+    """The leftmost x in row `y` matching `color`, or `-1`.
+
+    For "the axis line starts here" and "this bar's left edge" without
+    naming the margin that put it there.
+
+    Args:
+        c: The rendered canvas.
+        y: The row to scan.
+        color: The colour to find.
+
+    Returns:
+        The x coordinate, or -1 when the row has none.
+    """
+    if y < 0 or y >= c.height:
+        return -1
+    for x in range(c.width):
+        var p = c.get_pixel(x, y)
+        if p.r == color.r and p.g == color.g and p.b == color.b:
+            return x
+    return -1
+
+
+def _column_extent(c: Canvas, x: Int, color: Color) -> _Bbox:
+    """How far `color` runs down column `x`, as a box one pixel wide.
+
+    A bar's height without computing where the baseline landed: compare
+    two columns' `height()` rather than asserting either one's pixels.
+
+    Args:
+        c: The rendered canvas.
+        x: The column to scan.
+        color: The colour to find.
+
+    Returns:
+        The extent, or a box with `found=False`.
+    """
+    if x < 0 or x >= c.width:
+        return _Bbox()
+    return _bbox_of_color_in(c, color, x, 0, x, c.height - 1)
+
+
 def _count_color(c: Canvas, color: Color) -> Int:
     var count = 0
     for y in range(c.height):
