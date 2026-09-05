@@ -9,7 +9,7 @@ regardless of which chart is drawn. See pixi.toml's `[tasks]` comment
 for the measurements.
 
 The standalone programs are left untouched:
-`docs/src/cookbook_recipes/*.mojo` stays as contributed and
+`docs/cookbook_recipes/*.mojo` stays as contributed and
 `docs/src/examples/*.mojo` as `extract_docstring_examples.mojo` wrote
 it. The batches under `docs/src/examples/verify/` are a throwaway
 build artifact read only by `mojo run`.
@@ -33,7 +33,7 @@ from std.os import listdir, makedirs, path
 from _example_docstrings import _read_file, _write_file
 
 comptime _EXAMPLES_DIR = "docs/src/examples"
-comptime _RECIPES_DIR = "docs/src/cookbook_recipes"
+comptime _RECIPES_DIR = "docs/cookbook_recipes"
 comptime _OUT_DIR = "docs/src/examples/verify"
 comptime _BATCHES_PER_CORPUS = 4
 

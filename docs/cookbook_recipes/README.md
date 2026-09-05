@@ -1,7 +1,7 @@
 # Contributing a Cookbook recipe
 
-This directory is the community path into the [Cookbook](../cookbook/) --
-separate from how the [Examples](../examples/) gallery works. An Example
+This directory is the community path into the [Cookbook](../src/cookbook/) --
+separate from how the [Examples](../src/examples/) gallery works. An Example
 page is always extracted from a real `Plot`/quickplot function's own
 `Example:` docstring (see `scripts/_example_docstrings.mojo`'s own
 docstring), because it's documenting *that function*. A Cookbook recipe

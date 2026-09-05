@@ -3053,7 +3053,7 @@ struct Plot(Copyable, Movable):
             raise later if the mark has no genuine continuous x-axis.
 
         See the Cookbook's own "Vertical Reference Line" recipe (docs/
-        src/cookbook_recipes/annotate_vline.mojo) for a full worked
+        docs/cookbook_recipes/annotate_vline.mojo) for a full worked
         example.
         """
         self._annotations.vline_values.append(value)
@@ -5737,7 +5737,7 @@ def save_facets(
     `EFFECT_SCATTER`-only scope).
 
     See the Cookbook's "Facets" and "Shared Facet Scale" recipes
-    (docs/src/cookbook_recipes/).
+    (docs/cookbook_recipes/).
 
     SVG output writes accessible markup automatically (#212) from
     `plots[0]`'s `.labels()`, as a best-effort document title for the
@@ -5816,7 +5816,7 @@ def write_accessible_svg(
 ) raises:
     """`accessible_svg_string()` written to `path`. See the Cookbook's "SVG
     Accessibility" recipe
-    (docs/src/cookbook_recipes/svg_accessibility.mojo).
+    (docs/cookbook_recipes/svg_accessibility.mojo).
     """
     var f = open(path, "w")
     f.write(accessible_svg_string(svg, title, description))
