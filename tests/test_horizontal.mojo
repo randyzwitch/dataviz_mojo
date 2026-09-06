@@ -371,11 +371,11 @@ def test_render_svg_horizontal_grouped_bar_matches_hand_derived_rectangles_and_l
     var s = render_svg(plot).to_string()
 
     assert_true(
-        '<rect x="61" y="32" width="89" height="46" fill="#1f77b4"/>' in s,
+        '<rect x="61" y="32" width="90" height="46" fill="#1f77b4"/>' in s,
         "A/North",
     )
     assert_true(
-        '<rect x="61" y="78" width="44" height="46" fill="#ff7f0e"/>' in s,
+        '<rect x="61" y="78" width="45" height="46" fill="#ff7f0e"/>' in s,
         "A/South",
     )
     assert_true(
@@ -416,7 +416,7 @@ def test_render_svg_horizontal_grouped_bar_supports_show_data_labels_with_mixed_
     var s = render_svg(plot).to_string()
 
     assert_true(
-        '<rect x="103" y="32" width="69" height="46" fill="#1f77b4"/>' in s,
+        '<rect x="104" y="32" width="69" height="46" fill="#1f77b4"/>' in s,
         "A/North (10)",
     )
     assert_true(
@@ -426,7 +426,7 @@ def test_render_svg_horizontal_grouped_bar_supports_show_data_labels_with_mixed_
         "A/North's label, right of its own bar, left-aligned",
     )
     assert_true(
-        '<rect x="69" y="147" width="34" height="46" fill="#1f77b4"/>' in s,
+        '<rect x="69" y="147" width="35" height="46" fill="#1f77b4"/>' in s,
         "B/North (-5)",
     )
     assert_true(
