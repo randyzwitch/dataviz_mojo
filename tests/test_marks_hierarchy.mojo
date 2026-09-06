@@ -711,9 +711,15 @@ def test_render_sankey_svg_matches_confirmed_geometry() raises:
     )
     var svg = render_svg(plot)
     var s = svg.to_string()
+    # The ribbon runs edge to edge, half a pixel above and left of the
+    # row and column indices: 71.5 is the boundary node A's rect ends
+    # on, so the two meet with no half-covered column between them.
+    # Measured before the change, that column rendered (143,187,217)
+    # against (31,119,180) either side of it -- a pale line down the
+    # full height of the junction.
     assert_true(
-        '<path d="M72.000,20.000 L72.000,250.000 L368.000,250.000'
-        ' L368.000,20.000 Z" fill="#1f77b4"/>'
+        '<path d="M71.500,19.500 L71.500,249.500 L367.500,249.500'
+        ' L367.500,19.500 Z" fill="#1f77b4"/>'
         in s,
         "the ribbon, A's column edge to B's column edge",
     )
@@ -724,6 +730,59 @@ def test_render_sankey_svg_matches_confirmed_geometry() raises:
     assert_true(
         '<rect x="368" y="20" width="12" height="230" fill="#ff7f0e"/>' in s,
         "node B",
+    )
+
+
+def test_render_sankey_node_meets_its_ribbon_with_no_seam() raises:
+    # A node is a rect and a ribbon is a path, and the two used to be
+    # laid out in different spaces: the rect from pixel indices, the
+    # ribbon from the same numbers read as geometry. The rect therefore
+    # ended half a pixel before the ribbon began, and the column between
+    # them came out half covered -- a pale vertical line down the full
+    # height of every junction. Measured on the pre-fix code, that
+    # column rendered (143,187,217) between two solid (31,119,180)
+    # neighbors.
+    #
+    # Asserted as "no partially covered column" rather than by pinning
+    # the junction's x, so it survives the layout moving. Row 60 rather
+    # than the middle of the node: the node labels are drawn at its
+    # vertical center, and antialiased text is legitimately blended.
+    var from_c: List[String] = ["A"]
+    var to_c: List[String] = ["B"]
+    var v: List[Float64] = [10.0]
+    var plot = sankey(from_c, to_c, v, width=400, height=300)
+    var c = render(plot)
+
+    var palette = default_categorical_palette()
+    var row = 60
+    var first = -1
+    var last = -1
+    for x in range(c.width):
+        var p = c.get_pixel(x, row)
+        if not (p.r == BG.r and p.g == BG.g and p.b == BG.b):
+            if first == -1:
+                first = x
+            last = x
+    assert_true(first != -1, "the diagram drew something on this row")
+
+    var blended = 0
+    for x in range(first, last + 1):
+        var p = c.get_pixel(x, row)
+        var is_a = (
+            p.r == palette[0].r and p.g == palette[0].g and p.b == palette[0].b
+        )
+        var is_b = (
+            p.r == palette[1].r and p.g == palette[1].g and p.b == palette[1].b
+        )
+        if not (is_a or is_b):
+            blended += 1
+    assert_equal(
+        blended,
+        0,
+        (
+            "every column across the diagram is fully covered by a node or a"
+            " ribbon, with no half-covered one where the two meet"
+        ),
     )
 
 
