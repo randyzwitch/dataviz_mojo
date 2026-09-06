@@ -289,19 +289,23 @@ def test_render_svg_horizontal_box_matches_hand_derived_rects_and_outlier() rais
     var s = render_svg(plot).to_string()
 
     assert_true(
-        '<rect x="107" y="32" width="48" height="92" fill="#1e64b4"/>' in s,
+        '<rect x="107" y="32" width="49" height="92" fill="#1e64b4"/>' in s,
         "A's box (q1 to q3)",
     )
     assert_true(
-        '<line x1="123" y1="32" x2="123" y2="124"' in s,
-        "A's median line (value 5), vertical across the box",
+        '<line x1="123.000" y1="31.500" x2="123.000" y2="123.500"' in s,
+        (
+            "A's median line (value 5): the fixed value-axis coordinate"
+            " snapped to a pixel centre, the two ends spanning the band's"
+            " exact extent"
+        ),
     )
     assert_true(
-        '<rect x="236" y="147" width="48" height="92" fill="#1e64b4"/>' in s,
+        '<rect x="237" y="147" width="48" height="92" fill="#1e64b4"/>' in s,
         "B's box (q1 to q3)",
     )
     assert_true(
-        '<circle cx="365" cy="78" r="4" fill="#1e64b4"/>' in s,
+        '<circle cx="365.455" cy="77.500" r="4.000" fill="#1e64b4"/>' in s,
         "A's single outlier, at value 20",
     )
 

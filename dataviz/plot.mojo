@@ -3545,14 +3545,19 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         color: Color,
         width: Float64,
     ):
-        """`value_line` in `Float64` geometry."""
+        """`value_line` in `Float64` geometry, with the fixed cross-axis
+        coordinate snapped to a pixel centre so a 1px line stays hard.
+        See `_snap_pixel_center`; the two ends keep their exact
+        positions.
+        """
+        var fixed = _snap_pixel_center(across)
         if self.horizontal:
             target.draw_line_aa(
-                along_a, across, along_b, across, color, width=width
+                along_a, fixed, along_b, fixed, color, width=width
             )
         else:
             target.draw_line_aa(
-                across, along_a, across, along_b, color, width=width
+                fixed, along_a, fixed, along_b, color, width=width
             )
 
     def band_line[
@@ -3589,14 +3594,19 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         color: Color,
         width: Float64,
     ):
-        """`band_line` in `Float64` geometry."""
+        """`band_line` in `Float64` geometry, with the fixed value-axis
+        coordinate snapped to a pixel centre so a 1px line stays hard.
+        See `_snap_pixel_center`; the two ends keep their exact
+        positions.
+        """
+        var fixed = _snap_pixel_center(along)
         if self.horizontal:
             target.draw_line_aa(
-                along, across_a, along, across_b, color, width=width
+                fixed, across_a, fixed, across_b, color, width=width
             )
         else:
             target.draw_line_aa(
-                across_a, along, across_b, along, color, width=width
+                across_a, fixed, across_b, fixed, color, width=width
             )
 
     def baseline_pull(self) -> Float64:
@@ -3805,6 +3815,23 @@ def _pull_off_axis_line(
     if y + height == axis_line_py:
         return _BaselineRect(y, height - 1)
     return _BaselineRect(y, height)
+
+
+def _snap_pixel_center(value: Float64) -> Float64:
+    """`value` moved to the nearest pixel centre.
+
+    The thin-line counterpart of `_snap_pixel_edge`. A 1px line is
+    drawn about its centreline, so it covers exactly one row when that
+    centreline sits on a pixel centre -- a whole number -- and spreads
+    across two half-covered rows when it does not. Rectangles snap to
+    boundaries because a rect is bounded by its edges; a line snaps to
+    a centre because it is centred on its coordinate.
+
+    Only the fixed cross-axis coordinate snaps. The two ends run along
+    the value axis and keep their exact positions, so a whisker still
+    stops where its statistic falls.
+    """
+    return Float64(round_to_int(value))
 
 
 def _snap_pixel_edge(value: Float64) -> Float64:
