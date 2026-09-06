@@ -15,6 +15,7 @@ from _test_helpers import (
     _column_extent,
     _row_extent,
 )
+from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.vector.svg import SvgCanvas
 from dataviz import (
@@ -901,6 +902,64 @@ def test_render_effect_scatter_raises_on_no_data() raises:
     with assert_raises():
         var _hoisted2 = effect_scatter(x, y, width=200, height=150)
         _ = render(_hoisted2)
+
+
+def test_diagnostic_ridgeline_render_determinism() raises:
+    """TEMPORARY diagnostic for #298, not a behavioral test.
+
+    Renders the same chart three times in one process and reports which
+    of them differ. On Linux all three agree; the macOS CI job is what
+    this is for. Reading the output there:
+
+      1 differs, 2 == 3  -> first-render initialization state
+      all three differ   -> per-run nondeterminism
+      all three agree    -> the difference is tied to the call, not the
+                            render, which would contradict the fact that
+                            bandwidth=0.0 and omitted take the identical
+                            branch
+
+    Delete once #298 is diagnosed.
+    """
+    var cats: List[String] = ["A"]
+    var vals: List[List[Float64]] = [[1.0, 2.0, 3.0, 4.0, 5.0]]
+    var t = Theme(show_gridlines=False)
+    var r1 = render(ridgeline(cats, vals, theme=t, width=400, height=300))
+    var r2 = render(ridgeline(cats, vals, theme=t, width=400, height=300))
+    var r3 = render(ridgeline(cats, vals, theme=t, width=400, height=300))
+
+    def count(a: Canvas, b: Canvas) -> Int:
+        var n = 0
+        for y in range(a.height):
+            for x in range(a.width):
+                var p = a.get_pixel(x, y)
+                var q = b.get_pixel(x, y)
+                if p.r != q.r or p.g != q.g or p.b != q.b:
+                    n += 1
+        return n
+
+    var d12 = count(r1, r2)
+    var d23 = count(r2, r3)
+    var d13 = count(r1, r3)
+    print("#298 diagnostic: 1v2=", d12, " 2v3=", d23, " 1v3=", d13)
+    var p1 = r1.get_pixel(99, 0)
+    var p2 = r2.get_pixel(99, 0)
+    var p3 = r3.get_pixel(99, 0)
+    print(
+        "#298 pixel(99,0): r1=",
+        p1.r,
+        p1.g,
+        p1.b,
+        " r2=",
+        p2.r,
+        p2.g,
+        p2.b,
+        " r3=",
+        p3.r,
+        p3.g,
+        p3.b,
+    )
+    # Always passes: this reports, it does not gate.
+    assert_true(True, "diagnostic")
 
 
 def main() raises:
