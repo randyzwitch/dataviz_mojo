@@ -486,9 +486,11 @@ def test_render_horizontal_grouped_bar_raises_on_zero_length_categories() raises
 def test_render_svg_horizontal_lollipop_matches_hand_derived_positions() raises:
     # Same 2-category, values=[10,-5], 640x420 frame as the horizontal bar
     # test (plot area x:[60,620] y:[20,370], baseline pixel 255). Row
-    # centers: band height 175 -> A=107.5, B=282.5. Stem A (10): 594.545
-    # (point rounds to 595). Stem B (-5): 85.455 (rounds to 85). Neither
-    # stem start lands on px0=60, so no pull-off applies.
+    # centers: band height 175 -> A=107.5, B=282.5. Stem A (10): 594.545.
+    # Stem B (-5): 85.455. Each point sits on its own stem's endpoint;
+    # before Mark.LOLLIPOP moved onto Float64 coordinates the point was
+    # rounded (595 and 85) and so sat a pixel off the stem it caps.
+    # Neither stem start lands on px0=60, so no pull-off applies.
     var cats: List[String] = ["A", "B"]
     var vals: List[Float64] = [10.0, -5.0]
     var plot = (
@@ -503,16 +505,16 @@ def test_render_svg_horizontal_lollipop_matches_hand_derived_positions() raises:
         "stem A, extending right from the baseline",
     )
     assert_true(
-        '<circle cx="595" cy="108" r="4" fill="#1e64b4"/>' in s,
-        "point A, at its value",
+        '<circle cx="594.545" cy="107.500" r="4.000" fill="#1e64b4"/>' in s,
+        "point A, on its stem's endpoint",
     )
     assert_true(
         '<path d="M255.152,282.500 L85.455,282.500"' in s,
         "stem B, extending left from the baseline",
     )
     assert_true(
-        '<circle cx="85" cy="283" r="4" fill="#1e64b4"/>' in s,
-        "point B, at its value",
+        '<circle cx="85.455" cy="282.500" r="4.000" fill="#1e64b4"/>' in s,
+        "point B, on its stem's endpoint",
     )
     assert_true(
         '<text x="255" y="391"' in s and ">0</text>" in s,

@@ -3654,6 +3654,28 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         else:
             target.fill_circle_aa(across, along, radius, color)
 
+    def band_point[
+        T: DrawTarget
+    ](
+        self,
+        mut target: T,
+        along: Float64,
+        across: Float64,
+        radius: Float64,
+        color: Color,
+    ):
+        """`band_point` in `Float64` geometry.
+
+        Not snapped, unlike `fill_band_rect`: a circle is antialiased on
+        every side already, so there is no hard edge to preserve, and
+        rounding its centre would only move the dot off the value it
+        marks.
+        """
+        if self.horizontal:
+            target.fill_circle_aa(along, across, radius, color)
+        else:
+            target.fill_circle_aa(across, along, radius, color)
+
     def outside_band_label(
         self,
         extent: _BaselineRect,

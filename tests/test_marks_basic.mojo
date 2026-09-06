@@ -777,8 +777,11 @@ def test_render_lollipop_svg_matches_confirmed_stem_and_point() raises:
         "category b's stem",
     )
     assert_true(
-        '<circle cx="220" cy="31" r="4" fill="#1e64b4"/>' in s,
-        "category b's point",
+        '<circle cx="220.000" cy="30.952" r="4.000" fill="#1e64b4"/>' in s,
+        (
+            "category b's point, now at the stem's own endpoint rather than"
+            " rounded a pixel off it"
+        ),
     )
 
 
