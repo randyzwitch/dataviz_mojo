@@ -64,7 +64,7 @@ struct _HorizontalCategoricalFrame(Movable):
 
     def result(self) -> _RenderResult:
         """This frame as the `_RenderResult` the caller returns; mirrors
-        `_CategoricalFrame.result` (plot.mojo), including copying
+        `_CategoricalFrame.result` (frame.mojo), including copying
         `text_requests` rather than moving it.
         """
         return _RenderResult(
@@ -372,7 +372,7 @@ def gantt[
     y_title: String = "",
 ) raises -> Plot:
     """`gantt()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (plot.mojo). `start`/`end` share one dtype. Delegates
+    `DType` overload (continuous.mojo). `start`/`end` share one dtype. Delegates
     to the concrete overload above.
     """
     return gantt(

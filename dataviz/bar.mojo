@@ -75,7 +75,7 @@ def _draw_bar_rects[
     rect is emitted, where its label sits).
 
     Factored out of `_render_bar` so `render_layers()`'s bar-combo path
-    (`_render_bar_combo_layers`, plot.mojo) can draw a `Mark.BAR` layer
+    (`_render_bar_combo_layers`, layers.mojo) can draw a `Mark.BAR` layer
     against a frame it built, the same split `_draw_point_layer`/
     `_draw_line_layer`/`_draw_area_layer` use. That combo path is
     vertical-only and passes `_Orientation(False)`.
@@ -385,7 +385,7 @@ def bar[
     horizontal: Bool = False,
 ) raises -> Plot:
     """`bar()` generalized over numeric element type (`List[Int]`,
-    `List[Float32]`, ...); see `scatter()`'s `DType` overload (plot.mojo).
+    `List[Float32]`, ...); see `scatter()`'s `DType` overload (continuous.mojo).
     Delegates to the concrete overload above.
     """
     return bar(

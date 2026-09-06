@@ -49,7 +49,7 @@ def _append_smoothed_edge(
 ) raises:
     """Append `line_to`/`cubic_curve_to` segments for `px[0]->...->px[n-1]`
     onto `path`, continuing from its current point (no `move_to`). Same
-    Catmull-Rom math as `_build_line_path` (plot.mojo), duplicated because
+    Catmull-Rom math as `_build_line_path` (continuous.mojo), duplicated because
     a streamgraph band runs it twice on one continuous `Path` (top edge,
     then bottom edge) and `_build_line_path` always starts a fresh
     subpath.

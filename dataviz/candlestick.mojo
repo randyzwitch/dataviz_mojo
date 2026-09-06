@@ -280,7 +280,7 @@ def candlestick[
     y_title: String = "",
 ) raises -> Plot:
     """`candlestick()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (plot.mojo).
+    `scatter()`'s `DType` overload (continuous.mojo).
     `open`/`high`/`low`/`close` share one dtype. Delegates to the concrete
     overload above.
     """
