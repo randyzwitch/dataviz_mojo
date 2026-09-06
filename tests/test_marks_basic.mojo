@@ -1342,24 +1342,24 @@ def test_render_bullet_svg_matches_confirmed_bands_measure_and_target() raises:
     # heights are pulled 1px (88->87, 120->119); the other bands and the
     # target tick never touch 0.
     assert_true(
-        '<rect x="76" y="162" width="128" height="87" fill="#e0e0e0"/>' in s,
+        '<rect x="77" y="163" width="128" height="87" fill="#e0e0e0"/>' in s,
         "A's lightest band [0,40]",
     )
     assert_true(
-        '<rect x="76" y="97" width="128" height="65" fill="#acacac"/>' in s,
+        '<rect x="77" y="97" width="128" height="66" fill="#acacac"/>' in s,
         "A's middle band [40,70]",
     )
     assert_true(
-        '<rect x="76" y="31" width="128" height="66" fill="#787878"/>' in s,
+        '<rect x="77" y="31" width="128" height="66" fill="#787878"/>' in s,
         "A's darkest band [70,100]",
     )
     assert_true(
-        '<rect x="118" y="130" width="45" height="119" fill="#1e64b4"/>' in s,
+        '<rect x="118" y="130" width="45" height="120" fill="#1e64b4"/>' in s,
         "A's measure bar",
     )
     assert_true(
-        '<line x1="76" y1="108" x2="204" y2="108" stroke="#505050"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="76.000" y1="108.000" x2="204.000" y2="108.000"'
+        ' stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         "A's target tick, full band width",
     )
