@@ -1,6 +1,5 @@
 from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
-from canvas.geometry import round_to_int
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
@@ -12,7 +11,7 @@ from dataviz.plot import (
     Plot,
     _RenderResult,
     _Scaled,
-    _axis_pixel,
+    _axis_pixel_f,
     _check_line_smoothing,
     _draw_categorical_axis_frame,
     _LegendLayout,
@@ -174,12 +173,12 @@ def _render_streamgraph[
         var top_py = List[Float64](capacity=n_categories)
         for i in range(n_categories):
             top_px.append(frame.x_scale.center(i))
-            top_py.append(Float64(_axis_pixel(frame.y_scale, top[i])))
+            top_py.append(_axis_pixel_f(frame.y_scale, top[i]))
         var bottom_px = List[Float64](capacity=n_categories)
         var bottom_py = List[Float64](capacity=n_categories)
         for i in range(n_categories - 1, -1, -1):
             bottom_px.append(frame.x_scale.center(i))
-            bottom_py.append(Float64(_axis_pixel(frame.y_scale, bottom[i])))
+            bottom_py.append(_axis_pixel_f(frame.y_scale, bottom[i]))
 
         var path = Path()
         path.move_to(top_px[0], top_py[0])

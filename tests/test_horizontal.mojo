@@ -768,7 +768,7 @@ def test_render_svg_horizontal_violin_matches_hand_derived_silhouette_points() r
     var s = render_svg(plot).to_string()
 
     assert_true(
-        '<path d="M151.000,103.966' in s,
+        '<path d="M151.333,103.966' in s,
         "Section A's silhouette starts at its own min(values)=72",
     )
     assert_true(

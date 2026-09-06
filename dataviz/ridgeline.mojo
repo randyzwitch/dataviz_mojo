@@ -2,7 +2,6 @@ from std.math import sqrt
 
 from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
-from canvas.geometry import round_to_int
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
@@ -11,7 +10,7 @@ from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.plot import (
     Plot,
     _RenderResult,
-    _axis_pixel,
+    _axis_pixel_f,
     _data_extent,
     _min_max,
     _finished,
@@ -92,7 +91,7 @@ def _render_ridgeline[
         # line (padding=0.0 tiles rows edge to edge). Pulled 1px up so the
         # curve's flat closing edge doesn't paint over the line's antialiasing,
         # the same `_pull_off_axis_line` reasoning (plot.mojo).
-        if round_to_int(baseline_y) == frame.py1:
+        if abs(baseline_y - Float64(frame.py1)) < 0.5:
             baseline_y -= 1.0
         var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
             plot._distribution.kde_scale_by_count and max_n > 0
@@ -103,7 +102,7 @@ def _render_ridgeline[
         )
         var mm = _min_max(values)
 
-        var xs = List[Int](capacity=_KDE_SAMPLES)
+        var xs = List[Float64](capacity=_KDE_SAMPLES)
         var densities = List[Float64](capacity=_KDE_SAMPLES)
         var max_density = 0.0
         var span = mm.max - mm.min
@@ -112,7 +111,7 @@ def _render_ridgeline[
                 s
             ) / Float64(_KDE_SAMPLES - 1)
             var d = _kde_density(values, bandwidth, value)
-            xs.append(_axis_pixel(frame.x_scale, value))
+            xs.append(_axis_pixel_f(frame.x_scale, value))
             densities.append(d)
             max_density = max(max_density, d)
 
@@ -120,10 +119,10 @@ def _render_ridgeline[
             max_rise * count_factor
         ) / max_density if max_density > 0.0 else 0.0
         var path = Path()
-        path.move_to(Float64(xs[0]), baseline_y)
+        path.move_to(xs[0], baseline_y)
         for s in range(_KDE_SAMPLES):
-            path.line_to(Float64(xs[s]), baseline_y - densities[s] * scale)
-        path.line_to(Float64(xs[_KDE_SAMPLES - 1]), baseline_y)
+            path.line_to(xs[s], baseline_y - densities[s] * scale)
+        path.line_to(xs[_KDE_SAMPLES - 1], baseline_y)
         path.close()
         target.fill_path_aa(path, theme.mark_color, fill_rule=FillRule.NONZERO)
 
