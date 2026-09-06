@@ -1,5 +1,4 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -7,12 +6,13 @@ from dataviz.color_scale import default_categorical_palette
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.plot import (
     Plot,
-    _BaselineRect,
+    _BaselineRectF,
     _Orientation,
     _RenderResult,
     _Scaled,
     _TextRequest,
-    _axis_pixel,
+    _axis_pixel_f,
+    _snap_pixel_edge,
     _LegendLayout,
     _draw_legend_at,
     _legend_layout,
@@ -147,18 +147,18 @@ def _render_population_pyramid[
     )
 
     var palette = default_categorical_palette()
-    var center_px = _axis_pixel(frame.x_scale, 0.0)
-    var row_height = round_to_int(frame.y_scale.bandwidth())
+    var center_px = _axis_pixel_f(frame.x_scale, 0.0)
+    var row_height = frame.y_scale.bandwidth()
     var orient = _Orientation(True)  # bars grow horizontally from center
     for i in range(len(plot.x_categories)):
-        var row_y = round_to_int(frame.y_scale.band_start(i))
+        var row_y = frame.y_scale.band_start(i)
 
-        var left_edge_px = _axis_pixel(
+        var left_edge_px = _axis_pixel_f(
             frame.x_scale, -max(plot._pyramid.left[i], -plot._pyramid.left[i])
         )
         var left_x = min(left_edge_px, center_px)
         var left_w = max(left_edge_px, center_px) - min(left_edge_px, center_px)
-        if left_w > 0:
+        if left_w > 0.0:
             if theme.svg_tooltips:
                 target.begin_annotated_group(
                     _series_tooltip_label(
@@ -167,13 +167,17 @@ def _render_population_pyramid[
                         plot._pyramid.left[i],
                     )
                 )
-            target.fill_rect(left_x, row_y, left_w, row_height, palette[0])
+            var lx0 = _snap_pixel_edge(left_x)
+            var lx1 = _snap_pixel_edge(left_x + left_w)
+            var ly0 = _snap_pixel_edge(row_y)
+            var ly1 = _snap_pixel_edge(row_y + row_height)
+            target.fill_rect(lx0, ly0, lx1 - lx0, ly1 - ly0, palette[0])
             if theme.svg_tooltips:
                 target.end_annotated_group()
             if theme.show_data_labels:
                 var left_value = plot._pyramid.left[i]
                 var at = orient.outside_band_label(
-                    _BaselineRect(left_x, left_w),
+                    _BaselineRectF(left_x, left_w),
                     row_y,
                     row_height,
                     True,
@@ -196,14 +200,14 @@ def _render_population_pyramid[
                     )
                 )
 
-        var right_edge_px = _axis_pixel(
+        var right_edge_px = _axis_pixel_f(
             frame.x_scale, max(plot._pyramid.right[i], -plot._pyramid.right[i])
         )
         var right_x = min(center_px, right_edge_px)
         var right_w = max(center_px, right_edge_px) - min(
             center_px, right_edge_px
         )
-        if right_w > 0:
+        if right_w > 0.0:
             if theme.svg_tooltips:
                 target.begin_annotated_group(
                     _series_tooltip_label(
@@ -212,13 +216,17 @@ def _render_population_pyramid[
                         plot._pyramid.right[i],
                     )
                 )
-            target.fill_rect(right_x, row_y, right_w, row_height, palette[1])
+            var rx0 = _snap_pixel_edge(right_x)
+            var rx1 = _snap_pixel_edge(right_x + right_w)
+            var ry0 = _snap_pixel_edge(row_y)
+            var ry1 = _snap_pixel_edge(row_y + row_height)
+            target.fill_rect(rx0, ry0, rx1 - rx0, ry1 - ry0, palette[1])
             if theme.svg_tooltips:
                 target.end_annotated_group()
             if theme.show_data_labels:
                 var right_value = plot._pyramid.right[i]
                 var at2 = orient.outside_band_label(
-                    _BaselineRect(right_x, right_w),
+                    _BaselineRectF(right_x, right_w),
                     row_y,
                     row_height,
                     False,
