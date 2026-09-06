@@ -244,7 +244,7 @@ def _render_barbs[
 
     var length = plot._barbs.length * frame.sc.scale
     var stroke_width = frame.sc.scale
-    var empty_radius = round_to_int(_EMPTY_RADIUS * length)
+    var empty_radius = _EMPTY_RADIUS * length
 
     # One glyph per distinct speed bucket, built lazily. `keys` is the
     # rounded-to-5 speed as an integer; the bucket count is small (a
@@ -263,12 +263,14 @@ def _render_barbs[
         var py = frame.y_scale.to_pixel(plot._barbs.y[i])
 
         if counts.calm:
+            # Exactly where every other glyph goes: the barbs below are
+            # placed by a Transform2D at the unrounded (px, py), so
+            # rounding here made calm stations the only ones sitting off
+            # their own data point. A circle has no crisp position to
+            # round to either -- it is antialiased all the way round
+            # wherever it is put.
             target.draw_ellipse_aa(
-                round_to_int(px),
-                round_to_int(py),
-                empty_radius,
-                empty_radius,
-                theme.mark_color,
+                px, py, empty_radius, empty_radius, theme.mark_color
             )
             continue
 
