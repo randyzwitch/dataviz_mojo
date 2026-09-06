@@ -80,8 +80,8 @@ def _fill_shape_aa[
     color: Color,
 ) raises:
     """Draw one `shape` centered at `(cx, cy)`, sized to `radius`. Called per
-    point by `_draw_point_layer` and per legend swatch by `_draw_legend`
-    (plot.mojo) when `Theme.shape_by_category` is on. `radius` is already
+    point by `_draw_point_layer` (continuous.mojo) and per legend swatch
+    by `_draw_legend` (legend.mojo) when `Theme.shape_by_category` is on. `radius` is already
     `Theme.scale`-scaled by the caller.
 
     Every shape reaches exactly `radius` pixels from center along its

@@ -186,7 +186,7 @@ def span_chart[
     y_title: String = "",
 ) raises -> Plot:
     """`span_chart()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (plot.mojo). `low`/`high` share one
+    `scatter()`'s `DType` overload (continuous.mojo). `low`/`high` share one
     dtype. Delegates to the concrete overload above.
     """
     return span_chart(

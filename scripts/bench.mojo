@@ -1,7 +1,7 @@
 """Renders a representative mark per family at increasing data sizes and
 prints wall-clock render times, to catch the next accidental quadratic
 layout the way #188 (an O(n^2) beeswarm layout) and the line-decimation
-fix (`_decimate_to_pixel_columns`, plot.mojo -- a 5,000-point line took
+fix (`_decimate_to_pixel_columns`, continuous.mojo -- a 5,000-point line took
 1.7s before it existed) were each found by a user first. Run via
 `pixi run bench`.
 
@@ -409,7 +409,7 @@ def main() raises:
     # A throwaway render on each backend before any measured size, so a
     # one-time cost unrelated to data size (fontconfig resolving "Sans"
     # to an installed file the first time any label is drawn -- see
-    # _max_label_width's own docstring, plot.mojo, for the same warm/cold
+    # _max_label_width's own docstring, text.mojo, for the same warm/cold
     # font-cache gap) doesn't land inside whichever mark happens to run
     # first and make it look artificially slow.
     var warm_x: List[Float64] = [1.0, 2.0]

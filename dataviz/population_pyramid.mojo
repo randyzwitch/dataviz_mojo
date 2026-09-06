@@ -357,7 +357,7 @@ def population_pyramid[
     y_title: String = "",
 ) raises -> Plot:
     """`population_pyramid()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (plot.mojo). `left_values`/
+    `scatter()`'s `DType` overload (continuous.mojo). `left_values`/
     `right_values` share one dtype. Delegates to the concrete overload
     above.
     """

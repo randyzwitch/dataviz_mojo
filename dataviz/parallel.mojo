@@ -260,7 +260,7 @@ def parallel[
 ) raises -> Plot:
     """`parallel()` generalized over numeric element type for `data`, via
     `_materialize_nested_scalar_list` (array_like.mojo); see `scatter()`'s
-    `DType` overload (plot.mojo). Delegates to the concrete overload
+    `DType` overload (continuous.mojo). Delegates to the concrete overload
     above.
     """
     return parallel(

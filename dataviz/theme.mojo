@@ -27,7 +27,7 @@ light neutral grey at 0.5 is what diverging colormaps like
 `coolwarm`/`RdBu` do.
 
 `line_smoothing` (default `0.0`) controls how much `_build_line_path`
-(plot.mojo) curves a `Mark.LINE`/`AREA` through its points via a
+(continuous.mojo) curves a `Mark.LINE`/`AREA` through its points via a
 Catmull-Rom-derived cubic Bezier: `0.0` is straight segments, `1.0`
 the full curve. Must be in `[0.0, 1.0]`. `Mark.AREA` smooths only
 its top edge.
@@ -74,7 +74,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     var font_size: Float64
     """The base font size, in points, for tick/legend labels --
     scaled by `Theme.scale` the same as every other pixel-sized
-    quantity (see `_Scaled`'s docstring, plot.mojo)."""
+    quantity (see `_Scaled`'s docstring, text.mojo)."""
     var point_radius: Float64
     """The default pixel radius for `Mark.POINT`/`EFFECT_SCATTER`
     markers, before any data-driven `size` channel overrides it."""
@@ -212,7 +212,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     """
     var halo_alpha: UInt8
     """The opacity `Mark.EFFECT_SCATTER` blends each point's halo at before
-    flattening it against white (`_lighten`, plot.mojo).
+    flattening it against white (`_lighten`, continuous.mojo).
     """
     var tick_length: Int
     """The pixel length of each axis tick mark."""

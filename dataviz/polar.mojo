@@ -381,7 +381,7 @@ def polar[
     y_title: String = "",
 ) raises -> Plot:
     """`polar()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (plot.mojo). `angle`/`radius` share one dtype.
+    `DType` overload (continuous.mojo). `angle`/`radius` share one dtype.
     Delegates to the concrete overload above.
     """
     return polar(
@@ -488,7 +488,7 @@ def polar_series[
 ) raises -> Plot:
     """`polar_series()` generalized over numeric element type for
     `series_values`, via `_materialize_nested_scalar_list`
-    (array_like.mojo); see `scatter()`'s `DType` overload (plot.mojo).
+    (array_like.mojo); see `scatter()`'s `DType` overload (continuous.mojo).
     `angle` stays concrete. Delegates to the concrete overload above.
     """
     return polar_series(

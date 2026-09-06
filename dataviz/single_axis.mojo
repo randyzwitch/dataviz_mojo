@@ -278,7 +278,7 @@ def single_axis[
     x_title: String = "",
 ) raises -> Plot:
     """`single_axis()` generalized over numeric element type for `x`; see
-    `scatter()`'s `DType` overload (plot.mojo).
+    `scatter()`'s `DType` overload (continuous.mojo).
     `color`/`color_categories`/`size` stay concrete, as in
     `Plot.encode()`'s array-like overloads. Delegates to the concrete
     overload above.

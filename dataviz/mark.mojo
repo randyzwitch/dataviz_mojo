@@ -34,7 +34,7 @@ describes the drawing. By data shape:
   GRAPH, SANKEY.
 
 Vertical categorical marks share `_draw_categorical_axis_frame`
-(plot.mojo), horizontal ones `_draw_horizontal_categorical_axis_frame`
+(frame.mojo), horizontal ones `_draw_horizontal_categorical_axis_frame`
 (gantt.mojo), and the two-categorical-axis marks
 `_draw_grid_axis_frame` (heatmap.mojo). BAR/BOX/VIOLIN/BEESWARM/
 LOLLIPOP/GROUPED_BAR/STACKED_BAR each have a `horizontal=True`

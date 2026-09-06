@@ -90,7 +90,7 @@ def _render_ridgeline[
         # The bottom-most row's baseline lands exactly on the drawn bottom axis
         # line (padding=0.0 tiles rows edge to edge). Pulled 1px up so the
         # curve's flat closing edge doesn't paint over the line's antialiasing,
-        # the same `_pull_off_axis_line` reasoning (plot.mojo).
+        # the same `_pull_off_axis_line` reasoning (frame.mojo).
         if abs(baseline_y - Float64(frame.py1)) < 0.5:
             baseline_y -= 1.0
         var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (

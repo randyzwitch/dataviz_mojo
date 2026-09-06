@@ -548,7 +548,7 @@ def grouped_bar[
     """`grouped_bar()` generalized over numeric element type for `values`
     (`List[List[Int]]`, `List[List[Float32]]`, ...), via
     `_materialize_nested_scalar_list` (array_like.mojo); see `scatter()`'s
-    `DType` overload (plot.mojo). Delegates to the concrete overload
+    `DType` overload (continuous.mojo). Delegates to the concrete overload
     above.
     """
     return grouped_bar(
