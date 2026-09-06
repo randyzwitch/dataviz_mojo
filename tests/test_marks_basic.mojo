@@ -869,16 +869,16 @@ def test_render_boxplot_svg_matches_confirmed_rects_and_outlier() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="76" y="181" width="128" height="35" fill="#1e64b4"/>' in s,
+        '<rect x="77" y="182" width="128" height="35" fill="#1e64b4"/>' in s,
         "A's box (q1 to q3)",
     )
     assert_true(
-        '<rect x="236" y="89" width="128" height="35" fill="#1e64b4"/>' in s,
+        '<rect x="237" y="89" width="128" height="35" fill="#1e64b4"/>' in s,
         "B's box (q1 to q3)",
     )
     assert_true(
-        '<circle cx="140" cy="30" r="4" fill="#1e64b4"/>' in s,
-        "A's single outlier, at value 20",
+        '<circle cx="140.000" cy="30.455" r="4.000" fill="#1e64b4"/>' in s,
+        "A's single outlier, now at value 20's exact position",
     )
 
 

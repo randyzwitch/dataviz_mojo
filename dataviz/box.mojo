@@ -7,11 +7,11 @@ from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
-    _BaselineRect,
+    _BaselineRectF,
     _Orientation,
     _RenderResult,
     _tooltip_label,
-    _axis_pixel,
+    _axis_pixel_f,
     _data_extent,
     _draw_categorical_axis_frame,
     _finished,
@@ -163,7 +163,6 @@ def _draw_box_glyphs[
 
     for i in range(len(plot.x_categories)):
         var center = band_scale.center(i)
-        var center_i = round_to_int(center)
         var q1 = value_scale.to_pixel(plot._box.q1[i])
         var q3 = value_scale.to_pixel(plot._box.q3[i])
         var median = value_scale.to_pixel(plot._box.median[i])
@@ -199,52 +198,52 @@ def _draw_box_glyphs[
         # Whiskers: high -> q3 and q1 -> low, along the value axis.
         orient.value_line(
             target,
-            round_to_int(high),
-            round_to_int(q3),
-            center_i,
+            high,
+            q3,
+            center,
             theme.axis_color,
             theme.scale,
         )
         orient.value_line(
             target,
-            round_to_int(q1),
-            round_to_int(low),
-            center_i,
+            q1,
+            low,
+            center,
             theme.axis_color,
             theme.scale,
         )
         # Caps across each whisker's end.
         orient.band_line(
             target,
-            round_to_int(high),
-            round_to_int(center - cap_half),
-            round_to_int(center + cap_half),
+            high,
+            center - cap_half,
+            center + cap_half,
             theme.axis_color,
             theme.scale,
         )
         orient.band_line(
             target,
-            round_to_int(low),
-            round_to_int(center - cap_half),
-            round_to_int(center + cap_half),
+            low,
+            center - cap_half,
+            center + cap_half,
             theme.axis_color,
             theme.scale,
         )
         # The interquartile box, then the median line across it.
-        var box_near = round_to_int(min(q1, q3))
-        var box_span = round_to_int(max(q1, q3) - min(q1, q3))
+        var box_near = min(q1, q3)
+        var box_span = max(q1, q3) - box_near
         orient.fill_band_rect(
             target,
-            _BaselineRect(box_near, box_span),
-            round_to_int(center - half),
-            round_to_int(band_size),
+            _BaselineRectF(box_near, box_span),
+            center - half,
+            band_size,
             theme.mark_color,
         )
         orient.band_line(
             target,
-            round_to_int(median),
-            round_to_int(center - half),
-            round_to_int(center + half),
+            median,
+            center - half,
+            center + half,
             theme.axis_color,
             theme.scale,
         )
@@ -264,9 +263,9 @@ def _draw_box_glyphs[
             )
         orient.band_point(
             target,
-            _axis_pixel(value_scale, plot._box.outlier_value[j]),
-            round_to_int(band_scale.center(plot._box.outlier_cat[j])),
-            point_radius,
+            _axis_pixel_f(value_scale, plot._box.outlier_value[j]),
+            band_scale.center(plot._box.outlier_cat[j]),
+            Float64(point_radius),
             theme.mark_color,
         )
         if theme.svg_tooltips:
