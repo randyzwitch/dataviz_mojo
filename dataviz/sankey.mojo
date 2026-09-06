@@ -1,6 +1,7 @@
 from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.geometry import round_to_int
+from dataviz.pixel_snap import _snap_pixel_edge
 from canvas.path import Path
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
@@ -167,12 +168,20 @@ def _render_sankey[
     var plot_x1 = ox1 - sc.margin_right
     var plot_y1 = oy1 - sc.margin_bottom
 
+    # The layout is laid out in edge space, half a pixel above and left
+    # of the plot rect's first row and column. plot_x0 and plot_y0 are
+    # pixel *indices*, and a pixel's geometry starts half a pixel before
+    # its index, so measuring from the index itself would put every node
+    # rect and every ribbon half a pixel inside the area they are meant
+    # to fill. Spans are unaffected -- only the origins shift.
+    var origin_x = Float64(plot_x0) - 0.5
+    var origin_y = Float64(plot_y0) - 0.5
+
     var col_x = List[Float64](capacity=max_column + 1)
     for c in range(max_column + 1):
         var frac = 0.5 if max_column == 0 else Float64(c) / Float64(max_column)
         col_x.append(
-            Float64(plot_x0)
-            + frac * Float64(plot_x1 - plot_x0 - Int(node_width))
+            origin_x + frac * Float64(plot_x1 - plot_x0 - Int(node_width))
         )
 
     var nodes_in_column = List[List[Int]]()
@@ -195,13 +204,9 @@ def _render_sankey[
             continue
         var cum = 0.0
         for i in members:
-            node_y0[i] = Float64(plot_y0) + cum / col_total * Float64(
-                plot_y1 - plot_y0
-            )
+            node_y0[i] = origin_y + cum / col_total * Float64(plot_y1 - plot_y0)
             cum += node_value[i]
-            node_y1[i] = Float64(plot_y0) + cum / col_total * Float64(
-                plot_y1 - plot_y0
-            )
+            node_y1[i] = origin_y + cum / col_total * Float64(plot_y1 - plot_y0)
 
     var palette = default_categorical_palette()
     var out_cursor = node_y0.copy()
@@ -240,14 +245,21 @@ def _render_sankey[
 
     var text_requests = List[_TextRequest]()
     for i in range(n):
-        var x = round_to_int(col_x[column[i]])
-        var y0 = round_to_int(node_y0[i])
-        var h = max(1, round_to_int(node_y1[i]) - y0)
-        target.fill_rect(
-            x, y0, round_to_int(node_width), h, palette[i % len(palette)]
-        )
-        var label_x = x + round_to_int(node_width) + sc.label_gap
-        var label_y = y0 + h // 2 + Int(sc.font_size * 0.35)
+        # A node is an axis-aligned filled rect, so all four edges snap
+        # to pixel boundaries and it stays crisp. Rounding them instead
+        # moved the rect off the ribbons, which are drawn from the exact
+        # col_x and node_y above -- every ribbon met its node up to half
+        # a pixel away from where the node actually was.
+        var x = _snap_pixel_edge(col_x[column[i]])
+        var y0 = _snap_pixel_edge(node_y0[i])
+        var x1 = _snap_pixel_edge(col_x[column[i]] + node_width)
+        # Height comes from the snapped pair, and never collapses to
+        # nothing: a node carrying a tiny share of the total still has
+        # to be visible.
+        var y1 = max(y0 + 1.0, _snap_pixel_edge(node_y1[i]))
+        target.fill_rect(x, y0, x1 - x, y1 - y0, palette[i % len(palette)])
+        var label_x = round_to_int(x1) + sc.label_gap
+        var label_y = round_to_int((y0 + y1) / 2.0) + Int(sc.font_size * 0.35)
         text_requests.append(
             _TextRequest(
                 label_x,
