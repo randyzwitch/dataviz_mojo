@@ -398,7 +398,7 @@ def _assert_same_canvas(a: Canvas, b: Canvas, label: String) raises:
 
     For a sentinel check -- "passing the default explicitly changes
     nothing" -- where the claim is that two renders are identical, not
-    that some pixel is a particular colour. Pinning a handful of pixels
+    that some pixel is a particular color. Pinning a handful of pixels
     tests a weaker statement and breaks whenever the layout moves.
 
     Args:

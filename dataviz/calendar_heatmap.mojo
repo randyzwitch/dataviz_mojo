@@ -1,5 +1,6 @@
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
+from dataviz.pixel_snap import _snap_pixel_edge
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
@@ -247,14 +248,28 @@ def _render_calendar_heatmap[
         var days = _days_from_civil(parsed[i]) - jan1_days
         var col = (days + jan1_dow) // 7
         var row = _day_of_week(days + jan1_days)
-        var cell_x = round_to_int(Float64(plot_x0) + Float64(col) * cell_width)
-        var cell_y = round_to_int(Float64(plot_y0) + Float64(row) * cell_height)
+        # Both edges of a cell snap, rather than a snapped corner plus
+        # one rounded size shared by the whole year. A shared size
+        # cannot tile a fractional cell: it falls short of the step
+        # often enough to leave the background showing between two
+        # columns. Snapping each edge makes cell i's right edge and cell
+        # i+1's left edge the same boundary by construction, at the cost
+        # of a cell here and there being a pixel wider than its
+        # neighbor -- which is what dividing the plot into 53 weeks
+        # actually looks like.
+        # plot_x0/plot_y0 are pixel indices, and a pixel's geometry
+        # starts half a pixel before its index, so the grid's outer edge
+        # lines up with the plot rect instead of sitting a pixel inside.
+        var x_start = Float64(plot_x0) - 0.5 + Float64(col) * cell_width
+        var y_start = Float64(plot_y0) - 0.5 + Float64(row) * cell_height
+        var cell_x = _snap_pixel_edge(x_start)
+        var cell_y = _snap_pixel_edge(y_start)
         var color = color_scale.color_at(plot._calendar.values[i])
         target.fill_rect(
             cell_x,
             cell_y,
-            round_to_int(cell_width),
-            round_to_int(cell_height),
+            _snap_pixel_edge(x_start + cell_width) - cell_x,
+            _snap_pixel_edge(y_start + cell_height) - cell_y,
             color,
         )
 

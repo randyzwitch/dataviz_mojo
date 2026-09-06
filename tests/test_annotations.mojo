@@ -55,8 +55,8 @@ def test_render_svg_annotate_line_matches_hand_derived_position() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<line x1="60" y1="86" x2="380" y2="86" stroke="#969696"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="60.000" y1="86.000" x2="380.000" y2="86.000"'
+        ' stroke="#969696" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         "the reference line itself, spanning the full inner plot width",
     )
@@ -189,14 +189,19 @@ def test_render_svg_annotate_area_matches_hand_derived_position() raises:
     var s = svg.to_string()
     # annotation_area_color's default alpha (200/255 -> 0.784) emits a
     # fill-opacity attribute.
+    #
+    # 18.0 sits at 72.273, so the band's top edge snaps to the pixel
+    # boundary at 72.5 and row 73 is the first one it covers. Reading
+    # 72.273 as a row index instead, as this used to, started the band at
+    # row 72 -- three quarters of a pixel high.
     assert_true(
-        '<rect x="60" y="72" width="320" height="126" fill="#e0ecf6"'
+        '<rect x="60" y="73" width="320" height="125" fill="#e0ecf6"'
         ' fill-opacity="0.784"/>'
         in s,
         "the band's fill, spanning the full inner plot width",
     )
     assert_true(
-        '<text x="376" y="84" font-size="12.000" font-family="sans-serif"'
+        '<text x="376" y="85" font-size="12.000" font-family="sans-serif"'
         ' fill="#969696" text-anchor="end">band</text>'
         in s,
         "the band's label, right-aligned just inside its top edge",
@@ -289,6 +294,9 @@ def test_render_annotate_area_out_of_range_draws_nothing() raises:
 def test_render_annotate_area_partial_overlap_clips_to_visible_portion() raises:
     # A band partially overlapping the domain (18.0-25.0 against a ~20.5
     # max) clips to y:[20, 72], the plot's top edge down to 18.0's row.
+    # 18.0 is the bottom edge here, at 72.273, so it snaps down to the
+    # boundary at 72.5 and row 72 -- which the band covers three quarters
+    # of -- is included.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var plot = (
@@ -302,7 +310,7 @@ def test_render_annotate_area_partial_overlap_clips_to_visible_portion() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="60" y="20" width="320" height="52" fill="#e0ecf6"'
+        '<rect x="60" y="20" width="320" height="53" fill="#e0ecf6"'
         ' fill-opacity="0.784"/>'
         in s,
         (
@@ -529,8 +537,8 @@ def test_render_svg_annotate_best_fit_matches_hand_derived_fit_and_line() raises
     var s = svg.to_string()
 
     assert_true(
-        '<line x1="60" y1="227" x2="380" y2="43" stroke="#969696"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="60.000" y1="227.000" x2="380.000" y2="43.000"'
+        ' stroke="#969696" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         "the fitted line, spanning the full padded x-domain",
     )
@@ -568,8 +576,8 @@ def test_render_svg_annotate_best_fit_draws_only_the_line_with_no_options_set() 
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<line x1="60" y1="227" x2="380" y2="43" stroke="#969696"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="60.000" y1="227.000" x2="380.000" y2="43.000"'
+        ' stroke="#969696" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         "the line still draws",
     )
@@ -681,8 +689,8 @@ def test_render_facets_svg_each_cells_own_annotations_use_that_cells_own_scale()
     var svg = render_facets_svg(plots, 2)
     var s = svg.to_string()
     assert_true(
-        '<line x1="60" y1="86" x2="380" y2="86" stroke="#969696"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="60.000" y1="86.000" x2="380.000" y2="86.000"'
+        ' stroke="#969696" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         "cell 1's reference line, against its [0,20] domain",
     )
@@ -693,7 +701,7 @@ def test_render_facets_svg_each_cells_own_annotations_use_that_cells_own_scale()
         "cell 1's reference line label",
     )
     assert_true(
-        '<rect x="460" y="75" width="320" height="58" fill="#e0ecf6"'
+        '<rect x="460" y="75" width="320" height="59" fill="#e0ecf6"'
         ' fill-opacity="0.784"/>'
         in s,
         (
@@ -740,8 +748,8 @@ def test_render_layers_svg_each_layers_own_annotations_use_that_layers_own_scale
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
-        '<line x1="60" y1="198" x2="350" y2="198" stroke="#969696"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="60.000" y1="198.000" x2="350.000" y2="198.000"'
+        ' stroke="#969696" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         (
             "the primary layer's reference line, against the primary (left)"
@@ -755,8 +763,8 @@ def test_render_layers_svg_each_layers_own_annotations_use_that_layers_own_scale
         "the primary layer's reference line label",
     )
     assert_true(
-        '<line x1="60" y1="83" x2="350" y2="83" stroke="#969696"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="60.000" y1="83.000" x2="350.000" y2="83.000"'
+        ' stroke="#969696" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         (
             "the secondary layer's reference line, against its (right) y-scale"
@@ -794,8 +802,8 @@ def test_render_svg_annotate_vline_matches_hand_derived_position() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<line x1="220" y1="20" x2="220" y2="250" stroke="#969696"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="220.000" y1="20.000" x2="220.000" y2="250.000"'
+        ' stroke="#969696" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         (
             "the vertical reference line itself, spanning the full inner plot"

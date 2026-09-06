@@ -1099,6 +1099,48 @@ def test_render_heatmap_missing_cell_leaves_background() raises:
     )
 
 
+def test_render_heatmap_cells_tile_without_a_seam() raises:
+    # 11 columns across a 320px plot area is 29.09 per band. Drawing each
+    # cell as a rounded corner plus one rounded width shared by the grid
+    # gave every cell a width of 29, which falls behind the step: by the
+    # sixth column one cell's right edge stopped a pixel before the next
+    # one's left edge began, and the background showed through as a
+    # hairline seam down the middle of the chart.
+    #
+    # Asserted as "no background anywhere between the first and last
+    # cell pixel" rather than by pinning widths, so the test states the
+    # property that matters and survives the cells being 29 or 30 wide.
+    var x = List[String]()
+    var y = List[String]()
+    var v = List[Float64]()
+    for col in range(11):
+        x.append("c" + String(col))
+        y.append("r")
+        v.append(Float64(col))
+    var t = Theme(show_gridlines=False, show_legend=False)
+    var _hoisted_seam = heatmap(x, y, v, theme=t, width=400, height=300)
+    var c = render(_hoisted_seam)
+
+    var row = 150
+    var first = -1
+    var last = -1
+    for px in range(c.width):
+        var p = c.get_pixel(px, row)
+        if not (p.r == BG.r and p.g == BG.g and p.b == BG.b):
+            if first == -1:
+                first = px
+            last = px
+    assert_true(first != -1, "the grid drew something on this row")
+    assert_equal(last - first + 1, 320, "the grid spans the whole plot area")
+
+    var seams = 0
+    for px in range(first, last + 1):
+        var p = c.get_pixel(px, row)
+        if p.r == BG.r and p.g == BG.g and p.b == BG.b:
+            seams += 1
+    assert_equal(seams, 0, "no background pixel between two adjacent cells")
+
+
 def test_render_heatmap_legend_shows_value_domain() raises:
     var x: List[String] = ["Mon", "Tue"]
     var y: List[String] = ["AM", "AM"]
@@ -1478,12 +1520,18 @@ def test_render_calendar_heatmap_svg_matches_confirmed_rects() raises:
     )
     var svg = render_svg(plot)
     var s = svg.to_string()
+    # Cells are not all one size: 53 week columns and 7 day rows do not
+    # divide the plot area evenly, so each cell runs between its own two
+    # snapped edges and some come out a pixel larger than their
+    # neighbors. A single rounded size for the whole grid looked tidier
+    # in a test and could not tile -- it left a seam or an overlap
+    # wherever the fraction accumulated past half a pixel.
     assert_true(
-        '<rect x="60" y="67" width="15" height="31" fill="#3c6ec8"/>' in s,
+        '<rect x="60" y="67" width="15" height="30" fill="#3c6ec8"/>' in s,
         "Jan 1 (Mon), col 0",
     )
     assert_true(
-        '<rect x="75" y="36" width="15" height="31" fill="#ebebeb"/>' in s,
+        '<rect x="75" y="36" width="16" height="31" fill="#ebebeb"/>' in s,
         "Jan 7 (Sun), col 1",
     )
     assert_true(
