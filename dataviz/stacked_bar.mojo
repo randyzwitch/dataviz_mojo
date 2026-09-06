@@ -1,6 +1,5 @@
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
-from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from canvas.text.render import TextAlign
@@ -20,9 +19,9 @@ from dataviz.plot import (
     _Scaled,
     _series_tooltip_label,
     _TextRequest,
-    _axis_pixel,
+    _axis_pixel_f,
     _draw_categorical_axis_frame,
-    _pull_off_axis_line,
+    _pull_off_axis_line_f,
     _finished,
     _zero_baseline_y_extent,
 )
@@ -96,7 +95,7 @@ def _draw_stacked_segments[
 
     No pixel-boundary-rounding trick is needed as in `Mark.GROUPED_BAR`'s
     sub-bar division: a segment's far edge and the next segment's near
-    edge are the identical `Float64` running total, so `_axis_pixel`
+    edge are the identical `Float64` running total, so `_axis_pixel_f`
     rounds both to the same pixel.
 
     `Theme.show_data_labels` centers each segment's value inside it,
@@ -105,10 +104,10 @@ def _draw_stacked_segments[
     var theme = plot._theme
     var sc = _Scaled(theme)
     var n_series = len(plot._grouped_bar.series_names)
-    var band_size = round_to_int(band_scale.bandwidth())
+    var band_size = band_scale.bandwidth()
 
     for i in range(len(plot.x_categories)):
-        var band_pos = round_to_int(band_scale.band_start(i))
+        var band_pos = band_scale.band_start(i)
         # percent=True rescales each category against its own total. An
         # all-zero category gets a 0.0 factor and draws an empty column rather
         # than NaN.
@@ -135,10 +134,10 @@ def _draw_stacked_segments[
                 seg_far = neg_running
                 seg_near = neg_running + v
                 neg_running = seg_near
-            var extent = _pull_off_axis_line(
-                _axis_pixel(value_scale, seg_far),
-                _axis_pixel(value_scale, seg_near),
-                baseline_edge,
+            var extent = _pull_off_axis_line_f(
+                _axis_pixel_f(value_scale, seg_far),
+                _axis_pixel_f(value_scale, seg_near),
+                Float64(baseline_edge),
             )
             if theme.svg_tooltips:
                 target.begin_annotated_group(
