@@ -345,15 +345,15 @@ def test_render_svg_bar_error_bar_matches_hand_derived_positions() raises:
     )
     var s = render_svg(plot).to_string()
     assert_true(
-        'y1="67"' in s and 'y2="67"' in s,
+        'y1="67.460"' in s and 'y2="67.460"' in s,
         "the bottom whisker/cap sits at y-2's hand-derived row",
     )
     assert_true(
-        'y1="26"' in s and 'y2="26"' in s,
+        'y1="26.190"' in s and 'y2="26.190"' in s,
         "the top whisker/cap sits at y+2's hand-derived row",
     )
     assert_true(
-        '<rect x="92" y="47"' in s,
+        '<rect x="93" y="47"' in s,
         "the bar's own top edge sits at y=10's hand-derived row",
     )
 

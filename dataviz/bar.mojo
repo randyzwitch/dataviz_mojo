@@ -1,6 +1,5 @@
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
-from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -15,9 +14,9 @@ from dataviz.plot import (
     _Scaled,
     _tooltip_label,
     _TextRequest,
-    _axis_pixel,
+    _axis_pixel_f,
     _draw_categorical_axis_frame,
-    _pull_off_axis_line,
+    _pull_off_axis_line_f,
     _finished,
     _zero_baseline_y_extent,
     _validate_categorical_encoding,
@@ -94,17 +93,17 @@ def _draw_bar_rects[
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
-    var baseline = _axis_pixel(value_scale, 0.0)
+    var baseline = _axis_pixel_f(value_scale, 0.0)
     # bandwidth() doesn't depend on the category index, so it's hoisted out
     # of the loop.
-    var band_size = round_to_int(band_scale.bandwidth())
+    var band_size = band_scale.bandwidth()
     var has_y_err = len(plot.y_err_data) > 0 or len(plot.y_err_lower_data) > 0
-    var cap_half = round_to_int(sc.error_bar_cap_width)
+    var cap_half = sc.error_bar_cap_width
     for i in range(len(plot.x_categories)):
-        var band_pos = round_to_int(band_scale.band_start(i))
+        var band_pos = band_scale.band_start(i)
         var value = plot.y_data[i]
-        var extent = _pull_off_axis_line(
-            baseline, _axis_pixel(value_scale, value), baseline_edge
+        var extent = _pull_off_axis_line_f(
+            baseline, _axis_pixel_f(value_scale, value), Float64(baseline_edge)
         )
         var color = _bar_fill_color(theme, value)
         if theme.svg_tooltips:
@@ -121,9 +120,9 @@ def _draw_bar_rects[
             else:
                 lo = value - plot.y_err_lower_data[i]
                 hi = value + plot.y_err_upper_data[i]
-            var center_i = round_to_int(band_scale.center(i))
-            var py_hi = _axis_pixel(value_scale, hi)
-            var py_lo = _axis_pixel(value_scale, lo)
+            var center_i = band_scale.center(i)
+            var py_hi = _axis_pixel_f(value_scale, hi)
+            var py_lo = _axis_pixel_f(value_scale, lo)
             orient.value_line(target, py_hi, py_lo, center_i, color, sc.scale)
             orient.band_line(
                 target,

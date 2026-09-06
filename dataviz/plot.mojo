@@ -3350,6 +3350,24 @@ def _axis_pixel(scale: LinearScale, value: Float64) -> Int:
     return round_to_int(scale.to_pixel(value))
 
 
+def _axis_pixel_f(scale: LinearScale, value: Float64) -> Float64:
+    """`_axis_pixel` without the rounding: the scale position as
+    geometry, for a mark that hands coordinates to canvas as `Float64`
+    and lets the primitive snap each edge.
+
+    canvas_mojo v0.19.0's `Float64` overloads read a coordinate as a
+    geometric edge under the pixel-centre convention, which is what a
+    scale position actually is; `round_to_int` read it as a pixel
+    index, which was the approximation. Measured against an
+    antialiased path fill of the same box, snapping is closer to the
+    truth at every sub-pixel offset and never further.
+
+    Marks are being moved onto this one family at a time; when the last
+    one lands, this replaces `_axis_pixel` and the `_f` suffix goes.
+    """
+    return scale.to_pixel(value)
+
+
 struct _BaselineRect(Movable):
     """`_pull_off_axis_line`'s `(y, height)` result."""
 
@@ -3357,6 +3375,21 @@ struct _BaselineRect(Movable):
     var height: Int
 
     def __init__(out self, y: Int, height: Int):
+        self.y = y
+        self.height = height
+
+
+struct _BaselineRectF(Movable):
+    """`_pull_off_axis_line_f`'s `(y, height)`, in `Float64` geometry.
+
+    The `Float64` counterpart of `_BaselineRect`, for marks migrated
+    off `round_to_int`; the two merge once every mark is across.
+    """
+
+    var y: Float64
+    var height: Float64
+
+    def __init__(out self, y: Float64, height: Float64):
         self.y = y
         self.height = height
 
@@ -3443,6 +3476,42 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
                 band_pos, extent.y, band_size, extent.height, color
             )
 
+    def fill_band_rect[
+        T: DrawTarget
+    ](
+        self,
+        mut target: T,
+        extent: _BaselineRectF,
+        band_pos: Float64,
+        band_size: Float64,
+        color: Color,
+    ):
+        """`fill_band_rect` in `Float64` geometry, with both edges
+        snapped to whole pixels.
+
+        Filled rectangles snap; nothing else here does. See
+        `_snap_pixel_edge` for why, and for why the snap happens in
+        logical space rather than being left to the primitive.
+
+        Snapping the two edges independently and taking the width from
+        them, rather than rounding a position and a size separately, is
+        also what keeps the width honest: the old path rounded
+        `band_start` and `bandwidth` apart from each other, so their
+        errors accumulated.
+        """
+        var along0 = _snap_pixel_edge(extent.y)
+        var along1 = _snap_pixel_edge(extent.y + extent.height)
+        var across0 = _snap_pixel_edge(band_pos)
+        var across1 = _snap_pixel_edge(band_pos + band_size)
+        if self.horizontal:
+            target.fill_rect(
+                along0, across0, along1 - along0, across1 - across0, color
+            )
+        else:
+            target.fill_rect(
+                across0, along0, across1 - across0, along1 - along0, color
+            )
+
     def value_line[
         T: DrawTarget
     ](
@@ -3456,6 +3525,27 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
     ):
         """A line running *along* the value axis at a fixed band
         position -- a box's whisker, a lollipop's stem."""
+        if self.horizontal:
+            target.draw_line_aa(
+                along_a, across, along_b, across, color, width=width
+            )
+        else:
+            target.draw_line_aa(
+                across, along_a, across, along_b, color, width=width
+            )
+
+    def value_line[
+        T: DrawTarget
+    ](
+        self,
+        mut target: T,
+        along_a: Float64,
+        along_b: Float64,
+        across: Float64,
+        color: Color,
+        width: Float64,
+    ):
+        """`value_line` in `Float64` geometry."""
         if self.horizontal:
             target.draw_line_aa(
                 along_a, across, along_b, across, color, width=width
@@ -3479,6 +3569,27 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         """A line running *across* the band at a fixed value -- a box's
         median line and whisker caps. The perpendicular of
         `value_line`."""
+        if self.horizontal:
+            target.draw_line_aa(
+                along, across_a, along, across_b, color, width=width
+            )
+        else:
+            target.draw_line_aa(
+                across_a, along, across_b, along, color, width=width
+            )
+
+    def band_line[
+        T: DrawTarget
+    ](
+        self,
+        mut target: T,
+        along: Float64,
+        across_a: Float64,
+        across_b: Float64,
+        color: Color,
+        width: Float64,
+    ):
+        """`band_line` in `Float64` geometry."""
         if self.horizontal:
             target.draw_line_aa(
                 along, across_a, along, across_b, color, width=width
@@ -3583,6 +3694,47 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         )
         return _BandLabel(across, y, TextAlign.CENTER)
 
+    def outside_band_label(
+        self,
+        extent: _BaselineRectF,
+        band_pos: Float64,
+        band_size: Float64,
+        negative: Bool,
+        label_gap: Int,
+        font_size: Float64,
+    ) -> _BandLabel:
+        """`outside_band_label` for a mark laying out in `Float64`.
+
+        The result is still `Int`: a `_TextRequest` anchors text at
+        whole pixels on both backends, so this is a real pixel index and
+        rounding here is the right place for it -- unlike the mark
+        geometry, where rounding early was the thing being removed.
+        """
+        var across = band_pos + band_size / 2.0
+        if self.horizontal:
+            var x = (
+                extent.y
+                - Float64(label_gap) if negative else extent.y
+                + extent.height
+                + Float64(label_gap)
+            )
+            var align = TextAlign.RIGHT if negative else TextAlign.LEFT
+            return _BandLabel(
+                round_to_int(x),
+                round_to_int(across + font_size * 0.35),
+                align,
+            )
+        var y = (
+            extent.y
+            + extent.height
+            + Float64(label_gap)
+            + font_size if negative else extent.y
+            - Float64(label_gap)
+        )
+        return _BandLabel(
+            round_to_int(across), round_to_int(y), TextAlign.CENTER
+        )
+
     def band_label_point(
         self,
         extent: _BaselineRect,
@@ -3631,6 +3783,55 @@ def _pull_off_axis_line(
     if y + height == axis_line_py:
         return _BaselineRect(y, height - 1)
     return _BaselineRect(y, height)
+
+
+def _snap_pixel_edge(value: Float64) -> Float64:
+    """`value` moved to the nearest whole-pixel boundary.
+
+    Under the pixel-centre convention a pixel `k` spans `k - 0.5` to
+    `k + 0.5`, so the boundaries are the half-integers and this rounds
+    to the nearest of them.
+
+    Filled rectangles snap; nothing else does. A bar edge landing
+    mid-pixel is unreadable as position -- a pixel on a 200px bar is
+    half a percent, well under what comparing two bars resolves -- but
+    it is visible as a soft edge, and an axis-aligned rectangle is the
+    one shape where the hard edge is worth more than the fraction.
+    Gridlines, paths and text keep their exact geometry, which is what
+    made them sharper rather than blurrier (#293).
+
+    Snapping here rather than leaving it to the primitive matters under
+    supersampling: `fill_rect` maps the box and snaps in *device*
+    space, which resolves the fraction into an antialiased edge instead
+    of removing it. Snapping in logical space first puts the mapped
+    edge on a device block boundary, so the downsampled edge is hard.
+    Both place the edge identically; only the crispness differs.
+    """
+    return Float64(round_to_int(value - 0.5)) + 0.5
+
+
+def _pull_off_axis_line_f(
+    edge_a: Float64, edge_b: Float64, axis_line_py: Float64
+) -> _BaselineRectF:
+    """`_pull_off_axis_line` in `Float64` geometry.
+
+    Same rule -- whichever edge sits on the drawn axis-line row is
+    nudged 1px toward the other, so a solid fill does not paint over
+    the line's antialiasing (#105) -- with the one translation the
+    change of type forces: "sits on the axis line" was an exact `Int`
+    equality and becomes "within half a pixel of it", which is the same
+    question asked of a coordinate that has not been rounded yet. The
+    nudge stays 1.0, a whole pixel, as before.
+    """
+    var y = min(edge_a, edge_b)
+    var height = max(edge_a, edge_b) - y
+    if height <= 0.0:
+        return _BaselineRectF(y, height)
+    if abs(y - axis_line_py) < 0.5:
+        return _BaselineRectF(y + 0.5, height - 0.5)
+    if abs(y + height - axis_line_py) < 0.5:
+        return _BaselineRectF(y, height - 0.5)
+    return _BaselineRectF(y, height)
 
 
 def _build_line_path(

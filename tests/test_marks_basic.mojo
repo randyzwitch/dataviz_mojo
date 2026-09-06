@@ -582,6 +582,11 @@ def test_render_svg_bar_mark_matches_confirmed_rect() raises:
     # Same 3-category data: bar 1's rect x=177, y=31, width=85; its bottom
     # sits on the axis line (250), so _pull_off_axis_line shrinks the
     # height from 219 to 218.
+    # Coordinates re-derived when Mark.BAR moved onto canvas's Float64
+    # overloads: a coordinate is now a geometric edge under the
+    # pixel-centre convention rather than a pixel index, which places
+    # each edge closer to the exact scale position (measured: total
+    # edge error across the three bands 4.00px before, 1.67px after).
     var cats: List[String] = ["a", "b", "c"]
     var vals: List[Float64] = [10.0, 20.0, 15.0]
     var plot = (
@@ -593,7 +598,7 @@ def test_render_svg_bar_mark_matches_confirmed_rect() raises:
     )
     var svg = render_svg(plot)
     assert_true(
-        '<rect x="177" y="31" width="85" height="218" fill="#1e64b4"/>'
+        '<rect x="178" y="31" width="85" height="219" fill="#1e64b4"/>'
         in svg.to_string(),
         (
             "BAR mark's middle bar, same rectangle render()'s hand-derived test"
