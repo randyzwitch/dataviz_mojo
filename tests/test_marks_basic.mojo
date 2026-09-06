@@ -994,23 +994,26 @@ def test_render_candlestick_svg_matches_confirmed_wicks_and_bodies() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<line x1="140" y1="135" x2="140" y2="240" stroke="#505050"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="140.000" y1="135.000" x2="140.000" y2="239.545"'
+        ' stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
-        "A's wick, from high=135 to low=240",
+        (
+            "A's wick: the fixed column snaps, the two ends keep the"
+            " high and low prices' exact rows"
+        ),
     )
     assert_true(
-        '<rect x="76" y="165" width="128" height="45" fill="#1e64b4"/>' in s,
+        '<rect x="77" y="165" width="128" height="45" fill="#1e64b4"/>' in s,
         "A's body, closed up",
     )
     assert_true(
-        '<line x1="300" y1="30" x2="300" y2="120" stroke="#505050"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="300.000" y1="30.455" x2="300.000" y2="120.065"'
+        ' stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         "B's wick, from high=30 to low=120",
     )
     assert_true(
-        '<rect x="236" y="60" width="128" height="45" fill="#c83c3c"/>' in s,
+        '<rect x="237" y="61" width="128" height="45" fill="#c83c3c"/>' in s,
         "B's body, closed down",
     )
 
