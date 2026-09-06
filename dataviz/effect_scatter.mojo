@@ -82,7 +82,7 @@ def effect_scatter[
     y_title: String = "",
 ) raises -> Plot:
     """`effect_scatter()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (plot.mojo). Delegates to the concrete
+    `scatter()`'s `DType` overload (continuous.mojo). Delegates to the concrete
     overload above.
     """
     return effect_scatter(

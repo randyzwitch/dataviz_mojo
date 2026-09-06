@@ -884,7 +884,7 @@ def contour[
     y_title: String = "",
 ) raises -> Plot:
     """`contour()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (plot.mojo). Each row is materialized in turn.
+    `DType` overload (continuous.mojo). Each row is materialized in turn.
     Delegates to the concrete overload above.
     """
     var rows = List[List[Float64]](capacity=len(z))
@@ -993,7 +993,7 @@ def contourf[
     y_title: String = "",
 ) raises -> Plot:
     """`contourf()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (plot.mojo). Each row is materialized in turn.
+    `DType` overload (continuous.mojo). Each row is materialized in turn.
     Delegates to the concrete overload above.
     """
     var rows = List[List[Float64]](capacity=len(z))

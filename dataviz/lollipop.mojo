@@ -314,7 +314,7 @@ def lollipop[
     horizontal: Bool = False,
 ) raises -> Plot:
     """`lollipop()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (plot.mojo). Delegates to the concrete overload
+    `DType` overload (continuous.mojo). Delegates to the concrete overload
     above.
     """
     return lollipop(

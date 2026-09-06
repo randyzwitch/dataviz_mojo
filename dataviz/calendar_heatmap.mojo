@@ -370,7 +370,7 @@ def calendar_heatmap[
     y_title: String = "",
 ) raises -> Plot:
     """`calendar_heatmap()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (plot.mojo). Delegates to the concrete
+    `scatter()`'s `DType` overload (continuous.mojo). Delegates to the concrete
     overload above.
     """
     return calendar_heatmap(

@@ -55,10 +55,10 @@ struct ExamplePage(Copyable, Movable):
 
 def _pages() -> List[ExamplePage]:
     return [
-        ExamplePage("scatter", "plot", "scatter"),
-        ExamplePage("line", "plot", "line"),
-        ExamplePage("slope", "plot", "line", block="Slope Chart"),
-        ExamplePage("area", "plot", "area"),
+        ExamplePage("scatter", "continuous", "scatter"),
+        ExamplePage("line", "continuous", "line"),
+        ExamplePage("slope", "continuous", "line", block="Slope Chart"),
+        ExamplePage("area", "continuous", "area"),
         ExamplePage("bar", "bar", "bar"),
         ExamplePage("pie", "arc", "pie"),
         ExamplePage("lollipop", "lollipop", "lollipop"),

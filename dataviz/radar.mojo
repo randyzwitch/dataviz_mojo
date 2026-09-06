@@ -316,7 +316,7 @@ def radar[
 ) raises -> Plot:
     """`radar()` generalized over numeric element type for `series_values`,
     via `_materialize_nested_scalar_list` (array_like.mojo); see
-    `scatter()`'s `DType` overload (plot.mojo). `max_values` stays
+    `scatter()`'s `DType` overload (continuous.mojo). `max_values` stays
     concrete here (the overload below covers it). Delegates to the
     concrete overload above.
     """

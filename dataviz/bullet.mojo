@@ -349,7 +349,7 @@ def bullet[
 ) raises -> Plot:
     """`bullet()` generalized over numeric element type for `measures`/
     `targets` (sharing one dtype); see `scatter()`'s `DType` overload
-    (plot.mojo). `ranges` stays a concrete `List[List[Float64]]` (#158).
+    (continuous.mojo). `ranges` stays a concrete `List[List[Float64]]` (#158).
     Delegates to the concrete overload above.
     """
     return bullet(

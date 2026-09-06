@@ -193,7 +193,7 @@ def nightingale[
     y_title: String = "",
 ) raises -> Plot:
     """`nightingale()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (plot.mojo). Delegates to the concrete
+    `scatter()`'s `DType` overload (continuous.mojo). Delegates to the concrete
     overload above.
     """
     return nightingale(

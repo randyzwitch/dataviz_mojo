@@ -400,7 +400,7 @@ def barbs[
     y_title: String = "",
 ) raises -> Plot:
     """`barbs()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (plot.mojo). Delegates to the concrete overload
+    `DType` overload (continuous.mojo). Delegates to the concrete overload
     above.
     """
     return barbs(
