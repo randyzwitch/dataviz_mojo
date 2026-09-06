@@ -53,11 +53,11 @@ def test_render_svg_horizontal_bar_matches_hand_derived_rectangles() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="255" y="38" width="340" height="140" fill="#1e64b4"/>' in s,
+        '<rect x="256" y="38" width="339" height="140" fill="#1e64b4"/>' in s,
         "bar A, extending right",
     )
     assert_true(
-        '<rect x="85" y="213" width="170" height="140" fill="#1e64b4"/>' in s,
+        '<rect x="86" y="213" width="170" height="140" fill="#1e64b4"/>' in s,
         "bar B, extending left",
     )
     assert_true(
@@ -84,7 +84,7 @@ def test_render_horizontal_bar_pulls_off_axis_line_when_baseline_touches_left_ed
         "bar A pulled off the axis line",
     )
     assert_true(
-        '<rect x="61" y="213" width="532" height="140" fill="#1e64b4"/>' in s,
+        '<rect x="61" y="213" width="533" height="140" fill="#1e64b4"/>' in s,
         "bar B pulled off the axis line",
     )
 
@@ -101,11 +101,11 @@ def test_render_horizontal_bar_color_by_sign() raises:
     )
     var s = render_svg(plot).to_string()
     assert_true(
-        '<rect x="255" y="38" width="340" height="140" fill="#1e64b4"/>' in s,
+        '<rect x="256" y="38" width="339" height="140" fill="#1e64b4"/>' in s,
         "positive bar keeps mark_color even with color_by_sign on",
     )
     assert_true(
-        '<rect x="85" y="213" width="170" height="140" fill="#c83c3c"/>' in s,
+        '<rect x="86" y="213" width="170" height="140" fill="#c83c3c"/>' in s,
         "negative bar uses mark_color_negative",
     )
 

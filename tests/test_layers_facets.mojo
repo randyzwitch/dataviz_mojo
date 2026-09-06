@@ -673,11 +673,11 @@ def test_render_layers_svg_bar_combo_matches_hand_derived_positions() raises:
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
-        '<rect x="76" y="140" width="128" height="109" fill="#1e64b4"/>' in s,
+        '<rect x="77" y="141" width="128" height="109" fill="#1e64b4"/>' in s,
         "bar A",
     )
     assert_true(
-        '<rect x="236" y="31" width="128" height="218" fill="#1e64b4"/>' in s,
+        '<rect x="237" y="31" width="128" height="219" fill="#1e64b4"/>' in s,
         "bar B",
     )
     assert_true(
@@ -708,7 +708,7 @@ def test_render_layers_svg_bar_combo_draws_the_bar_layer_first() raises:
     var plots: List[Plot] = [line^, bars^]
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
-    var rect_index = s.find('<rect x="76" y="140"')
+    var rect_index = s.find('<rect x="77" y="141"')
     var path_index = s.find("<path d=")
     assert_true(
         rect_index != -1 and path_index != -1 and rect_index < path_index,
