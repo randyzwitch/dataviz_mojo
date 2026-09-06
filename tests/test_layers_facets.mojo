@@ -166,8 +166,8 @@ def test_render_layers_annotate_vline_and_point_match_standalone_hand_derived_po
     var svg = render_layers_svg(svg_plots)
     var s = svg.to_string()
     assert_true(
-        '<line x1="220" y1="20" x2="220" y2="250" stroke="#969696"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="220.000" y1="20.000" x2="220.000" y2="250.000"'
+        ' stroke="#969696" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         "the vertical reference line itself",
     )
@@ -220,8 +220,8 @@ def test_render_layers_svg_annotate_band_and_best_fit_draw_against_the_layers_fr
         "the confidence band's filled region",
     )
     assert_true(
-        '<line x1="60" y1="245" x2="380" y2="25" stroke="#969696"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="60.000" y1="245.400" x2="380.000" y2="24.600"'
+        ' stroke="#969696" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         "the best-fit line",
     )
@@ -1069,8 +1069,8 @@ def test_render_facets_svg_draws_annotate_vline_and_best_fit_in_different_cells(
     var svg = render_facets_svg(plots, cols=2)
     var s = svg.to_string()
     assert_true(
-        '<line x1="220" y1="20" x2="220" y2="250" stroke="#969696"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="220.000" y1="20.000" x2="220.000" y2="250.000"'
+        ' stroke="#969696" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         (
             "cell 0's vline, at the same pixel a standalone render of the same"
@@ -1078,8 +1078,8 @@ def test_render_facets_svg_draws_annotate_vline_and_best_fit_in_different_cells(
         ),
     )
     assert_true(
-        '<line x1="460" y1="250" x2="780" y2="20" stroke="#969696"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="460.000" y1="250.000" x2="780.000" y2="20.000"'
+        ' stroke="#969696" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         "cell 1's best-fit line, spanning its own +400px-shifted inner rect",
     )

@@ -5068,21 +5068,36 @@ def _draw_annotation_areas[
     var sc = _Scaled(theme)
     var plot_top = min(result.py0, result.py1)
     var plot_bottom = max(result.py0, result.py1)
+    # The plot rect arrives as pixel indices, so its geometric extent
+    # runs from half a pixel above the first row to half a pixel below
+    # the last -- clipping against the indices themselves would land a
+    # band edge on a pixel center, and the nearest boundary to that is a
+    # coin flip that can cost a whole row.
+    var clip_top = Float64(plot_top) - 0.5
+    var clip_bottom = Float64(plot_bottom) + 0.5
     for i in range(len(plot._annotations.area_y0)):
-        var py_a = _axis_pixel(result.y_scale, plot._annotations.area_y0[i])
-        var py_b = _axis_pixel(result.y_scale, plot._annotations.area_y1[i])
+        # A shaded band is an axis-aligned filled rect, so both edges
+        # snap to pixel boundaries: it keeps hard edges, and its height
+        # comes from the snapped pair rather than from a rounded height
+        # laid off a rounded top.
+        var py_a = _snap_pixel_edge(
+            _axis_pixel_f(result.y_scale, plot._annotations.area_y0[i])
+        )
+        var py_b = _snap_pixel_edge(
+            _axis_pixel_f(result.y_scale, plot._annotations.area_y1[i])
+        )
         var band_top = min(py_a, py_b)
         var band_bottom = max(py_a, py_b)
         # Clip to the visible plot rect rather than skip outright; a band has
         # real height, so a partial overlap is still meaningful.
-        var draw_top = max(band_top, plot_top)
-        var draw_bottom = min(band_bottom, plot_bottom)
+        var draw_top = max(band_top, clip_top)
+        var draw_bottom = min(band_bottom, clip_bottom)
         if draw_top >= draw_bottom:
             continue
         target.fill_rect(
-            result.px0,
+            Float64(result.px0) - 0.5,
             draw_top,
-            result.px1 - result.px0,
+            Float64(result.px1 - result.px0),
             draw_bottom - draw_top,
             theme.annotation_area_color,
         )
@@ -5091,7 +5106,7 @@ def _draw_annotation_areas[
             text_requests.append(
                 _TextRequest(
                     result.px1 - sc.label_gap,
-                    draw_top + Int(sc.font_size),
+                    round_to_int(draw_top) + Int(sc.font_size),
                     label,
                     theme.annotation_color,
                     sc.font_size,
@@ -5254,13 +5269,21 @@ def _draw_annotation_lines[
     var py_top = min(result.py0, result.py1)
     var py_bottom = max(result.py0, result.py1)
     for i in range(len(plot._annotations.line_values)):
-        var py = _axis_pixel(result.y_scale, plot._annotations.line_values[i])
-        if py < py_top or py > py_bottom:
+        # A reference line is a horizontal hairline, so its one fixed
+        # coordinate snaps to a pixel center and it covers a single row
+        # instead of two half-lit ones. That is what rounding the pixel
+        # index already did here; saying it this way is what lets the
+        # value stay Float64 up to the point where crispness is the
+        # reason to move it.
+        var py = _snap_pixel_center(
+            _axis_pixel_f(result.y_scale, plot._annotations.line_values[i])
+        )
+        if py < Float64(py_top) or py > Float64(py_bottom):
             continue
         target.draw_line_aa(
-            result.px0,
+            Float64(result.px0),
             py,
-            result.px1,
+            Float64(result.px1),
             py,
             theme.annotation_color,
             width=sc.scale,
@@ -5270,7 +5293,7 @@ def _draw_annotation_lines[
             text_requests.append(
                 _TextRequest(
                     result.px1 - sc.label_gap,
-                    py - sc.label_gap,
+                    round_to_int(py) - sc.label_gap,
                     label,
                     theme.annotation_color,
                     sc.font_size,
@@ -5308,17 +5331,26 @@ def _draw_annotation_vlines[
     var py_top = min(result.py0, result.py1)
     var py_bottom = max(result.py0, result.py1)
     for i in range(len(plot._annotations.vline_values)):
-        var px = _axis_pixel(result.x_scale, plot._annotations.vline_values[i])
-        if px < px_left or px > px_right:
+        # A vertical hairline: same rule as annotate_hline, on the other
+        # axis.
+        var px = _snap_pixel_center(
+            _axis_pixel_f(result.x_scale, plot._annotations.vline_values[i])
+        )
+        if px < Float64(px_left) or px > Float64(px_right):
             continue
         target.draw_line_aa(
-            px, py_top, px, py_bottom, theme.annotation_color, width=sc.scale
+            px,
+            Float64(py_top),
+            px,
+            Float64(py_bottom),
+            theme.annotation_color,
+            width=sc.scale,
         )
         var label = plot._annotations.vline_labels[i]
         if label.byte_length() > 0:
             text_requests.append(
                 _TextRequest(
-                    px + sc.label_gap,
+                    round_to_int(px) + sc.label_gap,
                     py_top + Int(sc.font_size),
                     label,
                     theme.annotation_color,
@@ -5452,16 +5484,30 @@ def _draw_annotation_best_fit[
     var py_bottom = max(result.py0, result.py1)
     var x_left = result.x_scale.domain_min
     var x_right = result.x_scale.domain_max
-    var px_left = _axis_pixel(result.x_scale, x_left)
-    var px_right = _axis_pixel(result.x_scale, x_right)
+    var px_left = _axis_pixel_f(result.x_scale, x_left)
+    var px_right = _axis_pixel_f(result.x_scale, x_right)
+    # A fitted line is a diagonal, and a diagonal is antialiased
+    # wherever it is put -- there is no crisp position to snap to, and
+    # rounding the two ends tilted the line off the fit it is there to
+    # show. The one exception is a flat fit, which is a horizontal
+    # hairline like annotate_hline and snaps for the same reason.
     var py_left = min(
-        max(_axis_pixel(result.y_scale, slope * x_left + intercept), py_top),
-        py_bottom,
+        max(
+            _axis_pixel_f(result.y_scale, slope * x_left + intercept),
+            Float64(py_top),
+        ),
+        Float64(py_bottom),
     )
     var py_right = min(
-        max(_axis_pixel(result.y_scale, slope * x_right + intercept), py_top),
-        py_bottom,
+        max(
+            _axis_pixel_f(result.y_scale, slope * x_right + intercept),
+            Float64(py_top),
+        ),
+        Float64(py_bottom),
     )
+    if py_left == py_right:
+        py_left = _snap_pixel_center(py_left)
+        py_right = py_left
     target.draw_line_aa(
         px_left,
         py_left,
