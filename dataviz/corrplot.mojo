@@ -149,15 +149,24 @@ def _render_corrplot[
             if plot._corrplot.layout == "upper" and col < row:
                 continue
             var value = plot._corrplot.matrix[row][col]
-            var cx = round_to_int(frame.x_scale.center(col))
-            var cy = round_to_int(frame.y_scale.center(row))
-            var radius = round_to_int(max_radius * abs(value))
+            # Neither the center nor the radius rounds. A disk is
+            # antialiased on every side wherever it sits, so rounding
+            # its center bought no crispness -- and rounding the radius
+            # was destroying the encoding this chart exists for. The
+            # number of circle sizes a corrplot could draw was
+            # max_radius + 1, and max_radius is only 0.21 of a cell: a
+            # 15-variable matrix on a 640px canvas had about six
+            # distinct sizes, so correlations of 0.50 and 0.65 came out
+            # the same circle.
+            var cx = frame.x_scale.center(col)
+            var cy = frame.y_scale.center(row)
+            var radius = max_radius * abs(value)
             target.fill_circle_aa(cx, cy, radius, color_scale.color_at(value))
             if plot._corrplot.labels:
                 frame.text_requests.append(
                     _TextRequest(
-                        cx,
-                        cy + Int(sc.font_size * 0.35),
+                        round_to_int(cx),
+                        round_to_int(cy) + Int(sc.font_size * 0.35),
                         _format_fixed(value, 2),
                         theme.text_color,
                         sc.font_size,
