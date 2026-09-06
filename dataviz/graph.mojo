@@ -88,11 +88,15 @@ def _render_graph[
         )
         var width = sc.line_width + sc.line_width * 2.0 * frac
         var color = palette[from_idx % len(palette)]
+        # Chords between points on a circle: diagonals, antialiased
+        # wherever they are put, so there is no crisp position to round
+        # to and rounding only tilted each edge off the two nodes it
+        # joins.
         target.draw_line_aa(
-            round_to_int(node_x[from_idx]),
-            round_to_int(node_y[from_idx]),
-            round_to_int(node_x[to_idx]),
-            round_to_int(node_y[to_idx]),
+            node_x[from_idx],
+            node_y[from_idx],
+            node_x[to_idx],
+            node_y[to_idx],
             color,
             width,
         )
@@ -101,9 +105,15 @@ def _render_graph[
     for i in range(n):
         var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
         var color = palette[i % len(palette)]
-        var px = round_to_int(node_x[i])
-        var py = round_to_int(node_y[i])
-        target.fill_circle_aa(px, py, round_to_int(sc.point_radius), color)
+        # The node sits exactly where the ring put it, so the edges
+        # meeting it land on its center. The radius still rounds: it is
+        # one constant for the whole chart, which is what every other
+        # mark drawing Theme.point_radius does.
+        var px = node_x[i]
+        var py = node_y[i]
+        target.fill_circle_aa(
+            px, py, Float64(round_to_int(sc.point_radius)), color
+        )
 
         var label_x = cx + (max_radius + Float64(sc.label_gap)) * cos(angle)
         var label_y = cy + (max_radius + Float64(sc.label_gap)) * sin(angle)

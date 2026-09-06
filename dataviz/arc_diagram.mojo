@@ -99,13 +99,21 @@ def _render_arc_diagram[
 
     for i in range(n):
         var color = palette[i % len(palette)]
-        var px = round_to_int(node_x[i])
-        var py = round_to_int(baseline)
-        target.fill_circle_aa(px, py, round_to_int(sc.point_radius), color)
+        # The arcs above already spring from the exact node_x, so the
+        # dot has to sit there too -- rounding it left the foot of every
+        # arc up to half a pixel off the node it belongs to.
+        var px = node_x[i]
+        var py = baseline
+        target.fill_circle_aa(
+            px, py, Float64(round_to_int(sc.point_radius)), color
+        )
         text_requests.append(
             _TextRequest(
-                px,
-                py + sc.tick_length + sc.label_gap + Int(sc.font_size),
+                round_to_int(px),
+                round_to_int(py)
+                + sc.tick_length
+                + sc.label_gap
+                + Int(sc.font_size),
                 nodes[i],
                 theme.text_color,
                 sc.font_size,

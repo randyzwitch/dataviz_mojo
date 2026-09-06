@@ -196,21 +196,28 @@ def test_render_tree_svg_matches_confirmed_geometry() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<line x1="220" y1="20" x2="60" y2="250" stroke="#1f77b4"' in s,
+        '<line x1="220.000" y1="20.000" x2="60.000" y2="250.000"'
+        ' stroke="#1f77b4"'
+        in s,
         "root->A edge",
     )
     assert_true(
-        '<line x1="220" y1="20" x2="380" y2="250" stroke="#ff7f0e"' in s,
+        '<line x1="220.000" y1="20.000" x2="380.000" y2="250.000"'
+        ' stroke="#ff7f0e"'
+        in s,
         "root->B edge",
     )
     assert_true(
-        '<circle cx="220" cy="20" r="4" fill="#282828"/>' in s, "root's marker"
+        '<circle cx="220.000" cy="20.000" r="4.000" fill="#282828"/>' in s,
+        "root's marker",
     )
     assert_true(
-        '<circle cx="60" cy="250" r="4" fill="#1f77b4"/>' in s, "A's marker"
+        '<circle cx="60.000" cy="250.000" r="4.000" fill="#1f77b4"/>' in s,
+        "A's marker",
     )
     assert_true(
-        '<circle cx="380" cy="250" r="4" fill="#ff7f0e"/>' in s, "B's marker"
+        '<circle cx="380.000" cy="250.000" r="4.000" fill="#ff7f0e"/>' in s,
+        "B's marker",
     )
 
 
@@ -606,17 +613,27 @@ def test_render_graph_svg_matches_confirmed_geometry() raises:
     )
     var svg = render_svg(plot)
     var s = svg.to_string()
+    # Three nodes evenly spaced on a circle do not land on whole
+    # pixels. Rounding them made the ring slightly irregular and tilted
+    # each chord off the two nodes it joins; the exact positions are
+    # symmetric, which is why B and C share a y to the last digit.
     assert_true(
-        '<line x1="220" y1="32" x2="310" y2="187" stroke="#1f77b4"'
-        ' stroke-width="6.000"'
+        '<line x1="220.000" y1="31.500" x2="309.634" y2="186.750"'
+        ' stroke="#1f77b4" stroke-width="6.000"'
         in s,
-        "A->B: node A (220,32) to node B (310,187), width 6 (frac 1.0)",
+        (
+            "A->B: node A (220, 31.5) to node B (309.634, 186.75), width 6"
+            " (frac 1.0)"
+        ),
     )
     assert_true(
-        '<line x1="310" y1="187" x2="130" y2="187" stroke="#ff7f0e"'
-        ' stroke-width="4.000"'
+        '<line x1="309.634" y1="186.750" x2="130.366" y2="186.750"'
+        ' stroke="#ff7f0e" stroke-width="4.000"'
         in s,
-        "B->C: node B (310,187) to node C (130,187), width 4 (frac 0.5)",
+        (
+            "B->C: node B (309.634, 186.75) to node C (130.366, 186.75),"
+            " width 4 (frac 0.5)"
+        ),
     )
 
 

@@ -190,20 +190,18 @@ def _render_tree[
             palette[branch[row] % len(palette)] if branch[row]
             >= 0 else theme.text_color
         )
-        var px0 = round_to_int(
-            _tree_node_x(leaf_x[parent_row[row]], num_leaves, plot_x0, plot_x1)
+        # A link is a diagonal between two laid-out node positions, so
+        # nothing about it is crisper for being rounded -- and rounding
+        # both ends independently tilted it away from the two nodes it
+        # is meant to join.
+        var px0 = _tree_node_x(
+            leaf_x[parent_row[row]], num_leaves, plot_x0, plot_x1
         )
-        var py0 = round_to_int(
-            _tree_node_y(
-                idx.depth[parent_row[row]], idx.max_depth, plot_y0, plot_y1
-            )
+        var py0 = _tree_node_y(
+            idx.depth[parent_row[row]], idx.max_depth, plot_y0, plot_y1
         )
-        var px1 = round_to_int(
-            _tree_node_x(leaf_x[row], num_leaves, plot_x0, plot_x1)
-        )
-        var py1 = round_to_int(
-            _tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1)
-        )
+        var px1 = _tree_node_x(leaf_x[row], num_leaves, plot_x0, plot_x1)
+        var py1 = _tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1)
         target.draw_line_aa(px0, py0, px1, py1, color, sc.line_width)
 
     for row in range(n):
@@ -211,17 +209,21 @@ def _render_tree[
             palette[branch[row] % len(palette)] if branch[row]
             >= 0 else theme.text_color
         )
-        var px = round_to_int(
-            _tree_node_x(leaf_x[row], num_leaves, plot_x0, plot_x1)
+        # Same position the links were drawn to, so a node and its links
+        # meet exactly. The radius keeps rounding -- one constant for the
+        # whole chart.
+        var px = _tree_node_x(leaf_x[row], num_leaves, plot_x0, plot_x1)
+        var py = _tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1)
+        target.fill_circle_aa(
+            px, py, Float64(round_to_int(sc.point_radius)), color
         )
-        var py = round_to_int(
-            _tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1)
-        )
-        target.fill_circle_aa(px, py, round_to_int(sc.point_radius), color)
         text_requests.append(
             _TextRequest(
-                px,
-                py + sc.tick_length + sc.label_gap + Int(sc.font_size),
+                round_to_int(px),
+                round_to_int(py)
+                + sc.tick_length
+                + sc.label_gap
+                + Int(sc.font_size),
                 plot._hierarchy.ids[row],
                 theme.text_color,
                 sc.font_size,
