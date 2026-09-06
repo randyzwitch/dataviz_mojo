@@ -1,12 +1,13 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.plot import (
     Plot,
     _RenderResult,
-    _axis_pixel,
+    _axis_pixel_f,
+    _snap_pixel_center,
+    _snap_pixel_edge,
     _data_extent,
     _draw_categorical_axis_frame,
     _finished,
@@ -138,11 +139,10 @@ def _render_candlestick[
         cache=cache,
     )
 
-    var body_width = round_to_int(frame.x_scale.bandwidth())
     for i in range(len(plot.x_categories)):
-        var center_px = round_to_int(frame.x_scale.center(i))
-        var high_py = _axis_pixel(frame.y_scale, plot._candle.high[i])
-        var low_py = _axis_pixel(frame.y_scale, plot._candle.low[i])
+        var center_px = _snap_pixel_center(frame.x_scale.center(i))
+        var high_py = _axis_pixel_f(frame.y_scale, plot._candle.high[i])
+        var low_py = _axis_pixel_f(frame.y_scale, plot._candle.low[i])
         if theme.svg_tooltips:
             # Wick and body in one group: they are two halves of a single
             # datum, so hovering either should name the same candle.
@@ -164,18 +164,26 @@ def _render_candlestick[
             width=theme.scale,
         )
 
-        var open_py = _axis_pixel(frame.y_scale, plot._candle.open_price[i])
-        var close_py = _axis_pixel(frame.y_scale, plot._candle.close_price[i])
-        var body_x = round_to_int(frame.x_scale.band_start(i))
-        var body_y = min(open_py, close_py)
-        var body_height = max(
-            1, max(open_py, close_py) - min(open_py, close_py)
+        var open_py = _axis_pixel_f(frame.y_scale, plot._candle.open_price[i])
+        var close_py = _axis_pixel_f(frame.y_scale, plot._candle.close_price[i])
+        # Snap the body's four edges, then keep a 1px floor so a doji
+        # (open == close, and any candle whose two prices land in the
+        # same pixel) still draws a line rather than nothing. The floor
+        # has to come after the snap: rounding two equal edges gives a
+        # zero-height rect, which is exactly the case it guards.
+        var bx0 = _snap_pixel_edge(frame.x_scale.band_start(i))
+        var bx1 = _snap_pixel_edge(
+            frame.x_scale.band_start(i) + frame.x_scale.bandwidth()
         )
+        var by0 = _snap_pixel_edge(min(open_py, close_py))
+        var by1 = _snap_pixel_edge(max(open_py, close_py))
+        if by1 - by0 < 1.0:
+            by1 = by0 + 1.0
         var body_color = (
             theme.mark_color if plot._candle.close_price[i]
             >= plot._candle.open_price[i] else theme.mark_color_negative
         )
-        target.fill_rect(body_x, body_y, body_width, body_height, body_color)
+        target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, body_color)
         if theme.svg_tooltips:
             target.end_annotated_group()
 

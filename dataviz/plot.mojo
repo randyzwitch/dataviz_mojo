@@ -3786,6 +3786,30 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
             return _BandLabelPoint(along, across + nudge)
         return _BandLabelPoint(across, along + nudge)
 
+    def band_label_point(
+        self,
+        extent: _BaselineRectF,
+        band_pos: Float64,
+        band_size: Float64,
+        font_size: Float64,
+    ) -> _BandLabelPoint:
+        """`band_label_point` for a mark laying out in `Float64`.
+
+        The result is still `Int`, like `outside_band_label`'s: a
+        `_TextRequest` anchors text at whole pixels on both backends, so
+        this is a real pixel index and rounding belongs here.
+        """
+        var along = extent.y + extent.height / 2.0
+        var across = band_pos + band_size / 2.0
+        var nudge = font_size * 0.35
+        if self.horizontal:
+            return _BandLabelPoint(
+                round_to_int(along), round_to_int(across + nudge)
+            )
+        return _BandLabelPoint(
+            round_to_int(across), round_to_int(along + nudge)
+        )
+
 
 def _pull_off_axis_line(
     edge_a: Int, edge_b: Int, axis_line_py: Int

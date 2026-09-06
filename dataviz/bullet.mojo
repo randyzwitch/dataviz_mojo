@@ -1,6 +1,5 @@
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
-from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -11,9 +10,11 @@ from dataviz.plot import (
     _RenderResult,
     _Scaled,
     _TextRequest,
-    _axis_pixel,
+    _axis_pixel_f,
     _draw_categorical_axis_frame,
-    _pull_off_axis_line,
+    _pull_off_axis_line_f,
+    _snap_pixel_center,
+    _snap_pixel_edge,
     _finished,
     _require_non_empty,
     _zero_baseline_y_extent,
@@ -149,19 +150,19 @@ def _render_bullet[
     # These depend only on the scale and theme, so they're computed once
     # outside the per-category loop.
     var bandwidth = frame.x_scale.bandwidth()
-    var band_width = round_to_int(bandwidth)
-    var measure_width = round_to_int(
+    var measure_width = (
         bandwidth * plot._mark_style.bullet_measure_width_fraction
     )
     var measure_inset = (
         bandwidth * plot._mark_style.bullet_measure_width_fraction / 2.0
     )
-    var baseline_py = _axis_pixel(frame.y_scale, 0.0)
+    var baseline_py = _axis_pixel_f(frame.y_scale, 0.0)
     var sc = _Scaled(theme)
     var orient = _Orientation(False)  # Mark.BULLET has no horizontal variant
 
     for i in range(len(plot.x_categories)):
-        var band_x = round_to_int(frame.x_scale.band_start(i))
+        var band_x = frame.x_scale.band_start(i)
+        var band_x1 = band_x + bandwidth
         var band_count = len(plot._bullet.ranges[i])
 
         var prev_threshold = 0.0
@@ -170,18 +171,22 @@ def _render_bullet[
                 Float64(j) / Float64(band_count - 1) if band_count > 1 else 0.0
             )
             var band_color = range_color_scale.color_at(t)
-            var top_py = _axis_pixel(frame.y_scale, plot._bullet.ranges[i][j])
-            var bottom_py = _axis_pixel(frame.y_scale, prev_threshold)
-            var band_rect = _pull_off_axis_line(top_py, bottom_py, frame.py1)
-            target.fill_rect(
-                band_x, band_rect.y, band_width, band_rect.height, band_color
+            var top_py = _axis_pixel_f(frame.y_scale, plot._bullet.ranges[i][j])
+            var bottom_py = _axis_pixel_f(frame.y_scale, prev_threshold)
+            var band_rect = _pull_off_axis_line_f(
+                top_py, bottom_py, Float64(frame.py1)
             )
+            var bx0 = _snap_pixel_edge(band_x)
+            var bx1 = _snap_pixel_edge(band_x1)
+            var by0 = _snap_pixel_edge(band_rect.y)
+            var by1 = _snap_pixel_edge(band_rect.y + band_rect.height)
+            target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, band_color)
             prev_threshold = plot._bullet.ranges[i][j]
 
-        var measure_x = round_to_int(frame.x_scale.center(i) - measure_inset)
-        var measure_py = _axis_pixel(frame.y_scale, plot._bullet.measure[i])
-        var measure_rect = _pull_off_axis_line(
-            baseline_py, measure_py, frame.py1
+        var measure_x = frame.x_scale.center(i) - measure_inset
+        var measure_py = _axis_pixel_f(frame.y_scale, plot._bullet.measure[i])
+        var measure_rect = _pull_off_axis_line_f(
+            baseline_py, measure_py, Float64(frame.py1)
         )
         if theme.svg_tooltips:
             # Measure and target together: a bullet chart's whole point is
@@ -195,19 +200,17 @@ def _render_bullet[
                     plot._bullet.target[i],
                 )
             )
-        target.fill_rect(
-            measure_x,
-            measure_rect.y,
-            measure_width,
-            measure_rect.height,
-            theme.mark_color,
-        )
+        var mx0 = _snap_pixel_edge(measure_x)
+        var mx1 = _snap_pixel_edge(measure_x + measure_width)
+        var my0 = _snap_pixel_edge(measure_rect.y)
+        var my1 = _snap_pixel_edge(measure_rect.y + measure_rect.height)
+        target.fill_rect(mx0, my0, mx1 - mx0, my1 - my0, theme.mark_color)
         if theme.show_data_labels:
             var measure = plot._bullet.measure[i]
             var at = orient.outside_band_label(
                 measure_rect,
                 band_x,
-                band_width,
+                bandwidth,
                 measure < 0.0,
                 sc.label_gap,
                 sc.font_size,
@@ -226,13 +229,13 @@ def _render_bullet[
                 )
             )
 
-        var target_py = _axis_pixel(frame.y_scale, plot._bullet.target[i])
-        var band_end = band_x + band_width
+        var target_py = _axis_pixel_f(frame.y_scale, plot._bullet.target[i])
+        var target_row = _snap_pixel_center(target_py)
         target.draw_line_aa(
             band_x,
-            target_py,
-            band_end,
-            target_py,
+            target_row,
+            band_x1,
+            target_row,
             theme.axis_color,
             width=theme.scale,
         )

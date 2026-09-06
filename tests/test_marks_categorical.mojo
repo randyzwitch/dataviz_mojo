@@ -103,19 +103,19 @@ def test_render_svg_grouped_bar_matches_confirmed_rects_and_legend() raises:
     # Every sub-bar is non-negative, so every bottom edge lands on the axis
     # line and each height is pulled 1px (see _pull_off_axis_line).
     assert_true(
-        '<rect x="70" y="140" width="38" height="109" fill="#1f77b4"/>' in s,
+        '<rect x="70" y="141" width="38" height="109" fill="#1f77b4"/>' in s,
         "A/North",
     )
     assert_true(
-        '<rect x="108" y="195" width="38" height="54" fill="#ff7f0e"/>' in s,
+        '<rect x="108" y="196" width="38" height="54" fill="#ff7f0e"/>' in s,
         "A/South",
     )
     assert_true(
-        '<rect x="165" y="31" width="38" height="218" fill="#1f77b4"/>' in s,
+        '<rect x="165" y="31" width="38" height="219" fill="#1f77b4"/>' in s,
         "B/North",
     )
     assert_true(
-        '<rect x="203" y="86" width="38" height="163" fill="#ff7f0e"/>' in s,
+        '<rect x="203" y="86" width="38" height="164" fill="#ff7f0e"/>' in s,
         "B/South",
     )
 

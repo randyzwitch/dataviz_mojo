@@ -994,23 +994,26 @@ def test_render_candlestick_svg_matches_confirmed_wicks_and_bodies() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<line x1="140" y1="135" x2="140" y2="240" stroke="#505050"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="140.000" y1="135.000" x2="140.000" y2="239.545"'
+        ' stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
-        "A's wick, from high=135 to low=240",
+        (
+            "A's wick: the fixed column snaps, the two ends keep the"
+            " high and low prices' exact rows"
+        ),
     )
     assert_true(
-        '<rect x="76" y="165" width="128" height="45" fill="#1e64b4"/>' in s,
+        '<rect x="77" y="165" width="128" height="45" fill="#1e64b4"/>' in s,
         "A's body, closed up",
     )
     assert_true(
-        '<line x1="300" y1="30" x2="300" y2="120" stroke="#505050"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="300.000" y1="30.455" x2="300.000" y2="120.065"'
+        ' stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         "B's wick, from high=30 to low=120",
     )
     assert_true(
-        '<rect x="236" y="60" width="128" height="45" fill="#c83c3c"/>' in s,
+        '<rect x="237" y="61" width="128" height="45" fill="#c83c3c"/>' in s,
         "B's body, closed down",
     )
 
@@ -1339,24 +1342,24 @@ def test_render_bullet_svg_matches_confirmed_bands_measure_and_target() raises:
     # heights are pulled 1px (88->87, 120->119); the other bands and the
     # target tick never touch 0.
     assert_true(
-        '<rect x="76" y="162" width="128" height="87" fill="#e0e0e0"/>' in s,
+        '<rect x="77" y="163" width="128" height="87" fill="#e0e0e0"/>' in s,
         "A's lightest band [0,40]",
     )
     assert_true(
-        '<rect x="76" y="97" width="128" height="65" fill="#acacac"/>' in s,
+        '<rect x="77" y="97" width="128" height="66" fill="#acacac"/>' in s,
         "A's middle band [40,70]",
     )
     assert_true(
-        '<rect x="76" y="31" width="128" height="66" fill="#787878"/>' in s,
+        '<rect x="77" y="31" width="128" height="66" fill="#787878"/>' in s,
         "A's darkest band [70,100]",
     )
     assert_true(
-        '<rect x="118" y="130" width="45" height="119" fill="#1e64b4"/>' in s,
+        '<rect x="118" y="130" width="45" height="120" fill="#1e64b4"/>' in s,
         "A's measure bar",
     )
     assert_true(
-        '<line x1="76" y1="108" x2="204" y2="108" stroke="#505050"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="76.000" y1="108.000" x2="204.000" y2="108.000"'
+        ' stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         "A's target tick, full band width",
     )
