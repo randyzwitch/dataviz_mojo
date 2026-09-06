@@ -1,5 +1,6 @@
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
+from dataviz.pixel_snap import _snap_pixel_edge
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
@@ -271,13 +272,38 @@ def _render_heatmap[
         cache=cache,
     )
 
-    var cell_width = round_to_int(frame.x_scale.bandwidth())
-    var cell_height = round_to_int(frame.y_scale.bandwidth())
+    # Every cell comes from its own two snapped edges, never from a
+    # rounded corner plus one rounded size shared by the whole grid.
+    # A shared size cannot tile a fractional band: at 11 columns across
+    # 320px the band is 29.09 wide, so the rounded width 29 falls short
+    # of the step often enough that one cell's right edge stops a pixel
+    # before the next one's left edge begins, and the background shows
+    # through as a hairline seam down the middle of the chart.
+    #
+    # Snapping each edge fixes that by construction: the value that
+    # snaps to cell i's right edge is the same value that snaps to cell
+    # i+1's left edge, so the two land on the same boundary whatever the
+    # fraction was. Cells then vary by a pixel in width, which is the
+    # honest way to divide 320 pixels 11 ways.
+    # band_start is a pixel index -- the first column the band covers --
+    # and a column's geometry starts half a pixel before its index, so
+    # the grid's outer edge lines up with the plot rect instead of
+    # sitting a pixel inside it.
+    var x_band = frame.x_scale.bandwidth()
+    var y_band = frame.y_scale.bandwidth()
     for i in range(len(plot._heatmap.x)):
-        var cell_x = round_to_int(frame.x_scale.band_start(x_idx.indices[i]))
-        var cell_y = round_to_int(frame.y_scale.band_start(y_idx.indices[i]))
+        var x_start = frame.x_scale.band_start(x_idx.indices[i]) - 0.5
+        var y_start = frame.y_scale.band_start(y_idx.indices[i]) - 0.5
+        var cell_x = _snap_pixel_edge(x_start)
+        var cell_y = _snap_pixel_edge(y_start)
         var color = color_scale.color_at(plot._heatmap.value[i])
-        target.fill_rect(cell_x, cell_y, cell_width, cell_height, color)
+        target.fill_rect(
+            cell_x,
+            cell_y,
+            _snap_pixel_edge(x_start + x_band) - cell_x,
+            _snap_pixel_edge(y_start + y_band) - cell_y,
+            color,
+        )
 
     if theme.show_legend:
         _ = _draw_continuous_color_legend(
