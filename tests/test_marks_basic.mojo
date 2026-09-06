@@ -1088,22 +1088,24 @@ def test_render_waterfall_svg_matches_confirmed_rects_and_connectors() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        # Bar 0's y0=0 lands on the bottom axis line, so its height shrinks 183
-        # -> 182 (see _pull_off_axis_line); bars 1/2 never touch 0.
-        '<rect x="71" y="67" width="85" height="182" fill="#1e64b4"/>' in s,
+        # Bar 0's y0=0 lands on the bottom axis line, so its height shrinks
+        # (see _pull_off_axis_line_f); bars 1/2 never touch 0. Connector
+        # ends now sit on the band edges they join rather than rounded to
+        # them, while the shared row they run along still snaps.
+        '<rect x="71" y="68" width="86" height="182" fill="#1e64b4"/>' in s,
         "bar 0 (delta +10): y0=0 to y1=10",
     )
     assert_true(
-        '<rect x="177" y="67" width="85" height="73" fill="#c83c3c"/>' in s,
+        '<rect x="178" y="68" width="85" height="73" fill="#c83c3c"/>' in s,
         "bar 1 (delta -4): y0=10 down to y1=6, colored by sign",
     )
     assert_true(
-        '<rect x="284" y="31" width="85" height="109" fill="#1e64b4"/>' in s,
+        '<rect x="285" y="31" width="85" height="110" fill="#1e64b4"/>' in s,
         "bar 2 (delta +6): y0=6 to y1=12",
     )
     assert_true(
-        '<line x1="156" y1="67" x2="177" y2="67" stroke="#505050"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="156.000" y1="67.000" x2="177.333" y2="67.000"'
+        ' stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         (
             "connector between bar 0 and bar 1, at the shared y1=10/y0=10 pixel"
@@ -1111,8 +1113,8 @@ def test_render_waterfall_svg_matches_confirmed_rects_and_connectors() raises:
         ),
     )
     assert_true(
-        '<line x1="263" y1="140" x2="284" y2="140" stroke="#505050"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="262.667" y1="140.000" x2="284.000" y2="140.000"'
+        ' stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         (
             "connector between bar 1 and bar 2, at the shared y1=6/y0=6 pixel"
@@ -1186,40 +1188,41 @@ def test_render_svg_waterfall_total_rows_matches_confirmed_rects() raises:
     assert_true(
         # Both total rows' y0=0 lands on the bottom axis line, so each height
         # is pulled 1px (156->155, 188->187); A/B never touch 0.
-        '<rect x="68" y="94" width="64" height="155" fill="#646464"/>' in s,
+        '<rect x="69" y="94" width="64" height="156" fill="#646464"/>' in s,
         "Start (total): 0 -> 50",
     )
     assert_true(
-        '<rect x="161" y="31" width="38" height="63" fill="#1e64b4"/>' in s,
+        '<rect x="161" y="31" width="39" height="63" fill="#1e64b4"/>' in s,
         "A: 50 -> 70",
     )
     assert_true(
-        '<rect x="241" y="31" width="38" height="31" fill="#c83c3c"/>' in s,
+        '<rect x="241" y="31" width="39" height="32" fill="#c83c3c"/>' in s,
         "B: 70 -> 60",
     )
     assert_true(
-        '<rect x="308" y="62" width="64" height="187" fill="#646464"/>' in s,
+        '<rect x="309" y="63" width="64" height="187" fill="#646464"/>' in s,
         "End (total): 0 -> 60",
     )
-    # Connectors reference each bar's actual drawn edge (bar_x_list[i-1] +
-    # bar_width_list[i-1]) once total rows are in play: Start's right edge
-    # (132) -> A's left (161); A's right (199) -> B's left (241); B's
-    # right (279) -> End's left (308).
+    # Connectors reference each bar's actual drawn edge (bar_x1_list[i-1])
+    # once total rows are in play. The ends are the bars' exact geometric
+    # edges rather than the snapped pixel columns, so they can sit a
+    # fraction inside the bar they meet (160.800 against A's drawn 161);
+    # the shared row the connector runs along still snaps.
     assert_true(
-        '<line x1="132" y1="94" x2="161" y2="94" stroke="#505050"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="132.000" y1="94.000" x2="160.800" y2="94.000"'
+        ' stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         "connector: Start's actual right edge -> A's left edge",
     )
     assert_true(
-        '<line x1="199" y1="31" x2="241" y2="31" stroke="#505050"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="199.200" y1="31.000" x2="240.800" y2="31.000"'
+        ' stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         "connector: A's actual right edge -> B's left edge",
     )
     assert_true(
-        '<line x1="279" y1="62" x2="308" y2="62" stroke="#505050"'
-        ' stroke-width="1.000" stroke-linecap="round"/>'
+        '<line x1="279.200" y1="62.000" x2="308.000" y2="62.000"'
+        ' stroke="#505050" stroke-width="1.000" stroke-linecap="round"/>'
         in s,
         "connector: B's actual right edge -> End's left edge",
     )
