@@ -827,7 +827,7 @@ def test_render_svg_annotate_point_matches_hand_derived_position() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<circle cx="133" cy="135" r="4" fill="#969696"/>' in s,
+        '<circle cx="132.727" cy="135.000" r="4.000" fill="#969696"/>' in s,
         "the point marker itself, at the data coordinate's pixel position",
     )
     assert_true(

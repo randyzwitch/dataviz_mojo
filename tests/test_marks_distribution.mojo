@@ -834,8 +834,8 @@ def test_render_bump_raises_on_no_data() raises:
 def test_render_effect_scatter_matches_hand_derived_halo_and_point() raises:
     # One point (5, 5): both axes pad to [4, 6], canvas 400x300, default
     # margins -> plot area x:[60,380], y:[20,250], so the point is at
-    # (220, 135). point_radius 3.5 rounds to 4; the halo is 2.2x that (8.8
-    # -> 9), colored by _lighten (mark_color (30,100,180) blended toward
+    # (220, 135). point_radius 3.5 rounds to 4; the halo is 2.2x that
+    # (8.8, drawn as a sub-pixel radius), colored by _lighten (mark_color (30,100,180) blended toward
     # white at 90/255 -> (175,200,228), read off a real render since
     # Color.blend_over's rounding isn't what this test checks).
     var x: List[Float64] = [5.0]
@@ -868,11 +868,11 @@ def test_render_effect_scatter_svg_matches_confirmed_circles() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<circle cx="220" cy="135" r="9" fill="#afc8e4"/>' in s,
+        '<circle cx="220.000" cy="135.000" r="8.800" fill="#afc8e4"/>' in s,
         "the halo, drawn first",
     )
     assert_true(
-        '<circle cx="220" cy="135" r="4" fill="#1e64b4"/>' in s,
+        '<circle cx="220.000" cy="135.000" r="4.000" fill="#1e64b4"/>' in s,
         "the point itself, drawn on top",
     )
 

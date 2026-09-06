@@ -76,7 +76,8 @@ def test_render_svg_error_bar_matches_hand_derived_positions() raises:
     var plot = Plot().mark_point().encode(x=x, y=y, y_err=err).size(400, 200)
     var s = render_svg(plot).to_string()
     assert_true(
-        'cy="85"' in s, "the point itself lands at the hand-derived pixel row"
+        'cy="85.000"' in s,
+        "the point itself lands at the hand-derived pixel row",
     )
     assert_true(
         'y1="144"' in s and 'y2="144"' in s,
@@ -187,7 +188,8 @@ def test_render_svg_asymmetric_error_bar_matches_hand_derived_positions() raises
     )
     var s = render_svg(plot).to_string()
     assert_true(
-        'cy="115"' in s, "the point itself lands at the hand-derived pixel row"
+        'cy="114.545"' in s,
+        "the point itself lands at the hand-derived pixel row",
     )
     assert_true(
         'y1="144"' in s and 'y2="144"' in s,
@@ -592,9 +594,9 @@ def test_render_svg_scale_y_log_matches_hand_derived_positions() raises:
     #
     # scale() = (20-250)/2.2 = -104.5454...
     # translate() = 250 - (-0.1)*scale() = 239.5454...
-    # to_pixel(1) -> 239.55 -> 240
+    # to_pixel(1) = 239.545
     # to_pixel(10) = 135.0
-    # to_pixel(100) -> 30.45 -> 30
+    # to_pixel(100) = 30.455
     #
     # Asserted as cy substrings, since cx depends on the dynamic left
     # margin.
@@ -602,13 +604,13 @@ def test_render_svg_scale_y_log_matches_hand_derived_positions() raises:
     var y: List[Float64] = [1.0, 10.0, 100.0]
     var plot = Plot().mark_point().encode(x=x, y=y).size(400, 300).scale_y_log()
     var s = render_svg(plot).to_string()
-    assert_true('cy="240"' in s, "y=1 lands at the hand-derived pixel row")
+    assert_true('cy="239.545"' in s, "y=1 lands at the hand-derived pixel row")
     assert_true(
-        'cy="135"' in s,
+        'cy="135.000"' in s,
         "y=10 lands exactly one decade up (equal pixel gap to y=1's row)",
     )
     assert_true(
-        'cy="30"' in s,
+        'cy="30.455"' in s,
         "y=100 lands exactly one more decade up (the same pixel gap again)",
     )
 
@@ -702,9 +704,13 @@ def test_render_svg_scale_y_domain_matches_hand_derived_positions() raises:
     var s = render_svg(plot).to_string()
     for tick in ["0", "20", "40", "60", "80", "100"]:
         assert_true(">" + tick + "<" in s, "tick " + tick + " is drawn")
-    assert_true('cy="227"' in s, "y=10 lands at the pinned domain's own row")
-    assert_true('cy="135"' in s, "y=50 lands at the pinned domain's own row")
-    assert_true('cy="43"' in s, "y=90 lands at the pinned domain's own row")
+    assert_true(
+        'cy="227.000"' in s, "y=10 lands at the pinned domain's own row"
+    )
+    assert_true(
+        'cy="135.000"' in s, "y=50 lands at the pinned domain's own row"
+    )
+    assert_true('cy="43.000"' in s, "y=90 lands at the pinned domain's own row")
 
 
 def test_render_svg_scale_y_domain_wins_over_the_data_extent() raises:
@@ -762,7 +768,7 @@ def test_render_svg_point_outside_scale_domain_computes_an_off_plot_pixel() rais
     )
     var s = render_svg(plot).to_string()
     assert_true(
-        'cy="-95"' in s,
+        'cy="-95.000"' in s,
         "the out-of-domain point still computes its real off-plot pixel",
     )
     var c = render(plot)  # must not crash on the raster backend either
@@ -897,7 +903,8 @@ def test_render_svg_layers_share_one_log_y_domain_when_every_layer_agrees() rais
         'y1="30"' in s and 'y2="30"' in s, "y=100's tick sits at row 30"
     )
     assert_true(
-        'cx="75" cy="240"' in s, "the point layer's y=1 lands at row 240"
+        'cx="74.545" cy="239.545"' in s,
+        "the point layer's y=1 lands at its hand-derived row",
     )
     assert_true(
         "365.455,30.455" in s, "the line layer's y=100 endpoint lands at row 30"

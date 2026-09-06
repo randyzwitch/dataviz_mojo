@@ -181,13 +181,16 @@ def test_render_categorical_color_matches_hand_derived_palette_entries() raises:
 
 def test_render_svg_point_mark_matches_hand_derived_coordinates() raises:
     # The same single-(5.0, 5.0)-point setup as the raster test: (220,
-    # 135), radius 4, through render_svg(). Integer coordinates (from
-    # round_to_int) can't drift between float implementations.
+    # 135), radius 4, through render_svg(). The center is Float64 now, so
+    # it prints with SVG's three decimals -- this point lands on whole
+    # pixels exactly, which is why the digits after the dot are zeros
+    # rather than a value that could drift between float implementations.
     var xy: List[Float64] = [5.0]
     var plot = Plot().mark_point().encode(x=xy, y=xy).size(400, 300)
     var svg = render_svg(plot)
     assert_true(
-        '<circle cx="220" cy="135" r="4" fill="#1e64b4"/>' in svg.to_string(),
+        '<circle cx="220.000" cy="135.000" r="4.000" fill="#1e64b4"/>'
+        in svg.to_string(),
         "encode()'s point, same pixel render() already hand-derives",
     )
 

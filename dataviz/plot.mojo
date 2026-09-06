@@ -68,6 +68,7 @@ from dataviz.numpy_interop import _materialize_python_floats
 from std.python import PythonObject
 from dataviz.color_scale import ColorScale, default_categorical_palette
 from dataviz.marker import PointShape, _fill_shape_aa, default_marker_shapes
+from dataviz.pixel_snap import _snap_pixel_center, _snap_pixel_edge
 from dataviz.legend_position import LegendPosition
 from dataviz.mark import Mark
 from dataviz.ordinal_scale import OrdinalScale
@@ -3841,48 +3842,6 @@ def _pull_off_axis_line(
     return _BaselineRect(y, height)
 
 
-def _snap_pixel_center(value: Float64) -> Float64:
-    """`value` moved to the nearest pixel centre.
-
-    The thin-line counterpart of `_snap_pixel_edge`. A 1px line is
-    drawn about its centreline, so it covers exactly one row when that
-    centreline sits on a pixel centre -- a whole number -- and spreads
-    across two half-covered rows when it does not. Rectangles snap to
-    boundaries because a rect is bounded by its edges; a line snaps to
-    a centre because it is centred on its coordinate.
-
-    Only the fixed cross-axis coordinate snaps. The two ends run along
-    the value axis and keep their exact positions, so a whisker still
-    stops where its statistic falls.
-    """
-    return Float64(round_to_int(value))
-
-
-def _snap_pixel_edge(value: Float64) -> Float64:
-    """`value` moved to the nearest whole-pixel boundary.
-
-    Under the pixel-centre convention a pixel `k` spans `k - 0.5` to
-    `k + 0.5`, so the boundaries are the half-integers and this rounds
-    to the nearest of them.
-
-    Filled rectangles snap; nothing else does. A bar edge landing
-    mid-pixel is unreadable as position -- a pixel on a 200px bar is
-    half a percent, well under what comparing two bars resolves -- but
-    it is visible as a soft edge, and an axis-aligned rectangle is the
-    one shape where the hard edge is worth more than the fraction.
-    Gridlines, paths and text keep their exact geometry, which is what
-    made them sharper rather than blurrier (#293).
-
-    Snapping here rather than leaving it to the primitive matters under
-    supersampling: `fill_rect` maps the box and snaps in *device*
-    space, which resolves the fraction into an antialiased edge instead
-    of removing it. Snapping in logical space first puts the mapped
-    edge on a device block boundary, so the downsampled edge is hard.
-    Both place the edge identically; only the crispness differs.
-    """
-    return Float64(round_to_int(value - 0.5)) + 0.5
-
-
 def _pull_off_axis_line_f(
     edge_a: Float64, edge_b: Float64, axis_line_py: Float64
 ) -> _BaselineRectF:
@@ -5401,19 +5360,24 @@ def _draw_annotation_points[
     var px_right = max(result.px0, result.px1)
     var py_top = min(result.py0, result.py1)
     var py_bottom = max(result.py0, result.py1)
-    var radius = round_to_int(sc.point_radius)
+    var radius = Float64(round_to_int(sc.point_radius))
     for i in range(len(plot._annotations.point_x)):
-        var px = _axis_pixel(result.x_scale, plot._annotations.point_x[i])
-        var py = _axis_pixel(result.y_scale, plot._annotations.point_y[i])
-        if px < px_left or px > px_right or py < py_top or py > py_bottom:
+        var px = _axis_pixel_f(result.x_scale, plot._annotations.point_x[i])
+        var py = _axis_pixel_f(result.y_scale, plot._annotations.point_y[i])
+        if (
+            px < Float64(px_left)
+            or px > Float64(px_right)
+            or py < Float64(py_top)
+            or py > Float64(py_bottom)
+        ):
             continue
         target.fill_circle_aa(px, py, radius, theme.annotation_color)
         var label = plot._annotations.point_labels[i]
         if label.byte_length() > 0:
             text_requests.append(
                 _TextRequest(
-                    px,
-                    py - radius - sc.label_gap,
+                    round_to_int(px),
+                    round_to_int(py - radius) - sc.label_gap,
                     label,
                     theme.annotation_color,
                     sc.font_size,
@@ -6954,8 +6918,8 @@ def _draw_point_layer[
     var sc = _Scaled(theme)
 
     for i in range(len(plot.x_data)):
-        var px = _axis_pixel(x_scale, plot.x_data[i])
-        var py = _axis_pixel(y_scale, plot.y_data[i])
+        var px = _axis_pixel_f(x_scale, plot.x_data[i])
+        var py = _axis_pixel_f(y_scale, plot.y_data[i])
         var color: Color
         if ch.has_color:
             color = ch.color_scale.color_at(plot.color_data[i])
@@ -6965,9 +6929,20 @@ def _draw_point_layer[
             color = ch.palette[ch.cat.indices[i] % len(ch.palette)]
         else:
             color = theme.mark_color
-        var radius = round_to_int(
-            ch.size_scale.to_pixel(plot.size_data[i])
-        ) if ch.has_size else round_to_int(sc.point_radius)
+        # The center never rounds: a marker is a disk, not a rect, so it
+        # is antialiased on every side whatever it sits on and snapping
+        # buys no crispness while costing position.
+        #
+        # The radius rounds only when it is a constant. One value for
+        # the whole chart loses nothing to a whole-pixel radius, and
+        # every other mark that draws `Theme.point_radius` rounds it, so
+        # a scatter keeps matching them. A size-encoded radius is data:
+        # rounding collapses a continuous scale into a handful of
+        # whole-pixel steps, and two points 20% apart in value can come
+        # out the same size.
+        var radius = ch.size_scale.to_pixel(
+            plot.size_data[i]
+        ) if ch.has_size else Float64(round_to_int(sc.point_radius))
         # One group per point, covering its error bar, halo and marker
         # -- all one datum. The deferred label sits outside it, since
         # text is replayed after this pass (see _TextRequest).
@@ -6987,22 +6962,31 @@ def _draw_point_layer[
             else:
                 lo = plot.y_data[i] - plot.y_err_lower_data[i]
                 hi = plot.y_data[i] + plot.y_err_upper_data[i]
-            var py_hi = _axis_pixel(y_scale, hi)
-            var py_lo = _axis_pixel(y_scale, lo)
-            var cap_half = round_to_int(sc.error_bar_cap_width)
-            target.draw_line_aa(px, py_hi, px, py_lo, color, width=sc.scale)
+            # The whisker and its two caps are hairlines, so all three
+            # snap onto pixel centers -- crispness wins over a fraction
+            # of a pixel, and the three meeting exactly keeps the T
+            # joints clean. That is also what the Int arithmetic here
+            # used to do, so error bars do not move; only the marker
+            # they belong to does.
+            var bar_x = _snap_pixel_center(px)
+            var py_hi = _snap_pixel_center(_axis_pixel_f(y_scale, hi))
+            var py_lo = _snap_pixel_center(_axis_pixel_f(y_scale, lo))
+            var cap_half = Float64(round_to_int(sc.error_bar_cap_width))
             target.draw_line_aa(
-                px - cap_half,
+                bar_x, py_hi, bar_x, py_lo, color, width=sc.scale
+            )
+            target.draw_line_aa(
+                bar_x - cap_half,
                 py_hi,
-                px + cap_half,
+                bar_x + cap_half,
                 py_hi,
                 color,
                 width=sc.scale,
             )
             target.draw_line_aa(
-                px - cap_half,
+                bar_x - cap_half,
                 py_lo,
-                px + cap_half,
+                bar_x + cap_half,
                 py_lo,
                 color,
                 width=sc.scale,
@@ -7011,7 +6995,7 @@ def _draw_point_layer[
             target.fill_circle_aa(
                 px,
                 py,
-                round_to_int(Float64(radius) * 2.2),
+                radius * 2.2,
                 _lighten(color, theme.halo_alpha),
             )
         if ch.has_shapes:
@@ -7031,10 +7015,12 @@ def _draw_point_layer[
             target.end_annotated_group()
         if len(plot.point_labels) > 0 and plot.point_labels[i] != "":
             # Baseline placed label_gap above the point's top edge (py - radius).
+            # Text anchors are pixel indices, so the top edge rounds
+            # here and the gap stays a whole number of pixels.
             text_requests.append(
                 _TextRequest(
-                    px,
-                    py - radius - sc.label_gap,
+                    round_to_int(px),
+                    round_to_int(py - radius) - sc.label_gap,
                     plot.point_labels[i],
                     theme.text_color,
                     sc.font_size,
@@ -8410,12 +8396,11 @@ def _render_bar_combo_layers[
             px.append(frame.x_scale.center(k))
             py.append(frame.y_scale.to_pixel(plots[i].y_data[k]))
         if plots[i]._mark == Mark.POINT:
-            var radius = round_to_int(layer_sc.point_radius)
             for k in range(len(px)):
                 target.fill_circle_aa(
-                    round_to_int(px[k]),
-                    round_to_int(py[k]),
-                    radius,
+                    px[k],
+                    py[k],
+                    Float64(round_to_int(layer_sc.point_radius)),
                     layer_theme.mark_color,
                 )
         elif plots[i]._mark == Mark.LINE:

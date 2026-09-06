@@ -16,6 +16,7 @@ same way `default_categorical_palette()`'s first color does.
 from canvas.color import Color
 from canvas.fill_rule import FillRule
 from canvas.geometry import round_to_int
+from dataviz.pixel_snap import _snap_pixel_edge
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
@@ -123,6 +124,75 @@ def _fill_shape_aa[
         # PointShape.X: CROSS's two strokes rotated 45 degrees.
         var diag = round_to_int(Float64(radius) * _COS_45)
         var width = Float64(radius) * 0.65
+        target.draw_line_aa(
+            cx - diag, cy - diag, cx + diag, cy + diag, color, width=width
+        )
+        target.draw_line_aa(
+            cx - diag, cy + diag, cx + diag, cy - diag, color, width=width
+        )
+
+
+def _fill_shape_aa[
+    T: DrawTarget
+](
+    mut target: T,
+    cx: Float64,
+    cy: Float64,
+    radius: Float64,
+    shape: PointShape,
+    color: Color,
+) raises:
+    """`_fill_shape_aa` in `Float64` geometry, so a marker sits at its
+    data position rather than at the nearest whole pixel.
+
+    Only `SQUARE` snaps. It is the one shape drawn as an axis-aligned
+    filled rect, and it is crisp today where the other four are
+    antialiased on every side; snapping its two edges keeps that, and at
+    marker sizes the half pixel it costs is invisible beside a circle
+    drawn from the same point.
+
+    Every shape reaches exactly `radius` pixels from center along its
+    widest axis, so turning `shape_by_category` on never changes apparent
+    point size. CROSS/X stroke width also scales with `radius`. All shapes
+    fill solid; there is no hollow variant.
+    """
+    if shape == PointShape.CIRCLE:
+        target.fill_circle_aa(cx, cy, radius, color)
+    elif shape == PointShape.SQUARE:
+        var x0 = _snap_pixel_edge(cx - radius)
+        var x1 = _snap_pixel_edge(cx + radius)
+        var y0 = _snap_pixel_edge(cy - radius)
+        var y1 = _snap_pixel_edge(cy + radius)
+        target.fill_rect(x0, y0, x1 - x0, y1 - y0, color)
+    elif shape == PointShape.TRIANGLE:
+        var r = radius
+        var path = Path()
+        path.move_to(cx, cy - r)
+        path.line_to(cx + r * _COS_30, cy + r * 0.5)
+        path.line_to(cx - r * _COS_30, cy + r * 0.5)
+        path.close()
+        target.fill_path_aa(path, color, fill_rule=FillRule.NONZERO)
+    elif shape == PointShape.DIAMOND:
+        var r = radius
+        var path = Path()
+        path.move_to(cx, cy - r)
+        path.line_to(cx + r, cy)
+        path.line_to(cx, cy + r)
+        path.line_to(cx - r, cy)
+        path.close()
+        target.fill_path_aa(path, color, fill_rule=FillRule.NONZERO)
+    elif shape == PointShape.CROSS:
+        var width = radius * 0.65
+        target.draw_line_aa(
+            cx, cy - radius, cx, cy + radius, color, width=width
+        )
+        target.draw_line_aa(
+            cx - radius, cy, cx + radius, cy, color, width=width
+        )
+    else:
+        # PointShape.X: CROSS's two strokes rotated 45 degrees.
+        var diag = radius * _COS_45
+        var width = radius * 0.65
         target.draw_line_aa(
             cx - diag, cy - diag, cx + diag, cy + diag, color, width=width
         )
