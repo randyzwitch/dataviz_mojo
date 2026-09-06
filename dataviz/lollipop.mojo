@@ -8,16 +8,16 @@ from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
-    _BaselineRect,
+    _BaselineRectF,
     _Orientation,
     _RenderResult,
     _Scaled,
     _TextRequest,
     _tooltip_label,
-    _axis_pixel,
+    _axis_pixel_f,
     _draw_categorical_axis_frame,
     _finished,
-    _pull_off_axis_line,
+    _pull_off_axis_line_f,
     _zero_baseline_y_extent,
     _validate_categorical_encoding,
 )
@@ -50,18 +50,18 @@ def _draw_lollipop_stems[
 
     `Theme.show_data_labels` (#213) places each label past the head
     circle via the same `orient.outside_band_label()` `Mark.BAR` uses,
-    fed a `_BaselineRect` padded `radius` past both ends (rather than
+    fed a `_BaselineRectF` padded `radius` past both ends (rather than
     `_pull_off_axis_line`'s bare stem extent) so the label clears the
     dot regardless of which end is the "far" one for a negative value.
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
     var baseline = value_scale.to_pixel(0.0)
-    var baseline_on_axis_line = round_to_int(baseline) == baseline_edge
-    var band_size = round_to_int(band_scale.bandwidth())
+    var baseline_on_axis_line = abs(baseline - Float64(baseline_edge)) < 0.5
+    var band_size = band_scale.bandwidth()
 
     for i in range(len(plot.x_categories)):
-        var band_pos = round_to_int(band_scale.band_start(i))
+        var band_pos = band_scale.band_start(i)
         var center = band_scale.center(i)
         var value = value_scale.to_pixel(plot.y_data[i])
         var stem_from = (
@@ -81,21 +81,22 @@ def _draw_lollipop_stems[
         )
         orient.band_point(
             target,
-            round_to_int(value),
-            round_to_int(center),
-            radius,
+            value,
+            center,
+            Float64(radius),
             theme.mark_color,
         )
         if theme.svg_tooltips:
             target.end_annotated_group()
         if theme.show_data_labels:
-            var extent = _pull_off_axis_line(
-                _axis_pixel(value_scale, 0.0),
-                _axis_pixel(value_scale, plot.y_data[i]),
-                baseline_edge,
+            var extent = _pull_off_axis_line_f(
+                _axis_pixel_f(value_scale, 0.0),
+                _axis_pixel_f(value_scale, plot.y_data[i]),
+                Float64(baseline_edge),
             )
-            var padded_extent = _BaselineRect(
-                extent.y - radius, extent.height + 2 * radius
+            var padded_extent = _BaselineRectF(
+                extent.y - Float64(radius),
+                extent.height + 2.0 * Float64(radius),
             )
             var label_value = plot.y_data[i]
             var at = orient.outside_band_label(
