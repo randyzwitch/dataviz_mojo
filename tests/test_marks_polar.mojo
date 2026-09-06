@@ -1125,15 +1125,15 @@ def test_render_single_axis_svg_matches_confirmed_circles() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<circle cx="75" cy="135" r="4" fill="#1e64b4"/>' in s,
+        '<circle cx="74.545" cy="135.000" r="4.000" fill="#1e64b4"/>' in s,
         "the first point",
     )
     assert_true(
-        '<circle cx="220" cy="135" r="4" fill="#1e64b4"/>' in s,
+        '<circle cx="220.000" cy="135.000" r="4.000" fill="#1e64b4"/>' in s,
         "the second point",
     )
     assert_true(
-        '<circle cx="365" cy="135" r="4" fill="#1e64b4"/>' in s,
+        '<circle cx="365.455" cy="135.000" r="4.000" fill="#1e64b4"/>' in s,
         "the third point",
     )
 

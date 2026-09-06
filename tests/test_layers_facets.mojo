@@ -112,7 +112,7 @@ def test_render_layers_shares_one_domain_across_a_line_and_a_point() raises:
         "the layered line",
     )
     assert_true(
-        '<circle cx="220" cy="135" r="5" fill="#ff0000"/>' in s,
+        '<circle cx="220.000" cy="135.000" r="5.000" fill="#ff0000"/>' in s,
         "the layered point, same shared domain",
     )
 
@@ -178,7 +178,7 @@ def test_render_layers_annotate_vline_and_point_match_standalone_hand_derived_po
         "the vline's label",
     )
     assert_true(
-        '<circle cx="133" cy="135" r="4" fill="#969696"/>' in s,
+        '<circle cx="132.727" cy="135.000" r="4.000" fill="#969696"/>' in s,
         "the point marker itself",
     )
     assert_true(
@@ -279,7 +279,7 @@ def test_render_layers_svg_title_from_plots0_centers_on_shared_inner_rect() rais
         ),
     )
     assert_true(
-        '<circle cx="220" cy="146" r="5" fill="#ff0000"/>' in s,
+        '<circle cx="220.000" cy="146.000" r="5.000" fill="#ff0000"/>' in s,
         (
             "the layered point, same shared domain, shifted down by the shared"
             " title reservation"
@@ -313,11 +313,11 @@ def test_render_layers_svg_point_layer_color_categories_matches_hand_derived_leg
     var s = svg.to_string()
 
     assert_true(
-        '<circle cx="69" cy="135" r="4" fill="#1f77b4"/>' in s,
+        '<circle cx="68.636" cy="135.000" r="4.000" fill="#1f77b4"/>' in s,
         "layered point 0, category A's color",
     )
     assert_true(
-        '<circle cx="241" cy="135" r="4" fill="#ff7f0e"/>' in s,
+        '<circle cx="241.364" cy="135.000" r="4.000" fill="#ff7f0e"/>' in s,
         "layered point 1, category B's color",
     )
     assert_true(
@@ -733,10 +733,10 @@ def test_render_layers_svg_bar_combo_supports_a_point_layer() raises:
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
-        'cx="140" cy="86"' in s,
-        "point A, at its category's band center (85.714 rounds to 86)",
+        'cx="140.000" cy="85.714"' in s,
+        "point A, at its category's band center",
     )
-    assert_true('cx="300" cy="195"' in s, "point B (195.238 rounds to 195)")
+    assert_true('cx="300.000" cy="195.238"' in s, "point B")
 
 
 def test_render_layers_svg_bar_combo_supports_an_area_layer() raises:
@@ -1187,11 +1187,11 @@ def test_render_facets_svg_lays_out_independent_plots_side_by_side() raises:
     var s = svg.to_string()
 
     assert_true(
-        '<circle cx="220" cy="135" r="4" fill="#1e64b4"/>' in s,
+        '<circle cx="220.000" cy="135.000" r="4.000" fill="#1e64b4"/>' in s,
         "cell 0's point, same coordinates render_facets()'s test finds",
     )
     assert_true(
-        '<circle cx="620" cy="135" r="4" fill="#ff0000"/>' in s,
+        '<circle cx="620.000" cy="135.000" r="4.000" fill="#ff0000"/>' in s,
         "cell 1's point, +400px shifted, same as render_facets()'s test",
     )
 
@@ -1231,11 +1231,11 @@ def test_render_facets_svg_each_cell_gets_its_own_independent_title() raises:
         "cell 0's title, centered on its inner plot rect",
     )
     assert_true(
-        '<circle cx="220" cy="146" r="4" fill="#1e64b4"/>' in s,
+        '<circle cx="220.000" cy="146.000" r="4.000" fill="#1e64b4"/>' in s,
         "cell 0's point, shifted down to make room for its title",
     )
     assert_true(
-        '<circle cx="620" cy="135" r="4" fill="#ff0000"/>' in s,
+        '<circle cx="620.000" cy="135.000" r="4.000" fill="#ff0000"/>' in s,
         "cell 1's point, unaffected -- it never set a title",
     )
 
@@ -1308,11 +1308,11 @@ def test_render_facets_svg_shared_y_scale_matches_hand_derived_positions() raise
     var plots: List[Plot] = [p0^, p1^]
     var s = render_facets_svg(plots, 2, shared_y_scale=True).to_string()
     assert_true(
-        'cy="240"' in s,
+        'cy="239.545"' in s,
         "cell 0's own point (y=10) lands at the hand-derived shared-scale row",
     )
     assert_true(
-        'cy="30"' in s,
+        'cy="30.455"' in s,
         "cell 1's own point (y=110) lands at the hand-derived shared-scale row",
     )
 
@@ -1416,7 +1416,7 @@ def test_render_facets_svg_default_keeps_each_cells_independent_scale() raises:
     var count = 0
     var search_from = 0
     while True:
-        var idx = s.find('cy="135"', search_from)
+        var idx = s.find('cy="135.000"', search_from)
         if idx == -1:
             break
         count += 1
