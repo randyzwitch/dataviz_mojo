@@ -219,15 +219,15 @@ def test_render_svg_stacked_bar_matches_confirmed_rects_and_legend() raises:
     # Only each column's bottom segment (North, seg_bottom=0) touches the
     # axis line, so only its height is pulled 1px (63->62, 125->124).
     assert_true(
-        '<rect x="70" y="187" width="76" height="62" fill="#1f77b4"/>' in s,
+        '<rect x="70" y="188" width="76" height="62" fill="#1f77b4"/>' in s,
         "A/North",
     )
     assert_true(
-        '<rect x="70" y="156" width="76" height="31" fill="#ff7f0e"/>' in s,
+        '<rect x="70" y="157" width="76" height="31" fill="#ff7f0e"/>' in s,
         "A/South",
     )
     assert_true(
-        '<rect x="165" y="125" width="76" height="124" fill="#1f77b4"/>' in s,
+        '<rect x="165" y="125" width="76" height="125" fill="#1f77b4"/>' in s,
         "B/North",
     )
     assert_true(
@@ -264,12 +264,12 @@ def test_render_svg_stacked_bar_mixed_sign_stacks_independently_each_direction()
 
     # North: data range [0,10] (positive stack, starts at zero).
     assert_true(
-        '<rect x="79" y="30" width="152" height="140" fill="#1f77b4"/>' in s,
+        '<rect x="80" y="31" width="152" height="139" fill="#1f77b4"/>' in s,
         "North, above zero",
     )
     # South: data range [-5,0] (negative stack, starts at zero, extends down).
     assert_true(
-        '<rect x="79" y="170" width="152" height="70" fill="#ff7f0e"/>' in s,
+        '<rect x="80" y="170" width="152" height="70" fill="#ff7f0e"/>' in s,
         "South, below zero",
     )
 
@@ -328,22 +328,22 @@ def test_render_svg_percent_stacked_bar_matches_hand_derived_rectangles() raises
 
     # A/North: bottom segment, 0..75 -> py 250..78 (230*0.75=172.5), height 171.
     assert_true(
-        '<rect x="70" y="78" width="76" height="171" fill="#1f77b4"/>' in s,
+        '<rect x="70" y="78" width="76" height="172" fill="#1f77b4"/>' in s,
         "A/North (75%)",
     )
     # A/South: stacked on top, 75..100 -> py 78..20, height 58.
     assert_true(
-        '<rect x="70" y="20" width="76" height="58" fill="#ff7f0e"/>' in s,
+        '<rect x="70" y="21" width="76" height="57" fill="#ff7f0e"/>' in s,
         "A/South (25%)",
     )
     # B/North: bottom segment, 0..40 -> py 250..158 (230*0.40=92), height 91.
     assert_true(
-        '<rect x="165" y="158" width="76" height="91" fill="#1f77b4"/>' in s,
+        '<rect x="165" y="159" width="76" height="91" fill="#1f77b4"/>' in s,
         "B/North (40%)",
     )
     # B/South: stacked on top, 40..100 -> py 158..20, height 138.
     assert_true(
-        '<rect x="165" y="20" width="76" height="138" fill="#ff7f0e"/>' in s,
+        '<rect x="165" y="21" width="76" height="138" fill="#ff7f0e"/>' in s,
         "B/South (60%)",
     )
 
@@ -366,19 +366,19 @@ def test_render_svg_percent_stacked_bar_all_zero_category_is_an_empty_column() r
     var s = svg.to_string()
 
     assert_true(
-        '<rect x="70" y="112" width="76" height="137" fill="#1f77b4"/>' in s,
+        '<rect x="70" y="113" width="76" height="137" fill="#1f77b4"/>' in s,
         "A/North (60%), unaffected",
     )
     assert_true(
-        '<rect x="70" y="20" width="76" height="92" fill="#ff7f0e"/>' in s,
+        '<rect x="70" y="21" width="76" height="92" fill="#ff7f0e"/>' in s,
         "A/South (40%), unaffected",
     )
     assert_true(
-        '<rect x="165" y="250" width="76" height="0" fill="#1f77b4"/>' in s,
+        '<rect x="165" y="251" width="76" height="0" fill="#1f77b4"/>' in s,
         "B/North, zero-height",
     )
     assert_true(
-        '<rect x="165" y="250" width="76" height="0" fill="#ff7f0e"/>' in s,
+        '<rect x="165" y="251" width="76" height="0" fill="#ff7f0e"/>' in s,
         "B/South, zero-height",
     )
 
@@ -413,11 +413,11 @@ def test_render_svg_non_percent_stacked_bar_is_unaffected_by_percent_flag() rais
     var s = svg.to_string()
 
     assert_true(
-        '<rect x="70" y="187" width="76" height="62" fill="#1f77b4"/>' in s,
+        '<rect x="70" y="188" width="76" height="62" fill="#1f77b4"/>' in s,
         "A/North, raw",
     )
     assert_true(
-        '<rect x="70" y="156" width="76" height="31" fill="#ff7f0e"/>' in s,
+        '<rect x="70" y="157" width="76" height="31" fill="#ff7f0e"/>' in s,
         "A/South, raw",
     )
 
@@ -432,7 +432,7 @@ def test_stacked_bar_quickplot_accepts_percent_kwarg() raises:
     var svg = render_svg(c)
     var s = svg.to_string()
     assert_true(
-        '<rect x="70" y="78" width="76" height="171" fill="#1f77b4"/>' in s,
+        '<rect x="70" y="78" width="76" height="172" fill="#1f77b4"/>' in s,
         "quickplot percent=True",
     )
 

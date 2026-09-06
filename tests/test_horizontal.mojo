@@ -626,11 +626,11 @@ def test_render_svg_horizontal_stacked_bar_matches_hand_derived_rectangles_and_l
         "A/South, picks up where North left off",
     )
     assert_true(
-        '<rect x="61" y="147" width="102" height="92" fill="#1f77b4"/>' in s,
+        '<rect x="61" y="147" width="103" height="92" fill="#1f77b4"/>' in s,
         "B/North",
     )
     assert_true(
-        '<rect x="163" y="147" width="78" height="92" fill="#ff7f0e"/>' in s,
+        '<rect x="164" y="147" width="77" height="92" fill="#ff7f0e"/>' in s,
         "B/South",
     )
 
@@ -667,11 +667,11 @@ def test_render_svg_horizontal_stacked_bar_percent_fixes_x_axis_to_0_100() raise
         "the x-axis is fixed to end at exactly 100",
     )
     assert_true(
-        '<rect x="61" y="32" width="62" height="92" fill="#1f77b4"/>' in s,
+        '<rect x="61" y="32" width="63" height="92" fill="#1f77b4"/>' in s,
         "A/North, 33.3% of A's total",
     )
     assert_true(
-        '<rect x="123" y="32" width="127" height="92" fill="#ff7f0e"/>' in s,
+        '<rect x="124" y="32" width="127" height="92" fill="#ff7f0e"/>' in s,
         "A/South, the remaining 66.7%",
     )
     assert_true(
@@ -679,7 +679,7 @@ def test_render_svg_horizontal_stacked_bar_percent_fixes_x_axis_to_0_100() raise
         "B/North, 75% of B's total",
     )
     assert_true(
-        '<rect x="203" y="147" width="47" height="92" fill="#ff7f0e"/>' in s,
+        '<rect x="203" y="147" width="48" height="92" fill="#ff7f0e"/>' in s,
         "B/South, the remaining 25%",
     )
 

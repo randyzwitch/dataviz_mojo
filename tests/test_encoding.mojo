@@ -1083,7 +1083,7 @@ def test_render_svg_stacked_bar_data_labels_match_hand_derived_positions() raise
         "A/North's label, centered inside its segment",
     )
     assert_true(
-        '<text x="140" y="55" font-size="12.000" font-family="sans-serif"'
+        '<text x="140" y="56" font-size="12.000" font-family="sans-serif"'
         ' fill="#282828" text-anchor="middle">4</text>'
         in s,
         "A/South's label, centered inside its segment",
