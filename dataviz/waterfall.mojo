@@ -1,6 +1,5 @@
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
-from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
@@ -10,9 +9,11 @@ from dataviz.plot import (
     _RenderResult,
     _Scaled,
     _TextRequest,
-    _axis_pixel,
+    _axis_pixel_f,
     _draw_categorical_axis_frame,
-    _pull_off_axis_line,
+    _pull_off_axis_line_f,
+    _snap_pixel_center,
+    _snap_pixel_edge,
     _finished,
     _require_non_empty,
     _tooltip_label,
@@ -166,8 +167,8 @@ def _render_waterfall[
     # connector pass reads them back (a delta bar can be narrower than its
     # band then). Otherwise the connector derives the edge from the band
     # directly.
-    var bar_x_list = List[Int]()
-    var bar_width_list = List[Int]()
+    var bar_x_list = List[Float64]()
+    var bar_x1_list = List[Float64]()
     var bandwidth = frame.x_scale.bandwidth()
     for i in range(len(plot.x_categories)):
         var band_start = frame.x_scale.band_start(i)
@@ -175,25 +176,28 @@ def _render_waterfall[
             plot._waterfall.is_total[i] if i
             < len(plot._waterfall.is_total) else False
         )
-        var bar_x: Int
-        var bar_width: Int
+        # The bar's two geometric edges. `fill_rect` below snaps each to
+        # a whole pixel and takes the width from the pair, rather than
+        # rounding a position and a width apart from each other.
+        var bar_x: Float64
+        var bar_x1: Float64
         if row_is_total or not using_totals:
-            bar_x = round_to_int(band_start)
-            bar_width = round_to_int(bandwidth)
+            bar_x = band_start
+            bar_x1 = band_start + bandwidth
         else:
             var narrow_width = (
                 bandwidth * plot._mark_style.waterfall_delta_width_fraction
             )
             var inset = (bandwidth - narrow_width) / 2.0
-            bar_x = round_to_int(band_start + inset)
-            bar_width = round_to_int(band_start + inset + narrow_width) - bar_x
+            bar_x = band_start + inset
+            bar_x1 = bar_x + narrow_width
         if using_totals:
             bar_x_list.append(bar_x)
-            bar_width_list.append(bar_width)
+            bar_x1_list.append(bar_x1)
 
-        var y0_py = _axis_pixel(frame.y_scale, plot._waterfall.y0[i])
-        var y1_py = _axis_pixel(frame.y_scale, plot._waterfall.y1[i])
-        var rect = _pull_off_axis_line(y0_py, y1_py, frame.py1)
+        var y0_py = _axis_pixel_f(frame.y_scale, plot._waterfall.y0[i])
+        var y1_py = _axis_pixel_f(frame.y_scale, plot._waterfall.y1[i])
+        var rect = _pull_off_axis_line_f(y0_py, y1_py, Float64(frame.py1))
         var bar_color = theme.waterfall_total_color if row_is_total else (
             theme.mark_color_negative if plot.y_data[i]
             < 0.0 else theme.mark_color
@@ -209,13 +213,22 @@ def _render_waterfall[
                     plot._waterfall.y1[i] if row_is_total else plot.y_data[i],
                 )
             )
-        target.fill_rect(bar_x, rect.y, bar_width, rect.height, bar_color)
+        var rx0 = _snap_pixel_edge(bar_x)
+        var rx1 = _snap_pixel_edge(bar_x1)
+        var ry0 = _snap_pixel_edge(rect.y)
+        var ry1 = _snap_pixel_edge(rect.y + rect.height)
+        target.fill_rect(rx0, ry0, rx1 - rx0, ry1 - ry0, bar_color)
         if theme.svg_tooltips:
             target.end_annotated_group()
         if theme.show_data_labels:
             var delta = plot.y_data[i]
             var at = orient.outside_band_label(
-                rect, bar_x, bar_width, delta < 0.0, sc.label_gap, sc.font_size
+                rect,
+                bar_x,
+                bar_x1 - bar_x,
+                delta < 0.0,
+                sc.label_gap,
+                sc.font_size,
             )
             frame.text_requests.append(
                 _TextRequest(
@@ -232,17 +245,18 @@ def _render_waterfall[
             )
 
         if i > 0:
-            var prev_end_py = _axis_pixel(
-                frame.y_scale, plot._waterfall.y1[i - 1]
+            var prev_end_py = _snap_pixel_center(
+                _axis_pixel_f(frame.y_scale, plot._waterfall.y1[i - 1])
             )
             # With no totals, the edge comes from the band geometry (band_start +
             # bandwidth, summed then rounded once) since every bar is full band
             # width. With totals, ask the previous bar what it actually drew, since
             # a delta bar can be narrower than its band.
-            var prev_x1 = bar_x_list[i - 1] + bar_width_list[
-                i - 1
-            ] if using_totals else round_to_int(
-                frame.x_scale.band_start(i - 1) + frame.x_scale.bandwidth()
+            var prev_x1 = (
+                bar_x1_list[
+                    i - 1
+                ] if using_totals else frame.x_scale.band_start(i - 1)
+                + frame.x_scale.bandwidth()
             )
             target.draw_line_aa(
                 prev_x1,
