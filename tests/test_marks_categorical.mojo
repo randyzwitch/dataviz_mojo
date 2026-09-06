@@ -1219,14 +1219,21 @@ def test_render_punchcard_svg_matches_confirmed_circles() raises:
     )
     var svg = render_svg(plot)
     var s = svg.to_string()
+    # The radii are unchanged -- 50/100/20 at scale 10 are whole pixels
+    # either way. What moved is the center: a band's center falls on a
+    # half pixel here, and a disk is antialiased on every side wherever
+    # it sits, so there is nothing to gain by rounding it to 78.
     assert_true(
-        '<circle cx="140" cy="78" r="5" fill="#1e64b4"/>' in s, "(Mon, 9am)"
+        '<circle cx="140.000" cy="77.500" r="5.000" fill="#1e64b4"/>' in s,
+        "(Mon, 9am)",
     )
     assert_true(
-        '<circle cx="140" cy="193" r="10" fill="#1e64b4"/>' in s, "(Mon, 10am)"
+        '<circle cx="140.000" cy="192.500" r="10.000" fill="#1e64b4"/>' in s,
+        "(Mon, 10am)",
     )
     assert_true(
-        '<circle cx="300" cy="78" r="2" fill="#1e64b4"/>' in s, "(Tue, 9am)"
+        '<circle cx="300.000" cy="77.500" r="2.000" fill="#1e64b4"/>' in s,
+        "(Tue, 9am)",
     )
 
 
@@ -1349,17 +1356,26 @@ def test_render_corrplot_svg_matches_confirmed_circles() raises:
     )
     var svg = render_svg(plot)
     var s = svg.to_string()
+    # r = max_radius * abs(value), unrounded: 24.150 for 1.0 and 12.075
+    # for -0.5, exactly half. Rounding these to 24 and 12 was harmless
+    # at two variables and destructive at fifteen, where max_radius is
+    # around 5 and a whole-pixel radius leaves about six distinct sizes
+    # to say everything between 0 and 1 with.
     assert_true(
-        '<circle cx="140" cy="78" r="24" fill="#dc5a28"/>' in s, "(A, A)"
+        '<circle cx="140.000" cy="77.500" r="24.150" fill="#dc5a28"/>' in s,
+        "(A, A)",
     )
     assert_true(
-        '<circle cx="300" cy="78" r="12" fill="#94adda"/>' in s, "(A, B)"
+        '<circle cx="300.000" cy="77.500" r="12.075" fill="#94adda"/>' in s,
+        "(A, B)",
     )
     assert_true(
-        '<circle cx="140" cy="193" r="12" fill="#94adda"/>' in s, "(B, A)"
+        '<circle cx="140.000" cy="192.500" r="12.075" fill="#94adda"/>' in s,
+        "(B, A)",
     )
     assert_true(
-        '<circle cx="300" cy="193" r="24" fill="#dc5a28"/>' in s, "(B, B)"
+        '<circle cx="300.000" cy="192.500" r="24.150" fill="#dc5a28"/>' in s,
+        "(B, B)",
     )
 
 

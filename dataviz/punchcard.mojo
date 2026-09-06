@@ -101,9 +101,14 @@ def _render_punchcard[
     )
 
     for i in range(len(plot._punchcard.x)):
-        var cx = round_to_int(frame.x_scale.center(x_idx.indices[i]))
-        var cy = round_to_int(frame.y_scale.center(y_idx.indices[i]))
-        var radius = round_to_int(
+        # Same rule as corrplot: a disk has no crisp position to snap
+        # to, and the radius is the encoding -- rounding it to whole
+        # pixels collapsed a continuous size scale into as many steps as
+        # the largest punch is wide, so two counts a fifth apart could
+        # draw the same circle.
+        var cx = frame.x_scale.center(x_idx.indices[i])
+        var cy = frame.y_scale.center(y_idx.indices[i])
+        var radius = (
             plot._punchcard.sizes[i] / plot._punchcard.scale * frame.sc.scale
         )
         target.fill_circle_aa(cx, cy, radius, theme.mark_color)
