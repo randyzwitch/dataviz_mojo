@@ -11,6 +11,8 @@ from dataviz.plot import (
     _Scaled,
     _TextRequest,
     _axis_pixel,
+    _axis_pixel_f,
+    _snap_pixel_edge,
     _data_extent,
     _max_label_width,
     _finished,
@@ -273,14 +275,22 @@ def _render_gantt[
         cache=cache,
     )
 
-    var row_height = round_to_int(frame.y_scale.bandwidth())
+    var row_height = frame.y_scale.bandwidth()
     for i in range(len(plot.x_categories)):
-        var row_y = round_to_int(frame.y_scale.band_start(i))
-        var start_px = _axis_pixel(frame.x_scale, plot._gantt.start[i])
-        var end_px = _axis_pixel(frame.x_scale, plot._gantt.end[i])
-        var bar_x = min(start_px, end_px)
-        var bar_width = max(1, max(start_px, end_px) - min(start_px, end_px))
-        target.fill_rect(bar_x, row_y, bar_width, row_height, theme.mark_color)
+        var row_y = frame.y_scale.band_start(i)
+        var start_px = _axis_pixel_f(frame.x_scale, plot._gantt.start[i])
+        var end_px = _axis_pixel_f(frame.x_scale, plot._gantt.end[i])
+        # Snap the four edges, then floor the width at a pixel so a
+        # zero-length task still draws a mark. The floor comes after the
+        # snap: two equal edges snap to one boundary, which is exactly
+        # the case it guards.
+        var bx0 = _snap_pixel_edge(min(start_px, end_px))
+        var bx1 = _snap_pixel_edge(max(start_px, end_px))
+        if bx1 - bx0 < 1.0:
+            bx1 = bx0 + 1.0
+        var by0 = _snap_pixel_edge(row_y)
+        var by1 = _snap_pixel_edge(row_y + row_height)
+        target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, theme.mark_color)
 
     return frame.result()
 

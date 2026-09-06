@@ -1,12 +1,12 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.plot import (
     Plot,
     _RenderResult,
-    _axis_pixel,
+    _axis_pixel_f,
+    _snap_pixel_edge,
     _data_extent,
     _draw_categorical_axis_frame,
     _finished,
@@ -80,12 +80,16 @@ def _render_span_chart[
     var bandwidth = frame.x_scale.bandwidth()
     for i in range(len(plot.x_categories)):
         var band_start = frame.x_scale.band_start(i)
-        var bar_x = round_to_int(band_start)
-        var bar_width = round_to_int(bandwidth)
-        var low_py = _axis_pixel(frame.y_scale, plot._gantt.start[i])
-        var high_py = _axis_pixel(frame.y_scale, plot._gantt.end[i])
-        var bar_y = min(low_py, high_py)
-        var bar_height = max(1, max(low_py, high_py) - min(low_py, high_py))
+        var low_py = _axis_pixel_f(frame.y_scale, plot._gantt.start[i])
+        var high_py = _axis_pixel_f(frame.y_scale, plot._gantt.end[i])
+        # Four snapped edges; the height keeps its one-pixel floor so a
+        # zero-length span still draws, applied after the snap.
+        var bx0 = _snap_pixel_edge(band_start)
+        var bx1 = _snap_pixel_edge(band_start + bandwidth)
+        var by0 = _snap_pixel_edge(min(low_py, high_py))
+        var by1 = _snap_pixel_edge(max(low_py, high_py))
+        if by1 - by0 < 1.0:
+            by1 = by0 + 1.0
         if theme.svg_tooltips:
             target.begin_annotated_group(
                 _span_tooltip_label(
@@ -94,7 +98,7 @@ def _render_span_chart[
                     plot._gantt.end[i],
                 )
             )
-        target.fill_rect(bar_x, bar_y, bar_width, bar_height, theme.mark_color)
+        target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, theme.mark_color)
         if theme.svg_tooltips:
             target.end_annotated_group()
 
