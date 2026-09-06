@@ -474,19 +474,19 @@ def test_render_svg_grouped_bar_error_bar_matches_hand_derived_positions() raise
     )
     var s = render_svg(plot).to_string()
     assert_true(
-        'y1="88"' in s and 'y2="88"' in s,
+        'y1="88.000"' in s and 'y2="88.000"' in s,
         "s1's upper whisker/cap sits at 10+1's hand-derived row",
     )
     assert_true(
-        'y1="99"' in s and 'y2="99"' in s,
+        'y1="99.000"' in s and 'y2="99.000"' in s,
         "s1's lower whisker/cap sits at 10-1's hand-derived row",
     )
     assert_true(
-        'y1="26"' in s and 'y2="26"' in s,
+        'y1="26.000"' in s and 'y2="26.000"' in s,
         "s2's upper whisker/cap sits at 20+2's hand-derived row",
     )
     assert_true(
-        'y1="49"' in s and 'y2="49"' in s,
+        'y1="49.000"' in s and 'y2="49.000"' in s,
         "s2's lower whisker/cap sits at 20-2's hand-derived row",
     )
     assert_true(

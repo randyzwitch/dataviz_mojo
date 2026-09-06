@@ -1,6 +1,5 @@
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
-from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from canvas.text.render import TextAlign
@@ -16,12 +15,12 @@ from dataviz.plot import (
     _Scaled,
     _series_tooltip_label,
     _TextRequest,
-    _axis_pixel,
+    _axis_pixel_f,
     _draw_categorical_axis_frame,
     _LegendLayout,
     _draw_legend_at,
     _legend_layout,
-    _pull_off_axis_line,
+    _pull_off_axis_line_f,
     _finished,
     _require_non_empty,
     _zero_baseline_y_extent,
@@ -215,19 +214,21 @@ def _draw_grouped_bars[
     var theme = plot._theme
     var sc = _Scaled(theme)
     var n_series = len(plot._grouped_bar.series_names)
-    var baseline = _axis_pixel(value_scale, 0.0)
+    var baseline = _axis_pixel_f(value_scale, 0.0)
     var sub_size = band_scale.bandwidth() / Float64(n_series)
     var has_errors = len(plot._grouped_bar.errors) > 0
-    var cap_half = round_to_int(sc.error_bar_cap_width)
+    var cap_half = sc.error_bar_cap_width
 
     for i in range(len(plot.x_categories)):
         var band_start = band_scale.band_start(i)
         for j in range(n_series):
-            var near = round_to_int(band_start + Float64(j) * sub_size)
-            var far = round_to_int(band_start + Float64(j + 1) * sub_size)
+            var near = band_start + Float64(j) * sub_size
+            var far = band_start + Float64(j + 1) * sub_size
             var value = plot._grouped_bar.values[j][i]
-            var extent = _pull_off_axis_line(
-                baseline, _axis_pixel(value_scale, value), baseline_edge
+            var extent = _pull_off_axis_line_f(
+                baseline,
+                _axis_pixel_f(value_scale, value),
+                Float64(baseline_edge),
             )
             var color = palette[j % len(palette)]
             if theme.svg_tooltips:
@@ -240,9 +241,9 @@ def _draw_grouped_bars[
                 )
             if has_errors:
                 var err = plot._grouped_bar.errors[j][i]
-                var center_j = round_to_int(Float64(near + far) / 2.0)
-                var py_hi = _axis_pixel(value_scale, value + err)
-                var py_lo = _axis_pixel(value_scale, value - err)
+                var center_j = (near + far) / 2.0
+                var py_hi = _axis_pixel_f(value_scale, value + err)
+                var py_lo = _axis_pixel_f(value_scale, value - err)
                 orient.value_line(
                     target, py_hi, py_lo, center_j, color, sc.scale
                 )
