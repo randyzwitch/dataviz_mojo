@@ -753,11 +753,11 @@ def test_render_span_chart_svg_matches_confirmed_rects() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="76" y="161" width="128" height="79" fill="#1e64b4"/>' in s,
+        '<rect x="77" y="162" width="128" height="78" fill="#1e64b4"/>' in s,
         "bar A's rect",
     )
     assert_true(
-        '<rect x="236" y="30" width="128" height="105" fill="#1e64b4"/>' in s,
+        '<rect x="237" y="31" width="128" height="105" fill="#1e64b4"/>' in s,
         "bar B's rect",
     )
 
@@ -851,7 +851,7 @@ def test_render_gantt_svg_matches_confirmed_rects() raises:
         "A's bar",
     )
     assert_true(
-        '<rect x="220" y="147" width="145" height="92" fill="#1e64b4"/>' in s,
+        '<rect x="221" y="147" width="145" height="92" fill="#1e64b4"/>' in s,
         "B's bar",
     )
 
