@@ -12,7 +12,7 @@ from dataviz.plot import (
     Plot,
     _Orientation,
     _RenderResult,
-    _axis_pixel,
+    _axis_pixel_f,
     _data_extent,
     _draw_categorical_axis_frame,
     _min_max,
@@ -141,19 +141,19 @@ def _draw_violin_silhouettes[
         ) / max_density if max_density > 0.0 else 0.0
         orient.path_move_to(
             path,
-            Float64(_axis_pixel(value_scale, sample_values[0])),
+            _axis_pixel_f(value_scale, sample_values[0]),
             center + densities[0] * scale,
         )
         for s in range(1, _KDE_SAMPLES):
             orient.path_line_to(
                 path,
-                Float64(_axis_pixel(value_scale, sample_values[s])),
+                _axis_pixel_f(value_scale, sample_values[s]),
                 center + densities[s] * scale,
             )
         for s in range(_KDE_SAMPLES - 1, -1, -1):
             orient.path_line_to(
                 path,
-                Float64(_axis_pixel(value_scale, sample_values[s])),
+                _axis_pixel_f(value_scale, sample_values[s]),
                 center - densities[s] * scale,
             )
         path.close()

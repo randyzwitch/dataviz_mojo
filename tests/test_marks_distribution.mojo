@@ -172,15 +172,15 @@ def test_render_violin_svg_matches_confirmed_path_points() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<path d="M293.678,240.000' in s,
+        '<path d="M293.678,239.545' in s,
         "the path's first point -- right edge at y=1.0 (bottom)",
     )
     assert_true(
-        "322.400,139.000 L322.400,131.000" in s,
+        "322.400,138.605 L322.400,131.395" in s,
         "the flat peak-density plateau, at its full half_width",
     )
     assert_true(
-        "L146.322,240.000 Z" in s,
+        "L146.322,239.545 Z" in s,
         "the path's last point before closing -- left edge at y=1.0",
     )
 
@@ -393,17 +393,17 @@ def test_render_ridgeline_svg_matches_confirmed_path_points() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<path d="M75.000,96.667 L75.000,24.955' in s,
+        '<path d="M74.545,96.667 L74.545,24.955' in s,
         "row A's baseline and left-edge rise",
     )
     assert_true(
-        "225.000,-3.000" in s, "row A's peak, at its two middle samples"
+        "214.984,-3.000" in s, "row A's peak, at its two middle samples"
     )
     assert_true(
-        "L365.000,96.667 Z" in s, "row A's closing edge, back down to baseline"
+        "L365.455,96.667 Z" in s, "row A's closing edge, back down to baseline"
     )
     assert_true(
-        '<path d="M75.000,173.333 L75.000,101.622' in s,
+        '<path d="M74.545,173.333 L74.545,101.622' in s,
         "row B's baseline and left-edge rise",
     )
     # Row C's baseline (250) lands on the bottom axis line, so it is pulled
@@ -411,7 +411,7 @@ def test_render_ridgeline_svg_matches_confirmed_path_points() raises:
     # 1px (178.289 -> 177.289). Rows A/B's baselines are interior
     # boundaries and unaffected.
     assert_true(
-        '<path d="M75.000,249.000 L75.000,177.289' in s,
+        '<path d="M74.545,249.000 L74.545,177.289' in s,
         "row C's baseline and left-edge rise",
     )
 
@@ -592,13 +592,13 @@ def test_render_streamgraph_svg_matches_confirmed_paths() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<path d="M140.000,135.000 L300.000,135.000 L300.000,240.000'
-        ' L140.000,240.000 Z" fill="#1f77b4"/>'
+        '<path d="M140.000,135.000 L300.000,135.000 L300.000,239.545'
+        ' L140.000,239.545 Z" fill="#1f77b4"/>'
         in s,
         "A's band",
     )
     assert_true(
-        '<path d="M140.000,30.000 L300.000,30.000 L300.000,135.000'
+        '<path d="M140.000,30.455 L300.000,30.455 L300.000,135.000'
         ' L140.000,135.000 Z" fill="#ff7f0e"/>'
         in s,
         "B's band",
@@ -629,10 +629,10 @@ def test_render_streamgraph_svg_smoothing_matches_confirmed_cubic_path() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<path d="M113.333,114.000 C131.111,114.000 184.444,107.667'
-        " 220.000,114.000 C255.556,120.333 308.889,145.667 326.667,152.000"
-        " L326.667,219.000 C308.889,222.500 255.556,243.500 220.000,240.000"
-        ' C184.444,236.500 131.111,205.000 113.333,198.000 Z" fill="#1f77b4"'
+        '<path d="M113.333,114.091 C131.111,114.091 184.444,107.818'
+        " 220.000,114.091 C255.556,120.364 308.889,145.455 326.667,151.727"
+        " L326.667,218.636 C308.889,222.121 255.556,243.030 220.000,239.545"
+        ' C184.444,236.061 131.111,204.697 113.333,197.727 Z" fill="#1f77b4"'
         "/>"
         in s,
         (
@@ -702,13 +702,13 @@ def test_streamgraph_smoothing_zero_reproduces_straight_bands() raises:
     var svg = render_svg(_hoisted5)
     var s = svg.to_string()
     assert_true(
-        '<path d="M140.000,135.000 L300.000,135.000 L300.000,240.000'
-        ' L140.000,240.000 Z" fill="#1f77b4"/>'
+        '<path d="M140.000,135.000 L300.000,135.000 L300.000,239.545'
+        ' L140.000,239.545 Z" fill="#1f77b4"/>'
         in s,
         "A's band, straight",
     )
     assert_true(
-        '<path d="M140.000,30.000 L300.000,30.000 L300.000,135.000'
+        '<path d="M140.000,30.455 L300.000,30.455 L300.000,135.000'
         ' L140.000,135.000 Z" fill="#ff7f0e"/>'
         in s,
         "B's band, straight",
