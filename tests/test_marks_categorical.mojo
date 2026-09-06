@@ -605,19 +605,19 @@ def test_render_population_pyramid_svg_matches_confirmed_rects() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="169" y="32" width="51" height="92" fill="#1f77b4"/>' in s,
+        '<rect x="170" y="32" width="51" height="92" fill="#1f77b4"/>' in s,
         "A's left bar",
     )
     assert_true(
-        '<rect x="220" y="32" width="102" height="92" fill="#ff7f0e"/>' in s,
+        '<rect x="221" y="32" width="101" height="92" fill="#ff7f0e"/>' in s,
         "A's right bar",
     )
     assert_true(
-        '<rect x="68" y="147" width="152" height="92" fill="#1f77b4"/>' in s,
+        '<rect x="68" y="147" width="153" height="92" fill="#1f77b4"/>' in s,
         "B's left bar",
     )
     assert_true(
-        '<rect x="220" y="147" width="51" height="92" fill="#ff7f0e"/>' in s,
+        '<rect x="221" y="147" width="50" height="92" fill="#ff7f0e"/>' in s,
         "B's right bar",
     )
 
