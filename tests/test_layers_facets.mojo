@@ -34,7 +34,7 @@ from _test_helpers import (
 )
 from canvas.color import Color
 from canvas.path import PathOp
-from dataviz import StepStyle
+from dataviz import LineStyle, StepStyle
 from dataviz.color_scale import default_categorical_palette
 from dataviz.colors import CORNFLOWERBLUE, MAGENTA, RED, TOMATO
 from dataviz.plot import (
@@ -687,6 +687,62 @@ def test_render_layers_svg_bar_combo_matches_hand_derived_positions() raises:
         ' stroke-linejoin="round"/>'
         in s,
         "the line, positioned by category index, not its own x values",
+    )
+
+
+def test_render_layers_bar_combo_honors_the_line_style() raises:
+    """#383: the bar-combo path builds its `Mark.LINE` geometry inline
+    rather than calling `_draw_line_layer`, and its stroke had no
+    `dashes=`, so `mark_line(style=...)` rendered solid and silently.
+
+    A dashed reference line drawn solid does not look like a bug -- it
+    looks like another data series, which is the one thing dashing it was
+    meant to deny.
+
+    Asserted through SVG, where a dash pattern is an exact attribute
+    rather than something to infer from pixels, matching
+    `test_line_styles_emit_the_expected_dash_patterns`.
+    """
+    var cats: List[String] = ["A", "B"]
+    var bar_y: List[Float64] = [10.0, 20.0]
+    var idx: List[Float64] = [0.0, 1.0]
+    var line_y: List[Float64] = [15.0, 5.0]
+
+    var bars = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=bar_y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var line = (
+        Plot()
+        .mark_line(style=LineStyle.DASHED)
+        .encode(x=idx, y=line_y)
+        .size(400, 300)
+    )
+    var plots: List[Plot] = [bars^, line^]
+    var s = render_layers_svg(plots).to_string()
+    assert_true(
+        'stroke-dasharray="6.000 4.000"' in s,
+        "the layered line is dashed -- DASHED is 6 on, 4 off at scale 1",
+    )
+
+    # The control: the same chart with the default style must emit no
+    # dash pattern. Without it this test would still pass if `dashes=`
+    # were wired to a constant rather than to the layer's own style.
+    var solid_bars = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=bar_y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var solid_line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300)
+    var solid_plots: List[Plot] = [solid_bars^, solid_line^]
+    assert_true(
+        "stroke-dasharray" not in render_layers_svg(solid_plots).to_string(),
+        "the same chart with the default style emits no dash pattern",
     )
 
 

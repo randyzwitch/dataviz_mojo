@@ -501,8 +501,18 @@ def _render_bar_combo_layers[
             var path = _build_line_path(
                 stepped.px, stepped.py, layer_theme.line_smoothing
             )
+            # `dashes=` for the same reason the step above is honored
+            # (#383): this path builds its own geometry rather than
+            # calling `_draw_line_layer`, so every styling argument that
+            # function passes has to be repeated here or it is silently
+            # dropped. A dashed reference line rendering solid does not
+            # look like a bug, it looks like another data series -- which
+            # is exactly what dashing it was meant to deny.
             target.stroke_path_aa(
-                path, layer_theme.mark_color, width=layer_sc.line_width
+                path,
+                layer_theme.mark_color,
+                width=layer_sc.line_width,
+                dashes=plots[i]._mark_style.line_style.dashes(layer_sc.scale),
             )
         else:
             # Mark.AREA -- same closed-down-to-baseline technique
