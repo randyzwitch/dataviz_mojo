@@ -18,8 +18,10 @@ from dataviz.plot import (
     _draw_legend_at,
     _legend_layout,
     _finished,
+    _zero_baseline_y_extent,
 )
 from dataviz.scale import LinearScale
+from dataviz.stack_baseline import StackBaseline
 from dataviz.theme import Theme
 
 
@@ -92,19 +94,24 @@ def _render_streamgraph[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.STREAMGRAPH` plot: `encode_grouped_bar()`'s data
-    stacked the same running-total way as `Mark.STACKED_BAR`, with two
-    differences. Each category's stack starts from `-total_i / 2` rather
-    than a shared zero, so the whole stack floats centered around zero.
-    And each series is drawn as one flowing band connecting every
-    category's top/bottom edge in turn, filled via `fill_path_aa`, rather
-    than one rect per category.
+    stacked the same running-total way as `Mark.STACKED_BAR`, but with
+    each series drawn as one flowing band connecting every category's
+    top/bottom edge in turn, filled via `fill_path_aa`, rather than one
+    rect per category.
+
+    `_mark_style.streamgraph_baseline` decides where each stack starts
+    (#337). `WIGGLE`, the default, starts it at `-total_i / 2`, so the
+    whole stack floats centered on zero and the silhouette is symmetric
+    -- the streamgraph proper. `ZERO` starts every stack at a flat zero,
+    giving the ordinary stacked area chart, and takes its y-domain from
+    `_zero_baseline_y_extent` over the per-category totals so that zero
+    is an exact axis endpoint rather than a padded one.
 
     `Theme.line_smoothing` curves both the top and bottom edges
     (`_append_smoothed_edge`; `0.0` gives straight segments). The two cap
     edges at the first/last category always stay straight.
 
-    Every value must be non-negative. Reuses `_draw_categorical_axis_frame`
-    fed `_symmetric_zero_baseline_y_extent`'s domain.
+    Every value must be non-negative. Reuses `_draw_categorical_axis_frame`.
     """
     _validate_grouped_bar_series(plot)
 
@@ -133,8 +140,22 @@ def _render_streamgraph[
         cache=cache,
     ) if show_legend else _LegendLayout()
 
-    var y_scale = _symmetric_zero_baseline_y_extent(
-        plot._grouped_bar.values, n_categories
+    # Per-category stack totals: the y-extent needs them either way, and
+    # so does the WIGGLE baseline (`-total_i / 2`).
+    var totals = List[Float64](capacity=n_categories)
+    for i in range(n_categories):
+        var total = 0.0
+        for series in plot._grouped_bar.values:
+            total += series[i]
+        totals.append(total)
+
+    var zero_baseline = (
+        plot._mark_style.streamgraph_baseline == StackBaseline.ZERO
+    )
+    var y_scale = _zero_baseline_y_extent(totals) if zero_baseline else (
+        _symmetric_zero_baseline_y_extent(
+            plot._grouped_bar.values, n_categories
+        )
     )
     var frame = _draw_categorical_axis_frame(
         target,
@@ -148,14 +169,13 @@ def _render_streamgraph[
         cache=cache,
     )
 
-    # running[i]: each category's stack cursor, starting at its centered
-    # baseline (-total_i / 2) and advancing upward series by series.
-    var running = List[Float64]()
+    # running[i]: each category's stack cursor, advancing upward series
+    # by series from its baseline -- a flat zero for `ZERO`, or the
+    # centered `-total_i / 2` that gives a streamgraph its symmetric
+    # silhouette for `WIGGLE`.
+    var running = List[Float64](capacity=n_categories)
     for i in range(n_categories):
-        var total = 0.0
-        for series in plot._grouped_bar.values:
-            total += series[i]
-        running.append(-total / 2.0)
+        running.append(0.0 if zero_baseline else -totals[i] / 2.0)
 
     var palette = default_categorical_palette()
     for j in range(n_series):
@@ -317,4 +337,125 @@ def streamgraph[
         title=title,
         subtitle=subtitle,
         x_title=x_title,
+    )
+
+
+def stacked_area(
+    categories: List[String],
+    series_names: List[String],
+    values: List[List[Float64]],
+    theme: Theme = Theme(),
+    smoothing: Float64 = 0.0,
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """A stacked area chart: the same series `streamgraph()` stacks, laid
+    on a flat zero baseline instead of a centered one. matplotlib's
+    `stackplot`.
+
+    `Mark.STREAMGRAPH` with `StackBaseline.ZERO`. The two charts share
+    all their machinery and differ only in where each category's stack
+    starts, but they answer different questions, so they get different
+    names: a streamgraph shows composition changing over time when the
+    totals are not the point, and this shows the totals -- the bottom
+    series sits on the axis and can be read against it, and the top edge
+    is the running total.
+
+    Note `smoothing` defaults to `0.0` here, not `streamgraph()`'s `0.6`.
+    A streamgraph is meant to look like flowing water; a stacked area
+    chart is meant to be read, and curving between categories invents
+    values that are not in the data.
+
+    Args:
+        categories: One position along the x-axis per entry, in the
+            given order.
+        series_names: One band per name, bottom to top, used as the
+            legend key.
+        values: `values[j]` is `series_names[j]`'s value per category.
+            Every value must be non-negative.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        smoothing: Sets `theme.line_smoothing` -- how much each band's
+            edges curve, `[0.0, 1.0]`. Defaults to `0.0`, straight
+            segments between categories.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from dataviz import stacked_area
+        from dataviz.plot import save
+
+        def main() raises:
+            var years: List[String] = ["2020", "2021", "2022", "2023", "2024"]
+            var sources: List[String] = ["Wind", "Solar", "Hydro"]
+            var output: List[List[Int]] = [
+                [30, 40, 55, 60, 72],
+                [10, 18, 30, 45, 66],
+                [22, 23, 21, 24, 25],
+            ]
+
+            var c = stacked_area(
+                years, sources, output, title="Renewable output (TWh)"
+            )
+            save(c, "docs/src/examples/out_stacked_area.svg")
+        ```
+    """
+    var t = theme
+    t.line_smoothing = smoothing
+    var plot = (
+        Plot()
+        .mark_streamgraph(baseline=StackBaseline.ZERO)
+        .encode_grouped_bar(
+            categories=categories, series_names=series_names, values=values
+        )
+    )
+    return _finished(
+        plot^, t, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def stacked_area[
+    dtype: DType
+](
+    categories: List[String],
+    series_names: List[String],
+    values: List[List[Scalar[dtype]]],
+    theme: Theme = Theme(),
+    smoothing: Float64 = 0.0,
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`stacked_area()` generalized over numeric element type for
+    `values`; see `grouped_bar()`'s `DType` overload. Delegates to the
+    concrete overload above.
+    """
+    return stacked_area(
+        categories,
+        series_names,
+        _materialize_nested_scalar_list(values),
+        theme=theme,
+        smoothing=smoothing,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

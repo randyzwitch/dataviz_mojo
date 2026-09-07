@@ -81,7 +81,8 @@ from dataviz.radar import radar
 from dataviz.population_pyramid import population_pyramid
 from dataviz.single_axis import single_axis
 from dataviz.stacked_bar import stacked_bar
-from dataviz.streamgraph import streamgraph
+from dataviz.stack_baseline import StackBaseline
+from dataviz.streamgraph import stacked_area, streamgraph
 from dataviz.ridgeline import ridgeline
 from dataviz.violin import violin
 from dataviz.waterfall import waterfall

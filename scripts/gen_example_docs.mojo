@@ -74,6 +74,7 @@ def _titles() -> Dict[String, String]:
     d["funnel"] = "Funnel"
     d["bump"] = "Bump"
     d["streamgraph"] = "Streamgraph"
+    d["stacked_area"] = "Stacked Area"
     d["beeswarm"] = "Beeswarm"
     d["violin"] = "Violin"
     d["ridgeline"] = "Ridgeline"
@@ -166,6 +167,7 @@ def _categories() -> List[Category]:
                 "funnel",
                 "bump",
                 "streamgraph",
+                "stacked_area",
             ],
         )
     )
