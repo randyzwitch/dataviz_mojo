@@ -36,6 +36,10 @@ from canvas.color import Color
 from canvas.path import PathOp
 from dataviz import LineStyle, StepStyle
 from dataviz.color_scale import default_categorical_palette
+from dataviz.continuous import line
+from dataviz.kde import kdeplot
+from dataviz.tricontour import tricontour, tricontourf
+from std.math import cos, sin
 from dataviz.colors import CORNFLOWERBLUE, MAGENTA, RED, TOMATO
 from dataviz.plot import (
     Plot,
@@ -1895,6 +1899,164 @@ def test_render_layers_svg_primary_layers_own_y_title_is_not_mistaken_for_a_capt
         "rotate(90.000" not in s,
         "no right-side caption draws just because plots[0] set a y_title",
     )
+
+
+def _scattered_samples() raises -> List[List[Float64]]:
+    """80 pseudo-random `(x, y, z)` samples, the shape
+    `encode_tricontour()` takes. The generator is the LCG every
+    tricontour example uses, so the samples are the same ones the docs
+    render.
+    """
+    var x = List[Float64]()
+    var y = List[Float64]()
+    var z = List[Float64]()
+    var seed = 12345
+    for _ in range(80):
+        seed = (seed * 1103515245 + 12345) % 2147483648
+        var px = Float64(seed % 1000) / 100.0
+        seed = (seed * 1103515245 + 12345) % 2147483648
+        var py = Float64(seed % 1000) / 100.0
+        x.append(px)
+        y.append(py)
+        z.append(sin(px) * cos(py))
+    var out = List[List[Float64]]()
+    out.append(x^)
+    out.append(y^)
+    out.append(z^)
+    return out^
+
+
+def test_render_layers_names_the_rejected_layer_and_where_the_gap_is_tracked() raises:
+    """#401: `tricontourf()`'s docstring told callers to layer a
+    `tricontour()` over it, which raises. The docstring is fixed, but a
+    caller who reaches the raise some other way used to get a message
+    naming only Mark.BAR and Mark.ARC -- neither their mark, nor which
+    layer was wrong, nor where the gap is tracked.
+
+    The rejected layer is the *second* one here, so an index in the
+    message can only come from the loop and not from a constant: a
+    message hard-coding "layer 0" would pass the first assertion below
+    and fail this one.
+    """
+    var s = _scattered_samples()
+    var lx: List[Float64] = [0.0, 10.0]
+    var ly: List[Float64] = [0.0, 10.0]
+    var plots = List[Plot]()
+    plots.append(line(lx, ly, width=400, height=300))
+    plots.append(tricontour(s[0], s[1], s[2], width=400, height=300))
+    with assert_raises(contains="layer 1"):
+        _ = render_layers(plots)
+    with assert_raises(contains="#376"):
+        _ = render_layers(plots)
+
+
+def test_layering_a_tricontour_over_a_tricontourf_raises_today() raises:
+    """The guard #401 asks for: the exact call `tricontourf()`'s
+    docstring used to recommend. It raises, and the docstring now says
+    so.
+
+    Flip this to a positive test when #376 lands -- at which point the
+    combined render must put its isolines on the pixels
+    `test_tricontour_and_tricontourf_draw_the_same_axis_frame` below
+    pins.
+
+    `contains="layer 0"` is what discriminates: the filled layer is
+    first, so a message that named a fixed layer index or none at all
+    would not match.
+    """
+    var s = _scattered_samples()
+    var plots = List[Plot]()
+    plots.append(tricontourf(s[0], s[1], s[2], width=400, height=300))
+    plots.append(tricontour(s[0], s[1], s[2], width=400, height=300))
+    with assert_raises(contains="layer 0"):
+        _ = render_layers(plots)
+
+
+def test_layering_two_kde_curves_raises_today() raises:
+    """The same guard for `kdeplot()`, whose docstring carried the same
+    bad advice (#401): seaborn compares distributions by calling
+    `kdeplot()` twice onto one axes, and `Mark.KDE` is not on
+    `render_layers()`'s allow-list either.
+    """
+    var a: List[Float64] = [1.0, 2.0, 2.5, 3.0, 4.0, 4.5, 5.0]
+    var b: List[Float64] = [3.0, 3.5, 4.0, 5.0, 6.0, 6.5, 7.0]
+    var plots = List[Plot]()
+    plots.append(kdeplot(a, width=400, height=300))
+    plots.append(kdeplot(b, width=400, height=300))
+    with assert_raises(contains="layer 0"):
+        _ = render_layers(plots)
+
+
+def test_tricontour_and_tricontourf_draw_the_same_axis_frame() raises:
+    """What makes "render them separately and read them against each
+    other" honest advice, and what makes #376's fix mechanical for
+    these two marks: both lay out through `_draw_continuous_axis_frame`
+    over `_data_extent` of the same x/y, with no legend column, so at
+    equal size and theme the frames coincide exactly.
+
+    Asserted on the SVG rather than on pixels because the frame is
+    exactly the elements SVG names: every `<line>` (the two axis lines
+    and the gridlines) and every `<text>` (the tick labels), compared
+    element by element. A raster comparison would be dominated by the
+    contours themselves, which are supposed to differ.
+
+    This is a characterization test, not a regression one: it passes
+    before this PR as well as after, and its job is to keep the claim
+    the two docstrings now make from going quietly stale.
+    """
+    var s = _scattered_samples()
+    var a = render_svg(
+        tricontour(s[0], s[1], s[2], width=400, height=300)
+    ).to_string()
+    var b = render_svg(
+        tricontourf(s[0], s[1], s[2], width=400, height=300)
+    ).to_string()
+
+    var lines_a = _elements_of(a, "<line")
+    var lines_b = _elements_of(b, "<line")
+    assert_true(
+        len(lines_a) > 0, "the frame draws axis lines and gridlines at all"
+    )
+    assert_equal(
+        len(lines_a),
+        len(lines_b),
+        "both marks draw the same number of frame lines",
+    )
+    for i in range(len(lines_a)):
+        assert_equal(
+            lines_a[i],
+            lines_b[i],
+            "frame line " + String(i) + " is identical across the two marks",
+        )
+
+    var text_a = _elements_of(a, "<text")
+    var text_b = _elements_of(b, "<text")
+    assert_true(len(text_a) > 0, "the frame draws tick labels at all")
+    assert_equal(
+        len(text_a),
+        len(text_b),
+        "both marks draw the same number of tick labels",
+    )
+    for i in range(len(text_a)):
+        assert_equal(
+            text_a[i],
+            text_b[i],
+            "tick label " + String(i) + " is identical across the two marks",
+        )
+
+
+def _elements_of(svg: String, tag: String) -> List[String]:
+    """Every element opening with `tag`, from `<` to the matching `>`,
+    in document order. Enough to compare frame geometry: the axis lines
+    and tick labels this reads carry no child content.
+    """
+    var out = List[String]()
+    var i = svg.find(tag)
+    while i >= 0:
+        var j = svg.find(">", i)
+        out.append(String(svg[byte = i : j + 1]))
+        i = svg.find(tag, j)
+    return out^
 
 
 def main() raises:
