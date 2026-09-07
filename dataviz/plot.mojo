@@ -185,6 +185,7 @@ from dataviz.annotations import (
     _validate_log_scale_annotations,
 )
 from dataviz.legend_position import LegendPosition
+from dataviz.line_style import LineStyle
 from dataviz.mark import Mark
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.output_format import OutputFormat
@@ -356,6 +357,13 @@ struct _MarkStyle(Copyable, Movable):
     var radialbar_ring_gap_fraction: Float64
     var radar_grid_rings: Int
     var violin_width_fraction: Float64
+    var line_style: LineStyle
+    """How `Mark.LINE`'s stroke is broken up, from
+    `mark_line(style=...)`. `SOLID` unless asked otherwise; distinct
+    from `Theme.gridline_style`/`annotation_line_style`, which are
+    furniture rather than data.
+    """
+
     var corrplot_bubble_fraction: Float64
     var gauge_band_inner_fraction: Float64
     var gauge_needle_fraction: Float64
@@ -376,6 +384,7 @@ struct _MarkStyle(Copyable, Movable):
         self.radialbar_ring_gap_fraction = 0.25
         self.radar_grid_rings = 4
         self.violin_width_fraction = 0.4
+        self.line_style = LineStyle.SOLID
         self.corrplot_bubble_fraction = 0.42
         self.gauge_band_inner_fraction = 0.7
         self.gauge_needle_fraction = 0.9
@@ -619,11 +628,21 @@ struct Plot(Copyable, Movable):
         self._mark_style.point_tooltips = tooltips
         return self^
 
-    def mark_line(var self) -> Self:
+    def mark_line(var self, style: LineStyle = LineStyle.SOLID) -> Self:
         """A line plot: (x, y) pairs connected in data order, not sorted by x.
         Sort the data first if that isn't the order to draw.
+
+        Args:
+            style: How the stroke is broken up -- `SOLID` (the default),
+                `DASHED`, `DOTTED` or `DASH_DOT`. Useful for telling
+                series apart without relying on colour, which matters in
+                print and for readers who cannot separate the palette.
+
+        Returns:
+            Self, for further chaining.
         """
         self._mark = Mark.LINE
+        self._mark_style.line_style = style
         return self^
 
     def mark_bar(var self, horizontal: Bool = False) -> Self:

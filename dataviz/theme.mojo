@@ -52,6 +52,7 @@ from dataviz.colors import WHITE
 from dataviz.output_format import OutputFormat
 from dataviz.scale import TickFormat
 from dataviz.legend_position import LegendPosition
+from dataviz.line_style import LineStyle
 from dataviz.x_label_rotation import XAxisLabelRotation
 
 
@@ -274,6 +275,19 @@ struct Theme(ImplicitlyCopyable, Movable):
     coarser `Ticks.decimals`. A `Theme` flag rather than an `encode()`
     channel, like `color_by_sign`.
     """
+    var gridline_style: LineStyle
+    """How gridlines are stroked. `SOLID` by default, which is what they
+    have always been; `DOTTED` is the common house style and keeps them
+    from competing with the data.
+    """
+
+    var annotation_line_style: LineStyle
+    """How `annotate_hline`/`annotate_vline`/`annotate_best_fit` are
+    stroked. `SOLID` by default. Dashing these is the conventional way
+    to say a reference line or a fitted trend is not a measurement --
+    see `LineStyle`.
+    """
+
     var legend_position: LegendPosition
     """Which edge of the plot area the legend is reserved on and drawn
     against (#211); defaults to `RIGHT`, the column every legend used
@@ -363,6 +377,8 @@ struct Theme(ImplicitlyCopyable, Movable):
         output_format: OutputFormat = OutputFormat.SVG,
         svg_tooltips: Bool = True,
         show_data_labels: Bool = False,
+        gridline_style: LineStyle = LineStyle.SOLID,
+        annotation_line_style: LineStyle = LineStyle.SOLID,
         legend_position: LegendPosition = LegendPosition.RIGHT,
         x_label_rotation: XAxisLabelRotation = XAxisLabelRotation.AUTO,
         x_tick_format: TickFormat = TickFormat.AUTO,
@@ -424,6 +440,8 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.output_format = output_format
         self.svg_tooltips = svg_tooltips
         self.show_data_labels = show_data_labels
+        self.gridline_style = gridline_style
+        self.annotation_line_style = annotation_line_style
         self.legend_position = legend_position
         self.x_label_rotation = x_label_rotation
         self.x_tick_format = x_tick_format

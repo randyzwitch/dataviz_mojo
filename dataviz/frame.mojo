@@ -745,12 +745,24 @@ def _draw_continuous_axis_frame[
         for i in range(len(x_ticks.values)):
             var px = _axis_pixel(out_x_scale, x_ticks.values[i])
             target.draw_line_aa(
-                px, plot_y0, px, plot_y1, theme.gridline_color, width=sc.scale
+                px,
+                plot_y0,
+                px,
+                plot_y1,
+                theme.gridline_color,
+                width=sc.scale,
+                dashes=theme.gridline_style.dashes(sc.scale),
             )
         for i in range(len(y_ticks.values)):
             var py = _axis_pixel(out_y_scale, y_ticks.values[i])
             target.draw_line_aa(
-                plot_x0, py, plot_x1, py, theme.gridline_color, width=sc.scale
+                plot_x0,
+                py,
+                plot_x1,
+                py,
+                theme.gridline_color,
+                width=sc.scale,
+                dashes=theme.gridline_style.dashes(sc.scale),
             )
 
     target.draw_line_aa(
@@ -983,7 +995,13 @@ def _draw_categorical_axis_frame[
         for i in range(len(y_ticks.values)):
             var py = _axis_pixel(out_y_scale, y_ticks.values[i])
             target.draw_line_aa(
-                plot_x0, py, plot_x1, py, theme.gridline_color, width=sc.scale
+                plot_x0,
+                py,
+                plot_x1,
+                py,
+                theme.gridline_color,
+                width=sc.scale,
+                dashes=theme.gridline_style.dashes(sc.scale),
             )
 
     target.draw_line_aa(

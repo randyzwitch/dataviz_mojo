@@ -357,6 +357,7 @@ def _draw_annotation_lines[
             py,
             theme.annotation_color,
             width=sc.scale,
+            dashes=theme.annotation_line_style.dashes(sc.scale),
         )
         var label = plot._annotations.line_labels[i]
         if label.byte_length() > 0:
@@ -415,6 +416,7 @@ def _draw_annotation_vlines[
             Float64(py_bottom),
             theme.annotation_color,
             width=sc.scale,
+            dashes=theme.annotation_line_style.dashes(sc.scale),
         )
         var label = plot._annotations.vline_labels[i]
         if label.byte_length() > 0:
@@ -585,6 +587,7 @@ def _draw_annotation_best_fit[
         py_right,
         theme.annotation_color,
         width=sc.scale,
+        dashes=theme.annotation_line_style.dashes(sc.scale),
     )
 
     var text_x = max(result.px0, result.px1) - sc.label_gap
