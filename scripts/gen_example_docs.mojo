@@ -94,6 +94,8 @@ def _titles() -> Dict[String, String]:
     d["contourf"] = "Filled Contour"
     d["tricontour"] = "Scattered Contour"
     d["tricontourf"] = "Scattered Contour (Filled)"
+    d["kdeplot"] = "Density Curve"
+    d["rugplot"] = "Rug"
     d["marimekko"] = "Marimekko"
     d["sunburst"] = "Sunburst"
     d["tree"] = "Tree"
@@ -182,6 +184,8 @@ def _categories() -> List[Category]:
                 "beeswarm",
                 "violin",
                 "ridgeline",
+                "kdeplot",
+                "rugplot",
             ],
         )
     )

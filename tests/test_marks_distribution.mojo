@@ -18,6 +18,8 @@ from _test_helpers import (
 from canvas.color import Color
 from canvas.vector.svg import SvgCanvas
 from dataviz import (
+    kdeplot,
+    rugplot,
     beeswarm,
     bump,
     effect_scatter,
@@ -26,6 +28,7 @@ from dataviz import (
     violin,
 )
 from dataviz.color_scale import default_categorical_palette
+from dataviz.kde import _kde_curve
 from dataviz.plot import Plot, render, render_svg
 from dataviz.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
@@ -335,6 +338,114 @@ def test_render_violin_raises_on_no_data() raises:
 # ---------------------------------------------------------------
 # from tests/test_ridgeline.mojo
 # ---------------------------------------------------------------
+
+
+def test_kde_curve_peaks_where_the_data_concentrates() raises:
+    """The estimate is the one violins already draw, so this checks it
+    reaches the chart with the right shape rather than re-testing the
+    estimator: a bimodal sample must produce two peaks with a dip.
+    """
+    var v = List[Float64]()
+    for _ in range(12):
+        v.append(10.0)
+    for _ in range(12):
+        v.append(30.0)
+
+    var curve = _kde_curve(v, 0.0)
+    var xs = curve[0].copy()
+    var ys = curve[1].copy()
+
+    # the density at each mode must exceed the density midway between
+    var mid_index = len(xs) // 2
+    var peak_low = 0.0
+    var peak_high = 0.0
+    for i in range(len(xs)):
+        if xs[i] < 20.0 and ys[i] > peak_low:
+            peak_low = ys[i]
+        if xs[i] > 20.0 and ys[i] > peak_high:
+            peak_high = ys[i]
+    assert_true(
+        peak_low > ys[mid_index] and peak_high > ys[mid_index],
+        "both modes rise above the dip between them",
+    )
+    assert_true(
+        peak_low > 0.0 and peak_high > 0.0, "both modes have real density"
+    )
+
+
+def test_render_kde_draws_a_curve_and_rug_draws_one_tick_per_value() raises:
+    """`Mark.KDE` strokes a path; `Mark.RUG` draws a tick per
+    observation, countable as runs of ink along its baseline row."""
+    var v: List[Float64] = [1.0, 2.0, 3.0, 7.0, 8.0, 9.0]
+
+    var svg = render_svg(kdeplot(v, width=320, height=240)).to_string()
+    assert_true(
+        svg.count('fill="none"') > 0, "the density curve is a stroked path"
+    )
+
+    var c = render(rugplot(v, width=400, height=260))
+    var t = Theme()
+    var row = c.height - 1
+    var best = 0
+    for yy in range(c.height):
+        var n = 0
+        for xx in range(c.width):
+            var p = c.get_pixel(xx, yy)
+            if (
+                p.r == t.mark_color.r
+                and p.g == t.mark_color.g
+                and p.b == t.mark_color.b
+            ):
+                n += 1
+        if n > best:
+            best = n
+            row = yy
+    var runs = 0
+    var inside = False
+    for xx in range(c.width):
+        var p = c.get_pixel(xx, row)
+        var ink = (
+            p.r == t.mark_color.r
+            and p.g == t.mark_color.g
+            and p.b == t.mark_color.b
+        )
+        if ink and not inside:
+            runs += 1
+        inside = ink
+    assert_equal(runs, len(v), "one rug tick per observation")
+
+
+def test_kde_rug_is_visible_over_a_filled_curve() raises:
+    """Ticks under a fill are cut in the background colour, because
+    mark_color on mark_color would be invisible -- the rug exists to show
+    where the sample actually is, so it has to be legible.
+
+    Asserted as "the rug changes the picture" rather than by pinning tick
+    colours: the ticks are antialiased, so their pixels are blends rather
+    than any exact colour.
+    """
+    var v: List[Float64] = [1.0, 2.0, 3.0, 7.0, 8.0, 9.0]
+    var without = render(
+        kdeplot(v, fill=True, rug=False, width=400, height=260)
+    )
+    var with_rug = render(
+        kdeplot(v, fill=True, rug=True, width=400, height=260)
+    )
+    var differing = 0
+    for yy in range(without.height):
+        for xx in range(without.width):
+            var a = without.get_pixel(xx, yy)
+            var b = with_rug.get_pixel(xx, yy)
+            if a.r != b.r or a.g != b.g or a.b != b.b:
+                differing += 1
+    assert_true(
+        differing > 0,
+        (
+            "rug=True is visible over the fill (differing pixels: "
+            + String(differing)
+            + ")"
+        ),
+    )
 
 
 def test_render_ridgeline_matches_hand_derived_rows() raises:

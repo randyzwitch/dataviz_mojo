@@ -36,6 +36,8 @@ from dataviz import (
     contourf,
     tricontour,
     tricontourf,
+    kdeplot,
+    rugplot,
     corrplot,
     effect_scatter,
     funnel,
@@ -294,6 +296,12 @@ def _representative_plot(mark: Mark) raises -> Plot:
             fy.append(b)
             fz.append(a * b)
         return tricontourf(fx, fy, fz, level_count=3, width=_W, height=_H)
+    if mark == Mark.KDE:
+        var kv: List[Float64] = [1.0, 2.0, 2.0, 3.0, 5.0, 5.0, 6.0, 8.0]
+        return kdeplot(kv, fill=True, rug=True, width=_W, height=_H)
+    if mark == Mark.RUG:
+        var rv: List[Float64] = [1.0, 2.0, 2.0, 3.0, 5.0, 5.0, 6.0, 8.0]
+        return rugplot(rv, width=_W, height=_H)
     if mark == Mark.BARBS:
         var u: List[Float64] = [5.0, 10.0, 15.0]
         var v: List[Float64] = [5.0, -10.0, 0.0]
@@ -491,7 +499,8 @@ def test_mark_count_is_one_past_the_newest_mark() raises:
     briefly had `CONTOUR = 43` alongside `COUNT = 43` and the sweep
     skipped contour entirely while still reporting itself green. This
     assertion is what then caught `Mark.CONTOURF` (#260) and
-    `Mark.TRICONTOUR` (#261) and `Mark.TRICONTOURF` (#323): each failed
+    `Mark.TRICONTOUR` (#261), `Mark.TRICONTOURF` (#323) and
+    `Mark.KDE`/`Mark.RUG` (#351): each failed
     here until both the constant and this line moved, which is the
     tripwire doing its job on every mark added since.
 
@@ -500,7 +509,7 @@ def test_mark_count_is_one_past_the_newest_mark() raises:
     updated, which is one edit away from the constant itself.
     """
     assert_true(
-        Mark.TRICONTOURF == Mark(Mark.COUNT - 1),
+        Mark.RUG == Mark(Mark.COUNT - 1),
         (
             "Mark.COUNT must be one past the newest mark -- update both when"
             " adding one"

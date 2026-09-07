@@ -252,6 +252,7 @@ from dataviz.corrplot import _render_corrplot
 from dataviz.punchcard import _render_punchcard
 from dataviz.barbs import _render_barbs
 from dataviz.contour import _render_contour, _render_contourf
+from dataviz.kde import _render_kde, _render_rug
 from dataviz.tricontour import _render_tricontour, _render_tricontourf
 from dataviz.marimekko import _render_marimekko
 from dataviz.sunburst import _render_sunburst
@@ -321,11 +322,15 @@ struct _DistributionData(Copyable, Movable):
 
     var values: List[List[Float64]]
     var kde_bandwidth_override: Float64
+    var kde_fill: Bool
+    var kde_rug: Bool
     var kde_scale_by_count: Bool
 
     def __init__(out self):
         self.values = List[List[Float64]]()
         self.kde_bandwidth_override = 0.0
+        self.kde_fill = False
+        self.kde_rug = False
         self.kde_scale_by_count = False
 
 
@@ -1203,6 +1208,58 @@ struct Plot(Copyable, Movable):
         self._distribution.kde_scale_by_count = scale_by_count
         self._horizontal = horizontal
         self._mark_style.violin_width_fraction = width_fraction
+        return self^
+
+    def mark_kde(
+        var self,
+        bandwidth: Float64 = 0.0,
+        fill: Bool = False,
+        rug: Bool = False,
+    ) -> Self:
+        """A kernel-density curve over raw observations: `mark_violin()`'s
+        estimate drawn on a continuous frame -- value across, density up
+        -- rather than mirrored inside a category band. Encoded via
+        `encode_kde()`; see `kdeplot()` for the one-call form.
+
+        Comparing several distributions on one frame needs
+        `render_layers()`, which today accepts only
+        `Mark.POINT`/`LINE`/`AREA` (#376) -- so for now a `Mark.KDE`
+        chart shows one distribution, with `rug=True` for its
+        observations.
+
+        Args:
+            bandwidth: The kernel bandwidth. Not positive (the default)
+                uses Silverman's rule. This is the parameter that
+                changes the conclusion -- the same sample can show one
+                mode or three depending on it -- so it is worth setting
+                deliberately rather than trusting the default.
+            fill: Shade the curve down to zero as well as stroking it.
+            rug: Draw each observation as a short tick along the
+                baseline. A density curve is smooth everywhere, including
+                where nothing was observed, so the rug is what shows
+                where the sample actually is.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.KDE
+        self._distribution.kde_bandwidth_override = bandwidth
+        self._distribution.kde_fill = fill
+        self._distribution.kde_rug = rug
+        return self^
+
+    def mark_rug(var self) -> Self:
+        """One short tick per observation along the x axis. Encoded via
+        `encode_kde()`; see `rugplot()` for the one-call form.
+
+        The same ticks `mark_kde(rug=True)` draws under its curve, as a
+        chart of their own -- `render_layers()` cannot yet combine the
+        two marks (#376).
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.RUG
         return self^
 
     def mark_ridgeline(
@@ -2759,6 +2816,34 @@ struct Plot(Copyable, Movable):
             dims, row_names, _materialize_nested_scalar_list(data)
         )
 
+    def encode_kde(var self, values: List[Float64]) raises -> Self:
+        """Map one flat column of raw observations onto `Mark.KDE`/
+        `Mark.RUG`.
+
+        A single ungrouped column, unlike `encode_distribution()`'s
+        list-per-category: these marks draw one distribution on a
+        continuous axis, and several are compared by layering rather
+        than by sharing a categorical axis.
+
+        Args:
+            values: The observations.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            Error: `values` is empty.
+        """
+        _require_non_empty(len(values), "Plot.encode_kde()")
+        # One ungrouped column, stored in `_DistributionData`'s
+        # list-per-category shape as a single entry -- these marks share
+        # the estimator with VIOLIN/RIDGELINE but not the categorical
+        # axis, so there is no category to name.
+        var one = List[List[Float64]]()
+        one.append(values.copy())
+        self._distribution.values = one^
+        return self^
+
     def encode_distribution(
         var self, categories: List[String], values: List[List[Float64]]
     ) raises -> Self:
@@ -4099,6 +4184,10 @@ def _render_generic[
         return _render_contourf(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.TRICONTOUR:
         return _render_tricontour(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    if plot._mark == Mark.KDE:
+        return _render_kde(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    if plot._mark == Mark.RUG:
+        return _render_rug(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.TRICONTOURF:
         return _render_tricontourf(
             target, plot, ox0, oy0, ox1, oy1, cache=cache
