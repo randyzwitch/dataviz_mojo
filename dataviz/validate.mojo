@@ -443,17 +443,26 @@ def _check_step_smoothing(
     the same reason and with the same wording, differing only in which
     method to go and change.
 
+    `Mark.STREAMGRAPH` (#403) is the case where the conflict is most
+    likely to be hit by accident, because `streamgraph()` sets
+    `line_smoothing` to `0.6` itself: a stepped stream would raise on
+    its own default. That is why only `stacked_area()`, whose default
+    is `0.0`, exposes `step` as a one-call parameter -- and why the
+    message has to name `Plot.mark_streamgraph(step=...)` rather than a
+    line or area setter the caller never touched.
+
     Called by `_draw_line_layer` and `_draw_area_layer` beside
-    `_check_line_smoothing`, and by `_render_bar_combo_layers`' two
-    inline branches, so every path that can honor a step also refuses to
-    smooth one.
+    `_check_line_smoothing`, by `_render_bar_combo_layers`' two inline
+    branches, and by `_render_streamgraph`, so every path that can
+    honor a step also refuses to smooth one.
 
     Args:
         theme: The plot's theme, for `line_smoothing`.
         step: The mark's step style, from `_MarkStyle.step`.
         mark: Which mark is being drawn, so the message names the
             setter the caller actually reached for (`Mark.AREA` ->
-            `Plot.mark_area(step=...)`, everything else
+            `Plot.mark_area(step=...)`, `Mark.STREAMGRAPH` ->
+            `Plot.mark_streamgraph(step=...)`, everything else
             `Plot.mark_line(step=...)`). Defaulted to `Mark.LINE` for
             the call sites that predate `Mark.AREA` having a step.
 
@@ -461,10 +470,11 @@ def _check_step_smoothing(
         Error: Both a non-`NONE` `step` and a non-zero `line_smoothing`.
     """
     if step != StepStyle.NONE and theme.line_smoothing > 0.0:
-        var setter = (
-            "Plot.mark_area(step=...)" if mark
-            == Mark.AREA else "Plot.mark_line(step=...)"
-        )
+        var setter = String("Plot.mark_line(step=...)")
+        if mark == Mark.AREA:
+            setter = "Plot.mark_area(step=...)"
+        elif mark == Mark.STREAMGRAPH:
+            setter = "Plot.mark_streamgraph(step=...)"
         raise Error(
             "Theme.line_smoothing and "
             + setter

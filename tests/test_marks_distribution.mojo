@@ -20,6 +20,7 @@ from canvas.color import Color
 from canvas.text.font_cache import FontCache
 from canvas.vector.svg import SvgCanvas
 from dataviz import (
+    StepStyle,
     kdeplot,
     rugplot,
     beeswarm,
@@ -1495,6 +1496,318 @@ def test_render_effect_scatter_raises_on_no_data() raises:
     with assert_raises():
         var _hoisted2 = effect_scatter(x, y, width=200, height=150)
         _ = render(_hoisted2)
+
+
+# ---------------------------------------------------------------
+# Mark.STREAMGRAPH step interpolation (#403)
+# ---------------------------------------------------------------
+
+# Two series over three categories, on a 400x300 canvas with no
+# gridlines and no legend. Plot area x:[60,380] over 3 bands, so the
+# category centers are 113.333 / 220.000 / 326.667. Every expected
+# number below was read off a real render_svg() of this data, not
+# recomputed here.
+comptime _STEP_CATS = 3
+
+
+def _step_stack_plot(step: StepStyle) raises -> Plot:
+    var cats: List[String] = ["X", "Y", "Z"]
+    var names: List[String] = ["A", "B"]
+    var vals: List[List[Float64]] = [[10.0, 20.0, 15.0], [5.0, 8.0, 12.0]]
+    var t = Theme(show_gridlines=False, show_legend=False)
+    return stacked_area(
+        cats, names, vals, theme=t, step=step, width=400, height=300
+    )
+
+
+def _band_paths(svg: String) -> List[String]:
+    """Each `<path d="...">`'s `d` attribute, in draw order -- one per
+    band for a streamgraph with no gridlines and no legend.
+    """
+    var out = List[String]()
+    var i = svg.find(' d="')
+    while i >= 0:
+        var s = i + 4
+        var j = svg.find('"', s)
+        out.append(String(svg[byte=s:j]))
+        i = svg.find(' d="', j)
+    return out^
+
+
+def _path_points(d: String) -> List[String]:
+    """`d`'s vertices as `"x,y"` strings, in order, from a path built of
+    `M`/`L` commands and a closing `Z` (a stepped band has no curves).
+    """
+    var out = List[String]()
+    for tok in d.split(" "):
+        if tok == "Z" or tok.byte_length() == 0:
+            continue
+        out.append(String(tok[byte=1:]))
+    return out^
+
+
+def test_stacked_area_step_matches_confirmed_paths() raises:
+    # Read off a real render_svg() run, pasted verbatim. Band A is the
+    # bottom series (#1f77b4), band B the one stacked on it (#ff7f0e).
+    #
+    # PRE/POST emit 2n-1 = 5 points per edge and MID 2n = 6, so a band
+    # is 10 or 12 points; NONE is 3 per edge. The counts are part of
+    # what is asserted here: they are what tells a staircase from a
+    # straight edge that happens to pass through the same samples.
+    var pre = render_svg(_step_stack_plot(StepStyle.PRE)).to_string()
+    assert_true(
+        '<path d="M113.333,171.769 L113.333,93.537 L220.000,93.537'
+        " L220.000,132.653 L326.667,132.653 L326.667,250.000"
+        " L220.000,250.000 L220.000,250.000 L113.333,250.000"
+        ' L113.333,250.000 Z" fill="#1f77b4"/>'
+        in pre,
+        "PRE, band A",
+    )
+    assert_true(
+        '<path d="M113.333,132.653 L113.333,30.952 L220.000,30.952'
+        " L220.000,38.776 L326.667,38.776 L326.667,132.653"
+        " L220.000,132.653 L220.000,93.537 L113.333,93.537"
+        ' L113.333,171.769 Z" fill="#ff7f0e"/>'
+        in pre,
+        "PRE, band B",
+    )
+
+    var mid = render_svg(_step_stack_plot(StepStyle.MID)).to_string()
+    assert_true(
+        '<path d="M113.333,171.769 L166.667,171.769 L166.667,93.537'
+        " L273.333,93.537 L273.333,132.653 L326.667,132.653"
+        " L326.667,250.000 L273.333,250.000 L273.333,250.000"
+        ' L166.667,250.000 L166.667,250.000 L113.333,250.000 Z"'
+        ' fill="#1f77b4"/>'
+        in mid,
+        "MID, band A",
+    )
+
+    var post = render_svg(_step_stack_plot(StepStyle.POST)).to_string()
+    assert_true(
+        '<path d="M113.333,171.769 L220.000,171.769 L220.000,93.537'
+        " L326.667,93.537 L326.667,132.653 L326.667,250.000"
+        " L326.667,250.000 L220.000,250.000 L220.000,250.000"
+        ' L113.333,250.000 Z" fill="#1f77b4"/>'
+        in post,
+        "POST, band A",
+    )
+    assert_true(
+        '<path d="M113.333,132.653 L220.000,132.653 L220.000,30.952'
+        " L326.667,30.952 L326.667,38.776 L326.667,132.653"
+        " L326.667,93.537 L220.000,93.537 L220.000,171.769"
+        ' L113.333,171.769 Z" fill="#ff7f0e"/>'
+        in post,
+        "POST, band B",
+    )
+
+    # The default is untouched: three points per edge, no risers.
+    var none = render_svg(_step_stack_plot(StepStyle.NONE)).to_string()
+    assert_true(
+        '<path d="M113.333,171.769 L220.000,93.537 L326.667,132.653'
+        ' L326.667,250.000 L220.000,250.000 L113.333,250.000 Z"'
+        ' fill="#1f77b4"/>'
+        in none,
+        "NONE, band A -- unchanged by #403",
+    )
+
+
+def test_stacked_area_step_tiles_each_band_onto_the_one_below() raises:
+    # The property a reversed-edge bug breaks, and the reason #403 warns
+    # about one. Band B's bottom edge *is* band A's top edge -- the same
+    # `running[i]` values -- so the two must trace the same staircase,
+    # and band B's is traversed backwards. Asserted structurally rather
+    # than by eye: split each band's points in half (top edge, then
+    # bottom edge reversed) and check band B's bottom, re-reversed, is
+    # band A's top point for point.
+    #
+    # This is what discriminates. Stepping the already-reversed bottom
+    # edge, which is the obvious implementation, produces the mirrored
+    # staircase: the risers land on the other x of each pair, band B's
+    # bottom stops matching band A's top, and every style below fails
+    # here while the point counts stay right.
+    for style in [StepStyle.PRE, StepStyle.MID, StepStyle.POST]:
+        var label = String(style.name())
+        var paths = _band_paths(render_svg(_step_stack_plot(style)).to_string())
+        assert_equal(len(paths), 2, label + ": two bands")
+
+        var a = _path_points(paths[0])
+        var b = _path_points(paths[1])
+        assert_equal(len(a), len(b), label + ": both bands have as many points")
+        var half = len(a) // 2
+        assert_equal(
+            2 * half, len(a), label + ": a band is two equal-length edges"
+        )
+
+        for k in range(half):
+            assert_equal(
+                b[len(b) - 1 - k],
+                a[k],
+                label
+                + ": band B's bottom vertex "
+                + String(k)
+                + " sits on band A's top vertex",
+            )
+
+        # The two caps stay straight, which for a vertical cap means the
+        # edge starts and ends on a category center: the first and last
+        # top-edge vertices share an x with the last and first
+        # bottom-edge ones. Stepping must not have moved either end.
+        var a_top_first_x = a[0].split(",")[0]
+        var a_top_last_x = a[half - 1].split(",")[0]
+        var a_bot_first_x = a[half].split(",")[0]
+        var a_bot_last_x = a[len(a) - 1].split(",")[0]
+        assert_equal(
+            String(a_top_last_x),
+            String(a_bot_first_x),
+            label + ": the closing cap at the last category is vertical",
+        )
+        assert_equal(
+            String(a_top_first_x),
+            String(a_bot_last_x),
+            label + ": the closing cap at the first category is vertical",
+        )
+        assert_equal(
+            String(a_top_first_x), "113.333", label + ": cap at center(0)"
+        )
+        assert_equal(
+            String(a_top_last_x), "326.667", label + ": cap at center(2)"
+        )
+
+
+def test_stacked_area_step_leaves_no_background_between_bands() raises:
+    # The raster half of the tiling property. A mismatched pair of edges
+    # opens a wedge of background between two bands, and a wedge is
+    # exactly what an SVG path assertion can miss if the numbers happen
+    # to look plausible.
+    #
+    # Scanned down three columns, between the first and last
+    # band-colored pixel: every pixel in between must belong to a band.
+    # Interior only -- the two ends of the run are the antialiased
+    # boundary against the background and are not asserted.
+    #
+    # The columns sit strictly inside the band, not on the category
+    # centers: a band spans only x 113.333 to 326.667 (center(0) to
+    # center(2)), so a column at 113 is outside it under every style and
+    # would find no band at all. 150 and 320 land on a plateau in all
+    # three styles and 250 falls between MID's two midpoints.
+    var palette = default_categorical_palette()
+    for style in [StepStyle.PRE, StepStyle.MID, StepStyle.POST]:
+        var c = render(_step_stack_plot(style))
+        for cx in [150, 250, 320]:
+            var first = -1
+            var last = -1
+            for y in range(20, 250):
+                var p = c.get_pixel(cx, y)
+                var is_band = (
+                    p.r == palette[0].r
+                    and p.g == palette[0].g
+                    and p.b == palette[0].b
+                ) or (
+                    p.r == palette[1].r
+                    and p.g == palette[1].g
+                    and p.b == palette[1].b
+                )
+                if is_band:
+                    if first < 0:
+                        first = y
+                    last = y
+            assert_true(
+                first >= 0 and last > first,
+                String(style.name())
+                + ": column "
+                + String(cx)
+                + " crosses both bands",
+            )
+            for y in range(first + 1, last):
+                var p = c.get_pixel(cx, y)
+                assert_true(
+                    not (p.r == BG.r and p.g == BG.g and p.b == BG.b),
+                    String(style.name())
+                    + ": no background at ("
+                    + String(cx)
+                    + ", "
+                    + String(y)
+                    + ") between the bands",
+                )
+
+
+def test_stacked_area_step_and_smoothing_are_mutually_exclusive() raises:
+    # #336/#384's rule, extended to Mark.STREAMGRAPH. The message must
+    # name mark_streamgraph, not mark_line or mark_area: a caller who
+    # never touched either would otherwise be sent to the wrong setter.
+    var cats: List[String] = ["X", "Y", "Z"]
+    var names: List[String] = ["A", "B"]
+    var vals: List[List[Float64]] = [[10.0, 20.0, 15.0], [5.0, 8.0, 12.0]]
+    var t = Theme(show_gridlines=False, show_legend=False)
+    with assert_raises(contains="Plot.mark_streamgraph(step=...)"):
+        _ = render_svg(
+            stacked_area(
+                cats,
+                names,
+                vals,
+                theme=t,
+                smoothing=0.6,
+                step=StepStyle.POST,
+                width=400,
+                height=300,
+            )
+        )
+
+    # And smoothing=0.0 with a step is fine, so the raise above is the
+    # conflict and not the step itself.
+    _ = render_svg(
+        stacked_area(
+            cats,
+            names,
+            vals,
+            theme=t,
+            smoothing=0.0,
+            step=StepStyle.POST,
+            width=400,
+            height=300,
+        )
+    )
+
+
+def test_mark_streamgraph_step_reaches_the_wiggle_baseline_too() raises:
+    # #403 keeps `step` off streamgraph()'s own signature because that
+    # function sets smoothing=0.6, which a step conflicts with. The
+    # builder still exposes it, and a WIGGLE stack whose theme leaves
+    # smoothing at 0.0 steps like any other.
+    #
+    # The assertion that discriminates is the *count*: a WIGGLE band
+    # over three categories is 6 vertices unstepped and 10 stepped, so
+    # this cannot pass against a plot that quietly ignored `step`.
+    var cats: List[String] = ["X", "Y", "Z"]
+    var names: List[String] = ["A", "B"]
+    var vals: List[List[Float64]] = [[10.0, 20.0, 15.0], [5.0, 8.0, 12.0]]
+    var t = Theme(show_gridlines=False, show_legend=False)
+    var plot = (
+        Plot()
+        .mark_streamgraph(baseline=StackBaseline.WIGGLE, step=StepStyle.POST)
+        .encode_grouped_bar(categories=cats, series_names=names, values=vals)
+        .theme(t)
+        .size(400, 300)
+    )
+    var paths = _band_paths(render_svg(plot).to_string())
+    assert_equal(len(paths), 2, "two bands")
+    for p in paths:
+        assert_equal(
+            len(_path_points(p)), 10, "a stepped WIGGLE band is 2 x (2n-1)"
+        )
+
+    var straight = (
+        Plot()
+        .mark_streamgraph(baseline=StackBaseline.WIGGLE)
+        .encode_grouped_bar(categories=cats, series_names=names, values=vals)
+        .theme(t)
+        .size(400, 300)
+    )
+    for p in _band_paths(render_svg(straight).to_string()):
+        assert_equal(
+            len(_path_points(p)), 6, "an unstepped WIGGLE band is 2 x n"
+        )
 
 
 def main() raises:

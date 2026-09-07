@@ -1266,7 +1266,9 @@ struct Plot(Copyable, Movable):
         return self^
 
     def mark_streamgraph(
-        var self, baseline: StackBaseline = StackBaseline.WIGGLE
+        var self,
+        baseline: StackBaseline = StackBaseline.WIGGLE,
+        step: StepStyle = StepStyle.NONE,
     ) -> Self:
         """A streamgraph: `mark_stacked_bar()`'s running-total stack drawn
         as flowing bands rather than rects. Encoded via
@@ -1277,9 +1279,40 @@ struct Plot(Copyable, Movable):
         proper. `ZERO` starts it at a flat zero, which is the ordinary
         stacked area chart -- `stacked_area()` is the name to reach for
         there. See `StackBaseline`.
+
+        `step` is the same stairs interpolation `mark_line()` and
+        `mark_area()` take (#336, #384), applied to every band's top
+        and bottom edge (#403): the composition holds flat and then
+        jumps, instead of sliding from one category to the next. It is
+        the shape for a stacked quantity that is constant between
+        readings -- capacity by source, headcount by team, inventory by
+        warehouse.
+
+        Both edges of a band step, in the same style, or the stack
+        stops tiling: band `j`'s bottom edge *is* band `j - 1`'s top
+        edge, and two edges that disagree about where the riser goes
+        leave a wedge of background between the bands. See
+        `_render_streamgraph` for how the reversed bottom edge is kept
+        in step with the forward top one.
+
+        Args:
+            baseline: Where each category's stack starts -- `WIGGLE`
+                (centered on zero) or `ZERO` (a flat baseline).
+            step: Where the riser between two categories sits --
+                `NONE` (the default: straight segments), `PRE` (at the
+                earlier category), `MID` (halfway) or `POST` (at the
+                later one). Mutually exclusive with
+                `Theme.line_smoothing`, which raises. `streamgraph()`
+                defaults that to `0.6`, so a stepped stream would raise
+                on its own default; `stacked_area()` is the one-call
+                function that exposes this.
+
+        Returns:
+            Self, for further chaining.
         """
         self._mark = Mark.STREAMGRAPH
         self._mark_style.streamgraph_baseline = baseline
+        self._mark_style.step = step
         return self^
 
     def mark_beeswarm(
