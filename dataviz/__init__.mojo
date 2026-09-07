@@ -51,6 +51,7 @@ from dataviz.box import box
 from dataviz.bullet import bullet
 from dataviz.candlestick import candlestick
 from dataviz.contour import contour, contourf
+from dataviz.kde import kdeplot, rugplot
 from dataviz.tricontour import tricontour, tricontourf
 from dataviz.chord import chord
 from dataviz.arc_diagram import arc_diagram

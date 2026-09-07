@@ -93,8 +93,10 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime CONTOURF = Self(44)
     comptime TRICONTOUR = Self(45)
     comptime TRICONTOURF = Self(46)
+    comptime KDE = Self(47)
+    comptime RUG = Self(48)
 
-    comptime COUNT = 47
+    comptime COUNT = 49
     """How many marks exist -- one past the largest value above.
 
     Only the raster/SVG layout-equivalence sweep reads this (#221): it
