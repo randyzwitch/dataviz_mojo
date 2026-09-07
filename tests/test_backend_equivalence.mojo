@@ -35,6 +35,7 @@ from dataviz import (
     contour,
     contourf,
     tricontour,
+    tricontourf,
     corrplot,
     effect_scatter,
     funnel,
@@ -282,6 +283,17 @@ def _representative_plot(mark: Mark) raises -> Plot:
             ty.append(b)
             tz.append(a * b)
         return tricontour(tx, ty, tz, level_count=3, width=_W, height=_H)
+    if mark == Mark.TRICONTOURF:
+        var fx = List[Float64]()
+        var fy = List[Float64]()
+        var fz = List[Float64]()
+        for i in range(24):
+            var a = Float64(i % 6)
+            var b = Float64((i * 5) % 7)
+            fx.append(a)
+            fy.append(b)
+            fz.append(a * b)
+        return tricontourf(fx, fy, fz, level_count=3, width=_W, height=_H)
     if mark == Mark.BARBS:
         var u: List[Float64] = [5.0, 10.0, 15.0]
         var v: List[Float64] = [5.0, -10.0, 0.0]
@@ -479,16 +491,16 @@ def test_mark_count_is_one_past_the_newest_mark() raises:
     briefly had `CONTOUR = 43` alongside `COUNT = 43` and the sweep
     skipped contour entirely while still reporting itself green. This
     assertion is what then caught `Mark.CONTOURF` (#260) and
-    `Mark.TRICONTOUR` (#261): each failed here until both the constant
-    and this line moved, which is the tripwire doing its job on every
-    mark added since.
+    `Mark.TRICONTOUR` (#261) and `Mark.TRICONTOURF` (#323): each failed
+    here until both the constant and this line moved, which is the
+    tripwire doing its job on every mark added since.
 
     Naming the newest mark explicitly is what makes that loud: adding a
     mark after this one fails here until both this line and `COUNT` are
     updated, which is one edit away from the constant itself.
     """
     assert_true(
-        Mark.TRICONTOUR == Mark(Mark.COUNT - 1),
+        Mark.TRICONTOURF == Mark(Mark.COUNT - 1),
         (
             "Mark.COUNT must be one past the newest mark -- update both when"
             " adding one"

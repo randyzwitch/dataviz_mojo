@@ -252,7 +252,7 @@ from dataviz.corrplot import _render_corrplot
 from dataviz.punchcard import _render_punchcard
 from dataviz.barbs import _render_barbs
 from dataviz.contour import _render_contour, _render_contourf
-from dataviz.tricontour import _render_tricontour
+from dataviz.tricontour import _render_tricontour, _render_tricontourf
 from dataviz.marimekko import _render_marimekko
 from dataviz.sunburst import _render_sunburst
 from dataviz.tree import _render_tree
@@ -952,6 +952,25 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.TRICONTOUR
+        self._tricontour.level_count = levels
+        return self^
+
+    def mark_tricontourf(var self, levels: Int = 8) -> Self:
+        """Filled bands over scattered samples: `mark_tricontour()`'s
+        regions rather than its lines, over the same Delaunay
+        triangulation and the same `encode_tricontour()` data. See
+        `_render_tricontourf` for how they are painted and
+        `tricontourf()` for the one-call form.
+
+        Args:
+            levels: How many levels to place when `encode_tricontour()` is
+                not given an explicit list -- spaced evenly strictly
+                inside the samples' own range. Must be positive.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.TRICONTOURF
         self._tricontour.level_count = levels
         return self^
 
@@ -3996,6 +4015,10 @@ def _render_generic[
         return _render_contourf(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.TRICONTOUR:
         return _render_tricontour(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    if plot._mark == Mark.TRICONTOURF:
+        return _render_tricontourf(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
     if plot._mark == Mark.MARIMEKKO:
         return _render_marimekko(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.SUNBURST:
