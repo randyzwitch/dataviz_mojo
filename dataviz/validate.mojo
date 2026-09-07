@@ -25,6 +25,7 @@ from dataviz.plot import (
     render,
 )
 from dataviz.scale import LinearScale
+from dataviz.step_style import StepStyle
 from dataviz.theme import Theme
 
 
@@ -414,5 +415,42 @@ def _check_line_smoothing(theme: Theme) raises:
         raise Error(
             "Theme.line_smoothing must be in [0.0, 1.0] (got "
             + String(theme.line_smoothing)
+            + ")"
+        )
+
+
+def _check_step_smoothing(theme: Theme, step: StepStyle) raises:
+    """`Theme.line_smoothing` and `mark_line(step=...)` are mutually
+    exclusive (#336); raise when both are asked for.
+
+    A smoothed staircase is not a compromise between the two, it is
+    neither: the Catmull-Rom tangents `_build_line_path` fits round off
+    the corners that are the whole point of a step, and a riser's two
+    points share an x, so the tangent through them is horizontal and the
+    curve bows sideways out past the samples. There is no sensible
+    "smoothed step" to fall back to, and picking a winner silently would
+    mean one of two explicit settings quietly doing nothing -- so this
+    says which two settings conflict instead.
+
+    Called by `_draw_line_layer` beside `_check_line_smoothing`, so it
+    covers the layered render path too. Not called from
+    `_draw_area_layer`: `Mark.AREA` has no `step` of its own to
+    conflict with (see #384).
+
+    Args:
+        theme: The plot's theme, for `line_smoothing`.
+        step: The mark's step style, from `_MarkStyle.step`.
+
+    Raises:
+        Error: Both a non-`NONE` `step` and a non-zero `line_smoothing`.
+    """
+    if step != StepStyle.NONE and theme.line_smoothing > 0.0:
+        raise Error(
+            "Theme.line_smoothing and Plot.mark_line(step=...) are mutually"
+            " exclusive -- a smoothed staircase rounds off the corners that"
+            " carry its meaning (got line_smoothing="
+            + String(theme.line_smoothing)
+            + " with step=StepStyle."
+            + step.name()
             + ")"
         )

@@ -41,6 +41,7 @@ from dataviz.continuous import (
     _draw_area_layer,
     _draw_line_layer,
     _draw_point_layer,
+    _step_points,
     area,
     line,
 )
@@ -90,6 +91,7 @@ from dataviz.text import (
 from dataviz.theme import Theme
 from dataviz.validate import (
     _check_line_smoothing,
+    _check_step_smoothing,
     _validate_categorical_encoding,
     _validate_continuous_encoding,
 )
@@ -487,7 +489,18 @@ def _render_bar_combo_layers[
                     layer_theme.mark_color,
                 )
         elif plots[i]._mark == Mark.LINE:
-            var path = _build_line_path(px, py, layer_theme.line_smoothing)
+            # Stepping applies here as it does on a continuous x-axis
+            # (#336): this path builds its own geometry instead of
+            # calling _draw_line_layer, and a step silently ignored
+            # would draw a different claim about the data than the one
+            # mark_line(step=...) asked for. No decimation to order it
+            # against -- one x per category, so there is never more than
+            # one sample per pixel column to thin.
+            _check_step_smoothing(layer_theme, plots[i]._mark_style.step)
+            var stepped = _step_points(px, py, plots[i]._mark_style.step)
+            var path = _build_line_path(
+                stepped.px, stepped.py, layer_theme.line_smoothing
+            )
             target.stroke_path_aa(
                 path, layer_theme.mark_color, width=layer_sc.line_width
             )

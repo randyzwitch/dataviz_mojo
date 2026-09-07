@@ -12,6 +12,7 @@ from _test_helpers import (
     Lcg,
     _assert_color,
     _assert_near_color,
+    _attr_values,
     _bbox_of_color,
     _count_color,
 )
@@ -19,6 +20,7 @@ from canvas.color import Color
 from canvas.path import Path, PathOp
 from dataviz import (
     CORNFLOWERBLUE,
+    StepStyle,
     area,
     bar,
     barbs,
@@ -35,6 +37,7 @@ from dataviz import (
     waterfall,
 )
 from dataviz.barbs import _barb_counts, _barb_glyph
+from dataviz.continuous import _step_points
 from dataviz.delaunay import _in_circumcircle, delaunay
 from dataviz.tricontour import _tricontour_segments
 from dataviz.contour import (
@@ -396,6 +399,359 @@ def test_render_svg_line_mark_matches_confirmed_path_coordinates() raises:
         ' stroke-linejoin="round"/>'
         in svg.to_string(),
         "LINE mark's stroked path",
+    )
+
+
+# ---------------------------------------------------------------
+# Mark.LINE's step (stairs) interpolation, #336
+#
+# The pixel coordinates every assertion below uses come from one
+# projection, derived once here and reused:
+#
+#   x=[0,10,20] pads 5% of its span to [-1,21]; the 400x300 canvas's
+#   default margins (60/20/20/50) give a plot area x:[60,380], so
+#   to_pixel(x) = 60 + 320*(x+1)/22 -> 74.545, 220.000, 365.455.
+#   y=[5,9,7] pads to [4.8,9.2] over y:[20,250] inverted, so
+#   to_pixel(y) = 250 - 230*(y-4.8)/4.4 -> 239.545, 30.455, 135.000.
+#
+# The three styles draw the same three y values at the same three x
+# values; only the order the path visits them in differs, which is the
+# whole content of StepStyle.
+# ---------------------------------------------------------------
+
+
+def test_step_points_matches_matplotlibs_own_step_expansion() raises:
+    # The oracle is matplotlib's cbook.pts_to_prestep/pts_to_midstep/
+    # pts_to_poststep, run on this same x/y in a scratch environment
+    # (matplotlib 3.x). Its output, pasted verbatim:
+    #
+    #   PRE  [(0,0), (0,20), (10,20), (10,5), (30,5)]
+    #   MID  [(0,0), (5,0), (5,20), (20,20), (20,5), (30,5)]
+    #   POST [(0,0), (10,0), (10,20), (30,20), (30,5)]
+    #
+    # Point counts included: MID's 6 (2n) against PRE/POST's 5 (2n-1)
+    # is not an off-by-one, it is MID needing a closing plateau the
+    # other two get for free from the last sample.
+    var px: List[Float64] = [0.0, 10.0, 30.0]
+    var py: List[Float64] = [0.0, 20.0, 5.0]
+
+    var pre = _step_points(px, py, StepStyle.PRE)
+    var pre_x: List[Float64] = [0.0, 0.0, 10.0, 10.0, 30.0]
+    var pre_y: List[Float64] = [0.0, 20.0, 20.0, 5.0, 5.0]
+    assert_equal(len(pre.px), len(pre_x), "PRE point count")
+    for i in range(len(pre_x)):
+        assert_equal(pre.px[i], pre_x[i], "PRE x[" + String(i) + "]")
+        assert_equal(pre.py[i], pre_y[i], "PRE y[" + String(i) + "]")
+
+    var mid = _step_points(px, py, StepStyle.MID)
+    var mid_x: List[Float64] = [0.0, 5.0, 5.0, 20.0, 20.0, 30.0]
+    var mid_y: List[Float64] = [0.0, 0.0, 20.0, 20.0, 5.0, 5.0]
+    assert_equal(len(mid.px), len(mid_x), "MID point count")
+    for i in range(len(mid_x)):
+        assert_equal(mid.px[i], mid_x[i], "MID x[" + String(i) + "]")
+        assert_equal(mid.py[i], mid_y[i], "MID y[" + String(i) + "]")
+
+    var post = _step_points(px, py, StepStyle.POST)
+    var post_x: List[Float64] = [0.0, 10.0, 10.0, 30.0, 30.0]
+    var post_y: List[Float64] = [0.0, 0.0, 20.0, 20.0, 5.0]
+    assert_equal(len(post.px), len(post_x), "POST point count")
+    for i in range(len(post_x)):
+        assert_equal(post.px[i], post_x[i], "POST x[" + String(i) + "]")
+        assert_equal(post.py[i], post_y[i], "POST y[" + String(i) + "]")
+
+
+def test_step_points_passes_through_none_and_a_one_point_series() raises:
+    # NONE is the default every existing caller passes, so it has to be
+    # a pure pass-through, not "the same shape by coincidence". A
+    # one-point series has no pair to put a riser between and is
+    # returned as-is whatever the style.
+    var px: List[Float64] = [0.0, 10.0, 30.0]
+    var py: List[Float64] = [0.0, 20.0, 5.0]
+    var none = _step_points(px, py, StepStyle.NONE)
+    assert_equal(len(none.px), 3, "NONE keeps the point count")
+    for i in range(3):
+        assert_equal(none.px[i], px[i])
+        assert_equal(none.py[i], py[i])
+
+    var one_x: List[Float64] = [4.0]
+    var one_y: List[Float64] = [7.0]
+    var single = _step_points(one_x, one_y, StepStyle.POST)
+    assert_equal(len(single.px), 1, "a single point has nothing to step")
+    assert_equal(single.px[0], 4.0)
+    assert_equal(single.py[0], 7.0)
+
+
+def test_render_svg_line_step_post_matches_confirmed_path() raises:
+    # POST holds each y until the next sample's x: flat at 239.545 out
+    # to 220, riser there, flat at 30.455 out to 365.455, riser there.
+    # The final sample (365.455, 135.000) is a bare riser with no
+    # plateau after it, which is what steps-post means at the last
+    # point -- matplotlib draws it the same way.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [5.0, 9.0, 7.0]
+    var plot = (
+        Plot()
+        .mark_line(step=StepStyle.POST)
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var svg = render_svg(plot)
+    assert_true(
+        '<path d="M74.545,239.545 L220.000,239.545 L220.000,30.455'
+        ' L365.455,30.455 L365.455,135.000" fill="none" stroke="#1e64b4"'
+        ' stroke-width="2.000" stroke-linecap="round"'
+        ' stroke-linejoin="round"/>'
+        in svg.to_string(),
+        "StepStyle.POST's staircase",
+    )
+
+
+def test_render_svg_line_step_pre_matches_confirmed_path() raises:
+    # PRE is POST's mirror: the riser comes first, at the earlier x, so
+    # the bare riser lands at the start (74.545) instead of the end.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [5.0, 9.0, 7.0]
+    var plot = (
+        Plot()
+        .mark_line(step=StepStyle.PRE)
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var svg = render_svg(plot)
+    assert_true(
+        '<path d="M74.545,239.545 L74.545,30.455 L220.000,30.455'
+        ' L220.000,135.000 L365.455,135.000" fill="none" stroke="#1e64b4"'
+        ' stroke-width="2.000" stroke-linecap="round"'
+        ' stroke-linejoin="round"/>'
+        in svg.to_string(),
+        "StepStyle.PRE's staircase",
+    )
+
+
+def test_render_svg_line_step_mid_matches_confirmed_path() raises:
+    # MID's risers sit at the pixel midpoints (74.545+220)/2 = 147.273
+    # and (220+365.455)/2 = 292.727, and the path needs one extra
+    # vertex over PRE/POST to close the last plateau at 365.455. Every
+    # sample keeps a plateau centered on it, which is the property MID
+    # exists for.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [5.0, 9.0, 7.0]
+    var plot = (
+        Plot()
+        .mark_line(step=StepStyle.MID)
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var svg = render_svg(plot)
+    assert_true(
+        '<path d="M74.545,239.545 L147.273,239.545 L147.273,30.455'
+        ' L292.727,30.455 L292.727,135.000 L365.455,135.000" fill="none"'
+        ' stroke="#1e64b4" stroke-width="2.000" stroke-linecap="round"'
+        ' stroke-linejoin="round"/>'
+        in svg.to_string(),
+        "StepStyle.MID's staircase",
+    )
+
+
+def test_render_line_step_holds_the_value_where_a_straight_line_sags() raises:
+    # The raster counterpart of the POST path test, at x=293 -- inside
+    # the plateau that runs from 220 to 365.455 at y=30.455, and inside
+    # the diagonal a plain line draws from (220,30.455) down to
+    # (365.455,135.000), which passes y=83 there.
+    #
+    # Both probes are stroke interiors, not edges: a 2px-wide
+    # horizontal stroke centered on 30.455 covers row 30 completely, so
+    # the downsampled pixel is the exact mark color rather than a
+    # blend. Measured from a real render at both pixels in both modes
+    # before being written down.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [5.0, 9.0, 7.0]
+    var t = Theme(show_gridlines=False)
+    var stepped = (
+        Plot()
+        .mark_line(step=StepStyle.POST)
+        .encode(x=x, y=y)
+        .theme(t)
+        .size(400, 300)
+    )
+    var straight = Plot().mark_line().encode(x=x, y=y).theme(t).size(400, 300)
+    var c_step = render(stepped)
+    var c_straight = render(straight)
+
+    _assert_color(c_step, 293, 30, t.mark_color, "POST's plateau at y=30.455")
+    _assert_color(c_straight, 293, 30, BG, "no plateau without a step")
+    _assert_color(c_step, 293, 83, BG, "POST never crosses the diagonal")
+    var diag = c_straight.get_pixel(293, 83)
+    assert_true(
+        diag.r != BG.r or diag.g != BG.g or diag.b != BG.b,
+        "the straight line does pass through (293, 83)",
+    )
+
+
+def test_render_line_step_raises_when_combined_with_line_smoothing() raises:
+    # The two are mutually exclusive: a smoothed staircase rounds off
+    # the corners that carry its meaning, and a riser's two points
+    # share an x, so a Catmull-Rom tangent through them is horizontal
+    # and bows the curve sideways past the samples.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [5.0, 9.0, 7.0]
+    with assert_raises(
+        contains=(
+            "Theme.line_smoothing and Plot.mark_line(step=...) are mutually"
+            " exclusive"
+        )
+    ):
+        var plot = (
+            Plot()
+            .mark_line(step=StepStyle.MID)
+            .encode(x=x, y=y)
+            .theme(Theme(line_smoothing=0.5))
+            .size(200, 150)
+        )
+        _ = render_svg(plot)
+    # Smoothing with the default StepStyle.NONE is still fine.
+    var ok = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .theme(Theme(line_smoothing=0.5))
+        .size(200, 150)
+    )
+    _ = render_svg(ok)
+
+
+def test_render_line_step_keeps_at_most_two_points_per_pixel_column() raises:
+    # _decimate_to_pixel_columns exists to cap a dense series at two
+    # points per horizontal pixel column, and _draw_line_layer steps
+    # *before* decimating so that cap applies to the staircase that is
+    # actually drawn. Decimating first and stepping afterwards would
+    # expand each surviving point back into a plateau and a riser --
+    # up to four points per column, roughly undoing the thinning
+    # (measured on a 5000-sample series: 2241 points that way against
+    # 1121 this way).
+    #
+    # 5000 samples over a 640-wide canvas' ~560px plot area is ~9 per
+    # column, well past the `n > 2 * columns` threshold. y cycles
+    # through 17 values so a column's samples really do differ and
+    # decimation has a min and a max to choose.
+    var x = List[Float64]()
+    var y = List[Float64]()
+    for i in range(5000):
+        x.append(Float64(i))
+        y.append(Float64(i % 17))
+    var plot = (
+        Plot()
+        .mark_line(step=StepStyle.POST)
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(640, 420)
+    )
+    var paths = _attr_values(render_svg(plot).to_string(), "path", "d")
+    assert_equal(len(paths), 1, "one stroked path for the line")
+
+    var tokens = paths[0].split(" ")
+    assert_true(
+        len(tokens) < 5000,
+        (
+            "decimation ran at all (kept "
+            + String(len(tokens))
+            + " of 9999 stepped points)"
+        ),
+    )
+
+    # Counted as a total against the span rather than per column: the
+    # `d` attribute carries three decimals, so a point at 375.9996
+    # prints as "376.000" and would be filed under the wrong column by
+    # a per-column tally. The total is immune to that -- each true
+    # column contributes at most two points however they round -- and
+    # still separates the two orderings by a factor of two. The +2
+    # absorbs the same rounding at the two ends of the span.
+    var lo_col = 1 << 30
+    var hi_col = -1
+    for token in tokens:
+        # "M74.545,239.545" / "L220.000,239.545" -- drop the command
+        # letter, keep the integer part of x.
+        var comma = token.find(",")
+        var xs = String(token[byte=1:comma])
+        var dot = xs.find(".")
+        var col = Int(String(xs[byte=0:dot]) if dot != -1 else xs)
+        if col < lo_col:
+            lo_col = col
+        if col > hi_col:
+            hi_col = col
+    var columns = hi_col - lo_col + 1
+    assert_true(
+        len(tokens) <= 2 * columns + 2,
+        (
+            "the drawn staircase has "
+            + String(len(tokens))
+            + " points over "
+            + String(columns)
+            + " pixel columns; decimation caps it at two per column"
+        ),
+    )
+
+
+def test_render_svg_line_step_survives_decimation_of_a_long_series() raises:
+    # 1600 samples crammed into x=[0,1] trip decimation for the whole
+    # series (1604 points over ~321 pixel columns, well past
+    # `n > 2 * columns`), while the four samples at x=2..5 sit alone in
+    # their own columns. Their plateaus must come through untouched:
+    # decimation is a rendering optimization, and a step that lost a
+    # riser to it would be showing data that was never measured.
+    #
+    # Derived from the same projection rules as the tests above.
+    # x=[0,5] pads to [-0.25,5.25], so to_pixel(2..5) = 190.909,
+    # 249.091, 307.273, 365.455; y=[2,9] pads to [1.65,9.35], so
+    # to_pixel(8,2,9,3) = 60.325, 239.545, 30.455, 209.675.
+    var x = List[Float64]()
+    var y = List[Float64]()
+    for i in range(1600):
+        x.append(Float64(i) / 1599.0)
+        y.append(4.0 + Float64(i % 7) * 0.1)
+    var sparse_x: List[Float64] = [2.0, 3.0, 4.0, 5.0]
+    var sparse_y: List[Float64] = [8.0, 2.0, 9.0, 3.0]
+    for i in range(len(sparse_x)):
+        x.append(sparse_x[i])
+        y.append(sparse_y[i])
+    var plot = (
+        Plot()
+        .mark_line(step=StepStyle.POST)
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var svg = render_svg(plot).to_string()
+    assert_true(
+        "L190.909,60.325 L249.091,60.325 L249.091,239.545"
+        " L307.273,239.545 L307.273,30.455 L365.455,30.455"
+        ' L365.455,209.675" fill="none"'
+        in svg,
+        "the sparse samples' plateaus and risers, intact after decimation",
+    )
+
+
+def test_line_one_call_step_matches_the_builder() raises:
+    # line(step=...) has to be the same chart Plot().mark_line(step=...)
+    # builds, not a second implementation of it.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [5.0, 9.0, 7.0]
+    var t = Theme(show_gridlines=False)
+    var one_call = line(
+        x, y, step=StepStyle.MID, theme=t, width=400, height=300
+    )
+    var built = (
+        Plot()
+        .mark_line(step=StepStyle.MID)
+        .encode(x=x, y=y)
+        .theme(t)
+        .size(400, 300)
+    )
+    assert_equal(
+        render_svg(one_call).to_string(), render_svg(built).to_string()
     )
 
 

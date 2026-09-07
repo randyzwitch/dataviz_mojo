@@ -18,6 +18,8 @@ from dataviz.theme import Theme
 from dataviz.mark import Mark
 from dataviz.output_format import OutputFormat
 from dataviz.legend_position import LegendPosition
+from dataviz.line_style import LineStyle
+from dataviz.step_style import StepStyle
 from dataviz.x_label_rotation import XAxisLabelRotation
 from dataviz.scale import LinearScale, MinMax, Ticks, TickFormat
 from dataviz.color_scale import ColorScale, default_categorical_palette
