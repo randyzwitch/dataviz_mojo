@@ -658,8 +658,18 @@ def tricontourf(
 
     Filled is usually the more readable of the two for scattered data:
     isolines alone leave the reader to work out which side of a line is
-    higher, and the fill is what carries the colour scale. Draw both by
-    layering a `tricontour()` over this with `render_layers()`.
+    higher, and the fill is what carries the colour scale.
+
+    Drawing both at once is what matplotlib does, and this package
+    cannot yet express it: `render_layers()` takes only
+    `Mark.POINT`/`LINE`/`AREA`, so layering a `tricontour()` over this
+    raises rather than drawing (#401, #376). Until #376 lands the two
+    are separate charts. `Mark.TRICONTOUR` and `Mark.TRICONTOURF` lay
+    out through the same `_draw_continuous_axis_frame` over the same
+    `_data_extent` of the same samples, so at equal `width`/`height`
+    the two charts already agree pixel for pixel -- which is what makes
+    them worth reading side by side, and also what makes the layering
+    mechanical once the allow-list opens.
 
     The fill covers the samples' convex hull, not the whole plot rect --
     scattered data says nothing about the corners it does not reach.

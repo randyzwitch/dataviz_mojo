@@ -142,7 +142,11 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
 
     Restricted to `Mark.POINT`/`LINE`/`AREA`, plus at most one `Mark.BAR`
     layer for a bar-plus-line combo chart (dispatched to
-    `_render_bar_combo_layers`, which has a narrower scope). A
+    `_render_bar_combo_layers`, which has a narrower scope). Every other
+    mark raises, #376 tracks opening that up, and any docstring that
+    recommends layering a mark not on this list is wrong -- three did
+    (#401). `render_facets()` has no such allow-list and takes any mark,
+    so it is what to reach for meanwhile. A
     `Plot.secondary_axis()` layer scales against its own y-domain on the
     right edge. A `Mark.POINT` layer may use `color`/`color_categories`/
     `size` encoding with its own scales and legend section; sections
@@ -622,6 +626,14 @@ def _render_layers_generic[
         # Layering-specific check: a standalone Mark.BAR is legal, a layered
         # one alongside these isn't. A lone Mark.BAR already dispatched above,
         # so this fires only for Mark.ARC and other unsupported marks.
+        #
+        # The message names the offending layer's index and #376 because
+        # of #401: several mark docstrings told callers to layer marks
+        # this rejects, and a reader who followed one got a message
+        # about Mark.BAR and Mark.ARC that named neither their mark nor
+        # which layer was wrong nor where the gap is tracked. Mark has
+        # no name table (mark.mojo is comptime Int constants), so the
+        # index is what can be reported; it is enough to find the layer.
         if not (
             plots[i]._mark == Mark.POINT
             or plots[i]._mark == Mark.LINE
@@ -629,10 +641,17 @@ def _render_layers_generic[
         ):
             raise Error(
                 "render_layers(): only Mark.POINT/Mark.LINE/Mark.AREA can be"
-                " layered here (got a different mark -- Mark.BAR is supported"
-                " only as the lone categorical layer in a bar-combo chart, see"
-                " _render_bar_combo_layers; Mark.ARC still isn't supported at"
-                " all)"
+                " layered here -- layer "
+                + String(i)
+                + " is a different mark. Mark.BAR is supported only as the"
+                " lone categorical layer in a bar-combo chart (see"
+                " _render_bar_combo_layers). Every other mark is tracked by"
+                " #376, including the continuous-frame ones that already lay"
+                " out exactly as Mark.POINT does (TRICONTOUR, TRICONTOURF,"
+                " TRIPLOT, TRIPCOLOR, BARBS) and KDE/RUG. Render them as"
+                " separate charts until that lands -- at equal width/height"
+                " and theme they draw the same frame, so they can be read"
+                " against each other."
             )
         if plots[i]._x_domain.has or plots[i]._y_domain.has:
             raise Error(

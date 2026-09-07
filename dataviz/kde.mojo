@@ -240,7 +240,11 @@ def _render_rug[
     A density curve is smooth everywhere and says nothing about how many
     observations are behind it, or where they actually fall. A rug is the
     honesty check on one, which is why it is conventionally drawn
-    underneath -- layer the two with `render_layers()`.
+    underneath. `render_layers()` cannot combine the two -- it takes
+    only `Mark.POINT`/`LINE`/`AREA`, and a `Mark.KDE` or `Mark.RUG`
+    layer raises (#401, #376). `kdeplot(rug=True)` draws both on one
+    frame instead, through `_draw_rug_ticks` below; this mark is the
+    ticks on their own.
 
     Each tick is a hairline, so its fixed coordinate snaps to a pixel
     centre and it stays crisp; the whole chart is thin vertical lines and
@@ -310,7 +314,14 @@ def kdeplot(
     `Mark.KDE`: seaborn's `kdeplot()`. The same estimate `Mark.VIOLIN`
     computes, drawn on a continuous frame -- value across, density up --
     which is the form for comparing two or three distributions on shared
-    axes. Layer them with `render_layers()`.
+    axes.
+
+    Comparing them on one frame is what seaborn does by calling
+    `kdeplot()` twice onto the same axes, and this package cannot yet
+    express it: `render_layers()` takes only `Mark.POINT`/`LINE`/`AREA`,
+    so a second `Mark.KDE` layer raises rather than drawing (#401,
+    #376). `render_facets()` puts the distributions side by side today,
+    which is a weaker reading than overlaying them but an honest one.
 
     A KDE is smooth everywhere, including where there are no
     observations at all, so it can imply detail the sample does not
