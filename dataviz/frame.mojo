@@ -691,6 +691,7 @@ def _draw_continuous_axis_frame[
     ox1: Int,
     oy1: Int,
     *,
+    y_axis_visible: Bool = True,
     mut cache: FontCache,
 ) raises -> _ContinuousFrame:
     """The layout and axis-frame core every continuous-x render path shares
@@ -706,13 +707,48 @@ def _draw_continuous_axis_frame[
     combined for a stack. `legend` insets whichever edge it reserved (the
     right column by default), subtracted from the right
     edge before the rect is finalized.
+
+    `y_axis_visible=False` drops the entire y-axis -- its line, its tick
+    marks, their labels and the horizontal gridlines -- for a mark with
+    no y dimension at all (#378). `Mark.RUG` is the case: every rug tick
+    is the same length and sits on the baseline, so the placeholder
+    `LinearScale(0, 1, ...)` the frame requires would otherwise be
+    published to the reader as the labels `0.0 0.2 ... 1.0`, a density
+    that does not exist. seaborn's standalone `rugplot()` keeps those
+    0-1 limits; this is a deliberate improvement on the reference, not a
+    deviation from it.
+
+    The vertical gridlines and the whole x-axis stay: they carry the
+    mark's only real dimension. Only the y half goes.
+
+    The axis *line* goes with the rest, which #378's plan had left in as
+    the plot rect's boundary. Rendered both ways it is the wrong call:
+    with the ticks and labels gone the bare spine is 190 unexplained
+    pixels of `axis_color` in a single column of a 400x260 rug, more ink
+    than the observations it stands next to, and it reads as a y-axis
+    whose labels failed to draw rather than as a frame. matplotlib's own
+    answer for this chart is `despine(left=True)`. The x-axis line still
+    terminates at `plot_x0`, so the rect is unambiguous without it.
+
+    The flag also collapses `dynamic_left_margin`, so the left margin
+    falls back to `Theme.margin_left` alone rather than being sized to
+    fit labels that are never drawn. With the stock `margin_left` (60)
+    that is a no-op -- 60 already exceeds the 34px a "0.0" label needs --
+    so it is not what fixes the default chart; it is what keeps a
+    deliberately *tight* `margin_left` from reserving a gutter for
+    nothing (measured: `margin_left=16` gives `plot_x0` 34 before, 16
+    after).
+
+    The default is `True`, and the false branch adds no work to it: every
+    other continuous mark renders byte-identically.
     """
     var sc = _Scaled(theme)
 
     # y-domain ticks computed before plot_x0 is finalized: tick values
     # depend only on the domain, never the pixel range, so the left margin
     # can be sized to fit their labels, `max`'d against Theme's configured
-    # minimum.
+    # minimum. With the y-axis hidden there are no labels to fit, so the
+    # dynamic part collapses to 0 and `margin_left` alone decides.
     var y_ticks = y_scale.ticks()
     var y_labels = y_ticks.labels(theme.y_tick_format)
     var dynamic_left_margin = (
@@ -720,7 +756,7 @@ def _draw_continuous_axis_frame[
         + sc.tick_length
         + sc.label_gap
         + sc.margin_buffer
-    )
+    ) if y_axis_visible else 0
 
     var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin) + legend.left
     var plot_y0 = oy0 + sc.margin_top + legend.top
@@ -753,24 +789,26 @@ def _draw_continuous_axis_frame[
                 width=sc.scale,
                 dashes=theme.gridline_style.dashes(sc.scale),
             )
-        for i in range(len(y_ticks.values)):
-            var py = _axis_pixel(out_y_scale, y_ticks.values[i])
-            target.draw_line_aa(
-                plot_x0,
-                py,
-                plot_x1,
-                py,
-                theme.gridline_color,
-                width=sc.scale,
-                dashes=theme.gridline_style.dashes(sc.scale),
-            )
+        if y_axis_visible:
+            for i in range(len(y_ticks.values)):
+                var py = _axis_pixel(out_y_scale, y_ticks.values[i])
+                target.draw_line_aa(
+                    plot_x0,
+                    py,
+                    plot_x1,
+                    py,
+                    theme.gridline_color,
+                    width=sc.scale,
+                    dashes=theme.gridline_style.dashes(sc.scale),
+                )
 
     target.draw_line_aa(
         plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale
     )
-    target.draw_line_aa(
-        plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale
-    )
+    if y_axis_visible:
+        target.draw_line_aa(
+            plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale
+        )
 
     var text_requests = List[_TextRequest]()
 
@@ -799,27 +837,28 @@ def _draw_continuous_axis_frame[
     # Baseline offset so a label's glyphs sit roughly vertically centered
     # on its tick; draw_text's y is the text baseline.
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
-    for i in range(len(y_ticks.values)):
-        var py = _axis_pixel(out_y_scale, y_ticks.values[i])
-        target.draw_line_aa(
-            plot_x0 - sc.tick_length,
-            py,
-            plot_x0,
-            py,
-            theme.axis_color,
-            width=sc.scale,
-        )
-        text_requests.append(
-            _TextRequest(
-                plot_x0 - sc.tick_length - sc.label_gap,
-                py + y_label_baseline_offset,
-                y_labels[i],
-                theme.text_color,
-                sc.font_size,
-                TextAlign.RIGHT,
-                theme.font_family,
+    if y_axis_visible:
+        for i in range(len(y_ticks.values)):
+            var py = _axis_pixel(out_y_scale, y_ticks.values[i])
+            target.draw_line_aa(
+                plot_x0 - sc.tick_length,
+                py,
+                plot_x0,
+                py,
+                theme.axis_color,
+                width=sc.scale,
             )
-        )
+            text_requests.append(
+                _TextRequest(
+                    plot_x0 - sc.tick_length - sc.label_gap,
+                    py + y_label_baseline_offset,
+                    y_labels[i],
+                    theme.text_color,
+                    sc.font_size,
+                    TextAlign.RIGHT,
+                    theme.font_family,
+                )
+            )
 
     return _ContinuousFrame(
         out_x_scale,

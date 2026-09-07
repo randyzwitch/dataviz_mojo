@@ -246,6 +246,14 @@ def _render_rug[
     centre and it stays crisp; the whole chart is thin vertical lines and
     a blurred one reads as a fainter observation.
 
+    The y-axis is suppressed (`y_axis_visible=False`, #378). A rug has no
+    y dimension: the `LinearScale(0.0, 1.0, ...)` below exists only
+    because `_draw_continuous_axis_frame` requires a y-domain, and drawn
+    out it would caption the chart `0.0 0.2 ... 1.0` -- a density a
+    reader can reasonably believe and that is not there. The x-axis and
+    the vertical gridlines stay: the observation's value is the one thing
+    a rug does encode.
+
     Args:
         target: Where to draw.
         plot: The chart, whose `_distribution` values this reads.
@@ -275,6 +283,7 @@ def _render_rug[
         oy0,
         ox1,
         oy1,
+        y_axis_visible=False,
         cache=cache,
     )
 
@@ -367,6 +376,11 @@ def rugplot(
     `Mark.RUG`: seaborn's `rugplot()`. The same ticks `kdeplot(rug=True)`
     draws under its curve, as a chart of their own -- `render_layers()`
     cannot yet combine the two marks (#376).
+
+    Drawn with no y-axis (#378): a rug's ticks are all the same length
+    and all sit on the baseline, so the only thing the chart says is
+    *where the observations are*. Passing `y_title` still captions the
+    left edge, which is worth avoiding here for the same reason.
 
     Args:
         values: The observations.
