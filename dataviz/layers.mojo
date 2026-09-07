@@ -517,15 +517,25 @@ def _render_bar_combo_layers[
         else:
             # Mark.AREA -- same closed-down-to-baseline technique
             # _draw_area_layer uses, just against this frame's
-            # categorical x positions instead of a continuous x_scale.
+            # categorical x positions instead of a continuous x_scale,
+            # and stepped here for the same reason the Mark.LINE branch
+            # above is (#384): this branch builds its own geometry, so a
+            # mark_area(step=...) it ignored would silently fill under a
+            # diagonal the caller said was a staircase.
             var baseline_py = frame.y_scale.to_pixel(0.0)
             if round_to_int(baseline_py) == round_to_int(
                 frame.y_scale.range_min
             ):
                 baseline_py -= 1.0
-            var path = _build_line_path(px, py, layer_theme.line_smoothing)
-            path.line_to(px[len(px) - 1], baseline_py)
-            path.line_to(px[0], baseline_py)
+            _check_step_smoothing(
+                layer_theme, plots[i]._mark_style.step, Mark.AREA
+            )
+            var stepped = _step_points(px, py, plots[i]._mark_style.step)
+            var path = _build_line_path(
+                stepped.px, stepped.py, layer_theme.line_smoothing
+            )
+            path.line_to(stepped.px[len(stepped.px) - 1], baseline_py)
+            path.line_to(stepped.px[0], baseline_py)
             path.close()
             target.fill_path_aa(
                 path, layer_theme.mark_color, fill_rule=FillRule.NONZERO

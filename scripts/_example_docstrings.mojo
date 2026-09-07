@@ -60,6 +60,9 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("slope", "continuous", "line", block="Slope Chart"),
         ExamplePage("step", "continuous", "line", block="Step Chart"),
         ExamplePage("area", "continuous", "area"),
+        ExamplePage(
+            "step_area", "continuous", "area", block="Stepped Area Chart"
+        ),
         ExamplePage("bar", "bar", "bar"),
         ExamplePage("pie", "arc", "pie"),
         ExamplePage("lollipop", "lollipop", "lollipop"),
@@ -121,11 +124,13 @@ def _pages() -> List[ExamplePage]:
 def _hook_overrides() -> Dict[String, String]:
     """Page-level hooks that shouldn't come from the backing function's
     docstring. `slope` and `step` both call the general-purpose
-    `line()` but read as their own chart types.
+    `line()`, and `step_area` the general-purpose `area()`, but each
+    reads as its own chart type.
     """
     var d = Dict[String, String]()
     d["slope"] = "A slope chart."
     d["step"] = "A step (stairs) chart."
+    d["step_area"] = "A stepped area chart."
     return d^
 
 

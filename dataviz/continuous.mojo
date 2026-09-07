@@ -705,13 +705,25 @@ def _draw_area_layer[
     """Draw one `Mark.AREA` plot's filled region into an already-laid-out
     continuous axis frame: the same curve `_draw_line_layer` strokes,
     closed down to the zero baseline (`y_scale`'s domain includes zero;
-    see `_zero_baseline_y_extent`) and filled. Only the top edge smooths;
-    the two closing segments to and along the baseline stay straight.
-    The closing edge is pulled 1px off the bottom axis line when it lands
-    there, the `_pull_off_axis_line` rule applied to a path.
+    see `_zero_baseline_y_extent`) and filled. Only the top edge smooths
+    or steps; the two closing segments to and along the baseline stay
+    straight. The closing edge is pulled 1px off the bottom axis line
+    when it lands there, the `_pull_off_axis_line` rule applied to a
+    path.
+
+    `mark_area(step=...)` reaches the top edge through the same
+    `_step_points` `_draw_line_layer` uses (#384) -- a stepped area is a
+    stepped line with the region under it filled, so a second expansion
+    written against the fill would be two places to get `PRE`/`MID`/
+    `POST` right instead of one. The closing segments do not join the
+    staircase: `_step_points` neither moves the first x nor the last, so
+    the fill still meets the baseline directly under the outermost
+    samples, with no sliver at either end and nothing for the path to
+    cross back over.
     """
     var theme = plot._theme
     _check_line_smoothing(theme)
+    _check_step_smoothing(theme, plot._mark_style.step, Mark.AREA)
     var baseline_py = y_scale.to_pixel(0.0)
     if round_to_int(baseline_py) == round_to_int(y_scale.range_min):
         baseline_py -= 1.0
@@ -720,9 +732,14 @@ def _draw_area_layer[
     for i in range(len(plot.x_data)):
         px.append(x_scale.to_pixel(plot.x_data[i]))
         py.append(y_scale.to_pixel(plot.y_data[i]))
+    # Step first, decimate second, the order and the reasoning
+    # _draw_line_layer's own comment spells out: thin the geometry that
+    # is actually drawn, so the two-points-per-column cap applies to the
+    # staircase rather than being half undone by expanding after it.
+    var stepped = _step_points(px, py, plot._mark_style.step)
     # Same sub-pixel thinning the stroked path gets; the fill's top edge is
     # that curve.
-    var thinned = _decimate_to_pixel_columns(px, py)
+    var thinned = _decimate_to_pixel_columns(stepped.px, stepped.py)
     var path = _build_line_path(thinned.px, thinned.py, theme.line_smoothing)
     path.line_to(thinned.px[len(thinned.px) - 1], baseline_py)
     path.line_to(thinned.px[0], baseline_py)
@@ -971,6 +988,7 @@ def line[
 def area(
     x: List[Float64],
     y: List[Float64],
+    step: StepStyle = StepStyle.NONE,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -988,6 +1006,12 @@ def area(
         x: The continuous x column, one entry per point.
         y: The continuous y column; the filled area runs from each
             point down to zero.
+        step: Step (stairs) interpolation on the fill's top edge --
+            `NONE` (the default, straight segments), or `PRE`/`MID`/
+            `POST` for a quantity that holds constant between samples
+            rather than sliding between them. See `StepStyle` for which
+            riser placement claims what, and `Plot.mark_area()` for why
+            only the top edge steps.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -1020,8 +1044,40 @@ def area(
             var c = area(x, y, theme=Theme(mark_color=STEELBLUE))
             save(c, "docs/src/examples/out_area.svg")
         ```
+
+    Example (Stepped Area Chart):
+        ```mojo
+        from dataviz import StepStyle, area
+        from dataviz.plot import save
+        from dataviz.colors import SEAGREEN
+        from dataviz.theme import Theme
+
+        def main() raises:
+            # Units in the warehouse change only when a delivery arrives
+            # or a shipment leaves, and hold flat in between. A straight
+            # top edge would fill in a slow drift between counts that
+            # never happened, and the fill would assign area to those
+            # invented values; StepStyle.POST holds each count until the
+            # day the next one was taken.
+            var day: List[Float64] = [
+                0.0, 4.0, 7.0, 11.0, 16.0, 20.0, 25.0, 28.0
+            ]
+            var units: List[Float64] = [
+                120.0, 340.0, 300.0, 260.0, 480.0, 430.0, 390.0, 350.0
+            ]
+
+            var c = area(
+                day,
+                units,
+                step=StepStyle.POST,
+                theme=Theme(mark_color=SEAGREEN),
+                x_title="Day of month",
+                y_title="Units on hand",
+            )
+            save(c, "docs/src/examples/out_step_area.svg")
+        ```
     """
-    var plot = Plot().mark_area().encode(x=x, y=y)
+    var plot = Plot().mark_area(step=step).encode(x=x, y=y)
     return _finished(plot^, theme, width, height, title, x_title, y_title)
 
 
@@ -1030,6 +1086,7 @@ def area[
 ](
     x: List[Scalar[dtype]],
     y: List[Scalar[dtype]],
+    step: StepStyle = StepStyle.NONE,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1043,6 +1100,7 @@ def area[
     return area(
         _materialize_scalar_list(x),
         _materialize_scalar_list(y),
+        step=step,
         theme=theme,
         width=width,
         height=height,

@@ -1,8 +1,8 @@
 """Merged test module (one process per test family; see pixi.toml's
 `[tasks]` comment for why). Covers Mark.POINT (centering, theme
 colors, color/size encoding, categorical color, SVG coordinates),
-Mark.LINE (drawing, line_smoothing, _build_line_path), Mark.AREA
-(fill region and smoothing), Mark.BAR (rectangles, negative values,
+Mark.LINE (drawing, line_smoothing, _build_line_path, step), Mark.AREA
+(fill region, smoothing and step), Mark.BAR (rectangles, negative values,
 color_by_sign), encode_histogram(), Mark.LOLLIPOP, Mark.BOX,
 Mark.CANDLESTICK, Mark.WATERFALL, and Mark.BULLET, each raster + SVG.
 """
@@ -15,6 +15,8 @@ from _test_helpers import (
     _attr_values,
     _bbox_of_color,
     _count_color,
+    _row_extent,
+    _runs_in_row,
 )
 from canvas.color import Color
 from canvas.path import Path, PathOp
@@ -839,6 +841,417 @@ def test_render_area_raises_on_out_of_range_smoothing() raises:
             x, y, theme=Theme(line_smoothing=1.1), width=200, height=150
         )
         _ = render(_hoisted5)
+
+
+# ---------------------------------------------------------------
+# Mark.AREA's step (stairs) interpolation, #384
+#
+# One projection backs every assertion below, the same one
+# test_render_svg_area_smoothing_matches_hand_derived_curve uses:
+#
+#   x=[0,10,20] pads 5% of its span to [-1,21]; the 400x300 canvas's
+#   default margins (60/20/20/50) give a plot area x:[60,380], so
+#   to_pixel(x) = 60 + 320*(x+1)/22 -> 74.545, 220.000, 365.455.
+#   y=[2,10,4] goes through _zero_baseline_y_extent, which forces zero
+#   into the domain and pads only the far end, giving [0,10.5] over
+#   y:[20,250] inverted: to_pixel(y) = 250 - 230*y/10.5 -> 206.190,
+#   30.952, 162.381, and to_pixel(0) = 250, pulled to 249 because it
+#   lands on the axis line (_pull_off_axis_line).
+#
+# The peak at y=10 never touches zero, so the two closing segments are
+# real geometry rather than degenerate -- which is the point: they must
+# come through a step unchanged.
+# ---------------------------------------------------------------
+
+
+def test_render_svg_area_step_post_matches_confirmed_path() raises:
+    # POST holds each y until the next sample's x, so the top edge is
+    # flat at 206.190 out to 220, riser, flat at 30.952 out to 365.455,
+    # riser down to 162.381. Then the two closing line_to()s -- down to
+    # the baseline at the last x, back along it to the first -- exactly
+    # the pair the unstepped and the smoothed renders both end with.
+    #
+    # The last riser and the closing drop are both at x=365.455, so
+    # they read as one vertical run in the `d`: that is the closing
+    # segment meeting the staircase's end head-on, with no sliver of
+    # fill left over and no crossing back over itself.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [2.0, 10.0, 4.0]
+    var plot = (
+        Plot()
+        .mark_area(step=StepStyle.POST)
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    assert_true(
+        '<path d="M74.545,206.190 L220.000,206.190 L220.000,30.952'
+        " L365.455,30.952 L365.455,162.381 L365.455,249.000"
+        ' L74.545,249.000 Z" fill="#1e64b4"/>'
+        in render_svg(plot).to_string(),
+        "StepStyle.POST's staircase, closed down to the baseline",
+    )
+
+
+def test_render_svg_area_step_pre_matches_confirmed_path() raises:
+    # PRE's mirror of the above: the riser comes at the earlier x, so
+    # the bare riser is the first segment, at 74.545 -- and it shares
+    # that x with the closing segment back up from the baseline, which
+    # is what "no sliver at the ends" looks like on the left.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [2.0, 10.0, 4.0]
+    var plot = (
+        Plot()
+        .mark_area(step=StepStyle.PRE)
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    assert_true(
+        '<path d="M74.545,206.190 L74.545,30.952 L220.000,30.952'
+        " L220.000,162.381 L365.455,162.381 L365.455,249.000"
+        ' L74.545,249.000 Z" fill="#1e64b4"/>'
+        in render_svg(plot).to_string(),
+        "StepStyle.PRE's staircase, closed down to the baseline",
+    )
+
+
+def test_render_svg_area_step_mid_matches_confirmed_path() raises:
+    # MID's risers sit at the pixel midpoints (74.545+220)/2 = 147.273
+    # and (220+365.455)/2 = 292.727, leaving each sample a plateau
+    # centered on it and half-width plateaus at the two ends. The
+    # closing pair is unchanged again: MID keeps the first and last x,
+    # so the fill still meets the baseline directly under the outermost
+    # samples rather than under a midpoint.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [2.0, 10.0, 4.0]
+    var plot = (
+        Plot()
+        .mark_area(step=StepStyle.MID)
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    assert_true(
+        '<path d="M74.545,206.190 L147.273,206.190 L147.273,30.952'
+        " L292.727,30.952 L292.727,162.381 L365.455,162.381"
+        ' L365.455,249.000 L74.545,249.000 Z" fill="#1e64b4"/>'
+        in render_svg(plot).to_string(),
+        "StepStyle.MID's staircase, closed down to the baseline",
+    )
+
+
+def test_render_area_step_fills_the_plateau_and_not_the_diagonal() raises:
+    # The raster counterpart. Every probe below is a fill interior --
+    # tens of pixels from the nearest edge in every direction, so the
+    # downsampled pixel is the exact mark color or the exact background
+    # rather than a blend -- and every one of them was measured on a
+    # real render of all four styles before being written down.
+    #
+    # The probes are chosen to discriminate, which for a fill means each
+    # one has to separate two styles that disagree there, not merely sit
+    # inside the shape:
+    #
+    #   (100, 60)  NONE background, PRE filled.  The unstepped top edge
+    #              passes y=175.5 at x=100, so this is 115px of clear
+    #              air above it; PRE's first plateau is already up at
+    #              30.952. Separates PRE from NONE *and* from MID/POST,
+    #              whose first plateau is the low one at 206.190.
+    #   (180, 60)  NONE background (its edge is at 79.1 there), MID and
+    #              PRE filled, POST background. This is the probe that
+    #              catches a step that was ignored entirely.
+    #   (200, 60)  NONE filled (edge at 55.0), POST background. The one
+    #              that runs the other way: POST *removes* fill the
+    #              straight interpolation claimed, so a "step draws more
+    #              ink" bug cannot pass it.
+    #   (293, 60)  NONE background (edge at 96.9), POST filled.
+    #   (360, 40)  NONE background (edge at 157.5), POST filled -- deep
+    #              inside the plateau, where a straight edge is 117px
+    #              lower.
+    #
+    # x=147/293 are skipped for MID: its risers land at 147.273 and
+    # 292.727, so those columns are antialiased edge, not interior.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [2.0, 10.0, 4.0]
+    var t = Theme(show_gridlines=False)
+    var mc = t.mark_color
+
+    var straight = Plot().mark_area().encode(x=x, y=y).theme(t).size(400, 300)
+    var c_none = render(straight)
+    _assert_color(c_none, 100, 60, BG, "no plateau without a step")
+    _assert_color(c_none, 180, 60, BG, "the straight edge is still climbing")
+    _assert_color(c_none, 200, 60, mc, "the straight edge has passed y=60")
+    _assert_color(c_none, 293, 60, BG, "the straight descent is well below")
+    _assert_color(c_none, 360, 40, BG, "and further below still at x=360")
+
+    var pre = (
+        Plot()
+        .mark_area(step=StepStyle.PRE)
+        .encode(x=x, y=y)
+        .theme(t)
+        .size(400, 300)
+    )
+    var c_pre = render(pre)
+    _assert_color(c_pre, 100, 60, mc, "PRE's first plateau is the high one")
+    _assert_color(c_pre, 180, 60, mc, "still that plateau at x=180")
+    _assert_color(c_pre, 360, 40, BG, "PRE's last plateau is the low one")
+
+    var mid = (
+        Plot()
+        .mark_area(step=StepStyle.MID)
+        .encode(x=x, y=y)
+        .theme(t)
+        .size(400, 300)
+    )
+    var c_mid = render(mid)
+    _assert_color(c_mid, 100, 60, BG, "MID's first half-plateau is the low one")
+    _assert_color(c_mid, 180, 60, mc, "MID has risen by x=180")
+    _assert_color(c_mid, 360, 40, BG, "MID's last half-plateau is the low one")
+
+    var post = (
+        Plot()
+        .mark_area(step=StepStyle.POST)
+        .encode(x=x, y=y)
+        .theme(t)
+        .size(400, 300)
+    )
+    var c_post = render(post)
+    _assert_color(c_post, 180, 60, BG, "POST still holds the low first value")
+    _assert_color(c_post, 200, 60, BG, "and holds it past where NONE has risen")
+    _assert_color(c_post, 293, 60, mc, "POST's plateau reaches x=293")
+    _assert_color(c_post, 360, 40, mc, "and holds it to the last sample")
+
+
+def test_render_area_step_leaves_the_baseline_and_the_ends_flat() raises:
+    # The step belongs to the top edge only. Three properties, none of
+    # which depends on where the margins put the frame:
+    #
+    #  - the filled silhouette spans exactly the same columns and rows
+    #    under all four styles, so no style overshoots the outermost
+    #    sample or leaves a gap short of it;
+    #  - the row just above the baseline is one unbroken run of fill in
+    #    all four, so the closing segments never cross back over the
+    #    staircase and pinch it in two;
+    #  - and that run is the identical span in all four, so the bottom
+    #    edge is still straight rather than having picked up risers of
+    #    its own.
+    #
+    # Row 245 is 4px above the baseline at 249 and clear of the axis
+    # line beneath it.
+    #
+    # Invariance on its own would pass on a build that ignored `step`
+    # entirely, so the last block asserts the opposite for a row that
+    # crosses the staircase. Row 200 is 6px below the low plateau at
+    # 206.190, so where the fill starts on that row is exactly where
+    # that style's top edge last dropped below it, and the four
+    # disagree: PRE is up on the high plateau from the left edge (76),
+    # the unstepped diagonal crosses y=200 a little later (81), MID
+    # holds the low value until its first riser (148) and POST until
+    # the second sample (221). Measured, then written down as strict
+    # inequalities so an antialiasing change of a pixel does not
+    # relitigate them.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [2.0, 10.0, 4.0]
+    var t = Theme(show_gridlines=False)
+    var mc = t.mark_color
+    var styles: List[StepStyle] = [
+        StepStyle.NONE,
+        StepStyle.PRE,
+        StepStyle.MID,
+        StepStyle.POST,
+    ]
+    var c_none = render(
+        Plot().mark_area().encode(x=x, y=y).theme(t).size(400, 300)
+    )
+    var reference = _bbox_of_color(c_none, mc)
+    var ref_row = _row_extent(c_none, 245, mc)
+    var none_200 = _row_extent(c_none, 200, mc)
+    assert_true(reference.found, "the unstepped area fills something")
+    var start_200: List[Int] = []
+    for s in styles:
+        var c = render(
+            Plot().mark_area(step=s).encode(x=x, y=y).theme(t).size(400, 300)
+        )
+        var box = _bbox_of_color(c, mc)
+        assert_equal(box.x0, reference.x0, "left edge, step=" + s.name())
+        assert_equal(box.x1, reference.x1, "right edge, step=" + s.name())
+        assert_equal(box.y0, reference.y0, "top edge, step=" + s.name())
+        assert_equal(box.y1, reference.y1, "bottom edge, step=" + s.name())
+        assert_equal(
+            _runs_in_row(c, 245, mc),
+            1,
+            "the fill above the baseline is unbroken, step=" + s.name(),
+        )
+        var row = _row_extent(c, 245, mc)
+        assert_equal(row.x0, ref_row.x0, "baseline run start, step=" + s.name())
+        assert_equal(row.x1, ref_row.x1, "baseline run end, step=" + s.name())
+        start_200.append(_row_extent(c, 200, mc).x0)
+
+    # styles is [NONE, PRE, MID, POST].
+    assert_equal(start_200[0], none_200.x0, "NONE is the unstepped render")
+    assert_true(
+        start_200[1] < start_200[0],
+        (
+            "PRE's high first plateau reaches row 200 left of the straight"
+            " edge (got "
+            + String(start_200[1])
+            + " against "
+            + String(start_200[0])
+            + ")"
+        ),
+    )
+    assert_true(
+        start_200[0] < start_200[2],
+        (
+            "MID holds the low first value past where the straight edge has"
+            " climbed (got "
+            + String(start_200[2])
+            + " against "
+            + String(start_200[0])
+            + ")"
+        ),
+    )
+    assert_true(
+        start_200[2] < start_200[3],
+        (
+            "POST holds it further still, to the second sample (got "
+            + String(start_200[3])
+            + " against "
+            + String(start_200[2])
+            + ")"
+        ),
+    )
+
+
+def test_render_area_step_raises_when_combined_with_line_smoothing() raises:
+    # Same mutual exclusion Mark.LINE has, and for a sharper reason: a
+    # Catmull-Rom tangent through a riser's two same-x points is
+    # horizontal, so the curve bows sideways past the samples -- on a
+    # stroked line that is a thin overshoot, on a fill it is a whole
+    # column of ink down to the baseline under an x the data never
+    # reached. The message names mark_area(), not mark_line(), so it
+    # points at the method the caller actually called.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [2.0, 10.0, 4.0]
+    with assert_raises(
+        contains=(
+            "Theme.line_smoothing and Plot.mark_area(step=...) are mutually"
+            " exclusive"
+        )
+    ):
+        var plot = (
+            Plot()
+            .mark_area(step=StepStyle.MID)
+            .encode(x=x, y=y)
+            .theme(Theme(line_smoothing=0.5))
+            .size(200, 150)
+        )
+        _ = render_svg(plot)
+    # Smoothing with the default StepStyle.NONE is still fine.
+    var ok = (
+        Plot()
+        .mark_area()
+        .encode(x=x, y=y)
+        .theme(Theme(line_smoothing=0.5))
+        .size(200, 150)
+    )
+    _ = render_svg(ok)
+
+
+def test_render_area_step_keeps_at_most_two_points_per_pixel_column() raises:
+    # _draw_area_layer steps *before* decimating, the order
+    # _draw_line_layer uses, so the two-points-per-column cap applies to
+    # the staircase that is actually filled. Expanding afterwards would
+    # turn each surviving point back into a plateau and a riser, putting
+    # the segments straight back.
+    #
+    # Both orders were measured on this series by building each and
+    # reading the rendered `d`: 1023 points this way, 2042 the other,
+    # over the same 510 pixel columns. The bound below allows 2 per
+    # column plus 8 for the two closing points, the Z, and the rounding
+    # at the ends of the span (the `d` prints three decimals, so a point
+    # at 375.9996 files under column 376) -- 1028, which the right order
+    # clears and the wrong one misses by a factor of two.
+    var x = List[Float64]()
+    var y = List[Float64]()
+    for i in range(5000):
+        x.append(Float64(i))
+        y.append(Float64(i % 17))
+    var plot = (
+        Plot()
+        .mark_area(step=StepStyle.POST)
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(640, 420)
+    )
+    var paths = _attr_values(render_svg(plot).to_string(), "path", "d")
+    var longest = String("")
+    for p in paths:
+        if p.byte_length() > longest.byte_length():
+            longest = p.copy()
+    var tokens = longest.split(" ")
+    assert_true(
+        len(tokens) < 5000,
+        (
+            "decimation ran at all (kept "
+            + String(len(tokens))
+            + " of 9999 stepped points plus the closing pair)"
+        ),
+    )
+
+    var lo_col = 1 << 30
+    var hi_col = -1
+    for token in tokens:
+        # "M74.545,239.545" / "L220.000,239.545" / a bare "Z".
+        var comma = token.find(",")
+        if comma == -1:
+            continue
+        var xs = String(token[byte=1:comma])
+        var dot = xs.find(".")
+        var col = Int(String(xs[byte=0:dot]) if dot != -1 else xs)
+        if col < lo_col:
+            lo_col = col
+        if col > hi_col:
+            hi_col = col
+    var columns = hi_col - lo_col + 1
+    assert_true(
+        len(tokens) <= 2 * columns + 8,
+        (
+            "the filled staircase has "
+            + String(len(tokens))
+            + " points over "
+            + String(columns)
+            + " pixel columns; decimation caps it at two per column"
+        ),
+    )
+
+
+def test_area_one_call_step_matches_the_builder() raises:
+    # area(step=...) has to be the same chart Plot().mark_area(step=...)
+    # builds, not a second implementation of it. Equality alone would
+    # also hold if both ends dropped `step` on the floor, so the second
+    # assertion pins that they did not: the stepped render has to differ
+    # from the default one.
+    var x: List[Float64] = [0.0, 10.0, 20.0]
+    var y: List[Float64] = [2.0, 10.0, 4.0]
+    var t = Theme(show_gridlines=False)
+    var one_call = area(
+        x, y, step=StepStyle.MID, theme=t, width=400, height=300
+    )
+    var built = (
+        Plot()
+        .mark_area(step=StepStyle.MID)
+        .encode(x=x, y=y)
+        .theme(t)
+        .size(400, 300)
+    )
+    var stepped_svg = render_svg(one_call).to_string()
+    assert_equal(stepped_svg, render_svg(built).to_string())
+    var plain = area(x, y, theme=t, width=400, height=300)
+    assert_true(
+        stepped_svg != render_svg(plain).to_string(),
+        "area(step=MID) draws something the default area() does not",
+    )
 
 
 # ---------------------------------------------------------------
