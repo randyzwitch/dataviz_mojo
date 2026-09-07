@@ -579,7 +579,12 @@ def _draw_line_layer[
     # individually resolvable (see _decimate_to_pixel_columns).
     var thinned = _decimate_to_pixel_columns(px, py)
     var path = _build_line_path(thinned.px, thinned.py, theme.line_smoothing)
-    target.stroke_path_aa(path, theme.mark_color, width=sc.line_width)
+    target.stroke_path_aa(
+        path,
+        theme.mark_color,
+        width=sc.line_width,
+        dashes=plot._mark_style.line_style.dashes(sc.scale),
+    )
 
 
 def _draw_area_layer[

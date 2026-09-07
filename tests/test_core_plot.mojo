@@ -89,6 +89,7 @@ from dataviz.plot import (
     _resolve_x_label_rotation,
     _svg_output_string,
 )
+from dataviz.line_style import LineStyle
 from dataviz.theme import Theme
 from dataviz.x_label_rotation import XAxisLabelRotation
 from std.math import pi
@@ -1483,6 +1484,164 @@ def test_auto_supersample_follows_what_is_drawn_not_the_mark_name() raises:
     assert_true(
         differs,
         "a smoothed line is supersampled by default, so factor 1 differs",
+    )
+
+
+def test_line_styles_emit_the_expected_dash_patterns() raises:
+    """Each `LineStyle` reaches the stroke, and `SOLID` adds nothing.
+
+    Asserted through SVG, where a dash pattern is an exact attribute
+    rather than something to infer from pixels.
+    """
+    var x: List[Float64] = [0.0, 1.0, 2.0]
+    var y: List[Float64] = [1.0, 3.0, 2.0]
+
+    var solid = render_svg(
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(200, 150)
+    ).to_string()
+    assert_true(
+        "stroke-dasharray" not in solid,
+        "a solid line emits no dash pattern at all",
+    )
+
+    var dashed = render_svg(
+        Plot()
+        .mark_line(style=LineStyle.DASHED)
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(200, 150)
+    ).to_string()
+    assert_true(
+        'stroke-dasharray="6.000 4.000"' in dashed,
+        "DASHED is 6 on, 4 off at scale 1",
+    )
+
+    var dotted = render_svg(
+        Plot()
+        .mark_line(style=LineStyle.DOTTED)
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(200, 150)
+    ).to_string()
+    assert_true(
+        'stroke-dasharray="1.500 3.000"' in dotted,
+        "DOTTED is 1.5 on, 3 off at scale 1",
+    )
+
+    var dash_dot = render_svg(
+        Plot()
+        .mark_line(style=LineStyle.DASH_DOT)
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False))
+        .size(200, 150)
+    ).to_string()
+    assert_true(
+        'stroke-dasharray="6.000 3.000 1.500 3.000"' in dash_dot,
+        "DASH_DOT alternates a long dash and a dot",
+    )
+
+
+def test_line_style_dashes_scale_with_the_theme() raises:
+    """A dash pattern is in multiples of `Theme.scale`, not fixed pixels.
+
+    A fixed pattern would turn into a nearly solid line on a dense chart
+    and a row of specks on a sparse one.
+    """
+    var x: List[Float64] = [0.0, 1.0, 2.0]
+    var y: List[Float64] = [1.0, 3.0, 2.0]
+    var doubled = render_svg(
+        Plot()
+        .mark_line(style=LineStyle.DASHED)
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False, scale=2.0))
+        .size(400, 300)
+    ).to_string()
+    assert_true(
+        'stroke-dasharray="12.000 8.000"' in doubled,
+        "at scale 2 the DASHED pattern doubles to 12 on, 8 off",
+    )
+
+
+def test_theme_gridline_and_annotation_styles_are_independent() raises:
+    """Furniture styles are separate knobs from the mark's own, so a
+    dashed reference line does not require dashed data."""
+    var x: List[Float64] = [0.0, 1.0, 2.0]
+    var y: List[Float64] = [1.0, 3.0, 2.0]
+    var s = render_svg(
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_line(2.0)
+        .theme(
+            Theme(
+                gridline_style=LineStyle.DOTTED,
+                annotation_line_style=LineStyle.DASHED,
+            )
+        )
+        .size(300, 220)
+    ).to_string()
+    assert_true('stroke-dasharray="1.500 3.000"' in s, "gridlines are dotted")
+    assert_true(
+        'stroke-dasharray="6.000 4.000"' in s,
+        "the reference line is dashed, and the data line is neither",
+    )
+
+
+def test_dashed_line_actually_breaks_in_the_raster_output() raises:
+    """The SVG attribute is not enough on its own -- confirm the raster
+    backend genuinely leaves gaps.
+
+    Scans the row carrying the most of the *mark's own colour* -- not
+    just the most ink, which picks the axis line, and that is solid
+    either way -- and counts runs: a solid line gives one, a dashed one
+    gives several.
+    """
+    var x: List[Float64] = [0.0, 10.0]
+    var y: List[Float64] = [5.0, 5.0]
+    var runs = List[Int]()
+    for dashed in [False, True]:
+        var style = LineStyle.DASHED if dashed else LineStyle.SOLID
+        var c = render(
+            Plot()
+            .mark_line(style=style)
+            .encode(x=x, y=y)
+            .theme(Theme(show_gridlines=False))
+            .size(300, 200)
+        )
+        var mark = Theme().mark_color
+        var row = 0
+        var best = 0
+        for yy in range(c.height):
+            var n = 0
+            for xx in range(c.width):
+                var p = c.get_pixel(xx, yy)
+                if p.r == mark.r and p.g == mark.g and p.b == mark.b:
+                    n += 1
+            if n > best:
+                best = n
+                row = yy
+        var count = 0
+        var inside = False
+        for xx in range(c.width):
+            var p = c.get_pixel(xx, row)
+            var ink = p.r == mark.r and p.g == mark.g and p.b == mark.b
+            if ink and not inside:
+                count += 1
+            inside = ink
+        runs.append(count)
+    assert_true(
+        runs[1] > runs[0],
+        (
+            "a dashed line breaks into more runs than a solid one (dashed "
+            + String(runs[1])
+            + " vs solid "
+            + String(runs[0])
+            + ")"
+        ),
     )
 
 
