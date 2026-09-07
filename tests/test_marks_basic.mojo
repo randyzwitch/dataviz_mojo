@@ -2585,13 +2585,13 @@ def _bowl_grid(size: Int) -> List[List[Float64]]:
     """`z = -(dx^2 + dy^2)` about the grid center, so the isoline for
     `-r^2` is exactly the circle of radius `r`.
     """
-    var centre = Float64(size - 1) / 2.0
+    var center = Float64(size - 1) / 2.0
     var z = List[List[Float64]]()
     for r in range(size):
         var row = List[Float64]()
         for c in range(size):
-            var dx = Float64(c) - centre
-            var dy = Float64(r) - centre
+            var dx = Float64(c) - center
+            var dy = Float64(r) - center
             row.append(-(dx * dx + dy * dy))
         z.append(row^)
     return z^
@@ -2657,7 +2657,7 @@ def test_contour_chaining_consumes_every_segment_exactly_once() raises:
     )
 
 
-def test_contour_saddle_resolves_by_the_cell_centre() raises:
+def test_contour_saddle_resolves_by_the_cell_center() raises:
     """The two ambiguous cases: diagonal corners on the same side of the
     level. The cell center decides which pair the isoline separates, and
     flipping the center's sign flips the pairing.
@@ -2873,7 +2873,7 @@ def test_contourf_fills_whole_cells_and_skips_empty_ones() raises:
     )
 
 
-def test_contourf_saddle_splits_only_when_the_centre_is_below() raises:
+def test_contourf_saddle_splits_only_when_the_center_is_below() raises:
     """The subtle case. Diagonal corners above, the other two below: if
     the cell center is above, the region is one shape joined through the
     middle; if it is below, it is two disjoint corner triangles and the

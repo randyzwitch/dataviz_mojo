@@ -278,13 +278,13 @@ def _contour_segments(
             else:
                 # Cases 5 and 10: diagonal corners share a side, so the
                 # cell center decides which pair the isoline separates.
-                var centre = (a + b + cc + d) / 4.0
-                var centre_above = centre > level
+                var center = (a + b + cc + d) / 4.0
+                var center_above = center > level
                 # In case 5 the "above" pair is a/cc; in case 10 it is
                 # b/d. The center joining the above pair isolates the
                 # below corners, and vice versa.
                 var join_diagonal = (
-                    centre_above if mask == 5 else not centre_above
+                    center_above if mask == 5 else not center_above
                 )
                 if join_diagonal:
                     # b and d are each alone in their corner.
@@ -458,8 +458,8 @@ def _append_above_region(
             var ys = List[Float64]()
 
             if mask == 5 or mask == 10:
-                var centre = (a + b + cc + d) / 4.0
-                if not (centre > level):
+                var center = (a + b + cc + d) / 4.0
+                if not (center > level):
                     # Two disjoint corner triangles: emit each alone so
                     # the middle, which is below the level, stays empty.
                     if mask == 5:

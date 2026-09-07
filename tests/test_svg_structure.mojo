@@ -42,7 +42,7 @@ def _vals() -> List[Float64]:
     return [4.0, 1.0, 3.0, 2.0]
 
 
-def test_bars_produce_one_rect_each_in_the_mark_colour() raises:
+def test_bars_produce_one_rect_each_in_the_mark_color() raises:
     """Four bars are four `<rect>`s in `Theme.mark_color`, after the
     document's background rect -- not "the color appears somewhere",
     which one bar would satisfy just as well.
@@ -237,7 +237,7 @@ def test_a_suppressed_y_axis_takes_its_minor_level_with_it() raises:
     )
 
 
-def test_grouped_bars_use_each_series_colour_once_per_category() raises:
+def test_grouped_bars_use_each_series_color_once_per_category() raises:
     """Three categories times two series is six rects, and the palette
     cycles by series rather than by bar: color 0 appears three times and
     color 1 three times. Counting the fills is what distinguishes that

@@ -632,9 +632,9 @@ def test_render_radialbar_leaves_a_radial_gap_between_rings() raises:
     var plot = radialbar(x, y, width=400, height=300)
     var c = render(plot)
 
-    var centre_row = _bbox_of_color(c, default_categorical_palette()[0])
-    assert_true(centre_row.found, "ring 0 is drawn")
-    var y_mid = centre_row.center_y()
+    var center_row = _bbox_of_color(c, default_categorical_palette()[0])
+    assert_true(center_row.found, "ring 0 is drawn")
+    var y_mid = center_row.center_y()
     assert_true(
         _runs_in_row(c, y_mid, BG) >= 3,
         "three rings across the center row leave background runs between"

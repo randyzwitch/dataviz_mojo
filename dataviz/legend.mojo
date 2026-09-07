@@ -529,13 +529,13 @@ def _draw_continuous_size_legend_h[
     for i in range(len(values)):
         var value = values[i]
         var radius = round_to_int(size_scale.to_pixel(value))
-        var centre_x = cursor + max_radius
-        var centre_y = y + max_radius
-        target.fill_circle_aa(centre_x, centre_y, radius, theme.mark_color)
+        var center_x = cursor + max_radius
+        var center_y = y + max_radius
+        target.fill_circle_aa(center_x, center_y, radius, theme.mark_color)
         text_requests.append(
             _TextRequest(
-                centre_x,
-                centre_y + max_radius + Int(sc.font_size),
+                center_x,
+                center_y + max_radius + Int(sc.font_size),
                 _format_tick(value, 1, theme.y_tick_format),
                 theme.text_color,
                 sc.font_size,
@@ -543,7 +543,7 @@ def _draw_continuous_size_legend_h[
                 theme.font_family,
             )
         )
-        cursor = centre_x + max_radius + sc.label_gap
+        cursor = center_x + max_radius + sc.label_gap
     return cursor
 
 
