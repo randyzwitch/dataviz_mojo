@@ -424,13 +424,13 @@ def test_render_kde_draws_a_curve_and_rug_draws_one_tick_per_value() raises:
 
 
 def test_kde_rug_is_visible_over_a_filled_curve() raises:
-    """Ticks under a fill are cut in the background colour, because
+    """Ticks under a fill are cut in the background color, because
     mark_color on mark_color would be invisible -- the rug exists to show
     where the sample actually is, so it has to be legible.
 
     Asserted as "the rug changes the picture" rather than by pinning tick
-    colours: the ticks are antialiased, so their pixels are blends rather
-    than any exact colour.
+    colors: the ticks are antialiased, so their pixels are blends rather
+    than any exact color.
     """
     var v: List[Float64] = [1.0, 2.0, 3.0, 7.0, 8.0, 9.0]
     var without = render(

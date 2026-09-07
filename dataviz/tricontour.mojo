@@ -318,7 +318,7 @@ def _render_tricontour[
     The points are Delaunay-triangulated (`delaunay`, Bowyer-Watson) and
     each level is traced over the triangles, chained into whole isolines
     by `contour.mojo`'s `_chain_segments`, and stroked one `Path` per
-    line in that level's colour. Everything after the triangulation is
+    line in that level's color. Everything after the triangulation is
     the grid contour's machinery: only the connectivity differs.
 
     Axes are the data's own padded x/y extent, unlike `Mark.CONTOUR`'s
@@ -425,11 +425,11 @@ def _render_tricontourf[
 
     `Mark.TRICONTOUR`'s filled counterpart, and the same relationship
     `Mark.CONTOURF` has to `Mark.CONTOUR`: the same triangulation, the
-    same levels, the same colour scale, with regions painted instead of
+    same levels, the same color scale, with regions painted instead of
     lines stroked.
 
     Painted the way `_render_contourf` paints a grid -- the whole
-    triangulation in the lowest level's colour first, then each level's
+    triangulation in the lowest level's color first, then each level's
     `z >= level` region on top in ascending order, so a band is what
     remains visible of the region below the next level up. That avoids
     building band polygons with holes, which is the part of filled
@@ -521,7 +521,7 @@ def _render_tricontourf[
                 sorted_levels[j] = tmp
 
     # The band below the first level: every triangle, in the lowest
-    # colour. `_fill_region_above` at -inf would do it, but every
+    # color. `_fill_region_above` at -inf would do it, but every
     # triangle is trivially above, so say so directly.
     var zmin = plot._tricontour.z[0]
     for v in plot._tricontour.z:
@@ -681,7 +681,7 @@ def tricontourf(
         levels: Explicit level values. Empty (the default) places
             `level_count` of them evenly inside the samples' own range.
         level_count: How many levels to place when `levels` is empty.
-        theme: Colours, sizes and spacing.
+        theme: Colors, sizes and spacing.
         width: Canvas width in pixels.
         height: Canvas height in pixels.
         title: Chart title.

@@ -41,7 +41,7 @@ def test_render_sunburst_matches_hand_derived_ring_sectors() raises:
     )
     var c = render(_hoisted1)
 
-    # Ring 1 is the branch colour itself; ring 2 is that colour lightened
+    # Ring 1 is the branch color itself; ring 2 is that color lightened
     # one step (_DEPTH_FADE, so alpha 200 against white). Without that
     # step a sunburst of one hue per branch draws as a solid disc and
     # reads as a pie -- the rings are only visible because they differ.
@@ -54,7 +54,7 @@ def test_render_sunburst_matches_hand_derived_ring_sectors() raises:
     _assert_color(c, 250, 135, palette[0], "A, ring 1, bisector 0 degrees")
     _assert_color(c, 190, 135, palette[1], "B, ring 1, bisector 180 degrees")
 
-    # The property the colours above exist to guarantee: a ring must not
+    # The property the colors above exist to guarantee: a ring must not
     # match the ring inside it, or the hierarchy is invisible.
     assert_true(
         ring2_a.r != palette[0].r
@@ -805,8 +805,8 @@ def test_render_sankey_node_meets_its_ribbon_with_no_seam() raises:
 def test_render_sankey_skip_edge_routes_through_a_pass_through_node() raises:
     # A->B, B->C, and D->C directly (a skip edge, gap 2), every value 10,
     # so every node/pass-through splits its column in half. Each node's
-    # colour paints its own rect and the ribbons leaving it, so scanning
-    # for one colour's bounding box locates that whole flow -- which is
+    # color paints its own rect and the ribbons leaving it, so scanning
+    # for one color's bounding box locates that whole flow -- which is
     # the structure worth asserting, rather than the column x positions
     # that put it there.
     var from_c: List[String] = ["A", "B", "D"]
@@ -829,7 +829,7 @@ def test_render_sankey_skip_edge_routes_through_a_pass_through_node() raises:
     assert_true(a.x0 < b.x0, "A's column is left of B's")
     assert_true(b.x0 < sink.x0, "B's column is left of C's")
 
-    # A owns the top half, D the bottom. Compared at the centres, not the
+    # A owns the top half, D the bottom. Compared at the centers, not the
     # edges: the halves are adjacent by design -- A's ink ends on the row
     # before D's begins -- so an edge comparison passes by a single pixel
     # and would keep passing however the split degraded.

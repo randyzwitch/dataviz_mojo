@@ -1142,7 +1142,7 @@ def test_render_facets_lays_out_independent_plots_side_by_side() raises:
     # Located by scanning rather than by hand-derived pixel (#218): what
     # this test is about is that each cell drew its own plot in its own
     # half, which the point's position within its cell states directly.
-    # The exact centre depends on the default margins and the 5% padding,
+    # The exact center depends on the default margins and the 5% padding,
     # and is anchored by the hand-derived tests that are about geometry.
     var xy: List[Float64] = [5.0]
     var plot0 = Plot().mark_point().encode(x=xy, y=xy).size(400, 300)
@@ -1164,7 +1164,7 @@ def test_render_facets_lays_out_independent_plots_side_by_side() raises:
     assert_true(left.found, "cell 0 drew its point")
     assert_true(right.found, "cell 1 drew its point")
 
-    # Each stays inside its own half, and neither colour appears in the
+    # Each stays inside its own half, and neither color appears in the
     # other's -- which is what "independent plots side by side" means.
     assert_true(left.x1 < 400, "cell 0's point is in the left half")
     assert_true(right.x0 >= 400, "cell 1's point is in the right half")

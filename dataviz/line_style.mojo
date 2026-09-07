@@ -10,7 +10,7 @@ struct LineStyle(Copyable, ImplicitlyCopyable, Movable):
     trend are not data, and dashing them is the conventional way of
     saying so -- a solid `annotate_hline` reads as another series. It
     also distinguishes series without relying on hue, which matters for
-    print and for readers who cannot separate the palette's colours.
+    print and for readers who cannot separate the palette's colors.
 
     The patterns are in multiples of the stroke's own scale rather than
     absolute pixels, so a dash looks the same at any `Theme.scale`; see

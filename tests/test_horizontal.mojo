@@ -296,7 +296,7 @@ def test_render_svg_horizontal_box_matches_hand_derived_rects_and_outlier() rais
         '<line x1="123.000" y1="31.500" x2="123.000" y2="123.500"' in s,
         (
             "A's median line (value 5): the fixed value-axis coordinate"
-            " snapped to a pixel centre, the two ends spanning the band's"
+            " snapped to a pixel center, the two ends spanning the band's"
             " exact extent"
         ),
     )

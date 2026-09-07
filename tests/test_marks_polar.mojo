@@ -622,7 +622,7 @@ def test_render_radialbar_ring_colors_and_track() raises:
 
 
 def test_render_radialbar_leaves_a_radial_gap_between_rings() raises:
-    # Same setup. Concentric rings separated by gaps cross the centre row
+    # Same setup. Concentric rings separated by gaps cross the center row
     # as separated runs of background, so counting runs proves the gaps
     # without naming the radius they fell at. Three rings measure 5 runs;
     # a single-ring chart, which has no internal gap at all, measures 2.
@@ -632,12 +632,12 @@ def test_render_radialbar_leaves_a_radial_gap_between_rings() raises:
     var plot = radialbar(x, y, width=400, height=300)
     var c = render(plot)
 
-    var centre_row = _bbox_of_color(c, default_categorical_palette()[0])
-    assert_true(centre_row.found, "ring 0 is drawn")
-    var y_mid = centre_row.center_y()
+    var center_row = _bbox_of_color(c, default_categorical_palette()[0])
+    assert_true(center_row.found, "ring 0 is drawn")
+    var y_mid = center_row.center_y()
     assert_true(
         _runs_in_row(c, y_mid, BG) >= 3,
-        "three rings across the centre row leave background runs between"
+        "three rings across the center row leave background runs between"
         " them, and outside: got "
         + String(_runs_in_row(c, y_mid, BG)),
     )

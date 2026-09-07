@@ -210,8 +210,8 @@ def _render_kde[
     if plot._distribution.kde_rug:
         # Over a filled curve the ticks would be mark_color on
         # mark_color and invisible, so they are cut in the background
-        # colour instead -- notches out of the fill rather than marks on
-        # top of it. Unfilled, they are the mark's own colour, because a
+        # color instead -- notches out of the fill rather than marks on
+        # top of it. Unfilled, they are the mark's own color, because a
         # rug is data.
         _draw_rug_ticks(
             target,
@@ -247,7 +247,7 @@ def _render_rug[
     ticks on their own.
 
     Each tick is a hairline, so its fixed coordinate snaps to a pixel
-    centre and it stays crisp; the whole chart is thin vertical lines and
+    center and it stays crisp; the whole chart is thin vertical lines and
     a blurred one reads as a fainter observation.
 
     The y-axis is suppressed (`y_axis_visible=False`, #378). A rug has no
@@ -442,14 +442,14 @@ def _draw_rug_ticks[
     identical whether they stand alone or sit under a curve.
 
     Each tick is a hairline, so its fixed coordinate snaps to a pixel
-    centre and stays crisp -- the whole point is a row of thin vertical
+    center and stays crisp -- the whole point is a row of thin vertical
     lines, and a blurred one reads as a fainter observation.
 
     Args:
         target: Where to draw.
         values: The observations.
         frame: The frame to draw against.
-        color: The tick colour -- the mark's, or the background where
+        color: The tick color -- the mark's, or the background where
             the ticks sit on a filled curve.
     """
     var height = Float64(frame.sc.tick_length) * 2.0

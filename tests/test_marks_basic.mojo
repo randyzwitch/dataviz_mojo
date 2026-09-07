@@ -1502,7 +1502,7 @@ def test_render_bar_negative_values_extend_below_the_baseline() raises:
     that is not zero, so a lone -10 spans y 20-238 and a lone +10 spans
     31-248 -- each anchored to its own end of the plot, but overlapping
     each other almost entirely. Comparing two separate charts would
-    therefore prove nothing. Colouring by sign is what makes the two bars
+    therefore prove nothing. Coloring by sign is what makes the two bars
     separately findable here.
 
     The exact baseline pixel stays anchored by
@@ -1543,7 +1543,7 @@ def test_render_svg_bar_mark_matches_confirmed_rect() raises:
     # height from 219 to 218.
     # Coordinates re-derived when Mark.BAR moved onto canvas's Float64
     # overloads: a coordinate is now a geometric edge under the
-    # pixel-centre convention rather than a pixel index, which places
+    # pixel-center convention rather than a pixel index, which places
     # each edge closer to the exact scale position (measured: total
     # edge error across the three bands 4.00px before, 1.67px after).
     var cats: List[String] = ["a", "b", "c"]
@@ -2582,16 +2582,16 @@ def _ramp_grid(rows: Int, cols: Int) -> List[List[Float64]]:
 
 
 def _bowl_grid(size: Int) -> List[List[Float64]]:
-    """`z = -(dx^2 + dy^2)` about the grid centre, so the isoline for
+    """`z = -(dx^2 + dy^2)` about the grid center, so the isoline for
     `-r^2` is exactly the circle of radius `r`.
     """
-    var centre = Float64(size - 1) / 2.0
+    var center = Float64(size - 1) / 2.0
     var z = List[List[Float64]]()
     for r in range(size):
         var row = List[Float64]()
         for c in range(size):
-            var dx = Float64(c) - centre
-            var dy = Float64(r) - centre
+            var dx = Float64(c) - center
+            var dy = Float64(r) - center
             row.append(-(dx * dx + dy * dy))
         z.append(row^)
     return z^
@@ -2657,14 +2657,14 @@ def test_contour_chaining_consumes_every_segment_exactly_once() raises:
     )
 
 
-def test_contour_saddle_resolves_by_the_cell_centre() raises:
+def test_contour_saddle_resolves_by_the_cell_center() raises:
     """The two ambiguous cases: diagonal corners on the same side of the
-    level. The cell centre decides which pair the isoline separates, and
-    flipping the centre's sign flips the pairing.
+    level. The cell center decides which pair the isoline separates, and
+    flipping the center's sign flips the pairing.
 
     One cell, corners a=(0,0) b=(1,0) cc=(1,1) d=(0,1), level 0.
 
-    With a=3, b=-1, cc=3, d=-1 the centre is +1, so the two *above*
+    With a=3, b=-1, cc=3, d=-1 the center is +1, so the two *above*
     corners join through the middle and each *below* corner is cut off in
     its own corner: bottom-right by a bottom/right segment, top-left by a
     top/left one.
@@ -2692,7 +2692,7 @@ def test_contour_saddle_resolves_by_the_cell_centre() raises:
     assert_equal(segs.bx[1], 0.0, "and ends on the left edge")
     assert_equal(segs.by[1], 0.75, "on the left edge")
 
-    # Mirror: centre -1, so the below corners join and each above corner
+    # Mirror: center -1, so the below corners join and each above corner
     # is cut off instead -- bottom-left by a left/bottom segment,
     # top-right by a right/top one.
     var below = List[List[Float64]]()
@@ -2873,9 +2873,9 @@ def test_contourf_fills_whole_cells_and_skips_empty_ones() raises:
     )
 
 
-def test_contourf_saddle_splits_only_when_the_centre_is_below() raises:
+def test_contourf_saddle_splits_only_when_the_center_is_below() raises:
     """The subtle case. Diagonal corners above, the other two below: if
-    the cell centre is above, the region is one shape joined through the
+    the cell center is above, the region is one shape joined through the
     middle; if it is below, it is two disjoint corner triangles and the
     middle must stay empty.
 
@@ -2883,23 +2883,23 @@ def test_contourf_saddle_splits_only_when_the_centre_is_below() raises:
     middle -- the walk that is right for the other twelve cases is wrong
     here, which is why the branch exists.
     """
-    # centre = (1 - 5 + 1 - 5)/4 = -2, below: two triangles.
+    # center = (1 - 5 + 1 - 5)/4 = -2, below: two triangles.
     assert_equal(
         _above_subpaths(_one_cell(1.0, -5.0, 1.0, -5.0), 2, 2, 0.0),
         2,
-        "centre below splits the saddle into two triangles",
+        "center below splits the saddle into two triangles",
     )
-    # centre = (5 - 1 + 5 - 1)/4 = +2, above: one joined region.
+    # center = (5 - 1 + 5 - 1)/4 = +2, above: one joined region.
     assert_equal(
         _above_subpaths(_one_cell(5.0, -1.0, 5.0, -1.0), 2, 2, 0.0),
         1,
-        "centre above joins the saddle through the middle",
+        "center above joins the saddle through the middle",
     )
     # The mirrored saddle (b/d above) behaves the same way.
     assert_equal(
         _above_subpaths(_one_cell(-5.0, 1.0, -5.0, 1.0), 2, 2, 0.0),
         2,
-        "the mirrored saddle also splits when its centre is below",
+        "the mirrored saddle also splits when its center is below",
     )
 
 
@@ -2934,7 +2934,7 @@ def test_render_contourf_paints_bands_in_level_order() raises:
 
 def test_render_contourf_leaves_no_unpainted_gaps_inside_the_plot() raises:
     """Every band paints over the last, and the lowest band covers the
-    whole rect, so no pixel inside the plot area keeps the page colour --
+    whole rect, so no pixel inside the plot area keeps the page color --
     a gap would mean a cell's region was missed.
     """
     var z = List[List[Float64]]()
@@ -2959,7 +2959,7 @@ def test_render_contourf_leaves_no_unpainted_gaps_inside_the_plot() raises:
             var p = c.get_pixel(x, y)
             if p.r == WHITE.r and p.g == WHITE.g and p.b == WHITE.b:
                 unpainted += 1
-    assert_equal(unpainted, 0, "no page-coloured pixels inside the plot")
+    assert_equal(unpainted, 0, "no page-colored pixels inside the plot")
 
 
 def test_render_contourf_svg_fills_one_path_per_level() raises:
@@ -3282,13 +3282,13 @@ def test_render_tricontourf_fills_solidly_with_no_seams() raises:
 
     Filling each triangle separately antialiases every shared edge twice,
     and two half-covered pixels over the background do not add up to a
-    covered one -- the fill comes out webbed with background-coloured
+    covered one -- the fill comes out webbed with background-colored
     lines. Asserted by counting how many pixels inside the filled region
     are lighter than both of their horizontal neighbours, which is what
     such a seam looks like and what a smooth band ramp does not produce.
 
-    Only pixels whose neighbours are *coloured* count: the axis line
-    and the antialiased tick labels are grey one-pixel features that
+    Only pixels whose neighbours are *colored* count: the axis line
+    and the antialiased tick labels are gray one-pixel features that
     would otherwise read as seams, and they are furniture, not fill.
     """
     var xs = List[Float64]()
@@ -3315,7 +3315,7 @@ def test_render_tricontourf_fills_solidly_with_no_seams() raises:
                 continue
             if right.r == 255 and right.g == 255 and right.b == 255:
                 continue
-            # Grey means furniture (the axis line, an antialiased tick
+            # Gray means furniture (the axis line, an antialiased tick
             # label), not fill.
             if abs(Int(left.r) - Int(left.b)) < 6:
                 continue

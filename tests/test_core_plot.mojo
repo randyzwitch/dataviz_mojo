@@ -1595,7 +1595,7 @@ def test_dashed_line_actually_breaks_in_the_raster_output() raises:
     """The SVG attribute is not enough on its own -- confirm the raster
     backend genuinely leaves gaps.
 
-    Scans the row carrying the most of the *mark's own colour* -- not
+    Scans the row carrying the most of the *mark's own color* -- not
     just the most ink, which picks the axis line, and that is solid
     either way -- and counts runs: a solid line gives one, a dashed one
     gives several.
@@ -3150,7 +3150,7 @@ def test_legend_position_left_moves_the_swatches_left_of_the_plot() raises:
 
 def _continuous_point_plot(position: LegendPosition) raises -> Plot:
     """A point plot with both continuous channels encoded, so its legend
-    carries a colour bar and a size section -- the two that had no row
+    carries a color bar and a size section -- the two that had no row
     form until #211's follow-up.
     """
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
@@ -3167,7 +3167,7 @@ def _continuous_point_plot(position: LegendPosition) raises -> Plot:
 
 
 def test_continuous_legend_row_costs_height_not_width() raises:
-    """A point mark's colour bar and size circles used to fall back to a
+    """A point mark's color bar and size circles used to fall back to a
     column for TOP/BOTTOM. They now lay out along a row, so those
     positions cost the plot height and leave its width alone.
     """
@@ -3188,7 +3188,7 @@ def test_continuous_legend_row_costs_height_not_width() raises:
 def test_continuous_legend_row_reserves_room_for_the_size_labels() raises:
     """The size section is the tall one -- a circle diameter plus its
     label underneath -- so a row carrying it must reserve more height
-    than one with only a colour bar. Sizing to the bar alone clipped
+    than one with only a color bar. Sizing to the bar alone clipped
     those labels off the canvas.
     """
     var x: List[Float64] = [1.0, 2.0, 3.0]
@@ -3237,8 +3237,8 @@ def test_continuous_legend_row_runs_low_to_high_left_to_right() raises:
 
     var low_at = svg.find("10.0</text>")
     var high_at = svg.find("60.0</text>")
-    assert_true(low_at >= 0, "the domain min is labelled")
-    assert_true(high_at >= 0, "the domain max is labelled")
+    assert_true(low_at >= 0, "the domain min is labeled")
+    assert_true(high_at >= 0, "the domain max is labeled")
     assert_true(
         low_at < high_at,
         "the low label is emitted before the high one, left to right",

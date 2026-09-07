@@ -125,7 +125,7 @@ def _render_ridgeline[
         path.line_to(xs[_KDE_SAMPLES - 1], baseline_y)
         path.close()
         target.fill_path_aa(path, theme.mark_color, fill_rule=FillRule.NONZERO)
-        # Outline the curve in the background colour. Rows deliberately
+        # Outline the curve in the background color. Rows deliberately
         # overlap, and every row is the same mark_color, so without an
         # outline two overlapping ridges merge into one shape and the
         # boundary between them is invisible -- the same failure the

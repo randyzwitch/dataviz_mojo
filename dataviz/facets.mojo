@@ -148,7 +148,7 @@ def render_facets(
         cols * plots[0].width * factor, rows * plots[0].height * factor
     )
     # The half-pixel that box-downsampling costs: downsample() averages
-    # the device block f*p .. f*p+f-1 into output pixel p, whose centre
+    # the device block f*p .. f*p+f-1 into output pixel p, whose center
     # sits at user coordinate p + (f-1)/(2f). Scaling alone therefore
     # lands everything (f-1)/(2f) px early -- 0.25 at factor 2, 0.333 at
     # 3, 0.375 at 4 -- so the origin shifts by (f-1)/2 device px first.

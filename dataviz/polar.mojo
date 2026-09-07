@@ -85,7 +85,7 @@ def _draw_polar_grid[
 
     Each ring is one `draw_circle_aa`. It used to be a `Path` with a full
     `arc_to` sweep, stroked -- the trait had no circle outline that took
-    a sub-pixel centre and radius, and a ring's radius is
+    a sub-pixel center and radius, and a ring's radius is
     `max_radius * i / grid_rings`, so snapping it to whole pixels was not
     an option (#258). canvas_mojo 0.16.0 put that overload on the trait,
     so the workaround is gone.
