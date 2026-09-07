@@ -15,7 +15,9 @@ from _test_helpers import (
     _column_extent,
     _row_extent,
 )
+from canvas.buffer import Canvas
 from canvas.color import Color
+from canvas.text.font_cache import FontCache
 from canvas.vector.svg import SvgCanvas
 from dataviz import (
     kdeplot,
@@ -29,8 +31,11 @@ from dataviz import (
     violin,
 )
 from dataviz.color_scale import default_categorical_palette
+from dataviz.frame import _draw_continuous_axis_frame
 from dataviz.kde import _kde_curve
+from dataviz.legend import _LegendLayout
 from dataviz.plot import Plot, render, render_svg
+from dataviz.scale import LinearScale
 from dataviz.stack_baseline import StackBaseline
 from dataviz.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
@@ -447,6 +452,278 @@ def test_kde_rug_is_visible_over_a_filled_curve() raises:
             + String(differing)
             + ")"
         ),
+    )
+
+
+def _count_in_region(
+    c: Canvas, x0: Int, y0: Int, x1: Int, y1: Int, color: Color
+) -> Int:
+    """How many pixels in the inclusive box match `color`."""
+    var n = 0
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            var p = c.get_pixel(x, y)
+            if p.r == color.r and p.g == color.g and p.b == color.b:
+                n += 1
+    return n
+
+
+def _count_not_color(
+    c: Canvas, x0: Int, y0: Int, x1: Int, y1: Int, color: Color
+) -> Int:
+    """How many pixels in the inclusive box are anything but `color`."""
+    var area = (x1 - x0 + 1) * (y1 - y0 + 1)
+    return area - _count_in_region(c, x0, y0, x1, y1, color)
+
+
+def _widest_row_of_color(c: Canvas, color: Color) -> Int:
+    """The most pixels of `color` any single row holds.
+
+    "Is there a horizontal gridline anywhere?" without depending on
+    which row a particular scale put it on: a horizontal gridline spans
+    the plot rect, so it dwarfs the handful of pixels the vertical
+    gridlines contribute to a row they merely cross.
+    """
+    var best = 0
+    for y in range(c.height):
+        var n = 0
+        for x in range(c.width):
+            var p = c.get_pixel(x, y)
+            if p.r == color.r and p.g == color.g and p.b == color.b:
+                n += 1
+        if n > best:
+            best = n
+    return best
+
+
+def _canvases_differ(a: Canvas, b: Canvas) -> Int:
+    """How many pixels of `a` and `b` disagree.
+
+    `_assert_same_canvas`'s inverse, for a claim that two renders must
+    *not* match. Returns the count rather than a Bool so a failure
+    message can say how far apart they were.
+    """
+    if a.width != b.width or a.height != b.height:
+        return -1
+    var n = 0
+    for y in range(a.height):
+        for x in range(a.width):
+            var p = a.get_pixel(x, y)
+            var q = b.get_pixel(x, y)
+            if p.r != q.r or p.g != q.g or p.b != q.b:
+                n += 1
+    return n
+
+
+def test_rug_draws_no_y_axis_while_kde_keeps_one() raises:
+    """#378: a rug has no y dimension, so it draws no y-axis at all --
+    no axis line, tick marks, tick labels or horizontal gridlines. The
+    `LinearScale(0, 1, ...)` `_render_rug` passes exists only because
+    `_draw_continuous_axis_frame` demands a y-domain; drawn out, it
+    captioned the chart `0.0 0.2 ... 1.0`, a density that is not there.
+
+    `Mark.KDE` is rendered alongside as the control. It shares the same
+    frame function and its y-axis is real (it is the density), so every
+    number that goes to zero for the rug must stay put for the KDE --
+    which is what says the `y_axis_visible` flag did not leak into the
+    default path.
+
+    Every expected value below was read off an actual 400x260 render
+    (saved as a .bmp and parsed byte by byte), not derived from the
+    margin arithmetic:
+
+                                  rug before  rug after   kde
+        non-background, x < 60           626          0   762
+        axis_color in column 60          190          0   190
+        widest gridline row              319          4   313
+
+    Column 60 is `plot_x0` under the stock `margin_left=60`, so it is
+    where the y-axis line stood; x < 60 is the gutter its tick marks and
+    labels lived in. The rug's residual 4 is the three vertical
+    gridlines plus the plot edge crossing that row -- those stay, since
+    the x-axis is the rug's one real dimension. Asserted as thresholds
+    on the KDE side (a font metric could move a label a pixel) but as an
+    exact 0 on the rug side, where the claim is that nothing is drawn.
+    """
+    var v: List[Float64] = [1.0, 2.0, 3.0, 7.0, 8.0, 9.0]
+    var t = Theme()
+    var rug = render(rugplot(v, width=400, height=260))
+    var kde = render(kdeplot(v, width=400, height=260))
+
+    var bg = t.background
+    assert_equal(
+        _count_not_color(rug, 0, 0, 59, rug.height - 1, bg),
+        0,
+        "a rugplot draws nothing in the y-tick-label gutter (was 626)",
+    )
+    assert_true(
+        _count_not_color(kde, 0, 0, 59, kde.height - 1, bg) > 400,
+        "a kdeplot still labels its y-axis in that gutter",
+    )
+
+    var axis = t.axis_color
+    assert_equal(
+        _column_extent(rug, 60, axis).found,
+        False,
+        "a rugplot draws no y-axis line at plot_x0 (was 190px of it)",
+    )
+    assert_true(
+        _column_extent(kde, 60, axis).height() > 150,
+        "a kdeplot still draws its y-axis line at plot_x0",
+    )
+
+    var grid = t.gridline_color
+    assert_true(
+        _widest_row_of_color(rug, grid) < 20,
+        (
+            "a rugplot draws no horizontal gridline -- only the vertical"
+            " ones crossing a row (widest row: "
+            + String(_widest_row_of_color(rug, grid))
+            + ")"
+        ),
+    )
+    assert_true(
+        _widest_row_of_color(kde, grid) > 200,
+        "a kdeplot still draws horizontal gridlines across its plot rect",
+    )
+
+
+def test_rug_reclaims_the_y_tick_label_margin() raises:
+    """#378 step 1's second half: with no y tick labels to fit, the left
+    margin must stop being sized to them.
+
+    `plot_x0` is `max(theme.margin_left, label_width + tick + gap +
+    buffer)`. The second term is 34px for a rug's `0.0`-`1.0` labels
+    (measured), so before this change every `margin_left` under 34
+    clamped to 34 and the rug reserved a gutter for labels it drew --
+    `margin_left=8` and `margin_left=16` rendered byte-identically. With
+    the labels gone the dynamic term collapses to 0 and `margin_left`
+    alone decides, so the two renders must now differ, and the tighter
+    one must be the wider chart.
+
+    Stated as a difference between two margins rather than as an
+    absolute `plot_x0`, so it does not re-encode the 34 it is about. The
+    stock `margin_left=60` already exceeds 34, which is why this is
+    invisible on a default-themed chart and needs its own test.
+
+    Measured on the 400x260 render: the rug's ink spans 338px at
+    `margin_left=8` and 330px at `margin_left=16` -- the 8px the margins
+    differ by. Before the change both were 314px.
+    """
+    var v: List[Float64] = [1.0, 2.0, 3.0, 7.0, 8.0, 9.0]
+    var tight = rugplot(v, theme=Theme(margin_left=8), width=400, height=260)
+    var less_tight = rugplot(
+        v, theme=Theme(margin_left=16), width=400, height=260
+    )
+    var a = render(tight)
+    var b = render(less_tight)
+
+    assert_true(
+        _canvases_differ(a, b) > 0,
+        (
+            "margin_left below the old label-fitting floor now moves the"
+            " plot rect (the two renders were byte-identical)"
+        ),
+    )
+
+    var mark = Theme().mark_color
+    var wide = _bbox_of_color(a, mark).width()
+    var narrow = _bbox_of_color(b, mark).width()
+    assert_true(
+        wide > narrow,
+        (
+            "the tighter margin gives the wider rug ("
+            + String(wide)
+            + " vs "
+            + String(narrow)
+            + ")"
+        ),
+    )
+
+
+def test_kde_still_clamps_its_left_margin_to_its_tick_labels() raises:
+    """The control for the test above, and the compatibility claim in
+    its own right: `Mark.KDE` keeps a visible y-axis, so its left margin
+    is still sized to fit the tick labels and still clamps.
+
+    `margin_left=8` and `margin_left=16` therefore stay byte-identical
+    for a KDE -- both lose to the label-fitting term -- exactly as they
+    did before `y_axis_visible` existed. If the flag ever leaked into
+    the default path this is the assertion that catches it, because the
+    KDE would start tracking `margin_left` the way the rug now does.
+    """
+    var v: List[Float64] = [1.0, 2.0, 3.0, 7.0, 8.0, 9.0]
+    var a = render(
+        kdeplot(v, theme=Theme(margin_left=8), width=400, height=260)
+    )
+    var b = render(
+        kdeplot(v, theme=Theme(margin_left=16), width=400, height=260)
+    )
+    _assert_same_canvas(a, b, "kdeplot margin_left=8 vs 16")
+
+
+def test_continuous_frame_keeps_the_y_axis_by_default() raises:
+    """`_draw_continuous_axis_frame`'s `y_axis_visible` defaults to
+    `True`, which is what lets every continuous mark but `Mark.RUG` go
+    on calling it unchanged (#378).
+
+    Drawn at the seam rather than through a mark, because the claim is
+    about the parameter and not about any one chart: omitting the
+    keyword must be pixel-for-pixel the same as passing `True`, and
+    passing `False` must actually change something -- a flag that
+    defaults correctly but does nothing would satisfy the first half on
+    its own.
+
+    Straight onto a `Canvas` rather than via `render()`, so the
+    comparison is of what this function draws and not of the
+    supersample-then-downsample pass around it.
+    """
+    var t = Theme()
+    var cache = FontCache()
+    var x = LinearScale(0.0, 10.0, 0.0, 1.0)
+    var y = LinearScale(0.0, 1.0, 0.0, 1.0)
+    var bg = t.background
+
+    var omitted = Canvas(400, 260, bg)
+    _ = _draw_continuous_axis_frame(
+        omitted, x, y, t, _LegendLayout(), 0, 0, 400, 260, cache=cache
+    )
+
+    var explicit = Canvas(400, 260, bg)
+    _ = _draw_continuous_axis_frame(
+        explicit,
+        x,
+        y,
+        t,
+        _LegendLayout(),
+        0,
+        0,
+        400,
+        260,
+        y_axis_visible=True,
+        cache=cache,
+    )
+    _assert_same_canvas(
+        omitted, explicit, "y_axis_visible omitted vs explicitly True"
+    )
+
+    var hidden = Canvas(400, 260, bg)
+    _ = _draw_continuous_axis_frame(
+        hidden,
+        x,
+        y,
+        t,
+        _LegendLayout(),
+        0,
+        0,
+        400,
+        260,
+        y_axis_visible=False,
+        cache=cache,
+    )
+    assert_true(
+        _canvases_differ(omitted, hidden) > 0,
+        "y_axis_visible=False draws a different frame",
     )
 
 
