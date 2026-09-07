@@ -26,6 +26,7 @@ from dataviz.layers import render_layers, render_layers_svg, save_layers
 from dataviz.mark import Mark
 from dataviz.output_format import OutputFormat
 from dataviz.plot import (
+    _resolve_supersample,
     Plot,
     _data_extent,
     _log_data_extent,
@@ -135,8 +136,14 @@ def render_facets(
         )
     _require_uniform_size(plots, "render_facets")
     var rows = (len(plots) + cols - 1) // cols
-    var factor = plots[0]._theme.raster_supersample
-    _require_positive_supersample(factor, "render_facets")
+    # One canvas, so one factor must serve every plot on it: take the
+    # largest any of them asks for rather than the first plot's, or a
+    # curved mark beside a bar chart would be drawn at the bar's factor.
+    var factor = _resolve_supersample(plots[0], "render_facets")
+    for i in range(1, len(plots)):
+        var f = _resolve_supersample(plots[i], "render_facets")
+        if f > factor:
+            factor = f
     var canvas = Canvas(
         cols * plots[0].width * factor, rows * plots[0].height * factor
     )

@@ -32,6 +32,7 @@
 """
 
 from _test_helpers import (
+    _assert_same_canvas,
     BG,
     Lcg,
     _assert_color,
@@ -1335,12 +1336,12 @@ def test_theme_layout_fields_reach_scaled() raises:
 
 
 def test_theme_raster_supersample_actually_changes_antialiased_output() raises:
-    # #231: Theme.raster_supersample (default 3) replaces the old fixed
+    # #231: Theme.raster_supersample replaces the old fixed
     # _RASTER_SUPERSAMPLE constant. A filled interior is exact at any
     # factor (see _assert_near_color's own docstring), so the effect is
     # only visible at an antialiased edge; rather than pin a specific
     # blended color (fragile, and not the point of this test), render
-    # the same plot at factor 1 (no supersampling) and at the default 3
+    # the same plot at factor 1 (no supersampling) and at an explicit 3
     # and confirm at least one pixel along a diagonal line's edge
     # differs -- direct evidence the knob actually reaches the render
     # path, not just that it's stored on Theme.
@@ -1350,7 +1351,7 @@ def test_theme_raster_supersample_actually_changes_antialiased_output() raises:
         Plot()
         .mark_line()
         .encode(x=x, y=y)
-        .theme(Theme(show_gridlines=False))
+        .theme(Theme(show_gridlines=False, raster_supersample=3))
         .size(120, 90)
     )
     var c_default = render(default_plot)
@@ -1391,29 +1392,126 @@ def test_theme_raster_supersample_actually_changes_antialiased_output() raises:
     )
 
 
-def test_render_raises_on_non_positive_raster_supersample() raises:
+def test_auto_supersample_picks_1_for_rect_marks_and_3_for_curved() raises:
+    """The default factor is chosen per mark, and the choice reaches the
+    render rather than only being computed.
+
+    A bar's edges are axis-aligned rects, which land exactly at any
+    factor, so it renders identically at the default and at an explicit
+    1. A pie's edges come from the arc primitive, so it does not --
+    its default must still be supersampled.
+    """
+    var cats: List[String] = ["a", "b", "c"]
+    var vals: List[Float64] = [3.0, 1.0, 2.0]
+
+    var bar_default = render(bar(cats, vals, width=200, height=150))
+    var bar_one = render(
+        bar(
+            cats,
+            vals,
+            theme=Theme(raster_supersample=1),
+            width=200,
+            height=150,
+        )
+    )
+    _assert_same_canvas(
+        bar_default, bar_one, "a bar chart's default is already factor 1"
+    )
+
+    var pie_default = render(pie(cats, vals, width=200, height=150))
+    var pie_one = render(
+        pie(
+            cats,
+            vals,
+            theme=Theme(raster_supersample=1),
+            width=200,
+            height=150,
+        )
+    )
+    var differs = False
+    for y in range(pie_default.height):
+        for x in range(pie_default.width):
+            var a = pie_default.get_pixel(x, y)
+            var b = pie_one.get_pixel(x, y)
+            if a.r != b.r or a.g != b.g or a.b != b.b:
+                differs = True
+                break
+        if differs:
+            break
+    assert_true(differs, "a pie's default is supersampled, so factor 1 differs")
+
+
+def test_auto_supersample_follows_what_is_drawn_not_the_mark_name() raises:
+    """A smoothed line draws curves, so it is supersampled even though a
+    straight `Mark.LINE` is not. Classification is by geometry, not by
+    the mark's name.
+    """
+    var x: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    var y: List[Float64] = [0.0, 3.0, 1.0, 2.0]
+    var smooth = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .theme(Theme(show_gridlines=False, line_smoothing=0.8))
+        .size(200, 150)
+    )
+    var smooth_one = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .theme(
+            Theme(
+                show_gridlines=False,
+                line_smoothing=0.8,
+                raster_supersample=1,
+            )
+        )
+        .size(200, 150)
+    )
+    var a = render(smooth)
+    var b = render(smooth_one)
+    var differs = False
+    for yy in range(a.height):
+        for xx in range(a.width):
+            var pa = a.get_pixel(xx, yy)
+            var pb = b.get_pixel(xx, yy)
+            if pa.r != pb.r or pa.g != pb.g or pa.b != pb.b:
+                differs = True
+                break
+        if differs:
+            break
+    assert_true(
+        differs,
+        "a smoothed line is supersampled by default, so factor 1 differs",
+    )
+
+
+def test_render_raises_on_negative_raster_supersample() raises:
+    """A negative factor is meaningless and raises; 0 means "let the mark
+    decide" and is the default (see `_auto_supersample`)."""
     var x: List[Float64] = [1.0, 2.0]
     with assert_raises():
         var plot = (
             Plot()
             .mark_point()
             .encode(x=x, y=x)
-            .theme(Theme(raster_supersample=0))
+            .theme(Theme(raster_supersample=-1))
             .size(100, 80)
         )
         _ = render(plot)
 
 
-def test_render_facets_and_layers_read_raster_supersample_from_plots0() raises:
-    # #231: render_facets()/render_layers() read the shared supersample
-    # factor from plots[0]'s theme (the same "shared chrome comes from
-    # plots[0]" convention as background/gridlines/margins), and raise
-    # the same way render() does for an invalid value.
+def test_render_facets_and_layers_take_the_largest_raster_supersample() raises:
+    # #231: render_facets()/render_layers() share one canvas, so one
+    # factor has to serve every plot on it -- they take the largest any
+    # plot resolves to rather than plots[0]'s, or a curved mark beside a
+    # bar chart would be drawn at the bar's factor. They raise the same
+    # way render() does for an invalid value.
     var x: List[Float64] = [1.0, 2.0]
     with assert_raises():
         var plots: List[Plot] = [
             scatter(
-                x, x, theme=Theme(raster_supersample=0), width=100, height=80
+                x, x, theme=Theme(raster_supersample=-1), width=100, height=80
             ),
             scatter(x, x, width=100, height=80),
         ]
@@ -1421,7 +1519,7 @@ def test_render_facets_and_layers_read_raster_supersample_from_plots0() raises:
     with assert_raises():
         var plots2: List[Plot] = [
             scatter(
-                x, x, theme=Theme(raster_supersample=0), width=100, height=80
+                x, x, theme=Theme(raster_supersample=-1), width=100, height=80
             ),
             line(x, x, width=100, height=80),
         ]
