@@ -3237,8 +3237,8 @@ def test_continuous_legend_row_runs_low_to_high_left_to_right() raises:
 
     var low_at = svg.find("10.0</text>")
     var high_at = svg.find("60.0</text>")
-    assert_true(low_at >= 0, "the domain min is labelled")
-    assert_true(high_at >= 0, "the domain max is labelled")
+    assert_true(low_at >= 0, "the domain min is labeled")
+    assert_true(high_at >= 0, "the domain max is labeled")
     assert_true(
         low_at < high_at,
         "the low label is emitted before the high one, left to right",
