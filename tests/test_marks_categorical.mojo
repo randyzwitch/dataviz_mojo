@@ -12,6 +12,7 @@ from _test_helpers import (
     _assert_color,
     _bbox_of_color,
     _count_color,
+    _runs_in_row,
 )
 from canvas.color import Color
 from canvas.path import PathOp
@@ -1078,6 +1079,55 @@ def test_render_heatmap_honors_a_perceptual_color_ramp() raises:
     _assert_color(c, 300, 60, Color(53, 183, 121), "(Tue, AM) = 3.0")
     _assert_color(
         c, 300, 180, Color(253, 231, 37), "(Tue, PM) = 4.0, viridis' yellow end"
+    )
+
+
+def test_render_heatmap_cells_leave_no_gap_at_a_snap_tie() raises:
+    # #379: adjacent cells used to disagree about where their shared
+    # boundary was, leaving a one-pixel column of pure background down
+    # the middle of the grid.
+    #
+    # Cell i's right edge was computed as (range_min + step*i) + step
+    # while cell i+1's left edge was range_min + step*(i+1). Equal in
+    # exact arithmetic, but floating-point addition is not associative:
+    # at 420x300 with 24 categories they came out 186.99999999999997 and
+    # 187.0, which snapped to 186.5 and 187.5, so column 187 was covered
+    # by neither cell.
+    #
+    # 420 x 24 is one of exactly three geometries that failed in a sweep
+    # of 170 (widths 380-460 by 5, category counts 7 to 37); the other
+    # two were 405 and 435, also at 24 categories. That rarity is why
+    # this asserts a property rather than a pixel: any interior
+    # background column is a defect, whichever boundary it lands on.
+    var xs = List[String]()
+    var ys = List[String]()
+    var vs = List[Float64]()
+    for i in range(24):
+        for j in range(9):
+            xs.append(String(i))
+            ys.append(String(j))
+            vs.append(Float64(i) + Float64(j) * 0.01)
+
+    var _hoisted_gap = heatmap(
+        xs,
+        ys,
+        vs,
+        theme=Theme(show_legend=False, show_gridlines=False),
+        width=420,
+        height=300,
+    )
+    var c = render(_hoisted_gap)
+
+    # A row through the middle of the grid meets background exactly
+    # twice: the left margin and the right margin. A third run is a hole
+    # in the grid.
+    assert_equal(
+        _runs_in_row(c, 150, BG),
+        2,
+        (
+            "row 150 should meet background only in the two margins; a third"
+            " run is a gap between cells"
+        ),
     )
 
 

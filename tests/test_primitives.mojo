@@ -524,6 +524,52 @@ def test_band_positions_match_hand_computed_values() raises:
     assert_equal(s.center(2), 250.0)
 
 
+def test_band_end_is_padding_in_from_the_next_slot() raises:
+    # Same scale as the hand-derived test above: step 100, padding 0.2,
+    # so each band ends 10px before its slot does.
+    var domain: List[String] = ["a", "b", "c"]
+    var s = OrdinalScale(domain^, 0.0, 300.0, padding=0.2)
+
+    assert_equal(s.band_end(0), 90.0)
+    assert_equal(s.band_end(1), 190.0)
+    assert_equal(s.band_end(2), 290.0)
+    assert_equal(s.band_end(0) - s.band_start(0), s.bandwidth())
+
+
+def test_band_end_is_bitwise_equal_to_the_next_band_start_unpadded() raises:
+    # The invariant the #379 fix rests on. With no padding, one band's
+    # right edge and the next band's left edge are the same boundary, and
+    # they have to be the same Float64 -- not merely equal in exact
+    # arithmetic -- or snapping them to the pixel grid can round them to
+    # different sides and leave a gap between two cells that touch.
+    #
+    # band_start(i) + bandwidth() is the form that fails: it evaluates
+    # (range_min + step*i) + step, one addition further along than the
+    # neighbor's range_min + step*(i+1), and floating-point addition is
+    # not associative. 320/24 and 340/24 are both non-terminating in
+    # binary, which is what makes the two disagree.
+    for range_max in [320.0, 340.0, 350.0, 383.0]:
+        var domain = List[String]()
+        for i in range(24):
+            domain.append(String(i))
+        var s = OrdinalScale(domain^, 60.0, range_max, padding=0.0)
+
+        for i in range(23):
+            assert_equal(
+                s.band_end(i),
+                s.band_start(i + 1),
+                (
+                    "band_end("
+                    + String(i)
+                    + ") must be exactly band_start("
+                    + String(i + 1)
+                    + ") over [60, "
+                    + String(range_max)
+                    + "]"
+                ),
+            )
+
+
 def test_empty_domain_does_not_divide_by_zero() raises:
     var domain = List[String]()
     var s = OrdinalScale(domain^, 0.0, 300.0)
