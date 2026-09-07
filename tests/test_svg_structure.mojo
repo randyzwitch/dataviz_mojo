@@ -65,6 +65,49 @@ def test_bars_produce_one_rect_each_in_the_mark_colour() raises:
         assert_equal(fills[i], t.mark_color.to_hex(), "bar " + String(i - 1))
 
 
+def test_attr_values_reads_an_elements_first_attribute() raises:
+    """`_attr_values` could not read the first attribute of an element
+    (#387), and returned an empty list rather than saying so -- which in
+    a test reads as an assertion that passes over no values at all.
+
+    Every caller until now asked for `fill`, which canvas never emits
+    first, so the gap stayed invisible. canvas writes a bar as
+    `<rect x=... y=... width=... height=... fill=.../>`, so `x` is the
+    case that used to come back empty.
+
+    This asserts against `fill` from the same document rather than
+    against fixed coordinates: the point is that the two attributes are
+    read equally well, not where this particular chart puts its bars.
+    """
+    var t = Theme(show_gridlines=False, svg_tooltips=False)
+    var svg = render_svg(
+        bar(_cats(), _vals(), theme=t, width=400, height=300)
+    ).to_string()
+
+    var xs = _attr_values(svg, "rect", "x")
+    var fills = _attr_values(svg, "rect", "fill")
+    assert_equal(
+        len(xs),
+        len(fills),
+        "every rect carries both x and fill, so the counts must agree",
+    )
+    assert_equal(len(xs), 1 + 4, "the background rect plus one per bar")
+
+    # The bars are left to right in document order, so their x values
+    # strictly increase. That the values parse and are ordered is what
+    # says they were really read, rather than something being returned.
+    for i in range(2, len(xs)):
+        assert_true(
+            atol(xs[i]) > atol(xs[i - 1]),
+            (
+                "bar x values should increase left to right -- got "
+                + xs[i - 1]
+                + " then "
+                + xs[i]
+            ),
+        )
+
+
 def test_grouped_bars_use_each_series_colour_once_per_category() raises:
     """Three categories times two series is six rects, and the palette
     cycles by series rather than by bar: colour 0 appears three times and
