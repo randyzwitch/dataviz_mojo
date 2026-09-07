@@ -112,6 +112,16 @@ def _attr_values(svg: String, tag: String, attr: String) -> List[String]:
     up `fill` on `<text>` -- telling those apart is most of the point of
     asserting structurally rather than on substrings.
 
+    The attribute is matched with a leading space so that `fill` cannot
+    be found inside a neighbor like `stroke-width="2.000"`. That space
+    is why the element text below is rebuilt with one in front of it
+    (#387): the scan already consumed the space after the tag name, so
+    without putting it back the *first* attribute of an element could
+    never match, and the function returned an empty list rather than
+    saying so. `_attr_values(svg, "path", "d")` and
+    `_attr_values(svg, "rect", "x")` silently found nothing, which in a
+    test reads as a passing assertion over no values.
+
     Args:
         svg: The rendered document.
         tag: Element name, without angle brackets.
@@ -132,7 +142,7 @@ def _attr_values(svg: String, tag: String, attr: String) -> List[String]:
         var end = after.find(">")
         if end < 0:
             break
-        var element = String(after[byte=0:end])
+        var element = " " + String(after[byte=0:end])
         var k = element.find(key)
         if k >= 0:
             var vstart = k + key.byte_length()
