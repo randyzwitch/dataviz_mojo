@@ -19,7 +19,7 @@
 
 from _test_helpers import _assert_color, _assert_near_color
 from canvas.color import Color
-from dataviz import bar
+from dataviz import bar, kdeplot, rugplot
 from dataviz.plot import (
     Plot,
     render,
@@ -957,6 +957,58 @@ def test_render_annotate_point_raises_on_unsupported_mark() raises:
     )
     with assert_raises():
         _ = render(plot)
+
+
+def _rug_samples() -> List[Float64]:
+    return [12.0, 14.0, 15.0, 17.0, 24.0, 26.0, 28.0]
+
+
+def test_annotate_line_raises_on_a_rug_which_has_no_y_scale() raises:
+    """#389: `Mark.RUG` draws no y-axis (#378), but its frame still
+    carried a placeholder `LinearScale(0.0, 1.0, ...)` -- the domain
+    `_draw_continuous_axis_frame` requires whether or not anything is
+    drawn against it -- and reported `has_y_scale=True`.
+
+    So `annotate_line(0.5)` rendered: a labeled horizontal rule across an
+    otherwise empty plot, with no y-axis, ticks or labels anywhere to
+    say what `0.5` measured. Now it raises, which is what
+    `annotate_line()`'s docstring already promised for a mark with no
+    genuine continuous y-axis.
+    """
+    with assert_raises():
+        _ = render(rugplot(_rug_samples()).annotate_line(0.5, "half of what?"))
+
+
+def test_annotate_area_raises_on_a_rug_which_has_no_y_scale() raises:
+    """`annotate_area`'s half of #389 -- same placeholder domain, same
+    reasoning."""
+    with assert_raises():
+        _ = render(rugplot(_rug_samples()).annotate_area(0.2, 0.4, "band"))
+
+
+def test_annotate_vline_still_works_on_a_rug() raises:
+    """The other half of the claim, and the one that stops the fix from
+    over-reaching: a rug's *x*-axis is real, so a vertical reference line
+    at a value is exactly the annotation this chart wants. Only the
+    y-axis annotations should have been disabled.
+    """
+    var c = render(
+        rugplot(_rug_samples(), width=400, height=260).annotate_vline(
+            20.0, "threshold"
+        )
+    )
+    # The line is drawn somewhere in the plot area rather than nowhere:
+    # asserting it renders at all is the claim, since where the value 20
+    # lands is _data_extent's business and is covered elsewhere.
+    assert_equal(c.width, 400, "the annotated rug renders")
+
+
+def test_a_kde_keeps_its_y_annotations() raises:
+    """#389 keys off `y_axis_visible`, which `Mark.KDE` leaves true --
+    its y-axis is a real density scale. Pins that the rug fix did not
+    catch the mark it shares a module with.
+    """
+    _ = render(kdeplot(_rug_samples()).annotate_line(0.05, "density ref"))
 
 
 def main() raises:

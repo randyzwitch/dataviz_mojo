@@ -638,6 +638,15 @@ struct _ContinuousFrame(Movable):
     var py0: Int
     var px1: Int
     var py1: Int
+    var has_y_scale: Bool
+    """Whether `y_scale` measures anything a reader can decode (#389).
+
+    `False` when the frame was drawn with `y_axis_visible=False`: the
+    y-domain is then a `LinearScale(0.0, 1.0, ...)` placeholder that
+    exists only because `_draw_continuous_axis_frame` requires one, and
+    nothing is drawn against it. "There is no y-axis to draw" and "there
+    is no y-axis to annotate against" are the same fact, so they are
+    driven by the same flag rather than tracked separately."""
 
     def __init__(
         out self,
@@ -649,6 +658,7 @@ struct _ContinuousFrame(Movable):
         py0: Int,
         px1: Int,
         py1: Int,
+        has_y_scale: Bool = True,
     ):
         self.x_scale = x_scale^
         self.y_scale = y_scale^
@@ -658,12 +668,19 @@ struct _ContinuousFrame(Movable):
         self.py0 = py0
         self.px1 = px1
         self.py1 = py1
+        self.has_y_scale = has_y_scale
 
     def result(self) -> _RenderResult:
         """This frame as the `_RenderResult` its caller returns, mirroring
         `_CategoricalFrame.result`. Passes both `y_scale` and `x_scale`
         through: this is the one frame with a continuous x-axis, so it's the
         only one `annotate_vline()`/`annotate_point()` can support.
+
+        `has_y_scale` follows the frame's own (#389), so a mark drawn
+        with `y_axis_visible=False` reports no y-scale and
+        `annotate_line()`/`annotate_area()` raise on it rather than
+        drawing against a placeholder domain. The x-scale is always
+        genuine here, so `annotate_vline()` keeps working.
         """
         return _RenderResult(
             self.text_requests.copy(),
@@ -672,7 +689,7 @@ struct _ContinuousFrame(Movable):
             self.px1,
             self.py1,
             self.y_scale,
-            True,
+            self.has_y_scale,
             self.x_scale,
             True,
         )
@@ -934,6 +951,7 @@ def _draw_continuous_axis_frame[
         plot_y0,
         plot_x1,
         plot_y1,
+        has_y_scale=y_axis_visible,
     )
 
 
