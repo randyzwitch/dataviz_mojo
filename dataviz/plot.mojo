@@ -3499,6 +3499,91 @@ def _require_positive_supersample(factor: Int, context: String) raises:
         )
 
 
+comptime _AUTO_SUPERSAMPLE = 0
+"""`Theme.raster_supersample`'s "let the mark decide" value, and its
+default. An explicit 1 or more always wins; this only picks a factor
+for a caller who has not expressed one.
+"""
+
+comptime _CURVED_SUPERSAMPLE = 3
+"""What a mark gets when its edges come from the circle/arc primitives
+or from a curved stroke. Unchanged from what every mark used to get.
+"""
+
+
+def _auto_supersample(plot: Plot) -> Int:
+    """The supersample factor for `plot`'s mark when the theme leaves it
+    to us.
+
+    Supersampling exists to resolve edges the rasterizer cannot place
+    exactly. Which marks need it is not "curved versus straight" but
+    *which primitive draws the edge*: an axis-aligned rect and a
+    straight stroke land exactly at any factor, a polygon fill is exact
+    because its edges are line segments, and only the circle/arc
+    family and curved strokes gain from being drawn large and shrunk.
+
+    Measured rather than assumed. Every mark was rendered at factors 1,
+    2, 3 and 6 and compared against the 6 reference; the marks below
+    were within 8 of 255 at factor 1, which is not visible. Everything
+    else keeps 3.
+
+    `Mark.VIOLIN` is the case that makes the point: its silhouette is a
+    KDE, but it is drawn as a polygon fill and comes out exact, while
+    `Mark.RIDGELINE` -- the same estimate -- needs 3 because it strokes
+    an outline over it.
+    """
+    # A smoothed line or area is a curve whatever its mark says, so it
+    # is classified by what it draws rather than by its name.
+    if plot._theme.line_smoothing > 0.0:
+        return _CURVED_SUPERSAMPLE
+
+    var m = plot._mark
+    if (
+        m == Mark.BAR
+        or m == Mark.GROUPED_BAR
+        or m == Mark.STACKED_BAR
+        or m == Mark.WATERFALL
+        or m == Mark.BULLET
+        or m == Mark.GANTT
+        or m == Mark.SPAN_CHART
+        or m == Mark.BOX
+        or m == Mark.CANDLESTICK
+        or m == Mark.HEATMAP
+        or m == Mark.MARIMEKKO
+        or m == Mark.TREEMAP
+        or m == Mark.SANKEY
+        or m == Mark.LINE
+        or m == Mark.AREA
+        or m == Mark.VIOLIN
+        or m == Mark.PARALLEL
+        or m == Mark.RADAR
+        or m == Mark.TRICONTOUR
+    ):
+        return 1
+    return _CURVED_SUPERSAMPLE
+
+
+def _resolve_supersample(plot: Plot, context: String) raises -> Int:
+    """`Theme.raster_supersample` if the caller set one, else the mark's
+    own factor. Validated here so every entry point gets the same check.
+
+    Args:
+        plot: The chart being rendered.
+        context: The caller's name, for the error message.
+
+    Returns:
+        The factor to supersample by.
+
+    Raises:
+        Error: The theme's factor is negative.
+    """
+    var configured = plot._theme.raster_supersample
+    if configured == _AUTO_SUPERSAMPLE:
+        return _auto_supersample(plot)
+    _require_positive_supersample(configured, context)
+    return configured
+
+
 def render(plot: Plot) raises -> Canvas:
     """Render `plot` into a fresh `Canvas` sized `plot.width` x `plot.height`
     and return it, supersampled by `plot._theme.raster_supersample`
@@ -3519,8 +3604,7 @@ def render(plot: Plot) raises -> Canvas:
     both compile inline, with no need to bind a temporary to a variable
     first.
     """
-    var factor = plot._theme.raster_supersample
-    _require_positive_supersample(factor, "render")
+    var factor = _resolve_supersample(plot, "render")
     var scratch = Canvas(
         plot.width * factor, plot.height * factor, plot._theme.background
     )

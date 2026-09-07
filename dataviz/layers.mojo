@@ -62,6 +62,7 @@ from dataviz.legend_position import LegendPosition
 from dataviz.mark import Mark
 from dataviz.output_format import OutputFormat
 from dataviz.plot import (
+    _resolve_supersample,
     Plot,
     _RenderResult,
     _data_extent,
@@ -159,8 +160,14 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
     borrow, #208).
     """
     _require_uniform_size(plots, "render_layers")
-    var factor = plots[0]._theme.raster_supersample
-    _require_positive_supersample(factor, "render_layers")
+    # One canvas, so one factor must serve every plot on it: take the
+    # largest any of them asks for rather than the first plot's, or a
+    # curved mark beside a bar chart would be drawn at the bar's factor.
+    var factor = _resolve_supersample(plots[0], "render_layers")
+    for i in range(1, len(plots)):
+        var f = _resolve_supersample(plots[i], "render_layers")
+        if f > factor:
+            factor = f
     var canvas = Canvas(plots[0].width * factor, plots[0].height * factor)
     # The half-pixel that box-downsampling costs: downsample() averages
     # the device block f*p .. f*p+f-1 into output pixel p, whose centre

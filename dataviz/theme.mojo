@@ -331,7 +331,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         size_range_max: Float64 = 15.0,
         show_legend: Bool = True,
         scale: Float64 = 1.0,
-        raster_supersample: Int = 3,
+        raster_supersample: Int = 0,
         color_by_sign: Bool = False,
         mark_color_negative: Color = Color(200, 60, 60),
         bullet_range_color_light: Color = Color(224, 224, 224),
