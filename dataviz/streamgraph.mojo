@@ -5,6 +5,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.color_scale import default_categorical_palette
+from dataviz.continuous import _step_points
 from dataviz.grouped_bar import _validate_grouped_bar_series
 from dataviz.mark import Mark
 from dataviz.plot import (
@@ -22,7 +23,9 @@ from dataviz.plot import (
 )
 from dataviz.scale import LinearScale
 from dataviz.stack_baseline import StackBaseline
+from dataviz.step_style import StepStyle
 from dataviz.theme import Theme
+from dataviz.validate import _check_step_smoothing
 
 
 def _symmetric_zero_baseline_y_extent(
@@ -111,12 +114,46 @@ def _render_streamgraph[
     (`_append_smoothed_edge`; `0.0` gives straight segments). The two cap
     edges at the first/last category always stay straight.
 
+    `_mark_style.step` puts a staircase between categories instead
+    (#403), through the same `_step_points` `Mark.LINE` and `Mark.AREA`
+    use. Mutually exclusive with smoothing, via `_check_step_smoothing`.
+
+    **Both edges of a band must step to the same staircase, or the
+    stack stops tiling.** Band `j`'s bottom edge is band `j - 1`'s top
+    edge -- the same `running[i]` values -- so if the two disagree about
+    where a riser goes, a wedge of background opens between them. The
+    trap is that the bottom edge is traversed in *reverse* category
+    order, and `_step_points` is not symmetric under reversal: stepping
+    a reversed list with `PRE` is not the same shape as reversing a
+    `POST`-stepped list, it is the same shape as reversing a
+    `PRE`-stepped one, which is the mirror of what the top edge did.
+
+    Rather than mirror the style and rely on that argument, the bottom
+    edge is built forward, stepped with the *same* style as the top,
+    and only then reversed. The staircase is then the top edge's by
+    construction, whatever `_step_points` does, and reversal cannot
+    change a shape -- only the order the points are visited in. The
+    mirrored-style form is equivalent (verified for all three styles),
+    but it makes correctness depend on a symmetry argument where this
+    depends on nothing.
+
+    The two caps stay straight, the same rule #384 applied to
+    `Mark.AREA`'s two closing segments: they bound the fill and are not
+    data. Every style leaves the first and last emitted points on the
+    first and last category's own x, so the caps land where they always
+    did.
+
     Every value must be non-negative. Reuses `_draw_categorical_axis_frame`.
     """
     _validate_grouped_bar_series(plot)
 
     var theme = plot._theme
+    var step = plot._mark_style.step
+    # Range check first, then the conflict, the order _draw_line_layer
+    # and _draw_area_layer use: an out-of-range line_smoothing should
+    # say so rather than being reported as a step conflict.
     _check_line_smoothing(theme)
+    _check_step_smoothing(theme, step, Mark.STREAMGRAPH)
     var n_series = len(plot._grouped_bar.series_names)
     var n_categories = len(plot.x_categories)
 
@@ -189,16 +226,29 @@ def _render_streamgraph[
         # Top edge in category order, then bottom edge in reverse, so the path
         # traces one closed outline (Catmull-Rom is symmetric, so the reversed
         # bottom edge smooths identically).
-        var top_px = List[Float64](capacity=n_categories)
-        var top_py = List[Float64](capacity=n_categories)
+        var top_fwd_px = List[Float64](capacity=n_categories)
+        var top_fwd_py = List[Float64](capacity=n_categories)
+        var bottom_fwd_px = List[Float64](capacity=n_categories)
+        var bottom_fwd_py = List[Float64](capacity=n_categories)
         for i in range(n_categories):
-            top_px.append(frame.x_scale.center(i))
-            top_py.append(_axis_pixel_f(frame.y_scale, top[i]))
-        var bottom_px = List[Float64](capacity=n_categories)
-        var bottom_py = List[Float64](capacity=n_categories)
-        for i in range(n_categories - 1, -1, -1):
-            bottom_px.append(frame.x_scale.center(i))
-            bottom_py.append(_axis_pixel_f(frame.y_scale, bottom[i]))
+            var cx = frame.x_scale.center(i)
+            top_fwd_px.append(cx)
+            top_fwd_py.append(_axis_pixel_f(frame.y_scale, top[i]))
+            bottom_fwd_px.append(cx)
+            bottom_fwd_py.append(_axis_pixel_f(frame.y_scale, bottom[i]))
+
+        # Both edges stepped forward, in the same style, and only then is
+        # the bottom one reversed -- see this function's docstring for
+        # why the reversal comes last.
+        var top_stepped = _step_points(top_fwd_px, top_fwd_py, step)
+        var top_px = top_stepped.px.copy()
+        var top_py = top_stepped.py.copy()
+        var bottom_stepped = _step_points(bottom_fwd_px, bottom_fwd_py, step)
+        var bottom_px = List[Float64](capacity=len(bottom_stepped.px))
+        var bottom_py = List[Float64](capacity=len(bottom_stepped.py))
+        for i in range(len(bottom_stepped.px) - 1, -1, -1):
+            bottom_px.append(bottom_stepped.px[i])
+            bottom_py.append(bottom_stepped.py[i])
 
         var path = Path()
         path.move_to(top_px[0], top_py[0])
@@ -250,6 +300,15 @@ def streamgraph(
     `Mark.STREAMGRAPH`: `Mark.STACKED_BAR`'s running-total stack, floated
     centered around zero and drawn as flowing bands instead of discrete
     rects. Same data shape `grouped_bar()`/`stacked_bar()`/`bump()` take.
+
+    There is deliberately no `step` here, unlike `stacked_area()`
+    (#403). A stepped stream is a contradiction: the flowing silhouette
+    is what a streamgraph is for, and it is not a chart anyone reads
+    exact values off. The mechanical reason agrees -- stepping and
+    `Theme.line_smoothing` are mutually exclusive, and `smoothing`
+    defaults to `0.6` here, so `streamgraph(step=...)` would raise on
+    its own default. `Plot.mark_streamgraph(step=...)` is still
+    reachable for a caller who sets `smoothing=0.0` and means it.
 
     Args:
         categories: One position along the x-axis per entry, in the
@@ -346,6 +405,7 @@ def stacked_area(
     values: List[List[Float64]],
     theme: Theme = Theme(),
     smoothing: Float64 = 0.0,
+    step: StepStyle = StepStyle.NONE,
     width: Int = 640,
     height: Int = 420,
     title: String = "",
@@ -370,6 +430,18 @@ def stacked_area(
     chart is meant to be read, and curving between categories invents
     values that are not in the data.
 
+    That default is also why `step` lives here and not on
+    `streamgraph()` (#403). Curving and stepping are mutually exclusive
+    (`_check_step_smoothing`), so `streamgraph(step=...)` would raise on
+    its own `smoothing=0.6` default, which is a bad thing to hand a
+    caller. It reads better as a scope decision than as a workaround: a
+    stepped stream is a contradiction -- the flowing silhouette is the
+    whole point -- while a stacked area chart is meant to be read, and a
+    stacked quantity that is constant between readings is exactly what
+    a staircase says. `Plot.mark_streamgraph(step=...)` is still there
+    for a caller who wants a stepped `WIGGLE` baseline and sets
+    `Theme.line_smoothing = 0.0` themselves.
+
     Args:
         categories: One position along the x-axis per entry, in the
             given order.
@@ -383,6 +455,14 @@ def stacked_area(
         smoothing: Sets `theme.line_smoothing` -- how much each band's
             edges curve, `[0.0, 1.0]`. Defaults to `0.0`, straight
             segments between categories.
+        step: Where the riser between two categories sits -- `NONE`
+            (the default: straight segments), `PRE` (at the earlier
+            category), `MID` (halfway) or `POST` (at the later one).
+            Every band's top and bottom edge steps together, so the
+            stack still tiles. Same three placements as matplotlib's
+            `drawstyle='steps-pre'/'steps-mid'/'steps-post'`; see
+            `StepStyle`. Mutually exclusive with a non-zero
+            `smoothing`, which raises.
         width: Pixel width of the returned `Plot` (`.size()`).
         height: Pixel height of the returned `Plot` (`.size()`).
         title: The chart's title, shown above the plot.
@@ -417,7 +497,7 @@ def stacked_area(
     t.line_smoothing = smoothing
     var plot = (
         Plot()
-        .mark_streamgraph(baseline=StackBaseline.ZERO)
+        .mark_streamgraph(baseline=StackBaseline.ZERO, step=step)
         .encode_grouped_bar(
             categories=categories, series_names=series_names, values=values
         )
@@ -435,6 +515,7 @@ def stacked_area[
     values: List[List[Scalar[dtype]]],
     theme: Theme = Theme(),
     smoothing: Float64 = 0.0,
+    step: StepStyle = StepStyle.NONE,
     width: Int = 640,
     height: Int = 420,
     title: String = "",
@@ -452,6 +533,7 @@ def stacked_area[
         _materialize_nested_scalar_list(values),
         theme=theme,
         smoothing=smoothing,
+        step=step,
         width=width,
         height=height,
         title=title,
