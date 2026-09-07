@@ -7,6 +7,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
+from dataviz.kde import _KDE_SAMPLES, _kde_bandwidth, _kde_density
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
@@ -20,46 +21,6 @@ from dataviz.plot import (
 )
 from dataviz.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.theme import Theme
-
-comptime _KDE_SAMPLES = 30
-
-
-def _kde_bandwidth(values: List[Float64]) -> Float64:
-    """Silverman's rule of thumb for kernel-density bandwidth,
-    `0.9 * std * n^(-1/5)`: the std-only version, not the IQR-adjusted
-    variant (`0.9 * min(std, IQR/1.34) * n^(-1/5)`), which is more robust
-    to outliers but needs a percentile computation on top. Falls back to
-    `1.0` when `std <= 0.0` (a single value, or all identical), where the
-    formula would collapse the kernel to a spike.
-    """
-    var n = len(values)
-    var mean = 0.0
-    for v in values:
-        mean += v
-    mean /= Float64(n)
-    var variance = 0.0
-    for v in values:
-        variance += (v - mean) * (v - mean)
-    variance /= Float64(n)
-    var std = sqrt(variance)
-    if std <= 0.0:
-        return 1.0
-    return 0.9 * std * Float64(n) ** (-1.0 / 5.0)
-
-
-def _kde_density(
-    values: List[Float64], bandwidth: Float64, y: Float64
-) -> Float64:
-    """The Gaussian-kernel density estimate at `y`:
-    `(1 / (n*h)) * sum(gaussian((y - v_i) / h))` over every point in
-    `values`.
-    """
-    var n = len(values)
-    var sum_density = 0.0
-    for v in values:
-        var u = (y - v) / bandwidth
-        sum_density += exp(-0.5 * u * u) / sqrt(2.0 * pi)
-    return sum_density / (Float64(n) * bandwidth)
 
 
 def _draw_violin_silhouettes[

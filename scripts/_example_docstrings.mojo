@@ -97,6 +97,8 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("contourf", "contour", "contourf"),
         ExamplePage("tricontour", "tricontour", "tricontour"),
         ExamplePage("tricontourf", "tricontour", "tricontourf"),
+        ExamplePage("kdeplot", "kde", "kdeplot"),
+        ExamplePage("rugplot", "kde", "rugplot"),
         ExamplePage("marimekko", "marimekko", "marimekko"),
         ExamplePage("sunburst", "sunburst", "sunburst"),
         ExamplePage("tree", "tree", "tree"),
