@@ -115,9 +115,12 @@ def _max_label_width(
 
     Measures through the caller's `cache`, the one `FontCache` a render
     shares between every measurement and every label it draws (#255,
-    `FontCache`): a fresh cache re-pays the font scan, font
-    resolution and TTF parsing (0.44ms for a 5-label call against
-    0.056ms warm), which is why there is no overload without one.
+    `FontCache`): a fresh cache re-pays the font database read, the
+    family resolution and the TTF parse, which is why there is no
+    overload without one. On canvas_mojo v0.24.0 a five-label call
+    costs 2.52 ms against a cache that has never resolved a font and
+    0.028 ms against one that has -- a ratio of 90, so the cache is
+    close to the whole cost of measuring a set of tick labels.
     """
     var max_width = 0.0
     for label in labels:
