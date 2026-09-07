@@ -45,6 +45,45 @@ def _calendar_day_labels() -> List[String]:
     return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 
+def _month_label_stride(month_cx: List[Int], needed: Float64) -> Int:
+    """How many months to step between drawn labels so that no two
+    overlap (#361): the smallest stride whose every consecutive drawn
+    pair is at least `needed` pixels apart.
+
+    Only strides that divide 12 are considered, so the drawn months stay
+    an even selection of the year (`Jan Apr Jul Oct` rather than
+    `Jan Apr Jul Oct Dec`, which would put a short gap at the end).
+    Thinning keeps the row horizontal, which is what most calendar
+    heatmaps do at small sizes and reads better than rotating a
+    three-letter label; rotation would also cost vertical space the grid
+    wants.
+
+    Falls back to 12 -- January alone -- when even half-yearly labels
+    would collide, which needs a plot area under roughly 100px. A chart
+    that small cannot be read anyway, and one correct label beats two
+    overlapping ones.
+
+    Args:
+        month_cx: Each month's left anchor in pixels, January first.
+        needed: The width the widest label needs, plus its breathing
+            space.
+
+    Returns:
+        The stride, one of 1, 2, 3, 4, 6 or 12.
+    """
+    for stride in [1, 2, 3, 4, 6]:
+        var fits = True
+        var m = 0
+        while m + stride < len(month_cx):
+            if Float64(month_cx[m + stride] - month_cx[m]) < needed:
+                fits = False
+                break
+            m += stride
+        if fits:
+            return stride
+    return 12
+
+
 def _calendar_month_labels() -> List[String]:
     """The 12 month labels; a plain function for the reason in
     `_calendar_day_labels()`.
@@ -228,21 +267,44 @@ def _render_calendar_heatmap[
             )
         )
 
+    # Month labels are left-anchored at the week each month starts in,
+    # and nothing used to check whether they fit: below about 530px the
+    # twelve ran together into "JanFebMarApr..." (#361). That is worse
+    # than a crowded categorical axis, because these labels are the only
+    # thing identifying which column is which month -- once they merge,
+    # the chart cannot be read along that axis at all.
+    #
+    # So measure, then show every `stride`-th month. Anchors are not
+    # evenly spaced (a month starts 4 or 5 weeks after the previous one),
+    # so the stride is chosen against the actual anchor positions rather
+    # than an average gap.
+    var month_cx = List[Int](capacity=12)
     for month in range(1, 13):
         var days = _days_from_civil(_Date(year, month, 1)) - jan1_days
         var col = (days + jan1_dow) // 7
-        var cx = round_to_int(Float64(plot_x0) + Float64(col) * cell_width)
+        month_cx.append(
+            round_to_int(Float64(plot_x0) + Float64(col) * cell_width)
+        )
+
+    var needed = _max_label_width(
+        month_labels, sc.font_size, cache=cache
+    ) + Float64(sc.label_gap)
+    var stride = _month_label_stride(month_cx, needed)
+
+    var month = 0
+    while month < 12:
         text_requests.append(
             _TextRequest(
-                cx,
+                month_cx[month],
                 plot_y0 - sc.label_gap,
-                month_labels[month - 1],
+                month_labels[month],
                 theme.text_color,
                 sc.font_size,
                 TextAlign.LEFT,
                 theme.font_family,
             )
         )
+        month += stride
 
     for i in range(len(parsed)):
         var days = _days_from_civil(parsed[i]) - jan1_days

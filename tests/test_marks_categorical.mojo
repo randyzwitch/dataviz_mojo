@@ -1567,6 +1567,64 @@ def test_render_calendar_heatmap_svg_matches_confirmed_rects() raises:
     )
 
 
+def _calendar_svg_at(width: Int) raises -> String:
+    """A full-year calendar heatmap rendered to SVG at `width`, with no
+    title or legend so the only text is the axis labels."""
+    var dates: List[String] = ["2024-01-01", "2024-06-15", "2024-12-31"]
+    var values: List[Float64] = [1.0, 2.0, 3.0]
+    var plot = (
+        Plot()
+        .mark_calendar_heatmap()
+        .encode_calendar(dates=dates, values=values)
+        .theme(Theme(show_legend=False))
+        .size(width, 200)
+    )
+    return render_svg(plot).to_string()
+
+
+def test_calendar_month_labels_are_all_drawn_when_they_fit() raises:
+    # 900px is what the docs example uses, and there every month anchor
+    # is far enough from the next for the widest label ("May", 23.3px at
+    # the default 12px font). Nothing about #361 should change it.
+    var s = _calendar_svg_at(900)
+    var months: List[String] = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+    ]
+    for m in months:
+        assert_true(">" + m + "<" in s, m + " should still be labeled at 900px")
+
+
+def test_calendar_month_labels_thin_out_rather_than_collide() raises:
+    # #361: below about 530px the twelve month labels ran together into
+    # an unreadable "JanFebMarApr...". They are the only thing saying
+    # which column is which month, so once they merge the chart cannot be
+    # read along that axis.
+    #
+    # At 420px the month anchors are ~15px apart and "May" alone is
+    # 23.3px, so every second month is dropped: Jan Mar May Jul Sep Nov.
+    var s = _calendar_svg_at(420)
+    var shown: List[String] = ["Jan", "Mar", "May", "Jul", "Sep", "Nov"]
+    var dropped: List[String] = ["Feb", "Apr", "Jun", "Aug", "Oct", "Dec"]
+    for m in shown:
+        assert_true(">" + m + "<" in s, m + " should be labeled at 420px")
+    for m in dropped:
+        assert_true(
+            ">" + m + "<" not in s,
+            m + " should be dropped at 420px -- it would overlap its neighbor",
+        )
+
+
 def test_render_calendar_heatmap_raises_on_mismatched_length() raises:
     var dates: List[String] = ["2024-01-01", "2024-01-02"]
     var values: List[Float64] = [1.0]
