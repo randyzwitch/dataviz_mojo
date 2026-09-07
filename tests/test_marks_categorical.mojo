@@ -1459,9 +1459,9 @@ def test_render_corrplot_svg_matches_confirmed_circles() raises:
 def test_render_corrplot_lower_layout_without_diag_keeps_only_below_diagonal() raises:
     # layout="lower" (row >= col) with diag=False keeps exactly one cell
     # of a 2x2 matrix, (B, A). Rather than naming that cell's pixel and
-    # the three empty ones, scan for the -0.5 cell colour: a bounding box
+    # the three empty ones, scan for the -0.5 cell color: a bounding box
     # is the union of every matching pixel, so finding one roughly square
-    # blob below and left of centre is the same claim -- (A, B) would
+    # blob below and left of center is the same claim -- (A, B) would
     # stretch the box right, and either diagonal cell would stretch it
     # into a different quadrant.
     var vars: List[String] = ["A", "B"]
@@ -1483,11 +1483,11 @@ def test_render_corrplot_lower_layout_without_diag_keeps_only_below_diagonal() r
     assert_true(cell.found, "the (B, A) cell is drawn")
     assert_true(
         cell.center_x() < c.width // 2,
-        "the surviving cell is left of centre (column A), not (A, B)",
+        "the surviving cell is left of center (column A), not (A, B)",
     )
     assert_true(
         cell.center_y() > c.height // 2,
-        "the surviving cell is below centre (row B), not a diagonal cell",
+        "the surviving cell is below center (row B), not a diagonal cell",
     )
     # One cell, not two: a 2x2 grid's cell cannot span half the plot.
     assert_true(

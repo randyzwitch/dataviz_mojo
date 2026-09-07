@@ -77,7 +77,7 @@ def _in_circumcircle(
     """Whether `(px, py)` lies strictly inside triangle `abc`'s
     circumcircle.
 
-    Computes the circumcentre and compares squared distances rather than
+    Computes the circumcenter and compares squared distances rather than
     using the signed in-circle determinant: the determinant's sign
     depends on the triangle's winding, and Bowyer-Watson's hole-filling
     step produces triangles of both orientations, so a winding-sensitive

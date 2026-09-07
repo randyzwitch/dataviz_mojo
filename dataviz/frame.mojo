@@ -88,7 +88,7 @@ def _axis_pixel_f(scale: LinearScale, value: Float64) -> Float64:
     and lets the primitive snap each edge.
 
     canvas_mojo v0.19.0's `Float64` overloads read a coordinate as a
-    geometric edge under the pixel-centre convention, which is what a
+    geometric edge under the pixel-center convention, which is what a
     scale position actually is; `round_to_int` read it as a pixel
     index, which was the approximation. Measured against an
     antialiased path fill of the same box, snapping is closer to the
@@ -278,7 +278,7 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         width: Float64,
     ):
         """`value_line` in `Float64` geometry, with the fixed cross-axis
-        coordinate snapped to a pixel centre so a 1px line stays hard.
+        coordinate snapped to a pixel center so a 1px line stays hard.
         See `_snap_pixel_center`; the two ends keep their exact
         positions.
         """
@@ -327,7 +327,7 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         width: Float64,
     ):
         """`band_line` in `Float64` geometry, with the fixed value-axis
-        coordinate snapped to a pixel centre so a 1px line stays hard.
+        coordinate snapped to a pixel center so a 1px line stays hard.
         See `_snap_pixel_center`; the two ends keep their exact
         positions.
         """
@@ -410,7 +410,7 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
 
         Not snapped, unlike `fill_band_rect`: a circle is antialiased on
         every side already, so there is no hard edge to preserve, and
-        rounding its centre would only move the dot off the value it
+        rounding its center would only move the dot off the value it
         marks.
         """
         if self.horizontal:

@@ -203,7 +203,7 @@ def _contour_segments(
 
     The two ambiguous (saddle) cases -- diagonal corners on the same side
     -- are resolved by the average of the four corners, the same rule
-    contourpy uses: whichever side the cell centre falls on is the side
+    contourpy uses: whichever side the cell center falls on is the side
     whose two corners are connected through the middle, which leaves the
     other pair isolated in their own corners.
 
@@ -277,11 +277,11 @@ def _contour_segments(
                 segs.add(left_e, left_x, left_y, top_e, top_x, top_y)
             else:
                 # Cases 5 and 10: diagonal corners share a side, so the
-                # cell centre decides which pair the isoline separates.
+                # cell center decides which pair the isoline separates.
                 var centre = (a + b + cc + d) / 4.0
                 var centre_above = centre > level
                 # In case 5 the "above" pair is a/cc; in case 10 it is
-                # b/d. The centre joining the above pair isolates the
+                # b/d. The center joining the above pair isolates the
                 # below corners, and vice versa.
                 var join_diagonal = (
                     centre_above if mask == 5 else not centre_above
@@ -409,9 +409,9 @@ def _append_above_region(
     for twelve of the sixteen cases -- the same clip Sutherland-Hodgman
     performs against a half-plane, which is what a single cell edge is.
 
-    The saddles need their own branch again. With the centre above, the
+    The saddles need their own branch again. With the center above, the
     two above-corners really are joined through the middle and the plain
-    walk is right; with the centre below they are two disjoint corner
+    walk is right; with the center below they are two disjoint corner
     triangles, and the walk would wrongly fill the middle between them,
     so each triangle is emitted as its own sub-path.
 
@@ -708,7 +708,7 @@ def _render_contourf[
     levels, the shape matplotlib's `contourf()` draws.
 
     Painted back to front, the first of the two routes #260 describes.
-    The plot rect is filled with the lowest band's colour, then each
+    The plot rect is filled with the lowest band's color, then each
     level in ascending order fills its whole "at or above" region over
     the top, so what remains visible between two consecutive levels is
     the band between them. That is only correct for opaque bands, which
@@ -722,8 +722,8 @@ def _render_contourf[
     union, so cells sharing an edge merge with no hairline seam where
     two anti-aliased edges would otherwise meet.
 
-    Colours come from the same `ColorScale` `Mark.CONTOUR` uses, sampled
-    at each band's own lower bound, so a band's colour says where it sits
+    Colors come from the same `ColorScale` `Mark.CONTOUR` uses, sampled
+    at each band's own lower bound, so a band's color says where it sits
     in the stack. Levels and axes are `Mark.CONTOUR`'s exactly -- see
     `_render_contour`.
     """

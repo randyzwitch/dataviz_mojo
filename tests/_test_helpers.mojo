@@ -83,7 +83,7 @@ struct Lcg(Movable):
 # SVG tests assert on `to_string()` substrings, which catches gross
 # breakage but not structure: a mark emitting its rects outside the
 # annotated tooltip group, an unclosed `<g>`, or a legend drawing the
-# right colours the wrong number of times all pass a substring check.
+# right colors the wrong number of times all pass a substring check.
 #
 # canvas_mojo's SVG is its own output, one element per line with a
 # fixed attribute order, so a line-oriented scan is enough and no XML
@@ -221,7 +221,7 @@ def _assert_well_formed_svg(svg: String, label: String) raises:
 
 
 struct _Bbox(Copyable, Movable):
-    """The rectangle a colour occupies, or `found=False` if it is absent.
+    """The rectangle a color occupies, or `found=False` if it is absent.
 
     `x1`/`y1` are inclusive, so a single matching pixel gives a box with
     `x0 == x1`; `width()`/`height()` count that as 1.
@@ -260,12 +260,12 @@ def _bbox_of_color_in(
     inclusive, clamped to the canvas.
 
     Compares r/g/b exactly, like `_assert_color`: a mark's interior
-    averages to its exact colour after downsampling, so an exact match
+    averages to its exact color after downsampling, so an exact match
     finds the mark without also catching its anti-aliased edge.
 
     Args:
         c: The rendered canvas.
-        color: The colour to find.
+        color: The color to find.
         x0: Region's left edge, inclusive.
         y0: Region's top edge, inclusive.
         x1: Region's right edge, inclusive.
@@ -306,7 +306,7 @@ def _bbox_of_color(c: Canvas, color: Color) -> _Bbox:
 
     Args:
         c: The rendered canvas.
-        color: The colour to find.
+        color: The color to find.
 
     Returns:
         The bounding box, or a box with `found=False`.
@@ -323,7 +323,7 @@ def _first_pixel_in_row(c: Canvas, y: Int, color: Color) -> Int:
     Args:
         c: The rendered canvas.
         y: The row to scan.
-        color: The colour to find.
+        color: The color to find.
 
     Returns:
         The x coordinate, or -1 when the row has none.
@@ -346,7 +346,7 @@ def _column_extent(c: Canvas, x: Int, color: Color) -> _Bbox:
     Args:
         c: The rendered canvas.
         x: The column to scan.
-        color: The colour to find.
+        color: The color to find.
 
     Returns:
         The extent, or a box with `found=False`.
@@ -366,7 +366,7 @@ def _row_extent(c: Canvas, y: Int, color: Color) -> _Bbox:
     Args:
         c: The rendered canvas.
         y: The row to scan.
-        color: The colour to find.
+        color: The color to find.
 
     Returns:
         The extent, or a box with `found=False`.
@@ -385,10 +385,10 @@ def _runs_in_row(c: Canvas, y: Int, color: Color) -> Int:
     Args:
         c: The rendered canvas.
         y: The row to scan.
-        color: The colour to find.
+        color: The color to find.
 
     Returns:
-        The number of maximal runs, 0 when the colour is absent.
+        The number of maximal runs, 0 when the color is absent.
     """
     if y < 0 or y >= c.height:
         return 0

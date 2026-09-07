@@ -392,7 +392,7 @@ def _continuous_legend_row_height(sc: _Scaled, has_size: Bool) -> Int:
 
     The size section is the tall one -- a full circle diameter with its
     label underneath -- so a row carrying it needs room for both. Sizing
-    to the colour bar alone clips those labels off the canvas, which is
+    to the color bar alone clips those labels off the canvas, which is
     exactly what the first version of this did.
 
     Args:
@@ -504,7 +504,7 @@ def _draw_continuous_size_legend_h[
     """`_draw_continuous_size_legend` laid out along a row, for
     `LegendPosition.TOP`/`BOTTOM`: the same three sample circles
     (min, midpoint, max) side by side with each label under its own
-    circle's centre rather than beside it.
+    circle's center rather than beside it.
 
     Args:
         target: The draw target.

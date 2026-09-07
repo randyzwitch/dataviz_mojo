@@ -3,12 +3,12 @@
 The SVG tests elsewhere assert on `to_string()` substrings. That catches
 gross breakage but not structure: a mark emitting its rects outside the
 annotated tooltip group, an unclosed `<g>`, or a legend drawing the right
-colours the wrong number of times all pass a substring check.
+colors the wrong number of times all pass a substring check.
 
 These count elements, read attributes per element type, and pull the
 `<title>` out of annotated groups (`_test_helpers.mojo`), so an assertion
-can say "N bars produce exactly N `<rect>`s, in these N colours" rather
-than "this colour appears somewhere".
+can say "N bars produce exactly N `<rect>`s, in these N colors" rather
+than "this color appears somewhere".
 
 Every case here also runs the well-formedness check, since it is free
 once a document has been rendered.
@@ -44,7 +44,7 @@ def _vals() -> List[Float64]:
 
 def test_bars_produce_one_rect_each_in_the_mark_colour() raises:
     """Four bars are four `<rect>`s in `Theme.mark_color`, after the
-    document's background rect -- not "the colour appears somewhere",
+    document's background rect -- not "the color appears somewhere",
     which one bar would satisfy just as well.
 
     Gridlines are `<line>` and axis labels are `<text>`, so the only
@@ -239,8 +239,8 @@ def test_a_suppressed_y_axis_takes_its_minor_level_with_it() raises:
 
 def test_grouped_bars_use_each_series_colour_once_per_category() raises:
     """Three categories times two series is six rects, and the palette
-    cycles by series rather than by bar: colour 0 appears three times and
-    colour 1 three times. Counting the fills is what distinguishes that
+    cycles by series rather than by bar: color 0 appears three times and
+    color 1 three times. Counting the fills is what distinguishes that
     from cycling per bar, which a substring check cannot see.
     """
     var cats: List[String] = ["x", "y", "z"]
@@ -271,8 +271,8 @@ def test_grouped_bars_use_each_series_colour_once_per_category() raises:
             first += 1
         elif fills[i] == palette[1].to_hex():
             second += 1
-    assert_equal(first, 3, "series 1's colour, once per category")
-    assert_equal(second, 3, "series 2's colour, once per category")
+    assert_equal(first, 3, "series 1's color, once per category")
+    assert_equal(second, 3, "series 2's color, once per category")
 
 
 def test_legend_swatches_are_counted_separately_from_marks() raises:
@@ -386,12 +386,12 @@ def test_tooltips_off_leaves_no_groups_and_the_same_marks() raises:
     assert_equal(
         _attr_values(on, "rect", "fill")[0],
         _attr_values(off, "rect", "fill")[0],
-        "in the same colour either way",
+        "in the same color either way",
     )
 
 
 def test_pie_wedges_are_paths_one_per_category_in_palette_order() raises:
-    """A pie is one `<path>` per wedge, coloured by the palette in
+    """A pie is one `<path>` per wedge, colored by the palette in
     category order. Reading `fill` off `<path>` specifically is what
     keeps the legend's `<rect>` swatches out of the comparison.
     """
@@ -406,13 +406,13 @@ def test_pie_wedges_are_paths_one_per_category_in_palette_order() raises:
     var palette = default_categorical_palette()
     for i in range(4):
         assert_equal(
-            fills[i], palette[i].to_hex(), "wedge " + String(i) + "'s colour"
+            fills[i], palette[i].to_hex(), "wedge " + String(i) + "'s color"
         )
 
 
 def test_scatter_points_are_circles_not_rects() raises:
     """Which element a mark emits is part of its contract: points are
-    `<circle>`s. A substring check for the fill colour would pass just as
+    `<circle>`s. A substring check for the fill color would pass just as
     well if they came out as squares.
     """
     var x: List[Float64] = [1.0, 2.0, 3.0]

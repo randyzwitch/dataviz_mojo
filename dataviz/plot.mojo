@@ -348,7 +348,7 @@ struct _MarkStyle(Copyable, Movable):
     one chart's proportions, so they live here rather than on `Theme`,
     which holds what a theme can restyle; per-mark colors stayed on
     `Theme` so a dark theme can fix contrast without every caller passing
-    a color. `point_tooltips` is behavioural rather than geometric but
+    a color. `point_tooltips` is behavioral rather than geometric but
     belongs here for the same reason: whether a scatter can afford an SVG
     `<title>` per point depends on how many points this chart has (see
     `mark_point()`).
@@ -3894,7 +3894,7 @@ def render(plot: Plot) raises -> Canvas:
         plot.width * factor, plot.height * factor, plot._theme.background
     )
     # The half-pixel that box-downsampling costs: downsample() averages
-    # the device block f*p .. f*p+f-1 into output pixel p, whose centre
+    # the device block f*p .. f*p+f-1 into output pixel p, whose center
     # sits at user coordinate p + (f-1)/(2f). Scaling alone therefore
     # lands everything (f-1)/(2f) px early -- 0.25 at factor 2, 0.333 at
     # 3, 0.375 at 4 -- so the origin shifts by (f-1)/2 device px first.

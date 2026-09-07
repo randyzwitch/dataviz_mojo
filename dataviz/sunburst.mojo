@@ -35,7 +35,7 @@ series.
 comptime _MIN_DEPTH_ALPHA = 90
 """The floor `_DEPTH_FADE` stops at. Past about four levels the fade
 would wash the outermost ring out to near-white and lose the branch
-colour entirely; holding at 90 keeps a deep tree readable.
+color entirely; holding at 90 keeps a deep tree readable.
 """
 
 
@@ -82,17 +82,17 @@ def _draw_sunburst_node[
     into its children, dividing `[start_angle, end_angle)` by each child's
     share of `node`'s subtree total.
 
-    `color` is the branch colour and stays fixed through the recursion --
+    `color` is the branch color and stays fixed through the recursion --
     one hue per top-level branch, so a leaf still says which branch it
     belongs to. Depth is carried by *lightness* instead: each ring is
     blended further toward white than the one inside it, which is what
     makes the rings legible as rings.
 
     Without that, a sunburst of one hue per branch draws as a solid disc
-    of two or three colours -- adjacent rings of the same colour have
+    of two or three colors -- adjacent rings of the same color have
     nothing between them but an antialiasing seam, and the chart reads as
     a pie. The separator strokes do the same job between siblings, which
-    lightness alone cannot: two children of one parent share a colour and
+    lightness alone cannot: two children of one parent share a color and
     a ring, so only a line divides them.
     """
     var depth = idx.depth[node]
@@ -116,7 +116,7 @@ def _draw_sunburst_node[
     )
 
     # A radial line at the sector's leading edge, in the background
-    # colour, so siblings sharing a hue are still countable.
+    # color, so siblings sharing a hue are still countable.
     target.draw_line_aa(
         cx + inner * cos(start_angle),
         cy + inner * sin(start_angle),
