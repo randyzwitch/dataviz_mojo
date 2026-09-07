@@ -1,3 +1,5 @@
+from canvas.color import Color
+from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
@@ -15,6 +17,7 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
+from dataviz.scale import LinearScale
 from dataviz.theme import Theme
 
 
@@ -147,6 +150,156 @@ def _tricontour_segments(
     return segs^
 
 
+def _clip_above(
+    pxs: List[Float64],
+    pys: List[Float64],
+    pzs: List[Float64],
+    level: Float64,
+) -> Tuple[List[Float64], List[Float64], List[Float64]]:
+    """The part of a convex polygon where `z >= level`, by
+    Sutherland-Hodgman against the single plane `z = level`.
+
+    `z` is carried alongside x and y and interpolated at every crossing,
+    so the result can be clipped again by a higher level without going
+    back to the triangle. A polygon entirely below the level comes back
+    empty; entirely above, unchanged.
+
+    Args:
+        pxs: Polygon vertex x coordinates, in order.
+        pys: Polygon vertex y coordinates.
+        pzs: The value at each vertex.
+        level: The plane to clip against.
+
+    Returns:
+        The clipped polygon's x, y and z lists.
+    """
+    var qx = List[Float64]()
+    var qy = List[Float64]()
+    var qz = List[Float64]()
+    var n = len(pxs)
+    if n == 0:
+        return (qx^, qy^, qz^)
+    for i in range(n):
+        var j = (i + 1) % n
+        var zi = pzs[i]
+        var zj = pzs[j]
+        var in_i = zi >= level
+        var in_j = zj >= level
+        if in_i:
+            qx.append(pxs[i])
+            qy.append(pys[i])
+            qz.append(zi)
+        if in_i != in_j:
+            # The crossing point, by linear interpolation along the edge.
+            # A zero denominator means both ends sit on the level, which
+            # `in_i != in_j` has already ruled out.
+            var f = (level - zi) / (zj - zi)
+            qx.append(pxs[i] + (pxs[j] - pxs[i]) * f)
+            qy.append(pys[i] + (pys[j] - pys[i]) * f)
+            qz.append(level)
+    return (qx^, qy^, qz^)
+
+
+def _fill_region_above[
+    T: DrawTarget
+](
+    mut target: T,
+    tri: _Triangulation,
+    z: List[Float64],
+    level: Float64,
+    color: Color,
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+) raises:
+    """Fill every part of the triangulation where `z >= level`.
+
+    Every triangle's contribution goes into **one** `Path` as its own
+    subpath, filled once with the nonzero rule, rather than one fill per
+    triangle. That is not an optimisation, it is the only way to get a
+    solid region: two adjacent triangles filled separately each
+    antialias the edge they share, and two half-covered pixels
+    composited over the background do not add up to a covered one, so
+    the shared edges show as a web of pale seams across the fill. Inside
+    one nonzero fill the shared edges are interior and cancel, because
+    each is traversed once in each direction.
+
+    That cancellation needs every subpath wound the same way, which the
+    triangulation does not promise -- Bowyer-Watson's hole-filling
+    produces triangles of both orientations -- so each is checked and
+    flipped here if needed.
+
+    Two fast paths carry most triangles on smooth data: one whose
+    highest corner is below the level contributes nothing, and one whose
+    lowest corner is above it is emitted whole without clipping.
+
+    Args:
+        target: Where to draw.
+        tri: The triangulation.
+        z: One value per vertex.
+        level: The lower bound of the region to fill.
+        color: The fill.
+        x_scale: Maps data x to pixels.
+        y_scale: Maps data y to pixels.
+    """
+    var path = Path()
+    var any = False
+    for k in range(tri.count()):
+        var i0 = tri.tri[3 * k]
+        var i1 = tri.tri[3 * k + 1]
+        var i2 = tri.tri[3 * k + 2]
+        var z0 = z[i0]
+        var z1 = z[i1]
+        var z2 = z[i2]
+
+        var zmax = z0
+        if z1 > zmax:
+            zmax = z1
+        if z2 > zmax:
+            zmax = z2
+        if zmax < level:
+            continue
+        var zmin = z0
+        if z1 < zmin:
+            zmin = z1
+        if z2 < zmin:
+            zmin = z2
+
+        # Counter-clockwise in data space, so every subpath agrees.
+        var a0 = i0
+        var a1 = i1
+        var a2 = i2
+        var b0 = z0
+        var b1 = z1
+        var b2 = z2
+        var cross = (tri.xs[i1] - tri.xs[i0]) * (tri.ys[i2] - tri.ys[i0]) - (
+            tri.ys[i1] - tri.ys[i0]
+        ) * (tri.xs[i2] - tri.xs[i0])
+        if cross < 0.0:
+            a1 = i2
+            a2 = i1
+            b1 = z2
+            b2 = z1
+
+        var xs: List[Float64] = [tri.xs[a0], tri.xs[a1], tri.xs[a2]]
+        var ys: List[Float64] = [tri.ys[a0], tri.ys[a1], tri.ys[a2]]
+        if zmin < level:
+            var zs: List[Float64] = [b0, b1, b2]
+            var clipped = _clip_above(xs, ys, zs, level)
+            if len(clipped[0]) < 3:
+                continue
+            xs = clipped[0].copy()
+            ys = clipped[1].copy()
+
+        path.move_to(x_scale.to_pixel(xs[0]), y_scale.to_pixel(ys[0]))
+        for i in range(1, len(xs)):
+            path.line_to(x_scale.to_pixel(xs[i]), y_scale.to_pixel(ys[i]))
+        path.close()
+        any = True
+
+    if any:
+        target.fill_path_aa(path, color, fill_rule=FillRule.NONZERO)
+
+
 def _render_tricontour[
     T: DrawTarget
 ](
@@ -255,6 +408,150 @@ def _render_tricontour[
     return frame.result()
 
 
+def _render_tricontourf[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """Render a `Mark.TRICONTOURF` plot: filled bands over scattered
+    `(x, y, z)` samples, the shape matplotlib's `tricontourf()` draws.
+
+    `Mark.TRICONTOUR`'s filled counterpart, and the same relationship
+    `Mark.CONTOURF` has to `Mark.CONTOUR`: the same triangulation, the
+    same levels, the same colour scale, with regions painted instead of
+    lines stroked.
+
+    Painted the way `_render_contourf` paints a grid -- the whole
+    triangulation in the lowest level's colour first, then each level's
+    `z >= level` region on top in ascending order, so a band is what
+    remains visible of the region below the next level up. That avoids
+    building band polygons with holes, which is the part of filled
+    contouring that is genuinely hard.
+
+    The fill covers the samples' convex hull rather than the plot rect,
+    because the triangulation is the hull: scattered data says nothing
+    about the corners it does not reach, and matplotlib leaves them
+    blank too.
+
+    Args:
+        target: Where to draw.
+        plot: The chart, whose `_tricontour` data this reads.
+        ox0: Left edge of the outer bounds.
+        oy0: Top edge.
+        ox1: Right edge.
+        oy1: Bottom edge.
+        cache: The render's font cache.
+
+    Returns:
+        The frame the axes were drawn into.
+
+    Raises:
+        Error: Empty data, mismatched column lengths, or a non-positive
+            level count.
+    """
+    var n = len(plot._tricontour.x)
+    if len(plot._tricontour.y) != n or len(plot._tricontour.z) != n:
+        raise Error(
+            "Plot.encode_tricontour(): x, y and z must have the same length"
+            " (got "
+            + String(n)
+            + ", "
+            + String(len(plot._tricontour.y))
+            + " and "
+            + String(len(plot._tricontour.z))
+            + ")"
+        )
+    _require_non_empty(n, "Plot.encode_tricontour()")
+    if plot._tricontour.level_count <= 0:
+        raise Error(
+            "Plot.mark_tricontourf(): levels must be positive (got "
+            + String(plot._tricontour.level_count)
+            + ")"
+        )
+
+    var theme = plot._theme
+    var frame = _draw_continuous_axis_frame(
+        target,
+        _data_extent(plot._tricontour.x),
+        _data_extent(plot._tricontour.y),
+        theme,
+        _LegendLayout(),
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+    var levels = plot._tricontour.levels.copy() if len(
+        plot._tricontour.levels
+    ) > 0 else _auto_levels_from(
+        plot._tricontour.z, plot._tricontour.level_count
+    )
+    if len(levels) == 0:
+        return frame.result()
+
+    var tri = delaunay(plot._tricontour.x, plot._tricontour.y)
+    if tri.count() == 0:
+        return frame.result()
+
+    var lo = levels[0]
+    var hi = levels[0]
+    for v in levels:
+        if v < lo:
+            lo = v
+        if v > hi:
+            hi = v
+    var color_scale = ColorScale.from_theme(theme, lo, hi)
+
+    # Ascending, so each level's region paints over the one below it.
+    var sorted_levels = levels.copy()
+    for i in range(len(sorted_levels)):
+        for j in range(i + 1, len(sorted_levels)):
+            if sorted_levels[j] < sorted_levels[i]:
+                var tmp = sorted_levels[i]
+                sorted_levels[i] = sorted_levels[j]
+                sorted_levels[j] = tmp
+
+    # The band below the first level: every triangle, in the lowest
+    # colour. `_fill_region_above` at -inf would do it, but every
+    # triangle is trivially above, so say so directly.
+    var zmin = plot._tricontour.z[0]
+    for v in plot._tricontour.z:
+        if v < zmin:
+            zmin = v
+    _fill_region_above(
+        target,
+        tri,
+        plot._tricontour.z,
+        zmin,
+        color_scale.color_at(lo),
+        frame.x_scale,
+        frame.y_scale,
+    )
+
+    for li in range(len(sorted_levels)):
+        var level = sorted_levels[li]
+        _fill_region_above(
+            target,
+            tri,
+            plot._tricontour.z,
+            level,
+            color_scale.color_at(level),
+            frame.x_scale,
+            frame.y_scale,
+        )
+
+    return frame.result()
+
+
 def tricontour(
     x: List[Float64],
     y: List[Float64],
@@ -328,6 +625,95 @@ def tricontour(
     var plot = (
         Plot()
         .mark_tricontour(levels=level_count)
+        .encode_tricontour(x=x, y=y, z=z, levels=levels)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def tricontourf(
+    x: List[Float64],
+    y: List[Float64],
+    z: List[Float64],
+    levels: List[Float64] = List[Float64](),
+    level_count: Int = 8,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """Filled contour bands over scattered samples: `tricontour()`'s
+    regions rather than its lines, Delaunay-triangulated the same way --
+    the reading for a field measured at stations, boreholes or any other
+    irregular set of positions.
+
+    `Mark.TRICONTOURF`: matplotlib's `tricontourf()`. See
+    `Plot.encode_tricontour()` (plot.mojo) for the data shape, which is
+    the same one `tricontour()` takes, and `_render_tricontourf` for how
+    the bands are painted.
+
+    Filled is usually the more readable of the two for scattered data:
+    isolines alone leave the reader to work out which side of a line is
+    higher, and the fill is what carries the colour scale. Draw both by
+    layering a `tricontour()` over this with `render_layers()`.
+
+    The fill covers the samples' convex hull, not the whole plot rect --
+    scattered data says nothing about the corners it does not reach.
+
+    Args:
+        x: Sample x coordinates.
+        y: Sample y coordinates, one per `x` entry.
+        z: The value at each sample.
+        levels: Explicit level values. Empty (the default) places
+            `level_count` of them evenly inside the samples' own range.
+        level_count: How many levels to place when `levels` is empty.
+        theme: Colours, sizes and spacing.
+        width: Canvas width in pixels.
+        height: Canvas height in pixels.
+        title: Chart title.
+        subtitle: Smaller line under the title.
+        x_title: X-axis label.
+        y_title: Y-axis label.
+
+    Returns:
+        The finished `Plot`.
+
+    Raises:
+        Error: Empty data, mismatched column lengths, or a non-positive
+            `level_count`.
+
+    Example:
+        ```mojo
+        from std.math import cos, sin
+
+        from dataviz import tricontourf
+        from dataviz.plot import save
+
+        def main() raises:
+            var x = List[Float64]()
+            var y = List[Float64]()
+            var z = List[Float64]()
+            var seed = 12345
+            for _ in range(240):
+                seed = (seed * 1103515245 + 12345) % 2147483648
+                var px = Float64(seed % 1000) / 100.0
+                seed = (seed * 1103515245 + 12345) % 2147483648
+                var py = Float64(seed % 1000) / 100.0
+                x.append(px)
+                y.append(py)
+                z.append(sin(px) * cos(py))
+
+            var c = tricontourf(x, y, z, level_count=9, title="Scattered samples")
+            save(c, "docs/src/examples/out_tricontourf.svg")
+        ```
+    """
+    var plot = (
+        Plot()
+        .mark_tricontourf(levels=level_count)
         .encode_tricontour(x=x, y=y, z=z, levels=levels)
     )
     return _finished(

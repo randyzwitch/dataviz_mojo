@@ -28,6 +28,7 @@ from dataviz import (
     contour,
     contourf,
     tricontour,
+    tricontourf,
     line,
     lollipop,
     scatter,
@@ -2284,6 +2285,96 @@ def test_render_tricontour_draws_ink_and_one_path_per_isoline() raises:
     assert_true(
         _count_color(c, WHITE) < 360 * 280, "something was drawn on the page"
     )
+
+
+def test_render_tricontourf_fills_far_more_than_tricontour_strokes() raises:
+    """The filled variant covers area where the line variant covers only
+    the isolines, over the same samples and the same levels."""
+    var xs = List[Float64]()
+    var ys = List[Float64]()
+    var zs = List[Float64]()
+    var rng = Lcg(777)
+    for _ in range(150):
+        var px = rng.uniform(0.0, 10.0)
+        var py = rng.uniform(0.0, 10.0)
+        xs.append(px)
+        ys.append(py)
+        zs.append(px * py)
+
+    var lines = render(
+        tricontour(xs, ys, zs, level_count=4, width=360, height=280)
+    )
+    var filled = render(
+        tricontourf(xs, ys, zs, level_count=4, width=360, height=280)
+    )
+    var line_ink = 360 * 280 - _count_color(lines, WHITE)
+    var fill_ink = 360 * 280 - _count_color(filled, WHITE)
+    assert_true(
+        fill_ink > line_ink * 5,
+        (
+            "a filled contour covers area, not just its isolines (filled "
+            + String(fill_ink)
+            + " vs stroked "
+            + String(line_ink)
+            + ")"
+        ),
+    )
+
+
+def test_render_tricontourf_fills_solidly_with_no_seams() raises:
+    """Adjacent triangles are emitted as subpaths of one nonzero fill, so
+    the edges they share are interior and leave no pale seam.
+
+    Filling each triangle separately antialiases every shared edge twice,
+    and two half-covered pixels over the background do not add up to a
+    covered one -- the fill comes out webbed with background-coloured
+    lines. Asserted by counting how many pixels inside the filled region
+    are lighter than both of their horizontal neighbours, which is what
+    such a seam looks like and what a smooth band ramp does not produce.
+
+    Only pixels whose neighbours are *coloured* count: the axis line
+    and the antialiased tick labels are grey one-pixel features that
+    would otherwise read as seams, and they are furniture, not fill.
+    """
+    var xs = List[Float64]()
+    var ys = List[Float64]()
+    var zs = List[Float64]()
+    var rng = Lcg(4242)
+    for _ in range(300):
+        var px = rng.uniform(0.0, 10.0)
+        var py = rng.uniform(0.0, 10.0)
+        xs.append(px)
+        ys.append(py)
+        zs.append(-((px - 5.0) ** 2) - (py - 5.0) ** 2)
+
+    var c = render(
+        tricontourf(xs, ys, zs, level_count=6, width=320, height=240)
+    )
+    var seams = 0
+    for y in range(1, c.height - 1):
+        for x in range(1, c.width - 1):
+            var left = c.get_pixel(x - 1, y)
+            var mid = c.get_pixel(x, y)
+            var right = c.get_pixel(x + 1, y)
+            if left.r == 255 and left.g == 255 and left.b == 255:
+                continue
+            if right.r == 255 and right.g == 255 and right.b == 255:
+                continue
+            # Grey means furniture (the axis line, an antialiased tick
+            # label), not fill.
+            if abs(Int(left.r) - Int(left.b)) < 6:
+                continue
+            if abs(Int(right.r) - Int(right.b)) < 6:
+                continue
+            # A one-pixel-wide lighter notch between two darker
+            # neighbours that match each other: a seam, not a band edge.
+            if (
+                Int(mid.r) > Int(left.r) + 8
+                and Int(mid.r) > Int(right.r) + 8
+                and abs(Int(left.r) - Int(right.r)) < 4
+            ):
+                seams += 1
+    assert_equal(seams, 0, "no pale one-pixel seams inside the fill")
 
 
 def test_tricontour_dtype_overload_matches_the_float64_path() raises:

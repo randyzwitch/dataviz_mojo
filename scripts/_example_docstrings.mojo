@@ -96,6 +96,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("contour", "contour", "contour"),
         ExamplePage("contourf", "contour", "contourf"),
         ExamplePage("tricontour", "tricontour", "tricontour"),
+        ExamplePage("tricontourf", "tricontour", "tricontourf"),
         ExamplePage("marimekko", "marimekko", "marimekko"),
         ExamplePage("sunburst", "sunburst", "sunburst"),
         ExamplePage("tree", "tree", "tree"),
