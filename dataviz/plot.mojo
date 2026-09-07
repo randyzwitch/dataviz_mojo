@@ -3500,6 +3500,39 @@ def render(plot: Plot) raises -> Canvas:
     both compile inline, with no need to bind a temporary to a variable
     first.
     """
+    var cache = FontCache()
+    return render(plot, cache=cache)
+
+
+def render(plot: Plot, *, mut cache: FontCache) raises -> Canvas:
+    """`render()` reusing a `FontCache` the caller owns.
+
+    The scan behind that cache -- fontconfig resolving the family to a
+    file, then parsing it -- is tens of milliseconds and depends on how
+    many fonts are installed, not on what is being drawn. It is also the
+    largest fixed cost in a small chart: about 18 ms of a 22 ms
+    two-point scatter, present in the SVG path too, where nothing is
+    rasterized at all (#324).
+
+    One `render()` pays it once, which is right for one chart and wrong
+    for twenty. Mojo has no mutable global state, so there is no
+    implicit process-wide cache to fall back on (see `FontCache`'s own
+    docstring); the cache has to come from the caller:
+
+    ```mojo
+    var cache = FontCache()
+    for plot in plots:
+        _ = render(plot, cache=cache)
+    ```
+
+    Args:
+        plot: The chart to draw.
+        cache: A cache to resolve fonts and rasterized glyphs through,
+            reused across every call it is passed to.
+
+    Returns:
+        The rendered canvas.
+    """
     var factor = plot._theme.raster_supersample
     _require_positive_supersample(factor, "render")
     var scratch = Canvas(
@@ -3514,7 +3547,7 @@ def render(plot: Plot) raises -> Canvas:
     scratch.scale(Float64(factor), Float64(factor))
     # Logical bounds, not the scratch canvas's own: every coordinate
     # below is in user space now, and the transform maps it up.
-    _render_into(scratch, plot, 0, 0, plot.width, plot.height)
+    _render_into(scratch, plot, 0, 0, plot.width, plot.height, cache=cache)
     return downsample(scratch, factor)
 
 
@@ -3525,6 +3558,8 @@ def _render_into(
     oy0: Int = 0,
     ox1: Int = -1,
     oy1: Int = -1,
+    *,
+    mut cache: FontCache,
 ) raises:
     """Render `plot` into `canvas` within the outer bounds (background, then
     the axis frame and mark, then annotations and text). `ox1`/`oy1`
@@ -3549,12 +3584,6 @@ def _render_into(
     var cy1 = oy1 if oy1 >= 0 else canvas.height
     canvas.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
     var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
-    # One FontCache for the whole render, built on first use: every
-    # measurement the layout makes (tick labels, legend entries) and then
-    # every label drawn afterwards resolve fonts and rasterize glyphs
-    # through it once, and a render with no text never scans the fonts
-    # (#255, FontCache).
-    var cache = FontCache()
     var result = _render_generic(
         canvas, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
     )
@@ -3594,8 +3623,28 @@ def render_svg(plot: Plot) raises -> SvgCanvas:
     `plot.height` and return it; `render()`'s vector counterpart,
     wrapping `_render_svg_into`.
     """
+    var cache = FontCache()
+    return render_svg(plot, cache=cache)
+
+
+def render_svg(plot: Plot, *, mut cache: FontCache) raises -> SvgCanvas:
+    """`render_svg()` reusing a `FontCache` the caller owns; see
+    `render()`'s cache overload for why that is worth doing.
+
+    The SVG path measures text even though it never rasterizes any, so
+    it pays the same font scan a raster render does -- which is how #324
+    established that the cost is layout, not drawing.
+
+    Args:
+        plot: The chart to draw.
+        cache: A cache to resolve fonts through, reused across every
+            call it is passed to.
+
+    Returns:
+        The rendered SVG canvas.
+    """
     var svg = SvgCanvas(plot.width, plot.height)
-    _render_svg_into(svg, plot)
+    _render_svg_into(svg, plot, cache=cache)
     return svg^
 
 
@@ -3606,6 +3655,8 @@ def _render_svg_into(
     oy0: Int = 0,
     ox1: Int = -1,
     oy1: Int = -1,
+    *,
+    mut cache: FontCache,
 ) raises:
     """`_render_into`'s counterpart for `SvgCanvas`: same bounds resolution,
     `_apply_labels`/`_render_generic` core, and annotation passes, with
@@ -3616,8 +3667,6 @@ def _render_svg_into(
     var cy1 = oy1 if oy1 >= 0 else svg.height
     svg.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
     var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
-    # One lazily built FontCache for the whole figure; see _render_into.
-    var cache = FontCache()
     var result = _render_generic(
         svg, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
     )
@@ -3715,15 +3764,38 @@ def save(plot: Plot, path: String) raises:
     for callers who don't need a title that differs from the visible one.
     An untitled plot's SVG is unaffected.
     """
+    var cache = FontCache()
+    save(plot, path, cache=cache)
+
+
+def save(plot: Plot, path: String, *, mut cache: FontCache) raises:
+    """`save()` reusing a `FontCache` the caller owns; see `render()`'s
+    cache overload for why that is worth doing.
+
+    This is the one to reach for when writing a directory of charts,
+    which is where the per-call font scan is most obviously wasted:
+
+    ```mojo
+    var cache = FontCache()
+    for i in range(len(plots)):
+        save(plots[i], "chart_" + String(i) + ".png", cache=cache)
+    ```
+
+    Args:
+        plot: The chart to draw.
+        path: Where to write it; the extension picks the format.
+        cache: A cache to resolve fonts through, reused across every
+            call it is passed to.
+    """
     var format = _resolve_output_format(plot._theme.output_format, path)
     if format == OutputFormat.SVG:
         var f = open(path, "w")
-        f.write(_svg_output_string(render_svg(plot), plot._labels))
+        f.write(_svg_output_string(render_svg(plot, cache=cache), plot._labels))
         f.close()
     elif format == OutputFormat.PNG:
-        write_png(render(plot), path)
+        write_png(render(plot, cache=cache), path)
     else:
-        write_bmp(render(plot), path)
+        write_bmp(render(plot, cache=cache), path)
 
 
 def save(canvas: Canvas, path: String) raises:
