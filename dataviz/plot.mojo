@@ -372,11 +372,15 @@ struct _MarkStyle(Copyable, Movable):
     """
 
     var step: StepStyle
-    """Where `Mark.LINE`'s riser sits between two samples, from
-    `mark_line(step=...)` (#336). `NONE` (straight interpolation)
-    unless asked otherwise. The one field here that changes what the
-    chart claims rather than how it looks, which is exactly why it is
-    not on `Theme`: a theme may restyle a line, not reinterpret it.
+    """Where the riser sits between two samples, from
+    `mark_line(step=...)` (#336) or `mark_area(step=...)` (#384).
+    `NONE` (straight interpolation) unless asked otherwise. One field
+    for both marks rather than one apiece: a stepped area is a stepped
+    line with the region under it filled, so the two share `_step_points`
+    and would only ever be set to the same values. The one field here
+    that changes what the chart claims rather than how it looks, which
+    is exactly why it is not on `Theme`: a theme may restyle a line, not
+    reinterpret it.
     """
 
     var corrplot_bubble_fraction: Float64
@@ -701,11 +705,41 @@ struct Plot(Copyable, Movable):
         self._horizontal = horizontal
         return self^
 
-    def mark_area(var self) -> Self:
+    def mark_area(var self, step: StepStyle = StepStyle.NONE) -> Self:
         """An area chart: `mark_line()`'s continuous (x, y) pairs, filled from
         each point down to a zero baseline. Encoded via `encode()`.
+
+        `step` is the same stairs interpolation `mark_line()` takes
+        (#384), applied to the fill's top edge: the value holds flat and
+        then jumps, instead of sliding from one sample to the next. It
+        is the shape for a quantity that is constant between samples and
+        has a magnitude worth filling -- inventory on hand, headcount, a
+        tariff schedule, a histogram's outline. Filling under a straight
+        interpolation there is a stronger claim than drawing a line
+        through it: the line merely passes through values nobody
+        measured, the fill assigns them area.
+
+        Only the top edge steps. The two closing segments -- down to the
+        baseline at the last x, and back along the baseline to the first
+        -- stay straight, exactly as they already do under
+        `Theme.line_smoothing`: they are the fill's boundary, not data,
+        and a riser drawn along the baseline would be a step in a value
+        the caller never supplied.
+
+        Args:
+            step: Where the riser between two samples sits -- `NONE`
+                (the default: a straight top edge, no stepping), `PRE`
+                (at the earlier x), `MID` (halfway) or `POST` (at the
+                later x). Same three placements as matplotlib's
+                `drawstyle='steps-pre'/'steps-mid'/'steps-post'`; see
+                `StepStyle` for which one claims what. Mutually
+                exclusive with `Theme.line_smoothing`, which raises.
+
+        Returns:
+            Self, for further chaining.
         """
         self._mark = Mark.AREA
+        self._mark_style.step = step
         return self^
 
     def mark_arc(var self, inner_radius_fraction: Float64 = 0.0) -> Self:

@@ -419,9 +419,12 @@ def _check_line_smoothing(theme: Theme) raises:
         )
 
 
-def _check_step_smoothing(theme: Theme, step: StepStyle) raises:
-    """`Theme.line_smoothing` and `mark_line(step=...)` are mutually
-    exclusive (#336); raise when both are asked for.
+def _check_step_smoothing(
+    theme: Theme, step: StepStyle, mark: Mark = Mark.LINE
+) raises:
+    """`Theme.line_smoothing` and `mark_line(step=...)`/
+    `mark_area(step=...)` are mutually exclusive (#336, #384); raise when
+    both are asked for.
 
     A smoothed staircase is not a compromise between the two, it is
     neither: the Catmull-Rom tangents `_build_line_path` fits round off
@@ -432,21 +435,40 @@ def _check_step_smoothing(theme: Theme, step: StepStyle) raises:
     mean one of two explicit settings quietly doing nothing -- so this
     says which two settings conflict instead.
 
-    Called by `_draw_line_layer` beside `_check_line_smoothing`, so it
-    covers the layered render path too. Not called from
-    `_draw_area_layer`: `Mark.AREA` has no `step` of its own to
-    conflict with (see #384).
+    `Mark.AREA` is not the milder case it might look like. Its fill only
+    makes the bowing worse: a stroked line that bows sideways past a
+    riser shows a thin overshoot, while a filled one hands that
+    overshoot the whole column of pixels down to the baseline, so the
+    chart claims area under an x the data never reached. It raises for
+    the same reason and with the same wording, differing only in which
+    method to go and change.
+
+    Called by `_draw_line_layer` and `_draw_area_layer` beside
+    `_check_line_smoothing`, and by `_render_bar_combo_layers`' two
+    inline branches, so every path that can honor a step also refuses to
+    smooth one.
 
     Args:
         theme: The plot's theme, for `line_smoothing`.
         step: The mark's step style, from `_MarkStyle.step`.
+        mark: Which mark is being drawn, so the message names the
+            setter the caller actually reached for (`Mark.AREA` ->
+            `Plot.mark_area(step=...)`, everything else
+            `Plot.mark_line(step=...)`). Defaulted to `Mark.LINE` for
+            the call sites that predate `Mark.AREA` having a step.
 
     Raises:
         Error: Both a non-`NONE` `step` and a non-zero `line_smoothing`.
     """
     if step != StepStyle.NONE and theme.line_smoothing > 0.0:
+        var setter = (
+            "Plot.mark_area(step=...)" if mark
+            == Mark.AREA else "Plot.mark_line(step=...)"
+        )
         raise Error(
-            "Theme.line_smoothing and Plot.mark_line(step=...) are mutually"
+            "Theme.line_smoothing and "
+            + setter
+            + " are mutually"
             " exclusive -- a smoothed staircase rounds off the corners that"
             " carry its meaning (got line_smoothing="
             + String(theme.line_smoothing)

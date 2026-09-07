@@ -861,6 +861,51 @@ def test_render_layers_svg_bar_combo_honors_line_step() raises:
     )
 
 
+def test_render_layers_svg_bar_combo_honors_area_step() raises:
+    # The Mark.AREA branch of _render_bar_combo_layers builds its own
+    # closed-to-the-baseline geometry too, so mark_area(step=...) has to
+    # reach it separately from _draw_area_layer (#384).
+    #
+    # Same three-category frame as the line-step test above: centers
+    # 113.333, 220.000, 326.667, combined_y=[10,20,14,15,5,12]
+    # zero-baselines to [0,21] over [250,20], so the area's y=[15,5,12]
+    # lands at 85.714, 195.238, 118.571 and the baseline at 250 is
+    # pulled to 249 off the axis line.
+    #
+    # The assertion is the whole `d`, not just the staircase: the two
+    # closing segments have to still be there, still straight, and still
+    # anchored under the first and last category rather than under a
+    # riser. The last riser (326.667, 118.571) and the closing drop to
+    # (326.667, 249.000) share an x, which is the staircase and the
+    # closing edge meeting with no sliver between them.
+    var cats: List[String] = ["A", "B", "C"]
+    var bar_y: List[Float64] = [10.0, 20.0, 14.0]
+    var idx: List[Float64] = [0.0, 1.0, 2.0]
+    var area_y: List[Float64] = [15.0, 5.0, 12.0]
+    var bars = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=bar_y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var stepped = (
+        Plot()
+        .mark_area(step=StepStyle.POST)
+        .encode(x=idx, y=area_y)
+        .size(400, 300)
+    )
+    var plots: List[Plot] = [bars^, stepped^]
+    var s = render_layers_svg(plots).to_string()
+    assert_true(
+        '<path d="M113.333,85.714 L220.000,85.714 L220.000,195.238'
+        " L326.667,195.238 L326.667,118.571 L326.667,249.000"
+        ' L113.333,249.000 Z" fill="#1e64b4"/>'
+        in s,
+        "the bar-combo area layer's POST staircase, closed to the baseline",
+    )
+
+
 def test_render_layers_svg_bar_combo_supports_show_data_labels() raises:
     # Theme.show_data_labels on the bar layer's own Theme, through
     # _draw_bar_rects. Same frame as the positions test: bar A rect y=140

@@ -107,6 +107,7 @@ def _titles() -> Dict[String, String]:
     d["histogram"] = "Histogram"
     d["slope"] = "Slope"
     d["step"] = "Step"
+    d["step_area"] = "Stepped Area"
     # Cookbook titles come from each recipe's filename or its `# title:`
     # override (see cookbook_recipes/README.md), not from here.
     return d^
@@ -134,7 +135,8 @@ def _categories() -> List[Category]:
             "Basic marks",
             (
                 "The core chart types -- one mark, default theme (donut is"
-                " pie's own ring variant, step is line's)."
+                " pie's own ring variant, step is line's, and step_area"
+                " is area's)."
             ),
             [
                 "scatter",
@@ -142,6 +144,7 @@ def _categories() -> List[Category]:
                 "step",
                 "bar",
                 "area",
+                "step_area",
                 "pie",
                 "single_axis",
                 "effect_scatter",
