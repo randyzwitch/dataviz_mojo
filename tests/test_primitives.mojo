@@ -38,7 +38,9 @@ from dataviz.array_like import (
     _materialize_strings,
 )
 from dataviz.calendar_heatmap import _Date, _days_from_civil
+from dataviz.color_ramp import ColorRamp
 from dataviz.color_scale import ColorScale
+from dataviz.colormaps import cividis, inferno, magma, plasma, viridis
 from dataviz.colors import BLACK, BLUE, RED, WHITE
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import Plot, render, render_svg
@@ -584,6 +586,138 @@ def test_color_scale_zero_span_domain_returns_the_lowest_offset_stop() raises:
     assert_equal(a.b, 255)
     assert_equal(b.r, 0)
     assert_equal(b.b, 255)
+
+
+# ---------------------------------------------------------------
+# Theme.color_ramp and the perceptual colormaps (#332)
+# ---------------------------------------------------------------
+
+
+def _assert_stop(
+    scale: ColorScale, t: Float64, r: Int, g: Int, b: Int, what: String
+) raises:
+    """`scale.color_at(t)` is exactly `(r, g, b)`."""
+    var c = scale.color_at(t)
+    var got = String(Int(c.r)) + "," + String(Int(c.g)) + "," + String(Int(c.b))
+    var want = String(r) + "," + String(g) + "," + String(b)
+    assert_equal(got, want, what + " at t=" + String(t))
+
+
+def test_an_empty_color_ramp_leaves_the_three_stop_gradient_untouched() raises:
+    # The compatibility claim: color_ramp defaults to empty, and while it
+    # is empty from_theme must behave exactly as it did before #332 --
+    # low at 0.0, mid at 0.5, high at 1.0. Every existing Theme and every
+    # golden depends on this.
+    var theme = Theme()
+    assert_equal(len(theme.color_ramp), 0)
+    var s = ColorScale.from_theme(theme, 0.0, 1.0)
+    _assert_stop(s, 0.0, 60, 110, 200, "default low")
+    _assert_stop(s, 0.5, 235, 235, 235, "default mid")
+    _assert_stop(s, 1.0, 220, 90, 40, "default high")
+
+
+def test_a_color_ramp_overrides_all_three_scalar_stops() raises:
+    # Not "adds to": a non-empty ramp replaces low/mid/high outright, so
+    # a Theme carrying both must show no trace of the scalars.
+    var theme = Theme(
+        color_scale_low=BLUE,
+        color_scale_mid=GREEN,
+        color_scale_high=RED,
+        color_ramp=ColorRamp([BLACK, WHITE]),
+    )
+    var s = ColorScale.from_theme(theme, 0.0, 1.0)
+    _assert_stop(s, 0.0, 0, 0, 0, "ramp low")
+    _assert_stop(s, 1.0, 255, 255, 255, "ramp high")
+    # Halfway is gray, not the green midpoint the scalar stops asked for.
+    _assert_stop(s, 0.5, 128, 128, 128, "ramp mid")
+
+
+def test_viridis_reaches_a_color_scale_at_its_documented_accuracy() raises:
+    # Spot checks against matplotlib 3.11.1's own 256-entry viridis, at
+    # five evenly spaced positions. The reference values are in the
+    # comments; ours are within the 2-levels-per-channel bound the module
+    # docstring claims, and the two endpoints are exact.
+    var theme = Theme(color_ramp=viridis())
+    assert_equal(len(theme.color_ramp), 64)
+    var s = ColorScale.from_theme(theme, 0.0, 1.0)
+    _assert_stop(s, 0.0, 68, 1, 84, "viridis")  # matplotlib 68,1,84 (exact)
+    _assert_stop(s, 64.0 / 255.0, 58, 82, 139, "viridis")  # 59,82,139
+    _assert_stop(s, 128.0 / 255.0, 32, 144, 140, "viridis")  # 33,145,140
+    _assert_stop(s, 192.0 / 255.0, 94, 201, 98, "viridis")  # 94,201,98 (exact)
+    _assert_stop(s, 1.0, 253, 231, 37, "viridis")  # 253,231,37 (exact)
+
+
+def test_every_built_in_colormap_has_the_full_stop_count_and_exact_ends() raises:
+    # The endpoints are what a reader recognizes a map by, and they are
+    # the two stops interpolation cannot smear, so they must land exactly.
+    # Reference values are matplotlib's table[0] and table[255].
+    var maps = [viridis(), magma(), inferno(), plasma(), cividis()]
+    var names: List[String] = [
+        "viridis",
+        "magma",
+        "inferno",
+        "plasma",
+        "cividis",
+    ]
+    var low_r: List[Int] = [68, 0, 0, 13, 0]
+    var low_g: List[Int] = [1, 0, 0, 8, 34]
+    var low_b: List[Int] = [84, 4, 4, 135, 78]
+    var high_r: List[Int] = [253, 252, 252, 240, 254]
+    var high_g: List[Int] = [231, 253, 255, 249, 232]
+    var high_b: List[Int] = [37, 191, 164, 33, 56]
+
+    for i in range(len(maps)):
+        assert_equal(len(maps[i]), 64, names[i] + " stop count")
+        var s = ColorScale.from_theme(
+            Theme(color_ramp=maps[i].copy()), 0.0, 1.0
+        )
+        _assert_stop(s, 0.0, low_r[i], low_g[i], low_b[i], names[i] + " low")
+        _assert_stop(
+            s, 1.0, high_r[i], high_g[i], high_b[i], names[i] + " high"
+        )
+
+
+def test_a_color_ramp_past_capacity_is_resampled_rather_than_truncated() raises:
+    # 300 stops running black to white. Truncating would keep the first
+    # 64 and end the gradient at a dark gray; resampling must keep both
+    # ends and stay monotonic in between.
+    var many = List[Color]()
+    for i in range(300):
+        var v = UInt8(Int(round(Float64(i) / 299.0 * 255.0)))
+        many.append(Color(v, v, v))
+
+    var ramp = ColorRamp(many)
+    assert_equal(len(ramp), 64)
+    assert_equal(Int(ramp[0].r), 0)
+    assert_equal(Int(ramp[63].r), 255)
+
+    var previous = -1
+    for i in range(64):
+        var v = Int(ramp[i].r)
+        assert_true(
+            v > previous, "resampled ramp is not monotonic at " + String(i)
+        )
+        previous = v
+
+
+def test_a_single_stop_color_ramp_is_a_flat_color() raises:
+    # Degenerate but well defined: one stop means every value gets the
+    # same color, rather than a zero-width interpolation.
+    var s = ColorScale.from_theme(Theme(color_ramp=ColorRamp([RED])), 0.0, 10.0)
+    _assert_stop(s, 0.0, 255, 0, 0, "single stop")
+    _assert_stop(s, 5.0, 255, 0, 0, "single stop")
+    _assert_stop(s, 10.0, 255, 0, 0, "single stop")
+
+
+def test_a_color_ramp_survives_a_theme_copy() raises:
+    # Theme is ImplicitlyCopyable and is copied all over the package
+    # (`var theme = plot._theme`). ColorRamp packs its stops into a SIMD
+    # vector precisely so that copy keeps working; this pins it.
+    var original = Theme(color_ramp=magma())
+    var copied = original
+    assert_equal(len(copied.color_ramp), 64)
+    assert_equal(Int(copied.color_ramp[0].b), 4)
+    assert_equal(Int(copied.color_ramp[63].g), 253)
 
 
 # ---------------------------------------------------------------

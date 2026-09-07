@@ -76,24 +76,39 @@ struct ColorScale(Movable):
     ) -> Self:
         """How every continuous color-encoded mark (`Plot.encode(color=...)`,
         `Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`) builds its `ColorScale`
-        from `theme`'s three stops: `low` at `0.0`, `mid` at `0.5`, `high` at
+        from `theme`'s stops: `low` at `0.0`, `mid` at `0.5`, `high` at
         `1.0`. See `Theme.color_scale_mid` for why the middle stop exists. A
         `@staticmethod` so `ColorScale(domain_min, domain_max)` with no stops
         stays a valid starting point.
 
+        A non-empty `Theme.color_ramp` replaces all three, spread evenly
+        over `[0, 1]` -- that is how a perceptually uniform map like
+        `colormaps.viridis()` reaches a mark (#332). Three stops cannot
+        express one; see the field's own docstring. A single-entry ramp
+        is a flat color, which is degenerate but well defined, so it is
+        not rejected.
+
         Args:
-            theme: Supplies the three color-scale stops
-                (`color_scale_low`/`mid`/`high`).
+            theme: Supplies the stops -- `color_ramp` when it is
+                non-empty, otherwise `color_scale_low`/`mid`/`high`.
             domain_min: The low end of the data domain.
             domain_max: The high end of the data domain.
 
         Returns:
-            A `ColorScale` pre-filled with `theme`'s three stops.
+            A `ColorScale` pre-filled with `theme`'s stops.
         """
         var scale = Self(domain_min, domain_max)
-        scale.add_stop(0.0, theme.color_scale_low)
-        scale.add_stop(0.5, theme.color_scale_mid)
-        scale.add_stop(1.0, theme.color_scale_high)
+        var n = len(theme.color_ramp)
+        if n == 0:
+            scale.add_stop(0.0, theme.color_scale_low)
+            scale.add_stop(0.5, theme.color_scale_mid)
+            scale.add_stop(1.0, theme.color_scale_high)
+            return scale^
+        if n == 1:
+            scale.add_stop(0.0, theme.color_ramp[0])
+            return scale^
+        for i in range(n):
+            scale.add_stop(Float64(i) / Float64(n - 1), theme.color_ramp[i])
         return scale^
 
 

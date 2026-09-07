@@ -30,6 +30,7 @@ from dataviz import (
     stacked_bar,
 )
 from dataviz.color_scale import default_categorical_palette
+from dataviz.colormaps import viridis
 from dataviz.plot import (
     Plot,
     render,
@@ -1052,6 +1053,32 @@ def test_render_heatmap_matches_hand_derived_cells() raises:
         "(Tue, PM) = 4.0, the color domain's max",
     )
     _assert_color(c, 10, 10, BG, "outside the plot area entirely -- background")
+
+
+def test_render_heatmap_honors_a_perceptual_color_ramp() raises:
+    # The same four cells and the same geometry as the hand-derived test
+    # above, with Theme.color_ramp set to viridis (#332). This is the
+    # check that a many-stop ramp reaches the drawing rather than just
+    # ColorScale: the three scalar stops are left at their defaults and
+    # must not appear anywhere.
+    #
+    # Values 1.0/2.0/3.0/4.0 land at t = 0, 1/3, 2/3, 1 through the ramp.
+    # The two ends are matplotlib's viridis endpoints exactly.
+    var x: List[String] = ["Mon", "Mon", "Tue", "Tue"]
+    var y: List[String] = ["AM", "PM", "AM", "PM"]
+    var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var t = Theme(show_gridlines=False, show_legend=False, color_ramp=viridis())
+    var _hoisted_viridis = heatmap(x, y, v, theme=t, width=400, height=300)
+    var c = render(_hoisted_viridis)
+
+    _assert_color(
+        c, 100, 60, Color(68, 1, 84), "(Mon, AM) = 1.0, viridis' dark end"
+    )
+    _assert_color(c, 100, 180, Color(49, 104, 142), "(Mon, PM) = 2.0")
+    _assert_color(c, 300, 60, Color(53, 183, 121), "(Tue, AM) = 3.0")
+    _assert_color(
+        c, 300, 180, Color(253, 231, 37), "(Tue, PM) = 4.0, viridis' yellow end"
+    )
 
 
 def test_render_heatmap_svg_matches_confirmed_rects() raises:
