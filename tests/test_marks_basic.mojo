@@ -467,6 +467,187 @@ def test_step_points_matches_matplotlibs_own_step_expansion() raises:
         assert_equal(post.py[i], post_y[i], "POST y[" + String(i) + "]")
 
 
+def test_step_points_duplicates_a_repeated_x_the_way_matplotlib_does() raises:
+    # #405. Two consecutive samples sharing an x make PRE emit the same
+    # point twice, and POST does the same when two consecutive samples
+    # share a y. matplotlib does both, so this is the oracle match
+    # holding rather than a defect, and this test exists to keep a
+    # future "cleanup" from silently breaking it.
+    #
+    # Oracle: matplotlib 3.11.1, cbook.pts_to_prestep/pts_to_midstep/
+    # pts_to_poststep, pasted verbatim.
+    #
+    #   x = [0, 100, 100, 200], y = [10, 40, 20, 30]
+    #   PRE  n=7  (0,10) (0,40) (100,40) (100,20) (100,20) (100,30) (200,30)
+    #   MID  n=8  (0,10) (50,10) (50,40) (100,40) (100,20) (150,20)
+    #             (150,30) (200,30)
+    #   POST n=7  (0,10) (100,10) (100,40) (100,40) (100,20) (200,20) (200,30)
+    #
+    # The point *counts* are what discriminate: dropping the duplicate
+    # takes PRE and POST to 6, which is neither 2n-1 nor anything
+    # matplotlib produces. The pairwise-equality assertions below name
+    # the duplicated index directly, so a dedup fails on the count and
+    # again on the pair.
+    var px: List[Float64] = [0.0, 100.0, 100.0, 200.0]
+    var py: List[Float64] = [10.0, 40.0, 20.0, 30.0]
+
+    var pre = _step_points(px, py, StepStyle.PRE)
+    var pre_x: List[Float64] = [0.0, 0.0, 100.0, 100.0, 100.0, 100.0, 200.0]
+    var pre_y: List[Float64] = [10.0, 40.0, 40.0, 20.0, 20.0, 30.0, 30.0]
+    assert_equal(len(pre.px), len(pre_x), "PRE keeps matplotlib's 2n-1 points")
+    for i in range(len(pre_x)):
+        assert_equal(pre.px[i], pre_x[i], "PRE x[" + String(i) + "]")
+        assert_equal(pre.py[i], pre_y[i], "PRE y[" + String(i) + "]")
+    assert_equal(pre.px[3], pre.px[4], "PRE's duplicated point, x")
+    assert_equal(pre.py[3], pre.py[4], "PRE's duplicated point, y")
+
+    var mid = _step_points(px, py, StepStyle.MID)
+    var mid_x: List[Float64] = [
+        0.0,
+        50.0,
+        50.0,
+        100.0,
+        100.0,
+        150.0,
+        150.0,
+        200.0,
+    ]
+    var mid_y: List[Float64] = [10.0, 10.0, 40.0, 40.0, 20.0, 20.0, 30.0, 30.0]
+    assert_equal(len(mid.px), len(mid_x), "MID keeps matplotlib's 2n points")
+    for i in range(len(mid_x)):
+        assert_equal(mid.px[i], mid_x[i], "MID x[" + String(i) + "]")
+        assert_equal(mid.py[i], mid_y[i], "MID y[" + String(i) + "]")
+    # MID is the control: the midpoint of two equal x is that x, but the
+    # two points emitted there carry different y, so nothing repeats.
+    # A dedup would leave this style untouched, which is why asserting
+    # it here separates "matched matplotlib" from "emitted 2n points".
+    for i in range(1, len(mid.px)):
+        assert_true(
+            mid.px[i] != mid.px[i - 1] or mid.py[i] != mid.py[i - 1],
+            "MID emits no duplicate at index " + String(i),
+        )
+
+    var post = _step_points(px, py, StepStyle.POST)
+    var post_x: List[Float64] = [0.0, 100.0, 100.0, 100.0, 100.0, 200.0, 200.0]
+    var post_y: List[Float64] = [10.0, 10.0, 40.0, 40.0, 20.0, 20.0, 30.0]
+    assert_equal(
+        len(post.px), len(post_x), "POST keeps matplotlib's 2n-1 points"
+    )
+    for i in range(len(post_x)):
+        assert_equal(post.px[i], post_x[i], "POST x[" + String(i) + "]")
+        assert_equal(post.py[i], post_y[i], "POST y[" + String(i) + "]")
+    assert_equal(post.px[2], post.px[3], "POST's duplicated point, x")
+    assert_equal(post.py[2], post.py[3], "POST's duplicated point, y")
+
+
+def test_step_points_duplicates_a_repeated_y_the_way_matplotlib_does() raises:
+    # The other degenerate step, and the more common one: two
+    # consecutive samples sharing a y collapse the riser. #405 names
+    # this only for POST, but it hits all three styles -- PRE's
+    # (x[i], y[i+1]) repeats the point before it, POST's two emissions
+    # at x[i+1] become one, and MID's two at the midpoint likewise. A
+    # held reading is the exact shape a step chart is drawn for, so
+    # this is not an exotic input.
+    #
+    # Oracle: matplotlib 3.11.1, x = [0, 100, 200], y = [10, 10, 30],
+    # pasted verbatim:
+    #
+    #   PRE  n=5  (0,10) (0,10) (100,10) (100,30) (200,30)
+    #   MID  n=6  (0,10) (50,10) (50,10) (150,10) (150,30) (200,30)
+    #   POST n=5  (0,10) (100,10) (100,10) (200,10) (200,30)
+    #
+    # The control is the same series with no repeated y, at the bottom:
+    # it must produce no duplicate at all, which is what separates
+    # "matched matplotlib" from "emits duplicates everywhere".
+    var px: List[Float64] = [0.0, 100.0, 200.0]
+    var py: List[Float64] = [10.0, 10.0, 30.0]
+
+    var pre = _step_points(px, py, StepStyle.PRE)
+    var pre_x: List[Float64] = [0.0, 0.0, 100.0, 100.0, 200.0]
+    var pre_y: List[Float64] = [10.0, 10.0, 10.0, 30.0, 30.0]
+    assert_equal(len(pre.px), len(pre_x), "PRE keeps matplotlib's 5 points")
+    for i in range(len(pre_x)):
+        assert_equal(pre.px[i], pre_x[i], "PRE x[" + String(i) + "]")
+        assert_equal(pre.py[i], pre_y[i], "PRE y[" + String(i) + "]")
+    assert_equal(pre.px[0], pre.px[1], "PRE's duplicated point, x")
+    assert_equal(pre.py[0], pre.py[1], "PRE's duplicated point, y")
+
+    var mid = _step_points(px, py, StepStyle.MID)
+    var mid_x: List[Float64] = [0.0, 50.0, 50.0, 150.0, 150.0, 200.0]
+    var mid_y: List[Float64] = [10.0, 10.0, 10.0, 10.0, 30.0, 30.0]
+    assert_equal(len(mid.px), len(mid_x), "MID keeps matplotlib's 6 points")
+    for i in range(len(mid_x)):
+        assert_equal(mid.px[i], mid_x[i], "MID x[" + String(i) + "]")
+        assert_equal(mid.py[i], mid_y[i], "MID y[" + String(i) + "]")
+    assert_equal(mid.px[1], mid.px[2], "MID's duplicated point, x")
+    assert_equal(mid.py[1], mid.py[2], "MID's duplicated point, y")
+
+    var post = _step_points(px, py, StepStyle.POST)
+    var post_x: List[Float64] = [0.0, 100.0, 100.0, 200.0, 200.0]
+    var post_y: List[Float64] = [10.0, 10.0, 10.0, 10.0, 30.0]
+    assert_equal(len(post.px), len(post_x), "POST keeps matplotlib's 5 points")
+    for i in range(len(post_x)):
+        assert_equal(post.px[i], post_x[i], "POST x[" + String(i) + "]")
+        assert_equal(post.py[i], post_y[i], "POST y[" + String(i) + "]")
+    assert_equal(post.px[1], post.px[2], "POST's duplicated point, x")
+    assert_equal(post.py[1], post.py[2], "POST's duplicated point, y")
+
+    # The control: same x, no two consecutive y equal. matplotlib
+    # reports no duplicate in any style here, so neither may this.
+    var cy: List[Float64] = [10.0, 40.0, 30.0]
+    for style in [StepStyle.PRE, StepStyle.MID, StepStyle.POST]:
+        var clean = _step_points(px, cy, style)
+        for i in range(1, len(clean.px)):
+            assert_true(
+                clean.px[i] != clean.px[i - 1]
+                or clean.py[i] != clean.py[i - 1],
+                "a non-degenerate series duplicates nothing, at index "
+                + String(i),
+            )
+
+
+def test_a_repeated_x_reaches_the_rendered_step_path_as_a_repeated_command() raises:
+    # The end-to-end half of #405: the duplicate is not swallowed
+    # between _step_points and the emitted `d`. _decimate_to_pixel_columns
+    # keeps a column's min and max y, which for a duplicated sample are
+    # the same point twice, so it collapses nothing here.
+    #
+    # Asserted on the substring "L120.000,61.905 L120.000,61.905" rather
+    # than on a point count, because that is the artifact a reader of
+    # the SVG actually sees, and it is what #405 quoted. The values come
+    # from a real render_svg() of this plot, not from the projection
+    # arithmetic repeated here.
+    var x: List[Float64] = [0.0, 1.0, 1.0, 2.0]
+    var y: List[Float64] = [1.0, 4.0, 2.0, 3.0]
+    var svg = render_svg(
+        area(x, y, step=StepStyle.PRE, width=200, height=150)
+    ).to_string()
+    assert_true(
+        "L120.000,61.905 L120.000,61.905" in svg,
+        "PRE's repeated x reaches the path as two identical commands",
+    )
+
+    var svg_post = render_svg(
+        area(x, y, step=StepStyle.POST, width=200, height=150)
+    ).to_string()
+    assert_true(
+        "L120.000,23.810 L120.000,23.810" in svg_post,
+        "POST's collision reaches the path as two identical commands",
+    )
+
+    # MID over the same samples emits no repeat, which is what makes the
+    # two assertions above about PRE/POST specifically and not about the
+    # path writer.
+    var svg_mid = render_svg(
+        area(x, y, step=StepStyle.MID, width=200, height=150)
+    ).to_string()
+    assert_true(
+        "L120.000,61.905 L120.000,61.905" not in svg_mid
+        and "L120.000,23.810 L120.000,23.810" not in svg_mid,
+        "MID's path has no repeated command over the same samples",
+    )
+
+
 def test_step_points_passes_through_none_and_a_one_point_series() raises:
     # NONE is the default every existing caller passes, so it has to be
     # a pure pass-through, not "the same shape by coincidence". A

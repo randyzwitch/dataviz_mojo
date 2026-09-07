@@ -137,6 +137,59 @@ def _step_points(
     hand this its style unconditionally. A series shorter than two
     points has no pair to step between and is likewise returned as-is.
 
+    **A degenerate step emits the same point twice, deliberately
+    (#405).** Every style writes a plateau and a riser per pair; when
+    either has zero length, its two ends are one point and it is
+    emitted anyway:
+
+    - Two consecutive samples sharing an **x** collapse `PRE`'s and
+      `POST`'s plateau. `PRE`'s `(px[i], py[i + 1])` and
+      `(px[i + 1], py[i + 1])` become the same point, and so do
+      `POST`'s `(px[i + 1], py[i])` and the `(px[i], py[i])` before it.
+      `MID` survives this one: the midpoint of two equal x is that x,
+      but the two points it emits there carry different y.
+    - Two consecutive samples sharing a **y** collapse the riser, in
+      *all three* styles -- `PRE`'s `(px[i], py[i + 1])` repeats the
+      point before it, `POST`'s two emissions at `px[i + 1]` become
+      one, and `MID`'s two at the midpoint likewise. A held reading is
+      the exact shape a step chart is drawn for, so this is the common
+      case of the two, not the exotic one.
+
+    The duplicate is kept because matplotlib emits it too, and being
+    byte-identical to `cbook.pts_to_prestep`/`pts_to_midstep`/
+    `pts_to_poststep` is a property this function is tested against
+    (`test_step_points_matches_matplotlibs_own_step_expansion`) and the
+    reason its rules are stated as emissions rather than as a shape.
+    matplotlib's versions are pure array slicing -- `steps[0, 0::2] = x`,
+    `steps[0, 1::2] = x[1:]` and so on -- which cannot look at what it
+    just wrote, so a degenerate step falls straight through. Verified
+    on matplotlib 3.11.1:
+
+        x = [0, 100, 100, 200], y = [10, 40, 20, 30]   (repeated x)
+        PRE   (0,10) (0,40) (100,40) (100,20) (100,20) (100,30) (200,30)
+        MID   (0,10) (50,10) (50,40) (100,40) (100,20) (150,20)
+              (150,30) (200,30)
+        POST  (0,10) (100,10) (100,40) (100,40) (100,20) (200,20) (200,30)
+
+        x = [0, 100, 200], y = [10, 10, 30]            (repeated y)
+        PRE   (0,10) (0,10) (100,10) (100,30) (200,30)
+        MID   (0,10) (50,10) (50,10) (150,10) (150,30) (200,30)
+        POST  (0,10) (100,10) (100,10) (200,10) (200,30)
+
+    Skipping a point equal to the previous one would cost one path
+    command per degenerate step and gain a divergence from the oracle
+    at exactly the inputs a reader is most likely to check by hand. It
+    draws nothing either way: a zero-length segment puts no ink on the
+    raster, confirmed for all three styles in #405, and
+    `_decimate_to_pixel_columns` leaves it alone (both points land in
+    one column, and that column's min and max y are the same sample
+    twice).
+
+    `test_step_points_duplicates_a_repeated_x_the_way_matplotlib_does`
+    and `test_step_points_duplicates_a_repeated_y_the_way_matplotlib_does`
+    pin this, so a future cleanup breaks a test rather than the oracle
+    match.
+
     Args:
         px: Projected x pixel coordinates.
         py: Projected y pixel coordinates, same length as `px`.
