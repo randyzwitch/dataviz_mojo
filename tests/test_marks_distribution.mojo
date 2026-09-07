@@ -376,6 +376,65 @@ def test_render_ridgeline_matches_hand_derived_rows() raises:
     )
 
 
+def test_render_ridgeline_overlapping_rows_stay_distinguishable() raises:
+    """Where one row's curve rises into the row above, the boundary
+    between them must still be visible.
+
+    Rows overlap by design (`ridgeline_overlap`, 1.3 row heights) and
+    every row is filled with the same `Theme.mark_color`, so without an
+    outline two overlapping ridges merge into one shape and the reader
+    cannot tell where one distribution ends and the next begins -- the
+    same failure the sunburst had between its rings.
+
+    Asserted as a property rather than by pinning the outline's pixels:
+    a vertical scan through the overlap must cross background between
+    two runs of fill. A single merged blob gives one run and no gap.
+    """
+    var cats: List[String] = ["low", "high"]
+    # "high" is concentrated well above "low", so its peak rises into
+    # low's row and the two must overlap somewhere.
+    var vals: List[List[Float64]] = [
+        [10.0, 11.0, 12.0, 13.0, 14.0, 15.0],
+        [12.0, 12.0, 12.0, 12.0, 12.0, 12.0],
+    ]
+    var t = Theme(show_gridlines=False)
+    var _hoisted_ro = ridgeline(cats, vals, theme=t, width=420, height=300)
+    var c = render(_hoisted_ro)
+
+    var found_gap = False
+    for x in range(c.width):
+        var runs = 0
+        var in_fill = False
+        var saw_bg_between = False
+        var pending_bg = False
+        for y in range(c.height):
+            var p = c.get_pixel(x, y)
+            var is_fill = (
+                p.r == t.mark_color.r
+                and p.g == t.mark_color.g
+                and p.b == t.mark_color.b
+            )
+            if is_fill and not in_fill:
+                runs += 1
+                if pending_bg and runs > 1:
+                    saw_bg_between = True
+                in_fill = True
+            elif not is_fill:
+                if in_fill:
+                    pending_bg = True
+                in_fill = False
+        if runs >= 2 and saw_bg_between:
+            found_gap = True
+            break
+    assert_true(
+        found_gap,
+        (
+            "some column crosses two separate ridges with background"
+            " between them, so the overlapping rows are distinguishable"
+        ),
+    )
+
+
 def test_render_ridgeline_svg_matches_confirmed_path_points() raises:
     var cats: List[String] = ["A", "B", "C"]
     var vals: List[List[Float64]] = [

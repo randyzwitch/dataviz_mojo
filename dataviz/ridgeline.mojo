@@ -125,6 +125,18 @@ def _render_ridgeline[
         path.line_to(xs[_KDE_SAMPLES - 1], baseline_y)
         path.close()
         target.fill_path_aa(path, theme.mark_color, fill_rule=FillRule.NONZERO)
+        # Outline the curve in the background colour. Rows deliberately
+        # overlap, and every row is the same mark_color, so without an
+        # outline two overlapping ridges merge into one shape and the
+        # boundary between them is invisible -- the same failure the
+        # sunburst had between its rings. Stroking only the density curve,
+        # not the closing baseline segment, keeps the rows edge-to-edge
+        # at the bottom where a line would read as a gap.
+        var outline = Path()
+        outline.move_to(xs[0], baseline_y - densities[0] * scale)
+        for s in range(1, _KDE_SAMPLES):
+            outline.line_to(xs[s], baseline_y - densities[s] * scale)
+        target.stroke_path_aa(outline, theme.background, width=frame.sc.scale)
 
     return frame.result()
 
