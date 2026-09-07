@@ -24,12 +24,14 @@ from dataviz import (
     bump,
     effect_scatter,
     ridgeline,
+    stacked_area,
     streamgraph,
     violin,
 )
 from dataviz.color_scale import default_categorical_palette
 from dataviz.kde import _kde_curve
 from dataviz.plot import Plot, render, render_svg
+from dataviz.stack_baseline import StackBaseline
 from dataviz.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
@@ -882,6 +884,151 @@ def test_streamgraph_smoothing_zero_reproduces_straight_bands() raises:
         ' L140.000,135.000 Z" fill="#ff7f0e"/>'
         in s,
         "B's band, straight",
+    )
+
+
+def test_render_stacked_area_matches_hand_derived_bands() raises:
+    # The same data and canvas as
+    # test_render_streamgraph_matches_hand_derived_bands, with
+    # StackBaseline.ZERO: 2 categories, 2 series, every value 10. What
+    # changes is the domain. Zero baseline means the y-extent comes from
+    # the per-category totals (both 20) through _zero_baseline_y_extent,
+    # which pads only the non-zero end -> [0, 21], so zero is an exact
+    # axis endpoint rather than the padded [-11, 11] of the wiggle case.
+    #
+    # Plot area y:[20,250], 230px over 21 units. A's stack runs 0 -> 10,
+    # so its band is y:[140.5,250]; B's runs 10 -> 20, y:[31,140.5].
+    # Sampled at each band's midpoint. Compare with the wiggle case's
+    # y:[135,240] and y:[30,135] -- the option genuinely moves the bands.
+    var cats: List[String] = ["X", "Y"]
+    var names: List[String] = ["A", "B"]
+    var vals: List[List[Float64]] = [[10.0, 10.0], [10.0, 10.0]]
+    var t = Theme(show_gridlines=False, show_legend=False)
+    var plot = (
+        Plot()
+        .mark_streamgraph(baseline=StackBaseline.ZERO)
+        .encode_grouped_bar(categories=cats, series_names=names, values=vals)
+        .theme(t)
+        .size(400, 300)
+    )
+    var c = render(plot)
+
+    var palette = default_categorical_palette()
+    _assert_color(
+        c, 220, 195, palette[0], "A's band, midpoint -- y:[140.5,250]"
+    )
+    _assert_color(c, 220, 86, palette[1], "B's band, midpoint -- y:[31,140.5]")
+    _assert_color(
+        c, 10, 10, BG, "well outside the whole plot area -- background"
+    )
+
+    # The two rows above are inside both layouts' bands, so on their own
+    # they would pass under WIGGLE too. These two are the ones that
+    # actually pin the baseline, measured against a WIGGLE render of the
+    # same data:
+    #   y=137  ZERO -> B (its band reaches down to 140.5)
+    #          WIGGLE -> A (its band starts at 135)
+    #   y=245  ZERO -> A (its band runs to the axis at 250)
+    #          WIGGLE -> background (the stack stops at 240)
+    _assert_color(
+        c, 220, 137, palette[1], "still B at y=137; under WIGGLE this is A"
+    )
+    _assert_color(
+        c,
+        220,
+        245,
+        palette[0],
+        "A reaches the axis at y=245; under WIGGLE this is background",
+    )
+
+
+def test_render_stacked_area_bottom_is_flat_and_top_tracks_the_total() raises:
+    # The property that makes a stacked area readable and a streamgraph
+    # not: the bottom series sits on a straight axis, so the top edge is
+    # the running total measured from it.
+    #
+    # 3 categories with totals 10, 20 and 40 (max_total 40, +5% pad ->
+    # domain [0,42] over y:[20,250]). Category centers are x = 113, 220
+    # and 326.
+    var cats: List[String] = ["P", "Q", "R"]
+    var names: List[String] = ["A", "B"]
+    var vals: List[List[Float64]] = [[4.0, 8.0, 16.0], [6.0, 12.0, 24.0]]
+    var plot = (
+        Plot()
+        .mark_streamgraph(baseline=StackBaseline.ZERO)
+        .encode_grouped_bar(categories=cats, series_names=names, values=vals)
+        .theme(Theme(show_gridlines=False, show_legend=False))
+        .size(400, 300)
+    )
+    var c = render(plot)
+    var palette = default_categorical_palette()
+
+    # Flat bottom: the lowest row of the bottom series is the same all
+    # the way across, regardless of how tall that category's stack is.
+    for x in [120, 150, 220, 280, 326]:
+        assert_equal(
+            _column_extent(c, x, palette[0]).y1,
+            249,
+            "bottom series rests on the axis at x=" + String(x),
+        )
+
+    # Top edge: the stack's height above that flat bottom is proportional
+    # to the category's total. Measured from the topmost row of the top
+    # series, which is one row inside the antialiased edge, so the
+    # heights come out as 107 and 216 rather than exactly 108 and 219 --
+    # the ratio is what carries the claim, not the absolute rows.
+    var height_q = 249 - _column_extent(c, 220, palette[1]).y0
+    var height_r = 249 - _column_extent(c, 326, palette[1]).y0
+    assert_equal(height_q, 107, "stack height at Q, total 20")
+    assert_equal(height_r, 216, "stack height at R, total 40")
+    assert_true(
+        abs(Float64(height_r) / Float64(height_q) - 2.0) < 0.05,
+        "R's total is twice Q's, so its stack is twice as tall -- got "
+        + String(Float64(height_r) / Float64(height_q)),
+    )
+
+
+def test_stacked_area_defaults_to_straight_bands() raises:
+    # streamgraph() defaults to smoothing=0.6 because it is meant to look
+    # like flowing water. stacked_area() defaults to 0.0 because it is
+    # meant to be read, and curving between categories invents values
+    # that are not in the data. Same data as
+    # test_streamgraph_defaults_to_smoothed_bands, opposite expectation.
+    var cats: List[String] = ["X", "Y", "Z"]
+    var names: List[String] = ["A"]
+    var vals: List[List[Float64]] = [[10.0, 15.0, 8.0]]
+    var _hoisted_sa = stacked_area(cats, names, vals, width=400, height=300)
+    var svg = render_svg(_hoisted_sa)
+    assert_true(
+        " C" not in svg.to_string(),
+        "default stacked_area() output has no cubic curve command",
+    )
+
+
+def test_streamgraph_baseline_defaults_to_wiggle() raises:
+    # The compatibility claim: mark_streamgraph() with no baseline must
+    # render exactly what it did before #337 existed. Byte-identical to
+    # the explicit WIGGLE spelling.
+    var cats: List[String] = ["X", "Y"]
+    var names: List[String] = ["A", "B"]
+    var vals: List[List[Float64]] = [[10.0, 12.0], [10.0, 8.0]]
+    var t = Theme(show_gridlines=False, show_legend=False)
+    var implicit = (
+        Plot()
+        .mark_streamgraph()
+        .encode_grouped_bar(categories=cats, series_names=names, values=vals)
+        .theme(t)
+        .size(400, 300)
+    )
+    var explicit = (
+        Plot()
+        .mark_streamgraph(baseline=StackBaseline.WIGGLE)
+        .encode_grouped_bar(categories=cats, series_names=names, values=vals)
+        .theme(t)
+        .size(400, 300)
+    )
+    _assert_same_canvas(
+        render(implicit), render(explicit), "default baseline is WIGGLE"
     )
 
 

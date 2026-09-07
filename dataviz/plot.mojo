@@ -186,6 +186,7 @@ from dataviz.annotations import (
 )
 from dataviz.legend_position import LegendPosition
 from dataviz.line_style import LineStyle
+from dataviz.stack_baseline import StackBaseline
 from dataviz.mark import Mark
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.output_format import OutputFormat
@@ -379,6 +380,11 @@ struct _MarkStyle(Copyable, Movable):
     var polar_grid_rings: Int
     var polar_grid_spokes: Int
     var sankey_node_width: Float64
+    var streamgraph_baseline: StackBaseline
+    """Where `Mark.STREAMGRAPH` stacks from, via
+    `mark_streamgraph(baseline=...)`. `WIGGLE` unless asked otherwise;
+    `ZERO` is the ordinary stacked area chart -- see `StackBaseline`.
+    """
 
     def __init__(out self):
         self.point_tooltips = False
@@ -400,6 +406,7 @@ struct _MarkStyle(Copyable, Movable):
         self.polar_grid_rings = 4
         self.polar_grid_spokes = 12
         self.sankey_node_width = 12.0
+        self.streamgraph_baseline = StackBaseline.WIGGLE
 
 
 struct _DomainOverride(Copyable, Movable):
@@ -1156,12 +1163,21 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.BUMP
         return self^
 
-    def mark_streamgraph(var self) -> Self:
-        """A streamgraph: `mark_stacked_bar()`'s running-total stack floated
-        centered around zero and drawn as flowing bands. Encoded via
+    def mark_streamgraph(
+        var self, baseline: StackBaseline = StackBaseline.WIGGLE
+    ) -> Self:
+        """A streamgraph: `mark_stacked_bar()`'s running-total stack drawn
+        as flowing bands rather than rects. Encoded via
         `encode_grouped_bar()`.
+
+        `baseline` chooses where each category's stack starts.
+        `WIGGLE` (the default) centers it on zero, the streamgraph
+        proper. `ZERO` starts it at a flat zero, which is the ordinary
+        stacked area chart -- `stacked_area()` is the name to reach for
+        there. See `StackBaseline`.
         """
         self._mark = Mark.STREAMGRAPH
+        self._mark_style.streamgraph_baseline = baseline
         return self^
 
     def mark_beeswarm(

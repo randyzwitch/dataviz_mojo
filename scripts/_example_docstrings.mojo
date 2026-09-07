@@ -77,6 +77,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("funnel", "funnel", "funnel"),
         ExamplePage("bump", "bump", "bump"),
         ExamplePage("streamgraph", "streamgraph", "streamgraph"),
+        ExamplePage("stacked_area", "streamgraph", "stacked_area"),
         ExamplePage("beeswarm", "beeswarm", "beeswarm"),
         ExamplePage("violin", "violin", "violin"),
         ExamplePage("ridgeline", "ridgeline", "ridgeline"),
