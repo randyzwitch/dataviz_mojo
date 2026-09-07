@@ -187,6 +187,7 @@ from dataviz.annotations import (
 from dataviz.legend_position import LegendPosition
 from dataviz.line_style import LineStyle
 from dataviz.stack_baseline import StackBaseline
+from dataviz.step_style import StepStyle
 from dataviz.mark import Mark
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.output_format import OutputFormat
@@ -370,6 +371,14 @@ struct _MarkStyle(Copyable, Movable):
     furniture rather than data.
     """
 
+    var step: StepStyle
+    """Where `Mark.LINE`'s riser sits between two samples, from
+    `mark_line(step=...)` (#336). `NONE` (straight interpolation)
+    unless asked otherwise. The one field here that changes what the
+    chart claims rather than how it looks, which is exactly why it is
+    not on `Theme`: a theme may restyle a line, not reinterpret it.
+    """
+
     var corrplot_bubble_fraction: Float64
     var gauge_band_inner_fraction: Float64
     var gauge_needle_fraction: Float64
@@ -396,6 +405,7 @@ struct _MarkStyle(Copyable, Movable):
         self.radar_grid_rings = 4
         self.violin_width_fraction = 0.4
         self.line_style = LineStyle.SOLID
+        self.step = StepStyle.NONE
         self.corrplot_bubble_fraction = 0.42
         self.gauge_band_inner_fraction = 0.7
         self.gauge_needle_fraction = 0.9
@@ -640,21 +650,43 @@ struct Plot(Copyable, Movable):
         self._mark_style.point_tooltips = tooltips
         return self^
 
-    def mark_line(var self, style: LineStyle = LineStyle.SOLID) -> Self:
+    def mark_line(
+        var self,
+        style: LineStyle = LineStyle.SOLID,
+        step: StepStyle = StepStyle.NONE,
+    ) -> Self:
         """A line plot: (x, y) pairs connected in data order, not sorted by x.
         Sort the data first if that isn't the order to draw.
+
+        `step` is stairs interpolation (#336): the value holds flat and
+        then jumps, instead of sliding from one sample to the next.
+        Reach for it whenever the straight segment a line draws would
+        assert intermediate values nobody measured -- a price between
+        ticks, a counter between increments, a state machine between
+        transitions, a survival curve between events. It is a claim
+        about the data, not decoration, which is why it sits here rather
+        than on `Theme` next to `line_smoothing` (and why asking for
+        both raises: a smoothed staircase rounds off the corners that
+        carry its meaning).
 
         Args:
             style: How the stroke is broken up -- `SOLID` (the default),
                 `DASHED`, `DOTTED` or `DASH_DOT`. Useful for telling
-                series apart without relying on colour, which matters in
+                series apart without relying on color, which matters in
                 print and for readers who cannot separate the palette.
+            step: Where the riser between two samples sits -- `NONE`
+                (the default: a straight segment, no stepping), `PRE`
+                (at the earlier x), `MID` (halfway) or `POST` (at the
+                later x). Same three placements as matplotlib's
+                `drawstyle='steps-pre'/'steps-mid'/'steps-post'`; see
+                `StepStyle` for which one claims what.
 
         Returns:
             Self, for further chaining.
         """
         self._mark = Mark.LINE
         self._mark_style.line_style = style
+        self._mark_style.step = step
         return self^
 
     def mark_bar(var self, horizontal: Bool = False) -> Self:

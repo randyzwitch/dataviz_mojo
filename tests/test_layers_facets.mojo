@@ -34,6 +34,7 @@ from _test_helpers import (
 )
 from canvas.color import Color
 from canvas.path import PathOp
+from dataviz import StepStyle
 from dataviz.color_scale import default_categorical_palette
 from dataviz.colors import CORNFLOWERBLUE, MAGENTA, RED, TOMATO
 from dataviz.plot import (
@@ -762,6 +763,45 @@ def test_render_layers_svg_bar_combo_supports_an_area_layer() raises:
         ' L140.000,249.000 Z" fill="#1e64b4"/>'
         in s,
         "the area, closed down to the shared zero baseline",
+    )
+
+
+def test_render_layers_svg_bar_combo_honors_line_step() raises:
+    # _render_bar_combo_layers builds its Mark.LINE geometry inline
+    # rather than calling _draw_line_layer, so mark_line(step=...) has
+    # to be threaded through here separately (#336). Ignoring it would
+    # not be a styling miss: the chart would assert a gradual slide
+    # between two categories that the caller explicitly said held flat.
+    #
+    # Three categories on the 400x300 frame the other bar-combo tests
+    # use: OrdinalScale centers at 113.333, 220.000, 326.667, and
+    # combined_y=[10,20,14,15,5,12] zero-baselines to [0,21] over
+    # [250,20], so line y=[15,5,12] lands at 85.714, 195.238, 118.571.
+    # POST holds each y across to the next category's center.
+    var cats: List[String] = ["A", "B", "C"]
+    var bar_y: List[Float64] = [10.0, 20.0, 14.0]
+    var idx: List[Float64] = [0.0, 1.0, 2.0]
+    var line_y: List[Float64] = [15.0, 5.0, 12.0]
+    var bars = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=bar_y)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var stepped = (
+        Plot()
+        .mark_line(step=StepStyle.POST)
+        .encode(x=idx, y=line_y)
+        .size(400, 300)
+    )
+    var plots: List[Plot] = [bars^, stepped^]
+    var s = render_layers_svg(plots).to_string()
+    assert_true(
+        '<path d="M113.333,85.714 L220.000,85.714 L220.000,195.238'
+        ' L326.667,195.238 L326.667,118.571" fill="none"'
+        in s,
+        "the bar-combo line layer's POST staircase",
     )
 
 

@@ -50,9 +50,10 @@ from dataviz.plot import (
     save,
 )
 from dataviz.scale import LinearScale, MinMax, _min_max
+from dataviz.step_style import StepStyle
 from dataviz.text import _Scaled, _TextRequest, _text_advance
 from dataviz.theme import Theme
-from dataviz.validate import _check_line_smoothing
+from dataviz.validate import _check_line_smoothing, _check_step_smoothing
 
 
 def _build_line_path(
@@ -86,6 +87,100 @@ def _build_line_path(
     var path = Path()
     path.curve_through(points, smoothing)
     return path^
+
+
+struct _Stepped(Movable):
+    """`_step_points`' result: the expanded `px`/`py` pair. Its own
+    struct for the same reason `_Decimated` below has one -- a function
+    returns one value and the two parallel lists have to travel
+    together.
+    """
+
+    var px: List[Float64]
+    var py: List[Float64]
+
+    def __init__(out self, var px: List[Float64], var py: List[Float64]):
+        self.px = px^
+        self.py = py^
+
+
+def _step_points(
+    px: List[Float64], py: List[Float64], step: StepStyle
+) -> _Stepped:
+    """`px`/`py` rewritten as the staircase `step` asks for (#336): the
+    same samples, with a plateau and a vertical riser between each
+    consecutive pair in place of one straight segment.
+
+    The three styles differ only in where the riser goes, which is
+    exactly what `StepStyle`'s constants name:
+
+    - `PRE`: riser at the earlier x, so `(x[i], x[i + 1]]` draws at
+      `y[i + 1]` -- emits `(x[i], y[i + 1])` then `(x[i + 1], y[i + 1])`.
+    - `POST`: riser at the later x, so `[x[i], x[i + 1])` draws at
+      `y[i]` -- emits `(x[i + 1], y[i])` then `(x[i + 1], y[i + 1])`.
+    - `MID`: riser at the midpoint -- emits `(m, y[i])` then
+      `(m, y[i + 1])`, and one closing `(x[n - 1], y[n - 1])` after the
+      loop. The vertex at `x[i]` itself is *not* emitted: it would sit
+      exactly on the line between the two midpoints either side of it,
+      so it is a segment the rasterizer pays for and the reader cannot
+      see. `PRE`/`POST` have no such redundancy.
+
+    Works in pixel space, on the already-projected points, so a log
+    scale steps where the reader sees the samples rather than where the
+    untransformed data sits. `MID`'s midpoint is likewise the pixel
+    midpoint, which is what "halfway between these two readings" means
+    on the page.
+
+    Anything other than `PRE`/`MID`/`POST` -- `NONE`, or a `StepStyle`
+    built from an out-of-range `Int` -- returns the input unchanged,
+    matching `LineStyle.dashes()`' fallback to `SOLID`, so a caller can
+    hand this its style unconditionally. A series shorter than two
+    points has no pair to step between and is likewise returned as-is.
+
+    Args:
+        px: Projected x pixel coordinates.
+        py: Projected y pixel coordinates, same length as `px`.
+        step: Which riser placement to expand to.
+
+    Returns:
+        The expanded pair; a copy of the input for `NONE`.
+    """
+    var is_pre = step == StepStyle.PRE
+    var is_mid = step == StepStyle.MID
+    var is_post = step == StepStyle.POST
+    if len(px) < 2 or not (is_pre or is_mid or is_post):
+        return _Stepped(px.copy(), py.copy())
+
+    var n = len(px)
+    # PRE/POST land on exactly 2n - 1 points, MID on 2n; one capacity
+    # for both.
+    var out_x = List[Float64](capacity=2 * n)
+    var out_y = List[Float64](capacity=2 * n)
+    out_x.append(px[0])
+    out_y.append(py[0])
+    for i in range(n - 1):
+        if is_pre:
+            out_x.append(px[i])
+            out_y.append(py[i + 1])
+            out_x.append(px[i + 1])
+            out_y.append(py[i + 1])
+        elif is_post:
+            out_x.append(px[i + 1])
+            out_y.append(py[i])
+            out_x.append(px[i + 1])
+            out_y.append(py[i + 1])
+        else:
+            var mid = (px[i] + px[i + 1]) / 2.0
+            out_x.append(mid)
+            out_y.append(py[i])
+            out_x.append(mid)
+            out_y.append(py[i + 1])
+    if is_mid:
+        # The last plateau's second half, which the loop above leaves to
+        # "the next pair" that does not exist.
+        out_x.append(px[n - 1])
+        out_y.append(py[n - 1])
+    return _Stepped(out_x^, out_y^)
 
 
 struct _Decimated(Movable):
@@ -532,17 +627,21 @@ def _draw_line_layer[
 ](mut target: T, plot: Plot, x_scale: LinearScale, y_scale: LinearScale) raises:
     """Draw one `Mark.LINE` plot's stroked path into an already-laid-out
     continuous axis frame, with `Theme.line_smoothing` via
-    `_build_line_path`. Shared by the standalone and layered paths so
-    both honor smoothing and its range check identically.
+    `_build_line_path` and `mark_line(step=...)` via `_step_points`.
+    Shared by the standalone and layered paths so both honor smoothing,
+    stepping and their checks identically.
 
     `Plot.encode()`'s `y_err` whisker, when set, draws once per original
     data point before the line (whisker first, line on top), over the
     untouched `plot.x_data`/`y_data` rather than the decimated path, in
-    `theme.mark_color` (`Mark.LINE` has no per-point color).
+    `theme.mark_color` (`Mark.LINE` has no per-point color). Stepping
+    does not move a whisker: it belongs to a sample, not to the segment
+    between two of them.
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
     _check_line_smoothing(theme)
+    _check_step_smoothing(theme, plot._mark_style.step)
     if len(plot.y_err_data) > 0:
         var cap_half = round_to_int(sc.error_bar_cap_width)
         for i in range(len(plot.x_data)):
@@ -574,10 +673,23 @@ def _draw_line_layer[
     for i in range(len(plot.x_data)):
         px.append(x_scale.to_pixel(plot.x_data[i]))
         py.append(y_scale.to_pixel(plot.y_data[i]))
+    # Step first, decimate second (#336). This way what gets thinned is
+    # the geometry actually drawn, so _decimate_to_pixel_columns'
+    # guarantee -- at most two points per pixel column, keeping that
+    # column's true min and max y -- applies to the staircase itself.
+    #
+    # The other order was measured and is worse. Decimating first caps
+    # the samples at two per column and the expansion then turns each
+    # one back into a plateau and a riser, putting the segments straight
+    # back: 2241 points against 1121 for the same 5000-sample series
+    # over ~560 columns, undoing most of what decimation is for. It also
+    # places MID's risers at midpoints between the samples that happened
+    # to survive rather than between real ones.
+    var stepped = _step_points(px, py, plot._mark_style.step)
     # Drop sub-pixel detail before the rasterizer has to pay for it --
     # a no-op for any series small enough that its points are
     # individually resolvable (see _decimate_to_pixel_columns).
-    var thinned = _decimate_to_pixel_columns(px, py)
+    var thinned = _decimate_to_pixel_columns(stepped.px, stepped.py)
     var path = _build_line_path(thinned.px, thinned.py, theme.line_smoothing)
     target.stroke_path_aa(
         path,
@@ -704,6 +816,7 @@ def scatter[
 def line(
     x: List[Float64],
     y: List[Float64],
+    step: StepStyle = StepStyle.NONE,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -719,6 +832,11 @@ def line(
     Args:
         x: The continuous x column, one entry per point.
         y: The continuous y column, one entry per point.
+        step: Step (stairs) interpolation -- `NONE` (the default,
+            straight segments), or `PRE`/`MID`/`POST` for a value that
+            holds until it changes rather than moving gradually between
+            samples. See `StepStyle` for which riser placement claims
+            what.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -785,8 +903,39 @@ def line(
             )
             save(c, "docs/src/examples/out_slope.svg")
         ```
+
+    Example (Step Chart):
+        ```mojo
+        from dataviz import StepStyle, line
+        from dataviz.plot import save
+        from dataviz.colors import CRIMSON
+        from dataviz.theme import Theme
+
+        def main() raises:
+            # A central bank's policy rate holds flat between meetings and
+            # moves only at one, so the straight interpolation a plain line
+            # draws would show months of gradual drift that never happened.
+            # StepStyle.POST puts the riser at the later month: the rate set
+            # at a meeting is the rate in force until the next one.
+            var month: List[Float64] = [
+                0.0, 3.0, 6.0, 9.0, 12.0, 15.0, 18.0, 21.0, 24.0, 27.0
+            ]
+            var rate: List[Float64] = [
+                1.75, 2.5, 3.25, 4.0, 4.5, 5.0, 5.25, 5.25, 4.75, 4.75
+            ]
+
+            var c = line(
+                month,
+                rate,
+                step=StepStyle.POST,
+                theme=Theme(mark_color=CRIMSON, line_width=3.0),
+                x_title="Months since first hike",
+                y_title="Policy rate (%)",
+            )
+            save(c, "docs/src/examples/out_step.svg")
+        ```
     """
-    var plot = Plot().mark_line().encode(x=x, y=y)
+    var plot = Plot().mark_line(step=step).encode(x=x, y=y)
     return _finished(plot^, theme, width, height, title, x_title, y_title)
 
 
@@ -795,6 +944,7 @@ def line[
 ](
     x: List[Scalar[dtype]],
     y: List[Scalar[dtype]],
+    step: StepStyle = StepStyle.NONE,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -808,6 +958,7 @@ def line[
     return line(
         _materialize_scalar_list(x),
         _materialize_scalar_list(y),
+        step=step,
         theme=theme,
         width=width,
         height=height,
