@@ -658,7 +658,7 @@ def tricontourf(
 
     Filled is usually the more readable of the two for scattered data:
     isolines alone leave the reader to work out which side of a line is
-    higher, and the fill is what carries the colour scale.
+    higher, and the fill is what carries the color scale.
 
     Drawing both at once is what matplotlib does, and this package
     cannot yet express it: `render_layers()` takes only
