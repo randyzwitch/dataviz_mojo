@@ -229,6 +229,13 @@ def _label_decimals(value: Float64, max_decimals: Int = 2) -> Int:
     return max_decimals
 
 
+comptime _MINOR_SUBDIVISIONS = 5
+"""How many parts a minor level cuts each major step into on a linear
+axis (#334). Five matches matplotlib's `AutoMinorLocator` default and
+suits the 1-2-5 nice steps `_nice_step` produces: a step of 1 gets
+minors every 0.2, a step of 5 every 1, both of which read as round
+numbers. Four would leave a step of 5 with minors at 1.25."""
+
 comptime _TICK_FORMAT_AUTO = 0
 comptime _TICK_FORMAT_PERCENT = 1
 comptime _TICK_FORMAT_THOUSANDS = 2
@@ -514,8 +521,27 @@ def _log_ticks(domain_min: Float64, domain_max: Float64) -> Ticks:
             _format_fixed(lo, max(0, -start_exp)),
             _format_fixed(hi, max(0, -end_exp)),
         ]
+        return Ticks(values^, 0, labels^)
 
-    return Ticks(values^, 0, labels^)
+    # Minor ticks are the 2..9 multiples of each decade (#334), less
+    # whichever of those are already majors. This is the conventional
+    # log minor set and it is most of what makes a log axis readable: a
+    # bare decade is a uniform gap, and a reader cannot place a point
+    # inside one without the crowding-toward-the-top that these give.
+    var minors = List[Float64]()
+    for e in range(start_exp, end_exp + 1):
+        var decade = pow(10.0, Float64(e))
+        for m in range(2, 10):
+            # Skip the multiples this decade already labels as majors.
+            # When `wide`, only 1 is major, so every one of 2..9 is a
+            # minor; otherwise 2 and 5 are majors.
+            if not wide and (m == 2 or m == 5):
+                continue
+            var v = Float64(m) * decade
+            if v >= lo * (1.0 - 1e-9) and v <= hi * (1.0 + 1e-9):
+                minors.append(v)
+
+    return Ticks(values^, 0, labels^, minors^)
 
 
 struct Ticks(Movable):
@@ -536,12 +562,27 @@ struct Ticks(Movable):
     `_log_ticks()`, where each tick needs its own decimal count (0.01
     needs 2 places, 100 needs 0).
     """
+    var minor_values: List[Float64]
+    """Unlabeled subdivisions between the major `values` (#334), empty
+    when the scale has no opinion about them -- which is what a
+    categorical or zero-span axis says, so nothing moves for it.
+
+    Never contains a value that is also in `values`: a minor tick drawn
+    on top of a major one is invisible at best and, in a lighter color,
+    a smudge on the major one at worst.
+
+    These carry no labels by construction, so they never enter the
+    dynamic left margin -- that margin is measured from tick label
+    widths, and a reader of `frame.mojo` will want to know minor ticks
+    cannot widen it.
+    """
 
     def __init__(
         out self,
         var values: List[Float64],
         decimals: Int,
         var override_labels: List[String] = List[String](),
+        var minor_values: List[Float64] = List[Float64](),
     ):
         """Construct a `Ticks` from already-computed positions and a decimal
         count; normally built by `LinearScale.ticks()`.
@@ -553,10 +594,14 @@ struct Ticks(Movable):
             override_labels: Pre-formatted labels, one per `values`
                 entry; left empty (the default) to format every tick
                 via `decimals` instead.
+            minor_values: Unlabeled subdivisions between the major
+                values; left empty (the default) for an axis with no
+                minor level.
         """
         self.values = values^
         self.decimals = decimals
         self.override_labels = override_labels^
+        self.minor_values = minor_values^
 
     def labels(self, format: TickFormat = TickFormat.AUTO) -> List[String]:
         """Each tick value formatted via `_format_tick()` at this `Ticks`'
@@ -701,4 +746,22 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         for i in range(count):
             result.append(start + Float64(i) * nice.step)
 
-        return Ticks(result^, decimals)
+        # Minor ticks subdivide each major step into `_MINOR_SUBDIVISIONS`
+        # (#334). Indexing by whole multiples of the minor step and
+        # skipping every fifth keeps majors out of the minor list by
+        # integer arithmetic rather than by comparing floats with a
+        # tolerance -- majors sit exactly on the multiples divisible by
+        # five, since the major step is five minor steps by construction.
+        #
+        # The range runs over the whole domain, not just between the
+        # first and last major, so a domain whose ends fall short of a
+        # major tick still gets subdivisions out to its edges.
+        var minor_step = nice.step / Float64(_MINOR_SUBDIVISIONS)
+        var m_start = Int(ceil(self.domain_min / minor_step))
+        var m_stop = Int(floor(self.domain_max / minor_step))
+        var minors = List[Float64]()
+        for i in range(m_start, m_stop + 1):
+            if i % _MINOR_SUBDIVISIONS != 0:
+                minors.append(Float64(i) * minor_step)
+
+        return Ticks(result^, decimals, List[String](), minors^)

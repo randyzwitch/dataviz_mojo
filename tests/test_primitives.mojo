@@ -570,6 +570,108 @@ def test_band_end_is_bitwise_equal_to_the_next_band_start_unpadded() raises:
             )
 
 
+def test_minor_ticks_subdivide_each_linear_step_by_five() raises:
+    # #334. Domain [0,10] gives majors every 2, so minors land every 0.4
+    # -- four between each pair of majors, none on one.
+    var s = LinearScale(0.0, 10.0, 0.0, 1.0)
+    var t = s.ticks()
+
+    assert_equal(len(t.values), 6, "majors 0 2 4 6 8 10")
+    assert_equal(
+        len(t.minor_values), 20, "four minors in each of five major gaps"
+    )
+    # 0.4 and 0.8 sit inside the first gap; 1.2 and 1.6 inside the second.
+    assert_true(
+        abs(t.minor_values[0] - 0.4) < 1e-9,
+        "first minor at 0.4 -- got " + String(t.minor_values[0]),
+    )
+    assert_true(
+        abs(t.minor_values[1] - 0.8) < 1e-9,
+        "second minor at 0.8 -- got " + String(t.minor_values[1]),
+    )
+
+
+def test_minor_ticks_never_land_on_a_major() raises:
+    # A minor tick drawn on a major one is invisible at best, and in a
+    # lighter color a smudge on the major at worst. The implementation
+    # keeps them apart by integer index arithmetic rather than a float
+    # tolerance, so this should hold exactly, over several domains whose
+    # steps are not representable in binary.
+    for pair in [(0.0, 10.0), (0.0, 1.0), (-3.0, 7.0), (0.0, 0.35)]:
+        var s = LinearScale(pair[0], pair[1], 0.0, 1.0)
+        var t = s.ticks()
+        for m in t.minor_values:
+            for v in t.values:
+                assert_true(
+                    abs(m - v) > 1e-9,
+                    (
+                        "minor "
+                        + String(m)
+                        + " coincides with major "
+                        + String(v)
+                        + " on ["
+                        + String(pair[0])
+                        + ", "
+                        + String(pair[1])
+                        + "]"
+                    ),
+                )
+
+
+def test_log_minor_ticks_are_the_unlabeled_multiples_of_each_decade() raises:
+    # A log axis is the one that needs minors most: a bare decade is a
+    # uniform gap, and the 2..9 crowding toward the top is what lets a
+    # reader place a value inside one.
+    #
+    # Which of 2..9 are minors depends on what the majors already took.
+    # Spanning more than two decades, only 1 is major (_log_ticks'
+    # `wide` branch), so all of 2..9 are minors. Narrower, 1/2/5 are
+    # majors, leaving 3 4 6 7 8 9.
+    var wide = LinearScale(0.0, 4.0, 0.0, 1.0)
+    wide.is_log = True
+    var wt = wide.ticks()
+    assert_equal(len(wt.values), 5, "majors 1 10 100 1000 10000")
+    var first_decade: List[Float64] = [
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0,
+        9.0,
+    ]
+    for i in range(8):
+        assert_true(
+            abs(wt.minor_values[i] - first_decade[i]) < 1e-9,
+            (
+                "wide log minor "
+                + String(i)
+                + " should be "
+                + String(first_decade[i])
+                + " -- got "
+                + String(wt.minor_values[i])
+            ),
+        )
+
+    var narrow = LinearScale(0.0, 2.0, 0.0, 1.0)
+    narrow.is_log = True
+    var nt = narrow.ticks()
+    var expected: List[Float64] = [3.0, 4.0, 6.0, 7.0, 8.0, 9.0]
+    for i in range(6):
+        assert_true(
+            abs(nt.minor_values[i] - expected[i]) < 1e-9,
+            (
+                "narrow log minor "
+                + String(i)
+                + " should be "
+                + String(expected[i])
+                + " -- got "
+                + String(nt.minor_values[i])
+            ),
+        )
+
+
 def test_empty_domain_does_not_divide_by_zero() raises:
     var domain = List[String]()
     var s = OrdinalScale(domain^, 0.0, 300.0)

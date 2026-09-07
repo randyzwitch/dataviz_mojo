@@ -61,6 +61,7 @@ struct _Scaled(Movable):
     var margin_top: Int
     var margin_bottom: Int
     var tick_length: Int
+    var minor_tick_length: Int
     var label_gap: Int
     var legend_width: Int
     var legend_swatch_size: Int
@@ -86,6 +87,7 @@ struct _Scaled(Movable):
         self.margin_top = Int(Float64(theme.margin_top) * s)
         self.margin_bottom = Int(Float64(theme.margin_bottom) * s)
         self.tick_length = Int(Float64(theme.tick_length) * s)
+        self.minor_tick_length = Int(Float64(theme.minor_tick_length) * s)
         self.label_gap = Int(Float64(theme.label_gap) * s)
         self.legend_width = Int(Float64(theme.legend_width) * s)
         self.legend_swatch_size = Int(Float64(theme.legend_swatch_size) * s)
