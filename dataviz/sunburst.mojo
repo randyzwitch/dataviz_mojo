@@ -5,7 +5,10 @@ from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
+from std.math import cos, sin
+
 from dataviz.color_scale import default_categorical_palette
+from dataviz.continuous import _lighten
 from dataviz.hierarchy import _HierarchyIndex, _build_hierarchy_index
 from dataviz.mark import Mark
 from dataviz.plot import (
@@ -20,6 +23,20 @@ from dataviz.plot import (
     _require_non_negative,
 )
 from dataviz.theme import Theme
+
+
+comptime _DEPTH_FADE = 55
+"""How much alpha each ring loses against white relative to the one
+inside it. 55 of 255 is about a fifth, which separates adjacent rings
+clearly at a glance without the outer ring reading as a different
+series.
+"""
+
+comptime _MIN_DEPTH_ALPHA = 90
+"""The floor `_DEPTH_FADE` stops at. Past about four levels the fade
+would wash the outermost ring out to near-white and lose the branch
+colour entirely; holding at 90 keeps a deep tree readable.
+"""
 
 
 def _fill_ring_sector[
@@ -57,18 +74,56 @@ def _draw_sunburst_node[
     cy: Float64,
     ring_width: Float64,
     color: Color,
+    separator: Color,
+    separator_width: Float64,
 ) raises:
     """Draw `node`'s ring sector (`idx.depth[node]` picks the ring; depth 1
     is innermost, and the depth-0 root is never passed in), then recurse
     into its children, dividing `[start_angle, end_angle)` by each child's
-    share of `node`'s subtree total. `color` stays fixed through the whole
-    recursion: one top-level branch color.
+    share of `node`'s subtree total.
+
+    `color` is the branch colour and stays fixed through the recursion --
+    one hue per top-level branch, so a leaf still says which branch it
+    belongs to. Depth is carried by *lightness* instead: each ring is
+    blended further toward white than the one inside it, which is what
+    makes the rings legible as rings.
+
+    Without that, a sunburst of one hue per branch draws as a solid disc
+    of two or three colours -- adjacent rings of the same colour have
+    nothing between them but an antialiasing seam, and the chart reads as
+    a pie. The separator strokes do the same job between siblings, which
+    lightness alone cannot: two children of one parent share a colour and
+    a ring, so only a line divides them.
     """
     var depth = idx.depth[node]
     var inner = ring_width * Float64(depth - 1)
     var outer = ring_width * Float64(depth)
+
+    # Each ring loses `_DEPTH_FADE` of alpha against white, floored so a
+    # deep tree's outermost rings stay visible rather than fading out.
+    var fade = 255 - _DEPTH_FADE * (depth - 1)
+    if fade < _MIN_DEPTH_ALPHA:
+        fade = _MIN_DEPTH_ALPHA
     _fill_ring_sector(
-        target, cx, cy, inner, outer, start_angle, end_angle, color
+        target,
+        cx,
+        cy,
+        inner,
+        outer,
+        start_angle,
+        end_angle,
+        _lighten(color, UInt8(fade)),
+    )
+
+    # A radial line at the sector's leading edge, in the background
+    # colour, so siblings sharing a hue are still countable.
+    target.draw_line_aa(
+        cx + inner * cos(start_angle),
+        cy + inner * sin(start_angle),
+        cx + outer * cos(start_angle),
+        cy + outer * sin(start_angle),
+        separator,
+        width=separator_width,
     )
 
     var total = idx.subtree_value[node]
@@ -78,7 +133,19 @@ def _draw_sunburst_node[
     var a = start_angle
     for c in idx.children[node]:
         var a_end = a + span * (idx.subtree_value[c] / total)
-        _draw_sunburst_node(target, c, a, a_end, idx, cx, cy, ring_width, color)
+        _draw_sunburst_node(
+            target,
+            c,
+            a,
+            a_end,
+            idx,
+            cx,
+            cy,
+            ring_width,
+            color,
+            separator,
+            separator_width,
+        )
         a = a_end
 
 
@@ -176,6 +243,8 @@ def _render_sunburst[
             cy,
             ring_width,
             palette[i % len(palette)],
+            theme.background,
+            sc.scale,
         )
         start = end
 

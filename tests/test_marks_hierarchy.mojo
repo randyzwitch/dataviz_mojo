@@ -11,6 +11,7 @@ from canvas.color import Color
 from canvas.vector.svg import SvgCanvas
 from dataviz import arc_diagram, chord, graph, sankey, sunburst, tree, treemap
 from dataviz.color_scale import default_categorical_palette
+from dataviz.continuous import _lighten
 from dataviz.plot import Plot, render, render_svg
 from dataviz.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
@@ -40,12 +41,27 @@ def test_render_sunburst_matches_hand_derived_ring_sectors() raises:
     )
     var c = render(_hoisted1)
 
+    # Ring 1 is the branch colour itself; ring 2 is that colour lightened
+    # one step (_DEPTH_FADE, so alpha 200 against white). Without that
+    # step a sunburst of one hue per branch draws as a solid disc and
+    # reads as a pie -- the rings are only visible because they differ.
     var palette = default_categorical_palette()
-    _assert_color(c, 277, 78, palette[0], "A1, ring 2, bisector -45 degrees")
-    _assert_color(c, 277, 192, palette[0], "A2, ring 2, bisector 45 degrees")
-    _assert_color(c, 140, 135, palette[1], "B1, ring 2, bisector 180 degrees")
+    var ring2_a = _lighten(palette[0], 200)
+    var ring2_b = _lighten(palette[1], 200)
+    _assert_color(c, 277, 78, ring2_a, "A1, ring 2, bisector -45 degrees")
+    _assert_color(c, 277, 192, ring2_a, "A2, ring 2, bisector 45 degrees")
+    _assert_color(c, 140, 135, ring2_b, "B1, ring 2, bisector 180 degrees")
     _assert_color(c, 250, 135, palette[0], "A, ring 1, bisector 0 degrees")
     _assert_color(c, 190, 135, palette[1], "B, ring 1, bisector 180 degrees")
+
+    # The property the colours above exist to guarantee: a ring must not
+    # match the ring inside it, or the hierarchy is invisible.
+    assert_true(
+        ring2_a.r != palette[0].r
+        or ring2_a.g != palette[0].g
+        or ring2_a.b != palette[0].b,
+        "ring 2 is distinguishable from ring 1",
+    )
 
 
 def test_render_sunburst_raises_on_multiple_roots() raises:
