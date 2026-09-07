@@ -52,6 +52,7 @@ from dataviz import (
     treemap,
     sunburst,
     heatmap,
+    tricontour,
     violin,
     scatter,
     line,
@@ -354,6 +355,55 @@ def _bench_heatmap(mut timings: List[_Timing], sizes: List[Int]) raises:
         _record(timings, "HEATMAP", "svg", n, perf_counter() - t0)
 
 
+def _scatter_field(
+    n: Int,
+) -> Tuple[List[Float64], List[Float64], List[Float64]]:
+    """`n` points spread over [-2, 2]^2 with a smooth z, deterministic so
+    a run is comparable with the last one.
+
+    The positions come from a low-discrepancy pair (golden-ratio
+    additive recurrence) rather than a grid, because a grid is the one
+    input a triangulator finds easiest and would hide exactly the
+    behavior this is here to measure.
+
+    Args:
+        n: How many points.
+
+    Returns:
+        The x, y and z columns.
+    """
+    var xs = List[Float64](capacity=n)
+    var ys = List[Float64](capacity=n)
+    var zs = List[Float64](capacity=n)
+    var ax = 0.0
+    var ay = 0.0
+    for _ in range(n):
+        ax += 0.7548776662466927
+        ay += 0.5698402909980532
+        var fx = ax - Float64(Int(ax))
+        var fy = ay - Float64(Int(ay))
+        var x = -2.0 + 4.0 * fx
+        var y = -2.0 + 4.0 * fy
+        xs.append(x)
+        ys.append(y)
+        zs.append(x * (1.0 - x * x - y * y))
+    return (xs^, ys^, zs^)
+
+
+def _bench_tricontour(mut timings: List[_Timing], sizes: List[Int]) raises:
+    for n in sizes:
+        var f = _scatter_field(n)
+        var plot = tricontour(
+            f[0].copy(), f[1].copy(), f[2].copy(), width=800, height=600
+        )
+        var t0 = perf_counter()
+        _ = render(plot)
+        _record(timings, "TRICONTOUR", "raster", n, perf_counter() - t0)
+        t0 = perf_counter()
+        _ = render_svg(plot)
+        _record(timings, "TRICONTOUR", "svg", n, perf_counter() - t0)
+
+
 def _check_scaling(timings: List[_Timing]) raises -> Bool:
     """A coarse O(n^2) detector: for each (mark, backend), compares every
     pair of consecutive sizes and flags a ~10x size jump that took more
@@ -432,6 +482,7 @@ def main() raises:
     _bench_edges(timings, small_sizes)
     _bench_hierarchy(timings, small_sizes)
     _bench_heatmap(timings, small_sizes)
+    _bench_tricontour(timings, small_sizes)
 
     if check_mode:
         print("")
