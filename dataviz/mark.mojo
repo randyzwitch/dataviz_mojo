@@ -12,6 +12,8 @@ describes the drawing. By data shape:
   grid of values, in grid-index coordinates); TRICONTOUR and
   TRICONTOURF take
   `encode_tricontour()` (scattered x/y/z samples, triangulated).
+  TRIPLOT and TRIPCOLOR take `encode_triplot()` (the same
+  scattered samples, drawn as the triangulation itself).
   POLAR takes `encode_polar()`/`encode_polar_series()` (angle +
   radius); SINGLE_AXIS takes `encode_single_axis()` (x only).
 - `encode_categorical()` (category + value): BAR, LOLLIPOP, ARC
@@ -95,8 +97,10 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime TRICONTOURF = Self(46)
     comptime KDE = Self(47)
     comptime RUG = Self(48)
+    comptime TRIPLOT = Self(49)
+    comptime TRIPCOLOR = Self(50)
 
-    comptime COUNT = 49
+    comptime COUNT = 51
     """How many marks exist -- one past the largest value above.
 
     Only the raster/SVG layout-equivalence sweep reads this (#221): it

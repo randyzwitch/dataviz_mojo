@@ -15,6 +15,7 @@ from _test_helpers import (
     _attr_values,
     _bbox_of_color,
     _count_color,
+    _count_tag,
     _row_extent,
     _runs_in_row,
 )
@@ -33,6 +34,8 @@ from dataviz import (
     contourf,
     tricontour,
     tricontourf,
+    triplot,
+    tripcolor,
     line,
     lollipop,
     scatter,
@@ -42,13 +45,15 @@ from dataviz.barbs import _barb_counts, _barb_glyph
 from dataviz.continuous import _step_points
 from dataviz.delaunay import _in_circumcircle, delaunay
 from dataviz.tricontour import _tricontour_segments
+from dataviz.triplot import _triangle_means, _triplot_edges
 from dataviz.contour import (
     _append_above_region,
     _auto_levels,
     _chain_segments,
     _contour_segments,
 )
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_ramp import ColorRamp
+from dataviz.color_scale import ColorScale, default_categorical_palette
 from dataviz.colors import BLACK, WHITE
 from dataviz.scale import LinearScale
 from dataviz.plot import (
@@ -3197,6 +3202,513 @@ def test_render_tricontour_collinear_samples_render_an_empty_frame() raises:
         tricontour(xs, ys, zs, width=240, height=200)
     ).to_string()
     assert_true("<svg" in svg, "the frame still renders")
+
+
+# ---------------------------------------------------------------
+# Mark.TRIPLOT and Mark.TRIPCOLOR (#344)
+# ---------------------------------------------------------------
+
+
+def test_triplot_edges_are_deduplicated_across_shared_triangles() raises:
+    """Every interior edge belongs to two triangles, so emitting three
+    edges per triangle yields most of them twice.
+
+    A square is two triangles: four hull edges plus the one diagonal they
+    share, so five distinct edges and not six. A 5x5 grid of points is 32
+    triangles (`test_delaunay_triangulates_simple_point_sets`) with 16
+    edges on its hull, and 3 * 32 = 96 counts every interior edge twice
+    and every hull edge once, so there are (96 + 16) / 2 = 56 distinct
+    ones and not 96.
+
+    Both numbers discriminate: an undeduplicated walk returns exactly 6
+    and exactly 96, which is what the counts are chosen against.
+    """
+    var sx: List[Float64] = [0.0, 1.0, 1.0, 0.0]
+    var sy: List[Float64] = [0.0, 0.0, 1.0, 1.0]
+    var square = _triplot_edges(delaunay(sx, sy))
+    assert_equal(
+        len(square[0]), 5, "a square's two triangles share their diagonal"
+    )
+    assert_equal(len(square[1]), 5, "both endpoint lists stay in step")
+
+    var gx = List[Float64]()
+    var gy = List[Float64]()
+    for r in range(5):
+        for c in range(5):
+            gx.append(Float64(c))
+            gy.append(Float64(r))
+    var grid = _triplot_edges(delaunay(gx, gy))
+    assert_equal(len(grid[0]), 56, "a 5x5 grid has 56 distinct edges")
+
+
+def test_triplot_edges_name_real_vertex_pairs() raises:
+    """Deduplication must not lose the endpoints: every edge returned has
+    to be an edge of some triangle, both ends in range and distinct.
+
+    The count test above passes just as well if the two lists drift out
+    of alignment, so this checks the pairs themselves against the
+    triangles they came from.
+    """
+    var rng = Lcg(7788)
+    var xs = List[Float64]()
+    var ys = List[Float64]()
+    for _ in range(40):
+        xs.append(rng.uniform(-10.0, 10.0))
+        ys.append(rng.uniform(-10.0, 10.0))
+    var t = delaunay(xs, ys)
+    var edges = _triplot_edges(t)
+    assert_true(len(edges[0]) > 0, "the sweep has edges to check")
+    for i in range(len(edges[0])):
+        var a = edges[0][i]
+        var b = edges[1][i]
+        assert_true(a != b, "an edge joins two different vertices")
+        assert_true(
+            a >= 0 and a < len(xs) and b >= 0 and b < len(xs),
+            "endpoints index the input points",
+        )
+        var found = False
+        for k in range(t.count()):
+            var v0 = t.tri[3 * k]
+            var v1 = t.tri[3 * k + 1]
+            var v2 = t.tri[3 * k + 2]
+            if (
+                (a == v0 and b == v1)
+                or (a == v1 and b == v2)
+                or (a == v2 and b == v0)
+            ):
+                found = True
+                break
+        assert_true(found, "every returned edge belongs to a triangle")
+
+
+def test_render_triplot_strokes_the_whole_mesh_as_one_path() raises:
+    """The four corners of a square triangulate into two triangles, and
+    the mesh must reach the SVG as a single stroked `<path>` whose `d`
+    holds one `M` per distinct edge -- five, not six.
+
+    This is the render-level half of the dedup assertion: `_triplot_edges`
+    could be right while the render walked `tri.tri` itself. Stroking the
+    shared diagonal twice would put a sixth `M` in the same `d`, and
+    stroking each edge as its own path would make the `<path>` count 5.
+    """
+    var x: List[Float64] = [0.0, 1.0, 1.0, 0.0]
+    var y: List[Float64] = [0.0, 0.0, 1.0, 1.0]
+    var svg = render_svg(triplot(x, y, width=240, height=200)).to_string()
+
+    assert_equal(_count_tag(svg, "path"), 1, "one path for the whole mesh")
+    var start = svg.find('<path d="')
+    assert_true(start != -1, "the mesh path is in the document")
+    var end = svg.find('"', start + 9)
+    var d = String(svg[byte = start + 9 : end])
+    assert_equal(d.count("M"), 5, "five distinct edges, each moved to once")
+    assert_equal(d.count("L"), 5, "and a line drawn for each of them")
+    assert_equal(_count_tag(svg, "circle"), 4, "a dot at each sample")
+
+
+def test_render_triplot_show_points_controls_the_vertex_dots() raises:
+    """`show_points=False` drops the dots and nothing else: the mesh path
+    is byte-identical, and the only difference in the document is the
+    four circles.
+    """
+    var x: List[Float64] = [0.0, 1.0, 1.0, 0.0]
+    var y: List[Float64] = [0.0, 0.0, 1.0, 1.0]
+    var with_dots = render_svg(triplot(x, y, width=240, height=200)).to_string()
+    var without = render_svg(
+        triplot(x, y, show_points=False, width=240, height=200)
+    ).to_string()
+
+    assert_equal(_count_tag(without, "circle"), 0, "no dots when asked")
+    assert_equal(_count_tag(with_dots, "circle"), 4, "dots by default")
+    assert_equal(
+        _count_tag(without, "path"), 1, "the mesh is still drawn without dots"
+    )
+
+    var a = with_dots.find('<path d="')
+    var b = without.find('<path d="')
+    assert_equal(
+        String(with_dots[byte = a : with_dots.find('"', a + 9)]),
+        String(without[byte = b : without.find('"', b + 9)]),
+        "the mesh itself is unchanged by the dots",
+    )
+
+    var lit = render(triplot(x, y, width=240, height=200))
+    var bare = render(triplot(x, y, show_points=False, width=240, height=200))
+    var mark = Theme.default().mark_color
+    assert_true(
+        _count_color(lit, mark) > _count_color(bare, mark),
+        "the dots add ink in the mark color",
+    )
+
+
+def test_render_triplot_still_shows_samples_that_support_no_triangle() raises:
+    """Collinear samples triangulate to nothing. The chart draws the
+    points anyway rather than raising or going blank, so it says "here
+    are your samples, they support no mesh".
+
+    Discriminating because the no-mesh case is exactly where an early
+    return would skip the dots too: with `show_points=False` the same
+    data leaves no mark-colored ink at all, so the count below is the
+    dots and only the dots.
+    """
+    var xs: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    var ys: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    var svg = render_svg(triplot(xs, ys, width=240, height=200)).to_string()
+    assert_true("<svg" in svg, "the frame still renders")
+    assert_equal(_count_tag(svg, "path"), 0, "no mesh to draw")
+    assert_equal(_count_tag(svg, "circle"), 4, "the samples are still shown")
+
+    var mark = Theme.default().mark_color
+    var dotted = render(triplot(xs, ys, width=240, height=200))
+    var bare = render(triplot(xs, ys, show_points=False, width=240, height=200))
+    assert_true(_count_color(dotted, mark) > 0, "the dots are real ink")
+    assert_equal(
+        _count_color(bare, mark), 0, "and they are the only ink there is"
+    )
+
+
+def test_render_triplot_raises_on_mismatched_lengths() raises:
+    var xs: List[Float64] = [0.0, 1.0, 2.0]
+    var ys: List[Float64] = [0.0, 1.0]
+    with assert_raises():
+        _ = render(triplot(xs, ys, width=200, height=150))
+
+
+def test_render_triplot_raises_on_empty_data() raises:
+    var e = List[Float64]()
+    with assert_raises():
+        _ = render(triplot(e, e, width=200, height=150))
+
+
+def test_triplot_dtype_overload_matches_the_float64_path() raises:
+    var xf = List[Float64]()
+    var yf = List[Float64]()
+    var xi = List[Int]()
+    var yi = List[Int]()
+    for i in range(40):
+        var a = i % 7
+        var b = (i * 3) % 8
+        xf.append(Float64(a))
+        yf.append(Float64(b))
+        xi.append(a)
+        yi.append(b)
+    assert_equal(
+        render_svg(triplot(xf, yf, width=250, height=180)).to_string(),
+        render_svg(triplot(xi, yi, width=250, height=180)).to_string(),
+        "List[Int] matches List[Float64]",
+    )
+
+
+def test_triangle_means_average_all_three_vertex_values() raises:
+    """Three points make one triangle, so its flat-shading value is the
+    mean of all three `z` -- (1 + 2 + 6) / 3 = 3.
+
+    The three inputs are deliberately unequal and their mean is none of
+    them, so picking any single vertex instead of averaging gives 1, 2 or
+    6 and fails here. `_triangle_means` is the piece the render's whole
+    color mapping hangs off, and the render-level test below no longer
+    calls it, so this is where it is pinned.
+    """
+    var xs: List[Float64] = [0.0, 4.0, 1.0]
+    var ys: List[Float64] = [0.0, 0.0, 3.0]
+    var zs: List[Float64] = [1.0, 2.0, 6.0]
+    var t = delaunay(xs, ys)
+    assert_equal(t.count(), 1, "three points are one triangle")
+    var means = _triangle_means(t, zs)
+    assert_equal(len(means), 1, "one value per triangle")
+    assert_equal(means[0], 3.0, "the mean of 1, 2 and 6")
+
+
+def test_tripcolor_paints_each_triangle_its_own_vertex_mean() raises:
+    """Flat shading: a triangle's color is `ColorScale.from_theme` at the
+    mean of its three vertex values, over the range of those means.
+
+    Checked against a render rather than against the helper alone --
+    every triangle's expected color has to actually appear in the raster,
+    and the interior of a filled triangle is solid, so the match is
+    exact. Ten well-spread samples keep the triangles large enough to
+    have an interior.
+
+    Discriminating three ways at once. Coloring by a vertex value instead
+    of the mean, or normalizing over `z`'s own range instead of the
+    means', or building a ramp other than the theme's, each moves nearly
+    every one of these colors -- and the assertion is equality on all of
+    them, not a tolerance.
+    """
+    var xs: List[Float64] = [0.0, 5.0, 10.0, 1.0, 9.0, 5.0, 0.0, 10.0, 3.0, 7.0]
+    var ys: List[Float64] = [0.0, 0.0, 0.0, 4.0, 4.0, 6.5, 10.0, 10.0, 8.0, 8.0]
+    var zs = List[Float64]()
+    for v in xs:
+        zs.append(v)
+
+    var t = delaunay(xs, ys)
+    assert_true(t.count() >= 6, "the sample set makes a real mesh")
+    # Averaged here rather than through `_triangle_means`: taking the
+    # expectation from the function under test made this pass for *any*
+    # definition of a triangle's value, which was checked by breaking
+    # that function to return its first vertex -- every assertion still
+    # passed. Now it does not.
+    var means = List[Float64]()
+    for k in range(t.count()):
+        means.append(
+            (zs[t.tri[3 * k]] + zs[t.tri[3 * k + 1]] + zs[t.tri[3 * k + 2]])
+            / 3.0
+        )
+    var lo = means[0]
+    var hi = means[0]
+    for v in means:
+        if v < lo:
+            lo = v
+        if v > hi:
+            hi = v
+    assert_true(hi > lo, "the means actually span a range")
+    var scale = ColorScale.from_theme(Theme.default(), lo, hi)
+
+    var c = render(tripcolor(xs, ys, zs, width=520, height=400))
+    for k in range(t.count()):
+        var want = scale.color_at(means[k])
+        assert_true(
+            _count_color(c, want) > 0,
+            (
+                "triangle "
+                + String(k)
+                + " (mean "
+                + String(means[k])
+                + ") is painted its own mean's color"
+            ),
+        )
+
+
+def test_tripcolor_reads_the_theme_color_ramp_end_to_end() raises:
+    """A two-stop `Theme.color_ramp` puts its first color on the lowest
+    triangle mean and its last on the highest, so both endpoints appear
+    in the render exactly.
+
+    One assertion covering two things that could each be wrong on their
+    own. Building a ramp of this mark's own instead of going through
+    `ColorScale.from_theme` would ignore `color_ramp` entirely and paint
+    the theme's default blue scale. Normalizing over the vertex values
+    rather than the triangle means would leave *no* triangle at either
+    endpoint, since averaging pulls every mean strictly inside `z`'s
+    range -- so neither pure color would appear at all.
+
+    Red and blue rather than black and white: a white extreme is
+    indistinguishable from the page, so counting it would prove nothing.
+    They also cannot be reached by the theme's own blue scale or by any
+    blend of it with the page -- those all have `g <= b` -- so finding
+    the low stop at all is itself proof the ramp was read.
+    """
+    var xs: List[Float64] = [0.0, 5.0, 10.0, 1.0, 9.0, 5.0, 0.0, 10.0, 3.0, 7.0]
+    var ys: List[Float64] = [0.0, 0.0, 0.0, 4.0, 4.0, 6.5, 10.0, 10.0, 8.0, 8.0]
+    var zs = List[Float64]()
+    for v in xs:
+        zs.append(v)
+
+    var low = Color(220, 20, 20)
+    var high = Color(20, 20, 220)
+    var stops: List[Color] = [low, high]
+    var theme = Theme(color_ramp=ColorRamp(stops))
+    var c = render(tripcolor(xs, ys, zs, theme=theme, width=520, height=400))
+
+    assert_true(
+        _count_color(c, low) > 0, "the lowest triangle mean gets the low stop"
+    )
+    assert_true(_count_color(c, high) > 0, "the highest gets the high stop")
+
+
+def test_tripcolor_lets_no_background_through_between_triangles() raises:
+    """The seam property, measured rather than eyeballed: render the same
+    mesh twice, once on a white page and once on a black one, and compare
+    the interior pixels.
+
+    Adjacent triangles filled independently each antialias the edge they
+    share, and two half-covered pixels composited over the page do not
+    add up to a covered one -- the fill comes out webbed with pale lines
+    (#315, #318, #327, #359, #360). A pixel where that happens shows some
+    of the page, so it *changes* when the page changes; a pixel that is
+    genuinely solid cannot.
+
+    That is a sharper instrument than looking for pale pixels: it does
+    not care what colors the triangles are, so a legitimately light
+    sliver between two darker neighbors never reads as a defect, and a
+    seam of any color is caught. Against a 255-level swing in what is
+    underneath, the worst interior pixel moves 1 level with
+    `_SEAM_STROKE_WIDTH` in place and 86 without it, so the bound below
+    is nowhere near either.
+
+    Gridlines are off because they are drawn on the page before the
+    fills, so they would change with it too and be counted as bleed. The
+    four corners are pinned so the hull is the whole square and the
+    sampled middle is well inside it.
+    """
+    var xs: List[Float64] = [0.0, 10.0, 10.0, 0.0]
+    var ys: List[Float64] = [0.0, 0.0, 10.0, 10.0]
+    var rng = Lcg(20260907)
+    for _ in range(200):
+        xs.append(rng.uniform(0.0, 10.0))
+        ys.append(rng.uniform(0.0, 10.0))
+    var zs = List[Float64]()
+    for i in range(len(xs)):
+        zs.append(-((xs[i] - 5.0) ** 2) - (ys[i] - 5.0) ** 2)
+
+    var w = 300
+    var h = 220
+    var on_white = render(
+        tripcolor(
+            xs,
+            ys,
+            zs,
+            width=w,
+            height=h,
+            theme=Theme(
+                background=WHITE, show_gridlines=False, raster_supersample=1
+            ),
+        )
+    )
+    var on_black = render(
+        tripcolor(
+            xs,
+            ys,
+            zs,
+            width=w,
+            height=h,
+            theme=Theme(
+                background=BLACK, show_gridlines=False, raster_supersample=1
+            ),
+        )
+    )
+
+    var worst = 0
+    var checked = 0
+    for y in range(h // 3, 2 * h // 3):
+        for x in range(w // 3, 2 * w // 3):
+            checked += 1
+            var a = on_white.get_pixel(x, y)
+            var b = on_black.get_pixel(x, y)
+            var d = abs(Int(a.r) - Int(b.r))
+            if abs(Int(a.g) - Int(b.g)) > d:
+                d = abs(Int(a.g) - Int(b.g))
+            if abs(Int(a.b) - Int(b.b)) > d:
+                d = abs(Int(a.b) - Int(b.b))
+            if d > worst:
+                worst = d
+    assert_true(checked > 4000, "the sweep actually looked at the fill")
+    assert_true(
+        worst <= 2,
+        (
+            "no page shows through between the triangles (worst pixel moved "
+            + String(worst)
+            + " levels of 255 when the page went white to black)"
+        ),
+    )
+
+
+def test_tripcolor_covers_the_interior_that_triplot_only_outlines() raises:
+    """With the four corners of the sample square pinned, the
+    triangulation's hull is the whole data rect, so `tripcolor` has to
+    leave *no* page showing anywhere inside it -- every pixel of the
+    sampled interior box is painted. `triplot` over the same points
+    covers only its edges, so most of that same box stays the page color.
+
+    An ink *ratio* was tried first and rejected: counting non-white
+    pixels over the whole canvas counts the gridlines, axis and tick
+    labels too, which both charts have equally, so the ratio was
+    dominated by furniture and came out near 2 either way -- it would
+    have passed on a fill riddled with holes. Requiring exactly zero
+    unpainted pixels in a box that is inside the hull does not.
+
+    The box is well inside the plot rect (x 60..300, y 20..230 at this
+    size, with `_data_extent`'s padding pulling the hull in a further
+    5%), so it never reaches the antialiased hull boundary.
+    """
+    var xs: List[Float64] = [0.0, 10.0, 10.0, 0.0]
+    var ys: List[Float64] = [0.0, 0.0, 10.0, 10.0]
+    var rng = Lcg(515)
+    for _ in range(120):
+        xs.append(rng.uniform(0.0, 10.0))
+        ys.append(rng.uniform(0.0, 10.0))
+    var zs = List[Float64]()
+    for i in range(len(xs)):
+        zs.append(xs[i] * ys[i])
+
+    var filled = render(tripcolor(xs, ys, zs, width=360, height=280))
+    var mesh = render(triplot(xs, ys, width=360, height=280))
+
+    var fill_gaps = 0
+    var mesh_gaps = 0
+    var cells = 0
+    for y in range(60, 200):
+        for x in range(100, 300):
+            cells += 1
+            var f = filled.get_pixel(x, y)
+            if f.r == 255 and f.g == 255 and f.b == 255:
+                fill_gaps += 1
+            var m = mesh.get_pixel(x, y)
+            if m.r == 255 and m.g == 255 and m.b == 255:
+                mesh_gaps += 1
+    assert_true(cells > 20000, "the box is a real area")
+    assert_equal(
+        fill_gaps, 0, "tripcolor leaves no page showing inside the hull"
+    )
+    assert_true(
+        mesh_gaps > cells // 2,
+        (
+            "triplot only outlines it ("
+            + String(mesh_gaps)
+            + " of "
+            + String(cells)
+            + " still the page)"
+        ),
+    )
+
+
+def test_render_tripcolor_raises_on_mismatched_lengths() raises:
+    var xs: List[Float64] = [0.0, 1.0, 2.0]
+    var ys: List[Float64] = [0.0, 1.0, 2.0]
+    var zs: List[Float64] = [0.0, 1.0]
+    with assert_raises():
+        _ = render(tripcolor(xs, ys, zs, width=200, height=150))
+
+
+def test_render_tripcolor_raises_on_empty_data() raises:
+    var e = List[Float64]()
+    with assert_raises():
+        _ = render(tripcolor(e, e, e, width=200, height=150))
+
+
+def test_render_tripcolor_collinear_samples_render_an_empty_frame() raises:
+    """Collinear samples triangulate to nothing, so the chart draws its
+    axes and no fills rather than raising."""
+    var xs: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    var ys: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    var zs: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var svg = render_svg(
+        tripcolor(xs, ys, zs, width=240, height=200)
+    ).to_string()
+    assert_true("<svg" in svg, "the frame still renders")
+    assert_equal(_count_tag(svg, "path"), 0, "and nothing is filled")
+
+
+def test_tripcolor_dtype_overload_matches_the_float64_path() raises:
+    var xf = List[Float64]()
+    var yf = List[Float64]()
+    var zf = List[Float64]()
+    var xi = List[Int]()
+    var yi = List[Int]()
+    var zi = List[Int]()
+    for i in range(40):
+        var a = i % 7
+        var b = (i * 3) % 8
+        xf.append(Float64(a))
+        yf.append(Float64(b))
+        zf.append(Float64(a + b))
+        xi.append(a)
+        yi.append(b)
+        zi.append(a + b)
+    assert_equal(
+        render_svg(tripcolor(xf, yf, zf, width=250, height=180)).to_string(),
+        render_svg(tripcolor(xi, yi, zi, width=250, height=180)).to_string(),
+        "List[Int] matches List[Float64]",
+    )
 
 
 def test_named_color_works_as_a_theme_mark_color_through_a_real_render() raises:

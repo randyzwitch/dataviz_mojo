@@ -55,6 +55,7 @@ from dataviz.candlestick import candlestick
 from dataviz.contour import contour, contourf
 from dataviz.kde import kdeplot, rugplot
 from dataviz.tricontour import tricontour, tricontourf
+from dataviz.triplot import tripcolor, triplot
 from dataviz.chord import chord
 from dataviz.arc_diagram import arc_diagram
 from dataviz.graph import graph

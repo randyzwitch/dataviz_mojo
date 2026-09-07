@@ -234,6 +234,7 @@ from dataviz.punchcard import _PunchcardData
 from dataviz.barbs import _BarbsData
 from dataviz.contour import _ContourData
 from dataviz.tricontour import _TriContourData
+from dataviz.triplot import _TriplotData
 from dataviz.marimekko import _MarimekkoData
 from dataviz.edges import _EdgeData
 from dataviz.hierarchy import _HierarchyData
@@ -257,6 +258,7 @@ from dataviz.barbs import _render_barbs
 from dataviz.contour import _render_contour, _render_contourf
 from dataviz.kde import _render_kde, _render_rug
 from dataviz.tricontour import _render_tricontour, _render_tricontourf
+from dataviz.triplot import _render_tripcolor, _render_triplot
 from dataviz.marimekko import _render_marimekko
 from dataviz.sunburst import _render_sunburst
 from dataviz.tree import _render_tree
@@ -546,6 +548,7 @@ struct Plot(Copyable, Movable):
     var _barbs: _BarbsData
     var _contour: _ContourData
     var _tricontour: _TriContourData
+    var _triplot: _TriplotData
     var _marimekko: _MarimekkoData
     var _hierarchy: _HierarchyData
     var _labels: _LabelData
@@ -609,6 +612,7 @@ struct Plot(Copyable, Movable):
         self._barbs = _BarbsData()
         self._contour = _ContourData()
         self._tricontour = _TriContourData()
+        self._triplot = _TriplotData()
         self._marimekko = _MarimekkoData()
         self._hierarchy = _HierarchyData()
         self._labels = _LabelData()
@@ -1069,6 +1073,38 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.TRICONTOURF
         self._tricontour.level_count = levels
+        return self^
+
+    def mark_triplot(var self, show_points: Bool = True) -> Self:
+        """The Delaunay triangulation of scattered points drawn as
+        itself: every edge of the mesh, stroked once. Encoded via
+        `encode_triplot()`; see `_render_triplot` (triplot.mojo) for the
+        drawing and `triplot()` for the one-call form.
+
+        Args:
+            show_points: Draw a dot at every sample on top of the mesh.
+                Defaults to `True`; matplotlib's `triplot()` draws lines
+                only, and `_render_triplot` says why this differs.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.TRIPLOT
+        self._triplot.show_points = show_points
+        return self^
+
+    def mark_tripcolor(var self) -> Self:
+        """Each triangle of the Delaunay mesh filled from the values at
+        its three vertices -- `mark_triplot()`'s mesh painted rather than
+        stroked, over the same `encode_triplot()` data, which must then
+        carry `z`. See `_render_tripcolor` (triplot.mojo) for the flat
+        shading and the seam handling, and `tripcolor()` for the one-call
+        form.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.TRIPCOLOR
         return self^
 
     def mark_marimekko(var self) -> Self:
@@ -2450,6 +2486,36 @@ struct Plot(Copyable, Movable):
         self._tricontour.y = y.copy()
         self._tricontour.z = z.copy()
         self._tricontour.levels = levels.copy()
+        return self^
+
+    def encode_triplot(
+        var self,
+        x: List[Float64],
+        y: List[Float64],
+        z: List[Float64] = List[Float64](),
+    ) -> Self:
+        """Map scattered `(x, y)` positions -- and, for
+        `Mark.TRIPCOLOR`, a value at each -- onto the triangulation
+        marks' shape.
+
+        `encode_tricontour()`'s columns without the level list. `z` is
+        optional because `Mark.TRIPLOT` draws connectivity and nothing
+        else, so requiring a value column there would mean inventing one;
+        `Mark.TRIPCOLOR` needs it and says so at render time, like every
+        other length check in this package.
+
+        Args:
+            x: Each sample's x position.
+            y: Each sample's y position, one per `x` entry.
+            z: The value at each sample, one per `x` entry. Left empty
+                (the default) for `Mark.TRIPLOT`.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._triplot.x = x.copy()
+        self._triplot.y = y.copy()
+        self._triplot.z = z.copy()
         return self^
 
     def encode_marimekko(
@@ -4293,6 +4359,10 @@ def _render_generic[
         return _render_tricontourf(
             target, plot, ox0, oy0, ox1, oy1, cache=cache
         )
+    if plot._mark == Mark.TRIPLOT:
+        return _render_triplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    if plot._mark == Mark.TRIPCOLOR:
+        return _render_tripcolor(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.MARIMEKKO:
         return _render_marimekko(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.SUNBURST:
