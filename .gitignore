@@ -1,6 +1,19 @@
-# pixi environments
-.pixi/*
-!.pixi/config.toml
+# pixi environments.
+#
+# `.pixi` itself and not just its contents (#393): building in a git
+# worktree means symlinking `.pixi` at the root pixi environment rather
+# than paying a full canvas rebuild per worktree, and `.pixi/*` matches
+# only what is *inside* a directory -- it does not match a symlink named
+# `.pixi`, so `git add -A` in such a worktree happily committed one.
+# That is how an absolute symlink into one machine's home directory
+# reached main and handed every fresh clone a dangling `.pixi`.
+#
+# Ignoring the path itself means a `.pixi/config.toml` would have to be
+# force-added (`git add -f .pixi/config.toml`); git cannot re-include a
+# file underneath an ignored parent. Nothing under `.pixi/` has ever
+# been tracked here, so that costs nothing today, and the alternative
+# leaves the symlink accident live.
+.pixi
 
 # pixi build/publish output -- `pixi build` writes the built package
 # directly into the current directory by default
