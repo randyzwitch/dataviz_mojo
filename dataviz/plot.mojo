@@ -4184,9 +4184,17 @@ def _render_generic[
     threaded into every `_render_*` for its label measurements, then
     used again by the caller to draw the requests this returns, so a
     glyph measured during layout is already rasterized by the time it is
-    drawn, and the ~20 ms font scan is paid once per figure (and not at
-    all by a render that draws no text) rather than once per measurement
-    pass plus once per replay.
+    drawn, and the font resolution behind it is paid once per figure
+    (and not at all by a render that draws no text) rather than once per
+    measurement pass plus once per replay.
+
+    That resolution cost was ~20 ms when this was written and is 2.5 ms
+    on canvas_mojo v0.24.0, which persists the font database to disk
+    (canvas_mojo#272) so a fresh cache reads a file instead of walking
+    the font directories. What is left is that read plus parsing and
+    sizing the matched face -- still the largest fixed cost in a small
+    chart (2.5 ms of a 6.0 ms two-point raster scatter, 2.5 ms of a
+    2.7 ms SVG one), but no longer the dominant one it was in #324.
 
     Every mark other than `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER`
     dispatches to its own `_render_*` function immediately

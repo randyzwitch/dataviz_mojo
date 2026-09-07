@@ -365,6 +365,53 @@ a new `String` and copied the prefix. That is canvas #193, fixed in
 page is the one from the Method section: a mechanism read off a diff
 is a hypothesis until someone times it in isolation.
 
+## The fixed floor per render, on canvas_mojo v0.24.0
+
+The tables above measure how a mark scales with `n`. This section is
+the other half: what a chart costs before it draws anything, which is
+what decides the time of a small chart. Measured on 2026-09-07 on the
+machine described above, canvas_mojo v0.24.0, median of three passes
+of twelve renders each, spread under 1%.
+
+Every `render()`, `render_svg()` and `save()` builds its own
+`FontCache`, so each one pays that cache's cold cost:
+
+| step, on a cache that has resolved nothing yet | ms |
+|---|---:|
+| `FontCache()` construction | 0.00003 |
+| first `resolve()` -- reads canvas's persisted font database | 2.35 |
+| first `resolve_face()` after it -- TTF parse + `set_pixel_size` | 0.18 |
+| a later `resolve_face()` on the same cache | 0.02 |
+
+2.5 ms, then, per render, whatever the chart draws. Against a
+640x420 chart end to end, via `save()`:
+
+| chart | default | with a shared, warm cache | difference |
+|---|---:|---:|---:|
+| scatter, n=2 (PNG) | 8.64 | 5.62 | -35% |
+| scatter, n=2 (SVG) | 2.63 | 0.30 | -89% |
+| bar, 20 categories (PNG) | 6.44 | 3.60 | -44% |
+| line, n=10,000 (PNG) | 12.3 | 9.6 | -22% |
+| scatter, n=1,000 (PNG) | 25.1 | 21.8 | -13% |
+
+The SVG row is the one that shows what this cost is: that backend
+measures text and rasterizes none, so nearly all of what it spends on
+a small chart is resolving a font it will only name in an attribute.
+
+**This is a floor, not a defect to fix here.** #324 opened against a
+~18 ms version of this cost and proposed three fixes. A process-wide
+cache, the one that would need no API change, is not expressible:
+Mojo 1.0.0 rejects a module-scope `var` outright ("global variables
+are not supported"). Making the cache lazier is already done -- a
+render that measures no text never resolves a font, which
+`test_a_render_that_measures_no_text_never_scans` asserts. Letting
+callers pass a cache in was built and measured in #326 and closed
+deliberately: canvas_mojo#272 persisted the font database to disk,
+which took the cost from ~18 ms to the 2.5 ms above for every caller
+with no API change, and what a caller-held cache could still win
+after that did not justify permanent public API. The right place for
+the remaining 2.35 ms is canvas, not here.
+
 ## Reproducing
 
 ```bash
