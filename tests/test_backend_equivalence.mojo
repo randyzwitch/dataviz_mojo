@@ -36,6 +36,8 @@ from dataviz import (
     contourf,
     tricontour,
     tricontourf,
+    tripcolor,
+    triplot,
     kdeplot,
     rugplot,
     corrplot,
@@ -296,6 +298,24 @@ def _representative_plot(mark: Mark) raises -> Plot:
             fy.append(b)
             fz.append(a * b)
         return tricontourf(fx, fy, fz, level_count=3, width=_W, height=_H)
+    if mark == Mark.TRIPLOT:
+        var mx = List[Float64]()
+        var my = List[Float64]()
+        for i in range(24):
+            mx.append(Float64(i % 6))
+            my.append(Float64((i * 5) % 7))
+        return triplot(mx, my, width=_W, height=_H)
+    if mark == Mark.TRIPCOLOR:
+        var px = List[Float64]()
+        var py = List[Float64]()
+        var pz = List[Float64]()
+        for i in range(24):
+            var a = Float64(i % 6)
+            var b = Float64((i * 5) % 7)
+            px.append(a)
+            py.append(b)
+            pz.append(a * b)
+        return tripcolor(px, py, pz, width=_W, height=_H)
     if mark == Mark.KDE:
         var kv: List[Float64] = [1.0, 2.0, 2.0, 3.0, 5.0, 5.0, 6.0, 8.0]
         return kdeplot(kv, fill=True, rug=True, width=_W, height=_H)
@@ -499,8 +519,9 @@ def test_mark_count_is_one_past_the_newest_mark() raises:
     briefly had `CONTOUR = 43` alongside `COUNT = 43` and the sweep
     skipped contour entirely while still reporting itself green. This
     assertion is what then caught `Mark.CONTOURF` (#260) and
-    `Mark.TRICONTOUR` (#261), `Mark.TRICONTOURF` (#323) and
-    `Mark.KDE`/`Mark.RUG` (#351): each failed
+    `Mark.TRICONTOUR` (#261), `Mark.TRICONTOURF` (#323),
+    `Mark.KDE`/`Mark.RUG` (#351) and
+    `Mark.TRIPLOT`/`Mark.TRIPCOLOR` (#344): each failed
     here until both the constant and this line moved, which is the
     tripwire doing its job on every mark added since.
 
@@ -509,7 +530,7 @@ def test_mark_count_is_one_past_the_newest_mark() raises:
     updated, which is one edit away from the constant itself.
     """
     assert_true(
-        Mark.RUG == Mark(Mark.COUNT - 1),
+        Mark.TRIPCOLOR == Mark(Mark.COUNT - 1),
         (
             "Mark.COUNT must be one past the newest mark -- update both when"
             " adding one"

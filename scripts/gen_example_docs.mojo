@@ -95,6 +95,8 @@ def _titles() -> Dict[String, String]:
     d["contourf"] = "Filled Contour"
     d["tricontour"] = "Scattered Contour"
     d["tricontourf"] = "Scattered Contour (Filled)"
+    d["triplot"] = "Triangular Mesh"
+    d["tripcolor"] = "Triangular Mesh (Colored)"
     d["kdeplot"] = "Density Curve"
     d["rugplot"] = "Rug"
     d["marimekko"] = "Marimekko"
@@ -235,6 +237,8 @@ def _categories() -> List[Category]:
                 "contourf",
                 "tricontour",
                 "tricontourf",
+                "triplot",
+                "tripcolor",
             ],
         )
     )
