@@ -22,9 +22,15 @@ color unconditionally.
 `color_scale_low`/`color_scale_mid`/`color_scale_high` are the three
 stops of the continuous color gradient (`ColorScale.from_theme`). The
 middle stop exists because interpolating two saturated, hue-opposite
-colors in RGB passes through a muddy grey that dominates a legend; a
-light neutral grey at 0.5 is what diverging colormaps like
+colors in RGB passes through a muddy gray that dominates a legend; a
+light neutral gray at 0.5 is what diverging colormaps like
 `coolwarm`/`RdBu` do.
+
+`color_ramp` (empty by default) replaces all three with an arbitrary
+number of stops, which is what a perceptually uniform sequential map
+needs: `Theme(color_ramp=viridis())`, from `dataviz.colormaps`. Three
+stops are enough for a diverging scale and cannot express viridis and
+its family; see the field's own docstring.
 
 `line_smoothing` (default `0.0`) controls how much `_build_line_path`
 (continuous.mojo) curves a `Mark.LINE`/`AREA` through its points via a
@@ -48,6 +54,7 @@ from std.math import pi
 
 from canvas.color import Color
 
+from dataviz.color_ramp import ColorRamp
 from dataviz.colors import WHITE
 from dataviz.output_format import OutputFormat
 from dataviz.scale import TickFormat
@@ -105,6 +112,19 @@ struct Theme(ImplicitlyCopyable, Movable):
     """
     var color_scale_high: Color
     """The high end of the default continuous color gradient."""
+    var color_ramp: ColorRamp
+    """A continuous gradient given as many stops instead of three, spread
+    evenly over `[0, 1]` by `ColorScale.from_theme`. Empty by default,
+    which leaves `color_scale_low`/`mid`/`high` in charge; setting it
+    overrides all three.
+
+    Three stops are enough for a diverging scale, where the middle is a
+    real feature of the data. They are not enough for a perceptually
+    uniform sequential map -- viridis and its family are defined by many
+    stops precisely because that is what makes equal steps in the value
+    look like equal steps in color, and interpolating three of them
+    throws the property away. See `dataviz.colormaps` for the standard
+    ones."""
     var size_range_min: Float64
     """The smallest pixel radius a data-driven `size` channel maps
     its column's minimum value to."""
@@ -341,6 +361,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         color_scale_low: Color = Color(60, 110, 200),
         color_scale_mid: Color = Color(235, 235, 235),
         color_scale_high: Color = Color(220, 90, 40),
+        color_ramp: ColorRamp = ColorRamp(),
         size_range_min: Float64 = 3.0,
         size_range_max: Float64 = 15.0,
         show_legend: Bool = True,
@@ -404,6 +425,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.color_scale_low = color_scale_low
         self.color_scale_mid = color_scale_mid
         self.color_scale_high = color_scale_high
+        self.color_ramp = color_ramp.copy()
         self.size_range_min = size_range_min
         self.size_range_max = size_range_max
         self.show_legend = show_legend

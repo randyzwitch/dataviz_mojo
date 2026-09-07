@@ -21,6 +21,8 @@ from dataviz.legend_position import LegendPosition
 from dataviz.x_label_rotation import XAxisLabelRotation
 from dataviz.scale import LinearScale, MinMax, Ticks, TickFormat
 from dataviz.color_scale import ColorScale, default_categorical_palette
+from dataviz.color_ramp import ColorRamp
+from dataviz.colormaps import cividis, inferno, magma, plasma, viridis
 from dataviz.marker import PointShape, default_marker_shapes
 from dataviz.colors import *
 from dataviz.ordinal_scale import OrdinalScale
