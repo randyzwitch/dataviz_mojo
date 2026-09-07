@@ -78,6 +78,35 @@ struct OrdinalScale(Movable):
         var s = self.step()
         return self.range_min + s * Float64(index) + s * self.padding / 2.0
 
+    def band_end(self, index: Int) -> Float64:
+        """The right pixel edge of the band at `index`: half the slot's
+        padding in from the *next* slot's start.
+
+        Deliberately not `band_start(index) + bandwidth()`, which is the
+        same number in exact arithmetic and not always the same
+        `Float64` (#379). That form accumulates as
+        `(range_min + s*i) + s`, while the neighbor's
+        `band_start(index + 1)` evaluates `range_min + s*(i+1)`, and
+        floating-point addition is not associative -- at
+        420px x 24 categories the two came out 186.99999999999997 and
+        187.0. Snapping each to the pixel grid then rounded them to
+        different boundaries and left a one-pixel column of background
+        between two cells that should have touched.
+
+        Computing from `range_min + s * (index + 1)`, the identical
+        expression the neighbor's `band_start` uses, makes the two
+        bitwise equal whenever the padding is zero, so adjacent bands
+        cannot disagree about where their shared boundary is.
+
+        Args:
+            index: The category's position in `domain`.
+
+        Returns:
+            The band's right pixel edge.
+        """
+        var s = self.step()
+        return self.range_min + s * Float64(index + 1) - s * self.padding / 2.0
+
     def center(self, index: Int) -> Float64:
         """The horizontal pixel center of the band at `index` --
         `band_start(index)` plus half `bandwidth()`.

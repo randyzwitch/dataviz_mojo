@@ -285,23 +285,32 @@ def _render_heatmap[
     # i+1's left edge, so the two land on the same boundary whatever the
     # fraction was. Cells then vary by a pixel in width, which is the
     # honest way to divide 320 pixels 11 ways.
+    #
+    # "The same value" only holds if it is the same *expression*, which
+    # is why the far edge comes from `band_end` rather than
+    # `band_start + bandwidth` (#379): the latter accumulates one more
+    # addition than the neighbor's `band_start` does, and floating-point
+    # addition is not associative, so at some geometries the two edges
+    # snapped a pixel apart and left a background column between two
+    # cells. See `OrdinalScale.band_end`.
+    #
     # band_start is a pixel index -- the first column the band covers --
     # and a column's geometry starts half a pixel before its index, so
     # the grid's outer edge lines up with the plot rect instead of
     # sitting a pixel inside it.
-    var x_band = frame.x_scale.bandwidth()
-    var y_band = frame.y_scale.bandwidth()
     for i in range(len(plot._heatmap.x)):
         var x_start = frame.x_scale.band_start(x_idx.indices[i]) - 0.5
         var y_start = frame.y_scale.band_start(y_idx.indices[i]) - 0.5
+        var x_stop = frame.x_scale.band_end(x_idx.indices[i]) - 0.5
+        var y_stop = frame.y_scale.band_end(y_idx.indices[i]) - 0.5
         var cell_x = _snap_pixel_edge(x_start)
         var cell_y = _snap_pixel_edge(y_start)
         var color = color_scale.color_at(plot._heatmap.value[i])
         target.fill_rect(
             cell_x,
             cell_y,
-            _snap_pixel_edge(x_start + x_band) - cell_x,
-            _snap_pixel_edge(y_start + y_band) - cell_y,
+            _snap_pixel_edge(x_stop) - cell_x,
+            _snap_pixel_edge(y_stop) - cell_y,
             color,
         )
 

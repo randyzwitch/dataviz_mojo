@@ -260,16 +260,26 @@ def _render_calendar_heatmap[
         # plot_x0/plot_y0 are pixel indices, and a pixel's geometry
         # starts half a pixel before its index, so the grid's outer edge
         # lines up with the plot rect instead of sitting a pixel inside.
+        #
+        # The far edge is computed from `col + 1` rather than as
+        # `x_start + cell_width` so that it is the *same expression* the
+        # next column's `x_start` evaluates, and therefore the same
+        # Float64 (#379). The two are equal in exact arithmetic but
+        # floating-point addition is not associative, and the extra
+        # accumulated add was enough to snap the shared boundary a pixel
+        # apart and leave a background column between two cells.
         var x_start = Float64(plot_x0) - 0.5 + Float64(col) * cell_width
         var y_start = Float64(plot_y0) - 0.5 + Float64(row) * cell_height
+        var x_stop = Float64(plot_x0) - 0.5 + Float64(col + 1) * cell_width
+        var y_stop = Float64(plot_y0) - 0.5 + Float64(row + 1) * cell_height
         var cell_x = _snap_pixel_edge(x_start)
         var cell_y = _snap_pixel_edge(y_start)
         var color = color_scale.color_at(plot._calendar.values[i])
         target.fill_rect(
             cell_x,
             cell_y,
-            _snap_pixel_edge(x_start + cell_width) - cell_x,
-            _snap_pixel_edge(y_start + cell_height) - cell_y,
+            _snap_pixel_edge(x_stop) - cell_x,
+            _snap_pixel_edge(y_stop) - cell_y,
             color,
         )
 
