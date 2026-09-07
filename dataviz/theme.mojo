@@ -103,6 +103,31 @@ struct Theme(ImplicitlyCopyable, Movable):
     x-axis title's own reserved height (if any) is added on top."""
     var show_gridlines: Bool
     """Whether to draw gridlines at all; defaults to `True`."""
+    var show_minor_ticks: Bool
+    """Whether to draw a short tick mark at each minor tick (#334);
+    defaults to `False`, so no existing chart changes.
+
+    Separate from `show_minor_gridlines` the way matplotlib separates
+    `minorticks_on()` from `grid(which="minor")`: a minor level on the
+    axis and a minor level across the plot are different amounts of
+    ink, and a log axis often wants the first without the second."""
+    var show_minor_gridlines: Bool
+    """Whether to draw a gridline at each minor tick as well (#334);
+    defaults to `False`, so nothing moves for a theme that does not ask.
+
+    Ignored when `show_gridlines` is off -- minor gridlines under no
+    major ones would be a grid with no reference points. Minor ticks
+    themselves are drawn whenever the axis has them, since a short mark
+    on the axis costs nothing and a gridline across the plot does."""
+    var minor_gridline_color: Color
+    """The color minor gridlines are stroked in (#334). Lighter than
+    `gridline_color` by default: a minor level in the same color makes
+    a chart busier rather than more readable, since the eye can no
+    longer tell which lines carry the labeled values."""
+    var minor_tick_length: Int
+    """Pixel length of a minor tick mark, before `scale` (#334).
+    Shorter than `tick_length` so the labeled ticks stay the ones that
+    read as structure."""
     var color_scale_low: Color
     """The low end of the default continuous color gradient (`Plot.
     encode(color=...)`, `Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`)."""
@@ -358,6 +383,10 @@ struct Theme(ImplicitlyCopyable, Movable):
         margin_top: Int = 20,
         margin_bottom: Int = 50,
         show_gridlines: Bool = True,
+        show_minor_ticks: Bool = False,
+        show_minor_gridlines: Bool = False,
+        minor_gridline_color: Color = Color(240, 240, 240),
+        minor_tick_length: Int = 3,
         color_scale_low: Color = Color(60, 110, 200),
         color_scale_mid: Color = Color(235, 235, 235),
         color_scale_high: Color = Color(220, 90, 40),
@@ -422,6 +451,10 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.margin_top = margin_top
         self.margin_bottom = margin_bottom
         self.show_gridlines = show_gridlines
+        self.show_minor_ticks = show_minor_ticks
+        self.show_minor_gridlines = show_minor_gridlines
+        self.minor_gridline_color = minor_gridline_color
+        self.minor_tick_length = minor_tick_length
         self.color_scale_low = color_scale_low
         self.color_scale_mid = color_scale_mid
         self.color_scale_high = color_scale_high

@@ -778,6 +778,39 @@ def _draw_continuous_axis_frame[
     var x_labels = x_ticks.labels(theme.x_tick_format)
 
     if theme.show_gridlines:
+        # Minor gridlines first, so a major one always wins where the
+        # two land on the same pixel row -- the labeled value is the one
+        # that has to stay readable (#334). They are gated on
+        # show_gridlines as well as their own flag: a minor grid with no
+        # major one is a grid with no reference points.
+        if theme.show_minor_gridlines:
+            for i in range(len(x_ticks.minor_values)):
+                var mpx = _axis_pixel(out_x_scale, x_ticks.minor_values[i])
+                target.draw_line_aa(
+                    mpx,
+                    plot_y0,
+                    mpx,
+                    plot_y1,
+                    theme.minor_gridline_color,
+                    width=sc.scale,
+                    dashes=theme.gridline_style.dashes(sc.scale),
+                )
+            # Gated the same way the major horizontal gridlines below
+            # are: with the y-axis suppressed (#378) there is no scale
+            # for a horizontal line to mean anything against.
+            if y_axis_visible:
+                for i in range(len(y_ticks.minor_values)):
+                    var mpy = _axis_pixel(out_y_scale, y_ticks.minor_values[i])
+                    target.draw_line_aa(
+                        plot_x0,
+                        mpy,
+                        plot_x1,
+                        mpy,
+                        theme.minor_gridline_color,
+                        width=sc.scale,
+                        dashes=theme.gridline_style.dashes(sc.scale),
+                    )
+
         for i in range(len(x_ticks.values)):
             var px = _axis_pixel(out_x_scale, x_ticks.values[i])
             target.draw_line_aa(
@@ -811,6 +844,38 @@ def _draw_continuous_axis_frame[
         )
 
     var text_requests = List[_TextRequest]()
+
+    # Minor tick marks (#334), opt-in like minor gridlines and gated
+    # separately, since a level on the axis and a level across the plot
+    # are different amounts of ink. On a log axis this is often the one
+    # you want: it says where inside a decade a point sits without
+    # laying a second grid over the data.
+    #
+    # These carry no labels, so they cannot affect the dynamic left
+    # margin, which is measured from tick label widths -- worth stating
+    # because a reader of that margin computation will wonder.
+    if theme.show_minor_ticks:
+        for i in range(len(x_ticks.minor_values)):
+            var mpx = _axis_pixel(out_x_scale, x_ticks.minor_values[i])
+            target.draw_line_aa(
+                mpx,
+                plot_y1,
+                mpx,
+                plot_y1 + sc.minor_tick_length,
+                theme.axis_color,
+                width=sc.scale,
+            )
+        if y_axis_visible:
+            for i in range(len(y_ticks.minor_values)):
+                var mpy = _axis_pixel(out_y_scale, y_ticks.minor_values[i])
+                target.draw_line_aa(
+                    plot_x0 - sc.minor_tick_length,
+                    mpy,
+                    plot_x0,
+                    mpy,
+                    theme.axis_color,
+                    width=sc.scale,
+                )
 
     for i in range(len(x_ticks.values)):
         var px = _axis_pixel(out_x_scale, x_ticks.values[i])

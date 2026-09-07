@@ -27,7 +27,7 @@ from _test_helpers import (
     _count_tag,
     _group_titles,
 )
-from dataviz import bar, box, grouped_bar, pie, scatter
+from dataviz import bar, box, grouped_bar, pie, rugplot, scatter
 from dataviz.color_scale import default_categorical_palette
 from dataviz.plot import Plot, render_svg
 from dataviz.theme import Theme
@@ -106,6 +106,135 @@ def test_attr_values_reads_an_elements_first_attribute() raises:
                 + xs[i]
             ),
         )
+
+
+def _gridline_strokes_of(svg: String) -> List[String]:
+    """The `stroke` of every `<line>` in an already-rendered document."""
+    return _attr_values(svg, "line", "stroke")
+
+
+def _gridline_strokes(theme: Theme) raises -> List[String]:
+    """The `stroke` of every `<line>` in a plain scatter under `theme` --
+    gridlines, axis lines and tick marks, which is everything drawn as a
+    line."""
+    var xs: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
+    var ys: List[Float64] = [2.0, 5.0, 3.0, 8.0, 6.0]
+    var svg = render_svg(
+        scatter(xs, ys, theme=theme, width=520, height=340)
+    ).to_string()
+    return _attr_values(svg, "line", "stroke")
+
+
+def _count_of(values: List[String], wanted: String) -> Int:
+    var n = 0
+    for v in values:
+        if v == wanted:
+            n += 1
+    return n
+
+
+def test_minor_gridlines_and_ticks_are_off_by_default() raises:
+    """#334 adds a minor tick level, and both halves are opt-in: a
+    default chart must be exactly what it was before.
+
+    Asserting on the minor gridline color specifically, rather than a
+    total line count, so this keeps meaning the right thing if some
+    unrelated change adds furniture.
+    """
+    var t = Theme()
+    var strokes = _gridline_strokes(t)
+    assert_equal(
+        _count_of(strokes, t.minor_gridline_color.to_hex()),
+        0,
+        "no minor gridlines in a default chart",
+    )
+    assert_true(
+        _count_of(strokes, t.gridline_color.to_hex()) > 0,
+        "major gridlines are still drawn by default",
+    )
+
+
+def test_minor_gridlines_are_drawn_when_asked_and_are_lighter() raises:
+    """Turning them on adds lines in `minor_gridline_color`, and there
+    are more of them than major ones -- four minors per major gap on a
+    linear axis.
+
+    The color has to be lighter than `gridline_color` or the chart gets
+    busier rather than more readable: the eye can no longer tell which
+    lines carry the labeled values.
+    """
+    var t = Theme(show_minor_gridlines=True)
+    var strokes = _gridline_strokes(t)
+    var minors = _count_of(strokes, t.minor_gridline_color.to_hex())
+    var majors = _count_of(strokes, t.gridline_color.to_hex())
+
+    assert_true(minors > 0, "minor gridlines are drawn when asked")
+    assert_true(
+        minors > majors,
+        (
+            "there are more minor gridlines than major ones -- got "
+            + String(minors)
+            + " minor, "
+            + String(majors)
+            + " major"
+        ),
+    )
+
+    # Lighter means a higher channel value on a light background. All
+    # three channels, so this cannot pass on a hue difference alone.
+    assert_true(
+        Int(t.minor_gridline_color.r) > Int(t.gridline_color.r)
+        and Int(t.minor_gridline_color.g) > Int(t.gridline_color.g)
+        and Int(t.minor_gridline_color.b) > Int(t.gridline_color.b),
+        "the minor gridline color is lighter than the major one",
+    )
+
+
+def test_a_suppressed_y_axis_takes_its_minor_level_with_it() raises:
+    """A standalone rugplot drops its y-axis (#378), and the minor level
+    (#334) has to go with it: a horizontal gridline or a y tick has
+    nothing to mean against a scale that is not drawn.
+
+    The two landed independently and `frame.mojo` merged cleanly, which
+    is exactly the case where an ungated loop survives unnoticed -- so
+    this pins it rather than trusting the merge.
+    """
+    var values: List[Float64] = [12.0, 14.0, 15.0, 17.0, 24.0, 26.0, 28.0]
+    var t = Theme(show_minor_ticks=True, show_minor_gridlines=True)
+    var svg = render_svg(
+        rugplot(values, theme=t, width=420, height=260)
+    ).to_string()
+
+    # Horizontal *gridlines* specifically. The x-axis line is horizontal
+    # too and is drawn on purpose, so counting every horizontal line
+    # would assert something false -- it did on the first run, and the
+    # one line it found was the axis.
+    var y1s = _attr_values(svg, "line", "y1")
+    var y2s = _attr_values(svg, "line", "y2")
+    var strokes = _gridline_strokes_of(svg)
+    var horizontal_gridlines = 0
+    for i in range(len(y1s)):
+        var is_grid = (
+            strokes[i] == t.gridline_color.to_hex()
+            or strokes[i] == t.minor_gridline_color.to_hex()
+        )
+        if y1s[i] == y2s[i] and is_grid:
+            horizontal_gridlines += 1
+    assert_equal(
+        horizontal_gridlines,
+        0,
+        (
+            "a rugplot has no y-axis, so no horizontal gridline can mean"
+            " anything -- got "
+            + String(horizontal_gridlines)
+        ),
+    )
+
+    # The x-axis keeps its own minor level: that axis is real here.
+    assert_true(
+        _count_of(strokes, t.minor_gridline_color.to_hex()) > 0,
+        "the x-axis minor gridlines are still drawn",
+    )
 
 
 def test_grouped_bars_use_each_series_colour_once_per_category() raises:
