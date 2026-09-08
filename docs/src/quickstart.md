@@ -18,6 +18,17 @@ dataviz_mojo = { git = "https://github.com/randyzwitch/dataviz_mojo.git", branch
 
 `pixi install`/`pixi run` builds `dataviz_mojo` (and its `canvas_mojo` dependency) from that git ref and installs the resulting precompiled package into your workspace's pixi environment.
 
+Run `pixi install` once after saving `pixi.toml`. The examples below can then
+live in `main.mojo` and run with:
+
+```sh
+pixi run mojo main.mojo
+```
+
+The command writes `chart.svg` in the current directory. If the import fails,
+first confirm that `pixi install` completed successfully and that the
+dependency is under `[dependencies]`, not `[package.host-dependencies]`.
+
 ## A first chart using the `Plot()` builder
 
 `Plot` is a fluent builder: each method returns the plot, so calls form one
@@ -154,6 +165,25 @@ def main() raises:
 
 `scatter(x, y)` builds the same point plot and forwards styling and labels.
 Use the full builder for layers, facets, and additional encodings.
+
+## Choose an API and chart
+
+Start with a convenience function when one call describes the chart. Use
+`Plot()` when you need to compose layers, facets, or encodings beyond the
+function's parameters. Both routes produce the same `Plot` value, so starting
+simple does not lock you in.
+
+| Your data or question | Start with | Example |
+| --- | --- | --- |
+| Two numeric variables | `scatter(x, y)` or `line(x, y)` | [Scatter](../examples/scatter/) · [Line](../examples/line/) |
+| Categories and values | `bar(categories, values)` | [Bar](../examples/bar/) |
+| Distribution of numeric values | `histogram(data)` or `box(categories, values)` | [Histogram](../examples/histogram/) · [Box](../examples/box/) |
+| Values on a two-dimensional grid | `heatmap(x, y, value)` | [Heatmap](../examples/heatmap/) |
+| Multiple layers or panels | `Plot()` | [Cookbook](../cookbook/) |
+
+Each linked page includes runnable source beside its rendered output. The
+[full examples gallery](../examples/) covers specialized statistical,
+hierarchical, radial, financial, and network charts.
 
 ## Where to next
 

@@ -27,6 +27,9 @@ Git ref. The package installs as `dataviz_mojo` and imports as `dataviz`:
 from dataviz import Plot, save
 ```
 
+For a complete first chart and the command that runs it, follow the
+**[five-minute quickstart](https://randyzwitch.com/dataviz_mojo/quickstart/)**.
+
 ## Development
 
 ```sh

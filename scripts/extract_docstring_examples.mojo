@@ -4,7 +4,12 @@ Functions are deduplicated by file and name. Each example block is written as
 `<function>[_<heading-slug>].mojo` under `docs/src/examples`.
 """
 
-from _example_docstrings import _extract_example_blocks, _pages, _write_file
+from _example_docstrings import (
+    _extract_example_blocks,
+    _pages,
+    _validate_page,
+    _write_file,
+)
 
 comptime _OUT_DIR = "docs/src/examples"
 
@@ -29,6 +34,7 @@ def main() raises:
     var seen = List[String]()  # Extracted "<file>::<fn_name>" pairs.
     var written = 0
     for p in pages:
+        _validate_page(p)
         var key = p.file + "::" + p.fn_name
         if key in seen:
             continue

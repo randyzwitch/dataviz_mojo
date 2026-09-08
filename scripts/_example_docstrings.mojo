@@ -241,7 +241,10 @@ def _quickplot_hook(
     var want_indent = 4 if is_method else 0
     var def_idx = _def_index(lines, fn_name, want_indent)
     var from_def = String("\n").join(lines[def_idx:])
-    return _first_sentence(_extract_docstring(from_def))
+    var docstring = _extract_docstring(from_def)
+    if not docstring:
+        raise Error("example docs: " + fn_name + " has no docstring")
+    return _first_sentence(docstring)
 
 
 def _extract_args_lines(
@@ -417,3 +420,43 @@ def _output_svg_name(code_lines: List[String]) -> String:
         if quote != -1:
             return String(after[byte=0:quote])
     return ""
+
+
+def _validate_page(page: ExamplePage) raises:
+    """Reject an incomplete registered example before it reaches the site.
+
+    A page is part of the public docs contract: its backing callable must have
+    a summary, documented arguments, a runnable example, and an output path
+    that lets the generated page display what the example wrote.
+    """
+    var hook = _quickplot_hook(page.fn_name, page.file, page.is_method)
+    if not hook or hook == ".":
+        raise Error("example docs: " + page.name + " has no summary")
+
+    if len(_extract_args_lines(page.fn_name, page.file, page.is_method)) == 0:
+        raise Error(
+            "example docs: " + page.name + " has no documented Args section"
+        )
+
+    var blocks = _extract_example_blocks(
+        page.fn_name, page.file, page.is_method
+    )
+    var selected = 0
+    for block in blocks:
+        if page.block and block.heading != page.block:
+            continue
+        selected += 1
+        if not _output_svg_name(block.lines):
+            raise Error(
+                "example docs: "
+                + page.name
+                + " has an example without a docs/src/examples output path"
+            )
+    if selected == 0:
+        raise Error(
+            "example docs: page '"
+            + page.name
+            + "' selects missing Example ("
+            + page.block
+            + ")"
+        )
