@@ -180,6 +180,7 @@ from dataviz.annotations import (
     _draw_annotation_bands,
     _draw_annotation_best_fit,
     _draw_annotation_lines,
+    _draw_annotation_arrows,
     _draw_annotation_points,
     _draw_annotation_vlines,
     _validate_log_scale_annotations,
@@ -3388,6 +3389,61 @@ struct Plot(Copyable, Movable):
         self._annotations.point_labels.append(label)
         return self^
 
+    def annotate_arrow(
+        var self,
+        x: Float64,
+        y: Float64,
+        text: String,
+        text_x: Float64,
+        text_y: Float64,
+    ) -> Self:
+        """Point at `(x, y)` with an arrow, labeled `text` placed at
+        `(text_x, text_y)` (matplotlib's `ax.annotate(..., arrowprops=)`).
+        Each call adds an arrow.
+
+        This is the only annotation that can be placed in empty space,
+        which is what makes it usable on a crowded chart where every
+        other overlay lands on data -- `annotate_point()`'s label sits a
+        fixed gap above its marker and cannot be moved. An arrow is
+        often the whole point of a chart going into a document: it is
+        what turns a plot into an argument.
+
+        **Both ends are in data coordinates**, unlike matplotlib, which
+        mixes coordinate systems through `xycoords`/`textcoords`.
+        Everything else in this API is in data space, and a second
+        convention would need explaining every time it appeared. The
+        cost is that a label position has to be chosen against the
+        data's own range; the benefit is that it stays put when the
+        chart is resized.
+
+        Straight arrows only. matplotlib's curved connectors, head
+        styles and shrink factors are refinements on top of a feature
+        that did not exist; the straight case carries most of the value.
+
+        Needs a continuous coordinate on both axes, so only `Mark.POINT`/
+        `LINE`/`AREA`/`EFFECT_SCATTER` support it; raises otherwise. An
+        arrow with either end outside the padded domain is skipped
+        whole rather than clipped -- half an arrow points at nothing.
+
+        Args:
+            x: The target's x-coordinate, where the head lands.
+            y: The target's y-coordinate.
+            text: The label, drawn centered at `(text_x, text_y)`.
+                Empty draws the arrow alone.
+            text_x: The label's x-coordinate, in data space.
+            text_y: The label's y-coordinate, in data space.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later if the mark has no genuine continuous x/y-axis.
+        """
+        self._annotations.arrow_x.append(x)
+        self._annotations.arrow_y.append(y)
+        self._annotations.arrow_text_x.append(text_x)
+        self._annotations.arrow_text_y.append(text_y)
+        self._annotations.arrow_labels.append(text)
+        return self^
+
     def annotate_band(
         var self,
         x: List[Float64],
@@ -3964,6 +4020,9 @@ def _render_into(
     var point_annotation_requests = _draw_annotation_points(
         canvas, plot, result, plot._theme
     )
+    var arrow_annotation_requests = _draw_annotation_arrows(
+        canvas, plot, result, plot._theme, cache=cache
+    )
     var best_fit_annotation_requests = _draw_annotation_best_fit(
         canvas, plot, result, plot._theme
     )
@@ -3973,6 +4032,7 @@ def _render_into(
     _replay_text_requests(canvas, vline_annotation_requests, cache)
     _replay_text_requests(canvas, annotation_requests, cache)
     _replay_text_requests(canvas, point_annotation_requests, cache)
+    _replay_text_requests(canvas, arrow_annotation_requests, cache)
     _replay_text_requests(canvas, best_fit_annotation_requests, cache)
     _replay_text_requests(canvas, result.text_requests, cache)
 
@@ -4027,6 +4087,9 @@ def _render_svg_into(
     var point_annotation_requests = _draw_annotation_points(
         svg, plot, result, plot._theme
     )
+    var arrow_annotation_requests = _draw_annotation_arrows(
+        svg, plot, result, plot._theme, cache=cache
+    )
     var best_fit_annotation_requests = _draw_annotation_best_fit(
         svg, plot, result, plot._theme
     )
@@ -4036,6 +4099,7 @@ def _render_svg_into(
     _replay_text_requests_svg(svg, vline_annotation_requests)
     _replay_text_requests_svg(svg, annotation_requests)
     _replay_text_requests_svg(svg, point_annotation_requests)
+    _replay_text_requests_svg(svg, arrow_annotation_requests)
     _replay_text_requests_svg(svg, best_fit_annotation_requests)
     _replay_text_requests_svg(svg, result.text_requests)
 

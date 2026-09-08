@@ -1011,5 +1011,168 @@ def test_a_kde_keeps_its_y_annotations() raises:
     _ = render(kdeplot(_rug_samples()).annotate_line(0.05, "density ref"))
 
 
+# ---------------------------------------------------------------
+# annotate_arrow (#335)
+# ---------------------------------------------------------------
+
+
+def _arrow_plot() -> Plot:
+    """A 400x300 line plot with one arrow from (3, 3) to (8, 8).
+
+    Both axes carry the same data [0, 10], so `_data_extent`'s 5% pad
+    gives the domain [-0.5, 10.5] on each. Plot rect x:[60,380],
+    y:[250,20]. The target (8, 8) therefore lands at
+    x = 60 + (8.5/11)*320 = 307.27 and y = 250 - (8.5/11)*230 = 72.27,
+    which is where the head's tip must be.
+    """
+    var x: List[Float64] = [0.0, 10.0]
+    var y: List[Float64] = [0.0, 10.0]
+    return (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .size(400, 300)
+        .theme(Theme(show_gridlines=False))
+        .annotate_arrow(8.0, 8.0, "here", 3.0, 3.0)
+    )
+
+
+def test_annotate_arrow_head_tip_lands_exactly_on_its_target() raises:
+    """The head's first vertex is the target, to the same sub-pixel
+    position the scales put it -- not "somewhere near", which a head
+    drawn from the shaft's end rather than the data point would still
+    satisfy.
+
+    307.273/72.273 is derived by hand in `_arrow_plot`'s docstring, so
+    this is checked against the geometry rather than against whatever
+    the code happened to emit.
+    """
+    var s = render_svg(_arrow_plot()).to_string()
+    assert_true(
+        '<path d="M307.273,72.273 ' in s,
+        "the arrowhead's tip is the target point (8, 8)",
+    )
+
+
+def test_annotate_arrow_head_is_one_filled_triangle() raises:
+    """Three vertices and one `Z`, in a single `<path>` with a `fill`.
+
+    A head assembled from several fills is the #327 failure mode:
+    adjacent antialiased fills never reach full coverage at a shared
+    edge, so pale seams show through it. Counting the vertices is what
+    distinguishes one triangle from three abutting pieces.
+    """
+    var s = render_svg(_arrow_plot()).to_string()
+    var at = s.find('<path d="M307.273,72.273 ')
+    assert_true(at >= 0, "the head is present")
+    var end = s.find("/>", at)
+    var head = String(s[byte=at:end])
+    assert_equal(head.count(" L"), 2, "a triangle has two line_to's")
+    assert_equal(head.count(" Z"), 1, "and closes once")
+    assert_true('fill="#969696"' in head, "filled in annotation_color")
+
+
+def test_annotate_arrow_head_interior_is_solid() raises:
+    """The raster counterpart: the head's centroid is fully covered,
+    not a blend of fill and background.
+
+    Centroid of (307.273,72.273), (300.675,81.941), (296.006,75.445) is
+    (301.3, 76.6), measured off the emitted path rather than guessed.
+    """
+    var c = render(_arrow_plot())
+    _assert_color(
+        c, 301, 76, Color(150, 150, 150), "the arrowhead's interior is solid"
+    )
+
+
+def test_annotate_arrow_shaft_starts_clear_of_its_label() raises:
+    """The shaft must leave the label's own box, not merely step a gap
+    from its anchor -- the first version offset by `label_gap` from the
+    center and drew the line straight through the text.
+
+    The label anchors at (162, 177). The shaft starts at (173.4, 168.5),
+    14.2px away, because the ray leaves the label box on its top edge
+    (half the 12px font) before the gap is added. Under the old
+    center-plus-gap version that distance was `label_gap` alone, 4px,
+    so this assertion is what separates the two.
+    """
+    var s = render_svg(_arrow_plot()).to_string()
+    var at = s.find('<line x1="')
+    var found = False
+    while at >= 0:
+        var end = s.find("/>", at)
+        var line = String(s[byte=at:end])
+        if "#969696" in line:
+            found = True
+            # x1/y1 is the shaft's start.
+            var x1s = line.find('x1="') + 4
+            var x1e = line.find('"', x1s)
+            var y1s = line.find('y1="') + 4
+            var y1e = line.find('"', y1s)
+            var x1 = atof(String(line[byte=x1s:x1e]))
+            var y1 = atof(String(line[byte=y1s:y1e]))
+            var dx = x1 - 162.0
+            var dy = y1 - 177.0
+            var dist = (dx * dx + dy * dy) ** 0.5
+            assert_true(
+                dist > 8.0,
+                (
+                    "the shaft starts outside the label box, not at"
+                    " label_gap from its center -- got "
+                    + String(dist)
+                ),
+            )
+            break
+        at = s.find('<line x1="', at + 1)
+    assert_true(found, "the arrow's shaft was emitted")
+
+
+def test_annotate_arrow_raises_on_a_mark_without_continuous_axes() raises:
+    """Same gate as every other x/y annotation: a categorical mark has
+    no continuous coordinate to place either end against."""
+    var cats: List[String] = ["a", "b"]
+    var vals: List[Float64] = [1.0, 2.0]
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=vals)
+        .annotate_arrow(1.0, 1.0, "x", 0.5, 0.5)
+        .size(200, 150)
+    )
+    with assert_raises():
+        _ = render(plot)
+
+
+def test_annotate_arrow_outside_the_domain_draws_nothing() raises:
+    """An arrow with either end off the plot rect is skipped whole
+    rather than clipped: half an arrow points at nothing.
+
+    Compares against the same chart with no arrow at all, so this fails
+    if the arrow is drawn clipped instead of skipped.
+    """
+    var x: List[Float64] = [0.0, 10.0]
+    var y: List[Float64] = [0.0, 10.0]
+    var bare = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .size(400, 300)
+        .theme(Theme(show_gridlines=False))
+    )
+    var offscreen = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .size(400, 300)
+        .theme(Theme(show_gridlines=False))
+        .annotate_arrow(500.0, 500.0, "far away", 3.0, 3.0)
+    )
+    assert_equal(
+        render_svg(bare).to_string(),
+        render_svg(offscreen).to_string(),
+        "an arrow whose target is outside the domain draws nothing at all",
+    )
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

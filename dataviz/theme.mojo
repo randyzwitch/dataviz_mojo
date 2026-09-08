@@ -339,6 +339,13 @@ struct Theme(ImplicitlyCopyable, Movable):
     from competing with the data.
     """
 
+    var annotation_arrow_width: Float64
+    """Stroke width of an `annotate_arrow()` shaft, in pixels before
+    `scale` (#335). Slightly heavier than a gridline by default: an
+    arrow is an assertion the author is making about the data, not
+    chrome, and it has to read as deliberate against whatever it
+    crosses. The head is sized from `scale` alone -- see
+    `_ARROW_HEAD_LENGTH` (annotations.mojo)."""
     var annotation_line_style: LineStyle
     """How `annotate_hline`/`annotate_vline`/`annotate_best_fit` are
     stroked. `SOLID` by default. Dashing these is the conventional way
@@ -441,6 +448,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         svg_tooltips: Bool = True,
         show_data_labels: Bool = False,
         gridline_style: LineStyle = LineStyle.SOLID,
+        annotation_arrow_width: Float64 = 1.5,
         annotation_line_style: LineStyle = LineStyle.SOLID,
         legend_position: LegendPosition = LegendPosition.RIGHT,
         x_label_rotation: XAxisLabelRotation = XAxisLabelRotation.AUTO,
@@ -509,6 +517,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.svg_tooltips = svg_tooltips
         self.show_data_labels = show_data_labels
         self.gridline_style = gridline_style
+        self.annotation_arrow_width = annotation_arrow_width
         self.annotation_line_style = annotation_line_style
         self.legend_position = legend_position
         self.x_label_rotation = x_label_rotation
