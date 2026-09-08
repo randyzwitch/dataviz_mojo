@@ -26,16 +26,21 @@ from canvas.color import Color
 from canvas.path import Path, PathOp
 from dataviz import (
     CORNFLOWERBLUE,
+    HistStat,
+    HistogramBins,
     StepStyle,
     area,
     bar,
     barbs,
+    bin_edges,
     box,
     bullet,
     candlestick,
     contour,
     contourf,
     histogram,
+    histogram_bins,
+    shared_bin_edges,
     tricontour,
     tricontourf,
     triplot,
@@ -43,14 +48,8 @@ from dataviz import (
     line,
     lollipop,
     scatter,
-    waterfall,
-)
-from dataviz.histogram import (
-    HistStat,
-    bin_edges,
-    histogram_bins,
-    shared_bin_edges,
     uniform_bin_edges,
+    waterfall,
 )
 from dataviz.barbs import _barb_counts, _barb_glyph
 from dataviz.continuous import _step_points
@@ -2076,6 +2075,28 @@ def test_histogram_bins_step_columns_close_the_last_bar() raises:
     assert_equal(ys[2], 1.0, "bin 2's own value")
     assert_equal(ys[3], ys[2], "the closing point repeats the last bin")
     assert_equal(xs[3], 3.0, "and sits on the last edge")
+
+
+def test_histogram_bins_constructs_from_precomputed_columns() raises:
+    # `HistogramBins(edges, values)` is documented as constructible
+    # directly, for a caller who binned elsewhere and only wants the
+    # geometry helpers. Nothing else in the suite reaches the
+    # constructor by name, so this is also the one test that would stop
+    # compiling if `HistogramBins` fell out of the package's exports.
+    #
+    # Every expected number below is arithmetic on the two literal
+    # lists, not a value read back from a binning call.
+    var edges: List[Float64] = [0.0, 1.0, 3.0, 7.0]
+    var values: List[Float64] = [2.0, 3.0, 4.0]
+    var b = HistogramBins(edges.copy(), values.copy())
+    assert_equal(len(b), 3, "four edges name three bins")
+    assert_equal(b.width(0), 1.0, "1 - 0")
+    assert_equal(b.width(2), 4.0, "7 - 3")
+    assert_equal(b.center(1), 2.0, "midpoint of [1, 3]")
+    assert_equal(b.total(), 9.0, "2 + 3 + 4")
+    var ys = b.step_y()
+    assert_equal(len(ys), 4, "one y per edge, the last repeated")
+    assert_equal(ys[3], 4.0, "the closing point repeats the last bin")
 
 
 def test_histogram_bins_raise_on_bad_input() raises:
