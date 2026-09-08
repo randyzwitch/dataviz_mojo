@@ -1,7 +1,7 @@
 """The `annotate_*()` overlays: their stored data, their validation, and
 the six passes that draw them.
 
-Split out of `plot.mojo` (#222). This is the most self-contained seam in
+Split out of `plot.mojo`. This is the most self-contained seam in
 that file: `Plot` holds an `_AnnotationData` and calls these six passes,
 and nothing else in the package touches them.
 
@@ -507,7 +507,7 @@ def _draw_annotation_points[
 
 
 comptime _ARROW_HEAD_LENGTH = 11.0
-"""Pixel length of an arrowhead before `Theme.scale` (#335).
+"""Pixel length of an arrowhead before `Theme.scale`.
 
 Sized from the theme, never from the arrow's own length: a head scaled
 to the shaft would be comically large on a short arrow pointing at a
@@ -541,11 +541,11 @@ def _draw_annotation_arrows[
     The head is one `fill_path_aa` triangle rather than three strokes:
     adjacent antialiased fills never reach full coverage at a shared
     edge, so a head assembled from separate pieces shows pale seams
-    through it (#327, and the four occurrences before it).
+    through it.
 
     Nothing snaps. The shaft is a diagonal and the head is a rotated
     triangle, and neither has a crisp position to snap to -- the rule
-    settled in #313, where only axis-aligned fills and hairlines snap.
+    used here, where only axis-aligned fills and hairlines snap.
 
     An arrow whose target or label falls outside the plot rect is
     skipped whole rather than clipped, matching `annotate_point()`: half

@@ -1,5 +1,6 @@
-"""Merged test module (one process per test family; see pixi.toml's
-`[tasks]` comment for why). Covers:
+"""Tests for annotations.
+
+Covers:
 
 - annotate_line(): placement (raster + SVG), mark support (BAR/LINE
   supported, ARC raises), out-of-range values, repeated calls.
@@ -187,13 +188,6 @@ def test_render_svg_annotate_area_matches_hand_derived_position() raises:
     )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    # annotation_area_color's default alpha (200/255 -> 0.784) emits a
-    # fill-opacity attribute.
-    #
-    # 18.0 sits at 72.273, so the band's top edge snaps to the pixel
-    # boundary at 72.5 and row 73 is the first one it covers. Reading
-    # 72.273 as a row index instead, as this used to, started the band at
-    # row 72 -- three quarters of a pixel high.
     assert_true(
         '<rect x="60" y="73" width="320" height="125" fill="#e0ecf6"'
         ' fill-opacity="0.784"/>'
@@ -964,7 +958,7 @@ def _rug_samples() -> List[Float64]:
 
 
 def test_annotate_line_raises_on_a_rug_which_has_no_y_scale() raises:
-    """#389: `Mark.RUG` draws no y-axis (#378), but its frame still
+    """`Mark.RUG` draws no y-axis, but its frame still
     carried a placeholder `LinearScale(0.0, 1.0, ...)` -- the domain
     `_draw_continuous_axis_frame` requires whether or not anything is
     drawn against it -- and reported `has_y_scale=True`.
@@ -980,7 +974,7 @@ def test_annotate_line_raises_on_a_rug_which_has_no_y_scale() raises:
 
 
 def test_annotate_area_raises_on_a_rug_which_has_no_y_scale() raises:
-    """`annotate_area`'s half of #389 -- same placeholder domain, same
+    """`annotate_area`'s half of  -- same placeholder domain, same
     reasoning."""
     with assert_raises():
         _ = render(rugplot(_rug_samples()).annotate_area(0.2, 0.4, "band"))
@@ -1004,7 +998,7 @@ def test_annotate_vline_still_works_on_a_rug() raises:
 
 
 def test_a_kde_keeps_its_y_annotations() raises:
-    """#389 keys off `y_axis_visible`, which `Mark.KDE` leaves true --
+    """Keys off `y_axis_visible`, which `Mark.KDE` leaves true --
     its y-axis is a real density scale. Pins that the rug fix did not
     catch the mark it shares a module with.
     """
@@ -1012,7 +1006,7 @@ def test_a_kde_keeps_its_y_annotations() raises:
 
 
 # ---------------------------------------------------------------
-# annotate_arrow (#335)
+# annotate_arrow
 # ---------------------------------------------------------------
 
 
@@ -1057,7 +1051,7 @@ def test_annotate_arrow_head_tip_lands_exactly_on_its_target() raises:
 def test_annotate_arrow_head_is_one_filled_triangle() raises:
     """Three vertices and one `Z`, in a single `<path>` with a `fill`.
 
-    A head assembled from several fills is the #327 failure mode:
+    A head assembled from several fills exposes the failure mode:
     adjacent antialiased fills never reach full coverage at a shared
     edge, so pale seams show through it. Counting the vertices is what
     distinguishes one triangle from three abutting pieces.

@@ -261,7 +261,7 @@ def _render_horizontal_stacked_bar[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """`_render_stacked_bar`'s mirror image for
-    `Plot.mark_stacked_bar(horizontal=True)` (#121):
+    `Plot.mark_stacked_bar(horizontal=True)`:
     `_render_horizontal_bar`'s categorical y-axis / zero-baseline (or
     fixed `[0, 100]` for `percent=True`) x-axis
     (`_draw_horizontal_categorical_axis_frame`, gantt.mojo), with each
@@ -367,7 +367,7 @@ def stacked_bar(
         horizontal: Draw categories running top-to-bottom with each
             category's segments stacked left-to-right instead of the
             default vertical layout -- see `Plot.mark_stacked_bar()`'s
-            own docstring (#121).
+            own docstring.
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.

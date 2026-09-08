@@ -30,10 +30,8 @@ def effect_scatter(
         x: The continuous x column, one entry per point.
         y: The continuous y column, one entry per point.
         tooltips: Whether each point carries an SVG `<title>` a browser
-            shows on hover; defaults to `False`. Off by default because
-            a title costs roughly as much as the point element itself,
-            so a dense scatter's SVG about doubles -- see
-            `Plot.mark_point()`'s own `tooltips` parameter.
+            shows on hover; defaults to `False`. `Theme.svg_tooltips`
+            must also be enabled.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.

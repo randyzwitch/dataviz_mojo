@@ -332,9 +332,6 @@ def test_render_nightingale_raises_on_mismatched_category_length() raises:
 
 
 def test_render_nightingale_raises_on_no_data() raises:
-    # #206: an empty categorical mark used to render a plain background
-    # with no error; _validate_categorical_encoding now raises before any
-    # layout.
     var x = List[String]()
     var y = List[Float64]()
     with assert_raises():
@@ -418,7 +415,6 @@ def test_render_polar_raises_on_negative_radius() raises:
 
 
 def test_render_polar_raises_on_no_data() raises:
-    # #206: see test_render_nightingale_raises_on_no_data above.
     var angle = List[Float64]()
     var radius = List[Float64]()
     with assert_raises():
@@ -483,7 +479,6 @@ def test_render_polar_series_raises_on_negative_radius() raises:
 
 
 def test_render_polar_series_raises_on_empty_angle() raises:
-    # #206: see test_render_nightingale_raises_on_no_data above.
     var angle = List[Float64]()
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [List[Float64]()]
@@ -558,7 +553,6 @@ def test_render_polar_bar_raises_on_mismatched_category_length() raises:
 
 
 def test_render_polar_bar_raises_on_no_data() raises:
-    # #206: see test_render_nightingale_raises_on_no_data above.
     var x = List[String]()
     var y = List[Float64]()
     with assert_raises():
@@ -668,7 +662,6 @@ def test_render_radialbar_raises_on_mismatched_category_length() raises:
 
 
 def test_render_radialbar_raises_on_no_data() raises:
-    # #206: see test_render_nightingale_raises_on_no_data above.
     var x = List[String]()
     var y = List[Float64]()
     with assert_raises():
@@ -823,7 +816,6 @@ def test_render_radar_raises_on_wrong_length_series_values() raises:
 
 
 def test_render_radar_raises_on_no_indicators() raises:
-    # #206: see test_render_nightingale_raises_on_no_data above.
     var indicators = List[String]()
     var max_values = List[Float64]()
     var series_names = List[String]()
@@ -1076,7 +1068,6 @@ def test_render_parallel_raises_on_wrong_length_row() raises:
 
 
 def test_render_parallel_raises_on_no_dims() raises:
-    # #206: see test_render_nightingale_raises_on_no_data above.
     var dims = List[String]()
     var row_names = List[String]()
     var data = List[List[Float64]]()
@@ -1172,7 +1163,6 @@ def test_render_single_axis_raises_on_mismatched_channel_length() raises:
 
 
 def test_render_single_axis_raises_on_no_data() raises:
-    # #206: see test_render_nightingale_raises_on_no_data above.
     var x = List[Float64]()
     with assert_raises():
         var _hoisted4 = single_axis(x, width=200, height=150)

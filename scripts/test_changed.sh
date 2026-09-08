@@ -1,26 +1,14 @@
 #!/usr/bin/env bash
-# Runs only the test family modules a change could plausibly affect,
-# for local iteration (#229, item 4). The full suite recompiles the
-# package once per file and takes tens of minutes; one family module
-# takes a few, so the cost of a quick check should scale with what you
-# touched rather than with the suite.
+# Runs test modules that a change could plausibly affect.
 #
 # What counts as changed: anything differing from origin/main, plus
 # staged and unstaged working-tree edits. Pass explicit paths to
 # override that ("scripts/test_changed.sh dataviz/contour.mojo").
 #
-# How a source file maps to a test module: by name. tests/ has no
-# declared ownership of dataviz/ modules, so a changed dataviz/foo.mojo
-# selects every tests/test_*.mojo mentioning the token "foo" -- which
-# works because a mark's tests name its function and module (contour,
-# violin, sankey). Two consequences worth knowing:
+# A changed dataviz/foo.mojo selects tests mentioning "foo":
 #
-#   - It over-selects on common tokens ("plot", "scale", "theme" appear
-#     nearly everywhere), which is the safe direction.
-#   - It under-selects when a test exercises a module without naming it,
-#     which is the unsafe direction. So this is an iteration aid, not a
-#     gate: CI still runs `pixi run test` over everything, and you
-#     should too before pushing.
+#   - Common tokens may select extra modules.
+#   - Indirect coverage may be missed, so run the full suite before pushing.
 #
 # A change to tests/_test_helpers.mojo, pixi.toml, or anything under
 # dataviz/ that nothing names selects the whole suite rather than

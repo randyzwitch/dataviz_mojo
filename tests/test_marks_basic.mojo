@@ -421,8 +421,7 @@ def test_render_svg_line_mark_matches_confirmed_path_coordinates() raises:
 
 
 # ---------------------------------------------------------------
-# Mark.LINE's step (stairs) interpolation, #336
-#
+# Mark.LINE's step (stairs) interpolation, #
 # The pixel coordinates every assertion below uses come from one
 # projection, derived once here and reused:
 #
@@ -479,7 +478,7 @@ def test_step_points_matches_matplotlibs_own_step_expansion() raises:
 
 
 def test_step_points_duplicates_a_repeated_x_the_way_matplotlib_does() raises:
-    # #405. Two consecutive samples sharing an x make PRE emit the same
+    # Two consecutive samples sharing an x make PRE emit the same
     # point twice, and POST does the same when two consecutive samples
     # share a y. matplotlib does both, so this is the oracle match
     # holding rather than a defect, and this test exists to keep a
@@ -553,7 +552,7 @@ def test_step_points_duplicates_a_repeated_x_the_way_matplotlib_does() raises:
 
 def test_step_points_duplicates_a_repeated_y_the_way_matplotlib_does() raises:
     # The other degenerate step, and the more common one: two
-    # consecutive samples sharing a y collapse the riser. #405 names
+    # consecutive samples sharing a y collapse the riser. names
     # this only for POST, but it hits all three styles -- PRE's
     # (x[i], y[i+1]) repeats the point before it, POST's two emissions
     # at x[i+1] become one, and MID's two at the midpoint likewise. A
@@ -618,14 +617,14 @@ def test_step_points_duplicates_a_repeated_y_the_way_matplotlib_does() raises:
 
 
 def test_a_repeated_x_reaches_the_rendered_step_path_as_a_repeated_command() raises:
-    # The end-to-end half of #405: the duplicate is not swallowed
+    # The end-to-end half of the duplicate is not swallowed
     # between _step_points and the emitted `d`. _decimate_to_pixel_columns
     # keeps a column's min and max y, which for a duplicated sample are
     # the same point twice, so it collapses nothing here.
     #
     # Asserted on the substring "L120.000,61.905 L120.000,61.905" rather
     # than on a point count, because that is the artifact a reader of
-    # the SVG actually sees, and it is what #405 quoted. The values come
+    # the SVG actually sees, and it is what quoted. The values come
     # from a real render_svg() of this plot, not from the projection
     # arithmetic repeated here.
     var x: List[Float64] = [0.0, 1.0, 1.0, 2.0]
@@ -1041,8 +1040,7 @@ def test_render_area_raises_on_out_of_range_smoothing() raises:
 
 
 # ---------------------------------------------------------------
-# Mark.AREA's step (stairs) interpolation, #384
-#
+# Mark.AREA's step (stairs) interpolation, #
 # One projection backs every assertion below, the same one
 # test_render_svg_area_smoothing_matches_hand_derived_curve uses:
 #
@@ -1492,9 +1490,6 @@ def test_render_bar_raises_on_mismatched_category_length() raises:
 
 
 def test_render_bar_raises_on_no_data() raises:
-    # #206: an all-empty Plot used to render a plain background with no
-    # axes and no error; _validate_categorical_encoding now raises before
-    # any layout.
     with assert_raises():
         var plot = (
             Plot().mark_bar().size(50, 40)
@@ -1507,7 +1502,7 @@ def test_render_bar_negative_values_extend_below_the_baseline() raises:
     rises above it, so in one chart carrying both they occupy opposite
     sides and do not overlap at all.
 
-    Located by scanning rather than by hand-derived pixel (#218), and
+    Located by scanning rather than by hand-derived pixel, and
     stated with both signs in one chart on purpose. A single bar is not
     the test it looks like: `_zero_baseline_y_extent` pads only the end
     that is not zero, so a lone -10 spans y 20-238 and a lone +10 spans
@@ -1665,7 +1660,7 @@ def test_encode_histogram_raises_on_non_positive_bins() raises:
 
 
 def test_encode_histogram_centers_bins_on_a_constant_sample() raises:
-    # Was `..._raises_on_zero_span_data` before #366: a constant sample
+    # Was `..._raises_on_zero_span_data` before a constant sample
     # had "no span to divide into bins" and raised. numpy bins it over
     # [v - 0.5, v + 0.5], which is a real answer -- the whole sample in
     # one bin -- so this now has to produce that instead of raising.
@@ -1711,7 +1706,7 @@ def test_render_histogram_draws_as_an_ordinary_bar_chart() raises:
 
 
 # ---------------------------------------------------------------
-# The binning engine (#366): numeric edges, shared edges, weights,
+# The binning engine: numeric edges, shared edges, weights,
 # normalization, cumulative.
 #
 # Every expected number below was produced by numpy 2.5.3 /
@@ -2131,7 +2126,7 @@ def test_hist_stat_names_itself() raises:
 
 
 # ---------------------------------------------------------------
-# histogram()'s numeric x-axis (#366). Every pixel expectation below
+# histogram()'s numeric x-axis. Every pixel expectation below
 # was read off an actual 400x300 render saved as a .bmp and parsed byte
 # by byte, not derived from margin arithmetic.
 # ---------------------------------------------------------------
@@ -2224,10 +2219,6 @@ def test_render_histogram_spans_the_whole_bin_range() raises:
 
 
 def test_render_histogram_draws_a_constant_sample() raises:
-    # #366's "constant samples must render meaningfully". Three
-    # identical values over bins=4 give the range [4.5, 5.5] and counts
-    # [0, 0, 3, 0]; across the plot area x:[60,380] that is one bar over
-    # x:[220,300], measured at x:[221,299]. This used to raise.
     var t = Theme(show_gridlines=False)
     var data: List[Float64] = [5.0, 5.0, 5.0]
     var c = render(histogram(data, bins=4, theme=t, width=400, height=300))
@@ -3178,7 +3169,7 @@ def test_render_barbs_raises_on_nonpositive_length() raises:
 
 
 # ---------------------------------------------------------------
-# Mark.CONTOUR (#259)
+# Mark.CONTOUR
 # ---------------------------------------------------------------
 
 
@@ -3429,7 +3420,7 @@ def test_render_contour_raises_on_non_positive_level_count() raises:
 
 
 # ---------------------------------------------------------------
-# Mark.CONTOURF (#260)
+# Mark.CONTOURF
 # ---------------------------------------------------------------
 
 
@@ -3660,7 +3651,7 @@ def test_render_contourf_raises_on_non_positive_level_count() raises:
 
 
 # ---------------------------------------------------------------
-# Delaunay triangulation and Mark.TRICONTOUR (#261)
+# Delaunay triangulation and Mark.TRICONTOUR
 # ---------------------------------------------------------------
 
 
@@ -4000,7 +3991,7 @@ def test_render_tricontour_collinear_samples_render_an_empty_frame() raises:
 
 
 # ---------------------------------------------------------------
-# Mark.TRIPLOT and Mark.TRIPCOLOR (#344)
+# Mark.TRIPLOT and Mark.TRIPCOLOR
 # ---------------------------------------------------------------
 
 
@@ -4318,7 +4309,7 @@ def test_tripcolor_lets_no_background_through_between_triangles() raises:
     Adjacent triangles filled independently each antialias the edge they
     share, and two half-covered pixels composited over the page do not
     add up to a covered one -- the fill comes out webbed with pale lines
-    (#315, #318, #327, #359, #360). A pixel where that happens shows some
+    A pixel where that happens shows some
     of the page, so it *changes* when the page changes; a pixel that is
     genuinely solid cannot.
 
@@ -4404,12 +4395,8 @@ def test_tripcolor_covers_the_interior_that_triplot_only_outlines() raises:
     sampled interior box is painted. `triplot` over the same points
     covers only its edges, so most of that same box stays the page color.
 
-    An ink *ratio* was tried first and rejected: counting non-white
-    pixels over the whole canvas counts the gridlines, axis and tick
-    labels too, which both charts have equally, so the ratio was
-    dominated by furniture and came out near 2 either way -- it would
-    have passed on a fill riddled with holes. Requiring exactly zero
-    unpainted pixels in a box that is inside the hull does not.
+    The assertion checks unpainted pixels inside the hull so axes,
+    gridlines, and tick labels do not affect the result.
 
     The box is well inside the plot rect (x 60..300, y 20..230 at this
     size, with `_data_extent`'s padding pulling the hull in a further

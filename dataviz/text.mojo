@@ -1,16 +1,4 @@
-"""Text: the deferred-draw mechanism every chart's labels go through,
-and the theme-derived sizes they are measured in.
-
-Split out of `plot.mojo` (#222). `DrawTarget` deliberately has no
-`draw_text` -- raster text needs `canvas.text`'s FreeType/fontconfig
-machinery and SVG text needs markup -- so the generic rendering pass
-collects `_TextRequest`s instead of drawing, and each entry point
-replays them afterward through the backend it actually has. That is
-also what keeps a label from being painted over by a later mark.
-
-`_Scaled` lives here because it is what text is measured against:
-`Theme.scale` applied once to every size and gap in a chart.
-"""
+"""Deferred text drawing and theme-scaled layout metrics."""
 
 from std.math import pi
 
@@ -108,19 +96,7 @@ struct _Scaled(Movable):
 def _max_label_width(
     labels: List[String], font_size: Float64, *, mut cache: FontCache
 ) raises -> Float64:
-    """The widest rendered ink width among `labels` at `font_size`, used to
-    size the left margin to the y-axis tick labels before the plot area's
-    pixel range is finalized (tick values depend only on the data domain,
-    so measuring early is exact).
-
-    Measures through the caller's `cache`, the one `FontCache` a render
-    shares between every measurement and every label it draws (#255,
-    `FontCache`): a fresh cache re-pays the font database read, the
-    family resolution and the TTF parse, which is why there is no
-    overload without one. Warm, a measurement is orders of magnitude
-    cheaper than cold, so the cache is close to the whole cost of
-    measuring a set of tick labels.
-    """
+    """Return the widest rendered label at `font_size` using `cache`."""
     var max_width = 0.0
     for label in labels:
         var m = measure_text(label, font_size, cache=cache)
@@ -176,14 +152,7 @@ struct _TextRequest(Copyable, Movable):
 
 
 def _text_advance(text: String, sc: _Scaled) -> Int:
-    """A rough width for `text` at `sc.font_size`, for laying one legend
-    section next to the next without measuring.
-
-    Deliberately an estimate: these are the two-or-three short numeric
-    labels a continuous legend carries, the sections are separated by
-    `label_gap` anyway, and measuring here would mean threading the
-    render's font cache through purely to place a gap. Over-estimating
-    is the safe direction, so this uses a generous per-character width.
+    """Estimate text width for spacing continuous legend sections.
 
     Args:
         text: The label.

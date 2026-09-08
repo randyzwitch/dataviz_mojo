@@ -1,14 +1,4 @@
-"""The encoding checks every `render()` runs before drawing anything.
-
-Split out of `plot.mojo` (#222). These are what turn a mistake into a
-message naming the method that was called wrong, rather than a chart
-that silently drops a column or a crash deep inside a mark.
-
-Kept together because they are one another's neighbors in practice: a
-mark validates its encoding, its domain overrides and its log-scale
-compatibility in the same breath, and the wording of those errors is
-meant to stay consistent across all of them.
-"""
+"""Shared encoding and render-time validation."""
 
 from std.math import log10
 
@@ -30,18 +20,7 @@ from dataviz.theme import Theme
 
 
 def _require_non_empty(count: Int, context: String) raises:
-    """Raise when a mark's own data is completely empty (`count == 0`),
-    naming the encode method or mark that populated it. Every `_render_*`
-    function used to silently return a blank `_RenderResult` (no axes, no
-    title, no signal that anything was wrong) for an all-empty `Plot`
-    (#206); this is called instead, since a blank image is the hardest
-    failure to diagnose and the common cause (a filter upstream produced
-    zero rows) is exactly the case where a loud failure saves the most
-    time. Called either from `encode_*()` itself (immediately, for the
-    handful of methods that already validate eagerly) or from the
-    render-time shared validators/`_render_*` functions (deferred, like
-    most other length checks in this package).
-    """
+    """Raise with `context` when a mark has no data."""
     if count == 0:
         raise Error(
             context + ": there is no data to draw (every column is empty)"
@@ -50,11 +29,11 @@ def _require_non_empty(count: Int, context: String) raises:
 
 def _validate_categorical_encoding(plot: Plot) raises:
     """`Plot.encode_categorical()`'s length check plus its empty-data check
-    (`_require_non_empty`, #206), shared by every mark reading a
-    category/value pair. Also validates `y_err`/`y_err_lower`/`y_err_upper`
-    (#216) when set, mirroring `_validate_continuous_encoding`'s rules for
-    `encode()`'s same three channels but against `x_categories`' length and
-    restricted to `Mark.BAR` -- the only categorical mark drawing them today.
+       (`_require_non_empty`), shared by every mark reading a
+       category/value pair. Also validates `y_err`/`y_err_lower`/`y_err_upper`
+    when set, mirroring `_validate_continuous_encoding`'s rules for
+       `encode()`'s same three channels but against `x_categories`' length and
+       restricted to `Mark.BAR` -- the only categorical mark drawing them today.
     """
     if len(plot.x_categories) != len(plot.y_data):
         raise Error(
@@ -366,7 +345,7 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
 def _validate_domain_override(
     override: _DomainOverride, is_log: Bool, context: String
 ) raises:
-    """`Plot.scale_x_domain()`/`scale_y_domain()`'s (#209) own value
+    """`Plot.scale_x_domain()`/`scale_y_domain()`'s own value
     checks: `min < max` always, and (mirroring `_log_data_extent()`'s
     positivity requirement) `min > 0` when the matching axis is
     log-scaled. A no-op when `override.has` is `False`.
@@ -423,7 +402,7 @@ def _step_setter_name(mark: Mark) -> String:
     """The `Plot` builder whose `step=` argument a mark's step came from:
     `Mark.STREAMGRAPH` -> `"Plot.mark_streamgraph(step=...)"`.
 
-    Derived from `Mark.name()` (#415) rather than looked up. Every
+    Derived from `Mark.name()` rather than looked up. Every
     builder in plot.mojo is `mark_` followed by its constant's
     lowercased name -- all 51 of them, `mark_polar_bar` and
     `mark_arc_diagram` included -- so the chain of `==` this replaced
@@ -453,7 +432,7 @@ def _check_step_smoothing(
     theme: Theme, step: StepStyle, mark: Mark = Mark.LINE
 ) raises:
     """`Theme.line_smoothing` and `mark_line(step=...)`/
-    `mark_area(step=...)` are mutually exclusive (#336, #384); raise when
+    `mark_area(step=...)` are mutually exclusive; raise when
     both are asked for.
 
     A smoothed staircase is not a compromise between the two, it is
@@ -473,7 +452,7 @@ def _check_step_smoothing(
     the same reason and with the same wording, differing only in which
     method to go and change.
 
-    `Mark.STREAMGRAPH` (#403) is the case where the conflict is most
+    `Mark.STREAMGRAPH` is the case where the conflict is most
     likely to be hit by accident, because `streamgraph()` sets
     `line_smoothing` to `0.6` itself: a stepped stream would raise on
     its own default. That is why only `stacked_area()`, whose default

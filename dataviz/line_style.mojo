@@ -1,4 +1,4 @@
-"""Dashed, dotted and dash-dot strokes (#331)."""
+"""Dashed, dotted and dash-dot strokes."""
 
 
 struct LineStyle(Copyable, ImplicitlyCopyable, Movable):

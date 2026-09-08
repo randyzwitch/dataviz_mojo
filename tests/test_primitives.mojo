@@ -214,14 +214,6 @@ def test_label_decimals_avoids_binary_floating_point_drift() raises:
 
 
 def test_format_fixed_falls_back_past_2_53_instead_of_overflowing() raises:
-    # #205: _format_fixed rounds value*10^decimals through Int(Float64),
-    # which silently wraps to garbage once that product exceeds what a
-    # Float64 (or, sooner, Int) can represent exactly, rather than
-    # raising. 1e19/1e17*100/-3e18*10 each used to produce wrong digits
-    # (or, for -3e18, a doubled leading minus sign from an Int64-min
-    # negation overflow) instead of failing loudly. Mojo's own
-    # String(Float64) is the fallback and is used verbatim, so these
-    # match its scientific-notation output exactly.
     assert_equal(_format_fixed(1e19, 0), "1e+19")
     assert_equal(_format_fixed(1e17, 2), "1e+17")
     assert_equal(_format_fixed(-3e18, 1), "-3e+18")
@@ -251,7 +243,7 @@ def test_format_fixed_normal_range_values_are_unaffected_by_the_overflow_guard()
 
 
 def test_label_decimals_returns_zero_past_2_53_instead_of_overflowing() raises:
-    # #205's other call site: _label_decimals' own search loop rounds
+    # 's other call site: _label_decimals' own search loop rounds
     # through the same Int(Float64) cast per candidate decimal count, so
     # it must short-circuit before entering the loop rather than run it
     # (harmlessly, since Int overflow doesn't crash here, but pointlessly)
@@ -263,12 +255,6 @@ def test_label_decimals_returns_zero_past_2_53_instead_of_overflowing() raises:
 
 
 def test_ticks_labels_on_a_huge_domain_uses_the_overflow_fallback_not_garbage() raises:
-    # A domain far past 2^53 used to produce 19-digit labels built from
-    # wrapped/garbage Int arithmetic once decimals happened to be
-    # positive, or merely-unwieldy-but-correct all-digits labels at
-    # decimals=0 (the case _nice_step actually produces here, since its
-    # exponent is always >= 0 for a domain this large). This pins that
-    # such a domain's ticks are readable and never garbage.
     var s = LinearScale(0.0, 5e18, 0.0, 1.0)
     var t = s.ticks()
     var labels = t.labels()
@@ -344,7 +330,7 @@ def test_format_tick_with_affixes_wraps_every_kind() raises:
 
 
 def test_format_tick_falls_back_to_scientific_past_2_53_regardless_of_format() raises:
-    # #205's overflow boundary applies to every kind here, not just AUTO,
+    # 's overflow boundary applies to every kind here, not just AUTO,
     # since THOUSANDS/PERCENT/FIXED all still route through _format_fixed
     # internally.
     assert_equal(_format_tick(5e18, 0, TickFormat.THOUSANDS), "5e+18")
@@ -365,7 +351,7 @@ def test_ticks_labels_accepts_a_tick_format() raises:
 
 
 def test_render_svg_y_tick_format_reaches_the_axis_labels() raises:
-    # #210: Theme.y_tick_format actually reaches the rendered SVG, not
+    # Theme.y_tick_format actually reaches the rendered SVG, not
     # just the isolated formatter.
     var x: List[Float64] = [0.0, 1.0, 2.0]
     var y: List[Float64] = [0.1, 0.5, 0.9]
@@ -456,11 +442,6 @@ def test_min_max_raises_on_an_empty_column() raises:
 
 
 def test_min_max_raises_on_nan_anywhere_not_only_at_the_extremes() raises:
-    # #190: NaN at index 0 used to poison lo/hi into (NaN, NaN) silently
-    # (every comparison against NaN is false); NaN elsewhere used to be
-    # skipped by those same comparisons and survive as a garbage
-    # Int64::MIN pixel coordinate downstream. Both must now raise here,
-    # the single chokepoint every domain computation passes through.
     with assert_raises():
         _ = _min_max([nan[DType.float64](), 2.0, 3.0])
     with assert_raises():
@@ -468,9 +449,6 @@ def test_min_max_raises_on_nan_anywhere_not_only_at_the_extremes() raises:
 
 
 def test_min_max_raises_on_inf() raises:
-    # inf has a well-defined order, so it survives _min_max's
-    # comparisons and used to produce a real-but-infinite domain no
-    # tick generator could label.
     with assert_raises():
         _ = _min_max([1.0, inf[DType.float64](), 3.0])
     with assert_raises():
@@ -537,7 +515,7 @@ def test_band_end_is_padding_in_from_the_next_slot() raises:
 
 
 def test_band_end_is_bitwise_equal_to_the_next_band_start_unpadded() raises:
-    # The invariant the #379 fix rests on. With no padding, one band's
+    # The invariant the fix rests on. With no padding, one band's
     # right edge and the next band's left edge are the same boundary, and
     # they have to be the same Float64 -- not merely equal in exact
     # arithmetic -- or snapping them to the pixel grid can round them to
@@ -571,7 +549,7 @@ def test_band_end_is_bitwise_equal_to_the_next_band_start_unpadded() raises:
 
 
 def test_minor_ticks_subdivide_each_linear_step_by_five() raises:
-    # #334. Domain [0,10] gives majors every 2, so minors land every 0.4
+    # Domain [0,10] gives majors every 2, so minors land every 0.4
     # -- four between each pair of majors, none on one.
     var s = LinearScale(0.0, 10.0, 0.0, 1.0)
     var t = s.ticks()
@@ -737,7 +715,7 @@ def test_color_scale_zero_span_domain_returns_the_lowest_offset_stop() raises:
 
 
 # ---------------------------------------------------------------
-# Theme.color_ramp and the perceptual colormaps (#332)
+# Theme.color_ramp and the perceptual colormaps
 # ---------------------------------------------------------------
 
 
@@ -753,7 +731,7 @@ def _assert_stop(
 
 def test_an_empty_color_ramp_leaves_the_three_stop_gradient_untouched() raises:
     # The compatibility claim: color_ramp defaults to empty, and while it
-    # is empty from_theme must behave exactly as it did before #332 --
+    # is empty from_theme must behave exactly as it did before --
     # low at 0.0, mid at 0.5, high at 1.0. Every existing Theme and every
     # golden depends on this.
     var theme = Theme()
@@ -1175,7 +1153,7 @@ def test_encode_grouped_bar_accepts_a_custom_stringsequence_matching_the_list_pa
 
 
 # ---------------------------------------------------------------
-# Property-style sweeps (#220)
+# Property-style sweeps
 #
 # The scale math has crisp invariants that hold for every input, and
 # the hand-picked domains elsewhere in this file only pin a handful of
@@ -1502,7 +1480,7 @@ def test_sweep_log_ticks_are_1_2_or_5_decade_positions_inside_the_domain() raise
 
 
 # ---------------------------------------------------------------
-# time_ticks.mojo -- calendar-aware ticks (#195)
+# time_ticks.mojo -- calendar-aware ticks
 # ---------------------------------------------------------------
 
 
@@ -1558,7 +1536,7 @@ def test_leap_years_follow_the_century_rule() raises:
 
 
 def test_six_months_of_daily_data_reads_as_month_names() raises:
-    # The motivating case on #195: a half-year domain should read
+    # The motivating case on a half-year domain should read
     # Jan/Feb/Mar, not a run of raw epoch day counts.
     var t = _time_ticks(_days(2026, 1, 1), _days(2026, 6, 1))
     var labels = t.labels()

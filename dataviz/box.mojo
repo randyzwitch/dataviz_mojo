@@ -352,14 +352,14 @@ def _render_horizontal_box[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """`_render_box`'s mirror image for `Plot.mark_box(horizontal=True)`
-    (#121): `_render_horizontal_bar`'s categorical y-axis
-    (`_draw_horizontal_categorical_axis_frame`, gantt.mojo) with the
-    continuous axis (`_data_extent`, not zero-forced) along the bottom.
-    Whiskers become horizontal lines with vertical caps, the box spans
-    the category's band height, the median line runs vertically, and
-    outliers plot at `(value's x, category's y-center)`. Its own function
-    rather than an orientation flag, for the reasons in
-    `_render_horizontal_bar`'s docstring (bar.mojo).
+    : `_render_horizontal_bar`'s categorical y-axis
+        (`_draw_horizontal_categorical_axis_frame`, gantt.mojo) with the
+        continuous axis (`_data_extent`, not zero-forced) along the bottom.
+        Whiskers become horizontal lines with vertical caps, the box spans
+        the category's band height, the median line runs vertically, and
+        outliers plot at `(value's x, category's y-center)`. Its own function
+        rather than an orientation flag, for the reasons in
+        `_render_horizontal_bar`'s docstring (bar.mojo).
     """
     if len(plot.x_categories) != len(plot._box.q1):
         raise Error(
@@ -443,7 +443,7 @@ def box(
         horizontal: Draw categories running top-to-bottom with each
             box-and-whiskers left-to-right instead of the default
             vertical layout -- see `Plot.mark_box()`'s own docstring
-            (#121).
+    .
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.

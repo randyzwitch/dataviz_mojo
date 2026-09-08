@@ -1,9 +1,6 @@
-"""Binning: numeric bin edges, shared edges across samples, weights,
-normalization and cumulative output (#366), plus the `histogram()`
-one-call chart built on them.
+"""Histogram binning and one-call chart helpers.
 
-The binning contract here is numpy's, deliberately (`numpy.histogram`
-2.5.3, cross-checked in `tests/test_marks_basic.mojo`):
+The binning behavior matches `numpy.histogram`:
 
 - Every bin is half-open, `[edges[i], edges[i + 1])`, **except the last**,
   which is closed on the right so the sample maximum lands inside the
@@ -15,11 +12,6 @@ The binning contract here is numpy's, deliberately (`numpy.histogram`
   actually landed in a bin, so `sum(value[i] * width[i]) == 1` even when
   some observations fell outside the edges.
 
-Matching a reference implementation exactly is worth more here than any
-one of those rules is on its own: the half-open convention and the
-closed right edge are the two things hand-rolled binning gets wrong, and
-"whatever `numpy.histogram` does" is a rule a reader can check without
-reading this file.
 """
 
 from dataviz.array_like import _materialize_scalar_list
@@ -30,15 +22,10 @@ from dataviz.theme import Theme
 
 
 struct HistStat(Copyable, ImplicitlyCopyable, Movable):
-    """What a histogram bin's value *is*: a raw count, or one of four
-    normalizations of it. `histogram_bins(stat=...)` and
-    `histogram(stat=...)` take one.
+    """Select how `histogram_bins()` and `histogram()` normalize bins.
 
-    The same five names and definitions as seaborn's `histplot(stat=)`,
-    so a reader porting a plot does not have to re-derive which one
-    divides by what. Writing `w[i]` for bin `i`'s total observation
-    weight (its count, when unweighted), `W` for the total weight that
-    landed in *some* bin, and `width[i]` for `edges[i + 1] - edges[i]`:
+    Here `w[i]` is bin `i`'s weight, `W` is the total included weight,
+    and `width[i]` is `edges[i + 1] - edges[i]`:
 
     | Stat | Bin value | Totals to |
     |---|---|---|
@@ -48,40 +35,21 @@ struct HistStat(Copyable, ImplicitlyCopyable, Movable):
     | `PERCENT` | `100 * w[i] / W` | `100` |
     | `DENSITY` | `w[i] / (W * width[i])` | `1` after multiplying by width |
 
-    `FREQUENCY` and `DENSITY` are the two that divide by the bin width,
-    which is what makes them the only honest choices for **unequal-width
-    bins**: a wide bin collects more observations purely by being wide,
-    so a raw count drawn as a bar height reads as a taller distribution
-    where the reader is really seeing a wider bin.
-
-    Rejected: a `Bool density=` flag, which is what `numpy.histogram`
-    takes. Two of the five stats normalize by area and three do not, and
-    `probability` versus `percent` versus `count` is a real choice a
-    caller makes that a `Bool` has nowhere to put.
+    Use `FREQUENCY` or `DENSITY` to account for unequal bin widths.
     """
 
     var _value: Int
 
     comptime COUNT = Self(0)
-    """`w[i]` -- the observation count in bin `i`, or the total weight
-    when weights are given. The default, and the only stat whose value
-    is a number the reader could have arrived at by counting."""
+    """Observation count, or total weight, in each bin."""
     comptime FREQUENCY = Self(1)
-    """`w[i] / width[i]` -- count per unit of x. Equal-width bins make
-    this a rescaled `COUNT` and nothing more; unequal-width bins make it
-    the count that is actually comparable between bins."""
+    """Observation count or weight per unit of x."""
     comptime PROBABILITY = Self(2)
-    """`w[i] / W` -- the fraction of the sample in bin `i`. Bar heights
-    sum to 1, which is what makes two samples of different sizes
-    comparable on one frame."""
+    """Fraction of included weight in each bin; heights sum to 1."""
     comptime PERCENT = Self(3)
-    """`100 * w[i] / W` -- `PROBABILITY` on a 0-100 axis. Same shape,
-    and the axis a non-technical reader reads without translating."""
+    """Percentage of included weight in each bin; heights sum to 100."""
     comptime DENSITY = Self(4)
-    """`w[i] / (W * width[i])` -- a probability density: bar *areas*,
-    not heights, sum to 1. The stat to use when overlaying a histogram
-    on a fitted curve or a kernel density estimate, since that is the
-    scale such a curve is already on."""
+    """Probability density; bar areas sum to 1."""
 
     def __init__(out self, value: Int):
         """Prefer the `COUNT`/`FREQUENCY`/`PROBABILITY`/`PERCENT`/
@@ -160,7 +128,7 @@ struct HistogramBins(Copyable, Movable, Sized):
     `histogram()` draws.
 
     Numeric edges rather than the `List[String]` range labels this
-    module stored before (#366). A label like `"52.0-57.8"` is a
+    module stored before. A label like `"52.0-57.8"` is a
     formatted view of a number, and every downstream use -- placing a
     bar over the interval it actually covers, sharing an x-domain with a
     density curve, aligning a marginal histogram with the joint plot it
@@ -330,18 +298,8 @@ def uniform_bin_edges(
     explicit-range form of `bin_edges()`, and the way to pin two
     histograms of different samples to the same intervals by hand.
 
-    Boundary `i` is `min + (max - min) * i / bins`, with both endpoints
-    written back exactly so `edges[0] == min` and `edges[bins] == max`
-    regardless of rounding. Rejected: numpy's `linspace` form,
-    `min + step * i` for a precomputed `step`, which multiplies the
-    rounding error already in `step` by `i` -- for `[0, 1]` in 10 bins
-    it puts `edges[3]` at `0.30000000000000004` where the ratio form
-    gives `0.3`. Over 3000 random `(min, max, bins)` draws the two
-    forms differed by at most 5.1e-15 relative to the span and produced
-    identical counts every time, so this is a tie-breaker on
-    tidiness rather than on correctness -- but a tick label reading
-    `0.3` and an edge that is not `0.3` is exactly the kind of
-    discrepancy that costs an afternoon.
+    Boundary `i` is `min + (max - min) * i / bins`. Both endpoints are
+    assigned exactly so `edges[0] == min` and `edges[bins] == max`.
 
     Args:
         min: The left edge of the first bin.
@@ -402,7 +360,7 @@ def bin_edges(data: List[Float64], bins: Int = 10) raises -> List[Float64]:
 
     A **constant sample** -- every value identical, which includes a
     one-element sample -- gets the range `[v - 0.5, v + 0.5]` rather
-    than raising, which is what this module did before (#366). numpy's
+    than raising, which is what this module did before. numpy's
     rule, and the right one: a spike at a single value is a real
     distribution with a real answer, and "no span to divide into bins"
     told a caller their data was unplottable when what they wanted to
@@ -702,29 +660,13 @@ def histogram(
     shape (its center, spread, and skew) rather than each individual
     value.
 
-    `Mark.AREA` with `StepStyle.POST` over the bin edges, with the
-    x-domain pinned to `[edges[0], edges[-1]]` so the staircase meets
-    both ends of the axis. That is matplotlib's `histtype='stepfilled'`:
-    a filled silhouette whose top edge steps at every boundary, rather
-    than one rectangle per bin. The two draw the same shape -- a
-    histogram's bars touch, so the only pixels a per-bar form adds are
-    the dividers between bars of *different* heights, and the staircase
-    already draws those as its risers.
-
-    The categorical `Mark.BAR` form this drew before (#366) is still
-    reachable as `Plot().mark_bar().encode_histogram(data, bins=...)`,
-    which labels each bar with its formatted range. What it cannot do is
-    place a bar at the position it covers: a category axis spaces its
-    entries evenly whatever the intervals are, which makes unequal-width
-    bins a lie and makes sharing an axis with a density curve, a fitted
-    line, or a joint plot's margin impossible. Rejected: a new mark
-    drawing numerically positioned rectangles, which is the fuller
-    answer and needs a `Mark` value plus a renderer (#435) -- filed
-    separately rather than bolted on here.
+    The chart uses a filled `StepStyle.POST` area over the bin edges and
+    pins the x-domain to the first and last edge. For categorical range
+    labels, use `Plot().mark_bar().encode_histogram(...)` instead.
 
     The pinned x-domain has one cost worth knowing before building on
     it: `render_layers()` refuses any layer carrying an explicit domain
-    (#434), so a `histogram()` cannot yet be *overlaid* on anything.
+    , so a `histogram()` cannot yet be *overlaid* on anything.
     `render_facets()`/`save_facets()` has no such restriction, and two
     histograms sharing `edges` line up bar for bar across panels --
     identical edges give identical domains -- which is what the "Shared
@@ -852,10 +794,10 @@ def histogram(
             )
 
             # Two panels rather than one overlay: render_layers() refuses
-            # the explicit x-domain a histogram pins (#434). The panels
+            # the explicit x-domain a histogram pins. The panels
             # still line up bar for bar, because the edges -- and so both
             # x-domains -- are the same list. Their y-axes are separate,
-            # though (#442), so read the bar positions across panels and
+            # though, so read the bar positions across panels and
             # the heights within one.
             var panels: List[Plot] = [a^, b^]
             save_facets(panels, 2, "docs/src/examples/out_histogram_shared.svg")

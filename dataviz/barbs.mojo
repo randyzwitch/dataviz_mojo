@@ -229,7 +229,7 @@ def _validate_barbs(plot: Plot) raises:
     four equal-length columns, at least one station, and a positive glyph
     length.
 
-    A free function because `_render_layers_generic` (#376) has to run it
+    A free function because `_render_layers_generic` has to run it
     in its own first pass -- a layer's x/y columns go into the combined
     domain before any frame exists, so a mismatched `encode_barbs()` has
     to be caught there rather than inside the drawing.
@@ -274,10 +274,8 @@ def _draw_barbs_layer[
     continuous axis frame, the counterpart to `_draw_line_layer` in
     continuous.mojo.
 
-    Split out of `_render_barbs` for #376, so a `render_layers()` stack
-    reaches the same glyph code rather than reimplementing it -- the
-    failure mode `_render_bar_combo_layers`' inline line geometry has hit
-    twice (`step=` in #336, `dashes=` in #383).
+    Shared by standalone and layered rendering so both use the same glyph
+    geometry and styling.
 
     `sc` is the *layer's* own `_Scaled`, not the frame's: identical for a
     standalone render, but in a stack the frame belongs to `plots[0]`

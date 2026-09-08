@@ -1,4 +1,4 @@
-"""Raster/SVG layout equivalence, one sweep over every mark (#221).
+"""Raster/SVG layout equivalence, one sweep over every mark.
 
 Both backends go through the same `_render_generic[T: DrawTarget]`, but
 each mark's own tests exercise the two independently, so a divergence
@@ -17,7 +17,7 @@ what `_RenderResult` carries.
 mark added without an entry here raises rather than quietly going
 untested.
 
-`Mark.name()` (#415) is tested here for the same reason and off the
+`Mark.name()` is tested here for the same reason and off the
 same range: it is the other per-mark table that a new mark has to be
 added to, and the failure mode is identical -- a missing entry is
 invisible until an error message names the wrong mark. Neither needs a
@@ -559,30 +559,7 @@ def test_backends_agree_with_titles_and_rotated_axis_labels() raises:
 
 
 def test_mark_count_is_one_past_the_newest_mark() raises:
-    """`Mark.COUNT` has to name the newest mark's value plus one, or the
-    sweep above walks a short range and silently stops covering whatever
-    was added last.
-
-    That is not hypothetical: `Mark.CONTOUR` (#259) and `Mark.COUNT`
-    (#221) landed in separate PRs that could not see each other, so main
-    briefly had `CONTOUR = 43` alongside `COUNT = 43` and the sweep
-    skipped contour entirely while still reporting itself green. This
-    assertion is what then caught `Mark.CONTOURF` (#260) and
-    `Mark.TRICONTOUR` (#261), `Mark.TRICONTOURF` (#323),
-    `Mark.KDE`/`Mark.RUG` (#351), `Mark.TRIPLOT`/`Mark.TRIPCOLOR`
-    (#344), `Mark.ECDF` (#338) and `Mark.IMSHOW`/`Mark.PCOLORMESH`
-    (#341): each failed here until both the constant and this line
-    moved, which is the tripwire doing its job on every mark added
-    since.
-    `Mark.KDE`/`Mark.RUG` (#351),
-    `Mark.TRIPLOT`/`Mark.TRIPCOLOR` (#344) and `Mark.EVENTPLOT` (#339):
-    each failed here until both the constant and this line moved, which
-    is the tripwire doing its job on every mark added since.
-
-    Naming the newest mark explicitly is what makes that loud: adding a
-    mark after this one fails here until both this line and `COUNT` are
-    updated, which is one edit away from the constant itself.
-    """
+    """Require `Mark.COUNT` to be one greater than the newest mark value."""
     assert_true(
         Mark.EVENTPLOT == Mark(Mark.COUNT - 1),
         (
@@ -594,7 +571,7 @@ def test_mark_count_is_one_past_the_newest_mark() raises:
 
 def test_mark_name_spells_the_constant() raises:
     """`Mark.name()` returns the qualified constant name a caller would
-    type (#415).
+    type.
 
     A spot check rather than all of them, because the sweep below is
     what covers the rest; these are the ones whose spelling a chain of
@@ -673,19 +650,19 @@ def test_mark_name_falls_back_for_an_unknown_value() raises:
 
 def test_step_setter_name_is_derived_from_the_mark() raises:
     """`_check_step_smoothing`'s message names the builder mechanically
-    (#415), not from a chain of `==` that listed three marks.
+    , not from a chain of `==` that listed three marks.
 
-    `Mark.GROUPED_BAR` is the discriminating case: it never had a branch
-    in the old chain, so that returned `Plot.mark_line(step=...)` for
-    it. It also has an underscore, which a derivation that lowercased
-    the whole `Mark.GROUPED_BAR` string without stripping the prefix
-    would render as `Plot.mark_mark.grouped_bar(step=...)`.
+        `Mark.GROUPED_BAR` is the discriminating case: it never had a branch
+        in the old chain, so that returned `Plot.mark_line(step=...)` for
+        it. It also has an underscore, which a derivation that lowercased
+        the whole `Mark.GROUPED_BAR` string without stripping the prefix
+        would render as `Plot.mark_mark.grouped_bar(step=...)`.
 
-    The three marks the old chain did list are asserted too, since the
-    point of deriving is that the messages callers already see do not
-    change; tests/test_marks_basic.mojo and
-    tests/test_marks_distribution.mojo assert those same strings out of
-    a real render.
+        The three marks the old chain did list are asserted too, since the
+        point of deriving is that the messages callers already see do not
+        change; tests/test_marks_basic.mojo and
+        tests/test_marks_distribution.mojo assert those same strings out of
+        a real render.
     """
     assert_equal(_step_setter_name(Mark.LINE), "Plot.mark_line(step=...)")
     assert_equal(_step_setter_name(Mark.AREA), "Plot.mark_area(step=...)")

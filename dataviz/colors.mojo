@@ -2,7 +2,7 @@
 keywords" list (<https://www.w3.org/TR/css-color-3/#svg-color>) plus
 `REBECCAPURPLE` (Level 4), as `Color` constants, so
 `Theme(mark_color=CORNFLOWERBLUE)` works instead of
-`Theme(mark_color=Color(100, 149, 237))` (#10).
+`Theme(mark_color=Color(100, 149, 237))`.
 
 The constants themselves moved to `canvas.named_colors` in canvas_mojo
 v0.18.0 -- this file's own docstring had said they could, "if another

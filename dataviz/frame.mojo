@@ -1,7 +1,7 @@
 """The axis frames: the plot rect, its ticks, gridlines and axis
 labels, for both a continuous and a categorical axis.
 
-Split out of `plot.mojo` (#222). A frame is what a mark draws into --
+Split out of `plot.mojo`. A frame is what a mark draws into --
 it resolves the plot rect out of the canvas minus margins and legend
 reservation, draws the furniture, and hands back the scales.
 
@@ -12,7 +12,7 @@ serves both.
 
 Tick and gridline positions round to whole pixels on purpose. They are
 furniture, and a hairline is crisp only on a pixel center -- unlike the
-marks, whose geometry stays in `Float64` (#312 and the PRs after it).
+marks, whose geometry stays in `Float64`.
 """
 
 from std.collections import Dict
@@ -344,8 +344,8 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
     def baseline_pull(self) -> Float64:
         """Which direction is into the plot area, away from the categorical
         axis line: `-1.0` vertically (that line is the frame's bottom) and
-        `+1.0` horizontally (the frame's left edge). Used to nudge a stroked
-        mark 1px clear of the axis line; `_pull_off_axis_line` does the same
+        `+1.0` horizontally (the frame's left edge). Nudges a stroked mark
+        1px clear of the axis line; `_pull_off_axis_line` does the same
         for filled rects.
         """
         return 1.0 if self.horizontal else -1.0
@@ -555,7 +555,7 @@ def _pull_off_axis_line(
     baseline. When that baseline is the drawn axis-line row (every value
     non-negative, so `_zero_baseline_y_extent`'s domain is `[0, hi]`), a
     solid fill drawn after the axis frame paints over the line's
-    antialiasing (issue #105). Pulling the edge 1px inward leaves a
+    antialiasing. Pulling the edge 1px inward leaves a
     hairline of background between mark and line.
 
     A zero-height span is left alone rather than becoming a 1px sliver.
@@ -580,7 +580,7 @@ def _pull_off_axis_line_f(
 
     Same rule -- whichever edge sits on the drawn axis-line row is
     nudged 1px toward the other, so a solid fill does not paint over
-    the line's antialiasing (#105) -- with the one translation the
+    the line's antialiasing -- with the one translation the
     change of type forces: "sits on the axis line" was an exact `Int`
     equality and becomes "within half a pixel of it", which is the same
     question asked of a coordinate that has not been rounded yet. The
@@ -639,7 +639,7 @@ struct _ContinuousFrame(Movable):
     var px1: Int
     var py1: Int
     var has_y_scale: Bool
-    """Whether `y_scale` measures anything a reader can decode (#389).
+    """Whether `y_scale` measures anything a reader can decode.
 
     `False` when the frame was drawn with `y_axis_visible=False`: the
     y-domain is then a `LinearScale(0.0, 1.0, ...)` placeholder that
@@ -676,7 +676,7 @@ struct _ContinuousFrame(Movable):
         through: this is the one frame with a continuous x-axis, so it's the
         only one `annotate_vline()`/`annotate_point()` can support.
 
-        `has_y_scale` follows the frame's own (#389), so a mark drawn
+        `has_y_scale` follows the frame's own, so a mark drawn
         with `y_axis_visible=False` reports no y-scale and
         `annotate_line()`/`annotate_area()` raise on it rather than
         drawing against a placeholder domain. The x-scale is always
@@ -728,7 +728,7 @@ def _draw_continuous_axis_frame[
 
     `y_axis_visible=False` drops the entire y-axis -- its line, its tick
     marks, their labels and the horizontal gridlines -- for a mark with
-    no y dimension at all (#378). `Mark.RUG` is the case: every rug tick
+    no y dimension at all. `Mark.RUG` is the case: every rug tick
     is the same length and sits on the baseline, so the placeholder
     `LinearScale(0, 1, ...)` the frame requires would otherwise be
     published to the reader as the labels `0.0 0.2 ... 1.0`, a density
@@ -739,8 +739,8 @@ def _draw_continuous_axis_frame[
     The vertical gridlines and the whole x-axis stay: they carry the
     mark's only real dimension. Only the y half goes.
 
-    The axis *line* goes with the rest, which #378's plan had left in as
-    the plot rect's boundary. Rendered both ways it is the wrong call:
+    The axis *line* goes with the rest. Leaving it as the plot rect's
+    boundary produces the wrong result:
     with the ticks and labels gone the bare spine is 190 unexplained
     pixels of `axis_color` in a single column of a 400x260 rug, more ink
     than the observations it stands next to, and it reads as a y-axis
@@ -760,7 +760,7 @@ def _draw_continuous_axis_frame[
     The default is `True`, and the false branch adds no work to it: every
     other continuous mark renders byte-identically.
 
-    `y_descending=True` (#341) flips which end of the plot rect the
+    `y_descending=True` flips which end of the plot rect the
     y-domain's *minimum* lands on, so the axis counts downward: 0 at the
     top, growing toward the bottom. Only `Mark.IMSHOW` asks for it, and
     only because a raster's row 0 is its top scanline -- the same
@@ -769,23 +769,8 @@ def _draw_continuous_axis_frame[
     way up is not a styling choice; `imshow(read_png(...))` would come
     out mirrored, which is the plainest kind of wrong chart.
 
-    It is a frame parameter rather than something the mark does for
-    itself because the axis labels have to agree with the pixels. A mark
-    that flipped only its own drawing would leave the ticks reading 0 at
-    the bottom while row 0 sat at the top, which is worse than either
-    orientation.
-
-    Reversing `LinearScale`'s *domain* instead was rejected: `ticks()`
-    walks `ceil(domain_min / step)` up to `floor(domain_max / step)`, so
-    a domain handed over backwards yields a negative count and the axis
-    silently loses every tick. The domain stays ascending here and only
-    the pixel range flips, which is what `LinearScale` already documents
-    its range for ("not necessarily increasing").
-
-    Everything the flip touches downstream was already sign-agnostic:
-    gridlines, ticks and annotations all place themselves through
-    `to_pixel`, and `_draw_annotation_areas`/`_bands` take `min`/`max`
-    of their two mapped pixels rather than assuming an order.
+    The domain remains ascending; only its pixel range is reversed so
+    ticks and annotations use the same orientation as the image.
     """
     var sc = _Scaled(theme)
 
@@ -816,7 +801,7 @@ def _draw_continuous_axis_frame[
     # the *bottom* of the plot area (the larger pixel y), domain_max
     # at the top -- see LinearScale's docstring.
     #
-    # `y_descending` puts domain_min at the top instead (#341). Only the
+    # `y_descending` puts domain_min at the top instead. Only the
     # two pixel numbers swap: the domain stays ascending, so `ticks()`
     # still walks it low to high, and everything downstream already
     # goes through `_axis_pixel`/`to_pixel` rather than assuming a
@@ -835,7 +820,7 @@ def _draw_continuous_axis_frame[
     if theme.show_gridlines:
         # Minor gridlines first, so a major one always wins where the
         # two land on the same pixel row -- the labeled value is the one
-        # that has to stay readable (#334). They are gated on
+        # that has to stay readable. They are gated on
         # show_gridlines as well as their own flag: a minor grid with no
         # major one is a grid with no reference points.
         if theme.show_minor_gridlines:
@@ -851,7 +836,7 @@ def _draw_continuous_axis_frame[
                     dashes=theme.gridline_style.dashes(sc.scale),
                 )
             # Gated the same way the major horizontal gridlines below
-            # are: with the y-axis suppressed (#378) there is no scale
+            # are: with the y-axis suppressed there is no scale
             # for a horizontal line to mean anything against.
             if y_axis_visible:
                 for i in range(len(y_ticks.minor_values)):
@@ -900,7 +885,7 @@ def _draw_continuous_axis_frame[
 
     var text_requests = List[_TextRequest]()
 
-    # Minor tick marks (#334), opt-in like minor gridlines and gated
+    # Minor tick marks, opt-in like minor gridlines and gated
     # separately, since a level on the axis and a level across the plot
     # are different amounts of ink. On a log axis this is often the one
     # you want: it says where inside a decade a point sits without
@@ -1053,7 +1038,7 @@ def _resolve_x_label_rotation(
     override: XAxisLabelRotation, max_label_width: Float64, step: Float64
 ) -> Float64:
     """The radians `_draw_categorical_axis_frame` rotates x-axis category
-    labels by (#214): `0.0` (drawn horizontal, centered under the tick),
+    labels by: `0.0` (drawn horizontal, centered under the tick),
     or `pi / 4`/`pi / 2` (drawn right-aligned at the tick; see that
     function's own call site for why). `AUTO` escalates only as far as
     needed: horizontal if every label already fits its band
@@ -1103,7 +1088,7 @@ def _draw_categorical_axis_frame[
     placeholder), since the marks differ there: `Mark.BAR`/`LOLLIPOP`/
     `WATERFALL` include a zero baseline, `Mark.BOX` fits the data spread.
 
-    Long category labels rotate per `Theme.x_label_rotation` (#214,
+    Long category labels rotate per `Theme.x_label_rotation` (
     `_resolve_x_label_rotation`) once `x_scale` (and so its `step()`) is
     known, before `plot_y1` is finalized -- a rotated label needs extra
     bottom margin (`sin(rotation) * widest label`) reserved for it, the

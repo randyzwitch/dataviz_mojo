@@ -1,6 +1,6 @@
 """`render_facets()`: one plot per cell, laid out in a grid.
 
-Split out of `plot.mojo` (#222). Each cell is an independent render
+Split out of `plot.mojo`. Each cell is an independent render
 into a sub-rect of one shared canvas, which is why this is so much
 smaller than `layers.mojo`: facets do not have to reconcile anything
 between cells unless `shared_y_scale` asks them to.
@@ -67,7 +67,7 @@ def save_facets(
     See the Cookbook's "Facets" and "Shared Facet Scale" recipes
     (docs/cookbook_recipes/).
 
-    SVG output writes accessible markup automatically (#212) from
+    SVG output writes accessible markup automatically from
     `plots[0]`'s `.labels()`, as a best-effort document title for the
     whole grid -- each cell can carry its own visible title, but the
     `<svg>` root needs exactly one `aria-label`/`<title>`. Give `plots[0]`
@@ -125,7 +125,7 @@ def render_facets(
     """Render each of `plots` into its grid cell of a fresh `Canvas` sized
     from the plots (`_require_uniform_size`), supersampled by
     `plots[0]._theme.raster_supersample` like `render()` (`plots` is a
-    plain borrow, #208 -- a copy is what actually gets the scale bump,
+    plain borrow -- a copy is what actually gets the scale bump,
     so a temporary list literal binds fine). See `_render_facets_generic`
     for the cell-layout contract. `cols` is checked before anything
     else, since a non-positive value would divide by zero in the
@@ -222,7 +222,7 @@ def _render_facets_generic[
 
     `shared_y_scale` gives every cell one y-domain (`_data_extent` over
     the union of every cell's `y_data`, or `_log_data_extent` when every
-    cell agrees on `Plot.scale_y_log()` -- #217). Only `Mark.POINT`/
+    cell agrees on `Plot.scale_y_log()`). Only `Mark.POINT`/
     `LINE`/`EFFECT_SCATTER` support it, every cell must use one of those
     marks, and it doesn't combine with `y_err*` (the shared union isn't
     widened for whiskers); `_render_generic` raises for each case,
@@ -259,7 +259,7 @@ def _render_facets_generic[
     # Cells tile edge to edge, so a cell's x-axis title lands directly
     # against the next row's chart title: measured at three clear pixel
     # rows on a 2x2 grid of 320x240 cells, one of which carried a
-    # descender (#417). Each cell reserves the space its own labels need
+    # descender. Each cell reserves the space its own labels need
     # and nothing reserves space *between* cells.
     #
     # The gutter comes off every cell's bottom rather than off the rows

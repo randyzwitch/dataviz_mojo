@@ -1,4 +1,4 @@
-"""The perceptually uniform sequential colormaps (#332).
+"""Perceptually uniform sequential colormaps.
 
 Each function returns a `List[Color]` for `Theme.color_ramp`, which
 `ColorScale.from_theme` spreads evenly over `[0, 1]`:
@@ -10,34 +10,7 @@ from dataviz.theme import Theme
 var theme = Theme(color_ramp=viridis())
 ```
 
-**Why these and not a gradient of your own.** A ramp built by
-interpolating two or three colors is almost never perceptually uniform:
-it will have stretches where a large change in the data barely changes
-the color, and stretches where a small one jumps. The reader sees
-structure that is not in the data, and misses structure that is. These
-five maps are constructed so that equal steps in the value look like
-equal steps in color, and so that lightness increases monotonically --
-which is also what makes them survive being printed in grayscale.
-
-**Provenance.** The stops are sampled from matplotlib's canonical
-256-entry tables. viridis, magma, inferno and plasma were created by
-Nathaniel Smith and Stefan van der Walt and released under CC0; cividis
-by Jamie Nunez, Sean Colby and Ryan Renslow, also CC0. Both are public
-domain dedications, so the tables are reproduced here directly.
-
-**Why 64 stops rather than all 256.** 64 is `ColorRamp`'s capacity --
-see that struct for why the stops have to live in a fixed-width vector
--- so these tables fill it exactly. Sampling `ColorScale.from_theme` at
-all 256 positions and comparing against matplotlib 3.11.1's own
-256-entry tables gives a maximum error of **2 levels per channel out of
-255** for every one of the five, a mean of 0.19 to 0.30, and exact
-endpoints. That is below a perceptible step.
-
-The entries are matplotlib's own colors at those positions rather than a
-least-squares fit to the curve. A fit measures very slightly better but
-produces colors that appear nowhere in the reference, which would make
-these tables impossible to check. As written, any single entry can be
-verified against matplotlib one line at a time.
+Each map contains 64 stops sampled from matplotlib's CC0 tables.
 """
 
 from canvas.color import Color

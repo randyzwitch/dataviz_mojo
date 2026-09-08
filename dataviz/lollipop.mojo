@@ -48,7 +48,7 @@ def _draw_lollipop_stems[
     `_zero_baseline_y_extent` puts 0 at the drawn edge). A zero-value stem
     is left alone so it doesn't grow a stem out of nothing.
 
-    `Theme.show_data_labels` (#213) places each label past the head
+    `Theme.show_data_labels` places each label past the head
     circle via the same `orient.outside_band_label()` `Mark.BAR` uses,
     fed a `_BaselineRectF` padded `radius` past both ends (rather than
     `_pull_off_axis_line`'s bare stem extent) so the label clears the
@@ -190,7 +190,7 @@ def _render_horizontal_lollipop[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """`_render_lollipop`'s mirror image for
-    `Plot.mark_lollipop(horizontal=True)` (#121): `_render_horizontal_bar`'s
+    `Plot.mark_lollipop(horizontal=True)`: `_render_horizontal_bar`'s
     categorical y-axis / zero-baseline x-axis
     (`_draw_horizontal_categorical_axis_frame`, gantt.mojo), with each
     stem running from the zero baseline out to its value along `x_scale`.
@@ -266,7 +266,7 @@ def lollipop(
         horizontal: Draw categories running top-to-bottom with each
             stem extending left-to-right instead of the default
             vertical layout -- see `Plot.mark_lollipop()`'s own
-            docstring (#121).
+            docstring.
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.

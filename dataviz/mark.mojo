@@ -116,7 +116,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime COUNT = 55
     """How many marks exist -- one past the largest value above.
 
-    Only the raster/SVG layout-equivalence sweep reads this (#221): it
+    Only the raster/SVG layout-equivalence sweep reads this: it
     walks `Mark(0)` through `Mark(COUNT - 1)` and requires a
     representative dataset for each, so a mark added without one fails
     loudly instead of silently going untested. Bump it in the same edit
@@ -130,36 +130,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
         return self._value == other._value
 
     def name(self) -> String:
-        """This mark's constant name, spelled the way a caller writes it:
-        `Mark.POINT`, `Mark.TRICONTOURF`, and so on.
-
-        Exists for error messages. Every other value a raise here needs
-        to name already has this -- `StepStyle.name()`, and
-        `_check_step_smoothing`'s own message calls it -- so a mark being
-        the one thing an error could not name was the asymmetry (#415).
-        Two messages were visibly worse for it: `render_layers()`'s
-        allow-list could only say "layer 1 is a different mark" and then
-        list marks the caller had not used, and
-        `_check_step_smoothing` picked its setter name from a chain of
-        `==` that grew a branch per mark gaining a `step`.
-
-        Returns the qualified spelling rather than the bare constant
-        (`"Mark.BAR"`, not `"BAR"`) because that is what the reader has
-        to go type. `StepStyle.name()` returns the bare form, but its
-        messages already supply the `StepStyle.` around it; a mark name
-        is dropped into prose where nothing else says which type it is.
-
-        Rejected: a positional `List[String]` indexed by `_value`, which
-        is half the lines but ties each name to a number nothing checks
-        -- inserting a mark mid-list would silently rename every mark
-        after it. The chain below names each constant twice on adjacent
-        lines instead, and compares against the constant rather than
-        against a literal integer, so a wrong pairing is visible at the
-        edit and a wrong *number* is impossible.
-        `Stringable`/`__str__` was rejected too: `String(mark)` reads as
-        "this mark's value as text", and conforming would let a mark
-        interpolate into user-facing output that was never meant to
-        carry an internal constant's spelling.
+        """Return the qualified constant name used in error messages.
 
         Returns:
             The constant's qualified name, or `"Mark(<n>)"` for a value

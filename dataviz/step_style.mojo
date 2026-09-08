@@ -1,4 +1,4 @@
-"""Step (stairs) interpolation for `Mark.LINE` (#336)."""
+"""Step (stairs) interpolation for `Mark.LINE`."""
 
 
 struct StepStyle(Copyable, ImplicitlyCopyable, Movable):

@@ -53,7 +53,7 @@ installed font name works in both, but a CSS fallback stack only
 means anything on the SVG side.
 
 `title_bold` (default `True`) is the one default here that changes
-pre-existing output; `Theme(title_bold=False)` restores the old look.
+existing output; `Theme(title_bold=False)` uses regular-weight titles.
 """
 
 from std.math import pi
@@ -110,7 +110,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     var show_gridlines: Bool
     """Whether to draw gridlines at all; defaults to `True`."""
     var show_minor_ticks: Bool
-    """Whether to draw a short tick mark at each minor tick (#334);
+    """Whether to draw a short tick mark at each minor tick;
     defaults to `False`, so no existing chart changes.
 
     Separate from `show_minor_gridlines` the way matplotlib separates
@@ -118,7 +118,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     axis and a minor level across the plot are different amounts of
     ink, and a log axis often wants the first without the second."""
     var show_minor_gridlines: Bool
-    """Whether to draw a gridline at each minor tick as well (#334);
+    """Whether to draw a gridline at each minor tick as well;
     defaults to `False`, so nothing moves for a theme that does not ask.
 
     Ignored when `show_gridlines` is off -- minor gridlines under no
@@ -126,12 +126,12 @@ struct Theme(ImplicitlyCopyable, Movable):
     themselves are drawn whenever the axis has them, since a short mark
     on the axis costs nothing and a gridline across the plot does."""
     var minor_gridline_color: Color
-    """The color minor gridlines are stroked in (#334). Lighter than
+    """The color minor gridlines are stroked in. Lighter than
     `gridline_color` by default: a minor level in the same color makes
     a chart busier rather than more readable, since the eye can no
     longer tell which lines carry the labeled values."""
     var minor_tick_length: Int
-    """Pixel length of a minor tick mark, before `scale` (#334).
+    """Pixel length of a minor tick mark, before `scale`.
     Shorter than `tick_length` so the labeled ticks stay the ones that
     read as structure."""
     var color_scale_low: Color
@@ -173,10 +173,8 @@ struct Theme(ImplicitlyCopyable, Movable):
     var raster_supersample: Int
     """How many times larger than the requested size `render()`/
     `render_facets()`/`render_layers()` draw at internally before
-    downsampling back down, for finer anti-aliasing at shape edges (a
-    solid interior averages to the same color regardless). Defaults to
-    3 (9x the pixel count), matching this package's raster output
-    before this field existed. Composes multiplicatively with `scale`,
+    downsampling back down, for finer anti-aliasing at shape edges. Defaults
+    to 3 and composes multiplicatively with `scale`,
     not a substitute for it: `scale` changes the *logical* pixel size
     of everything drawn (fonts, margins, line widths, ...) for HiDPI
     output, while this only controls how much extra antialiasing work
@@ -267,7 +265,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     backends resolve consistently."""
     var title_bold: Bool
     """Whether the chart title draws bold; defaults to `True`. The one field
-    whose default changes pre-existing renders; see the module docstring.
+    whose default affects existing renders; see the module docstring.
     """
     var halo_alpha: UInt8
     """The opacity `Mark.EFFECT_SCATTER` blends each point's halo at before
@@ -314,7 +312,7 @@ struct Theme(ImplicitlyCopyable, Movable):
 
     The category-grouped marks carry titles under this flag alone:
     `Mark.BAR`, `GROUPED_BAR`, `STACKED_BAR`, `BOX`, `LOLLIPOP`,
-    `VIOLIN`, and (#213) `WATERFALL`, `BULLET`, `POPULATION_PYRAMID`,
+    `VIOLIN`, and `WATERFALL`, `BULLET`, `POPULATION_PYRAMID`,
     `SPAN_CHART`, `CANDLESTICK` and `FUNNEL`. Where a mark encodes more
     than one number, the title carries all of them rather than picking
     one -- a bullet row's measure and target, a candle's four prices, a
@@ -326,7 +324,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     var show_data_labels: Bool
     """Whether a mark draws each value as text, in `text_color` at
     `font_size`; defaults to `False`. Covers `Mark.BAR`/`GROUPED_BAR`/
-    `STACKED_BAR` and, since #213, `LOLLIPOP`/`WATERFALL`/`BULLET`/
+    `STACKED_BAR`, `LOLLIPOP`/`WATERFALL`/`BULLET`/
     `POPULATION_PYRAMID`.
     Formatted via `_label_decimals()` (scale.mojo), the fewest decimal
     places that represent the value exactly, rather than the y-axis's
@@ -341,7 +339,7 @@ struct Theme(ImplicitlyCopyable, Movable):
 
     var annotation_arrow_width: Float64
     """Stroke width of an `annotate_arrow()` shaft, in pixels before
-    `scale` (#335). Slightly heavier than a gridline by default: an
+    `scale`. Slightly heavier than a gridline by default: an
     arrow is an assertion the author is making about the data, not
     chrome, and it has to read as deliberate against whatever it
     crosses. The head is sized from `scale` alone -- see
@@ -355,8 +353,7 @@ struct Theme(ImplicitlyCopyable, Movable):
 
     var legend_position: LegendPosition
     """Which edge of the plot area the legend is reserved on and drawn
-    against (#211); defaults to `RIGHT`, the column every legend used
-    before this setting existed.
+    against; defaults to `RIGHT`.
 
     `RIGHT`/`LEFT` cost plot width, `TOP`/`BOTTOM` cost plot height and
     lay entries out along a row -- wrapping rows for a categorical
@@ -372,12 +369,12 @@ struct Theme(ImplicitlyCopyable, Movable):
     var x_label_rotation: XAxisLabelRotation
     """Whether/how far `_draw_categorical_axis_frame`'s x-axis tick
     labels rotate when they would otherwise overlap; see
-    `XAxisLabelRotation`'s own docstring. Defaults to `AUTO` (#214).
+    `XAxisLabelRotation`'s own docstring. Defaults to `AUTO`.
     """
     var x_tick_format: TickFormat
-    """How the x-axis's own tick labels render (#210); see
+    """How the x-axis's own tick labels render; see
     `TickFormat`'s own docstring for the available kinds. Defaults to
-    `AUTO`, `Ticks.labels()`'s pre-#210 behavior. Log-axis ticks
+    `AUTO`, matching `Ticks.labels()`'s default behavior. Log-axis ticks
     (`Plot.scale_x_log()`) aren't covered yet -- see `Ticks.labels()`.
     """
     var y_tick_format: TickFormat

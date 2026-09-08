@@ -195,7 +195,7 @@ def _render_horizontal_violin[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """`_render_violin`'s mirror image for
-    `Plot.mark_violin(horizontal=True)` (#121): `_render_horizontal_bar`'s
+    `Plot.mark_violin(horizontal=True)`: `_render_horizontal_bar`'s
     categorical y-axis / continuous x-axis
     (`_draw_horizontal_categorical_axis_frame`, gantt.mojo), each
     silhouette sampled along `x_scale` and bulging vertically around its
@@ -291,7 +291,7 @@ def violin(
         horizontal: Draw categories running top-to-bottom with each
             silhouette bulging up-down around its own row instead of
             the default vertical layout -- see `Plot.mark_violin()`'s
-            own docstring (#121).
+            own docstring.
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.

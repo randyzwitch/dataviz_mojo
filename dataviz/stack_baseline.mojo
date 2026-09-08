@@ -1,4 +1,4 @@
-"""Where a stack of series sits on the y-axis (#337)."""
+"""Where a stack of series sits on the y-axis."""
 
 
 struct StackBaseline(Copyable, ImplicitlyCopyable, Movable):

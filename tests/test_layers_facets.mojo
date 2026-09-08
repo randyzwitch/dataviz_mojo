@@ -1,5 +1,6 @@
-"""Merged test module (one process per test family; see pixi.toml's
-`[tasks]` comment for why). Covers:
+"""Tests for layers and facets.
+
+Covers:
 
 - render_layers()/render_layers_svg(): shared-domain layering of
   POINT/LINE/AREA, per-layer color/size encoding and legends, and the
@@ -12,13 +13,13 @@
   titles, empty-grid/invalid-cols guards.
 - render_facets(shared_y_scale=True): one y-domain from the union of
   every cell's data (linear, or log via _log_data_extent when every
-  cell agrees on scale_y_log() -- #217), and every raise path.
+  cell agrees on scale_y_log() -- ), and every raise path.
 - Plot.secondary_axis(): the mirrored right-edge axis, independent
   per-axis domains, no secondary gridlines, coexistence with a
   legend, and both raise paths.
 - The secondary y-axis caption from the secondary layer's own
   .labels(y_title=...), rotated the opposite way from the primary.
-- Plot.series_name() (#215): one legend row per named layer, each in
+- Plot.series_name(): one legend row per named layer, each in
   that layer's own Theme.mark_color, in layer order, with no row for
   an unnamed layer; the secondary-axis suffix; and the same for the
   Mark.BAR combo path's bar layer.
@@ -128,15 +129,6 @@ def test_render_layers_shares_one_domain_across_a_line_and_a_point() raises:
 
 
 def test_render_layers_annotate_vline_and_point_match_standalone_hand_derived_positions() raises:
-    # #204: annotate_vline()/annotate_point() used to be silently dropped by
-    # render_layers()/render_layers_svg() (only annotate_area()/
-    # annotate_line() were wired in). A single-layer list reuses exactly
-    # the same plot/theme/size as test_annotations.mojo's own standalone
-    # "hand-derived position" tests for these two annotate_*() kinds, so
-    # the pixel/SVG values here are identical to those: the frame this one
-    # layer gets is the same continuous axis frame a standalone render of
-    # the same plot would build. annotate_vline(1.5) -> px=220; the point
-    # at (1.2, 15.0) -> (133, 135).
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var line = (
@@ -200,11 +192,6 @@ def test_render_layers_annotate_vline_and_point_match_standalone_hand_derived_po
 
 
 def test_render_layers_svg_annotate_band_and_best_fit_draw_against_the_layers_frame() raises:
-    # #204: annotate_band()/annotate_best_fit() used to be silently dropped
-    # the same way. x=[1,2,3,4], y=[10,12,13,15] on a single-layer list;
-    # OLS gives slope=1.6, intercept=8.5 (n=4, sum_x=10, sum_y=50,
-    # sum_xy=133, sum_xx=30: slope=(4*133-10*50)/(4*30-100)=32/20=1.6,
-    # intercept=12.5-1.6*2.5=8.5), matching the label text asserted below.
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0]
     var y: List[Float64] = [10.0, 12.0, 13.0, 15.0]
     var band_x: List[Float64] = [1.0, 4.0]
@@ -366,9 +353,6 @@ def test_render_layers_with_empty_list_and_a_title_raises() raises:
 
 
 def test_render_layers_no_longer_raises_when_a_single_bar_plot_is_included() raises:
-    # Mark.BAR used to be rejected here; exactly one Mark.BAR layer now
-    # dispatches to _render_bar_combo_layers (see the bar-combo tests), so
-    # this is no longer a raise test.
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var bar_x: List[String] = ["a", "b"]
@@ -567,7 +551,7 @@ def test_render_layers_raises_on_out_of_range_smoothing() raises:
 
 
 def test_render_layers_svg_named_layers_get_one_legend_row_each_in_order() raises:
-    # #215: three layers, two named -- exactly two legend rows, each in
+    # three layers, two named -- exactly two legend rows, each in
     # that layer's own Theme.mark_color, in the order the layers were
     # given; the unnamed layer draws no row at all.
     var x: List[Float64] = [1.0, 2.0, 3.0]
@@ -700,7 +684,7 @@ def test_render_layers_svg_bar_combo_matches_hand_derived_positions() raises:
 
 
 def test_render_layers_bar_combo_honors_the_line_style() raises:
-    """#383: the bar-combo path builds its `Mark.LINE` geometry inline
+    """The bar-combo path builds its `Mark.LINE` geometry inline
     rather than calling `_draw_line_layer`, and its stroke had no
     `dashes=`, so `mark_line(style=...)` rendered solid and silently.
 
@@ -834,7 +818,7 @@ def test_render_layers_svg_bar_combo_supports_an_area_layer() raises:
 def test_render_layers_svg_bar_combo_honors_line_step() raises:
     # _render_bar_combo_layers builds its Mark.LINE geometry inline
     # rather than calling _draw_line_layer, so mark_line(step=...) has
-    # to be threaded through here separately (#336). Ignoring it would
+    # to be threaded through here separately. Ignoring it would
     # not be a styling miss: the chart would assert a gradual slide
     # between two categories that the caller explicitly said held flat.
     #
@@ -873,7 +857,7 @@ def test_render_layers_svg_bar_combo_honors_line_step() raises:
 def test_render_layers_svg_bar_combo_honors_area_step() raises:
     # The Mark.AREA branch of _render_bar_combo_layers builds its own
     # closed-to-the-baseline geometry too, so mark_area(step=...) has to
-    # reach it separately from _draw_area_layer (#384).
+    # reach it separately from _draw_area_layer.
     #
     # Same three-category frame as the line-step test above: centers
     # 113.333, 220.000, 326.667, combined_y=[10,20,14,15,5,12]
@@ -1054,7 +1038,7 @@ def test_render_layers_raises_on_annotate_line_in_a_bar_combo() raises:
 
 
 def test_render_layers_raises_on_annotate_band_in_a_bar_combo() raises:
-    # #204: annotate_band()/annotate_best_fit() weren't part of the
+    # annotate_band()/annotate_best_fit() weren't part of the
     # has_annotations guard at all, so a bar-combo layer using either used
     # to render with no annotation drawn and no error -- the same
     # silent-drop bug the standalone annotate_line() check above already
@@ -1103,7 +1087,7 @@ def test_render_layers_raises_on_annotate_best_fit_in_a_bar_combo() raises:
 
 
 def test_render_layers_svg_bar_combo_named_layers_get_a_legend_row_each() raises:
-    # #215: the bar-combo path (_render_bar_combo_layers) needs the same
+    # the bar-combo path (_render_bar_combo_layers) needs the same
     # per-layer legend the generic path has -- the bar layer included.
     var cats: List[String] = ["A", "B", "C"]
     var bar_y: List[Float64] = [10.0, 20.0, 15.0]
@@ -1144,7 +1128,7 @@ def test_render_facets_lays_out_independent_plots_side_by_side() raises:
     # from each plot's .size(400, 300). Two different mark_colors confirm
     # each cell rendered its own plot rather than one twice.
     #
-    # Located by scanning rather than by hand-derived pixel (#218): what
+    # Located by scanning rather than by hand-derived pixel: what
     # this test is about is that each cell drew its own plot in its own
     # half, which the point's position within its cell states directly.
     # The exact center depends on the default margins and the 5% padding,
@@ -1185,16 +1169,6 @@ def test_render_facets_lays_out_independent_plots_side_by_side() raises:
 
 
 def test_render_facets_svg_draws_annotate_vline_and_best_fit_in_different_cells() raises:
-    # #204: render_facets()/render_facets_svg() used to draw only
-    # annotate_area()/annotate_line() per cell; annotate_vline()/
-    # annotate_point()/annotate_band()/annotate_best_fit() were silently
-    # dropped. Cell 0 (a Mark.LINE plot with annotate_vline(1.5)) reuses
-    # the same geometry as the standalone/layers hand-derived vline
-    # position (px=220); cell 1 (a Mark.POINT plot with
-    # annotate_best_fit()) sits at cell 1's origin (+400px), where the
-    # best-fit line for x=[1,2,3] y=[5,7,9] (a perfect fit, slope=2,
-    # intercept=3) spans the cell's full inner width at its own padded
-    # y-domain.
     var xa: List[Float64] = [1.0, 2.0]
     var ya: List[Float64] = [10.0, 20.0]
     var cell_a = (
@@ -1260,7 +1234,7 @@ def test_render_facets_leaves_trailing_cells_blank_when_plots_dont_fill_the_grid
 
     var c = render_facets(plots, cols=2)
 
-    # Located per cell rather than by hand-derived pixel (#218): the
+    # Located per cell rather than by hand-derived pixel: the
     # claim is that three cells drew a point and the fourth was never
     # touched, which is about which cell owns the ink, not where in the
     # cell it landed.
@@ -1491,7 +1465,7 @@ def test_render_facets_raises_on_mark_area_with_shared_y_scale() raises:
 
 
 def test_render_facets_svg_shared_y_scale_supports_log_when_every_cell_agrees() raises:
-    # #217: two log-y cells, y0=[5,6] and y1=[50,60]. Verified by
+    # two log-y cells, y0=[5,6] and y1=[50,60]. Verified by
     # construction: the combined log-space domain gives both cells the
     # identical tick set 5/10/20/50 at rows 163/125/87/37 -- an
     # independent per-cell domain would put cell 0's [5,6] and cell 1's
@@ -1932,24 +1906,7 @@ def _scattered_samples() raises -> List[List[Float64]]:
 
 
 def test_render_layers_names_the_rejected_layer_and_where_the_gap_is_tracked() raises:
-    """#401: `tricontourf()`'s docstring told callers to layer a
-    `tricontour()` over it, which raised. #376 made that composition
-    work, so the mark this reaches for has to be one still outside the
-    allow-list -- `Mark.ARC`, a pie, which has no continuous x at all.
-
-    The rejected layer is the *second* one here, so an index in the
-    message can only come from the loop and not from a constant: a
-    message hard-coding "layer 0" would pass the first assertion below
-    and fail this one.
-
-    `contains="Mark.ARC"` is the assertion #401 could not write and #420
-    asked for: `Mark.name()` (#415) landed while this branch was open, so
-    the message now names the mark the caller actually passed rather than
-    listing marks they did not. It discriminates against the old message,
-    which named `Mark.BAR` and `Mark.ARC` as *examples* -- hence the
-    `Mark.TREEMAP` case below, whose name appears in no fixed list
-    anywhere and can only have come from the layer itself.
-    """
+    """Name the rejected layer index and mark in the diagnostic."""
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
     var lx: List[Float64] = [0.0, 10.0]
@@ -1982,7 +1939,7 @@ def test_render_layers_names_the_rejected_layer_and_where_the_gap_is_tracked() r
 
 
 def test_layering_a_tricontour_over_a_tricontourf_draws_both() raises:
-    """#376/#401: the exact call `tricontourf()`'s docstring recommends,
+    """The exact call `tricontourf()`'s docstring recommends,
     which raised until the allow-list opened.
 
     The discriminating assertion is not "it drew something": it is that
@@ -1991,7 +1948,7 @@ def test_layering_a_tricontour_over_a_tricontourf_draws_both() raises:
     whole polyline in absolute pixel coordinates, so matching it is
     matching every vertex -- if the combined x/y domain were not the
     same one the standalone computed, the isolines would land on
-    different pixels and no path would match. That is exactly what #401's
+    different pixels and no path would match. That is exactly what 's
     testing plan asked for, and it is what a loose "the SVG contains a
     `<path>`" assertion would miss.
 
@@ -2028,7 +1985,7 @@ def test_layering_a_tricontour_over_a_tricontourf_draws_both() raises:
 
 
 def test_layering_two_kde_curves_puts_both_on_one_shared_density_axis() raises:
-    """#376/#401: seaborn compares distributions by calling `kdeplot()`
+    """Seaborn compares distributions by calling `kdeplot()`
     twice onto one axes. This is that call, which raised until the
     allow-list opened.
 
@@ -2083,11 +2040,7 @@ def test_layering_two_kde_curves_puts_both_on_one_shared_density_axis() raises:
 
 
 def test_tricontour_and_tricontourf_draw_the_same_axis_frame() raises:
-    """What makes "render them separately and read them against each
-    other" honest advice, and what makes #376's fix mechanical for
-    these two marks: both lay out through `_draw_continuous_axis_frame`
-    over `_data_extent` of the same x/y, with no legend column, so at
-    equal size and theme the frames coincide exactly.
+    """Both contour variants produce identical frames for the same x/y.
 
     Asserted on the SVG rather than on pixels because the frame is
     exactly the elements SVG names: every `<line>` (the two axis lines
@@ -2095,9 +2048,6 @@ def test_tricontour_and_tricontourf_draw_the_same_axis_frame() raises:
     element by element. A raster comparison would be dominated by the
     contours themselves, which are supposed to differ.
 
-    This is a characterization test, not a regression one: it passes
-    before this PR as well as after, and its job is to keep the claim
-    the two docstrings now make from going quietly stale.
     """
     var s = _scattered_samples()
     var a = render_svg(
@@ -2232,7 +2182,7 @@ def _lone_layer_matches_standalone(
 
     The strongest domain-correctness assertion available for a newly
     layerable mark, and the one this module leans on for all eight of
-    them (#376). A stack of one has exactly one layer's data in the
+    them. A stack of one has exactly one layer's data in the
     combined domain, so the frame, the scales and every drawn coordinate
     must come out the same as the standalone render's -- if the layered
     path read the wrong field for a mark's x/y, applied the wrong extent
@@ -2256,7 +2206,7 @@ def _lone_layer_matches_standalone(
 
 
 def test_a_lone_kde_layer_draws_the_standalone_kde() raises:
-    """#376. See `_lone_layer_matches_standalone`.
+    """. See `_lone_layer_matches_standalone`.
 
     `Mark.KDE` is the mark this is most likely to catch: its standalone
     y-domain is `LinearScale(0.0, y_max * 1.05)`, written by hand rather
@@ -2276,7 +2226,7 @@ def test_a_lone_kde_layer_draws_the_standalone_kde() raises:
 
 
 def test_a_lone_rug_layer_draws_the_standalone_rug_including_no_y_axis() raises:
-    """#376, and the interaction #378 flagged: a stack of nothing but
+    """A stack of nothing but
     `Mark.RUG` layers has no host y-axis, so it falls back to the
     standalone treatment -- the `LinearScale(0, 1)` placeholder with the
     y half suppressed, rather than publishing "0.0 0.2 ... 1.0" as a
@@ -2294,7 +2244,7 @@ def test_a_lone_rug_layer_draws_the_standalone_rug_including_no_y_axis() raises:
 
 
 def test_a_lone_layer_of_each_field_mark_draws_the_standalone_chart() raises:
-    """#376 for the five remaining newly-layerable marks, each through
+    """For the five remaining newly-layerable marks, each through
     `_lone_layer_matches_standalone`.
 
     `Mark.BARBS`, `TRICONTOUR`, `TRICONTOURF`, `TRIPLOT` and `TRIPCOLOR`
@@ -2343,7 +2293,7 @@ def test_a_lone_layer_of_each_field_mark_draws_the_standalone_chart() raises:
 
 
 def test_a_lone_effect_scatter_layer_draws_its_halo() raises:
-    """#376 admitted `Mark.EFFECT_SCATTER` alongside `Mark.POINT`, which
+    """Admitted `Mark.EFFECT_SCATTER` alongside `Mark.POINT`, which
     it shares `_draw_point_layer` with.
 
     Byte equality is the assertion, and the halo is what makes it
@@ -2371,12 +2321,10 @@ def test_a_lone_effect_scatter_layer_draws_its_halo() raises:
 
 
 def test_layering_a_rug_under_a_kde_draws_what_kdeplot_rug_true_draws() raises:
-    """The composition #376 was filed for, and the sharpest statement of
-    what it means: `render_layers([kdeplot(v), rugplot(v)])` is
+    """Verify the layered composition: `render_layers([kdeplot(v), rugplot(v)])` is
     **byte-identical** to `render(kdeplot(v, rug=True))`.
 
-    `mark_kde(rug=True)` is the workaround #351 shipped because
-    composition was unavailable. Now that it is available, the composed
+    `mark_kde(rug=True)` is the built-in alternative. The composed
     chart has to be the same chart -- so this pins the two paths
     together, and any future divergence in either shows up here.
 
@@ -2460,7 +2408,7 @@ def test_a_rug_layer_rides_the_shared_x_domain_not_its_own() raises:
 
 
 def test_a_kde_layer_anchors_a_shared_domain_at_zero() raises:
-    """The extent-helper divergence #376 had to reconcile: `Mark.KDE`
+    """The extent-helper divergence  had to reconcile: `Mark.KDE`
     anchors its y at zero (`_zero_baseline_y_extent`, like `Mark.AREA`)
     while `Mark.POINT` pads around its data (`_data_extent`). One shared
     axis has to pick, and a density's zero is not negotiable -- a filled
@@ -2535,7 +2483,7 @@ def test_a_kde_layer_anchors_a_shared_domain_at_zero() raises:
 
 
 def test_render_layers_rejects_a_log_scale_on_a_newly_layerable_mark() raises:
-    """#376 admitted eight marks whose domains are only ever taken
+    """Admitted eight marks whose domains are only ever taken
     linearly. `_render_generic` already refuses `scale_x_log()`/
     `scale_y_log()` on anything but `Mark.POINT`/`LINE`/`AREA`/
     `EFFECT_SCATTER`; the layered path has to refuse it too, or a KDE
@@ -2581,22 +2529,15 @@ def test_render_layers_rejects_secondary_axis_on_a_rug_layer() raises:
 def test_an_annotation_on_an_empty_secondary_layer_raises_instead_of_drawing() raises:
     """A `_RenderResult`'s `has_y_scale` is what tells
     `annotate_line()`/`annotate_area()` there is a real y-domain to place
-    themselves against (#389). The layered path hard-coded it to `True`
+    themselves against. The layered path hard-coded it to `True`
     for every layer, which is wrong for a `.secondary_axis()` layer that
     contributed nothing to the secondary domain: the right-hand axis is
     then never drawn, `y_scale2` stays the degenerate
     `LinearScale(0.0, 0.0, ...)` placeholder, and an `annotate_line()`
     against it is placed against nothing.
 
-    Measured on `origin/main`: it does not raise, and the reference
-    line's *label* is drawn anyway -- one `"target"` in the output, a
-    caption for a line the reader has no axis to read. #376 made the
-    flag follow the facts (`has_secondary_data` for a secondary layer,
-    the frame's own for a primary one), so this raises instead.
-
-    Assert on the raise rather than on where the label went: "it is
-    somewhere meaningless" has no pixel to pin, and the fix is that
-    there is no output at all.
+    The layer must raise instead of placing an annotation against the
+    degenerate placeholder scale.
     """
     var lx: List[Float64] = [0.0, 10.0]
     var ly: List[Float64] = [0.0, 10.0]
@@ -2614,14 +2555,12 @@ def test_an_annotation_on_an_empty_secondary_layer_raises_instead_of_drawing() r
 
 def test_render_layers_still_rejects_a_contour_layer_and_says_why() raises:
     """`Mark.CONTOUR`/`CONTOURF` draw through the same
-    `_draw_continuous_axis_frame` as everything #376 admitted, and are
+    `_draw_continuous_axis_frame` as everything  admitted, and are
     still refused -- their axes are unpadded *grid-index* units, not the
     caller's coordinates, so sharing an x with a coordinate mark would
-    equate column 12 with the value 12. #423 tracks it.
+    equate column 12 with the value 12.
 
-    Asserting the tracking number is what makes this more than a
-    coverage line: a reader refused here needs somewhere to go, and this
-    fails if the message is ever reduced to "unsupported mark".
+    The error must explain the incompatible coordinate system.
     """
     var z = List[List[Float64]]()
     var row0: List[Float64] = [0.0, 1.0, 2.0]
@@ -2637,12 +2576,12 @@ def test_render_layers_still_rejects_a_contour_layer_and_says_why() raises:
     plots.append(contour(z, width=400, height=300))
     with assert_raises(contains="layer 1"):
         _ = render_layers(plots)
-    with assert_raises(contains="#423"):
+    with assert_raises(contains="grid-index units"):
         _ = render_layers(plots)
 
 
 # ---------------------------------------------------------------
-# Facet row spacing (#417)
+# Facet row spacing
 # ---------------------------------------------------------------
 
 
@@ -2706,7 +2645,7 @@ def _clear_rows_between(c: Canvas, y0: Int, y1: Int, x0: Int, x1: Int) -> Int:
 
 
 def test_facet_rows_leave_a_gap_between_an_x_title_and_the_next_title() raises:
-    """#417: cells tile edge to edge, so a cell's x-axis title landed
+    """Cells tile edge to edge, so a cell's x-axis title landed
     directly against the next row's chart title.
 
     On a 2x2 grid of 320x240 cells this was not merely tight: scanning

@@ -1,24 +1,11 @@
-"""`Mark.TRIPLOT` and `Mark.TRIPCOLOR`: drawing the Delaunay
-triangulation itself, rather than contouring through it (#344).
+"""Render a Delaunay triangulation as a mesh or colored triangles.
 
-`delaunay()` (delaunay.mojo) has been in the package since #261 and was
-rewritten to near-linear time in #325, but the only things that could
-see its output were `Mark.TRICONTOUR` and `Mark.TRICONTOURF`, which
-consume the triangles and draw isolines. Neither shows the mesh. These
-two marks do:
-
-- **`Mark.TRIPLOT`** strokes the mesh -- every edge once -- and, by
-  default, marks the sample points. It is the tool for *looking at* a
-  triangulation, which is the first thing anyone debugging scattered
-  interpolation wants, and the first thing anyone reviewing `delaunay()`
-  itself wants.
+- **`Mark.TRIPLOT`** strokes each mesh edge and optionally marks samples.
 - **`Mark.TRIPCOLOR`** fills each triangle from the values at its
   vertices, through `Theme`'s color scale. The unstructured counterpart
   of a heatmap: one patch per triangle instead of one per grid cell.
 
-Both take `encode_triplot()`'s columns, which is `encode_tricontour()`'s
-shape minus the level list -- and minus `z` entirely for `TRIPLOT`,
-which needs only positions.
+Both use data supplied by `encode_triplot()`; `TRIPLOT` needs only x and y.
 """
 
 from std.collections import Dict
@@ -47,24 +34,9 @@ from dataviz.theme import Theme
 
 
 struct _TriplotData(Copyable, Movable):
-    """Scattered `(x, y)` positions, an optional per-vertex `z`, and the
-    one glyph knob `mark_triplot()` sets. See `encode_triplot()`. Stored
-    on `Plot._triplot`, shared by `Mark.TRIPLOT` and `Mark.TRIPCOLOR` the
-    way `_TriContourData` is shared by the two contour marks.
+    """Data shared by `Mark.TRIPLOT` and `Mark.TRIPCOLOR`.
 
-    `z` is empty for `Mark.TRIPLOT`, which draws connectivity and nothing
-    else, and required for `Mark.TRIPCOLOR`, which colors by it.
-
-    **Why there is no per-triangle value column.** matplotlib's
-    `tripcolor` accepts `facecolors=` -- one value per triangle instead
-    of one per vertex -- because its caller can hand it a `Triangulation`
-    object and so knows what order the triangles are in. Here the
-    triangulation is built inside the render, and its order is an
-    artifact of Bowyer-Watson's insertion sequence (see delaunay.mojo's
-    `_grid_order`), so a caller has nothing to index against. Offering
-    the column would mean promising an order the algorithm does not
-    promise. #397 tracks exposing the triangulation itself, which is what
-    would make per-triangle values expressible.
+    `z` is empty for `TRIPLOT` and required for `TRIPCOLOR`.
     """
 
     var x: List[Float64]
@@ -80,47 +52,18 @@ struct _TriplotData(Copyable, Movable):
 
 
 comptime _POINT_RADIUS_FRACTION = 0.6
-"""Vertex dots are this fraction of `Theme.point_radius`.
-
-A triplot's dots mark where a sample is, they are not the chart's
-subject the way a scatter's are -- the mesh is. At the full scatter
-radius a few hundred samples draw as overlapping blobs with the edges
-lost underneath them, which defeats the point of drawing the mesh at
-all. Scaling the radius rather than hard-coding a size keeps
-`Theme.point_radius` and `Theme.scale` in charge, so a HiDPI export and
-a deliberately large-marker theme both still work.
-"""
+"""Vertex-dot radius as a fraction of `Theme.point_radius`."""
 
 
 comptime _SEAM_STROKE_WIDTH = 1.5
-"""How wide, in `Theme.scale` units, `Mark.TRIPCOLOR` strokes each
-triangle's own outline in its own fill color.
-
-This is the whole anti-seam mechanism -- see `_render_tripcolor` for why
-`_fill_region_above`'s one-fill-per-color trick cannot be used here, and
-for the white-page/black-page measurement that picked 1.5 over 1.0. It
-is in `scale` units rather than pixels so a HiDPI export gets the same
-half-pixel-of-overlap behavior at its own resolution.
-"""
+"""Triangle-outline width in `Theme.scale` units, used to hide seams."""
 
 
 def _triplot_edges(t: _Triangulation) raises -> Tuple[List[Int], List[Int]]:
     """Every edge of the triangulation exactly once, as parallel lists of
     endpoint vertex indices.
 
-    Each interior edge belongs to two triangles, so walking `t.tri` and
-    emitting three edges per triangle yields most of them twice. Stroking
-    a duplicate is not free and not invisible: an antialiased line drawn
-    twice over itself composites to a darker, apparently heavier line
-    than one drawn once, so an undeduplicated mesh shows its interior
-    edges bolder than its hull edges -- exactly backwards. It also costs
-    roughly twice the path.
-
-    Deduplication goes through delaunay.mojo's own `_edge_key`, the
-    canonical id for an undirected vertex pair that `_tricontour_segments`
-    already uses to chain isolines. Two triangles that share an edge see
-    it in opposite directions, and the key is order-independent, so they
-    agree.
+    Shared interior edges are deduplicated with `_edge_key`.
 
     Args:
         t: The triangulation to walk.
@@ -169,7 +112,7 @@ def _triangle_means(t: _Triangulation, z: List[Float64]) -> List[Float64]:
     triangle until each piece is small enough to look continuous. Both
     are real work with real cost, and neither is what a caller reaching
     for `tripcolor` usually wants -- the flat form is what shows the mesh
-    and the field at once. #398 tracks the interpolated form.
+    and the field at once.
 
     Args:
         t: The triangulation.
@@ -210,7 +153,7 @@ def _render_triplot[
     Axes are the samples' own padded extent -- the same frame
     `Mark.TRICONTOUR` and a `scatter()` of the same points draw, so all
     three put a given sample on the same pixel, and `render_layers()`
-    takes all three (#376): a mesh over a `tripcolor()` field, or a
+    takes all three: a mesh over a `tripcolor()` field, or a
     `scatter()` over a mesh, share one domain by construction.
 
     Vertex dots are drawn on top when `mark_triplot(show_points=True)`,
@@ -266,7 +209,7 @@ def _validate_triplot(plot: Plot) raises:
     one sample. `Mark.TRIPCOLOR` needs a `z` as well and has its own
     (`_validate_tripcolor`).
 
-    A free function because `_render_layers_generic` (#376) has to run it
+    A free function because `_render_layers_generic` has to run it
     in its own first pass -- a layer's x/y columns go into the combined
     domain before any frame exists, so a mismatched `encode_triplot()`
     has to be caught there rather than inside the drawing.
@@ -296,10 +239,8 @@ def _draw_triplot_layer[
     already-laid-out continuous axis frame, the counterpart to
     `_draw_line_layer` in continuous.mojo.
 
-    Split out of `_render_triplot` for #376, so a `render_layers()` stack
-    strokes the same mesh from the same code rather than reimplementing
-    it -- the failure mode `_render_bar_combo_layers`' inline line
-    geometry has hit twice (`step=` in #336, `dashes=` in #383).
+    Shared by standalone and layered rendering so both stroke the same mesh
+    and use the same styling.
 
     `sc` is the *layer's* own `_Scaled`, not the frame's: identical for a
     standalone render, but in a stack the frame belongs to `plots[0]`
@@ -359,7 +300,7 @@ def _render_tripcolor[
     Shading is flat -- one color per triangle, from the mean of its three
     vertex values; see `_triangle_means` for why that and not Gouraud.
     Colors come from `ColorScale.from_theme`, so a `Theme.color_ramp`
-    (`Theme(color_ramp=viridis())`, #332) reaches this mark the same way
+    (`Theme(color_ramp=viridis())`) reaches this mark the same way
     it reaches every other continuous one.
 
     **The color domain is the triangle means, not the vertex values.**
@@ -375,7 +316,7 @@ def _render_tripcolor[
     independently each antialias the edge they share, and two
     half-covered pixels composited over the background do not add up to a
     covered one -- the mesh comes out webbed with pale lines, the bug
-    class that has hit this repo in #315, #318, #327, #359 and #360.
+    class caused by independently antialiasing adjacent fills.
     `_fill_region_above` (tricontour.mojo) avoids it by putting every
     triangle of one color into a single nonzero fill, so shared edges are
     interior and cancel. That is not available here: flat shading gives
@@ -473,7 +414,7 @@ def _draw_tripcolor_layer[
     """Draw one `Mark.TRIPCOLOR` plot's filled faces into an
     already-laid-out continuous axis frame, `_draw_triplot_layer`'s
     counterpart and the field a `render_layers()` stack puts a scatter or
-    a mesh on top of (#376).
+    a mesh on top of.
 
     `sc` is the *layer's* own `_Scaled`, not the frame's: identical for a
     standalone render, but in a stack the frame belongs to `plots[0]`
@@ -629,7 +570,7 @@ def tripcolor(
 
     Shading is flat: one color per triangle, from the mean of its three
     vertex values, which is matplotlib's default. Colors come from
-    `Theme`'s color scale, so `Theme(color_ramp=viridis())` (#332) makes
+    `Theme`'s color scale, so `Theme(color_ramp=viridis())` makes
     it perceptually uniform.
 
     Prefer this over `tricontourf()` when you want to see the sampling

@@ -1,7 +1,7 @@
 """The kernel density estimate `Mark.VIOLIN`, `Mark.RIDGELINE` and
 `Mark.KDE` share.
 
-Lived in `violin.mojo` until `Mark.KDE` needed it too (#351) --
+Lived in `violin.mojo` until `Mark.KDE` needed it too --
 `ridgeline.mojo` was already importing it from there, which made violin
 the de-facto shared home without anything saying so. Moved here
 unchanged; the estimator is the same one violins have always drawn.
@@ -195,7 +195,7 @@ def _kde_observations(plot: Plot) raises -> List[Float64]:
     `Plot.encode_kde()`'s own message keeps a bad layer's error the same
     one the standalone render gives.
     """
-    # The outer list is checked before it is indexed (#439). Reaching
+    # The outer list is checked before it is indexed. Reaching
     # for `values[0]` first turns "you forgot encode_kde()" from a
     # catchable error into an out-of-bounds assert that aborts the
     # process -- no traceback into user code, and nothing a caller can
@@ -224,11 +224,10 @@ def _draw_kde_layer[
     already-laid-out continuous axis frame, the counterpart to
     `_draw_line_layer`/`_draw_area_layer` in continuous.mojo.
 
-    Split out of `_render_kde` for #376 so the standalone render and a
-    `render_layers()` stack draw the same geometry from the same code
+    Shared by standalone and layered rendering so both draw the same geometry
     rather than a layered path reimplementing it -- which is how
     `_render_bar_combo_layers`' inline copy of the line geometry came to
-    silently drop `step=` (#336) and then `dashes=` (#383).
+    silently drop `step=` and then `dashes=`.
 
     `curve_x`/`curve_y` are `_kde_curve`'s output, passed in rather than
     recomputed: the layered caller has already evaluated the curve to
@@ -310,7 +309,7 @@ def _render_rug[
     observations are behind it, or where they actually fall. A rug is the
     honesty check on one, which is why it is conventionally drawn
     underneath. Two ways to draw that: `render_layers([kdeplot(v),
-    rugplot(v)])` composes the two marks (#376), and `kdeplot(rug=True)`
+    rugplot(v)])` composes the two marks, and `kdeplot(rug=True)`
     draws both from the one mark. They produce byte-identical output --
     both reach `_draw_rug_ticks` below against the curve's own x-scale --
     so the choice is about how the code reads, not the chart.
@@ -326,7 +325,7 @@ def _render_rug[
     center and it stays crisp; the whole chart is thin vertical lines and
     a blurred one reads as a fainter observation.
 
-    The y-axis is suppressed (`y_axis_visible=False`, #378). A rug has no
+    The y-axis is suppressed (`y_axis_visible=False`). A rug has no
     y dimension: the `LinearScale(0.0, 1.0, ...)` below exists only
     because `_draw_continuous_axis_frame` requires a y-domain, and drawn
     out it would caption the chart `0.0 0.2 ... 1.0` -- a density a
@@ -401,7 +400,7 @@ def kdeplot(
     Comparing them on one frame is what seaborn does by calling
     `kdeplot()` twice onto the same axes, and
     `render_layers([kdeplot(a), kdeplot(b)])` is how to say that here
-    (#376): the curves share one density axis, so their peak heights are
+    : the curves share one density axis, so their peak heights are
     comparable, which is the whole point. `render_facets()` puts them
     side by side instead, a weaker reading but useful when the
     distributions barely overlap.
@@ -470,9 +469,9 @@ def rugplot(
     `Mark.RUG`: seaborn's `rugplot()`. The same ticks `kdeplot(rug=True)`
     draws under its curve, as a chart of their own -- or as a layer, via
     `render_layers([kdeplot(v), rugplot(v)])`, which draws exactly what
-    `kdeplot(rug=True)` does (#376).
+    `kdeplot(rug=True)` does.
 
-    Drawn with no y-axis (#378): a rug's ticks are all the same length
+    Drawn with no y-axis: a rug's ticks are all the same length
     and all sit on the baseline, so the only thing the chart says is
     *where the observations are*. Passing `y_title` still captions the
     left edge, which is worth avoiding here for the same reason.
@@ -524,36 +523,36 @@ def _draw_snapped_ticks[
     width: Float64,
 ) raises:
     """One vertical hairline per value, at `x_scale.to_pixel(value)`
-    snapped to a pixel center, running `y_top` to `y_bottom`.
+       snapped to a pixel center, running `y_top` to `y_bottom`.
 
-    The whole of #313's rule for a thin line, in one place: only the
-    *fixed* coordinate snaps. Here that is x -- the value being marked
-    -- so a tick covers exactly one column instead of spreading half its
-    ink into each of two. The two y ends run along the other axis and
-    keep their exact positions, so a caller placing ticks inside a
-    layout band gets the band's real geometry rather than a rounded one.
+       The rule for a thin line, in one place: only the
+       *fixed* coordinate snaps. Here that is x -- the value being marked
+       -- so a tick covers exactly one column instead of spreading half its
+       ink into each of two. The two y ends run along the other axis and
+       keep their exact positions, so a caller placing ticks inside a
+       layout band gets the band's real geometry rather than a rounded one.
 
-    This matters more for these marks than for most: the entire chart is
-    thin vertical lines, and a blurred one reads as a fainter
-    observation -- a difference in the data, not in the rendering.
+       This matters more for these marks than for most: the entire chart is
+       thin vertical lines, and a blurred one reads as a fainter
+       observation -- a difference in the data, not in the rendering.
 
-    Generalized out of `_draw_rug_ticks` (below, which now supplies the
-    three numbers a rug wants and calls this) when `Mark.EVENTPLOT`
-    (#339) needed the same tick somewhere else: centered on a
-    categorical row rather than standing on the frame's baseline. It
-    lives here, next to the rug, rather than in a new shared module,
-    because a module whose entire content is this loop would be harder
-    to find than the mark that has always drawn it.
+       Generalized out of `_draw_rug_ticks` (below, which now supplies the
+       three numbers a rug wants and calls this) when `Mark.EVENTPLOT`
+    needed the same tick somewhere else: centered on a
+       categorical row rather than standing on the frame's baseline. It
+       lives here, next to the rug, rather than in a new shared module,
+       because a module whose entire content is this loop would be harder
+       to find than the mark that has always drawn it.
 
-    Args:
-        target: Where to draw.
-        values: The positions to mark, in data units.
-        x_scale: The scale mapping those to pixels.
-        y_top: Each tick's upper pixel y.
-        y_bottom: Each tick's lower pixel y.
-        color: The tick color.
-        width: Stroke width, normally `_Scaled.scale` -- one device
-            pixel, which is what makes the snap worth doing.
+       Args:
+           target: Where to draw.
+           values: The positions to mark, in data units.
+           x_scale: The scale mapping those to pixels.
+           y_top: Each tick's upper pixel y.
+           y_bottom: Each tick's lower pixel y.
+           color: The tick color.
+           width: Stroke width, normally `_Scaled.scale` -- one device
+               pixel, which is what makes the snap worth doing.
     """
     for v in values:
         var px = _snap_pixel_center(x_scale.to_pixel(v))
@@ -573,7 +572,7 @@ def _draw_rug_ticks[
     """One short tick per observation along the frame's baseline.
 
     Shared by `Mark.RUG`, by `mark_kde(rug=True)`, and by a `Mark.RUG`
-    layer inside `render_layers()` (#376), so the ticks are identical
+    layer inside `render_layers()`, so the ticks are identical
     whether they stand alone, sit under a curve, or ride a shared frame.
 
     Takes the three pieces it needs rather than a whole
@@ -584,7 +583,7 @@ def _draw_rug_ticks[
     What is left here is only what is specific to a rug -- standing on
     the baseline, two tick-lengths tall, one device pixel wide. The tick
     itself, snap included, is `_draw_snapped_ticks` above, which
-    `Mark.EVENTPLOT` draws through as well (#339).
+    `Mark.EVENTPLOT` draws through as well.
 
     Args:
         target: Where to draw.

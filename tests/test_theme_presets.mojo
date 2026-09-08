@@ -1,30 +1,9 @@
-"""`dataviz.themes`' four presets (#333), asserted from real renders.
+"""Render-level tests for the four built-in theme presets.
 
-The bug a preset test has to catch is not "the preset does nothing" --
-that one is obvious the first time anybody looks at a chart. It is
-*partial* application: a preset that sets the five fields a person
-reaches for and leaves the twentieth at its light-theme default, which
-stays invisible until someone renders the one mark that draws it. So
-`test_dark_preset_leaves_no_light_theme_default_anywhere` sweeps ten
-renders and fails naming the exact field and chart, and the grayscale
-and contrast tests are all sized to fail on a *plausible*
-half-application rather than only on a no-op: `print_safe()` keeping the
-default `mark_color_negative` still separates the sign pair by 64.8 luma
-levels, so that test's bar is 100.
-
-Every assertion was checked against a deliberately half-applied preset
-before being kept, and two early versions of these tests passed with and
-without the bug they claimed to catch. Both failed the same way -- they
-named the color they expected and searched the canvas for it, which an
-anti-aliased edge somewhere else satisfies by coincidence. That is why
-`_color_census`/`_top_fills` identify a mark's fill by *area* instead,
-and why the dark sweep has a second pass on brightness: an exact-color
-search cannot see a stop that is only interpolated through, or one
-composited with alpha before it reaches the canvas.
-
-Luminance is computed here rather than imported, and the thresholds are
-hand-written constants -- nothing in this file derives an expected value
-by calling the preset it is checking.
+The tests detect partially applied presets by inspecting dominant fill
+colors, brightness, grayscale ordering, and contrast. Expected luminance
+thresholds are independent constants rather than values derived from the
+preset under test.
 """
 
 from _test_helpers import BG, _count_color, _runs_in_row
@@ -517,7 +496,7 @@ def test_dark_preset_leaves_no_light_theme_default_anywhere() raises:
     # brightest thing a *forgotten* field would put there is 190. The
     # radar and effect-scatter renders are excluded because `_lighten()`
     # flattens their fills against a hardcoded white rather than against
-    # `Theme.background` -- see #427 -- which puts the radar's lightened
+    # `Theme.background` -- see -- which puts the radar's lightened
     # palette orange at 173.3 for reasons no preset controls.
     for i in range(len(canvases)):
         if names[i] == "radar" or names[i] == "effect scatter":

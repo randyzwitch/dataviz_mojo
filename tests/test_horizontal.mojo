@@ -1,6 +1,6 @@
 """Merged test module (one process per test family; see pixi.toml's
 `[tasks]` comment for why). Covers the `horizontal=True` variants
-(#121) of bar, beeswarm, box, grouped_bar, lollipop, stacked_bar, and
+() of bar, beeswarm, box, grouped_bar, lollipop, stacked_bar, and
 violin: each `_render_horizontal_*`'s hand-derived geometry, the 1px
 pull-off when the baseline lands on the frame's left axis line,
 Theme.color_by_sign/show_data_labels where the vertical path supports
@@ -157,9 +157,6 @@ def test_bar_horizontal_matches_plot_mark_bar_horizontal() raises:
 
 
 def test_render_horizontal_bar_raises_on_no_data() raises:
-    # #206: an all-empty Plot used to render a plain background with no
-    # axes and no error; _validate_categorical_encoding now raises before
-    # any layout, the same as the vertical orientation.
     with assert_raises():
         var plot = (
             Plot().mark_bar(horizontal=True).size(50, 40)
@@ -255,7 +252,7 @@ def test_render_horizontal_beeswarm_raises_on_mismatched_category_length() raise
 
 
 def test_render_horizontal_beeswarm_raises_on_no_data() raises:
-    # #206: encode_distribution() now raises immediately on empty
+    # encode_distribution() now raises immediately on empty
     # categories, before beeswarm() even returns a Plot to render.
     var cats = List[String]()
     var vals = List[List[Float64]]()
@@ -467,7 +464,7 @@ def test_grouped_bar_horizontal_matches_plot_mark_grouped_bar_horizontal() raise
 
 
 def test_render_horizontal_grouped_bar_raises_on_zero_length_categories() raises:
-    # #206: _validate_grouped_bar_series now raises on empty
+    # _validate_grouped_bar_series now raises on empty
     # categories/series_names rather than rendering a blank background.
     var cats = List[String]()
     var names: List[String] = ["North"]
@@ -583,7 +580,6 @@ def test_lollipop_dtype_generic_overload_forwards_horizontal() raises:
 
 
 def test_render_horizontal_lollipop_raises_on_no_data() raises:
-    # #206: see test_render_horizontal_bar_raises_on_no_data above.
     with assert_raises():
         var plot = (
             Plot().mark_lollipop(horizontal=True).size(50, 40)
@@ -727,7 +723,6 @@ def test_stacked_bar_horizontal_matches_plot_mark_stacked_bar_horizontal() raise
 
 
 def test_render_horizontal_stacked_bar_raises_on_zero_length_categories() raises:
-    # #206: see test_render_horizontal_grouped_bar_raises_on_zero_length_categories above.
     var cats = List[String]()
     var names: List[String] = ["North"]
     var values: List[List[Float64]] = [List[Float64]()]

@@ -1,17 +1,4 @@
-"""`Mark.ECDF`: the empirical cumulative distribution function (#338).
-
-The whole computation is a sort. `_ecdf_points` below turns raw
-observations into the staircase's vertices in data units; `_render_ecdf`
-projects those onto a continuous frame and hands them to `_step_points`
-(continuous.mojo), the same expansion `mark_line(step=...)` uses, so
-this file owns no staircase geometry of its own.
-
-Why this chart earns a mark of its own, next to `Mark.HISTOGRAM`'s bars
-and `Mark.KDE`'s curve: an ECDF makes no binning or bandwidth choice, so
-there is no parameter that can change the conclusion. A histogram of the
-same sample can show one mode or three depending on bin width, and a KDE
-the same depending on bandwidth. An ECDF has one shape.
-"""
+"""Empirical cumulative distribution rendering."""
 
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
@@ -36,12 +23,7 @@ from dataviz.theme import Theme
 
 
 struct _EcdfCurve(Movable):
-    """`_ecdf_points`' result: the staircase's vertices in data units, as
-    the parallel `x`/`y` columns the rest of the render path already
-    speaks. Its own struct for the same reason `_Stepped` (continuous.mojo)
-    has one -- a function returns one value and the two lists have to
-    travel together.
-    """
+    """ECDF staircase vertices in data units."""
 
     var x: List[Float64]
     var y: List[Float64]
@@ -61,47 +43,18 @@ def _ecdf_points(
     is a right-continuous step function that jumps by `k/n` at each
     distinct observed value, `k` being how many observations share it.
 
-    ## Ties get one step of `k/n`, not `k` steps of `1/n`
-
     `values` is sorted, then walked in runs of equal values: one vertex
     per *distinct* value, carrying that value's cumulative count. `[1, 1,
     2]` becomes `F(1) = 2/3, F(2) = 1` -- two steps, not three.
-
-    matplotlib's `Axes.ecdf` emits one vertex per observation instead
-    (`cum_weights = (1 + arange(n)) / n`, every value kept), which draws
-    the same picture: the extra vertices sit at the same x, so the
-    plateaus between them have zero length and put no ink down. Both are
-    correct; this form is the smaller one, and it is the one whose
-    vertices a reader can check against the definition.
-
-    matplotlib's own `compress=True` -- documented as grouping equal
-    entries "with a summed weight", i.e. exactly this -- is **not** the
-    oracle here, because on matplotlib 3.11.1 it keeps each run's
-    *first* cumulative weight rather than its last:
-
-        ecdf([1, 1, 2], compress=True)     -> y = [0, 1/3, 1]
-        ecdf([1, 1, 1, 2, 5, 5], compress=True)
-                                           -> y = [0, 1/6, 2/3, 5/6]
-
-    The first understates `F(1)` (2/3, not 1/3); the second never
-    reaches 1 at all. Its default (uncompressed) path is right, and that
-    is what this function was checked against value by value.
-
-    ## The curve runs the data range, and no further
 
     The first vertex repeats the smallest observation at `y = 0`, so the
     curve rises from 0 at `min(values)` and ends at exactly 1 at
     `max(values)`. It is not extended to the axis edges: doing that
     would draw a flat run at 0 below the minimum and at 1 above the
-    maximum, which asserts the distribution is bounded there -- a claim
-    the sample does not make. matplotlib draws to the data range for the
-    same reason, and `_data_extent`'s 5% padding leaves the visible gap
-    at each end unpainted rather than filled in.
+    maximum. `_data_extent` padding therefore remains unpainted.
 
     `1` is reached exactly, not to within rounding: the last cumulative
     count is `n`, and `Float64(n) / Float64(n)` is exactly `1.0`.
-
-    ## Which `StepStyle` an ECDF is
 
     `POST`: the riser sits at the later sample's x, so the plateau over
     `[x[i], x[i + 1])` is drawn at `y[i]`. That is the definition --
@@ -109,8 +62,7 @@ def _ecdf_points(
     reached, then jumps. `PRE` would draw `F` as left-continuous
     (jumping *before* the observation) and `MID` would put the jump
     halfway between two observations, at an x where nothing happened.
-    Only `POST` is the function; the other two are pictures of a
-    different one. matplotlib passes `drawstyle="steps-post"` here too.
+    Only `POST` represents the right-continuous function.
 
     Complementary (`1 - F(x)`, the survival function reliability and
     survival analysis read) reverses that: the vertex list starts at 1,
@@ -202,7 +154,7 @@ def _render_ecdf[
 
     Layering two ECDFs on one frame -- comparing distributions, which is
     the main reason to draw one -- is not available yet:
-    `render_layers()` takes only `Mark.POINT`/`LINE`/`AREA` (#376).
+    `render_layers()` takes only `Mark.POINT`/`LINE`/`AREA`.
     `render_facets()` puts them side by side today, a weaker reading but
     an honest one.
 
@@ -296,7 +248,7 @@ def ecdf(
     Two ECDFs also overplot legibly where two histograms do not, which
     makes this the better chart for comparing distributions (that
     comparison needs `render_layers()`, which does not take this mark
-    yet -- #376; `render_facets()` is today's side-by-side answer).
+    yet; `render_facets()` is the side-by-side alternative).
 
     What it costs: a shape a reader has to be taught. A histogram's
     modes are obvious and an ECDF's are slopes, so a bimodal sample

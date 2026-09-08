@@ -37,7 +37,7 @@ def _bar_fill_color(theme: Theme, value: Float64) -> Color:
 
 def _bar_y_domain_data(plot: Plot) -> List[Float64]:
     """`plot.y_data`, or every error-bar whisker endpoint when `y_err`
-    (or `y_err_lower`/`y_err_upper`) is set (#216), so the y-domain spans
+    (or `y_err_lower`/`y_err_upper`) is set, so the y-domain spans
     everything `_draw_bar_rects` actually draws -- the same
     `y_domain_data` pattern `_render_generic` uses for `POINT`/`LINE`/
     `EFFECT_SCATTER`.
@@ -69,27 +69,27 @@ def _draw_bar_rects[
     mut text_requests: List[_TextRequest],
 ) raises:
     """Draw one `Mark.BAR` plot's rectangles (and, with
-    `Theme.show_data_labels`, each one's value label) into an
-    already-laid-out categorical axis frame. Written once for both
-    orientations; `_Orientation` carries the two differences (which way a
-    rect is emitted, where its label sits).
+        `Theme.show_data_labels`, each one's value label) into an
+        already-laid-out categorical axis frame. Written once for both
+        orientations; `_Orientation` carries the two differences (which way a
+        rect is emitted, where its label sits).
 
-    Factored out of `_render_bar` so `render_layers()`'s bar-combo path
-    (`_render_bar_combo_layers`, layers.mojo) can draw a `Mark.BAR` layer
-    against a frame it built, the same split `_draw_point_layer`/
-    `_draw_line_layer`/`_draw_area_layer` use. That combo path is
-    vertical-only and passes `_Orientation(False)`.
+        Factored out of `_render_bar` so `render_layers()`'s bar-combo path
+        (`_render_bar_combo_layers`, layers.mojo) can draw a `Mark.BAR` layer
+        against a frame it built, the same split `_draw_point_layer`/
+        `_draw_line_layer`/`_draw_area_layer` use. That combo path is
+        vertical-only and passes `_Orientation(False)`.
 
-    `band_scale`/`value_scale` come from the caller's frame, and
-    `baseline_edge` is that frame's axis line (`py1` vertically, `px0`
-    horizontally) for `_pull_off_axis_line`. Color-by-sign and label
-    sizing read `plot._theme` through this function's own
-    `_Scaled(theme)`, so a layered bar follows its own `Theme.scale`.
+        `band_scale`/`value_scale` come from the caller's frame, and
+        `baseline_edge` is that frame's axis line (`py1` vertically, `px0`
+        horizontally) for `_pull_off_axis_line`. Color-by-sign and label
+        sizing read `plot._theme` through this function's own
+        `_Scaled(theme)`, so a layered bar follows its own `Theme.scale`.
 
-    `Plot.encode_categorical()`'s `y_err`/`y_err_lower`/`y_err_upper`
-    (#216), when set, draws a capped whisker at each bar's value edge
-    first, in that bar's own resolved color, the same "whisker first,
-    mark on top" order `_draw_point_layer` uses.
+        `Plot.encode_categorical()`'s `y_err`/`y_err_lower`/`y_err_upper`
+    , when set, draws a capped whisker at each bar's value edge
+        first, in that bar's own resolved color, the same "whisker first,
+        mark on top" order `_draw_point_layer` uses.
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
@@ -247,18 +247,18 @@ def _render_horizontal_bar[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """`_render_bar`'s mirror image for `Plot.mark_bar(horizontal=True)`
-    (#121): a categorical y-axis (`OrdinalScale`, top to bottom) and a
-    continuous x-axis whose domain includes a zero baseline
-    (`_zero_baseline_y_extent`, axis-agnostic despite the name).
+    : a categorical y-axis (`OrdinalScale`, top to bottom) and a
+        continuous x-axis whose domain includes a zero baseline
+        (`_zero_baseline_y_extent`, axis-agnostic despite the name).
 
-    A separate function rather than an orientation flag on `_render_bar`,
-    for the same reason `_draw_horizontal_categorical_axis_frame`
-    (gantt.mojo) stays separate from `_draw_categorical_axis_frame`: a
-    bidirectional frame would need a branch on nearly every line (which
-    scale is which type, which axis reverses, which margin grows). The
-    rect drawing itself is shared through `_draw_bar_rects` and
-    `_Orientation(True)`. No y-gridlines, mirroring `_render_bar`'s no
-    x-gridlines.
+        A separate function rather than an orientation flag on `_render_bar`,
+        for the same reason `_draw_horizontal_categorical_axis_frame`
+        (gantt.mojo) stays separate from `_draw_categorical_axis_frame`: a
+        bidirectional frame would need a branch on nearly every line (which
+        scale is which type, which axis reverses, which margin grows). The
+        rect drawing itself is shared through `_draw_bar_rects` and
+        `_Orientation(True)`. No y-gridlines, mirroring `_render_bar`'s no
+        x-gridlines.
     """
     _validate_categorical_encoding(plot)
 
@@ -326,7 +326,7 @@ def bar(
         horizontal: Draw categories running top-to-bottom with each
             bar extending left-to-right instead of the default
             vertical layout -- see `Plot.mark_bar()`'s own docstring
-            (#121).
+    .
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.

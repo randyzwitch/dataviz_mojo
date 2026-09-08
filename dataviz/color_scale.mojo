@@ -83,7 +83,7 @@ struct ColorScale(Movable):
 
         A non-empty `Theme.color_ramp` replaces all three, spread evenly
         over `[0, 1]` -- that is how a perceptually uniform map like
-        `colormaps.viridis()` reaches a mark (#332). Three stops cannot
+        `colormaps.viridis()` reaches a mark. Three stops cannot
         express one; see the field's own docstring. A single-entry ramp
         is a flat color, which is degenerate but well defined, so it is
         not rejected.

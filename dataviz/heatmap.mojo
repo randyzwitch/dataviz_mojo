@@ -288,7 +288,7 @@ def _render_heatmap[
     #
     # "The same value" only holds if it is the same *expression*, which
     # is why the far edge comes from `band_end` rather than
-    # `band_start + bandwidth` (#379): the latter accumulates one more
+    # `band_start + bandwidth`: the latter accumulates one more
     # addition than the neighbor's `band_start` does, and floating-point
     # addition is not associative, so at some geometries the two edges
     # snapped a pixel apart and left a background column between two

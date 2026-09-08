@@ -1,30 +1,14 @@
-"""Delaunay triangulation of scattered points, for contouring data that
-does not sit on a grid (#261).
+"""Delaunay triangulation of scattered points using Bowyer-Watson insertion.
 
 Bowyer-Watson incremental insertion: start from one super-triangle that
 contains every point, insert points one at a time, delete the triangles
 whose circumcircle the new point falls inside, and re-fill that hole by
 joining its boundary to the new point.
 
-Two things keep that near O(n log n) rather than the O(n^2) it is when
-written literally (#322, where 20,000 points took 9.8 seconds against
-matplotlib's 0.1):
-
-- **Adjacency.** Each triangle knows the triangle across each of its
-  edges, so the triangle containing a new point is found by *walking*
-  there from the last insertion instead of scanning every triangle, and
-  the doomed triangles are found by flooding outward from it instead of
-  testing every triangle. Both sets are connected, so both searches
-  touch only what they must.
-- **Insertion order.** Points go in in grid order, boustrophedon so
-  consecutive rows run in opposite directions, which keeps each point
-  near the last one and the walk to a handful of steps.
-
-The output is still what `tricontour` needs and nothing more: a vertex
-list and a triangle list. The adjacency is scaffolding for the build and
-is dropped at the end, because contouring walks triangles independently
-and joins segments by edge id afterwards, the same way the grid contour
-does.
+Adjacency supports walking to each insertion and flooding its circumcircle
+cavity. Boustrophedon grid ordering keeps consecutive insertions nearby.
+The result contains vertex and triangle lists; build-time adjacency is not
+retained.
 """
 
 
@@ -435,8 +419,7 @@ def delaunay(xs: List[Float64], ys: List[Float64]) raises -> _Triangulation:
                 found = True
                 break
         if not found:
-            # Fall back to the scan this used to do always, so a walk that
-            # cannot settle still produces a correct triangulation.
+            # Fall back to a scan when the adjacency walk cannot settle.
             for t2 in range(len(dead)):
                 if dead[t2]:
                     continue

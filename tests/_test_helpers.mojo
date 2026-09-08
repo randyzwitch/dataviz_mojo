@@ -16,7 +16,7 @@ comptime BG = WHITE
 
 struct Lcg(Movable):
     """A tiny linear congruential generator, for the property-style
-    sweeps (#220). Its own generator rather than a dependency, and
+    sweeps. Its own generator rather than a dependency, and
     deterministic rather than seeded from the clock: a sweep that fails
     has to fail again on the next run, and the failing case has to be
     reproducible from the seed alone so it can be lifted into a fixed
@@ -78,7 +78,7 @@ struct Lcg(Movable):
 
 
 # ---------------------------------------------------------------
-# Structural SVG helpers (#219)
+# Structural SVG helpers
 #
 # SVG tests assert on `to_string()` substrings, which catches gross
 # breakage but not structure: a mark emitting its rects outside the
@@ -108,27 +108,27 @@ def _count_tag(svg: String, tag: String) -> Int:
 def _attr_values(svg: String, tag: String, attr: String) -> List[String]:
     """Every value of `attr` on every `<tag>` element, in document order.
 
-    Reads only elements of that tag, so `fill` on `<rect>` doesn't pick
-    up `fill` on `<text>` -- telling those apart is most of the point of
-    asserting structurally rather than on substrings.
+        Reads only elements of that tag, so `fill` on `<rect>` doesn't pick
+        up `fill` on `<text>` -- telling those apart is most of the point of
+        asserting structurally rather than on substrings.
 
-    The attribute is matched with a leading space so that `fill` cannot
-    be found inside a neighbor like `stroke-width="2.000"`. That space
-    is why the element text below is rebuilt with one in front of it
-    (#387): the scan already consumed the space after the tag name, so
-    without putting it back the *first* attribute of an element could
-    never match, and the function returned an empty list rather than
-    saying so. `_attr_values(svg, "path", "d")` and
-    `_attr_values(svg, "rect", "x")` silently found nothing, which in a
-    test reads as a passing assertion over no values.
+        The attribute is matched with a leading space so that `fill` cannot
+        be found inside a neighbor like `stroke-width="2.000"`. That space
+        is why the element text below is rebuilt with one in front of it
+    : the scan already consumed the space after the tag name, so
+        without putting it back the *first* attribute of an element could
+        never match, and the function returned an empty list rather than
+        saying so. `_attr_values(svg, "path", "d")` and
+        `_attr_values(svg, "rect", "x")` silently found nothing, which in a
+        test reads as a passing assertion over no values.
 
-    Args:
-        svg: The rendered document.
-        tag: Element name, without angle brackets.
-        attr: Attribute name, without the `=`.
+        Args:
+            svg: The rendered document.
+            tag: Element name, without angle brackets.
+            attr: Attribute name, without the `=`.
 
-    Returns:
-        The values, one per element that carries the attribute.
+        Returns:
+            The values, one per element that carries the attribute.
     """
     var out = List[String]()
     var needle = "<" + tag + " "
@@ -203,7 +203,7 @@ def _assert_well_formed_svg(svg: String, label: String) raises:
 
 
 # ---------------------------------------------------------------
-# Locating features by scanning (#218)
+# Locating features by scanning
 #
 # Most raster assertions name a pixel computed by hand from the default
 # margins, the 5% padding, the legend width and the supersample factor.

@@ -1,6 +1,6 @@
-"""Accepting chart data that isn't a plain `List[Float64]`/`List[String]`.
+"""Adapters for data not stored as `List[Float64]` or `List[String]`.
 
-Two independent axes, each with its own mechanism (#158/#107):
+Two independent axes, each with its own mechanism:
 
 - A different *container* type (a custom buffer wrapper, a future
   dataframe column type) via `Float64Sequence`/`StringSequence`
@@ -11,24 +11,9 @@ Two independent axes, each with its own mechanism (#158/#107):
   `_materialize_scalar_list`'s `DType` genericity, with no trait
   involved.
 
-Mojo trait conformance is nominal: a type must be declared to conform
-where it is defined, and there is no way to retroactively conform a
-third-party type. So the trait axis only helps types whose author adds
-the conformance. `List` itself, a numpy array via `PythonObject`, or a
-MAX `Tensor` need their own adapter overloads instead (numpy's is
-numpy_interop.mojo). `List[Float64]` has the matching shape but does
-not satisfy `Float64Sequence`, which is why `Plot.encode()`'s
-array-like overload exists alongside the concrete `List[Float64]` one.
-
-For the element-type axis, `Floatable` doesn't work either: `Int`/
-`Float32`/`Float64` don't conform to it. Every Mojo scalar is
-`Scalar[some_dtype]`, so a function generic over `dtype: DType` taking
-`List[Scalar[dtype]]` handles all of them via `.cast[DType.float64]()`
-with no overload ambiguity: Mojo picks the concrete `List[Float64]`
-overload when that's exactly what's passed.
-
-`(Sized)`: composing the stdlib's `Sized` trait so `len(x)` dispatches
-on a conforming value; a matching `__len__` alone isn't enough.
+Trait adapters require declared conformance; third-party types such as numpy
+arrays need dedicated overloads. The traits extend `Sized` so `len()` works
+on conforming values.
 """
 
 

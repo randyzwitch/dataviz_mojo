@@ -1,5 +1,6 @@
-"""Merged test module (one process per test family; see pixi.toml's
-`[tasks]` comment for why). Covers:
+"""Tests for encoding and explicit scales.
+
+Covers:
 
 - Plot.encode()'s y_err channel on Mark.POINT/EFFECT_SCATTER: whisker
   placement in the point's own color, the y-domain widening to the
@@ -10,7 +11,7 @@
   Theme.mark_color, independent of the path decimation; Mark.AREA
   still raises.
 - Plot.encode_categorical()'s y_err channel on Mark.BAR, and
-  encode_grouped_bar()'s errors channel on Mark.GROUPED_BAR (#216):
+  encode_grouped_bar()'s errors channel on Mark.GROUPED_BAR:
   whisker placement in the bar's/sub-bar's own resolved color, the
   value-axis domain widening to the whisker endpoints, and the raise
   paths (including the other categorical marks these two encode
@@ -18,10 +19,10 @@
 - Plot.scale_y_log()/scale_x_log(): pixel placement through the shared
   to_pixel() path and every raise path.
 - render_layers() with every layer on an axis agreeing on
-  scale_y_log()/scale_x_log() (#217): a shared log domain, primary vs.
+  scale_y_log()/scale_x_log(): a shared log domain, primary vs.
   secondary y-axis log-ness decided independently, Mark.AREA still
   excluded, and every mix-raise path (naming the disagreeing layer).
-- Plot.scale_x_domain()/scale_y_domain() (#209): a pinned domain wins
+- Plot.scale_x_domain()/scale_y_domain(): a pinned domain wins
   over both the data extent and Mark.AREA's forced zero baseline, an
   out-of-domain point computes a real off-plot pixel rather than
   raising or clamping, render_facets() applies the same override per
@@ -29,7 +30,7 @@
   a non-positive min on a log axis, an unsupported mark,
   render_layers()).
 - Theme.show_data_labels on Mark.BAR/GROUPED_BAR/STACKED_BAR/LOLLIPOP/
-  WATERFALL/BULLET/POPULATION_PYRAMID (#213): label placement and
+  WATERFALL/BULLET/POPULATION_PYRAMID: label placement and
   formatting, and the default-off case for every one of them.
 - Plot.encode()'s labels channel on Mark.POINT/EFFECT_SCATTER.
 - Plot.encode()'s color_map: pinned colors, unmapped categories, the
@@ -152,7 +153,7 @@ def test_render_raises_on_a_y_err_length_mismatch() raises:
 
 
 def test_render_raises_on_y_err_with_an_incompatible_mark() raises:
-    # Mark.AREA is still excluded; Mark.LINE gained y_err support in #146.
+    # Mark.AREA is still excluded; Mark.LINE gained y_err support in .
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var err: List[Float64] = [1.0, 1.0]
@@ -321,7 +322,7 @@ def test_render_raises_on_y_err_with_mark_area() raises:
 
 
 # ---------------------------------------------------------------
-# from tests/test_error_bars_on_bar.mojo (#216)
+# from tests/test_error_bars_on_bar.mojo
 # ---------------------------------------------------------------
 
 
@@ -455,7 +456,7 @@ def test_render_raises_on_y_err_with_an_incompatible_categorical_mark() raises:
 
 
 # ---------------------------------------------------------------
-# from tests/test_error_bars_on_grouped_bar.mojo (#216)
+# from tests/test_error_bars_on_grouped_bar.mojo
 # ---------------------------------------------------------------
 
 
@@ -677,7 +678,7 @@ def test_render_raises_on_a_non_positive_annotate_vline_value_with_scale_x_log()
 
 
 # ---------------------------------------------------------------
-# from tests/test_axis_domain_overrides.mojo (#209)
+# from tests/test_axis_domain_overrides.mojo
 # ---------------------------------------------------------------
 
 
@@ -732,7 +733,7 @@ def test_render_svg_scale_y_domain_wins_over_the_data_extent() raises:
 
 
 def test_render_svg_scale_y_domain_overrides_mark_area_forced_zero_baseline() raises:
-    # #209: an explicit domain wins even over Mark.AREA's usual forced
+    # an explicit domain wins even over Mark.AREA's usual forced
     # zero baseline -- [30, 70] shows no 0 tick at all.
     var x: List[Float64] = [1.0, 2.0, 3.0]
     var y: List[Float64] = [40.0, 50.0, 60.0]
@@ -821,7 +822,7 @@ def test_render_layers_raises_on_a_layer_with_scale_y_domain() raises:
 
 
 def test_render_facets_svg_scale_y_domain_applies_per_cell_like_a_shared_domain() raises:
-    # #209: the same override on every cell reads as one shared domain --
+    # the same override on every cell reads as one shared domain --
     # the facets counterpart to shared_y_scale=True, with no extra
     # facets-specific wiring (each cell independently resolves the same
     # pinned [0, 100] via _render_generic).
@@ -851,7 +852,7 @@ def test_render_facets_svg_scale_y_domain_applies_per_cell_like_a_shared_domain(
 
 
 def test_render_layers_raises_on_a_layer_with_scale_y_log() raises:
-    # #217: render_layers() now supports a log axis when every layer on
+    # render_layers() now supports a log axis when every layer on
     # it agrees; a lone log layer next to a linear one still raises,
     # naming the disagreeing layer.
     var x: List[Float64] = [1.0, 2.0]
@@ -864,7 +865,7 @@ def test_render_layers_raises_on_a_layer_with_scale_y_log() raises:
 
 
 def test_render_svg_layers_share_one_log_y_domain_when_every_layer_agrees() raises:
-    # #217: two log-y layers, y=[1,10] and y=[10,100]. Combined domain
+    # two log-y layers, y=[1,10] and y=[10,100]. Combined domain
     # [1,100] in real units -> log10-space [0,2], padded 5% (0.1) ->
     # [-0.1, 2.1], the exact domain test_render_svg_scale_y_log_matches_
     # hand_derived_positions (above) uses for its own [1,10,100] domain
@@ -932,7 +933,7 @@ def test_render_layers_raises_on_scale_y_log_with_a_mark_area_layer() raises:
 
 
 def test_render_layers_secondary_axis_log_is_independent_of_the_primary_axis() raises:
-    # #217: a linear primary axis alongside a log secondary axis (or the
+    # a linear primary axis alongside a log secondary axis (or the
     # reverse) is fine -- the two groups are validated independently.
     var x: List[Float64] = [1.0, 2.0]
     var y1: List[Float64] = [1.0, 2.0]
@@ -1110,7 +1111,7 @@ def test_render_svg_stacked_bar_data_labels_match_hand_derived_positions() raise
 
 
 def test_render_svg_lollipop_data_labels_match_hand_derived_positions() raises:
-    # #213: show_data_labels closes the gap on Mark.LOLLIPOP (previously
+    # show_data_labels closes the gap on Mark.LOLLIPOP (previously
     # BAR/GROUPED_BAR/STACKED_BAR only). Same 2-category frame as the BAR
     # test above; each label sits past the dot (radius padded on, so it
     # clears the head circle, not just the stem).
@@ -1139,7 +1140,7 @@ def test_render_svg_lollipop_data_labels_match_hand_derived_positions() raises:
 
 
 def test_render_svg_waterfall_data_labels_match_hand_derived_positions() raises:
-    # #213: closes the gap on Mark.WATERFALL. Two plain delta bars (no
+    # closes the gap on Mark.WATERFALL. Two plain delta bars (no
     # is_total), running total 10 then 4.5; each label shows its own
     # delta, not the running total.
     var cats: List[String] = ["A", "B"]
@@ -1167,7 +1168,7 @@ def test_render_svg_waterfall_data_labels_match_hand_derived_positions() raises:
 
 
 def test_render_svg_bullet_data_labels_match_hand_derived_positions() raises:
-    # #213: closes the gap on Mark.BULLET -- the measure value, at full
+    # closes the gap on Mark.BULLET -- the measure value, at full
     # band width (not the narrower measure bar itself).
     var cats: List[String] = ["A", "B"]
     var measures: List[Float64] = [10.0, -5.5]
@@ -1199,7 +1200,7 @@ def test_render_svg_bullet_data_labels_match_hand_derived_positions() raises:
 
 
 def test_render_svg_population_pyramid_data_labels_match_hand_derived_positions() raises:
-    # #213: closes the gap on Mark.POPULATION_PYRAMID -- one label per
+    # closes the gap on Mark.POPULATION_PYRAMID -- one label per
     # side, hanging off that side's own bar, right-aligned on the left
     # and left-aligned on the right.
     var cats: List[String] = ["A", "B"]
