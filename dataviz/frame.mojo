@@ -709,6 +709,7 @@ def _draw_continuous_axis_frame[
     oy1: Int,
     *,
     y_axis_visible: Bool = True,
+    y_descending: Bool = False,
     mut cache: FontCache,
 ) raises -> _ContinuousFrame:
     """The layout and axis-frame core every continuous-x render path shares
@@ -758,6 +759,33 @@ def _draw_continuous_axis_frame[
 
     The default is `True`, and the false branch adds no work to it: every
     other continuous mark renders byte-identically.
+
+    `y_descending=True` (#341) flips which end of the plot rect the
+    y-domain's *minimum* lands on, so the axis counts downward: 0 at the
+    top, growing toward the bottom. Only `Mark.IMSHOW` asks for it, and
+    only because a raster's row 0 is its top scanline -- the same
+    convention matplotlib's `imshow(origin='upper')` has as its default,
+    and the one every matrix is printed in. Drawing an image the other
+    way up is not a styling choice; `imshow(read_png(...))` would come
+    out mirrored, which is the plainest kind of wrong chart.
+
+    It is a frame parameter rather than something the mark does for
+    itself because the axis labels have to agree with the pixels. A mark
+    that flipped only its own drawing would leave the ticks reading 0 at
+    the bottom while row 0 sat at the top, which is worse than either
+    orientation.
+
+    Reversing `LinearScale`'s *domain* instead was rejected: `ticks()`
+    walks `ceil(domain_min / step)` up to `floor(domain_max / step)`, so
+    a domain handed over backwards yields a negative count and the axis
+    silently loses every tick. The domain stays ascending here and only
+    the pixel range flips, which is what `LinearScale` already documents
+    its range for ("not necessarily increasing").
+
+    Everything the flip touches downstream was already sign-agnostic:
+    gridlines, ticks and annotations all place themselves through
+    `to_pixel`, and `_draw_annotation_areas`/`_bands` take `min`/`max`
+    of their two mapped pixels rather than assuming an order.
     """
     var sc = _Scaled(theme)
 
@@ -787,9 +815,19 @@ def _draw_continuous_axis_frame[
     # y range is reversed: domain_min (smallest data value) lands at
     # the *bottom* of the plot area (the larger pixel y), domain_max
     # at the top -- see LinearScale's docstring.
+    #
+    # `y_descending` puts domain_min at the top instead (#341). Only the
+    # two pixel numbers swap: the domain stays ascending, so `ticks()`
+    # still walks it low to high, and everything downstream already
+    # goes through `_axis_pixel`/`to_pixel` rather than assuming a
+    # sign. See the parameter's docstring for why an image needs it.
     var out_y_scale = y_scale
-    out_y_scale.range_min = Float64(plot_y1)
-    out_y_scale.range_max = Float64(plot_y0)
+    out_y_scale.range_min = Float64(plot_y0) if y_descending else Float64(
+        plot_y1
+    )
+    out_y_scale.range_max = Float64(plot_y1) if y_descending else Float64(
+        plot_y0
+    )
 
     var x_ticks = out_x_scale.ticks()
     var x_labels = x_ticks.labels(theme.x_tick_format)

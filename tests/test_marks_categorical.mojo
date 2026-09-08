@@ -2,18 +2,22 @@
 `[tasks]` comment for why). Covers Mark.GROUPED_BAR, Mark.STACKED_BAR
 (including independent positive/negative stacking and percent=True),
 Mark.MARIMEKKO, Mark.POPULATION_PYRAMID, Mark.SPAN_CHART, Mark.GANTT,
-Mark.FUNNEL, Mark.HEATMAP, Mark.PUNCHCARD, Mark.CORRPLOT, and
-Mark.CALENDAR_HEATMAP, each raster + SVG plus its encode_*()
+Mark.FUNNEL, Mark.HEATMAP, Mark.PUNCHCARD, Mark.CORRPLOT,
+Mark.CALENDAR_HEATMAP, and the two continuous-axis grid marks
+Mark.IMSHOW and Mark.PCOLORMESH, each raster + SVG plus its encode_*()
 validation.
 """
 
 from _test_helpers import (
     BG,
     _assert_color,
+    _assert_same_canvas,
+    _attr_values,
     _bbox_of_color,
     _count_color,
     _runs_in_row,
 )
+from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.path import PathOp
 from canvas.vector.svg import SvgCanvas
@@ -24,13 +28,16 @@ from dataviz import (
     gantt,
     grouped_bar,
     heatmap,
+    imshow,
     marimekko,
+    pcolormesh,
     population_pyramid,
     punchcard,
     span_chart,
     stacked_bar,
 )
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import ColorScale, default_categorical_palette
+from dataviz.image import _edge_pixels, _fill_cells
 from dataviz.colormaps import viridis
 from dataviz.plot import (
     Plot,
@@ -42,6 +49,7 @@ from dataviz.plot import (
     render_svg,
     _build_line_path,
 )
+from dataviz.scale import LinearScale
 from dataviz.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
@@ -1698,6 +1706,538 @@ def test_render_calendar_heatmap_raises_on_no_data() raises:
     with assert_raises():
         var _hoisted4 = calendar_heatmap(dates, values, width=100, height=80)
         _ = render(_hoisted4)
+
+
+# ---------------------------------------------------------------
+# Mark.IMSHOW / Mark.PCOLORMESH (#341)
+#
+# Every test here colors through a two-stop ramp of pure blue and pure
+# red over a domain of exactly [0, 1], so a cell holding 0 is
+# Color(0, 0, 255) and one holding 1 is Color(255, 0, 0) -- exact
+# literals, never a value read back out of the function under test.
+# Anything else in the drawn region is either a blend (an anti-aliased
+# shared edge) or the background showing through (a gap), which is what
+# most of these are looking for.
+# ---------------------------------------------------------------
+
+comptime _IMG_LO = Color(0, 0, 255)
+comptime _IMG_HI = Color(255, 0, 0)
+comptime _IMG_BG = Color(0, 255, 0)
+
+
+def _image_theme() -> Theme:
+    """A theme whose background can't be confused with a cell: pure
+    green against a blue/red ramp, no gridlines, no legend column."""
+    var stops: List[Color] = [_IMG_LO, _IMG_HI]
+    return Theme(
+        background=_IMG_BG,
+        color_ramp=stops,
+        show_gridlines=False,
+        show_legend=False,
+    )
+
+
+def _checkerboard(rows: Int, cols: Int) -> List[List[Float64]]:
+    var z = List[List[Float64]]()
+    for r in range(rows):
+        var row = List[Float64]()
+        for c in range(cols):
+            row.append(Float64((r + c) % 2))
+        z.append(row^)
+    return z^
+
+
+def test_imshow_places_every_cell_by_row_major_index() raises:
+    # A 2x3 array, so a transpose changes the shape and cannot pass, and
+    # a pattern that is asymmetric under a vertical flip, a horizontal
+    # flip and a transpose alike:
+    #
+    #   z = [[0, 1, 1],      blue  red  red
+    #        [1, 1, 0]]      red   red  blue
+    #
+    # Flipped vertically that is blue at top-right and bottom-left;
+    # flipped horizontally, the same; transposed it is a 3x2 image with
+    # different cell sizes. So asserting the *corner* colors pins
+    # row-major order, column order, and row 0 being at the top all at
+    # once. Asserting that blue appears at all, or counting blue pixels,
+    # would pass under every one of those.
+    var z: List[List[Float64]] = [[0.0, 1.0, 1.0], [1.0, 1.0, 0.0]]
+    var c = render(imshow(z, theme=_image_theme(), width=640, height=420))
+
+    # The drawn region is the plot rect: measured at (60, 20)-(619, 369)
+    # for a 640x420 default-margin chart with no legend, which
+    # test_imshow_fills_the_plot_rect_like_a_heatmap_does pins
+    # separately. Sample well inside each cell, never near an edge.
+    var x_left = 60 + 560 // 6
+    var x_mid = 60 + 560 // 2
+    var x_right = 60 + 5 * 560 // 6
+    var y_top = 20 + 350 // 4
+    var y_bottom = 20 + 3 * 350 // 4
+
+    _assert_color(c, x_left, y_top, _IMG_LO, "z[0][0] = 0 -> top-left blue")
+    _assert_color(c, x_mid, y_top, _IMG_HI, "z[0][1] = 1 -> top-middle red")
+    _assert_color(c, x_right, y_top, _IMG_HI, "z[0][2] = 1 -> top-right red")
+    _assert_color(
+        c, x_left, y_bottom, _IMG_HI, "z[1][0] = 1 -> bottom-left red"
+    )
+    _assert_color(
+        c, x_mid, y_bottom, _IMG_HI, "z[1][1] = 1 -> bottom-middle red"
+    )
+    _assert_color(
+        c, x_right, y_bottom, _IMG_LO, "z[1][2] = 0 -> bottom-right blue"
+    )
+
+
+def test_imshow_y_axis_labels_count_downward() raises:
+    # The pixels being upside down and the axis being upside down are
+    # two different bugs, and a mark that flipped only its own drawing
+    # would leave the ticks reading 0 at the bottom. This is the axis
+    # half: the tick labeled "0" must sit *above* the one labeled "4",
+    # which is the reverse of every other continuous mark here.
+    var z = List[List[Float64]]()
+    for r in range(5):
+        var row = List[Float64]()
+        for c in range(5):
+            row.append(Float64(r))
+        z.append(row^)
+    var svg = render_svg(imshow(z, width=640, height=420)).to_string()
+    var texts = _attr_values(svg, "text", "y")
+    var labels = List[String]()
+    var rest = svg
+    while True:
+        var at = rest.find("<text ")
+        if at < 0:
+            break
+        var close = rest.find(">", at)
+        var end = rest.find("</text>", close)
+        if close < 0 or end < 0:
+            break
+        labels.append(String(rest[byte = close + 1 : end]))
+        var tail = String(rest[byte = end + 7 :])
+        rest = tail^
+
+    var y_of_zero = -1.0
+    var y_of_four = -1.0
+    for i in range(len(labels)):
+        if labels[i] == "0" and i < len(texts):
+            y_of_zero = Float64(texts[i])
+        if labels[i] == "4" and i < len(texts):
+            y_of_four = Float64(texts[i])
+    assert_true(y_of_zero >= 0.0, 'no y-axis tick labeled "0"')
+    assert_true(y_of_four >= 0.0, 'no y-axis tick labeled "4"')
+    assert_true(
+        y_of_zero < y_of_four,
+        (
+            'row 0 must be at the top, so the "0" tick sits above the "4" tick'
+            " -- got 0 at y="
+            + String(y_of_zero)
+            + " and 4 at y="
+            + String(y_of_four)
+        ),
+    )
+
+
+def test_pcolormesh_row_0_is_at_the_bottom() raises:
+    # The deliberate difference from imshow: pcolormesh's rows are
+    # positions on a real axis, so row 0 is at the bottom. Same data and
+    # same theme as the imshow orientation test, so the only thing that
+    # can flip the answer is the mark.
+    var z: List[List[Float64]] = [[0.0, 0.0], [1.0, 1.0]]
+    var edges_x: List[Float64] = [0.0, 1.0, 2.0]
+    var edges_y: List[Float64] = [0.0, 1.0, 2.0]
+    var c = render(
+        pcolormesh(
+            edges_x, edges_y, z, theme=_image_theme(), width=640, height=420
+        )
+    )
+    _assert_color(
+        c, 60 + 280, 20 + 87, _IMG_HI, "pcolormesh row 1 (value 1) is on top"
+    )
+    _assert_color(
+        c,
+        60 + 280,
+        20 + 262,
+        _IMG_LO,
+        "pcolormesh row 0 (value 0) is at the bottom",
+    )
+
+    # And imshow, given the same array, is the other way up. Asserting
+    # the difference directly is what keeps the two from silently
+    # converging on one orientation later.
+    var ci = render(imshow(z, theme=_image_theme(), width=640, height=420))
+    _assert_color(
+        ci, 60 + 280, 20 + 87, _IMG_LO, "imshow row 0 (value 0) is on top"
+    )
+
+
+def test_pcolormesh_cell_widths_follow_the_edges() raises:
+    # x_edges 0, 1, 3, 7: widths 1, 2 and 4, so the three cells must
+    # come out in a 1:2:4 ratio across the plot rect. Mark.IMSHOW would
+    # give three equal columns, which is exactly what this has to rule
+    # out -- and a test that only checked "three colored runs exist"
+    # would not.
+    var z: List[List[Float64]] = [[0.0, 1.0, 0.0]]
+    var edges_x: List[Float64] = [0.0, 1.0, 3.0, 7.0]
+    var edges_y: List[Float64] = [0.0, 1.0]
+    var c = render(
+        pcolormesh(
+            edges_x, edges_y, z, theme=_image_theme(), width=640, height=420
+        )
+    )
+    var y = 20 + 175
+    var widths = List[Int]()
+    var run = 0
+    var current = Color(0, 0, 0)
+    var open_run = False
+    for x in range(60, 620):
+        var p = c.get_pixel(x, y)
+        var is_cell = (
+            p.r == _IMG_LO.r and p.g == _IMG_LO.g and p.b == _IMG_LO.b
+        ) or (p.r == _IMG_HI.r and p.g == _IMG_HI.g and p.b == _IMG_HI.b)
+        if not is_cell:
+            continue
+        if open_run and p.r == current.r and p.b == current.b:
+            run += 1
+            continue
+        if open_run:
+            widths.append(run)
+        open_run = True
+        current = Color(p.r, p.g, p.b)
+        run = 1
+    if open_run:
+        widths.append(run)
+
+    assert_equal(len(widths), 3, "three cells, three runs of color")
+    # 560 px over a span of 7 units: 80, 160, 320, give or take the
+    # pixel each boundary snaps to.
+    assert_true(
+        widths[0] >= 79 and widths[0] <= 81,
+        "cell [0, 1] is one unit wide -> ~80px, got " + String(widths[0]),
+    )
+    assert_true(
+        widths[1] >= 159 and widths[1] <= 161,
+        "cell [1, 3] is two units wide -> ~160px, got " + String(widths[1]),
+    )
+    assert_true(
+        widths[2] >= 319 and widths[2] <= 321,
+        "cell [3, 7] is four units wide -> ~320px, got " + String(widths[2]),
+    )
+    assert_equal(
+        widths[0] + widths[1] + widths[2],
+        560,
+        (
+            "the three cells must tile the plot rect exactly, with no pixel"
+            " left over between them"
+        ),
+    )
+
+
+def test_imshow_boundary_between_two_cells_is_sharp() raises:
+    # #341's own test plan. A blend at the boundary is what an
+    # anti-aliased path fill leaves and what a snapped fill_rect does
+    # not, so scanning a whole row for "exactly blue or exactly red"
+    # discriminates between the two implementations. Asserting a pixel
+    # in the middle of either cell would pass under both.
+    #
+    # Three cells, not the two the plan suggests: 560 px split in two
+    # puts the single boundary at x = 340.0, a whole pixel edge, where
+    # an unsnapped fill lands sharp by luck and the test proves nothing
+    # (measured -- it passed against an unsnapped `_edge_pixels`). Split
+    # in three the boundaries fall at 246.67 and 433.33, mid-pixel both,
+    # which is the case snapping exists for.
+    var z: List[List[Float64]] = [[0.0, 1.0, 0.0]]
+    var c = render(imshow(z, theme=_image_theme(), width=640, height=420))
+    var y = 20 + 175
+    var blended = 0
+    var first_bad = -1
+    for x in range(60, 620):
+        var p = c.get_pixel(x, y)
+        var lo = p.r == _IMG_LO.r and p.g == _IMG_LO.g and p.b == _IMG_LO.b
+        var hi = p.r == _IMG_HI.r and p.g == _IMG_HI.g and p.b == _IMG_HI.b
+        if not (lo or hi):
+            blended += 1
+            if first_bad < 0:
+                first_bad = x
+    assert_equal(
+        blended,
+        0,
+        (
+            "every pixel across the two cells must be exactly one of the two"
+            " cell colors -- found "
+            + String(blended)
+            + " blended pixels, first at x="
+            + String(first_bad)
+        ),
+    )
+
+
+def test_imshow_dense_grid_has_no_background_gap_between_cells() raises:
+    # The #315/#318/#327/#359/#360/#379 regression guard, and the reason
+    # cell boundaries come from one shared array rather than from
+    # `start + width` on one side and `start` on the other.
+    #
+    # A checkerboard is the worst case on purpose: every cell differs
+    # from all four of its neighbors, so no run merges and every
+    # boundary in the grid is drawn. 37x53 is deliberately not a
+    # divisor of the 560x350 plot rect, which is the geometry that
+    # produced the hairline in #379 -- a band 560/53 = 10.566 px wide
+    # cannot be tiled by any single rounded width.
+    var t = _image_theme()
+    var c = render(
+        imshow(_checkerboard(37, 53), theme=t, width=640, height=420)
+    )
+    var gaps = 0
+    var blends = 0
+    var first_bad = -1
+    for y in range(20, 370):
+        for x in range(60, 620):
+            var p = c.get_pixel(x, y)
+            if p.r == _IMG_LO.r and p.g == _IMG_LO.g and p.b == _IMG_LO.b:
+                continue
+            if p.r == _IMG_HI.r and p.g == _IMG_HI.g and p.b == _IMG_HI.b:
+                continue
+            if p.r == _IMG_BG.r and p.g == _IMG_BG.g and p.b == _IMG_BG.b:
+                gaps += 1
+            else:
+                blends += 1
+            if first_bad < 0:
+                first_bad = y * 1000 + x
+    assert_equal(
+        gaps,
+        0,
+        (
+            "the background must not show through anywhere inside the grid --"
+            " found "
+            + String(gaps)
+            + " background pixels (first at y*1000+x = "
+            + String(first_bad)
+            + ")"
+        ),
+    )
+    assert_equal(
+        blends,
+        0,
+        (
+            "no cell boundary may be anti-aliased -- found "
+            + String(blends)
+            + " blended pixels (first at y*1000+x = "
+            + String(first_bad)
+            + ")"
+        ),
+    )
+
+
+def test_imshow_fills_the_plot_rect_like_a_heatmap_does() raises:
+    # Measured off a real render, and cross-checked against Mark.HEATMAP
+    # at the same size: both put their first cell pixel at (60, 20) and
+    # their last at (619, 369). Asserting the two agree is what keeps
+    # the continuous grid mark and the categorical one from drifting a
+    # pixel apart, which is not something either mark's own numbers
+    # would catch.
+    var z = _checkerboard(5, 7)
+    var t = _image_theme()
+    var c = render(imshow(z, theme=t, width=640, height=420))
+    var box = _bbox_of_color(c, _IMG_HI)
+    assert_true(box.found, "the grid drew nothing")
+    assert_equal(box.x0, 60, "grid starts at the plot rect's left edge")
+    assert_equal(box.y0, 20, "grid starts at the plot rect's top edge")
+    assert_equal(box.x1, 619, "grid ends at the plot rect's right edge")
+    assert_equal(box.y1, 369, "grid ends at the plot rect's bottom edge")
+
+    var xs = List[String]()
+    var ys = List[String]()
+    var vs = List[Float64]()
+    for r in range(5):
+        for c2 in range(7):
+            xs.append(String(c2))
+            ys.append(String(r))
+            vs.append(Float64((r + c2) % 2))
+    var hc = render(heatmap(xs, ys, vs, theme=t, width=640, height=420))
+    var hbox = _bbox_of_color(hc, _IMG_HI)
+    assert_true(hbox.found, "the heatmap drew nothing")
+    assert_equal(box.x0, hbox.x0, "imshow and heatmap share a left edge")
+    assert_equal(box.y0, hbox.y0, "imshow and heatmap share a top edge")
+    assert_equal(box.x1, hbox.x1, "imshow and heatmap share a right edge")
+    assert_equal(box.y1, hbox.y1, "imshow and heatmap share a bottom edge")
+
+
+def test_imshow_takes_its_colors_from_the_theme_ramp() raises:
+    # Mark.IMSHOW goes through ColorScale.from_theme like every other
+    # color-encoded mark, so a perceptual colormap reaches it with no
+    # code of its own -- which matters more here than anywhere else,
+    # since a scalar field shown through three stops gets contrast the
+    # data does not have. viridis()'s own first and last entries are the
+    # expected colors; they come from dataviz.colormaps, not from the
+    # render.
+    var ramp = viridis()
+    var z: List[List[Float64]] = [[0.0, 1.0]]
+    var t = Theme(color_ramp=ramp, show_gridlines=False, show_legend=False)
+    var c = render(imshow(z, theme=t, width=640, height=420))
+    var y = 20 + 175
+    _assert_color(
+        c, 60 + 140, y, ramp[0], "the array's minimum takes viridis' first stop"
+    )
+    _assert_color(
+        c,
+        60 + 420,
+        y,
+        ramp[len(ramp) - 1],
+        "the array's maximum takes viridis' last stop",
+    )
+
+
+def test_imshow_dtype_overload_matches_the_float64_path() raises:
+    var wide: List[List[Float64]] = [[0.0, 1.0, 2.0], [3.0, 4.0, 5.0]]
+    var narrow = List[List[Scalar[DType.int32]]]()
+    for r in range(2):
+        var row = List[Scalar[DType.int32]]()
+        for c in range(3):
+            row.append(Scalar[DType.int32](r * 3 + c))
+        narrow.append(row^)
+    var t = _image_theme()
+    _assert_same_canvas(
+        render(imshow(narrow, theme=t, width=320, height=240)),
+        render(imshow(wide, theme=t, width=320, height=240)),
+        "imshow[DType] vs imshow",
+    )
+
+
+def test_imshow_and_pcolormesh_validation_raises_name_what_is_wrong() raises:
+    var t = _image_theme()
+
+    var ragged: List[List[Float64]] = [[0.0, 1.0], [2.0]]
+    with assert_raises(contains="z must be rectangular"):
+        _ = render(imshow(ragged, theme=t, width=200, height=150))
+
+    var empty = List[List[Float64]]()
+    with assert_raises(contains="Plot.encode_imshow()"):
+        _ = render(imshow(empty, theme=t, width=200, height=150))
+
+    var nan_grid: List[List[Float64]] = [[0.0, Float64("nan")]]
+    with assert_raises(contains="must be finite"):
+        _ = render(imshow(nan_grid, theme=t, width=200, height=150))
+
+    var z: List[List[Float64]] = [[0.0, 1.0], [1.0, 0.0]]
+    var short_edges: List[Float64] = [0.0, 1.0]
+    var ok_edges: List[Float64] = [0.0, 1.0, 2.0]
+    with assert_raises(contains="one more entry than z has columns"):
+        _ = render(
+            pcolormesh(short_edges, ok_edges, z, theme=t, width=200, height=150)
+        )
+
+    var flat_edges: List[Float64] = [0.0, 1.0, 1.0]
+    with assert_raises(contains="strictly increasing"):
+        _ = render(
+            pcolormesh(ok_edges, flat_edges, z, theme=t, width=200, height=150)
+        )
+
+    # The two raises Mark.name() is what makes readable: a mark paired
+    # with the other one's encoding. Neither can draw what the caller
+    # asked for, and the message has to say which mark is asking.
+    with assert_raises(contains="Mark.PCOLORMESH"):
+        _ = render(
+            Plot().mark_pcolormesh().encode_imshow(z).theme(t).size(200, 150)
+        )
+    with assert_raises(contains="Mark.IMSHOW"):
+        _ = render(
+            Plot()
+            .mark_imshow()
+            .encode_pcolormesh(ok_edges, ok_edges, z)
+            .theme(t)
+            .size(200, 150)
+        )
+
+
+def _fill_count(z: List[List[Float64]], lo: Float64, hi: Float64) raises -> Int:
+    """How many rects `_fill_cells` actually draws for `z` in the stock
+    640x420 plot rect, laid out exactly as `_render_image` lays it out.
+    """
+    var rows = len(z)
+    var cols = len(z[0])
+    var xv = List[Float64]()
+    for c in range(cols + 1):
+        xv.append(Float64(c) - 0.5)
+    var yv = List[Float64]()
+    for r in range(rows + 1):
+        yv.append(Float64(r) - 0.5)
+    var xp = _edge_pixels(
+        LinearScale(xv[0], xv[cols], 60.0, 620.0),
+        xv,
+    )
+    var yp = _edge_pixels(
+        LinearScale(yv[0], yv[rows], 20.0, 370.0),
+        yv,
+    )
+    var canvas = Canvas(640, 420, Color(255, 255, 255))
+    return _fill_cells(
+        canvas, z, xp, yp, ColorScale.from_theme(Theme(), lo, hi)
+    )
+
+
+def test_imshow_costs_the_output_rect_not_the_array() raises:
+    """#341's "do not draw one rect per cell": 512x512 is 262,144 cells
+    and drawing one rect each would be absurd for an image.
+
+    Two independent mechanisms, one assertion each, because they fail
+    independently:
+
+    - Cells finer than a pixel collapse, so the count is bounded by the
+      plot rect. A checkerboard is the case where *nothing* else can
+      reduce it -- every cell differs from all four neighbors -- so its
+      count is exactly the bound, and it must not exceed one rect per
+      pixel row per column.
+    - Runs of same-colored cells merge. A binary mask has the same cell
+      count and the same visible-cell count as the checkerboard, so the
+      only thing that can separate the two numbers is the merge.
+
+    Asserting a total render time, or that a large array renders at all,
+    would pass with one rect per cell.
+    """
+    var checker = _checkerboard(512, 512)
+    var checker_rects = _fill_count(checker, 0.0, 1.0)
+
+    # 350 pixel rows in the plot rect, 512 columns: no more than one
+    # rect per (row, column) pair that is actually visible. One rect per
+    # cell would be 262,144.
+    assert_true(
+        checker_rects <= 350 * 512,
+        (
+            "a 512x512 checkerboard must cost at most one rect per visible"
+            " cell (350 * 512 = 179200), not one per array cell (262144) --"
+            " got "
+            + String(checker_rects)
+        ),
+    )
+    assert_true(
+        checker_rects > 350 * 512 // 2,
+        (
+            "the checkerboard is the case nothing can merge, so a much"
+            " smaller count means cells are being dropped rather than"
+            " collapsed -- got "
+            + String(checker_rects)
+        ),
+    )
+
+    var mask = List[List[Float64]]()
+    for r in range(512):
+        var row = List[Float64]()
+        for c in range(512):
+            var dx = Float64(c) - 256.0
+            var dy = Float64(r) - 256.0
+            row.append(1.0 if dx * dx + dy * dy < 29000.0 else 0.0)
+        mask.append(row^)
+    var mask_rects = _fill_count(mask, 0.0, 1.0)
+    assert_true(
+        mask_rects * 10 < checker_rects,
+        (
+            "a two-valued mask has the same visible-cell count as the"
+            " checkerboard, so same-colored runs must merge it down by an"
+            " order of magnitude -- got "
+            + String(mask_rects)
+            + " against the checkerboard's "
+            + String(checker_rects)
+        ),
+    )
 
 
 def main() raises:

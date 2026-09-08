@@ -40,6 +40,8 @@ from dataviz import (
     chord,
     contour,
     contourf,
+    imshow,
+    pcolormesh,
     tricontour,
     tricontourf,
     tripcolor,
@@ -284,6 +286,33 @@ def _representative_plot(mark: Mark) raises -> Plot:
                 row.append(Float64((r + 1) * (c + 2) % 11))
             zf.append(row^)
         return contourf(zf, level_count=4, width=_W, height=_H)
+    if mark == Mark.IMSHOW:
+        var zi = List[List[Float64]]()
+        for r in range(5):
+            var row = List[Float64]()
+            for c in range(7):
+                row.append(Float64((r + 1) * (c + 2) % 11))
+            zi.append(row^)
+        return imshow(zi, width=_W, height=_H)
+    if mark == Mark.PCOLORMESH:
+        var zm = List[List[Float64]]()
+        for r in range(5):
+            var row = List[Float64]()
+            for c in range(7):
+                row.append(Float64((r + 1) * (c + 2) % 11))
+            zm.append(row^)
+        # Deliberately uneven: a regular mesh would lay out the same as
+        # Mark.IMSHOW and prove nothing this sweep does not already
+        # cover.
+        var mesh_x = List[Float64]()
+        var mesh_acc = 0.0
+        for c in range(8):
+            mesh_x.append(mesh_acc)
+            mesh_acc += 1.0 + Float64(c) * 0.4
+        var mesh_y = List[Float64]()
+        for r in range(6):
+            mesh_y.append(Float64(r) * Float64(r) + 1.0)
+        return pcolormesh(mesh_x, mesh_y, zm, width=_W, height=_H)
     if mark == Mark.TRICONTOUR:
         var tx = List[Float64]()
         var ty = List[Float64]()
@@ -531,17 +560,18 @@ def test_mark_count_is_one_past_the_newest_mark() raises:
     skipped contour entirely while still reporting itself green. This
     assertion is what then caught `Mark.CONTOURF` (#260) and
     `Mark.TRICONTOUR` (#261), `Mark.TRICONTOURF` (#323),
-    `Mark.KDE`/`Mark.RUG` (#351),
-    `Mark.TRIPLOT`/`Mark.TRIPCOLOR` (#344) and `Mark.ECDF` (#338): each
-    failed here until both the constant and this line moved, which is
-    the tripwire doing its job on every mark added since.
+    `Mark.KDE`/`Mark.RUG` (#351), `Mark.TRIPLOT`/`Mark.TRIPCOLOR`
+    (#344), `Mark.ECDF` (#338) and `Mark.IMSHOW`/`Mark.PCOLORMESH`
+    (#341): each failed here until both the constant and this line
+    moved, which is the tripwire doing its job on every mark added
+    since.
 
     Naming the newest mark explicitly is what makes that loud: adding a
     mark after this one fails here until both this line and `COUNT` are
     updated, which is one edit away from the constant itself.
     """
     assert_true(
-        Mark.ECDF == Mark(Mark.COUNT - 1),
+        Mark.PCOLORMESH == Mark(Mark.COUNT - 1),
         (
             "Mark.COUNT must be one past the newest mark -- update both when"
             " adding one"

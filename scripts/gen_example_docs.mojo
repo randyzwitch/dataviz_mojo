@@ -93,6 +93,8 @@ def _titles() -> Dict[String, String]:
     d["barbs"] = "Wind Barbs"
     d["contour"] = "Contour"
     d["contourf"] = "Filled Contour"
+    d["imshow"] = "Image"
+    d["pcolormesh"] = "Quadrilateral Mesh"
     d["tricontour"] = "Scattered Contour"
     d["tricontourf"] = "Scattered Contour (Filled)"
     d["triplot"] = "Triangular Mesh"
@@ -250,10 +252,19 @@ def _categories() -> List[Category]:
         Category(
             "Grid & matrix",
             (
-                "Two categorical dimensions laid out as a grid, extending"
-                " Mark.HEATMAP's own grid-cell idea."
+                "A value per cell of a grid, extending Mark.HEATMAP's own"
+                " grid-cell idea. Mostly two categorical dimensions;"
+                " imshow and pcolormesh are the continuous-axis pair, for"
+                " an array rather than a table."
             ),
-            ["calendar_heatmap", "corrplot", "punchcard", "marimekko"],
+            [
+                "imshow",
+                "pcolormesh",
+                "calendar_heatmap",
+                "corrplot",
+                "punchcard",
+                "marimekko",
+            ],
         )
     )
     cats.append(
