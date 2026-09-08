@@ -40,6 +40,7 @@ from dataviz.plot import (
     write_accessible_svg,
 )
 from dataviz.text import (
+    _Scaled,
     _TextRequest,
     _apply_labels,
     _extend_text_requests,
@@ -254,6 +255,36 @@ def _render_facets_generic[
         shared_y_max = domain.domain_max
 
     var rows = (len(plots) + cols - 1) // cols
+
+    # Cells tile edge to edge, so a cell's x-axis title lands directly
+    # against the next row's chart title: measured at three clear pixel
+    # rows on a 2x2 grid of 320x240 cells, one of which carried a
+    # descender (#417). Each cell reserves the space its own labels need
+    # and nothing reserves space *between* cells.
+    #
+    # The gutter comes off every cell's bottom rather than off the rows
+    # that collide, so all cells keep an identical content rect. Making
+    # only the lower rows shorter would give cells different pixel
+    # ranges for the same domain, and under `shared_y_scale` the same
+    # value would then draw at different heights in different rows --
+    # which is the one thing a facet grid exists to make comparable.
+    #
+    # Zero unless the grid actually has the collision, so a grid with no
+    # x-axis titles, or a single row, renders exactly as it did before.
+    var wants_gutter = rows > 1
+    if wants_gutter:
+        var any_x_title = False
+        var any_title = False
+        for i in range(len(plots)):
+            if plots[i]._labels.x_title.byte_length() > 0:
+                any_x_title = True
+            if plots[i]._labels.title.byte_length() > 0:
+                any_title = True
+        wants_gutter = any_x_title and any_title
+    var gutter = Int(
+        _Scaled(plots[0]._theme).label_gap * 2
+    ) if wants_gutter else 0
+
     for i in range(len(plots)):
         var row = i // cols
         var col = i % cols
@@ -270,7 +301,10 @@ def _render_facets_generic[
             cell_y1 - cell_y0,
             plots[i]._theme.background,
         )
-        var frame = _apply_labels(plots[i], cell_x0, cell_y0, cell_x1, cell_y1)
+        var cell_content_y1 = cell_y1 - gutter
+        var frame = _apply_labels(
+            plots[i], cell_x0, cell_y0, cell_x1, cell_content_y1
+        )
         var cell_result = _render_generic(
             target,
             plots[i],
@@ -289,7 +323,7 @@ def _render_facets_generic[
             cell_x0,
             cell_y0,
             cell_x1,
-            cell_y1,
+            cell_content_y1,
             cell_result.px0,
             cell_result.py0,
             cell_result.px1,

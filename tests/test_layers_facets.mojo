@@ -32,6 +32,7 @@ from _test_helpers import (
     _bbox_of_color_in,
     _count_color,
 )
+from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.path import PathOp
 from dataviz import LineStyle, StepStyle
@@ -2638,6 +2639,125 @@ def test_render_layers_still_rejects_a_contour_layer_and_says_why() raises:
         _ = render_layers(plots)
     with assert_raises(contains="#423"):
         _ = render_layers(plots)
+
+
+# ---------------------------------------------------------------
+# Facet row spacing (#417)
+# ---------------------------------------------------------------
+
+
+def _titled_facet_grid(x_title: String) raises -> List[Plot]:
+    """Four 320x240 cells, each with a chart title and optionally an
+    x-axis title -- the combination whose ink used to collide across the
+    row boundary."""
+    var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
+    var y: List[Float64] = [12.0, 19.0, 14.0, 25.0, 18.0]
+    var names: List[String] = ["PRE", "MID", "POST", "NONE"]
+    var plots = List[Plot]()
+    for i in range(4):
+        plots.append(
+            Plot()
+            .size(320, 240)
+            .mark_line()
+            .encode(x=x, y=y)
+            .labels(title=names[i], x_title=x_title, y_title="Rate (%)")
+            .theme(Theme(show_gridlines=False))
+        )
+    return plots^
+
+
+def _clear_rows_between(c: Canvas, y0: Int, y1: Int, x0: Int, x1: Int) -> Int:
+    """The longest run of ink-free rows lying *between* the first and
+    last inked rows of `[y0, y1)`, scanning columns `x0` to `x1`.
+
+    Bounded by the ink deliberately. Measuring the longest clear run
+    anywhere in the window answers a different question -- it finds the
+    empty space *above* the first text block, which was 26 rows here and
+    made the first version of this test pass with and without the fix.
+    """
+    var inked = List[Bool](capacity=y1 - y0)
+    var first = -1
+    var last = -1
+    for y in range(y0, y1):
+        var has_ink = False
+        for x in range(x0, x1):
+            var p = c.get_pixel(x, y)
+            if p.r != 255 or p.g != 255 or p.b != 255:
+                has_ink = True
+                break
+        inked.append(has_ink)
+        if has_ink:
+            if first < 0:
+                first = y
+            last = y
+    if first < 0 or last <= first:
+        return 0
+
+    var best = 0
+    var run = 0
+    for y in range(first, last + 1):
+        if inked[y - y0]:
+            run = 0
+        else:
+            run += 1
+            if run > best:
+                best = run
+    return best
+
+
+def test_facet_rows_leave_a_gap_between_an_x_title_and_the_next_title() raises:
+    """#417: cells tile edge to edge, so a cell's x-axis title landed
+    directly against the next row's chart title.
+
+    On a 2x2 grid of 320x240 cells this was not merely tight: scanning
+    rows 200-274 between columns 40 and 300, the longest ink-free run
+    *between* the two blocks is **0** without the gutter -- they touch --
+    against 8 with it.
+
+    Six is asserted rather than eight so an unrelated font or metric
+    change does not relitigate this; zero is what it has to stay away
+    from.
+    """
+    var c = render_facets(_titled_facet_grid("Meeting"), 2)
+    assert_true(
+        _clear_rows_between(c, 200, 275, 40, 300) >= 6,
+        (
+            "a facet row's x-axis title needs clear space before the next"
+            " row's title -- longest clear run was "
+            + String(_clear_rows_between(c, 200, 275, 40, 300))
+        ),
+    )
+
+
+def test_a_facet_grid_without_x_titles_is_unchanged() raises:
+    """The gutter is charged only to a grid that has the collision. With
+    no x-axis title there is nothing to separate, so the layout must be
+    exactly what it was -- this is the compatibility half, and it is why
+    the gutter is conditional rather than always-on.
+
+    Asserted against a hand-built grid at the same size rather than
+    against a golden, so it says "identical to a grid that never asked
+    for a gutter" rather than "identical to whatever was recorded".
+    """
+    var without = render_facets_svg(_titled_facet_grid(""), 2).to_string()
+    var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
+    var y: List[Float64] = [12.0, 19.0, 14.0, 25.0, 18.0]
+    var names: List[String] = ["PRE", "MID", "POST", "NONE"]
+    var reference = List[Plot]()
+    for i in range(4):
+        reference.append(
+            Plot()
+            .size(320, 240)
+            .mark_line()
+            .encode(x=x, y=y)
+            .labels(title=names[i], y_title="Rate (%)")
+            .theme(Theme(show_gridlines=False))
+        )
+    assert_equal(
+        without,
+        render_facets_svg(reference^, 2).to_string(),
+        "a grid with no x-axis titles pays no gutter",
+    )
 
 
 def main() raises:
