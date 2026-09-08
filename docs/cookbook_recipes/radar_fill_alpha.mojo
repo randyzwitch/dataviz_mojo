@@ -1,8 +1,4 @@
-"""Lower a radar chart's own filled-polygon opacity so three or more
-overlapping series all stay visible -- the default opacity reads fine
-for one or two series, but a third series' fill starts to bury
-whichever one is drawn underneath it.
-"""
+"""Lower radar fill opacity so overlapping series remain visible."""
 from dataviz import radar
 from dataviz.plot import save
 from dataviz.theme import Theme

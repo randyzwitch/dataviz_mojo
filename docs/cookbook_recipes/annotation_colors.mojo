@@ -1,10 +1,4 @@
-"""Recolor a chart's reference lines and shaded bands to match a
-report's own palette -- `Theme.annotation_color` covers every
-`annotate_line()`/`annotate_vline()`/`annotate_point()` mark,
-`Theme.annotation_area_color` covers `annotate_area()`/`annotate_
-band()`'s fill, one shared color each across however many calls a
-chart makes.
-"""
+"""Set shared colors for annotation lines, points, areas, and bands."""
 from canvas.color import Color
 from dataviz.plot import Plot, save
 from dataviz.theme import Theme

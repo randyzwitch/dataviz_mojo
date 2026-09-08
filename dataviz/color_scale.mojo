@@ -4,7 +4,7 @@ interpolation is shared with `canvas.gradient`'s `LinearGradient`/
 `RadialGradient` through its `GradientStops`, which became public in
 canvas_mojo v0.18.0 (the same code was reached through `_color_at_t`/
 `_GradientStop`/`_insert_stop` before). Only the projection differs:
-those project a pixel position onto [0, 1]; this projects a data
+those project a pixel position onto the unit interval; this projects a data
 value, the way `LinearScale` does for position.
 """
 
@@ -14,7 +14,7 @@ from dataviz.theme import Theme
 
 
 struct ColorScale(Movable):
-    """A linear color gradient over [domain_min, domain_max]. There is no
+    """A linear color gradient from `domain_min` to `domain_max`. There is no
     pixel range as in LinearScale; `color_at(value)` is the whole
     interface. A zero-span domain projects every value to t=0.0, the
     lowest-offset stop's color.
@@ -30,7 +30,7 @@ struct ColorScale(Movable):
     binary-search for the bracketing pair."""
 
     def __init__(out self, domain_min: Float64, domain_max: Float64):
-        """Construct an empty `ColorScale` over `[domain_min, domain_max]`. Add
+        """Construct an empty `ColorScale` from `domain_min` to `domain_max`. Add
         stops via `add_stop()`, or use `from_theme()` for one pre-filled with
         `Theme`'s stops.
 
@@ -46,7 +46,7 @@ struct ColorScale(Movable):
         """Add one color stop to the gradient.
 
         Args:
-            offset: The stop's position in `[0.0, 1.0]` along the
+            offset: The stop's position from 0.0 to 1.0 along the
                 gradient. Stops need not be added in offset order; each is
                 inserted into place.
             color: The color at that offset.
@@ -54,7 +54,7 @@ struct ColorScale(Movable):
         self.stops.add_stop(offset, color)
 
     def color_at(self, value: Float64) -> Color:
-        """Project `value` onto `[domain_min, domain_max]`, then interpolate
+        """Project `value` onto the domain, then interpolate
         between the two nearest stops (see the struct docstring for the
         zero-span case).
 
@@ -82,7 +82,7 @@ struct ColorScale(Movable):
         stays a valid starting point.
 
         A non-empty `Theme.color_ramp` replaces all three, spread evenly
-        over `[0, 1]` -- that is how a perceptually uniform map like
+        over the unit interval -- that is how a perceptually uniform map like
         `colormaps.viridis()` reaches a mark. Three stops cannot
         express one; see the field's own docstring. A single-entry ramp
         is a flat color, which is degenerate but well defined, so it is

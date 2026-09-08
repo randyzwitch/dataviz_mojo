@@ -24,10 +24,7 @@ from dataviz.theme import Theme
 
 
 def _descending_value_order(values: List[Float64]) -> List[Int]:
-    """`values`' indices sorted largest-first by a stable selection sort
-    (ties keep their original relative order). Inputs are a handful of
-    stages, so O(n^2) is fine.
-    """
+    """Return value indices largest first, preserving tie order."""
     var n = len(values)
     var order = List[Int]()
     var used = List[Bool]()
@@ -76,19 +73,10 @@ def _render_funnel[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.FUNNEL` plot: `encode_categorical()`'s category+value
-    shape drawn largest-value-first top to bottom
-    (`_descending_value_order`, matching ECharts' default) as one
-    trapezoid per row, with no axis frame.
+    """Render descending values as equal-height, continuously tapered rows.
 
-    Rows have equal heights spanning the plot rect. Each row's top width
-    is `value / largest_value` of the available width, and its bottom
-    width equals the next row's top width, for a continuous taper. The
-    last row's bottom matches its top.
-
-    Colors cycle `default_categorical_palette()` by display row (post-sort
-    position), not original category index, so row 0 is always the same
-    color; the legend is drawn in that same sorted order.
+    Row width is relative to the largest value. Colors and legend entries
+    follow the sorted display order.
     """
     _validate_categorical_encoding(plot)
 

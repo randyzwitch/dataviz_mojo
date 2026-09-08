@@ -97,22 +97,10 @@ def _render_radar[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.RADAR` plot: `encode_radar()`'s `indicators` (one
-    spoke each, evenly spaced, starting at 12 o'clock and sweeping
-    clockwise), each with its own `max_values`, and one or more series
-    (name + one value per indicator) drawn as a closed polygon each with
-    straight `line_to` segments.
+    """Render series as filled polygons across independently scaled spokes.
 
-    Values are not clamped to `[0, max_values[i]]`: a value past its axis
-    max draws past the outer ring. Each axis has an independent max
-    (unlike `Mark.POLAR`'s single shared radius domain), so differently
-    scaled dimensions share one grid.
-
-    Each series polygon is filled with the `_lighten`'d palette color
-    (`theme.radar_fill_alpha`) and stroked with the full palette color,
-    both from the same path; there is no flag to skip the fill, since
-    overlapping unfilled outlines are unreadable. Legend keyed by
-    `series_names`, drawn whenever `Theme.show_legend` is on.
+    Spokes begin at 12 o'clock and each uses its own maximum. Values are not
+    clamped, so values above an axis maximum extend beyond the outer ring.
     """
     _require_non_empty(len(plot._radar.indicators), "Plot.encode_radar()")
 

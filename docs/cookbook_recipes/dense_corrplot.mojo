@@ -1,8 +1,4 @@
-"""Shrink a correlation plot's own bubble size so a larger matrix's
-bubbles don't touch their neighbors -- the default bubble fraction
-reads clearly for a handful of variables, but starts crowding the
-grid once there are enough cells that each one shrinks.
-"""
+"""Shrink correlation bubbles to prevent crowding in a dense matrix."""
 from dataviz import corrplot
 from dataviz.plot import save
 

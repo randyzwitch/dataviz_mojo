@@ -45,21 +45,10 @@ def _render_punchcard[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.PUNCHCARD` plot: `encode_punchcard()`'s `x`/`y`
-    categorical grid (`Mark.HEATMAP`'s `_draw_grid_axis_frame` and
-    `_categorical_indices` domain derivation, reused unchanged) with one
-    bubble per row instead of a filled cell, magnitude read from bubble
-    size rather than color.
+    """Render non-negative sizes as bubbles on a categorical grid.
 
-    Bubble radius is `sizes[i] / scale` (`Plot.mark_punchcard(scale=10.0)`
-    's default, matching ECharts.jl's `scale` keyword), a plain
-    pixel-space divisor not normalized against the cell the way
-    `Mark.CORRPLOT`'s bubbles are, so large counts can overflow a small
-    cell. Multiplied by `frame.sc.scale` so the radius tracks
-    `Theme.scale` (a HiDPI export) like every other pixel quantity.
-
-    Multiple rows may share the same `(x, y)` cell; each draws its own
-    bubble. No legend: size is read directly off each bubble.
+    Radius is `size / scale` in theme-scaled pixels. Duplicate coordinates
+    draw multiple bubbles, and large bubbles may exceed their cells.
     """
     if len(plot._punchcard.x) != len(plot._punchcard.y) or len(
         plot._punchcard.sizes

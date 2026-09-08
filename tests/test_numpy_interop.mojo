@@ -1,9 +1,4 @@
-"""Tests for `_materialize_python_floats` (numpy_interop.mojo) and
-`Plot.encode()`/`encode_categorical()`'s `PythonObject` overloads: a
-numpy `ndarray`, a pandas `Series`, or a plain Python list of numbers,
-converted through numpy's own array-like protocol. Real numpy/pandas
-calls throughout (dev/test-only dependencies; see pixi.toml).
-"""
+"""Tests for NumPy, pandas, and Python-list numeric inputs."""
 
 from std.testing import assert_equal, assert_raises, TestSuite
 from std.python import Python, PythonObject
@@ -33,7 +28,7 @@ def test_materialize_python_floats_converts_an_int64_numpy_array() raises:
 
 
 def test_materialize_python_floats_accepts_a_plain_python_list() raises:
-    # numpy's ascontiguousarray accepts a plain Python list directly.
+    # `ascontiguousarray` accepts a plain Python list.
     var plain_list = Python.evaluate("[4.0, 5.0, 6.0]")
     var out = _materialize_python_floats(plain_list)
     assert_equal(len(out), 3)
@@ -43,8 +38,7 @@ def test_materialize_python_floats_accepts_a_plain_python_list() raises:
 
 
 def test_materialize_python_floats_accepts_a_pandas_series() raises:
-    # A raw pandas Series, not `.to_numpy()`'d first; numpy's array-like
-    # protocol handles it.
+    # NumPy's array protocol handles a pandas Series directly.
     var pd = Python.import_module("pandas")
     var series = pd.Series(Python.evaluate("[10, 20, 30]"))
     var out = _materialize_python_floats(series)

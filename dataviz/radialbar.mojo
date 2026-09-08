@@ -35,23 +35,10 @@ def _render_radialbar[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.RADIALBAR` plot: one concentric ring per category
-    (`encode_categorical`'s `x`/`y`, the same shape `Mark.ARC`/
-    `POLAR_BAR`/`NIGHTINGALE` take), each value drawn as a
-    clockwise-from-12-o'clock arc over a full track circle
-    (`theme.radialbar_track_color`), swept to `value / max(values)` of the
-    way around. Same normalization as `Mark.POLAR_BAR`: against the data's
-    max, with no per-category goal.
+    """Render non-negative values as nested progress rings.
 
-    The first category's ring is outermost, each later category nesting
-    one ring further in (the "primary metric outermost" convention of
-    multi-ring progress widgets). This is the opposite of `Mark.SUNBURST`,
-    whose ring order encodes hierarchy depth.
-    `plot._mark_style.radialbar_ring_gap_fraction` sets the gap between
-    rings as a fraction of each ring's slot.
-
-    Same validation as `POLAR_BAR`: every value non-negative, at least one
-    positive.
+    The first category is outermost. Each clockwise arc starts at 12 o'clock
+    and spans its value relative to the largest value.
     """
     _validate_categorical_encoding(plot)
 

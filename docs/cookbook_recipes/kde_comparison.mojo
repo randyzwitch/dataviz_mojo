@@ -1,13 +1,6 @@
 # title: Comparing Distributions (KDE + Rug)
-"""Layer two `kdeplot()` curves and a `rugplot()` on one frame with
-`render_layers()` -- shared density axis, so the peaks are comparable.
-
-Two densities side by side in separate charts each fill their own
-y-axis, which makes a rare distribution look as tall as a common one.
-On one frame the axis is shared, so height means the same thing in both.
-The rug underneath is the honesty check: a KDE is smooth everywhere,
-including where nothing was observed.
-"""
+"""Layer two KDE curves and a rug on one shared density axis for direct
+comparison."""
 from dataviz.colors import CORNFLOWERBLUE, TOMATO
 from dataviz.kde import kdeplot, rugplot
 from dataviz.plot import Plot, save_layers

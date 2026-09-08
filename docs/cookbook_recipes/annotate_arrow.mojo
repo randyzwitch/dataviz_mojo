@@ -1,14 +1,7 @@
-"""Point at a single data point with an arrow and place its label in
-empty space, away from the thing it describes.
+"""Point to a data position while placing its label in open space.
 
-Every other annotation sits on top of what it labels, which is fine on a
-sparse chart and unusable on a crowded one. An arrow is the only one
-that can be put where there is room, which is also what makes it the
-annotation that turns a plot into an argument: it says which point is
-the one that matters.
-
-Both ends are in data coordinates, so the label stays with the data when
-the chart is resized.
+Both endpoints use data coordinates, so the arrow follows the data when the
+chart is resized.
 """
 from dataviz.colors import CORNFLOWERBLUE
 from dataviz.plot import Plot, save

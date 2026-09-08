@@ -70,22 +70,10 @@ def _render_candlestick[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.CANDLESTICK` plot: `_draw_categorical_axis_frame`'s
-    categorical x-axis, with a y-domain spanning every open/high/low/close
-    value (`_data_extent`, padded but not forced through zero, since price
-    ranges are typically nowhere near zero; the same choice `Mark.BOX`
-    makes).
+    """Render open, high, low, and close values on a categorical axis.
 
-    Per category, back to front: a thin wick (`draw_line_aa`,
-    `theme.axis_color`, matching `Mark.BOX`'s whisker color) from `high`
-    to `low`, then the body (`fill_rect`, full band width) from `open` to
-    `close`, colored `theme.mark_color` when `close >= open` and
-    `theme.mark_color_negative` otherwise. These are the same two fields
-    `Mark.WATERFALL` uses for its sign coloring; unlike `Mark.BAR`'s
-    opt-in `Theme.color_by_sign`, a candlestick is always colored by sign.
-
-    Body height is floored at 1px so a doji (`open == close`) draws as a
-    thin flat body rather than `fill_rect`'s zero-height no-op.
+    Wicks span low to high. Bodies span open to close and use positive or
+    negative mark colors; equal open and close values draw a one-pixel body.
     """
     if len(plot.x_categories) != len(plot._candle.open_price):
         raise Error(

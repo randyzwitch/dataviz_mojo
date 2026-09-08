@@ -1,15 +1,6 @@
 # title: Isolines Over a Filled Field
-"""Layer a `tricontour()` over a `tricontourf()` of the same samples
-with `render_layers()` -- filled bands carry the color scale, isolines
-say where the levels are.
-
-Filled bands alone leave the reader estimating a value from a color;
-isolines alone leave them working out which side of a line is higher.
-Drawn together, each fixes the other's weakness, which is why matplotlib
-draws both onto one axes. Both marks take the samples' own padded extent
-as their frame, so the shared domain is each one's own and the isolines
-land exactly where the standalone chart puts them.
-"""
+"""Layer `tricontour()` over `tricontourf()` so filled bands show magnitude
+and isolines show exact levels."""
 from std.math import cos, sin
 
 from dataviz.plot import Plot, save_layers

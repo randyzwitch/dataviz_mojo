@@ -53,22 +53,11 @@ def _render_corrplot[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.CORRPLOT` plot: `encode_corrplot()`'s square
-    correlation `matrix` over `variables`, one bubble per surviving cell
-    on `Mark.HEATMAP`'s `_draw_grid_axis_frame` with the same variable
-    list on both axes. Bubble radius scales linearly with
-    `abs(matrix[row][col])` (`plot._mark_style.corrplot_bubble_fraction`
-    of the cell's smaller dimension at +-1.0); bubble color comes from a
-    `ColorScale` over the fixed `[-1.0, 1.0]` domain rather than the
-    data's range.
+    """Render a square correlation matrix as sized, colored bubbles.
 
-    `Plot.mark_corrplot(layout=...)` keeps only the cells `layout` calls
-    for: `"full"` (every cell, the default), `"lower"` (row index >= col
-    index), or `"upper"` (row index <= col index). `diag=False` drops
-    every row-equals-col cell. `labels=True` (the default) draws each
-    surviving cell's value to two decimal places, centered in its bubble.
-
-    Every value must be in `[-1.0, 1.0]`, checked at render() time.
+    Bubble radius uses absolute correlation and color uses a fixed `[-1, 1]`
+    scale. Layout selects the full, lower, or upper triangle; diagonal cells
+    and value labels are optional.
     """
     if len(plot._corrplot.matrix) != len(plot._corrplot.variables):
         raise Error(
@@ -104,8 +93,7 @@ def _render_corrplot[
     var sc = _Scaled(theme)
     var color_scale = ColorScale.from_theme(theme, -1.0, 1.0)
 
-    # The render's shared cache serves both measurements -- the legend's labels
-    # here, then the axis category labels inside _draw_grid_axis_frame.
+    # Reuse the cache for legend and axis-label measurement.
 
     var legend_reserve = 0
     if theme.show_legend:

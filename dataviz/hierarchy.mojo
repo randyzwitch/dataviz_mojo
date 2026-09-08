@@ -1,14 +1,4 @@
-"""The shared tree-indexing core behind the hierarchy family
-(`Mark.SUNBURST`/`TREE`/`TREEMAP`). All three need the same three
-things from `Plot.encode_hierarchy()`'s flat `ids`/`parent_ids`/
-`values` rows before any mark-specific layout: who is whose child, how
-deep each node is, and each node's subtree total.
-
-A flat `(id, parent_id, value)` row list rather than a tree type, the
-same flattening `d3.stratify()` uses, so the package's
-plain-columnar-arrays data model covers a hierarchy without a new kind
-of value.
-"""
+"""Shared hierarchy validation and indexing for sunburst, tree, and treemap."""
 
 from std.collections import Dict
 
@@ -57,17 +47,10 @@ struct _HierarchyIndex(Movable):
 def _build_hierarchy_index(
     ids: List[String], parent_ids: List[String], values: List[Float64]
 ) raises -> _HierarchyIndex:
-    """Turn `encode_hierarchy()`'s flat rows into what the hierarchy family
-    needs: `children[i]` (every row index whose `parent_ids` points at
-    `ids[i]`), `depth[i]` (0 at the root, +1 per level, from one BFS
-    pass), and `subtree_value[i]` (a leaf's `values[i]`; an internal
-    node's sum of every descendant leaf's value, ignoring its own
-    `values[i]`, computed bottom-up in one reverse-BFS pass).
+    """Build child, depth, and subtree-value arrays from flat node rows.
 
-    An empty `parent_ids[i]` (`""`) marks the single root. Raises if zero
-    or more than one row qualifies (a forest is out of scope, matching
-    `d3.stratify()`'s default), on a duplicate `id`, or on a
-    `parent_ids[i]` that matches no `id`.
+    An empty parent identifies the single root. Duplicate IDs, missing parents,
+    and zero or multiple roots raise errors.
     """
     var n = len(ids)
     var id_to_row = Dict[String, Int]()

@@ -1,8 +1,4 @@
-"""Widen the right margin so a horizontal bar's own data label, drawn
-just past the bar's tip, has room to breathe instead of crowding the
-plot's own right edge -- the more digits a label has, the more likely
-the default margin runs out of room.
-"""
+"""Widen the right margin to fit labels beyond horizontal bar tips."""
 from dataviz.plot import Plot, save
 from dataviz.theme import Theme
 

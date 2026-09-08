@@ -23,15 +23,7 @@ from dataviz.theme import Theme
 
 
 struct _HorizontalCategoricalFrame(Movable):
-    """`_draw_horizontal_categorical_axis_frame`'s finished layout: the
-    mirror image of `_CategoricalFrame`, with `x_scale` the continuous
-    `LinearScale` and `y_scale` the categorical `OrdinalScale`. Shared by
-    every mark whose categories run along the y-axis (`Mark.GANTT`,
-    `POPULATION_PYRAMID`, `RIDGELINE`, and the `horizontal=True` variants
-    of `Mark.BAR`/`BOX`/`VIOLIN`/`BEESWARM`/`LOLLIPOP`).
-    `px0`/`py0`/`px1`/`py1` are the inner plot rect, as in
-    `_CategoricalFrame`.
-    """
+    """Layout for marks with a continuous x-axis and categorical y-axis."""
 
     var x_scale: LinearScale
     var y_scale: OrdinalScale
@@ -63,10 +55,7 @@ struct _HorizontalCategoricalFrame(Movable):
         self.py1 = py1
 
     def result(self) -> _RenderResult:
-        """This frame as the `_RenderResult` the caller returns; mirrors
-        `_CategoricalFrame.result` (frame.mojo), including copying
-        `text_requests` rather than moving it.
-        """
+        """Return this layout as a render result."""
         return _RenderResult(
             self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1
         )
@@ -87,29 +76,10 @@ def _draw_horizontal_categorical_axis_frame[
     *,
     mut cache: FontCache,
 ) raises -> _HorizontalCategoricalFrame:
-    """`_draw_categorical_axis_frame`'s mirror image: categories run along
-    an `OrdinalScale` y-axis (index 0 at the top) and the continuous
-    `x_scale` runs left-to-right along the bottom. Its own function
-    rather than an orientation flag on `_draw_categorical_axis_frame`,
-    which would need a branch through nearly every line (which scale is
-    which type, which axis reverses, which margin grows).
+    """Draw a continuous x-axis and top-to-bottom categorical y-axis.
 
-    The dynamic left margin grows to fit the category names themselves
-    (`_max_label_width(categories, ...)`, the raw strings, since an
-    `OrdinalScale`'s domain is the label text) rather than formatted tick
-    values.
-
-    Category index 0 lands at the top: `OrdinalScale(categories, plot_y0,
-    plot_y1)` with `plot_y0 < plot_y1`, not reversed, so a schedule lists
-    its first task first.
-
-    No per-row gridlines (the rows already separate categories); vertical
-    gridlines at each of `x_scale`'s ticks instead.
-
-    `padding` (default 0.2) is forwarded to the `OrdinalScale`.
-    `Mark.RIDGELINE` passes `padding=0.0` so each row's baseline lands
-    exactly on the next row's top edge; with any gap, a sliver of
-    background shows between rows and reads as a notch.
+    The left margin fits category labels. Vertical gridlines follow x ticks,
+    and `padding` controls the categorical bands; ridgelines use zero padding.
     """
     var sc = _Scaled(theme)
 

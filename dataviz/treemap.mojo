@@ -41,20 +41,10 @@ def _draw_treemap_node[
     sc: _Scaled,
     mut text_requests: List[_TextRequest],
 ) raises:
-    """Fill `node`'s rect `(x0, y0, x1, y1)` if it's a leaf (colored by
-    `branch[node]`'s top-level-ancestor palette entry, as in
-    `Mark.SUNBURST`/`TREE`, plus a centered label in
-    `Theme.treemap_label_color`); otherwise slice-and-dice the rect among
-    its children and recurse. The split axis alternates by `depth` (even
-    splits the width into side-by-side strips, odd splits the height into
-    stacked strips), each child's share proportional to its
-    `subtree_value` share of `node`'s total. This is plain slice-and-dice,
-    not a squarified layout that rebalances aspect ratios.
+    """Recursively divide a rectangle by child subtree values.
 
-    Every boundary along the split axis is the rounded *cumulative*
-    fraction of the rect's span, never an independently rounded width, so
-    adjacent siblings share an exact pixel edge (the same pattern
-    `Mark.MARIMEKKO` uses).
+    Split axes alternate by depth. Cumulative rounding keeps sibling edges
+    aligned; leaves use their top-level branch color and a centered label.
     """
     if len(idx.children[node]) == 0:
         var color = (

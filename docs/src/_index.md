@@ -27,32 +27,7 @@ layout: hextra-home
 Every chart below comes straight from the example gallery.
 
 <style>
-/* The rest of this page leans on Hextra's own shortcodes, whose
-   classes are guaranteed to exist in its shipped, PRE-compiled
-   Tailwind bundle (docs/site's Hugo build doesn't run a Tailwind/
-   PostCSS step of its own -- there's no JIT scan of this project's
-   own content, so a hand-typed `hx:`-prefixed class with no matching
-   rule in that bundle just does nothing, silently). This gallery is
-   hand-rolled HTML instead of a shortcode, so it gets its own real,
-   plain CSS here rather than guessing at Tailwind utilities that may
-   or may not have made it into that bundle.
 
-   Section H2s need the same treatment for a different reason: Hextra's
-   own H2 styling (semibold, tracking-tight, text-3xl, border-b) lives
-   in typography.css scoped under `.content h2` -- applied by the
-   normal docs single/list page templates, which wrap `.Content` in a
-   `content` div. `layout: hextra-home` doesn't use that template (see
-   hextra-home.html), so this page's H2s render with zero styling from
-   the theme -- plain browser defaults, indistinguishable from bold
-   paragraph text. This mirrors that same rule in plain CSS rather
-   than trying to force a `.content` wrapper onto a layout that
-   deliberately doesn't have one. The same gap hits the plain paragraphs
-   that follow each H2/code block ("Every chart below...", "That's the
-   same pattern...") -- Tailwind's preflight reset zeroes default <p>
-   margins, and there's no `.content p { mt-6 }` prose rule to put it
-   back on this layout either. Scoped to `p:not([class])` so it only
-   catches those plain markdown paragraphs, not the hero/gallery-caption
-   <p>s above, which already carry their own deliberate spacing. */
 h2 {
   margin-top: 2.5rem;
   margin-bottom: 1rem;
@@ -67,26 +42,7 @@ p:not([class]) {
   margin-top: 1rem;
   line-height: 1.75rem;
 }
-/* Same story again: Tailwind's preflight resets <a> to
-   `color: inherit; text-decoration: inherit`, and it's `.content a`
-   (text-primary-600, underlined) that normally undoes that -- missing
-   here for the same reason as h2/p above. Hextra's own shortcodes
-   (hero-button, feature-card, ...) already mark their own custom-
-   styled links `not-prose` to opt out of that prose rule, so this
-   reuses that exact convention instead of inventing a new one: plain
-   inline links (the "examples gallery" link, "Quickstart"/"Examples"
-   at the bottom) get real link styling, the gallery cards below (also
-   marked not-prose, since a card-wrapper link shouldn't look like
-   inline text) are left alone. --hx-color-primary-600 is a plain CSS
-   custom property set in `:root`, not a Tailwind utility class, so
-   -- unlike an `hx:`-prefixed class -- it's guaranteed to exist in
-   the shipped CSS regardless of what got compiled in, and it's the
-   same accent color the hero buttons already use. Scoped to `#content`
-   (the hextra-home layout's own main-content id) so it only touches
-   links inside the page body -- unscoped, it was also repainting the
-   site header's "dataviz_mojo" title link and top-nav "GitHub" link
-   blue, since those are plain <a>s too and live outside any
-   not-prose-marked element. */
+
 #content a:not(.not-prose) {
   color: var(--hx-color-primary-600);
   text-decoration: underline;
@@ -137,13 +93,7 @@ p:not([class]) {
   font-size: 0.875rem;
   opacity: 0.7;
 }
-/* Light-blue card treatment to go with docs/site/assets/css/
-   custom.css's maroon primary override -- same light-mode-only scope
-   (`:root.light`) and same "first pass, tune live" caveat as that
-   file's own comment explains. Raw hex rather than currentColor-mix
-   here (unlike the neutral base rules above) since a specific blue
-   needs to survive regardless of surrounding text color; dark mode
-   keeps the neutral base rules untouched. */
+
 :root.light .dvm-gallery a {
   border-color: #b8dcec;
 }
@@ -160,21 +110,8 @@ p:not([class]) {
 :root.light h2 {
   border-bottom-color: #b8dcec;
 }
-/* examples/out_scatter.svg is real pipeline output (`scatter(x, y)` is
-   `Plot().mark_point().encode(x=x, y=y)` under the hood, same x/y as
-   this snippet -- see plot.mojo's own `scatter()` docstring), not a
-   hand-dropped image, so it can't drift out of sync with what the
-   code on the left actually does. The .dvm-chart-row/-code/-preview
-   layout classes themselves now live in docs/site/assets/css/
-   custom.css -- quickstart.md's own step-by-step tutorial reuses the
-   same code-left/chart-right treatment, so one shared definition
-   beats two copies drifting apart. */
-/* A plain "keep going" pointer to Quickstart after the last section --
-   not another hero-button pair (already at the top of the page, and
-   this isn't a second call to action, just a way out for someone who
-   read the whole pitch), right-aligned the way a "next page" link
-   reads. not-prose so it skips the underline #content's link rule
-   adds -- this already carries its own arrow and weight. */
+
+
 .dvm-next {
   width: 100%;
   text-align: right;

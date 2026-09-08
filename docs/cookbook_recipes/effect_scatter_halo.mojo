@@ -1,7 +1,4 @@
-"""Dim `Mark.EFFECT_SCATTER`'s glowing halo around each point -- the
-default opacity reads as a clean bloom for a sparse scatter, but
-overlapping halos on a denser one stack into an opaque blob.
-"""
+"""Lower effect-scatter halo opacity when dense points overlap."""
 from dataviz import effect_scatter
 from dataviz.plot import save
 from dataviz.theme import Theme

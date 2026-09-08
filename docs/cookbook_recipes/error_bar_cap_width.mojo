@@ -1,8 +1,4 @@
-"""Narrow an error bar's own end caps so closely spaced points don't
-run their whiskers into each other -- the default cap width reads
-fine with room to spare between points, but starts to visually
-collide once points sit close together on the x-axis.
-"""
+"""Narrow error-bar caps for closely spaced points."""
 from dataviz.plot import Plot, save
 from dataviz.theme import Theme
 

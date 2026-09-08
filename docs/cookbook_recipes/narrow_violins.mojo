@@ -1,8 +1,4 @@
-"""Narrow how much of its own category band a violin's peak density
-fills -- the default width reads well with a few categories, but
-adjacent violins start touching once there are enough of them
-side by side.
-"""
+"""Narrow violins to keep dense category layouts separated."""
 from dataviz import violin
 from dataviz.plot import save
 

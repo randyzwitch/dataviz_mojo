@@ -25,12 +25,7 @@ from dataviz.theme import Theme
 
 
 def _bump_rank_pixel(rank: Int, n_series: Int, py0: Int, py1: Int) -> Int:
-    """Rank 1 (best) at `py0` (the top), rank `n_series` (worst) at `py1`
-    (the bottom), evenly spaced between. Not a `LinearScale`: a
-    reversed-domain `LinearScale` breaks `ticks()`, which assumes
-    `domain_min < domain_max`. `n_series == 1` maps to the vertical center
-    rather than dividing by zero.
-    """
+    """Map rank 1 to the top and the last rank to the bottom."""
     if n_series <= 1:
         return (py0 + py1) // 2
     return py0 + round_to_int(

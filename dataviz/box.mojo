@@ -442,8 +442,7 @@ def box(
         y_title: The y-axis caption.
         horizontal: Draw categories running top-to-bottom with each
             box-and-whiskers left-to-right instead of the default
-            vertical layout -- see `Plot.mark_box()`'s own docstring
-    .
+            vertical layout -- see `Plot.mark_box()`'s own docstring.
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.

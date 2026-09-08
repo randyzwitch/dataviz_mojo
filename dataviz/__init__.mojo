@@ -1,16 +1,7 @@
-"""The package's public surface. Everything a caller imports is
-re-exported here so `from dataviz import bar, Plot, Theme` works
-without knowing which file a name lives in.
+"""The package's public API.
 
-The one-call convenience functions (`bar`, `scatter`, `pie`, ...) each
-live in their mark's file next to its rendering code (see plot.mojo's
-module docstring), so their real module paths (`dataviz.bar.bar`,
-`dataviz.arc.pie`) are an internal layout detail. Import them from the
-package.
-
-Every name is listed explicitly except `colors.mojo`'s ~148 CSS-named
-`Color` constants, which come in through the one wildcard import: they
-are a fixed standard vocabulary, not individually chosen additions.
+Chart functions and core types are re-exported here. CSS color constants
+are imported together from `colors.mojo`.
 """
 
 from dataviz.array_like import Float64Sequence, StringSequence
@@ -45,7 +36,7 @@ from dataviz.plot import (
     scatter,
 )
 
-# The remaining one-call convenience functions, each from its mark's file.
+# One-call chart functions defined in their mark modules.
 from dataviz.arc import pie
 from dataviz.bar import bar
 from dataviz.barbs import barbs

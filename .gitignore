@@ -1,18 +1,4 @@
-# pixi environments.
-#
-# `.pixi` itself and not just its contents (#393): building in a git
-# worktree means symlinking `.pixi` at the root pixi environment rather
-# than paying a full canvas rebuild per worktree, and `.pixi/*` matches
-# only what is *inside* a directory -- it does not match a symlink named
-# `.pixi`, so `git add -A` in such a worktree happily committed one.
-# That is how an absolute symlink into one machine's home directory
-# reached main and handed every fresh clone a dangling `.pixi`.
-#
-# Ignoring the path itself means a `.pixi/config.toml` would have to be
-# force-added (`git add -f .pixi/config.toml`); git cannot re-include a
-# file underneath an ignored parent. Nothing under `.pixi/` has ever
-# been tracked here, so that costs nothing today, and the alternative
-# leaves the symlink accident live.
+# Pixi environment directory or worktree symlink.
 .pixi
 
 # pixi build/publish output -- `pixi build` writes the built package
@@ -29,45 +15,13 @@ tests/_test_*.png
 .tools/
 docs/src/*.json
 
-# docs/src/examples/ is entirely generated -- the .md pages by
-# scripts/gen_example_docs.mojo, the standalone .mojo programs extract_
-# docstring_examples.mojo extracts (one per `Example:` docstring
-# section, then compiled/run for real by scripts/run_parallel.sh -- see
-# pixi.toml's own `example` task), and the .svg/.png/.bmp images those
-# programs' own save() calls write -- all sourced from dataviz/
-# *.mojo's own `Example:` docstring sections, one generated-docs-
-# content location rather than a second, separately-gitignored build
-# directory for the .mojo files alone. Only docs/src/_index.md, the
-# landing page, is real hand-written source. Modo's own generated Hugo
-# content and Hugo's own built static site are generated too, from
-# docs/src/ -- none of this is committed; all of it is deployed
-# straight to GitHub Pages by .github/workflows/docs.yml's own
-# Actions-based deploy, regenerated fresh on every run. docs/site/'s
-# own Hugo *project* files (hugo.yaml, go.mod/go.sum) ARE committed --
-# those are real source, not output.
-# EXCEPTION: docs/src/examples/quickstart/*.mojo -- real, hand-written
-# source behind docs/src/quickstart.md's own step-by-step tutorial
-# (see pixi.toml's own `example-quickstart` task and its comment next
-# to `example` above), not extracted from a docstring like everything
-# else in this directory, so there's nothing else that would recreate
-# them if they weren't committed. Their own out_*.svg output stays
-# gitignored though, same as every other rendered image in this repo
-# -- `example-quickstart` regenerates those, it just needs the .mojo
-# files themselves to still be there after a fresh checkout to run.
-# Git can't re-include a file whose parent directory is itself
-# excluded (a single blanket `docs/src/examples/` -- see `man
-# gitignore`'s own "It is not possible to re-include a file if a
-# parent directory of that file is excluded" note), so this walks down
-# one level at a time instead, un-excluding exactly the path needed at
-# each step before re-excluding what's still generated within it.
+# Generated example pages, programs, and images. Keep handwritten quickstart
+# programs by re-including their directory one level at a time.
 docs/src/examples/*
 !docs/src/examples/quickstart
 docs/src/examples/quickstart/*
 !docs/src/examples/quickstart/*.mojo
-# docs/src/cookbook/ is the same story as docs/src/examples/ above --
-# entirely generated, by the same scripts/gen_example_docs.mojo, just
-# its own top-level docs page now instead of a category tacked onto
-# Examples (see that script's own _cookbook() docstring for why).
+# Generated cookbook and Hugo output.
 docs/src/cookbook/
 docs/site/content/
 docs/site/public/

@@ -31,25 +31,11 @@ def _render_ridgeline[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.RIDGELINE` plot: the same per-category kernel-density
-    estimate `Mark.VIOLIN` computes (`_kde_bandwidth`/`_kde_density`/
-    `_KDE_SAMPLES`, from kde.mojo), drawn as one row per category on
-    `_draw_horizontal_categorical_axis_frame` (categories along `y`, top
-    to bottom; continuous `x` along the bottom), each curve rising upward
-    from its row's bottom edge. The frame is built with `padding=0.0` so
-    rows sit edge-to-edge; any gap would show as a notch between rows.
+    """Render one overlapping density curve per category.
 
-    Each row's curve may rise up to `plot._mark_style.ridgeline_overlap`
-    times the row height, so a tall peak overlaps into the row above. Rows
-    are drawn top to bottom in `x_categories`' order, so where two
-    overlap, the lower row is on top.
-
-    Each category's density is scaled to its own peak (ggplot2's
-    `scale = "width"`), or by `sqrt(n_i / max(n))` on top of that when
-    `mark_ridgeline(scale_by_count=True)` (`scale = "area"`), the same as
-    `mark_violin()`. `mark_ridgeline()`'s `bandwidth`, when positive,
-    replaces every category's Silverman's-rule `_kde_bandwidth(values)`
-    with one shared value.
+    Curves share an x-domain and scale to their own peaks. Optional count
+    scaling multiplies height by `sqrt(n / max_n)`; a positive bandwidth
+    override applies to every category.
     """
     var theme = plot._theme
     if plot._distribution.kde_bandwidth_override < 0.0:
@@ -87,10 +73,7 @@ def _render_ridgeline[
     for i in range(len(plot.x_categories)):
         var values = plot._distribution.values[i].copy()
         var baseline_y = frame.y_scale.band_start(i) + row_height
-        # The bottom-most row's baseline lands exactly on the drawn bottom axis
-        # line (padding=0.0 tiles rows edge to edge). Pulled 1px up so the
-        # curve's flat closing edge doesn't paint over the line's antialiasing,
-        # the same `_pull_off_axis_line` reasoning (frame.mojo).
+        # Keep the bottom curve's closing edge off the axis line.
         if abs(baseline_y - Float64(frame.py1)) < 0.5:
             baseline_y -= 1.0
         var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (

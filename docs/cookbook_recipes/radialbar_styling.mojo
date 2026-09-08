@@ -1,9 +1,4 @@
-"""Darken a radial bar chart's own unfilled track and widen the gap
-between rings -- the classic "activity rings" look needs more
-separation between rings than the default gap gives, and a darker
-track reads better against a light background than the default light
-gray.
-"""
+"""Darken radial-bar tracks and widen the gaps between rings."""
 from dataviz import radialbar
 from dataviz.plot import save
 from dataviz.theme import Theme

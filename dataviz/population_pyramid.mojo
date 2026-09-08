@@ -45,13 +45,7 @@ struct _PyramidData(Copyable, Movable):
 def _symmetric_zero_baseline_x_extent(
     left: List[Float64], right: List[Float64]
 ) raises -> LinearScale:
-    """The x-domain for `Mark.POPULATION_PYRAMID`: always `[-bound, bound]`,
-    with `bound` the largest magnitude across both sides plus a 5% pad
-    (the same fraction `_data_extent`/`_zero_baseline_y_extent` use).
-    Forced symmetric so both sides share one scale. Every value is read
-    as a magnitude (`max(v, -v)`) regardless of sign; see
-    `encode_population_pyramid()`.
-    """
+    """Return a padded, symmetric domain covering both value lists."""
     var max_abs = 0.0
     for v in left:
         max_abs = max(max_abs, max(v, -v))
@@ -74,20 +68,10 @@ def _render_population_pyramid[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.POPULATION_PYRAMID` plot:
-    `_draw_horizontal_categorical_axis_frame` (the frame `Mark.GANTT`
-    uses) with `_symmetric_zero_baseline_x_extent`'s centered domain, and
-    two mirrored bars per row: `left_values[i]` fills from the center
-    leftward and `right_values[i]` rightward, in
-    `default_categorical_palette()` indices 0 and 1.
+    """Render paired values as bars mirrored around a centered zero axis.
 
-    A zero-magnitude side draws no bar (not floored to 1px the way
-    `Mark.GANTT`'s zero-length span is): nothing on that side means
-    nothing to mark.
-
-    Draws a two-entry legend (`left_name`/`right_name`, defaulting to
-    "Left"/"Right") via `_draw_legend`/`_dynamic_legend_width`, reserved
-    from the outer `ox1`, whenever `Theme.show_legend` is on.
+    Both sides share a symmetric domain. Zero values draw no bar, and the
+    optional legend names the two sides.
     """
     if len(plot.x_categories) != len(plot._pyramid.left) or len(
         plot._pyramid.right
@@ -108,8 +92,7 @@ def _render_population_pyramid[
         len(plot.x_categories), "Plot.encode_population_pyramid()"
     )
     var sc = _Scaled(theme)
-    # Resolved outside the legend block: Theme.svg_tooltips names the two
-    # sides too, and does it whether or not a legend is drawn.
+    # Tooltips need side names even when the legend is hidden.
     var left_name = (
         plot._pyramid.left_name if plot._pyramid.left_name.byte_length()
         > 0 else "Left"

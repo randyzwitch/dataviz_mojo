@@ -1,8 +1,4 @@
-"""Scale each violin's own width by its sample count instead of giving
-every category the same maximum width -- without it, a category with
-five observations reads as visually "as full" as one with five hundred,
-silently overstating how much data actually backs the thin one.
-"""
+"""Scale violin width by sample count instead of equalizing every category."""
 from dataviz import violin
 from dataviz.plot import save
 

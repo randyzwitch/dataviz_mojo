@@ -34,23 +34,10 @@ def _render_nightingale[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.NIGHTINGALE` plot (a rose/coxcomb chart): one wedge per
-    category (`encode_categorical`'s `x`), every wedge the same angular
-    width (`2*pi / N`), with each value encoded by the wedge's radius
-    rather than its angle.
+    """Render equal-angle wedges whose radii encode non-negative values.
 
-    `plot._nightingale_area` (`Plot.mark_nightingale(area=True)`) picks
-    between ECharts' two `rose_type` modes, both scaled against the
-    largest value: `"radius"` (the default) sets radius to `value / max`;
-    `"area"` uses `sqrt(value / max)` so wedge area, not radius, is
-    proportional to value. Radius scaling visually exaggerates large
-    values since area grows with the square of radius; area scaling
-    corrects that at the cost of compressing small values near the center.
-
-    Reuses `Mark.ARC`'s start-at-12-o'clock clockwise sweep, its
-    non-negative/at-least-one-positive validation,
-    `default_categorical_palette()` by category index, and the same
-    margin-box/legend layout. No axis frame.
+    Radius mode scales directly by value; area mode uses the square root so
+    wedge area is proportional to value. Wedges begin at 12 o'clock.
     """
     _validate_categorical_encoding(plot)
 

@@ -1,14 +1,7 @@
 # title: High-Contrast Theme
-"""Make a chart readable at low vision, on a washed-out projector or in
-bright sun with `high_contrast()`: black axes and type, larger
-everything, gridlines raised from near-invisible to 4.4:1, and category
-identity carried by marker shape as well as by hue.
+"""Apply `high_contrast()` for stronger text, axes, gridlines, and marks.
 
-The mark ink is Okabe & Ito's blue darkened to a 7.5:1 ratio against the
-ground, the continuous scale is `cividis()` -- the colormap in
-`dataviz.colormaps` built so a viewer with deuteranopia reads the same
-ordering as everyone else -- and `shape_by_category` is on, so losing
-the palette's hues costs no information.
+Categories use shape as well as hue, and the continuous scale uses `cividis()`.
 """
 from dataviz.plot import Plot, save
 from dataviz.themes import high_contrast
