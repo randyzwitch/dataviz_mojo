@@ -694,7 +694,7 @@ def _legend_reserve_for(
     before the plot rect is finalized, measuring through the render's
     shared `cache` (see `_max_label_width`).
 
-    Honours all four positions. `TOP`/`BOTTOM` reserve a row's height
+    Honors all four positions. `TOP`/`BOTTOM` reserve a row's height
     rather than a column's width and the sections draw along it
     (`_draw_continuous_color_legend_h`/`_draw_continuous_size_legend_h`),
     so a point mark's legend behaves the same way a categorical one does.
