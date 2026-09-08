@@ -18,6 +18,7 @@ from dataviz.plot import (
     _require_non_empty,
 )
 from dataviz.scale import LinearScale
+from dataviz.text import _Scaled
 from dataviz.theme import Theme
 
 
@@ -329,25 +330,7 @@ def _render_tricontour[
     nothing and draw an empty frame rather than raising: the axes still
     report what the data spanned.
     """
-    var n = len(plot._tricontour.x)
-    if len(plot._tricontour.y) != n or len(plot._tricontour.z) != n:
-        raise Error(
-            "Plot.encode_tricontour(): x, y and z must have the same length"
-            " (got "
-            + String(n)
-            + ", "
-            + String(len(plot._tricontour.y))
-            + " and "
-            + String(len(plot._tricontour.z))
-            + ")"
-        )
-    _require_non_empty(n, "Plot.encode_tricontour()")
-    if plot._tricontour.level_count <= 0:
-        raise Error(
-            "Plot.mark_tricontour(): levels must be positive (got "
-            + String(plot._tricontour.level_count)
-            + ")"
-        )
+    _validate_tricontour(plot, "Plot.mark_tricontour()")
 
     var theme = plot._theme
     var frame = _draw_continuous_axis_frame(
@@ -363,17 +346,89 @@ def _render_tricontour[
         cache=cache,
     )
 
+    _draw_tricontour_layer(target, plot, frame.x_scale, frame.y_scale, frame.sc)
+    return frame.result()
+
+
+def _validate_tricontour(plot: Plot, mark_context: String) raises:
+    """Every check a `Mark.TRICONTOUR`/`Mark.TRICONTOURF` render needs
+    before it draws: three equal-length columns, at least one sample, and
+    a positive level count. `mark_context` names the builder in the
+    level-count message (`Plot.mark_tricontour()` or
+    `Plot.mark_tricontourf()`), the only thing that differed between the
+    two copies this replaces.
+
+    A free function because `_render_layers_generic` (#376) has to run it
+    in its own first pass -- a layer's x/y columns go into the combined
+    domain before any frame exists, so a mismatched `encode_tricontour()`
+    has to be caught there rather than inside the drawing.
+    """
+    var n = len(plot._tricontour.x)
+    if len(plot._tricontour.y) != n or len(plot._tricontour.z) != n:
+        raise Error(
+            "Plot.encode_tricontour(): x, y and z must have the same length"
+            " (got "
+            + String(n)
+            + ", "
+            + String(len(plot._tricontour.y))
+            + " and "
+            + String(len(plot._tricontour.z))
+            + ")"
+        )
+    _require_non_empty(n, "Plot.encode_tricontour()")
+    if plot._tricontour.level_count <= 0:
+        raise Error(
+            mark_context
+            + ": levels must be positive (got "
+            + String(plot._tricontour.level_count)
+            + ")"
+        )
+
+
+def _draw_tricontour_layer[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+    sc: _Scaled,
+) raises:
+    """Draw one `Mark.TRICONTOUR` plot's isolines into an already-laid-out
+    continuous axis frame, the counterpart to `_draw_line_layer` in
+    continuous.mojo.
+
+    Split out of `_render_tricontour` for #376, so a `render_layers()`
+    stack strokes the same isolines from the same code rather than
+    reimplementing them -- the failure mode
+    `_render_bar_combo_layers`' inline line geometry has hit twice
+    (`step=` in #336, `dashes=` in #383). Layering these over a
+    `Mark.TRICONTOURF` of the same samples is what `tricontourf()`'s
+    docstring recommends, and until #376 it raised (#401).
+
+    `sc` is the *layer's* own `_Scaled`, not the frame's: identical for a
+    standalone render, but in a stack the frame belongs to `plots[0]`
+    while `line_width` follows this layer's `Theme.scale`.
+
+    Args:
+        target: Where to draw.
+        plot: The chart, whose `_tricontour` data this reads.
+        x_scale: The frame's x-scale, already ranged onto the plot rect.
+        y_scale: The y-scale this layer draws against.
+        sc: This layer's scaled theme metrics.
+    """
+    var theme = plot._theme
     var levels = plot._tricontour.levels.copy() if len(
         plot._tricontour.levels
     ) > 0 else _auto_levels_from(
         plot._tricontour.z, plot._tricontour.level_count
     )
     if len(levels) == 0:
-        return frame.result()
+        return
 
     var tri = delaunay(plot._tricontour.x, plot._tricontour.y)
     if tri.count() == 0:
-        return frame.result()
+        return
 
     var lo = levels[0]
     var hi = levels[0]
@@ -395,17 +450,13 @@ def _render_tricontour[
                 continue
             var path = Path()
             path.move_to(
-                frame.x_scale.to_pixel(line.xs[0]),
-                frame.y_scale.to_pixel(line.ys[0]),
+                x_scale.to_pixel(line.xs[0]), y_scale.to_pixel(line.ys[0])
             )
             for i in range(1, len(line.xs)):
                 path.line_to(
-                    frame.x_scale.to_pixel(line.xs[i]),
-                    frame.y_scale.to_pixel(line.ys[i]),
+                    x_scale.to_pixel(line.xs[i]), y_scale.to_pixel(line.ys[i])
                 )
-            target.stroke_path_aa(path, color, width=frame.sc.line_width)
-
-    return frame.result()
+            target.stroke_path_aa(path, color, width=sc.line_width)
 
 
 def _render_tricontourf[
@@ -456,25 +507,7 @@ def _render_tricontourf[
         Error: Empty data, mismatched column lengths, or a non-positive
             level count.
     """
-    var n = len(plot._tricontour.x)
-    if len(plot._tricontour.y) != n or len(plot._tricontour.z) != n:
-        raise Error(
-            "Plot.encode_tricontour(): x, y and z must have the same length"
-            " (got "
-            + String(n)
-            + ", "
-            + String(len(plot._tricontour.y))
-            + " and "
-            + String(len(plot._tricontour.z))
-            + ")"
-        )
-    _require_non_empty(n, "Plot.encode_tricontour()")
-    if plot._tricontour.level_count <= 0:
-        raise Error(
-            "Plot.mark_tricontourf(): levels must be positive (got "
-            + String(plot._tricontour.level_count)
-            + ")"
-        )
+    _validate_tricontour(plot, "Plot.mark_tricontourf()")
 
     var theme = plot._theme
     var frame = _draw_continuous_axis_frame(
@@ -490,17 +523,39 @@ def _render_tricontourf[
         cache=cache,
     )
 
+    _draw_tricontourf_layer(target, plot, frame.x_scale, frame.y_scale)
+    return frame.result()
+
+
+def _draw_tricontourf_layer[
+    T: DrawTarget
+](mut target: T, plot: Plot, x_scale: LinearScale, y_scale: LinearScale) raises:
+    """Draw one `Mark.TRICONTOURF` plot's filled bands into an
+    already-laid-out continuous axis frame, `_draw_tricontour_layer`'s
+    counterpart and the layer a `render_layers()` stack puts underneath
+    it (#376, #401).
+
+    No `_Scaled` argument, unlike its stroked sibling: every band is a
+    fill, and nothing here is sized by the theme.
+
+    Args:
+        target: Where to draw.
+        plot: The chart, whose `_tricontour` data this reads.
+        x_scale: The frame's x-scale, already ranged onto the plot rect.
+        y_scale: The y-scale this layer draws against.
+    """
+    var theme = plot._theme
     var levels = plot._tricontour.levels.copy() if len(
         plot._tricontour.levels
     ) > 0 else _auto_levels_from(
         plot._tricontour.z, plot._tricontour.level_count
     )
     if len(levels) == 0:
-        return frame.result()
+        return
 
     var tri = delaunay(plot._tricontour.x, plot._tricontour.y)
     if tri.count() == 0:
-        return frame.result()
+        return
 
     var lo = levels[0]
     var hi = levels[0]
@@ -533,8 +588,8 @@ def _render_tricontourf[
         plot._tricontour.z,
         zmin,
         color_scale.color_at(lo),
-        frame.x_scale,
-        frame.y_scale,
+        x_scale,
+        y_scale,
     )
 
     for li in range(len(sorted_levels)):
@@ -545,11 +600,9 @@ def _render_tricontourf[
             plot._tricontour.z,
             level,
             color_scale.color_at(level),
-            frame.x_scale,
-            frame.y_scale,
+            x_scale,
+            y_scale,
         )
-
-    return frame.result()
 
 
 def tricontour(
@@ -660,16 +713,13 @@ def tricontourf(
     isolines alone leave the reader to work out which side of a line is
     higher, and the fill is what carries the color scale.
 
-    Drawing both at once is what matplotlib does, and this package
-    cannot yet express it: `render_layers()` takes only
-    `Mark.POINT`/`LINE`/`AREA`, so layering a `tricontour()` over this
-    raises rather than drawing (#401, #376). Until #376 lands the two
-    are separate charts. `Mark.TRICONTOUR` and `Mark.TRICONTOURF` lay
-    out through the same `_draw_continuous_axis_frame` over the same
-    `_data_extent` of the same samples, so at equal `width`/`height`
-    the two charts already agree pixel for pixel -- which is what makes
-    them worth reading side by side, and also what makes the layering
-    mechanical once the allow-list opens.
+    Drawing both at once is what matplotlib does, and
+    `render_layers([tricontourf(...), tricontour(...)])` is how to say it
+    here (#376) -- filled bands underneath, isolines on top. Both marks
+    lay out through the same `_draw_continuous_axis_frame` over the same
+    `_data_extent` of the same samples, so the combined domain is each
+    one's own and every isoline lands on exactly the pixel the
+    standalone `tricontour()` puts it on.
 
     The fill covers the samples' convex hull, not the whole plot rect --
     scattered data says nothing about the corners it does not reach.

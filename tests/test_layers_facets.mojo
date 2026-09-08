@@ -36,9 +36,13 @@ from canvas.color import Color
 from canvas.path import PathOp
 from dataviz import LineStyle, StepStyle
 from dataviz.color_scale import default_categorical_palette
-from dataviz.continuous import line
-from dataviz.kde import kdeplot
+from dataviz.barbs import barbs
+from dataviz.continuous import line, scatter
+from dataviz.contour import contour
+from dataviz.effect_scatter import effect_scatter
+from dataviz.kde import kdeplot, rugplot
 from dataviz.tricontour import tricontour, tricontourf
+from dataviz.triplot import tripcolor, triplot
 from std.math import cos, sin
 from dataviz.colors import CORNFLOWERBLUE, MAGENTA, RED, TOMATO
 from dataviz.plot import (
@@ -1928,63 +1932,153 @@ def _scattered_samples() raises -> List[List[Float64]]:
 
 def test_render_layers_names_the_rejected_layer_and_where_the_gap_is_tracked() raises:
     """#401: `tricontourf()`'s docstring told callers to layer a
-    `tricontour()` over it, which raises. The docstring is fixed, but a
-    caller who reaches the raise some other way used to get a message
-    naming only Mark.BAR and Mark.ARC -- neither their mark, nor which
-    layer was wrong, nor where the gap is tracked.
+    `tricontour()` over it, which raised. #376 made that composition
+    work, so the mark this reaches for has to be one still outside the
+    allow-list -- `Mark.ARC`, a pie, which has no continuous x at all.
 
     The rejected layer is the *second* one here, so an index in the
     message can only come from the loop and not from a constant: a
     message hard-coding "layer 0" would pass the first assertion below
     and fail this one.
+
+    `contains="Mark.ARC"` is the assertion #401 could not write and #420
+    asked for: `Mark.name()` (#415) landed while this branch was open, so
+    the message now names the mark the caller actually passed rather than
+    listing marks they did not. It discriminates against the old message,
+    which named `Mark.BAR` and `Mark.ARC` as *examples* -- hence the
+    `Mark.TREEMAP` case below, whose name appears in no fixed list
+    anywhere and can only have come from the layer itself.
     """
-    var s = _scattered_samples()
+    var cats: List[String] = ["a", "b"]
+    var vals: List[Float64] = [1.0, 2.0]
     var lx: List[Float64] = [0.0, 10.0]
     var ly: List[Float64] = [0.0, 10.0]
     var plots = List[Plot]()
     plots.append(line(lx, ly, width=400, height=300))
-    plots.append(tricontour(s[0], s[1], s[2], width=400, height=300))
+    plots.append(
+        Plot().mark_arc().encode_categorical(x=cats, y=vals).size(400, 300)
+    )
     with assert_raises(contains="layer 1"):
         _ = render_layers(plots)
-    with assert_raises(contains="#376"):
+    with assert_raises(contains="Mark.ARC"):
+        _ = render_layers(plots)
+    with assert_raises(contains="render_facets()"):
         _ = render_layers(plots)
 
+    var ids: List[String] = ["root", "a", "b"]
+    var parents: List[String] = ["", "root", "root"]
+    var sizes: List[Float64] = [0.0, 3.0, 2.0]
+    var hier = List[Plot]()
+    hier.append(line(lx, ly, width=400, height=300))
+    hier.append(
+        Plot()
+        .mark_treemap()
+        .encode_hierarchy(ids=ids, parent_ids=parents, values=sizes)
+        .size(400, 300)
+    )
+    with assert_raises(contains="Mark.TREEMAP"):
+        _ = render_layers(hier)
 
-def test_layering_a_tricontour_over_a_tricontourf_raises_today() raises:
-    """The guard #401 asks for: the exact call `tricontourf()`'s
-    docstring used to recommend. It raises, and the docstring now says
-    so.
 
-    Flip this to a positive test when #376 lands -- at which point the
-    combined render must put its isolines on the pixels
-    `test_tricontour_and_tricontourf_draw_the_same_axis_frame` below
-    pins.
+def test_layering_a_tricontour_over_a_tricontourf_draws_both() raises:
+    """#376/#401: the exact call `tricontourf()`'s docstring recommends,
+    which raised until the allow-list opened.
 
-    `contains="layer 0"` is what discriminates: the filled layer is
-    first, so a message that named a fixed layer index or none at all
-    would not match.
+    The discriminating assertion is not "it drew something": it is that
+    **every one of the standalone `tricontour()`'s 36 `<path>` elements
+    appears verbatim in the combined render**. A `<path>`'s `d` is the
+    whole polyline in absolute pixel coordinates, so matching it is
+    matching every vertex -- if the combined x/y domain were not the
+    same one the standalone computed, the isolines would land on
+    different pixels and no path would match. That is exactly what #401's
+    testing plan asked for, and it is what a loose "the SVG contains a
+    `<path>`" assertion would miss.
+
+    It holds because both layers contribute the same x/y columns to the
+    combined domain, and `_data_extent` of a column unioned with itself
+    is that column's extent.
     """
     var s = _scattered_samples()
     var plots = List[Plot]()
     plots.append(tricontourf(s[0], s[1], s[2], width=400, height=300))
     plots.append(tricontour(s[0], s[1], s[2], width=400, height=300))
-    with assert_raises(contains="layer 0"):
-        _ = render_layers(plots)
+    var combo = render_layers_svg(plots).to_string()
+    var solo = render_svg(
+        tricontour(s[0], s[1], s[2], width=400, height=300)
+    ).to_string()
+
+    var solo_paths = _elements_of(solo, "<path")
+    assert_equal(
+        len(solo_paths), 36, "the standalone tricontour draws 36 isoline paths"
+    )
+    for i in range(len(solo_paths)):
+        assert_true(
+            combo.find(solo_paths[i]) >= 0,
+            (
+                "isoline path "
+                + String(i)
+                + " lands on the same pixels in the combined render"
+            ),
+        )
+    assert_true(
+        len(_elements_of(combo, "<path")) > len(solo_paths),
+        "the filled bands are drawn as well, not only the isolines",
+    )
 
 
-def test_layering_two_kde_curves_raises_today() raises:
-    """The same guard for `kdeplot()`, whose docstring carried the same
-    bad advice (#401): seaborn compares distributions by calling
-    `kdeplot()` twice onto one axes, and `Mark.KDE` is not on
-    `render_layers()`'s allow-list either.
+def test_layering_two_kde_curves_puts_both_on_one_shared_density_axis() raises:
+    """#376/#401: seaborn compares distributions by calling `kdeplot()`
+    twice onto one axes. This is that call, which raised until the
+    allow-list opened.
+
+    Two curves is the easy half. The discriminating half is the shared
+    y-domain: `b` here is a tight cluster, so its density peaks far
+    higher than `a`'s, and on one frame `a`'s curve must be **squashed**
+    relative to its standalone render -- same x pixels (a's own spread
+    still sets the x-domain), lower on the page.
+
+    "It rendered without raising" would pass even if each layer had been
+    drawn against its own y-domain, which is the bug worth catching: a
+    stack where every curve peaks at the same height is a stack that
+    says nothing about their relative densities. Comparing the first
+    vertex's y against the standalone's is what discriminates, and the
+    expected value comes from a *different* function (`render_svg` of
+    one layer), never from `render_layers` itself.
     """
     var a: List[Float64] = [1.0, 2.0, 2.5, 3.0, 4.0, 4.5, 5.0]
-    var b: List[Float64] = [3.0, 3.5, 4.0, 5.0, 6.0, 6.5, 7.0]
+    var b: List[Float64] = [3.0, 3.05, 3.1, 3.0, 3.02, 3.08, 3.01]
     var plots = List[Plot]()
     plots.append(kdeplot(a, width=400, height=300))
     plots.append(kdeplot(b, width=400, height=300))
-    with assert_raises(contains="layer 0"):
-        _ = render_layers(plots)
+    var combo = render_layers_svg(plots).to_string()
+
+    var combo_paths = _elements_of(combo, "<path")
+    assert_equal(len(combo_paths), 2, "both density curves are drawn")
+
+    var solo = render_svg(kdeplot(a, width=400, height=300)).to_string()
+    var solo_paths = _elements_of(solo, "<path")
+    var solo_first = _first_vertex(solo_paths[0])
+    var combo_first = _first_vertex(combo_paths[0])
+    assert_equal(
+        combo_first[0],
+        solo_first[0],
+        "a's curve starts at the same x -- its own spread sets the x-domain",
+    )
+    assert_true(
+        combo_first[1] > solo_first[1] + 0.5,
+        (
+            "a's curve is pushed down the page by b's much taller peak"
+            " sharing the y-domain (standalone y "
+            + String(solo_first[1])
+            + ", layered y "
+            + String(combo_first[1])
+            + ")"
+        ),
+    )
+    assert_true(
+        combo_first[1] < 250.0,
+        "and it is still inside the plot rect, not clipped off the bottom",
+    )
 
 
 def test_tricontour_and_tricontourf_draw_the_same_axis_frame() raises:
@@ -2057,6 +2151,493 @@ def _elements_of(svg: String, tag: String) -> List[String]:
         out.append(String(svg[byte = i : j + 1]))
         i = svg.find(tag, j)
     return out^
+
+
+def _first_vertex(path_element: String) raises -> List[Float64]:
+    """The `M x,y` a `<path d="...">` element opens with, as `[x, y]`.
+
+    Enough to pin where a curve starts without pinning the whole
+    polyline, which is what the shared-domain tests need: a domain error
+    moves the first vertex as much as any other.
+    """
+    var k = path_element.find('d="M')
+    var comma = path_element.find(",", k)
+    var space = path_element.find(" ", comma)
+    var out = List[Float64]()
+    out.append(Float64(String(path_element[byte = k + 4 : comma])))
+    out.append(Float64(String(path_element[byte = comma + 1 : space])))
+    return out^
+
+
+def _attr(element: String, name: String) raises -> String:
+    """One attribute's value out of an SVG element string."""
+    var k = element.find(name + '="')
+    if k < 0:
+        raise Error("no " + name + ' attribute in "' + element + '"')
+    var start = k + name.byte_length() + 2
+    return String(element[byte = start : element.find('"', start)])
+
+
+def _path_baseline_y(path_element: String) raises -> Float64:
+    """The largest y coordinate in a `<path d="...">`'s vertex list.
+
+    For a filled `Mark.KDE` that is the baseline the fill closes down
+    to, which is where the y-domain's zero landed -- the one number that
+    separates `_zero_baseline_y_extent` from `_data_extent` for a
+    strictly positive density column.
+    """
+    var d = _attr(path_element, "d")
+    var best = -1.0
+    var i = 0
+    while True:
+        var comma = d.find(",", i)
+        if comma < 0:
+            break
+        var space = d.find(" ", comma)
+        var end = space if space >= 0 else d.byte_length()
+        var y = Float64(String(d[byte = comma + 1 : end]))
+        if y > best:
+            best = y
+        i = end
+    return best
+
+
+def _x_axis_row(svg: String) raises -> Float64:
+    """The y of the plot rect's bottom edge, read off the x-axis line --
+    the lowest horizontal `<line>` drawn in `Theme.axis_color`.
+
+    Read rather than hard-coded so the tests that use it assert a
+    *relationship* (the fill closes on the axis) instead of a pair of
+    independent golden numbers that could both drift together.
+    """
+    var best = -1.0
+    var lines = _elements_of(svg, "<line")
+    for i in range(len(lines)):
+        if lines[i].find('stroke="#505050"') < 0:
+            continue
+        var y1 = Float64(_attr(lines[i], "y1"))
+        if y1 != Float64(_attr(lines[i], "y2")):
+            continue  # a vertical line: the y-axis, or a tick
+        if y1 > best:
+            best = y1
+    return best
+
+
+def _lone_layer_matches_standalone(
+    name: String, var plot: Plot, solo: String
+) raises:
+    """`render_layers_svg([plot])` produces byte-identical output to
+    `render_svg()` of the same plot.
+
+    The strongest domain-correctness assertion available for a newly
+    layerable mark, and the one this module leans on for all eight of
+    them (#376). A stack of one has exactly one layer's data in the
+    combined domain, so the frame, the scales and every drawn coordinate
+    must come out the same as the standalone render's -- if the layered
+    path read the wrong field for a mark's x/y, applied the wrong extent
+    helper (`_data_extent` vs `_zero_baseline_y_extent`), or handed a
+    layer a scale ranged against something else, the strings diverge.
+
+    "It rendered without raising" is what this replaces, and it would
+    pass for every one of those bugs.
+    """
+    var plots = List[Plot]()
+    plots.append(plot^)
+    var layered = render_layers_svg(plots).to_string()
+    assert_true(
+        layered.byte_length() > 0, name + ": the layered render is not empty"
+    )
+    assert_equal(
+        layered,
+        solo,
+        name + ": a stack of one draws exactly the standalone chart",
+    )
+
+
+def test_a_lone_kde_layer_draws_the_standalone_kde() raises:
+    """#376. See `_lone_layer_matches_standalone`.
+
+    `Mark.KDE` is the mark this is most likely to catch: its standalone
+    y-domain is `LinearScale(0.0, y_max * 1.05)`, written by hand rather
+    than through either shared extent helper. It matches
+    `_zero_baseline_y_extent` over the density column exactly (lo is
+    `min(0, min density)` = 0, hi is padded 5%), which is why the layered
+    path can use the shared helper and still land here -- and this
+    assertion is what would fail if that reasoning were wrong, or if
+    `_data_extent` had been used instead and padded the axis below zero.
+    """
+    var v: List[Float64] = [12.0, 14.0, 15.0, 16.0, 17.0, 24.0, 25.0, 28.0]
+    _lone_layer_matches_standalone(
+        "Mark.KDE",
+        kdeplot(v, width=400, height=300),
+        render_svg(kdeplot(v, width=400, height=300)).to_string(),
+    )
+
+
+def test_a_lone_rug_layer_draws_the_standalone_rug_including_no_y_axis() raises:
+    """#376, and the interaction #378 flagged: a stack of nothing but
+    `Mark.RUG` layers has no host y-axis, so it falls back to the
+    standalone treatment -- the `LinearScale(0, 1)` placeholder with the
+    y half suppressed, rather than publishing "0.0 0.2 ... 1.0" as a
+    density that isn't there.
+
+    Byte equality covers that: a layered render that drew the y-axis
+    would have four more `<text>` elements and a different left margin.
+    """
+    var v: List[Float64] = [12.0, 14.0, 15.0, 16.0, 17.0, 24.0, 25.0, 28.0]
+    _lone_layer_matches_standalone(
+        "Mark.RUG",
+        rugplot(v, width=400, height=300),
+        render_svg(rugplot(v, width=400, height=300)).to_string(),
+    )
+
+
+def test_a_lone_layer_of_each_field_mark_draws_the_standalone_chart() raises:
+    """#376 for the five remaining newly-layerable marks, each through
+    `_lone_layer_matches_standalone`.
+
+    `Mark.BARBS`, `TRICONTOUR`, `TRICONTOURF`, `TRIPLOT` and `TRIPCOLOR`
+    all keep their x/y in a field of their own (`_barbs`, `_tricontour`,
+    `_triplot`) rather than in `Plot.encode()`'s `x_data`/`y_data`, so
+    "the layered path read the wrong column" is a live failure mode for
+    each and byte equality is what rules it out.
+    """
+    var s = _scattered_samples()
+    var bx: List[Float64] = [0.0, 1.0, 2.0, 0.0, 1.0, 2.0]
+    var by: List[Float64] = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
+    var bu: List[Float64] = [5.0, 12.0, 27.0, 55.0, 0.0, 33.0]
+    var bv: List[Float64] = [3.0, -8.0, 14.0, 2.0, 0.0, -20.0]
+
+    _lone_layer_matches_standalone(
+        "Mark.BARBS",
+        barbs(bx, by, bu, bv, width=400, height=300),
+        render_svg(barbs(bx, by, bu, bv, width=400, height=300)).to_string(),
+    )
+    _lone_layer_matches_standalone(
+        "Mark.TRICONTOUR",
+        tricontour(s[0], s[1], s[2], width=400, height=300),
+        render_svg(
+            tricontour(s[0], s[1], s[2], width=400, height=300)
+        ).to_string(),
+    )
+    _lone_layer_matches_standalone(
+        "Mark.TRICONTOURF",
+        tricontourf(s[0], s[1], s[2], width=400, height=300),
+        render_svg(
+            tricontourf(s[0], s[1], s[2], width=400, height=300)
+        ).to_string(),
+    )
+    _lone_layer_matches_standalone(
+        "Mark.TRIPLOT",
+        triplot(s[0], s[1], width=400, height=300),
+        render_svg(triplot(s[0], s[1], width=400, height=300)).to_string(),
+    )
+    _lone_layer_matches_standalone(
+        "Mark.TRIPCOLOR",
+        tripcolor(s[0], s[1], s[2], width=400, height=300),
+        render_svg(
+            tripcolor(s[0], s[1], s[2], width=400, height=300)
+        ).to_string(),
+    )
+
+
+def test_a_lone_effect_scatter_layer_draws_its_halo() raises:
+    """#376 admitted `Mark.EFFECT_SCATTER` alongside `Mark.POINT`, which
+    it shares `_draw_point_layer` with.
+
+    Byte equality is the assertion, and the halo is what makes it
+    discriminating here: an `EFFECT_SCATTER` layer dispatched as a plain
+    `Mark.POINT` (`draw_halo=False`, the easy mistake given the shared
+    draw function) would still render a perfectly reasonable scatter,
+    with exactly half the `<circle>` elements. The count is asserted
+    separately so a failure says which half went wrong.
+    """
+    var ex: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    var ey: List[Float64] = [1.0, 3.0, 2.0, 4.0]
+    var solo = render_svg(
+        effect_scatter(ex, ey, width=400, height=300)
+    ).to_string()
+    assert_equal(
+        len(_elements_of(solo, "<circle")),
+        8,
+        "four points, each a halo plus a marker",
+    )
+    _lone_layer_matches_standalone(
+        "Mark.EFFECT_SCATTER",
+        effect_scatter(ex, ey, width=400, height=300),
+        solo,
+    )
+
+
+def test_layering_a_rug_under_a_kde_draws_what_kdeplot_rug_true_draws() raises:
+    """The composition #376 was filed for, and the sharpest statement of
+    what it means: `render_layers([kdeplot(v), rugplot(v)])` is
+    **byte-identical** to `render(kdeplot(v, rug=True))`.
+
+    `mark_kde(rug=True)` is the workaround #351 shipped because
+    composition was unavailable. Now that it is available, the composed
+    chart has to be the same chart -- so this pins the two paths
+    together, and any future divergence in either shows up here.
+
+    It is not a tautology. The frames agree only because the combined
+    x-domain works out to the KDE's own: the curve runs three bandwidths
+    past the observations on each side, so the rug layer's raw values
+    are strictly inside it and the union's `_data_extent` is the curve's.
+    The rug ticks then have to land on the *curve's* x-scale, not on the
+    scale a standalone `rugplot()` would have built from the raw values
+    -- which is a visibly different chart, and what byte equality here
+    rules out.
+    """
+    var v: List[Float64] = [12.0, 14.0, 15.0, 15.0, 16.0, 17.0, 24.0, 28.0]
+    var plots = List[Plot]()
+    plots.append(kdeplot(v, width=400, height=300))
+    plots.append(rugplot(v, width=400, height=300))
+    var layered = render_layers_svg(plots).to_string()
+    var built_in = render_svg(
+        kdeplot(v, rug=True, width=400, height=300)
+    ).to_string()
+    assert_equal(
+        len(_elements_of(built_in, "<line"))
+        - len(_elements_of(layered, "<line")),
+        0,
+        "the same number of rug ticks and frame lines",
+    )
+    assert_equal(
+        layered,
+        built_in,
+        "layering a rug under a kde draws exactly kdeplot(rug=True)",
+    )
+
+
+def test_a_rug_layer_rides_the_shared_x_domain_not_its_own() raises:
+    """The domain-correctness check that a lone-layer comparison cannot
+    make: what happens when the layers *disagree* about the x extent.
+
+    The rug's observations here span far wider than the KDE's, so the
+    combined x-domain is the rug's and the density curve has to be
+    compressed into the middle of the frame. Asserted by comparing the
+    curve's first vertex against its own standalone render -- it must
+    move right, because the frame now starts well to the left of where
+    the curve does.
+
+    A layered path that drew each mark against its own x-scale would
+    produce a chart that looks fine and is a lie; this is what catches
+    it. The expected value comes from `render_svg` of the KDE alone,
+    never from `render_layers`.
+    """
+    var v: List[Float64] = [1.0, 2.0, 2.5, 3.0, 4.0, 4.5, 5.0]
+    var wide: List[Float64] = [-20.0, 40.0]
+    var plots = List[Plot]()
+    plots.append(kdeplot(v, width=400, height=300))
+    plots.append(rugplot(wide, width=400, height=300))
+    var layered = render_layers_svg(plots).to_string()
+
+    var solo_x = _first_vertex(
+        _elements_of(
+            render_svg(kdeplot(v, width=400, height=300)).to_string(), "<path"
+        )[0]
+    )[0]
+    var layered_x = _first_vertex(_elements_of(layered, "<path")[0])[0]
+    assert_true(
+        layered_x > solo_x + 50.0,
+        (
+            "the curve is pushed right into the middle of the wider shared"
+            " x-domain (standalone x "
+            + String(solo_x)
+            + ", layered x "
+            + String(layered_x)
+            + ")"
+        ),
+    )
+    # 2 rug ticks on top of the frame's own lines, and the y-axis is
+    # still drawn: the KDE layer supplies a real density domain, so the
+    # all-rug suppression must not fire here.
+    assert_true(
+        len(_elements_of(layered, "<text")) > 4,
+        "the y-axis tick labels are still drawn: the KDE layer owns them",
+    )
+
+
+def test_a_kde_layer_anchors_a_shared_domain_at_zero() raises:
+    """The extent-helper divergence #376 had to reconcile: `Mark.KDE`
+    anchors its y at zero (`_zero_baseline_y_extent`, like `Mark.AREA`)
+    while `Mark.POINT` pads around its data (`_data_extent`). One shared
+    axis has to pick, and a density's zero is not negotiable -- a filled
+    curve floating above the baseline is a chart claiming the
+    distribution has a floor it doesn't.
+
+    The layers here are chosen so the two rules give *different*
+    answers, which most pairings do not: the scatter's y all sit well
+    above the density peak, so `_data_extent` over the union would take
+    its lower end from the curve's smallest density (a hair above zero)
+    and then pad 5% *below* it, putting the domain minimum at a negative
+    density and the baseline several pixels up from the axis line.
+    `_zero_baseline_y_extent` pins the minimum at exactly zero.
+
+    Two assertions discriminate: the filled curve closes at exactly the
+    plot rect's bottom edge -- read from the x-axis `<line>`, not
+    hard-coded -- and the lowest y tick label is at that same row. A
+    layered path that used `_data_extent` here draws a perfectly
+    plausible chart and fails both. (Deliberately *not* asserted with a
+    negative-y co-layer: when the data straddles zero the two helpers
+    agree exactly, so such a case cannot discriminate at all.)
+    """
+    var v: List[Float64] = [1.0, 2.0, 2.5, 3.0, 4.0, 4.5, 5.0]
+    var sx: List[Float64] = [2.0, 3.0]
+    var sy: List[Float64] = [5.0, 6.0]
+    var plots = List[Plot]()
+    plots.append(kdeplot(v, fill=True, width=400, height=300))
+    plots.append(scatter(sx, sy, width=400, height=300))
+    var layered = render_layers_svg(plots).to_string()
+
+    var axis_y = _x_axis_row(layered)
+    assert_true(
+        axis_y > 200.0,
+        "sanity: the x-axis sits near the bottom of a 300px canvas",
+    )
+    var paths = _elements_of(layered, "<path")
+    # The fill and the stroke are separate paths (the stroke must not
+    # carry the two closing segments, or the baseline reads as an axis);
+    # the fill is drawn first.
+    assert_equal(len(paths), 2, "one density curve, filled and stroked")
+    assert_equal(
+        _path_baseline_y(paths[0]),
+        axis_y,
+        "the fill closes on the axis line: zero is the domain's exact minimum",
+    )
+
+    var labels = _elements_of(layered, "<text")
+    var lowest_y_label_row = -1.0
+    for i in range(len(labels)):
+        if labels[i].find('text-anchor="end"') < 0:
+            continue  # an x-axis label, not a y one
+        var row = Float64(_attr(labels[i], "y"))
+        if row > lowest_y_label_row:
+            lowest_y_label_row = row
+    # Tick labels are baseline-anchored, so the "0" label's own y sits a
+    # few px below the tick it captions rather than exactly on it.
+    assert_true(
+        lowest_y_label_row > axis_y and lowest_y_label_row < axis_y + 8.0,
+        (
+            "the bottom y tick is the axis line itself (axis row "
+            + String(axis_y)
+            + ", lowest label row "
+            + String(lowest_y_label_row)
+            + ")"
+        ),
+    )
+    assert_equal(
+        len(_elements_of(layered, "<circle")),
+        2,
+        "and both scatter points are still drawn",
+    )
+
+
+def test_render_layers_rejects_a_log_scale_on_a_newly_layerable_mark() raises:
+    """#376 admitted eight marks whose domains are only ever taken
+    linearly. `_render_generic` already refuses `scale_x_log()`/
+    `scale_y_log()` on anything but `Mark.POINT`/`LINE`/`AREA`/
+    `EFFECT_SCATTER`; the layered path has to refuse it too, or a KDE
+    beside a log-scaled line would be drawn against a log axis it was
+    never mapped through.
+
+    `contains="layer 1"` discriminates: the offending layer is the
+    second, so a message naming a constant index would not match.
+    """
+    var lx: List[Float64] = [1.0, 10.0]
+    var ly: List[Float64] = [1.0, 10.0]
+    var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var plots = List[Plot]()
+    plots.append(line(lx, ly, width=400, height=300).scale_y_log())
+    plots.append(kdeplot(v, width=400, height=300).scale_y_log())
+    with assert_raises(contains="layer 1"):
+        _ = render_layers(plots)
+    with assert_raises(contains="scale_y_log"):
+        _ = render_layers(plots)
+
+
+def test_render_layers_rejects_secondary_axis_on_a_rug_layer() raises:
+    """A `Mark.RUG` layer contributes no y values at all, so
+    `.secondary_axis()` on one would leave the secondary domain empty and
+    the right-hand axis silently undrawn -- a builder call that does
+    nothing, which is worse than one that refuses.
+
+    Discriminating on `contains="layer 1"` again: the rug is the second
+    layer.
+    """
+    var lx: List[Float64] = [1.0, 10.0]
+    var ly: List[Float64] = [1.0, 10.0]
+    var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var plots = List[Plot]()
+    plots.append(line(lx, ly, width=400, height=300))
+    plots.append(rugplot(v, width=400, height=300).secondary_axis())
+    with assert_raises(contains="layer 1"):
+        _ = render_layers(plots)
+    with assert_raises(contains="secondary_axis"):
+        _ = render_layers(plots)
+
+
+def test_an_annotation_on_an_empty_secondary_layer_raises_instead_of_drawing() raises:
+    """A `_RenderResult`'s `has_y_scale` is what tells
+    `annotate_line()`/`annotate_area()` there is a real y-domain to place
+    themselves against (#389). The layered path hard-coded it to `True`
+    for every layer, which is wrong for a `.secondary_axis()` layer that
+    contributed nothing to the secondary domain: the right-hand axis is
+    then never drawn, `y_scale2` stays the degenerate
+    `LinearScale(0.0, 0.0, ...)` placeholder, and an `annotate_line()`
+    against it is placed against nothing.
+
+    Measured on `origin/main`: it does not raise, and the reference
+    line's *label* is drawn anyway -- one `"target"` in the output, a
+    caption for a line the reader has no axis to read. #376 made the
+    flag follow the facts (`has_secondary_data` for a secondary layer,
+    the frame's own for a primary one), so this raises instead.
+
+    Assert on the raise rather than on where the label went: "it is
+    somewhere meaningless" has no pixel to pin, and the fix is that
+    there is no output at all.
+    """
+    var lx: List[Float64] = [0.0, 10.0]
+    var ly: List[Float64] = [0.0, 10.0]
+    var empty = List[Float64]()
+    var plots = List[Plot]()
+    plots.append(line(lx, ly, width=400, height=300))
+    plots.append(
+        scatter(empty, empty, width=400, height=300)
+        .secondary_axis()
+        .annotate_line(5.0, label="target")
+    )
+    with assert_raises(contains="no continuous y-axis"):
+        _ = render_layers(plots)
+
+
+def test_render_layers_still_rejects_a_contour_layer_and_says_why() raises:
+    """`Mark.CONTOUR`/`CONTOURF` draw through the same
+    `_draw_continuous_axis_frame` as everything #376 admitted, and are
+    still refused -- their axes are unpadded *grid-index* units, not the
+    caller's coordinates, so sharing an x with a coordinate mark would
+    equate column 12 with the value 12. #423 tracks it.
+
+    Asserting the tracking number is what makes this more than a
+    coverage line: a reader refused here needs somewhere to go, and this
+    fails if the message is ever reduced to "unsupported mark".
+    """
+    var z = List[List[Float64]]()
+    var row0: List[Float64] = [0.0, 1.0, 2.0]
+    var row1: List[Float64] = [1.0, 3.0, 1.0]
+    var row2: List[Float64] = [2.0, 1.0, 0.0]
+    z.append(row0^)
+    z.append(row1^)
+    z.append(row2^)
+    var lx: List[Float64] = [0.0, 2.0]
+    var ly: List[Float64] = [0.0, 2.0]
+    var plots = List[Plot]()
+    plots.append(line(lx, ly, width=400, height=300))
+    plots.append(contour(z, width=400, height=300))
+    with assert_raises(contains="layer 1"):
+        _ = render_layers(plots)
+    with assert_raises(contains="#423"):
+        _ = render_layers(plots)
 
 
 def main() raises:

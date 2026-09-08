@@ -41,6 +41,8 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
+from dataviz.scale import LinearScale
+from dataviz.text import _Scaled
 from dataviz.theme import Theme
 
 
@@ -207,9 +209,9 @@ def _render_triplot[
 
     Axes are the samples' own padded extent -- the same frame
     `Mark.TRICONTOUR` and a `scatter()` of the same points draw, so all
-    three put a given sample on the same pixel. (They still cannot be
-    layered: `render_layers()` takes only `Mark.POINT`/`LINE`/`AREA`.
-    #401.)
+    three put a given sample on the same pixel, and `render_layers()`
+    takes all three (#376): a mesh over a `tripcolor()` field, or a
+    `scatter()` over a mesh, share one domain by construction.
 
     Vertex dots are drawn on top when `mark_triplot(show_points=True)`,
     which is this package's default and a deliberate divergence:
@@ -239,16 +241,7 @@ def _render_triplot[
     Raises:
         Error: Empty data, or mismatched column lengths.
     """
-    var n = len(plot._triplot.x)
-    if len(plot._triplot.y) != n:
-        raise Error(
-            "Plot.encode_triplot(): x and y must have the same length (got "
-            + String(n)
-            + " and "
-            + String(len(plot._triplot.y))
-            + ")"
-        )
-    _require_non_empty(n, "Plot.encode_triplot()")
+    _validate_triplot(plot)
 
     var theme = plot._theme
     var frame = _draw_continuous_axis_frame(
@@ -264,6 +257,63 @@ def _render_triplot[
         cache=cache,
     )
 
+    _draw_triplot_layer(target, plot, frame.x_scale, frame.y_scale, frame.sc)
+    return frame.result()
+
+
+def _validate_triplot(plot: Plot) raises:
+    """`Mark.TRIPLOT`'s pre-draw checks: matching x/y columns and at least
+    one sample. `Mark.TRIPCOLOR` needs a `z` as well and has its own
+    (`_validate_tripcolor`).
+
+    A free function because `_render_layers_generic` (#376) has to run it
+    in its own first pass -- a layer's x/y columns go into the combined
+    domain before any frame exists, so a mismatched `encode_triplot()`
+    has to be caught there rather than inside the drawing.
+    """
+    var n = len(plot._triplot.x)
+    if len(plot._triplot.y) != n:
+        raise Error(
+            "Plot.encode_triplot(): x and y must have the same length (got "
+            + String(n)
+            + " and "
+            + String(len(plot._triplot.y))
+            + ")"
+        )
+    _require_non_empty(n, "Plot.encode_triplot()")
+
+
+def _draw_triplot_layer[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+    sc: _Scaled,
+) raises:
+    """Draw one `Mark.TRIPLOT` plot's mesh (and its vertex dots) into an
+    already-laid-out continuous axis frame, the counterpart to
+    `_draw_line_layer` in continuous.mojo.
+
+    Split out of `_render_triplot` for #376, so a `render_layers()` stack
+    strokes the same mesh from the same code rather than reimplementing
+    it -- the failure mode `_render_bar_combo_layers`' inline line
+    geometry has hit twice (`step=` in #336, `dashes=` in #383).
+
+    `sc` is the *layer's* own `_Scaled`, not the frame's: identical for a
+    standalone render, but in a stack the frame belongs to `plots[0]`
+    while the stroke width and vertex radius follow this layer's
+    `Theme.scale`.
+
+    Args:
+        target: Where to draw.
+        plot: The chart, whose `_triplot` data this reads.
+        x_scale: The frame's x-scale, already ranged onto the plot rect.
+        y_scale: The y-scale this layer draws against.
+        sc: This layer's scaled theme metrics.
+    """
+    var theme = plot._theme
     var tri = delaunay(plot._triplot.x, plot._triplot.y)
     var edges = _triplot_edges(tri)
     if len(edges[0]) > 0:
@@ -272,26 +322,22 @@ def _render_triplot[
             var a = edges[0][i]
             var b = edges[1][i]
             mesh.move_to(
-                frame.x_scale.to_pixel(tri.xs[a]),
-                frame.y_scale.to_pixel(tri.ys[a]),
+                x_scale.to_pixel(tri.xs[a]), y_scale.to_pixel(tri.ys[a])
             )
             mesh.line_to(
-                frame.x_scale.to_pixel(tri.xs[b]),
-                frame.y_scale.to_pixel(tri.ys[b]),
+                x_scale.to_pixel(tri.xs[b]), y_scale.to_pixel(tri.ys[b])
             )
-        target.stroke_path_aa(mesh, theme.mark_color, width=frame.sc.scale)
+        target.stroke_path_aa(mesh, theme.mark_color, width=sc.scale)
 
     if plot._triplot.show_points:
-        var radius = frame.sc.point_radius * _POINT_RADIUS_FRACTION
-        for i in range(n):
+        var radius = sc.point_radius * _POINT_RADIUS_FRACTION
+        for i in range(len(plot._triplot.x)):
             target.fill_circle_aa(
-                frame.x_scale.to_pixel(plot._triplot.x[i]),
-                frame.y_scale.to_pixel(plot._triplot.y[i]),
+                x_scale.to_pixel(plot._triplot.x[i]),
+                y_scale.to_pixel(plot._triplot.y[i]),
                 radius,
                 theme.mark_color,
             )
-
-    return frame.result()
 
 
 def _render_tripcolor[
@@ -374,18 +420,7 @@ def _render_tripcolor[
     Raises:
         Error: Empty data, or mismatched column lengths.
     """
-    var n = len(plot._triplot.x)
-    if len(plot._triplot.y) != n or len(plot._triplot.z) != n:
-        raise Error(
-            "Plot.encode_triplot(): x, y and z must have the same length (got "
-            + String(n)
-            + ", "
-            + String(len(plot._triplot.y))
-            + " and "
-            + String(len(plot._triplot.z))
-            + ") -- Mark.TRIPCOLOR needs a value at every sample"
-        )
-    _require_non_empty(n, "Plot.encode_triplot()")
+    _validate_tripcolor(plot)
 
     var theme = plot._theme
     var frame = _draw_continuous_axis_frame(
@@ -401,9 +436,62 @@ def _render_tripcolor[
         cache=cache,
     )
 
+    _draw_tripcolor_layer(target, plot, frame.x_scale, frame.y_scale, frame.sc)
+    return frame.result()
+
+
+def _validate_tripcolor(plot: Plot) raises:
+    """`Mark.TRIPCOLOR`'s pre-draw checks: `_validate_triplot`'s, plus a
+    `z` value at every sample.
+
+    A free function for the same reason as `_validate_triplot` -- see
+    that docstring.
+    """
+    var n = len(plot._triplot.x)
+    if len(plot._triplot.y) != n or len(plot._triplot.z) != n:
+        raise Error(
+            "Plot.encode_triplot(): x, y and z must have the same length (got "
+            + String(n)
+            + ", "
+            + String(len(plot._triplot.y))
+            + " and "
+            + String(len(plot._triplot.z))
+            + ") -- Mark.TRIPCOLOR needs a value at every sample"
+        )
+    _require_non_empty(n, "Plot.encode_triplot()")
+
+
+def _draw_tripcolor_layer[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+    sc: _Scaled,
+) raises:
+    """Draw one `Mark.TRIPCOLOR` plot's filled faces into an
+    already-laid-out continuous axis frame, `_draw_triplot_layer`'s
+    counterpart and the field a `render_layers()` stack puts a scatter or
+    a mesh on top of (#376).
+
+    `sc` is the *layer's* own `_Scaled`, not the frame's: identical for a
+    standalone render, but in a stack the frame belongs to `plots[0]`
+    while `_SEAM_STROKE_WIDTH` scales by this layer's `Theme.scale`, and
+    a seam sized from the wrong theme is the pale-webbing bug this mark's
+    own docstring measures.
+
+    Args:
+        target: Where to draw.
+        plot: The chart, whose `_triplot` data this reads.
+        x_scale: The frame's x-scale, already ranged onto the plot rect.
+        y_scale: The y-scale this layer draws against.
+        sc: This layer's scaled theme metrics.
+    """
+    var theme = plot._theme
     var tri = delaunay(plot._triplot.x, plot._triplot.y)
     if tri.count() == 0:
-        return frame.result()
+        return
 
     var means = _triangle_means(tri, plot._triplot.z)
     var lo = means[0]
@@ -415,24 +503,15 @@ def _render_tripcolor[
             hi = v
     var color_scale = ColorScale.from_theme(theme, lo, hi)
 
-    var seam_width = frame.sc.scale * _SEAM_STROKE_WIDTH
+    var seam_width = sc.scale * _SEAM_STROKE_WIDTH
     for k in range(tri.count()):
         var i0 = tri.tri[3 * k]
         var i1 = tri.tri[3 * k + 1]
         var i2 = tri.tri[3 * k + 2]
         var face = Path()
-        face.move_to(
-            frame.x_scale.to_pixel(tri.xs[i0]),
-            frame.y_scale.to_pixel(tri.ys[i0]),
-        )
-        face.line_to(
-            frame.x_scale.to_pixel(tri.xs[i1]),
-            frame.y_scale.to_pixel(tri.ys[i1]),
-        )
-        face.line_to(
-            frame.x_scale.to_pixel(tri.xs[i2]),
-            frame.y_scale.to_pixel(tri.ys[i2]),
-        )
+        face.move_to(x_scale.to_pixel(tri.xs[i0]), y_scale.to_pixel(tri.ys[i0]))
+        face.line_to(x_scale.to_pixel(tri.xs[i1]), y_scale.to_pixel(tri.ys[i1]))
+        face.line_to(x_scale.to_pixel(tri.xs[i2]), y_scale.to_pixel(tri.ys[i2]))
         face.close()
         var color = color_scale.color_at(means[k])
         # A single triangle has no self-intersection, so the fill rule
@@ -440,8 +519,6 @@ def _render_tripcolor[
         # polygon fill in the package.
         target.fill_path_aa(face, color, fill_rule=FillRule.NONZERO)
         target.stroke_path_aa(face, color, width=seam_width)
-
-    return frame.result()
 
 
 def triplot(
