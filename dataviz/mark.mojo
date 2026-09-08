@@ -34,6 +34,10 @@ describes the drawing. By data shape:
 - Two categorical axes: HEATMAP (`encode_heatmap()`), CORRPLOT
   (`encode_corrplot()`), PUNCHCARD (`encode_punchcard()`),
   CALENDAR_HEATMAP (`encode_calendar()`).
+- A 2D array on *continuous* axes (image.mojo): IMSHOW
+  (`encode_imshow()`, cell centers on the grid indices) and
+  PCOLORMESH (`encode_pcolormesh()`, explicit cell boundaries).
+  Not HEATMAP, which needs one category label per row and column.
 - `encode_hierarchy()` (hierarchy.mojo): SUNBURST, TREE, TREEMAP.
 - `encode_chord()` (edge list, edges.mojo): CHORD, ARC_DIAGRAM,
   GRAPH, SANKEY.
@@ -102,8 +106,10 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime TRIPLOT = Self(49)
     comptime TRIPCOLOR = Self(50)
     comptime ECDF = Self(51)
+    comptime IMSHOW = Self(52)
+    comptime PCOLORMESH = Self(53)
 
-    comptime COUNT = 52
+    comptime COUNT = 54
     """How many marks exist -- one past the largest value above.
 
     Only the raster/SVG layout-equivalence sweep reads this (#221): it
@@ -262,4 +268,8 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
             return "Mark.TRIPCOLOR"
         if self == Self.ECDF:
             return "Mark.ECDF"
+        if self == Self.IMSHOW:
+            return "Mark.IMSHOW"
+        if self == Self.PCOLORMESH:
+            return "Mark.PCOLORMESH"
         return "Mark(" + String(self._value) + ")"

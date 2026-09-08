@@ -234,6 +234,7 @@ from dataviz.corrplot import _CorrplotData
 from dataviz.punchcard import _PunchcardData
 from dataviz.barbs import _BarbsData
 from dataviz.contour import _ContourData
+from dataviz.image import _ImageData
 from dataviz.tricontour import _TriContourData
 from dataviz.triplot import _TriplotData
 from dataviz.marimekko import _MarimekkoData
@@ -257,6 +258,7 @@ from dataviz.corrplot import _render_corrplot
 from dataviz.punchcard import _render_punchcard
 from dataviz.barbs import _render_barbs
 from dataviz.contour import _render_contour, _render_contourf
+from dataviz.image import _render_image
 from dataviz.kde import _render_kde, _render_rug
 from dataviz.ecdf import _render_ecdf
 from dataviz.tricontour import _render_tricontour, _render_tricontourf
@@ -557,6 +559,7 @@ struct Plot(Copyable, Movable):
     var _punchcard: _PunchcardData
     var _barbs: _BarbsData
     var _contour: _ContourData
+    var _image: _ImageData
     var _tricontour: _TriContourData
     var _triplot: _TriplotData
     var _marimekko: _MarimekkoData
@@ -621,6 +624,7 @@ struct Plot(Copyable, Movable):
         self._punchcard = _PunchcardData()
         self._barbs = _BarbsData()
         self._contour = _ContourData()
+        self._image = _ImageData()
         self._tricontour = _TriContourData()
         self._triplot = _TriplotData()
         self._marimekko = _MarimekkoData()
@@ -1046,6 +1050,38 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.CONTOURF
         self._contour.level_count = levels
+        return self^
+
+    def mark_imshow(var self) -> Self:
+        """A 2D array drawn as an image: one flat-colored cell per
+        element, on continuous axes in row/column index units. Encoded
+        via `encode_imshow()`; see `_render_image` for the drawing and
+        `imshow()` (image.mojo) for the one-call form.
+
+        Row 0 is at the *top* and the y-axis counts downward, which is
+        the opposite of `mark_contour()` over the same grid -- see
+        `imshow()`'s docstring for why an image and a sampled surface
+        differ here.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.IMSHOW
+        return self^
+
+    def mark_pcolormesh(var self) -> Self:
+        """`mark_imshow()` over cell boundaries the caller supplies, for a
+        grid whose rows and columns are not evenly spaced. Encoded via
+        `encode_pcolormesh()`; see `_render_image` for the drawing and
+        `pcolormesh()` (image.mojo) for the one-call form.
+
+        Row 0 is at the *bottom* here, unlike `mark_imshow()`: the edges
+        are positions on a real axis rather than scanlines.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.PCOLORMESH
         return self^
 
     def mark_tricontour(var self, levels: Int = 8) -> Self:
@@ -2543,6 +2579,63 @@ struct Plot(Copyable, Movable):
         """
         self._contour.z = z.copy()
         self._contour.levels = levels.copy()
+        return self^
+
+    def encode_imshow(var self, z: List[List[Float64]]) -> Self:
+        """Map a 2D array onto `Mark.IMSHOW`'s shape.
+
+        `z` is row-major (`z[row][col]`): rows are the y axis and columns
+        the x axis. Cell centers sit on the integers, so an RxC array
+        spans x `[-0.5, C - 0.5]` and y `[-0.5, R - 0.5]` -- the same
+        grid-index units `encode_contour()` uses, extended by half a cell
+        at each end because here a sample *is* a cell rather than a
+        corner between cells.
+
+        Row 0 is at the top; see `mark_imshow()`.
+
+        Shape checking (rectangular, non-empty, all finite) is deferred
+        to render() time, like every other encode method here.
+
+        Args:
+            z: The array, row-major and rectangular, non-empty.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._image.z = z.copy()
+        return self^
+
+    def encode_pcolormesh(
+        var self,
+        x_edges: List[Float64],
+        y_edges: List[Float64],
+        z: List[List[Float64]],
+    ) -> Self:
+        """Map a 2D array plus its cell boundaries onto
+        `Mark.PCOLORMESH`'s shape.
+
+        `z` is row-major as in `encode_imshow()`. `x_edges`/`y_edges`
+        *bound* the cells rather than sit at their centers, so there is
+        one more of each than the array has columns and rows --
+        matplotlib's own rule for 1D `pcolormesh` coordinates. Both must
+        be strictly increasing.
+
+        Length and ordering checks are deferred to render() time, like
+        every other encode method here.
+
+        Args:
+            x_edges: Column boundaries, `cols + 1` of them, strictly
+                increasing.
+            y_edges: Row boundaries, `rows + 1` of them, strictly
+                increasing.
+            z: The array, row-major and rectangular, non-empty.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._image.z = z.copy()
+        self._image.x_edges = x_edges.copy()
+        self._image.y_edges = y_edges.copy()
         return self^
 
     def encode_tricontour(
@@ -4530,6 +4623,8 @@ def _render_generic[
         return _render_contour(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.CONTOURF:
         return _render_contourf(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    if plot._mark == Mark.IMSHOW or plot._mark == Mark.PCOLORMESH:
+        return _render_image(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.TRICONTOUR:
         return _render_tricontour(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.KDE:

@@ -55,6 +55,7 @@ from dataviz.bullet import bullet
 from dataviz.candlestick import candlestick
 from dataviz.contour import contour, contourf
 from dataviz.ecdf import ecdf
+from dataviz.image import imshow, pcolormesh
 from dataviz.kde import kdeplot, rugplot
 from dataviz.tricontour import tricontour, tricontourf
 from dataviz.triplot import tripcolor, triplot
