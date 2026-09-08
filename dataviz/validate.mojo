@@ -184,9 +184,9 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
     """Every check `Plot.encode()`'s channels need before a continuous-axis
     render starts, shared by `_render_generic` and
     `_render_layers_generic`. `context` prefixes each message
-    (`"Plot.encode()"` or `"render_layers(): layer 2"`). The `Mark.POINT`/
-    `LINE`/`AREA` allow-list `render_layers()` enforces is specific to
-    layering and stays at its call site.
+    (`"Plot.encode()"` or `"render_layers(): layer 2"`). The allow-list
+    `render_layers()` enforces is specific to layering and stays at its
+    call site (`_is_layerable_mark`, layers.mojo).
     """
     if len(plot.x_data) != len(plot.y_data):
         raise Error(

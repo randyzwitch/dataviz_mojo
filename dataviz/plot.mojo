@@ -1391,11 +1391,11 @@ struct Plot(Copyable, Movable):
         -- rather than mirrored inside a category band. Encoded via
         `encode_kde()`; see `kdeplot()` for the one-call form.
 
-        Comparing several distributions on one frame needs
-        `render_layers()`, which today accepts only
-        `Mark.POINT`/`LINE`/`AREA` (#376) -- so for now a `Mark.KDE`
-        chart shows one distribution, with `rug=True` for its
-        observations.
+        Comparing several distributions on one frame is
+        `render_layers()` over a `Mark.KDE` layer each (#376): they
+        share one density axis, so the peak heights are comparable.
+        `rug=True` adds this layer's own observations underneath, and a
+        separate `mark_rug()` layer draws the same ticks.
 
         Args:
             bandwidth: The kernel bandwidth. Not positive (the default)
@@ -1423,8 +1423,8 @@ struct Plot(Copyable, Movable):
         `encode_kde()`; see `rugplot()` for the one-call form.
 
         The same ticks `mark_kde(rug=True)` draws under its curve, as a
-        chart of their own -- `render_layers()` cannot yet combine the
-        two marks (#376).
+        chart of their own -- or as a `render_layers()` layer under a
+        `mark_kde()` one, which draws the same thing (#376).
 
         Returns:
             Self, for further chaining.

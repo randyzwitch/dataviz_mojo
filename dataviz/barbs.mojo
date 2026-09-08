@@ -16,6 +16,8 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
+from dataviz.scale import LinearScale
+from dataviz.text import _Scaled
 from dataviz.theme import Theme
 
 
@@ -202,6 +204,36 @@ def _render_barbs[
     very edge of the data can reach into the margin -- matplotlib behaves
     the same way.
     """
+    _validate_barbs(plot)
+
+    var theme = plot._theme
+    var frame = _draw_continuous_axis_frame(
+        target,
+        _data_extent(plot._barbs.x),
+        _data_extent(plot._barbs.y),
+        theme,
+        _LegendLayout(),
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+    _draw_barbs_layer(target, plot, frame.x_scale, frame.y_scale, frame.sc)
+    return frame.result()
+
+
+def _validate_barbs(plot: Plot) raises:
+    """Every check a `Mark.BARBS` render needs before it draws anything:
+    four equal-length columns, at least one station, and a positive glyph
+    length.
+
+    A free function because `_render_layers_generic` (#376) has to run it
+    in its own first pass -- a layer's x/y columns go into the combined
+    domain before any frame exists, so a mismatched `encode_barbs()` has
+    to be caught there rather than inside the drawing.
+    """
     var n = len(plot._barbs.x)
     if (
         len(plot._barbs.y) != n
@@ -228,22 +260,40 @@ def _render_barbs[
             + ")"
         )
 
-    var theme = plot._theme
-    var frame = _draw_continuous_axis_frame(
-        target,
-        _data_extent(plot._barbs.x),
-        _data_extent(plot._barbs.y),
-        theme,
-        _LegendLayout(),
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
 
-    var length = plot._barbs.length * frame.sc.scale
-    var stroke_width = frame.sc.scale
+def _draw_barbs_layer[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+    sc: _Scaled,
+) raises:
+    """Draw one `Mark.BARBS` plot's glyphs into an already-laid-out
+    continuous axis frame, the counterpart to `_draw_line_layer` in
+    continuous.mojo.
+
+    Split out of `_render_barbs` for #376, so a `render_layers()` stack
+    reaches the same glyph code rather than reimplementing it -- the
+    failure mode `_render_bar_combo_layers`' inline line geometry has hit
+    twice (`step=` in #336, `dashes=` in #383).
+
+    `sc` is the *layer's* own `_Scaled`, not the frame's: identical for a
+    standalone render, but in a stack the frame belongs to `plots[0]`
+    while `mark_barbs(length=...)` scales by this layer's `Theme.scale`.
+
+    Args:
+        target: Where to draw.
+        plot: The chart, whose `_barbs` data this reads.
+        x_scale: The frame's x-scale, already ranged onto the plot rect.
+        y_scale: The y-scale this layer draws against.
+        sc: This layer's scaled theme metrics.
+    """
+    var n = len(plot._barbs.x)
+    var theme = plot._theme
+    var length = plot._barbs.length * sc.scale
+    var stroke_width = sc.scale
     var empty_radius = _EMPTY_RADIUS * length
 
     # One glyph per distinct speed bucket, built lazily. `keys` is the
@@ -259,8 +309,8 @@ def _render_barbs[
         var speed = sqrt(u * u + v * v)
         var counts = _barb_counts(speed)
 
-        var px = frame.x_scale.to_pixel(plot._barbs.x[i])
-        var py = frame.y_scale.to_pixel(plot._barbs.y[i])
+        var px = x_scale.to_pixel(plot._barbs.x[i])
+        var py = y_scale.to_pixel(plot._barbs.y[i])
 
         if counts.calm:
             # Exactly where every other glyph goes: the barbs below are
@@ -297,8 +347,6 @@ def _render_barbs[
                 theme.mark_color,
                 fill_rule=FillRule.NONZERO,
             )
-
-    return frame.result()
 
 
 def barbs(

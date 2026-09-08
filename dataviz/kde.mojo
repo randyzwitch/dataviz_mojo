@@ -17,7 +17,6 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.plot import (
-    _ContinuousFrame,
     Plot,
     _LegendLayout,
     _RenderResult,
@@ -29,6 +28,7 @@ from dataviz.plot import (
 )
 from dataviz.pixel_snap import _snap_pixel_center
 from dataviz.scale import LinearScale
+from dataviz.text import _Scaled
 from dataviz.theme import Theme
 
 
@@ -143,8 +143,7 @@ def _render_kde[
     Raises:
         Error: No values were given.
     """
-    var values = plot._distribution.values[0].copy()
-    _require_non_empty(len(values), "Plot.encode_kde()")
+    var values = _kde_observations(plot)
 
     var curve = _kde_curve(values, plot._distribution.kde_bandwidth_override)
     var theme = plot._theme
@@ -170,42 +169,108 @@ def _render_kde[
         cache=cache,
     )
 
-    var path = Path()
-    path.move_to(
-        frame.x_scale.to_pixel(curve[0][0]),
-        frame.y_scale.to_pixel(curve[1][0]),
+    _draw_kde_layer(
+        target,
+        plot,
+        curve[0],
+        curve[1],
+        values,
+        frame.x_scale,
+        frame.y_scale,
+        frame.sc,
+        Float64(frame.py1),
     )
-    for i in range(1, len(curve[0])):
-        path.line_to(
-            frame.x_scale.to_pixel(curve[0][i]),
-            frame.y_scale.to_pixel(curve[1][i]),
-        )
+    return frame.result()
+
+
+def _kde_observations(plot: Plot) raises -> List[Float64]:
+    """The observations behind a `Mark.KDE`/`Mark.RUG` plot, checked
+    non-empty.
+
+    A free function rather than three copies of the same two lines
+    because `_render_layers_generic` needs it too, and needs it *before*
+    the shared frame is drawn: a layer's domain contribution is computed
+    in a first pass over every layer, so the check that a layer has any
+    data at all has to be reachable from there. Raising with
+    `Plot.encode_kde()`'s own message keeps a bad layer's error the same
+    one the standalone render gives.
+    """
+    var values = plot._distribution.values[0].copy()
+    _require_non_empty(len(values), "Plot.encode_kde()")
+    return values^
+
+
+def _draw_kde_layer[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    curve_x: List[Float64],
+    curve_y: List[Float64],
+    values: List[Float64],
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+    sc: _Scaled,
+    baseline_py: Float64,
+) raises:
+    """Draw one `Mark.KDE` plot's curve (and its `rug=True` ticks) into an
+    already-laid-out continuous axis frame, the counterpart to
+    `_draw_line_layer`/`_draw_area_layer` in continuous.mojo.
+
+    Split out of `_render_kde` for #376 so the standalone render and a
+    `render_layers()` stack draw the same geometry from the same code
+    rather than a layered path reimplementing it -- which is how
+    `_render_bar_combo_layers`' inline copy of the line geometry came to
+    silently drop `step=` (#336) and then `dashes=` (#383).
+
+    `curve_x`/`curve_y` are `_kde_curve`'s output, passed in rather than
+    recomputed: the layered caller has already evaluated the curve to
+    contribute it to the combined x/y domain, so passing it through is
+    what makes the drawn geometry provably the geometry that domain was
+    sized for.
+
+    `sc` is the *layer's* own `_Scaled`, not the frame's. They are the
+    same object for a standalone render; in a stack the shared frame
+    belongs to `plots[0]` while `line_width` and `tick_length` here have
+    to follow this layer's `Theme.scale`, as `render_layers()` documents.
+
+    Args:
+        target: Where to draw.
+        plot: The chart, for its `_distribution` flags and `Theme`.
+        curve_x: The curve's evaluation points.
+        curve_y: The density at each.
+        values: The raw observations, for the `rug=True` ticks.
+        x_scale: The frame's x-scale, already ranged onto the plot rect.
+        y_scale: The y-scale this layer draws against.
+        sc: This layer's scaled theme metrics.
+        baseline_py: The plot rect's bottom edge, where rug ticks sit.
+    """
+    var theme = plot._theme
+    var path = Path()
+    path.move_to(x_scale.to_pixel(curve_x[0]), y_scale.to_pixel(curve_y[0]))
+    for i in range(1, len(curve_x)):
+        path.line_to(x_scale.to_pixel(curve_x[i]), y_scale.to_pixel(curve_y[i]))
     if plot._distribution.kde_fill:
         # Its own path rather than a copy of the stroke's: the fill needs
         # the two closing segments down to density zero, and the stroke
         # must not have them -- a stroked baseline would read as an axis.
         var filled = Path()
         filled.move_to(
-            frame.x_scale.to_pixel(curve[0][0]),
-            frame.y_scale.to_pixel(curve[1][0]),
+            x_scale.to_pixel(curve_x[0]), y_scale.to_pixel(curve_y[0])
         )
-        for i in range(1, len(curve[0])):
+        for i in range(1, len(curve_x)):
             filled.line_to(
-                frame.x_scale.to_pixel(curve[0][i]),
-                frame.y_scale.to_pixel(curve[1][i]),
+                x_scale.to_pixel(curve_x[i]), y_scale.to_pixel(curve_y[i])
             )
         filled.line_to(
-            frame.x_scale.to_pixel(curve[0][len(curve[0]) - 1]),
-            frame.y_scale.to_pixel(0.0),
+            x_scale.to_pixel(curve_x[len(curve_x) - 1]), y_scale.to_pixel(0.0)
         )
-        filled.line_to(
-            frame.x_scale.to_pixel(curve[0][0]), frame.y_scale.to_pixel(0.0)
-        )
+        filled.line_to(x_scale.to_pixel(curve_x[0]), y_scale.to_pixel(0.0))
         filled.close()
         target.fill_path_aa(
             filled, theme.mark_color, fill_rule=FillRule.NONZERO
         )
-    target.stroke_path_aa(path, theme.mark_color, width=frame.sc.line_width)
+    target.stroke_path_aa(path, theme.mark_color, width=sc.line_width)
 
     if plot._distribution.kde_rug:
         # Over a filled curve the ticks would be mark_color on
@@ -213,13 +278,10 @@ def _render_kde[
         # color instead -- notches out of the fill rather than marks on
         # top of it. Unfilled, they are the mark's own color, because a
         # rug is data.
-        _draw_rug_ticks(
-            target,
-            values,
-            frame,
-            theme.background if plot._distribution.kde_fill else theme.mark_color,
+        var tick_color = (
+            theme.background if plot._distribution.kde_fill else theme.mark_color
         )
-    return frame.result()
+        _draw_rug_ticks(target, values, x_scale, baseline_py, sc, tick_color)
 
 
 def _render_rug[
@@ -240,11 +302,18 @@ def _render_rug[
     A density curve is smooth everywhere and says nothing about how many
     observations are behind it, or where they actually fall. A rug is the
     honesty check on one, which is why it is conventionally drawn
-    underneath. `render_layers()` cannot combine the two -- it takes
-    only `Mark.POINT`/`LINE`/`AREA`, and a `Mark.KDE` or `Mark.RUG`
-    layer raises (#401, #376). `kdeplot(rug=True)` draws both on one
-    frame instead, through `_draw_rug_ticks` below; this mark is the
-    ticks on their own.
+    underneath. Two ways to draw that: `render_layers([kdeplot(v),
+    rugplot(v)])` composes the two marks (#376), and `kdeplot(rug=True)`
+    draws both from the one mark. They produce byte-identical output --
+    both reach `_draw_rug_ticks` below against the curve's own x-scale --
+    so the choice is about how the code reads, not the chart.
+
+    In a layer stack the rug is a passenger on whatever it sits under:
+    the y-axis belongs to the host layer, and the ticks still sit on the
+    plot rect's bottom edge. That is why the `y_axis_visible=False` below
+    is on *this* function's frame call rather than hung off `Mark.RUG`
+    itself -- suppressing a co-layer's axis would delete the thing the
+    stack is measured against.
 
     Each tick is a hairline, so its fixed coordinate snaps to a pixel
     center and it stays crisp; the whole chart is thin vertical lines and
@@ -273,8 +342,7 @@ def _render_rug[
     Raises:
         Error: No values were given.
     """
-    var values = plot._distribution.values[0].copy()
-    _require_non_empty(len(values), "Plot.encode_kde()")
+    var values = _kde_observations(plot)
     var theme = plot._theme
 
     var frame = _draw_continuous_axis_frame(
@@ -291,7 +359,14 @@ def _render_rug[
         cache=cache,
     )
 
-    _draw_rug_ticks(target, values, frame, theme.mark_color)
+    _draw_rug_ticks(
+        target,
+        values,
+        frame.x_scale,
+        Float64(frame.py1),
+        frame.sc,
+        theme.mark_color,
+    )
     return frame.result()
 
 
@@ -317,11 +392,12 @@ def kdeplot(
     axes.
 
     Comparing them on one frame is what seaborn does by calling
-    `kdeplot()` twice onto the same axes, and this package cannot yet
-    express it: `render_layers()` takes only `Mark.POINT`/`LINE`/`AREA`,
-    so a second `Mark.KDE` layer raises rather than drawing (#401,
-    #376). `render_facets()` puts the distributions side by side today,
-    which is a weaker reading than overlaying them but an honest one.
+    `kdeplot()` twice onto the same axes, and
+    `render_layers([kdeplot(a), kdeplot(b)])` is how to say that here
+    (#376): the curves share one density axis, so their peak heights are
+    comparable, which is the whole point. `render_facets()` puts them
+    side by side instead, a weaker reading but useful when the
+    distributions barely overlap.
 
     A KDE is smooth everywhere, including where there are no
     observations at all, so it can imply detail the sample does not
@@ -385,8 +461,9 @@ def rugplot(
     """One short tick per observation along the x axis.
 
     `Mark.RUG`: seaborn's `rugplot()`. The same ticks `kdeplot(rug=True)`
-    draws under its curve, as a chart of their own -- `render_layers()`
-    cannot yet combine the two marks (#376).
+    draws under its curve, as a chart of their own -- or as a layer, via
+    `render_layers([kdeplot(v), rugplot(v)])`, which draws exactly what
+    `kdeplot(rug=True)` does (#376).
 
     Drawn with no y-axis (#378): a rug's ticks are all the same length
     and all sit on the baseline, so the only thing the chart says is
@@ -433,13 +510,21 @@ def _draw_rug_ticks[
 ](
     mut target: T,
     values: List[Float64],
-    frame: _ContinuousFrame,
+    x_scale: LinearScale,
+    baseline_py: Float64,
+    sc: _Scaled,
     color: Color,
 ) raises:
     """One short tick per observation along the frame's baseline.
 
-    Shared by `Mark.RUG` and by `mark_kde(rug=True)`, so the ticks are
-    identical whether they stand alone or sit under a curve.
+    Shared by `Mark.RUG`, by `mark_kde(rug=True)`, and by a `Mark.RUG`
+    layer inside `render_layers()` (#376), so the ticks are identical
+    whether they stand alone, sit under a curve, or ride a shared frame.
+
+    Takes the three pieces it needs rather than a whole
+    `_ContinuousFrame`: the layered caller has the shared frame but must
+    pass *this layer's* `sc`, since `tick_length` and `scale` follow the
+    layer's own `Theme.scale` while the frame's belong to `plots[0]`.
 
     Each tick is a hairline, so its fixed coordinate snaps to a pixel
     center and stays crisp -- the whole point is a row of thin vertical
@@ -448,19 +533,20 @@ def _draw_rug_ticks[
     Args:
         target: Where to draw.
         values: The observations.
-        frame: The frame to draw against.
+        x_scale: The frame's x-scale, already ranged onto the plot rect.
+        baseline_py: The plot rect's bottom edge, where the ticks sit.
+        sc: The drawing layer's scaled theme metrics.
         color: The tick color -- the mark's, or the background where
             the ticks sit on a filled curve.
     """
-    var height = Float64(frame.sc.tick_length) * 2.0
-    var baseline = Float64(frame.py1)
+    var height = Float64(sc.tick_length) * 2.0
     for v in values:
-        var px = _snap_pixel_center(frame.x_scale.to_pixel(v))
+        var px = _snap_pixel_center(x_scale.to_pixel(v))
         target.draw_line_aa(
             px,
-            baseline,
+            baseline_py,
             px,
-            baseline - height,
+            baseline_py - height,
             color,
-            width=frame.sc.scale,
+            width=sc.scale,
         )
