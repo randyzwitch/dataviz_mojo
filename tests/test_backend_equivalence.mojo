@@ -16,6 +16,12 @@ what `_RenderResult` carries.
 `Mark`. The sweep walks `Mark(0)` through `Mark(Mark.COUNT - 1)`, so a
 mark added without an entry here raises rather than quietly going
 untested.
+
+`Mark.name()` (#415) is tested here for the same reason and off the
+same range: it is the other per-mark table that a new mark has to be
+added to, and the failure mode is identical -- a missing entry is
+invisible until an error message names the wrong mark. Neither needs a
+render, so they cost nothing in this SVG-only module.
 """
 
 from canvas.buffer import Canvas
@@ -81,6 +87,7 @@ from dataviz.plot import (
     _render_generic,
 )
 from dataviz.theme import Theme
+from dataviz.validate import _step_setter_name
 from std.testing import TestSuite, assert_equal, assert_true
 
 
@@ -535,6 +542,114 @@ def test_mark_count_is_one_past_the_newest_mark() raises:
             "Mark.COUNT must be one past the newest mark -- update both when"
             " adding one"
         ),
+    )
+
+
+def test_mark_name_spells_the_constant() raises:
+    """`Mark.name()` returns the qualified constant name a caller would
+    type (#415).
+
+    A spot check rather than all 51, because the sweep below is what
+    covers the rest; these are the ones whose spelling a chain of
+    branches is most likely to get wrong -- an underscore name, two
+    names sharing a prefix (`CONTOUR`/`CONTOURF`,
+    `TRICONTOUR`/`TRICONTOURF`), and the first and last constants.
+    """
+    assert_equal(Mark.POINT.name(), "Mark.POINT")
+    assert_equal(Mark.GROUPED_BAR.name(), "Mark.GROUPED_BAR")
+    assert_equal(Mark.CONTOUR.name(), "Mark.CONTOUR")
+    assert_equal(Mark.CONTOURF.name(), "Mark.CONTOURF")
+    assert_equal(Mark.TRICONTOUR.name(), "Mark.TRICONTOUR")
+    assert_equal(Mark.TRICONTOURF.name(), "Mark.TRICONTOURF")
+    assert_equal(Mark.TRIPCOLOR.name(), "Mark.TRIPCOLOR")
+
+
+def test_every_mark_has_its_own_name() raises:
+    """Every value in `[0, Mark.COUNT)` names itself, and no two share a
+    name.
+
+    This is the assertion that makes a 51-branch chain safe to extend.
+    Two things go wrong in one and neither is visible by reading it:
+    a mark added without a branch falls through to the `Mark(<n>)`
+    fallback, and a branch copy-pasted from its neighbor returns the
+    neighbor's name -- at which point an error message confidently
+    names the wrong mark, which is worse than the "a different mark"
+    it replaced.
+
+    Checking against the fallback's exact spelling is what catches the
+    first case; the O(n^2) distinctness scan is what catches the second.
+    A test that only asserted `name()` is non-empty, or only that it
+    starts with "Mark.", would pass through both.
+    """
+    var names = List[String]()
+    for value in range(Mark.COUNT):
+        var name = Mark(value).name()
+        assert_true(
+            name != "Mark(" + String(value) + ")",
+            (
+                "mark value "
+                + String(value)
+                + " has no branch in Mark.name() -- it fell through to the"
+                " unknown-value fallback"
+            ),
+        )
+        names.append(name)
+
+    for i in range(len(names)):
+        for j in range(i + 1, len(names)):
+            assert_true(
+                names[i] != names[j],
+                (
+                    "mark values "
+                    + String(i)
+                    + " and "
+                    + String(j)
+                    + " both name themselves "
+                    + names[i]
+                ),
+            )
+
+
+def test_mark_name_falls_back_for_an_unknown_value() raises:
+    """A value past the last constant has no name to give, so it reports
+    the value instead of guessing.
+
+    Paired with the sweep above this pins the branch list to exactly
+    `Mark.COUNT` entries: that test fails if a value below `COUNT` hits
+    the fallback, this one fails if `COUNT` itself does not.
+    """
+    assert_equal(Mark(Mark.COUNT).name(), "Mark(" + String(Mark.COUNT) + ")")
+    assert_equal(Mark(-1).name(), "Mark(-1)")
+
+
+def test_step_setter_name_is_derived_from_the_mark() raises:
+    """`_check_step_smoothing`'s message names the builder mechanically
+    (#415), not from a chain of `==` that listed three marks.
+
+    `Mark.GROUPED_BAR` is the discriminating case: it never had a branch
+    in the old chain, so that returned `Plot.mark_line(step=...)` for
+    it. It also has an underscore, which a derivation that lowercased
+    the whole `Mark.GROUPED_BAR` string without stripping the prefix
+    would render as `Plot.mark_mark.grouped_bar(step=...)`.
+
+    The three marks the old chain did list are asserted too, since the
+    point of deriving is that the messages callers already see do not
+    change; tests/test_marks_basic.mojo and
+    tests/test_marks_distribution.mojo assert those same strings out of
+    a real render.
+    """
+    assert_equal(_step_setter_name(Mark.LINE), "Plot.mark_line(step=...)")
+    assert_equal(_step_setter_name(Mark.AREA), "Plot.mark_area(step=...)")
+    assert_equal(
+        _step_setter_name(Mark.STREAMGRAPH),
+        "Plot.mark_streamgraph(step=...)",
+    )
+    assert_equal(
+        _step_setter_name(Mark.GROUPED_BAR),
+        "Plot.mark_grouped_bar(step=...)",
+    )
+    assert_equal(
+        _step_setter_name(Mark(Mark.COUNT)), "Plot.mark_line(step=...)"
     )
 
 
