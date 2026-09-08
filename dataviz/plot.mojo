@@ -447,7 +447,7 @@ struct _MarkStyle(Copyable, Movable):
 
 
 struct _DomainOverride(Copyable, Movable):
-    """An explicit `[min, max]` axis domain set via `.scale_x_domain()`/
+    """An explicit minimum and maximum axis domain set via `.scale_x_domain()`/
     `.scale_y_domain()`, overriding the padded/zero-baselined
     domain `_data_extent()`/`_zero_baseline_y_extent()` would otherwise
     compute. `has` is `False` (the default -- no override) until one of
@@ -1187,7 +1187,7 @@ struct Plot(Copyable, Movable):
         `encode_grouped_bar()`, the same data as `mark_grouped_bar()`.
 
         `percent=True` normalizes each category's segments to sum to 100%
-        (ggplot's `position = "fill"`), fixing the y-axis to `[0, 100]`.
+        (ggplot's `position = "fill"`), fixing the y-axis from 0 to 100.
         Every value must then be non-negative, checked at render() time; an
         all-zero category draws as an empty column.
 
@@ -1198,7 +1198,7 @@ struct Plot(Copyable, Movable):
         Args:
             percent: `False` (the default) stacks raw values, an
                 unchanged real-valued y-axis. `True` normalizes each
-                category to 100% and fixes the y-axis to `[0, 100]`.
+                category to 100% and fixes the y-axis from 0 to 100.
             horizontal: Draw categories running top-to-bottom with each
                 category's segments stacked left-to-right instead of
                 the default vertical layout.
@@ -1570,7 +1570,7 @@ struct Plot(Copyable, Movable):
         builder method can't raise mid-chain).
 
         `color` (continuous, through a `ColorScale` over the column's
-        [min, max]) and `color_categories` (discrete, through
+        its minimum and maximum) and `color_categories` (discrete, through
         `default_categorical_palette()` by first-seen order of the unique
         values) are mutually exclusive. `size` is continuous only.
         `color_map` pins specific `color_categories` values to colors
@@ -1594,7 +1594,7 @@ struct Plot(Copyable, Movable):
             x: The continuous x column, one entry per point.
             y: The continuous y column, one entry per point.
             color: Optional continuous color channel, mapped through a
-                `ColorScale` spanning the column's `[min, max]`;
+                `ColorScale` spanning the column's minimum and maximum;
                 mutually exclusive with `color_categories`. `Mark.
                 POINT`/`SINGLE_AXIS`/`EFFECT_SCATTER` only.
             color_categories: Optional discrete color channel,
@@ -1952,37 +1952,18 @@ struct Plot(Copyable, Movable):
     def encode_histogram(
         var self, data: List[Float64], bins: Int = 10
     ) raises -> Self:
-        """Bin `data` into `bins` equal-width intervals and map the result onto
-                `encode_categorical()`'s shape (each bin's formatted range as its
-                category label, its count as the value), for `Mark.BAR`. The binning
-                happens here, so this raises immediately on data that can't be
-                binned; see `_bin_histogram()` (histogram.mojo) for the algorithm and
-                the cases it raises on.
+        """Bin values into equal-width intervals for a categorical bar chart.
 
-                This is the **categorical** histogram: a category axis spaces its
-                entries evenly whatever intervals they name, so the bars are
-                equally wide even when the bins are not, and the axis carries no
-                numbers a second mark could be aligned against. `histogram()`
-                (histogram.mojo) draws the same counts over a numeric axis and
-                takes explicit edges, weights and normalization; reach for
-                this one when the formatted range labels are what you want to
-                read off the axis.
+        Args:
+            data: Raw observations to bin.
+            bins: Number of equal-width intervals.
 
-                Args:
-                    data: The raw values to bin -- not pre-counted; binning
-                        happens right here.
-                    bins: How many equal-width intervals to divide `data`'s
-                        range into (half-open except the last, which includes
-                        its upper edge).
+        Returns:
+            Self, for further chaining.
 
-                Returns:
-                    Self, for further chaining.
-
-                Raises:
-                    Error: `data` is empty, `bins` is not positive, or a value
-                        is `NaN`/infinite. A constant sample does *not* raise:
-                        it is binned over `[v - 0.5, v + 0.5]`, numpy's rule
-        .
+        Raises:
+            Error: If data is empty, bins is not positive, or a value is not
+                finite.
         """
         var binned = _bin_histogram(data, bins)
         self.x_categories = binned.labels.copy()
@@ -2573,7 +2554,7 @@ struct Plot(Copyable, Movable):
 
         `z` is row-major (`z[row][col]`): rows are the y axis and columns
         the x axis, both in grid-index units, so a 10x20 grid spans x
-        `[0, 19]` and y `[0, 9]` with row 0 at the bottom. Shape checking
+        x from 0 to 19 and y from 0 to 9 with row 0 at the bottom. Shape checking
         (rectangular, at least 2x2) is deferred to render() time, like
         every other encode method here.
 
@@ -3060,7 +3041,7 @@ struct Plot(Copyable, Movable):
         band_colors: List[Color] = List[Color](),
     ) -> Self:
         """Map a single reading onto `Mark.GAUGE`'s dial: `value` against
-        `[min_value, max_value]` (default `[0, 100]`), clamped at render()
+        the configured range (default 0 to 100), clamped at render()
         time rather than rejected. `min_value < max_value` is checked at
         render() time.
 
@@ -3073,7 +3054,7 @@ struct Plot(Copyable, Movable):
 
         Args:
             value: The reading to show, clamped (not rejected) to
-                `[min_value, max_value]`.
+                the configured minimum and maximum.
             min_value: The dial's low end; defaults to `0.0`.
             max_value: The dial's high end; defaults to `100.0`.
             breakpoints: Ascending fractions of the `[min_value,
@@ -3100,14 +3081,14 @@ struct Plot(Copyable, Movable):
         data: List[List[Float64]],
     ) raises -> Self:
         """Map `Mark.PARALLEL`'s three channels: `dims` (one vertical axis per
-        name, each scaled to its column's `[min, max]`), `row_names` (one
+        name, each scaled to its column's minimum and maximum), `row_names` (one
         polyline per name), and `data` (one list per row, one value per
         dimension). Raises immediately on a `row_names`/`data` length
         mismatch or a row whose value count doesn't match `dims`.
 
         Args:
             dims: One vertical axis per entry, each independently
-                scaled to its own column's `[min, max]` across `data`.
+                scaled to its own column's minimum and maximum across `data`.
             row_names: One polyline per entry.
             data: `data[row]` is `row_names[row]`'s polyline, one
                 value per `dims` entry.
@@ -3157,7 +3138,7 @@ struct Plot(Copyable, Movable):
 
         Args:
             dims: One vertical axis per entry, each independently
-                scaled to its own column's `[min, max]` across `data`.
+                scaled to its own column's minimum and maximum across `data`.
             row_names: One polyline per entry.
             data: `data[row]` is `row_names[row]`'s polyline, one
                 value per `dims` entry -- any numeric `List[List[
@@ -3851,7 +3832,7 @@ struct Plot(Copyable, Movable):
         return self^
 
     def scale_x_domain(var self, min: Float64, max: Float64) -> Self:
-        """Pin the x-axis domain to `[min, max]` exactly, replacing
+        """Pin the x-axis domain to the given minimum and maximum, replacing
         `_data_extent()`'s 5%-padded domain (or `_log_data_extent()`'s
         when `scale_x_log()` is also set). For comparable charts across
         runs, a fixed reference range, or a zoomed-in view, without
@@ -3868,7 +3849,7 @@ struct Plot(Copyable, Movable):
         facets counterpart to `shared_y_scale=True` for the x-axis (which
         has no `shared_y_scale` equivalent otherwise).
 
-        A point outside `[min, max]` still computes a real (off-plot)
+        A point outside the domain still computes a real (off-plot)
         pixel position via `LinearScale.to_pixel()`, same as it would if
         it merely fell outside a padded auto-computed domain; the SVG
         `viewBox`'s own default `overflow: hidden` clips it at the canvas
@@ -3893,7 +3874,7 @@ struct Plot(Copyable, Movable):
         """`scale_x_domain()`'s y-axis mirror -- see that method's own
         docstring for the shared rules. Overrides `_zero_baseline_y_
         extent()`'s forced-zero domain on `Mark.AREA` too: an explicit
-        `[min, max]` is what the caller asked for, zero baseline or not.
+        The explicit domain is used exactly, zero baseline or not.
 
         Args:
             min: The domain's lower bound. For a log y-axis
@@ -3933,8 +3914,9 @@ struct Plot(Copyable, Movable):
 
 
 def _data_extent(data: List[Float64]) raises -> LinearScale:
-    """The [min, max] of `data` padded 5% on each side, as a LinearScale
-    whose range is a placeholder [0, 1] that render() overwrites once the
+    """Return `data`'s minimum and maximum padded 5% on each side.
+
+    The scale's placeholder unit range is replaced during rendering once the
     plot area is known. A zero-span column gets a fixed 1.0 padding.
     Spatial axes only; color/size domains use `_min_max` unpadded so a
     legend's extremes are the data's.

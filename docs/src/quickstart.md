@@ -20,21 +20,14 @@ dataviz_mojo = { git = "https://github.com/randyzwitch/dataviz_mojo.git", branch
 
 ## A first chart using the `Plot()` builder
 
-`Plot` is a [fluent](https://martinfowler.com/bliki/FluentInterface.html)
-builder: every method returns the plot itself, so calls chain into one
-expression. Rather than one wall of code with every option already
-turned on, this walks through the same scatter plot four times, adding
-one piece at a time, so you can see exactly what each method
-contributes on its own. It's the same pattern behind every chart type
-this package supports -- once these four pieces click, `.mark_bar()`,
-`.mark_line()`, `.mark_pie()`, and the rest all follow the same shape.
+`Plot` is a fluent builder: each method returns the plot, so calls form one
+chain. The steps below build the same scatter plot incrementally. Other chart
+types use the same mark, encode, label, and theme pattern.
 
 ### Step 1: Basic Scatterplot
 
-Every chart needs three things: a **mark** (the geometric shape a data
-row becomes -- here, `Mark.POINT`, one dot per row), an **encoding**
-(which data columns map to which visual channels -- here, `x` and `y`
-position), and something to actually write the result out.
+Every chart needs a **mark**, an **encoding** from data to visual channels, and
+an output call.
 
 <div class="dvm-chart-preview"><img src="../examples/quickstart/out_step1.svg" alt="A minimal scatter plot: five points, no axis titles" /></div>
 
@@ -53,18 +46,12 @@ def main() raises:
     save(plot, "chart.svg")
 ```
 
-`.mark_point()` says "draw a point per row"; `.encode(x=x, y=y)` says
-"this row's position comes from these two columns." `save()` renders
-the plot and writes it out, picking the output backend from the file
-extension -- `.svg` for the SVG backend, `.png`/`.bmp` for the raster
-one. That's a complete, working chart -- everything from here is
-optional polish.
+`.mark_point()` draws one point per row. `.encode(x=x, y=y)` sets its position.
+`save()` chooses SVG, PNG, or BMP from the filename extension.
 
 ### Step 2: Adding Axis Titles
 
-The chart above works, but "x" and "y" don't mean anything to someone
-else reading it. `.labels()` adds captions -- text, not data -- and
-`x_title`/`y_title` caption the axes specifically:
+`.labels()` adds chart and axis captions without changing the data.
 
 <div class="dvm-chart-preview"><img src="../examples/quickstart/out_step2.svg" alt="The same scatter plot, now with axis titles: Day and Revenue ($k)" /></div>
 
@@ -84,17 +71,12 @@ def main() raises:
     save(plot, "chart.svg")
 ```
 
-Same five points, same positions -- `.labels()` only adds layout space
-for the captions, it never touches the data or how it's scaled.
+The points and scales remain unchanged.
 
 ### Step 3: Adding a Chart Title
 
-`.labels()` also takes `title`/`subtitle` for a headline above the
-plot. One thing worth knowing before you reach for it: **`.labels()`
-sets all four captions together, every time you call it** -- a second
-call with only `title=...` would reset `x_title`/`y_title` back to
-empty, not layer on top of step 2. So the axis titles come along for
-the ride in the same call:
+`.labels()` sets all captions together. A later call replaces values omitted
+from that call, so pass the chart and axis titles together:
 
 <div class="dvm-chart-preview"><img src="../examples/quickstart/out_step3.svg" alt="The same scatter plot, now with a Weekly Revenue title above it too" /></div>
 
@@ -116,10 +98,8 @@ def main() raises:
 
 ### Step 4: Changing Point Color and Size
 
-Everything about how a chart *looks* rather than what it *means* --
-color, point size, margins, fonts, gridlines -- lives on `Theme`, set
-via `.theme()`. `mark_color` and `point_radius` are two of many knobs
-(see the [`Theme` reference](../dataviz/theme/) for the rest):
+Visual styling lives on `Theme`, applied with `.theme()`. See the
+[`Theme` reference](../dataviz/theme/) for all options.
 
 <div class="dvm-chart-preview"><img src="../examples/quickstart/out_step4.svg" alt="The same scatter plot, now colored seagreen with larger points" /></div>
 
@@ -172,15 +152,8 @@ def main() raises:
     save(plot, "chart.svg")
 ```
 
-Pixel-for-pixel the same chart as step 4 -- `scatter(x, y)` *is*
-`Plot().mark_point().encode(x=x, y=y)` under the hood, plus whatever
-keyword arguments you pass through to `.labels()`/`.theme()` for you.
-
-Reach for the one-call form for the common case; drop back to the
-full `Plot` builder for anything it doesn't cover (multi-series
-layering, facets, color/size encoding, ...) -- see the
-[Examples](../examples/) gallery for both, side by side, across every
-mark type this package supports.
+`scatter(x, y)` builds the same point plot and forwards styling and labels.
+Use the full builder for layers, facets, and additional encodings.
 
 ## Where to next
 
@@ -191,9 +164,9 @@ mark type this package supports.
 
 ## Contributing to dataviz_mojo
 
-This is an open-source project, [MIT licensed](https://github.com/randyzwitch/dataviz_mojo/blob/main/LICENSE) -- **contributions are welcome.** Found a bug? Want a chart type this package doesn't have yet, or a docs page that's unclear? [Open a PR](https://github.com/randyzwitch/dataviz_mojo/pulls).
+This project is [MIT licensed](https://github.com/randyzwitch/dataviz_mojo/blob/main/LICENSE), and contributions are welcome. Found a bug or unclear documentation? [Open a PR](https://github.com/randyzwitch/dataviz_mojo/pulls).
 
-**Request: if you're planning something big** -- a new chart type, a rework of an existing one, anything on the order of ~50+ lines changed -- **[open an issue](https://github.com/randyzwitch/dataviz_mojo/issues/new) before you start coding.** This is not to gatekeep, but rather ensuring we agree on the approach before a lot of work goes into a PR. Small fixes, typos, and docs tweaks don't need this -- just send the PR.
+For a new chart type or large redesign, [open an issue](https://github.com/randyzwitch/dataviz_mojo/issues/new) before implementation. Small fixes and documentation changes can go directly to a PR.
 
 There are several useful commands defined in the Pixi environment for development:
 

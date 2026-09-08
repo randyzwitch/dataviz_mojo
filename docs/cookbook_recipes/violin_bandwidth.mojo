@@ -1,8 +1,4 @@
-"""Override a violin's own KDE bandwidth to reveal real structure the
-automatic estimate would smooth away -- the default rule picks one
-bandwidth from a sample's size and spread alone, which can over-smooth
-a genuinely bimodal distribution into a single hump.
-"""
+"""Override KDE bandwidth when the automatic estimate over-smooths a violin."""
 from dataviz import violin
 from dataviz.plot import save
 from dataviz.theme import Theme

@@ -32,11 +32,7 @@ struct _GaugeData(Copyable, Movable):
 
 
 def _gauge_breakpoints() -> List[Float64]:
-    """ECharts' default breakpoints (low/mid/high bands at 20%/80%/100%),
-    used when `Plot.encode_gauge()`'s `breakpoints` is left empty. A plain
-    function rather than a `Theme` field for the `ImplicitlyCopyable`
-    reason in `default_categorical_palette()`'s docstring.
-    """
+    """Return the default low, middle, and high band endpoints."""
     return [0.2, 0.8, 1.0]
 
 
@@ -59,21 +55,10 @@ def _render_gauge[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.GAUGE` plot: `encode_gauge()`'s single `value`, clamped
-    to `[min_value, max_value]` (an out-of-range value pins visibly at the
-    end of the dial rather than raising), as a needle (`draw_line_aa`,
-    `theme.mark_color`) over `breakpoints`/`band_colors`' colored
-    ring-sector bands (`fill_ring_sector_aa`), falling back to
-    `_gauge_breakpoints()`/`_gauge_band_colors()` when either was left
-    empty. Plus a pivot circle at the center and the value as a centered
-    text label below it. Dial geometry comes from `plot._mark_style`'s
-    `gauge_start_angle`/`gauge_sweep_angle`/`gauge_band_inner_fraction`/
-    `gauge_needle_fraction`.
+    """Render a clamped value as a needle over colored dial bands.
 
-    `min_value` must be strictly less than `max_value`. `breakpoints`/
-    `band_colors` must be the same length, non-empty, strictly ascending,
-    and within `(0, 1]` (each is a fraction of the full sweep). No axis
-    frame, no legend.
+    The range must increase. Band endpoints and colors must have equal length,
+    and endpoints must increase within `(0, 1]`.
     """
     var theme = plot._theme
     if plot._gauge.min_value >= plot._gauge.max_value:

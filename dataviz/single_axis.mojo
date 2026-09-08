@@ -74,12 +74,9 @@ def _draw_single_axis_frame[
     ox1: Int,
     oy1: Int,
 ) raises -> _SingleAxisFrame:
-    """`Mark.SINGLE_AXIS`'s frame: one continuous `x_scale` along the bottom
-    (ticks, gridlines, labels, the same x half
-    `_draw_continuous_axis_frame` draws) and no y-axis.
-    `_render_single_axis` places every point at a fixed pixel row between
-    the top and bottom of this frame, not on the axis line, so points
-    never merge with tick marks.
+    """Draw a continuous bottom axis and no y-axis.
+
+    Points use a fixed row inside the plot so they do not overlap tick marks.
     """
     var sc = _Scaled(theme)
 

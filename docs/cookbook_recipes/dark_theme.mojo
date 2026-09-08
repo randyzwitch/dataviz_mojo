@@ -1,13 +1,5 @@
-"""Put a chart on a dark ground with `dark()`, which re-derives every
-color a dark background changes rather than the five most obvious ones.
-
-Setting `background`, `text_color`, `axis_color`, `gridline_color` and
-`mark_color` by hand covers a line chart, and then leaves a near-white
-ring on the next radial bar chart (`radialbar_track_color`), a near-white
-band on the next annotated area (`annotation_area_color`) and a
-near-white midpoint on the next heatmap (`color_scale_mid`), because
-those are light-theme defaults too. `dark()` sets all of them.
-"""
+"""Apply `dark()`, including dark-compatible axes, annotations, tracks, and
+color scales."""
 from dataviz.colors import GOLD
 from dataviz.plot import Plot, save
 from dataviz.themes import dark

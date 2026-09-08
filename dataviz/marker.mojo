@@ -1,17 +1,4 @@
-"""PointShape: a fixed set of glyph shapes `Mark.POINT` can draw a
-category in, in addition to color. Same small-struct-with-comptime-
-constants-and-`__eq__` pattern as `Mark`/`OutputFormat`.
-
-A distinct shape per category is redundant coding for charts that are
-printed, projected, or viewed without reliable color (matplotlib's
-`marker=`, ggplot2's `shape=`). See `Theme.shape_by_category` for how
-it layers on top of `color_categories`.
-
-Six shapes: past that, shapes start reading as similar at a typical
-`point_radius`. CIRCLE is `Self(0)` so `default_marker_shapes()[0]`
-reproduces `fill_circle_aa`'s look for a chart's first category, the
-same way `default_categorical_palette()`'s first color does.
-"""
+"""Point-marker shapes used to distinguish categories without color alone."""
 
 from canvas.color import Color
 from canvas.fill_rule import FillRule
@@ -39,12 +26,7 @@ struct PointShape(Copyable, ImplicitlyCopyable, Movable):
 
 
 def default_marker_shapes() -> List[PointShape]:
-    """The fixed shape cycle `Theme.shape_by_category` indexes into, the
-    marker counterpart to `default_categorical_palette()`
-    (color_scale.mojo), cycled via modulo the same way (see
-    `Plot.encode`). A plain function rather than a `Theme` field for the
-    `ImplicitlyCopyable` reason given in `default_categorical_palette()`'s
-    docstring; there is no per-category `shape_map` override.
+    """Return the fixed shape cycle used by `Theme.shape_by_category`.
 
     Returns:
         6 visually distinct point shapes, cycled via modulo for more
@@ -60,12 +42,9 @@ def default_marker_shapes() -> List[PointShape]:
     ]
 
 
-# cos(30 deg): TRIANGLE's two base vertices sit at +-30 deg either side
-# of straight down from its top vertex, this fraction of `radius` out
-# on the x-axis (sin(30 deg) == 0.5).
+# Triangle vertex offset: cos(30 degrees).
 comptime _COS_30 = 0.8660254037844387
-# cos(45 deg) == sin(45 deg): X's four vertices sit this fraction of
-# `radius` out on both axes.
+# X vertex offset: cos(45 degrees).
 comptime _COS_45 = 0.7071067811865476
 
 

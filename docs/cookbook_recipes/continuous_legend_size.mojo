@@ -1,7 +1,4 @@
-"""Draw a continuous (gradient) legend's own color bar larger -- for a
-presentation-scale chart where the default bar reads as an
-afterthought next to a large plot.
-"""
+"""Enlarge a continuous legend's gradient bar."""
 from dataviz.plot import Plot, save
 from dataviz.theme import Theme
 

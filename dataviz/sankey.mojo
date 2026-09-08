@@ -32,26 +32,11 @@ def _render_sankey[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.SANKEY` plot: `encode_chord()`'s edge list laid out
-    left-to-right by column. A node's column is the length of the longest
-    path reaching it from any source, from one Kahn's-algorithm pass; a
-    cycle raises.
+    """Render a non-negative edge list as left-to-right flows.
 
-    Each node is a vertical bar (`plot._mark_style.sankey_node_width`,
-    scaled) whose height is proportional to `max(total inflow, total
-    outflow)`, so an imbalance shows as a gap on the smaller side. Nodes
-    in a column stack top-to-bottom by their share of the column total,
-    with boundaries rounded cumulatively.
-
-    Each flow is one or more straight-edged quadrilaterals between a
-    slice of its `from` node's right edge and a slice of its `to` node's
-    left edge. A skip edge (spanning more than one column) is spliced
-    into a chain through one invisible pass-through node per
-    intermediate column; pass-through nodes take vertical space like real
-    nodes, every segment colors by the flow's original source, and there
-    is no lane bundling. Flows in or out of one node stack in row order.
-    A self-loop is dropped before layout. Every value must be
-    non-negative.
+    Longest-path depth selects each node's column; cycles raise. Node height
+    uses its larger total flow, skip edges cross intermediate columns through
+    pass-through nodes, and self-loops are ignored.
     """
     _validate_edge_encoding(plot, "Mark.SANKEY")
 
@@ -62,9 +47,7 @@ def _render_sankey[
     ref nodes = edges.nodes
     var n = len(nodes)
 
-    # A separate filtered pass rather than `edges.from_idx`/`to_idx`
-    # directly: self-loops are dropped, so these columns are a subset of
-    # the edge rows.
+    # Filter self-loops before building the layout columns.
     var from_idx = List[Int](capacity=len(plot._edges.from_categories))
     var to_idx = List[Int](capacity=len(plot._edges.from_categories))
     var edge_value = List[Float64](capacity=len(plot._edges.from_categories))

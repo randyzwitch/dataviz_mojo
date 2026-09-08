@@ -1,8 +1,4 @@
-"""Shrink the tick marks and the gap between a tick and its label --
-a small dashboard tile has less room to spend on axis chrome than a
-full-size chart, so the default tick length and label gap eat into
-the plot area proportionally more.
-"""
+"""Shorten ticks and label gaps to preserve space in a compact chart."""
 from dataviz.plot import Plot, save
 from dataviz.theme import Theme
 

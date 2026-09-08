@@ -1,13 +1,6 @@
 # title: Minimal Theme
-"""Strip a chart back to its data with `minimal()` -- no gridlines, a
-faded axis, tight margins -- and then drop the legend too, as an
-override, on a chart that does not need one.
-
-`minimal()` deliberately keeps the legend, because hiding it deletes the
-mapping from color to category rather than reducing ink. That makes it
-the wrong default for a preset and a perfectly good per-chart choice
-here, where the series are already labeled by the title.
-"""
+"""Apply `minimal()` for tight margins and subdued axes, then hide the legend
+when the chart is already self-explanatory."""
 from dataviz.plot import Plot, save
 from dataviz.themes import minimal
 

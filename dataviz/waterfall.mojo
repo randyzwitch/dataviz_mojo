@@ -57,16 +57,10 @@ struct _WaterfallBars(Movable):
 def _waterfall_running_totals(
     deltas: List[Float64], is_total: List[Bool]
 ) -> _WaterfallBars:
-    """Compute each bar's `y0`/`y1` bounds from a running cumulative sum over
-    `deltas`, starting at 0.0. Extracted from `Plot.encode_waterfall()`
-    (plot.mojo) so the running-sum math sits next to `_render_waterfall`.
+    """Return each waterfall bar's bounds from cumulative deltas.
 
-    `is_total[i]` (treated as `False` when `i` is past `is_total`'s
-    length; the length check itself happens at `render()` time) changes
-    only how row `i` draws: a plain delta row runs from the running total
-    before its delta (`y0`) to the total after it (`y1`); a
-    total/checkpoint row runs from `0` to the running total after its
-    delta. `deltas[i]` is always added to the running sum either way.
+    Delta bars begin at the prior total. Checkpoint bars begin at zero, but
+    their deltas still update the running total.
     """
     var y0 = List[Float64]()
     var y1 = List[Float64]()
@@ -96,24 +90,10 @@ def _render_waterfall[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.WATERFALL` plot on `_draw_categorical_axis_frame`,
-    with a y-domain spanning every bar's running-total bounds
-    (`_waterfall`'s `y0`/`y1`, not the deltas) and forced to include
-    zero.
+    """Render cumulative deltas as floating bars joined by connectors.
 
-    Each category draws a floating rect from `y0` to `y1`. A delta row is
-    colored by its delta's sign unconditionally
-    (`theme.mark_color_negative`/`mark_color`); a total row is
-    `theme.waterfall_total_color` at full band width. Delta rows draw
-    narrower (`plot._mark_style.waterfall_delta_width_fraction`) only
-    when `is_total` is in use.
-
-    Connector lines (`theme.axis_color`) run horizontally between
-    consecutive bars at `y1[i-1]`, from one bar's actual right edge to
-    the next's left edge. For consecutive delta rows that touches both
-    bars exactly (`y1[i-1] == y0[i]`). A total row's `y0` is `0`, so the
-    connector meets its top edge only when its own delta is `0`, the
-    usual ending-balance case.
+    Delta color follows sign; checkpoint bars use the total color. The y-domain
+    covers all running-total bounds and includes zero.
     """
     if len(plot.x_categories) != len(plot.y_data):
         raise Error(

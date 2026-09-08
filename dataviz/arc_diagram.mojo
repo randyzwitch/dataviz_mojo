@@ -32,23 +32,10 @@ def _render_arc_diagram[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.ARC_DIAGRAM` plot: `Mark.CHORD`'s edge list
-    (`encode_chord()`'s `from`/`to`/`value`) drawn as nodes on one
-    straight, evenly spaced line with edges as semicircular arcs bulging
-    upward. ECharts.jl's "Arc Diagram", unrelated to this package's
-    `Mark.ARC` (pie/donut wedges).
+    """Render an edge list as labeled nodes joined by semicircular arcs.
 
-    Each node's x is `index / (n - 1)` of the way across the plot (a
-    single node centers). Each arc is centered at the horizontal midpoint
-    between its two nodes on the baseline (`plot_y1`), with radius half
-    the distance between them, so far-apart nodes get tall arcs. Arcs are
-    not scaled down to fit the plot height.
-
-    Edge stroke width scales linearly with `value / max(values)`, from
-    `line_width` up to 3x that. Edge and node color follow the edge's
-    `from` node's palette color (`default_categorical_palette()` by
-    first-seen node position). A self-loop draws nothing. Node names are
-    labeled beneath each marker; no legend is drawn.
+    Nodes are evenly spaced on a baseline. Edge width scales with value;
+    edge color follows the source node. Self-loops are skipped.
     """
     _validate_edge_encoding(plot, "Mark.ARC_DIAGRAM")
 
@@ -99,9 +86,7 @@ def _render_arc_diagram[
 
     for i in range(n):
         var color = palette[i % len(palette)]
-        # The arcs above already spring from the exact node_x, so the
-        # dot has to sit there too -- rounding it left the foot of every
-        # arc up to half a pixel off the node it belongs to.
+        # Keep the node centered on the arc endpoint.
         var px = node_x[i]
         var py = baseline
         target.fill_circle_aa(

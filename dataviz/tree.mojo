@@ -109,20 +109,11 @@ def _render_tree[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.TREE` plot: `_build_hierarchy_index`'s `children`/
-    `depth` (hierarchy.mojo) laid out top-to-bottom (root at the top,
-    `depth` picks each node's row) with `_assign_leaf_positions`'s
-    horizontal placement, as a node-link diagram.
+    """Render a hierarchy as a top-to-bottom node-link diagram.
 
-    Two passes rather than one recursive draw: every edge (a straight line
-    from each non-root node to its parent) first, then every node marker
-    (a filled circle) plus its label, so no marker is drawn under an edge.
-    Edge and marker color follow `_assign_branch_colors`'s
-    per-top-level-branch assignment; the root stays `Theme.text_color`.
-
-    Every value must be non-negative, for consistency with the other
-    `encode_hierarchy()` marks, even though the tree layout never reads
-    `values`.
+    Depth selects rows and leaf placement determines x positions. Edges draw
+    before nodes, colors follow top-level branches, and values must be
+    non-negative.
     """
     if len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids) or len(
         plot._hierarchy.values

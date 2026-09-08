@@ -78,18 +78,10 @@ def _render_parallel[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.PARALLEL` plot: `encode_parallel()`'s `dims` (one
-    vertical axis each, evenly spaced from the plot's left edge to its
-    right edge) and one row per `row_names` entry (`data[row]`, one value
-    per dimension), each drawn as a straight polyline across the axes.
+    """Render rows as polylines across independently scaled vertical axes.
 
-    Each dimension gets its own domain, `_min_max` over that column across
-    every row (unpadded), since dimensions are typically differently
-    scaled. A zero-span column places every row at that axis's vertical
-    center.
-
-    No axis tick labels beyond each dimension's name at the bottom. Legend
-    keyed by `row_names`, drawn whenever `Theme.show_legend` is on.
+    Zero-span dimensions center their values. Dimension names label the axes,
+    and row names key the optional legend.
     """
     _require_non_empty(len(plot._parallel.dims), "Plot.encode_parallel()")
 
@@ -114,7 +106,7 @@ def _render_parallel[
 
     var n = len(plot._parallel.dims)
 
-    # Each dimension's [min, max] across every row: one _min_max per column.
+    # Compute an independent domain for each dimension.
     var dim_min = List[Float64]()
     var dim_max = List[Float64]()
     for d in range(n):

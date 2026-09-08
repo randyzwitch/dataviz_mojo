@@ -522,37 +522,9 @@ def _draw_snapped_ticks[
     color: Color,
     width: Float64,
 ) raises:
-    """One vertical hairline per value, at `x_scale.to_pixel(value)`
-       snapped to a pixel center, running `y_top` to `y_bottom`.
+    """Draw one pixel-centered vertical tick per value.
 
-       The rule for a thin line, in one place: only the
-       *fixed* coordinate snaps. Here that is x -- the value being marked
-       -- so a tick covers exactly one column instead of spreading half its
-       ink into each of two. The two y ends run along the other axis and
-       keep their exact positions, so a caller placing ticks inside a
-       layout band gets the band's real geometry rather than a rounded one.
-
-       This matters more for these marks than for most: the entire chart is
-       thin vertical lines, and a blurred one reads as a fainter
-       observation -- a difference in the data, not in the rendering.
-
-       Generalized out of `_draw_rug_ticks` (below, which now supplies the
-       three numbers a rug wants and calls this) when `Mark.EVENTPLOT`
-    needed the same tick somewhere else: centered on a
-       categorical row rather than standing on the frame's baseline. It
-       lives here, next to the rug, rather than in a new shared module,
-       because a module whose entire content is this loop would be harder
-       to find than the mark that has always drawn it.
-
-       Args:
-           target: Where to draw.
-           values: The positions to mark, in data units.
-           x_scale: The scale mapping those to pixels.
-           y_top: Each tick's upper pixel y.
-           y_bottom: Each tick's lower pixel y.
-           color: The tick color.
-           width: Stroke width, normally `_Scaled.scale` -- one device
-               pixel, which is what makes the snap worth doing.
+    Only x is snapped; y endpoints retain their layout positions.
     """
     for v in values:
         var px = _snap_pixel_center(x_scale.to_pixel(v))

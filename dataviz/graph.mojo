@@ -32,20 +32,10 @@ def _render_graph[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.GRAPH` plot: `Mark.CHORD`'s edge-list shape
-    (`encode_chord()`'s `from`/`to`/`value`) drawn as nodes evenly spaced
-    around a circle (starting at 12 o'clock, clockwise) with edges as
-    straight lines across the interior. A fixed circular layout, not a
-    force-directed simulation, so positions are deterministic and
-    hand-verifiable.
+    """Render an edge list with nodes fixed around a circle.
 
-    Edge stroke width scales with `value/max(values)`, from `line_width`
-    up to 3x that; edge and node color follow the edge's `from` node's
-    palette color, as in `Mark.ARC_DIAGRAM`. A self-loop draws nothing.
-    Each node is labeled just outside its position, aligned by which side
-    of center it falls on (left-aligned on the right half, right-aligned
-    on the left half, centered at top/bottom, the same rule as
-    `Mark.RADAR`'s axis labels). No legend.
+    Edges are straight, their width scales with value, and their color follows
+    the source node. Self-loops are skipped and labels sit outside the circle.
     """
     _validate_edge_encoding(plot, "Mark.GRAPH")
 
@@ -88,10 +78,7 @@ def _render_graph[
         )
         var width = sc.line_width + sc.line_width * 2.0 * frac
         var color = palette[from_idx % len(palette)]
-        # Chords between points on a circle: diagonals, antialiased
-        # wherever they are put, so there is no crisp position to round
-        # to and rounding only tilted each edge off the two nodes it
-        # joins.
+        # Preserve exact node endpoints for diagonal edges.
         target.draw_line_aa(
             node_x[from_idx],
             node_y[from_idx],

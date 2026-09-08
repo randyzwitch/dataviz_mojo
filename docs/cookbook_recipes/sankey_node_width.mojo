@@ -1,8 +1,4 @@
-"""Widen a Sankey diagram's own node bars -- the default width reads
-as a thin accent next to wide flows, but a chart built to emphasize
-the nodes themselves (not just the flows between them) benefits from
-a heavier bar.
-"""
+"""Widen Sankey node bars to emphasize nodes alongside flows."""
 from dataviz import sankey
 from dataviz.plot import save
 

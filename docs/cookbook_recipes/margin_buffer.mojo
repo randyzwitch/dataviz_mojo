@@ -1,10 +1,4 @@
-"""Add extra breathing room to a chart's own dynamically sized left
-margin -- unlike `margin_left`, which only sets a floor, `margin_
-buffer` pads whatever width the y-axis tick labels actually measure
-out to, so every chart's own auto-sized margin gets consistently more
-room without hardcoding an exact pixel value for one chart's own label
-content.
-"""
+"""Pad the dynamically measured left margin with `margin_buffer`."""
 from dataviz.plot import Plot, save
 from dataviz.theme import Theme
 

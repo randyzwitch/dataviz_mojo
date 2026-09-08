@@ -1,28 +1,5 @@
-# Modo config -- generates docs/site/content (a Hugo site, built by
-# `hugo -s docs/site` into docs/site/public, then deployed straight to
-# GitHub Pages via Actions -- neither ever committed, see pixi.toml's
-# own `docs` task and .github/workflows/docs-deploy.yml) from dataviz/'s
-# own docstrings (via `mojo doc`) plus the hand-written pages in
-# docs/src/. Hugo format specifically (not plain markdown, this
-# repo's original choice) because GitHub's Actions-based Pages
-# deployment -- needed to avoid committing generated output to git at
-# all -- doesn't run Jekyll (or anything) on what it's given, just
-# serves it as-is: no free markdown-to-HTML rendering the way classic
-# branch-deploy Pages provided. Hugo also understands Modo's own
-# `_index.md` convention (a section's landing page) natively -- it's
-# where Modo borrowed the convention from -- so none of the Jekyll-
-# compatibility work an earlier version of this file did (renaming
-# `_index.md` -> `index.md` post-build) is needed anymore.
-# See https://github.com/mlange-42/modo.
-#
-# Lives here (docs/modo.yaml), not the repo root, so every docs-only
-# file sits under one directory -- modo requires its own config file
-# to live inside whatever directory it's pointed at (`modo build docs
-# -c modo.yaml`, see pixi.toml's own docs-build task), which is also
-# what every path below is resolved relative to -- `src/`/`site/
-# content` here are `docs/src/`/`docs/site/content` from the repo
-# root (what the prose above, and every other file in this repo,
-# calls them).
+# Build Hugo content from docs/src and generated Mojo API documentation.
+# Paths are relative to this file's docs/ directory.
 input:
   - src/
 source-url:

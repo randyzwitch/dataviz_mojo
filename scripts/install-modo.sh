@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# Downloads the mlange-42/modo doc-generator binary for the current
-# platform into .tools/modo (gitignored, cached between runs; see
-# pixi.toml's `docs`/`docs-install` tasks). modo isn't on any conda/PyPI
-# channel, so this fetches the precompiled release binary as its README
-# documents, rather than adding a Go toolchain just to `go install` it.
+# Install the pinned modo release for the current platform in .tools/.
 set -euo pipefail
 
 MODO_VERSION="0.11.13"

@@ -1,14 +1,6 @@
 #!/usr/bin/env bash
-# Polls docs/src/**/*.md for changes and re-runs `modo build` on each,
-# so a running `hugo server` (`pixi run docs-serve`) picks the
-# regenerated docs/site/content up and live-reloads.
-#
-# Not `pixi run docs-build`: that starts with `rm -rf docs/site/content`,
-# which deletes the directory hugo server is watching, so every edit
-# would need a server restart. docs-build also reruns `mojo doc`/
-# gen_example_docs.mojo, which a docs/src/*.md-only edit doesn't need.
-#
-# A 1s polling loop, since inotify-tools/entr aren't available here.
+# Rebuild modo output when Markdown under docs/src changes.
+# Polling preserves the directory watched by a separately running Hugo server.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

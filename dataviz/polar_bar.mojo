@@ -34,17 +34,10 @@ def _render_polar_bar[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.POLAR_BAR` plot: bars radiating outward from the
-    center of a circle (ECharts.jl's `polarbar`). One bar per category
-    (`encode_categorical`'s `x`) in an equal-width angular slot
-    (`2*pi/N`), bar length proportional to `value / max(values)`, always
-    linear (no `NIGHTINGALE`-style area mode).
-    `plot._mark_style.polar_bar_padding` carves a gap out of each slot,
-    split evenly on both sides, so bars read as separated columns.
+    """Render non-negative values as padded radial bars.
 
-    Shares `NIGHTINGALE`'s validation (non-negative values, at least one
-    positive), palette, legend, and margin-box layout, but has its own
-    render path because the padding changes the angle math.
+    Categories receive equal angular slots, and radius scales linearly against
+    the largest value.
     """
     _validate_categorical_encoding(plot)
 

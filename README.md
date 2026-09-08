@@ -1,23 +1,10 @@
 # dataviz_mojo
 
-Grammar-of-graphics-flavored chart building for Mojo — a
-[fluent](https://martinfowler.com/bliki/FluentInterface.html) `Plot`
-builder (`Plot().mark_point().encode(x=..., y=...)`), scales, themes,
-and a growing set of mark types (scatter, line, bar, area, pie/donut,
-lollipop, waterfall, box, candlestick, bullet, gantt, grouped bar,
-stacked bar) across both a raster and an SVG backend, plus facets and
-multi-series layering. 
+Grammar-of-graphics-style chart building for Mojo: a fluent `Plot` builder,
+scales, themes, raster and SVG output, facets, and multi-series layers.
 
-Please note that this is heavily Claude-influenced, so I do not
-guarantee consistency, logic, or design decisions matching any
-particular reference library. If you know what you're doing and want
-to contribute, let's chat!
-
-**[Docs & examples](https://randyzwitch.com/dataviz_mojo/)** --
-every example's source next to its actual rendered output, plus the
-full `dataviz` API reference (generated from this repo's own
-docstrings via [modo](https://github.com/mlange-42/modo), see
-`modo.yaml`/`pixi run docs`).
+See the **[documentation and examples](https://randyzwitch.com/dataviz_mojo/)**
+for rendered examples and the generated API reference.
 
 See the [wiki](https://github.com/randyzwitch/dataviz_mojo/wiki) for
 exactly what's built ([Changelog](https://github.com/randyzwitch/dataviz_mojo/wiki/Changelog))
@@ -33,16 +20,12 @@ preview = ["pixi-build"]  # git-source pixi dependencies are still a preview fea
 dataviz_mojo = { git = "https://github.com/randyzwitch/dataviz_mojo.git", branch = "main" }
 ```
 
-`pixi install`/`pixi run` builds `dataviz_mojo` (and its own
-`canvas_mojo` dependency, transitively, the identical way) from that
-git ref and installs the resulting precompiled package into your own
-workspace's pixi environment — Mojo's own toolchain finds it there
-automatically, no `-I` flag needed for either package. The
-distribution name stays `dataviz_mojo` above (what you depend on),
-but the code itself imports as the shorter `dataviz` --
-`from dataviz import Plot, save`, the same distribution-name-vs-
-import-name split Python packages like `beautifulsoup4`/`import bs4`
-already have.
+Pixi builds `dataviz_mojo` and its `canvas_mojo` dependency from the selected
+Git ref. The package installs as `dataviz_mojo` and imports as `dataviz`:
+
+```mojo
+from dataviz import Plot, save
+```
 
 ## Development
 
@@ -55,13 +38,8 @@ pixi run format         # reformat source with mojo format
 pixi run format-check   # fail if source isn't formatter-clean (what CI runs)
 ```
 
-`docs/` also regenerates and deploys itself automatically to GitHub
-Pages (`.github/workflows/docs-deploy.yml`) whenever a push to `main`
-touches `dataviz/` or `docs/_src/` -- manual
-`pixi run docs` is for previewing locally before you push, not
-required to keep the site in sync. PRs get a status-only docs build
-(the `docs-build` job in `.github/workflows/ci.yml`) that proves the
-site still builds, without deploying anything.
+GitHub Actions builds documentation for pull requests and deploys it from
+`main`. Use `pixi run docs` for a local preview.
 
 ### Releasing
 

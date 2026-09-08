@@ -19,7 +19,7 @@ from canvas.geometry import round_to_int
 
 
 struct MinMax(ImplicitlyCopyable, Movable):
-    """A column's [min, max], the starting point for every domain this
+    """A column's minimum and maximum, the starting point for every domain this
     package computes: `Plot._data_extent` pads it for spatial axes;
     `ColorScale`/size encoding use it as-is, so a legend's extremes are
     exactly the data's.
@@ -42,7 +42,7 @@ struct MinMax(ImplicitlyCopyable, Movable):
 
 
 def _min_max(data: List[Float64]) raises -> MinMax:
-    """`data`'s [min, max]. Raises on an empty list, and on any non-finite
+    """Return `data`'s minimum and maximum. Raises on an empty list or non-finite
     (`NaN`/`inf`) value.
 
     Every list this package computes a spatial or color/size domain from
@@ -58,7 +58,7 @@ def _min_max(data: List[Float64]) raises -> MinMax:
     -- and either way, `Int(nan_or_inf)` later hands the SVG output
     `Int64::MIN` as a literal pixel coordinate with no error raised.
 
-    An empty list has no honest [min, max]; a silent `MinMax(0.0, 0.0)`
+    An empty list has no minimum or maximum; a silent `MinMax(0.0, 0.0)`
     would hand back a degenerate domain that renders as a real axis,
     which is exactly the "silently misrepresent the data" failure this
     package's encode/render checks exist to prevent. A clear error at the
@@ -100,13 +100,13 @@ def _nice_step(
     domain_min: Float64, domain_max: Float64, target_count: Int
 ) -> _NiceStep:
     """The step size and its base-10 exponent for `target_count`-ish ticks
-    spanning [domain_min, domain_max]. The exponent tells `_format_fixed`
+    spanning the domain. The exponent tells `_format_fixed`
     how many decimal places a tick needs; it can't be re-derived from the
     step via log10 afterward (a step of exactly 5.0 needs 0 decimals, but
     log10(5.0) is positive), and must track `nice_m`'s possible bump to
     the next power of ten.
 
-    Examples: domain [0,100], target 5 -> step 20.0; domain [3,27],
+    Examples: domain 0 to 100, target 5 -> step 20.0; domain 3 to 27,
     target 5 -> step 5.0 (raw step 4.8 rounds up); domain [-50,50],
     target 5 -> step 20.0 (only the span and log10 of a positive raw step
     are ever computed, so negative domains need no special case).
@@ -479,13 +479,13 @@ def _log_ticks(domain_min: Float64, domain_max: Float64) -> Ticks:
 
     Major ticks only (`1 * 10^k`) when the visible span covers more than
     2 decades (matplotlib's `LogLocator` convention); `1`/`2`/`5 * 10^k`
-    per decade otherwise. Domain `[0, 3]` (real `[1, 1000]`) gives
-    `[1, 10, 100, 1000]`; domain `[0, 1]` (real `[1, 10]`) gives
-    `[1, 2, 5, 10]`.
+    per decade otherwise. A log domain from 0 to 3 (real values 1 to 1000)
+    gives ticks 1, 10, 100, and 1000; a log domain from 0 to 1 gives
+    ticks 1, 2, 5, and 10.
 
     A zero-span domain returns a single tick at the one real value. A
     domain too narrow to contain any `1`/`2`/`5` multiple (e.g.
-    `[35, 40]`) falls back to its two real endpoints.
+    35 to 40) falls back to its two real endpoints.
     """
     if domain_min == domain_max:
         var v = pow(10.0, domain_min)
@@ -626,7 +626,7 @@ struct Ticks(Movable):
 
 
 struct LinearScale(ImplicitlyCopyable, Movable):
-    """A linear map from [domain_min, domain_max] to [range_min, range_max].
+    """A linear map from the domain endpoints to the range endpoints.
     `range_min`/`range_max` are the pixel positions `domain_min`/
     `domain_max` land on, not necessarily increasing: a y-axis scale
     passes range_min=plot_bottom_pixel and range_max=plot_top_pixel, and
@@ -711,10 +711,10 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         return v * self.scale() + self.translate()
 
     def ticks(self, target_count: Int = 5) -> Ticks:
-        """ "Nice" tick positions within [domain_min, domain_max] (see
+        """Return "nice" tick positions within the domain (see
         `_nice_step`), from ceil(domain_min/step)*step to
         floor(domain_max/step)*step, so ticks never extend past the domain; a
-        tick landing exactly on a boundary is included (domain [0,100]
+        tick landing exactly on a boundary is included (domain 0 to 100
         includes both 0 and 100).
 
         A zero-span domain returns a single tick at domain_min with 0

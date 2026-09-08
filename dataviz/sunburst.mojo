@@ -77,30 +77,16 @@ def _draw_sunburst_node[
     separator: Color,
     separator_width: Float64,
 ) raises:
-    """Draw `node`'s ring sector (`idx.depth[node]` picks the ring; depth 1
-    is innermost, and the depth-0 root is never passed in), then recurse
-    into its children, dividing `[start_angle, end_angle)` by each child's
-    share of `node`'s subtree total.
+    """Draw a node sector and recursively divide it among its children.
 
-    `color` is the branch color and stays fixed through the recursion --
-    one hue per top-level branch, so a leaf still says which branch it
-    belongs to. Depth is carried by *lightness* instead: each ring is
-    blended further toward white than the one inside it, which is what
-    makes the rings legible as rings.
-
-    Without that, a sunburst of one hue per branch draws as a solid disc
-    of two or three colors -- adjacent rings of the same color have
-    nothing between them but an antialiasing seam, and the chart reads as
-    a pie. The separator strokes do the same job between siblings, which
-    lightness alone cannot: two children of one parent share a color and
-    a ring, so only a line divides them.
+    Ring position follows depth, angle follows subtree share, hue follows the
+    top-level branch, and lightness separates depths. Strokes separate siblings.
     """
     var depth = idx.depth[node]
     var inner = ring_width * Float64(depth - 1)
     var outer = ring_width * Float64(depth)
 
-    # Each ring loses `_DEPTH_FADE` of alpha against white, floored so a
-    # deep tree's outermost rings stay visible rather than fading out.
+    # Fade with depth without making outer rings disappear.
     var fade = 255 - _DEPTH_FADE * (depth - 1)
     if fade < _MIN_DEPTH_ALPHA:
         fade = _MIN_DEPTH_ALPHA

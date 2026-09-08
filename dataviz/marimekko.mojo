@@ -48,20 +48,10 @@ def _render_marimekko[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.MARIMEKKO` plot (a mosaic chart): `encode_marimekko()`'s
-    `categories` (one column each) and `subcategories` (one stacked
-    segment each; `values[sub][cat]`, rows are subcategories and columns
-    are categories, matching ECharts.jl's matrix convention). Column
-    widths are each category's share of the grand total; segment heights
-    are each value's share of its own column's total, so every column is
-    a full-height 0-100% stack.
+    """Render a mosaic with width by category total and height by share.
 
-    No `OrdinalScale` x-axis: column positions and widths come directly
-    from each category's share of `grand_total`. No numeric y-axis;
-    category names label each column along the bottom, and the legend is
-    keyed by `subcategories`.
-
-    Every value must be non-negative, and `grand_total` must be positive.
+    Values use `values[subcategory][category]`, must be non-negative, and must
+    have a positive grand total. The legend is keyed by subcategory.
     """
     if len(plot._marimekko.values) != len(plot._marimekko.subcategories):
         raise Error(

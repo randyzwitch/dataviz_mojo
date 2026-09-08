@@ -1,17 +1,6 @@
 # title: Print-Safe (Grayscale) Theme
-"""Keep a chart readable after it is printed, photocopied or faxed with
-`print_safe()`, which carries every distinction in lightness instead of
-in hue.
-
-The default theme is unreadable in grayscale in a way that is easy to
-miss on screen: its `mark_color` and `mark_color_negative` are Rec.709
-luma 90.9 and 89.8, so the bars below would print as one flat shade.
-`print_safe()` puts them 145 levels apart, dots the gridlines and dashes
-the reference line so neither can be mistaken for a series, and swaps
-the diverging color scale -- whose two ends are 8.2 levels apart in
-grayscale -- for `viridis()`, which is monotonic in lightness across all
-64 stops.
-"""
+"""Apply `print_safe()` so lightness, line patterns, and a monotonic color
+scale preserve distinctions in grayscale."""
 from dataviz import bar
 from dataviz.plot import save
 from dataviz.themes import print_safe

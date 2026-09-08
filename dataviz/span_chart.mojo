@@ -28,19 +28,10 @@ def _render_span_chart[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.SPAN_CHART` plot: one floating vertical bar per
-    category from `plot._gantt.start[i]` to `plot._gantt.end[i]`, on the
-    normal `_draw_categorical_axis_frame` (categories along `x`,
-    continuous `y`). `Mark.GANTT`'s vertical mirror image, and ECharts.jl's
-    `spanchart`.
+    """Render one floating vertical bar per category using Gantt-shaped data.
 
-    Reuses `encode_gantt()`'s data shape unchanged
-    (`Plot.mark_span_chart().encode_gantt(categories=..., start=lows,
-    end=highs)`). `start[i] <= end[i]` is not required: bars draw from
-    `min` to `max` of the two.
-
-    Bar width is the ordinal x-axis's full `bandwidth()`; bar height is
-    floored to 1 pixel so a zero-length span stays visible.
+    Endpoint order does not matter. Bars use the full category bandwidth, and
+    zero-length spans remain visible as one-pixel bars.
     """
     if len(plot.x_categories) != len(plot._gantt.start) or len(
         plot._gantt.end
@@ -82,8 +73,7 @@ def _render_span_chart[
         var band_start = frame.x_scale.band_start(i)
         var low_py = _axis_pixel_f(frame.y_scale, plot._gantt.start[i])
         var high_py = _axis_pixel_f(frame.y_scale, plot._gantt.end[i])
-        # Four snapped edges; the height keeps its one-pixel floor so a
-        # zero-length span still draws, applied after the snap.
+        # Snap all edges, then preserve a one-pixel minimum height.
         var bx0 = _snap_pixel_edge(band_start)
         var bx1 = _snap_pixel_edge(band_start + bandwidth)
         var by0 = _snap_pixel_edge(min(low_py, high_py))

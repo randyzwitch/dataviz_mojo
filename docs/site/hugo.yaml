@@ -9,23 +9,11 @@ author:
 
 markup:
   highlight:
-    # Hugo's default (noClasses: true) bakes each token's color as an
-    # inline `style="color:...` attribute straight onto the element,
-    # picked once from a single fixed `style:` -- that always wins over
-    # any stylesheet rule, in either theme, which is why code blocks
-    # were solid dark regardless of the light/dark/system switcher.
-    # Hextra ships its own theme-aware Chroma stylesheet pair instead
-    # (assets/css/chroma/{light,dark}.css, `.highlight` vs `.dark
-    # .highlight`, both already generated from the "github" style) --
-    # noClasses: false switches Hugo to emit CSS classes so those
-    # actually apply instead of being overridden by inline colors.
+    # Emit classes so Hextra can style code for light and dark themes.
     noClasses: false
   goldmark:
     renderer:
-      # The homepage's chart-thumbnail gallery is hand-written HTML
-      # (a grid of <a>/<img> cards), not a shortcode -- Goldmark drops
-      # raw HTML by default and only shortcode output is exempt, so
-      # this is needed for that block to render at all.
+      # Required by the homepage's handwritten gallery markup.
       unsafe: true
 
 module:
@@ -45,12 +33,7 @@ menu:
       url: "/cookbook/"
     - name: API Reference
       weight: 4
-      # Points at the generated API-reference section's own path
-      # (modo names it after the Mojo package itself, "dataviz" --
-      # see docs/modo.yaml/pixi.toml's own docs-build task) --
-      # independent of baseURL/title above, which stay "dataviz_mojo"
-      # (this site's own identity, matching the repo/distribution
-      # name) regardless of what the Mojo import name is.
+      # Modo names this section after the `dataviz` import package.
       url: "/dataviz/"
     - name: Search
       weight: 5
@@ -67,7 +50,6 @@ params:
     enable: true
     type: flexsearch
     flexsearch:
-      # index page by: content | summary | heading | title
       index: content
   navbar:
     displayTitle: true

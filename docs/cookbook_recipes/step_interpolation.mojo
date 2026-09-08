@@ -1,22 +1,7 @@
-"""Draw a series that holds constant between samples as a staircase
-rather than a slope, and choose where each step falls with `StepStyle`.
+"""Draw values that remain constant between samples as a staircase.
 
-A straight segment between two samples claims the value moved smoothly
-from one to the other. For a quantity that changes at discrete moments
-and holds in between -- a policy rate, a price tier, a headcount, an
-inventory level -- that is a claim the data does not support, and the
-slope invents readings at every x in between.
-
-The three styles differ only in where the riser sits relative to the
-samples, which is easier to tell apart by eye than by description:
-`PRE` steps up as soon as the previous sample ends, `POST` holds the old
-value until the new sample's x, and `MID` splits the difference. `PRE`
-and `POST` disagree by a whole interval about when a change happened, so
-the choice is a statement about the data, not a style preference.
-
-Note `Theme.line_smoothing` and a non-`NONE` step are mutually
-exclusive and raise together: a staircase has nothing meaningful to
-curve through.
+`PRE`, `MID`, and `POST` place the transition at different positions between
+samples. Step interpolation and line smoothing are mutually exclusive.
 """
 from dataviz import StepStyle
 from dataviz.colors import CORNFLOWERBLUE, SEAGREEN, TOMATO

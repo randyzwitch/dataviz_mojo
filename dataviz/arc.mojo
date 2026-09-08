@@ -33,29 +33,11 @@ def _render_arc[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.ARC` plot (a pie chart): one wedge per category
-    (`encode_categorical`'s `x`), its angular span proportional to its
-    value (`y`) divided by the total. No axis frame; a pie has no
-    coordinate system. Generic over `T: DrawTarget`, returning the
-    legend's labels as `_TextRequest`s rather than drawing them (see
-    `_render_generic`). `ox0`/`oy0`/`ox1`/`oy1` are `render()`'s
-    already-resolved outer bounds.
+    """Render pie or donut wedges clockwise from 12 o'clock.
 
-    Wedges start at 12 o'clock and proceed clockwise. In `fill_arc_aa`'s
-    convention, increasing angle sweeps clockwise on screen because pixel
-    y increases downward: starting at `-pi/2` (up) and increasing sweeps
-    through 3, 6, and 9 o'clock. `SvgCanvas.fill_arc_aa` draws the
-    identical wedge in the same y-down space.
-
-    Wedge colors come from `default_categorical_palette()` by category
-    index, as with `Plot.encode(color_categories=...)`.
-
-    Every value must be non-negative and the total positive; both raise
-    otherwise.
-
-    `plot._mark_style.donut_inner_radius_fraction > 0.0` switches each
-    wedge from `fill_arc_aa` to `fill_ring_sector_aa` (a donut),
-    everything else unchanged; see `Plot.mark_arc()`.
+    Wedge angles are proportional to non-negative values, colors follow the
+    categorical palette, and a positive inner-radius fraction selects donut
+    sectors. Values must have a positive total.
     """
     _validate_categorical_encoding(plot)
 
@@ -83,8 +65,7 @@ def _render_arc[
             + ")"
         )
 
-    # Every pixel-sized Theme/module-constant quantity below, scaled
-    # once by theme.scale -- see _Scaled's docstring.
+    # Scale pixel-sized theme values once.
     var sc = _Scaled(theme)
 
     var show_legend = theme.show_legend
