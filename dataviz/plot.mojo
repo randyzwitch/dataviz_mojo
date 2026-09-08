@@ -257,6 +257,7 @@ from dataviz.punchcard import _render_punchcard
 from dataviz.barbs import _render_barbs
 from dataviz.contour import _render_contour, _render_contourf
 from dataviz.kde import _render_kde, _render_rug
+from dataviz.ecdf import _render_ecdf
 from dataviz.tricontour import _render_tricontour, _render_tricontourf
 from dataviz.triplot import _render_tripcolor, _render_triplot
 from dataviz.marimekko import _render_marimekko
@@ -323,6 +324,12 @@ struct _DistributionData(Copyable, Movable):
     (scale each category's maximum width/rise by `sqrt(n_i / max(n))`)
     over the default `scale = "width"`. See `mark_violin()`/
     `mark_ridgeline()`.
+
+    `ecdf_complementary` draws `Mark.ECDF` as `1 - F(x)` rather than
+    `F(x)`. It lives here rather than on `_MarkStyle` because it is not
+    a proportion or an angle: it selects which of two functions of the
+    same observations the chart is, the way `kde_bandwidth_override`
+    selects which estimate a violin draws. See `mark_ecdf()`.
     """
 
     var values: List[List[Float64]]
@@ -330,6 +337,7 @@ struct _DistributionData(Copyable, Movable):
     var kde_fill: Bool
     var kde_rug: Bool
     var kde_scale_by_count: Bool
+    var ecdf_complementary: Bool
 
     def __init__(out self):
         self.values = List[List[Float64]]()
@@ -337,6 +345,7 @@ struct _DistributionData(Copyable, Movable):
         self.kde_fill = False
         self.kde_rug = False
         self.kde_scale_by_count = False
+        self.ecdf_complementary = False
 
 
 struct _MarkStyle(Copyable, Movable):
@@ -1430,6 +1439,37 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.RUG
+        return self^
+
+    def mark_ecdf(var self, complementary: Bool = False) -> Self:
+        """An empirical cumulative distribution: the fraction of
+        observations at or below each x, as a staircase rising from 0 to
+        1. Encoded via `encode_ecdf()`; see `ecdf()` for the one-call
+        form.
+
+        The one distribution chart with no parameter that can change the
+        conclusion -- no bin width (`histogram()`), no bandwidth
+        (`mark_kde()`). Ties share a single step of `k/n`, and the curve
+        is drawn over the data's own range rather than out to the axis
+        edges; both are `_ecdf_points()`'s doing (ecdf.mojo), which
+        documents why.
+
+        Comparing two distributions on one frame is the main reason to
+        draw an ECDF, and it needs `render_layers()`, which today
+        accepts only `Mark.POINT`/`LINE`/`AREA` (#376) --
+        `render_facets()` is the side-by-side answer for now.
+
+        Args:
+            complementary: Draw `1 - F(x)` (the survival function,
+                falling from 1 to 0) instead of `F(x)`. What
+                reliability and survival work reads: "what fraction
+                lasted longer than this".
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.ECDF
+        self._distribution.ecdf_complementary = complementary
         return self^
 
     def mark_ridgeline(
@@ -3044,6 +3084,27 @@ struct Plot(Copyable, Movable):
         self._distribution.values = one^
         return self^
 
+    def encode_ecdf(var self, values: List[Float64]) raises -> Self:
+        """Map one flat column of raw observations onto `Mark.ECDF`.
+
+        The same single ungrouped column `encode_kde()` takes, into the
+        same slot, so the two are interchangeable at the storage level.
+        It exists under its own name because the call site is where a
+        reader learns what the chart is: `.mark_ecdf().encode_kde(...)`
+        reads as a mistake even though it works.
+
+        Args:
+            values: The observations, in any order.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            Error: `values` is empty.
+        """
+        _require_non_empty(len(values), "Plot.encode_ecdf()")
+        return self^.encode_kde(values)
+
     def encode_distribution(
         var self, categories: List[String], values: List[List[Float64]]
     ) raises -> Self:
@@ -4396,6 +4457,8 @@ def _render_generic[
         return _render_kde(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.RUG:
         return _render_rug(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    if plot._mark == Mark.ECDF:
+        return _render_ecdf(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.TRICONTOURF:
         return _render_tricontourf(
             target, plot, ox0, oy0, ox1, oy1, cache=cache

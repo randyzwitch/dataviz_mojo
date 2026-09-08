@@ -1,7 +1,8 @@
 """Merged test module (one process per test family; see pixi.toml's
 `[tasks]` comment for why). Covers Mark.BEESWARM (jittered points),
 Mark.VIOLIN (KDE silhouettes, bandwidth and scale_by_count),
-Mark.RIDGELINE (overlapping KDE rows), Mark.STREAMGRAPH (centered
+Mark.RIDGELINE (overlapping KDE rows), Mark.ECDF (the empirical
+cumulative staircase), Mark.STREAMGRAPH (centered
 stacked bands and smoothing), Mark.BUMP (rank lines), and
 Mark.EFFECT_SCATTER (the halo under each point), each raster + SVG.
 """
@@ -12,6 +13,7 @@ from _test_helpers import (
     _assert_near_color,
     _assert_same_canvas,
     _bbox_of_color,
+    _bbox_of_color_in,
     _column_extent,
     _row_extent,
 )
@@ -21,6 +23,7 @@ from canvas.text.font_cache import FontCache
 from canvas.vector.svg import SvgCanvas
 from dataviz import (
     StepStyle,
+    ecdf,
     kdeplot,
     rugplot,
     beeswarm,
@@ -33,6 +36,7 @@ from dataviz import (
 )
 from dataviz.color_scale import default_categorical_palette
 from dataviz.frame import _draw_continuous_axis_frame
+from dataviz.ecdf import _ecdf_points, _ecdf_step_style
 from dataviz.kde import _kde_curve
 from dataviz.legend import _LegendLayout
 from dataviz.plot import Plot, render, render_svg
@@ -1808,6 +1812,264 @@ def test_mark_streamgraph_step_reaches_the_wiggle_baseline_too() raises:
         assert_equal(
             len(_path_points(p)), 6, "an unstepped WIGGLE band is 2 x n"
         )
+
+
+# ---------------------------------------------------------------
+# Mark.ECDF (#338)
+# ---------------------------------------------------------------
+
+
+def test_ecdf_points_are_the_hand_derived_staircase() raises:
+    """`[3, 1, 2]` steps to 1/3 at 1, 2/3 at 2 and 1 at 3, whatever order
+    it arrives in -- the whole computation, checked against the
+    definition rather than against a render.
+
+    The vertex list is `(1, 0) (1, 1/3) (2, 2/3) (3, 1)`: the leading
+    `(min, 0)` is what makes the first step a riser instead of the curve
+    starting partway up, and the last y is exactly `1.0`, not
+    `0.999...`, because the last cumulative count is `n`.
+
+    Byte-for-byte what matplotlib 3.11.1's `ax.ecdf([3, 1, 2])` puts in
+    its Line2D (`x = [1, 1, 2, 3]`, `y = [0, 1/3, 2/3, 1]`), which is
+    where these numbers were checked.
+    """
+    var v: List[Float64] = [3.0, 1.0, 2.0]
+    var curve = _ecdf_points(v)
+
+    assert_equal(len(curve.x), 4, "one vertex per value, plus the (min, 0)")
+    assert_equal(len(curve.y), 4, "x and y stay the same length")
+
+    assert_equal(curve.x[0], 1.0, "the curve starts at the smallest value")
+    assert_equal(curve.y[0], 0.0, "and starts at zero")
+    assert_equal(curve.x[1], 1.0, "the first riser is at the smallest value")
+    assert_equal(curve.y[1], 1.0 / 3.0, "F(1) = 1/3")
+    assert_equal(curve.x[2], 2.0)
+    assert_equal(curve.y[2], 2.0 / 3.0, "F(2) = 2/3")
+    assert_equal(curve.x[3], 3.0)
+    assert_equal(curve.y[3], 1.0, "F(max) is exactly 1, not 1 - epsilon")
+
+
+def test_ecdf_ties_share_one_step_of_k_over_n() raises:
+    """The one thing likely to be wrong. `k` observations at the same
+    value are one step of `k/n`, not `k` steps of `1/n` stacked at one x.
+
+    `[1, 1, 2]` is the minimal case: two vertices past the leading
+    `(1, 0)`, with `F(1) = 2/3`. A per-observation vertex list would
+    have four; a run-walk that kept the run's *first* cumulative count
+    -- which is what matplotlib 3.11.1's own `compress=True` does --
+    would say `F(1) = 1/3`.
+
+    `[1, 1, 1, 2, 5, 5]` is the case that separates the two failures
+    further apart, and where matplotlib's `compress=True` visibly breaks:
+    it reports `y = [0, 1/6, 2/3, 5/6]`, so the curve both understates
+    `F(1)` and never reaches 1. The right answer is `F(1) = 1/2`,
+    `F(2) = 2/3`, `F(5) = 1`.
+    """
+    var pair: List[Float64] = [1.0, 1.0, 2.0]
+    var small = _ecdf_points(pair)
+    assert_equal(len(small.x), 3, "a tie is one vertex, not one per value")
+    assert_equal(small.y[0], 0.0)
+    assert_equal(small.x[1], 1.0)
+    assert_equal(small.y[1], 2.0 / 3.0, "the tie's step is 2/3, not 1/3")
+    assert_equal(small.x[2], 2.0)
+    assert_equal(small.y[2], 1.0)
+
+    var runs: List[Float64] = [5.0, 1.0, 2.0, 1.0, 5.0, 1.0]
+    var curve = _ecdf_points(runs)
+    assert_equal(len(curve.x), 4, "three distinct values, plus the (min, 0)")
+    assert_equal(curve.y[1], 0.5, "three of six at x = 1")
+    assert_equal(curve.x[2], 2.0)
+    assert_equal(curve.y[2], 2.0 / 3.0, "four of six at or below x = 2")
+    assert_equal(curve.x[3], 5.0)
+    assert_equal(curve.y[3], 1.0, "the last step still reaches exactly 1")
+
+
+def test_ecdf_complementary_is_one_minus_the_ecdf() raises:
+    """`complementary=True` is the survival curve `1 - F(x)`, falling
+    from 1 to 0, with the *last* x repeated instead of the first so the
+    final drop lands on the largest observation.
+
+    `[3, 1, 2]` gives `x = [1, 2, 3, 3]`, `y = [1, 2/3, 1/3, 0]` --
+    again exactly matplotlib's `ax.ecdf(..., complementary=True)`. Note
+    the y values are not the forward curve reversed: reading this list
+    backwards would give `0, 1/3, 2/3, 1` against x `3, 3, 2, 1`, which
+    is a different chart.
+    """
+    var v: List[Float64] = [3.0, 1.0, 2.0]
+    var curve = _ecdf_points(v, complementary=True)
+
+    # Subtracted from a Float64 rather than written as the literal
+    # `2.0 / 3.0`: Mojo folds float literals at comptime in exact
+    # arithmetic, so the literal is the nearest double to 2/3 while
+    # `1 - F` is one ulp above it. The complement is defined as the
+    # subtraction, and matplotlib computes it the same way
+    # (`1 - cum_weights`), so the subtraction is the expectation.
+    var one_third = 1.0 / 3.0
+    var two_thirds = 2.0 / 3.0
+
+    assert_equal(len(curve.x), 4)
+    assert_equal(curve.x[0], 1.0, "starts at the smallest value")
+    assert_equal(curve.y[0], 1.0, "where all of the sample is still above")
+    assert_equal(
+        curve.x[1], 2.0, "the second x is the second value, not the first"
+    )
+    assert_equal(curve.y[1], 1.0 - one_third)
+    assert_equal(curve.x[2], 3.0)
+    assert_equal(curve.y[2], 1.0 - two_thirds)
+    assert_equal(curve.x[3], 3.0, "the largest value is repeated")
+    assert_equal(curve.y[3], 0.0, "and the curve ends at exactly zero")
+
+
+def test_ecdf_steps_post_and_the_complement_steps_pre() raises:
+    """An ECDF is right-continuous: it holds `F(x[i])` from `x[i]` until
+    `x[i + 1]` and jumps there, which is `StepStyle.POST` and nothing
+    else. `PRE` would draw a left-continuous function and `MID` would
+    put each jump halfway between two observations, at an x where
+    nothing was observed.
+
+    Asserted on the choice itself as well as on pixels (below), because
+    a wrong style still draws a plausible-looking staircase.
+    """
+    assert_true(
+        _ecdf_step_style(False) == StepStyle.POST,
+        "F(x) holds until the next observation, then jumps",
+    )
+    assert_true(
+        _ecdf_step_style(True) == StepStyle.PRE,
+        "1 - F(x) drops at the observation it passes",
+    )
+
+
+def test_render_ecdf_plateaus_land_on_the_hand_computed_rows() raises:
+    """The staircase drawn, checked against arithmetic done by hand.
+
+    `ecdf([1, 2, 3, 4])` at 400x300 lays out into the plot rect
+    `(60, 20)-(380, 250)` (measured from the render). The x-domain is
+    `_data_extent`'s 5% padding around `[1, 4]`, i.e. `[0.85, 4.15]`, so
+    `x = 1` is at `60 + 0.15/3.3*320 = 74.5` and `x = 2` at `171.5`. The
+    y-domain is exactly `[0, 1]`, so `F` maps to `250 - F*230`:
+    `0.25 -> 192.5`, `0.5 -> 135.0`, `0.75 -> 77.5`.
+
+    Columns 100/160 sit between `x = 1` and `x = 2`, and both must draw
+    `F(1) = 0.25`. That is what discriminates the step style: `PRE`
+    would put `F(2) = 0.5` (row 135) across that whole interval, and
+    `MID` would put the riser at their midpoint, column 123, so column
+    100 would read 0.25 and column 160 would read 0.5.
+    """
+    var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var c = render(ecdf(v, width=400, height=300))
+    var mark = Theme().mark_color
+
+    var left = _column_extent(c, 100, mark)
+    assert_true(left.found, "the first plateau is drawn")
+    assert_equal(left.y0, 192, "F = 0.25 is centered on row 192.5")
+    assert_equal(left.y1, 193)
+
+    var still_left = _column_extent(c, 160, mark)
+    assert_equal(
+        still_left.y0, 192, "the plateau holds all the way to the next x"
+    )
+    assert_equal(still_left.y1, 193)
+
+    var middle = _column_extent(c, 220, mark)
+    assert_equal(middle.y0, 135, "F = 0.5 is centered on row 135")
+    assert_equal(middle.y1, 135)
+
+    var right = _column_extent(c, 340, mark)
+    assert_equal(right.y0, 77, "F = 0.75 is centered on row 77.5")
+    assert_equal(right.y1, 78)
+
+
+def test_render_ecdf_spans_exactly_zero_to_one() raises:
+    """The y-domain is the fixed `[0, 1]`, not the drawn values padded:
+    the riser at the smallest observation reaches the bottom of the plot
+    rect and the one at the largest reaches the top.
+
+    Padding the domain the way every other continuous mark does would
+    caption the axis with proportions above 1 and below 0, which do not
+    exist -- and would pull both ends of the curve visibly inward:
+    `_data_extent`'s 5% on `[0, 1]` gives `[-0.05, 1.05]`, putting
+    `F = 1` at row 30 and `F = 0` at row 240 instead of 20 and 250. The
+    rows asserted below are nine and ten off that, so the two cases
+    cannot be confused.
+    """
+    var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var c = render(ecdf(v, width=400, height=300))
+    var mark = Theme().mark_color
+
+    # The two risers' endpoints sit exactly on the rect's top and bottom
+    # (rows 20 and 250), so those two rows are only half covered by a
+    # butt-capped stroke and come out blended; the outermost *exactly*
+    # mark-colored rows are the ones just inside, 21 and 249.
+    var box = _bbox_of_color(c, mark)
+    assert_true(box.found, "the curve is drawn")
+    assert_equal(box.y0, 21, "F = 1 lands on the top of the plot rect")
+    assert_equal(box.y1, 249, "F = 0 lands on the bottom of the plot rect")
+
+
+def test_render_ecdf_draws_only_over_the_data_range() raises:
+    """The curve stops at `min(values)` and `max(values)`. Running it out
+    to the frame edges would draw a flat run at 0 to the left and at 1 to
+    the right, asserting the distribution is bounded there -- which the
+    sample does not say.
+
+    The 5% padding `_data_extent` adds is what makes this visible: there
+    are 14 blank columns inside the plot rect on each side, and both must
+    stay blank while the middle does not.
+    """
+    var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var c = render(ecdf(v, width=400, height=300))
+    var mark = Theme().mark_color
+
+    var left_pad = _bbox_of_color_in(c, mark, 61, 20, 73, 250)
+    assert_true(
+        not left_pad.found,
+        "nothing is drawn left of the smallest observation",
+    )
+    var right_pad = _bbox_of_color_in(c, mark, 367, 20, 379, 250)
+    assert_true(
+        not right_pad.found,
+        "nothing is drawn right of the largest observation",
+    )
+    var inside = _bbox_of_color_in(c, mark, 80, 20, 360, 250)
+    assert_true(inside.found, "the curve itself is drawn between them")
+
+
+def test_render_ecdf_complementary_mirrors_the_staircase() raises:
+    """`complementary=True` on the same data is the same three plateaus
+    reflected about `y = 0.5`: 0.75 where the forward curve had 0.25, and
+    the reverse.
+
+    Rendered rather than only computed because the complement also
+    changes the step style (`PRE`), and the pair of changes has to land
+    as one mirrored picture -- flipping only the values would put the
+    plateaus half a step out of place.
+    """
+    var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var c = render(ecdf(v, complementary=True, width=400, height=300))
+    var mark = Theme().mark_color
+
+    var left = _column_extent(c, 100, mark)
+    assert_equal(left.y0, 77, "1 - F(1) = 0.75, the forward curve's last row")
+    assert_equal(left.y1, 78)
+    var middle = _column_extent(c, 220, mark)
+    assert_equal(middle.y0, 135, "0.5 is its own mirror")
+    assert_equal(middle.y1, 135)
+    var right = _column_extent(c, 340, mark)
+    assert_equal(right.y0, 192, "1 - F(3) = 0.25")
+    assert_equal(right.y1, 193)
+
+
+def test_render_ecdf_raises_without_observations() raises:
+    """Both ways of arriving with nothing to draw: an empty column, which
+    `encode_ecdf()` rejects on the spot, and a `Mark.ECDF` plot that was
+    never encoded at all, which is only visible at render time and would
+    otherwise index into an empty list.
+    """
+    with assert_raises():
+        _ = ecdf(List[Float64](), width=200, height=150)
+    with assert_raises():
+        _ = render(Plot().mark_ecdf().size(200, 150))
 
 
 def main() raises:

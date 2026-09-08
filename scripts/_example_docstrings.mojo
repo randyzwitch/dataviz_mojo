@@ -104,6 +104,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("tricontourf", "tricontour", "tricontourf"),
         ExamplePage("triplot", "triplot", "triplot"),
         ExamplePage("tripcolor", "triplot", "tripcolor"),
+        ExamplePage("ecdf", "ecdf", "ecdf"),
         ExamplePage("kdeplot", "kde", "kdeplot"),
         ExamplePage("rugplot", "kde", "rugplot"),
         ExamplePage("marimekko", "marimekko", "marimekko"),
