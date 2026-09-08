@@ -321,7 +321,7 @@ def delaunay(xs: List[Float64], ys: List[Float64]) raises -> _Triangulation:
         return out^
 
     # A super-triangle comfortably containing every point. Its vertices
-    # are appended past the real ones so their indices are recognisable,
+    # are appended past the real ones so their indices are recognizable,
     # and every triangle still touching one is dropped at the end.
     var min_x = xs[0]
     var max_x = xs[0]

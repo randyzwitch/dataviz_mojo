@@ -3898,10 +3898,10 @@ def test_render_tricontourf_fills_solidly_with_no_seams() raises:
     and two half-covered pixels over the background do not add up to a
     covered one -- the fill comes out webbed with background-colored
     lines. Asserted by counting how many pixels inside the filled region
-    are lighter than both of their horizontal neighbours, which is what
+    are lighter than both of their horizontal neighbors, which is what
     such a seam looks like and what a smooth band ramp does not produce.
 
-    Only pixels whose neighbours are *colored* count: the axis line
+    Only pixels whose neighbors are *colored* count: the axis line
     and the antialiased tick labels are gray one-pixel features that
     would otherwise read as seams, and they are furniture, not fill.
     """
@@ -3936,7 +3936,7 @@ def test_render_tricontourf_fills_solidly_with_no_seams() raises:
             if abs(Int(right.r) - Int(right.b)) < 6:
                 continue
             # A one-pixel-wide lighter notch between two darker
-            # neighbours that match each other: a seam, not a band edge.
+            # neighbors that match each other: a seam, not a band edge.
             if (
                 Int(mid.r) > Int(left.r) + 8
                 and Int(mid.r) > Int(right.r) + 8

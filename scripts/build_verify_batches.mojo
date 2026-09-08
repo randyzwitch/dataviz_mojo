@@ -151,7 +151,7 @@ def _collect(dir: String) raises -> List[_Program]:
 def _emit(label: String, programs: List[_Program], batches: Int) raises -> Int:
     """Write `programs` out as at most `batches` driver files, returning how
     many were written. Members are strided (`range(b, n, batches)`)
-    rather than chunked, so neighbouring names from the same mark family
+    rather than chunked, so neighboring names from the same mark family
     spread across batches.
     """
     var written = 0
