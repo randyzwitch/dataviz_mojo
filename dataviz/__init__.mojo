@@ -70,6 +70,7 @@ from dataviz.sunburst import sunburst
 from dataviz.tree import tree
 from dataviz.treemap import treemap
 from dataviz.histogram import (
+    BinRule,
     HistStat,
     HistogramBins,
     bin_edges,

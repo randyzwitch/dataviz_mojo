@@ -14,7 +14,10 @@ The binning behavior matches `numpy.histogram`:
 
 """
 
+from std.math import cbrt, ceil, log2, pi, sqrt
+
 from dataviz.array_like import _materialize_scalar_list
+from dataviz.box import _percentile
 from dataviz.plot import Plot, _finished
 from dataviz.scale import _format_fixed, _min_max
 from dataviz.step_style import StepStyle
@@ -120,6 +123,306 @@ struct HistStat(Copyable, ImplicitlyCopyable, Movable):
             True for the three stats that need a nonzero total.
         """
         return self._value == 2 or self._value == 3 or self._value == 4
+
+
+struct BinRule(Copyable, ImplicitlyCopyable, Movable):
+    """Let a rule choose how many bins a sample gets, instead of naming a
+    count. Pass one to `bin_edges()`, `shared_bin_edges()`, or
+    `histogram()`'s `bins`.
+
+    A fixed count is a guess that is wrong in both directions: ten bins
+    oversmooth a five-thousand-point sample and turn a twelve-point one
+    into a comb. Every rule below reads the sample and answers for you.
+
+    With `n` the sample size, `ptp` the sample's max minus its min,
+    `sigma` its standard deviation and `IQR` its interquartile range,
+    each rule states a bin **width**, which is then turned into a count:
+
+    | Rule | Width | Reads |
+    |---|---|---|
+    | `SQRT` | `ptp / sqrt(n)` | size only |
+    | `STURGES` | `ptp / (log2(n) + 1)` | size only |
+    | `RICE` | `ptp / (2 * cbrt(n))` | size only |
+    | `SCOTT` | `cbrt(24 * sqrt(pi) / n) * sigma` | spread |
+    | `FREEDMAN_DIACONIS` | `2 * IQR / cbrt(n)` | spread, robustly |
+    | `AUTO` | `min(max(fd, sqrt / 2), sturges)` | both |
+
+    The definitions and the width-to-count step are `numpy.histogram`'s,
+    so `bin_edges(data, BinRule.SCOTT)` and
+    `numpy.histogram_bin_edges(data, bins="scott")` give the same number
+    of bins over the same range. Matching an implementation rather than
+    a paper is deliberate: the papers state widths up to a constant and
+    say nothing about rounding a width back into a whole number of bins,
+    which is where two faithful readings of the same rule diverge.
+
+    Widths rather than counts throughout, again following numpy. The
+    three size-only rules are usually quoted as counts -- `ceil(sqrt(n))`
+    bins, `ceil(log2(n)) + 1` bins -- and for those the two forms agree.
+    They stop agreeing for the two spread-based rules, which have no
+    count form at all, and a single representation means `AUTO` can
+    compare Freedman-Diaconis against Sturges without converting first.
+
+    Which to reach for:
+
+    - `AUTO` unless you have a reason. It is Freedman-Diaconis with two
+      guards, and it is what numpy's own `bins="auto"` does.
+    - `SQRT` is what most spreadsheets do. Cheap and unopinionated.
+    - `STURGES` assumes the data are roughly normal and undercounts
+      badly past a few thousand points; `RICE` grows faster and is the
+      usual stand-in.
+    - `SCOTT` is optimal for normal data but follows the standard
+      deviation, so one far outlier widens every bin.
+    - `FREEDMAN_DIACONIS` uses the IQR instead, which outliers barely
+      move -- at the cost of collapsing to a single bin when more than
+      half the sample is identical and the IQR is 0.
+    """
+
+    var _value: Int
+
+    comptime SQRT = Self(0)
+    """`ptp / sqrt(n)` -- `ceil(sqrt(n))` bins. Spreadsheet default."""
+    comptime STURGES = Self(1)
+    """`ptp / (log2(n) + 1)` -- assumes normality; undercounts past a
+    few thousand points."""
+    comptime RICE = Self(2)
+    """`ptp / (2 * cbrt(n))` -- no normality assumption; grows faster
+    than Sturges."""
+    comptime SCOTT = Self(3)
+    """`cbrt(24 * sqrt(pi) / n) * sigma` -- optimal for normal data, but
+    one outlier widens every bin."""
+    comptime FREEDMAN_DIACONIS = Self(4)
+    """`2 * IQR / cbrt(n)` -- robust to outliers; collapses to one bin
+    when the IQR is 0."""
+    comptime AUTO = Self(5)
+    """`min(max(fd, sqrt / 2), sturges)` -- the default choice."""
+
+    def __init__(out self, value: Int):
+        """Prefer the `SQRT`/`STURGES`/`RICE`/`SCOTT`/
+        `FREEDMAN_DIACONIS`/`AUTO` comptime constants over constructing
+        one directly.
+
+        Args:
+            value: 0 for SQRT, 1 for STURGES, 2 for RICE, 3 for SCOTT, 4
+                for FREEDMAN_DIACONIS, 5 for AUTO.
+        """
+        self._value = value
+
+    def __eq__(self, other: Self) -> Bool:
+        """Whether both name the same rule.
+
+        Args:
+            other: The rule to compare against.
+
+        Returns:
+            True when they match.
+        """
+        return self._value == other._value
+
+    def __ne__(self, other: Self) -> Bool:
+        """Whether the two name different rules.
+
+        Args:
+            other: The rule to compare against.
+
+        Returns:
+            True when they differ.
+        """
+        return self._value != other._value
+
+    def name(self) -> String:
+        """This rule's constant name, for the error messages that have to
+        say which rule produced an unusable bin count.
+
+        Returns:
+            "SQRT", "STURGES", "RICE", "SCOTT", "FREEDMAN_DIACONIS",
+            "AUTO", or "BinRule(<n>)" for a value outside the six
+            constants.
+        """
+        if self._value == 0:
+            return "SQRT"
+        if self._value == 1:
+            return "STURGES"
+        if self._value == 2:
+            return "RICE"
+        if self._value == 3:
+            return "SCOTT"
+        if self._value == 4:
+            return "FREEDMAN_DIACONIS"
+        if self._value == 5:
+            return "AUTO"
+        return "BinRule(" + String(self._value) + ")"
+
+
+comptime _MAX_RULE_BINS = 1_000_000
+"""The largest bin count a `BinRule` may produce before `bin_edges()`
+gives up and asks for an explicit count.
+
+Freedman-Diaconis and Scott divide the sample's range by a width read
+off its middle, so a sample whose middle is packed into a sliver of its
+range asks for a colossal number of bins. numpy has no guard here and
+dies allocating: 900 points spread over `1e-9` plus 100 more at `1e6`
+makes `numpy.histogram_bin_edges(x, bins="fd")` raise
+`MemoryError: Unable to allocate 71.1 PiB`. Refusing with a message
+that names the rule beats both that and the alternative of silently
+clamping, which would draw a chart whose bins are not the ones the rule
+asked for. A million is far past any chart -- a 640-pixel-wide plot
+cannot show a thousand -- so it never fires on a bin count anyone meant.
+"""
+
+
+def _population_std(data: List[Float64]) -> Float64:
+    """The population standard deviation (dividing by `n`, not `n - 1`),
+    for `BinRule.SCOTT`.
+
+    The population form because that is what `numpy.std` defaults to and
+    what numpy's own Scott estimator therefore uses; the sample form
+    would make every Scott bin count disagree with numpy's for small
+    `n`.
+
+    Args:
+        data: The observations; must be non-empty.
+
+    Returns:
+        `sqrt(mean((v - mean)^2))`.
+    """
+    var n = Float64(len(data))
+    var mean = 0.0
+    for v in data:
+        mean += v
+    mean /= n
+    var variance = 0.0
+    for v in data:
+        variance += (v - mean) * (v - mean)
+    return sqrt(variance / n)
+
+
+def _rule_bin_width(
+    data: List[Float64], rule: BinRule, ptp: Float64
+) -> Float64:
+    """The bin width `rule` asks for, or `0.0` when the rule degenerates.
+
+    Each expression is written with the same constants and in the same
+    order as numpy's selector in `numpy/lib/_histograms_impl.py`, with
+    one substitution: every cube root is `cbrt(x)` where numpy writes
+    `x ** (1.0 / 3.0)`, and `SCOTT`'s `sqrt(pi)` is `sqrt` where numpy
+    writes `pi ** 0.5`.
+
+    That substitution is for accuracy, not taste. Mojo's `**` on
+    `Float64` is a fast approximation: `Float64(1000) ** (1.0 / 3.0)`
+    comes back as `10.000000000009285` against glibc's
+    `9.999999999999998`, and `pi ** 0.5` is off by `2.3e-10`, while
+    `cbrt` and `sqrt` land within one bit of glibc on every size tested.
+    Since a rule's answer is a width that gets divided into the range
+    and rounded up, an error that size flips the bin count whenever the
+    quotient sits near a whole number -- which is exactly what happens
+    for the sizes people have, `n` a perfect cube for `RICE` and a
+    perfect square for `SQRT`. `x ** (1.0 / 3.0)` cost a bin on a
+    thousand-point sample during development.
+
+    `STURGES` and `AUTO` still go through `log2`, which is off by a
+    comparable margin. There is nothing more accurate to reach for, and
+    it is harmless here for the same reason it would not have been for
+    the cube root: `log2(n) + 1` is only a whole number when `n` is a
+    power of two, and `log2` of a power of two is exact.
+
+    A zero comes back whenever the rule has nothing to measure: `ptp`
+    is 0 for a constant sample, `sigma` is 0 for the same reason, and
+    the IQR is 0 whenever more than half the sample is one value. The
+    caller turns a zero into a single bin.
+
+    Args:
+        data: The observations; must be non-empty.
+        rule: Which rule to evaluate.
+        ptp: The sample's max minus its min, already computed.
+
+    Returns:
+        A nonnegative width.
+    """
+    var n = Float64(len(data))
+    if rule == BinRule.SQRT:
+        return ptp / sqrt(n)
+    if rule == BinRule.STURGES:
+        return ptp / (log2(n) + 1.0)
+    if rule == BinRule.RICE:
+        return ptp / (2.0 * cbrt(n))
+    if rule == BinRule.SCOTT:
+        return cbrt(24.0 * sqrt(pi) / n) * _population_std(data)
+    var sorted_values = data.copy()
+    sort(sorted_values)
+    var iqr = _percentile(sorted_values, 0.75) - _percentile(
+        sorted_values, 0.25
+    )
+    var fd = 2.0 * iqr / cbrt(n)
+    if rule == BinRule.FREEDMAN_DIACONIS:
+        return fd
+    # AUTO. Freedman-Diaconis with a guard on each side.
+    #
+    # The ceiling is Sturges: FD reads only the middle half of the
+    # sample, so a tight middle inside a wide range asks for far more
+    # bins than the sample can support.
+    #
+    # The floor is half the sqrt width, which caps the count at about
+    # `2 * sqrt(n)`. It also covers the IQR == 0 case, where FD is 0 and
+    # would otherwise take the whole thing to one bin.
+    #
+    # The floor is not the older `if fd == 0: use sturges` fallback,
+    # which is what numpy did through 1.25 and what this rule is often
+    # still described as doing. numpy replaced it with the sqrt/2 floor
+    # because the fallback only fired at exactly IQR == 0 and did
+    # nothing for an IQR merely close to it. The two disagree on real
+    # samples -- for `[0] * 8 + [10, 20]`, the fallback gives Sturges'
+    # 5 bins and the floor gives 7 -- so this follows the current
+    # numpy, which is the implementation the tests check against.
+    var sturges = ptp / (log2(n) + 1.0)
+    var fd_floored = fd if fd > ptp / sqrt(n) / 2.0 else ptp / sqrt(n) / 2.0
+    return fd_floored if fd_floored < sturges else sturges
+
+
+def _rule_bin_count(
+    data: List[Float64], rule: BinRule, ptp: Float64
+) raises -> Int:
+    """How many bins `rule` asks for on `data`.
+
+    numpy's conversion: `ceil(range / width)`, with the range then
+    re-spanned by `uniform_bin_edges()`. Stepping `width` off the
+    minimum instead would leave a last bin short by however much the
+    width does not divide the range, and a short end bin is a bar the
+    reader reads as a real dip in the data.
+
+    Args:
+        data: The observations; must be non-empty.
+        rule: Which rule to evaluate.
+        ptp: The sample's max minus its min, already computed.
+
+    Returns:
+        A positive bin count; `1` when the rule degenerated to a zero
+        width.
+
+    Raises:
+        Error: The rule asks for more than `_MAX_RULE_BINS` bins.
+    """
+    var width = _rule_bin_width(data, rule, ptp)
+    if not (width > 0.0):
+        return 1
+    # `ptp` here, not the padded range a constant sample gets: a
+    # constant sample has `ptp == 0`, which already took the branch
+    # above.
+    var wanted = ceil(ptp / width)
+    if not (wanted <= Float64(_MAX_RULE_BINS)):
+        raise Error(
+            "bin_edges(): BinRule."
+            + rule.name()
+            + " asks for "
+            + String(wanted)
+            + " bins over a range of "
+            + String(ptp)
+            + " -- its bin width of "
+            + String(width)
+            + " is a sliver of the range, which happens when the middle"
+            " of the sample is packed into a tiny part of it. Pass an"
+            " explicit bin count, or trim the outliers."
+        )
+    return Int(wanted)
 
 
 struct HistogramBins(Copyable, Movable, Sized):
@@ -388,6 +691,45 @@ def bin_edges(data: List[Float64], bins: Int = 10) raises -> List[Float64]:
     return uniform_bin_edges(mm.min, mm.max, bins)
 
 
+def bin_edges(data: List[Float64], rule: BinRule) raises -> List[Float64]:
+    """Boundaries covering `data`'s own range, with the bin count chosen
+    by `rule` instead of named -- the overload of `bin_edges()` that
+    takes a `BinRule` where the other takes an `Int`.
+
+    `bin_edges(data, BinRule.AUTO)` is
+    `numpy.histogram_bin_edges(data, bins="auto")`: same count, same
+    range, and the same answer on the samples where the rules
+    degenerate. A **constant sample** takes the range `[v - 0.5,
+    v + 0.5]` in one bin, exactly as the `Int` overload does, since
+    every rule's width is 0 there and there is nothing to divide.
+
+    The interior boundaries are `uniform_bin_edges()`'s, not numpy's:
+    numpy steps a precomputed increment and this re-spans the range for
+    each boundary, which differ in the last bit. See
+    `uniform_bin_edges()` for why.
+
+    Args:
+        data: The observations. The size-only rules read just the count
+            and the range; `SCOTT` also reads the standard deviation and
+            `FREEDMAN_DIACONIS`/`AUTO` the interquartile range.
+        rule: Which rule picks the count. See `BinRule`.
+
+    Returns:
+        `n + 1` strictly ascending boundaries, `n` chosen by `rule`.
+
+    Raises:
+        Error: `data` is empty, any value is `NaN`/infinite, or the rule
+            asks for an unusably large number of bins (see `BinRule`).
+    """
+    if len(data) == 0:
+        raise Error("bin_edges(): data must not be empty")
+    var mm = _min_max(data)
+    var count = _rule_bin_count(data, rule, mm.max - mm.min)
+    if mm.max == mm.min:
+        return uniform_bin_edges(mm.min - 0.5, mm.min + 0.5, count)
+    return uniform_bin_edges(mm.min, mm.max, count)
+
+
 def shared_bin_edges(
     samples: List[List[Float64]], bins: Int = 10
 ) raises -> List[Float64]:
@@ -428,6 +770,46 @@ def shared_bin_edges(
             " observation across all groups"
         )
     return bin_edges(pooled, bins)
+
+
+def shared_bin_edges(
+    samples: List[List[Float64]], rule: BinRule
+) raises -> List[Float64]:
+    """One set of boundaries covering every sample in `samples`, with the
+    count chosen by `rule` -- `shared_bin_edges()`'s `BinRule` overload.
+
+    The rule runs on the **pooled** observations, not on any one group
+    and not on a per-group answer combined afterward. That is the only
+    choice that keeps the result a single set of edges: two groups
+    generally want different counts, and there is no honest way to
+    reconcile them into the one grid that makes the two charts
+    comparable. Pooling asks the rule the question actually being
+    answered -- how finely can this combined evidence be cut.
+
+    Args:
+        samples: One list of observations per group. Empty groups are
+            allowed and contribute nothing, as long as at least one
+            group has a value.
+        rule: Which rule picks the count. See `BinRule`.
+
+    Returns:
+        `n + 1` strictly ascending boundaries, the same for every group.
+
+    Raises:
+        Error: `samples` is empty or every group is, any value is
+            `NaN`/infinite, or the rule asks for an unusably large
+            number of bins.
+    """
+    var pooled = List[Float64]()
+    for s in samples:
+        for v in s:
+            pooled.append(v)
+    if len(pooled) == 0:
+        raise Error(
+            "shared_bin_edges(): samples must contain at least one"
+            " observation across all groups"
+        )
+    return bin_edges(pooled, rule)
 
 
 def histogram_bins(
@@ -802,6 +1184,59 @@ def histogram(
             var panels: List[Plot] = [a^, b^]
             save_facets(panels, 2, "docs/src/examples/out_histogram_shared.svg")
         ```
+
+    Example (Automatic Bins):
+        ```mojo
+        from dataviz import save_facets
+        from dataviz.colors import DARKORANGE, STEELBLUE
+        from dataviz.histogram import BinRule, histogram
+        from dataviz.plot import Plot
+        from dataviz.theme import Theme
+
+        def main() raises:
+            # Fourteen months of rainfall. A small sample is where a
+            # fixed bin count does the most damage: ten bins over
+            # fourteen observations leaves two of them empty and makes
+            # four more a single observation tall, so the chart shows
+            # the gaps between the readings rather than the shape of
+            # the distribution.
+            var rainfall: List[Float64] = [
+                12.4, 15.1, 15.8, 17.2, 18.0, 18.3, 19.1,
+                19.6, 20.4, 21.7, 23.0, 25.6, 28.9, 34.2,
+            ]
+
+            # The default: a count nobody chose for this sample.
+            var fixed = histogram(
+                rainfall,
+                bins=10,
+                theme=Theme(mark_color=STEELBLUE, show_gridlines=False),
+                width=380,
+                height=320,
+                title="bins=10",
+                subtitle="Two empty bins, four one deep",
+                x_title="Monthly rainfall (mm)",
+                y_title="Months",
+            )
+
+            # BinRule.AUTO reads the sample and answers 5 -- enough to
+            # show the right skew, few enough that every bar stands on
+            # more than one reading. Swap in SQRT, STURGES, RICE, SCOTT
+            # or FREEDMAN_DIACONIS to see what each rule makes of the
+            # same numbers.
+            var chosen = histogram(
+                rainfall,
+                bins=BinRule.AUTO,
+                theme=Theme(mark_color=DARKORANGE, show_gridlines=False),
+                width=380,
+                height=320,
+                title="bins=BinRule.AUTO",
+                subtitle="Five bins, chosen from the data",
+                x_title="Monthly rainfall (mm)",
+            )
+
+            var panels: List[Plot] = [fixed^, chosen^]
+            save_facets(panels, 2, "docs/src/examples/out_histogram_auto.svg")
+        ```
     """
     var resolved = edges.copy() if len(edges) > 0 else bin_edges(data, bins)
     var binned = histogram_bins(
@@ -821,6 +1256,81 @@ def histogram(
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def histogram(
+    data: List[Float64],
+    bins: BinRule,
+    weights: List[Float64] = List[Float64](),
+    stat: HistStat = HistStat.COUNT,
+    cumulative: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`histogram()` with the bin count chosen by a rule instead of named
+    -- `histogram(data, bins=BinRule.AUTO)`, the spelling
+    `numpy.histogram(data, bins="auto")` uses.
+
+    A rule in the `bins` slot rather than a separate `rule=` parameter,
+    and no `edges` parameter here: a rule, a count and an explicit edge
+    list are three answers to one question, and a signature that accepts
+    two at once has to invent a precedence order for them and then
+    document it. Overloading on the `bins` slot lets the type say which
+    answer was given.
+
+    `bins` is required rather than defaulting to `AUTO`, which also
+    leaves `histogram(data)` binning into 10 as it always has. That is
+    numpy's own arrangement -- `numpy.histogram`'s `bins` defaults to
+    10 and `"auto"` is opt-in -- and changing what an existing call
+    draws is a decision to take on its own, not a side effect of adding
+    the rules.
+
+    Args:
+        data: The raw values to bin -- not pre-counted; binning happens
+            internally.
+        bins: Which rule picks the count. `BinRule.AUTO` unless you have
+            a reason; see `BinRule` for the other five and what each
+            reads.
+        weights: One nonnegative weight per observation, or empty (the
+            default) for one apiece. Note that the rule itself always
+            reads the unweighted sample, as numpy's do.
+        stat: What a bar's height is; see `HistStat`.
+        cumulative: Draw running totals instead of per-bin values.
+        theme: Full styling knobs -- see `Theme`'s docstring.
+        width: Pixel width of the returned `Plot`.
+        height: Pixel height of the returned `Plot`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: `data` is empty, a value is `NaN`/infinite, the rule asks
+            for an unusably large number of bins, or whatever the
+            counting overload raises.
+    """
+    return histogram(
+        data,
+        edges=bin_edges(data, bins),
+        weights=weights,
+        stat=stat,
+        cumulative=cumulative,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )
 
 
@@ -878,6 +1388,71 @@ def histogram[
         _materialize_scalar_list(data),
         bins=bins,
         edges=edges,
+        weights=weights,
+        stat=stat,
+        cumulative=cumulative,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+    )
+
+
+def histogram[
+    dtype: DType
+](
+    data: List[Scalar[dtype]],
+    bins: BinRule,
+    weights: List[Float64] = List[Float64](),
+    stat: HistStat = HistStat.COUNT,
+    cumulative: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """The rule-picking `histogram()` generalized over numeric element
+    type; see `scatter()`'s `DType` overload (continuous.mojo).
+    Delegates to the concrete overload above.
+
+    The rule reads the materialized `Float64` values, so an integer
+    sample gets the same count a `List[Float64]` of the same numbers
+    would. numpy instead floors an integer array's bin width at 1, which
+    would make `List[Int32]` and `List[Float64]` inputs disagree here
+    for no reason a caller of this library could see.
+
+    Parameters:
+        dtype: The element type of `data`.
+
+    Args:
+        data: The raw values to bin.
+        bins: Which rule picks the count; see `BinRule`.
+        weights: One nonnegative weight per observation, or empty.
+        stat: What a bar's height is; see `HistStat`.
+        cumulative: Draw running totals instead of per-bin values.
+        theme: Full styling knobs -- see `Theme`'s docstring.
+        width: Pixel width of the returned `Plot`.
+        height: Pixel height of the returned `Plot`.
+        title: The chart's title.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: Whatever the concrete overload raises.
+    """
+    return histogram(
+        _materialize_scalar_list(data),
+        bins=bins,
         weights=weights,
         stat=stat,
         cumulative=cumulative,
