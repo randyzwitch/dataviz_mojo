@@ -419,6 +419,36 @@ def _check_line_smoothing(theme: Theme) raises:
         )
 
 
+def _step_setter_name(mark: Mark) -> String:
+    """The `Plot` builder whose `step=` argument a mark's step came from:
+    `Mark.STREAMGRAPH` -> `"Plot.mark_streamgraph(step=...)"`.
+
+    Derived from `Mark.name()` (#415) rather than looked up. Every
+    builder in plot.mojo is `mark_` followed by its constant's
+    lowercased name -- all 51 of them, `mark_polar_bar` and
+    `mark_arc_diagram` included -- so the chain of `==` this replaced
+    was a second copy of a mapping the constant names already carry, and
+    it grew a branch every time a mark gained a `step`. Deriving it
+    means a new stepped mark gets the right setter named with no edit
+    here at all.
+
+    A mark outside the constants (`Mark(n)` is public) has no builder
+    name to derive, so it falls back to `Plot.mark_line(step=...)`,
+    which is what the old chain returned for everything it did not
+    list.
+
+    Args:
+        mark: The mark being drawn.
+
+    Returns:
+        The fully spelled builder call, ready to drop into a message.
+    """
+    var name = mark.name()
+    if not name.startswith("Mark."):
+        return "Plot.mark_line(step=...)"
+    return "Plot.mark_" + String(name[byte=5:]).lower() + "(step=...)"
+
+
 def _check_step_smoothing(
     theme: Theme, step: StepStyle, mark: Mark = Mark.LINE
 ) raises:
@@ -449,7 +479,9 @@ def _check_step_smoothing(
     its own default. That is why only `stacked_area()`, whose default
     is `0.0`, exposes `step` as a one-call parameter -- and why the
     message has to name `Plot.mark_streamgraph(step=...)` rather than a
-    line or area setter the caller never touched.
+    line or area setter the caller never touched. `_step_setter_name`
+    derives that from `mark`, so the next mark to gain a `step` is named
+    correctly without an edit here.
 
     Called by `_draw_line_layer` and `_draw_area_layer` beside
     `_check_line_smoothing`, by `_render_bar_combo_layers`' two inline
@@ -462,22 +494,16 @@ def _check_step_smoothing(
         mark: Which mark is being drawn, so the message names the
             setter the caller actually reached for (`Mark.AREA` ->
             `Plot.mark_area(step=...)`, `Mark.STREAMGRAPH` ->
-            `Plot.mark_streamgraph(step=...)`, everything else
-            `Plot.mark_line(step=...)`). Defaulted to `Mark.LINE` for
-            the call sites that predate `Mark.AREA` having a step.
+            `Plot.mark_streamgraph(step=...)`). Defaulted to `Mark.LINE`
+            for the call sites that predate `Mark.AREA` having a step.
 
     Raises:
         Error: Both a non-`NONE` `step` and a non-zero `line_smoothing`.
     """
     if step != StepStyle.NONE and theme.line_smoothing > 0.0:
-        var setter = String("Plot.mark_line(step=...)")
-        if mark == Mark.AREA:
-            setter = "Plot.mark_area(step=...)"
-        elif mark == Mark.STREAMGRAPH:
-            setter = "Plot.mark_streamgraph(step=...)"
         raise Error(
             "Theme.line_smoothing and "
-            + setter
+            + _step_setter_name(mark)
             + " are mutually"
             " exclusive -- a smoothed staircase rounds off the corners that"
             " carry its meaning (got line_smoothing="

@@ -115,3 +115,146 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
 
     def __eq__(self, other: Self) -> Bool:
         return self._value == other._value
+
+    def name(self) -> String:
+        """This mark's constant name, spelled the way a caller writes it:
+        `Mark.POINT`, `Mark.TRICONTOURF`, and so on.
+
+        Exists for error messages. Every other value a raise here needs
+        to name already has this -- `StepStyle.name()`, and
+        `_check_step_smoothing`'s own message calls it -- so a mark being
+        the one thing an error could not name was the asymmetry (#415).
+        Two messages were visibly worse for it: `render_layers()`'s
+        allow-list could only say "layer 1 is a different mark" and then
+        list marks the caller had not used, and
+        `_check_step_smoothing` picked its setter name from a chain of
+        `==` that grew a branch per mark gaining a `step`.
+
+        Returns the qualified spelling rather than the bare constant
+        (`"Mark.BAR"`, not `"BAR"`) because that is what the reader has
+        to go type. `StepStyle.name()` returns the bare form, but its
+        messages already supply the `StepStyle.` around it; a mark name
+        is dropped into prose where nothing else says which type it is.
+
+        Rejected: a positional `List[String]` indexed by `_value`, which
+        is half the lines but ties each name to a number nothing checks
+        -- inserting a mark mid-list would silently rename every mark
+        after it. The chain below names each constant twice on adjacent
+        lines instead, and compares against the constant rather than
+        against a literal integer, so a wrong pairing is visible at the
+        edit and a wrong *number* is impossible.
+        `Stringable`/`__str__` was rejected too: `String(mark)` reads as
+        "this mark's value as text", and conforming would let a mark
+        interpolate into user-facing output that was never meant to
+        carry an internal constant's spelling.
+
+        Returns:
+            The constant's qualified name, or `"Mark(<n>)"` for a value
+            outside the constants above -- which is reachable, since
+            `Mark(n)` is public and the sweep in
+            tests/test_backend_equivalence.mojo constructs marks by
+            number.
+        """
+        if self == Self.POINT:
+            return "Mark.POINT"
+        if self == Self.LINE:
+            return "Mark.LINE"
+        if self == Self.BAR:
+            return "Mark.BAR"
+        if self == Self.AREA:
+            return "Mark.AREA"
+        if self == Self.ARC:
+            return "Mark.ARC"
+        if self == Self.LOLLIPOP:
+            return "Mark.LOLLIPOP"
+        if self == Self.WATERFALL:
+            return "Mark.WATERFALL"
+        if self == Self.BOX:
+            return "Mark.BOX"
+        if self == Self.CANDLESTICK:
+            return "Mark.CANDLESTICK"
+        if self == Self.BULLET:
+            return "Mark.BULLET"
+        if self == Self.GANTT:
+            return "Mark.GANTT"
+        if self == Self.GROUPED_BAR:
+            return "Mark.GROUPED_BAR"
+        if self == Self.STACKED_BAR:
+            return "Mark.STACKED_BAR"
+        if self == Self.POPULATION_PYRAMID:
+            return "Mark.POPULATION_PYRAMID"
+        if self == Self.HEATMAP:
+            return "Mark.HEATMAP"
+        if self == Self.CHORD:
+            return "Mark.CHORD"
+        if self == Self.SINGLE_AXIS:
+            return "Mark.SINGLE_AXIS"
+        if self == Self.EFFECT_SCATTER:
+            return "Mark.EFFECT_SCATTER"
+        if self == Self.FUNNEL:
+            return "Mark.FUNNEL"
+        if self == Self.BUMP:
+            return "Mark.BUMP"
+        if self == Self.STREAMGRAPH:
+            return "Mark.STREAMGRAPH"
+        if self == Self.BEESWARM:
+            return "Mark.BEESWARM"
+        if self == Self.VIOLIN:
+            return "Mark.VIOLIN"
+        if self == Self.RIDGELINE:
+            return "Mark.RIDGELINE"
+        if self == Self.NIGHTINGALE:
+            return "Mark.NIGHTINGALE"
+        if self == Self.POLAR_BAR:
+            return "Mark.POLAR_BAR"
+        if self == Self.POLAR:
+            return "Mark.POLAR"
+        if self == Self.RADAR:
+            return "Mark.RADAR"
+        if self == Self.GAUGE:
+            return "Mark.GAUGE"
+        if self == Self.PARALLEL:
+            return "Mark.PARALLEL"
+        if self == Self.SPAN_CHART:
+            return "Mark.SPAN_CHART"
+        if self == Self.CALENDAR_HEATMAP:
+            return "Mark.CALENDAR_HEATMAP"
+        if self == Self.CORRPLOT:
+            return "Mark.CORRPLOT"
+        if self == Self.PUNCHCARD:
+            return "Mark.PUNCHCARD"
+        if self == Self.MARIMEKKO:
+            return "Mark.MARIMEKKO"
+        if self == Self.SUNBURST:
+            return "Mark.SUNBURST"
+        if self == Self.TREE:
+            return "Mark.TREE"
+        if self == Self.TREEMAP:
+            return "Mark.TREEMAP"
+        if self == Self.ARC_DIAGRAM:
+            return "Mark.ARC_DIAGRAM"
+        if self == Self.GRAPH:
+            return "Mark.GRAPH"
+        if self == Self.SANKEY:
+            return "Mark.SANKEY"
+        if self == Self.RADIALBAR:
+            return "Mark.RADIALBAR"
+        if self == Self.BARBS:
+            return "Mark.BARBS"
+        if self == Self.CONTOUR:
+            return "Mark.CONTOUR"
+        if self == Self.CONTOURF:
+            return "Mark.CONTOURF"
+        if self == Self.TRICONTOUR:
+            return "Mark.TRICONTOUR"
+        if self == Self.TRICONTOURF:
+            return "Mark.TRICONTOURF"
+        if self == Self.KDE:
+            return "Mark.KDE"
+        if self == Self.RUG:
+            return "Mark.RUG"
+        if self == Self.TRIPLOT:
+            return "Mark.TRIPLOT"
+        if self == Self.TRIPCOLOR:
+            return "Mark.TRIPCOLOR"
+        return "Mark(" + String(self._value) + ")"
