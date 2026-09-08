@@ -1,9 +1,10 @@
-"""Merged test module (one process per test family; see pixi.toml's
-`[tasks]` comment for why). Covers:
+"""Tests for the quickplot API.
+
+Covers:
 
 - The one-call convenience functions: each is checked pixel-for-pixel
   against a manually built `Plot` rendered through the same
-  `render()` (#112), so these catch a wrapper drifting from the
+  `render()`, so these catch a wrapper drifting from the
   builder (a renamed kwarg, a dropped .labels()/.theme()/.size()
   call, a wrong default), not rendering math. One "matches the manual
   builder with non-default theme/size/labels" test per mark, plus one
@@ -11,12 +12,11 @@
   the package, as a caller would.
 - The DType-generic overloads of every quickplot function with flat
   `List[Float64]` data: `List[Int]` renders byte-for-byte like the
-  equivalent `List[Float64]`. Reuses each function's `Example:` data
-  (#167).
+  equivalent `List[Float64]`. Reuses each function's `Example:` data.
 - The nested `List[List[Float64]]` overloads (grouped_bar/stacked_bar/
   bump/streamgraph, beeswarm/ridgeline/violin/box, marimekko, radar,
   parallel, polar_series) via `_materialize_nested_scalar_list`, plus
-  radar()'s independent flat `max_values` axis (#173). corrplot()/
+  radar()'s independent flat `max_values` axis. corrplot()/
   parallel() use synthetic whole-number data here.
 """
 
@@ -813,7 +813,7 @@ def test_radar_accepts_nested_list_int_matching_list_float64() raises:
 
 
 def test_radar_accepts_list_int_max_values_matching_list_float64() raises:
-    # radar()'s other DType-generic axis (#173): max_values, a flat
+    # radar()'s other DType-generic axis: max_values, a flat
     # List[Float64], independent of series_values' nested axis; each
     # overload generalizes one of the two.
     var indicators: List[String] = ["A", "B", "C"]

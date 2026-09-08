@@ -188,7 +188,7 @@ def _render_horizontal_beeswarm[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """`_render_beeswarm`'s mirror image for
-    `Plot.mark_beeswarm(horizontal=True)` (#121): `_render_horizontal_bar`'s
+    `Plot.mark_beeswarm(horizontal=True)`: `_render_horizontal_bar`'s
     categorical y-axis / continuous x-axis
     (`_draw_horizontal_categorical_axis_frame`, gantt.mojo), with each
     category's values placed along `x_scale` and jittered vertically
@@ -250,10 +250,8 @@ def beeswarm(
         values: Each category's raw values (`values[i]`, not a
             summary statistic) -- one point drawn per value.
         tooltips: Whether each point carries an SVG `<title>` a browser
-            shows on hover; defaults to `False`. Off by default because
-            a title costs roughly as much as the point element itself,
-            so a dense scatter's SVG about doubles -- see
-            `Plot.mark_point()`'s own `tooltips` parameter.
+            shows on hover; defaults to `False`. `Theme.svg_tooltips`
+            must also be enabled.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -266,7 +264,7 @@ def beeswarm(
         horizontal: Draw categories running top-to-bottom with each
             swarm jittered vertically within its own row instead of
             the default vertical layout -- see `Plot.mark_beeswarm()`'s
-            own docstring (#121).
+            own docstring.
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.

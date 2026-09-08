@@ -47,7 +47,7 @@ def _draw_chord_ribbon[
     `_render_chord`'s angles only advance forward, matching `arc_to`'s
     expectation.
 
-    Filled `NONZERO` (#256). Both connections bow through the circle's
+    Filled `NONZERO`. Both connections bow through the circle's
     center, so a ribbon between two nearly-opposite nodes can pinch to a
     point there and cross itself. Even-odd would read that overlap as
     outside and punch a hole in the middle of the ribbon; nonzero fills

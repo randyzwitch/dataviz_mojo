@@ -47,7 +47,7 @@ def _calendar_day_labels() -> List[String]:
 
 def _month_label_stride(month_cx: List[Int], needed: Float64) -> Int:
     """How many months to step between drawn labels so that no two
-    overlap (#361): the smallest stride whose every consecutive drawn
+    overlap: the smallest stride whose every consecutive drawn
     pair is at least `needed` pixels apart.
 
     Only strides that divide 12 are considered, so the drawn months stay
@@ -267,17 +267,7 @@ def _render_calendar_heatmap[
             )
         )
 
-    # Month labels are left-anchored at the week each month starts in,
-    # and nothing used to check whether they fit: below about 530px the
-    # twelve ran together into "JanFebMarApr..." (#361). That is worse
-    # than a crowded categorical axis, because these labels are the only
-    # thing identifying which column is which month -- once they merge,
-    # the chart cannot be read along that axis at all.
-    #
-    # So measure, then show every `stride`-th month. Anchors are not
-    # evenly spaced (a month starts 4 or 5 weeks after the previous one),
-    # so the stride is chosen against the actual anchor positions rather
-    # than an average gap.
+    # Show every `stride`-th month based on measured anchor positions.
     var month_cx = List[Int](capacity=12)
     for month in range(1, 13):
         var days = _days_from_civil(_Date(year, month, 1)) - jan1_days
@@ -326,7 +316,7 @@ def _render_calendar_heatmap[
         # The far edge is computed from `col + 1` rather than as
         # `x_start + cell_width` so that it is the *same expression* the
         # next column's `x_start` evaluates, and therefore the same
-        # Float64 (#379). The two are equal in exact arithmetic but
+        # Float64. The two are equal in exact arithmetic but
         # floating-point addition is not associative, and the extra
         # accumulated add was enough to snap the shared boundary a pixel
         # apart and leave a background column between two cells.

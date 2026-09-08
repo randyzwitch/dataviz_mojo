@@ -118,7 +118,7 @@ def test_render_beeswarm_raises_on_empty_category_distribution() raises:
 
 
 def test_render_beeswarm_raises_on_no_data() raises:
-    # #206: encode_distribution() now raises immediately on empty
+    # encode_distribution() now raises immediately on empty
     # categories, before beeswarm() even returns a Plot to render.
     var cats = List[String]()
     var vals = List[List[Float64]]()
@@ -341,7 +341,6 @@ def test_render_violin_raises_on_empty_category_distribution() raises:
 
 
 def test_render_violin_raises_on_no_data() raises:
-    # #206: see test_render_beeswarm_raises_on_no_data above.
     var cats = List[String]()
     var vals = List[List[Float64]]()
     with assert_raises():
@@ -522,7 +521,7 @@ def _canvases_differ(a: Canvas, b: Canvas) -> Int:
 
 
 def test_rug_draws_no_y_axis_while_kde_keeps_one() raises:
-    """#378: a rug has no y dimension, so it draws no y-axis at all --
+    """A rug has no y dimension, so it draws no y-axis at all --
     no axis line, tick marks, tick labels or horizontal gridlines. The
     `LinearScale(0, 1, ...)` `_render_rug` passes exists only because
     `_draw_continuous_axis_frame` demands a y-domain; drawn out, it
@@ -595,7 +594,7 @@ def test_rug_draws_no_y_axis_while_kde_keeps_one() raises:
 
 
 def test_rug_reclaims_the_y_tick_label_margin() raises:
-    """#378 step 1's second half: with no y tick labels to fit, the left
+    """Step 1's second half: with no y tick labels to fit, the left
     margin must stop being sized to them.
 
     `plot_x0` is `max(theme.margin_left, label_width + tick + gap +
@@ -671,7 +670,7 @@ def test_kde_still_clamps_its_left_margin_to_its_tick_labels() raises:
 def test_continuous_frame_keeps_the_y_axis_by_default() raises:
     """`_draw_continuous_axis_frame`'s `y_axis_visible` defaults to
     `True`, which is what lets every continuous mark but `Mark.RUG` go
-    on calling it unchanged (#378).
+    on calling it unchanged.
 
     Drawn at the seam rather than through a mark, because the claim is
     about the parameter and not about any one chart: omitting the
@@ -993,7 +992,6 @@ def test_render_ridgeline_raises_on_empty_category_distribution() raises:
 
 
 def test_render_ridgeline_raises_on_no_data() raises:
-    # #206: see test_render_beeswarm_raises_on_no_data above.
     var cats = List[String]()
     var vals = List[List[Float64]]()
     with assert_raises():
@@ -1290,7 +1288,7 @@ def test_stacked_area_defaults_to_straight_bands() raises:
 
 def test_streamgraph_baseline_defaults_to_wiggle() raises:
     # The compatibility claim: mark_streamgraph() with no baseline must
-    # render exactly what it did before #337 existed. Byte-identical to
+    # render exactly what it did before existed. Byte-identical to
     # the explicit WIGGLE spelling.
     var cats: List[String] = ["X", "Y"]
     var names: List[String] = ["A", "B"]
@@ -1334,7 +1332,7 @@ def test_render_streamgraph_raises_on_mismatched_series_names_and_values_length(
 
 
 def test_render_streamgraph_raises_on_no_data() raises:
-    # #206: _validate_grouped_bar_series now raises on empty categories at
+    # _validate_grouped_bar_series now raises on empty categories at
     # render() time (encode_grouped_bar() itself still defers length
     # checking, per its own docstring).
     var cats = List[String]()
@@ -1417,7 +1415,6 @@ def test_render_bump_raises_on_mismatched_series_names_and_values_length() raise
 
 
 def test_render_bump_raises_on_no_data() raises:
-    # #206: see test_render_streamgraph_raises_on_no_data above.
     var cats = List[String]()
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [List[Float64]()]
@@ -1494,7 +1491,7 @@ def test_render_point_mark_draws_no_halo() raises:
 
 
 def test_render_effect_scatter_raises_on_no_data() raises:
-    # #206: Plot.encode()'s empty-data check (_require_non_empty) now
+    # Plot.encode()'s empty-data check (_require_non_empty) now
     # raises at render() time for Mark.EFFECT_SCATTER same as Mark.POINT.
     var x = List[Float64]()
     var y = List[Float64]()
@@ -1504,7 +1501,7 @@ def test_render_effect_scatter_raises_on_no_data() raises:
 
 
 # ---------------------------------------------------------------
-# Mark.STREAMGRAPH step interpolation (#403)
+# Mark.STREAMGRAPH step interpolation
 # ---------------------------------------------------------------
 
 # Two series over three categories, on a 400x300 canvas with no
@@ -1613,12 +1610,12 @@ def test_stacked_area_step_matches_confirmed_paths() raises:
         ' L326.667,250.000 L220.000,250.000 L113.333,250.000 Z"'
         ' fill="#1f77b4"/>'
         in none,
-        "NONE, band A -- unchanged by #403",
+        "NONE, band A",
     )
 
 
 def test_stacked_area_step_tiles_each_band_onto_the_one_below() raises:
-    # The property a reversed-edge bug breaks, and the reason #403 warns
+    # The property a reversed-edge bug breaks, and the reason warns
     # about one. Band B's bottom edge *is* band A's top edge -- the same
     # `running[i]` values -- so the two must trace the same staircase,
     # and band B's is traversed backwards. Asserted structurally rather
@@ -1738,7 +1735,7 @@ def test_stacked_area_step_leaves_no_background_between_bands() raises:
 
 
 def test_stacked_area_step_and_smoothing_are_mutually_exclusive() raises:
-    # #336/#384's rule, extended to Mark.STREAMGRAPH. The message must
+    # 's rule, extended to Mark.STREAMGRAPH. The message must
     # name mark_streamgraph, not mark_line or mark_area: a caller who
     # never touched either would otherwise be sent to the wrong setter.
     var cats: List[String] = ["X", "Y", "Z"]
@@ -1776,7 +1773,7 @@ def test_stacked_area_step_and_smoothing_are_mutually_exclusive() raises:
 
 
 def test_mark_streamgraph_step_reaches_the_wiggle_baseline_too() raises:
-    # #403 keeps `step` off streamgraph()'s own signature because that
+    # keeps `step` off streamgraph()'s own signature because that
     # function sets smoothing=0.6, which a step conflicts with. The
     # builder still exposes it, and a WIGGLE stack whose theme leaves
     # smoothing at 0.0 steps like any other.
@@ -1816,7 +1813,7 @@ def test_mark_streamgraph_step_reaches_the_wiggle_baseline_too() raises:
 
 
 # ---------------------------------------------------------------
-# Mark.ECDF (#338)
+# Mark.ECDF
 # ---------------------------------------------------------------
 
 
@@ -2074,7 +2071,7 @@ def test_render_ecdf_raises_without_observations() raises:
 
 
 def test_mark_kde_without_encode_kde_raises_instead_of_aborting() raises:
-    """#439: `_kde_observations` reached for `values[0]` before checking
+    """`_kde_observations` reached for `values[0]` before checking
     that the outer list had any column at all, so a `Mark.KDE` plot with
     no `encode_kde()` hit an out-of-bounds assert.
 

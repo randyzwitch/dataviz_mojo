@@ -1,15 +1,4 @@
-"""The three continuous marks -- point, line and area -- and the
-one-call functions that build them.
-
-Split out of `plot.mojo` (#222). These three share a frame, a set of
-encodings (`_PointChannels` resolves color/size/shape once per chart
-rather than per row) and the decimation that keeps a long series from
-costing more than the pixels it can occupy.
-
-Marker and line geometry is `Float64` throughout: a disk is antialiased
-on every side wherever it sits, so rounding its center bought no
-crispness and only moved it off the datum (#312).
-"""
+"""Point, line, and area rendering and their one-call constructors."""
 
 from std.math import sin
 
@@ -59,27 +48,10 @@ from dataviz.validate import _check_line_smoothing, _check_step_smoothing
 def _build_line_path(
     px: List[Float64], py: List[Float64], smoothing: Float64
 ) raises -> Path:
-    """The `Path` a `Mark.LINE` plot strokes through its
-    already-pixel-projected points, and the curve `Mark.AREA` fills down
-    to the baseline from.
+    """Build a line or area path through projected parallel coordinates.
 
-    Delegates to `Path.curve_through`, which canvas_mojo v0.18.0 added
-    with exactly these semantics: `smoothing == 0.0` takes an explicit
-    `line_to` branch, so the default render is command-for-command the
-    one a polyline builds (a flattened cubic samples at even parameter
-    spacing, not even pixel spacing, so even a straight cubic flattens
-    to different intermediate points); above 0.0 it is one cubic per
-    consecutive pair with Catmull-Rom tangents -- control point =
-    endpoint +/- (next minus previous)/6 -- with the ends clamped to a
-    one-sided tangent, and `smoothing` scaling the tangent length.
-
-    Bit-identical to the arithmetic this used to do inline: canvas_mojo
-    v0.18.1 divides then scales per component, the same order, so every
-    control point matches to the last bit.
-
-    This wrapper stays rather than callers using `curve_through`
-    directly because the render paths carry points as parallel
-    `px`/`py` lists, not `FPoint`s.
+    A zero `smoothing` produces line segments; positive values use
+    `Path.curve_through` with scaled Catmull-Rom tangents.
     """
     var points = List[FPoint](capacity=len(px))
     for i in range(len(px)):
@@ -90,11 +62,7 @@ def _build_line_path(
 
 
 struct _Stepped(Movable):
-    """`_step_points`' result: the expanded `px`/`py` pair. Its own
-    struct for the same reason `_Decimated` below has one -- a function
-    returns one value and the two parallel lists have to travel
-    together.
-    """
+    """The expanded coordinate lists returned by `_step_points`."""
 
     var px: List[Float64]
     var py: List[Float64]
@@ -107,9 +75,7 @@ struct _Stepped(Movable):
 def _step_points(
     px: List[Float64], py: List[Float64], step: StepStyle
 ) -> _Stepped:
-    """`px`/`py` rewritten as the staircase `step` asks for (#336): the
-    same samples, with a plateau and a vertical riser between each
-    consecutive pair in place of one straight segment.
+    """Expand projected coordinates into the requested staircase.
 
     The three styles differ only in where the riser goes, which is
     exactly what `StepStyle`'s constants name:
@@ -118,77 +84,12 @@ def _step_points(
       `y[i + 1]` -- emits `(x[i], y[i + 1])` then `(x[i + 1], y[i + 1])`.
     - `POST`: riser at the later x, so `[x[i], x[i + 1])` draws at
       `y[i]` -- emits `(x[i + 1], y[i])` then `(x[i + 1], y[i + 1])`.
-    - `MID`: riser at the midpoint -- emits `(m, y[i])` then
-      `(m, y[i + 1])`, and one closing `(x[n - 1], y[n - 1])` after the
-      loop. The vertex at `x[i]` itself is *not* emitted: it would sit
-      exactly on the line between the two midpoints either side of it,
-      so it is a segment the rasterizer pays for and the reader cannot
-      see. `PRE`/`POST` have no such redundancy.
+    - `MID`: riser at the midpoint.
 
-    Works in pixel space, on the already-projected points, so a log
-    scale steps where the reader sees the samples rather than where the
-    untransformed data sits. `MID`'s midpoint is likewise the pixel
-    midpoint, which is what "halfway between these two readings" means
-    on the page.
-
-    Anything other than `PRE`/`MID`/`POST` -- `NONE`, or a `StepStyle`
-    built from an out-of-range `Int` -- returns the input unchanged,
-    matching `LineStyle.dashes()`' fallback to `SOLID`, so a caller can
-    hand this its style unconditionally. A series shorter than two
-    points has no pair to step between and is likewise returned as-is.
-
-    **A degenerate step emits the same point twice, deliberately
-    (#405).** Every style writes a plateau and a riser per pair; when
-    either has zero length, its two ends are one point and it is
-    emitted anyway:
-
-    - Two consecutive samples sharing an **x** collapse `PRE`'s and
-      `POST`'s plateau. `PRE`'s `(px[i], py[i + 1])` and
-      `(px[i + 1], py[i + 1])` become the same point, and so do
-      `POST`'s `(px[i + 1], py[i])` and the `(px[i], py[i])` before it.
-      `MID` survives this one: the midpoint of two equal x is that x,
-      but the two points it emits there carry different y.
-    - Two consecutive samples sharing a **y** collapse the riser, in
-      *all three* styles -- `PRE`'s `(px[i], py[i + 1])` repeats the
-      point before it, `POST`'s two emissions at `px[i + 1]` become
-      one, and `MID`'s two at the midpoint likewise. A held reading is
-      the exact shape a step chart is drawn for, so this is the common
-      case of the two, not the exotic one.
-
-    The duplicate is kept because matplotlib emits it too, and being
-    byte-identical to `cbook.pts_to_prestep`/`pts_to_midstep`/
-    `pts_to_poststep` is a property this function is tested against
-    (`test_step_points_matches_matplotlibs_own_step_expansion`) and the
-    reason its rules are stated as emissions rather than as a shape.
-    matplotlib's versions are pure array slicing -- `steps[0, 0::2] = x`,
-    `steps[0, 1::2] = x[1:]` and so on -- which cannot look at what it
-    just wrote, so a degenerate step falls straight through. Verified
-    on matplotlib 3.11.1:
-
-        x = [0, 100, 100, 200], y = [10, 40, 20, 30]   (repeated x)
-        PRE   (0,10) (0,40) (100,40) (100,20) (100,20) (100,30) (200,30)
-        MID   (0,10) (50,10) (50,40) (100,40) (100,20) (150,20)
-              (150,30) (200,30)
-        POST  (0,10) (100,10) (100,40) (100,40) (100,20) (200,20) (200,30)
-
-        x = [0, 100, 200], y = [10, 10, 30]            (repeated y)
-        PRE   (0,10) (0,10) (100,10) (100,30) (200,30)
-        MID   (0,10) (50,10) (50,10) (150,10) (150,30) (200,30)
-        POST  (0,10) (100,10) (100,10) (200,10) (200,30)
-
-    Skipping a point equal to the previous one would cost one path
-    command per degenerate step and gain a divergence from the oracle
-    at exactly the inputs a reader is most likely to check by hand. It
-    draws nothing either way: a zero-length segment puts no ink on the
-    raster, confirmed for all three styles in #405, and
-    `_decimate_to_pixel_columns` leaves it alone (both points land in
-    one column, and that column's min and max y are the same sample
-    twice).
-
-    `test_step_points_duplicates_a_repeated_x_the_way_matplotlib_does`
-    and `test_step_points_duplicates_a_repeated_y_the_way_matplotlib_does`
-    pin this, so a future cleanup breaks a test rather than the oracle
-    match.
+    Coordinates are already projected, so `MID` uses pixel-space
+    midpoints. `NONE`, invalid styles, and inputs shorter than two points
+    return a copy unchanged. Degenerate plateaus and risers may emit
+    duplicate points.
 
     Args:
         px: Projected x pixel coordinates.
@@ -259,20 +160,8 @@ def _decimate_to_pixel_columns(
     """Reduce a dense polyline to at most two points per horizontal pixel
     column.
 
-    A `Mark.LINE`/`AREA` plot of 5000 points into a ~640px-wide plot area
-    hands the rasterizer roughly eight segments per pixel column, and
-    `stroke_path_aa` pays full per-segment cost for each. Before this
-    existed, such a line took orders of magnitude longer to draw than
-    the same points as a scatter -- slow enough that a user reported it
-    rather than a benchmark catching it.
-
     Per column this keeps the minimum and maximum y, in original data
-    order (collapsed to one point when they are the same sample), which
-    preserves the envelope: a spike inside one column still reaches its
-    true extent. Keeping four points per column (first/last as well) was
-    tried and dropped nothing at all for a 2000-point series over ~500
-    columns. Min and max are real samples, so the joins between columns
-    move by at most a pixel.
+    order, preserving the visible envelope.
 
     Two guards: `px` must be non-decreasing, since `mark_line()` connects
     points in data order and a path that doubles back would be
@@ -511,12 +400,7 @@ def _draw_point_layer[
             else:
                 lo = plot.y_data[i] - plot.y_err_lower_data[i]
                 hi = plot.y_data[i] + plot.y_err_upper_data[i]
-            # The whisker and its two caps are hairlines, so all three
-            # snap onto pixel centers -- crispness wins over a fraction
-            # of a pixel, and the three meeting exactly keeps the T
-            # joints clean. That is also what the Int arithmetic here
-            # used to do, so error bars do not move; only the marker
-            # they belong to does.
+            # Snap the hairline and caps to matching pixel centers.
             var bar_x = _snap_pixel_center(px)
             var py_hi = _snap_pixel_center(_axis_pixel_f(y_scale, hi))
             var py_lo = _snap_pixel_center(_axis_pixel_f(y_scale, lo))
@@ -727,18 +611,7 @@ def _draw_line_layer[
     for i in range(len(plot.x_data)):
         px.append(x_scale.to_pixel(plot.x_data[i]))
         py.append(y_scale.to_pixel(plot.y_data[i]))
-    # Step first, decimate second (#336). This way what gets thinned is
-    # the geometry actually drawn, so _decimate_to_pixel_columns'
-    # guarantee -- at most two points per pixel column, keeping that
-    # column's true min and max y -- applies to the staircase itself.
-    #
-    # The other order was measured and is worse. Decimating first caps
-    # the samples at two per column and the expansion then turns each
-    # one back into a plateau and a riser, putting the segments straight
-    # back: 2241 points against 1121 for the same 5000-sample series
-    # over ~560 columns, undoing most of what decimation is for. It also
-    # places MID's risers at midpoints between the samples that happened
-    # to survive rather than between real ones.
+    # Thin the expanded geometry so step risers retain their true positions.
     var stepped = _step_points(px, py, plot._mark_style.step)
     # Drop sub-pixel detail before the rasterizer has to pay for it --
     # a no-op for any series small enough that its points are
@@ -766,7 +639,7 @@ def _draw_area_layer[
     path.
 
     `mark_area(step=...)` reaches the top edge through the same
-    `_step_points` `_draw_line_layer` uses (#384) -- a stepped area is a
+    `_step_points` `_draw_line_layer` uses -- a stepped area is a
     stepped line with the region under it filled, so a second expansion
     written against the fill would be two places to get `PRE`/`MID`/
     `POST` right instead of one. The closing segments do not join the
@@ -821,10 +694,8 @@ def scatter(
         x: The continuous x column, one entry per point.
         y: The continuous y column, one entry per point.
         tooltips: Whether each point carries an SVG `<title>` a browser
-            shows on hover; defaults to `False`. Off by default because
-            a title costs roughly as much as the point element itself,
-            so a dense scatter's SVG about doubles -- see
-            `Plot.mark_point()`'s own `tooltips` parameter.
+            shows on hover; defaults to `False`. `Theme.svg_tooltips`
+            must also be enabled.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.

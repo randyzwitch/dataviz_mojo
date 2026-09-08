@@ -1,5 +1,6 @@
-"""Merged test module (one process per test family; see pixi.toml's
-`[tasks]` comment for why). Covers:
+"""Tests for core plot behavior.
+
+Covers:
 
 - Generic Plot.encode()/render() validation and utility functions
   (_categorical_indices, _edge_node_index, _decimate_to_pixel_columns).
@@ -20,12 +21,12 @@
 - PointShape/Theme.shape_by_category: the shape cycle, per-shape
   geometry (SVG), legend icons, and the no-op without color_categories.
 - accessible_svg_string()/write_accessible_svg() and SVG tooltips,
-  including (#213) the categorical marks whose hover text names more than
+  including the categorical marks whose hover text names more than
   one number -- WATERFALL (delta vs running total), BULLET (measure vs
   target), POPULATION_PYRAMID (both sides), SPAN_CHART (both ends) and
   CANDLESTICK (all four prices) -- plus FUNNEL, whose rows are drawn in
   sorted order and so must title from their pre-sort index.
-- _svg_output_string()/_resolve_description() (#212): save()/save_layers()/
+- _svg_output_string()/_resolve_description(): save()/save_layers()/
   save_facets() add accessible SVG markup automatically once a title is
   set, an explicit Plot.labels(description=...) over subtitle, and an
   untitled plot's output staying byte-identical.
@@ -110,10 +111,6 @@ def test_render_raises_on_mismatched_x_y_lengths() raises:
 
 
 def test_render_raises_on_no_data() raises:
-    # #206: a Plot with no mark_*() call at all defaults to Mark.POINT with
-    # empty x_data/y_data; this used to render a plain background with no
-    # error, and now raises via _require_non_empty("Plot.encode()") before
-    # any layout.
     with assert_raises():
         var plot = Plot().size(
             50, 40
@@ -198,7 +195,7 @@ def test_render_raises_on_mismatched_size_length() raises:
 
 
 def test_plot_copy_produces_an_independent_render_unaffected_by_further_mutation() raises:
-    # #207: Plot is Copyable (not ImplicitlyCopyable -- .copy() is
+    # Plot is Copyable (not ImplicitlyCopyable -- .copy() is
     # explicit). A base plot copied into two variants, each further
     # encoded/labeled/re-colored, must render independently: neither
     # copy's data or theme leaks into the other, and the original base
@@ -252,21 +249,6 @@ def test_plot_copy_produces_an_independent_render_unaffected_by_further_mutation
 
 
 def test_render_and_save_accept_an_unbound_temporary_plot() raises:
-    # #208: render()/render_facets()/render_layers() used to take `mut
-    # plot`/`mut plots` only so a temporary scale bump for supersampling
-    # could be undone afterward; a temporary Plot (a bare quickplot call
-    # or list literal with no `var` binding) can't bind to `mut`, so
-    # `render(scatter(x, y))` used to fail to compile. All three now
-    # take a plain borrow and copy internally, so calling them directly
-    # on a fresh, unbound value is exactly what this test does -- it
-    # would fail to compile at all under the old signatures, not just
-    # fail an assertion.
-    #
-    # Single point (5.0, 5.0): zero-span domain pads to [4.0, 6.0] on
-    # both axes (see test_render_point_mark_centers_on_the_hand_derived_pixel,
-    # test_marks_basic.mojo); on a 400x300 canvas with default margins
-    # (60/20/20/50), that's plot area x:[60,380], y:[20,250], landing the
-    # point at the exact pixel (220, 135).
     var x: List[Float64] = [5.0]
 
     var c1 = render(scatter(x, x, width=400, height=300))
@@ -339,7 +321,7 @@ def test_categorical_indices_agrees_with_unique_categories_and_index_of() raises
     assert_equal(len(cat.indices), len(data))
     for i in range(len(data)):
         assert_equal(cat.indices[i], _index_of(expected_domain, data[i]))
-        # .and the index really does address the right category.
+        # ...and the index really does address the right category.
         assert_equal(cat.domain[cat.indices[i]], data[i])
 
 
@@ -369,7 +351,7 @@ def test_edge_node_index_agrees_with_unique_categories_and_index_of() raises:
     for i in range(len(f)):
         assert_equal(edges.from_idx[i], _index_of(expected_nodes, f[i]))
         assert_equal(edges.to_idx[i], _index_of(expected_nodes, t[i]))
-        # .and each index really does address the right node.
+        # ...and each index really does address the right node.
         assert_equal(edges.nodes[edges.from_idx[i]], f[i])
         assert_equal(edges.nodes[edges.to_idx[i]], t[i])
 
@@ -617,7 +599,7 @@ def test_render_bar_left_margin_also_grows_to_fit_wide_y_axis_labels() raises:
 def test_resolve_x_label_rotation_matches_hand_computed_thresholds() raises:
     # AUTO: horizontal while the widest label fits its band; 45 degrees
     # once it doesn't but its rotated (narrower) footprint would; 90
-    # once even that doesn't (#214).
+    # once even that doesn't.
     assert_equal(
         _resolve_x_label_rotation(XAxisLabelRotation.AUTO, 50.0, 60.0), 0.0
     )
@@ -654,7 +636,7 @@ def test_render_svg_x_axis_labels_stay_horizontal_for_short_category_names() rai
     # 3 short category names on a 400px-wide bar chart: each easily fits
     # its band, so AUTO leaves them horizontal and the bottom axis line
     # stays at Theme's plain default margin (300 - margin_bottom(50) =
-    # 250) -- unaffected by #214, matching this file's pre-existing
+    # 250), matching this file's
     # 68/135 dynamic-left-margin tests' style of a hand-derived pixel
     # check.
     var cats: List[String] = ["A", "B", "C"]
@@ -860,31 +842,6 @@ def test_render_title_draws_ink_in_its_own_reserved_top_band() raises:
 
 
 def test_render_y_axis_tick_label_glyph_ink_matches_a_pinned_pixel() raises:
-    # Every other tick-label assertion in this file is an SVG <text>
-    # check, which only pins where a label is *requested*: dataviz hands
-    # both backends the same _TextRequest coordinates, so it says nothing
-    # about where the rasterizer actually puts ink. A canvas_mojo change
-    # that shifts every rasterized glyph -- as one briefly did between
-    # #263 and #264 -- would leave every SVG assertion here green while
-    # every raster label moved. This pins one pixel inside a tick label's
-    # actual glyph strokes so a shift like that fails instead.
-    #
-    # bar(["A"], [10.0]), Theme(show_gridlines=False, show_legend=False),
-    # 400x300: the "10" y-axis tick label sits at SVG (x=51, y=35,
-    # text-anchor="end", font-size 12.0). (45, 33) is the darkest pixel in
-    # that label's glyph box (a scan against Theme's default text_color
-    # (40, 40, 40)).
-    #
-    # This pin used to be (49, 28). It moved because the supersampling
-    # rewrite fixed where the label lands, not because the label drifted:
-    # rendering the same chart at raster_supersample=1 -- no supersampling
-    # at all, so nothing to get wrong -- puts the darkest pixel at
-    # (45, 33) and the label's ink centroid at x=46.508. Before the
-    # rewrite, raising the factor to 3 moved that centroid to x=48.842 and
-    # the darkest pixel to (49, 28); after it, factor 3 reproduces the
-    # factor-1 centroid to 0.005 px. So the old pin recorded a position
-    # only the supersampled path produced, and this one is the position
-    # every path agrees on.
     var cats: List[String] = ["A"]
     var vals: List[Float64] = [10.0]
     var t = Theme(show_gridlines=False, show_legend=False)
@@ -902,7 +859,7 @@ def test_render_svg_subtitle_matches_hand_derived_position() raises:
     # is (18, 40, 400, 282) and the line's flat y moves from 137.000 to
     # 146.000 (plot_y0=60, plot_y1=232). The title stays at (229, 14); the
     # subtitle sits at y = 0 + 22 + Int(14.0*0.8) = 33 in
-    # Theme.subtitle_color (#6e6e6e), normal weight.
+    # Theme.subtitle_color (e6e6e), normal weight.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [5.0, 5.0]
     var plot = (
@@ -1312,7 +1269,7 @@ def test_theme_layout_fields_reach_scaled() raises:
         _Scaled(t2).tick_length, 20, "overridden tick_length reaches _Scaled"
     )
 
-    # .and still scales. 20 at scale 2.0 is 40, not 20.
+    # ...and still scales. 20 at scale 2.0 is 40, not 20.
     assert_equal(
         _Scaled(Theme(tick_length=20, scale=2.0)).tick_length,
         40,
@@ -1337,7 +1294,7 @@ def test_theme_layout_fields_reach_scaled() raises:
 
 
 def test_theme_raster_supersample_actually_changes_antialiased_output() raises:
-    # #231: Theme.raster_supersample replaces the old fixed
+    # Theme.raster_supersample replaces the old fixed
     # _RASTER_SUPERSAMPLE constant. A filled interior is exact at any
     # factor (see _assert_near_color's own docstring), so the effect is
     # only visible at an antialiased edge; rather than pin a specific
@@ -1661,7 +1618,7 @@ def test_render_raises_on_negative_raster_supersample() raises:
 
 
 def test_render_facets_and_layers_take_the_largest_raster_supersample() raises:
-    # #231: render_facets()/render_layers() share one canvas, so one
+    # render_facets()/render_layers() share one canvas, so one
     # factor has to serve every plot on it -- they take the largest any
     # plot resolves to rather than plots[0]'s, or a curved mark beside a
     # bar chart would be drawn at the bar's factor. They raise the same
@@ -2077,7 +2034,7 @@ def test_render_svg_shape_by_category_matches_hand_derived_geometry() raises:
         '<rect x="129" y="132" width="8" height="8" fill="#ff7f0e"/>' in s,
         "B -> SQUARE",
     )
-    # C -> TRIANGLE, palette[2] #2ca02c -- equilateral, top vertex
+    # C -> TRIANGLE, palette[2] ca02c -- equilateral, top vertex
     # straight up (cy-r), the other two at +-30deg either side of
     # straight down (cy+r*0.5, cx+-r*cos(30deg), cos(30deg)=0.8660254).
     assert_true(
@@ -2094,7 +2051,7 @@ def test_render_svg_shape_by_category_matches_hand_derived_geometry() raises:
         in s,
         "D -> DIAMOND",
     )
-    # E -> CROSS, palette[4] #9467bd -- two perpendicular strokes,
+    # E -> CROSS, palette[4] bd -- two perpendicular strokes,
     # stroke-width = radius*0.65 = 2.6. Neither stroke snaps: at 2.6
     # wide its two edges cannot both sit on pixel boundaries wherever it
     # is put, so there is no crispness to win by moving it.
@@ -2112,7 +2069,7 @@ def test_render_svg_shape_by_category_matches_hand_derived_geometry() raises:
         in s,
         "E -> CROSS (horizontal stroke)",
     )
-    # F -> X, palette[5] #8c564b -- CROSS's own two strokes, rotated
+    # F -> X, palette[5] c564b -- CROSS's own two strokes, rotated
     # 45deg (diag = radius*cos(45deg) = 2.828..., no longer rounded, so
     # the four arms are the same length as each other).
     assert_true(
@@ -2331,7 +2288,7 @@ def test_accessible_svg_string_preserves_the_chart_body_unchanged() raises:
 
 
 def test_svg_output_string_adds_accessible_markup_when_a_title_is_set() raises:
-    # #212: save()/save_layers()/save_facets() all funnel through
+    # save()/save_layers()/save_facets() all funnel through
     # _svg_output_string() rather than writing plain svg.to_string(), so
     # this is what actually decides whether a titled plot's SVG file gets
     # role="img"/<title>/<desc> -- tested here with no disk I/O, since
@@ -2790,7 +2747,7 @@ def test_svg_tooltips_off_on_the_newly_covered_marks() raises:
 
 
 # ---------------------------------------------------------------
-# Property-style sweeps for _decimate_to_pixel_columns (#220)
+# Property-style sweeps for _decimate_to_pixel_columns
 # ---------------------------------------------------------------
 
 
@@ -2940,7 +2897,7 @@ def test_sweep_decimation_declines_on_any_non_monotonic_x() raises:
 
 
 # ---------------------------------------------------------------
-# Theme.legend_position (#211)
+# Theme.legend_position
 # ---------------------------------------------------------------
 
 
@@ -2948,7 +2905,7 @@ def _grouped_series_plot(
     position: LegendPosition, names: List[String]
 ) raises -> Plot:
     """A four-series grouped bar with the legend on `position`. Grouped
-    bar is the case the issue is about: several series, so the legend is
+    bar has several series, so the legend is
     wide enough that where it sits changes the plot's shape.
     """
     var cats: List[String] = ["Q1", "Q2", "Q3", "Q4"]
@@ -3151,7 +3108,7 @@ def test_legend_position_left_moves_the_swatches_left_of_the_plot() raises:
 def _continuous_point_plot(position: LegendPosition) raises -> Plot:
     """A point plot with both continuous channels encoded, so its legend
     carries a color bar and a size section -- the two that had no row
-    form until #211's follow-up.
+    form.
     """
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
     var y: List[Float64] = [2.0, 4.0, 3.0, 5.0, 1.0, 6.0]
@@ -3167,10 +3124,7 @@ def _continuous_point_plot(position: LegendPosition) raises -> Plot:
 
 
 def test_continuous_legend_row_costs_height_not_width() raises:
-    """A point mark's color bar and size circles used to fall back to a
-    column for TOP/BOTTOM. They now lay out along a row, so those
-    positions cost the plot height and leave its width alone.
-    """
+    """TOP and BOTTOM legends reserve height rather than width."""
     var right = _laid_out_at(_continuous_point_plot(LegendPosition.RIGHT))
     var bottom = _laid_out_at(_continuous_point_plot(LegendPosition.BOTTOM))
     var top = _laid_out_at(_continuous_point_plot(LegendPosition.TOP))
@@ -3252,13 +3206,7 @@ def _laid_out_at(plot: Plot) raises -> _RenderResult:
 
 
 def test_a_fresh_font_cache_does_not_scan_until_something_needs_a_font() raises:
-    """#255's shared cache used to be wrapped in a `_LazyFontCache`,
-    because `FontCache()` was itself the ~20ms installed-font scan and
-    building one per render charged that to marks that never draw text.
-    canvas_mojo 0.16.0 made `FontCache` lazy itself, so the wrapper is
-    gone -- and `has_scanned()` lets the property be asserted rather than
-    inferred from a stopwatch.
-    """
+    """A new font cache remains lazy until text measurement is required."""
     var cache = FontCache()
     assert_true(not cache.has_scanned(), "constructing a cache scans nothing")
 
@@ -3285,7 +3233,7 @@ def test_a_render_that_measures_no_text_never_scans() raises:
     `Mark.SANKEY`'s layout pass measures nothing (its node labels are
     deferred `_TextRequest`s), so a cache handed to it comes back
     untouched. Eagerly scanning here is exactly what made an
-    under-a-millisecond SVG render cost 20ms in #255's first cut.
+    under-a-millisecond SVG render cost 20ms.
     """
     var cache = FontCache()
     var f: List[String] = ["a", "b"]

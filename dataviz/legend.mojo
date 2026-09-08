@@ -1,7 +1,7 @@
 """Legends: where they go, how wide they are, and the four kinds that
 get drawn.
 
-Split out of `plot.mojo` (#222). A legend is laid out before anything
+Split out of `plot.mojo`. A legend is laid out before anything
 is drawn, because its width comes off the plot area -- `_legend_layout`
 and `_legend_reserve_for` answer "how much room does this chart owe its
 legend" so the frame can be sized around the answer.
@@ -56,13 +56,10 @@ def _dynamic_legend_width(
 
 struct _LegendLayout(Movable):
     """How much room a legend needs and on which edge, plus the packing a
-    horizontal one will draw with (#211).
+    horizontal one will draw with.
 
     `left`/`right`/`top`/`bottom` are the inset each edge of the plot
-    rect takes; exactly one is non-zero. A mark adds them to its rect
-    before laying anything else out, so the legend's cost is paid the
-    same way whichever edge it lands on -- `RIGHT` reproduces the fixed
-    column every mark reserved before this existed.
+    rect takes; exactly one is non-zero. A mark applies them before layout.
 
     `entry_widths`/`row_of` are filled only for `TOP`/`BOTTOM`, where
     entries pack into wrapping rows: measuring labels twice (once to size
@@ -105,9 +102,8 @@ def _legend_layout(
 ) raises -> _LegendLayout:
     """Size a legend for `theme.legend_position` and say which edge pays.
 
-    A column (`RIGHT`/`LEFT`) is exactly `_dynamic_legend_width`, so the
-    default is byte-for-byte what marks reserved before this setting
-    existed. A row (`TOP`/`BOTTOM`) packs entries left to right, wrapping
+    A column (`RIGHT`/`LEFT`) uses `_dynamic_legend_width`. A row
+    (`TOP`/`BOTTOM`) packs entries left to right, wrapping
     whenever the next one would run past `available_width`, and reserves
     the height those rows need.
 
@@ -390,10 +386,7 @@ def _continuous_legend_row_height(sc: _Scaled, has_size: Bool) -> Int:
     """How tall one row of horizontal continuous legend is: the tallest
     section it can contain, plus the gap separating it from the plot.
 
-    The size section is the tall one -- a full circle diameter with its
-    label underneath -- so a row carrying it needs room for both. Sizing
-    to the color bar alone clips those labels off the canvas, which is
-    exactly what the first version of this did.
+    A size section reserves room for the circle diameter and its label.
 
     Args:
         sc: The render's scaled layout metrics.

@@ -134,8 +134,7 @@ struct Category(Copyable, Movable):
 
 
 def _categories() -> List[Category]:
-    # Every example here is a distinct chart type; feature demos (facets,
-    # layers, annotations, ...) live in the Cookbook instead.
+    # Feature demos live in the Cookbook; this list contains chart types.
     var cats = List[Category]()
     cats.append(
         Category(
@@ -501,11 +500,7 @@ def main() raises:
 
     for p in pages:
         if p.name in cookbook.names:
-            # Cookbook pages live under docs/src/cookbook/, but their rendered
-            # .svg files land under docs/src/examples/out_*.svg (the path is
-            # hardcoded in each Example's save() call), so the image reference
-            # needs a relative prefix. Two levels because a cookbook page's URL is
-            # /cookbook/<name>/, two segments below the site root.
+            # Cookbook pages need two parent segments to reach examples SVGs.
             var page_md = _build_page(
                 p.name, titles[p.name], p, image_prefix="../../examples/"
             )
@@ -514,16 +509,7 @@ def main() raises:
             var page_md = _build_page(p.name, titles[p.name], p)
             _write_file(_OUT_DIR + "/" + p.name + ".md", page_md)
 
-    # Community Cookbook recipes -- every *.mojo file in _RECIPES_DIR,
-    # discovered fresh each run (std.os.listdir), not a hand-maintained
-    # list the way _pages() is: the whole point of this directory is
-    # that a contributor doesn't touch any *.mojo file under scripts/
-    # at all. Raises the same "don't silently overwrite" way `main()`'s
-    # own docstring-page assertions already do, extended to cover a
-    # recipe's name colliding with an existing Examples/Cookbook page
-    # -- both land in a flat name -> file namespace across the whole
-    # site, so a collision either way would otherwise silently clobber
-    # one page with another.
+    # Discover recipes on each run and reject output-name collisions.
     var recipe_entries = listdir(_RECIPES_DIR)
     sort(recipe_entries)
     var recipe_names = List[String]()

@@ -1,5 +1,4 @@
-"""Calendar-aware tick positions and labels for a day-resolution
-temporal axis (#195, first slice).
+"""Calendar-aware tick positions and labels for day-resolution axes.
 
 `_nice_step` picks 1/2/5 x 10^n, which is right for a quantity and wrong
 for time: a reader wants month starts, quarters or years, and those are
@@ -7,17 +6,8 @@ irregular -- 28 to 31 days, 365 or 366 -- in a way no multiplicative
 step can express. So ticks here are *walked* along the calendar rather
 than computed, and each carries its own label.
 
-This is the half of #195 that no encoding decision changes. The issue
-leaves open how a caller supplies dates (ISO strings, epoch numbers, or
-a real Date type) and whether a temporal axis is requested or inferred;
-all three still need the same answer to "given a span of days, where do
-the ticks go and what do they read". Nothing here is wired into `Plot`,
-and no public API is added, precisely so that decision stays open.
-
-Day resolution only. Sub-day steps (hours, minutes) need an epoch unit
-finer than days, which is design question 2 on the issue and not settled
-here; `_TimeUnit`'s ladder is arranged so those slot in below `DAY`
-without disturbing what is above it.
+This internal module is not yet wired into `Plot`. It supports day resolution
+and coarser units only.
 """
 
 from dataviz.calendar_heatmap import _Date, _days_from_civil

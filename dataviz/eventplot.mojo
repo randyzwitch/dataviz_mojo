@@ -1,4 +1,4 @@
-"""`Mark.EVENTPLOT`: parallel rasters of event positions (#339).
+"""`Mark.EVENTPLOT`: parallel rasters of event positions.
 
 The chart for anything that *occurs* at times rather than having a
 value at times -- neural spike trains (where it is called a raster

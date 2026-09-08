@@ -33,7 +33,7 @@ def _validate_grouped_bar_series(plot: Plot) raises:
     """`Plot.encode_grouped_bar()`'s deferred length checks:
     `series_names`/`values` the same length, and every `values[j]` the
     same length as `categories` (deferred to render() time; see that
-    method), plus an empty-data check (`_require_non_empty`, #206) on
+    method), plus an empty-data check (`_require_non_empty`) on
     both `categories` and `series_names`. Lives here next to
     `Mark.GROUPED_BAR`'s rendering and is imported by stacked_bar.mojo,
     bump.mojo, and streamgraph.mojo, which
@@ -65,7 +65,7 @@ def _validate_grouped_bar_series(plot: Plot) raises:
         len(plot._grouped_bar.series_names), "Plot.encode_grouped_bar()"
     )
 
-    # errors (#216): shaped like values, Mark.GROUPED_BAR only among the
+    # errors: shaped like values, Mark.GROUPED_BAR only among the
     # marks that share this validator.
     if len(plot._grouped_bar.errors) == 0:
         return
@@ -161,7 +161,7 @@ def _draw_series_legend[
 def _grouped_bar_domain_data(plot: Plot) -> List[Float64]:
     """Every `plot._grouped_bar.values[j][i]`, widened to that series'
     error-bar endpoints (`values[j][i] +/- errors[j][i]`) when `errors`
-    is set (#216) -- so the y-domain spans everything `_draw_grouped_bars`
+    is set -- so the y-domain spans everything `_draw_grouped_bars`
     actually draws, the same pattern `_bar_y_domain_data` (bar.mojo) uses
     for `Mark.BAR`.
     """
@@ -206,7 +206,7 @@ def _draw_grouped_bars[
     `baseline_edge` is that frame's axis line (`py1` vertically, `px0`
     horizontally).
 
-    `Plot.encode_grouped_bar()`'s `errors` (#216), when set, draws a
+    `Plot.encode_grouped_bar()`'s `errors`, when set, draws a
     capped symmetric whisker at each sub-bar's value edge first, in that
     sub-bar's own series color, the same "whisker first, mark on top"
     order `_draw_bar_rects` uses for `Mark.BAR`.
@@ -383,7 +383,7 @@ def _render_horizontal_grouped_bar[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """`_render_grouped_bar`'s mirror image for
-    `Plot.mark_grouped_bar(horizontal=True)` (#121):
+    `Plot.mark_grouped_bar(horizontal=True)`:
     `_render_horizontal_bar`'s categorical y-axis / zero-baseline x-axis
     (`_draw_horizontal_categorical_axis_frame`, gantt.mojo), with each
     category's row subdivided into equal-height sub-bars stacked within
@@ -488,7 +488,7 @@ def grouped_bar(
         horizontal: Draw categories running top-to-bottom with each
             category's sub-bars stacked left-to-right instead of the
             default vertical layout -- see `Plot.mark_grouped_bar()`'s
-            own docstring (#121).
+            own docstring.
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.

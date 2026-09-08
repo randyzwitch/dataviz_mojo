@@ -28,7 +28,7 @@ def _snap_pixel_edge(value: Float64) -> Float64:
     it is visible as a soft edge, and an axis-aligned rectangle is the
     one shape where the hard edge is worth more than the fraction.
     Gridlines, paths and text keep their exact geometry, which is what
-    made them sharper rather than blurrier (#293).
+    made them sharper rather than blurrier.
 
     Snapping here rather than leaving it to the primitive matters under
     supersampling: `fill_rect` maps the box and snaps in *device*

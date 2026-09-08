@@ -1,79 +1,8 @@
-"""Displaying a 2D array of numbers as colored cells: `Mark.IMSHOW` on a
-regular grid, `Mark.PCOLORMESH` on explicit cell edges (#341).
+"""Render 2D numeric arrays as colored cells.
 
-Two marks in one module for the same reason `triplot.mojo` holds
-`TRIPLOT` and `TRIPCOLOR`: they are the same drawing with a different
-source of geometry. `_fill_cells` does all of the drawing for both, and
-the seam reasoning that makes it correct (below) is one argument, not
-two.
-
-Why this is not `Mark.HEATMAP`. HEATMAP takes *categorical* x and y
-labels with one value per (x, y) pair, so it draws a labeled grid of
-categories: a 512x512 array would need 512 category labels and has no
-continuous axis under the cells at all. Everything people actually
-display as an image -- a matrix, a raster, a spectrogram, a correlation
-surface, a decoded PNG -- wants a continuous axis and no labels, which
-is what these two draw.
-
-## The seam
-
-Adjacent filled cells are where this package has been bitten most
-often (#315, #318, #327, #359, #360, #379), in two opposite ways:
-
-- Two anti-aliased fills meeting at a shared edge each cover it
-  partially, and partial over partial never reaches full coverage, so a
-  pale line shows through.
-- Two *snapped* edges computed independently can land a pixel apart --
-  `band_start(i) + bandwidth()` and `band_start(i + 1)` are equal in
-  exact arithmetic but not always the same `Float64` -- and the
-  background shows through the gap.
-
-Both are structurally impossible here. Every boundary in the grid is
-computed exactly once, into `_edge_pixels`' array, and then read twice:
-cell `i`'s far edge and cell `i + 1`'s near edge are `edges[i + 1]`
-*both times*, the same list element, not two expressions that ought to
-agree. `OrdinalScale.band_end` exists to make those two expressions
-agree; an array of edges does not need them to.
-
-The fills themselves are `fill_rect`, not `fill_path_aa`. A snapped
-axis-aligned rect covers whole pixels, so nothing is partially covered
-to begin with -- see `_snap_pixel_edge`.
-
-## Not one rect per cell
-
-A 512x512 array is 262,144 cells, and one rect each would be absurd for
-an image. Two things bound the work by the *output* instead:
-
-- A cell whose two edges snapped to the same pixel boundary covers no
-  pixels and is skipped. That is what makes the count independent of
-  the array: at 512x512 in the stock 640x420 chart, 262,144 cells
-  become 179,200 visible ones (350 rows survive, one per pixel row of
-  the plot rect), and it stays 179,200 at 1024x1024.
-- Runs of horizontally adjacent cells that resolve to the same color
-  merge into one rect.
-
-Measured, 512x512 into the stock chart: a smooth `sin*cos` field draws
-170,146 rects (merging saves 5%, since almost every neighbor differs in
-the low bits after 8-bit quantization), a checkerboard 179,200 (nothing
-merges, by construction), and a binary mask 816 -- 220x fewer. The
-merge is one comparison per cell and it is the mask-shaped inputs
-(thresholds, labels, segmentation, sparse matrices) it pays off on,
-which are a large share of what gets handed to `imshow`.
-
-End to end, rasterizing a large array costs little more than a small
-one: the render is dominated by the axis frame, not the array.
-
-**SVG output is another matter.** Each rect is an element, so 512x512
-is an 8.5 MB `<svg>`. It plateaus there rather than growing (1024x1024
-is 8.7 MB) because the rect count does, but a large image is much
-better saved as `.png` than `.svg`. #425 tracks embedding a raster
-image in the SVG output instead.
-
-Writing pixels directly would beat all of this, and cannot be done
-here: `DrawTarget` is the seam between the raster and SVG backends and
-SVG has no pixels, so a per-pixel path would exist on one backend only,
-while tests/test_backend_equivalence.mojo requires both to lay out
-identically.
+`Mark.IMSHOW` uses a regular continuous grid; `Mark.PCOLORMESH` accepts
+explicit cell edges. Unlike categorical `Mark.HEATMAP`, neither mark
+draws category labels.
 """
 
 from std.utils.numerics import isfinite
@@ -442,7 +371,7 @@ def _render_image[
     invents contrast in a scalar field where the data has none.
 
     No interpolation: each cell is one flat color. Nearest-neighbor is
-    the honest default for a first cut, because it shows the array's
+    the default because it shows the array's
     actual resolution instead of implying detail that was interpolated
     into it.
 
@@ -720,7 +649,7 @@ def pcolormesh(
 
     Only 1D edges are supported: a fully curvilinear mesh (matplotlib's
     2D `X`/`Y`) would need a quad per cell rather than a rect, which is
-    a different drawing and a different seam argument. #424 tracks it.
+    a different drawing path.
 
     Args:
         x_edges: Column boundaries, `cols + 1` of them, strictly

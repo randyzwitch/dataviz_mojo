@@ -97,53 +97,53 @@ def _render_streamgraph[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.STREAMGRAPH` plot: `encode_grouped_bar()`'s data
-    stacked the same running-total way as `Mark.STACKED_BAR`, but with
-    each series drawn as one flowing band connecting every category's
-    top/bottom edge in turn, filled via `fill_path_aa`, rather than one
-    rect per category.
+        stacked the same running-total way as `Mark.STACKED_BAR`, but with
+        each series drawn as one flowing band connecting every category's
+        top/bottom edge in turn, filled via `fill_path_aa`, rather than one
+        rect per category.
 
-    `_mark_style.streamgraph_baseline` decides where each stack starts
-    (#337). `WIGGLE`, the default, starts it at `-total_i / 2`, so the
-    whole stack floats centered on zero and the silhouette is symmetric
-    -- the streamgraph proper. `ZERO` starts every stack at a flat zero,
-    giving the ordinary stacked area chart, and takes its y-domain from
-    `_zero_baseline_y_extent` over the per-category totals so that zero
-    is an exact axis endpoint rather than a padded one.
+        `_mark_style.streamgraph_baseline` decides where each stack starts
+    . `WIGGLE`, the default, starts it at `-total_i / 2`, so the
+        whole stack floats centered on zero and the silhouette is symmetric
+        -- the streamgraph proper. `ZERO` starts every stack at a flat zero,
+        giving the ordinary stacked area chart, and takes its y-domain from
+        `_zero_baseline_y_extent` over the per-category totals so that zero
+        is an exact axis endpoint rather than a padded one.
 
-    `Theme.line_smoothing` curves both the top and bottom edges
-    (`_append_smoothed_edge`; `0.0` gives straight segments). The two cap
-    edges at the first/last category always stay straight.
+        `Theme.line_smoothing` curves both the top and bottom edges
+        (`_append_smoothed_edge`; `0.0` gives straight segments). The two cap
+        edges at the first/last category always stay straight.
 
-    `_mark_style.step` puts a staircase between categories instead
-    (#403), through the same `_step_points` `Mark.LINE` and `Mark.AREA`
-    use. Mutually exclusive with smoothing, via `_check_step_smoothing`.
+        `_mark_style.step` puts a staircase between categories instead
+    , through the same `_step_points` `Mark.LINE` and `Mark.AREA`
+        use. Mutually exclusive with smoothing, via `_check_step_smoothing`.
 
-    **Both edges of a band must step to the same staircase, or the
-    stack stops tiling.** Band `j`'s bottom edge is band `j - 1`'s top
-    edge -- the same `running[i]` values -- so if the two disagree about
-    where a riser goes, a wedge of background opens between them. The
-    trap is that the bottom edge is traversed in *reverse* category
-    order, and `_step_points` is not symmetric under reversal: stepping
-    a reversed list with `PRE` is not the same shape as reversing a
-    `POST`-stepped list, it is the same shape as reversing a
-    `PRE`-stepped one, which is the mirror of what the top edge did.
+        **Both edges of a band must step to the same staircase, or the
+        stack stops tiling.** Band `j`'s bottom edge is band `j - 1`'s top
+        edge -- the same `running[i]` values -- so if the two disagree about
+        where a riser goes, a wedge of background opens between them. The
+        trap is that the bottom edge is traversed in *reverse* category
+        order, and `_step_points` is not symmetric under reversal: stepping
+        a reversed list with `PRE` is not the same shape as reversing a
+        `POST`-stepped list, it is the same shape as reversing a
+        `PRE`-stepped one, which is the mirror of what the top edge did.
 
-    Rather than mirror the style and rely on that argument, the bottom
-    edge is built forward, stepped with the *same* style as the top,
-    and only then reversed. The staircase is then the top edge's by
-    construction, whatever `_step_points` does, and reversal cannot
-    change a shape -- only the order the points are visited in. The
-    mirrored-style form is equivalent (verified for all three styles),
-    but it makes correctness depend on a symmetry argument where this
-    depends on nothing.
+        Rather than mirror the style and rely on that argument, the bottom
+        edge is built forward, stepped with the *same* style as the top,
+        and only then reversed. The staircase is then the top edge's by
+        construction, whatever `_step_points` does, and reversal cannot
+        change a shape -- only the order the points are visited in. The
+        mirrored-style form is equivalent (verified for all three styles),
+        but it makes correctness depend on a symmetry argument where this
+        depends on nothing.
 
-    The two caps stay straight, the same rule #384 applied to
-    `Mark.AREA`'s two closing segments: they bound the fill and are not
-    data. Every style leaves the first and last emitted points on the
-    first and last category's own x, so the caps land where they always
-    did.
+        The two caps stay straight, the same rule  applied to
+        `Mark.AREA`'s two closing segments: they bound the fill and are not
+        data. Every style leaves the first and last emitted points on the
+        first and last category's own x, so the caps land where they always
+        did.
 
-    Every value must be non-negative. Reuses `_draw_categorical_axis_frame`.
+        Every value must be non-negative. Reuses `_draw_categorical_axis_frame`.
     """
     _validate_grouped_bar_series(plot)
 
@@ -302,7 +302,7 @@ def streamgraph(
     rects. Same data shape `grouped_bar()`/`stacked_bar()`/`bump()` take.
 
     There is deliberately no `step` here, unlike `stacked_area()`
-    (#403). A stepped stream is a contradiction: the flowing silhouette
+    . A stepped stream is a contradiction: the flowing silhouette
     is what a streamgraph is for, and it is not a chart anyone reads
     exact values off. The mechanical reason agrees -- stepping and
     `Theme.line_smoothing` are mutually exclusive, and `smoothing`
@@ -431,7 +431,7 @@ def stacked_area(
     values that are not in the data.
 
     That default is also why `step` lives here and not on
-    `streamgraph()` (#403). Curving and stepping are mutually exclusive
+    `streamgraph()`. Curving and stepping are mutually exclusive
     (`_check_step_smoothing`), so `streamgraph(step=...)` would raise on
     its own `smoothing=0.6` default, which is a bad thing to hand a
     caller. It reads better as a scope decision than as a workaround: a

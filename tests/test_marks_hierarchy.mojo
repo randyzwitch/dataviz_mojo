@@ -128,10 +128,6 @@ def test_render_sunburst_raises_on_mismatched_length() raises:
 
 
 def test_render_sunburst_raises_on_no_data() raises:
-    # #206: an empty hierarchy used to render a plain background with no
-    # error; _build_hierarchy_index's existing "no root found" raise now
-    # actually fires (the render-time empty guard used to intercept it
-    # first and return a blank result instead).
     var ids = List[String]()
     var parents = List[String]()
     var values = List[Float64]()
@@ -265,7 +261,6 @@ def test_render_tree_raises_on_mismatched_length() raises:
 
 
 def test_render_tree_raises_on_no_data() raises:
-    # #206: see test_render_sunburst_raises_on_no_data above.
     var ids = List[String]()
     var parents = List[String]()
     var values = List[Float64]()
@@ -370,7 +365,6 @@ def test_render_treemap_raises_on_mismatched_length() raises:
 
 
 def test_render_treemap_raises_on_no_data() raises:
-    # #206: see test_render_sunburst_raises_on_no_data above.
     var ids = List[String]()
     var parents = List[String]()
     var values = List[Float64]()
@@ -486,8 +480,6 @@ def test_render_chord_raises_on_all_zero_values() raises:
 
 
 def test_render_chord_raises_on_no_data() raises:
-    # #206: an empty edge list used to render a plain background with no
-    # error; _validate_edge_encoding now raises before any layout.
     var from_cats = List[String]()
     var to_cats = List[String]()
     var values = List[Float64]()
@@ -581,7 +573,6 @@ def test_render_arc_diagram_raises_on_mismatched_length() raises:
 
 
 def test_render_arc_diagram_raises_on_no_data() raises:
-    # #206: see test_render_chord_raises_on_no_data above.
     var from_c = List[String]()
     var to_c = List[String]()
     var v = List[Float64]()
@@ -681,7 +672,6 @@ def test_render_graph_raises_on_mismatched_length() raises:
 
 
 def test_render_graph_raises_on_no_data() raises:
-    # #206: see test_render_chord_raises_on_no_data above.
     var from_c = List[String]()
     var to_c = List[String]()
     var v = List[Float64]()
@@ -727,12 +717,6 @@ def test_render_sankey_svg_matches_confirmed_geometry() raises:
     )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    # The ribbon runs edge to edge, half a pixel above and left of the
-    # row and column indices: 71.5 is the boundary node A's rect ends
-    # on, so the two meet with no half-covered column between them.
-    # Measured before the change, that column rendered (143,187,217)
-    # against (31,119,180) either side of it -- a pale line down the
-    # full height of the junction.
     assert_true(
         '<path d="M71.500,19.500 L71.500,249.500 L367.500,249.500'
         ' L367.500,19.500 Z" fill="#1f77b4"/>'
@@ -750,19 +734,6 @@ def test_render_sankey_svg_matches_confirmed_geometry() raises:
 
 
 def test_render_sankey_node_meets_its_ribbon_with_no_seam() raises:
-    # A node is a rect and a ribbon is a path, and the two used to be
-    # laid out in different spaces: the rect from pixel indices, the
-    # ribbon from the same numbers read as geometry. The rect therefore
-    # ended half a pixel before the ribbon began, and the column between
-    # them came out half covered -- a pale vertical line down the full
-    # height of every junction. Measured on the pre-fix code, that
-    # column rendered (143,187,217) between two solid (31,119,180)
-    # neighbors.
-    #
-    # Asserted as "no partially covered column" rather than by pinning
-    # the junction's x, so it survives the layout moving. Row 60 rather
-    # than the middle of the node: the node labels are drawn at its
-    # vertical center, and antialiased text is legitimately blended.
     var from_c: List[String] = ["A"]
     var to_c: List[String] = ["B"]
     var v: List[Float64] = [10.0]
@@ -911,7 +882,6 @@ def test_render_sankey_raises_on_mismatched_length() raises:
 
 
 def test_render_sankey_raises_on_no_data() raises:
-    # #206: see test_render_chord_raises_on_no_data above.
     var from_c = List[String]()
     var to_c = List[String]()
     var v = List[Float64]()

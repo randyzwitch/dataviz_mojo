@@ -82,21 +82,8 @@ struct OrdinalScale(Movable):
         """The right pixel edge of the band at `index`: half the slot's
         padding in from the *next* slot's start.
 
-        Deliberately not `band_start(index) + bandwidth()`, which is the
-        same number in exact arithmetic and not always the same
-        `Float64` (#379). That form accumulates as
-        `(range_min + s*i) + s`, while the neighbor's
-        `band_start(index + 1)` evaluates `range_min + s*(i+1)`, and
-        floating-point addition is not associative -- at
-        420px x 24 categories the two came out 186.99999999999997 and
-        187.0. Snapping each to the pixel grid then rounded them to
-        different boundaries and left a one-pixel column of background
-        between two cells that should have touched.
-
-        Computing from `range_min + s * (index + 1)`, the identical
-        expression the neighbor's `band_start` uses, makes the two
-        bitwise equal whenever the padding is zero, so adjacent bands
-        cannot disagree about where their shared boundary is.
+        Uses the same expression as the next band's start so unpadded
+        neighbors share a bitwise-identical boundary.
 
         Args:
             index: The category's position in `domain`.

@@ -1,18 +1,12 @@
 #!/usr/bin/env bash
-# Bumps pixi.toml's [workspace]/[package] version fields together, commits,
-# and tags -- so the three copies (two manifest fields, one git tag) can't
-# drift the way they could before (#228; each of #164/#187/#201 edited
-# both manifest fields by hand, and the tag separately).
+# Bumps both manifest version fields, commits, and tags the release.
 #
 # Usage: scripts/release.sh <new-version>
 #   e.g. scripts/release.sh 0.8.0
 #   or:  pixi run release 0.8.0
 #
-# Requires a clean working tree (uncommitted changes would be swept into
-# the release commit) and that the two fields already agree
-# (check_version.sh, run automatically below, catches a drift instead of
-# silently deepening it). Commits and tags locally; doesn't push -- review
-# with `git show`/`git log` and push yourself:
+# Requires a clean working tree and matching existing version fields.
+# Commits and tags locally without pushing:
 #   git push origin main --tags
 set -euo pipefail
 

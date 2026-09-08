@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
 # Checks that pixi.toml's [workspace].version and [package].version agree,
-# and, when given a git ref/tag as an argument, that it matches too (#228).
-# Nothing enforced this before: each of the three release-bump PRs (#164,
-# #187, #201) edited both fields by hand, and the git tag is a third,
-# independently hand-created copy.
+# and optionally that both match a supplied git ref or tag.
 #
 # Usage:
 #   scripts/check_version.sh              # just checks the two manifest fields
 #   scripts/check_version.sh v0.8.0       # also checks a tag/ref against them
 #
-# `v0.8.0` and `0.8.0` are both accepted as the tag form (a leading `v` is
-# stripped before comparing), matching this repo's own tag naming
-# (`v0.3.0`, `v0.4.0`, ... in `git tag`).
+# A leading `v` is ignored when comparing a tag.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

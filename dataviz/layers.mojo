@@ -1,6 +1,6 @@
 """`render_layers()`: several plots sharing one frame.
 
-Split out of `plot.mojo` (#222). Layering is not just drawing twice --
+Split out of `plot.mojo`. Layering is not just drawing twice --
 the layers have to agree on a domain, a legend column and one set of
 axis furniture before any of them draws, which is what
 `_render_layers_generic` resolves.
@@ -120,7 +120,7 @@ def save_layers(plots: List[Plot], path: String) raises:
     format comes from `plots[0]`'s theme when the path's extension
     doesn't decide it. Raises on an empty `plots`.
 
-    SVG output writes accessible markup automatically (#212) from
+    SVG output writes accessible markup automatically from
     `plots[0]`'s `.labels()`, the same one whose title/subtitle
     `render_layers()` itself draws (only the first layer's labels apply
     to a layered chart); see `save()`'s own docstring.
@@ -155,55 +155,55 @@ def _secondary_axis_y_title(plots: List[Plot]) -> String:
 
 def render_layers(plots: List[Plot]) raises -> Canvas:
     """Render every `Plot` in `plots` onto one shared coordinate system: one
-    combined x/y domain across every layer, one set of axes/gridlines/
-    ticks, each mark drawn over the last in the order given.
+       combined x/y domain across every layer, one set of axes/gridlines/
+       ticks, each mark drawn over the last in the order given.
 
-    Takes the marks that place their data on a continuous x/y axis in the
-    caller's own units, which is what one shared domain can mean:
-    `Mark.POINT`, `LINE`, `AREA`, `EFFECT_SCATTER`, `KDE`, `RUG`,
-    `BARBS`, `TRICONTOUR`, `TRICONTOURF`, `TRIPLOT` and `TRIPCOLOR`
-    (#376) -- so a rug under a density curve, two KDEs compared on one
-    frame, isolines over a filled contour, or a scatter over a
-    triangulated field all draw. Plus at most one `Mark.BAR` layer for a
-    bar-plus-line combo chart (dispatched to `_render_bar_combo_layers`,
-    which has a narrower scope).
+       Takes the marks that place their data on a continuous x/y axis in the
+       caller's own units, which is what one shared domain can mean:
+       `Mark.POINT`, `LINE`, `AREA`, `EFFECT_SCATTER`, `KDE`, `RUG`,
+       `BARBS`, `TRICONTOUR`, `TRICONTOURF`, `TRIPLOT` and `TRIPCOLOR`
+    -- so a rug under a density curve, two KDEs compared on one
+       frame, isolines over a filled contour, or a scatter over a
+       triangulated field all draw. Plus at most one `Mark.BAR` layer for a
+       bar-plus-line combo chart (dispatched to `_render_bar_combo_layers`,
+       which has a narrower scope).
 
-    Every other mark raises with the reason: a categorical, polar,
-    hierarchical or edge-list mark has no continuous x to share;
-    `Mark.CONTOUR`/`CONTOURF` lay out in unpadded grid-index units rather
-    than the data's own coordinates (#423); `Mark.SINGLE_AXIS` pins its
-    points at the plot rect's vertical midpoint, which encodes nothing.
-    `render_facets()` has no allow-list at all and takes any mark, so it
-    is what to reach for when a composition here is refused.
+       Every other mark raises with the reason: a categorical, polar,
+       hierarchical or edge-list mark has no continuous x to share;
+       `Mark.CONTOUR`/`CONTOURF` lay out in unpadded grid-index units rather
+       than the data's own coordinates; `Mark.SINGLE_AXIS` pins its
+       points at the plot rect's vertical midpoint, which encodes nothing.
+       `render_facets()` has no allow-list at all and takes any mark, so it
+       is what to reach for when a composition here is refused.
 
-    A `Plot.secondary_axis()` layer scales against its own y-domain on
-    the right edge -- not a `Mark.RUG` layer, which has no y dimension to
-    scale. A `Mark.POINT`/`EFFECT_SCATTER` layer may use `color`/
-    `color_categories`/`size` encoding with its own scales and legend
-    section; sections stack in one column in layer order. There is no
-    per-series legend for flat-colored layers, and the field marks draw
-    no color bar here, as they draw none standalone.
+       A `Plot.secondary_axis()` layer scales against its own y-domain on
+       the right edge -- not a `Mark.RUG` layer, which has no y dimension to
+       scale. A `Mark.POINT`/`EFFECT_SCATTER` layer may use `color`/
+       `color_categories`/`size` encoding with its own scales and legend
+       section; sections stack in one column in layer order. There is no
+       per-series legend for flat-colored layers, and the field marks draw
+       no color bar here, as they draw none standalone.
 
-    Domains combine across every layer: the x-axis spans all of them, and
-    a layer whose y is measured from a baseline -- `Mark.AREA`'s fill
-    height, `Mark.KDE`'s density -- forces zero into its axis group's
-    domain, the rule one `Mark.AREA` layer has always applied.
-    `Plot.scale_x_log()`/`scale_y_log()` apply only to `Mark.POINT`/
-    `LINE`/`AREA`/`EFFECT_SCATTER`, the same restriction a standalone
-    render has. A stack of nothing but `Mark.RUG` layers has no y-axis
-    at all and draws none, as a standalone `rugplot()` does (#378).
+       Domains combine across every layer: the x-axis spans all of them, and
+       a layer whose y is measured from a baseline -- `Mark.AREA`'s fill
+       height, `Mark.KDE`'s density -- forces zero into its axis group's
+       domain, the rule one `Mark.AREA` layer has always applied.
+       `Plot.scale_x_log()`/`scale_y_log()` apply only to `Mark.POINT`/
+       `LINE`/`AREA`/`EFFECT_SCATTER`, the same restriction a standalone
+       render has. A stack of nothing but `Mark.RUG` layers has no y-axis
+       at all and draws none, as a standalone `rugplot()` does.
 
-    Shared chrome (background, gridlines, axis colors, margins, font
-    size, `Plot.labels()` titles) comes from `plots[0]`; every other
-    layer's `Theme` governs only its own mark (`mark_color`,
-    `point_radius`, `line_width`, `line_smoothing`, scaled by its own
-    `Theme.scale`). A secondary-axis layer's `y_title` captions the right
-    axis.
+       Shared chrome (background, gridlines, axis colors, margins, font
+       size, `Plot.labels()` titles) comes from `plots[0]`; every other
+       layer's `Theme` governs only its own mark (`mark_color`,
+       `point_radius`, `line_width`, `line_smoothing`, scaled by its own
+       `Theme.scale`). A secondary-axis layer's `y_title` captions the right
+       axis.
 
-    Every `Plot` must share the same `.size()`; an empty list raises.
-    Supersampled by `plots[0]._theme.raster_supersample` like `render()`,
-    bumping every layer's scale together on a copy (`plots` is a plain
-    borrow, #208).
+       Every `Plot` must share the same `.size()`; an empty list raises.
+       Supersampled by `plots[0]._theme.raster_supersample` like `render()`,
+       bumping every layer's scale together on a copy (`plots` is a plain
+       borrow).
     """
     _require_uniform_size(plots, "render_layers")
     # One canvas, so one factor must serve every plot on it: take the
@@ -448,7 +448,7 @@ def _render_bar_combo_layers[
                 + ")"
             )
 
-    # The bar layer's own y_err/y_err_lower/y_err_upper (#216, allowed here
+    # The bar layer's own y_err/y_err_lower/y_err_upper, allowed here
     # since _validate_categorical_encoding above already restricts them to
     # Mark.BAR) widens the shared domain to its whisker endpoints, same as
     # the standalone _render_bar does; every other layer's y_err* is
@@ -466,7 +466,7 @@ def _render_bar_combo_layers[
     var theme = plots[0]._theme
     var sc = _Scaled(theme)
 
-    # #215: one legend row per named layer (Plot.series_name()), the bar
+    # one legend row per named layer (Plot.series_name()), the bar
     # layer included, each in that layer's own Theme.mark_color.
     var series_names = List[String]()
     var series_colors = List[Color]()
@@ -534,7 +534,7 @@ def _render_bar_combo_layers[
                 )
         elif plots[i]._mark == Mark.LINE:
             # Stepping applies here as it does on a continuous x-axis
-            # (#336): this path builds its own geometry instead of
+            # This path builds its own geometry instead of
             # calling _draw_line_layer, and a step silently ignored
             # would draw a different claim about the data than the one
             # mark_line(step=...) asked for. No decimation to order it
@@ -546,7 +546,7 @@ def _render_bar_combo_layers[
                 stepped.px, stepped.py, layer_theme.line_smoothing
             )
             # `dashes=` for the same reason the step above is honored
-            # (#383): this path builds its own geometry rather than
+            # This path builds its own geometry rather than
             # calling `_draw_line_layer`, so every styling argument that
             # function passes has to be repeated here or it is silently
             # dropped. A dashed reference line rendering solid does not
@@ -563,7 +563,7 @@ def _render_bar_combo_layers[
             # _draw_area_layer uses, just against this frame's
             # categorical x positions instead of a continuous x_scale,
             # and stepped here for the same reason the Mark.LINE branch
-            # above is (#384): this branch builds its own geometry, so a
+            # above is: this branch builds its own geometry, so a
             # mark_area(step=...) it ignored would silently fill under a
             # diagonal the caller said was a staircase.
             var baseline_py = frame.y_scale.to_pixel(0.0)
@@ -590,7 +590,7 @@ def _render_bar_combo_layers[
 
 def _is_layerable_mark(mark: Mark) raises -> Bool:
     """Whether `mark` can share `_render_layers_generic`'s continuous
-    frame (#376).
+    frame.
 
     The rule is not "does this mark call `_draw_continuous_axis_frame`"
     -- `Mark.CONTOUR` does and is still excluded. It is **does this mark
@@ -623,7 +623,7 @@ def _is_layerable_mark(mark: Mark) raises -> Bool:
       than the data's own coordinates. Sharing an axis with a coordinate
       mark would silently equate column 12 with the value 12, and even a
       contour-over-contourf stack needs an unpadded combined domain this
-      path has no rule for. #423.
+      path has no rule for.
 
     A `raises` `def` only because `Mark.__eq__` is one.
     """
@@ -777,13 +777,12 @@ def _render_layers_generic[
     one `Mark.BAR` layer dispatches to `_render_bar_combo_layers` first.
 
     `_is_layerable_mark` is the allow-list and its docstring carries the
-    reasoning; #376 widened it from three marks to eleven. The way that
-    was done matters: every newly-admitted mark had the geometry after
+    reasoning. Every admitted mark has its geometry after
     its frame call extracted into a `_draw_*_layer` free function that
     takes an already-ranged `x_scale`/`y_scale`, and both its `_render_*`
     and this call it. Nothing here reimplements a mark. That is the one
     rule `_render_bar_combo_layers` broke, and it has cost three silently
-    dropped styling arguments so far (#336, #383, #422).
+    dropped styling arguments.
 
     A `Plot.secondary_axis()` layer is excluded from the primary y-domain
     and gets its own (zero-baselined if any layer in its group is
@@ -826,7 +825,7 @@ def _render_layers_generic[
             target, plots, bar_layer_index, ox0, oy0, ox1, oy1, cache=cache
         )
 
-    # Log-ness (#217) is decided per axis -- x is shared by every layer
+    # Log-ness is decided per axis -- x is shared by every layer
     # (there is no secondary x-axis), while y splits into the primary
     # group and the Plot.secondary_axis() group, each independently. Every
     # layer sharing an axis must agree; the first layer on each axis sets
@@ -845,10 +844,9 @@ def _render_layers_generic[
         # so this fires only for marks with no continuous frame of their own.
         #
         # The message names both the offending layer's index and its
-        # mark, because of #401: several mark docstrings told callers to
+        # mark because several mark docstrings tell callers to
         # layer marks this rejects, and a reader who followed one got a
-        # message that named neither. The mark half is #420 -- until
-        # #415 gave `Mark` a `name()`, mark.mojo was comptime Int
+        # message that named neither.
         # constants and the index was all a raise could report.
         if not _is_layerable_mark(plots[i]._mark):
             raise Error(
@@ -867,7 +865,7 @@ def _render_layers_generic[
                 " hierarchical or edge-list mark has no continuous x to"
                 " share; Mark.CONTOUR/CONTOURF lay out in unpadded"
                 " grid-index units rather than the data's own coordinates"
-                " (#423); Mark.SINGLE_AXIS pins its points at the rect's"
+                "; Mark.SINGLE_AXIS pins its points at the rect's"
                 " midpoint, which would mean nothing against a co-layer's"
                 " real y-axis. Use render_facets(), which has no allow-list"
                 " and takes any mark."
@@ -879,7 +877,7 @@ def _render_layers_generic[
             or plots[i]._mark == Mark.EFFECT_SCATTER
         ):
             # The same rule _render_generic enforces on a standalone plot,
-            # repeated here because the marks #376 admitted reach this
+            # repeated here because the marks admitted reach this
             # path without going through it. None of them has a log
             # domain wired up: a KDE's density, a triangulation's
             # coordinates and a barb field's positions all reach the
@@ -907,7 +905,7 @@ def _render_layers_generic[
         if plots[i]._x_domain.has or plots[i]._y_domain.has:
             raise Error(
                 "render_layers(): Plot.scale_x_domain()/scale_y_domain() aren't"
-                " supported here yet (#209) -- layer "
+                " supported here yet -- layer "
                 + String(i)
             )
         if not x_log_seen:
@@ -1017,7 +1015,7 @@ def _render_layers_generic[
     # host y-axis for the rugs to ride, so the frame falls back to what
     # a standalone rugplot() draws: the LinearScale(0, 1) placeholder
     # _draw_continuous_axis_frame requires, with the y half suppressed
-    # (#378). Drawing it would caption the chart "0.0 0.2 ... 1.0", a
+    # Drawing it would caption the chart "0.0 0.2 ... 1.0", a
     # density that isn't there. The x-axis and vertical gridlines stay:
     # the observation's value is the one thing a rug does encode.
     var has_y_data = len(combined_y) > 0
@@ -1065,7 +1063,7 @@ def _render_layers_generic[
             + sc.margin_buffer
         )
 
-    # #215: one legend row per named layer (Plot.series_name()), in that
+    # one legend row per named layer (Plot.series_name()), in that
     # layer's own Theme.mark_color -- a secondary-axis layer's row is
     # suffixed so the reader knows which axis it reads against. Collected
     # once here and reused both for legend_reserve's width measurement
@@ -1191,8 +1189,8 @@ def _render_layers_generic[
     # to the same `_draw_*_layer` the mark's own `_render_*` calls, never
     # to a second copy of its geometry -- the mistake
     # `_render_bar_combo_layers` made, which silently dropped `step=`
-    # (#336), then `dashes=` (#383), and still drops
-    # `mark_point(tooltips=True)` today (#422).
+    # then `dashes=`, and still drops
+    # `mark_point(tooltips=True)` today.
     #
     # `layer_sc` is the layer's own `_Scaled`, not the frame's: the frame
     # belongs to plots[0], while `line_width`, `point_radius` and
@@ -1250,7 +1248,7 @@ def _render_layers_generic[
             # ticks are all the same length and all sit on the plot
             # rect's bottom edge, which is the whole of what a rug says.
             # In a stack the y-axis is the host layer's and the rug is a
-            # passenger on it (#378's note on #376).
+            # passenger on it.
             _draw_rug_ticks(
                 target,
                 domains[j].xs,
@@ -1291,7 +1289,7 @@ def _render_layers_generic[
         var layer_y_scale = out_y_scale2 if plots[
             j
         ]._secondary_axis else frame.y_scale
-        # Whether that y-scale measures anything (#389). A secondary-axis
+        # Whether that y-scale measures anything. A secondary-axis
         # layer's does when some layer contributed to the secondary
         # domain; a primary one's follows the frame, which is false only
         # for the all-Mark.RUG stack whose y half was suppressed above.

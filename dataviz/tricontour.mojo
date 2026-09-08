@@ -358,7 +358,7 @@ def _validate_tricontour(plot: Plot, mark_context: String) raises:
     `Plot.mark_tricontourf()`), the only thing that differed between the
     two copies this replaces.
 
-    A free function because `_render_layers_generic` (#376) has to run it
+    A free function because `_render_layers_generic` has to run it
     in its own first pass -- a layer's x/y columns go into the combined
     domain before any frame exists, so a mismatched `encode_tricontour()`
     has to be caught there rather than inside the drawing.
@@ -398,13 +398,13 @@ def _draw_tricontour_layer[
     continuous axis frame, the counterpart to `_draw_line_layer` in
     continuous.mojo.
 
-    Split out of `_render_tricontour` for #376, so a `render_layers()`
-    stack strokes the same isolines from the same code rather than
+    Shared by standalone and layered rendering so both stroke the same
+    isolines rather than
     reimplementing them -- the failure mode
     `_render_bar_combo_layers`' inline line geometry has hit twice
-    (`step=` in #336, `dashes=` in #383). Layering these over a
+    (`step=` and `dashes=`). Layering these over a
     `Mark.TRICONTOURF` of the same samples is what `tricontourf()`'s
-    docstring recommends, and until #376 it raised (#401).
+    docstring recommends.
 
     `sc` is the *layer's* own `_Scaled`, not the frame's: identical for a
     standalone render, but in a stack the frame belongs to `plots[0]`
@@ -533,7 +533,7 @@ def _draw_tricontourf_layer[
     """Draw one `Mark.TRICONTOURF` plot's filled bands into an
     already-laid-out continuous axis frame, `_draw_tricontour_layer`'s
     counterpart and the layer a `render_layers()` stack puts underneath
-    it (#376, #401).
+    it.
 
     No `_Scaled` argument, unlike its stroked sibling: every band is a
     fill, and nothing here is sized by the theme.
@@ -715,7 +715,7 @@ def tricontourf(
 
     Drawing both at once is what matplotlib does, and
     `render_layers([tricontourf(...), tricontour(...)])` is how to say it
-    here (#376) -- filled bands underneath, isolines on top. Both marks
+    here -- filled bands underneath, isolines on top. Both marks
     lay out through the same `_draw_continuous_axis_frame` over the same
     `_data_extent` of the same samples, so the combined domain is each
     one's own and every isoline lands on exactly the pixel the

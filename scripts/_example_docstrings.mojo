@@ -123,10 +123,7 @@ def _pages() -> List[ExamplePage]:
         ),
         ExamplePage("grouped_bar", "grouped_bar", "grouped_bar"),
         ExamplePage("stacked_bar", "stacked_bar", "stacked_bar"),
-        # Cookbook pages used to be listed here too; all migrated to
-        # docs/cookbook_recipes/ (see its README.md), which needs no entry
-        # here. A docstring-sourced Cookbook page is still possible via
-        # gen_example_docs.mojo's _cookbook().
+        # Cookbook recipes are discovered from docs/cookbook_recipes/.
     ]
 
 
@@ -169,9 +166,7 @@ def _extract_docstring(source: String) -> String:
 
 
 def _first_sentence(docstring: String) -> String:
-    # Collapse hand-wrapped newlines within the first paragraph into a
-    # single flowing line, then cut at the first " -- " boundary (the
-    # hook) if there is one, else keep the whole first sentence.
+    # Collapse the first paragraph and remove any text after " -- ".
     var para_end = docstring.find("\n\n")
     var first_para = (
         String(docstring[byte=0:para_end]) if para_end != -1 else docstring
@@ -221,7 +216,7 @@ def _def_index(
 
 
 def _lines_of(file: String) raises -> List[String]:
-    """dataviz/<file>.mojo's lines as owned `String`s: `String.split()`
+    """Dataviz/<file>.mojo's lines as owned `String`s: `String.split()`
     returns spans tied to the source string, which don't survive being
     passed across a function boundary.
     """
@@ -260,9 +255,7 @@ def _extract_args_lines(
     var def_idx = _def_index(lines, fn_name, want_indent)
     var bullet_indent = want_indent + 8
 
-    # Bounded to this function's own docstring (its closing line at the
-    # docstring's base indent); scanning further would find the next
-    # function's Args: for a function without one.
+    # Stop at this docstring's closing line before scanning another function.
     var doc_indent_str = " " * (want_indent + 4)
     var doc_close = -1
     for i in range(def_idx + 1, len(lines)):

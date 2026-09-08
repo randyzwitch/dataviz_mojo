@@ -92,7 +92,7 @@ def _edge_node_index(
 
 def _validate_edge_encoding(plot: Plot, mark_name: String) raises:
     """`Plot.encode_chord()`'s length check, its non-negative rule, and its
-    empty-data check (`_require_non_empty`, #206), shared by `Mark.CHORD`/
+    empty-data check (`_require_non_empty`), shared by `Mark.CHORD`/
     `ARC_DIAGRAM`/`GRAPH`/`SANKEY`.
     """
     if len(plot._edges.from_categories) != len(

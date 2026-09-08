@@ -1,4 +1,4 @@
-"""`Theme.color_ramp`'s type: a many-stop continuous gradient (#332)."""
+"""`Theme.color_ramp`'s type: a many-stop continuous gradient."""
 
 from canvas.color import Color
 
@@ -18,24 +18,9 @@ struct ColorRamp(ImplicitlyCopyable, Movable, Sized):
     `Theme(color_ramp=viridis())`, since the list constructor is
     `@implicit`.
 
-    **Why the stops are packed into a SIMD vector rather than held in a
-    `List`.** `Theme` is `ImplicitlyCopyable` and is copied implicitly
-    throughout the package (`var theme = plot._theme`), so every one of
-    its fields has to be implicitly copyable too. `List` is not, and
-    neither is `InlineArray`; that is why `default_categorical_palette()`
-    and `_gauge_band_colors()` are free functions instead of `Theme`
-    fields. A SIMD vector is, so the stops are packed one color per
-    `UInt32` (`0x00RRGGBB`) into a fixed-width one. The cost is 256 bytes
-    on `Theme` and a hard cap of `_RAMP_CAPACITY` stops; the alternative
-    was writing `Theme.__copyinit__` out across all of its fields by
-    hand, which would silently drop any field added afterwards.
-
-    A ramp longer than the cap is **resampled** to it, evenly, rather
-    than truncated -- a gradient is a continuous object, so resampling is
-    the meaningful operation on one, and it keeps the top end instead of
-    cutting it off. Resampling matplotlib's full 256-entry tables down to
-    64 and reading them back out costs at most 2 levels per channel out
-    of 255, which is below a perceptible step; see `dataviz.colormaps`.
+    Stops are packed into a fixed-width SIMD vector so the ramp remains
+    implicitly copyable with `Theme`. Longer ramps are evenly resampled
+    to `_RAMP_CAPACITY`, retaining both endpoints.
     """
 
     var _packed: SIMD[DType.uint32, _RAMP_CAPACITY]

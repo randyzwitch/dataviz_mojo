@@ -49,7 +49,7 @@ def _min_max(data: List[Float64]) raises -> MinMax:
     passes through here first (`_data_extent`, `_zero_baseline_y_extent`,
     `_log_data_extent`, and every mark's own color/size `MinMax`), and the
     same list is what later gets mapped point-by-point onto pixels -- so
-    this is the single narrow chokepoint (#190) where a `NaN`/`inf` value
+    this is the single narrow chokepoint where a `NaN`/`inf` value
     can be caught before it reaches a scale at all. Left unchecked, a
     non-finite value either poisons the whole domain into `(NaN, NaN)`
     (comparisons against `NaN` are always false, so `lo`/`hi` never
@@ -145,7 +145,7 @@ this magnitude already has no representable fractional bits, treating
 it as more precise than its own `String(Float64)` conversion is false
 in the first place, so `_format_fixed`/`_label_decimals` defer to
 `_format_fixed_overflow`/return `0` rather than risk either failure
-mode (#205).
+mode.
 """
 
 
@@ -158,7 +158,7 @@ def _format_fixed_overflow(value: Float64) -> String:
     here -- a magnitude this large has no representable fractional
     digits for it to mean anything against. Plain fixed/scientific
     notation, not the SI-prefixed or significant-digit-limited form a
-    real large-magnitude tick formatter would use (see #210); this
+    real large-magnitude tick formatter would use; this
     exists only so `_format_fixed` never produces incorrect output,
     not to make it pretty.
     """
@@ -204,20 +204,20 @@ def _format_fixed(value: Float64, decimals: Int) -> String:
 
 def _label_decimals(value: Float64, max_decimals: Int = 2) -> Int:
     """The fewest decimal places (up to `max_decimals`) that represent
-    `value` with no visible rounding error, for `Theme.show_data_labels`.
-    Not tied to the axis's `Ticks.decimals`: an axis stepping by whole
-    10s still needs a data label to show `15.3` as `15.3`.
+        `value` with no visible rounding error, for `Theme.show_data_labels`.
+        Not tied to the axis's `Ticks.decimals`: an axis stepping by whole
+        10s still needs a data label to show `15.3` as `15.3`.
 
-    Checked by re-scaling and rounding at each candidate count with a
-    1e-9 tolerance rather than exact float equality. Returns
-    `max_decimals` if no smaller count clears that tolerance.
+        Checked by re-scaling and rounding at each candidate count with a
+        1e-9 tolerance rather than exact float equality. Returns
+        `max_decimals` if no smaller count clears that tolerance.
 
-    Returns `0` immediately for `abs(value) >
-    _FORMAT_FIXED_MAX_EXACT_MAGNITUDE` rather than entering the loop: a
-    `Float64` that large has no representable fractional part for any
-    decimal count to expose, and the loop's own `round_to_int(value *
-    scale)` would hit the same overflow `_format_fixed` guards against
-    (#205).
+        Returns `0` immediately for `abs(value) >
+        _FORMAT_FIXED_MAX_EXACT_MAGNITUDE` rather than entering the loop: a
+        `Float64` that large has no representable fractional part for any
+        decimal count to expose, and the loop's own `round_to_int(value *
+        scale)` would hit the same overflow `_format_fixed` guards against
+    .
     """
     if abs(value) > _FORMAT_FIXED_MAX_EXACT_MAGNITUDE:
         return 0
@@ -231,7 +231,7 @@ def _label_decimals(value: Float64, max_decimals: Int = 2) -> Int:
 
 comptime _MINOR_SUBDIVISIONS = 5
 """How many parts a minor level cuts each major step into on a linear
-axis (#334). Five matches matplotlib's `AutoMinorLocator` default and
+axis. Five matches matplotlib's `AutoMinorLocator` default and
 suits the 1-2-5 nice steps `_nice_step` produces: a step of 1 gets
 minors every 0.2, a step of 5 every 1, both of which read as round
 numbers. Four would leave a step of 5 with minors at 1.25."""
@@ -245,7 +245,7 @@ comptime _TICK_FORMAT_FIXED = 5
 
 
 struct TickFormat(Copyable, ImplicitlyCopyable, Movable):
-    """How `Theme.x_tick_format`/`y_tick_format` (#210) render a tick
+    """How `Theme.x_tick_format`/`y_tick_format` render a tick
     label, `Theme.show_data_labels`'s value label, or a continuous
     legend's endpoint labels -- everywhere `Ticks.labels()`/
     `_format_tick()` are the formatter. Same small-struct-with-comptime-
@@ -433,7 +433,7 @@ def _format_scientific(value: Float64) -> String:
 
 
 def _format_tick(value: Float64, decimals: Int, format: TickFormat) -> String:
-    """`value` formatted per `format` (#210), the shared formatter
+    """`value` formatted per `format`, the shared formatter
     `Ticks.labels()`, `Theme.show_data_labels`, and a continuous legend's
     endpoint labels all defer to. `decimals` is the axis's own nice-step
     decimal count, used as-is for `AUTO` and adjusted for `PERCENT`
@@ -523,7 +523,7 @@ def _log_ticks(domain_min: Float64, domain_max: Float64) -> Ticks:
         ]
         return Ticks(values^, 0, labels^)
 
-    # Minor ticks are the 2..9 multiples of each decade (#334), less
+    # Minor ticks are the 2..9 multiples of each decade, less
     # whichever of those are already majors. This is the conventional
     # log minor set and it is most of what makes a log axis readable: a
     # bare decade is a uniform gap, and a reader cannot place a point
@@ -563,7 +563,7 @@ struct Ticks(Movable):
     needs 2 places, 100 needs 0).
     """
     var minor_values: List[Float64]
-    """Unlabeled subdivisions between the major `values` (#334), empty
+    """Unlabeled subdivisions between the major `values`, empty
     when the scale has no opinion about them -- which is what a
     categorical or zero-span axis says, so nothing moves for it.
 
@@ -605,14 +605,14 @@ struct Ticks(Movable):
 
     def labels(self, format: TickFormat = TickFormat.AUTO) -> List[String]:
         """Each tick value formatted via `_format_tick()` at this `Ticks`'
-        `decimals` (#210), or `override_labels` unchanged when set --
+        `decimals`, or `override_labels` unchanged when set --
         `format` doesn't apply to `override_labels` (only `_log_ticks()`
         sets it today, and each of its labels already carries its own
-        per-tick decimal count; log-axis tick formatting is a follow-up).
+        per-tick decimal count; log-axis ticks keep their default format).
 
         Args:
             format: How to render each value; `AUTO` (the default)
-                matches this method's pre-#210 behavior exactly.
+                preserves this method's default behavior.
 
         Returns:
             One formatted string per `values` entry, same order.
@@ -747,7 +747,7 @@ struct LinearScale(ImplicitlyCopyable, Movable):
             result.append(start + Float64(i) * nice.step)
 
         # Minor ticks subdivide each major step into `_MINOR_SUBDIVISIONS`
-        # (#334). Indexing by whole multiples of the minor step and
+        # Indexing by whole multiples of the minor step and
         # skipping every fifth keeps majors out of the minor list by
         # integer arithmetic rather than by comparing floats with a
         # tolerance -- majors sit exactly on the multiples divisible by

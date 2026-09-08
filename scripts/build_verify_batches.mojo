@@ -1,12 +1,4 @@
-"""`pixi run example`'s batching step: rewrites the standalone example
-and Cookbook-recipe programs into a handful of batch drivers so
-`mojo run` compiles them a handful of times instead of once per file.
-
-`_render_generic[T: DrawTarget]` (dataviz/plot.mojo) names every
-`_render_*` function, so a single `save()` call monomorphizes the
-whole mark dispatch tree, roughly 50 CPU-seconds per process
-regardless of which chart is drawn. See pixi.toml's `[tasks]` comment
-for the measurements.
+"""Combine examples and Cookbook recipes into verification batch drivers.
 
 The standalone programs are left untouched:
 `docs/cookbook_recipes/*.mojo` stays as contributed and
@@ -23,9 +15,7 @@ emits one `main()` per batch calling them in order. Every `save()`
 keeps its original output path. Two hoisted declarations sharing a
 name are a duplicate-declaration compile error naming both.
 
-Several batches rather than one program so a failure names its batch
-(and the `_run_<stem>` frame names the recipe) and CI cores stay
-busy. `_BATCHES_PER_CORPUS` is the only knob.
+`_BATCHES_PER_CORPUS` controls the number of batches per source directory.
 """
 
 from std.os import listdir, makedirs, path

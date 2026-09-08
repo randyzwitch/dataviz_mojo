@@ -707,7 +707,7 @@ def _render_contourf[
     """Render a `Mark.CONTOURF` plot: filled bands between consecutive
     levels, the shape matplotlib's `contourf()` draws.
 
-    Painted back to front, the first of the two routes #260 describes.
+    Painted back to front.
     The plot rect is filled with the lowest band's color, then each
     level in ascending order fills its whole "at or above" region over
     the top, so what remains visible between two consecutive levels is

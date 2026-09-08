@@ -29,7 +29,7 @@ imported back, a circular import Mojo resolves within one package.
 
 ## Where the rest of it went
 
-What every mark shares was split out along its own seams (#222), each
+What every mark shares was split out along its own seams, each
 module importing from here and imported back the same way:
 
 - `annotations.mojo` -- the `annotate_*()` overlays and their passes
@@ -307,7 +307,7 @@ struct _GroupedBarData(Copyable, Movable):
     var values: List[List[Float64]]
     var errors: List[List[Float64]]
     """Optional per-(series, category) symmetric error-bar half-width
-    (#216), shaped like `values`; empty when `encode_grouped_bar()`'s
+, shaped like `values`; empty when `encode_grouped_bar()`'s
     `errors` wasn't given. `Mark.GROUPED_BAR` only, checked in
     `_validate_grouped_bar_series`."""
 
@@ -388,7 +388,7 @@ struct _MarkStyle(Copyable, Movable):
 
     var step: StepStyle
     """Where the riser sits between two samples, from
-    `mark_line(step=...)` (#336) or `mark_area(step=...)` (#384).
+    `mark_line(step=...)` or `mark_area(step=...)`.
     `NONE` (straight interpolation) unless asked otherwise. One field
     for both marks rather than one apiece: a stepped area is a stepped
     line with the region under it filled, so the two share `_step_points`
@@ -415,7 +415,7 @@ struct _MarkStyle(Copyable, Movable):
     """
     var eventplot_line_length: Float64
     """Each `Mark.EVENTPLOT` tick's height as a fraction of its row's
-    band, from `mark_eventplot(line_length=...)` (#339). `1.0` (the full
+    band, from `mark_eventplot(line_length=...)`. `1.0` (the full
     band) unless asked otherwise. Geometry describing one chart's
     proportions, like `violin_width_fraction` above, so it lives here
     rather than on `Theme`.
@@ -448,7 +448,7 @@ struct _MarkStyle(Copyable, Movable):
 
 struct _DomainOverride(Copyable, Movable):
     """An explicit `[min, max]` axis domain set via `.scale_x_domain()`/
-    `.scale_y_domain()` (#209), overriding the padded/zero-baselined
+    `.scale_y_domain()`, overriding the padded/zero-baselined
     domain `_data_extent()`/`_zero_baseline_y_extent()` would otherwise
     compute. `has` is `False` (the default -- no override) until one of
     those builder methods sets it. Stored on `Plot._x_domain`/`_y_domain`.
@@ -479,11 +479,11 @@ struct _LabelData(Copyable, Movable):
     var x_title: String
     var y_title: String
     var description: String
-    """A longer SVG `<desc>` than `subtitle` need be (#212); see
+    """A longer SVG `<desc>` than `subtitle` need be; see
     `Plot.labels()`'s own docstring. `save()`/`save_layers()`/
     `save_facets()` fall back to `subtitle` when this is empty."""
     var series_name: String
-    """This layer's name in `render_layers()`'s per-layer legend (#215);
+    """This layer's name in `render_layers()`'s per-layer legend;
     see `Plot.series_name()`'s own docstring. Empty (the default) draws
     no legend row for this layer. `render()`/`render_svg()` ignore it --
     a standalone plot has only one series, nothing for a legend entry to
@@ -511,7 +511,7 @@ struct Plot(Copyable, Movable):
     single settings (`_mark`/`_theme`/`_secondary_axis`/
     `_nightingale_area`, ...).
 
-    `Copyable`, not `ImplicitlyCopyable` (#207): every field is a plain
+    `Copyable`, not `ImplicitlyCopyable`: every field is a plain
     data column or a small settings struct, so a member-wise copy is
     always valid, but `Plot` can carry a lot of data -- an accidental
     implicit copy (e.g. passing one by value where a borrow was meant)
@@ -584,10 +584,10 @@ struct Plot(Copyable, Movable):
     # Set via .scale_y_log()/.scale_x_log().
     var _y_log: Bool
     var _x_log: Bool
-    # Set via .scale_x_domain()/.scale_y_domain() (#209).
+    # Set via .scale_x_domain()/.scale_y_domain().
     var _x_domain: _DomainOverride
     var _y_domain: _DomainOverride
-    # Set only via a mark_*(horizontal=True) parameter (#121); there is no
+    # Set only via a mark_*(horizontal=True) parameter; there is no
     # `.horizontal()` builder method, so this is only ever `True` alongside
     # a `_mark` whose `mark_*()` reads it.
     var _horizontal: Bool
@@ -663,13 +663,8 @@ struct Plot(Copyable, Movable):
     def mark_point(var self, tooltips: Bool = False) -> Self:
         """A scatter plot: one point per (x, y) pair.
 
-        `tooltips` (default `False`) gives each point an SVG `<title>` a
-        browser shows on hover: the row's `encode(labels=...)` text when it
-        has one, otherwise its coordinates. Off by default because a title
-        adds about 39 bytes to a 48-byte `<circle>`, so a dense scatter's SVG
-        roughly doubles (234 KB to 425 KB at 5000 points). A per-chart
-        decision, which is why it lives here rather than on `Theme`; both
-        this and `Theme.svg_tooltips` must be on for a title to be emitted.
+        When `tooltips` and `Theme.svg_tooltips` are enabled, each SVG point
+        includes a hover title using its encoded label or coordinates.
 
         Args:
             tooltips: Whether each point carries a hover `<title>`.
@@ -689,16 +684,8 @@ struct Plot(Copyable, Movable):
         """A line plot: (x, y) pairs connected in data order, not sorted by x.
         Sort the data first if that isn't the order to draw.
 
-        `step` is stairs interpolation (#336): the value holds flat and
-        then jumps, instead of sliding from one sample to the next.
-        Reach for it whenever the straight segment a line draws would
-        assert intermediate values nobody measured -- a price between
-        ticks, a counter between increments, a state machine between
-        transitions, a survival curve between events. It is a claim
-        about the data, not decoration, which is why it sits here rather
-        than on `Theme` next to `line_smoothing` (and why asking for
-        both raises: a smoothed staircase rounds off the corners that
-        carry its meaning).
+        `step` holds each value flat before jumping to the next. It is
+        mutually exclusive with `Theme.line_smoothing`.
 
         Args:
             style: How the stroke is broken up -- `SOLID` (the default),
@@ -723,10 +710,10 @@ struct Plot(Copyable, Movable):
     def mark_bar(var self, horizontal: Bool = False) -> Self:
         """A bar chart: one bar per category, encoded via `encode_categorical()`.
 
-        `horizontal` (default `False`) draws categories top-to-bottom along
-        the y-axis with each bar extending from a zero baseline to the right
-        (#121), via `_draw_horizontal_categorical_axis_frame` (gantt.mojo);
-        see `_render_horizontal_bar` (bar.mojo).
+                `horizontal` (default `False`) draws categories top-to-bottom along
+                the y-axis with each bar extending from a zero baseline to the right
+        , via `_draw_horizontal_categorical_axis_frame` (gantt.mojo);
+                see `_render_horizontal_bar` (bar.mojo).
         """
         self._mark = Mark.BAR
         self._horizontal = horizontal
@@ -736,22 +723,10 @@ struct Plot(Copyable, Movable):
         """An area chart: `mark_line()`'s continuous (x, y) pairs, filled from
         each point down to a zero baseline. Encoded via `encode()`.
 
-        `step` is the same stairs interpolation `mark_line()` takes
-        (#384), applied to the fill's top edge: the value holds flat and
-        then jumps, instead of sliding from one sample to the next. It
-        is the shape for a quantity that is constant between samples and
-        has a magnitude worth filling -- inventory on hand, headcount, a
-        tariff schedule, a histogram's outline. Filling under a straight
-        interpolation there is a stronger claim than drawing a line
-        through it: the line merely passes through values nobody
-        measured, the fill assigns them area.
-
-        Only the top edge steps. The two closing segments -- down to the
-        baseline at the last x, and back along the baseline to the first
-        -- stay straight, exactly as they already do under
-        `Theme.line_smoothing`: they are the fill's boundary, not data,
-        and a riser drawn along the baseline would be a step in a value
-        the caller never supplied.
+        `step` applies the same interpolation as `mark_line()` to the
+        fill's top edge. The closing segments to and along the baseline
+        remain straight. Stepping is mutually exclusive with
+        `Theme.line_smoothing`.
 
         Args:
             step: Where the riser between two samples sits -- `NONE`
@@ -880,7 +855,7 @@ struct Plot(Copyable, Movable):
         """A lollipop chart: one stem-plus-point per category, encoded via
         `encode_categorical()` (the same data as `mark_bar()`). `horizontal`
         (default `False`) draws categories top-to-bottom with each stem
-        extending to the right (#121); see `_render_horizontal_lollipop`
+        extending to the right; see `_render_horizontal_lollipop`
         (lollipop.mojo).
         """
         self._mark = Mark.LOLLIPOP
@@ -903,7 +878,7 @@ struct Plot(Copyable, Movable):
         distribution of raw values. Encoded via `encode_boxplot()`, which
         computes quartiles/whiskers/outliers immediately. `horizontal`
         (default `False`) draws categories top-to-bottom with each box
-        left-to-right (#121); see `_render_horizontal_box` (box.mojo).
+        left-to-right; see `_render_horizontal_box` (box.mojo).
         """
         self._mark = Mark.BOX
         self._horizontal = horizontal
@@ -1197,7 +1172,7 @@ struct Plot(Copyable, Movable):
         """A grouped bar chart: several bars side by side per category, one per
         series. Encoded via `encode_grouped_bar()`. `horizontal` (default
         `False`) draws categories top-to-bottom with each row subdivided into
-        equal-height sub-bars (#121); see `_render_horizontal_grouped_bar`
+        equal-height sub-bars; see `_render_horizontal_grouped_bar`
         (grouped_bar.mojo).
         """
         self._mark = Mark.GROUPED_BAR
@@ -1217,7 +1192,7 @@ struct Plot(Copyable, Movable):
         all-zero category draws as an empty column.
 
         `horizontal` (default `False`) draws categories top-to-bottom with
-        each category's segments stacked left-to-right (#121); see
+        each category's segments stacked left-to-right; see
         `_render_horizontal_stacked_bar` (stacked_bar.mojo).
 
         Args:
@@ -1336,8 +1311,8 @@ struct Plot(Copyable, Movable):
         there. See `StackBaseline`.
 
         `step` is the same stairs interpolation `mark_line()` and
-        `mark_area()` take (#336, #384), applied to every band's top
-        and bottom edge (#403): the composition holds flat and then
+        `mark_area()` takes, applied to every band's top
+        and bottom edge: the composition holds flat and then
         jumps, instead of sliding from one category to the next. It is
         the shape for a stacked quantity that is constant between
         readings -- capacity by source, headcount by team, inventory by
@@ -1376,7 +1351,7 @@ struct Plot(Copyable, Movable):
         """A beeswarm plot: one point per raw value, jittered sideways within
         its category's band. Encoded via `encode_distribution()`.
         `horizontal` (default `False`) draws categories top-to-bottom with
-        each swarm jittered vertically (#121); see
+        each swarm jittered vertically; see
         `_render_horizontal_beeswarm` (beeswarm.mojo). `tooltips` works as in
         `mark_point()`.
         """
@@ -1415,7 +1390,7 @@ struct Plot(Copyable, Movable):
             horizontal: `False` (the default) draws each silhouette
                 bulging left-right around a vertical column, one
                 column per category left-to-right. `True` -- exactly
-                `mark_bar(horizontal=True)`'s own flip (#121) -- draws
+                `mark_bar(horizontal=True)`'s own flip -- draws
                 each silhouette bulging up-down around a horizontal
                 row, one row per category top-to-bottom, reusing
                 `_draw_horizontal_categorical_axis_frame` (gantt.mojo)
@@ -1447,7 +1422,7 @@ struct Plot(Copyable, Movable):
         `encode_kde()`; see `kdeplot()` for the one-call form.
 
         Comparing several distributions on one frame is
-        `render_layers()` over a `Mark.KDE` layer each (#376): they
+        `render_layers()` over a `Mark.KDE` layer each: they
         share one density axis, so the peak heights are comparable.
         `rug=True` adds this layer's own observations underneath, and a
         separate `mark_rug()` layer draws the same ticks.
@@ -1479,7 +1454,7 @@ struct Plot(Copyable, Movable):
 
         The same ticks `mark_kde(rug=True)` draws under its curve, as a
         chart of their own -- or as a `render_layers()` layer under a
-        `mark_kde()` one, which draws the same thing (#376).
+        `mark_kde()` one, which draws the same thing.
 
         Returns:
             Self, for further chaining.
@@ -1502,7 +1477,7 @@ struct Plot(Copyable, Movable):
 
         Comparing two distributions on one frame is the main reason to
         draw an ECDF, and it needs `render_layers()`, which today
-        accepts only `Mark.POINT`/`LINE`/`AREA` (#376) --
+        accepts only `Mark.POINT`/`LINE`/`AREA` --
         `render_facets()` is the side-by-side answer for now.
 
         Args:
@@ -1836,7 +1811,7 @@ struct Plot(Copyable, Movable):
         deduplicated or re-sorted; repeated categories go through
         `encode_grouped_bar()`.
 
-        `y_err`/`y_err_lower`/`y_err_upper` (#216) work exactly as they do on
+        `y_err`/`y_err_lower`/`y_err_upper` work exactly as they do on
         `encode()` -- see that method's own docstring for the shared rules
         (mutually exclusive forms, every value `>= 0`) -- except `Mark.BAR`
         is the only mark among `encode_categorical()`'s that draws them
@@ -1978,36 +1953,36 @@ struct Plot(Copyable, Movable):
         var self, data: List[Float64], bins: Int = 10
     ) raises -> Self:
         """Bin `data` into `bins` equal-width intervals and map the result onto
-        `encode_categorical()`'s shape (each bin's formatted range as its
-        category label, its count as the value), for `Mark.BAR`. The binning
-        happens here, so this raises immediately on data that can't be
-        binned; see `_bin_histogram()` (histogram.mojo) for the algorithm and
-        the cases it raises on.
+                `encode_categorical()`'s shape (each bin's formatted range as its
+                category label, its count as the value), for `Mark.BAR`. The binning
+                happens here, so this raises immediately on data that can't be
+                binned; see `_bin_histogram()` (histogram.mojo) for the algorithm and
+                the cases it raises on.
 
-        This is the **categorical** histogram: a category axis spaces its
-        entries evenly whatever intervals they name, so the bars are
-        equally wide even when the bins are not, and the axis carries no
-        numbers a second mark could be aligned against. `histogram()`
-        (histogram.mojo) draws the same counts over a numeric axis and
-        takes explicit edges, weights and normalization (#366); reach for
-        this one when the formatted range labels are what you want to
-        read off the axis.
+                This is the **categorical** histogram: a category axis spaces its
+                entries evenly whatever intervals they name, so the bars are
+                equally wide even when the bins are not, and the axis carries no
+                numbers a second mark could be aligned against. `histogram()`
+                (histogram.mojo) draws the same counts over a numeric axis and
+                takes explicit edges, weights and normalization; reach for
+                this one when the formatted range labels are what you want to
+                read off the axis.
 
-        Args:
-            data: The raw values to bin -- not pre-counted; binning
-                happens right here.
-            bins: How many equal-width intervals to divide `data`'s
-                range into (half-open except the last, which includes
-                its upper edge).
+                Args:
+                    data: The raw values to bin -- not pre-counted; binning
+                        happens right here.
+                    bins: How many equal-width intervals to divide `data`'s
+                        range into (half-open except the last, which includes
+                        its upper edge).
 
-        Returns:
-            Self, for further chaining.
+                Returns:
+                    Self, for further chaining.
 
-        Raises:
-            Error: `data` is empty, `bins` is not positive, or a value
-                is `NaN`/infinite. A constant sample does *not* raise:
-                it is binned over `[v - 0.5, v + 0.5]`, numpy's rule
-                (#366).
+                Raises:
+                    Error: `data` is empty, `bins` is not positive, or a value
+                        is `NaN`/infinite. A constant sample does *not* raise:
+                        it is binned over `[v - 0.5, v + 0.5]`, numpy's rule
+        .
         """
         var binned = _bin_histogram(data, bins)
         self.x_categories = binned.labels.copy()
@@ -2270,7 +2245,7 @@ struct Plot(Copyable, Movable):
         for `categories[i]`. Length checking (`series_names`/`values`, and
         every `values[j]` against `categories`) is deferred to render() time.
 
-        `errors` (#216), left empty by default, is `values`' per-(series,
+        `errors`, left empty by default, is `values`' per-(series,
         category) symmetric error-bar half-width shape: `errors[j][i]` is
         series `series_names[j]`'s error bar for `categories[i]`. Every
         value must be `>= 0`; `Mark.GROUPED_BAR` only among the marks this
@@ -3251,7 +3226,7 @@ struct Plot(Copyable, Movable):
 
         `labels` comes first, matching `encode_distribution()`,
         `encode_boxplot()` and every other category-plus-values encoder
-        in this package -- #339 sketched it the other way round, but a
+        in this package --  sketched it the other way round, but a
         single encoder disagreeing about argument order is a worse trap
         than the sketch is a promise.
 
@@ -3490,7 +3465,7 @@ struct Plot(Copyable, Movable):
         has no axes, so `x_title`/`y_title` raise at render() time there;
         only `title`/`subtitle`/`description` apply.
 
-        `description` (#212) is an SVG `<desc>` -- longer, screen-reader-only
+        `description` is an SVG `<desc>` -- longer, screen-reader-only
         context `subtitle` alone can't carry since it's drawn on the chart
         itself. `save()`/`save_layers()`/`save_facets()` write it (falling
         back to `subtitle` when empty) automatically whenever `title` is set;
@@ -3521,7 +3496,7 @@ struct Plot(Copyable, Movable):
 
     def series_name(var self, name: String) -> Self:
         """Name this layer for `render_layers()`'s/`render_layers_svg()`'s
-        per-layer legend (#215): a swatch (this layer's own
+        per-layer legend: a swatch (this layer's own
         `Theme.mark_color`) plus `name`, one row per named layer, drawn
         before any per-point `color`/`color_categories` legend a `Mark.
         POINT` layer has of its own. A `Plot.secondary_axis()` layer's row
@@ -3532,8 +3507,7 @@ struct Plot(Copyable, Movable):
         `_render_bar_combo_layers` (the `Mark.BAR`-combo path) only;
         `render()`/`render_svg()` ignore it, since a standalone plot has
         only one series, nothing for a legend entry to distinguish.
-        Layers with no name draw no row -- an all-unnamed `plots` list
-        renders exactly as before this existed.
+        Layers with no name draw no row.
 
         Args:
             name: This layer's label in the per-layer legend. Left
@@ -3877,7 +3851,7 @@ struct Plot(Copyable, Movable):
         return self^
 
     def scale_x_domain(var self, min: Float64, max: Float64) -> Self:
-        """Pin the x-axis domain to `[min, max]` exactly (#209), replacing
+        """Pin the x-axis domain to `[min, max]` exactly, replacing
         `_data_extent()`'s 5%-padded domain (or `_log_data_extent()`'s
         when `scale_x_log()` is also set). For comparable charts across
         runs, a fixed reference range, or a zoomed-in view, without
@@ -3889,7 +3863,7 @@ struct Plot(Copyable, Movable):
         raises if any layer sets this, since a shared axis across several
         layers needs one shared answer, not one per layer; the categorical
         marks (`Mark.BAR`, `LOLLIPOP`, ...) raise too, left for a
-        follow-up. `render_facets()` applies this per cell, so every cell
+        supported. `render_facets()` applies this per cell, so every cell
         sharing the same override reads as one shared domain -- the
         facets counterpart to `shared_y_scale=True` for the x-axis (which
         has no `shared_y_scale` equivalent otherwise).
@@ -4019,7 +3993,7 @@ struct _RenderResult(Movable):
     that rect rather than the outer bounds, so a wide legend or long tick
     labels don't throw a title off-center. Every `_render_*` raises before
     reaching any layout when its own data is empty (`_require_non_empty`,
-    #206), so there is no "no data" `_RenderResult` shape to report here.
+    ), so there is no "no data" `_RenderResult` shape to report here.
 
     `y_scale`/`has_y_scale` expose the real `LinearScale` the mark's
     y-axis used, so the annotation passes (`_draw_annotation_lines`/
@@ -4125,7 +4099,7 @@ def _require_positive_supersample(factor: Int, context: String) raises:
     `Theme`'s own constructor, matching `line_smoothing`'s deferred-to-
     render-time validation (`_check_line_smoothing`, elsewhere in this
     file) -- a `Theme` value isn't wrong to construct, only to render
-    with (#231).
+    with.
     """
     if factor < 1:
         raise Error(
@@ -4143,32 +4117,11 @@ for a caller who has not expressed one.
 """
 
 comptime _CURVED_SUPERSAMPLE = 3
-"""What a mark gets when its edges come from the circle/arc primitives
-or from a curved stroke. Unchanged from what every mark used to get.
-"""
+"""Supersample factor for circles, arcs, and curved strokes."""
 
 
 def _auto_supersample(plot: Plot) -> Int:
-    """The supersample factor for `plot`'s mark when the theme leaves it
-    to us.
-
-    Supersampling exists to resolve edges the rasterizer cannot place
-    exactly. Which marks need it is not "curved versus straight" but
-    *which primitive draws the edge*: an axis-aligned rect and a
-    straight stroke land exactly at any factor, a polygon fill is exact
-    because its edges are line segments, and only the circle/arc
-    family and curved strokes gain from being drawn large and shrunk.
-
-    Measured rather than assumed. Every mark was rendered at factors 1,
-    2, 3 and 6 and compared against the 6 reference; the marks below
-    were within 8 of 255 at factor 1, which is not visible. Everything
-    else keeps 3.
-
-    `Mark.VIOLIN` is the case that makes the point: its silhouette is a
-    KDE, but it is drawn as a polygon fill and comes out exact, while
-    `Mark.RIDGELINE` -- the same estimate -- needs 3 because it strokes
-    an outline over it.
-    """
+    """Return the mark-specific supersample factor for `AUTO`."""
     # A smoothed line or area is a curve whatever its mark says, so it
     # is classified by what it draws rather than by its name.
     if plot._theme.line_smoothing > 0.0:
@@ -4228,15 +4181,10 @@ def render(plot: Plot) raises -> Canvas:
     transform is scaled by the same factor, the layout is drawn at
     logical coordinates, and `downsample` shrinks the result.
 
-    The factor reaches the drawing through the canvas transform rather
-    than through the layout arithmetic. It used to be folded into
-    `_theme.scale` on a copy, which meant every metric was rounded in
-    supersampled space and the raster and SVG paths measured in
-    different units. `Theme.scale` keeps its own meaning here -- it is
-    the user-facing density knob and still multiplies the layout, which
-    is why this only removes the supersample bump and not `_Scaled`.
+    Supersampling uses the canvas transform; `Theme.scale` independently
+    controls layout density.
 
-    `plot` is a plain borrow (#208): copying instead of mutating in
+    `plot` is a plain borrow: copying instead of mutating in
     place means `render(scatter(x, y))` and `save(scatter(x, y), path)`
     both compile inline, with no need to bind a temporary to a variable
     first.
@@ -4293,7 +4241,7 @@ def _render_into(
     # measurement the layout makes (tick labels, legend entries) and then
     # every label drawn afterwards resolve fonts and rasterize glyphs
     # through it once, and a render with no text never scans the fonts
-    # (#255, FontCache).
+    # Use the shared FontCache.
     var cache = FontCache()
     var result = _render_generic(
         canvas, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
@@ -4418,7 +4366,7 @@ def _resolve_output_format(
 
 
 def _resolve_description(labels: _LabelData) -> String:
-    """`labels.description`, or `labels.subtitle` when that's empty (#212)
+    """`labels.description`, or `labels.subtitle` when that's empty
     -- the `<desc>` `_svg_output_string()` passes to
     `accessible_svg_string()`, so a title-and-subtitle chart gets a
     reasonable screen-reader description with no extra call needed.
@@ -4431,10 +4379,10 @@ def _resolve_description(labels: _LabelData) -> String:
 
 def _svg_output_string(svg: SvgCanvas, labels: _LabelData) raises -> String:
     """What `save()`/`save_layers()`/`save_facets()` write for SVG output
-    (#212): `accessible_svg_string()`'s markup when `labels.title` is set
-    (`_resolve_description()`'s `<desc>`), or plain `svg.to_string()`
-    otherwise. A pure string decision, factored out of the file-writing
-    `save*()` functions so it's directly testable with no disk I/O.
+    : `accessible_svg_string()`'s markup when `labels.title` is set
+        (`_resolve_description()`'s `<desc>`), or plain `svg.to_string()`
+        otherwise. A pure string decision, factored out of the file-writing
+        `save*()` functions so it's directly testable with no disk I/O.
     """
     if labels.title.byte_length() > 0:
         return accessible_svg_string(
@@ -4444,12 +4392,12 @@ def _svg_output_string(svg: SvgCanvas, labels: _LabelData) raises -> String:
 
 
 def save(plot: Plot, path: String) raises:
-    """Render `plot` and write it to `path` in one call (#112). The format
+    """Render `plot` and write it to `path` in one call. The format
     comes from `_resolve_output_format()` (the path's extension, falling
     back to `plot._theme.output_format`); `PNG`/`BMP` both go through
     `render()` and differ only in the writer.
 
-    `plot` is a plain borrow (#208): `save(scatter(x, y), path)` compiles
+    `plot` is a plain borrow: `save(scatter(x, y), path)` compiles
     inline, with no need to bind the temporary to a variable first. Call
     `render()`/`render_svg()` directly to get the `Canvas`/`SvgCanvas`
     itself. `save_layers()`/`save_facets()` are the `List[Plot]`
@@ -4457,7 +4405,7 @@ def save(plot: Plot, path: String) raises:
     an already-rendered `Canvas`.
 
     SVG output with a non-empty `.labels(title=...)` writes accessible
-    markup automatically (#212), via `_svg_output_string()`/
+    markup automatically, via `_svg_output_string()`/
     `accessible_svg_string()` with that title and `_resolve_description()`'s
     `<desc>` -- the same markup `write_accessible_svg()` adds explicitly,
     for callers who don't need a title that differs from the visible one.
@@ -4573,22 +4521,8 @@ def _render_generic[
     over any `DrawTarget`, returning every axis/tick/legend label as
     `_TextRequest`s.
 
-    `cache` is the render's one `FontCache` (#255, `FontCache`):
-    threaded into every `_render_*` for its label measurements, then
-    used again by the caller to draw the requests this returns, so a
-    glyph measured during layout is already rasterized by the time it is
-    drawn, and the font resolution behind it is paid once per figure
-    (and not at all by a render that draws no text) rather than once per
-    measurement pass plus once per replay.
-
-    That resolution cost dominated a small chart when this was written
-    (#324). canvas_mojo now persists the font database to disk
-    (canvas_mojo#272), so a fresh cache reads a file instead of walking
-    the font directories; what is left is that read plus parsing and
-    sizing the matched face. It remains the largest fixed cost a small
-    chart pays, which is why it is worth paying once per figure rather
-    than once per measurement pass. Current figures live in
-    benchmarks/METHODOLOGY.md, dated and with the machine stated.
+    `cache` is shared by label measurement and drawing throughout the
+    render.
 
     Every mark other than `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER`
     dispatches to its own `_render_*` function immediately
@@ -4606,7 +4540,7 @@ def _render_generic[
     (`has_shared_y_domain`) on anything but `Mark.POINT`/`LINE`/
     `EFFECT_SCATTER`, or together with `y_err*`.
 
-    `shared_y_is_log` (#217) is `_render_facets_generic`'s own decision,
+    `shared_y_is_log` is `_render_facets_generic`'s own decision,
     already validated there (every cell agrees, `shared_y_min`/
     `shared_y_max` already computed in log10-space via `_log_data_extent`)
     -- this only requires `plot._y_log` to match it, a defensive check
@@ -4934,7 +4868,7 @@ def _finished(
     `title`/`subtitle`/`x_title`/`y_title`, `theme`, and `width`/
     `height` to the half-built `plot` and return it unrendered, exactly
     what `Plot().mark_*().encode*(...).theme(theme).size(width,
-    height).labels(...)` would build by hand (#112). Takes `plot` as
+    height).labels(...)` would build by hand. Takes `plot` as
     `var` because `Plot`'s builder methods consume and return `Self` and
     `Plot` isn't `ImplicitlyCopyable`.
     """

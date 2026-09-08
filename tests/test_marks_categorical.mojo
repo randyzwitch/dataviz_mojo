@@ -147,7 +147,7 @@ def test_render_svg_grouped_bar_matches_confirmed_rects_and_legend() raises:
 
 
 def test_render_grouped_bar_raises_on_zero_length_categories() raises:
-    # #206: _validate_grouped_bar_series now raises on empty
+    # _validate_grouped_bar_series now raises on empty
     # categories/series_names rather than rendering a blank background.
     var cats = List[String]()
     var names: List[String] = ["North"]
@@ -289,7 +289,6 @@ def test_render_svg_stacked_bar_mixed_sign_stacks_independently_each_direction()
 
 
 def test_render_stacked_bar_raises_on_zero_length_categories() raises:
-    # #206: see test_render_grouped_bar_raises_on_zero_length_categories above.
     var cats = List[String]()
     var names: List[String] = ["North"]
     var values: List[List[Float64]] = [List[Float64]()]
@@ -556,8 +555,6 @@ def test_render_marimekko_raises_on_all_zero_values() raises:
 
 
 def test_render_marimekko_raises_on_no_data() raises:
-    # #206: an all-empty Plot used to render a plain background with no
-    # error; the render-time empty check now raises before any layout.
     var cats = List[String]()
     var subs = List[String]()
     var values = List[List[Float64]]()
@@ -715,7 +712,6 @@ def test_render_population_pyramid_raises_on_mismatched_length() raises:
 
 
 def test_render_population_pyramid_raises_on_no_data() raises:
-    # #206: see test_render_marimekko_raises_on_no_data above.
     var cats = List[String]()
     var vals = List[Float64]()
     with assert_raises():
@@ -797,7 +793,6 @@ def test_render_span_chart_raises_on_mismatched_category_length() raises:
 
 
 def test_render_span_chart_raises_on_no_data() raises:
-    # #206: see test_render_marimekko_raises_on_no_data above.
     var cats = List[String]()
     var low = List[Float64]()
     var high = List[Float64]()
@@ -899,7 +894,6 @@ def test_render_gantt_raises_on_mismatched_category_length() raises:
 
 
 def test_render_gantt_raises_on_no_data() raises:
-    # #206: see test_render_marimekko_raises_on_no_data above.
     var cats = List[String]()
     var empty = List[Float64]()
     with assert_raises():
@@ -1017,7 +1011,6 @@ def test_render_funnel_raises_on_mismatched_category_length() raises:
 
 
 def test_render_funnel_raises_on_no_data() raises:
-    # #206: see test_render_marimekko_raises_on_no_data above.
     var cats = List[String]()
     var vals = List[Float64]()
     with assert_raises():
@@ -1070,7 +1063,7 @@ def test_render_heatmap_matches_hand_derived_cells() raises:
 
 def test_render_heatmap_honors_a_perceptual_color_ramp() raises:
     # The same four cells and the same geometry as the hand-derived test
-    # above, with Theme.color_ramp set to viridis (#332). This is the
+    # above, with Theme.color_ramp set to viridis. This is the
     # check that a many-stop ramp reaches the drawing rather than just
     # ColorScale: the three scalar stops are left at their defaults and
     # must not appear anywhere.
@@ -1095,22 +1088,6 @@ def test_render_heatmap_honors_a_perceptual_color_ramp() raises:
 
 
 def test_render_heatmap_cells_leave_no_gap_at_a_snap_tie() raises:
-    # #379: adjacent cells used to disagree about where their shared
-    # boundary was, leaving a one-pixel column of pure background down
-    # the middle of the grid.
-    #
-    # Cell i's right edge was computed as (range_min + step*i) + step
-    # while cell i+1's left edge was range_min + step*(i+1). Equal in
-    # exact arithmetic, but floating-point addition is not associative:
-    # at 420x300 with 24 categories they came out 186.99999999999997 and
-    # 187.0, which snapped to 186.5 and 187.5, so column 187 was covered
-    # by neither cell.
-    #
-    # 420 x 24 is one of exactly three geometries that failed in a sweep
-    # of 170 (widths 380-460 by 5, category counts 7 to 37); the other
-    # two were 405 and 435, also at 24 categories. That rarity is why
-    # this asserts a property rather than a pixel: any interior
-    # background column is a defect, whichever boundary it lands on.
     var xs = List[String]()
     var ys = List[String]()
     var vs = List[Float64]()
@@ -1261,7 +1238,6 @@ def test_render_heatmap_raises_on_mismatched_length() raises:
 
 
 def test_render_heatmap_raises_on_no_data() raises:
-    # #206: see test_render_marimekko_raises_on_no_data above.
     var x = List[String]()
     var y = List[String]()
     var v = List[Float64]()
@@ -1372,7 +1348,6 @@ def test_render_punchcard_raises_on_mismatched_length() raises:
 
 
 def test_render_punchcard_raises_on_no_data() raises:
-    # #206: see test_render_marimekko_raises_on_no_data above.
     var x = List[String]()
     var y = List[String]()
     var sizes = List[Float64]()
@@ -1537,7 +1512,6 @@ def test_render_corrplot_raises_on_out_of_range_value() raises:
 
 
 def test_render_corrplot_raises_on_no_variables() raises:
-    # #206: see test_render_marimekko_raises_on_no_data above.
     var vars = List[String]()
     var m = List[List[Float64]]()
     with assert_raises():
@@ -1647,7 +1621,7 @@ def _calendar_svg_at(width: Int) raises -> String:
 def test_calendar_month_labels_are_all_drawn_when_they_fit() raises:
     # 900px is what the docs example uses, and there every month anchor
     # is far enough from the next for the widest label ("May", 23.3px at
-    # the default 12px font). Nothing about #361 should change it.
+    # the default 12px font). Nothing about should change it.
     var s = _calendar_svg_at(900)
     var months: List[String] = [
         "Jan",
@@ -1668,7 +1642,7 @@ def test_calendar_month_labels_are_all_drawn_when_they_fit() raises:
 
 
 def test_calendar_month_labels_thin_out_rather_than_collide() raises:
-    # #361: below about 530px the twelve month labels ran together into
+    # below about 530px the twelve month labels ran together into
     # an unreadable "JanFebMarApr...". They are the only thing saying
     # which column is which month, so once they merge the chart cannot be
     # read along that axis.
@@ -1704,7 +1678,6 @@ def test_render_calendar_heatmap_raises_on_mismatched_year() raises:
 
 
 def test_render_calendar_heatmap_raises_on_no_data() raises:
-    # #206: see test_render_marimekko_raises_on_no_data above.
     var dates = List[String]()
     var values = List[Float64]()
     with assert_raises():
@@ -1713,7 +1686,7 @@ def test_render_calendar_heatmap_raises_on_no_data() raises:
 
 
 # ---------------------------------------------------------------
-# Mark.IMSHOW / Mark.PCOLORMESH (#341)
+# Mark.IMSHOW / Mark.PCOLORMESH
 #
 # Every test here colors through a two-stop ramp of pure blue and pure
 # red over a domain of exactly [0, 1], so a cell holding 0 is
@@ -1937,7 +1910,7 @@ def test_pcolormesh_cell_widths_follow_the_edges() raises:
 
 
 def test_imshow_boundary_between_two_cells_is_sharp() raises:
-    # #341's own test plan. A blend at the boundary is what an
+    # 's own test plan. A blend at the boundary is what an
     # anti-aliased path fill leaves and what a snapped fill_rect does
     # not, so scanning a whole row for "exactly blue or exactly red"
     # discriminates between the two implementations. Asserting a pixel
@@ -1976,7 +1949,7 @@ def test_imshow_boundary_between_two_cells_is_sharp() raises:
 
 
 def test_imshow_dense_grid_has_no_background_gap_between_cells() raises:
-    # The #315/#318/#327/#359/#360/#379 regression guard, and the reason
+    # The regression guard, and the reason
     # cell boundaries come from one shared array rather than from
     # `start + width` on one side and `start` on the other.
     #
@@ -1984,7 +1957,7 @@ def test_imshow_dense_grid_has_no_background_gap_between_cells() raises:
     # from all four of its neighbors, so no run merges and every
     # boundary in the grid is drawn. 37x53 is deliberately not a
     # divisor of the 560x350 plot rect, which is the geometry that
-    # produced the hairline in #379 -- a band 560/53 = 10.566 px wide
+    # produced the hairline in -- a band 560/53 = 10.566 px wide
     # cannot be tiled by any single rounded width.
     var t = _image_theme()
     var c = render(
@@ -2179,11 +2152,7 @@ def _fill_count(z: List[List[Float64]], lo: Float64, hi: Float64) raises -> Int:
 
 
 def test_imshow_costs_the_output_rect_not_the_array() raises:
-    """#341's "do not draw one rect per cell": 512x512 is 262,144 cells
-    and drawing one rect each would be absurd for an image.
-
-    Two independent mechanisms, one assertion each, because they fail
-    independently:
+    """Verify drawing is bounded by output pixels and merges color runs.
 
     - Cells finer than a pixel collapse, so the count is bounded by the
       plot rect. A checkerboard is the case where *nothing* else can
@@ -2194,8 +2163,6 @@ def test_imshow_costs_the_output_rect_not_the_array() raises:
       count and the same visible-cell count as the checkerboard, so the
       only thing that can separate the two numbers is the merge.
 
-    Asserting a total render time, or that a large array renders at all,
-    would pass with one rect per cell.
     """
     var checker = _checkerboard(512, 512)
     var checker_rects = _fill_count(checker, 0.0, 1.0)
@@ -2244,7 +2211,7 @@ def test_imshow_costs_the_output_rect_not_the_array() raises:
     )
 
 
-# Mark.EVENTPLOT (#339)
+# Mark.EVENTPLOT
 # ---------------------------------------------------------------
 
 
@@ -2299,7 +2266,7 @@ def test_render_eventplot_puts_each_event_in_its_own_column() raises:
 
 def test_render_eventplot_rows_are_where_the_labels_are() raises:
     """Which row an event lands in, and how tall its tick is -- the
-    two-row spacing the issue asks to pin, done over three.
+    two-row spacing, checked over three rows.
 
     `_draw_horizontal_categorical_axis_frame` bands the rect's 230 rows
     into three slots of 76.67 with `OrdinalScale`'s default 0.2 padding,
@@ -2335,7 +2302,7 @@ def test_render_eventplot_rows_are_where_the_labels_are() raises:
 
 
 def test_render_eventplot_ticks_snap_to_one_pixel_column() raises:
-    """#313: a tick's fixed coordinate snaps to a pixel center, so it
+    """A tick's fixed coordinate snaps to a pixel center, so it
     covers exactly one column instead of splitting its ink across two.
     The whole chart is thin vertical lines and a blurred one reads as a
     fainter event.

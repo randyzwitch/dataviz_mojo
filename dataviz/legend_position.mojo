@@ -1,4 +1,4 @@
-"""Where a legend sits relative to the plot area (#211)."""
+"""Where a legend sits relative to the plot area."""
 
 
 struct LegendPosition(Copyable, ImplicitlyCopyable, Movable):

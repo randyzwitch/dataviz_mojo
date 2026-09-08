@@ -1,41 +1,10 @@
-"""Renders a representative mark per family at increasing data sizes and
-prints wall-clock render times, to catch the next accidental quadratic
-layout the way #188 (an O(n^2) beeswarm layout) and the line-decimation
-fix (`_decimate_to_pixel_columns`, continuous.mojo -- a 5,000-point line took
-1.7s before it existed) were each found by a user first. Run via
-`pixi run bench`.
+"""Render representative marks at increasing data sizes.
 
-Not part of CI's pass/fail (`pixi run test` doesn't call this): render
-time depends on the machine, and a few percent of noise between runs is
-normal. This is a manual "run before a release, or after touching a
-mark's layout code" check, plus a coarse `--check` mode for that:
-`pixi run bench --check` (or `mojo run -I . -I scripts scripts/bench.mojo
---check`) fails if any mark's 10x-larger size took more than 15x as
-long to render as its own smaller size -- true O(n) or O(n log n) work
-lands well under that; a real O(n^2) blows well past it. `--check`
-skips the 100,000-point POINT/LINE sizes (10s+ each already, not worth
-paying twice per run just for the ratio check) and only compares
-consecutive sizes within the same backend.
+Run with `pixi run bench`. Pass `--check` to fail when a 10x input increase
+takes more than 15x as long for the same mark and backend. Check mode skips
+the largest POINT and LINE cases.
 
-Marks covered are the ones this package's own code shape makes most
-likely to hide an accidental O(n^2): the edge family (CHORD/ARC_DIAGRAM/
-GRAPH/SANKEY, each with its own node/layout pass over the full edge
-list), the hierarchy family (TREE/TREEMAP/SUNBURST, each walking
-`_HierarchyIndex` recursively), HEATMAP (an n x n cell grid drawn
-directly, not through any of the shared axis-frame machinery), BAR
-(categorical tick-label measurement scales with category count, see
-`_max_label_width`), and BEESWARM/VIOLIN (the two distribution marks
-whose per-category layout wasn't checked for this before -- BEESWARM's
-own O(n^2) collision pass is exactly what #188 fixed for the *default*
-case; this exists so a regression there is caught on demand rather than
-by accident again). Not exhaustive over all 42 marks -- see the
-Backlog/issue for the full candidate list.
-
-Every size renders through the same one-file `mojo run`, so the
-`_render_generic` dispatch tree's own ~50 CPU-s monomorphization cost
-(pixi.toml's own `[tasks]` comment) is paid exactly once for the whole
-script, not once per size the way 117 separate one-chart programs used
-to before the docs pipeline was batched.
+This is a manual benchmark and is not part of `pixi run test`.
 """
 
 from std.time import perf_counter

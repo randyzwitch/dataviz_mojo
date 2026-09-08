@@ -77,19 +77,7 @@ def _draw_polar_grid[
     grid_rings: Int,
     grid_spokes: Int,
 ) raises:
-    """The polar coordinate system: `grid_rings` evenly spaced concentric
-    circles plus `grid_spokes` radial lines from the center out to
-    `max_radius`, in `theme.gridline_color`. No tick labels; a label
-    placed around a circle is typesetting this package has no machinery
-    for.
-
-    Each ring is one `draw_circle_aa`. It used to be a `Path` with a full
-    `arc_to` sweep, stroked -- the trait had no circle outline that took
-    a sub-pixel center and radius, and a ring's radius is
-    `max_radius * i / grid_rings`, so snapping it to whole pixels was not
-    an option (#258). canvas_mojo 0.16.0 put that overload on the trait,
-    so the workaround is gone.
-    """
+    """Draw evenly spaced polar grid rings and spokes without labels."""
     for i in range(1, grid_rings + 1):
         var r = max_radius * Float64(i) / Float64(grid_rings)
         target.draw_circle_aa(cx, cy, r, theme.gridline_color)

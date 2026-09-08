@@ -1,4 +1,4 @@
-"""Structural SVG assertions (#219).
+"""Structural SVG assertions.
 
 The SVG tests elsewhere assert on `to_string()` substrings. That catches
 gross breakage but not structure: a mark emitting its rects outside the
@@ -67,17 +67,17 @@ def test_bars_produce_one_rect_each_in_the_mark_color() raises:
 
 def test_attr_values_reads_an_elements_first_attribute() raises:
     """`_attr_values` could not read the first attribute of an element
-    (#387), and returned an empty list rather than saying so -- which in
-    a test reads as an assertion that passes over no values at all.
+    , and returned an empty list rather than saying so -- which in
+        a test reads as an assertion that passes over no values at all.
 
-    Every caller until now asked for `fill`, which canvas never emits
-    first, so the gap stayed invisible. canvas writes a bar as
-    `<rect x=... y=... width=... height=... fill=.../>`, so `x` is the
-    case that used to come back empty.
+        Every caller until now asked for `fill`, which canvas never emits
+        first, so the gap stayed invisible. canvas writes a bar as
+        `<rect x=... y=... width=... height=... fill=.../>`, so `x` is the
+        case that used to come back empty.
 
-    This asserts against `fill` from the same document rather than
-    against fixed coordinates: the point is that the two attributes are
-    read equally well, not where this particular chart puts its bars.
+        This asserts against `fill` from the same document rather than
+        against fixed coordinates: the point is that the two attributes are
+        read equally well, not where this particular chart puts its bars.
     """
     var t = Theme(show_gridlines=False, svg_tooltips=False)
     var svg = render_svg(
@@ -134,7 +134,7 @@ def _count_of(values: List[String], wanted: String) -> Int:
 
 
 def test_minor_gridlines_and_ticks_are_off_by_default() raises:
-    """#334 adds a minor tick level, and both halves are opt-in: a
+    """Adds a minor tick level, and both halves are opt-in: a
     default chart must be exactly what it was before.
 
     Asserting on the minor gridline color specifically, rather than a
@@ -191,13 +191,13 @@ def test_minor_gridlines_are_drawn_when_asked_and_are_lighter() raises:
 
 
 def test_a_suppressed_y_axis_takes_its_minor_level_with_it() raises:
-    """A standalone rugplot drops its y-axis (#378), and the minor level
-    (#334) has to go with it: a horizontal gridline or a y tick has
-    nothing to mean against a scale that is not drawn.
+    """A standalone rugplot drops its y-axis, and the minor level
+    has to go with it: a horizontal gridline or a y tick has
+       nothing to mean against a scale that is not drawn.
 
-    The two landed independently and `frame.mojo` merged cleanly, which
-    is exactly the case where an ungated loop survives unnoticed -- so
-    this pins it rather than trusting the merge.
+       Both code paths must remain equivalent, so
+       is exactly the case where an ungated loop survives unnoticed -- so
+       this pins it rather than trusting the merge.
     """
     var values: List[Float64] = [12.0, 14.0, 15.0, 17.0, 24.0, 26.0, 28.0]
     var t = Theme(show_minor_ticks=True, show_minor_gridlines=True)
