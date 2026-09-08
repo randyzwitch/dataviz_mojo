@@ -261,6 +261,7 @@ from dataviz.contour import _render_contour, _render_contourf
 from dataviz.image import _render_image
 from dataviz.kde import _render_kde, _render_rug
 from dataviz.ecdf import _render_ecdf
+from dataviz.eventplot import _render_eventplot
 from dataviz.tricontour import _render_tricontour, _render_tricontourf
 from dataviz.triplot import _render_tripcolor, _render_triplot
 from dataviz.marimekko import _render_marimekko
@@ -412,6 +413,13 @@ struct _MarkStyle(Copyable, Movable):
     `mark_streamgraph(baseline=...)`. `WIGGLE` unless asked otherwise;
     `ZERO` is the ordinary stacked area chart -- see `StackBaseline`.
     """
+    var eventplot_line_length: Float64
+    """Each `Mark.EVENTPLOT` tick's height as a fraction of its row's
+    band, from `mark_eventplot(line_length=...)` (#339). `1.0` (the full
+    band) unless asked otherwise. Geometry describing one chart's
+    proportions, like `violin_width_fraction` above, so it lives here
+    rather than on `Theme`.
+    """
 
     def __init__(out self):
         self.point_tooltips = False
@@ -435,6 +443,7 @@ struct _MarkStyle(Copyable, Movable):
         self.polar_grid_spokes = 12
         self.sankey_node_width = 12.0
         self.streamgraph_baseline = StackBaseline.WIGGLE
+        self.eventplot_line_length = 1.0
 
 
 struct _DomainOverride(Copyable, Movable):
@@ -1507,6 +1516,31 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.ECDF
         self._distribution.ecdf_complementary = complementary
+        return self^
+
+    def mark_eventplot(var self, line_length: Float64 = 1.0) -> Self:
+        """A raster plot: one row of tick marks per series, each tick at
+        the position of one event. Encoded via `encode_eventplot()`; see
+        `eventplot()` for the one-call form.
+
+        `Mark.RUG` drawn once per row, against a categorical y-axis --
+        the chart for things that *happen* rather than things that have
+        a value. Every event is drawn where it happened; nothing is
+        bucketed the way `histogram()`/`punchcard()`/
+        `calendar_heatmap()` bucket it.
+
+        Args:
+            line_length: Each tick's height as a fraction of its row's
+                band, defaulting to `1.0` (the full band). Below 1.0
+                opens a gap between rows, which is the one lever
+                against crowding that does not drop an event -- checked
+                at render() time, and must be positive.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.EVENTPLOT
+        self._mark_style.eventplot_line_length = line_length
         return self^
 
     def mark_ridgeline(
@@ -3193,6 +3227,99 @@ struct Plot(Copyable, Movable):
         self._distribution.values = one^
         return self^
 
+    def encode_eventplot(
+        var self, labels: List[String], positions: List[List[Float64]]
+    ) raises -> Self:
+        """Map one row label per series and, per row, that row's event
+        positions onto `Mark.EVENTPLOT`.
+
+        The same outer-list-per-category shape `encode_distribution()`
+        takes, into the same storage -- but with one rule deliberately
+        relaxed, which is why it is its own method rather than a call to
+        that one. **An individual row may be empty.**
+        `encode_distribution()` refuses an empty category, and rightly:
+        there is no distribution to estimate from no values. "This
+        sensor recorded nothing over the window" is a result, though,
+        and a row that vanished for having none would silently renumber
+        every row below it.
+
+        What is still refused is *every* row being empty: the x-axis is
+        built from the pooled positions, so with no event anywhere there
+        is no timeline to draw and nothing to draw on it. That check is
+        here rather than at render time so the message names this
+        method.
+
+        `labels` comes first, matching `encode_distribution()`,
+        `encode_boxplot()` and every other category-plus-values encoder
+        in this package -- #339 sketched it the other way round, but a
+        single encoder disagreeing about argument order is a worse trap
+        than the sketch is a promise.
+
+        Args:
+            labels: One row label per series, in the order they should
+                be drawn top to bottom.
+            positions: Each row's event positions (`positions[i]`),
+                in the shared x-axis' units. Individual rows may be
+                empty.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            Error: `labels` is empty, `labels`/`positions` lengths
+                don't match, or every row is empty.
+        """
+        if len(labels) != len(positions):
+            raise Error(
+                "Plot.encode_eventplot(): labels and positions must have"
+                " the same length (got "
+                + String(len(labels))
+                + " and "
+                + String(len(positions))
+                + ")"
+            )
+        _require_non_empty(len(labels), "Plot.encode_eventplot()")
+        var total = 0
+        for row in positions:
+            total += len(row)
+        if total == 0:
+            raise Error(
+                "Plot.encode_eventplot(): every row is empty -- an"
+                " individual row with no events is fine, but with no"
+                " event anywhere there is no x-axis to draw them on"
+            )
+        self.x_categories = labels.copy()
+        self.x_data = List[Float64]()
+        self.y_data = List[Float64]()
+        self._distribution.values = positions.copy()
+        return self^
+
+    def encode_eventplot[
+        dtype: DType
+    ](
+        var self, labels: List[String], positions: List[List[Scalar[dtype]]]
+    ) raises -> Self:
+        """`encode_eventplot()`'s `positions` generalized over numeric
+        element type via `_materialize_nested_scalar_list`
+        (array_like.mojo), exactly as `encode_distribution()` is.
+        `labels` stays concrete. Delegates to the concrete overload.
+
+        Args:
+            labels: One row label per series, top to bottom.
+            positions: Each row's event positions -- any numeric
+                `List[List[Scalar[dtype]]]`.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            Error: `labels` is empty, lengths don't match, or every row
+                is empty.
+        """
+        return self^.encode_eventplot(
+            labels, _materialize_nested_scalar_list(positions)
+        )
+
     def encode_ecdf(var self, values: List[Float64]) raises -> Self:
         """Map one flat column of raw observations onto `Mark.ECDF`.
 
@@ -4631,6 +4758,8 @@ def _render_generic[
         return _render_kde(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.RUG:
         return _render_rug(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    if plot._mark == Mark.EVENTPLOT:
+        return _render_eventplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.ECDF:
         return _render_ecdf(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.TRICONTOURF:

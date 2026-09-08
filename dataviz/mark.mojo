@@ -27,6 +27,9 @@ describes the drawing. By data shape:
   POPULATION_PYRAMID (`encode_population_pyramid()`).
 - One flat ungrouped column of observations, drawn on a continuous
   frame: KDE and RUG (`encode_kde()`), ECDF (`encode_ecdf()`).
+  POPULATION_PYRAMID (`encode_population_pyramid()`). EVENTPLOT takes
+  `encode_eventplot()` (one list of event positions per row, any of
+  which may be empty).
 - `encode_grouped_bar()` (category x series): GROUPED_BAR,
   STACKED_BAR, BUMP (ranks), STREAMGRAPH. MARIMEKKO takes
   `encode_marimekko()`; RADAR `encode_radar()`; PARALLEL
@@ -44,7 +47,7 @@ describes the drawing. By data shape:
 
 Vertical categorical marks share `_draw_categorical_axis_frame`
 (frame.mojo), horizontal ones `_draw_horizontal_categorical_axis_frame`
-(gantt.mojo), and the two-categorical-axis marks
+(gantt.mojo; EVENTPLOT is one of these), and the two-categorical-axis marks
 `_draw_grid_axis_frame` (heatmap.mojo). BAR/BOX/VIOLIN/BEESWARM/
 LOLLIPOP/GROUPED_BAR/STACKED_BAR each have a `horizontal=True`
 variant.
@@ -108,8 +111,9 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime ECDF = Self(51)
     comptime IMSHOW = Self(52)
     comptime PCOLORMESH = Self(53)
+    comptime EVENTPLOT = Self(54)
 
-    comptime COUNT = 54
+    comptime COUNT = 55
     """How many marks exist -- one past the largest value above.
 
     Only the raster/SVG layout-equivalence sweep reads this (#221): it
@@ -272,4 +276,6 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
             return "Mark.IMSHOW"
         if self == Self.PCOLORMESH:
             return "Mark.PCOLORMESH"
+        if self == Self.EVENTPLOT:
+            return "Mark.EVENTPLOT"
         return "Mark(" + String(self._value) + ")"

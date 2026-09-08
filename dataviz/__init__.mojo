@@ -64,6 +64,7 @@ from dataviz.arc_diagram import arc_diagram
 from dataviz.graph import graph
 from dataviz.sankey import sankey
 from dataviz.effect_scatter import effect_scatter
+from dataviz.eventplot import eventplot
 from dataviz.bump import bump
 from dataviz.funnel import funnel
 from dataviz.gantt import gantt

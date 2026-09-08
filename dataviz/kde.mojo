@@ -512,6 +512,54 @@ def rugplot(
     )
 
 
+def _draw_snapped_ticks[
+    T: DrawTarget
+](
+    mut target: T,
+    values: List[Float64],
+    x_scale: LinearScale,
+    y_top: Float64,
+    y_bottom: Float64,
+    color: Color,
+    width: Float64,
+) raises:
+    """One vertical hairline per value, at `x_scale.to_pixel(value)`
+    snapped to a pixel center, running `y_top` to `y_bottom`.
+
+    The whole of #313's rule for a thin line, in one place: only the
+    *fixed* coordinate snaps. Here that is x -- the value being marked
+    -- so a tick covers exactly one column instead of spreading half its
+    ink into each of two. The two y ends run along the other axis and
+    keep their exact positions, so a caller placing ticks inside a
+    layout band gets the band's real geometry rather than a rounded one.
+
+    This matters more for these marks than for most: the entire chart is
+    thin vertical lines, and a blurred one reads as a fainter
+    observation -- a difference in the data, not in the rendering.
+
+    Generalized out of `_draw_rug_ticks` (below, which now supplies the
+    three numbers a rug wants and calls this) when `Mark.EVENTPLOT`
+    (#339) needed the same tick somewhere else: centered on a
+    categorical row rather than standing on the frame's baseline. It
+    lives here, next to the rug, rather than in a new shared module,
+    because a module whose entire content is this loop would be harder
+    to find than the mark that has always drawn it.
+
+    Args:
+        target: Where to draw.
+        values: The positions to mark, in data units.
+        x_scale: The scale mapping those to pixels.
+        y_top: Each tick's upper pixel y.
+        y_bottom: Each tick's lower pixel y.
+        color: The tick color.
+        width: Stroke width, normally `_Scaled.scale` -- one device
+            pixel, which is what makes the snap worth doing.
+    """
+    for v in values:
+        var px = _snap_pixel_center(x_scale.to_pixel(v))
+        target.draw_line_aa(px, y_bottom, px, y_top, color, width=width)
+
+
 def _draw_rug_ticks[
     T: DrawTarget
 ](
@@ -533,9 +581,10 @@ def _draw_rug_ticks[
     pass *this layer's* `sc`, since `tick_length` and `scale` follow the
     layer's own `Theme.scale` while the frame's belong to `plots[0]`.
 
-    Each tick is a hairline, so its fixed coordinate snaps to a pixel
-    center and stays crisp -- the whole point is a row of thin vertical
-    lines, and a blurred one reads as a fainter observation.
+    What is left here is only what is specific to a rug -- standing on
+    the baseline, two tick-lengths tall, one device pixel wide. The tick
+    itself, snap included, is `_draw_snapped_ticks` above, which
+    `Mark.EVENTPLOT` draws through as well (#339).
 
     Args:
         target: Where to draw.
@@ -546,14 +595,12 @@ def _draw_rug_ticks[
         color: The tick color -- the mark's, or the background where
             the ticks sit on a filled curve.
     """
-    var height = Float64(sc.tick_length) * 2.0
-    for v in values:
-        var px = _snap_pixel_center(x_scale.to_pixel(v))
-        target.draw_line_aa(
-            px,
-            baseline_py,
-            px,
-            baseline_py - height,
-            color,
-            width=sc.scale,
-        )
+    _draw_snapped_ticks(
+        target,
+        values,
+        x_scale,
+        baseline_py - Float64(sc.tick_length) * 2.0,
+        baseline_py,
+        color,
+        sc.scale,
+    )
