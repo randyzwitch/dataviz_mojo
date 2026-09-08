@@ -195,6 +195,13 @@ def _kde_observations(plot: Plot) raises -> List[Float64]:
     `Plot.encode_kde()`'s own message keeps a bad layer's error the same
     one the standalone render gives.
     """
+    # The outer list is checked before it is indexed (#439). Reaching
+    # for `values[0]` first turns "you forgot encode_kde()" from a
+    # catchable error into an out-of-bounds assert that aborts the
+    # process -- no traceback into user code, and nothing a caller can
+    # recover from. The guard has to come before the subscript, not
+    # after it.
+    _require_non_empty(len(plot._distribution.values), "Plot.encode_kde()")
     var values = plot._distribution.values[0].copy()
     _require_non_empty(len(values), "Plot.encode_kde()")
     return values^

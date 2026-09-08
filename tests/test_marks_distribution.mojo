@@ -39,6 +39,7 @@ from dataviz.frame import _draw_continuous_axis_frame
 from dataviz.ecdf import _ecdf_points, _ecdf_step_style
 from dataviz.kde import _kde_curve
 from dataviz.legend import _LegendLayout
+from dataviz.layers import render_layers
 from dataviz.plot import Plot, render, render_svg
 from dataviz.scale import LinearScale
 from dataviz.stack_baseline import StackBaseline
@@ -2070,6 +2071,40 @@ def test_render_ecdf_raises_without_observations() raises:
         _ = ecdf(List[Float64](), width=200, height=150)
     with assert_raises():
         _ = render(Plot().mark_ecdf().size(200, 150))
+
+
+def test_mark_kde_without_encode_kde_raises_instead_of_aborting() raises:
+    """#439: `_kde_observations` reached for `values[0]` before checking
+    that the outer list had any column at all, so a `Mark.KDE` plot with
+    no `encode_kde()` hit an out-of-bounds assert.
+
+    That is not a worse error message -- it **aborts the process**. No
+    traceback into the caller's code, nothing an `except` can catch, and
+    in a batch job it takes down every chart after it too. The guard has
+    to come before the subscript.
+
+    `assert_raises` is the whole assertion: it can only pass if the
+    failure is catchable, which is exactly what was broken.
+    """
+    with assert_raises():
+        _ = render(Plot().mark_kde().size(200, 150))
+
+
+def test_mark_rug_without_encode_kde_raises_instead_of_aborting() raises:
+    """`Mark.RUG` reads the same observations through the same helper, so
+    it aborted the same way."""
+    with assert_raises():
+        _ = render(Plot().mark_rug().size(200, 150))
+
+
+def test_a_layered_kde_without_data_raises_instead_of_aborting() raises:
+    """The layered path calls `_kde_observations` in its first pass, to
+    collect each layer's domain contribution before the shared frame is
+    drawn -- so it reached the bad subscript earlier than the standalone
+    render did, not later."""
+    var plots: List[Plot] = [Plot().mark_kde().size(200, 150)]
+    with assert_raises():
+        _ = render_layers(plots)
 
 
 def main() raises:
