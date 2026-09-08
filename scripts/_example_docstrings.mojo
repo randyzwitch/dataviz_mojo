@@ -115,6 +115,9 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("graph", "graph", "graph"),
         ExamplePage("sankey", "sankey", "sankey"),
         ExamplePage("histogram", "histogram", "histogram"),
+        ExamplePage(
+            "histogram_shared", "histogram", "histogram", block="Shared Bins"
+        ),
         ExamplePage("grouped_bar", "grouped_bar", "grouped_bar"),
         ExamplePage("stacked_bar", "stacked_bar", "stacked_bar"),
         # Cookbook pages used to be listed here too; all migrated to

@@ -1914,6 +1914,15 @@ struct Plot(Copyable, Movable):
         binned; see `_bin_histogram()` (histogram.mojo) for the algorithm and
         the cases it raises on.
 
+        This is the **categorical** histogram: a category axis spaces its
+        entries evenly whatever intervals they name, so the bars are
+        equally wide even when the bins are not, and the axis carries no
+        numbers a second mark could be aligned against. `histogram()`
+        (histogram.mojo) draws the same counts over a numeric axis and
+        takes explicit edges, weights and normalization (#366); reach for
+        this one when the formatted range labels are what you want to
+        read off the axis.
+
         Args:
             data: The raw values to bin -- not pre-counted; binning
                 happens right here.
@@ -1923,6 +1932,12 @@ struct Plot(Copyable, Movable):
 
         Returns:
             Self, for further chaining.
+
+        Raises:
+            Error: `data` is empty, `bins` is not positive, or a value
+                is `NaN`/infinite. A constant sample does *not* raise:
+                it is binned over `[v - 0.5, v + 0.5]`, numpy's rule
+                (#366).
         """
         var binned = _bin_histogram(data, bins)
         self.x_categories = binned.labels.copy()

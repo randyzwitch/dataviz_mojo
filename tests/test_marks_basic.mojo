@@ -3,8 +3,10 @@
 colors, color/size encoding, categorical color, SVG coordinates),
 Mark.LINE (drawing, line_smoothing, _build_line_path, step), Mark.AREA
 (fill region, smoothing and step), Mark.BAR (rectangles, negative values,
-color_by_sign), encode_histogram(), Mark.LOLLIPOP, Mark.BOX,
-Mark.CANDLESTICK, Mark.WATERFALL, and Mark.BULLET, each raster + SVG.
+color_by_sign), the histogram binning engine and `histogram()`'s numeric
+axis plus `encode_histogram()`'s categorical one, Mark.LOLLIPOP,
+Mark.BOX, Mark.CANDLESTICK, Mark.WATERFALL, and Mark.BULLET, each
+raster + SVG.
 """
 
 from _test_helpers import (
@@ -14,6 +16,7 @@ from _test_helpers import (
     _assert_near_color,
     _attr_values,
     _bbox_of_color,
+    _column_extent,
     _count_color,
     _count_tag,
     _row_extent,
@@ -32,6 +35,7 @@ from dataviz import (
     candlestick,
     contour,
     contourf,
+    histogram,
     tricontour,
     tricontourf,
     triplot,
@@ -40,6 +44,13 @@ from dataviz import (
     lollipop,
     scatter,
     waterfall,
+)
+from dataviz.histogram import (
+    HistStat,
+    bin_edges,
+    histogram_bins,
+    shared_bin_edges,
+    uniform_bin_edges,
 )
 from dataviz.barbs import _barb_counts, _barb_glyph
 from dataviz.continuous import _step_points
@@ -1653,10 +1664,24 @@ def test_encode_histogram_raises_on_non_positive_bins() raises:
         _ = Plot().mark_bar().encode_histogram(data, bins=0)
 
 
-def test_encode_histogram_raises_on_zero_span_data() raises:
+def test_encode_histogram_centers_bins_on_a_constant_sample() raises:
+    # Was `..._raises_on_zero_span_data` before #366: a constant sample
+    # had "no span to divide into bins" and raised. numpy bins it over
+    # [v - 0.5, v + 0.5], which is a real answer -- the whole sample in
+    # one bin -- so this now has to produce that instead of raising.
+    # numpy.histogram([5,5,5], bins=5) -> edges 4.5..5.5 step 0.2,
+    # counts [0, 0, 3, 0, 0].
     var data: List[Float64] = [5.0, 5.0, 5.0]
-    with assert_raises():
-        _ = Plot().mark_bar().encode_histogram(data, bins=5)
+    var plot = Plot().mark_bar().encode_histogram(data, bins=5)
+    assert_equal(len(plot.x_categories), 5)
+    assert_equal(plot.x_categories[0], "4.5-4.7")
+    assert_equal(plot.x_categories[2], "4.9-5.1")
+    assert_equal(plot.x_categories[4], "5.3-5.5")
+    assert_equal(plot.y_data[0], 0.0)
+    assert_equal(plot.y_data[1], 0.0)
+    assert_equal(plot.y_data[2], 3.0)
+    assert_equal(plot.y_data[3], 0.0)
+    assert_equal(plot.y_data[4], 0.0)
 
 
 def test_render_histogram_draws_as_an_ordinary_bar_chart() raises:
@@ -1682,6 +1707,595 @@ def test_render_histogram_draws_as_an_ordinary_bar_chart() raises:
             "bin 0's bar (3 of 5 values) reaches well above the plot area's"
             " midpoint"
         ),
+    )
+
+
+# ---------------------------------------------------------------
+# The binning engine (#366): numeric edges, shared edges, weights,
+# normalization, cumulative.
+#
+# Every expected number below was produced by numpy 2.5.3 /
+# matplotlib 3.11.1 on the same inputs and pasted in, never by calling
+# the function under test. The two conventions worth stating, because
+# they are what hand-rolled binning gets wrong, are numpy's:
+# `[edges[i], edges[i + 1])` for every bin except the last, which is
+# closed on the right; and observations outside the edges are dropped,
+# not clamped into an end bin.
+# ---------------------------------------------------------------
+
+
+def _assert_close(
+    actual: List[Float64], expected: List[Float64], tol: Float64, label: String
+) raises:
+    """Element-wise near-equality, for the normalized stats where the
+    last bit or two of a division is not the point.
+    """
+    assert_equal(len(actual), len(expected), label + ": length")
+    for i in range(len(expected)):
+        assert_true(
+            abs(actual[i] - expected[i]) <= tol,
+            label
+            + "["
+            + String(i)
+            + "]: expected "
+            + String(expected[i])
+            + ", got "
+            + String(actual[i]),
+        )
+
+
+def test_bin_edges_match_numpy_for_an_equal_width_range() raises:
+    # numpy.histogram(range(1, 11), bins=5) -> edges
+    # [1, 2.8, 4.6, 6.4, 8.2, 10], counts [2, 2, 2, 2, 2].
+    var data: List[Float64] = [
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0,
+        9.0,
+        10.0,
+    ]
+    var e = bin_edges(data, 5)
+    var want_edges: List[Float64] = [1.0, 2.8, 4.6, 6.4, 8.2, 10.0]
+    _assert_close(e, want_edges, 1e-12, "edges")
+    var b = histogram_bins(data, e)
+    var want: List[Float64] = [2.0, 2.0, 2.0, 2.0, 2.0]
+    _assert_close(b.values, want, 0.0, "counts")
+    assert_equal(len(b), 5, "five bins for six edges")
+
+
+def test_uniform_bin_edges_pin_both_endpoints_exactly() raises:
+    # The interior boundary is where the two ways of spacing edges part
+    # company. numpy's linspace form (`lo + step * i` for a precomputed
+    # step) puts edges[3] of [0, 1] in 10 bins at 0.30000000000000004;
+    # the ratio form used here puts it at 0.3, the number the tick label
+    # will print.
+    var e = uniform_bin_edges(0.0, 1.0, 10)
+    assert_equal(len(e), 11, "ten bins -> eleven edges")
+    assert_equal(e[0], 0.0, "first edge is min, exactly")
+    assert_equal(e[10], 1.0, "last edge is max, exactly")
+    assert_equal(e[3], 0.3, "interior edge is the rounded ratio, not 0.3+4e-17")
+    assert_equal(e[5], 0.5, "and an exactly representable one is exact")
+
+
+def test_histogram_bins_are_half_open_except_the_last() raises:
+    # numpy.histogram([0, 1, 2, 3, 0.5, 1.5, 2.5], bins=3, range=(0, 3))
+    # -> [2, 2, 3]. Each of 0, 1, 2 sits exactly on a boundary and joins
+    # the bin *above* it; 3 has no bin above, so the closed right edge
+    # puts it in the last one. Flip either rule and this list changes:
+    # boundaries joining the bin below gives [3, 2, 2], and a last bin
+    # left half-open drops the 3 for [2, 2, 2].
+    var data: List[Float64] = [0.0, 1.0, 2.0, 3.0, 0.5, 1.5, 2.5]
+    var b = histogram_bins(data, uniform_bin_edges(0.0, 3.0, 3))
+    var want: List[Float64] = [2.0, 2.0, 3.0]
+    _assert_close(b.values, want, 0.0, "boundary counts")
+
+
+def test_histogram_bins_keep_the_sample_maximum() raises:
+    # The narrowest statement of the closed-right-edge rule: two values,
+    # one at each end of the range. numpy gives [1, 0, 1]. Without the
+    # rule the maximum falls off the histogram entirely -> [1, 0, 0].
+    var data: List[Float64] = [0.0, 3.0]
+    var b = histogram_bins(data, uniform_bin_edges(0.0, 3.0, 3))
+    var want: List[Float64] = [1.0, 0.0, 1.0]
+    _assert_close(b.values, want, 0.0, "endpoint counts")
+    assert_equal(b.total(), 2.0, "both observations were counted")
+
+
+def test_histogram_bins_drop_observations_outside_the_edges() raises:
+    # numpy.histogram([-1, 0, 1, 2, 3, 4], bins=3, range=(0, 3)) ->
+    # [1, 1, 2]. The -1 and the 4 are dropped. Clamping them into the
+    # end bins instead would give [2, 1, 3] and draw two bars taller
+    # than the intervals under them justify.
+    var data: List[Float64] = [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0]
+    var b = histogram_bins(data, uniform_bin_edges(0.0, 3.0, 3))
+    var want: List[Float64] = [1.0, 1.0, 2.0]
+    _assert_close(b.values, want, 0.0, "in-range counts")
+    assert_equal(b.total(), 4.0, "4 of the 6 observations were in range")
+
+
+def test_histogram_bins_count_unequal_widths() raises:
+    # numpy.histogram(d, bins=[0, 1, 3, 7]) -> [2, 3, 4] with
+    # d = [0, 0.5, 1, 2, 2.9, 3, 4, 6.9, 7]. Bin widths 1, 2 and 4, so
+    # this is the case where a count and a density disagree about which
+    # bar is tallest.
+    var data: List[Float64] = [
+        0.0,
+        0.5,
+        1.0,
+        2.0,
+        2.9,
+        3.0,
+        4.0,
+        6.9,
+        7.0,
+    ]
+    var edges: List[Float64] = [0.0, 1.0, 3.0, 7.0]
+    var b = histogram_bins(data, edges)
+    var want: List[Float64] = [2.0, 3.0, 4.0]
+    _assert_close(b.values, want, 0.0, "unequal-width counts")
+    assert_equal(b.width(0), 1.0, "bin 0 is one unit wide")
+    assert_equal(b.width(2), 4.0, "bin 2 is four")
+    assert_equal(b.center(1), 2.0, "bin 1's midpoint")
+
+
+def test_histogram_bins_density_times_width_sums_to_one() raises:
+    # numpy.histogram(d, bins=[0, 1, 3, 7], density=True) ->
+    # [0.2222222222222222, 0.16666666666666666, 0.1111111111111111].
+    # The count says bin 2 is the tallest (4 observations); the density
+    # says it is the shortest, because it is four times as wide. Only
+    # the density integrates to 1.
+    var data: List[Float64] = [
+        0.0,
+        0.5,
+        1.0,
+        2.0,
+        2.9,
+        3.0,
+        4.0,
+        6.9,
+        7.0,
+    ]
+    var edges: List[Float64] = [0.0, 1.0, 3.0, 7.0]
+    var b = histogram_bins(data, edges, stat=HistStat.DENSITY)
+    var want: List[Float64] = [
+        0.2222222222222222,
+        0.16666666666666666,
+        0.1111111111111111,
+    ]
+    _assert_close(b.values, want, 1e-15, "density")
+    var area = 0.0
+    for i in range(len(b)):
+        area += b.values[i] * b.width(i)
+    assert_true(
+        abs(area - 1.0) < 1e-12,
+        "sum(density * width) = " + String(area) + ", expected 1.0",
+    )
+
+
+def test_histogram_bins_density_normalizes_by_the_in_range_total() raises:
+    # numpy.histogram([-1, 0, 1, 2, 3, 4], bins=3, range=(0, 3),
+    # density=True) -> [0.25, 0.25, 0.5]. Four observations landed in a
+    # bin, not six: dividing by len(data) would give
+    # [0.1667, 0.1667, 0.3333], whose area is 2/3 rather than 1.
+    var data: List[Float64] = [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0]
+    var b = histogram_bins(
+        data, uniform_bin_edges(0.0, 3.0, 3), stat=HistStat.DENSITY
+    )
+    var want: List[Float64] = [0.25, 0.25, 0.5]
+    _assert_close(b.values, want, 1e-15, "density with values out of range")
+
+
+def test_histogram_bins_weighted_counts_are_summed_weights() raises:
+    # numpy.histogram([1, 1, 2, 3, 3.5], bins=[1, 2, 3, 4],
+    # weights=[0.5, 1.5, 2, 3, 4]) -> [2, 2, 7]. Unweighted the same
+    # data gives [2, 1, 2], so this cannot pass against a run that
+    # ignored the weights.
+    var data: List[Float64] = [1.0, 1.0, 2.0, 3.0, 3.5]
+    var w: List[Float64] = [0.5, 1.5, 2.0, 3.0, 4.0]
+    var edges: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var b = histogram_bins(data, edges, weights=w)
+    var want: List[Float64] = [2.0, 2.0, 7.0]
+    _assert_close(b.values, want, 0.0, "weighted counts")
+    assert_equal(b.total(), 11.0, "the bins hold the whole weight, 11.0")
+
+
+def test_histogram_bins_weighted_density_integrates_to_one() raises:
+    # The same weights with density=True:
+    # [0.18181818181818182, 0.18181818181818182, 0.6363636363636364].
+    # The divisor is the total *weight* (11), not the observation count
+    # (5) -- with 5 the area would be 11/5.
+    var data: List[Float64] = [1.0, 1.0, 2.0, 3.0, 3.5]
+    var w: List[Float64] = [0.5, 1.5, 2.0, 3.0, 4.0]
+    var edges: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var b = histogram_bins(data, edges, weights=w, stat=HistStat.DENSITY)
+    var want: List[Float64] = [
+        0.18181818181818182,
+        0.18181818181818182,
+        0.6363636363636364,
+    ]
+    _assert_close(b.values, want, 1e-15, "weighted density")
+    var area = 0.0
+    for i in range(len(b)):
+        area += b.values[i] * b.width(i)
+    assert_true(
+        abs(area - 1.0) < 1e-12,
+        "sum(weighted density * width) = " + String(area),
+    )
+
+
+def test_histogram_bins_probability_percent_and_frequency() raises:
+    # Unequal widths again, so FREQUENCY (count / width) is not just
+    # COUNT rescaled: counts [2, 3, 4] over widths [1, 2, 4] give
+    # [2, 1.5, 1] -- a different ordering of the bars than the counts.
+    # PROBABILITY is count/9 and PERCENT is 100x that.
+    var data: List[Float64] = [
+        0.0,
+        0.5,
+        1.0,
+        2.0,
+        2.9,
+        3.0,
+        4.0,
+        6.9,
+        7.0,
+    ]
+    var edges: List[Float64] = [0.0, 1.0, 3.0, 7.0]
+    var freq: List[Float64] = [2.0, 1.5, 1.0]
+    _assert_close(
+        histogram_bins(data, edges, stat=HistStat.FREQUENCY).values,
+        freq,
+        1e-15,
+        "frequency",
+    )
+    var prob: List[Float64] = [
+        0.2222222222222222,
+        0.3333333333333333,
+        0.4444444444444444,
+    ]
+    var pb = histogram_bins(data, edges, stat=HistStat.PROBABILITY)
+    _assert_close(pb.values, prob, 1e-15, "probability")
+    assert_true(
+        abs(pb.total() - 1.0) < 1e-12,
+        "probabilities sum to 1, not to the count",
+    )
+    var pct: List[Float64] = [
+        22.22222222222222,
+        33.33333333333333,
+        44.44444444444444,
+    ]
+    var pcb = histogram_bins(data, edges, stat=HistStat.PERCENT)
+    _assert_close(pcb.values, pct, 1e-12, "percent")
+    assert_true(abs(pcb.total() - 100.0) < 1e-12, "percents sum to 100")
+
+
+def test_histogram_bins_cumulative_count_is_a_running_total() raises:
+    # matplotlib.hist(range(1, 11), bins=5, cumulative=True) ->
+    # [2, 4, 6, 8, 10]. Per-bin the same data is [2, 2, 2, 2, 2], so a
+    # run that ignored `cumulative` fails on the second bin.
+    var data: List[Float64] = [
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0,
+        9.0,
+        10.0,
+    ]
+    var b = histogram_bins(data, bin_edges(data, 5), cumulative=True)
+    var want: List[Float64] = [2.0, 4.0, 6.0, 8.0, 10.0]
+    _assert_close(b.values, want, 0.0, "cumulative counts")
+
+
+def test_histogram_bins_cumulative_density_is_the_empirical_cdf() raises:
+    # matplotlib.hist(d, bins=[0, 1, 3, 7], density=True,
+    # cumulative=True) -> [0.2222222222222222, 0.5555555555555556, 1.0].
+    #
+    # Unequal widths are what make this test discriminate. Cumulative
+    # accumulates *mass*, so the per-bin densities
+    # [0.2222, 0.1667, 0.1111] are NOT what gets summed: a running sum
+    # of those is [0.2222, 0.3889, 0.5] and never reaches 1. The last
+    # bin of a cumulative density has to be exactly 1.0, and that is the
+    # assertion that catches a width division left in.
+    var data: List[Float64] = [
+        0.0,
+        0.5,
+        1.0,
+        2.0,
+        2.9,
+        3.0,
+        4.0,
+        6.9,
+        7.0,
+    ]
+    var edges: List[Float64] = [0.0, 1.0, 3.0, 7.0]
+    var b = histogram_bins(data, edges, stat=HistStat.DENSITY, cumulative=True)
+    var want: List[Float64] = [
+        0.2222222222222222,
+        0.5555555555555556,
+        1.0,
+    ]
+    _assert_close(b.values, want, 1e-15, "cumulative density")
+    assert_equal(b.values[2], 1.0, "a CDF ends at exactly 1.0")
+
+
+def test_bin_edges_center_a_constant_sample_on_a_unit_range() raises:
+    # numpy.histogram([5, 5, 5, 5], bins=4) -> edges
+    # [4.5, 4.75, 5, 5.25, 5.5], counts [0, 0, 4, 0]. The whole sample
+    # sits on an interior boundary, so the half-open rule puts it in the
+    # bin above: bin 2, not bin 1.
+    var data: List[Float64] = [5.0, 5.0, 5.0, 5.0]
+    var e = bin_edges(data, 4)
+    var want_edges: List[Float64] = [4.5, 4.75, 5.0, 5.25, 5.5]
+    _assert_close(e, want_edges, 0.0, "constant-sample edges")
+    var b = histogram_bins(data, e)
+    var want: List[Float64] = [0.0, 0.0, 4.0, 0.0]
+    _assert_close(b.values, want, 0.0, "constant-sample counts")
+
+
+def test_shared_bin_edges_align_two_groups_exactly() raises:
+    # Pooled range is [1, 7] across both groups, in 6 bins of width 1.
+    # numpy.histogram(g, bins=6, range=(1, 7)) for each:
+    # g1 = [1, 2, 3, 4] -> [1, 1, 1, 1, 0, 0]
+    # g2 = [3, 4, 5, 6, 7] -> [0, 0, 1, 1, 1, 2]
+    # Binned on their own ranges instead, g1 would get edges 1..4 and g2
+    # edges 3..7, and bin 3 of one chart would cover a different
+    # interval than bin 3 of the other.
+    var g1: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var g2: List[Float64] = [3.0, 4.0, 5.0, 6.0, 7.0]
+    var groups: List[List[Float64]] = [g1.copy(), g2.copy()]
+    var e = shared_bin_edges(groups, 6)
+    var want_edges: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
+    _assert_close(e, want_edges, 0.0, "shared edges")
+    var b1 = histogram_bins(g1, e)
+    var b2 = histogram_bins(g2, e)
+    var w1: List[Float64] = [1.0, 1.0, 1.0, 1.0, 0.0, 0.0]
+    var w2: List[Float64] = [0.0, 0.0, 1.0, 1.0, 1.0, 2.0]
+    _assert_close(b1.values, w1, 0.0, "group 1")
+    _assert_close(b2.values, w2, 0.0, "group 2")
+    for i in range(len(e)):
+        assert_equal(
+            b1.edges[i], b2.edges[i], "both groups share edge " + String(i)
+        )
+
+
+def test_histogram_bins_step_columns_close_the_last_bar() raises:
+    # step_x/step_y are the columns Mark.AREA + StepStyle.POST draws.
+    # POST holds y[i] across [x[i], x[i+1]) and stops at the last
+    # sample, so the repeated final value is what gives the rightmost
+    # bin a top. Without it the columns are 4 and 3 long and the last
+    # bar is a triangle.
+    var data: List[Float64] = [0.5, 1.5, 1.6, 2.5]
+    var b = histogram_bins(data, uniform_bin_edges(0.0, 3.0, 3))
+    var xs = b.step_x()
+    var ys = b.step_y()
+    assert_equal(len(xs), 4, "one x per edge")
+    assert_equal(len(ys), 4, "one y per edge, the last repeated")
+    assert_equal(ys[2], 1.0, "bin 2's own value")
+    assert_equal(ys[3], ys[2], "the closing point repeats the last bin")
+    assert_equal(xs[3], 3.0, "and sits on the last edge")
+
+
+def test_histogram_bins_raise_on_bad_input() raises:
+    var data: List[Float64] = [1.0, 2.0, 3.0]
+    var ok: List[Float64] = [0.0, 2.0, 4.0]
+    var empty = List[Float64]()
+    with assert_raises(contains="data must not be empty"):
+        _ = histogram_bins(empty, ok)
+    var one: List[Float64] = [1.0]
+    with assert_raises(contains="at least 2 boundaries"):
+        _ = histogram_bins(data, one)
+    var backwards: List[Float64] = [0.0, 2.0, 1.0]
+    with assert_raises(contains="strictly ascending"):
+        _ = histogram_bins(data, backwards)
+    var flat: List[Float64] = [0.0, 0.0, 1.0]
+    with assert_raises(contains="strictly ascending"):
+        _ = histogram_bins(data, flat)
+    var short_w: List[Float64] = [1.0, 1.0]
+    with assert_raises(contains="one per observation"):
+        _ = histogram_bins(data, ok, weights=short_w)
+    var neg_w: List[Float64] = [1.0, -1.0, 1.0]
+    with assert_raises(contains="nonnegative"):
+        _ = histogram_bins(data, ok, weights=neg_w)
+    # Every observation outside the edges: COUNT is legitimately all
+    # zeros, but the three stats that divide by the total have nothing
+    # to divide by and say so rather than returning NaN bars.
+    var far: List[Float64] = [90.0, 91.0, 92.0]
+    var zeros = histogram_bins(far, ok)
+    assert_equal(
+        zeros.total(), 0.0, "COUNT of nothing in range is 0, not a raise"
+    )
+    with assert_raises(contains="total binned weight"):
+        _ = histogram_bins(far, ok, stat=HistStat.DENSITY)
+    with assert_raises(contains="bins must be positive"):
+        _ = uniform_bin_edges(0.0, 1.0, 0)
+    with assert_raises(contains="greater than min"):
+        _ = uniform_bin_edges(1.0, 1.0, 4)
+    var no_groups = List[List[Float64]]()
+    with assert_raises(contains="at least one"):
+        _ = shared_bin_edges(no_groups, 4)
+
+
+def test_hist_stat_names_itself() raises:
+    assert_equal(HistStat.COUNT.name(), "COUNT")
+    assert_equal(HistStat.DENSITY.name(), "DENSITY")
+    assert_equal(HistStat(9).name(), "HistStat(9)")
+    assert_true(HistStat.COUNT != HistStat.PERCENT, "distinct stats differ")
+
+
+# ---------------------------------------------------------------
+# histogram()'s numeric x-axis (#366). Every pixel expectation below
+# was read off an actual 400x300 render saved as a .bmp and parsed byte
+# by byte, not derived from margin arithmetic.
+# ---------------------------------------------------------------
+
+
+def _hist_probe_data() -> List[Float64]:
+    """Seven values over `uniform_bin_edges(0, 3, 3)`, giving counts
+    [1, 2, 4] -- three distinct heights, so a bar sampled in the wrong
+    bin cannot accidentally match.
+    """
+    return [0.5, 1.2, 1.8, 2.1, 2.3, 2.7, 3.0]
+
+
+def test_render_histogram_bar_heights_track_bin_counts() raises:
+    # Counts [1, 2, 4]; Mark.AREA's zero-baselined y-domain is
+    # [0, 4.2]. On a 400x300 canvas the plot area is x:[60,380],
+    # y:[20,250], so the fill's top row in each bin came out at 196,
+    # 141 and 32, over a common bottom row of 248.
+    var t = Theme(show_gridlines=False)
+    var edges = uniform_bin_edges(0.0, 3.0, 3)
+    var c = render(
+        histogram(
+            _hist_probe_data(), edges=edges, theme=t, width=400, height=300
+        )
+    )
+    var bin0 = _column_extent(c, 100, t.mark_color)
+    var bin1 = _column_extent(c, 220, t.mark_color)
+    var bin2 = _column_extent(c, 326, t.mark_color)
+    assert_equal(bin0.y0, 196, "bin 0 (count 1) tops out at row 196")
+    assert_equal(bin1.y0, 141, "bin 1 (count 2) tops out at row 141")
+    assert_equal(bin2.y0, 32, "bin 2 (count 4) tops out at row 32")
+    assert_equal(bin0.y1, 248, "every bar sits on the same baseline")
+    assert_equal(bin1.y1, 248, "every bar sits on the same baseline")
+    assert_equal(bin2.y1, 248, "every bar sits on the same baseline")
+
+
+def test_render_histogram_puts_each_bar_over_its_own_bin() raises:
+    # The x-domain is [0, 3] across the plot area x:[60,380], so the
+    # three bins own x:[60,166.7), [166.7,273.3) and [273.3,380]. This
+    # is what pins StepStyle.POST: PRE would draw the value of bin i+1
+    # over bin i's interval, making the sampled heights [2, 4, 4]
+    # instead of [1, 2, 4], and MID would shift every riser half a bin.
+    var t = Theme(show_gridlines=False)
+    var edges = uniform_bin_edges(0.0, 3.0, 3)
+    var c = render(
+        histogram(
+            _hist_probe_data(), edges=edges, theme=t, width=400, height=300
+        )
+    )
+    # Sampled just inside each bin's own left and right ends.
+    assert_equal(_column_extent(c, 61, t.mark_color).y0, 196, "bin 0's left")
+    assert_equal(_column_extent(c, 166, t.mark_color).y0, 196, "bin 0's right")
+    assert_equal(_column_extent(c, 168, t.mark_color).y0, 141, "bin 1's left")
+    assert_equal(_column_extent(c, 273, t.mark_color).y0, 141, "bin 1's right")
+    assert_equal(_column_extent(c, 275, t.mark_color).y0, 32, "bin 2's left")
+    assert_equal(_column_extent(c, 379, t.mark_color).y0, 32, "bin 2's right")
+
+
+def test_render_histogram_spans_the_whole_bin_range() raises:
+    # histogram() pins the x-domain to [edges[0], edges[-1]] instead of
+    # letting _data_extent pad it 5% each side. The control is the same
+    # staircase through the general-purpose area(), which does pad: its
+    # fill measured x:[76,364] against the histogram's x:[61,379]. A
+    # histogram that lost the pin would match the control exactly.
+    var t = Theme(show_gridlines=False)
+    var edges = uniform_bin_edges(0.0, 3.0, 3)
+    var data = _hist_probe_data()
+    var b = histogram_bins(data, edges)
+    var hist = _bbox_of_color(
+        render(histogram(data, edges=edges, theme=t, width=400, height=300)),
+        t.mark_color,
+    )
+    var padded = _bbox_of_color(
+        render(
+            area(
+                b.step_x(),
+                b.step_y(),
+                step=StepStyle.POST,
+                theme=t,
+                width=400,
+                height=300,
+            )
+        ),
+        t.mark_color,
+    )
+    assert_equal(hist.x0, 61, "the histogram starts at the y-axis")
+    assert_equal(hist.x1, 379, "and runs to the right edge of the plot area")
+    assert_equal(padded.x0, 76, "the padded control is inset on the left")
+    assert_equal(padded.x1, 364, "and on the right")
+
+
+def test_render_histogram_draws_a_constant_sample() raises:
+    # #366's "constant samples must render meaningfully". Three
+    # identical values over bins=4 give the range [4.5, 5.5] and counts
+    # [0, 0, 3, 0]; across the plot area x:[60,380] that is one bar over
+    # x:[220,300], measured at x:[221,299]. This used to raise.
+    var t = Theme(show_gridlines=False)
+    var data: List[Float64] = [5.0, 5.0, 5.0]
+    var c = render(histogram(data, bins=4, theme=t, width=400, height=300))
+    var bar_box = _bbox_of_color(c, t.mark_color)
+    assert_true(bar_box.found, "a constant sample draws a bar")
+    assert_equal(bar_box.x0, 221, "the single bar starts at bin 2's left edge")
+    assert_equal(bar_box.x1, 299, "and ends at its right edge")
+    assert_equal(bar_box.y1, 248, "it stands on the baseline")
+
+
+def test_render_histogram_probability_and_count_draw_the_same_shape() raises:
+    # PROBABILITY is COUNT divided by a constant, so the silhouette is
+    # identical and only the axis labels change. Same bytes is the
+    # strongest form of that: it also says the y-domain came from the
+    # data rather than being pinned to the counts.
+    var t = Theme(show_gridlines=False)
+    var edges = uniform_bin_edges(0.0, 3.0, 3)
+    var data = _hist_probe_data()
+    var counted = _bbox_of_color(
+        render(histogram(data, edges=edges, theme=t, width=400, height=300)),
+        t.mark_color,
+    )
+    var shared = _bbox_of_color(
+        render(
+            histogram(
+                data,
+                edges=edges,
+                stat=HistStat.PROBABILITY,
+                theme=t,
+                width=400,
+                height=300,
+            )
+        ),
+        t.mark_color,
+    )
+    assert_equal(counted.x0, shared.x0, "same left edge")
+    assert_equal(counted.x1, shared.x1, "same right edge")
+    assert_equal(counted.y0, shared.y0, "same tallest bar")
+    assert_equal(counted.y1, shared.y1, "same baseline")
+
+
+def test_histogram_weights_change_the_drawn_heights() raises:
+    # The end-to-end check that `weights` reaches the render: the same
+    # observations with the third bin's values weighted up must draw a
+    # taller last bar than the unweighted chart does.
+    var t = Theme(show_gridlines=False)
+    var edges = uniform_bin_edges(0.0, 3.0, 3)
+    var data = _hist_probe_data()
+    var w: List[Float64] = [1.0, 1.0, 1.0, 5.0, 5.0, 5.0, 5.0]
+    var plain = render(
+        histogram(data, edges=edges, theme=t, width=400, height=300)
+    )
+    var weighted = render(
+        histogram(data, edges=edges, weights=w, theme=t, width=400, height=300)
+    )
+    var plain0 = _column_extent(plain, 100, t.mark_color)
+    var weighted0 = _column_extent(weighted, 100, t.mark_color)
+    assert_true(
+        weighted0.height() < plain0.height(),
+        (
+            "bin 0 keeps weight 1 while bin 2 goes to 20, so bin 0 shrinks"
+            " relative to the taller domain"
+        ),
+    )
+    assert_equal(
+        _column_extent(weighted, 326, t.mark_color).y0,
+        32,
+        "the weighted last bar still tops the chart",
     )
 
 
