@@ -25,6 +25,7 @@ from dataviz.scale import LinearScale, MinMax, Ticks, TickFormat
 from dataviz.color_scale import ColorScale, default_categorical_palette
 from dataviz.color_ramp import ColorRamp
 from dataviz.colormaps import cividis, inferno, magma, plasma, viridis
+from dataviz.themes import dark, high_contrast, minimal, print_safe
 from dataviz.marker import PointShape, default_marker_shapes
 from dataviz.colors import *
 from dataviz.ordinal_scale import OrdinalScale

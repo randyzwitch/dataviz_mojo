@@ -1,8 +1,15 @@
-# title: Hiding Gridlines & Legend
-"""Turn off gridlines and the legend for a plainer, chart-only look.
+# title: Minimal Theme
+"""Strip a chart back to its data with `minimal()` -- no gridlines, a
+faded axis, tight margins -- and then drop the legend too, as an
+override, on a chart that does not need one.
+
+`minimal()` deliberately keeps the legend, because hiding it deletes the
+mapping from color to category rather than reducing ink. That makes it
+the wrong default for a preset and a perfectly good per-chart choice
+here, where the series are already labeled by the title.
 """
 from dataviz.plot import Plot, save
-from dataviz.theme import Theme
+from dataviz.themes import minimal
 
 
 def main() raises:
@@ -17,11 +24,14 @@ def main() raises:
         "South",
     ]
 
+    var theme = minimal()
+    theme.show_legend = False
+
     var plot = (
         Plot()
         .mark_point()
         .encode(x=x, y=y, color_categories=region)
         .labels(title="Readings by Region")
-        .theme(Theme(show_gridlines=False, show_legend=False))
+        .theme(theme)
     )
     save(plot, "docs/src/examples/out_theme_minimal.svg")

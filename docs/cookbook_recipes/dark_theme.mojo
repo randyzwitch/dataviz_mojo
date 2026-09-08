@@ -1,11 +1,16 @@
-"""Recolor every structural piece of a chart -- background, axis lines,
-gridlines, and text -- for a dark-background dashboard tile, not just
-the mark itself.
+"""Put a chart on a dark ground with `dark()`, which re-derives every
+color a dark background changes rather than the five most obvious ones.
+
+Setting `background`, `text_color`, `axis_color`, `gridline_color` and
+`mark_color` by hand covers a line chart, and then leaves a near-white
+ring on the next radial bar chart (`radialbar_track_color`), a near-white
+band on the next annotated area (`annotation_area_color`) and a
+near-white midpoint on the next heatmap (`color_scale_mid`), because
+those are light-theme defaults too. `dark()` sets all of them.
 """
-from canvas.color import Color
+from dataviz.colors import GOLD
 from dataviz.plot import Plot, save
-from dataviz.colors import DODGERBLUE
-from dataviz.theme import Theme
+from dataviz.themes import dark
 
 
 def main() raises:
@@ -20,19 +25,22 @@ def main() raises:
         1260.0,
     ]
 
+    # A preset is a starting point, not a mode: `Theme`'s fields are
+    # plain `var`s, so override the ones you want and keep the rest.
+    var theme = dark()
+    theme.mark_color = GOLD
+
     var plot = (
         Plot()
         .mark_line()
         .encode(x=days, y=active_users)
-        .labels(title="Daily Active Users", x_title="Day", y_title="Users")
-        .theme(
-            Theme(
-                background=Color(30, 32, 38),
-                axis_color=Color(150, 152, 160),
-                gridline_color=Color(55, 57, 64),
-                text_color=Color(225, 226, 230),
-                mark_color=DODGERBLUE,
-            )
+        .labels(
+            title="Daily Active Users",
+            subtitle="One week, dark dashboard tile",
+            x_title="Day",
+            y_title="Users",
         )
+        .annotate_area(900.0, 1100.0, label="target band")
+        .theme(theme)
     )
     save(plot, "docs/src/examples/out_dark_theme.svg")
