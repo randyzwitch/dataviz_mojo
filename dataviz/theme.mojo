@@ -36,7 +36,13 @@ its family; see the field's own docstring.
 (continuous.mojo) curves a `Mark.LINE`/`AREA` through its points via a
 Catmull-Rom-derived cubic Bezier: `0.0` is straight segments, `1.0`
 the full curve. Must be in `[0.0, 1.0]`. `Mark.AREA` smooths only
-its top edge.
+its top edge. A non-zero value is mutually exclusive with a step
+interpolation -- `Plot.mark_line(step=...)`, `mark_area(step=...)` or
+`mark_streamgraph(step=...)` -- and asking for both raises at render
+time, because a smoothed staircase rounds off the corners that carry
+its meaning; see `StepStyle` for the rest of that reasoning. The trap
+is that one `Theme` is usually shared across a figure, so the raise
+can come from a field set nowhere near the mark that grew a step.
 
 `font_family` (default `"sans-serif"`) is baked into each
 `_TextRequest` where it is built, since `render_facets()`/
@@ -223,7 +229,14 @@ struct Theme(ImplicitlyCopyable, Movable):
     var line_smoothing: Float64
     """How much `Mark.LINE`/`AREA` curves through its data points, via
     a Catmull-Rom-derived spline -- `0.0` (the default) draws plain
-    straight segments; `1.0` the full curve; must be in `[0.0, 1.0]`."""
+    straight segments; `1.0` the full curve; must be in `[0.0, 1.0]`.
+
+    Mutually exclusive with a step interpolation
+    (`Plot.mark_line(step=...)`/`mark_area(step=...)`/
+    `mark_streamgraph(step=...)`): both together raise at render time
+    (`_check_step_smoothing`, validate.mojo), since smoothing rounds off
+    the corners a step exists to draw. See `StepStyle` for why there is
+    no sensible middle ground to fall back to."""
     var title_font_size: Float64
     """The chart title's font size, in points; 18.0 against `font_size`'s
     12.0 for tick/legend labels, scaled by `scale` like every other size.
