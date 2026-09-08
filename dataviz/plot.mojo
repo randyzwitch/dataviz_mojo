@@ -4581,13 +4581,14 @@ def _render_generic[
     (and not at all by a render that draws no text) rather than once per
     measurement pass plus once per replay.
 
-    That resolution cost was ~20 ms when this was written and is 2.5 ms
-    on canvas_mojo v0.24.0, which persists the font database to disk
-    (canvas_mojo#272) so a fresh cache reads a file instead of walking
-    the font directories. What is left is that read plus parsing and
-    sizing the matched face -- still the largest fixed cost in a small
-    chart (2.5 ms of a 6.0 ms two-point raster scatter, 2.5 ms of a
-    2.7 ms SVG one), but no longer the dominant one it was in #324.
+    That resolution cost dominated a small chart when this was written
+    (#324). canvas_mojo now persists the font database to disk
+    (canvas_mojo#272), so a fresh cache reads a file instead of walking
+    the font directories; what is left is that read plus parsing and
+    sizing the matched face. It remains the largest fixed cost a small
+    chart pays, which is why it is worth paying once per figure rather
+    than once per measurement pass. Current figures live in
+    benchmarks/METHODOLOGY.md, dated and with the machine stated.
 
     Every mark other than `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER`
     dispatches to its own `_render_*` function immediately

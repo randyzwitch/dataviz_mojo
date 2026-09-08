@@ -34,8 +34,8 @@ anything):
 - **Compile time**: no measurable difference. Building the same
   one-file consumer against this package as published versus against
   a copy with both `PythonObject` overloads (and their two imports)
-  removed took the same ~23 CPU-s cold / ~4.5s warm either way, in
-  repeated `mojo build` timings -- the package's real compile-time
+  removed took the same time either way, in repeated `mojo build`
+  timings -- the package's real compile-time
   cost is the `_render_generic` dispatch tree's own monomorphization
   (see pixi.toml's `[tasks]` comment), not this import.
 

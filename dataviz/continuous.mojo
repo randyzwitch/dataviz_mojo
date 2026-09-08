@@ -261,9 +261,10 @@ def _decimate_to_pixel_columns(
 
     A `Mark.LINE`/`AREA` plot of 5000 points into a ~640px-wide plot area
     hands the rasterizer roughly eight segments per pixel column, and
-    `stroke_path_aa` pays full per-segment cost for each (~263us/segment,
-    so a 5000-point line took ~1.7s against ~21ms for the same points as
-    a scatter).
+    `stroke_path_aa` pays full per-segment cost for each. Before this
+    existed, such a line took orders of magnitude longer to draw than
+    the same points as a scatter -- slow enough that a user reported it
+    rather than a benchmark catching it.
 
     Per column this keeps the minimum and maximum y, in original data
     order (collapsed to one point when they are the same sample), which
