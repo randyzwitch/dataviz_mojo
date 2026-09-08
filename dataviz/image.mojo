@@ -60,9 +60,8 @@ merge is one comparison per cell and it is the mask-shaped inputs
 (thresholds, labels, segmentation, sparse matrices) it pays off on,
 which are a large share of what gets handed to `imshow`.
 
-End to end that is 12.7 ms to rasterize 512x512 and 21.3 ms for
-1024x1024, against 9.3 ms for 8x8 -- the render is dominated by the
-frame, not the array.
+End to end, rasterizing a large array costs little more than a small
+one: the render is dominated by the axis frame, not the array.
 
 **SVG output is another matter.** Each rect is an element, so 512x512
 is an 8.5 MB `<svg>`. It plateaus there rather than growing (1024x1024

@@ -73,38 +73,45 @@ schedule someone has agreed to keep.
   passes, because another session had switched that checkout mid-run;
   every column here comes from a detached worktree at a recorded sha.
 
-## The fixed floor per render, on canvas_mojo v0.24.0
+## The fixed floor per render, on canvas_mojo v0.25.0
 
 The tables above measure how a mark scales with `n`. This section is
 the other half: what a chart costs before it draws anything, which is
-what decides the time of a small chart. Measured on 2026-09-07 on the
-machine described above, canvas_mojo v0.24.0, median of three passes
-of twelve renders each, spread under 1%.
+what decides the time of a small chart.
 
-Every `render()`, `render_svg()` and `save()` builds its own
-`FontCache`, so each one pays that cache's cold cost:
+Measured 2026-09-08 on the machine described above, canvas_mojo v0.24.0
+against v0.25.0, from two detached worktrees whose commits differ only
+in `pixi.toml`/`pixi.lock` so the dataviz code is byte-identical. Three
+passes each, interleaved, after one untimed warm-up per configuration;
+starting one-minute load 1.16.
 
-| step, on a cache that has resolved nothing yet | ms |
-|---|---:|
-| `FontCache()` construction | 0.00003 |
-| first `resolve()` -- reads canvas's persisted font database | 2.35 |
-| first `resolve_face()` after it -- TTF parse + `set_pixel_size` | 0.18 |
-| a later `resolve_face()` on the same cache | 0.02 |
+An 800x600 two-point scatter, which draws almost nothing, so the time
+is the floor:
 
-2.5 ms, then, per render, whatever the chart draws. Against a
-640x420 chart end to end, via `save()`:
+| | v0.24.0 | v0.25.0 | |
+|---|---:|---:|---|
+| `render_svg()` | 2.51 ms | **1.03 ms** | 2.44x |
+| `render()` (raster, supersample 3) | 9.72 ms | **8.27 ms** | 1.18x |
 
-| chart | default | with a shared, warm cache | difference |
-|---|---:|---:|---:|
-| scatter, n=2 (PNG) | 8.64 | 5.62 | -35% |
-| scatter, n=2 (SVG) | 2.63 | 0.30 | -89% |
-| bar, 20 categories (PNG) | 6.44 | 3.60 | -44% |
-| line, n=10,000 (PNG) | 12.3 | 9.6 | -22% |
-| scatter, n=1,000 (PNG) | 25.1 | 21.8 | -13% |
+The same ~1.47 ms leaves both, which is the signature of a constant
+being removed rather than work getting faster. A five-label
+`_max_label_width` against a cold cache moved 2.69 ms -> 1.20 ms over
+the same pins; warm it is ~0.006 ms on both.
 
-The SVG row is the one that shows what this cost is: that backend
-measures text and rasterizes none, so nearly all of what it spends on
-a small chart is resolving a font it will only name in an attribute.
+Across the whole `pixi run bench` sweep (88 cases) that constant shows
+up only where it is a large share of the total:
+
+| case size | svg | raster |
+|---|---:|---:|
+| under 5 ms | 1.79x | 1.63x |
+| 5-50 ms | 1.08x | 1.07x |
+| over 50 ms | 1.03x | 1.00x |
+
+Whole-sweep total is 1.013x -- essentially unchanged -- because the
+large raster cases dominate the sum. Quoting that single number, or
+the 1.85x median-of-ratios, would both mislead: the honest statement
+is that v0.25.0 removes a fixed per-render cost, which is most of a
+small SVG chart and none of a large raster one.
 
 **This is a floor, not a defect to fix here.** #324 opened against a
 ~18 ms version of this cost and proposed three fixes. A process-wide
@@ -115,10 +122,36 @@ render that measures no text never resolves a font, which
 `test_a_render_that_measures_no_text_never_scans` asserts. Letting
 callers pass a cache in was built and measured in #326 and closed
 deliberately: canvas_mojo#272 persisted the font database to disk,
-which took the cost from ~18 ms to the 2.5 ms above for every caller
-with no API change, and what a caller-held cache could still win
-after that did not justify permanent public API. The right place for
-the remaining 2.35 ms is canvas, not here.
+which removed most of the cost for every caller with no API change,
+and v0.25.0 has now taken well over half of what remained. What a
+caller-held cache could still win does not justify permanent public
+API. The right place for the rest is canvas, not here.
+
+## Why no timing figure lives in a docstring
+
+They rot, silently, and a reader cannot tell. `dataviz/text.mojo` once
+carried "a five-label call costs 2.52 ms cold and 0.028 ms warm -- a
+ratio of 90". One canvas pin later the same measurement on the same
+machine gave **1.20 ms cold, 0.0059 ms warm, a ratio of 200**: every
+number in the sentence wrong, including the ratio, which had not
+reproduced at 90 on the pin it was written for either.
+
+They are also machine-specific, so a figure measured on the Threadripper
+above tells a reader on a laptop nothing, and it invites the maintenance
+of re-measuring every docstring on every bump -- which nobody signed up
+for and nobody does.
+
+A docstring's job is the contract: what the function does, its
+arguments, what it returns and raises. The *shape* of a performance
+argument can stay there when it justifies the API ("a fresh cache
+re-pays the font database read, which is why there is no overload
+without one"); the numbers belong here, dated, with the machine stated.
+
+The one exception kept in the source is in `dataviz/image.mojo`: that a
+512x512 `imshow` produces an 8.5 MB `<svg>` and should be saved as
+`.png`. That is a property of the output format rather than of the
+processor, it does not change when the machine does, and it directly
+changes how a caller uses the function.
 
 ## Reproducing
 
