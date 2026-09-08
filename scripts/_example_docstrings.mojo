@@ -121,6 +121,9 @@ def _pages() -> List[ExamplePage]:
         ExamplePage(
             "histogram_shared", "histogram", "histogram", block="Shared Bins"
         ),
+        ExamplePage(
+            "histogram_auto", "histogram", "histogram", block="Automatic Bins"
+        ),
         ExamplePage("grouped_bar", "grouped_bar", "grouped_bar"),
         ExamplePage("stacked_bar", "stacked_bar", "stacked_bar"),
         # Cookbook recipes are discovered from docs/cookbook_recipes/.

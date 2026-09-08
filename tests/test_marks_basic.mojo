@@ -25,6 +25,7 @@ from _test_helpers import (
 from canvas.color import Color
 from canvas.path import Path, PathOp
 from dataviz import (
+    BinRule,
     CORNFLOWERBLUE,
     HistStat,
     HistogramBins,
@@ -2137,6 +2138,490 @@ def test_histogram_bins_raise_on_bad_input() raises:
     var no_groups = List[List[Float64]]()
     with assert_raises(contains="at least one"):
         _ = shared_bin_edges(no_groups, 4)
+
+
+def _rule_counts(data: List[Float64]) raises -> List[Int]:
+    """The bin count each `BinRule` picks for `data`, in
+    SQRT/STURGES/RICE/SCOTT/FREEDMAN_DIACONIS/AUTO order -- the same
+    order the `numpy.histogram_bin_edges(data, bins=...)` figures in
+    each caller's comment are listed in.
+
+    Counts rather than widths because the count is what a reader sees:
+    two widths a rounding step apart draw the same chart, and two counts
+    never do.
+    """
+    var rules: List[BinRule] = [
+        BinRule.SQRT,
+        BinRule.STURGES,
+        BinRule.RICE,
+        BinRule.SCOTT,
+        BinRule.FREEDMAN_DIACONIS,
+        BinRule.AUTO,
+    ]
+    var counts = List[Int](capacity=6)
+    for r in rules:
+        counts.append(len(bin_edges(data, r)) - 1)
+    return counts^
+
+
+def _assert_rule_counts(
+    data: List[Float64], expected: List[Int], label: String
+) raises:
+    var actual = _rule_counts(data)
+    var names: List[String] = [
+        "SQRT",
+        "STURGES",
+        "RICE",
+        "SCOTT",
+        "FREEDMAN_DIACONIS",
+        "AUTO",
+    ]
+    for i in range(len(expected)):
+        assert_equal(
+            actual[i],
+            expected[i],
+            label + " " + names[i] + " bin count",
+        )
+
+
+def test_bin_rules_match_numpy_on_the_exam_scores_sample() raises:
+    # numpy.histogram_bin_edges(scores, bins=r) for r in
+    # sqrt/sturges/rice/scott/fd/auto -> 6/6/7/5/6/6 bins over
+    # [52, 98]. Four of the six rules land on 6 here, so this sample
+    # alone does not separate them -- it is the realistic one, and the
+    # two that do differ (RICE up, SCOTT down) are the two that bracket
+    # the rest.
+    var scores: List[Float64] = [
+        52.0,
+        61.0,
+        65.0,
+        68.0,
+        70.0,
+        71.0,
+        72.0,
+        74.0,
+        75.0,
+        76.0,
+        77.0,
+        78.0,
+        78.0,
+        79.0,
+        80.0,
+        81.0,
+        81.0,
+        82.0,
+        83.0,
+        84.0,
+        85.0,
+        86.0,
+        87.0,
+        88.0,
+        89.0,
+        90.0,
+        91.0,
+        93.0,
+        95.0,
+        98.0,
+    ]
+    var want: List[Int] = [6, 6, 7, 5, 6, 6]
+    _assert_rule_counts(scores, want, "scores")
+
+    # The range is the sample's own, exactly, as with the counting
+    # overload. Indexed off the end rather than at a literal 5: a wrong
+    # count is already a failure above, and a literal index turns it
+    # into an out-of-bounds abort that takes the whole test process
+    # down instead of reporting.
+    var e = bin_edges(scores, BinRule.SCOTT)
+    assert_equal(e[0], 52.0, "first edge is the sample minimum")
+    assert_equal(e[len(e) - 1], 98.0, "last edge is the sample maximum")
+
+    # numpy.histogram(scores, bins="scott") -> [2, 3, 9, 10, 6]. The
+    # counts, not just the count of bins: a rule that picked 5 bins over
+    # the wrong range would pass the assertions above and fail here.
+    var b = histogram_bins(scores, e)
+    var want_counts: List[Float64] = [2.0, 3.0, 9.0, 10.0, 6.0]
+    _assert_close(b.values, want_counts, 0.0, "scott counts")
+
+
+def test_bin_rules_match_numpy_on_a_ten_point_sample() raises:
+    # numpy.histogram_bin_edges(range(1, 11), bins=r) ->
+    # 4/5/5/2/3/5. n = 10 is small enough that the three size-only
+    # rules disagree with each other, which is what makes it worth
+    # keeping next to the 2000-point case: an exponent typo that hides
+    # in a large n shows up here.
+    var data = List[Float64]()
+    for i in range(1, 11):
+        data.append(Float64(i))
+    var want: List[Int] = [4, 5, 5, 2, 3, 5]
+    _assert_rule_counts(data, want, "1..10")
+
+
+def test_bin_rules_match_numpy_on_a_two_thousand_point_sample() raises:
+    # The sample every rule is separated by: 2000 draws, nine tenths of
+    # them packed into [40, 60] and one tenth spread over [0, 200], so
+    # the size-only rules, the standard deviation and the IQR all give
+    # different answers.
+    #
+    # numpy.histogram_bin_edges(big, bins=r) ->
+    # 45/12/26/31/118/90. All six distinct, so getting any one rule's
+    # arithmetic wrong changes a number here.
+    var g = Lcg(20436)
+    var big = List[Float64](capacity=2000)
+    for i in range(2000):
+        var u = g.unit()
+        if i % 10 == 0:
+            big.append(200.0 * u)
+        else:
+            big.append(40.0 + 20.0 * u)
+
+    # First, that this is the same sample numpy was given. Lcg's stream
+    # and the arithmetic above are both exact in Float64, so these are
+    # equalities, not tolerances -- and without them a drift in the
+    # generator would quietly turn the six counts below into
+    # assertions about a different sample.
+    assert_equal(len(big), 2000, "sample size")
+    assert_equal(big[0], 101.75070334225893, "first draw")
+    assert_equal(big[1], 40.726722134277225, "second draw")
+    var e = bin_edges(big, BinRule.AUTO)
+    assert_equal(e[0], 0.12915246188640594, "sample minimum")
+    assert_equal(e[len(e) - 1], 199.47343743406236, "sample maximum")
+
+    var want: List[Int] = [45, 12, 26, 31, 118, 90]
+    _assert_rule_counts(big, want, "big")
+
+
+def test_freedman_diaconis_collapses_to_one_bin_when_the_iqr_is_zero() raises:
+    # More than half the sample identical, so q1 == q3 == 0 and the FD
+    # width is 0, but the range is a real [0, 20].
+    #
+    # numpy.histogram_bin_edges(d, bins="fd") -> 1 bin over [0, 20].
+    # numpy does NOT fall back to Sturges here, which is what the FD
+    # rule is often described as doing -- Sturges would give 5. The 1
+    # is the assertion that discriminates: it fails both against a
+    # Sturges fallback and against dividing by a zero IQR.
+    var data: List[Float64] = [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        10.0,
+        20.0,
+    ]
+    var e = bin_edges(data, BinRule.FREEDMAN_DIACONIS)
+    assert_equal(len(e), 2, "a zero width collapses to a single bin")
+    assert_equal(e[0], 0.0, "over the sample's own range, still")
+    assert_equal(e[1], 20.0, "up to its maximum")
+
+    # numpy.histogram_bin_edges(d, bins=r) -> 4/5/5/2/1/7. AUTO's 7 is
+    # the second discriminating number: with FD at 0 it comes from the
+    # half-sqrt floor, ceil(20 / (20 / sqrt(10) / 2)). numpy's older
+    # "fall back to Sturges when FD is 0" rule would give 5 here, and
+    # taking the maximum width rather than the minimum would give 2.
+    var want: List[Int] = [4, 5, 5, 2, 1, 7]
+    _assert_rule_counts(data, want, "zero-iqr")
+
+
+def test_auto_floors_a_freedman_diaconis_comb_at_half_the_sqrt_width() raises:
+    # Seventeen values under 1.1 and three far out. FD reads only the
+    # middle, so it asks for a bin width small enough to cut the whole
+    # [0, 100] range into 232 bins -- a comb of 20 observations.
+    #
+    # numpy.histogram_bin_edges(d, bins=r) -> 5/6/6/4/232/9.
+    #
+    # AUTO's 9 is what this test is for, and it discriminates three
+    # ways: plain FD gives 232, numpy's pre-1.26 min(fd, sturges) gives
+    # Sturges' 6, and a maximum-width AUTO would give SCOTT-like
+    # numbers. Only the half-sqrt floor gives 9.
+    var data: List[Float64] = [
+        0.0,
+        0.1,
+        0.2,
+        0.25,
+        0.3,
+        0.35,
+        0.4,
+        0.45,
+        0.5,
+        0.55,
+        0.6,
+        0.65,
+        0.7,
+        0.8,
+        0.9,
+        1.0,
+        1.1,
+        40.0,
+        60.0,
+        100.0,
+    ]
+    var want: List[Int] = [5, 6, 6, 4, 232, 9]
+    _assert_rule_counts(data, want, "heavy tail")
+
+
+def test_bin_rules_center_a_degenerate_sample_on_a_unit_range() raises:
+    # Every rule's width is 0 when the sample has no spread, so every
+    # rule gives one bin -- and the range is the counting overload's
+    # [v - 0.5, v + 0.5], which is numpy's:
+    # numpy.histogram_bin_edges([5,5,5,5], bins="auto") -> [4.5, 5.5],
+    # and the same for every other rule and for a one-element sample.
+    var constant: List[Float64] = [5.0, 5.0, 5.0, 5.0]
+    var want_one: List[Int] = [1, 1, 1, 1, 1, 1]
+    _assert_rule_counts(constant, want_one, "constant")
+    var ce = bin_edges(constant, BinRule.AUTO)
+    assert_equal(ce[0], 4.5, "constant sample's left edge")
+    assert_equal(ce[1], 5.5, "constant sample's right edge")
+
+    var single: List[Float64] = [42.0]
+    _assert_rule_counts(single, want_one, "n=1")
+    var se = bin_edges(single, BinRule.FREEDMAN_DIACONIS)
+    assert_equal(se[0], 41.5, "one-element sample's left edge")
+    assert_equal(se[1], 42.5, "one-element sample's right edge")
+
+
+def test_bin_rules_raise_on_an_empty_sample() raises:
+    # numpy answers an empty array with one bin over [0, 1]. This
+    # library raises instead, the same way the counting overload of
+    # bin_edges() already does: [0, 1] is not a range the data asked
+    # for, and a chart drawn over it says something about the sample
+    # that is not true.
+    var empty = List[Float64]()
+    with assert_raises(contains="data must not be empty"):
+        _ = bin_edges(empty, BinRule.AUTO)
+    var no_groups = List[List[Float64]]()
+    with assert_raises(contains="at least one"):
+        _ = shared_bin_edges(no_groups, BinRule.AUTO)
+
+
+def test_freedman_diaconis_refuses_an_unusable_bin_count() raises:
+    # 900 points inside a 1e-9 sliver plus 100 at 1e6. Both quartiles
+    # land in the sliver, so FD divides a range of 1e6 by a width of
+    # ~1e-10 and asks for 1.001e16 bins.
+    #
+    # numpy does not survive this: numpy.histogram_bin_edges(d,
+    # bins="fd") raises MemoryError trying to allocate 71.1 PiB. A named
+    # error beats that, and beats silently clamping to some other count.
+    var data = List[Float64](capacity=1000)
+    for i in range(900):
+        data.append(Float64(i) * 1e-12)
+    for _ in range(100):
+        data.append(1e6)
+    with assert_raises(contains="BinRule.FREEDMAN_DIACONIS asks for"):
+        _ = bin_edges(data, BinRule.FREEDMAN_DIACONIS)
+
+    # The other five stay well inside the guard on the same sample --
+    # AUTO because its half-sqrt floor is exactly what stops FD running
+    # away. numpy gives 32/11/20/10 and 64 for AUTO.
+    assert_equal(len(bin_edges(data, BinRule.SQRT)) - 1, 32, "sqrt")
+    assert_equal(len(bin_edges(data, BinRule.STURGES)) - 1, 11, "sturges")
+    assert_equal(len(bin_edges(data, BinRule.RICE)) - 1, 20, "rice")
+    assert_equal(len(bin_edges(data, BinRule.SCOTT)) - 1, 10, "scott")
+    assert_equal(len(bin_edges(data, BinRule.AUTO)) - 1, 64, "auto")
+
+
+def test_shared_bin_edges_pick_a_count_from_the_pooled_sample() raises:
+    # Two groups of very different size and location. numpy on the
+    # pooled 40 values, bins="auto" -> 7 bins over [1, 98].
+    #
+    # Pooling is the discriminating part: the rule run on the scores
+    # alone gives 6 and on 1..10 alone gives 5, so a 7 can only come
+    # from the combined sample.
+    var scores: List[Float64] = [
+        52.0,
+        61.0,
+        65.0,
+        68.0,
+        70.0,
+        71.0,
+        72.0,
+        74.0,
+        75.0,
+        76.0,
+        77.0,
+        78.0,
+        78.0,
+        79.0,
+        80.0,
+        81.0,
+        81.0,
+        82.0,
+        83.0,
+        84.0,
+        85.0,
+        86.0,
+        87.0,
+        88.0,
+        89.0,
+        90.0,
+        91.0,
+        93.0,
+        95.0,
+        98.0,
+    ]
+    var small = List[Float64]()
+    for i in range(1, 11):
+        small.append(Float64(i))
+    var groups: List[List[Float64]] = [scores.copy(), small.copy()]
+    var e = shared_bin_edges(groups, BinRule.AUTO)
+    assert_equal(len(e) - 1, 7, "pooled AUTO count")
+    assert_equal(e[0], 1.0, "pooled minimum")
+    assert_equal(e[len(e) - 1], 98.0, "pooled maximum")
+    assert_equal(len(bin_edges(scores, BinRule.AUTO)) - 1, 6, "scores alone")
+    assert_equal(len(bin_edges(small, BinRule.AUTO)) - 1, 5, "1..10 alone")
+
+
+def test_histogram_with_a_bin_rule_draws_the_count_the_rule_picked() raises:
+    # numpy puts scores at 6 bins under "auto" and 5 under "scott", so
+    # a rule-binned chart has to be pixel-identical to the same chart
+    # binned at those counts by hand -- and different from the default
+    # 10. The inequality is the assertion that discriminates: without
+    # it, a rule that quietly fell through to `bins` would pass.
+    var scores: List[Float64] = [
+        52.0,
+        61.0,
+        65.0,
+        68.0,
+        70.0,
+        71.0,
+        72.0,
+        74.0,
+        75.0,
+        76.0,
+        77.0,
+        78.0,
+        78.0,
+        79.0,
+        80.0,
+        81.0,
+        81.0,
+        82.0,
+        83.0,
+        84.0,
+        85.0,
+        86.0,
+        87.0,
+        88.0,
+        89.0,
+        90.0,
+        91.0,
+        93.0,
+        95.0,
+        98.0,
+    ]
+    var auto_svg = render_svg(
+        histogram(scores, bins=BinRule.AUTO, width=400, height=300)
+    ).to_string()
+    var six_svg = render_svg(
+        histogram(scores, bins=6, width=400, height=300)
+    ).to_string()
+    var scott_svg = render_svg(
+        histogram(scores, bins=BinRule.SCOTT, width=400, height=300)
+    ).to_string()
+    var five_svg = render_svg(
+        histogram(scores, bins=5, width=400, height=300)
+    ).to_string()
+    var default_svg = render_svg(
+        histogram(scores, width=400, height=300)
+    ).to_string()
+    assert_equal(auto_svg, six_svg, "AUTO draws numpy's six bins")
+    assert_equal(scott_svg, five_svg, "SCOTT draws numpy's five bins")
+    assert_true(
+        auto_svg != default_svg,
+        "a rule is not the untouched bins=10 default",
+    )
+    assert_true(auto_svg != scott_svg, "and the rules are not each other")
+
+
+def test_histogram_bin_rule_dtype_overload_matches_the_float64_path() raises:
+    # The rule reads the materialized Float64 values, so an integer
+    # sample bins exactly as the same numbers written as floats do.
+    # numpy would floor an integer array's bin width at 1 and could
+    # answer differently; this library has no such clause, and this is
+    # the test that says so.
+    var ints: List[Int32] = [
+        52,
+        61,
+        65,
+        68,
+        70,
+        71,
+        72,
+        74,
+        75,
+        76,
+        77,
+        78,
+        78,
+        79,
+        80,
+        81,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        93,
+        95,
+        98,
+    ]
+    var floats: List[Float64] = [
+        52.0,
+        61.0,
+        65.0,
+        68.0,
+        70.0,
+        71.0,
+        72.0,
+        74.0,
+        75.0,
+        76.0,
+        77.0,
+        78.0,
+        78.0,
+        79.0,
+        80.0,
+        81.0,
+        81.0,
+        82.0,
+        83.0,
+        84.0,
+        85.0,
+        86.0,
+        87.0,
+        88.0,
+        89.0,
+        90.0,
+        91.0,
+        93.0,
+        95.0,
+        98.0,
+    ]
+    assert_equal(
+        render_svg(
+            histogram(ints, bins=BinRule.RICE, width=300, height=220)
+        ).to_string(),
+        render_svg(
+            histogram(floats, bins=BinRule.RICE, width=300, height=220)
+        ).to_string(),
+        "List[Int32] matches List[Float64] under a rule",
+    )
+
+
+def test_bin_rule_names_itself() raises:
+    assert_equal(BinRule.SQRT.name(), "SQRT")
+    assert_equal(BinRule.FREEDMAN_DIACONIS.name(), "FREEDMAN_DIACONIS")
+    assert_equal(BinRule.AUTO.name(), "AUTO")
+    assert_equal(BinRule(9).name(), "BinRule(9)")
+    assert_true(BinRule.SCOTT != BinRule.RICE, "distinct rules differ")
 
 
 def test_hist_stat_names_itself() raises:
