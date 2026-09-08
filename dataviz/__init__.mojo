@@ -69,7 +69,15 @@ from dataviz.marimekko import marimekko
 from dataviz.sunburst import sunburst
 from dataviz.tree import tree
 from dataviz.treemap import treemap
-from dataviz.histogram import histogram
+from dataviz.histogram import (
+    HistStat,
+    HistogramBins,
+    bin_edges,
+    histogram,
+    histogram_bins,
+    shared_bin_edges,
+    uniform_bin_edges,
+)
 from dataviz.lollipop import lollipop
 from dataviz.nightingale import nightingale
 from dataviz.polar import polar, polar_series
