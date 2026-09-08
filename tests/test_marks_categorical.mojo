@@ -6,6 +6,8 @@ Mark.FUNNEL, Mark.HEATMAP, Mark.PUNCHCARD, Mark.CORRPLOT,
 Mark.CALENDAR_HEATMAP, and the two continuous-axis grid marks
 Mark.IMSHOW and Mark.PCOLORMESH, each raster + SVG plus its encode_*()
 validation.
+Mark.CALENDAR_HEATMAP and Mark.EVENTPLOT, each raster + SVG plus its
+encode_*() validation.
 """
 
 from _test_helpers import (
@@ -14,6 +16,7 @@ from _test_helpers import (
     _assert_same_canvas,
     _attr_values,
     _bbox_of_color,
+    _column_extent,
     _count_color,
     _runs_in_row,
 )
@@ -24,6 +27,7 @@ from canvas.vector.svg import SvgCanvas
 from dataviz import (
     calendar_heatmap,
     corrplot,
+    eventplot,
     funnel,
     gantt,
     grouped_bar,
@@ -2238,6 +2242,279 @@ def test_imshow_costs_the_output_rect_not_the_array() raises:
             + String(checker_rects)
         ),
     )
+
+
+# Mark.EVENTPLOT (#339)
+# ---------------------------------------------------------------
+
+
+def _eventplot_labels() -> List[String]:
+    return ["a", "b", "c"]
+
+
+def _eventplot_positions() -> List[List[Float64]]:
+    """Three rows, the middle one deliberately empty: `a` fires at 1, 2
+    and 5, `c` at 3 and 4, `b` never.
+    """
+    var out = List[List[Float64]]()
+    var top: List[Float64] = [1.0, 2.0, 5.0]
+    var middle = List[Float64]()
+    var bottom: List[Float64] = [3.0, 4.0]
+    out.append(top^)
+    out.append(middle^)
+    out.append(bottom^)
+    return out^
+
+
+def test_render_eventplot_puts_each_event_in_its_own_column() raises:
+    """Three events at known x land in three known columns, and the
+    row's other columns are background.
+
+    The arithmetic, all of it by hand: at 400x300 the plot rect is
+    `(60, 20)-(380, 250)` (measured from the render). The x-domain is
+    `_data_extent` over the *pooled* positions `[1, 5]`, so `[0.8, 5.2]`
+    across 320px, giving `x = 1` at 74.5, `x = 2` at 147.3, `x = 3` at
+    220.0, `x = 4` at 292.7 and `x = 5` at 365.5. Snapped to pixel
+    centers those are columns 75, 147, 220, 293 and 365 -- and no
+    others, which is what the total-column count pins.
+    """
+    var c = render(
+        eventplot(
+            _eventplot_labels(), _eventplot_positions(), width=400, height=300
+        )
+    )
+    var mark = Theme().mark_color
+
+    var inked = List[Int]()
+    for x in range(c.width):
+        if _column_extent(c, x, mark).found:
+            inked.append(x)
+    assert_equal(len(inked), 5, "one column per event, and no other")
+    assert_equal(inked[0], 75, "x = 1")
+    assert_equal(inked[1], 147, "x = 2")
+    assert_equal(inked[2], 220, "x = 3")
+    assert_equal(inked[3], 293, "x = 4")
+    assert_equal(inked[4], 365, "x = 5")
+
+
+def test_render_eventplot_rows_are_where_the_labels_are() raises:
+    """Which row an event lands in, and how tall its tick is -- the
+    two-row spacing the issue asks to pin, done over three.
+
+    `_draw_horizontal_categorical_axis_frame` bands the rect's 230 rows
+    into three slots of 76.67 with `OrdinalScale`'s default 0.2 padding,
+    so a band is 61.33 tall. Row 0 runs 27.67..89.0 and row 2 runs
+    181.0..242.33; a butt-capped stroke covers the partial end rows only
+    partly, so the exactly-mark-colored rows are 29..88 and 182..241.
+
+    Row 1 is empty and must draw nothing at all -- see
+    `test_render_eventplot_keeps_an_empty_row`, which is what says the
+    gap between 88 and 182 is an empty row rather than a missing one.
+    """
+    var c = render(
+        eventplot(
+            _eventplot_labels(), _eventplot_positions(), width=400, height=300
+        )
+    )
+    var mark = Theme().mark_color
+
+    var first_row = _column_extent(c, 75, mark)
+    assert_equal(first_row.y0, 29, "row 0's tick starts at the band top")
+    assert_equal(first_row.y1, 88, "and ends at the band bottom")
+
+    var third_row = _column_extent(c, 220, mark)
+    assert_equal(third_row.y0, 182, "row 2 is two full slots lower")
+    assert_equal(third_row.y1, 241)
+
+    # 76.67px per slot, so row 2's top is 153 below row 0's. Asserting
+    # the difference as well as the two positions is what would catch a
+    # frame that put the rows in the right places for the wrong reason.
+    assert_equal(
+        third_row.y0 - first_row.y0, 153, "rows are one slot-height apart"
+    )
+
+
+def test_render_eventplot_ticks_snap_to_one_pixel_column() raises:
+    """#313: a tick's fixed coordinate snaps to a pixel center, so it
+    covers exactly one column instead of splitting its ink across two.
+    The whole chart is thin vertical lines and a blurred one reads as a
+    fainter event.
+
+    `x = 1` falls at 74.545, which is what makes this discriminating:
+    unsnapped, a 1px stroke centered there would cover 45% of column 74
+    and 55% of column 75, and *neither* would come out at the exact mark
+    color -- so the assertion that column 75 holds 60 exactly-mark
+    pixels fails, not merely shifts.
+    """
+    var c = render(
+        eventplot(
+            _eventplot_labels(), _eventplot_positions(), width=400, height=300
+        )
+    )
+    var mark = Theme().mark_color
+
+    var on = _column_extent(c, 75, mark)
+    assert_true(on.found, "the tick lands on the snapped column")
+    assert_equal(on.height(), 60, "and covers it fully, top to bottom")
+    assert_true(
+        not _column_extent(c, 74, mark).found,
+        "nothing bleeds into the column to the left",
+    )
+    assert_true(
+        not _column_extent(c, 76, mark).found,
+        "nothing bleeds into the column to the right",
+    )
+
+
+def test_render_eventplot_keeps_an_empty_row() raises:
+    """A row with no events keeps its label and its place. "This sensor
+    recorded nothing" is a result, and a row that vanished would
+    silently renumber every row below it.
+
+    Asserted against the same chart with `b` given an event: the two
+    renders must agree on where rows `a` and `c` are, and differ only by
+    `b`'s new tick.
+    """
+    var labels = _eventplot_labels()
+    var with_gap = render(
+        eventplot(labels, _eventplot_positions(), width=400, height=300)
+    )
+    var filled_rows = List[List[Float64]]()
+    var top: List[Float64] = [1.0, 2.0, 5.0]
+    var middle: List[Float64] = [3.0]
+    var bottom: List[Float64] = [3.0, 4.0]
+    filled_rows.append(top^)
+    filled_rows.append(middle^)
+    filled_rows.append(bottom^)
+    var filled = render(eventplot(labels, filled_rows, width=400, height=300))
+    var mark = Theme().mark_color
+
+    # Columns 75 (x = 1) and 293 (x = 4) belong to rows 0 and 2 alone in
+    # both renders, so they say where those rows are without b's new
+    # tick confusing the extent.
+    var gap_first = _column_extent(with_gap, 75, mark)
+    var filled_first = _column_extent(filled, 75, mark)
+    assert_equal(
+        gap_first.y0, filled_first.y0, "row 0 did not move when b filled in"
+    )
+    assert_equal(gap_first.y1, filled_first.y1)
+    var gap_third = _column_extent(with_gap, 293, mark)
+    var filled_third = _column_extent(filled, 293, mark)
+    assert_equal(gap_third.y0, filled_third.y0, "row 2 did not move either")
+    assert_equal(gap_third.y1, filled_third.y1)
+
+    # Column 220 (x = 3) is row 2's in one render and rows 1 *and* 2's
+    # in the other. b's band is the middle 76.67px slot, centered on row
+    # 135, so its tick covers rows 105..165 -- the gap the empty render
+    # leaves between row 0's 88 and row 2's 182.
+    var gap_middle = _column_extent(with_gap, 220, mark)
+    assert_equal(gap_middle.y0, 182, "with b empty, column 220 is row 2 only")
+    var filled_middle = _column_extent(filled, 220, mark)
+    assert_equal(filled_middle.y0, 105, "with b filled, its tick is row 1's")
+    assert_equal(filled_middle.y1, 241, "and row 2's is still below it")
+
+
+def test_render_eventplot_line_length_shortens_every_tick() raises:
+    """`line_length` scales each tick about its row's center, which is
+    the one lever against crowded rows that does not drop an event.
+
+    `0.5` halves the 61.33px band to 30.67px, so the exactly-mark rows
+    go from 29..88 to 44..73 -- still centered on 58.5, which is what
+    says it shrank rather than moved.
+    """
+    var c = render(
+        eventplot(
+            _eventplot_labels(),
+            _eventplot_positions(),
+            line_length=0.5,
+            width=400,
+            height=300,
+        )
+    )
+    var mark = Theme().mark_color
+
+    var short = _column_extent(c, 75, mark)
+    assert_equal(short.height(), 30, "half the band")
+    assert_equal(short.y0, 44)
+    assert_equal(short.y1, 73)
+    assert_equal(
+        short.center_y(), 58, "shrunk about the row center, not from an edge"
+    )
+
+
+def test_render_eventplot_draws_every_event_and_decimates_none() raises:
+    """Adding 35 events adds exactly 35 lines. A dropped event is a lie
+    in a way a dropped line vertex is not -- a polyline still passes
+    through where its missing vertex was, while a missing tick says
+    nothing happened -- so this mark thins nothing, unlike the
+    `_decimate_to_pixel_columns` pass every long polyline goes through.
+
+    Counted as a *difference* between two charts, not as an absolute:
+    the frame draws lines of its own (two axis lines, a tick per
+    x-value, a gridline per x-value), and the two charts here share
+    every one of them. The 35 extra events go into the middle row and
+    all fall strictly inside `(1, 5)`, so the pooled extremes -- and
+    therefore the domain, the ticks and the gridlines -- are
+    byte-for-byte the same in both.
+    """
+    var labels = _eventplot_labels()
+    var sparse_svg = render_svg(
+        eventplot(labels, _eventplot_positions(), width=400, height=300)
+    ).to_string()
+
+    var dense_rows = List[List[Float64]]()
+    var top: List[Float64] = [1.0, 2.0, 5.0]
+    var middle = List[Float64]()
+    for i in range(35):
+        middle.append(1.0 + Float64(i + 1) * 4.0 / 36.0)
+    var bottom: List[Float64] = [3.0, 4.0]
+    dense_rows.append(top^)
+    dense_rows.append(middle^)
+    dense_rows.append(bottom^)
+    var dense_svg = render_svg(
+        eventplot(labels, dense_rows, width=400, height=300)
+    ).to_string()
+
+    assert_equal(
+        dense_svg.count("<line") - sparse_svg.count("<line"),
+        35,
+        "35 more events, 35 more lines -- nothing thinned, nothing merged",
+    )
+
+
+def test_render_eventplot_raises_on_bad_encodings() raises:
+    """The three ways to arrive with nothing drawable, each named by
+    `encode_eventplot()` rather than surfacing from inside the render.
+    """
+    var labels = _eventplot_labels()
+    var two_rows = List[List[Float64]]()
+    var r0: List[Float64] = [1.0]
+    var r1: List[Float64] = [2.0]
+    two_rows.append(r0^)
+    two_rows.append(r1^)
+    with assert_raises():
+        _ = eventplot(labels, two_rows, width=200, height=150)
+
+    var no_labels = List[String]()
+    var no_rows = List[List[Float64]]()
+    with assert_raises():
+        _ = eventplot(no_labels, no_rows, width=200, height=150)
+
+    var all_empty = List[List[Float64]]()
+    for _ in range(3):
+        all_empty.append(List[Float64]())
+    with assert_raises():
+        _ = eventplot(labels, all_empty, width=200, height=150)
+
+    with assert_raises():
+        var _hoisted_ev = eventplot(
+            labels,
+            _eventplot_positions(),
+            line_length=0.0,
+            width=200,
+            height=150,
+        )
+        _ = render(_hoisted_ev)
 
 
 def main() raises:

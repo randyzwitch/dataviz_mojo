@@ -71,6 +71,7 @@ def _titles() -> Dict[String, String]:
     d["chord"] = "Chord"
     d["single_axis"] = "Single Axis"
     d["effect_scatter"] = "Effect Scatter"
+    d["eventplot"] = "Event Plot"
     d["funnel"] = "Funnel"
     d["bump"] = "Bump"
     d["streamgraph"] = "Streamgraph"
@@ -186,8 +187,8 @@ def _categories() -> List[Category]:
         Category(
             "Statistical & financial",
             (
-                "Distributions, binned counts, grid/matrix data, and OHLC price"
-                " data."
+                "Distributions, event times, binned counts, grid/matrix data,"
+                " and OHLC price data."
             ),
             [
                 "box",
@@ -201,6 +202,7 @@ def _categories() -> List[Category]:
                 "kdeplot",
                 "rugplot",
                 "ecdf",
+                "eventplot",
             ],
         )
     )

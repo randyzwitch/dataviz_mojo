@@ -78,6 +78,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("chord", "chord", "chord"),
         ExamplePage("single_axis", "single_axis", "single_axis"),
         ExamplePage("effect_scatter", "effect_scatter", "effect_scatter"),
+        ExamplePage("eventplot", "eventplot", "eventplot"),
         ExamplePage("funnel", "funnel", "funnel"),
         ExamplePage("bump", "bump", "bump"),
         ExamplePage("streamgraph", "streamgraph", "streamgraph"),

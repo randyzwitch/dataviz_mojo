@@ -51,6 +51,7 @@ from dataviz import (
     corrplot,
     ecdf,
     effect_scatter,
+    eventplot,
     funnel,
     gantt,
     gauge,
@@ -362,6 +363,14 @@ def _representative_plot(mark: Mark) raises -> Plot:
     if mark == Mark.ECDF:
         var ev: List[Float64] = [1.0, 2.0, 2.0, 3.0, 5.0, 5.0, 6.0, 8.0]
         return ecdf(ev, width=_W, height=_H)
+    if mark == Mark.EVENTPLOT:
+        var rows = List[List[Float64]]()
+        var r0: List[Float64] = [1.0, 2.0, 5.0]
+        var r1: List[Float64] = [3.0, 4.0]
+        rows.append(r0^)
+        rows.append(r1^)
+        var row_labels: List[String] = ["a", "b"]
+        return eventplot(row_labels, rows, width=_W, height=_H)
     if mark == Mark.BARBS:
         var u: List[Float64] = [5.0, 10.0, 15.0]
         var v: List[Float64] = [5.0, -10.0, 0.0]
@@ -565,13 +574,17 @@ def test_mark_count_is_one_past_the_newest_mark() raises:
     (#341): each failed here until both the constant and this line
     moved, which is the tripwire doing its job on every mark added
     since.
+    `Mark.KDE`/`Mark.RUG` (#351),
+    `Mark.TRIPLOT`/`Mark.TRIPCOLOR` (#344) and `Mark.EVENTPLOT` (#339):
+    each failed here until both the constant and this line moved, which
+    is the tripwire doing its job on every mark added since.
 
     Naming the newest mark explicitly is what makes that loud: adding a
     mark after this one fails here until both this line and `COUNT` are
     updated, which is one edit away from the constant itself.
     """
     assert_true(
-        Mark.PCOLORMESH == Mark(Mark.COUNT - 1),
+        Mark.EVENTPLOT == Mark(Mark.COUNT - 1),
         (
             "Mark.COUNT must be one past the newest mark -- update both when"
             " adding one"
@@ -597,6 +610,7 @@ def test_mark_name_spells_the_constant() raises:
     assert_equal(Mark.TRICONTOURF.name(), "Mark.TRICONTOURF")
     assert_equal(Mark.TRIPCOLOR.name(), "Mark.TRIPCOLOR")
     assert_equal(Mark.ECDF.name(), "Mark.ECDF")
+    assert_equal(Mark.EVENTPLOT.name(), "Mark.EVENTPLOT")
 
 
 def test_every_mark_has_its_own_name() raises:
