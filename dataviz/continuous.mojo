@@ -329,6 +329,7 @@ def _draw_point_layer[
     legend_y: Int,
     draw_halo: Bool = False,
     legend_horizontal: Bool = False,
+    band_px: List[Float64] = List[Float64](),
 ) raises -> Int:
     """Draw one `Mark.POINT` plot's points into an already-laid-out
     continuous axis frame, plus the legend sections its encoded channels
@@ -345,6 +346,13 @@ def _draw_point_layer[
     combined rect. Row height, font size, colors, and point radius come
     from `plot`'s own `Theme`.
 
+    `band_px`, when non-empty, replaces `x_scale` as the source of each
+    point's x: one precomputed pixel position per row, in row order.
+    That is how a `Mark.BAR` combo chart draws this mark against
+    categorical band centers, which no `LinearScale` can express
+    (#422). Empty -- the default -- leaves the continuous path
+    unchanged.
+
     `draw_halo` draws one extra circle under each point first,
     `_lighten`ed toward white at ~2.2x the radius, a static stand-in for
     ECharts' animated ripple.
@@ -355,8 +363,10 @@ def _draw_point_layer[
     var theme = plot._theme
     var sc = _Scaled(theme)
 
-    for i in range(len(plot.x_data)):
-        var px = _axis_pixel_f(x_scale, plot.x_data[i])
+    for i in range(len(plot.y_data)):
+        var px = band_px[i] if len(band_px) > 0 else _axis_pixel_f(
+            x_scale, plot.x_data[i]
+        )
         var py = _axis_pixel_f(y_scale, plot.y_data[i])
         var color: Color
         if ch.has_color:
@@ -562,7 +572,13 @@ def _draw_point_layer[
 
 def _draw_line_layer[
     T: DrawTarget
-](mut target: T, plot: Plot, x_scale: LinearScale, y_scale: LinearScale) raises:
+](
+    mut target: T,
+    plot: Plot,
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+    band_px: List[Float64] = List[Float64](),
+) raises:
     """Draw one `Mark.LINE` plot's stroked path into an already-laid-out
     continuous axis frame, with `Theme.line_smoothing` via
     `_build_line_path` and `mark_line(step=...)` via `_step_points`.
@@ -606,10 +622,12 @@ def _draw_line_layer[
                 theme.mark_color,
                 width=sc.scale,
             )
-    var px = List[Float64](capacity=len(plot.x_data))
-    var py = List[Float64](capacity=len(plot.x_data))
-    for i in range(len(plot.x_data)):
-        px.append(x_scale.to_pixel(plot.x_data[i]))
+    var px = List[Float64](capacity=len(plot.y_data))
+    var py = List[Float64](capacity=len(plot.y_data))
+    for i in range(len(plot.y_data)):
+        px.append(
+            band_px[i] if len(band_px) > 0 else x_scale.to_pixel(plot.x_data[i])
+        )
         py.append(y_scale.to_pixel(plot.y_data[i]))
     # Thin the expanded geometry so step risers retain their true positions.
     var stepped = _step_points(px, py, plot._mark_style.step)
@@ -628,7 +646,13 @@ def _draw_line_layer[
 
 def _draw_area_layer[
     T: DrawTarget
-](mut target: T, plot: Plot, x_scale: LinearScale, y_scale: LinearScale) raises:
+](
+    mut target: T,
+    plot: Plot,
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+    band_px: List[Float64] = List[Float64](),
+) raises:
     """Draw one `Mark.AREA` plot's filled region into an already-laid-out
     continuous axis frame: the same curve `_draw_line_layer` strokes,
     closed down to the zero baseline (`y_scale`'s domain includes zero;
@@ -657,7 +681,9 @@ def _draw_area_layer[
     var px = List[Float64](capacity=len(plot.x_data))
     var py = List[Float64](capacity=len(plot.x_data))
     for i in range(len(plot.x_data)):
-        px.append(x_scale.to_pixel(plot.x_data[i]))
+        px.append(
+            band_px[i] if len(band_px) > 0 else x_scale.to_pixel(plot.x_data[i])
+        )
         py.append(y_scale.to_pixel(plot.y_data[i]))
     # Step first, decimate second, the order and the reasoning
     # _draw_line_layer's own comment spells out: thin the geometry that

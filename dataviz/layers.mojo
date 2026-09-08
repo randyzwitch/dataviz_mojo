@@ -519,70 +519,62 @@ def _render_bar_combo_layers[
         var layer_theme = plots[i]._theme
         _check_line_smoothing(layer_theme)
         var layer_sc = _Scaled(layer_theme)
-        var px = List[Float64](capacity=len(plots[i].y_data))
-        var py = List[Float64](capacity=len(plots[i].y_data))
+        # Precomputed band centers instead of a continuous x_scale --
+        # the one thing a categorical frame has that no LinearScale can
+        # express, and the reason this path used to reimplement each
+        # mark's geometry. The three shared draw functions take these
+        # directly now (#422), so there is exactly one copy of every
+        # mark's drawing code and a styling argument added to one of
+        # them cannot go missing here.
+        #
+        # That had already happened three times: mark_line(step=...)
+        # (#336), mark_line(style=...) (#383) and
+        # mark_point(tooltips=True) (#422), each found only after it
+        # shipped, because a dropped argument renders a different claim
+        # about the data rather than an error.
+        var band_px = List[Float64](capacity=len(plots[i].y_data))
         for k in range(len(plots[i].y_data)):
-            px.append(frame.x_scale.center(k))
-            py.append(frame.y_scale.to_pixel(plots[i].y_data[k]))
+            band_px.append(frame.x_scale.center(k))
+
+        # Decimation is a no-op here rather than something to suppress:
+        # one x per category means there is never more than one sample
+        # per pixel column to thin, so _decimate_to_pixel_columns keeps
+        # every point. color/size/y_err/labels are rejected above, so
+        # the shared functions' handling of them is unreachable, not
+        # bypassed.
         if plots[i]._mark == Mark.POINT:
-            for k in range(len(px)):
-                target.fill_circle_aa(
-                    px[k],
-                    py[k],
-                    Float64(round_to_int(layer_sc.point_radius)),
-                    layer_theme.mark_color,
-                )
-        elif plots[i]._mark == Mark.LINE:
-            # Stepping applies here as it does on a continuous x-axis
-            # This path builds its own geometry instead of
-            # calling _draw_line_layer, and a step silently ignored
-            # would draw a different claim about the data than the one
-            # mark_line(step=...) asked for. No decimation to order it
-            # against -- one x per category, so there is never more than
-            # one sample per pixel column to thin.
-            _check_step_smoothing(layer_theme, plots[i]._mark_style.step)
-            var stepped = _step_points(px, py, plots[i]._mark_style.step)
-            var path = _build_line_path(
-                stepped.px, stepped.py, layer_theme.line_smoothing
+            # x_scale is unused whenever band_px is supplied, but the
+            # signature is shared with the continuous path, so a
+            # placeholder domain goes in rather than an Optional.
+            var unused_x = LinearScale(0.0, 1.0, 0.0, 1.0)
+            var ch = _PointChannels(plots[i], layer_sc)
+            var unused_legend = List[_TextRequest]()
+            _ = _draw_point_layer(
+                target,
+                unused_legend,
+                plots[i],
+                ch,
+                unused_x,
+                frame.y_scale,
+                0,
+                0,
+                band_px=band_px,
             )
-            # `dashes=` for the same reason the step above is honored
-            # This path builds its own geometry rather than
-            # calling `_draw_line_layer`, so every styling argument that
-            # function passes has to be repeated here or it is silently
-            # dropped. A dashed reference line rendering solid does not
-            # look like a bug, it looks like another data series -- which
-            # is exactly what dashing it was meant to deny.
-            target.stroke_path_aa(
-                path,
-                layer_theme.mark_color,
-                width=layer_sc.line_width,
-                dashes=plots[i]._mark_style.line_style.dashes(layer_sc.scale),
+        elif plots[i]._mark == Mark.LINE:
+            _draw_line_layer(
+                target,
+                plots[i],
+                LinearScale(0.0, 1.0, 0.0, 1.0),
+                frame.y_scale,
+                band_px,
             )
         else:
-            # Mark.AREA -- same closed-down-to-baseline technique
-            # _draw_area_layer uses, just against this frame's
-            # categorical x positions instead of a continuous x_scale,
-            # and stepped here for the same reason the Mark.LINE branch
-            # above is: this branch builds its own geometry, so a
-            # mark_area(step=...) it ignored would silently fill under a
-            # diagonal the caller said was a staircase.
-            var baseline_py = frame.y_scale.to_pixel(0.0)
-            if round_to_int(baseline_py) == round_to_int(
-                frame.y_scale.range_min
-            ):
-                baseline_py -= 1.0
-            _check_step_smoothing(
-                layer_theme, plots[i]._mark_style.step, Mark.AREA
-            )
-            var stepped = _step_points(px, py, plots[i]._mark_style.step)
-            var path = _build_line_path(
-                stepped.px, stepped.py, layer_theme.line_smoothing
-            )
-            path.line_to(stepped.px[len(stepped.px) - 1], baseline_py)
-            path.line_to(stepped.px[0], baseline_py)
-            path.close()
-            target.fill_path_aa(
-                path, layer_theme.mark_color, fill_rule=FillRule.NONZERO
+            _draw_area_layer(
+                target,
+                plots[i],
+                LinearScale(0.0, 1.0, 0.0, 1.0),
+                frame.y_scale,
+                band_px,
             )
 
     return frame.result()

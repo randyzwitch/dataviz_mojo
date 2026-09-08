@@ -2699,5 +2699,139 @@ def test_a_facet_grid_without_x_titles_is_unchanged() raises:
     )
 
 
+# ---------------------------------------------------------------
+# The bar-combo path draws through the shared functions (#422)
+# ---------------------------------------------------------------
+
+
+def _title_count(svg: String) -> Int:
+    var n = 0
+    var at = svg.find("<title>")
+    while at >= 0:
+        n += 1
+        at = svg.find("<title>", at + 1)
+    return n
+
+
+def test_bar_combo_point_layer_emits_its_own_tooltips() raises:
+    """#422: `_render_bar_combo_layers` drew its `Mark.POINT` layer with
+    a bare `fill_circle_aa`, so `mark_point(tooltips=True)` produced no
+    `<title>` at all -- the third styling feature this path dropped by
+    reimplementing geometry the shared functions already had.
+
+    The expected count is **derived from the point layer**, not a fixed
+    number: bars alone, plus one per point. A fix that emitted groups
+    for the bars only, or that hard-coded three, still fails this.
+    """
+    var cats: List[String] = ["A", "B", "C"]
+    var bar_y: List[Float64] = [10.0, 20.0, 15.0]
+    var idx: List[Float64] = [0.0, 1.0, 2.0]
+    var pt_y: List[Float64] = [12.0, 18.0, 14.0]
+    var t = Theme(svg_tooltips=True, show_gridlines=False)
+
+    var bars_only = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=bar_y)
+        .theme(t)
+        .size(400, 300)
+    )
+    var solo: List[Plot] = [bars_only^]
+    var bars_alone = _title_count(render_layers_svg(solo).to_string())
+
+    var b2 = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=bar_y)
+        .theme(t)
+        .size(400, 300)
+    )
+    var p2 = (
+        Plot()
+        .mark_point(tooltips=True)
+        .encode(x=idx, y=pt_y)
+        .theme(t)
+        .size(400, 300)
+    )
+    var combo: List[Plot] = [b2^, p2^]
+    var with_points = _title_count(render_layers_svg(combo).to_string())
+
+    assert_equal(
+        with_points,
+        bars_alone + len(pt_y),
+        (
+            "a bar-combo point layer contributes one <title> per point --"
+            " bars alone gave "
+            + String(bars_alone)
+            + ", the combo gave "
+            + String(with_points)
+        ),
+    )
+
+
+def _line_path_without_coords(svg: String) raises -> String:
+    """The stroked `<path>` element with its `d="..."` removed, so two
+    renders can be compared on styling alone when their x positions
+    differ."""
+    var at = svg.find('<path d="M')
+    var end = svg.find("/>", at)
+    var el = String(svg[byte = at : end + 2])
+    var ds = el.find(' d="')
+    var de = el.find('"', ds + 4)
+    return String(el[byte=0:ds]) + String(el[byte = de + 1 : el.byte_length()])
+
+
+def test_bar_combo_line_layer_is_styled_like_a_standalone_line() raises:
+    """The guard against a fourth dropped feature.
+
+    Every attribute of the stroked path except its coordinates must
+    match a standalone line's: stroke, width, dash pattern, linecap.
+    The x positions differ -- categorical band centers against a
+    continuous scale -- so `d` is the one thing excluded.
+
+    This is future-proof in a way the previous three fixes were not.
+    They each repeated one argument in the second copy; the bar-combo
+    path now *calls* `_draw_line_layer`, so an argument added there
+    appears in both renders or this fails.
+    """
+    var cats: List[String] = ["A", "B", "C"]
+    var bar_y: List[Float64] = [10.0, 20.0, 15.0]
+    var idx: List[Float64] = [0.0, 1.0, 2.0]
+    var line_y: List[Float64] = [12.0, 18.0, 14.0]
+    var t = Theme(show_gridlines=False, show_legend=False)
+
+    var standalone = (
+        Plot()
+        .mark_line(style=LineStyle.DASHED, step=StepStyle.POST)
+        .encode(x=idx, y=line_y)
+        .theme(t)
+        .size(400, 300)
+    )
+    var solo_svg = render_svg(standalone).to_string()
+
+    var b = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=bar_y)
+        .theme(t)
+        .size(400, 300)
+    )
+    var l = (
+        Plot()
+        .mark_line(style=LineStyle.DASHED, step=StepStyle.POST)
+        .encode(x=idx, y=line_y)
+        .theme(t)
+        .size(400, 300)
+    )
+    var combo: List[Plot] = [b^, l^]
+    var combo_svg = render_layers_svg(combo).to_string()
+
+    assert_equal(
+        _line_path_without_coords(combo_svg),
+        _line_path_without_coords(solo_svg),
+        "a bar-combo line is styled exactly as the same line standalone",
+    )
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
