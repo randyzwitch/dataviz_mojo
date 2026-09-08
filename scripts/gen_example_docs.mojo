@@ -43,6 +43,7 @@ from _example_docstrings import (
     _pages,
     _quickplot_hook,
     _read_file,
+    _validate_page,
     _write_file,
 )
 
@@ -501,6 +502,7 @@ def main() raises:
             raise Error("Example has no title: " + n)
 
     for p in pages:
+        _validate_page(p)
         if p.name in cookbook.names:
             # Cookbook pages need two parent segments to reach examples SVGs.
             var page_md = _build_page(
