@@ -25,6 +25,8 @@ describes the drawing. By data shape:
   (`encode_candlestick()`), BULLET (`encode_bullet()`), GANTT and
   SPAN_CHART (`encode_gantt()`, horizontal and vertical),
   POPULATION_PYRAMID (`encode_population_pyramid()`).
+- One flat ungrouped column of observations, drawn on a continuous
+  frame: KDE and RUG (`encode_kde()`), ECDF (`encode_ecdf()`).
 - `encode_grouped_bar()` (category x series): GROUPED_BAR,
   STACKED_BAR, BUMP (ranks), STREAMGRAPH. MARIMEKKO takes
   `encode_marimekko()`; RADAR `encode_radar()`; PARALLEL
@@ -99,8 +101,9 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime RUG = Self(48)
     comptime TRIPLOT = Self(49)
     comptime TRIPCOLOR = Self(50)
+    comptime ECDF = Self(51)
 
-    comptime COUNT = 51
+    comptime COUNT = 52
     """How many marks exist -- one past the largest value above.
 
     Only the raster/SVG layout-equivalence sweep reads this (#221): it
@@ -257,4 +260,6 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
             return "Mark.TRIPLOT"
         if self == Self.TRIPCOLOR:
             return "Mark.TRIPCOLOR"
+        if self == Self.ECDF:
+            return "Mark.ECDF"
         return "Mark(" + String(self._value) + ")"

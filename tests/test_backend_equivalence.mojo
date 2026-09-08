@@ -47,6 +47,7 @@ from dataviz import (
     kdeplot,
     rugplot,
     corrplot,
+    ecdf,
     effect_scatter,
     funnel,
     gantt,
@@ -329,6 +330,9 @@ def _representative_plot(mark: Mark) raises -> Plot:
     if mark == Mark.RUG:
         var rv: List[Float64] = [1.0, 2.0, 2.0, 3.0, 5.0, 5.0, 6.0, 8.0]
         return rugplot(rv, width=_W, height=_H)
+    if mark == Mark.ECDF:
+        var ev: List[Float64] = [1.0, 2.0, 2.0, 3.0, 5.0, 5.0, 6.0, 8.0]
+        return ecdf(ev, width=_W, height=_H)
     if mark == Mark.BARBS:
         var u: List[Float64] = [5.0, 10.0, 15.0]
         var v: List[Float64] = [5.0, -10.0, 0.0]
@@ -527,17 +531,17 @@ def test_mark_count_is_one_past_the_newest_mark() raises:
     skipped contour entirely while still reporting itself green. This
     assertion is what then caught `Mark.CONTOURF` (#260) and
     `Mark.TRICONTOUR` (#261), `Mark.TRICONTOURF` (#323),
-    `Mark.KDE`/`Mark.RUG` (#351) and
-    `Mark.TRIPLOT`/`Mark.TRIPCOLOR` (#344): each failed
-    here until both the constant and this line moved, which is the
-    tripwire doing its job on every mark added since.
+    `Mark.KDE`/`Mark.RUG` (#351),
+    `Mark.TRIPLOT`/`Mark.TRIPCOLOR` (#344) and `Mark.ECDF` (#338): each
+    failed here until both the constant and this line moved, which is
+    the tripwire doing its job on every mark added since.
 
     Naming the newest mark explicitly is what makes that loud: adding a
     mark after this one fails here until both this line and `COUNT` are
     updated, which is one edit away from the constant itself.
     """
     assert_true(
-        Mark.TRIPCOLOR == Mark(Mark.COUNT - 1),
+        Mark.ECDF == Mark(Mark.COUNT - 1),
         (
             "Mark.COUNT must be one past the newest mark -- update both when"
             " adding one"
@@ -549,8 +553,8 @@ def test_mark_name_spells_the_constant() raises:
     """`Mark.name()` returns the qualified constant name a caller would
     type (#415).
 
-    A spot check rather than all 51, because the sweep below is what
-    covers the rest; these are the ones whose spelling a chain of
+    A spot check rather than all of them, because the sweep below is
+    what covers the rest; these are the ones whose spelling a chain of
     branches is most likely to get wrong -- an underscore name, two
     names sharing a prefix (`CONTOUR`/`CONTOURF`,
     `TRICONTOUR`/`TRICONTOURF`), and the first and last constants.
@@ -562,13 +566,14 @@ def test_mark_name_spells_the_constant() raises:
     assert_equal(Mark.TRICONTOUR.name(), "Mark.TRICONTOUR")
     assert_equal(Mark.TRICONTOURF.name(), "Mark.TRICONTOURF")
     assert_equal(Mark.TRIPCOLOR.name(), "Mark.TRIPCOLOR")
+    assert_equal(Mark.ECDF.name(), "Mark.ECDF")
 
 
 def test_every_mark_has_its_own_name() raises:
     """Every value in `[0, Mark.COUNT)` names itself, and no two share a
     name.
 
-    This is the assertion that makes a 51-branch chain safe to extend.
+    This is the assertion that makes a chain this long safe to extend.
     Two things go wrong in one and neither is visible by reading it:
     a mark added without a branch falls through to the `Mark(<n>)`
     fallback, and a branch copy-pasted from its neighbor returns the
