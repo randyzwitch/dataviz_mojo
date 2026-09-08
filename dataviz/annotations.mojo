@@ -17,10 +17,13 @@ and snaps both edges, a reference line is a hairline and snaps its one
 fixed coordinate, and a fitted line is a diagonal that snaps nothing.
 """
 
+from std.math import sqrt
+
 from canvas.fill_rule import FillRule
 from canvas.geometry import round_to_int
 from canvas.path import Path
-from canvas.text.render import TextAlign
+from canvas.text.font_cache import FontCache
+from canvas.text.render import TextAlign, measure_text
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.pixel_snap import _snap_pixel_center, _snap_pixel_edge
@@ -47,8 +50,9 @@ struct _AnnotationData(Copyable, Movable):
     from `.annotate_line()`; `area_*` a shaded band per (y0, y1, label)
     from `.annotate_area()`; `vline_*` a vertical line per (value, label)
     from `.annotate_vline()`; `point_*` a labeled point per (x, y, label)
-    from `.annotate_point()`. `line_*` and `vline_*` stay separate lists
-    rather than sharing one with an axis flag.
+    from `.annotate_point()`; `arrow_*` an arrow per (target x/y, label
+    x/y, text) from `.annotate_arrow()`. `line_*` and `vline_*` stay
+    separate lists rather than sharing one with an axis flag.
 
     `band_*` is one filled region per `.annotate_band()` call, and each
     entry's `x`/`y_lower`/`y_upper` is itself a full series (a curve), so
@@ -75,6 +79,11 @@ struct _AnnotationData(Copyable, Movable):
     var band_y_lower: List[List[Float64]]
     var band_y_upper: List[List[Float64]]
     var band_labels: List[String]
+    var arrow_x: List[Float64]
+    var arrow_y: List[Float64]
+    var arrow_text_x: List[Float64]
+    var arrow_text_y: List[Float64]
+    var arrow_labels: List[String]
     var best_fit: Bool
     var best_fit_show_equation: Bool
     var best_fit_show_r_squared: Bool
@@ -95,6 +104,11 @@ struct _AnnotationData(Copyable, Movable):
         self.band_y_lower = List[List[Float64]]()
         self.band_y_upper = List[List[Float64]]()
         self.band_labels = List[String]()
+        self.arrow_x = List[Float64]()
+        self.arrow_y = List[Float64]()
+        self.arrow_text_x = List[Float64]()
+        self.arrow_text_y = List[Float64]()
+        self.arrow_labels = List[String]()
         self.best_fit = False
         self.best_fit_show_equation = False
         self.best_fit_show_r_squared = False
@@ -483,6 +497,166 @@ def _draw_annotation_points[
                     round_to_int(px),
                     round_to_int(py - radius) - sc.label_gap,
                     label,
+                    theme.annotation_color,
+                    sc.font_size,
+                    TextAlign.CENTER,
+                    theme.font_family,
+                )
+            )
+    return text_requests^
+
+
+comptime _ARROW_HEAD_LENGTH = 11.0
+"""Pixel length of an arrowhead before `Theme.scale` (#335).
+
+Sized from the theme, never from the arrow's own length: a head scaled
+to the shaft would be comically large on a short arrow pointing at a
+nearby point, and invisible on a long one crossing the chart. Every
+other piece of furniture here is theme-sized for the same reason."""
+
+comptime _ARROW_HEAD_HALF_WIDTH = 4.0
+"""Half the arrowhead's base width, before `Theme.scale`. Narrower than
+it is long, which is what reads as a direction rather than a wedge."""
+
+
+def _draw_annotation_arrows[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    result: _RenderResult,
+    theme: Theme,
+    *,
+    mut cache: FontCache,
+) raises -> List[_TextRequest]:
+    """Draw every `Plot.annotate_arrow()` shaft and head, and return each
+    one's label as a `_TextRequest` so it is replayed after the marks
+    rather than painted over by them.
+
+    An arrow is the only annotation that can be placed in empty space,
+    which is what makes it usable on a crowded chart where every other
+    overlay lands on data. Both ends are in data coordinates, so the
+    label travels with the data when the domain changes.
+
+    The head is one `fill_path_aa` triangle rather than three strokes:
+    adjacent antialiased fills never reach full coverage at a shared
+    edge, so a head assembled from separate pieces shows pale seams
+    through it (#327, and the four occurrences before it).
+
+    Nothing snaps. The shaft is a diagonal and the head is a rotated
+    triangle, and neither has a crisp position to snap to -- the rule
+    settled in #313, where only axis-aligned fills and hairlines snap.
+
+    An arrow whose target or label falls outside the plot rect is
+    skipped whole rather than clipped, matching `annotate_point()`: half
+    an arrow points at nothing.
+    """
+    var text_requests = List[_TextRequest]()
+    if len(plot._annotations.arrow_x) == 0:
+        return text_requests^
+    if not result.has_x_scale or not result.has_y_scale:
+        raise Error(
+            "Plot.annotate_arrow(): this mark has no continuous x/y axes to"
+            " place an arrow against. Supported today:"
+            " Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
+        )
+
+    var sc = _Scaled(theme)
+    var px_left = Float64(min(result.px0, result.px1))
+    var px_right = Float64(max(result.px0, result.px1))
+    var py_top = Float64(min(result.py0, result.py1))
+    var py_bottom = Float64(max(result.py0, result.py1))
+
+    var head_len = _ARROW_HEAD_LENGTH * theme.scale
+    var head_half = _ARROW_HEAD_HALF_WIDTH * theme.scale
+
+    for i in range(len(plot._annotations.arrow_x)):
+        var tx = _axis_pixel_f(result.x_scale, plot._annotations.arrow_x[i])
+        var ty = _axis_pixel_f(result.y_scale, plot._annotations.arrow_y[i])
+        var lx = _axis_pixel_f(
+            result.x_scale, plot._annotations.arrow_text_x[i]
+        )
+        var ly = _axis_pixel_f(
+            result.y_scale, plot._annotations.arrow_text_y[i]
+        )
+        var inside = (
+            tx >= px_left
+            and tx <= px_right
+            and ty >= py_top
+            and ty <= py_bottom
+            and lx >= px_left
+            and lx <= px_right
+            and ly >= py_top
+            and ly <= py_bottom
+        )
+        if not inside:
+            continue
+
+        var label_text = plot._annotations.arrow_labels[i]
+        var dx = tx - lx
+        var dy = ty - ly
+        var length = sqrt(dx * dx + dy * dy)
+        # A label sitting on its own target has no direction to point
+        # in, and normalizing would divide by zero. Draw the label and
+        # skip the arrow rather than raising: the text still says what
+        # it came to say.
+        if length > head_len:
+            var ux = dx / length
+            var uy = dy / length
+            # Perpendicular, for the head's base corners.
+            var nx = -uy
+            var ny = ux
+            var base_x = tx - ux * head_len
+            var base_y = ty - uy * head_len
+
+            # The shaft starts where the ray leaves the label's own
+            # box, not at its center: a fixed offset from the center
+            # draws the line straight through the text, which is what
+            # the first version did. The label is measured rather than
+            # estimated from its character count -- a proportional font
+            # makes "peak demand" and "IIIIIIIIIII" very different
+            # widths at the same length.
+            var m = measure_text(label_text, sc.font_size, cache=cache)
+            var half_w = m.width / 2.0
+            var half_h = sc.font_size / 2.0
+            var exit_t = length
+            if abs(ux) > 1e-9:
+                exit_t = min(exit_t, half_w / abs(ux))
+            if abs(uy) > 1e-9:
+                exit_t = min(exit_t, half_h / abs(uy))
+            if label_text.byte_length() == 0:
+                exit_t = 0.0
+            var gap = exit_t + Float64(sc.label_gap)
+
+            # The shaft stops at the head's base rather than the target,
+            # so the two do not overlap -- an antialiased stroke under a
+            # filled head darkens its centerline where they cross.
+            var start_x = lx + ux * gap
+            var start_y = ly + uy * gap
+            target.draw_line_aa(
+                start_x,
+                start_y,
+                base_x,
+                base_y,
+                theme.annotation_color,
+                width=theme.annotation_arrow_width * theme.scale,
+            )
+
+            var head = Path()
+            head.move_to(tx, ty)
+            head.line_to(base_x + nx * head_half, base_y + ny * head_half)
+            head.line_to(base_x - nx * head_half, base_y - ny * head_half)
+            head.close()
+            target.fill_path_aa(
+                head, theme.annotation_color, fill_rule=FillRule.NONZERO
+            )
+
+        if label_text.byte_length() > 0:
+            text_requests.append(
+                _TextRequest(
+                    round_to_int(lx),
+                    round_to_int(ly),
+                    label_text,
                     theme.annotation_color,
                     sc.font_size,
                     TextAlign.CENTER,
