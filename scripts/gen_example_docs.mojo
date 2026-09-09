@@ -303,6 +303,185 @@ def _cookbook() -> Category:
     )
 
 
+def _cookbook_categories() -> List[Category]:
+    """Cookbook recipes grouped by the task a reader wants to perform."""
+    var cats = List[Category]()
+    cats.append(
+        Category(
+            "Annotations and labels",
+            "Call out values, ranges, trends, and individual observations.",
+            [
+                "annotate_line",
+                "annotate_vline",
+                "annotate_area",
+                "annotate_band",
+                "annotate_point",
+                "annotate_arrow",
+                "annotation_colors",
+                "data_labels",
+                "point_labels",
+            ],
+        )
+    )
+    cats.append(
+        Category(
+            "Axes, scales, and orientation",
+            "Control domains, axis furniture, ordering, and chart direction.",
+            [
+                "log_scale_x",
+                "log_scale_y",
+                "indexed_100",
+                "percent_stacked_bar",
+                "step_interpolation",
+                "sorted_bar",
+                "horizontal_bar",
+                "horizontal_grouped_bar",
+                "horizontal_stacked_bar",
+                "horizontal_lollipop",
+                "horizontal_box",
+                "horizontal_violin",
+                "horizontal_beeswarm",
+                "compact_axis_chrome",
+                "custom_margins",
+                "margin_buffer",
+                "data_label_margin",
+            ],
+        )
+    )
+    cats.append(
+        Category(
+            "Color and accessibility",
+            "Encode values with color and keep charts legible across contexts.",
+            [
+                "color_categorical",
+                "color_continuous",
+                "color_map",
+                "diverging_color_scale",
+                "diverging_bar",
+                "custom_diverging_colors",
+                "shape_by_category",
+                "high_contrast_theme",
+                "print_safe_theme",
+                "dark_theme",
+                "minimal_theme",
+                "svg_accessibility",
+            ],
+        )
+    )
+    cats.append(
+        Category(
+            "Layout, facets, and layers",
+            "Combine plots, coordinate scales, and explain layered series.",
+            [
+                "combo_chart",
+                "bar_line_combo",
+                "dual_axis",
+                "layer_legend",
+                "isolines_over_a_field",
+                "facets",
+                "shared_facet_scale",
+            ],
+        )
+    )
+    cats.append(
+        Category(
+            "Statistics and uncertainty",
+            (
+                "Show estimates, uncertainty, distributions, and dense"
+                " relationships."
+            ),
+            [
+                "best_fit_line",
+                "error_bars",
+                "error_bars_asymmetric",
+                "error_bars_on_line",
+                "error_bar_cap_width",
+                "bubble_size",
+                "bubble_size_range",
+                "kde_comparison",
+                "narrow_violins",
+                "violin_bandwidth",
+                "violin_scale_by_count",
+                "ridgeline_overlap",
+                "dense_corrplot",
+            ],
+        )
+    )
+    cats.append(
+        Category(
+            "Export and presentation",
+            "Tune chart appearance and produce output for its destination.",
+            [
+                "export_formats",
+                "high_dpi_export",
+                "typography",
+                "subtitle_axis_title_styling",
+                "bold_points",
+                "line_smoothing",
+                "legend_sizing",
+                "continuous_legend_size",
+                "bullet_styling",
+                "compact_gauge",
+                "effect_scatter_halo",
+                "radar_fill_alpha",
+                "radialbar_styling",
+                "sankey_node_width",
+                "waterfall_colors",
+            ],
+        )
+    )
+    cats.append(
+        Category(
+            "External and custom data",
+            "Use numeric types, Python arrays, and custom Mojo containers.",
+            [
+                "numeric_types",
+                "numpy_pandas_data",
+                "array_like_data",
+                "categorical_array_like",
+            ],
+        )
+    )
+    return cats^
+
+
+def _cookbook_api_links(category: String) -> String:
+    """Relevant reference links for a Cookbook task category."""
+    if category == "Annotations and labels":
+        return "[Plot annotations](../../dataviz/plot/Plot/)"
+    if category == "Axes, scales, and orientation":
+        return (
+            "[Plot](../../dataviz/plot/Plot/) · "
+            "[Theme](../../dataviz/theme/Theme/)"
+        )
+    if category == "Color and accessibility":
+        return (
+            "[Theme](../../dataviz/theme/Theme/) · "
+            "[Colors](../../dataviz/colors/)"
+        )
+    if category == "Layout, facets, and layers":
+        return "[Rendering and composition](../../dataviz/plot/)"
+    if category == "Statistics and uncertainty":
+        return "[Plot encodings](../../dataviz/plot/Plot/)"
+    if category == "Export and presentation":
+        return (
+            "[Theme](../../dataviz/theme/Theme/) · "
+            "[OutputFormat](../../dataviz/output_format/OutputFormat/)"
+        )
+    return "[Data shapes](../../data-shapes/)"
+
+
+def _use_when(hook: String) -> String:
+    """Turn an imperative recipe summary into a reader-focused sentence."""
+    if hook.byte_length() == 0:
+        return hook
+    return (
+        "**Use this when:** You need to "
+        + String(hook[byte=0:1]).lower()
+        + String(hook[byte=1:])
+    )
+
+
 def _build_page(
     name: String, title: String, page: ExamplePage, image_prefix: String = ""
 ) raises -> String:
@@ -415,7 +594,13 @@ def _title_override(content: String) -> String:
     return ""
 
 
-def _build_contributed_page(title: String, content: String) raises -> String:
+def _build_contributed_page(
+    name: String,
+    title: String,
+    content: String,
+    category: Category,
+    recipe_titles: Dict[String, String],
+) raises -> String:
     """A `docs/cookbook_recipes/*.mojo` file turned into the same
     markdown shape `_build_page()` produces (title/hook/image/Usage),
     minus an `Args:` section and named-variant support: one recipe file
@@ -447,7 +632,7 @@ def _build_contributed_page(title: String, content: String) raises -> String:
     out.append("title: " + title)
     out.append("---")
     out.append("")
-    out.append(hook)
+    out.append(_use_when(hook))
     out.append("")
 
     var code_lines = List[String]()
@@ -462,6 +647,33 @@ def _build_contributed_page(title: String, content: String) raises -> String:
     for l in code_lines:
         out.append(l)
     out.append("```")
+    out.append("")
+
+    var position = -1
+    for i in range(len(category.names)):
+        if category.names[i] == name:
+            position = i
+            break
+    if position == -1:
+        raise Error("Cookbook recipe has no task category: " + name)
+
+    out.append("## Related")
+    out.append("")
+    var related = List[String]()
+    if position > 0:
+        var previous = category.names[position - 1]
+        related.append(
+            "[" + recipe_titles[previous] + "](../" + previous + "/)"
+        )
+    if position + 1 < len(category.names):
+        var following = category.names[position + 1]
+        related.append(
+            "[" + recipe_titles[following] + "](../" + following + "/)"
+        )
+    if len(related) > 0:
+        out.append("**Related recipes:** " + String(" · ").join(related))
+        out.append("")
+    out.append("**Relevant API:** " + _cookbook_api_links(category.title))
     out.append("")
 
     return String("\n").join(out)
@@ -523,6 +735,7 @@ def main() raises:
     sort(recipe_entries)
     var recipe_names = List[String]()
     var recipe_titles = Dict[String, String]()
+    var recipe_contents = Dict[String, String]()
     for e in recipe_entries:
         if not e.endswith(".mojo"):
             continue
@@ -538,10 +751,29 @@ def main() raises:
         var content = _read_file(_RECIPES_DIR + "/" + e)
         var override = _title_override(content)
         var title = override if override else _title_case_filename(stem)
-        var page_md = _build_contributed_page(title, content)
-        _write_file(_COOKBOOK_OUT_DIR + "/" + stem + ".md", page_md)
         recipe_names.append(stem)
         recipe_titles[stem] = title
+        recipe_contents[stem] = content
+
+    var cookbook_categories = _cookbook_categories()
+    var placed_recipes = List[String]()
+    for cat in cookbook_categories:
+        for n in cat.names:
+            if n in placed_recipes:
+                raise Error("Cookbook recipe placed in two categories: " + n)
+            if n not in recipe_names:
+                raise Error("Cookbook category references unknown recipe: " + n)
+            placed_recipes.append(n)
+    for n in recipe_names:
+        if n not in placed_recipes:
+            raise Error("Cookbook recipe has no task category: " + n)
+
+    for cat in cookbook_categories:
+        for n in cat.names:
+            var page_md = _build_contributed_page(
+                n, recipe_titles[n], recipe_contents[n], cat, recipe_titles
+            )
+            _write_file(_COOKBOOK_OUT_DIR + "/" + n + ".md", page_md)
 
     var idx = List[String]()
     idx.append("---")
@@ -596,20 +828,20 @@ def main() raises:
     cookbook_idx.append("---")
     cookbook_idx.append("")
     cookbook_idx.append(
-        "Techniques for customizing a plot you already have -- a reference "
-        "line/band/point marker, a second y-axis, accessible SVG output, a "
-        "grid of independent plots -- rather than a distinct chart type of "
-        "its own. See [Examples](../examples/) for the chart-type gallery "
-        "these apply to, or `docs/cookbook_recipes/`'s own README.md "
-        "in the repo to contribute one yourself -- a Cookbook recipe "
-        "doesn't need to be tied to one function the way an Example does."
+        "Task-focused techniques for customizing, composing, and exporting "
+        "charts. See [Examples](../examples/) to choose a chart type first."
     )
     cookbook_idx.append("")
     for n in cookbook.names:
         cookbook_idx.append("- [" + titles[n] + "](" + n + "/)")
-    for n in recipe_names:
-        cookbook_idx.append("- [" + recipe_titles[n] + "](" + n + "/)")
-    cookbook_idx.append("")
+    for cat in cookbook_categories:
+        cookbook_idx.append("## " + cat.title)
+        cookbook_idx.append("")
+        cookbook_idx.append(cat.blurb)
+        cookbook_idx.append("")
+        for n in cat.names:
+            cookbook_idx.append("- [" + recipe_titles[n] + "](" + n + "/)")
+        cookbook_idx.append("")
     _write_file(
         _COOKBOOK_OUT_DIR + "/_index.md", String("\n").join(cookbook_idx)
     )

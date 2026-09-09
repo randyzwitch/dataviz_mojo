@@ -1,3 +1,4 @@
+# title: Error Bars on a Line
 """Draw error-bar whiskers on a line chart -- a confidence band per
 measurement, connected by the trend line itself, instead of a bare
 scatter of uncertain points.

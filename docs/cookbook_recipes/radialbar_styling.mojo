@@ -1,3 +1,4 @@
+# title: Radial Bar Styling
 """Darken radial-bar tracks and widen the gaps between rings."""
 from dataviz import radialbar
 from dataviz.plot import save
