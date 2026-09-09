@@ -8,6 +8,9 @@ Start with the question the chart must answer, then choose the simplest form
 that makes the comparison visible. Each example link shows runnable source and
 rendered output; each API link gives the exact parameters and constraints.
 
+If terms such as mark, encoding, or domain are unfamiliar, see the
+[Glossary](../glossary/).
+
 If one convenience function describes the result, use it. Reach for `Plot()`
 when you need layers, facets, or additional encodings. Both approaches return
 the same `Plot` type.
@@ -120,3 +123,5 @@ These charts use parallel source, destination, and non-negative value columns.
 When several charts could work, build the simplest two with the same data and
 compare what becomes easiest to see. The [Examples gallery](../examples/)
 provides the fastest side-by-side source and output reference.
+
+[← Data shapes](../data-shapes/) · [Browse Examples →](../examples/)
