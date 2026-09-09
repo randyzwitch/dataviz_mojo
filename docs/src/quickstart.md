@@ -187,6 +187,8 @@ hierarchical, radial, financial, and network charts.
 
 ## Where to next
 
+- **[Data shapes](../data-shapes/)** -- how to arrange columns, nested lists,
+  grids, networks, hierarchies, NumPy, pandas, and custom containers.
 - **[Examples](../examples/)** -- every chart type this package can
   produce, source code next to its actual rendered output.
 - **[API reference](../dataviz/)** -- the full surface `Plot`

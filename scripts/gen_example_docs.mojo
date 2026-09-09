@@ -367,6 +367,11 @@ def _build_page(
         is_first = False
 
     if len(args_lines) > 0:
+        out.append(
+            "See [Data shapes](../../data-shapes/) for shared input "
+            "conventions."
+        )
+        out.append("")
         out.append("**Args:**")
         out.append("")
         for l in args_lines:
@@ -562,6 +567,11 @@ def main() raises:
         "the fuller `Plot` builder (`.encode()`/`.theme()`/`.labels()`, "
         "then `render()`) that the rest still use directly, for whatever "
         "these don't cover yet."
+    )
+    idx.append("")
+    idx.append(
+        "Not sure how to arrange an input? See [Data shapes](../data-shapes/) "
+        "for columns, nested lists, matrices, edges, and hierarchies."
     )
     idx.append("")
     for cat in categories:
