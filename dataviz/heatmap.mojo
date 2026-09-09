@@ -368,15 +368,22 @@ def heatmap(
     Example:
         ```mojo
         from dataviz import heatmap
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
 
         def main() raises:
             var days: List[String] = ["Mon", "Mon", "Mon", "Tue", "Tue", "Tue", "Wed", "Wed", "Wed"]
             var hours: List[String] = ["9am", "1pm", "5pm", "9am", "1pm", "5pm", "9am", "1pm", "5pm"]
             var activity: List[Int] = [3, 8, 5, 4, 9, 6, 2, 7, 10]
 
-            var c = heatmap(days, hours, activity)
+            var c = heatmap(
+                days,
+                hours,
+                activity,
+                title="Activity by Day and Time",
+                x_title="Day",
+                y_title="Time",
+            )
             save(c, "docs/src/examples/out_heatmap.svg")
         ```
     """

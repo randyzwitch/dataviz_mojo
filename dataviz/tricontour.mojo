@@ -655,7 +655,7 @@ def tricontour(
         from std.math import cos, sin
 
         from dataviz import tricontour
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var x = List[Float64]()
@@ -751,7 +751,7 @@ def tricontourf(
         from std.math import cos, sin
 
         from dataviz import tricontourf
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var x = List[Float64]()

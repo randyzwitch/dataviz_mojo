@@ -199,7 +199,7 @@ def eventplot(
     Example:
         ```mojo
         from dataviz import eventplot
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var neurons: List[String] = ["Unit 1", "Unit 2", "Unit 3"]

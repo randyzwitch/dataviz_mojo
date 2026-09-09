@@ -230,7 +230,7 @@ def corrplot(
     Example:
         ```mojo
         from dataviz import corrplot
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var variables: List[String] = ["Horsepower", "MPG", "Weight", "Price"]
@@ -241,7 +241,13 @@ def corrplot(
                 [0.72, -0.55, 0.48, 1.0],
             ]
 
-            var c = corrplot(variables, matrix, layout="upper", diag=False)
+            var c = corrplot(
+                variables,
+                matrix,
+                layout="upper",
+                diag=False,
+                title="Vehicle Metric Correlations",
+            )
             save(c, "docs/src/examples/out_corrplot.svg")
         ```
     """

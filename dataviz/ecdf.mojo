@@ -283,7 +283,7 @@ def ecdf(
     Example:
         ```mojo
         from dataviz import ecdf
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var response_ms: List[Float64] = [

@@ -544,6 +544,28 @@ def _validate_page(page: ExamplePage) raises:
         if page.block and block.heading != page.block:
             continue
         selected += 1
+        var has_title = False
+        for line in block.lines:
+            if line.startswith("from dataviz."):
+                raise Error(
+                    "example docs: "
+                    + page.name
+                    + " imports a dataviz submodule instead of the public "
+                    "package surface: "
+                    + line
+                )
+            var stripped = String(line.strip())
+            var sets_title = (
+                stripped.startswith("title=")
+                or stripped.find(", title=") != -1
+                or stripped.find(".labels(title=") != -1
+            )
+            if sets_title and stripped.find('title=""') == -1:
+                has_title = True
+        if not has_title:
+            raise Error(
+                "example docs: " + page.name + " has no non-empty chart title"
+            )
         if not _output_svg_name(block.lines):
             raise Error(
                 "example docs: "

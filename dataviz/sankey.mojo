@@ -306,14 +306,14 @@ def sankey(
     Example:
         ```mojo
         from dataviz import sankey
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var from_stage: List[String] = ["Coal", "Gas", "Coal", "Gas", "Electricity", "Electricity"]
             var to_stage: List[String] = ["Electricity", "Electricity", "Industry", "Industry", "Residential", "Industry"]
             var energy: List[Int] = [30, 20, 15, 10, 25, 20]
 
-            var c = sankey(from_stage, to_stage, energy)
+            var c = sankey(from_stage, to_stage, energy, title="Energy Flows")
             save(c, "docs/src/examples/out_sankey.svg")
         ```
     """

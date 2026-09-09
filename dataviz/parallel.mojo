@@ -211,7 +211,7 @@ def parallel(
     Example:
         ```mojo
         from dataviz import parallel
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var dims: List[String] = ["Horsepower", "MPG", "Weight (100 lbs)", "0-60 (sec)", "Price ($k)"]
@@ -222,7 +222,7 @@ def parallel(
                 [450.0, 16.0, 34.0, 3.5, 85.0],
             ]
 
-            var c = parallel(data, dims, row_names)
+            var c = parallel(data, dims, row_names, title="Vehicle Profiles")
             save(c, "docs/src/examples/out_parallel.svg")
         ```
     """

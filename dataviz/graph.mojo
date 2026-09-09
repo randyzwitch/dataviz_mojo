@@ -167,14 +167,19 @@ def graph(
     Example:
         ```mojo
         from dataviz import graph
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var from_people: List[String] = ["Alice", "Alice", "Bob", "Carol", "Dave"]
             var to_people: List[String] = ["Bob", "Carol", "Dave", "Dave", "Eve"]
             var connection_strength: List[Int] = [8, 3, 5, 6, 4]
 
-            var c = graph(from_people, to_people, connection_strength)
+            var c = graph(
+                from_people,
+                to_people,
+                connection_strength,
+                title="Character Connections",
+            )
             save(c, "docs/src/examples/out_graph.svg")
         ```
     """

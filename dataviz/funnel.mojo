@@ -203,14 +203,14 @@ def funnel(
     Example:
         ```mojo
         from dataviz import funnel
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
 
         def main() raises:
             var stages: List[String] = ["Impressions", "Clicks", "Add to Cart", "Orders"]
             var counts: List[Int] = [10000, 3200, 950, 400]
 
-            var c = funnel(stages, counts)
+            var c = funnel(stages, counts, title="Customer Conversion Funnel")
             save(c, "docs/src/examples/out_funnel.svg")
         ```
     """

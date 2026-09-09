@@ -375,7 +375,7 @@ def stacked_bar(
     Example:
         ```mojo
         from dataviz import stacked_bar
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4"]

@@ -49,13 +49,16 @@ documentation build enforces the following contract:
 - `Args:` is non-empty and lists every signature parameter once, in order.
 - `Returns:` is non-empty.
 - At least one `Example:` contains a complete runnable Mojo program.
+- Example code imports public symbols from `dataviz`, not implementation
+  submodules.
+- Every rendered example sets a non-empty chart title; label meaningful axes.
 - Each generated example writes beneath `docs/src/examples/` so its rendered
   output can appear beside the source.
 - A page selecting a named example variant uses an existing heading.
 
 The `Example:` program is extracted and executed verbatim by
-`pixi run example`. Keep setup relevant to the feature, import the public API
-from `dataviz` where possible, and give the chart meaningful labels.
+`pixi run example`. Keep setup relevant to the feature and use data that makes
+the documented behavior visible.
 
 ## Documentation layout
 

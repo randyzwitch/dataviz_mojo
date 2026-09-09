@@ -450,9 +450,9 @@ def box(
     Example:
         ```mojo
         from dataviz import box
-        from dataviz.plot import save
-        from dataviz.colors import ROYALBLUE
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import ROYALBLUE
+        from dataviz import Theme
 
         def main() raises:
             var groups: List[String] = ["Group A", "Group B", "Group C", "Group D"]
@@ -463,7 +463,14 @@ def box(
                 [82, 84, 85, 86, 87, 88, 89, 91, 93],
             ]
 
-            var c = box(groups, scores, theme=Theme(mark_color=ROYALBLUE))
+            var c = box(
+                groups,
+                scores,
+                title="Exam Score Distributions",
+                x_title="Group",
+                y_title="Score",
+                theme=Theme(mark_color=ROYALBLUE),
+            )
             save(c, "docs/src/examples/out_box.svg")
         ```
     """

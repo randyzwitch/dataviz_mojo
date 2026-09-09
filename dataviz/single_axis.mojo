@@ -236,15 +236,19 @@ def single_axis(
     Example:
         ```mojo
         from dataviz import single_axis
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
 
         def main() raises:
             var response_ms: List[Int] = [
                 12, 14, 13, 15, 11, 14, 13, 12, 45, 15, 13, 14, 12, 90, 14,
             ]
 
-            var c = single_axis(response_ms)
+            var c = single_axis(
+                response_ms,
+                title="API Response Times",
+                x_title="Response time (ms)",
+            )
             save(c, "docs/src/examples/out_single_axis.svg")
         ```
     """

@@ -150,7 +150,7 @@ def punchcard(
     Example:
         ```mojo
         from dataviz import punchcard
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var days: List[String] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -166,7 +166,14 @@ def punchcard(
                     y.append(hour)
                     counts.append(15 if is_weekend else 60)
 
-            var c = punchcard(x, y, counts)
+            var c = punchcard(
+                x,
+                y,
+                counts,
+                title="Activity by Day and Hour",
+                x_title="Day",
+                y_title="Hour",
+            )
             save(c, "docs/src/examples/out_punchcard.svg")
         ```
     """

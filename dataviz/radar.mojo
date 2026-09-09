@@ -256,7 +256,7 @@ def radar(
     Example:
         ```mojo
         from dataviz import radar
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var indicators: List[String] = ["Attack", "Defense", "Speed", "Stamina", "Skill"]
@@ -267,7 +267,13 @@ def radar(
                 [65, 85, 55, 90, 60],
             ]
 
-            var c = radar(indicators, max_values, series_names, series_values)
+            var c = radar(
+                indicators,
+                max_values,
+                series_names,
+                series_values,
+                title="Team Skills",
+            )
             save(c, "docs/src/examples/out_radar.svg")
         ```
     """

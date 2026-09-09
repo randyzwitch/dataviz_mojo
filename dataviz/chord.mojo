@@ -246,15 +246,17 @@ def chord(
     Example:
         ```mojo
         from dataviz import chord
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
 
         def main() raises:
             var from_regions: List[String] = ["North", "North", "South", "East", "West"]
             var to_regions: List[String] = ["South", "East", "West", "West", "North"]
             var trade_volume: List[Int] = [12, 8, 15, 6, 10]
 
-            var c = chord(from_regions, to_regions, trade_volume)
+            var c = chord(
+                from_regions, to_regions, trade_volume, title="Regional Trade"
+            )
             save(c, "docs/src/examples/out_chord.svg")
         ```
     """

@@ -305,15 +305,22 @@ def gantt(
     Example:
         ```mojo
         from dataviz import gantt
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
 
         def main() raises:
             var tasks: List[String] = ["Design", "Development", "Testing", "Documentation", "Launch"]
             var start: List[Int] = [0, 5, 20, 15, 28]
             var end: List[Int] = [8, 25, 28, 27, 30]
 
-            var c = gantt(tasks, start, end)
+            var c = gantt(
+                tasks,
+                start,
+                end,
+                title="Project Schedule",
+                x_title="Day",
+                y_title="Task",
+            )
             save(c, "docs/src/examples/out_gantt.svg")
         ```
     """
