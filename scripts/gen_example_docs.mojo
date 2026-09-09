@@ -482,8 +482,46 @@ def _use_when(hook: String) -> String:
     )
 
 
+def _example_category(
+    name: String, categories: List[Category]
+) raises -> Category:
+    """Return the single chart-family category containing `name`."""
+    for cat in categories:
+        if name in cat.names:
+            return cat.copy()
+    raise Error("Example has no chart-family category: " + name)
+
+
+def _example_api_link(page: ExamplePage) -> String:
+    """Markdown link from an Example page to its generated API entry."""
+    if page.is_method:
+        return (
+            "["
+            + page.fn_name
+            + "](../../dataviz/"
+            + page.file
+            + "/Plot/#"
+            + page.fn_name
+            + ")"
+        )
+    return (
+        "["
+        + page.fn_name
+        + "](../../dataviz/"
+        + page.file
+        + "/"
+        + page.fn_name
+        + "/)"
+    )
+
+
 def _build_page(
-    name: String, title: String, page: ExamplePage, image_prefix: String = ""
+    name: String,
+    title: String,
+    page: ExamplePage,
+    category: Category,
+    titles: Dict[String, String],
+    image_prefix: String = "",
 ) raises -> String:
     var hook_overrides = _hook_overrides()
     var hook: String
@@ -556,6 +594,29 @@ def _build_page(
         for l in args_lines:
             out.append(l)
         out.append("")
+
+    var position = -1
+    for i in range(len(category.names)):
+        if category.names[i] == name:
+            position = i
+            break
+    if position == -1:
+        raise Error("Example missing from its chart-family category: " + name)
+
+    out.append("## Related")
+    out.append("")
+    var related = List[String]()
+    if position > 0:
+        var previous = category.names[position - 1]
+        related.append("[" + titles[previous] + "](../" + previous + "/)")
+    if position + 1 < len(category.names):
+        var following = category.names[position + 1]
+        related.append("[" + titles[following] + "](../" + following + "/)")
+    if len(related) > 0:
+        out.append("**Related charts:** " + String(" · ").join(related))
+        out.append("")
+    out.append("**Relevant API:** " + _example_api_link(page))
+    out.append("")
 
     return String("\n").join(out)
 
@@ -720,14 +781,22 @@ def main() raises:
 
     for p in pages:
         _validate_page(p)
+        var category = _example_category(p.name, categories)
         if p.name in cookbook.names:
             # Cookbook pages need two parent segments to reach examples SVGs.
             var page_md = _build_page(
-                p.name, titles[p.name], p, image_prefix="../../examples/"
+                p.name,
+                titles[p.name],
+                p,
+                category,
+                titles,
+                image_prefix="../../examples/",
             )
             _write_file(_COOKBOOK_OUT_DIR + "/" + p.name + ".md", page_md)
         else:
-            var page_md = _build_page(p.name, titles[p.name], p)
+            var page_md = _build_page(
+                p.name, titles[p.name], p, category, titles
+            )
             _write_file(_OUT_DIR + "/" + p.name + ".md", page_md)
 
     # Discover recipes on each run and reject output-name collisions.
@@ -806,6 +875,11 @@ def main() raises:
         "for columns, nested lists, matrices, edges, and hierarchies."
     )
     idx.append("")
+    idx.append(
+        "For behavior shared across chart types, see the [Guides](../guides/). "
+        "The [Glossary](../glossary/) defines chart terminology."
+    )
+    idx.append("")
     for cat in categories:
         idx.append("## " + cat.title)
         idx.append("")
@@ -829,7 +903,8 @@ def main() raises:
     cookbook_idx.append("")
     cookbook_idx.append(
         "Task-focused techniques for customizing, composing, and exporting "
-        "charts. See [Examples](../examples/) to choose a chart type first."
+        "charts. See [Examples](../examples/) to choose a chart type first, "
+        "or [Guides](../guides/) for concepts that span several APIs."
     )
     cookbook_idx.append("")
     for n in cookbook.names:

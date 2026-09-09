@@ -151,3 +151,5 @@ Convenience functions return an unrendered `Plot`, so invalid data may not
 raise until that plot is rendered or written. Keep the output call in a
 `raises` context and use the resulting error message to locate the failing
 column, row, or option.
+
+[← Quickstart](../quickstart/) · [Choose a chart →](../chart-selection/)

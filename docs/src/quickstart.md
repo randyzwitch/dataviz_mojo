@@ -196,6 +196,10 @@ For decision guidance across the full chart catalog, see
   produce, source code next to its actual rendered output.
 - **[API reference](../dataviz/)** -- the full surface `Plot`
   and `Theme` expose, every scale, every mark.
+- **[Glossary](../glossary/)** -- concise definitions of marks, encodings,
+  channels, domains, layers, facets, and related terms.
+
+[← Home](../) · [Continue to Guides →](../guides/)
 
 ## Contributing to dataviz_mojo
 

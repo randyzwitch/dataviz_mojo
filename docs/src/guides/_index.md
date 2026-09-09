@@ -19,3 +19,5 @@ below as your chart becomes more composed or publication-ready.
 - [Raster and SVG output](output-formats/)
 - [Accessibility](accessibility/)
 - [Performance and large datasets](performance/)
+
+New terminology is defined in the [Glossary](../glossary/).
