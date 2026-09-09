@@ -1,3 +1,4 @@
+# title: NumPy and pandas Data
 """Plot a numpy array or a pandas Series directly -- `Plot.encode()`/
 `encode_categorical()` accept either with no manual conversion, even a
 raw `Series` with no `.to_numpy()` step first.

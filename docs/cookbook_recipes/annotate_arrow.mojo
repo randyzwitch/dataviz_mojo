@@ -1,3 +1,4 @@
+# title: Arrow Annotation
 """Point to a data position while placing its label in open space.
 
 Both endpoints use data coordinates, so the arrow follows the data when the

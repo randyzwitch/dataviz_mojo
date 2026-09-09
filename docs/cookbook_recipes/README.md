@@ -5,7 +5,9 @@ public API docstrings. Add recipes directly to this directory.
 
 ## How it works
 
-Add one self-contained `.mojo` file. `pixi run docs` discovers it automatically.
+Add one self-contained `.mojo` file, then place its filename in exactly one
+task category in `_cookbook_categories()` in `scripts/gen_example_docs.mojo`.
+The documentation build rejects missing, duplicate, and unknown entries.
 
 Your file must look like this:
 
@@ -16,7 +18,7 @@ after the first sentence (further paragraphs, more detail) is fine to
 include for your own documentation but won't appear on the page --
 keep the important part first.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0]
@@ -60,7 +62,9 @@ Rules the build enforces:
 ## What you get
 
 `scripts/gen_example_docs.mojo` builds the title, introductory sentence,
-usage block, and rendered image into `docs/src/cookbook/<name>.md`.
+usage block, rendered image, neighboring recipe links, and relevant API links
+into `docs/src/cookbook/<name>.md`. The introductory sentence appears after a
+**Use this when:** label, so write it as a direct description of the task.
 
 See `bold_points.mojo` in this same directory for a complete, real
 example -- copy it as a starting template.

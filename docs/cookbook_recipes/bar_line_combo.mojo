@@ -1,3 +1,4 @@
+# title: Bar-and-Line Combo
 """Overlay a target/average line directly on a bar chart with
 `render_layers()` -- the classic bar-plus-line combo chart, sharing
 one categorical x-axis with the bars.
