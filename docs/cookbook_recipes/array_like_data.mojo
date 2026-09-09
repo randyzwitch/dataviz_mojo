@@ -1,3 +1,4 @@
+# title: Custom Numeric Container
 """Plot data from your own custom container instead of copying it into
 a `List[Float64]` first -- conform a struct to `Float64Sequence`
 (`__len__` plus `Int`-indexed `Float64` access) and pass it straight to

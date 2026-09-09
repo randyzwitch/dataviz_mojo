@@ -1,3 +1,4 @@
+# title: Custom Categorical Container
 """Plot bar categories from your own custom container -- conform a
 struct to `StringSequence` and pass it straight to `Plot.
 encode_categorical()`'s `x`, the same way a `Float64Sequence` struct

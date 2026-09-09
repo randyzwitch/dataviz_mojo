@@ -1,3 +1,4 @@
+# title: Confidence Band
 """Shade a confidence/uncertainty band around a trend line with
 `Plot.annotate_band(x, y_lower, y_upper)` -- unlike `annotate_area()`'s
 fixed `(y0, y1)` pair, the band's edges are two curves that vary with
