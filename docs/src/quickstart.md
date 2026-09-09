@@ -190,6 +190,8 @@ For decision guidance across the full chart catalog, see
 
 - **[Data shapes](../data-shapes/)** -- how to arrange columns, nested lists,
   grids, networks, hierarchies, NumPy, pandas, and custom containers.
+- **[Guides](../guides/)** -- scales, themes, encodings, composition,
+  accessibility, output, and performance.
 - **[Examples](../examples/)** -- every chart type this package can
   produce, source code next to its actual rendered output.
 - **[API reference](../dataviz/)** -- the full surface `Plot`

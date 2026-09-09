@@ -210,4 +210,7 @@ def main() raises:
 
 That's the same pattern behind every mark type this package supports, plus color/size encoding, facets, multi-series layering, and the raster backend.
 
+Use the [conceptual guides](guides/) when you need to coordinate scales,
+themes, encodings, composition, accessibility, or output across chart types.
+
 <p class="dvm-next"><a href="quickstart/" class="not-prose">Quickstart &rarr;</a></p>
