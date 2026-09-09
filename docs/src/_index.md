@@ -19,6 +19,7 @@ layout: hextra-home
 
 <div class="hx:mb-12 hx:flex hx:flex-wrap hx:gap-4">
 {{< hextra/hero-button text="Quickstart" link="quickstart/" >}}
+{{< hextra/hero-button text="Choose a chart" link="chart-selection/" style="background-color: transparent; color: inherit; border: 1px solid currentColor;" >}}
 {{< hextra/hero-button text="Browse examples" link="examples/" style="background-color: transparent; color: inherit; border: 1px solid currentColor;" >}}
 </div>
 
@@ -210,4 +211,3 @@ def main() raises:
 That's the same pattern behind every mark type this package supports, plus color/size encoding, facets, multi-series layering, and the raster backend.
 
 <p class="dvm-next"><a href="quickstart/" class="not-prose">Quickstart &rarr;</a></p>
-
