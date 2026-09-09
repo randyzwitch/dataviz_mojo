@@ -164,13 +164,13 @@ def radialbar(
     Example:
         ```mojo
         from dataviz import radialbar
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var teams: List[String] = ["Platform", "Growth", "Data", "Design"]
             var completion: List[Int] = [92, 78, 45, 60]
 
-            var c = radialbar(teams, completion)
+            var c = radialbar(teams, completion, title="Team Completion")
             save(c, "docs/src/examples/out_radialbar.svg")
         ```
     """

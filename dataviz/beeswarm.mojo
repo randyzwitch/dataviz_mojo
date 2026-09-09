@@ -272,7 +272,7 @@ def beeswarm(
     Example:
         ```mojo
         from dataviz import beeswarm
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var classes: List[String] = ["Section A", "Section B", "Section C"]
@@ -282,7 +282,13 @@ def beeswarm(
                 [80, 82, 83, 84, 81, 79, 85],
             ]
 
-            var c = beeswarm(classes, scores)
+            var c = beeswarm(
+                classes,
+                scores,
+                title="Exam Score Distributions",
+                x_title="Class",
+                y_title="Score",
+            )
             save(c, "docs/src/examples/out_beeswarm.svg")
         ```
     """

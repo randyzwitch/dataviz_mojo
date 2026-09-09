@@ -154,14 +154,19 @@ def arc_diagram(
     Example:
         ```mojo
         from dataviz import arc_diagram
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var from_characters: List[String] = ["Alice", "Bob", "Alice", "Carol", "Dave"]
             var to_characters: List[String] = ["Bob", "Carol", "Carol", "Dave", "Eve"]
             var scenes_together: List[Float64] = [8.0, 5.0, 3.0, 6.0, 4.0]
 
-            var c = arc_diagram(from_characters, to_characters, scenes_together)
+            var c = arc_diagram(
+                from_characters,
+                to_characters,
+                scenes_together,
+                title="Scenes Shared by Character",
+            )
             save(c, "docs/src/examples/out_arc_diagram.svg")
         ```
     """

@@ -274,8 +274,8 @@ def lollipop(
     Example:
         ```mojo
         from dataviz import lollipop
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
         from dataviz.colors import TEAL
 
         def main() raises:
@@ -285,7 +285,14 @@ def lollipop(
             ]
             var gdp: List[Float64] = [27.4, 17.8, 4.2, 4.1, 3.7, 3.3, 3.0, 2.2, 2.1, 2.1]
 
-            var c = lollipop(countries, gdp, theme=Theme(mark_color=TEAL))
+            var c = lollipop(
+                countries,
+                gdp,
+                title="GDP per Capita",
+                x_title="Country",
+                y_title="GDP per capita ($k)",
+                theme=Theme(mark_color=TEAL),
+            )
             save(c, "docs/src/examples/out_lollipop.svg")
         ```
     """

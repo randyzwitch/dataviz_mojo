@@ -338,7 +338,7 @@ def streamgraph(
     Example:
         ```mojo
         from dataviz import streamgraph
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var years: List[String] = ["2020", "2021", "2022", "2023", "2024"]
@@ -349,7 +349,9 @@ def streamgraph(
                 [10, 15, 12, 18, 25],
             ]
 
-            var c = streamgraph(years, genres, listens)
+            var c = streamgraph(
+                years, genres, listens, title="Music Listening by Genre"
+            )
             save(c, "docs/src/examples/out_streamgraph.svg")
         ```
     """
@@ -476,7 +478,7 @@ def stacked_area(
     Example:
         ```mojo
         from dataviz import stacked_area
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var years: List[String] = ["2020", "2021", "2022", "2023", "2024"]

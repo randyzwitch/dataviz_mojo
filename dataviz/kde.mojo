@@ -433,7 +433,7 @@ def kdeplot(
     Example:
         ```mojo
         from dataviz import kdeplot
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var samples: List[Float64] = [
@@ -495,7 +495,7 @@ def rugplot(
     Example:
         ```mojo
         from dataviz import rugplot
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var samples: List[Float64] = [

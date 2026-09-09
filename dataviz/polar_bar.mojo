@@ -144,7 +144,7 @@ def polarbar(
     Example:
         ```mojo
         from dataviz import polarbar
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var months: List[String] = [
@@ -152,7 +152,7 @@ def polarbar(
             ]
             var rainfall: List[Float64] = [2.6, 5.9, 9.0, 26.4, 28.7, 70.7, 175.6, 182.2, 48.7, 18.8, 6.0, 2.3]
 
-            var c = polarbar(months, rainfall)
+            var c = polarbar(months, rainfall, title="Monthly Rainfall")
             save(c, "docs/src/examples/out_polarbar.svg")
         ```
     """

@@ -1,10 +1,13 @@
-"""The package's public API.
+"""The package's concise public API: chart constructors, the `Plot`/`Theme`
+core, rendering operations, and commonly used plotting enums.
 
-Chart functions and core types are re-exported here. CSS color constants
-are imported together from `colors.mojo`.
+Specialist vocabulary stays in its named public module: colors in
+`dataviz.colors`, colormaps in `dataviz.colormaps`, histogram utilities in
+`dataviz.histogram`, scales in `dataviz.scale`/`dataviz.color_scale`, theme
+presets in `dataviz.themes`, markers in `dataviz.marker`, and custom-container
+traits in `dataviz.array_like`.
 """
 
-from dataviz.array_like import Float64Sequence, StringSequence
 from dataviz.theme import Theme
 from dataviz.mark import Mark
 from dataviz.output_format import OutputFormat
@@ -12,14 +15,6 @@ from dataviz.legend_position import LegendPosition
 from dataviz.line_style import LineStyle
 from dataviz.step_style import StepStyle
 from dataviz.x_label_rotation import XAxisLabelRotation
-from dataviz.scale import LinearScale, MinMax, Ticks, TickFormat
-from dataviz.color_scale import ColorScale, default_categorical_palette
-from dataviz.color_ramp import ColorRamp
-from dataviz.colormaps import cividis, inferno, magma, plasma, viridis
-from dataviz.themes import dark, high_contrast, minimal, print_safe
-from dataviz.marker import PointShape, default_marker_shapes
-from dataviz.colors import *
-from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
     area,
@@ -69,16 +64,7 @@ from dataviz.marimekko import marimekko
 from dataviz.sunburst import sunburst
 from dataviz.tree import tree
 from dataviz.treemap import treemap
-from dataviz.histogram import (
-    BinRule,
-    HistStat,
-    HistogramBins,
-    bin_edges,
-    histogram,
-    histogram_bins,
-    shared_bin_edges,
-    uniform_bin_edges,
-)
+from dataviz.histogram import histogram
 from dataviz.lollipop import lollipop
 from dataviz.nightingale import nightingale
 from dataviz.polar import polar, polar_series

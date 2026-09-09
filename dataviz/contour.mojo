@@ -843,7 +843,7 @@ def contour(
         from std.math import cos, sin
 
         from dataviz import contour
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var z = List[List[Float64]]()
@@ -952,7 +952,7 @@ def contourf(
         from std.math import cos, sin
 
         from dataviz import contourf
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var z = List[List[Float64]]()

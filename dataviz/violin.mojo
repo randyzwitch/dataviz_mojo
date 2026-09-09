@@ -299,7 +299,7 @@ def violin(
     Example:
         ```mojo
         from dataviz import violin
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var classes: List[String] = ["Section A", "Section B", "Section C"]
@@ -309,7 +309,13 @@ def violin(
                 [80, 82, 83, 84, 81, 79, 85],
             ]
 
-            var c = violin(classes, scores)
+            var c = violin(
+                classes,
+                scores,
+                title="Exam Score Distributions",
+                x_title="Class",
+                y_title="Score",
+            )
             save(c, "docs/src/examples/out_violin.svg")
         ```
     """

@@ -145,13 +145,15 @@ def nightingale(
     Example:
         ```mojo
         from dataviz import nightingale
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var causes: List[String] = ["Zymotic disease", "Wounds", "Other"]
             var deaths: List[Int] = [1857, 202, 97]
 
-            var c = nightingale(causes, deaths, area=True)
+            var c = nightingale(
+                causes, deaths, area=True, title="Causes of Mortality"
+            )
             save(c, "docs/src/examples/out_nightingale.svg")
         ```
     """

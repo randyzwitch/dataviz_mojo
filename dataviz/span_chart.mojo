@@ -138,7 +138,7 @@ def span_chart(
     Example:
         ```mojo
         from dataviz import span_chart
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var months: List[String] = [
@@ -147,7 +147,14 @@ def span_chart(
             var temp_low: List[Int] = [-3, -2, 3, 10, 15, 19, 21, 20, 15, 8, 2, -1]
             var temp_high: List[Int] = [5, 7, 12, 20, 25, 29, 31, 30, 26, 18, 10, 5]
 
-            var c = span_chart(months, temp_low, temp_high)
+            var c = span_chart(
+                months,
+                temp_low,
+                temp_high,
+                title="Monthly Temperature Range",
+                x_title="Month",
+                y_title="Temperature (°F)",
+            )
             save(c, "docs/src/examples/out_span_chart.svg")
         ```
     """

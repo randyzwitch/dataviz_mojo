@@ -25,23 +25,16 @@ from _test_helpers import (
 from canvas.color import Color
 from canvas.path import Path, PathOp
 from dataviz import (
-    BinRule,
-    CORNFLOWERBLUE,
-    HistStat,
-    HistogramBins,
     StepStyle,
     area,
     bar,
     barbs,
-    bin_edges,
     box,
     bullet,
     candlestick,
     contour,
     contourf,
     histogram,
-    histogram_bins,
-    shared_bin_edges,
     tricontour,
     tricontourf,
     triplot,
@@ -49,7 +42,6 @@ from dataviz import (
     line,
     lollipop,
     scatter,
-    uniform_bin_edges,
     waterfall,
 )
 from dataviz.barbs import _barb_counts, _barb_glyph
@@ -65,7 +57,16 @@ from dataviz.contour import (
 )
 from dataviz.color_ramp import ColorRamp
 from dataviz.color_scale import ColorScale, default_categorical_palette
-from dataviz.colors import BLACK, WHITE
+from dataviz.colors import BLACK, CORNFLOWERBLUE, WHITE
+from dataviz.histogram import (
+    BinRule,
+    HistStat,
+    HistogramBins,
+    bin_edges,
+    histogram_bins,
+    shared_bin_edges,
+    uniform_bin_edges,
+)
 from dataviz.scale import LinearScale
 from dataviz.plot import (
     Plot,

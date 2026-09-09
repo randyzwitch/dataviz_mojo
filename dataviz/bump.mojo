@@ -340,8 +340,8 @@ def bump(
     Example:
         ```mojo
         from dataviz import bump
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
 
         def main() raises:
             var years: List[String] = ["2021", "2022", "2023", "2024"]
@@ -352,7 +352,13 @@ def bump(
                 [40, 55, 70, 85],
             ]
 
-            var c = bump(years, languages, scores)
+            var c = bump(
+                years,
+                languages,
+                scores,
+                title="Programming Language Rankings",
+                x_title="Year",
+            )
             save(c, "docs/src/examples/out_bump.svg")
         ```
     """

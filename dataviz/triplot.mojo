@@ -516,7 +516,7 @@ def triplot(
         from std.math import cos, sin
 
         from dataviz import triplot
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             # Samples on a polar lattice: one per ring, each ring turned
@@ -602,9 +602,10 @@ def tripcolor(
         ```mojo
         from std.math import cos, sin
 
-        from dataviz import tripcolor, viridis
-        from dataviz.theme import Theme
-        from dataviz.plot import save
+        from dataviz import tripcolor
+        from dataviz.colormaps import viridis
+        from dataviz import Theme
+        from dataviz import save
 
         def main() raises:
             var x = List[Float64]()

@@ -737,13 +737,19 @@ def scatter(
     Example:
         ```mojo
         from dataviz import scatter
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
             var y: List[Float64] = [2.3, 4.1, 3.6, 5.8, 5.1, 7.4, 6.9, 8.2, 9.0, 8.6]
 
-            var c = scatter(x, y)
+            var c = scatter(
+                x,
+                y,
+                title="Weekly Revenue",
+                x_title="Week",
+                y_title="Revenue ($k)",
+            )
             save(c, "docs/src/examples/out_scatter.svg")
         ```
     """
@@ -822,9 +828,9 @@ def line(
         from std.math import sin
 
         from dataviz import line
-        from dataviz.plot import save
+        from dataviz import save
         from dataviz.colors import BROWN
-        from dataviz.theme import Theme
+        from dataviz import Theme
 
         def main() raises:
             var x = List[Float64]()
@@ -837,6 +843,9 @@ def line(
             var c = line(
                 x,
                 y,
+                title="Seasonal Trend",
+                x_title="Time",
+                y_title="Value",
                 theme=Theme(
                     mark_color=BROWN,
                     line_width=3.0,
@@ -849,8 +858,8 @@ def line(
     Example (Slope Chart):
         ```mojo
         from dataviz import line
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
         from dataviz.colors import SEAGREEN
 
         def main() raises:
@@ -861,6 +870,9 @@ def line(
             var c = line(
                 x,
                 revenue,
+                title="Revenue, 2023 to 2024",
+                x_title="Year",
+                y_title="Revenue ($M)",
                 theme=Theme(
                     mark_color=SEAGREEN,
                     line_width=3.0,
@@ -875,9 +887,9 @@ def line(
     Example (Step Chart):
         ```mojo
         from dataviz import StepStyle, line
-        from dataviz.plot import save
+        from dataviz import save
         from dataviz.colors import CRIMSON
-        from dataviz.theme import Theme
+        from dataviz import Theme
 
         def main() raises:
             # A central bank's policy rate holds flat between meetings and
@@ -896,6 +908,7 @@ def line(
                 month,
                 rate,
                 step=StepStyle.POST,
+                title="Policy Rate Changes",
                 theme=Theme(mark_color=CRIMSON, line_width=3.0),
                 x_title="Months since first hike",
                 y_title="Policy rate (%)",
@@ -980,9 +993,9 @@ def area(
         from std.math import sin
 
         from dataviz import area
-        from dataviz.plot import save
+        from dataviz import save
         from dataviz.colors import STEELBLUE
-        from dataviz.theme import Theme
+        from dataviz import Theme
 
         def main() raises:
             var x = List[Float64]()
@@ -992,16 +1005,23 @@ def area(
                 x.append(t)
                 y.append(sin(t) * 4.0 + 6.0)
 
-            var c = area(x, y, theme=Theme(mark_color=STEELBLUE))
+            var c = area(
+                x,
+                y,
+                title="Seasonal Demand",
+                x_title="Time",
+                y_title="Demand",
+                theme=Theme(mark_color=STEELBLUE),
+            )
             save(c, "docs/src/examples/out_area.svg")
         ```
 
     Example (Stepped Area Chart):
         ```mojo
         from dataviz import StepStyle, area
-        from dataviz.plot import save
+        from dataviz import save
         from dataviz.colors import SEAGREEN
-        from dataviz.theme import Theme
+        from dataviz import Theme
 
         def main() raises:
             # Units in the warehouse change only when a delivery arrives
@@ -1021,6 +1041,7 @@ def area(
                 day,
                 units,
                 step=StepStyle.POST,
+                title="Warehouse Inventory",
                 theme=Theme(mark_color=SEAGREEN),
                 x_title="Day of month",
                 y_title="Units on hand",

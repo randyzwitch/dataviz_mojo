@@ -115,9 +115,8 @@ Visual styling lives on `Theme`, applied with `.theme()`. See the
 <div class="dvm-chart-preview"><img src="../examples/quickstart/out_step4.svg" alt="The same scatter plot, now colored seagreen with larger points" /></div>
 
 ```mojo
-from dataviz import Plot, save
+from dataviz import Plot, Theme, save
 from dataviz.colors import SEAGREEN
-from dataviz.theme import Theme
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
@@ -144,9 +143,8 @@ from steps 2-4 is available as a keyword argument:
 <div class="dvm-chart-preview"><img src="../examples/quickstart/out_step5_quickplot.svg" alt="The exact same seagreen scatter plot as step 4, produced in one scatter() call instead" /></div>
 
 ```mojo
-from dataviz import scatter, save
+from dataviz import Theme, scatter, save
 from dataviz.colors import SEAGREEN
-from dataviz.theme import Theme
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]

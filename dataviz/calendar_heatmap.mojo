@@ -391,7 +391,7 @@ def calendar_heatmap(
     Example:
         ```mojo
         from dataviz import calendar_heatmap
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var dates = List[String]()
@@ -404,7 +404,13 @@ def calendar_heatmap(
                     dates.append(String(2024) + "-" + month_str + "-" + day_str)
                     values.append((day * 7 + month) % 10)
 
-            var c = calendar_heatmap(dates, values, width=900, height=250)
+            var c = calendar_heatmap(
+                dates,
+                values,
+                title="Daily Activity in 2024",
+                width=900,
+                height=250,
+            )
             save(c, "docs/src/examples/out_calendar_heatmap.svg")
         ```
     """

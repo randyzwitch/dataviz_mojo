@@ -223,8 +223,8 @@ def candlestick(
     Example:
         ```mojo
         from dataviz import candlestick
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
 
         def main() raises:
             var days: List[String] = [
@@ -235,7 +235,16 @@ def candlestick(
             var low: List[Int] = [98, 99, 95, 96, 105, 102, 101, 104]
             var close: List[Int] = [104, 101, 97, 107, 110, 103, 108, 105]
 
-            var c = candlestick(days, open, high, low, close)
+            var c = candlestick(
+                days,
+                open,
+                high,
+                low,
+                close,
+                title="Daily Price Movement",
+                x_title="Day",
+                y_title="Price ($)",
+            )
             save(c, "docs/src/examples/out_candlestick.svg")
         ```
     """
