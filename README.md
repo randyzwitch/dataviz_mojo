@@ -44,6 +44,9 @@ pixi run format-check   # fail if source isn't formatter-clean (what CI runs)
 GitHub Actions builds documentation for pull requests and deploys it from
 `main`. Use `pixi run docs` for a local preview.
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the public-docstring template and
+the checks run before a chart example is generated.
+
 ### Releasing
 
 `pixi.toml` carries the version in two places, `[workspace].version`
