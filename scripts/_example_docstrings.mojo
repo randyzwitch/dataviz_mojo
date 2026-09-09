@@ -304,6 +304,68 @@ def _extract_args_lines(
     return result^
 
 
+def _docstring_section_has_content(
+    fn_name: String, file: String, is_method: Bool, section: String
+) raises -> Bool:
+    """Whether a callable has a non-empty top-level docstring section."""
+    var lines = _lines_of(file)
+    var want_indent = 4 if is_method else 0
+    var def_idx = _def_index(lines, fn_name, want_indent)
+    var doc_indent_str = " " * (want_indent + 4)
+    var body_indent_str = doc_indent_str + "    "
+    var found = False
+    for i in range(def_idx + 1, len(lines)):
+        if lines[i] == doc_indent_str + '"""':
+            break
+        if lines[i] == doc_indent_str + section + ":":
+            found = True
+            continue
+        if not found or not lines[i].strip():
+            continue
+        if lines[i].startswith(body_indent_str):
+            return True
+        return False
+    return False
+
+
+def _signature_arg_names(
+    fn_name: String, file: String, is_method: Bool
+) raises -> List[String]:
+    """Parameter names from the registered callable's multiline signature."""
+    var lines = _lines_of(file)
+    var want_indent = 4 if is_method else 0
+    var def_idx = _def_index(lines, fn_name, want_indent)
+    var result = List[String]()
+    for i in range(def_idx + 1, len(lines)):
+        var line = String(lines[i].strip())
+        if line.startswith(")"):
+            break
+        var colon = line.find(":")
+        if colon == -1:
+            continue
+        var declaration = String(line[byte=0:colon])
+        var words = declaration.split(" ")
+        var name = String(words[len(words) - 1])
+        if name != "self":
+            result.append(name)
+    return result^
+
+
+def _documented_arg_names(
+    fn_name: String, file: String, is_method: Bool
+) raises -> List[String]:
+    """Parameter names listed in the callable's `Args:` section."""
+    var lines = _extract_args_lines(fn_name, file, is_method)
+    var result = List[String]()
+    for line in lines:
+        if not line.startswith("- `"):
+            continue
+        var end = line.find("`:")
+        if end != -1:
+            result.append(String(line[byte=3:end]))
+    return result^
+
+
 struct _ExampleBlock(Copyable, Movable):
     var heading: String  # "" for the default (first/unnamed) block
     var lines: List[String]  # the complete program's own real source lines
@@ -437,6 +499,42 @@ def _validate_page(page: ExamplePage) raises:
         raise Error(
             "example docs: " + page.name + " has no documented Args section"
         )
+
+    if not _docstring_section_has_content(
+        page.fn_name, page.file, page.is_method, "Returns"
+    ):
+        raise Error(
+            "example docs: " + page.name + " has no non-empty Returns section"
+        )
+
+    var signature_args = _signature_arg_names(
+        page.fn_name, page.file, page.is_method
+    )
+    var documented_args = _documented_arg_names(
+        page.fn_name, page.file, page.is_method
+    )
+    if len(signature_args) != len(documented_args):
+        raise Error(
+            "example docs: "
+            + page.name
+            + " documents "
+            + String(len(documented_args))
+            + " parameters but its signature has "
+            + String(len(signature_args))
+        )
+    for i in range(len(signature_args)):
+        if signature_args[i] != documented_args[i]:
+            raise Error(
+                "example docs: "
+                + page.name
+                + " parameter "
+                + String(i + 1)
+                + " is '"
+                + signature_args[i]
+                + "' in the signature but '"
+                + documented_args[i]
+                + "' in Args"
+            )
 
     var blocks = _extract_example_blocks(
         page.fn_name, page.file, page.is_method
