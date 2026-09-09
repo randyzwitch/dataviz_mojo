@@ -1,6 +1,5 @@
-from dataviz import scatter, save
+from dataviz import Theme, scatter, save
 from dataviz.colors import SEAGREEN
-from dataviz.theme import Theme
 
 
 def main() raises:

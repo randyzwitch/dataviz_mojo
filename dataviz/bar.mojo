@@ -333,29 +333,43 @@ def bar(
     Example:
         ```mojo
         from dataviz import bar
-        from dataviz.plot import save
+        from dataviz import save
         from dataviz.colors import SEAGREEN
-        from dataviz.theme import Theme
+        from dataviz import Theme
 
         def main() raises:
             var categories: List[String] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
             var values: List[Int] = [12, 19, 8, 15, 22, -4, 6]
 
-            var c = bar(categories, values, theme=Theme(mark_color=SEAGREEN))
+            var c = bar(
+                categories,
+                values,
+                title="Daily Net Revenue",
+                x_title="Day",
+                y_title="Revenue ($k)",
+                theme=Theme(mark_color=SEAGREEN),
+            )
             save(c, "docs/src/examples/out_bar.svg")
         ```
 
     Example (Diverging bars (color_by_sign)):
         ```mojo
         from dataviz import bar
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
 
         def main() raises:
             var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"]
             var net_change: List[Float64] = [15.0, -8.0, 22.0, -3.0, 10.0, -12.0]
 
-            var c_diverging = bar(quarters, net_change, theme=Theme(color_by_sign=True))
+            var c_diverging = bar(
+                quarters,
+                net_change,
+                title="Quarterly Net Change",
+                x_title="Quarter",
+                y_title="Net change",
+                theme=Theme(color_by_sign=True),
+            )
             save(c_diverging, "docs/src/examples/out_bar_diverging.svg")
         ```
     """

@@ -397,7 +397,7 @@ def barbs(
     Example:
         ```mojo
         from dataviz import barbs
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var x = List[Float64]()

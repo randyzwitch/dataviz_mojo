@@ -551,8 +551,8 @@ def imshow(
 
         from dataviz import imshow
         from dataviz.colormaps import viridis
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
 
         def main() raises:
             var z = List[List[Float64]]()
@@ -677,8 +677,8 @@ def pcolormesh(
 
         from dataviz import pcolormesh
         from dataviz.colormaps import magma
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
 
         def main() raises:
             # Columns widen to the right, rows are evenly spaced: the

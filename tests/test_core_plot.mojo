@@ -50,13 +50,11 @@ from canvas.path import PathOp
 from dataviz import (
     sankey,
     LegendPosition,
-    PointShape,
     grouped_bar,
     bar,
     beeswarm,
     box,
     bullet,
-    default_marker_shapes,
     line,
     pie,
     candlestick,
@@ -91,6 +89,7 @@ from dataviz.plot import (
     _svg_output_string,
 )
 from dataviz.line_style import LineStyle
+from dataviz.marker import PointShape, default_marker_shapes
 from dataviz.theme import Theme
 from dataviz.x_label_rotation import XAxisLabelRotation
 from std.math import pi

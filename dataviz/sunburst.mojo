@@ -296,14 +296,16 @@ def sunburst(
     Example:
         ```mojo
         from dataviz import sunburst
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var ids: List[String] = ["root", "src", "docs", "main.py", "utils.py", "guide.md", "api.md"]
             var parent_ids: List[String] = ["", "root", "root", "src", "src", "docs", "docs"]
             var sizes: List[Int] = [0, 0, 0, 45, 20, 12, 8]
 
-            var c = sunburst(ids, parent_ids, sizes)
+            var c = sunburst(
+                ids, parent_ids, sizes, title="Project File Sizes"
+            )
             save(c, "docs/src/examples/out_sunburst.svg")
         ```
     """

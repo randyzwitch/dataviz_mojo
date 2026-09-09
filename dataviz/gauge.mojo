@@ -236,12 +236,12 @@ def gauge(
     Example:
         ```mojo
         from dataviz import gauge
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var cpu_usage = 67.0
 
-            var c = gauge(cpu_usage)
+            var c = gauge(cpu_usage, title="CPU Usage")
             save(c, "docs/src/examples/out_gauge.svg")
         ```
     """

@@ -286,7 +286,7 @@ def tree(
     Example:
         ```mojo
         from dataviz import tree
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var ids: List[String] = [
@@ -295,7 +295,7 @@ def tree(
             var parent_ids: List[String] = ["", "CEO", "CEO", "Engineering", "Engineering", "Sales", "Sales"]
             var values: List[Int] = [0, 0, 0, 1, 1, 1, 1]
 
-            var c = tree(ids, parent_ids, values)
+            var c = tree(ids, parent_ids, values, title="Project Files")
             save(c, "docs/src/examples/out_tree.svg")
         ```
     """

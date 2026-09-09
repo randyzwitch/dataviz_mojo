@@ -302,15 +302,22 @@ def waterfall(
     Example:
         ```mojo
         from dataviz import waterfall
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
 
         def main() raises:
             var stages: List[String] = ["Starting", "Revenue", "COGS", "Opex", "Tax", "One-off", "Ending"]
             var deltas: List[Int] = [50, 32, -18, -12, -6, 4, 0]
             var is_total: List[Bool] = [True, False, False, False, False, False, True]
 
-            var c = waterfall(stages, deltas, is_total=is_total)
+            var c = waterfall(
+                stages,
+                deltas,
+                is_total=is_total,
+                title="Revenue Bridge",
+                x_title="Stage",
+                y_title="Revenue ($k)",
+            )
             save(c, "docs/src/examples/out_waterfall.svg")
         ```
     """

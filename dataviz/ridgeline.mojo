@@ -184,7 +184,7 @@ def ridgeline(
     Example:
         ```mojo
         from dataviz import ridgeline
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var months: List[String] = ["June", "July", "August", "September"]
@@ -195,7 +195,13 @@ def ridgeline(
                 [70, 72, 74, 76, 71, 73, 75, 69],
             ]
 
-            var c = ridgeline(months, temps)
+            var c = ridgeline(
+                months,
+                temps,
+                title="Monthly Temperature Distributions",
+                x_title="Temperature (°F)",
+                y_title="Month",
+            )
             save(c, "docs/src/examples/out_ridgeline.svg")
         ```
     """

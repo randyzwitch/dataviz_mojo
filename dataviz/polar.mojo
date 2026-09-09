@@ -325,7 +325,7 @@ def polar(
         from std.math import pi, sin
 
         from dataviz import polar
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var angle = List[Float64]()
@@ -345,7 +345,7 @@ def polar(
                     angle.append(theta)
                     radius.append(r)
 
-            var c = polar(angle, radius)
+            var c = polar(angle, radius, title="Four-Petal Rose Curve")
             save(c, "docs/src/examples/out_polar.svg")
         ```
     """
@@ -432,7 +432,7 @@ def polar_series(
         from std.math import pi
 
         from dataviz import polar_series
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var angle = List[Float64]()
@@ -444,7 +444,9 @@ def polar_series(
             var phoenix: List[Int] = [57, 61, 66, 75, 84, 95, 97, 95, 90, 78, 65, 56]
             var values: List[List[Int]] = [miami.copy(), phoenix.copy()]
 
-            var c = polar_series(angle, names, values)
+            var c = polar_series(
+                angle, names, values, title="Monthly Temperature by City"
+            )
             save(c, "docs/src/examples/out_polar_series.svg")
         ```
     """

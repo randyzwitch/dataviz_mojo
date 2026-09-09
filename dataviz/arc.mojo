@@ -162,21 +162,27 @@ def pie(
     Example:
         ```mojo
         from dataviz import pie
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var browsers: List[String] = ["Chrome", "Safari", "Edge", "Firefox", "Other"]
             var share: List[Int] = [65, 18, 5, 7, 5]
 
-            var c = pie(browsers, share, width=400, height=300)
+            var c = pie(
+                browsers,
+                share,
+                title="Browser Market Share",
+                width=400,
+                height=300,
+            )
             save(c, "docs/src/examples/out_pie.svg")
         ```
 
     Example (Donut (donut_inner_radius_fraction)):
         ```mojo
         from dataviz import pie
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
 
         def main() raises:
             var browsers: List[String] = ["Chrome", "Safari", "Edge", "Firefox", "Other"]
@@ -185,6 +191,7 @@ def pie(
             var c_donut = pie(
                 browsers,
                 share,
+                title="Browser Market Share",
                 inner_radius_fraction=0.55,
                 width=400,
                 height=300,

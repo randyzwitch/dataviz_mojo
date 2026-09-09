@@ -232,7 +232,7 @@ def marimekko(
     Example:
         ```mojo
         from dataviz import marimekko
-        from dataviz.plot import save
+        from dataviz import save
 
         def main() raises:
             var regions: List[String] = ["Northeast", "Midwest", "South", "West"]
@@ -243,7 +243,9 @@ def marimekko(
                 [10, 15, 10, 27],
             ]
 
-            var c = marimekko(regions, sources, generation)
+            var c = marimekko(
+                regions, sources, generation, title="Energy Mix by Region"
+            )
             save(c, "docs/src/examples/out_marimekko.svg")
         ```
     """

@@ -48,14 +48,20 @@ def effect_scatter(
     Example:
         ```mojo
         from dataviz import effect_scatter
-        from dataviz.plot import save
-        from dataviz.theme import Theme
+        from dataviz import save
+        from dataviz import Theme
 
         def main() raises:
             var longitude: List[Int] = [10, 25, 40, 60, 80]
             var latitude: List[Int] = [15, 40, 20, 55, 30]
 
-            var c = effect_scatter(longitude, latitude)
+            var c = effect_scatter(
+                longitude,
+                latitude,
+                title="Site Locations",
+                x_title="Longitude",
+                y_title="Latitude",
+            )
             save(c, "docs/src/examples/out_effect_scatter.svg")
         ```
     """

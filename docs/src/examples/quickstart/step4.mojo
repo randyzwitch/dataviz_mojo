@@ -1,6 +1,5 @@
-from dataviz import Plot, save
+from dataviz import Plot, Theme, save
 from dataviz.colors import SEAGREEN
-from dataviz.theme import Theme
 
 
 def main() raises:

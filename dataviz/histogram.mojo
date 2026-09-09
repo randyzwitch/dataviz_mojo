@@ -1097,9 +1097,9 @@ def histogram(
     Example:
         ```mojo
         from dataviz import histogram
-        from dataviz.plot import save
+        from dataviz import save
         from dataviz.colors import REBECCAPURPLE
-        from dataviz.theme import Theme
+        from dataviz import Theme
 
         def main() raises:
             # Exam scores out of 100 -- a real bell-ish spread, not a uniform
@@ -1113,6 +1113,7 @@ def histogram(
             var c = histogram(
                 scores,
                 bins=8,
+                title="Exam Score Distribution",
                 theme=Theme(mark_color=REBECCAPURPLE),
                 x_title="Score",
                 y_title="Students",
@@ -1123,10 +1124,11 @@ def histogram(
     Example (Shared Bins):
         ```mojo
         from dataviz import save_facets
+        from dataviz import histogram
         from dataviz.colors import CRIMSON, STEELBLUE
-        from dataviz.histogram import HistStat, histogram, shared_bin_edges
-        from dataviz.plot import Plot
-        from dataviz.theme import Theme
+        from dataviz.histogram import HistStat, shared_bin_edges
+        from dataviz import Plot
+        from dataviz import Theme
 
         def main() raises:
             # Two production lines, same part, measured in microns off
@@ -1188,10 +1190,11 @@ def histogram(
     Example (Automatic Bins):
         ```mojo
         from dataviz import save_facets
+        from dataviz import histogram
         from dataviz.colors import DARKORANGE, STEELBLUE
-        from dataviz.histogram import BinRule, histogram
-        from dataviz.plot import Plot
-        from dataviz.theme import Theme
+        from dataviz.histogram import BinRule
+        from dataviz import Plot
+        from dataviz import Theme
 
         def main() raises:
             # Fourteen months of rainfall. A small sample is where a
