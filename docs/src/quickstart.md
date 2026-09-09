@@ -185,6 +185,9 @@ Each linked page includes runnable source beside its rendered output. The
 [full examples gallery](../examples/) covers specialized statistical,
 hierarchical, radial, financial, and network charts.
 
+For decision guidance across the full chart catalog, see
+[Choose a chart](../chart-selection/).
+
 ## Where to next
 
 - **[Examples](../examples/)** -- every chart type this package can
