@@ -334,7 +334,7 @@ def bar(
         ```mojo
         from dataviz import bar
         from dataviz import save
-        from dataviz import SEAGREEN
+        from dataviz.colors import SEAGREEN
         from dataviz import Theme
 
         def main() raises:

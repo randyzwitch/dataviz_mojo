@@ -451,7 +451,7 @@ def box(
         ```mojo
         from dataviz import box
         from dataviz import save
-        from dataviz import ROYALBLUE
+        from dataviz.colors import ROYALBLUE
         from dataviz import Theme
 
         def main() raises:

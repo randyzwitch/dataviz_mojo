@@ -829,7 +829,7 @@ def line(
 
         from dataviz import line
         from dataviz import save
-        from dataviz import BROWN
+        from dataviz.colors import BROWN
         from dataviz import Theme
 
         def main() raises:
@@ -860,7 +860,7 @@ def line(
         from dataviz import line
         from dataviz import save
         from dataviz import Theme
-        from dataviz import SEAGREEN
+        from dataviz.colors import SEAGREEN
 
         def main() raises:
             # x=0.0 ("2023"), x=1.0 ("2024") -- revenue, in millions.
@@ -888,7 +888,7 @@ def line(
         ```mojo
         from dataviz import StepStyle, line
         from dataviz import save
-        from dataviz import CRIMSON
+        from dataviz.colors import CRIMSON
         from dataviz import Theme
 
         def main() raises:
@@ -994,7 +994,7 @@ def area(
 
         from dataviz import area
         from dataviz import save
-        from dataviz import STEELBLUE
+        from dataviz.colors import STEELBLUE
         from dataviz import Theme
 
         def main() raises:
@@ -1020,7 +1020,7 @@ def area(
         ```mojo
         from dataviz import StepStyle, area
         from dataviz import save
-        from dataviz import SEAGREEN
+        from dataviz.colors import SEAGREEN
         from dataviz import Theme
 
         def main() raises:

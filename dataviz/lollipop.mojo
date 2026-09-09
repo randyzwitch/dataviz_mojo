@@ -276,7 +276,7 @@ def lollipop(
         from dataviz import lollipop
         from dataviz import save
         from dataviz import Theme
-        from dataviz import TEAL
+        from dataviz.colors import TEAL
 
         def main() raises:
             var countries: List[String] = [

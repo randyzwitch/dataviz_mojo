@@ -49,8 +49,10 @@ documentation build enforces the following contract:
 - `Args:` is non-empty and lists every signature parameter once, in order.
 - `Returns:` is non-empty.
 - At least one `Example:` contains a complete runnable Mojo program.
-- Example code imports public symbols from `dataviz`, not implementation
-  submodules.
+- Example code imports chart constructors and core plotting symbols from
+  `dataviz`. Specialist symbols come from their named public modules, such as
+  `dataviz.colors`, `dataviz.colormaps`, or `dataviz.histogram`; implementation
+  modules such as `dataviz.plot` are not example entry points.
 - Every rendered example sets a non-empty chart title; label meaningful axes.
 - Each generated example writes beneath `docs/src/examples/` so its rendered
   output can appear beside the source.

@@ -366,6 +366,22 @@ def _documented_arg_names(
     return result^
 
 
+def _is_public_example_import(line: String) -> Bool:
+    """Whether an example import uses a supported specialist submodule."""
+    return (
+        line.startswith("from dataviz.array_like import ")
+        or line.startswith("from dataviz.color_ramp import ")
+        or line.startswith("from dataviz.color_scale import ")
+        or line.startswith("from dataviz.colormaps import ")
+        or line.startswith("from dataviz.colors import ")
+        or line.startswith("from dataviz.histogram import ")
+        or line.startswith("from dataviz.marker import ")
+        or line.startswith("from dataviz.ordinal_scale import ")
+        or line.startswith("from dataviz.scale import ")
+        or line.startswith("from dataviz.themes import ")
+    )
+
+
 struct _ExampleBlock(Copyable, Movable):
     var heading: String  # "" for the default (first/unnamed) block
     var lines: List[String]  # the complete program's own real source lines
@@ -546,12 +562,13 @@ def _validate_page(page: ExamplePage) raises:
         selected += 1
         var has_title = False
         for line in block.lines:
-            if line.startswith("from dataviz."):
+            if line.startswith(
+                "from dataviz."
+            ) and not _is_public_example_import(line):
                 raise Error(
                     "example docs: "
                     + page.name
-                    + " imports a dataviz submodule instead of the public "
-                    "package surface: "
+                    + " imports a non-public dataviz submodule: "
                     + line
                 )
             var stripped = String(line.strip())

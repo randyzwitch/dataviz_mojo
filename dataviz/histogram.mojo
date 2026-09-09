@@ -1098,7 +1098,7 @@ def histogram(
         ```mojo
         from dataviz import histogram
         from dataviz import save
-        from dataviz import REBECCAPURPLE
+        from dataviz.colors import REBECCAPURPLE
         from dataviz import Theme
 
         def main() raises:
@@ -1124,8 +1124,9 @@ def histogram(
     Example (Shared Bins):
         ```mojo
         from dataviz import save_facets
-        from dataviz import CRIMSON, STEELBLUE
-        from dataviz import HistStat, histogram, shared_bin_edges
+        from dataviz import histogram
+        from dataviz.colors import CRIMSON, STEELBLUE
+        from dataviz.histogram import HistStat, shared_bin_edges
         from dataviz import Plot
         from dataviz import Theme
 
@@ -1189,8 +1190,9 @@ def histogram(
     Example (Automatic Bins):
         ```mojo
         from dataviz import save_facets
-        from dataviz import DARKORANGE, STEELBLUE
-        from dataviz import BinRule, histogram
+        from dataviz import histogram
+        from dataviz.colors import DARKORANGE, STEELBLUE
+        from dataviz.histogram import BinRule
         from dataviz import Plot
         from dataviz import Theme
 

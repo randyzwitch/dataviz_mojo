@@ -550,7 +550,7 @@ def imshow(
         from std.math import exp
 
         from dataviz import imshow
-        from dataviz import viridis
+        from dataviz.colormaps import viridis
         from dataviz import save
         from dataviz import Theme
 
@@ -676,7 +676,7 @@ def pcolormesh(
         from std.math import sin
 
         from dataviz import pcolormesh
-        from dataviz import magma
+        from dataviz.colormaps import magma
         from dataviz import save
         from dataviz import Theme
 

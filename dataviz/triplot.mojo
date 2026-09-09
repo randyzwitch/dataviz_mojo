@@ -602,7 +602,8 @@ def tripcolor(
         ```mojo
         from std.math import cos, sin
 
-        from dataviz import tripcolor, viridis
+        from dataviz import tripcolor
+        from dataviz.colormaps import viridis
         from dataviz import Theme
         from dataviz import save
 

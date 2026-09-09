@@ -13,7 +13,8 @@ Int conversion up to 2^53, whole-number labels from List[Int]).
 
 from _test_helpers import Lcg, _count_color
 from canvas.color import Color
-from dataviz import (
+from dataviz import bar
+from dataviz.colors import (
     CORNFLOWERBLUE,
     DARKGRAY,
     DARKGREY,
@@ -28,7 +29,6 @@ from dataviz import (
     LIGHTSLATEGREY,
     SLATEGRAY,
     SLATEGREY,
-    bar,
 )
 from dataviz.array_like import (
     Float64Sequence,
