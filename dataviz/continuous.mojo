@@ -305,14 +305,18 @@ struct _PointChannels(Movable):
         )
 
 
-def _lighten(color: Color, alpha: UInt8) -> Color:
-    """`color` blended toward opaque white by `alpha`, for
-    `Mark.EFFECT_SCATTER`'s halo (`Theme.halo_alpha`). Built via
-    `Color.with_alpha`/`Color.blend_over` (reduced alpha composited over
-    white, kept fully opaque) rather than real alpha on the shape, so the
-    tint is the same regardless of what's behind it.
+def _lighten(color: Color, alpha: UInt8, background: Color) -> Color:
+    """`color` at `alpha` flattened over `background`, kept fully opaque
+    -- for `Mark.EFFECT_SCATTER`'s halo (`Theme.halo_alpha`) and
+    `Mark.SUNBURST`'s depth fade. A flattened tint rather than real alpha
+    on the shape, so overlapping shapes do not compound and the tint is
+    the same whatever else has been drawn beneath.
+
+    `background` must be the theme's, not a literal: flattening against
+    white made a `dark()` halo the brightest thing on the chart, a tint
+    computed for a ground the chart did not have (#427).
     """
-    return color.with_alpha(alpha).blend_over(Color(255, 255, 255))
+    return color.with_alpha(alpha).blend_over(background)
 
 
 def _draw_point_layer[
@@ -472,7 +476,7 @@ def _draw_point_layer[
                 px,
                 py,
                 radius * 2.2,
-                _lighten(color, theme.halo_alpha),
+                _lighten(color, theme.halo_alpha, theme.background),
             )
         if ch.has_shapes:
             # Same lookup as `color`'s categorical branch; ch.shapes is sized to
