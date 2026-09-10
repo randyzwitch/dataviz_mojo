@@ -817,6 +817,17 @@ def _draw_continuous_axis_frame[
     var x_ticks = out_x_scale.ticks()
     var x_labels = x_ticks.labels(theme.x_tick_format)
 
+    # Gridlines, the axis lines and every tick are recorded and drawn in
+    # one parallel pass (canvas `begin_batch`/`end_batch`). Output is
+    # byte-identical and in submission order, and both calls are no-ops
+    # on the vector backends.
+    #
+    # The pair must close before anything *reads* the canvas, which is
+    # not ordered against a pending batch -- `render()` ends in a
+    # `downsample`. Everything between here and `end_batch` is an AA
+    # draw or an append to `text_requests`; the text itself is replayed
+    # later, and there is no early return between the two calls.
+    target.begin_batch()
     if theme.show_gridlines:
         # Minor gridlines first, so a major one always wins where the
         # two land on the same pixel row -- the labeled value is the one
@@ -964,6 +975,8 @@ def _draw_continuous_axis_frame[
                     theme.font_family,
                 )
             )
+
+    target.end_batch()
 
     return _ContinuousFrame(
         out_x_scale,
@@ -1136,6 +1149,10 @@ def _draw_categorical_axis_frame[
     out_y_scale.range_min = Float64(plot_y1)
     out_y_scale.range_max = Float64(plot_y0)
 
+    # Same batch as the continuous frame above, for the same reasons:
+    # one parallel pass, byte-identical order, closed before the return
+    # so nothing reads the canvas with a batch pending.
+    target.begin_batch()
     if theme.show_gridlines:
         for i in range(len(y_ticks.values)):
             var py = _axis_pixel(out_y_scale, y_ticks.values[i])
@@ -1221,6 +1238,8 @@ def _draw_categorical_axis_frame[
                     theme.font_family,
                 )
             )
+
+    target.end_batch()
 
     return _CategoricalFrame(
         x_scale^,
