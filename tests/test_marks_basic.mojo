@@ -2563,10 +2563,15 @@ def test_histogram_with_a_bin_rule_draws_the_count_the_rule_picked() raises:
     ).to_string()
     assert_equal(auto_svg, six_svg, "AUTO draws numpy's six bins")
     assert_equal(scott_svg, five_svg, "SCOTT draws numpy's five bins")
-    assert_true(
-        auto_svg != default_svg,
-        "a rule is not the untouched bins=10 default",
+    assert_equal(
+        auto_svg,
+        default_svg,
+        "histogram(data) with no bins is BinRule.AUTO (#457)",
     )
+    var ten_svg = render_svg(
+        histogram(scores, bins=10, width=400, height=300)
+    ).to_string()
+    assert_true(ten_svg != default_svg, "and 10 is no longer the default")
     assert_true(auto_svg != scott_svg, "and the rules are not each other")
 
 
