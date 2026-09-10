@@ -52,15 +52,24 @@ def effect_scatter(
         from dataviz import Theme
 
         def main() raises:
-            var longitude: List[Int] = [10, 25, 40, 60, 80]
-            var latitude: List[Int] = [15, 40, 20, 55, 30]
+            # Illustrative CI jobs selected after crossing both duration and
+            # memory review thresholds; halos emphasize the flagged runs.
+            var duration_minutes: List[Float64] = [
+                18, 22, 27, 31, 35, 39, 44, 48, 53, 57, 63, 71,
+            ]
+            var peak_memory_gb: List[Float64] = [
+                11.2, 14.8, 12.7, 18.3, 16.5, 22.1, 19.4, 25.8, 23.6, 29.2,
+                27.5, 31.4,
+            ]
 
             var c = effect_scatter(
-                longitude,
-                latitude,
-                title="Site Locations",
-                x_title="Longitude",
-                y_title="Latitude",
+                duration_minutes,
+                peak_memory_gb,
+                tooltips=True,
+                theme=Theme(halo_alpha=55),
+                title="Illustrative Resource-Intensive CI Jobs",
+                x_title="Build duration (minutes)",
+                y_title="Peak memory (GB)",
             )
             save(c, "docs/src/examples/out_effect_scatter.svg")
         ```

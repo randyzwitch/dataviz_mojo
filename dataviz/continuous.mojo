@@ -739,15 +739,22 @@ def scatter(
         from dataviz import save
 
         def main() raises:
-            var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
-            var y: List[Float64] = [2.3, 4.1, 3.6, 5.8, 5.1, 7.4, 6.9, 8.2, 9.0, 8.6]
+            # Illustrative specifications for current electric vehicles.
+            var battery_kwh: List[Float64] = [
+                42, 50, 54, 58, 62, 66, 70, 74, 78, 82, 88, 94, 101, 108, 115,
+            ]
+            var highway_range_km: List[Float64] = [
+                255, 292, 318, 305, 354, 381, 365, 419, 445, 432, 487, 516, 548,
+                565, 604,
+            ]
 
             var c = scatter(
-                x,
-                y,
-                title="Weekly Revenue",
-                x_title="Week",
-                y_title="Revenue ($k)",
+                battery_kwh,
+                highway_range_km,
+                tooltips=True,
+                title="Illustrative EV Battery Capacity vs. Highway Range",
+                x_title="Usable battery capacity (kWh)",
+                y_title="Highway range (km)",
             )
             save(c, "docs/src/examples/out_scatter.svg")
         ```
@@ -824,27 +831,29 @@ def line(
 
     Example:
         ```mojo
-        from std.math import sin
-
         from dataviz import line
         from dataviz import save
         from dataviz.colors import BROWN
         from dataviz import Theme
 
         def main() raises:
-            var x = List[Float64]()
-            var y = List[Float64]()
-            for i in range(40):
-                var t = Float64(i) * 0.25
-                x.append(t)
-                y.append(sin(t) * 10.0 + t * 0.5)
+            # Illustrative monthly active users after a product launch:
+            # sustained growth with a summer plateau and year-end lift.
+            var month: List[Float64] = [
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+                13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+            ]
+            var active_users_k: List[Float64] = [
+                18, 24, 31, 39, 48, 57, 63, 66, 68, 74, 83, 96,
+                104, 113, 125, 138, 149, 156, 158, 164, 177, 193, 214, 238,
+            ]
 
             var c = line(
-                x,
-                y,
-                title="Seasonal Trend",
-                x_title="Time",
-                y_title="Value",
+                month,
+                active_users_k,
+                title="Illustrative Monthly Active Users After Launch",
+                x_title="Month since launch",
+                y_title="Active users (thousands)",
                 theme=Theme(
                     mark_color=BROWN,
                     line_width=3.0,
@@ -989,27 +998,29 @@ def area(
 
     Example:
         ```mojo
-        from std.math import sin
-
         from dataviz import area
         from dataviz import save
         from dataviz.colors import STEELBLUE
         from dataviz import Theme
 
         def main() raises:
-            var x = List[Float64]()
-            var y = List[Float64]()
-            for i in range(30):
-                var t = Float64(i) * 0.3
-                x.append(t)
-                y.append(sin(t) * 4.0 + 6.0)
+            # Illustrative hourly solar output: zero overnight, a small
+            # morning cloud dip, and a broad midday production peak.
+            var hour: List[Float64] = [
+                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+            ]
+            var output_mw: List[Float64] = [
+                0, 0, 0, 0, 0, 0, 2, 9, 21, 34, 31, 52,
+                63, 68, 66, 59, 48, 35, 20, 8, 1, 0, 0, 0,
+            ]
 
             var c = area(
-                x,
-                y,
-                title="Seasonal Demand",
-                x_title="Time",
-                y_title="Demand",
+                hour,
+                output_mw,
+                title="Illustrative Solar Generation on a Clear Day",
+                x_title="Hour of day",
+                y_title="Output (MW)",
                 theme=Theme(mark_color=STEELBLUE),
             )
             save(c, "docs/src/examples/out_area.svg")
