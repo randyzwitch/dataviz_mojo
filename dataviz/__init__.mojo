@@ -48,6 +48,7 @@ from dataviz.lineplot import lineplot
 from dataviz.pointplot import pointplot
 from dataviz.stats import ErrorBar, Estimator
 from dataviz.image import imshow, pcolormesh
+from dataviz.hist2d import hist2d
 from dataviz.kde import kdeplot, rugplot
 from dataviz.tricontour import tricontour, tricontourf
 from dataviz.triplot import tripcolor, triplot

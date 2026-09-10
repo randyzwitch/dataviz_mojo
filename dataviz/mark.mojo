@@ -40,7 +40,9 @@ describes the drawing. By data shape:
   CALENDAR_HEATMAP (`encode_calendar()`).
 - A 2D array on *continuous* axes (image.mojo): IMSHOW
   (`encode_imshow()`, cell centers on the grid indices) and
-  PCOLORMESH (`encode_pcolormesh()`, explicit cell boundaries).
+  PCOLORMESH (`encode_pcolormesh()`, explicit cell boundaries), and
+  HIST2D (`encode_hist2d()`, a grid of counts binned from points,
+  hist2d.mojo).
   Not HEATMAP, which needs one category label per row and column.
 - `encode_hierarchy()` (hierarchy.mojo): SUNBURST, TREE, TREEMAP.
 - `encode_chord()` (edge list, edges.mojo): CHORD, ARC_DIAGRAM,
@@ -116,7 +118,8 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
 
     comptime POINTPLOT = Self(55)
     comptime BOXENPLOT = Self(56)
-    comptime COUNT = 57
+    comptime HIST2D = Self(57)
+    comptime COUNT = 58
     """How many marks exist -- one past the largest value above.
 
     Only the raster/SVG layout-equivalence sweep reads this: it
@@ -158,6 +161,8 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
             return "Mark.POINTPLOT"
         if self == Self.BOXENPLOT:
             return "Mark.BOXENPLOT"
+        if self == Self.HIST2D:
+            return "Mark.HIST2D"
         if self == Self.WATERFALL:
             return "Mark.WATERFALL"
         if self == Self.BOX:
