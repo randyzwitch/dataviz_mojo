@@ -90,7 +90,6 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("polarbar", "polar_bar", "polarbar"),
         ExamplePage("radialbar", "radialbar", "radialbar"),
         ExamplePage("polar", "polar", "polar"),
-        ExamplePage("polar_series", "polar", "polar_series"),
         ExamplePage("radar", "radar", "radar"),
         ExamplePage("gauge", "gauge", "gauge"),
         ExamplePage("parallel", "parallel", "parallel"),

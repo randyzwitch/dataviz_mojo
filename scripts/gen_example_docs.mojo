@@ -84,7 +84,6 @@ def _titles() -> Dict[String, String]:
     d["polarbar"] = "Polar Bar"
     d["radialbar"] = "Radial Bar"
     d["polar"] = "Polar"
-    d["polar_series"] = "Polar (Multi-Series)"
     d["radar"] = "Radar"
     d["gauge"] = "Gauge"
     d["parallel"] = "Parallel Coordinates"
@@ -227,7 +226,6 @@ def _categories() -> List[Category]:
                 "polarbar",
                 "radialbar",
                 "polar",
-                "polar_series",
                 "radar",
                 "gauge",
             ],

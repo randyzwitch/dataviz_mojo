@@ -15,7 +15,7 @@ Covers:
   equivalent `List[Float64]`. Reuses each function's `Example:` data.
 - The nested `List[List[Float64]]` overloads (grouped_bar/stacked_bar/
   bump/streamgraph, beeswarm/ridgeline/violin/box, marimekko, radar,
-  parallel, polar_series) via `_materialize_nested_scalar_list`, plus
+  parallel, polar) via `_materialize_nested_scalar_list`, plus
   radar()'s independent flat `max_values` axis. corrplot()/
   parallel() use synthetic whole-number data here.
 """
@@ -47,7 +47,6 @@ from dataviz import (
     parallel,
     pie,
     polar,
-    polar_series,
     polarbar,
     population_pyramid,
     punchcard,
@@ -841,14 +840,14 @@ def test_parallel_accepts_nested_list_int_matching_list_float64() raises:
     )
 
 
-def test_polar_series_accepts_nested_list_int_matching_list_float64() raises:
+def test_polar_several_series_accepts_nested_list_int_matching_list_float64() raises:
     var angle: List[Float64] = [0.0, 1.0]
     var names: List[String] = ["A", "B"]
     var vi: List[List[Int]] = [[68, 69], [57, 61]]
     var vf: List[List[Float64]] = [[68.0, 69.0], [57.0, 61.0]]
     assert_equal(
-        render_svg(polar_series(angle, names, vi)).to_string(),
-        render_svg(polar_series(angle, names, vf)).to_string(),
+        render_svg(polar(angle, names, vi)).to_string(),
+        render_svg(polar(angle, names, vf)).to_string(),
     )
 
 
