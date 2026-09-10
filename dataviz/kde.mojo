@@ -55,6 +55,14 @@ def _kde_bandwidth(values: List[Float64]) -> Float64:
     var std = sqrt(variance)
     if std <= 0.0:
         return 1.0
+    # `**` on Float64 is a fast approximation, not a correctly rounded
+    # power -- off by up to ~1e-10 relative on ordinary arguments (#455,
+    # modular/modular#7095). histogram.mojo routes its bin rules
+    # through `sqrt`/`cbrt`, which are exact, because a bin count is an
+    # integer and one ULP can flip it. Nothing like that is at stake
+    # here: n ** (-1/5) has no `sqrt`/`cbrt` form, and a bandwidth is a
+    # smoothing width whose visible effect is nowhere near ten
+    # significant figures, so the approximation stays.
     return 0.9 * std * Float64(n) ** (-1.0 / 5.0)
 
 
