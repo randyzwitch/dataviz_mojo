@@ -4159,7 +4159,8 @@ def _resolve_supersample(plot: Plot, context: String) raises -> Int:
 def render(plot: Plot) raises -> Canvas:
     """Render `plot` into a fresh `Canvas` sized `plot.width` x `plot.height`
     and return it, supersampled by `plot._theme.raster_supersample`
-    (default 3): the scratch canvas is that many times larger, its
+    (default automatic, resolved per mark by `_auto_supersample()`):
+    the scratch canvas is that many times larger, its
     transform is scaled by the same factor, the layout is drawn at
     logical coordinates, and `downsample` shrinks the result.
 

@@ -9,7 +9,8 @@ quantity render() computes (font size, margins, point radius, line
 width, tick length, legend layout). Pair `Theme(scale=2.0)` with a
 canvas twice the width/height to render the same chart at higher
 pixel density; the logical layout is identical at every scale.
-Separate from `raster_supersample` (default 3), which controls how
+Separate from `raster_supersample` (default automatic, resolved per
+mark), which controls how
 much extra antialiasing work `render()`/`render_facets()`/
 `render_layers()` do internally before downsampling back to that
 logical size -- the two compose multiplicatively rather than
@@ -173,19 +174,34 @@ struct Theme(ImplicitlyCopyable, Movable):
     var raster_supersample: Int
     """How many times larger than the requested size `render()`/
     `render_facets()`/`render_layers()` draw at internally before
-    downsampling back down, for finer anti-aliasing at shape edges. Defaults
-    to 3 and composes multiplicatively with `scale`,
-    not a substitute for it: `scale` changes the *logical* pixel size
-    of everything drawn (fonts, margins, line widths, ...) for HiDPI
-    output, while this only controls how much extra antialiasing work
-    a raster render pays before shrinking back to that logical size --
-    `render_svg()`/`render_facets_svg()`/`render_layers_svg()` ignore
-    it entirely, since vector output has no downsample step. Lower it
-    (1 disables supersampling outright) to trade edge quality for speed
-    in batch rendering, or to get exact single-pixel raster output for
-    a test. Must be `>= 1`; checked where it's read (`render()`/
-    `render_facets()`/`render_layers()`), not eagerly here, matching
-    `line_smoothing`'s deferred-to-render-time validation.
+    downsampling back down, for finer anti-aliasing at shape edges.
+
+    Defaults to `0`, meaning automatic: the factor is chosen per mark by
+    `_auto_supersample()`, which is the list of record. It returns 1 for
+    the marks drawn entirely from straight-edged geometry -- rectangles
+    and polygons, so bars, boxes, heatmaps, lines, areas, and also
+    violins and radars, whose curved *look* is a polygon through many
+    points -- and 3 for the marks that draw circles, arcs or curved
+    strokes, such as points, pie and polar. A non-zero `line_smoothing`
+    forces 3 whatever the mark, since a smoothed line is a curve however
+    it is named. Setting a value here overrides all of that.
+
+    Composes multiplicatively with `scale` and is not a substitute for
+    it: `scale` changes the *logical* pixel size of everything drawn
+    (fonts, margins, line widths, ...) for HiDPI output, while this only
+    controls how much extra antialiasing work a raster render pays
+    before shrinking back to that logical size.
+    `render_svg()`/`render_facets_svg()`/`render_layers_svg()` ignore it
+    entirely, since vector output has no downsample step.
+
+    Set 1 to disable supersampling outright, for exact single-pixel
+    raster output in a test. That lowers the factor for the curved marks
+    only; the straight-edged ones are already at 1, so it changes
+    nothing for them.
+    A set value must be `>= 1`, checked where it is read (`render()`/
+    `render_facets()`/`render_layers()`) rather than eagerly here,
+    matching `line_smoothing`'s deferred-to-render-time validation; the
+    `0` that selects automatic is exempt.
     """
     var color_by_sign: Bool
     """Whether `Mark.BAR` colors each bar by whether its value is
