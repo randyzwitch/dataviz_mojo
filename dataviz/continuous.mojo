@@ -362,6 +362,40 @@ def _draw_point_layer[
     var theme = plot._theme
     var sc = _Scaled(theme)
 
+    # The plain scatter -- nothing per point but a disk -- can hand every
+    # marker to `fill_circles_aa` in one call (#329). That bands the
+    # *canvas* across cores rather than the markers, which is the only
+    # way a scatter parallelizes: one marker is far too small to be worth
+    # a task. Output is identical to calling `fill_circle_aa` per centre
+    # in the same order, translucent overlap included, and the primitive
+    # falls back to per-marker calls itself when a transform puts it
+    # outside its closed form.
+    #
+    # Every condition below is a case where the batch would change what
+    # is drawn, not merely how fast:
+    #   - a size channel gives each marker its own radius; the batch
+    #     shares one.
+    #   - shapes draw through `_fill_shape_aa`, not a disk at all.
+    #   - tooltips need `begin/end_annotated_group` around each point.
+    #   - halos and error bars are drawn per point *before* its marker,
+    #     so batching the markers to the end would let an earlier
+    #     marker survive a later point's halo that today covers it.
+    #     That is a z-order change, and overlapping points are exactly
+    #     when a halo matters.
+    var has_error_bars = (
+        len(plot.y_err_data) > 0 or len(plot.y_err_lower_data) > 0
+    )
+    var tooltips_on = theme.svg_tooltips and plot._mark_style.point_tooltips
+    var batched = (
+        not ch.has_size
+        and not ch.has_shapes
+        and not tooltips_on
+        and not draw_halo
+        and not has_error_bars
+    )
+    var batch_centers = List[FPoint]()
+    var batch_colors = List[Color]()
+
     for i in range(len(plot.y_data)):
         var px = band_px[i] if len(band_px) > 0 else _axis_pixel_f(
             x_scale, plot.x_data[i]
@@ -451,6 +485,10 @@ def _draw_point_layer[
                 ch.shapes[ch.cat.indices[i] % len(ch.shapes)],
                 color,
             )
+        elif batched:
+            # Collected and flushed once below, in this same order.
+            batch_centers.append(FPoint(px, py))
+            batch_colors.append(color)
         else:
             target.fill_circle_aa(px, py, radius, color)
         if tooltip:
@@ -469,6 +507,19 @@ def _draw_point_layer[
                     TextAlign.CENTER,
                     theme.font_family,
                 )
+            )
+
+    # Flushed before the legend, so the markers still land under it in
+    # draw order exactly as the per-point path left them. The shared
+    # radius is the same expression the per-point path uses when
+    # `ch.has_size` is false, which `batched` requires.
+    if batched and len(batch_centers) > 0:
+        var batch_radius = Float64(round_to_int(sc.point_radius))
+        if ch.has_color or ch.has_color_categories:
+            target.fill_circles_aa(batch_centers, batch_radius, batch_colors)
+        else:
+            target.fill_circles_aa(
+                batch_centers, batch_radius, theme.mark_color
             )
 
     if not theme.show_legend:
