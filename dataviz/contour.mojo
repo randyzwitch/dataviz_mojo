@@ -840,22 +840,34 @@ def contour(
 
     Example:
         ```mojo
-        from std.math import cos, sin
+        from std.math import exp
 
         from dataviz import contour
         from dataviz import save
 
         def main() raises:
+            # Illustrative elevation model: two ridges separated by a saddle.
             var z = List[List[Float64]]()
-            for r in range(40):
+            for r in range(48):
                 var row = List[Float64]()
-                for c in range(60):
-                    var x = Float64(c) / 6.0
-                    var y = Float64(r) / 6.0
-                    row.append(sin(x) * cos(y))
+                for c in range(64):
+                    var x = (Float64(c) - 31.5) / 10.0
+                    var y = (Float64(r) - 23.5) / 10.0
+                    var west = exp(-((x + 1.5) * (x + 1.5) + y * y))
+                    var east = exp(
+                        -((x - 1.4) * (x - 1.4) + (y - 0.4) * (y - 0.4))
+                    )
+                    var saddle = exp(-(x * x / 2.2 + (y + 0.2) * (y + 0.2)))
+                    row.append(420.0 + 980.0 * west + 760.0 * east - 260.0 * saddle)
                 z.append(row^)
 
-            var c = contour(z, level_count=10, title="sin(x) cos(y)")
+            var c = contour(
+                z,
+                level_count=11,
+                title="Illustrative Mountain Elevation Contours (m)",
+                x_title="East-west grid cell",
+                y_title="North-south grid cell",
+            )
             save(c, "docs/src/examples/out_contour.svg")
         ```
     """
@@ -949,22 +961,34 @@ def contourf(
 
     Example:
         ```mojo
-        from std.math import cos, sin
+        from std.math import exp
 
         from dataviz import contourf
         from dataviz import save
 
         def main() raises:
+            # The same illustrative two-ridge elevation model as contour().
             var z = List[List[Float64]]()
-            for r in range(40):
+            for r in range(48):
                 var row = List[Float64]()
-                for c in range(60):
-                    var x = Float64(c) / 6.0
-                    var y = Float64(r) / 6.0
-                    row.append(sin(x) * cos(y))
+                for c in range(64):
+                    var x = (Float64(c) - 31.5) / 10.0
+                    var y = (Float64(r) - 23.5) / 10.0
+                    var west = exp(-((x + 1.5) * (x + 1.5) + y * y))
+                    var east = exp(
+                        -((x - 1.4) * (x - 1.4) + (y - 0.4) * (y - 0.4))
+                    )
+                    var saddle = exp(-(x * x / 2.2 + (y + 0.2) * (y + 0.2)))
+                    row.append(420.0 + 980.0 * west + 760.0 * east - 260.0 * saddle)
                 z.append(row^)
 
-            var c = contourf(z, level_count=10, title="sin(x) cos(y), filled")
+            var c = contourf(
+                z,
+                level_count=11,
+                title="Illustrative Mountain Elevation Bands (m)",
+                x_title="East-west grid cell",
+                y_title="North-south grid cell",
+            )
             save(c, "docs/src/examples/out_contourf.svg")
         ```
     """
