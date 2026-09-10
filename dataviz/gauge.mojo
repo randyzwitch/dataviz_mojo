@@ -241,7 +241,10 @@ def gauge(
         def main() raises:
             var cpu_usage = 67.0
 
-            var c = gauge(cpu_usage, title="CPU Usage")
+            var c = gauge(
+                cpu_usage,
+                title="Illustrative CPU Utilization (%)",
+            )
             save(c, "docs/src/examples/out_gauge.svg")
         ```
     """

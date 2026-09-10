@@ -227,13 +227,15 @@ def candlestick(
         from dataviz import Theme
 
         def main() raises:
+            # Illustrative daily OHLC prices across twelve trading sessions.
             var days: List[String] = [
-                "Day 1", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7", "Day 8",
+                "Sep 1", "Sep 2", "Sep 3", "Sep 4", "Sep 5", "Sep 8",
+                "Sep 9", "Sep 10", "Sep 11", "Sep 12", "Sep 15", "Sep 16",
             ]
-            var open: List[Int] = [100, 104, 101, 97, 107, 110, 103, 108]
-            var high: List[Int] = [106, 105, 103, 108, 112, 111, 109, 110]
-            var low: List[Int] = [98, 99, 95, 96, 105, 102, 101, 104]
-            var close: List[Int] = [104, 101, 97, 107, 110, 103, 108, 105]
+            var open: List[Int] = [100, 104, 101, 97, 107, 110, 103, 108, 105, 111, 116, 113]
+            var high: List[Int] = [106, 105, 103, 108, 112, 111, 109, 110, 113, 118, 119, 117]
+            var low: List[Int] = [98, 99, 95, 96, 105, 102, 101, 104, 103, 109, 112, 108]
+            var close: List[Int] = [104, 101, 97, 107, 110, 103, 108, 105, 111, 116, 113, 110]
 
             var c = candlestick(
                 days,
@@ -241,9 +243,9 @@ def candlestick(
                 high,
                 low,
                 close,
-                title="Daily Price Movement",
-                x_title="Day",
-                y_title="Price ($)",
+                title="Illustrative Daily OHLC Prices",
+                x_title="Trading session",
+                y_title="Share price ($)",
             )
             save(c, "docs/src/examples/out_candlestick.svg")
         ```

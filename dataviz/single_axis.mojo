@@ -240,13 +240,17 @@ def single_axis(
         from dataviz import Theme
 
         def main() raises:
+            # Illustrative request latencies: a dense healthy cluster plus a
+            # sparse long tail that is easy to spot on a single axis.
             var response_ms: List[Int] = [
-                12, 14, 13, 15, 11, 14, 13, 12, 45, 15, 13, 14, 12, 90, 14,
+                11, 12, 12, 13, 13, 13, 14, 14, 14, 14,
+                15, 15, 15, 16, 16, 17, 17, 18, 19, 20,
+                22, 24, 27, 31, 38, 46, 59, 73, 91, 128,
             ]
 
             var c = single_axis(
                 response_ms,
-                title="API Response Times",
+                title="Illustrative API Response-Time Distribution",
                 x_title="Response time (ms)",
             )
             save(c, "docs/src/examples/out_single_axis.svg")
