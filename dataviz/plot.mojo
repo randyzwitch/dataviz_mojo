@@ -272,7 +272,7 @@ from dataviz.arc_diagram import _render_arc_diagram
 from dataviz.graph import _render_graph
 from dataviz.sankey import _render_sankey
 from dataviz.radialbar import _render_radialbar
-from dataviz.histogram import _bin_histogram
+from dataviz.histogram import BinRule, _bin_histogram
 from dataviz.lollipop import _render_lollipop, _render_horizontal_lollipop
 from dataviz.single_axis import _render_single_axis
 from dataviz.population_pyramid import _render_population_pyramid
@@ -1966,6 +1966,30 @@ struct Plot(Copyable, Movable):
                 finite.
         """
         var binned = _bin_histogram(data, bins)
+        self.x_categories = binned.labels.copy()
+        self.x_data = List[Float64]()
+        self.y_data = binned.counts.copy()
+        return self^
+
+    def encode_histogram(
+        var self, data: List[Float64], rule: BinRule
+    ) raises -> Self:
+        """`encode_histogram` with the bin count chosen by `rule` rather
+        than named -- `BinRule.AUTO` for numpy's `bins="auto"`. The
+        overload `histogram()` and `bin_edges()` already have, so both
+        histogram paths accept the same request (#456).
+
+        Args:
+            data: Raw observations to bin.
+            rule: Which `BinRule` picks the bin count.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            Error: If data is empty or a value is not finite.
+        """
+        var binned = _bin_histogram(data, rule)
         self.x_categories = binned.labels.copy()
         self.x_data = List[Float64]()
         self.y_data = binned.counts.copy()

@@ -1010,8 +1010,42 @@ def _bin_histogram(data: List[Float64], bins: Int) raises -> _HistogramLabels:
             + String(bins)
             + ")"
         )
+    return _label_bins(data, bin_edges(data, bins))
 
-    var binned = histogram_bins(data, bin_edges(data, bins))
+
+def _bin_histogram(
+    data: List[Float64], rule: BinRule
+) raises -> _HistogramLabels:
+    """`_bin_histogram` with the bin count chosen by `rule` -- the same
+    overload pair `bin_edges()` and `histogram()` offer, so the
+    categorical path can answer "how many bins?" the way the numeric
+    path does instead of making the caller guess (#456).
+
+    Args:
+        data: The raw values to bin.
+        rule: Which `BinRule` picks the count.
+
+    Returns:
+        A label and a count per bin.
+
+    Raises:
+        Error: `data` is empty, or any value is `NaN`/infinite.
+    """
+    if len(data) == 0:
+        raise Error("Plot.encode_histogram(): data must not be empty")
+    return _label_bins(data, bin_edges(data, rule))
+
+
+def _label_bins(
+    data: List[Float64], edges: List[Float64]
+) raises -> _HistogramLabels:
+    """Count `data` into `edges` and caption each bin with its interval,
+    for both `_bin_histogram` overloads. The bin count is whatever
+    `edges` implies, so a rule-chosen count and a named one take one
+    path here.
+    """
+    var binned = histogram_bins(data, edges)
+    var bins = len(edges) - 1
     var labels = List[String](capacity=bins)
     for i in range(bins):
         labels.append(

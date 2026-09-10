@@ -46,6 +46,7 @@ from dataviz import (
 )
 from dataviz.barbs import _barb_counts, _barb_glyph
 from dataviz.continuous import _step_points
+from dataviz.histogram import BinRule, bin_edges, histogram_bins
 from dataviz.delaunay import _in_circumcircle, delaunay
 from dataviz.tricontour import _tricontour_segments
 from dataviz.triplot import _triangle_means, _triplot_edges
@@ -1646,6 +1647,39 @@ def test_encode_histogram_bins_match_hand_derived_counts() raises:
     assert_equal(plot.y_data[2], 2.0)
     assert_equal(plot.y_data[3], 0.0)
     assert_equal(plot.y_data[4], 2.0)
+
+
+def test_encode_histogram_rule_matches_hand_derived_bins() raises:
+    # 16 values 0, 0.8, ..., 12: BinRule.SQRT gives sqrt(16) = 4 bins over
+    # [0, 12], width 3, edges 0/3/6/9/12 -- chosen so no edge sits on a
+    # one-decimal rounding tie -- and four values in each.
+    var data = List[Float64]()
+    for i in range(16):
+        data.append(Float64(i) * 0.8)
+    var plot = Plot().mark_bar().encode_histogram(data, BinRule.SQRT)
+    assert_equal(len(plot.x_categories), 4)
+    assert_equal(plot.x_categories[0], "0.0-3.0")
+    assert_equal(plot.x_categories[3], "9.0-12.0")
+    for i in range(4):
+        assert_equal(plot.y_data[i], 4.0)
+
+
+def test_encode_histogram_rule_agrees_with_the_numeric_path() raises:
+    # #456's complaint: the two histogram paths disagreed about what a
+    # caller may ask for. With a rule, the categorical path must draw the
+    # bins the numeric path would -- same count, same counts per bin.
+    var data: List[Float64] = [1.0, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 8.0, 9.0]
+    var plot = Plot().mark_bar().encode_histogram(data, BinRule.AUTO)
+    var numeric = histogram_bins(data, bin_edges(data, BinRule.AUTO))
+    assert_equal(len(plot.y_data), len(numeric.values))
+    for i in range(len(numeric.values)):
+        assert_equal(plot.y_data[i], numeric.values[i])
+
+
+def test_encode_histogram_rule_raises_on_empty_data() raises:
+    var data = List[Float64]()
+    with assert_raises():
+        _ = Plot().mark_bar().encode_histogram(data, BinRule.AUTO)
 
 
 def test_encode_histogram_raises_on_empty_data() raises:
