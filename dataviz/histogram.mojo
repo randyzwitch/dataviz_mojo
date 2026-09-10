@@ -1058,8 +1058,7 @@ def _label_bins(
 
 def histogram(
     data: List[Float64],
-    bins: Int = 10,
-    edges: List[Float64] = List[Float64](),
+    bins: Int,
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
@@ -1091,14 +1090,11 @@ def histogram(
     Args:
         data: The raw values to bin -- not pre-counted; binning
             happens internally.
-        bins: How many equal-width intervals to divide `data`'s range
-            into. Ignored when `edges` is given.
-        edges: Explicit bin boundaries, strictly ascending, at least 2
-            long -- for unequal widths, for a fixed range that does not
-            follow the data (`uniform_bin_edges(0.0, 100.0, 20)`), or
-            for two samples that must share intervals
-            (`shared_bin_edges([a, b], bins=20)`). Empty (the default)
-            derives `bins` equal intervals from `data`'s own range.
+        bins: How many equal-width intervals to divide `data`'s own range
+            into. Pass a `BinRule` in this slot instead to have the count
+            chosen from the data -- which is also what `histogram(data)`
+            with no `bins` does (#457) -- or `edges=` for explicit
+            boundaries.
         weights: One nonnegative weight per observation, or empty (the
             default) for one apiece -- survey weights, dollar amounts,
             exposure times. A bin then holds the total weight that
@@ -1281,9 +1277,73 @@ def histogram(
             save_facets(panels, 2, "docs/src/examples/out_histogram_auto.svg")
         ```
     """
-    var resolved = edges.copy() if len(edges) > 0 else bin_edges(data, bins)
+    return histogram(
+        data,
+        edges=bin_edges(data, bins),
+        weights=weights,
+        stat=stat,
+        cumulative=cumulative,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+    )
+
+
+def histogram(
+    data: List[Float64],
+    *,
+    edges: List[Float64],
+    weights: List[Float64] = List[Float64](),
+    stat: HistStat = HistStat.COUNT,
+    cumulative: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`histogram()` over explicit bin boundaries -- the overload every
+    other one delegates to once it has decided its edges.
+
+    `edges` is keyword-only, so the three answers to "what bins?" -- a
+    count, a `BinRule`, or a boundary list -- each select their own
+    overload by how they are written, and no signature accepts two at
+    once and has to invent a precedence between them.
+
+    Args:
+        data: The raw values to bin -- not pre-counted.
+        edges: Explicit bin boundaries, strictly ascending, at least 2
+            long -- for unequal widths, for a fixed range that does not
+            follow the data (`uniform_bin_edges(0.0, 100.0, 20)`), or
+            for two samples that must share intervals
+            (`shared_bin_edges([a, b], bins=20)`).
+        weights: One nonnegative weight per observation, or empty (the
+            default) for one apiece.
+        stat: What a bar's height is; see `HistStat`.
+        cumulative: Draw running totals instead of per-bin values.
+        theme: Full styling knobs -- see `Theme`'s docstring.
+        width: Pixel width of the returned `Plot`.
+        height: Pixel height of the returned `Plot`.
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: `data` is empty, `edges` is malformed, or a value is
+            `NaN`/infinite.
+    """
     var binned = histogram_bins(
-        data, resolved, weights=weights, stat=stat, cumulative=cumulative
+        data, edges, weights=weights, stat=stat, cumulative=cumulative
     )
     var lo = binned.edges[0]
     var hi = binned.edges[len(binned.edges) - 1]
@@ -1304,7 +1364,7 @@ def histogram(
 
 def histogram(
     data: List[Float64],
-    bins: BinRule,
+    bins: BinRule = BinRule.AUTO,
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
@@ -1327,12 +1387,15 @@ def histogram(
     document it. Overloading on the `bins` slot lets the type say which
     answer was given.
 
-    `bins` is required rather than defaulting to `AUTO`, which also
-    leaves `histogram(data)` binning into 10 as it always has. That is
-    numpy's own arrangement -- `numpy.histogram`'s `bins` defaults to
-    10 and `"auto"` is opt-in -- and changing what an existing call
-    draws is a decision to take on its own, not a side effect of adding
-    the rules.
+    **This is what `histogram(data)` does**: with no `bins`, the count
+    comes from `BinRule.AUTO` (#457). numpy's own default is 10, but
+    `numpy.histogram` is a counting function whose output a program
+    consumes, where a stable count is a stability guarantee; this is a
+    chart, and ten bins is a guess that is wrong in both directions -- a
+    comb over fourteen readings, a smear over five thousand. seaborn
+    makes the same call. `Plot.encode_histogram()`'s categorical path
+    keeps 10, since its bins are range labels a reader expects to be
+    stable.
 
     Args:
         data: The raw values to bin -- not pre-counted; binning happens
@@ -1381,8 +1444,7 @@ def histogram[
     dtype: DType
 ](
     data: List[Scalar[dtype]],
-    bins: Int = 10,
-    edges: List[Float64] = List[Float64](),
+    bins: Int,
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
@@ -1430,7 +1492,6 @@ def histogram[
     return histogram(
         _materialize_scalar_list(data),
         bins=bins,
-        edges=edges,
         weights=weights,
         stat=stat,
         cumulative=cumulative,
@@ -1448,7 +1509,7 @@ def histogram[
     dtype: DType
 ](
     data: List[Scalar[dtype]],
-    bins: BinRule,
+    bins: BinRule = BinRule.AUTO,
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
@@ -1496,6 +1557,43 @@ def histogram[
     return histogram(
         _materialize_scalar_list(data),
         bins=bins,
+        weights=weights,
+        stat=stat,
+        cumulative=cumulative,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+    )
+
+
+def histogram[
+    dtype: DType
+](
+    data: List[Scalar[dtype]],
+    *,
+    edges: List[Float64],
+    weights: List[Float64] = List[Float64](),
+    stat: HistStat = HistStat.COUNT,
+    cumulative: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """The explicit-edges `histogram()` generalized over `data`'s element
+    type; see `scatter()`'s `DType` overload (continuous.mojo).
+    Delegates to the concrete overload above.
+    """
+    return histogram(
+        _materialize_scalar_list(data),
+        edges=edges,
         weights=weights,
         stat=stat,
         cumulative=cumulative,
