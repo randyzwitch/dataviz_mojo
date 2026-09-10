@@ -4,7 +4,7 @@ from canvas.vector.draw_target import DrawTarget
 from canvas.text.render import TextAlign
 
 from dataviz.array_like import _materialize_nested_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -133,7 +133,7 @@ def _render_parallel[
                 )
             )
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     for r in range(len(plot._parallel.data)):
         var row = plot._parallel.data[r].copy()
         var color = palette[r % len(palette)]

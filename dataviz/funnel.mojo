@@ -5,7 +5,7 @@ from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -112,7 +112,7 @@ def _render_funnel[
     var max_width = Float64(plot_x1 - plot_x0)
     var row_height = Float64(plot_y1 - plot_y0) / Float64(n)
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
 
     var top_width = List[Float64]()
     for i in range(n):

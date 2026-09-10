@@ -4,7 +4,7 @@ from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.continuous import _step_points
 from dataviz.grouped_bar import _validate_grouped_bar_series
 from dataviz.mark import Mark
@@ -214,7 +214,7 @@ def _render_streamgraph[
     for i in range(n_categories):
         running.append(0.0 if zero_baseline else -totals[i] / 2.0)
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     for j in range(n_series):
         var top = List[Float64](capacity=n_categories)
         var bottom = List[Float64](capacity=n_categories)

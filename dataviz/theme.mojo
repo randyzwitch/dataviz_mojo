@@ -61,6 +61,7 @@ from std.math import pi
 
 from canvas.color import Color
 
+from dataviz.color_palette import ColorPalette
 from dataviz.color_ramp import ColorRamp
 from dataviz.colors import WHITE
 from dataviz.output_format import OutputFormat
@@ -157,6 +158,15 @@ struct Theme(ImplicitlyCopyable, Movable):
     look like equal steps in color, and interpolating three of them
     throws the property away. See `dataviz.colormaps` for the standard
     ones."""
+    var categorical_palette: ColorPalette
+    """The colors a multi-series or category-colored chart cycles
+    through -- grouped and stacked bars, streamgraphs, pies, sunbursts,
+    categorical scatter colors and the rest. Empty by default, meaning
+    `default_categorical_palette()`'s eight tab10-style colors. Set it
+    to make a preset's multi-series charts read on a given ground or in
+    grayscale: `print_safe()` uses a lightness-ordered set of grays so
+    a photocopy still tells series apart (#426). `Plot.color_map()`
+    still overrides individual categories by name."""
     var size_range_min: Float64
     """The smallest pixel radius a data-driven `size` channel maps
     its column's minimum value to."""
@@ -428,6 +438,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         color_scale_mid: Color = Color(235, 235, 235),
         color_scale_high: Color = Color(220, 90, 40),
         color_ramp: ColorRamp = ColorRamp(),
+        categorical_palette: ColorPalette = ColorPalette(),
         size_range_min: Float64 = 3.0,
         size_range_max: Float64 = 15.0,
         show_legend: Bool = True,
@@ -498,6 +509,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.color_scale_mid = color_scale_mid
         self.color_scale_high = color_scale_high
         self.color_ramp = color_ramp.copy()
+        self.categorical_palette = categorical_palette.copy()
         self.size_range_min = size_range_min
         self.size_range_max = size_range_max
         self.show_legend = show_legend

@@ -10,7 +10,7 @@ from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import ColorScale, default_categorical_palette
+from dataviz.color_scale import ColorScale, categorical_palette_for
 from dataviz.frame import (
     _CategoricalIndex,
     _axis_pixel,
@@ -271,7 +271,7 @@ struct _PointChannels(Movable):
             self.cat = _CategoricalIndex(List[String](), List[Int]())
         self.palette = List[Color]()
         if self.has_color_categories:
-            var default_palette = default_categorical_palette()
+            var default_palette = categorical_palette_for(plot._theme)
             for i in range(len(self.cat.domain)):
                 var name = self.cat.domain[i]
                 if name in plot.color_map:

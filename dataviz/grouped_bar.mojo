@@ -4,7 +4,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from canvas.text.render import TextAlign
 from dataviz.array_like import _materialize_nested_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.mark import Mark
 from dataviz.ordinal_scale import OrdinalScale
@@ -307,7 +307,7 @@ def _render_grouped_bar[
     """Render a `Mark.GROUPED_BAR` plot: `_render_bar`'s categorical x-axis /
     zero-baseline y-axis (`_draw_categorical_axis_frame`), with each
     category's band subdivided into `len(series_names)` equal-width
-    sub-bars, one per series, colored by `default_categorical_palette()`
+    sub-bars, one per series, colored by `categorical_palette_for(theme)`
     (`j % len(palette)`). No sign coloring: series are told apart by
     color.
 
@@ -340,7 +340,7 @@ def _render_grouped_bar[
         cache=cache,
     )
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     _draw_grouped_bars(
         target,
         plot,
@@ -418,7 +418,7 @@ def _render_horizontal_grouped_bar[
         cache=cache,
     )
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     _draw_grouped_bars(
         target,
         plot,

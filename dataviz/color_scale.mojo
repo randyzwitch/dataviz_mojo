@@ -112,14 +112,32 @@ struct ColorScale(Movable):
         return scale^
 
 
+def categorical_palette_for(theme: Theme) -> List[Color]:
+    """The palette a chart under `theme` cycles its categories through:
+    `theme.categorical_palette` when set, else
+    `default_categorical_palette()`. The one place the fallback is
+    decided, so every mark file asks the same question the same way.
+
+    Args:
+        theme: The chart's theme.
+
+    Returns:
+        At least one color, cycled via modulo by the caller.
+    """
+    if len(theme.categorical_palette) > 0:
+        return theme.categorical_palette.colors()
+    return default_categorical_palette()
+
+
 def default_categorical_palette() -> List[Color]:
     """A default qualitative color palette for categorical color encoding: 8
     visually distinct colors (the common "tab10"-style set), cycled via
     modulo when a column has more unique categories (see `Plot.encode`).
 
-    A plain function rather than a `Theme` field: a `List` field would
-    break `Theme`'s `ImplicitlyCopyable` conformance, which the
-    `var theme = plot._theme` copies throughout the package depend on.
+    The fallback for `Theme.categorical_palette` (a packed
+    `ColorPalette`, so `Theme` stays implicitly copyable); mark files
+    reach it through `categorical_palette_for(theme)` rather than
+    calling this directly.
 
     Returns:
         8 visually distinct colors, cycled via modulo for more

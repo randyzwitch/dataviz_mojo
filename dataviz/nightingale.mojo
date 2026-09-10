@@ -4,7 +4,7 @@ from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -68,7 +68,7 @@ def _render_nightingale[
         Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
     )
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     var n = len(plot.x_categories)
     var span = 2.0 * pi / Float64(n)
     var start = -pi / 2.0
