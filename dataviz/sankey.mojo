@@ -307,13 +307,33 @@ def sankey(
         ```mojo
         from dataviz import sankey
         from dataviz import save
+        from dataviz import Theme
 
         def main() raises:
-            var from_stage: List[String] = ["Coal", "Gas", "Coal", "Gas", "Electricity", "Electricity"]
-            var to_stage: List[String] = ["Electricity", "Electricity", "Industry", "Industry", "Residential", "Industry"]
-            var energy: List[Int] = [30, 20, 15, 10, 25, 20]
+            # Illustrative monthly visitor flow from acquisition to outcome.
+            var from_stage: List[String] = [
+                "Search", "Social", "Email",
+                "Landing", "Landing",
+                "Browse", "Browse", "Browse",
+                "Docs", "Docs", "Trial", "Trial",
+            ]
+            var to_stage: List[String] = [
+                "Landing", "Landing", "Landing",
+                "Browse", "Exit",
+                "Trial", "Docs", "Exit",
+                "Trial", "Exit", "Paid", "Churn",
+            ]
+            var visitors: List[Int] = [
+                420, 260, 180, 610, 250, 310, 180, 120, 90, 90, 190, 210,
+            ]
 
-            var c = sankey(from_stage, to_stage, energy, title="Energy Flows")
+            var c = sankey(
+                from_stage,
+                to_stage,
+                visitors,
+                theme=Theme(margin_right=70),
+                title="Illustrative Monthly Visitor Journey",
+            )
             save(c, "docs/src/examples/out_sankey.svg")
         ```
     """

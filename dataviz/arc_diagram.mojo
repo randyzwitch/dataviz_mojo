@@ -157,15 +157,28 @@ def arc_diagram(
         from dataviz import save
 
         def main() raises:
-            var from_characters: List[String] = ["Alice", "Bob", "Alice", "Carol", "Dave"]
-            var to_characters: List[String] = ["Bob", "Carol", "Carol", "Dave", "Eve"]
-            var scenes_together: List[Float64] = [8.0, 5.0, 3.0, 6.0, 4.0]
+            # Illustrative calls between services during a checkout request.
+            # Edge weights are average calls per minute at peak traffic.
+            var caller: List[String] = [
+                "Gateway", "Gateway", "Checkout", "Checkout", "Checkout",
+                "Catalog", "Catalog", "Payments", "Orders", "Orders",
+                "Identity", "Notifications",
+            ]
+            var dependency: List[String] = [
+                "Identity", "Catalog", "Identity", "Catalog", "Payments",
+                "Inventory", "Search", "Fraud", "Inventory", "Notifications",
+                "Fraud", "Identity",
+            ]
+            var calls_per_minute: List[Float64] = [
+                820.0, 760.0, 410.0, 395.0, 370.0, 640.0,
+                510.0, 350.0, 330.0, 290.0, 180.0, 120.0,
+            ]
 
             var c = arc_diagram(
-                from_characters,
-                to_characters,
-                scenes_together,
-                title="Scenes Shared by Character",
+                caller,
+                dependency,
+                calls_per_minute,
+                title="Illustrative Checkout Service Dependencies",
             )
             save(c, "docs/src/examples/out_arc_diagram.svg")
         ```

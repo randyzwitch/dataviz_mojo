@@ -170,15 +170,26 @@ def graph(
         from dataviz import save
 
         def main() raises:
-            var from_people: List[String] = ["Alice", "Alice", "Bob", "Carol", "Dave"]
-            var to_people: List[String] = ["Bob", "Carol", "Dave", "Dave", "Eve"]
-            var connection_strength: List[Int] = [8, 3, 5, 6, 4]
+            # Illustrative weekly pallet movements through a distribution network.
+            var origin: List[String] = [
+                "North Plant", "South Plant", "North Plant", "South Plant",
+                "Central Hub", "Central Hub", "Coastal Hub", "Coastal Hub",
+                "Metro DC", "Metro DC", "Regional DC", "Regional DC",
+            ]
+            var destination: List[String] = [
+                "Central Hub", "Central Hub", "Coastal Hub", "Coastal Hub",
+                "Metro DC", "Regional DC", "Metro DC", "Port DC",
+                "City Stores", "Airport Stores", "Town Stores", "Rural Stores",
+            ]
+            var pallets: List[Int] = [
+                420, 360, 190, 240, 310, 270, 225, 180, 205, 95, 175, 120,
+            ]
 
             var c = graph(
-                from_people,
-                to_people,
-                connection_strength,
-                title="Character Connections",
+                origin,
+                destination,
+                pallets,
+                title="Illustrative Weekly Distribution Network",
             )
             save(c, "docs/src/examples/out_graph.svg")
         ```

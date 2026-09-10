@@ -250,12 +250,25 @@ def chord(
         from dataviz import Theme
 
         def main() raises:
-            var from_regions: List[String] = ["North", "North", "South", "East", "West"]
-            var to_regions: List[String] = ["South", "East", "West", "West", "North"]
-            var trade_volume: List[Int] = [12, 8, 15, 6, 10]
+            # Illustrative hours contributed between teams during one quarter.
+            # Repeated teams reveal both hubs and smaller cross-team exchanges.
+            var from_teams: List[String] = [
+                "Product", "Product", "Platform", "Platform", "Data", "Data",
+                "Sales", "Support", "Security", "Security", "Support", "Sales",
+            ]
+            var to_teams: List[String] = [
+                "Platform", "Data", "Security", "Support", "Product", "Sales",
+                "Product", "Platform", "Product", "Data", "Sales", "Support",
+            ]
+            var collaboration_hours: List[Int] = [
+                180, 125, 150, 95, 110, 70, 135, 105, 80, 55, 65, 45,
+            ]
 
             var c = chord(
-                from_regions, to_regions, trade_volume, title="Regional Trade"
+                from_teams,
+                to_teams,
+                collaboration_hours,
+                title="Illustrative Cross-Team Project Hours",
             )
             save(c, "docs/src/examples/out_chord.svg")
         ```
