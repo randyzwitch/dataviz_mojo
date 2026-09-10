@@ -42,12 +42,13 @@ def test_render_sunburst_matches_hand_derived_ring_sectors() raises:
     var c = render(_hoisted1)
 
     # Ring 1 is the branch color itself; ring 2 is that color lightened
-    # one step (_DEPTH_FADE, so alpha 200 against white). Without that
-    # step a sunburst of one hue per branch draws as a solid disc and
-    # reads as a pie -- the rings are only visible because they differ.
+    # one step (_DEPTH_FADE, so alpha 200 against the theme's background,
+    # white here). Without that step a sunburst of one hue per branch
+    # draws as a solid disc and reads as a pie -- the rings are only
+    # visible because they differ.
     var palette = default_categorical_palette()
-    var ring2_a = _lighten(palette[0], 200)
-    var ring2_b = _lighten(palette[1], 200)
+    var ring2_a = _lighten(palette[0], 200, t.background)
+    var ring2_b = _lighten(palette[1], 200, t.background)
     _assert_color(c, 277, 78, ring2_a, "A1, ring 2, bisector -45 degrees")
     _assert_color(c, 277, 192, ring2_a, "A2, ring 2, bisector 45 degrees")
     _assert_color(c, 140, 135, ring2_b, "B1, ring 2, bisector 180 degrees")

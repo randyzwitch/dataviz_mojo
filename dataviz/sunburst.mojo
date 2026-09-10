@@ -74,6 +74,7 @@ def _draw_sunburst_node[
     cy: Float64,
     ring_width: Float64,
     color: Color,
+    background: Color,
     separator: Color,
     separator_width: Float64,
 ) raises:
@@ -98,7 +99,7 @@ def _draw_sunburst_node[
         outer,
         start_angle,
         end_angle,
-        _lighten(color, UInt8(fade)),
+        _lighten(color, UInt8(fade), background),
     )
 
     # A radial line at the sector's leading edge, in the background
@@ -129,6 +130,7 @@ def _draw_sunburst_node[
             cy,
             ring_width,
             color,
+            background,
             separator,
             separator_width,
         )
@@ -229,6 +231,7 @@ def _render_sunburst[
             cy,
             ring_width,
             palette[i % len(palette)],
+            theme.background,
             theme.background,
             sc.scale,
         )

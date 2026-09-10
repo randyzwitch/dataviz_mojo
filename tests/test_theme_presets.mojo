@@ -11,8 +11,17 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from std.testing import TestSuite, assert_equal, assert_true
 
-from dataviz import bar, bullet, effect_scatter, heatmap, radar, radialbar
+from dataviz import (
+    bar,
+    bullet,
+    effect_scatter,
+    heatmap,
+    radar,
+    radialbar,
+    sunburst,
+)
 from dataviz.plot import Plot, render
+from dataviz.color_scale import default_categorical_palette
 from dataviz.theme import Theme
 from dataviz.themes import dark, high_contrast, minimal, print_safe
 
@@ -354,6 +363,78 @@ def _heatmap_cell_lumas(c: Canvas) raises -> List[Float64]:
 # The partial-application sweep.
 
 
+def _max_luma(c: Canvas) -> Float64:
+    """The brightest pixel on `c`, as Rec.709 luma."""
+    var top = 0.0
+    for y in range(c.height):
+        for x in range(c.width):
+            var l = _luma(c.get_pixel(x, y))
+            if l > top:
+                top = l
+    return top
+
+
+def _marks_only(t: Theme) -> Theme:
+    """`t` with every non-mark ink painted in its own background, so the
+    brightest pixel left is a mark or something drawn from one."""
+    var out = t
+    out.text_color = t.background
+    out.axis_color = t.background
+    out.gridline_color = t.background
+    out.minor_gridline_color = t.background
+    out.show_gridlines = False
+    out.show_legend = False
+    return out
+
+
+def test_dark_tints_flatten_against_the_dark_ground_not_white() raises:
+    """`Mark.EFFECT_SCATTER`'s halo and `Mark.SUNBURST`'s depth fade are
+    flattened tints: a color at reduced alpha composited over the
+    background, kept opaque. Flattened over the `dark()` ground, a tint
+    is darker than the color it came from. Flattened over a hardcoded
+    white -- which is what happened (#427) -- it is brighter than the
+    color, and the halo becomes the brightest thing on a dark chart.
+
+    So with all chrome painted in the background color, nothing on the
+    canvas may be brighter than the mark it was derived from: the mark
+    color for the halo, the brightest palette entry for the sunburst.
+    """
+    var t = _marks_only(dark())
+
+    var ex: List[Float64] = [1.0, 1.6, 2.3, 3.0, 3.8]
+    var ey: List[Float64] = [12.0, 12.8, 14.2, 15.8, 16.2]
+    var halo = render(effect_scatter(ex, ey, theme=t))
+    var halo_top = _max_luma(halo)
+    var mark = _luma(t.mark_color)
+    assert_true(
+        halo_top <= mark + 1.0,
+        "effect_scatter under dark(): brightest pixel has luma "
+        + String(halo_top)
+        + " but the mark color is only "
+        + String(mark)
+        + " -- the halo is flattened against white, not the background",
+    )
+
+    var ids: List[String] = ["root", "a", "b", "a1", "a2", "b1"]
+    var parents: List[String] = ["", "root", "root", "a", "a", "b"]
+    var values: List[Float64] = [0.0, 0.0, 0.0, 3.0, 2.0, 4.0]
+    var burst = render(sunburst(ids, parents, values, theme=t))
+    var palette_top = 0.0
+    for c in default_categorical_palette():
+        var l = _luma(c)
+        if l > palette_top:
+            palette_top = l
+    var burst_top = _max_luma(burst)
+    assert_true(
+        burst_top <= palette_top + 1.0,
+        "sunburst under dark(): brightest pixel has luma "
+        + String(burst_top)
+        + " but the brightest palette color is only "
+        + String(palette_top)
+        + " -- the depth fade is flattened against white, not the background",
+    )
+
+
 def test_dark_preset_leaves_no_light_theme_default_anywhere() raises:
     """Nine marks under `dark()`, none of which may draw a solid region
     in one of the light theme's own field colors.
@@ -494,12 +575,10 @@ def test_dark_preset_leaves_no_light_theme_default_anywhere() raises:
     # Measured headroom: across these charts the brightest region of 800
     # px or more is dark()'s own `mark_color` at luma 155.6, and the
     # brightest thing a *forgotten* field would put there is 190. The
-    # The effect-scatter render is excluded because `_lighten()` flattens
-    # its halos against a hardcoded white rather than against
-    # `Theme.background`.
+    # effect-scatter render is in the sweep: its halos are `_lighten()`
+    # flattened against `Theme.background`, so on this ground they are
+    # darker than the mark color, not brighter (#427).
     for i in range(len(canvases)):
-        if names[i] == "effect scatter":
-            continue
         var census = _color_census(canvases[i], False)
         var colors = census[0].copy()
         var counts = census[1].copy()
