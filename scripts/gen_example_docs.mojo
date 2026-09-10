@@ -102,6 +102,8 @@ def _titles() -> Dict[String, String]:
     d["tripcolor"] = "Triangular Mesh (Colored)"
     d["ecdf"] = "ECDF"
     d["residplot"] = "Residual Plot"
+    d["barplot"] = "Estimate Bars"
+    d["countplot"] = "Count Bars"
     d["kdeplot"] = "Density Curve"
     d["rugplot"] = "Rug"
     d["marimekko"] = "Marimekko"
@@ -205,6 +207,8 @@ def _categories() -> List[Category]:
                 "rugplot",
                 "ecdf",
                 "residplot",
+                "barplot",
+                "countplot",
                 "eventplot",
             ],
         )
