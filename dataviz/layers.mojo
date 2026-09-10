@@ -71,6 +71,7 @@ from dataviz.legend_position import LegendPosition
 from dataviz.mark import Mark
 from dataviz.output_format import OutputFormat
 from dataviz.plot import (
+    _DomainOverride,
     _require_non_empty,
     _resolve_supersample,
     Plot,
@@ -112,6 +113,8 @@ from dataviz.triplot import (
 from dataviz.validate import (
     _check_line_smoothing,
     _check_step_smoothing,
+    _domain_override_scale,
+    _validate_domain_override,
     _validate_categorical_encoding,
     _validate_continuous_encoding,
 )
@@ -582,6 +585,38 @@ def _render_bar_combo_layers[
     return frame.result()
 
 
+def _merge_override(
+    mut into: _DomainOverride,
+    override: _DomainOverride,
+    layer: Int,
+    context: String,
+) raises:
+    """Adopt `override` as the layers' shared explicit domain, or raise
+    if an earlier layer already asked for a different one. Two layers
+    that disagree have no shared axis, and the message names both
+    values rather than refusing overrides wholesale (#434).
+    """
+    if not into.has:
+        into = override.copy()
+        return
+    if into.min != override.min or into.max != override.max:
+        raise Error(
+            "render_layers(): every layer that sets "
+            + context
+            + "() must agree on it -- layer "
+            + String(layer)
+            + " asks for ["
+            + String(override.min)
+            + ", "
+            + String(override.max)
+            + "] but an earlier layer asked for ["
+            + String(into.min)
+            + ", "
+            + String(into.max)
+            + "]"
+        )
+
+
 def _is_layerable_mark(mark: Mark) raises -> Bool:
     """Whether `mark` can share `_render_layers_generic`'s continuous
     frame.
@@ -840,6 +875,8 @@ def _render_layers_generic[
     # layer sharing an axis must agree; the first layer on each axis sets
     # that axis's value and every later one is checked against it, so the
     # raised message names the first layer that disagrees.
+    var x_override = _DomainOverride()
+    var y_override = _DomainOverride()
     var x_log_seen = False
     var x_log_value = False
     var y_log_seen = False
@@ -911,11 +948,30 @@ def _render_layers_generic[
                 " nothing to the secondary domain and the right-hand axis"
                 " would silently not be drawn at all"
             )
-        if plots[i]._x_domain.has or plots[i]._y_domain.has:
-            raise Error(
-                "render_layers(): Plot.scale_x_domain()/scale_y_domain() aren't"
-                " supported here yet -- layer "
-                + String(i)
+        # Explicit domains are taken when every layer that sets one
+        # agrees, and become the shared domain in place of the combined
+        # data extent (#434). That is what an overlay means: a layer
+        # with no override scales against the same numbers. Two layers
+        # asking for different axes have no shared frame, and say so.
+        if plots[i]._x_domain.has:
+            _validate_domain_override(
+                plots[i]._x_domain, plots[i]._x_log, "Plot.scale_x_domain"
+            )
+            _merge_override(
+                x_override, plots[i]._x_domain, i, "Plot.scale_x_domain"
+            )
+        if plots[i]._y_domain.has:
+            if plots[i]._secondary_axis:
+                raise Error(
+                    "render_layers(): Plot.scale_y_domain() on a"
+                    " .secondary_axis() layer isn't supported yet -- layer "
+                    + String(i)
+                )
+            _validate_domain_override(
+                plots[i]._y_domain, plots[i]._y_log, "Plot.scale_y_domain"
+            )
+            _merge_override(
+                y_override, plots[i]._y_domain, i, "Plot.scale_y_domain"
             )
         if not x_log_seen:
             x_log_seen = True
@@ -1037,15 +1093,26 @@ def _render_layers_generic[
     var has_y_data = len(combined_y) > 0
     var y_scale = LinearScale(0.0, 1.0, 0.0, 1.0)
     if has_y_data:
-        y_scale = LinearScale(0.0, 1.0, 0.0, 1.0) if all_ecdf else (
-            _log_data_extent(combined_y) if y_log_value else (
-                _zero_baseline_y_extent(
-                    combined_y
-                ) if any_zero_baseline else _data_extent(combined_y)
+        # An explicit scale_y_domain() wins over the ECDF pin: the caller
+        # asked for that axis. Otherwise a group of nothing but ECDFs is
+        # pinned to [0, 1], and any other group is sized from its data.
+        y_scale = _domain_override_scale(
+            y_override, y_log_value
+        ) if y_override.has else (
+            LinearScale(0.0, 1.0, 0.0, 1.0) if all_ecdf else (
+                _log_data_extent(combined_y) if y_log_value else (
+                    _zero_baseline_y_extent(
+                        combined_y
+                    ) if any_zero_baseline else _data_extent(combined_y)
+                )
             )
         )
-    var x_scale = _log_data_extent(combined_x) if x_log_value else _data_extent(
-        combined_x
+    var x_scale = _domain_override_scale(
+        x_override, x_log_value
+    ) if x_override.has else (
+        _log_data_extent(combined_x) if x_log_value else _data_extent(
+            combined_x
+        )
     )
 
     var has_secondary_data = has_secondary and len(combined_y2) > 0
