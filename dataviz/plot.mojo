@@ -221,6 +221,12 @@ from dataviz.ridgeline import _render_ridgeline
 from dataviz.violin import _render_violin, _render_horizontal_violin
 from dataviz.waterfall import _WaterfallData
 from dataviz.box import _BoxData
+from dataviz.boxen import (
+    _BoxenData,
+    _letter_values,
+    _render_boxenplot,
+    _render_horizontal_boxenplot,
+)
 from dataviz.candlestick import _CandleData
 from dataviz.bullet import _BulletData
 from dataviz.population_pyramid import _PyramidData
@@ -545,6 +551,7 @@ struct Plot(Copyable, Movable):
     var color_map: Dict[String, Color]
     var _waterfall: _WaterfallData
     var _box: _BoxData
+    var _boxen: _BoxenData
     var _candle: _CandleData
     var _bullet: _BulletData
     var _gantt: _GanttData
@@ -615,6 +622,7 @@ struct Plot(Copyable, Movable):
         self.color_map = Dict[String, Color]()
         self._waterfall = _WaterfallData()
         self._box = _BoxData()
+        self._boxen = _BoxenData()
         self._candle = _CandleData()
         self._bullet = _BulletData()
         self._gantt = _GanttData()
@@ -885,6 +893,23 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.WATERFALL
         self._mark_style.waterfall_delta_width_fraction = delta_width_fraction
+        return self^
+
+    def mark_boxenplot(var self, horizontal: Bool = False) -> Self:
+        """Use `Mark.BOXENPLOT`: a letter-value plot -- `Mark.BOX` with
+        nested boxes at successively finer quantiles instead of one box
+        and two whiskers -- over `encode_boxenplot()`. `horizontal`
+        draws categories top-to-bottom; see `_render_boxenplot`
+        (boxen.mojo).
+
+        Args:
+            horizontal: Categories on the y-axis, values on the x-axis.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.BOXENPLOT
+        self._horizontal = horizontal
         return self^
 
     def mark_box(var self, horizontal: Bool = False) -> Self:
@@ -2051,6 +2076,70 @@ struct Plot(Copyable, Movable):
         self._waterfall.y0 = bars.y0.copy()
         self._waterfall.y1 = bars.y1.copy()
         return self^
+
+    def encode_boxenplot(
+        var self, categories: List[String], values: List[List[Float64]]
+    ) raises -> Self:
+        """Map a category column and, per category, a list of raw values
+        onto `Mark.BOXENPLOT`'s nested boxes: the letter values are
+        computed here, immediately, via `_letter_values()` (boxen.mojo)
+        -- median, then quantile pairs at the quartiles, eighths,
+        sixteenths and on, as many levels as the sample size supports,
+        with every observation beyond the deepest pair as an outlier.
+
+        Args:
+            categories: One label per group.
+            values: `values[i]` is every raw observation in
+                `categories[i]`; each must be non-empty.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            Error: `categories` and `values` differ in length, or a
+                group is empty.
+        """
+        if len(categories) != len(values):
+            raise Error(
+                "Plot.encode_boxenplot(): categories and values must have"
+                " the same length (got "
+                + String(len(categories))
+                + " and "
+                + String(len(values))
+                + ")"
+            )
+        var data = _BoxenData()
+        for i in range(len(values)):
+            if len(values[i]) == 0:
+                raise Error(
+                    "Plot.encode_boxenplot(): category "
+                    + categories[i]
+                    + " has no values -- a letter-value plot needs at least"
+                    " one observation per category"
+                )
+            var lv = _letter_values(values[i])
+            data.median.append(lv.median)
+            data.lower.append(lv.lower.copy())
+            data.upper.append(lv.upper.copy())
+            for v in lv.outliers:
+                data.outlier_cat.append(i)
+                data.outlier_value.append(v)
+        self.x_categories = categories.copy()
+        self.x_data = List[Float64]()
+        self.y_data = List[Float64]()
+        self._boxen = data^
+        return self^
+
+    def encode_boxenplot[
+        dtype: DType
+    ](
+        var self, categories: List[String], values: List[List[Scalar[dtype]]]
+    ) raises -> Self:
+        """`encode_boxenplot()`'s `values` generalized over numeric element
+        type; see `encode_boxplot()`'s `DType` overload."""
+        return self^.encode_boxenplot(
+            categories, _materialize_nested_scalar_list(values)
+        )
 
     def encode_boxplot(
         var self, categories: List[String], values: List[List[Float64]]
@@ -4699,6 +4788,12 @@ def _render_generic[
         return _render_lollipop(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.WATERFALL:
         return _render_waterfall(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    if plot._mark == Mark.BOXENPLOT:
+        if plot._horizontal:
+            return _render_horizontal_boxenplot(
+                target, plot, ox0, oy0, ox1, oy1, cache=cache
+            )
+        return _render_boxenplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.BOX:
         if plot._horizontal:
             return _render_horizontal_box(

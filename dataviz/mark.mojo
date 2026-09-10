@@ -115,7 +115,8 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime EVENTPLOT = Self(54)
 
     comptime POINTPLOT = Self(55)
-    comptime COUNT = 56
+    comptime BOXENPLOT = Self(56)
+    comptime COUNT = 57
     """How many marks exist -- one past the largest value above.
 
     Only the raster/SVG layout-equivalence sweep reads this: it
@@ -155,6 +156,8 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
             return "Mark.LOLLIPOP"
         if self == Self.POINTPLOT:
             return "Mark.POINTPLOT"
+        if self == Self.BOXENPLOT:
+            return "Mark.BOXENPLOT"
         if self == Self.WATERFALL:
             return "Mark.WATERFALL"
         if self == Self.BOX:
