@@ -314,9 +314,9 @@ def waterfall(
                 stages,
                 deltas,
                 is_total=is_total,
-                title="Revenue Bridge",
+                title="Operating Profit Bridge",
                 x_title="Stage",
-                y_title="Revenue ($k)",
+                y_title="Operating profit ($k)",
             )
             save(c, "docs/src/examples/out_waterfall.svg")
         ```

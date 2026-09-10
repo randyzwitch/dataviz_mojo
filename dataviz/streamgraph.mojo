@@ -341,16 +341,26 @@ def streamgraph(
         from dataviz import save
 
         def main() raises:
-            var years: List[String] = ["2020", "2021", "2022", "2023", "2024"]
-            var genres: List[String] = ["Pop", "Rock", "Jazz"]
+            var years: List[String] = [
+                "2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024",
+            ]
+            var genres: List[String] = [
+                "Pop", "Hip-hop", "Rock", "Electronic", "Country",
+            ]
             var listens: List[List[Int]] = [
-                [30, 40, 55, 60, 50],
-                [45, 35, 30, 25, 20],
-                [10, 15, 12, 18, 25],
+                [42, 45, 48, 52, 57, 63, 67, 71, 74],
+                [24, 29, 36, 44, 53, 64, 72, 80, 87],
+                [55, 53, 50, 48, 46, 45, 44, 43, 42],
+                [16, 20, 25, 31, 38, 46, 55, 63, 70],
+                [27, 28, 30, 31, 34, 38, 42, 47, 52],
             ]
 
             var c = streamgraph(
-                years, genres, listens, title="Music Listening by Genre"
+                years,
+                genres,
+                listens,
+                title="Illustrative Listening Hours by Genre (millions)",
+                x_title="Year",
             )
             save(c, "docs/src/examples/out_streamgraph.svg")
         ```
