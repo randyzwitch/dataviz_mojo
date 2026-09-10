@@ -57,6 +57,8 @@ from dataviz import (
     bullet,
     line,
     pie,
+    pcolormesh,
+    imshow,
     candlestick,
     funnel,
     population_pyramid,
@@ -1396,6 +1398,117 @@ def test_auto_supersample_picks_1_for_rect_marks_and_3_for_curved() raises:
         if differs:
             break
     assert_true(differs, "a pie's default is supersampled, so factor 1 differs")
+
+
+def test_auto_supersample_picks_1_for_the_image_marks() raises:
+    """`Mark.IMSHOW` and `Mark.PCOLORMESH` draw nothing but snapped
+    rects, like `Mark.HEATMAP`, so their default is factor 1 (#507):
+    the default render is the factor-1 render. And the cells lose
+    nothing by it -- at factor 3 the pre-snapped edges land on device
+    block boundaries and downsample back to the same pixels, which is
+    checked over the plot rect on a grid whose cells are not a whole
+    number of pixels wide.
+    """
+    var z = List[List[Float64]]()
+    for r in range(7):
+        var row = List[Float64]()
+        for c in range(11):
+            row.append(Float64((r * 11 + c) % 5))
+        z.append(row^)
+    var edges_x = List[Float64]()
+    for i in range(12):
+        edges_x.append(Float64(i))
+    var edges_y = List[Float64]()
+    for i in range(8):
+        edges_y.append(Float64(i))
+
+    _assert_same_canvas(
+        render(imshow(z, width=200, height=150)),
+        render(
+            imshow(z, theme=Theme(raster_supersample=1), width=200, height=150)
+        ),
+        "imshow's default is factor 1",
+    )
+    _assert_same_canvas(
+        render(pcolormesh(edges_x, edges_y, z, width=200, height=150)),
+        render(
+            pcolormesh(
+                edges_x,
+                edges_y,
+                z,
+                theme=Theme(raster_supersample=1),
+                width=200,
+                height=150,
+            )
+        ),
+        "pcolormesh's default is factor 1",
+    )
+
+    # The cells themselves: identical at 1 and 3. A two-value grid on a
+    # two-stop ramp, so every cell pixel is exactly one of two colors
+    # neither the background nor the axis chrome uses; the plot rect is
+    # the union of the two colors' bounding boxes, and inside it the
+    # factor-3 render must match pixel for pixel -- which also says no
+    # edge came out blended.
+    var lo = Color(0, 0, 255)
+    var hi = Color(255, 0, 0)
+    var stops: List[Color] = [lo, hi]
+    var two = List[List[Float64]]()
+    for r in range(7):
+        var row = List[Float64]()
+        for c in range(11):
+            row.append(Float64((r * 11 + c) % 2))
+        two.append(row^)
+    var one = render(
+        imshow(
+            two,
+            theme=Theme(
+                background=Color(0, 255, 0),
+                color_ramp=stops,
+                show_gridlines=False,
+                show_legend=False,
+                raster_supersample=1,
+            ),
+            width=200,
+            height=150,
+        )
+    )
+    var three = render(
+        imshow(
+            two,
+            theme=Theme(
+                background=Color(0, 255, 0),
+                color_ramp=stops,
+                show_gridlines=False,
+                show_legend=False,
+                raster_supersample=3,
+            ),
+            width=200,
+            height=150,
+        )
+    )
+    var b_lo = _bbox_of_color(one, lo)
+    var b_hi = _bbox_of_color(one, hi)
+    assert_true(b_lo.found and b_hi.found, "the grid drew nothing")
+    var x0 = min(b_lo.x0, b_hi.x0)
+    var y0 = min(b_lo.y0, b_hi.y0)
+    var x1 = max(b_lo.x1, b_hi.x1)
+    var y1 = max(b_lo.y1, b_hi.y1)
+    assert_true(
+        (x1 - x0) * (y1 - y0) > 5000, "plot rect too small to mean much"
+    )
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            var a = one.get_pixel(x, y)
+            var b = three.get_pixel(x, y)
+            assert_true(
+                a.r == b.r and a.g == b.g and a.b == b.b,
+                "cells differ between factor 1 and 3 at ("
+                + String(x)
+                + ", "
+                + String(y)
+                + ")",
+            )
 
 
 def test_auto_supersample_follows_what_is_drawn_not_the_mark_name() raises:

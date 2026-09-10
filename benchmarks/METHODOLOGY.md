@@ -57,3 +57,16 @@ On the raster backend the image path was measured slower (7.4 ms against
 4.6 ms for a 3x3 grid, 22.8 against 13.8 for 1024x1024) and, under
 supersampling, lands interior cell edges between logical pixels where the
 rect path keeps them hard. The raster backend keeps the rect path.
+
+### `Mark.IMSHOW` raster supersample 3 vs 1 (2026-09-10)
+
+AMD Threadripper 3970X, Linux, Mojo 1.0.0, canvas_mojo v0.29.0, 800x600,
+default theme except the factor, `sin(c/9)*cos(r/7)` field, median of 9
+`render()` calls. `AUTO` resolved to 3 for `IMSHOW` and `PCOLORMESH` before
+#507 and resolves to 1 after; the cells are identical either way.
+
+| grid    | factor 3 | factor 1 |
+| ------- | -------- | -------- |
+| 8x8     | 8.4 ms   | 1.4 ms   |
+| 64x64   | 12.7 ms  | 1.6 ms   |
+| 512x512 | 17.7 ms  | 10.5 ms  |
