@@ -9,6 +9,7 @@ from dataviz.continuous import (
     _step_points,
 )
 from dataviz.plot import (
+    _Scaled,
     Plot,
     _LegendLayout,
     _RenderResult,
@@ -153,10 +154,9 @@ def _render_ecdf[
     would make `Theme` and `Mark.ECDF` mutually exclusive.
 
     Layering two ECDFs on one frame -- comparing distributions, which is
-    the main reason to draw one -- is not available yet:
-    `render_layers()` takes only `Mark.POINT`/`LINE`/`AREA`.
-    `render_facets()` puts them side by side today, a weaker reading but
-    an honest one.
+    the main reason to draw one -- goes through `render_layers()`, which
+    draws each layer with `_draw_ecdf_layer` below and pins the shared
+    y-axis to `[0, 1]` when every layer is an ECDF.
 
     Args:
         target: Where to draw.
@@ -197,11 +197,47 @@ def _render_ecdf[
         cache=cache,
     )
 
-    var px = List[Float64](capacity=len(curve.x))
-    var py = List[Float64](capacity=len(curve.x))
-    for i in range(len(curve.x)):
-        px.append(frame.x_scale.to_pixel(curve.x[i]))
-        py.append(frame.y_scale.to_pixel(curve.y[i]))
+    _draw_ecdf_layer(
+        target, plot, curve.x, curve.y, frame.x_scale, frame.y_scale, frame.sc
+    )
+    return frame.result()
+
+
+def _draw_ecdf_layer[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    curve_x: List[Float64],
+    curve_y: List[Float64],
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+    sc: _Scaled,
+) raises:
+    """Stroke one `Mark.ECDF` staircase into an already-laid-out
+    continuous axis frame -- the counterpart to `_draw_kde_layer`, and
+    shared by `_render_ecdf` and `render_layers()` so both draw the same
+    geometry rather than the layered path reimplementing it (#440).
+
+    `curve_x`/`curve_y` are `_ecdf_points`' vertices in data units; the
+    layered path hands back the columns its domain was sized from, so
+    the curve drawn is provably the curve the axis was built for.
+
+    Args:
+        target: Where to draw.
+        plot: The layer, for its theme and `ecdf_complementary` flag.
+        curve_x: Staircase vertex x, in data units.
+        curve_y: Staircase vertex y, a proportion in `[0, 1]`.
+        x_scale: The frame's x-scale, already ranged to pixels.
+        y_scale: The frame's y-scale, already ranged to pixels.
+        sc: The frame's `_Scaled` theme quantities (line width).
+    """
+    var theme = plot._theme
+    var px = List[Float64](capacity=len(curve_x))
+    var py = List[Float64](capacity=len(curve_x))
+    for i in range(len(curve_x)):
+        px.append(x_scale.to_pixel(curve_x[i]))
+        py.append(y_scale.to_pixel(curve_y[i]))
 
     # Step first, decimate second -- `_draw_line_layer`'s order and its
     # reasoning: what gets thinned should be the geometry actually drawn,
@@ -209,11 +245,12 @@ def _render_ecdf[
     # A big sample is exactly where this matters, since an ECDF draws
     # every observation by construction (one vertex per distinct value,
     # doubled by the expansion) and never bins any of them away.
-    var stepped = _step_points(px, py, _ecdf_step_style(complementary))
+    var stepped = _step_points(
+        px, py, _ecdf_step_style(plot._distribution.ecdf_complementary)
+    )
     var thinned = _decimate_to_pixel_columns(stepped.px, stepped.py)
     var path = _build_line_path(thinned.px, thinned.py, 0.0)
-    target.stroke_path_aa(path, theme.mark_color, width=frame.sc.line_width)
-    return frame.result()
+    target.stroke_path_aa(path, theme.mark_color, width=sc.line_width)
 
 
 def _ecdf_step_style(complementary: Bool) -> StepStyle:
@@ -246,9 +283,9 @@ def ecdf(
     says -- the same sample always produces the same curve, and every
     observation is visible in it rather than summarized into a bucket.
     Two ECDFs also overplot legibly where two histograms do not, which
-    makes this the better chart for comparing distributions (that
-    comparison needs `render_layers()`, which does not take this mark
-    yet; `render_facets()` is the side-by-side alternative).
+    makes this the better chart for comparing distributions: pass two
+    of these to `render_layers()` and they share one frame, with the
+    proportion axis pinned to `[0, 1]`.
 
     What it costs: a shape a reader has to be taught. A histogram's
     modes are obvious and an ECDF's are slopes, so a bimodal sample
