@@ -1185,7 +1185,12 @@ def histogram(
             # though, so read the bar positions across panels and
             # the heights within one.
             var panels: List[Plot] = [a^, b^]
-            save_facets(panels, 2, "docs/src/examples/out_histogram_shared.svg")
+            save_facets(
+                panels,
+                2,
+                "docs/src/examples/out_histogram_shared.svg",
+                shared_y_scale=True,
+            )
         ```
 
     Example (Automatic Bins):

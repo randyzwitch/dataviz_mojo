@@ -4520,7 +4520,7 @@ def _render_generic[
     Raises up front for settings that can't apply to a standalone plot:
     `Plot.secondary_axis()`, a log scale on a non-continuous mark or on
     `Mark.AREA`'s y-axis, and `render_facets(shared_y_scale=True)`
-    (`has_shared_y_domain`) on anything but `Mark.POINT`/`LINE`/
+    (`has_shared_y_domain`) on anything but `Mark.POINT`/`LINE`/`AREA`/
     `EFFECT_SCATTER`, or together with `y_err*`.
 
     `shared_y_is_log` is `_render_facets_generic`'s own decision,
@@ -4575,13 +4575,14 @@ def _render_generic[
     if has_shared_y_domain and not (
         plot._mark == Mark.POINT
         or plot._mark == Mark.LINE
+        or plot._mark == Mark.AREA
         or plot._mark == Mark.EFFECT_SCATTER
     ):
         raise Error(
             "render_facets(shared_y_scale=True): only"
-            " Mark.POINT/LINE/EFFECT_SCATTER support a shared y-scale today"
-            " (Mark.AREA's own forced zero baseline has no principled way to"
-            " compose with an externally supplied shared domain)"
+            " Mark.POINT/LINE/AREA/EFFECT_SCATTER support a shared y-scale"
+            " today -- a categorical or polar mark has no continuous"
+            " y-domain for a shared range to mean anything against"
         )
     if has_shared_y_domain and plot._y_log != shared_y_is_log:
         raise Error(

@@ -1451,17 +1451,38 @@ def test_render_facets_raises_on_an_incompatible_mark_with_shared_y_scale() rais
         _ = render_facets(plots, 2, shared_y_scale=True)
 
 
-def test_render_facets_raises_on_mark_area_with_shared_y_scale() raises:
-    # Mark.AREA is excluded: its forced zero baseline can't compose with an
-    # external shared domain.
+def _occurrences(s: String, sub: String) -> Int:
+    var n = 0
+    var at = s.find(sub)
+    while at >= 0:
+        n += 1
+        at = s.find(sub, at + 1)
+    return n
+
+
+def test_render_facets_shared_y_scale_puts_one_value_on_one_row_across_area_cells() raises:
+    # Two Mark.AREA cells, 400x300 each (rows=1, default theme ->
+    # plot_y0=20, plot_y1=250): y0=[5, 20] and y1=[20, 70]. An AREA cell
+    # forces the zero baseline on the shared domain (#442): [0, 70],
+    # padded 5% at the top only -> [0, 73.5].
+    #
+    # scale() = (20-250)/73.5 = -3.1293
+    # to_pixel(20) = 250 - 62.585 = 187.415
+    # to_pixel(70) = 250 - 219.048 = 30.952
+    #
+    # Scaled to itself, cell 0's domain would be [0, 21] and its 20 would
+    # land at 30.952 -- the row every cell's own maximum lands on. So
+    # 187.415 appearing in both cells is the shared scale at work, and
+    # 30.952 appearing exactly once is cell 0 no longer scaled to itself.
     var x: List[Float64] = [1.0, 2.0]
-    var y0: List[Float64] = [5.0, 6.0]
-    var y1: List[Float64] = [50.0, 60.0]
-    var p0 = Plot().size(300, 220).mark_area().encode(x=x, y=y0)
-    var p1 = Plot().size(300, 220).mark_area().encode(x=x, y=y1)
+    var y0: List[Float64] = [5.0, 20.0]
+    var y1: List[Float64] = [20.0, 70.0]
+    var p0 = Plot().size(400, 300).mark_area().encode(x=x, y=y0)
+    var p1 = Plot().size(400, 300).mark_area().encode(x=x, y=y1)
     var plots: List[Plot] = [p0^, p1^]
-    with assert_raises():
-        _ = render_facets(plots, 2, shared_y_scale=True)
+    var s = render_facets_svg(plots, 2, shared_y_scale=True).to_string()
+    assert_equal(_occurrences(s, "187.415"), 2)
+    assert_equal(_occurrences(s, "30.952"), 1)
 
 
 def test_render_facets_svg_shared_y_scale_supports_log_when_every_cell_agrees() raises:
