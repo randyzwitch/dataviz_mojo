@@ -2,7 +2,7 @@
 `[tasks]` comment for why). Covers Mark.ARC (wedges, donut, SVG
 paths), Mark.NIGHTINGALE (equal-angle wedges, radius vs area mode),
 Mark.POLAR (_polar_point, polyline/markers, the grid,
-encode_polar_series()), Mark.POLAR_BAR (bar gaps), Mark.RADIALBAR
+encode_polar()), Mark.POLAR_BAR (bar gaps), Mark.RADIALBAR
 (track, rings, radial gap), Mark.RADAR (polygon fill/outline,
 validation), Mark.GAUGE (needle, bands, clamping, custom
 breakpoints), Mark.PARALLEL (per-dimension scaling, polylines), and
@@ -27,7 +27,6 @@ from dataviz import (
     parallel,
     pie,
     polar,
-    polar_series,
     polarbar,
     radar,
     radialbar,
@@ -421,7 +420,7 @@ def test_render_polar_raises_on_no_data() raises:
         _ = render(_hoisted5)
 
 
-def test_render_polar_series_matches_hand_derived_line_and_markers() raises:
+def test_render_polar_several_series_matches_hand_derived_line_and_markers() raises:
     # Two series, single-char names, so the same legend width as the
     # nightingale/polar-bar three-category cases: center (155,135), max
     # radius 85.5. Three angles 120 degrees apart (0, 2*pi/3, 4*pi/3)
@@ -437,7 +436,7 @@ def test_render_polar_series_matches_hand_derived_line_and_markers() raises:
     var angle: List[Float64] = [0.0, 2.0943951023932, 4.1887902047864]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[3.0, 6.0, 9.0], [9.0, 3.0, 6.0]]
-    var _hoisted6 = polar_series(angle, names, vals, width=400, height=300)
+    var _hoisted6 = polar(angle, names, vals, width=400, height=300)
     var c = render(_hoisted6)
     var palette = default_categorical_palette()
     _assert_color(c, 183, 135, palette[0], "series A, angle 0, radius_px 28.5")
@@ -450,39 +449,39 @@ def test_render_polar_series_matches_hand_derived_line_and_markers() raises:
     _assert_color(c, 126, 86, palette[1], "series B, angle 240, radius_px 57.0")
 
 
-def test_render_polar_series_raises_on_mismatched_names_and_values_length() raises:
+def test_render_polar_several_series_raises_on_mismatched_names_and_values_length() raises:
     var angle: List[Float64] = [0.0, 1.0]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[1.0, 2.0]]
     with assert_raises():
-        var _hoisted7 = polar_series(angle, names, vals, width=200, height=150)
+        var _hoisted7 = polar(angle, names, vals, width=200, height=150)
         _ = render(_hoisted7)
 
 
-def test_render_polar_series_raises_when_a_series_length_does_not_match_angle() raises:
+def test_render_polar_several_series_raises_when_a_series_length_does_not_match_angle() raises:
     var angle: List[Float64] = [0.0, 1.0]
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0]]
     with assert_raises():
-        var _hoisted8 = polar_series(angle, names, vals, width=200, height=150)
+        var _hoisted8 = polar(angle, names, vals, width=200, height=150)
         _ = render(_hoisted8)
 
 
-def test_render_polar_series_raises_on_negative_radius() raises:
+def test_render_polar_several_series_raises_on_negative_radius() raises:
     var angle: List[Float64] = [0.0]
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [[-1.0]]
     with assert_raises():
-        var _hoisted9 = polar_series(angle, names, vals, width=200, height=150)
+        var _hoisted9 = polar(angle, names, vals, width=200, height=150)
         _ = render(_hoisted9)
 
 
-def test_render_polar_series_raises_on_empty_angle() raises:
+def test_render_polar_several_series_raises_on_empty_angle() raises:
     var angle = List[Float64]()
     var names: List[String] = ["A"]
     var vals: List[List[Float64]] = [List[Float64]()]
     with assert_raises():
-        var _hoisted10 = polar_series(angle, names, vals, width=100, height=80)
+        var _hoisted10 = polar(angle, names, vals, width=100, height=80)
         _ = render(_hoisted10)
 
 

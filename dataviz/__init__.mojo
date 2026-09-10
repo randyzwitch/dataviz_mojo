@@ -67,7 +67,7 @@ from dataviz.treemap import treemap
 from dataviz.histogram import histogram
 from dataviz.lollipop import lollipop
 from dataviz.nightingale import nightingale
-from dataviz.polar import polar, polar_series
+from dataviz.polar import polar
 from dataviz.polar_bar import polarbar
 from dataviz.radialbar import radialbar
 from dataviz.gauge import gauge

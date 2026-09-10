@@ -294,7 +294,10 @@ def polar(
     """A polar-coordinate line plot: a line series where `angle` and
     `radius` place each point around a circle rather than on x/y axes,
     for cyclical data (compass headings, time of day, seasonal phase)
-    where a circular layout is the natural fit.
+    where a circular layout is the natural fit. For several named
+    series on one angular axis, call `polar(angle, series_names,
+    series_values)` -- the overload below -- which is the same chart
+    with a legend.
 
     `Mark.POLAR` over `angle` (radians, used as given; values beyond
     `2*pi` spiral outward rather than wrapping) and `radius` (linearly
@@ -348,6 +351,46 @@ def polar(
             )
             save(c, "docs/src/examples/out_polar.svg")
         ```
+
+    Example (Several Series):
+        ```mojo
+        from std.math import pi
+
+        from dataviz import polar
+        from dataviz import save
+
+        def main() raises:
+            var angle = List[Float64]()
+            for hour in range(25):
+                angle.append(2.0 * pi * Float64(hour) / 24.0)
+
+            # Illustrative station entries (thousands) by hour. The final value
+            # repeats midnight so each profile closes around the clock.
+            var weekday: List[Float64] = [
+                1.2, 0.7, 0.4, 0.3, 0.5, 1.8,
+                5.6, 10.8, 13.2, 9.4, 6.1, 5.3,
+                5.0, 5.2, 5.8, 7.1, 9.6, 12.7,
+                14.1, 11.3, 7.8, 5.0, 3.1, 2.0, 1.2,
+            ]
+            var weekend: List[Float64] = [
+                2.0, 1.3, 0.8, 0.5, 0.4, 0.6,
+                1.1, 2.2, 3.8, 5.5, 7.1, 8.4,
+                9.0, 9.4, 9.8, 10.1, 10.5, 10.7,
+                9.9, 8.6, 7.0, 5.2, 3.7, 2.7, 2.0,
+            ]
+            var names: List[String] = ["Weekday", "Weekend"]
+            var values: List[List[Float64]] = [
+                weekday.copy(), weekend.copy(),
+            ]
+
+            var c = polar(
+                angle,
+                names,
+                values,
+                title="Illustrative Hourly Transit Demand (thousands)",
+            )
+            save(c, "docs/src/examples/out_polar_several_series.svg")
+        ```
     """
     var plot = Plot().mark_polar().encode_polar(angle=angle, radius=radius)
     return _finished(
@@ -385,7 +428,7 @@ def polar[
     )
 
 
-def polar_series(
+def polar(
     angle: List[Float64],
     series_names: List[String],
     series_values: List[List[Float64]],
@@ -397,14 +440,12 @@ def polar_series(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A multi-series polar-coordinate line plot: `polar()`'s single-series
-    shape extended to several named series sharing one angular axis, for
-    comparing multiple cyclical series at once.
+    """`polar()` for several named series sharing one angular axis: one
+    trace per name, one radius scale across all of them, and a legend
+    keyed by `series_names`. The single-series form is the overload
+    above (#110).
 
-    `Mark.POLAR` over `Plot.encode_polar_series()`'s shared `angle` plus
-    one or more named series (`series_names` + `series_values`, one radius
-    value per series per angle), sharing one radius scale and a legend
-    keyed by `series_names`. See `_render_polar`.
+    `Mark.POLAR` over `Plot.encode_polar_series()`.
 
     Args:
         angle: Radians, used exactly as given and unwrapped -- shared
@@ -412,60 +453,22 @@ def polar_series(
         series_names: One trace per name, used as the legend key.
         series_values: `series_values[j]` is `series_names[j]`'s
             radius per angle; every value must be non-negative, and
-            every series shares one radius scale (`max(radius)`
-            computed across all of them together).
+            every series shares one radius scale.
         theme: Full styling knobs beyond this function's own
-            parameters (colors, margins, fonts, gridlines, ...) --
-            see `Theme`'s docstring.
-        width: Pixel width of the returned `Plot` (`.size()`).
-        height: Pixel height of the returned `Plot` (`.size()`).
-        title: The chart's title, shown above the plot.
-        subtitle: A secondary line shown under the title.
-        x_title: The x-axis caption.
-        y_title: The y-axis caption.
+            arguments.
+        width: Canvas width in pixels.
+        height: Canvas height in pixels.
+        title: Chart title; empty for none.
+        subtitle: Chart subtitle; empty for none.
+        x_title: X-axis title; empty for none.
+        y_title: Y-axis title; empty for none.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished `Plot`, ready to `render()` or `save()`.
 
-    Example:
-        ```mojo
-        from std.math import pi
-
-        from dataviz import polar_series
-        from dataviz import save
-
-        def main() raises:
-            var angle = List[Float64]()
-            for hour in range(25):
-                angle.append(2.0 * pi * Float64(hour) / 24.0)
-
-            # Illustrative station entries (thousands) by hour. The final value
-            # repeats midnight so each profile closes around the clock.
-            var weekday: List[Float64] = [
-                1.2, 0.7, 0.4, 0.3, 0.5, 1.8,
-                5.6, 10.8, 13.2, 9.4, 6.1, 5.3,
-                5.0, 5.2, 5.8, 7.1, 9.6, 12.7,
-                14.1, 11.3, 7.8, 5.0, 3.1, 2.0, 1.2,
-            ]
-            var weekend: List[Float64] = [
-                2.0, 1.3, 0.8, 0.5, 0.4, 0.6,
-                1.1, 2.2, 3.8, 5.5, 7.1, 8.4,
-                9.0, 9.4, 9.8, 10.1, 10.5, 10.7,
-                9.9, 8.6, 7.0, 5.2, 3.7, 2.7, 2.0,
-            ]
-            var names: List[String] = ["Weekday", "Weekend"]
-            var values: List[List[Float64]] = [
-                weekday.copy(), weekend.copy(),
-            ]
-
-            var c = polar_series(
-                angle,
-                names,
-                values,
-                title="Illustrative Hourly Transit Demand (thousands)",
-            )
-            save(c, "docs/src/examples/out_polar_series.svg")
-        ```
+    Raises:
+        Error: A series does not match `angle`'s length or holds a
+            negative radius (checked at render time).
     """
     var plot = (
         Plot()
@@ -479,7 +482,7 @@ def polar_series(
     )
 
 
-def polar_series[
+def polar[
     dtype: DType
 ](
     angle: List[Float64],
@@ -493,12 +496,11 @@ def polar_series[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`polar_series()` generalized over numeric element type for
-    `series_values`, via `_materialize_nested_scalar_list`
-    (array_like.mojo); see `scatter()`'s `DType` overload (continuous.mojo).
+    """The multi-series `polar()` generalized over `series_values`'
+    element type; see `scatter()`'s `DType` overload (continuous.mojo).
     `angle` stays concrete. Delegates to the concrete overload above.
     """
-    return polar_series(
+    return polar(
         angle,
         series_names,
         _materialize_nested_scalar_list(series_values),

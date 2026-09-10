@@ -70,7 +70,7 @@ the same `Plot` type.
 | Parallel coordinates | Comparing observations across many numeric dimensions | One value list per observation and dimension names | Axis order and scaling strongly affect visible patterns | [Example](../examples/parallel/) · [API](../dataviz/parallel/parallel/) |
 | Radar | Comparing a few named profiles across common indicators | Indicators, maxima, series names, and values by series | Area and angle make precise cross-axis comparisons difficult | [Example](../examples/radar/) · [API](../dataviz/radar/radar/) |
 | Polar line | Showing a relationship naturally expressed as angle and radius | Angle and radius columns | Cartesian alternatives are usually easier to read without a circular domain | [Example](../examples/polar/) · [API](../dataviz/polar/polar/) |
-| Multi-series polar | Comparing several angle-radius paths | Angles, series names, and radius values by series | Multiple paths can overlap heavily | [Example](../examples/polar_series/) · [API](../dataviz/polar/polar_series/) |
+| Multi-series polar | Comparing several angle-radius paths | Angles, series names, and radius values by series | Multiple paths can overlap heavily | [Example](../examples/polar/#several-series) · [API](../dataviz/polar/polar/) |
 | Wind barbs | Showing vector direction and magnitude at positions | x and y positions plus u and v vector components | Dense fields need enough canvas space to keep glyphs distinct | [Example](../examples/barbs/) · [API](../dataviz/barbs/barbs/) |
 
 ## Show composition and progress
