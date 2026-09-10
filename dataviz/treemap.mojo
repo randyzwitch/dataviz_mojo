@@ -270,11 +270,30 @@ def treemap(
         from dataviz import save
 
         def main() raises:
-            var ids: List[String] = ["root", "src", "docs", "main.py", "utils.py", "guide.md", "api.md"]
-            var parent_ids: List[String] = ["", "root", "root", "src", "src", "docs", "docs"]
-            var sizes: List[Int] = [0, 0, 0, 45, 20, 12, 8]
+            # The same illustrative portfolio used by the sunburst example:
+            # annual revenue by product line ($M), grouped into divisions.
+            var ids: List[String] = [
+                "Portfolio", "Cloud", "Commerce", "Data",
+                "Compute", "Storage", "Security",
+                "Checkout", "Subscriptions", "Marketplace",
+                "Warehouse", "Streaming", "Governance",
+            ]
+            var parent_ids: List[String] = [
+                "", "Portfolio", "Portfolio", "Portfolio",
+                "Cloud", "Cloud", "Cloud",
+                "Commerce", "Commerce", "Commerce",
+                "Data", "Data", "Data",
+            ]
+            var revenue: List[Int] = [
+                0, 0, 0, 0, 48, 31, 24, 42, 28, 19, 36, 22, 14,
+            ]
 
-            var c = treemap(ids, parent_ids, sizes, title="Project File Sizes")
+            var c = treemap(
+                ids,
+                parent_ids,
+                revenue,
+                title="Illustrative Product Portfolio Revenue ($M)",
+            )
             save(c, "docs/src/examples/out_treemap.svg")
         ```
     """

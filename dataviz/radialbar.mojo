@@ -167,10 +167,16 @@ def radialbar(
         from dataviz import save
 
         def main() raises:
-            var teams: List[String] = ["Platform", "Growth", "Data", "Design"]
-            var completion: List[Int] = [92, 78, 45, 60]
+            var workstreams: List[String] = [
+                "Identity", "Billing", "Search", "Analytics", "Mobile", "Support",
+            ]
+            var completion: List[Int] = [96, 88, 81, 74, 63, 55]
 
-            var c = radialbar(teams, completion, title="Team Completion")
+            var c = radialbar(
+                workstreams,
+                completion,
+                title="Illustrative Migration Completion (%)",
+            )
             save(c, "docs/src/examples/out_radialbar.svg")
         ```
     """
