@@ -4336,7 +4336,14 @@ def _render_svg_into(
     # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
     var result = _render_generic(
-        svg, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
+        svg,
+        plot,
+        frame.ox0,
+        frame.oy0,
+        frame.ox1,
+        frame.oy1,
+        cache=cache,
+        vector_target=True,
     )
     var label_requests = _label_text_requests(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
@@ -4564,6 +4571,7 @@ def _render_generic[
     shared_y_is_log: Bool = False,
     *,
     mut cache: FontCache,
+    vector_target: Bool = False,
 ) raises -> _RenderResult:
     """The dispatch, layout, and shape-drawing core `render()`/
     `render_svg()` (and the facet/layer variants) delegate to, generic
@@ -4571,7 +4579,10 @@ def _render_generic[
     `_TextRequest`s.
 
     `cache` is shared by label measurement and drawing throughout the
-    render.
+    render. `vector_target` is True when `target` keeps what it is given
+    as elements rather than pixels (the SVG backend); the one mark that
+    cares is `Mark.IMSHOW`, which draws a large grid as an image there
+    (see `_draw_cells_as_image`).
 
     Every mark other than `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER`
     dispatches to its own `_render_*` function immediately
@@ -4736,7 +4747,16 @@ def _render_generic[
     if plot._mark == Mark.CONTOURF:
         return _render_contourf(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.IMSHOW or plot._mark == Mark.PCOLORMESH:
-        return _render_image(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+        return _render_image(
+            target,
+            plot,
+            ox0,
+            oy0,
+            ox1,
+            oy1,
+            cache=cache,
+            vector_target=vector_target,
+        )
     if plot._mark == Mark.TRICONTOUR:
         return _render_tricontour(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.KDE:

@@ -41,7 +41,7 @@ from dataviz import (
     stacked_bar,
 )
 from dataviz.color_scale import ColorScale, default_categorical_palette
-from dataviz.image import _edge_pixels, _fill_cells
+from dataviz.image import _draw_cells_as_image, _edge_pixels, _fill_cells
 from dataviz.colormaps import viridis
 from dataviz.plot import (
     Plot,
@@ -2209,6 +2209,156 @@ def test_imshow_costs_the_output_rect_not_the_array() raises:
             + String(checker_rects)
         ),
     )
+
+
+def _same_rgb(a: Color, b: Color) -> Bool:
+    return a.r == b.r and a.g == b.g and a.b == b.b
+
+
+def _image_count(svg: String) -> Int:
+    var n = 0
+    var at = svg.find("<image ")
+    while at >= 0:
+        n += 1
+        at = svg.find("<image ", at + 1)
+    return n
+
+
+def _rect_count(svg: String) -> Int:
+    var n = 0
+    var at = svg.find("<rect ")
+    while at >= 0:
+        n += 1
+        at = svg.find("<rect ", at + 1)
+    return n
+
+
+def _smooth_field(n: Int) -> List[List[Float64]]:
+    var z = List[List[Float64]]()
+    for r in range(n):
+        var row = List[Float64]()
+        for c in range(n):
+            row.append(Float64(c * c + r) / Float64(n * n + n))
+        z.append(row^)
+    return z^
+
+
+def test_imshow_svg_embeds_a_large_grid_as_one_image() raises:
+    # #425: a 512x512 field was 8.5 MB of <rect> elements. Above the
+    # cell threshold the SVG backend gets one <image> holding a PNG of
+    # the cells, and no rect per cell -- only the chart's own rects
+    # (background, legend bar) remain, which is a handful.
+    var svg = render_svg(imshow(_smooth_field(64), width=640, height=420))
+    var s = svg.to_string()
+    assert_equal(_image_count(s), 1, "a 64x64 imshow is one <image> on SVG")
+    assert_true(
+        _rect_count(s) < 20,
+        "no rect per cell once the grid is an image -- got "
+        + String(_rect_count(s)),
+    )
+    assert_true(
+        s.find('preserveAspectRatio="none"') >= 0,
+        "the image is stretched to the plot rect, not letterboxed",
+    )
+    # And it is small: 64x64 was 231 KB as rects. Well under a tenth of
+    # that as an image (measured 8.8 KB), with room for encoder drift.
+    assert_true(
+        s.byte_length() < 30_000,
+        "a 64x64 imshow SVG should be a few KB, got " + String(s.byte_length()),
+    )
+
+
+def test_imshow_svg_keeps_a_small_grid_as_rects() raises:
+    # Below the threshold each cell stays an element a reader can
+    # inspect: 5x5 is 25 rects, no <image>.
+    var s = render_svg(
+        imshow(_smooth_field(5), theme=_image_theme(), width=640, height=420)
+    ).to_string()
+    assert_equal(_image_count(s), 0, "a 5x5 imshow stays rects on SVG")
+    # 25 cells plus the background rect.
+    assert_equal(_rect_count(s), 26)
+
+
+def test_pcolormesh_svg_always_draws_rects() raises:
+    # The mesh's edges are the caller's, not uniform, so it never
+    # becomes an image however many cells it has.
+    var n = 64
+    var edges = List[Float64]()
+    for i in range(n + 1):
+        edges.append(Float64(i))
+    var s = render_svg(
+        pcolormesh(edges, edges, _smooth_field(n), width=640, height=420)
+    ).to_string()
+    assert_equal(_image_count(s), 0, "pcolormesh never embeds an image")
+    assert_true(
+        _rect_count(s) > 1000,
+        "a 64x64 mesh is thousands of rects, got " + String(_rect_count(s)),
+    )
+
+
+def test_imshow_svg_decimates_a_grid_finer_than_the_plot_rect() raises:
+    # A 1024x1024 array over a plot rect a few hundred pixels wide:
+    # the embedded PNG is at most the plot rect's size, not the
+    # array's. Measured: 1.1 MB undecimated, 8.7 MB as rects; the bound
+    # here is generous over the decimated size.
+    var s = render_svg(imshow(_smooth_field(1024), width=640, height=420))
+    var s_str = s.to_string()
+    assert_equal(_image_count(s_str), 1)
+    assert_true(
+        s_str.byte_length() < 500_000,
+        "a 1024x1024 imshow SVG must not embed a megapixel PNG, got "
+        + String(s_str.byte_length())
+        + " bytes",
+    )
+
+
+def test_imshow_raster_never_uses_the_image_path() raises:
+    # On the raster backend the rect path stays: its edges are snapped
+    # in logical space so they are hard under supersampling, and the
+    # image path was measured slower there. The observable property is
+    # that a large grid's cell boundaries are still sharp at the
+    # default (supersampled) theme -- no blended pixel between two
+    # cells of a two-color checkerboard whose cells are whole pixels.
+    var c = render(
+        imshow(
+            _checkerboard(70, 70), theme=_image_theme(), width=640, height=420
+        )
+    )
+    # Plot rect (60, 20)-(619, 369) is 560x350: 70 cells are 8 px wide
+    # and 5 px tall. Walk one row; every pixel is exactly blue or red.
+    var blended = 0
+    for x in range(60, 620):
+        var p = c.get_pixel(x, 22)
+        if not (_same_rgb(p, _IMG_LO) or _same_rgb(p, _IMG_HI)):
+            blended += 1
+    assert_equal(blended, 0, "blended pixels between checkerboard cells")
+
+
+def test_draw_cells_as_image_matches_fill_cells_in_either_edge_order() raises:
+    # Without supersampling the two paths agree pixel for pixel, which
+    # is what makes the raster tests above cover the image path's cell
+    # placement too. Checked for ascending and descending y edges, so
+    # the helper's row flip is exercised even though Mark.IMSHOW never
+    # takes it.
+    var z = _smooth_field(9)
+    var scale = ColorScale.from_theme(_image_theme(), 0.0, 1.0)
+    var x_edges = List[Float64]()
+    for i in range(10):
+        x_edges.append(10.5 + 7.0 * Float64(i))
+    for flip in range(2):
+        var y_edges = List[Float64]()
+        for i in range(10):
+            var e = 5.5 + 4.0 * Float64(i)
+            y_edges.append(e)
+        if flip == 1:
+            y_edges.reverse()
+        var a = Canvas(100, 60, _IMG_BG)
+        var b = Canvas(100, 60, _IMG_BG)
+        _ = _fill_cells(a, z, x_edges, y_edges, scale)
+        _draw_cells_as_image(b, z, x_edges, y_edges, scale)
+        _assert_same_canvas(
+            a, b, "image path vs rect path, flip=" + String(flip)
+        )
 
 
 # Mark.EVENTPLOT

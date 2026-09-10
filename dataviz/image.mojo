@@ -7,6 +7,7 @@ draws category labels.
 
 from std.utils.numerics import isfinite
 
+from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
@@ -264,7 +265,8 @@ def _fill_cells[
     color_scale: ColorScale,
 ) -> Int:
     """Paint the grid: one `fill_rect` per run of same-colored cells,
-    shared by both marks.
+    shared by both marks (and, for a large `Mark.IMSHOW` grid on a
+    vector target, replaced by `_draw_cells_as_image`).
 
     `x_edges`/`y_edges` are snapped pixel boundaries from
     `_edge_pixels`, `len(z[0]) + 1` and `len(z) + 1` of them. Their
@@ -333,6 +335,92 @@ def _fill_cells[
     return filled
 
 
+# On a vector target, a regular grid with more cells than this is drawn
+# as one image rather than one rect per cell. See `_draw_cells_as_image`
+# for the measurement behind the number.
+comptime _IMAGE_MAX_RECT_CELLS = 1024
+
+
+def _draw_cells_as_image[
+    T: DrawTarget
+](
+    mut target: T,
+    z: List[List[Float64]],
+    x_edges: List[Float64],
+    y_edges: List[Float64],
+    color_scale: ColorScale,
+) raises:
+    """Paint a regular grid as one `draw_image`: an image holding each
+    cell's color, stretched over the grid's box.
+
+    This is `_fill_cells` for the large regular grid on a vector
+    target, where one rect per cell is the wrong shape: a 512x512 field
+    came out as megabytes of `<rect>` elements (#425), against tens of
+    kilobytes as a PNG in one `<image>`. Measured on the SVG backend
+    (benchmarks/METHODOLOGY.md), the image is the smaller file at every
+    grid size, and render time is the same as the rect path up to tens
+    of thousands of cells. Below `_IMAGE_MAX_RECT_CELLS` (a 32x32 grid)
+    the grid still goes through `_fill_cells`, because each cell is
+    then an element a reader can inspect and an editor can select,
+    which a bitmap is not. Bytes alone would never choose rects; that
+    is the one thing they buy.
+
+    The raster backend never comes here. Its rect path snaps every cell
+    edge in logical space (see `_snap_pixel_edge`) so the edges stay
+    hard under supersampling, while `draw_image` snaps in device space
+    and lands interior edges between logical pixels; and building the
+    device-sized block costs more than the rects do. `_render_image`
+    makes the choice from its `vector_target` argument.
+
+    Only `Mark.IMSHOW` comes here: its cells are uniform, which is what
+    an image's cells are. `Mark.PCOLORMESH`'s edges are whatever the
+    caller supplied, so it always goes through `_fill_cells`.
+
+    The box is the outer boundaries from `_edge_pixels`, min/max of
+    each pair as `_fill_cells` takes them, so the grid's outline lands
+    exactly where the rect path would put it. A grid finer than the box
+    is decimated to the box's size first, one cell per pixel, picking
+    the cell each pixel's center falls in -- the same collapse the rect
+    path gets from snapping, and what keeps a 1024x1024 array from
+    encoding a megapixel PNG to fill a 430x350 rect. Rows are laid top
+    to bottom; when `y_edges` runs the other way the rows are flipped so
+    row 0 still sits at `y_edges[0]`. `IMSHOW` never does that, but the
+    helper does not assume it.
+    """
+    var rows = len(z)
+    var cols = len(z[0])
+    var left = min(x_edges[0], x_edges[cols])
+    var right = max(x_edges[0], x_edges[cols])
+    var top = min(y_edges[0], y_edges[rows])
+    var bottom = max(y_edges[0], y_edges[rows])
+    if right <= left or bottom <= top:
+        return
+    var flip_rows = y_edges[0] > y_edges[rows]
+    var flip_cols = x_edges[0] > x_edges[cols]
+
+    # Snapped edges are whole pixels apart, so the box is an integer
+    # size; never below one cell per axis.
+    var img_w = min(cols, max(Int(right - left), 1))
+    var img_h = min(rows, max(Int(bottom - top), 1))
+
+    var pixels = List[UInt8](capacity=img_w * img_h * 4)
+    for j in range(img_h):
+        # floor((j + 0.5) * rows / img_h): the cell under the pixel's
+        # center. When img_h == rows this is j.
+        var r = ((2 * j + 1) * rows) // (2 * img_h)
+        var ri = rows - 1 - r if flip_rows else r
+        for i in range(img_w):
+            var c = ((2 * i + 1) * cols) // (2 * img_w)
+            var ci = cols - 1 - c if flip_cols else c
+            var color = color_scale.color_at(z[ri][ci])
+            pixels.append(color.r)
+            pixels.append(color.g)
+            pixels.append(color.b)
+            pixels.append(color.a)
+    var cells = Canvas(img_w, img_h, pixels^)
+    target.draw_image(cells, left, top, right - left, bottom - top)
+
+
 def _render_image[
     T: DrawTarget
 ](
@@ -344,6 +432,7 @@ def _render_image[
     oy1: Int,
     *,
     mut cache: FontCache,
+    vector_target: Bool,
 ) raises -> _RenderResult:
     """Render `Mark.IMSHOW` or `Mark.PCOLORMESH`: the array as colored
     cells over a continuous frame, with a color legend beside it.
@@ -379,6 +468,11 @@ def _render_image[
     here does and what makes the axes bound the data. It is *not*
     matplotlib's `imshow` default of square pixels -- see `imshow()`'s
     own docstring for what that costs and how to get square pixels back.
+
+    `vector_target` says whether `target` keeps what it is given as
+    elements rather than pixels (the SVG backend). There, a large
+    regular grid is drawn as one image instead of one rect per cell;
+    see `_draw_cells_as_image`.
     """
     var mark = plot._mark
     var shape = _image_grid_shape(plot._image.z, mark)
@@ -463,7 +557,14 @@ def _render_image[
 
     var x_px = _edge_pixels(frame.x_scale, x_values)
     var y_px = _edge_pixels(frame.y_scale, y_values)
-    _ = _fill_cells(target, plot._image.z, x_px, y_px, color_scale)
+    if (
+        vector_target
+        and mark == Mark.IMSHOW
+        and rows * cols > _IMAGE_MAX_RECT_CELLS
+    ):
+        _draw_cells_as_image(target, plot._image.z, x_px, y_px, color_scale)
+    else:
+        _ = _fill_cells(target, plot._image.z, x_px, y_px, color_scale)
 
     if theme.show_legend:
         _ = _draw_continuous_color_legend(
