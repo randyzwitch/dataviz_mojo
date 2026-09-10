@@ -344,20 +344,26 @@ def bump(
         from dataviz import Theme
 
         def main() raises:
-            var years: List[String] = ["2021", "2022", "2023", "2024"]
-            var languages: List[String] = ["Python", "JavaScript", "Rust"]
-            var scores: List[List[Int]] = [
-                [85, 90, 95, 98],
-                [92, 88, 84, 80],
-                [40, 55, 70, 85],
+            # Illustrative parcel volumes; bump converts each quarter's
+            # volumes to ranks, revealing overtakes rather than magnitudes.
+            var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"]
+            var carriers: List[String] = [
+                "SwiftShip", "ParcelPro", "Northstar", "MetroPost", "Relay",
+            ]
+            var parcels_k: List[List[Int]] = [
+                [92, 96, 101, 108, 114, 121],
+                [108, 105, 103, 101, 99, 97],
+                [74, 82, 94, 106, 119, 128],
+                [88, 90, 89, 93, 96, 102],
+                [61, 68, 77, 85, 92, 105],
             ]
 
             var c = bump(
-                years,
-                languages,
-                scores,
-                title="Programming Language Rankings",
-                x_title="Year",
+                quarters,
+                carriers,
+                parcels_k,
+                title="Illustrative Parcel-Carrier Rankings",
+                x_title="Quarter",
             )
             save(c, "docs/src/examples/out_bump.svg")
         ```

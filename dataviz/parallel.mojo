@@ -214,15 +214,30 @@ def parallel(
         from dataviz import save
 
         def main() raises:
-            var dims: List[String] = ["Horsepower", "MPG", "Weight (100 lbs)", "0-60 (sec)", "Price ($k)"]
-            var row_names: List[String] = ["Sedan", "SUV", "Sports Car"]
+            # Illustrative EV specifications. Each axis is normalized
+            # independently, exposing range/efficiency/cost tradeoffs.
+            var dims: List[String] = [
+                "Range (km)", "Efficiency (km/kWh)", "Charge (min)",
+                "Cargo (L)", "Price ($k)",
+            ]
+            var row_names: List[String] = [
+                "City", "Commuter", "Touring", "Crossover", "Utility", "Performance",
+            ]
             var data: List[List[Float64]] = [
-                [180.0, 32.0, 30.0, 8.5, 28.0],
-                [280.0, 22.0, 45.0, 6.5, 42.0],
-                [450.0, 16.0, 34.0, 3.5, 85.0],
+                [310.0, 6.4, 31.0, 310.0, 31.0],
+                [430.0, 6.1, 28.0, 390.0, 39.0],
+                [570.0, 5.6, 24.0, 440.0, 56.0],
+                [485.0, 5.1, 32.0, 620.0, 52.0],
+                [410.0, 4.4, 39.0, 880.0, 61.0],
+                [455.0, 4.2, 19.0, 350.0, 92.0],
             ]
 
-            var c = parallel(data, dims, row_names, title="Vehicle Profiles")
+            var c = parallel(
+                data,
+                dims,
+                row_names,
+                title="Illustrative Electric-Vehicle Tradeoffs",
+            )
             save(c, "docs/src/examples/out_parallel.svg")
         ```
     """

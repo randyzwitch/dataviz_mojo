@@ -165,13 +165,16 @@ def pie(
         from dataviz import save
 
         def main() raises:
-            var browsers: List[String] = ["Chrome", "Safari", "Edge", "Firefox", "Other"]
-            var share: List[Int] = [65, 18, 5, 7, 5]
+            # Illustrative share of 10,000 support requests by intake channel.
+            var channels: List[String] = [
+                "Email", "Live chat", "Phone", "Web form", "Other",
+            ]
+            var tickets: List[Int] = [4200, 2800, 1700, 900, 400]
 
             var c = pie(
-                browsers,
-                share,
-                title="Browser Market Share",
+                channels,
+                tickets,
+                title="Illustrative Support Mix",
                 width=400,
                 height=300,
             )
@@ -185,13 +188,16 @@ def pie(
         from dataviz import Theme
 
         def main() raises:
-            var browsers: List[String] = ["Chrome", "Safari", "Edge", "Firefox", "Other"]
-            var share: List[Int] = [65, 18, 5, 7, 5]
+            # The same illustrative support mix as the pie example.
+            var channels: List[String] = [
+                "Email", "Live chat", "Phone", "Web form", "Other",
+            ]
+            var tickets: List[Int] = [4200, 2800, 1700, 900, 400]
 
             var c_donut = pie(
-                browsers,
-                share,
-                title="Browser Market Share",
+                channels,
+                tickets,
+                title="Illustrative Support Mix",
                 inner_radius_fraction=0.55,
                 width=400,
                 height=300,
