@@ -79,7 +79,7 @@ environments:
       - conda: https://conda.modular.com/max/linux-64/mojo-compiler-1.0.0-release.conda
       - conda: https://conda.modular.com/max/noarch/mblack-26.5.0-release.conda
       - conda: https://conda.modular.com/max/noarch/mojo-python-1.0.0-release.conda
-      - conda_source: canvas_mojo[e384f527] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.27.0#86277a3b4d2b9b0d6dff3b5d2d6d19dd408432f2
+      - conda_source: canvas_mojo[0a505217] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.29.0#c0a9b267105144a3e18f155b4f0a5a12f525a3c4
       osx-arm64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.7.22-hbd8a1cb_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/click-8.4.2-pyhc90fa1f_0.conda
@@ -139,7 +139,7 @@ environments:
       - conda: https://conda.modular.com/max/noarch/mojo-python-1.0.0-release.conda
       - conda: https://conda.modular.com/max/osx-arm64/mojo-1.0.0-release.conda
       - conda: https://conda.modular.com/max/osx-arm64/mojo-compiler-1.0.0-release.conda
-      - conda_source: canvas_mojo[e5b97e53] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.27.0#86277a3b4d2b9b0d6dff3b5d2d6d19dd408432f2
+      - conda_source: canvas_mojo[72b53747] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.29.0#c0a9b267105144a3e18f155b4f0a5a12f525a3c4
 packages:
 - conda: https://conda.anaconda.org/conda-forge/linux-64/_go_select-2.3.0-cgo.tar.bz2
   sha256: d86836d4f3094b4ac149dcdc55f1f12be6e84ed1206a4234404a024e49769832
@@ -869,6 +869,7 @@ packages:
   - python >=3.11
   - python
   license: BSD-3-Clause
+  license_family: BSD
   run_exports: {}
   size: 112341
   timestamp: 1788802215348
@@ -970,6 +971,17 @@ packages:
   run_exports: {}
   size: 27515
   timestamp: 1788271419073
+- conda: https://conda.anaconda.org/conda-forge/noarch/platformdirs-4.11.8-pyh5ded981_0.conda
+  sha256: 8cbae1fed8437e63c9bcc691927402edb3809fccb26b15eb095df7dd2eb73e5f
+  md5: 48e9ecf08b0578a4313f13b2e2b0fd72
+  depends:
+  - python >=3.11
+  - python
+  license: MIT
+  license_family: MIT
+  run_exports: {}
+  size: 27718
+  timestamp: 1788959137036
 - conda: https://conda.anaconda.org/conda-forge/noarch/python-dateutil-2.9.0.post0-pyhe01879c_2.conda
   sha256: d6a17ece93bbd5139e02d2bd7dbfa80bee1a4261dced63f65f679121686bf664
   md5: 5b8d21249ff20967101ffa321cab24e8
@@ -1778,8 +1790,8 @@ packages:
   run_exports: {}
   size: 61221085
   timestamp: 1786294690001
-- conda_source: canvas_mojo[e384f527] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.27.0#86277a3b4d2b9b0d6dff3b5d2d6d19dd408432f2
-  version: 0.27.0
+- conda_source: canvas_mojo[0a505217] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.29.0#c0a9b267105144a3e18f155b4f0a5a12f525a3c4
+  version: 0.29.0
   build: hb0f4dca_0
   subdir: linux-64
   variants:
@@ -1828,7 +1840,7 @@ packages:
   - conda: https://conda.anaconda.org/conda-forge/noarch/mypy_extensions-1.1.0-pyha770c72_0.conda
   - conda: https://conda.anaconda.org/conda-forge/noarch/packaging-26.3-pyhc364b38_0.conda
   - conda: https://conda.anaconda.org/conda-forge/noarch/pathspec-1.1.1-pyhd8ed1ab_0.conda
-  - conda: https://conda.anaconda.org/conda-forge/noarch/platformdirs-4.11.6-pyh5ded981_0.conda
+  - conda: https://conda.anaconda.org/conda-forge/noarch/platformdirs-4.11.8-pyh5ded981_0.conda
   - conda: https://conda.anaconda.org/conda-forge/noarch/python-dateutil-2.9.0.post0-pyhe01879c_2.conda
   - conda: https://conda.anaconda.org/conda-forge/noarch/python-gil-3.14.7-h4df99d1_106.conda
   - conda: https://conda.anaconda.org/conda-forge/noarch/python_abi-3.14-9_cp314.conda
@@ -1841,8 +1853,8 @@ packages:
   - conda: https://conda.modular.com/max/linux-64/mojo-compiler-1.0.0-release.conda
   - conda: https://conda.modular.com/max/noarch/mblack-26.5.0-release.conda
   - conda: https://conda.modular.com/max/noarch/mojo-python-1.0.0-release.conda
-- conda_source: canvas_mojo[e5b97e53] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.27.0#86277a3b4d2b9b0d6dff3b5d2d6d19dd408432f2
-  version: 0.27.0
+- conda_source: canvas_mojo[72b53747] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.29.0#c0a9b267105144a3e18f155b4f0a5a12f525a3c4
+  version: 0.29.0
   build: h60d57d3_0
   subdir: osx-arm64
   variants:
@@ -1863,7 +1875,7 @@ packages:
   - conda: https://conda.anaconda.org/conda-forge/noarch/mypy_extensions-1.1.0-pyha770c72_0.conda
   - conda: https://conda.anaconda.org/conda-forge/noarch/packaging-26.3-pyhc364b38_0.conda
   - conda: https://conda.anaconda.org/conda-forge/noarch/pathspec-1.1.1-pyhd8ed1ab_0.conda
-  - conda: https://conda.anaconda.org/conda-forge/noarch/platformdirs-4.11.6-pyh5ded981_0.conda
+  - conda: https://conda.anaconda.org/conda-forge/noarch/platformdirs-4.11.8-pyh5ded981_0.conda
   - conda: https://conda.anaconda.org/conda-forge/noarch/python-dateutil-2.9.0.post0-pyhe01879c_2.conda
   - conda: https://conda.anaconda.org/conda-forge/noarch/python-gil-3.14.7-h4df99d1_106.conda
   - conda: https://conda.anaconda.org/conda-forge/noarch/python_abi-3.14-9_cp314.conda
