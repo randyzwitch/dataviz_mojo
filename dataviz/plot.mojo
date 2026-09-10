@@ -1476,9 +1476,8 @@ struct Plot(Copyable, Movable):
         documents why.
 
         Comparing two distributions on one frame is the main reason to
-        draw an ECDF, and it needs `render_layers()`, which today
-        accepts only `Mark.POINT`/`LINE`/`AREA` --
-        `render_facets()` is the side-by-side answer for now.
+        draw an ECDF, and `render_layers()` takes this mark: two ECDF
+        layers share one frame with the proportion axis pinned to `[0, 1]`.
 
         Args:
             complementary: Draw `1 - F(x)` (the survival function,

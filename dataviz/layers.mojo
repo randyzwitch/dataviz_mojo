@@ -54,6 +54,7 @@ from dataviz.frame import (
     _draw_continuous_axis_frame,
     _with_secondary_axis,
 )
+from dataviz.ecdf import _draw_ecdf_layer, _ecdf_points
 from dataviz.kde import (
     _draw_kde_layer,
     _draw_rug_ticks,
@@ -70,6 +71,7 @@ from dataviz.legend_position import LegendPosition
 from dataviz.mark import Mark
 from dataviz.output_format import OutputFormat
 from dataviz.plot import (
+    _require_non_empty,
     _resolve_supersample,
     Plot,
     _RenderResult,
@@ -589,7 +591,7 @@ def _is_layerable_mark(mark: Mark) raises -> Bool:
     place its data on a continuous x/y axis in the caller's own units,
     sized by `_data_extent`**. That is what makes one combined domain
     mean the same thing to every layer, which is the only thing layering
-    can be. The eleven below all satisfy it; everything else fails it for
+    can be. The twelve below all satisfy it; everything else fails it for
     one of three reasons:
 
     - **A categorical x** (BAR beyond the bar-combo special case,
@@ -625,6 +627,7 @@ def _is_layerable_mark(mark: Mark) raises -> Bool:
         or mark == Mark.AREA
         or mark == Mark.EFFECT_SCATTER
         or mark == Mark.KDE
+        or mark == Mark.ECDF
         or mark == Mark.RUG
         or mark == Mark.BARBS
         or mark == Mark.TRICONTOUR
@@ -703,6 +706,20 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
             values, plot._distribution.kde_bandwidth_override
         )
         return _LayerDomain(curve[0].copy(), curve[1].copy(), True)
+    if mark == Mark.ECDF:
+        # The staircase's own vertices, exactly what _render_ecdf strokes,
+        # so the drawn curve is the curve the axis was sized for. Its y
+        # is a proportion; zero_baseline keeps 0 on the axis when an
+        # ECDF shares a group with another mark, and a group that is
+        # all ECDFs pins the axis to [0, 1] outright (see the scale
+        # block in _render_layers_generic).
+        _require_non_empty(len(plot._distribution.values), "Plot.encode_ecdf()")
+        var observations = plot._distribution.values[0].copy()
+        _require_non_empty(len(observations), "Plot.encode_ecdf()")
+        var curve = _ecdf_points(
+            observations, plot._distribution.ecdf_complementary
+        )
+        return _LayerDomain(curve.x.copy(), curve.y.copy(), True)
     if mark == Mark.RUG:
         return _LayerDomain(_kde_observations(plot), List[Float64](), False)
     if mark == Mark.BARBS:
@@ -975,6 +992,11 @@ def _render_layers_generic[
     var combined_y2 = List[Float64]()
     var any_zero_baseline = False
     var any_zero_baseline2 = False
+    # Every primary layer an ECDF: the y-axis is a proportion whose two
+    # ends mean "none of the sample" and "all of it", so it is pinned to
+    # exactly [0, 1] as _render_ecdf pins it, rather than padded to
+    # 1.05. Any other mark in the group and the axis is data again.
+    var all_ecdf = True
     for i in range(len(plots)):
         for v in domains[i].xs:
             combined_x.append(v)
@@ -988,6 +1010,8 @@ def _render_layers_generic[
                 combined_y.append(v)
             if domains[i].zero_baseline:
                 any_zero_baseline = True
+            if not (plots[i]._mark == Mark.ECDF):
+                all_ecdf = False
 
     if len(combined_x) == 0:
         return _RenderResult(text_requests^, ox0, oy0, ox1, oy1)
@@ -1013,10 +1037,12 @@ def _render_layers_generic[
     var has_y_data = len(combined_y) > 0
     var y_scale = LinearScale(0.0, 1.0, 0.0, 1.0)
     if has_y_data:
-        y_scale = _log_data_extent(combined_y) if y_log_value else (
-            _zero_baseline_y_extent(
-                combined_y
-            ) if any_zero_baseline else _data_extent(combined_y)
+        y_scale = LinearScale(0.0, 1.0, 0.0, 1.0) if all_ecdf else (
+            _log_data_extent(combined_y) if y_log_value else (
+                _zero_baseline_y_extent(
+                    combined_y
+                ) if any_zero_baseline else _data_extent(combined_y)
+            )
         )
     var x_scale = _log_data_extent(combined_x) if x_log_value else _data_extent(
         combined_x
@@ -1234,6 +1260,16 @@ def _render_layers_generic[
                 layer_y_scale,
                 layer_sc,
                 Float64(frame.py1),
+            )
+        elif mark == Mark.ECDF:
+            _draw_ecdf_layer(
+                target,
+                plots[j],
+                domains[j].xs,
+                domains[j].ys,
+                frame.x_scale,
+                layer_y_scale,
+                layer_sc,
             )
         elif mark == Mark.RUG:
             # A rug rides the frame's baseline, not `layer_y_scale`: its

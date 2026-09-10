@@ -32,6 +32,7 @@ from _test_helpers import (
     _bbox_of_color,
     _bbox_of_color_in,
     _count_color,
+    _count_tag,
 )
 from canvas.buffer import Canvas
 from canvas.color import Color
@@ -42,6 +43,7 @@ from dataviz.barbs import barbs
 from dataviz.continuous import line, scatter
 from dataviz.contour import contour
 from dataviz.effect_scatter import effect_scatter
+from dataviz.ecdf import _ecdf_points, ecdf
 from dataviz.kde import kdeplot, rugplot
 from dataviz.tricontour import tricontour, tricontourf
 from dataviz.triplot import tripcolor, triplot
@@ -2835,3 +2837,66 @@ def test_bar_combo_line_layer_is_styled_like_a_standalone_line() raises:
 
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
+
+
+def test_render_layers_takes_two_ecdfs_and_pins_the_proportion_axis() raises:
+    """Two ECDFs on one frame -- the comparison that is the main reason to
+    draw one (#440). `a` is stochastically below `b` up to 4 and above it
+    after, so the two staircases cross exactly once; that is asserted on
+    the curves' own vertices, and the render is checked for one stroked
+    path per layer and a y-axis pinned to `[0, 1]` rather than padded.
+    """
+    var a: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    var b: List[Float64] = [0.5, 0.6, 0.7, 7.0, 8.0, 9.0]
+    var fa = _ecdf_points(a)
+    var fb = _ecdf_points(b)
+
+    # Walk both curves over the sorted union of x; count sign changes of
+    # F_a - F_b. Sorted, or the walk sees the two samples one after the
+    # other and counts every return trip as a crossing.
+    var xs = List[Float64]()
+    for v in a:
+        xs.append(v)
+    for v in b:
+        xs.append(v)
+    for i in range(1, len(xs)):
+        var k = i
+        while k > 0 and xs[k] < xs[k - 1]:
+            var tmp = xs[k]
+            xs[k] = xs[k - 1]
+            xs[k - 1] = tmp
+            k -= 1
+    var changes = 0
+    var prev = 0
+    for x in xs:
+        var ya = 0.0
+        for i in range(len(fa.x)):
+            if fa.x[i] <= x:
+                ya = fa.y[i]
+        var yb = 0.0
+        for i in range(len(fb.x)):
+            if fb.x[i] <= x:
+                yb = fb.y[i]
+        var sign = 1 if ya > yb else (-1 if ya < yb else 0)
+        if sign != 0 and prev != 0 and sign != prev:
+            changes += 1
+        if sign != 0:
+            prev = sign
+    assert_equal(changes, 1)
+
+    var p0 = ecdf(a, width=400, height=300)
+    var p1 = ecdf(b, width=400, height=300)
+    var plots: List[Plot] = [p0^, p1^]
+    var s = render_layers_svg(plots).to_string()
+    assert_equal(_count_tag(s, "path"), 2)
+    # 400x300, default theme -> plot_y0=20. Pinned to [0, 1], the
+    # staircase's final vertex (y=1) sits exactly on row 20.000; padded
+    # to [0, 1.05] it would sit at 20 + 230*0.05/1.05 = 30.952.
+    assert_true(
+        ",20.000" in s,
+        "the proportion axis is pinned to [0, 1]: y=1 lands on plot_y0",
+    )
+    assert_true(
+        ",30.952" not in s,
+        "the proportion axis is not padded past 1",
+    )
