@@ -544,3 +544,90 @@ def _aggregate(
         lows.append(iv[0])
         highs.append(iv[1])
     return _Aggregate(categories^, estimates^, lows^, highs^)
+
+
+struct _NumericAggregate(Movable):
+    """`_aggregate_by_x()`'s result: one row per distinct x, ascending."""
+
+    var xs: List[Float64]
+    var estimates: List[Float64]
+    var lows: List[Float64]
+    var highs: List[Float64]
+
+    def __init__(
+        out self,
+        var xs: List[Float64],
+        var estimates: List[Float64],
+        var lows: List[Float64],
+        var highs: List[Float64],
+    ):
+        self.xs = xs^
+        self.estimates = estimates^
+        self.lows = lows^
+        self.highs = highs^
+
+
+def _aggregate_by_x(
+    x: List[Float64],
+    y: List[Float64],
+    estimator: Estimator,
+    errorbar: ErrorBar,
+    seed: UInt64,
+) raises -> _NumericAggregate:
+    """`_aggregate()` for a continuous key: every observation whose `x`
+    is exactly equal is one group, and the groups come back sorted by
+    `x` so a line can be drawn through the estimates in order -- the
+    per-x estimation seaborn's `lineplot()` performs on repeated
+    measurements.
+
+    Exact equality is deliberate. Two readings at 1.0 and 1.0000001 are
+    two x positions, and deciding they are the same would be binning,
+    which is a different chart (`histogram()`).
+
+    Raises:
+        Error: `x` and `y` differ in length, or are empty.
+    """
+    if len(x) != len(y):
+        raise Error(
+            "x and y must have the same length (got "
+            + String(len(x))
+            + " and "
+            + String(len(y))
+            + ")"
+        )
+    if len(x) == 0:
+        raise Error("nothing to estimate: x is empty")
+    var keys = List[Float64]()
+    var members = List[List[Float64]]()
+    for i in range(len(x)):
+        var found = -1
+        for j in range(len(keys)):
+            if keys[j] == x[i]:
+                found = j
+        if found < 0:
+            keys.append(x[i])
+            members.append(List[Float64]())
+            found = len(keys) - 1
+        members[found].append(y[i])
+    # Sort the groups by key; the member lists ride along.
+    var order = List[Int](capacity=len(keys))
+    for j in range(len(keys)):
+        order.append(j)
+    for i in range(1, len(order)):
+        var k = i
+        while k > 0 and keys[order[k]] < keys[order[k - 1]]:
+            var t = order[k]
+            order[k] = order[k - 1]
+            order[k - 1] = t
+            k -= 1
+    var xs = List[Float64](capacity=len(keys))
+    var estimates = List[Float64](capacity=len(keys))
+    var lows = List[Float64](capacity=len(keys))
+    var highs = List[Float64](capacity=len(keys))
+    for j in order:
+        xs.append(keys[j])
+        estimates.append(_estimate(members[j], estimator))
+        var iv = _interval(members[j], estimator, errorbar, seed)
+        lows.append(iv[0])
+        highs.append(iv[1])
+    return _NumericAggregate(xs^, estimates^, lows^, highs^)

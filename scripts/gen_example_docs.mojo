@@ -104,6 +104,7 @@ def _titles() -> Dict[String, String]:
     d["residplot"] = "Residual Plot"
     d["barplot"] = "Estimate Bars"
     d["countplot"] = "Count Bars"
+    d["lineplot"] = "Estimate Line"
     d["kdeplot"] = "Density Curve"
     d["rugplot"] = "Rug"
     d["marimekko"] = "Marimekko"
@@ -209,6 +210,7 @@ def _categories() -> List[Category]:
                 "residplot",
                 "barplot",
                 "countplot",
+                "lineplot",
                 "eventplot",
             ],
         )

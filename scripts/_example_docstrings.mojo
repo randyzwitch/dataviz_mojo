@@ -110,6 +110,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("residplot", "residplot", "residplot"),
         ExamplePage("barplot", "barplot", "barplot"),
         ExamplePage("countplot", "barplot", "countplot"),
+        ExamplePage("lineplot", "lineplot", "lineplot"),
         ExamplePage("kdeplot", "kde", "kdeplot"),
         ExamplePage("rugplot", "kde", "rugplot"),
         ExamplePage("marimekko", "marimekko", "marimekko"),

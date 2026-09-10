@@ -15,6 +15,7 @@ from dataviz.stats import (
     ErrorBar,
     Estimator,
     _aggregate,
+    _aggregate_by_x,
     _estimate,
     _interval,
     _ols_fit,
@@ -174,6 +175,30 @@ def test_aggregate_groups_in_first_seen_order() raises:
     assert_equal(agg.estimates[0], 2.0)
     assert_equal(agg.estimates[1], 3.0)
     assert_equal(agg.estimates[2], 5.0)
+
+
+def test_aggregate_by_x_groups_exact_keys_and_sorts_them() raises:
+    # Repeated measurements at x=2, 1 and 3, given out of order; groups
+    # come back sorted by x with each group's mean.
+    var x: List[Float64] = [2.0, 1.0, 2.0, 3.0, 1.0, 3.0]
+    var y: List[Float64] = [20.0, 10.0, 22.0, 30.0, 12.0, 34.0]
+    var agg = _aggregate_by_x(x, y, Estimator.MEAN, ErrorBar.se(), 1)
+    assert_equal(len(agg.xs), 3)
+    assert_equal(agg.xs[0], 1.0)
+    assert_equal(agg.xs[1], 2.0)
+    assert_equal(agg.xs[2], 3.0)
+    assert_equal(agg.estimates[0], 11.0)
+    assert_equal(agg.estimates[1], 21.0)
+    assert_equal(agg.estimates[2], 32.0)
+    # se of a pair {a, b} is |a - b| / 2: 1.0, 1.0, 2.0.
+    assert_almost_equal(agg.lows[0], 10.0, atol=1e-12)
+    assert_almost_equal(agg.highs[2], 34.0, atol=1e-12)
+    # Nearly equal x values are distinct positions, not one group.
+    var xn: List[Float64] = [1.0, 1.0000001]
+    var yn: List[Float64] = [5.0, 7.0]
+    assert_equal(
+        len(_aggregate_by_x(xn, yn, Estimator.MEAN, ErrorBar.none(), 1).xs), 2
+    )
 
 
 def test_estimation_raises_on_bad_input() raises:
