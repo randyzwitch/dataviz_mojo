@@ -274,6 +274,7 @@ from dataviz.sankey import _render_sankey
 from dataviz.radialbar import _render_radialbar
 from dataviz.histogram import BinRule, _bin_histogram
 from dataviz.lollipop import _render_lollipop, _render_horizontal_lollipop
+from dataviz.pointplot import _render_pointplot
 from dataviz.single_axis import _render_single_axis
 from dataviz.population_pyramid import _render_population_pyramid
 from dataviz.stacked_bar import (
@@ -849,6 +850,19 @@ struct Plot(Copyable, Movable):
         Encoded via `encode_parallel()`.
         """
         self._mark = Mark.PARALLEL
+        return self^
+
+    def mark_pointplot(var self) -> Self:
+        """Use `Mark.POINTPLOT`: one point per category at its value, with
+        `encode_categorical()`'s `y_err_lower`/`y_err_upper` as a whisker
+        and a line joining the points -- the glyph `pointplot()` draws
+        for an estimate per category. The y-axis follows the data
+        rather than starting at zero; see `_render_pointplot`.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.POINTPLOT
         return self^
 
     def mark_lollipop(var self, horizontal: Bool = False) -> Self:
@@ -4675,6 +4689,8 @@ def _render_generic[
                 target, plot, ox0, oy0, ox1, oy1, cache=cache
             )
         return _render_bar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    if plot._mark == Mark.POINTPLOT:
+        return _render_pointplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.LOLLIPOP:
         if plot._horizontal:
             return _render_horizontal_lollipop(

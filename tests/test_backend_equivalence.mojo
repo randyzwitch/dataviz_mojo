@@ -59,6 +59,7 @@ from dataviz import (
     grouped_bar,
     heatmap,
     lollipop,
+    pointplot,
     marimekko,
     nightingale,
     parallel,
@@ -154,6 +155,8 @@ def _representative_plot(mark: Mark) raises -> Plot:
         return bar(cats, vals, width=_W, height=_H)
     if mark == Mark.LOLLIPOP:
         return lollipop(cats, vals, width=_W, height=_H)
+    if mark == Mark.POINTPLOT:
+        return pointplot(cats, vals, width=_W, height=_H)
     if mark == Mark.ARC:
         return pie(cats, vals, width=_W, height=_H)
     if mark == Mark.FUNNEL:
@@ -561,7 +564,7 @@ def test_backends_agree_with_titles_and_rotated_axis_labels() raises:
 def test_mark_count_is_one_past_the_newest_mark() raises:
     """Require `Mark.COUNT` to be one greater than the newest mark value."""
     assert_true(
-        Mark.EVENTPLOT == Mark(Mark.COUNT - 1),
+        Mark.POINTPLOT == Mark(Mark.COUNT - 1),
         (
             "Mark.COUNT must be one past the newest mark -- update both when"
             " adding one"

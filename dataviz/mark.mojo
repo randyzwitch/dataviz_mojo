@@ -16,7 +16,8 @@ describes the drawing. By data shape:
   scattered samples, drawn as the triangulation itself).
   POLAR takes `encode_polar()`/`encode_polar_series()` (angle +
   radius); SINGLE_AXIS takes `encode_single_axis()` (x only).
-- `encode_categorical()` (category + value): BAR, LOLLIPOP, ARC
+- `encode_categorical()` (category + value): BAR, LOLLIPOP, POINTPLOT,
+  ARC
   (pie/donut), FUNNEL, NIGHTINGALE, POLAR_BAR, RADIALBAR. WATERFALL
   takes `encode_waterfall()` (signed deltas); `histogram()` feeds BAR
   through `encode_histogram()`.
@@ -113,7 +114,8 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime PCOLORMESH = Self(53)
     comptime EVENTPLOT = Self(54)
 
-    comptime COUNT = 55
+    comptime POINTPLOT = Self(55)
+    comptime COUNT = 56
     """How many marks exist -- one past the largest value above.
 
     Only the raster/SVG layout-equivalence sweep reads this: it
@@ -151,6 +153,8 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
             return "Mark.ARC"
         if self == Self.LOLLIPOP:
             return "Mark.LOLLIPOP"
+        if self == Self.POINTPLOT:
+            return "Mark.POINTPLOT"
         if self == Self.WATERFALL:
             return "Mark.WATERFALL"
         if self == Self.BOX:
