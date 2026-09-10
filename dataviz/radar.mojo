@@ -259,12 +259,17 @@ def radar(
         from dataviz import save
 
         def main() raises:
-            var indicators: List[String] = ["Attack", "Defense", "Speed", "Stamina", "Skill"]
-            var max_values: List[Float64] = [100.0, 100.0, 100.0, 100.0, 100.0]
-            var series_names: List[String] = ["Team A", "Team B"]
-            var series_values: List[List[Int]] = [
-                [90, 60, 80, 70, 85],
-                [65, 85, 55, 90, 60],
+            # Criteria use their natural units and different maxima; higher is
+            # better on every axis.
+            var indicators: List[String] = [
+                "Reliability / 10", "Integrations", "Regions", "Support / 5", "Security / 10",
+            ]
+            var max_values: List[Float64] = [10.0, 200.0, 12.0, 5.0, 10.0]
+            var series_names: List[String] = ["Atlas", "Beacon", "Comet"]
+            var series_values: List[List[Float64]] = [
+                [9.5, 160.0, 8.0, 3.8, 7.0],
+                [8.0, 110.0, 12.0, 4.8, 8.0],
+                [9.0, 185.0, 6.0, 4.0, 10.0],
             ]
 
             var c = radar(
@@ -272,7 +277,7 @@ def radar(
                 max_values,
                 series_names,
                 series_values,
-                title="Team Skills",
+                title="Illustrative Platform Evaluation",
             )
             save(c, "docs/src/examples/out_radar.svg")
         ```

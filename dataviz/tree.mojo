@@ -290,12 +290,25 @@ def tree(
 
         def main() raises:
             var ids: List[String] = [
-                "CEO", "Engineering", "Sales", "Backend", "Frontend", "Enterprise", "SMB",
+                "CEO", "Product", "Engineering", "Go-to-Market", "Operations",
+                "Design", "Research", "Platform", "Applications",
+                "Sales", "Success", "Finance", "People",
             ]
-            var parent_ids: List[String] = ["", "CEO", "CEO", "Engineering", "Engineering", "Sales", "Sales"]
-            var values: List[Int] = [0, 0, 0, 1, 1, 1, 1]
+            var parent_ids: List[String] = [
+                "", "CEO", "CEO", "CEO", "CEO",
+                "Product", "Product", "Engineering", "Engineering",
+                "Go-to-Market", "Go-to-Market",
+                "Operations", "Operations",
+            ]
+            # Tree layout uses the relationships; unit leaf values keep each
+            # team at equal visual weight.
+            var values: List[Int] = [
+                0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+            ]
 
-            var c = tree(ids, parent_ids, values, title="Project Files")
+            var c = tree(
+                ids, parent_ids, values, title="Illustrative Company Organization"
+            )
             save(c, "docs/src/examples/out_tree.svg")
         ```
     """

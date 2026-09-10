@@ -147,12 +147,17 @@ def polarbar(
         from dataviz import save
 
         def main() raises:
-            var months: List[String] = [
-                "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+            var direction: List[String] = [
+                "N", "NE", "E", "SE", "S", "SW", "W", "NW",
             ]
-            var rainfall: List[Float64] = [2.6, 5.9, 9.0, 26.4, 28.7, 70.7, 175.6, 182.2, 48.7, 18.8, 6.0, 2.3]
+            # Illustrative share of observations from each direction; sums to 100%.
+            var frequency: List[Int] = [18, 12, 9, 7, 11, 14, 16, 13]
 
-            var c = polarbar(months, rainfall, title="Monthly Rainfall")
+            var c = polarbar(
+                direction,
+                frequency,
+                title="Illustrative Wind Direction Frequency (%)",
+            )
             save(c, "docs/src/examples/out_polarbar.svg")
         ```
     """

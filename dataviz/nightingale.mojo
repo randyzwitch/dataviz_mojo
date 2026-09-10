@@ -148,11 +148,18 @@ def nightingale(
         from dataviz import save
 
         def main() raises:
-            var causes: List[String] = ["Zymotic disease", "Wounds", "Other"]
-            var deaths: List[Int] = [1857, 202, 97]
+            var months: List[String] = [
+                "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+            ]
+            # Illustrative monthly bicycle trips, in thousands.
+            var trips: List[Int] = [18, 22, 35, 51, 68, 79, 84, 81, 65, 47, 29, 20]
 
             var c = nightingale(
-                causes, deaths, area=True, title="Causes of Mortality"
+                months,
+                trips,
+                area=True,
+                title="Illustrative Monthly Bicycle Trips (thousands)",
             )
             save(c, "docs/src/examples/out_nightingale.svg")
         ```

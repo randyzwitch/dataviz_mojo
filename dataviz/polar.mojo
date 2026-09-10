@@ -322,30 +322,30 @@ def polar(
 
     Example:
         ```mojo
-        from std.math import pi, sin
+        from std.math import pi
 
         from dataviz import polar
         from dataviz import save
 
         def main() raises:
             var angle = List[Float64]()
-            var radius = List[Float64]()
-            var steps = 200
-            for i in range(steps + 1):
-                var theta = 2.0 * pi * Float64(i) / Float64(steps)
-                var r = sin(2.0 * theta)
-                # A negative r has no polar meaning on its own -- fold it into
-                # the opposite direction (theta + pi) instead, the standard
-                # way a signed polar radius is plotted, so the curve's negative lobes still draw rather than getting clipped by
-                # encode_polar()'s non-negative-radius validation.
-                if r < 0.0:
-                    angle.append(theta + pi)
-                    radius.append(-r)
-                else:
-                    angle.append(theta)
-                    radius.append(r)
+            for hour in range(25):
+                angle.append(2.0 * pi * Float64(hour) / 24.0)
 
-            var c = polar(angle, radius, title="Four-Petal Rose Curve")
+            # Illustrative hourly electricity demand (GW); repeat midnight at
+            # hour 24 so the daily profile closes around the clock.
+            var demand: List[Float64] = [
+                22.0, 20.5, 19.4, 18.8, 19.1, 21.7,
+                26.8, 31.5, 34.2, 35.8, 36.9, 37.4,
+                36.8, 36.1, 35.7, 36.4, 39.2, 43.8,
+                46.1, 44.7, 40.3, 34.8, 29.1, 25.0, 22.0,
+            ]
+
+            var c = polar(
+                angle,
+                demand,
+                title="Illustrative Weekday Electricity Demand (GW)",
+            )
             save(c, "docs/src/examples/out_polar.svg")
         ```
     """
@@ -436,16 +436,33 @@ def polar_series(
 
         def main() raises:
             var angle = List[Float64]()
-            for i in range(12):
-                angle.append(2.0 * pi * Float64(i) / 12.0)
+            for hour in range(25):
+                angle.append(2.0 * pi * Float64(hour) / 24.0)
 
-            var names: List[String] = ["Miami", "Phoenix"]
-            var miami: List[Int] = [68, 69, 72, 76, 80, 83, 84, 85, 84, 80, 74, 69]
-            var phoenix: List[Int] = [57, 61, 66, 75, 84, 95, 97, 95, 90, 78, 65, 56]
-            var values: List[List[Int]] = [miami.copy(), phoenix.copy()]
+            # Illustrative station entries (thousands) by hour. The final value
+            # repeats midnight so each profile closes around the clock.
+            var weekday: List[Float64] = [
+                1.2, 0.7, 0.4, 0.3, 0.5, 1.8,
+                5.6, 10.8, 13.2, 9.4, 6.1, 5.3,
+                5.0, 5.2, 5.8, 7.1, 9.6, 12.7,
+                14.1, 11.3, 7.8, 5.0, 3.1, 2.0, 1.2,
+            ]
+            var weekend: List[Float64] = [
+                2.0, 1.3, 0.8, 0.5, 0.4, 0.6,
+                1.1, 2.2, 3.8, 5.5, 7.1, 8.4,
+                9.0, 9.4, 9.8, 10.1, 10.5, 10.7,
+                9.9, 8.6, 7.0, 5.2, 3.7, 2.7, 2.0,
+            ]
+            var names: List[String] = ["Weekday", "Weekend"]
+            var values: List[List[Float64]] = [
+                weekday.copy(), weekend.copy(),
+            ]
 
             var c = polar_series(
-                angle, names, values, title="Monthly Temperature by City"
+                angle,
+                names,
+                values,
+                title="Illustrative Hourly Transit Demand (thousands)",
             )
             save(c, "docs/src/examples/out_polar_series.svg")
         ```
