@@ -555,21 +555,28 @@ def imshow(
         from dataviz import Theme
 
         def main() raises:
+            # Illustrative thermal-camera readings across a server rack.
+            # Two hot components sit on top of a gentle exhaust gradient.
             var z = List[List[Float64]]()
             for r in range(48):
                 var row = List[Float64]()
                 for c in range(64):
-                    var y = (Float64(r) - 24.0) / 12.0
-                    var x = (Float64(c) - 32.0) / 12.0
-                    row.append(exp(-(x * x + y * y)) * 100.0)
+                    var dx1 = (Float64(c) - 19.0) / 7.0
+                    var dy1 = (Float64(r) - 17.0) / 6.0
+                    var dx2 = (Float64(c) - 46.0) / 9.0
+                    var dy2 = (Float64(r) - 31.0) / 8.0
+                    var temperature = 24.0 + Float64(r) * 0.08
+                    temperature += 31.0 * exp(-(dx1 * dx1 + dy1 * dy1))
+                    temperature += 22.0 * exp(-(dx2 * dx2 + dy2 * dy2))
+                    row.append(temperature)
                 z.append(row^)
 
             var chart = imshow(
                 z,
                 theme=Theme(color_ramp=viridis()),
-                title="A Gaussian bump, 48x64",
-                x_title="column",
-                y_title="row",
+                title="Illustrative Server-Rack Thermal Scan (°C)",
+                x_title="Sensor column",
+                y_title="Sensor row",
             )
             save(chart, "docs/src/examples/out_imshow.svg")
         ```
@@ -673,7 +680,7 @@ def pcolormesh(
 
     Example:
         ```mojo
-        from std.math import sin
+        from std.math import exp, sin
 
         from dataviz import pcolormesh
         from dataviz.colormaps import magma
@@ -681,22 +688,29 @@ def pcolormesh(
         from dataviz import Theme
 
         def main() raises:
-            # Columns widen to the right, rows are evenly spaced: the
-            # cells are the data's own, not a regular grid.
-            var x_edges = List[Float64]()
-            var acc = 0.0
-            for c in range(25):
-                x_edges.append(acc)
-                acc += 1.0 + Float64(c) * 0.25
-            var y_edges = List[Float64]()
-            for r in range(17):
-                y_edges.append(Float64(r) * 0.5)
+            # Weather balloons are farther apart downrange and report at
+            # uneven altitude bands, so each cell keeps its measured extent.
+            var x_edges: List[Float64] = [
+                0, 3, 7, 12, 18, 25, 33, 42, 52, 63, 75, 88, 102,
+            ]
+            var y_edges: List[Float64] = [
+                0.0, 0.4, 0.9, 1.5, 2.3, 3.3, 4.6, 6.2, 8.0,
+            ]
 
             var z = List[List[Float64]]()
-            for r in range(16):
+            for r in range(len(y_edges) - 1):
                 var row = List[Float64]()
-                for c in range(24):
-                    row.append(sin(x_edges[c] / 6.0) * Float64(r))
+                var altitude = (y_edges[r] + y_edges[r + 1]) / 2.0
+                for c in range(len(x_edges) - 1):
+                    var distance = (x_edges[c] + x_edges[c + 1]) / 2.0
+                    var plume_x = (distance - 55.0) / 18.0
+                    var plume_y = (altitude - 2.2) / 0.9
+                    var temperature = 19.0 - 6.2 * altitude
+                    temperature += 2.0 * sin(distance / 17.0)
+                    temperature += 8.0 * exp(
+                        -(plume_x * plume_x + plume_y * plume_y)
+                    )
+                    row.append(temperature)
                 z.append(row^)
 
             var chart = pcolormesh(
@@ -704,9 +718,9 @@ def pcolormesh(
                 y_edges,
                 z,
                 theme=Theme(color_ramp=magma()),
-                title="Unevenly spaced columns",
-                x_title="x",
-                y_title="y",
+                title="Illustrative Atmospheric Temperature Cross-Section (°C)",
+                x_title="Distance downrange (km)",
+                y_title="Altitude (km)",
             )
             save(chart, "docs/src/examples/out_pcolormesh.svg")
         ```
