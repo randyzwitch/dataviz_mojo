@@ -13,6 +13,7 @@ geometry.
 """
 
 from canvas.geometry import round_to_int
+from std.math import floor
 
 
 def _snap_pixel_edge(value: Float64) -> Float64:
@@ -36,8 +37,27 @@ def _snap_pixel_edge(value: Float64) -> Float64:
     of removing it. Snapping in logical space first puts the mapped
     edge on a device block boundary, so the downsampled edge is hard.
     Both place the edge identically; only the crispness differs.
+
+    The tie -- a coordinate exactly on a pixel center, equidistant from
+    the boundary on either side -- is where data lands all the time: a
+    symmetric domain's midpoint, a category band's center, the plot's
+    middle row. Any nearest-boundary rule ties there; what matters is
+    that the *rule* decides the tie rather than the last bit of a
+    `LinearScale` multiply-add. `intercept + slope * v` can land one ULP
+    under an exact whole number, and without the tolerance below that
+    one ULP moved the edge a whole pixel -- deterministically on one
+    platform, and a place two platforms could disagree (#314). The
+    tolerance absorbs a few ULPs of a pixel coordinate (which is well
+    under 1e5, so an ULP is under 1e-10) and is far too small to touch
+    a real fraction.
     """
-    return Float64(round_to_int(value - 0.5)) + 0.5
+    return floor(value + _TIE_TOLERANCE) + 0.5
+
+
+comptime _TIE_TOLERANCE = 1e-9
+"""How far under a whole number a coordinate may sit and still snap as
+that whole number would. Pixel-scale float error is ~1e-11; a real
+sub-pixel fraction is never this small."""
 
 
 def _snap_pixel_center(value: Float64) -> Float64:
