@@ -307,8 +307,7 @@ struct _PointChannels(Movable):
 
 def _lighten(color: Color, alpha: UInt8) -> Color:
     """`color` blended toward opaque white by `alpha`, for
-    `Mark.EFFECT_SCATTER`'s halo (`Theme.halo_alpha`) and `Mark.RADAR`'s
-    polygon fill (`mark_radar(fill_alpha=...)`). Built via
+    `Mark.EFFECT_SCATTER`'s halo (`Theme.halo_alpha`). Built via
     `Color.with_alpha`/`Color.blend_over` (reduced alpha composited over
     white, kept fully opaque) rather than real alpha on the shape, so the
     tint is the same regardless of what's behind it.

@@ -212,8 +212,12 @@ struct Theme(ImplicitlyCopyable, Movable):
     var treemap_label_color: Color
     """The label color drawn on a `Mark.TREEMAP` leaf rectangle."""
     var radar_fill_alpha: UInt8
-    """The opacity `Mark.RADAR` blends each series' filled polygon at before
-    flattening against white; a separate field from `halo_alpha`.
+    """The opacity of each `Mark.RADAR` series' filled polygon; outlines stay
+    opaque so overlapping series remain individually traceable.
+    """
+    var sankey_flow_alpha: UInt8
+    """The opacity of `Mark.SANKEY` flow ribbons; nodes stay opaque so flows
+    remain visible where crossing ribbons overlap.
     """
     var shape_by_category: Bool
     """Whether `Mark.POINT`/`SINGLE_AXIS`/`EFFECT_SCATTER` draws each
@@ -421,6 +425,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         radialbar_track_color: Color = Color(230, 230, 230),
         treemap_label_color: Color = Color(255, 255, 255),
         radar_fill_alpha: UInt8 = 90,
+        sankey_flow_alpha: UInt8 = 160,
         shape_by_category: Bool = False,
         line_smoothing: Float64 = 0.0,
         title_font_size: Float64 = 18.0,
@@ -490,6 +495,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.radialbar_track_color = radialbar_track_color
         self.treemap_label_color = treemap_label_color
         self.radar_fill_alpha = radar_fill_alpha
+        self.sankey_flow_alpha = sankey_flow_alpha
         self.shape_by_category = shape_by_category
         self.line_smoothing = line_smoothing
         self.title_font_size = title_font_size

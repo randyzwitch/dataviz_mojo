@@ -43,7 +43,6 @@ from dataviz.plot import (
     render_layers_svg,
     render_svg,
     _build_line_path,
-    _lighten,
 )
 from dataviz.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
@@ -736,15 +735,14 @@ def test_render_radar_matches_hand_derived_polygon_fill() raises:
         max_values,
         series_names,
         series_values,
-        theme=Theme(show_legend=False),
+        theme=Theme(show_legend=False, show_gridlines=False),
         width=400,
         height=300,
     )
     var c = render(_hoisted1)
 
-    # mark_radar(fill_alpha=...)'s default, passed explicitly since
-    # _lighten takes alpha as a parameter.
-    var fill = _lighten(default_categorical_palette()[0], 90)
+    # The real-alpha fill is composited over the white canvas here.
+    var fill = default_categorical_palette()[0].with_alpha(90).blend_over(BG)
     _assert_color(
         c, 220, 135, fill, "centroid of the fully-maxed triangle -- inside"
     )
@@ -761,6 +759,41 @@ def test_render_radar_matches_hand_derived_polygon_fill() raises:
         235,
         BG,
         "angle 90, radius 100 -- beyond the triangle's 51.75 apothem, outside",
+    )
+
+
+def test_render_radar_overlapping_series_composite_instead_of_occluding() raises:
+    var indicators: List[String] = ["A", "B", "C"]
+    var max_values: List[Float64] = [100.0, 100.0, 100.0]
+    var series_names: List[String] = ["first", "second"]
+    var series_values: List[List[Float64]] = [
+        [100.0, 100.0, 100.0],
+        [100.0, 100.0, 100.0],
+    ]
+    var plot = radar(
+        indicators,
+        max_values,
+        series_names,
+        series_values,
+        theme=Theme(
+            show_legend=False, show_gridlines=False, radar_fill_alpha=128
+        ),
+        width=400,
+        height=300,
+    )
+    var c = render(plot)
+    var palette = default_categorical_palette()
+    var expected = (
+        palette[1]
+        .with_alpha(128)
+        .blend_over(palette[0].with_alpha(128).blend_over(BG))
+    )
+    _assert_color(
+        c,
+        220,
+        135,
+        expected,
+        "both translucent series contribute to their overlapping center",
     )
 
 

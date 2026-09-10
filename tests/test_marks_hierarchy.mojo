@@ -699,8 +699,9 @@ def test_render_sankey_matches_hand_derived_nodes_and_ribbon() raises:
     var c = render(_hoisted1)
 
     var palette = default_categorical_palette()
+    var flow = palette[0].with_alpha(160).blend_over(BG)
     _assert_color(c, 66, 135, palette[0], "node A's rect")
-    _assert_color(c, 220, 135, palette[0], "the ribbon, well inside its bounds")
+    _assert_color(c, 220, 135, flow, "the ribbon, well inside its bounds")
     _assert_color(c, 374, 135, palette[1], "node B's rect")
 
 
@@ -719,7 +720,7 @@ def test_render_sankey_svg_matches_confirmed_geometry() raises:
     var s = svg.to_string()
     assert_true(
         '<path d="M71.500,19.500 L71.500,249.500 L367.500,249.500'
-        ' L367.500,19.500 Z" fill="#1f77b4"/>'
+        ' L367.500,19.500 Z" fill="#1f77b4" fill-opacity="0.627"/>'
         in s,
         "the ribbon, A's column edge to B's column edge",
     )
@@ -741,6 +742,7 @@ def test_render_sankey_node_meets_its_ribbon_with_no_seam() raises:
     var c = render(plot)
 
     var palette = default_categorical_palette()
+    var flow_a = palette[0].with_alpha(160).blend_over(BG)
     var row = 60
     var first = -1
     var last = -1
@@ -761,7 +763,8 @@ def test_render_sankey_node_meets_its_ribbon_with_no_seam() raises:
         var is_b = (
             p.r == palette[1].r and p.g == palette[1].g and p.b == palette[1].b
         )
-        if not (is_a or is_b):
+        var is_flow_a = p.r == flow_a.r and p.g == flow_a.g and p.b == flow_a.b
+        if not (is_a or is_b or is_flow_a):
             blended += 1
     assert_equal(
         blended,
@@ -787,9 +790,11 @@ def test_render_sankey_skip_edge_routes_through_a_pass_through_node() raises:
     var c = render(plot)
 
     var palette = default_categorical_palette()
-    var a = _bbox_of_color(c, palette[0])
+    var flow_a = palette[0].with_alpha(160).blend_over(BG)
+    var flow_d = palette[2].with_alpha(160).blend_over(BG)
+    var a = _bbox_of_color(c, flow_a)
     var b = _bbox_of_color(c, palette[1])
-    var d = _bbox_of_color(c, palette[2])
+    var d = _bbox_of_color(c, flow_d)
     var sink = _bbox_of_color(c, palette[3])
     assert_true(
         a.found and b.found and d.found and sink.found,
