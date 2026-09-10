@@ -405,16 +405,24 @@ def barbs(
             var u = List[Float64]()
             var v = List[Float64]()
 
-            # A sheared westerly: speed climbing with height, backing
-            # slightly across the grid.
+            # A vertical cross-section of a sheared westerly: speed
+            # climbs with altitude and backs slightly downwind.
             for row in range(5):
                 for col in range(6):
-                    x.append(Float64(col))
-                    y.append(Float64(row))
+                    x.append(20.0 * Float64(col))
+                    y.append(0.5 * Float64(row))
                     u.append(5.0 + 12.0 * Float64(row))
                     v.append(3.0 * Float64(col) - 6.0)
 
-            var c = barbs(x, y, u, v, title="Wind field (knots)")
+            var c = barbs(
+                x,
+                y,
+                u,
+                v,
+                title="Illustrative Wind Cross-Section (knots)",
+                x_title="Distance downwind (km)",
+                y_title="Altitude (km)",
+            )
             save(c, "docs/src/examples/out_barbs.svg")
         ```
     """

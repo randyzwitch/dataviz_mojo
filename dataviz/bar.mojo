@@ -339,14 +339,14 @@ def bar(
 
         def main() raises:
             var categories: List[String] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-            var values: List[Int] = [12, 19, 8, 15, 22, -4, 6]
+            var values: List[Int] = [118, 146, 131, 159, 172, 94, 76]
 
             var c = bar(
                 categories,
                 values,
-                title="Daily Net Revenue",
+                title="Orders Shipped by Day",
                 x_title="Day",
-                y_title="Revenue ($k)",
+                y_title="Orders shipped",
                 theme=Theme(mark_color=SEAGREEN),
             )
             save(c, "docs/src/examples/out_bar.svg")
@@ -359,15 +359,15 @@ def bar(
         from dataviz import Theme
 
         def main() raises:
-            var quarters: List[String] = ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"]
+            var months: List[String] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
             var net_change: List[Float64] = [15.0, -8.0, 22.0, -3.0, 10.0, -12.0]
 
             var c_diverging = bar(
-                quarters,
+                months,
                 net_change,
-                title="Quarterly Net Change",
-                x_title="Quarter",
-                y_title="Net change",
+                title="Monthly Budget Variance",
+                x_title="Month",
+                y_title="Variance ($k)",
                 theme=Theme(color_by_sign=True),
             )
             save(c_diverging, "docs/src/examples/out_bar_diverging.svg")
