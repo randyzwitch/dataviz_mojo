@@ -132,6 +132,18 @@ def print_safe() -> Theme:
     Returns:
         A grayscale-safe `Theme`, ready to override.
     """
+    # A bare list literal cannot infer its way through ColorPalette's
+    # implicit constructor at a keyword argument, so it is typed here.
+    var grays: List[Color] = [
+        Color(30, 30, 30),
+        Color(58, 58, 58),
+        Color(86, 86, 86),
+        Color(114, 114, 114),
+        Color(142, 142, 142),
+        Color(170, 170, 170),
+        Color(198, 198, 198),
+        Color(226, 226, 226),
+    ]
     return Theme(
         background=WHITE,
         mark_color=Color(25, 25, 25),
@@ -143,6 +155,11 @@ def print_safe() -> Theme:
         color_scale_mid=Color(128, 128, 128),
         color_scale_high=Color(235, 235, 235),
         color_ramp=viridis(),
+        # Eight grays ordered by lightness, 28 luma levels apart, so a
+        # multi-series chart still tells its series apart on a photocopy
+        # or a monochrome display -- the one thing this preset could not
+        # fix while the palette lived outside Theme (#426).
+        categorical_palette=grays,
         mark_color_negative=Color(170, 170, 170),
         bullet_range_color_light=Color(232, 232, 232),
         bullet_range_color_dark=Color(96, 96, 96),

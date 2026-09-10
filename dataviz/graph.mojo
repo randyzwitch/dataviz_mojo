@@ -6,7 +6,7 @@ from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -64,7 +64,7 @@ def _render_graph[
         node_x.append(cx + max_radius * cos(angle))
         node_y.append(cy + max_radius * sin(angle))
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     var value_mm = _min_max(plot._edges.values)
     var max_value = value_mm.max
 

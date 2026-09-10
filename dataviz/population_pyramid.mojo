@@ -2,7 +2,7 @@ from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.plot import (
     Plot,
@@ -129,7 +129,7 @@ def _render_population_pyramid[
         cache=cache,
     )
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     var center_px = _axis_pixel_f(frame.x_scale, 0.0)
     var row_height = frame.y_scale.bandwidth()
     var orient = _Orientation(True)  # bars grow horizontally from center

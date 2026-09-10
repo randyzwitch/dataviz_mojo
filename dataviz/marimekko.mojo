@@ -4,7 +4,7 @@ from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -124,7 +124,7 @@ def _render_marimekko[
     var plot_y1 = oy1 - sc.margin_bottom - legend.bottom
 
     var text_requests = List[_TextRequest]()
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     var plot_width = Float64(plot_x1 - plot_x0)
     var plot_height = Float64(plot_y1 - plot_y0)
 

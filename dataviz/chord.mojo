@@ -7,7 +7,7 @@ from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -89,7 +89,7 @@ def _render_chord[
     self-loop allocates two sub-arcs off the same node in sequence.
 
     Ribbons take their `from` node's palette color
-    (`default_categorical_palette()` by node position), reading as flow
+    (`categorical_palette_for(theme)` by node position), reading as flow
     leaving that node. Ring thickness is
     `plot._mark_style.chord_ring_fraction` of the radius.
     """
@@ -147,7 +147,7 @@ def _render_chord[
     var radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
     var inner_radius = radius * (1.0 - plot._mark_style.chord_ring_fraction)
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
 
     for i in range(len(plot._edges.from_categories)):
         var fi = from_idx[i]

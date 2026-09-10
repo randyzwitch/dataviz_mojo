@@ -4,7 +4,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from canvas.text.render import TextAlign
 from dataviz.array_like import _materialize_nested_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.grouped_bar import (
     _draw_series_legend,
@@ -218,7 +218,7 @@ def _render_stacked_bar[
         cache=cache,
     )
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     _draw_stacked_segments(
         target,
         plot,
@@ -292,7 +292,7 @@ def _render_horizontal_stacked_bar[
         cache=cache,
     )
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     _draw_stacked_segments(
         target,
         plot,

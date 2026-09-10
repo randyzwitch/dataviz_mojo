@@ -8,7 +8,7 @@ from dataviz.array_like import (
     _materialize_nested_scalar_list,
     _materialize_scalar_list,
 )
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -115,7 +115,7 @@ def _render_polar[
     non-negative.
 
     A single series draws in `theme.mark_color` with no legend. Several
-    named series each get a `default_categorical_palette()` color and a
+    named series each get a `categorical_palette_for(theme)` color and a
     legend keyed by `series_names` (when `Theme.show_legend` is on), and
     share one radius scale with `max(radius)` computed across every
     series.
@@ -211,7 +211,7 @@ def _render_polar[
                 if r > max_r:
                     max_r = r
 
-        var palette = default_categorical_palette()
+        var palette = categorical_palette_for(theme)
         for s in range(len(plot._polar.series_radius)):
             var values = plot._polar.series_radius[s].copy()
             var color = palette[s % len(palette)]

@@ -4,7 +4,7 @@ from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.hierarchy import _HierarchyIndex, _build_hierarchy_index
 from dataviz.mark import Mark
 from dataviz.plot import (
@@ -172,7 +172,7 @@ def _render_tree[
     var plot_x1 = ox1 - sc.margin_right - legend.right
     var plot_y1 = oy1 - sc.margin_bottom - legend.bottom
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
 
     for row in range(n):
         if row == idx.root:

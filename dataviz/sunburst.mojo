@@ -7,7 +7,7 @@ from canvas.vector.draw_target import DrawTarget
 from dataviz.array_like import _materialize_scalar_list
 from std.math import cos, sin
 
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.continuous import _lighten
 from dataviz.hierarchy import _HierarchyIndex, _build_hierarchy_index
 from dataviz.mark import Mark
@@ -156,7 +156,7 @@ def _render_sunburst[
     The root itself is never drawn (there is no ring at depth 0).
     Rendering starts from each of the root's direct children, each
     claiming an angular slice proportional to its share of the root's
-    subtree total and a palette color (`default_categorical_palette()` by
+    subtree total and a palette color (`categorical_palette_for(theme)` by
     position among siblings, the same palette `_draw_legend` uses) that
     stays fixed through all of its descendants.
 
@@ -215,7 +215,7 @@ def _render_sunburst[
     )
     var ring_width = max_radius / Float64(max(idx.max_depth, 1))
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     var root_total = idx.subtree_value[idx.root]
     var start = -pi / 2.0
     for i in range(len(root_children)):
