@@ -300,18 +300,28 @@ def bullet(
         from dataviz import Theme
 
         def main() raises:
-            var kpis: List[String] = ["Revenue", "Profit", "New Customers", "Satisfaction"]
-            var measures: List[Int] = [72, 58, 85, 78]
-            var targets: List[Int] = [80, 65, 70, 90]
+            # Every row shares one unit: percent of orders shipped on time.
+            # Qualitative ranges mark needs-attention, acceptable, and strong.
+            var regions: List[String] = [
+                "Northeast", "Midwest", "South", "Mountain", "Pacific",
+            ]
+            var measures: List[Int] = [94, 87, 91, 82, 96]
+            var targets: List[Int] = [95, 92, 93, 90, 95]
             var ranges: List[List[Float64]] = [
-                [50.0, 75.0, 100.0],
-                [40.0, 70.0, 100.0],
-                [30.0, 60.0, 100.0],
-                [60.0, 85.0, 100.0],
+                [80.0, 90.0, 100.0],
+                [80.0, 90.0, 100.0],
+                [80.0, 90.0, 100.0],
+                [80.0, 90.0, 100.0],
+                [80.0, 90.0, 100.0],
             ]
 
             var c = bullet(
-                kpis, measures, targets, ranges, title="KPI Performance"
+                regions,
+                measures,
+                targets,
+                ranges,
+                title="Illustrative On-Time Fulfillment by Region",
+                x_title="Orders shipped on time (%)",
             )
             save(c, "docs/src/examples/out_bullet.svg")
         ```

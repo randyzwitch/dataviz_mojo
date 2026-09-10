@@ -309,17 +309,23 @@ def gantt(
         from dataviz import Theme
 
         def main() raises:
-            var tasks: List[String] = ["Design", "Development", "Testing", "Documentation", "Launch"]
-            var start: List[Int] = [0, 5, 20, 15, 28]
-            var end: List[Int] = [8, 25, 28, 27, 30]
+            # Illustrative six-week release plan with deliberately overlapping
+            # product, engineering, documentation, and rollout workstreams.
+            var tasks: List[String] = [
+                "Discovery", "UX design", "API implementation", "UI build",
+                "Integration testing", "Documentation", "Pilot rollout",
+                "General availability",
+            ]
+            var start: List[Int] = [0, 3, 8, 10, 22, 17, 30, 39]
+            var end: List[Int] = [6, 12, 25, 27, 34, 32, 38, 42]
 
             var c = gantt(
                 tasks,
                 start,
                 end,
-                title="Project Schedule",
-                x_title="Day",
-                y_title="Task",
+                title="Illustrative Product Release Schedule",
+                x_title="Day since project start",
+                y_title="Workstream",
             )
             save(c, "docs/src/examples/out_gantt.svg")
         ```
