@@ -16,11 +16,11 @@ def main() raises:
         Plot()
         .mark_point()
         .encode(x=x, y=y)
-        .annotate_best_fit(show_equation=True, show_r_squared=True)
+        .annotate_best_fit(show_equation=True, show_r_squared=True, ci=0.95)
         .theme(Theme(mark_color=CORNFLOWERBLUE))
         .labels(
             title="Response Time vs. Load",
-            subtitle="With an ordinary-least-squares best-fit line",
+            subtitle="OLS best-fit line with its 95% confidence band",
         )
     )
     save(plot, "docs/src/examples/out_best_fit_line.svg")

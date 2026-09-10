@@ -1,0 +1,247 @@
+"""Statistical estimation shared by the marks that draw an estimate with
+its uncertainty -- the start of the family #350 and #352 describe.
+
+Everything here is a pure function over lists, tested against
+hand-computed values away from any rendering, so a chart only has to
+show that the numbers reached the glyph.
+"""
+
+from std.math import sqrt
+
+
+struct _OlsFit(Copyable, Movable):
+    """An ordinary-least-squares line through `(x, y)` pairs, with the
+    pieces a confidence band around it needs."""
+
+    var n: Int
+    var slope: Float64
+    var intercept: Float64
+    var mean_x: Float64
+    var mean_y: Float64
+    var sxx: Float64
+    """`sum((x - mean_x)^2)`, the spread of the predictors."""
+    var residual_se: Float64
+    """`sqrt(SS_res / (n - 2))`; `0.0` when `n < 3`, where it is undefined."""
+
+    def __init__(
+        out self,
+        n: Int,
+        slope: Float64,
+        intercept: Float64,
+        mean_x: Float64,
+        mean_y: Float64,
+        sxx: Float64,
+        residual_se: Float64,
+    ):
+        self.n = n
+        self.slope = slope
+        self.intercept = intercept
+        self.mean_x = mean_x
+        self.mean_y = mean_y
+        self.sxx = sxx
+        self.residual_se = residual_se
+
+    def predict(self, x: Float64) -> Float64:
+        """The fitted line's value at `x`."""
+        return self.slope * x + self.intercept
+
+    def band_half_width(self, x: Float64, level: Float64) raises -> Float64:
+        """Half the width of the confidence band for the fitted *mean*
+        at `x`, at two-sided confidence `level`:
+
+            t(level, n - 2) * s * sqrt(1/n + (x - mean_x)^2 / Sxx)
+
+        Narrowest at `mean_x` and flaring toward the ends -- the
+        hourglass that is the visual point of the band.
+
+        Raises:
+            Error: `n < 3` (no residual degrees of freedom) or a
+                `level` `_t_quantile` does not carry.
+        """
+        if self.n < 3:
+            raise Error(
+                "a confidence band needs at least 3 points (got "
+                + String(self.n)
+                + "): with two, the line passes through both and the"
+                " residual error has no degrees of freedom"
+            )
+        var d = x - self.mean_x
+        return (
+            _t_quantile(level, self.n - 2)
+            * self.residual_se
+            * sqrt(1.0 / Float64(self.n) + d * d / self.sxx)
+        )
+
+
+def _ols_fit(x: List[Float64], y: List[Float64]) raises -> _OlsFit:
+    """Fit `y = slope * x + intercept` by ordinary least squares.
+
+    The slope and intercept use exactly the closed forms
+    `annotate_best_fit()` has always used -- `(n*sum_xy - sum_x*sum_y)
+    / (n*sum_xx - sum_x^2)` and `mean_y - slope*mean_x` -- so moving the
+    arithmetic here changed no fitted line.
+
+    Raises:
+        Error: Fewer than 2 points, or every `x` identical (the
+            denominator is zero and no non-vertical line fits).
+    """
+    var n_points = len(x)
+    if n_points < 2:
+        raise Error(
+            "needs at least 2 points to fit a line through (got "
+            + String(n_points)
+            + ")"
+        )
+    var n = Float64(n_points)
+    var sum_x = 0.0
+    var sum_y = 0.0
+    var sum_xy = 0.0
+    var sum_xx = 0.0
+    for i in range(n_points):
+        sum_x += x[i]
+        sum_y += y[i]
+        sum_xy += x[i] * y[i]
+        sum_xx += x[i] * x[i]
+    var denom = n * sum_xx - sum_x * sum_x
+    if denom == 0.0:
+        raise Error(
+            "every x value is identical -- there is no honest non-vertical"
+            " line to fit through a vertical scatter"
+        )
+    var slope = (n * sum_xy - sum_x * sum_y) / denom
+    var mean_x = sum_x / n
+    var mean_y = sum_y / n
+    var intercept = mean_y - slope * mean_x
+    var sxx = sum_xx - n * mean_x * mean_x
+    var ss_res = 0.0
+    for i in range(n_points):
+        var r = y[i] - (slope * x[i] + intercept)
+        ss_res += r * r
+    var residual_se = sqrt(ss_res / (n - 2.0)) if n_points > 2 else 0.0
+    return _OlsFit(n_points, slope, intercept, mean_x, mean_y, sxx, residual_se)
+
+
+def _t_quantile(level: Float64, df: Int) raises -> Float64:
+    """The two-sided Student-t critical value: the `t` with
+    `P(|T_df| <= t) == level`.
+
+    Carried as tables at the three levels a confidence band is drawn at
+    in practice -- 0.90, 0.95 and 0.99 -- for `df` 1 through 30, then
+    the normal quantile beyond, where the two are within a percent. A
+    table is exact where it applies and cannot silently be a little
+    wrong the way a series approximation can; an unsupported `level`
+    raises rather than rounding to the nearest one it has.
+
+    Raises:
+        Error: `df < 1`, or a `level` other than 0.90/0.95/0.99.
+    """
+    if df < 1:
+        raise Error("t quantile needs at least 1 degree of freedom")
+    var t90: List[Float64] = [
+        6.314,
+        2.920,
+        2.353,
+        2.132,
+        2.015,
+        1.943,
+        1.895,
+        1.860,
+        1.833,
+        1.812,
+        1.796,
+        1.782,
+        1.771,
+        1.761,
+        1.753,
+        1.746,
+        1.740,
+        1.734,
+        1.729,
+        1.725,
+        1.721,
+        1.717,
+        1.714,
+        1.711,
+        1.708,
+        1.706,
+        1.703,
+        1.701,
+        1.699,
+        1.697,
+    ]
+    var t95: List[Float64] = [
+        12.706,
+        4.303,
+        3.182,
+        2.776,
+        2.571,
+        2.447,
+        2.365,
+        2.306,
+        2.262,
+        2.228,
+        2.201,
+        2.179,
+        2.160,
+        2.145,
+        2.131,
+        2.120,
+        2.110,
+        2.101,
+        2.093,
+        2.086,
+        2.080,
+        2.074,
+        2.069,
+        2.064,
+        2.060,
+        2.056,
+        2.052,
+        2.048,
+        2.045,
+        2.042,
+    ]
+    var t99: List[Float64] = [
+        63.657,
+        9.925,
+        5.841,
+        4.604,
+        4.032,
+        3.707,
+        3.499,
+        3.355,
+        3.250,
+        3.169,
+        3.106,
+        3.055,
+        3.012,
+        2.977,
+        2.947,
+        2.921,
+        2.898,
+        2.878,
+        2.861,
+        2.845,
+        2.831,
+        2.819,
+        2.807,
+        2.797,
+        2.787,
+        2.779,
+        2.771,
+        2.763,
+        2.756,
+        2.750,
+    ]
+    var i = min(df, 30) - 1
+    if level == 0.95:
+        return t95[i] if df <= 30 else 1.960
+    if level == 0.90:
+        return t90[i] if df <= 30 else 1.645
+    if level == 0.99:
+        return t99[i] if df <= 30 else 2.576
+    raise Error(
+        "confidence level must be 0.90, 0.95 or 0.99 (got "
+        + String(level)
+        + ")"
+    )
