@@ -153,24 +153,38 @@ def punchcard(
         from dataviz import save
 
         def main() raises:
-            var days: List[String] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-            var hours: List[String] = ["9am", "12pm", "3pm", "6pm", "9pm"]
+            var day_names: List[String] = [
+                "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun",
+            ]
+            var hour_names: List[String] = [
+                "6am", "9am", "12pm", "3pm", "6pm", "9pm",
+            ]
+            # Illustrative station entries (thousands): commute peaks dominate
+            # weekdays, while weekend travel shifts toward midday and evening.
+            var entries_by_day: List[List[Int]] = [
+                [38, 72, 31, 35, 68, 24],
+                [41, 78, 33, 37, 73, 25],
+                [43, 81, 35, 39, 76, 27],
+                [42, 79, 34, 38, 74, 28],
+                [39, 70, 36, 42, 71, 39],
+                [14, 25, 43, 51, 57, 45],
+                [11, 21, 38, 47, 52, 34],
+            ]
 
             var x = List[String]()
             var y = List[String]()
             var counts = List[Int]()
-            for day_i in range(len(days)):
-                var is_weekend = day_i >= 5
-                for hour in hours:
-                    x.append(days[day_i])
-                    y.append(hour)
-                    counts.append(15 if is_weekend else 60)
+            for day_i in range(len(day_names)):
+                for hour_i in range(len(hour_names)):
+                    x.append(day_names[day_i])
+                    y.append(hour_names[hour_i])
+                    counts.append(entries_by_day[day_i][hour_i])
 
             var c = punchcard(
                 x,
                 y,
                 counts,
-                title="Activity by Day and Hour",
+                title="Illustrative Transit Entries by Day and Hour",
                 x_title="Day",
                 y_title="Hour",
             )

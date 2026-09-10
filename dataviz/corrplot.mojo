@@ -233,12 +233,18 @@ def corrplot(
         from dataviz import save
 
         def main() raises:
-            var variables: List[String] = ["Horsepower", "MPG", "Weight", "Price"]
+            # Illustrative correlations across electric-vehicle specifications.
+            # Six variables reveal clusters and tradeoffs that a tiny matrix hides.
+            var variables: List[String] = [
+                "Price", "Range", "Efficiency", "Charge time", "Cargo", "0-60 time",
+            ]
             var matrix: List[List[Float64]] = [
-                [1.0, -0.78, 0.66, 0.72],
-                [-0.78, 1.0, -0.83, -0.55],
-                [0.66, -0.83, 1.0, 0.48],
-                [0.72, -0.55, 0.48, 1.0],
+                [1.0, 0.72, 0.18, -0.25, 0.48, -0.63],
+                [0.72, 1.0, -0.22, 0.35, 0.51, -0.40],
+                [0.18, -0.22, 1.0, -0.44, -0.58, 0.36],
+                [-0.25, 0.35, -0.44, 1.0, 0.18, 0.22],
+                [0.48, 0.51, -0.58, 0.18, 1.0, -0.15],
+                [-0.63, -0.40, 0.36, 0.22, -0.15, 1.0],
             ]
 
             var c = corrplot(
@@ -246,7 +252,7 @@ def corrplot(
                 matrix,
                 layout="upper",
                 diag=False,
-                title="Vehicle Metric Correlations",
+                title="Illustrative EV Metric Correlations",
             )
             save(c, "docs/src/examples/out_corrplot.svg")
         ```
