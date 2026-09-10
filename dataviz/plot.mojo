@@ -221,6 +221,7 @@ from dataviz.ridgeline import _render_ridgeline
 from dataviz.violin import _render_violin, _render_horizontal_violin
 from dataviz.waterfall import _WaterfallData
 from dataviz.box import _BoxData
+from dataviz.hist2d import _hist2d_counts
 from dataviz.boxen import (
     _BoxenData,
     _letter_values,
@@ -1105,6 +1106,18 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.PCOLORMESH
+        return self^
+
+    def mark_hist2d(var self) -> Self:
+        """Select `Mark.HIST2D`: `(x, y)` points binned into a grid of
+        counts and drawn as colored cells, empty cells left undrawn.
+        Pair with `encode_hist2d()`; see `_render_image` for the
+        drawing and `hist2d()` (hist2d.mojo) for the one-call form.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.HIST2D
         return self^
 
     def mark_tricontour(var self, levels: Int = 8) -> Self:
@@ -2754,6 +2767,42 @@ struct Plot(Copyable, Movable):
         self._image.y_edges = y_edges.copy()
         return self^
 
+    def encode_hist2d(
+        var self,
+        x: List[Float64],
+        y: List[Float64],
+        x_edges: List[Float64],
+        y_edges: List[Float64],
+    ) raises -> Self:
+        """Count `(x, y)` points into the grid `x_edges` by `y_edges`
+        bound and map the counts onto `Mark.HIST2D`'s shape:
+        `encode_pcolormesh()`'s cells, with empty ones left undrawn.
+
+        The edges are yours, so the two axes can be binned differently
+        or unevenly; `hist2d()` derives equal-width edges from the data
+        for the common case. Binning is `_hist2d_counts`'s: a point on
+        a shared boundary goes to the upper bin, the sample maximum to
+        the last.
+
+        Args:
+            x: The horizontal coordinates.
+            y: The vertical coordinates, one per `x`.
+            x_edges: Column boundaries, strictly increasing, at least 2.
+            y_edges: Row boundaries, strictly increasing, at least 2.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            Error: `x` and `y` differ in length, or an edge list is
+                shorter than 2.
+        """
+        self._image.z = _hist2d_counts(x, y, x_edges, y_edges)
+        self._image.x_edges = x_edges.copy()
+        self._image.y_edges = y_edges.copy()
+        self._image.blank_zero = True
+        return self^
+
     def encode_tricontour(
         var self,
         x: List[Float64],
@@ -4261,6 +4310,7 @@ def _auto_supersample(plot: Plot) -> Int:
         or m == Mark.BOX
         or m == Mark.CANDLESTICK
         or m == Mark.HEATMAP
+        or m == Mark.HIST2D
         or m == Mark.MARIMEKKO
         or m == Mark.TREEMAP
         or m == Mark.SANKEY
@@ -4846,7 +4896,11 @@ def _render_generic[
         return _render_contour(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.CONTOURF:
         return _render_contourf(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.IMSHOW or plot._mark == Mark.PCOLORMESH:
+    if (
+        plot._mark == Mark.IMSHOW
+        or plot._mark == Mark.PCOLORMESH
+        or plot._mark == Mark.HIST2D
+    ):
         return _render_image(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.TRICONTOUR:
         return _render_tricontour(target, plot, ox0, oy0, ox1, oy1, cache=cache)
