@@ -811,14 +811,20 @@ def test_render_raises_on_scale_domain_with_an_incompatible_mark() raises:
         _ = render(plot)
 
 
-def test_render_layers_raises_on_a_layer_with_scale_y_domain() raises:
+def test_render_layers_takes_a_lone_scale_y_domain_as_the_shared_axis() raises:
+    # Was `..._raises_on_a_layer_with_scale_y_domain` before #434: an
+    # override is now taken when every layer that sets one agrees, and a
+    # single layer setting one agrees with itself. The other layer then
+    # scales against the same [0, 10]. The data alone would give a padded
+    # [0.95, 2.05] whose ticks never reach 10, so a "10" tick label is
+    # the override in use rather than merely tolerated.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [1.0, 2.0]
     var a = Plot().mark_line().encode(x=x, y=y).scale_y_domain(0.0, 10.0)
     var b = Plot().mark_point().encode(x=x, y=y)
     var plots: List[Plot] = [a^, b^]
-    with assert_raises():
-        _ = render_layers(plots)
+    var s = render_layers_svg(plots).to_string()
+    assert_true(">10<" in s or ">10.0<" in s, "the shared y-axis runs to 10")
 
 
 def test_render_facets_svg_scale_y_domain_applies_per_cell_like_a_shared_domain() raises:

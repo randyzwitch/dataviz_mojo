@@ -4,7 +4,7 @@ from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -88,7 +88,7 @@ def _render_arc[
     var is_donut = plot._mark_style.donut_inner_radius_fraction > 0.0
     var inner_radius = radius * plot._mark_style.donut_inner_radius_fraction
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     var start = -pi / 2.0
     for i in range(len(plot.x_categories)):
         var span = (plot.y_data[i] / total) * 2.0 * pi

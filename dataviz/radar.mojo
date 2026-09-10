@@ -10,7 +10,7 @@ from dataviz.array_like import (
     _materialize_nested_scalar_list,
     _materialize_scalar_list,
 )
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -139,7 +139,7 @@ def _render_radar[
             plot._mark_style.radar_grid_rings,
         )
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     for s in range(len(plot._radar.series_values)):
         var values = plot._radar.series_values[s].copy()
         var color = palette[s % len(palette)]

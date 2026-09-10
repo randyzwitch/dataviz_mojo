@@ -4,7 +4,7 @@ from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.funnel import _descending_value_order
 from dataviz.grouped_bar import _validate_grouped_bar_series
 from dataviz.ordinal_scale import OrdinalScale
@@ -264,7 +264,7 @@ def _render_bump[
         for j in range(n_series):
             rank[j].append(rank_at_i[j])
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     for j in range(n_series):
         var px = List[Float64](capacity=n_categories)
         var py = List[Float64](capacity=n_categories)

@@ -7,7 +7,7 @@ from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -191,7 +191,7 @@ def _render_sankey[
             cum += node_value[i]
             node_y1[i] = origin_y + cum / col_total * Float64(plot_y1 - plot_y0)
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     var out_cursor = node_y0.copy()
     var in_cursor = node_y0.copy()
     for e in range(len(final_from)):

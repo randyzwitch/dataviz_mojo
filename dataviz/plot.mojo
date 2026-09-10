@@ -86,7 +86,7 @@ from dataviz.array_like import (
 )
 from dataviz.numpy_interop import _materialize_python_floats
 from std.python import PythonObject
-from dataviz.color_scale import ColorScale, default_categorical_palette
+from dataviz.color_scale import ColorScale, categorical_palette_for
 from dataviz.marker import PointShape, _fill_shape_aa, default_marker_shapes
 from dataviz.pixel_snap import _snap_pixel_center, _snap_pixel_edge
 from dataviz.continuous import (
@@ -1570,7 +1570,7 @@ struct Plot(Copyable, Movable):
 
         `color` (continuous, through a `ColorScale` over the column's
         its minimum and maximum) and `color_categories` (discrete, through
-        `default_categorical_palette()` by first-seen order of the unique
+        `categorical_palette_for(theme)` by first-seen order of the unique
         values) are mutually exclusive. `size` is continuous only.
         `color_map` pins specific `color_categories` values to colors
         (`{category_name: Color}`); unlisted categories keep their palette

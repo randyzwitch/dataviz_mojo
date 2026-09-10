@@ -15,6 +15,7 @@ from dataviz import (
     bar,
     bullet,
     effect_scatter,
+    grouped_bar,
     heatmap,
     radar,
     radialbar,
@@ -432,6 +433,49 @@ def test_dark_tints_flatten_against_the_dark_ground_not_white() raises:
         + " but the brightest palette color is only "
         + String(palette_top)
         + " -- the depth fade is flattened against white, not the background",
+    )
+
+
+def test_print_safe_palette_is_ordered_by_lightness() raises:
+    """`print_safe()` sets `Theme.categorical_palette` to grays that a
+    grayscale reproduction keeps apart: strictly increasing luma with a
+    gap a photocopy can resolve (#426). The default tab10 set has two
+    pairs of entries within 1.3 luma of each other, which is why a
+    preset needed a palette of its own.
+    """
+    var p = print_safe().categorical_palette
+    assert_equal(len(p), 8)
+    for i in range(1, len(p)):
+        var gap = _luma(p[i]) - _luma(p[i - 1])
+        assert_true(
+            gap >= 20.0,
+            "print_safe palette entries "
+            + String(i - 1)
+            + " and "
+            + String(i)
+            + " are only "
+            + String(gap)
+            + " luma apart",
+        )
+
+
+def test_theme_categorical_palette_colors_a_multi_series_chart() raises:
+    """A `Theme.categorical_palette` reaches the marks that cycle
+    categories: a two-series grouped bar drawn with a two-color palette
+    uses those two colors and none of the default tab10 set.
+    """
+    var custom: List[Color] = [Color(200, 0, 0), Color(0, 0, 200)]
+    var t = Theme(categorical_palette=custom)
+    var cats: List[String] = ["Q1", "Q2", "Q3"]
+    var names: List[String] = ["a", "b"]
+    var values: List[List[Float64]] = [[3.0, 5.0, 4.0], [2.0, 6.0, 3.0]]
+    var c = render(grouped_bar(cats, names, values, theme=t))
+    assert_true(_count_color(c, Color(200, 0, 0)) > 0, "series a uses entry 0")
+    assert_true(_count_color(c, Color(0, 0, 200)) > 0, "series b uses entry 1")
+    assert_equal(
+        _count_color(c, Color(31, 119, 180)),
+        0,
+        "the default tab10 blue must not appear when a palette is set",
     )
 
 

@@ -5,7 +5,7 @@ from std.math import pi
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -69,7 +69,7 @@ def _render_radialbar[
         Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
     )
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     var n = len(plot.x_categories)
     var ring_slot = max_radius / Float64(n)
     var gap = ring_slot * plot._mark_style.radialbar_ring_gap_fraction

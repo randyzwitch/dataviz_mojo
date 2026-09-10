@@ -44,6 +44,7 @@ from dataviz.continuous import line, scatter
 from dataviz.contour import contour
 from dataviz.effect_scatter import effect_scatter
 from dataviz.ecdf import _ecdf_points, ecdf
+from dataviz.histogram import HistStat, histogram, shared_bin_edges
 from dataviz.kde import kdeplot, rugplot
 from dataviz.tricontour import tricontour, tricontourf
 from dataviz.triplot import tripcolor, triplot
@@ -2920,4 +2921,76 @@ def test_render_layers_takes_two_ecdfs_and_pins_the_proportion_axis() raises:
     assert_true(
         ",30.952" not in s,
         "the proportion axis is not padded past 1",
+    )
+
+
+def test_render_layers_uses_agreeing_domain_overrides() raises:
+    """Two layers both asking for x in [0, 200] get that axis (#434). The
+    data alone would give a padded [-5, 105] whose ticks stop at 100, so
+    a "200" tick label is the override being used, not merely tolerated.
+    """
+    var x0: List[Float64] = [0.0, 100.0]
+    var y0: List[Float64] = [1.0, 2.0]
+    var x1: List[Float64] = [50.0]
+    var y1: List[Float64] = [3.0]
+    var p0 = (
+        Plot()
+        .size(400, 300)
+        .mark_point()
+        .encode(x=x0, y=y0)
+        .scale_x_domain(0.0, 200.0)
+    )
+    var p1 = (
+        Plot()
+        .size(400, 300)
+        .mark_point()
+        .encode(x=x1, y=y1)
+        .scale_x_domain(0.0, 200.0)
+    )
+    var plots: List[Plot] = [p0^, p1^]
+    var s = render_layers_svg(plots).to_string()
+    assert_true("200" in s, "the shared x-axis runs to the overridden 200")
+
+
+def test_render_layers_raises_on_disagreeing_domain_overrides() raises:
+    var x: List[Float64] = [1.0, 2.0]
+    var y: List[Float64] = [1.0, 2.0]
+    var p0 = (
+        Plot()
+        .size(400, 300)
+        .mark_point()
+        .encode(x=x, y=y)
+        .scale_x_domain(0.0, 200.0)
+    )
+    var p1 = (
+        Plot()
+        .size(400, 300)
+        .mark_point()
+        .encode(x=x, y=y)
+        .scale_x_domain(0.0, 300.0)
+    )
+    var plots: List[Plot] = [p0^, p1^]
+    with assert_raises(contains="must agree"):
+        _ = render_layers_svg(plots)
+
+
+def test_render_layers_overlays_two_histograms_on_shared_bins() raises:
+    """#434's own case: `histogram()` pins its x-domain to its edges, which
+    `render_layers()` refused outright. Two groups on `shared_bin_edges`
+    carry the identical override, so they overlay on one frame.
+    """
+    var a: List[Float64] = [1.0, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 8.0, 9.0]
+    var b: List[Float64] = [2.0, 3.0, 3.0, 4.0, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5]
+    var groups: List[List[Float64]] = [a.copy(), b.copy()]
+    var edges = shared_bin_edges(groups, bins=6)
+    var h0 = histogram(
+        a, edges=edges, stat=HistStat.PROBABILITY, width=400, height=300
+    )
+    var h1 = histogram(
+        b, edges=edges, stat=HistStat.PROBABILITY, width=400, height=300
+    )
+    var plots: List[Plot] = [h0^, h1^]
+    var s = render_layers_svg(plots).to_string()
+    assert_true(
+        _count_tag(s, "path") >= 2, "both histograms are drawn on the one frame"
     )

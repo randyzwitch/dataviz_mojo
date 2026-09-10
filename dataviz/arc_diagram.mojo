@@ -6,7 +6,7 @@ from canvas.path import Path
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.color_scale import default_categorical_palette
+from dataviz.color_scale import categorical_palette_for
 from dataviz.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -58,7 +58,7 @@ def _render_arc_diagram[
         var frac = 0.5 if n <= 1 else Float64(i) / Float64(n - 1)
         node_x.append(Float64(plot_x0) + frac * Float64(plot_x1 - plot_x0))
 
-    var palette = default_categorical_palette()
+    var palette = categorical_palette_for(theme)
     var value_mm = _min_max(plot._edges.values)
     var max_value = value_mm.max
 
