@@ -30,6 +30,7 @@ from dataviz.plot import (
     Plot,
     _data_extent,
     _log_data_extent,
+    _zero_baseline_y_extent,
     _render_generic,
     _render_into,
     _require_positive_supersample,
@@ -221,12 +222,13 @@ def _render_facets_generic[
     adjacent cells share the exact boundary pixel.
 
     `shared_y_scale` gives every cell one y-domain (`_data_extent` over
-    the union of every cell's `y_data`, or `_log_data_extent` when every
-    cell agrees on `Plot.scale_y_log()`). Only `Mark.POINT`/
-    `LINE`/`EFFECT_SCATTER` support it, every cell must use one of those
-    marks, and it doesn't combine with `y_err*` (the shared union isn't
-    widened for whiskers); `_render_generic` raises for each case,
-    including a log/linear mix.
+    the union of every cell's `y_data`, `_zero_baseline_y_extent` over it
+    when any cell is `Mark.AREA`, or `_log_data_extent` when every cell
+    agrees on `Plot.scale_y_log()`). Only `Mark.POINT`/`LINE`/`AREA`/
+    `EFFECT_SCATTER` support it, every cell must use one of those marks,
+    and it doesn't combine with `y_err*` (the shared union isn't widened
+    for whiskers); `_render_generic` raises for each case, including a
+    log/linear mix.
     """
     var text_requests = List[_TextRequest]()
     if cols <= 0:
@@ -248,9 +250,22 @@ def _render_facets_generic[
         for i in range(len(plots)):
             for v in plots[i].y_data:
                 combined_y.append(v)
-        var domain = _log_data_extent(
-            combined_y
-        ) if shared_y_is_log else _data_extent(combined_y)
+        # A Mark.AREA cell anywhere forces the zero baseline for the whole
+        # grid, the rule render_layers() applies to an axis group: an
+        # area's height is measured from a baseline, so a shared domain
+        # that floats above zero would draw every cell's fill from a
+        # different, meaningless floor. That is also what makes a faceted
+        # histogram comparable across panels (#442). AREA already rejects
+        # a log y-axis, so the log branch never sees it.
+        var any_area = False
+        for i in range(len(plots)):
+            if plots[i]._mark == Mark.AREA:
+                any_area = True
+        var domain = _log_data_extent(combined_y) if shared_y_is_log else (
+            _zero_baseline_y_extent(combined_y) if any_area else _data_extent(
+                combined_y
+            )
+        )
         shared_y_min = domain.domain_min
         shared_y_max = domain.domain_max
 
