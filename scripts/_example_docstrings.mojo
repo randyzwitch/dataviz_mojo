@@ -111,6 +111,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("barplot", "barplot", "barplot"),
         ExamplePage("countplot", "barplot", "countplot"),
         ExamplePage("lineplot", "lineplot", "lineplot"),
+        ExamplePage("pointplot", "pointplot", "pointplot"),
         ExamplePage("kdeplot", "kde", "kdeplot"),
         ExamplePage("rugplot", "kde", "rugplot"),
         ExamplePage("marimekko", "marimekko", "marimekko"),

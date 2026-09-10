@@ -44,6 +44,7 @@ from dataviz.ecdf import ecdf
 from dataviz.residplot import residplot
 from dataviz.barplot import barplot, countplot
 from dataviz.lineplot import lineplot
+from dataviz.pointplot import pointplot
 from dataviz.stats import ErrorBar, Estimator
 from dataviz.image import imshow, pcolormesh
 from dataviz.kde import kdeplot, rugplot

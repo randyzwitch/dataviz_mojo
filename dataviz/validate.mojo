@@ -61,10 +61,10 @@ def _validate_categorical_encoding(plot: Plot) raises:
             "Plot.encode_categorical(): y_err and y_err_lower/y_err_upper are"
             " mutually exclusive -- pass one or the other, not both"
         )
-    if not (plot._mark == Mark.BAR):
+    if not (plot._mark == Mark.BAR or plot._mark == Mark.POINTPLOT):
         raise Error(
             "Plot.encode_categorical(): y_err/y_err_lower/y_err_upper is only"
-            " supported for Mark.BAR today"
+            " supported for Mark.BAR and Mark.POINTPLOT today"
         )
     if has_y_err and len(plot.y_err_data) != len(plot.x_categories):
         raise Error(
