@@ -104,6 +104,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("imshow", "image", "imshow"),
         ExamplePage("pcolormesh", "image", "pcolormesh"),
         ExamplePage("hist2d", "hist2d", "hist2d"),
+        ExamplePage("hexbin", "hexbin", "hexbin"),
         ExamplePage("tricontour", "tricontour", "tricontour"),
         ExamplePage("tricontourf", "tricontour", "tricontourf"),
         ExamplePage("triplot", "triplot", "triplot"),

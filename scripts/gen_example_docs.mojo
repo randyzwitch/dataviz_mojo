@@ -98,6 +98,7 @@ def _titles() -> Dict[String, String]:
     d["imshow"] = "Image"
     d["pcolormesh"] = "Quadrilateral Mesh"
     d["hist2d"] = "2D Histogram"
+    d["hexbin"] = "Hexagonal Bins"
     d["tricontour"] = "Scattered Contour"
     d["tricontourf"] = "Scattered Contour (Filled)"
     d["triplot"] = "Triangular Mesh"
@@ -201,6 +202,7 @@ def _categories() -> List[Category]:
                 "box",
                 "boxenplot",
                 "hist2d",
+                "hexbin",
                 "histogram",
                 "histogram_shared",
                 "histogram_auto",
