@@ -28,6 +28,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.pixel_snap import _snap_pixel_center, _snap_pixel_edge
 from dataviz.scale import _format_fixed
+from dataviz.stats import _OlsFit, _ols_fit
 from dataviz.theme import Theme
 
 # Circular by construction, and resolved within the package: `plot.mojo`
@@ -88,6 +89,9 @@ struct _AnnotationData(Copyable, Movable):
     var best_fit_show_equation: Bool
     var best_fit_show_r_squared: Bool
     var best_fit_label: String
+    var best_fit_ci: Float64
+    """Two-sided confidence level of the band around the fitted line
+    (`0.95` for 95%); `0.0` draws no band."""
 
     def __init__(out self):
         self.line_values = List[Float64]()
@@ -113,6 +117,7 @@ struct _AnnotationData(Copyable, Movable):
         self.best_fit_show_equation = False
         self.best_fit_show_r_squared = False
         self.best_fit_label = ""
+        self.best_fit_ci = 0.0
 
 
 def _draw_annotation_areas[
@@ -676,8 +681,10 @@ def _draw_annotation_best_fit[
 
     The regression is computed here from `plot.x_data`/`plot.y_data`, so
     the fit sees whatever data the plot ends up with regardless of call
-    order. Closed-form OLS: `slope = (n*sum_xy - sum_x*sum_y) /
-    (n*sum_xx - sum_x^2)`, `intercept = mean_y - slope*mean_x`.
+    order, by `_ols_fit` (stats.mojo): closed-form OLS, `slope =
+    (n*sum_xy - sum_x*sum_y) / (n*sum_xx - sum_x^2)`, `intercept =
+    mean_y - slope*mean_x`. With `ci` set, its confidence band is
+    filled first, beneath the line.
 
     Needs both `result.x_scale` and `result.y_scale`. Raises with fewer
     than 2 points, or when every x value is identical (the OLS
@@ -695,36 +702,15 @@ def _draw_annotation_best_fit[
             " fit a line against. Supported today:"
             " Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
         )
-    var n_points = len(plot.x_data)
-    if n_points < 2:
-        raise Error(
-            "Plot.annotate_best_fit(): needs at least 2 points to fit a line"
-            " through (got "
-            + String(n_points)
-            + ")"
-        )
-
-    var n = Float64(n_points)
-    var sum_x = 0.0
-    var sum_y = 0.0
-    var sum_xy = 0.0
-    var sum_xx = 0.0
-    for i in range(n_points):
-        sum_x += plot.x_data[i]
-        sum_y += plot.y_data[i]
-        sum_xy += plot.x_data[i] * plot.y_data[i]
-        sum_xx += plot.x_data[i] * plot.x_data[i]
-    var denom = n * sum_xx - sum_x * sum_x
-    if denom == 0.0:
-        raise Error(
-            "Plot.annotate_best_fit(): every x value is identical -- there is"
-            " no honest non-vertical line to fit through a vertical scatter"
-        )
-    var slope = (n * sum_xy - sum_x * sum_y) / denom
-    var mean_x = sum_x / n
-    var mean_y = sum_y / n
-    var intercept = mean_y - slope * mean_x
-
+    var fit: _OlsFit
+    try:
+        fit = _ols_fit(plot.x_data, plot.y_data)
+    except e:
+        raise Error("Plot.annotate_best_fit(): " + String(e))
+    var slope = fit.slope
+    var intercept = fit.intercept
+    var mean_y = fit.mean_y
+    var n_points = fit.n
     var sc = _Scaled(theme)
     var py_top = min(result.py0, result.py1)
     var py_bottom = max(result.py0, result.py1)
@@ -732,6 +718,63 @@ def _draw_annotation_best_fit[
     var x_right = result.x_scale.domain_max
     var px_left = _axis_pixel_f(result.x_scale, x_left)
     var px_right = _axis_pixel_f(result.x_scale, x_right)
+
+    # The confidence band goes down first, under the line: a translucent
+    # region in annotation_area_color whose edges are the fitted mean
+    # plus and minus the band half-width, sampled across the domain so
+    # the hourglass shape -- narrowest at mean_x, flaring at the ends --
+    # is drawn as it is rather than as a constant-width strip. Each
+    # edge is clamped into the plot rect the way the line's ends are.
+    var ci = plot._annotations.best_fit_ci
+    if ci > 0.0:
+        if ci >= 1.0:
+            raise Error(
+                "Plot.annotate_best_fit(): ci must be in (0, 1) (got "
+                + String(ci)
+                + ")"
+            )
+        var steps = 64
+        var upper_py = List[Float64](capacity=steps + 1)
+        var lower_py = List[Float64](capacity=steps + 1)
+        var band_px = List[Float64](capacity=steps + 1)
+        for i in range(steps + 1):
+            var t = Float64(i) / Float64(steps)
+            var xv = x_left + (x_right - x_left) * t
+            var hw: Float64
+            try:
+                hw = fit.band_half_width(xv, ci)
+            except e:
+                raise Error("Plot.annotate_best_fit(): " + String(e))
+            var yc = fit.predict(xv)
+            band_px.append(_axis_pixel_f(result.x_scale, xv))
+            upper_py.append(
+                min(
+                    max(
+                        _axis_pixel_f(result.y_scale, yc + hw),
+                        Float64(py_top),
+                    ),
+                    Float64(py_bottom),
+                )
+            )
+            lower_py.append(
+                min(
+                    max(
+                        _axis_pixel_f(result.y_scale, yc - hw),
+                        Float64(py_top),
+                    ),
+                    Float64(py_bottom),
+                )
+            )
+        var band = Path()
+        band.move_to(band_px[0], upper_py[0])
+        for i in range(1, steps + 1):
+            band.line_to(band_px[i], upper_py[i])
+        for i in range(steps, -1, -1):
+            band.line_to(band_px[i], lower_py[i])
+        band.close()
+        target.fill_path_aa(
+            band, theme.annotation_area_color, fill_rule=FillRule.NONZERO
+        )
     # A fitted line is a diagonal, and a diagonal is antialiased
     # wherever it is put -- there is no crisp position to snap to, and
     # rounding the two ends tilted the line off the fit it is there to

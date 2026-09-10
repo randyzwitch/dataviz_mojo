@@ -556,6 +556,59 @@ def test_render_svg_annotate_best_fit_matches_hand_derived_fit_and_line() raises
     )
 
 
+def test_render_svg_annotate_best_fit_ci_draws_a_band_under_the_line() raises:
+    # Same five points as the hand-derived fit test. With ci=0.95 a filled
+    # path in annotation_area_color (#e0ecf6) is emitted before the
+    # fitted <line>; with the default ci=0.0 no such path exists.
+    var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
+    var y: List[Float64] = [1.0, 3.0, 2.0, 5.0, 4.0]
+    var with_band = render_svg(
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .annotate_best_fit(ci=0.95)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    ).to_string()
+    var band_at = with_band.find('fill="#e0ecf6"')
+    assert_true(
+        band_at >= 0, "the confidence band is filled in annotation_area_color"
+    )
+    var line_at = with_band.find('stroke="#969696"')
+    assert_true(
+        band_at < line_at, "the band is drawn before (under) the fitted line"
+    )
+
+    var without = render_svg(
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .annotate_best_fit()
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    ).to_string()
+    assert_true(without.find('fill="#e0ecf6"') < 0, "ci=0.0 draws no band")
+
+
+def test_render_raises_on_annotate_best_fit_ci_that_cannot_be_computed() raises:
+    var x: List[Float64] = [1.0, 2.0]
+    var y: List[Float64] = [1.0, 2.0]
+    with assert_raises():
+        _ = render_svg(
+            Plot().mark_point().encode(x=x, y=y).annotate_best_fit(ci=0.95)
+        )
+    var x3: List[Float64] = [1.0, 2.0, 3.0]
+    var y3: List[Float64] = [1.0, 3.0, 2.0]
+    with assert_raises():
+        _ = render_svg(
+            Plot().mark_point().encode(x=x3, y=y3).annotate_best_fit(ci=1.5)
+        )
+    with assert_raises():
+        _ = render_svg(
+            Plot().mark_point().encode(x=x3, y=y3).annotate_best_fit(ci=0.8)
+        )
+
+
 def test_render_svg_annotate_best_fit_draws_only_the_line_with_no_options_set() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
     var y: List[Float64] = [1.0, 3.0, 2.0, 5.0, 4.0]

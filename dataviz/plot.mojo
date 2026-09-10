@@ -3774,6 +3774,7 @@ struct Plot(Copyable, Movable):
         show_equation: Bool = False,
         show_r_squared: Bool = False,
         label: String = "",
+        ci: Float64 = 0.0,
     ) -> Self:
         """Overlay an ordinary-least-squares best-fit line computed from this
         plot's own `x_data`/`y_data` at render() time, so it works whether
@@ -3805,6 +3806,16 @@ struct Plot(Copyable, Movable):
                 squared` -- a `label` with both left `False` still
                 draws only the line, no text at all).
 
+            ci: Two-sided confidence level for a band around the fitted
+                line -- `0.95` shades the 95% confidence interval of the
+                fitted *mean* at each x, seaborn's `regplot` default.
+                `0.0` (the default) draws no band. The band is narrowest
+                at the mean of `x` and flares toward the ends, which is
+                the point of drawing it: a line without one invites the
+                reader to trust the slope more than the data supports
+                (#352). Levels carried: 0.90, 0.95, 0.99. Needs at least
+                3 points. Drawn in `Theme.annotation_area_color`, under
+                the line.
         Returns:
             Self, for further chaining -- `render()`/`render_svg()`
             raise later if the mark has no genuine continuous x/y-axis,
@@ -3817,6 +3828,7 @@ struct Plot(Copyable, Movable):
         self._annotations.best_fit_show_equation = show_equation
         self._annotations.best_fit_show_r_squared = show_r_squared
         self._annotations.best_fit_label = label
+        self._annotations.best_fit_ci = ci
         return self^
 
     def scale_y_log(var self) -> Self:
