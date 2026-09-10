@@ -187,20 +187,21 @@ def ridgeline(
         from dataviz import save
 
         def main() raises:
-            var months: List[String] = ["June", "July", "August", "September"]
-            var temps: List[List[Int]] = [
-                [68, 70, 72, 74, 71, 69, 75, 73],
-                [78, 80, 82, 85, 79, 81, 83, 84],
-                [80, 82, 84, 86, 81, 83, 85, 87],
-                [70, 72, 74, 76, 71, 73, 75, 69],
+            var regions: List[String] = ["US East", "EU West", "Asia Pacific"]
+            # The shared illustrative regional latency sample, arranged as
+            # overlapping density ridges for compact shape comparison.
+            var latency_ms: List[List[Int]] = [
+                [68, 72, 75, 71, 69, 74, 78, 73, 70, 76, 82, 77, 71, 69, 80, 74, 72, 75, 118, 67],
+                [96, 102, 108, 99, 104, 111, 106, 101, 98, 115, 109, 103, 107, 100, 113, 105, 97, 110, 146, 102],
+                [154, 162, 171, 158, 166, 179, 173, 160, 168, 181, 176, 164, 170, 157, 184, 169, 161, 175, 238, 165],
             ]
 
             var c = ridgeline(
-                months,
-                temps,
-                title="Monthly Temperature Distributions",
-                x_title="Temperature (°F)",
-                y_title="Month",
+                regions,
+                latency_ms,
+                title="Illustrative API Latency by Region",
+                x_title="Latency (ms)",
+                y_title="Region",
             )
             save(c, "docs/src/examples/out_ridgeline.svg")
         ```

@@ -1102,21 +1102,22 @@ def histogram(
         from dataviz import Theme
 
         def main() raises:
-            # Exam scores out of 100 -- a real bell-ish spread, not a uniform
-            # or already-sorted list, so the binning has genuine work to do.
-            var scores: List[Int] = [
-                52, 61, 65, 68, 70, 71, 72, 74, 75, 76,
-                77, 78, 78, 79, 80, 81, 81, 82, 83, 84,
-                85, 86, 87, 88, 89, 90, 91, 93, 95, 98,
+            # The shared illustrative checkout latency sample is intentionally
+            # unsorted and right-skewed, so binning reveals its slow tail.
+            var latency_ms: List[Int] = [
+                84, 72, 91, 68, 75, 88, 79, 73, 96, 82,
+                77, 69, 85, 74, 101, 80, 71, 93, 76, 87,
+                83, 70, 78, 89, 81, 95, 67, 86, 72, 90,
+                110, 124, 138, 156, 205, 98, 105, 118, 74, 82,
             ]
 
             var c = histogram(
-                scores,
-                bins=8,
-                title="Exam Score Distribution",
+                latency_ms,
+                bins=10,
+                title="Illustrative Checkout API Latency",
                 theme=Theme(mark_color=REBECCAPURPLE),
-                x_title="Score",
-                y_title="Students",
+                x_title="Latency (ms)",
+                y_title="Requests",
             )
             save(c, "docs/src/examples/out_histogram.svg")
         ```

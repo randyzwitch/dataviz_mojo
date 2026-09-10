@@ -286,14 +286,19 @@ def ecdf(
         from dataviz import save
 
         def main() raises:
-            var response_ms: List[Float64] = [
-                12.0, 14.0, 15.0, 15.0, 16.0, 16.0, 17.0, 18.0, 19.0,
-                21.0, 24.0, 25.0, 26.0, 26.0, 27.0, 28.0, 31.0, 44.0,
+            # The same illustrative right-skewed checkout latency sample used
+            # by kdeplot(), rugplot(), and histogram().
+            var latency_ms: List[Float64] = [
+                84.0, 72.0, 91.0, 68.0, 75.0, 88.0, 79.0, 73.0,
+                96.0, 82.0, 77.0, 69.0, 85.0, 74.0, 101.0, 80.0,
+                71.0, 93.0, 76.0, 87.0, 83.0, 70.0, 78.0, 89.0,
+                81.0, 95.0, 67.0, 86.0, 72.0, 90.0, 110.0, 124.0,
+                138.0, 156.0, 205.0, 98.0, 105.0, 118.0, 74.0, 82.0,
             ]
             var c = ecdf(
-                response_ms,
-                title="Response time",
-                x_title="ms",
+                latency_ms,
+                title="Illustrative Checkout API Latency",
+                x_title="Latency (ms)",
                 y_title="Proportion of requests",
             )
             save(c, "docs/src/examples/out_ecdf.svg")
