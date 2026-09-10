@@ -37,6 +37,7 @@ from dataviz.bar import bar
 from dataviz.barbs import barbs
 from dataviz.beeswarm import beeswarm
 from dataviz.box import box
+from dataviz.boxen import boxenplot
 from dataviz.bullet import bullet
 from dataviz.candlestick import candlestick
 from dataviz.contour import contour, contourf

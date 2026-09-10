@@ -64,6 +64,7 @@ def _titles() -> Dict[String, String]:
     d["lollipop"] = "Lollipop"
     d["waterfall"] = "Waterfall"
     d["box"] = "Box Plot"
+    d["boxenplot"] = "Letter-Value Plot"
     d["candlestick"] = "Candlestick"
     d["bullet"] = "Bullet"
     d["gantt"] = "Gantt"
@@ -197,6 +198,7 @@ def _categories() -> List[Category]:
             ),
             [
                 "box",
+                "boxenplot",
                 "histogram",
                 "histogram_shared",
                 "histogram_auto",

@@ -68,6 +68,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("lollipop", "lollipop", "lollipop"),
         ExamplePage("waterfall", "waterfall", "waterfall"),
         ExamplePage("box", "box", "box"),
+        ExamplePage("boxenplot", "boxen", "boxenplot"),
         ExamplePage("candlestick", "candlestick", "candlestick"),
         ExamplePage("bullet", "bullet", "bullet"),
         ExamplePage("gantt", "gantt", "gantt"),

@@ -33,6 +33,7 @@ from dataviz import (
     barbs,
     beeswarm,
     box,
+    boxenplot,
     bullet,
     bump,
     calendar_heatmap,
@@ -171,6 +172,8 @@ def _representative_plot(mark: Mark) raises -> Plot:
         return waterfall(cats, vals, width=_W, height=_H)
     if mark == Mark.BOX:
         return box(cats, _box_values(), width=_W, height=_H)
+    if mark == Mark.BOXENPLOT:
+        return boxenplot(cats, _box_values(), width=_W, height=_H)
     if mark == Mark.BEESWARM:
         return beeswarm(cats, _box_values(), width=_W, height=_H)
     if mark == Mark.VIOLIN:
@@ -564,7 +567,7 @@ def test_backends_agree_with_titles_and_rotated_axis_labels() raises:
 def test_mark_count_is_one_past_the_newest_mark() raises:
     """Require `Mark.COUNT` to be one greater than the newest mark value."""
     assert_true(
-        Mark.POINTPLOT == Mark(Mark.COUNT - 1),
+        Mark.BOXENPLOT == Mark(Mark.COUNT - 1),
         (
             "Mark.COUNT must be one past the newest mark -- update both when"
             " adding one"
