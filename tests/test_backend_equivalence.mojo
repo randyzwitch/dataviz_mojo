@@ -44,6 +44,7 @@ from dataviz import (
     imshow,
     pcolormesh,
     hist2d,
+    hexbin,
     tricontour,
     tricontourf,
     tripcolor,
@@ -329,6 +330,14 @@ def _representative_plot(mark: Mark) raises -> Plot:
             hx.append((t * 7.0) % 23.0 + (t * 3.0) % 5.0)
             hy.append((t * 11.0) % 17.0 + (t * 2.0) % 3.0)
         return hist2d(hx, hy, bins=8, width=_W, height=_H)
+    if mark == Mark.HEXBIN:
+        var bx = List[Float64]()
+        var by = List[Float64]()
+        for i in range(400):
+            var t = Float64(i)
+            bx.append((t * 7.0) % 23.0 + (t * 3.0) % 5.0)
+            by.append((t * 11.0) % 17.0 + (t * 2.0) % 3.0)
+        return hexbin(bx, by, gridsize=8, width=_W, height=_H)
     if mark == Mark.TRICONTOUR:
         var tx = List[Float64]()
         var ty = List[Float64]()
@@ -576,7 +585,7 @@ def test_backends_agree_with_titles_and_rotated_axis_labels() raises:
 def test_mark_count_is_one_past_the_newest_mark() raises:
     """Require `Mark.COUNT` to be one greater than the newest mark value."""
     assert_true(
-        Mark.HIST2D == Mark(Mark.COUNT - 1),
+        Mark.HEXBIN == Mark(Mark.COUNT - 1),
         (
             "Mark.COUNT must be one past the newest mark -- update both when"
             " adding one"

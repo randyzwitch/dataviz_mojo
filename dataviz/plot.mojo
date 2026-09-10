@@ -221,6 +221,7 @@ from dataviz.ridgeline import _render_ridgeline
 from dataviz.violin import _render_violin, _render_horizontal_violin
 from dataviz.waterfall import _WaterfallData
 from dataviz.box import _BoxData
+from dataviz.hexbin import _HexbinData, _render_hexbin
 from dataviz.hist2d import _hist2d_counts
 from dataviz.boxen import (
     _BoxenData,
@@ -553,6 +554,7 @@ struct Plot(Copyable, Movable):
     var _waterfall: _WaterfallData
     var _box: _BoxData
     var _boxen: _BoxenData
+    var _hexbin: _HexbinData
     var _candle: _CandleData
     var _bullet: _BulletData
     var _gantt: _GanttData
@@ -624,6 +626,7 @@ struct Plot(Copyable, Movable):
         self._waterfall = _WaterfallData()
         self._box = _BoxData()
         self._boxen = _BoxenData()
+        self._hexbin = _HexbinData()
         self._candle = _CandleData()
         self._bullet = _BulletData()
         self._gantt = _GanttData()
@@ -1118,6 +1121,18 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.HIST2D
+        return self^
+
+    def mark_hexbin(var self) -> Self:
+        """Select `Mark.HEXBIN`: `(x, y)` points counted into a hexagonal
+        lattice and drawn as colored hexagons, empty cells left undrawn.
+        Pair with `encode_hexbin()`; see `_render_hexbin` (hexbin.mojo)
+        for the drawing and `hexbin()` for the one-call form.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.HEXBIN
         return self^
 
     def mark_tricontour(var self, levels: Int = 8) -> Self:
@@ -2801,6 +2816,26 @@ struct Plot(Copyable, Movable):
         self._image.x_edges = x_edges.copy()
         self._image.y_edges = y_edges.copy()
         self._image.blank_zero = True
+        return self^
+
+    def encode_hexbin(
+        var self, x: List[Float64], y: List[Float64], gridsize: Int = 30
+    ) -> Self:
+        """Map `(x, y)` points onto `Mark.HEXBIN`'s shape: the points
+        themselves and the lattice width in cells. Binning happens at
+        render time (`_hexbin_bins`), over the data's own bounding box.
+
+        Args:
+            x: The horizontal coordinates.
+            y: The vertical coordinates, one per `x`.
+            gridsize: Hexagons across the x range, at least 1.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._hexbin.x = x.copy()
+        self._hexbin.y = y.copy()
+        self._hexbin.gridsize = gridsize
         return self^
 
     def encode_tricontour(
@@ -4902,6 +4937,8 @@ def _render_generic[
         or plot._mark == Mark.HIST2D
     ):
         return _render_image(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    if plot._mark == Mark.HEXBIN:
+        return _render_hexbin(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.TRICONTOUR:
         return _render_tricontour(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.KDE:
