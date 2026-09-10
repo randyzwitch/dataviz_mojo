@@ -19,7 +19,6 @@ from dataviz.plot import (
     _LegendLayout,
     _draw_legend_at,
     _legend_layout,
-    _lighten,
     _finished,
     _require_non_empty,
 )
@@ -160,7 +159,7 @@ def _render_radar[
         poly.close()
         target.fill_path_aa(
             poly,
-            _lighten(color, theme.radar_fill_alpha),
+            color.with_alpha(theme.radar_fill_alpha),
             fill_rule=FillRule.NONZERO,
         )
         target.stroke_path_aa(poly, color, sc.line_width)

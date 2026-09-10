@@ -494,12 +494,11 @@ def test_dark_preset_leaves_no_light_theme_default_anywhere() raises:
     # Measured headroom: across these charts the brightest region of 800
     # px or more is dark()'s own `mark_color` at luma 155.6, and the
     # brightest thing a *forgotten* field would put there is 190. The
-    # radar and effect-scatter renders are excluded because `_lighten()`
-    # flattens their fills against a hardcoded white rather than against
-    # `Theme.background` -- see -- which puts the radar's lightened
-    # palette orange at 173.3 for reasons no preset controls.
+    # The effect-scatter render is excluded because `_lighten()` flattens
+    # its halos against a hardcoded white rather than against
+    # `Theme.background`.
     for i in range(len(canvases)):
-        if names[i] == "radar" or names[i] == "effect scatter":
+        if names[i] == "effect scatter":
             continue
         var census = _color_census(canvases[i], False)
         var colors = census[0].copy()

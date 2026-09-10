@@ -222,7 +222,9 @@ def _render_sankey[
         path.close()
         target.fill_path_aa(
             path,
-            palette[edge_origin[e] % len(palette)],
+            palette[edge_origin[e] % len(palette)].with_alpha(
+                theme.sankey_flow_alpha
+            ),
             fill_rule=FillRule.NONZERO,
         )
 
