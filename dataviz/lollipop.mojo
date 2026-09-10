@@ -283,14 +283,15 @@ def lollipop(
                 "USA", "China", "Japan", "Germany", "India",
                 "UK", "France", "Italy", "Brazil", "Canada",
             ]
+            # Rounded illustrative totals in trillions of US dollars.
             var gdp: List[Float64] = [27.4, 17.8, 4.2, 4.1, 3.7, 3.3, 3.0, 2.2, 2.1, 2.1]
 
             var c = lollipop(
                 countries,
                 gdp,
-                title="GDP per Capita",
-                x_title="Country",
-                y_title="GDP per capita ($k)",
+                title="Illustrative Nominal GDP by Economy",
+                x_title="Economy",
+                y_title="Nominal GDP (US$ trillions)",
                 theme=Theme(mark_color=TEAL),
             )
             save(c, "docs/src/examples/out_lollipop.svg")

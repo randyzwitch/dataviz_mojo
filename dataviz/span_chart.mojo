@@ -144,16 +144,18 @@ def span_chart(
             var months: List[String] = [
                 "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
             ]
-            var temp_low: List[Int] = [-3, -2, 3, 10, 15, 19, 21, 20, 15, 8, 2, -1]
-            var temp_high: List[Int] = [5, 7, 12, 20, 25, 29, 31, 30, 26, 18, 10, 5]
+            # Illustrative monthly daily-low and daily-high normals for a
+            # continental climate, kept in one unit on the shared axis.
+            var temp_low: List[Int] = [-6, -4, 1, 7, 12, 18, 20, 19, 15, 8, 2, -3]
+            var temp_high: List[Int] = [0, 2, 9, 15, 21, 27, 29, 28, 24, 17, 9, 2]
 
             var c = span_chart(
                 months,
                 temp_low,
                 temp_high,
-                title="Monthly Temperature Range",
+                title="Illustrative Chicago Monthly Temperature Range",
                 x_title="Month",
-                y_title="Temperature (°F)",
+                y_title="Temperature (°C)",
             )
             save(c, "docs/src/examples/out_span_chart.svg")
         ```
