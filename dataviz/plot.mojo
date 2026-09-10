@@ -3774,7 +3774,7 @@ struct Plot(Copyable, Movable):
         show_equation: Bool = False,
         show_r_squared: Bool = False,
         label: String = "",
-        ci: Float64 = 0.0,
+        ci: Float64 = 0.95,
     ) -> Self:
         """Overlay an ordinary-least-squares best-fit line computed from this
         plot's own `x_data`/`y_data` at render() time, so it works whether
@@ -3807,15 +3807,17 @@ struct Plot(Copyable, Movable):
                 draws only the line, no text at all).
 
             ci: Two-sided confidence level for a band around the fitted
-                line -- `0.95` shades the 95% confidence interval of the
-                fitted *mean* at each x, seaborn's `regplot` default.
-                `0.0` (the default) draws no band. The band is narrowest
-                at the mean of `x` and flares toward the ends, which is
-                the point of drawing it: a line without one invites the
-                reader to trust the slope more than the data supports
-                (#352). Levels carried: 0.90, 0.95, 0.99. Needs at least
-                3 points. Drawn in `Theme.annotation_area_color`, under
-                the line.
+                line. `0.95` (the default) shades the 95% confidence
+                interval of the fitted *mean* at each x, as seaborn's
+                `regplot` does; pass `0.0` for the bare line. The band
+                is narrowest at the mean of `x` and flares toward the
+                ends, which is the point of drawing it: a line without
+                one invites the reader to trust the slope more than the
+                data supports (#352). Levels carried: 0.90, 0.95, 0.99.
+                A band needs three points -- with two, the line passes
+                through both and there is no residual error to size it
+                from -- so with fewer the line draws alone. Drawn in
+                `Theme.annotation_area_color`, under the line.
         Returns:
             Self, for further chaining -- `render()`/`render_svg()`
             raise later if the mark has no genuine continuous x/y-axis,

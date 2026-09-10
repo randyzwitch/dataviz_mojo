@@ -726,7 +726,10 @@ def _draw_annotation_best_fit[
     # is drawn as it is rather than as a constant-width strip. Each
     # edge is clamped into the plot rect the way the line's ends are.
     var ci = plot._annotations.best_fit_ci
-    if ci > 0.0:
+    # Two points have no residual degrees of freedom, so there is no
+    # band to size; the line draws alone rather than the default ci
+    # turning a two-point fit into an error.
+    if ci > 0.0 and fit.n >= 3:
         if ci >= 1.0:
             raise Error(
                 "Plot.annotate_best_fit(): ci must be in (0, 1) (got "
