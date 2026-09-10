@@ -372,17 +372,40 @@ def heatmap(
         from dataviz import Theme
 
         def main() raises:
-            var days: List[String] = ["Mon", "Mon", "Mon", "Tue", "Tue", "Tue", "Wed", "Wed", "Wed"]
-            var hours: List[String] = ["9am", "1pm", "5pm", "9am", "1pm", "5pm", "9am", "1pm", "5pm"]
-            var activity: List[Int] = [3, 8, 5, 4, 9, 6, 2, 7, 10]
+            var day_names: List[String] = [
+                "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun",
+            ]
+            var hour_names: List[String] = [
+                "6am", "9am", "12pm", "3pm", "6pm", "9pm",
+            ]
+            # Illustrative support requests: weekday volume rises through the
+            # workday, while weekends are quieter and peak later.
+            var requests_by_day: List[List[Int]] = [
+                [8, 24, 39, 46, 31, 14],
+                [7, 27, 42, 49, 34, 16],
+                [9, 29, 45, 52, 37, 18],
+                [8, 26, 41, 48, 35, 17],
+                [7, 23, 38, 44, 40, 24],
+                [5, 11, 19, 27, 32, 25],
+                [4, 9, 16, 23, 28, 21],
+            ]
+
+            var days = List[String]()
+            var hours = List[String]()
+            var requests = List[Int]()
+            for day_i in range(len(day_names)):
+                for hour_i in range(len(hour_names)):
+                    days.append(day_names[day_i])
+                    hours.append(hour_names[hour_i])
+                    requests.append(requests_by_day[day_i][hour_i])
 
             var c = heatmap(
                 days,
                 hours,
-                activity,
-                title="Activity by Day and Time",
+                requests,
+                title="Illustrative Support Requests by Day and Hour",
                 x_title="Day",
-                y_title="Time",
+                y_title="Hour",
             )
             save(c, "docs/src/examples/out_heatmap.svg")
         ```

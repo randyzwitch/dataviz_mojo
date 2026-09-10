@@ -397,17 +397,30 @@ def calendar_heatmap(
             var dates = List[String]()
             var values = List[Int]()
             var days_in_month: List[Int] = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+            var day_of_year = 0
             for month in range(1, 13):
                 var month_str = "0" + String(month) if month < 10 else String(month)
                 for day in range(1, days_in_month[month - 1] + 1):
                     var day_str = "0" + String(day) if day < 10 else String(day)
                     dates.append(String(2024) + "-" + month_str + "-" + day_str)
-                    values.append((day * 7 + month) % 10)
+                    # 2024 began on Monday. Illustrative ticket volume preserves
+                    # the weekly rhythm, a summer lift, a Q4 peak, and twice-
+                    # monthly release-day spikes.
+                    var is_weekend = day_of_year % 7 >= 5
+                    var tickets = 18 if is_weekend else 52
+                    if month >= 6 and month <= 8:
+                        tickets += 8
+                    if month >= 11:
+                        tickets += 20
+                    if day == 1 or day == 15:
+                        tickets += 15
+                    values.append(tickets)
+                    day_of_year += 1
 
             var c = calendar_heatmap(
                 dates,
                 values,
-                title="Daily Activity in 2024",
+                title="Illustrative Daily Support Tickets in 2024",
                 width=900,
                 height=250,
             )
