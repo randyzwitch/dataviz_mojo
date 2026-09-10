@@ -26,6 +26,7 @@ from dataviz.layers import render_layers, render_layers_svg, save_layers
 from dataviz.mark import Mark
 from dataviz.output_format import OutputFormat
 from dataviz.plot import (
+    _filled_annotations_go_under,
     _resolve_supersample,
     Plot,
     _data_extent,
@@ -352,10 +353,15 @@ def _render_facets_generic[
         # mark's cell correctly has has_x_scale=False -- each pass below
         # raises its own "no continuous axis" error exactly as it would for
         # a standalone plot, with no extra branching needed here.
-        var cell_area_requests = _draw_annotation_areas(
+        var cell_under = _filled_annotations_go_under(plots[i]._mark)
+        var cell_area_requests = List[
+            _TextRequest
+        ]() if cell_under else _draw_annotation_areas(
             target, plots[i], cell_result, plots[i]._theme
         )
-        var cell_band_requests = _draw_annotation_bands(
+        var cell_band_requests = List[
+            _TextRequest
+        ]() if cell_under else _draw_annotation_bands(
             target, plots[i], cell_result, plots[i]._theme
         )
         var cell_vline_requests = _draw_annotation_vlines(

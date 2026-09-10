@@ -1281,6 +1281,37 @@ def _render_layers_generic[
     # belongs to plots[0], while `line_width`, `point_radius` and
     # `tick_length` follow each layer's own `Theme.scale`, as
     # render_layers() documents.
+    # Filled annotations under every layer's marks (#501), against the
+    # same per-layer result the annotation pass after the marks builds.
+    for j in range(len(plots)):
+        var under_y_scale = out_y_scale2 if plots[
+            j
+        ]._secondary_axis else frame.y_scale
+        var under_has_y = has_secondary_data if plots[
+            j
+        ]._secondary_axis else frame.has_y_scale
+        var under_result = _RenderResult(
+            List[_TextRequest](),
+            frame.px0,
+            frame.py0,
+            frame.px1,
+            frame.py1,
+            under_y_scale,
+            under_has_y,
+            frame.x_scale,
+            True,
+        )
+        var under_areas = _draw_annotation_areas(
+            target, plots[j], under_result, plots[j]._theme
+        )
+        for k in range(len(under_areas)):
+            text_requests.append(under_areas[k].copy())
+        var under_bands = _draw_annotation_bands(
+            target, plots[j], under_result, plots[j]._theme
+        )
+        for k in range(len(under_bands)):
+            text_requests.append(under_bands[k].copy())
+
     for j in range(len(plots)):
         var mark = plots[j]._mark
         var layer_theme = plots[j]._theme
@@ -1406,12 +1437,9 @@ def _render_layers_generic[
             frame.x_scale,
             True,
         )
-        var layer_area_requests = _draw_annotation_areas(
-            target, plots[j], layer_result, plots[j]._theme
-        )
-        var layer_band_requests = _draw_annotation_bands(
-            target, plots[j], layer_result, plots[j]._theme
-        )
+        # Areas and bands were drawn under the marks above (#501).
+        var layer_area_requests = List[_TextRequest]()
+        var layer_band_requests = List[_TextRequest]()
         var layer_vline_requests = _draw_annotation_vlines(
             target, plots[j], layer_result, plots[j]._theme
         )
