@@ -4269,10 +4269,15 @@ def _render_into(
     var label_requests = _label_text_requests(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
-    var area_annotation_requests = _draw_annotation_areas(
+    var under_mark = _filled_annotations_go_under(plot._mark)
+    var area_annotation_requests = List[
+        _TextRequest
+    ]() if under_mark else _draw_annotation_areas(
         canvas, plot, result, plot._theme
     )
-    var band_annotation_requests = _draw_annotation_bands(
+    var band_annotation_requests = List[
+        _TextRequest
+    ]() if under_mark else _draw_annotation_bands(
         canvas, plot, result, plot._theme
     )
     var vline_annotation_requests = _draw_annotation_vlines(
@@ -4336,10 +4341,15 @@ def _render_svg_into(
     var label_requests = _label_text_requests(
         plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
     )
-    var area_annotation_requests = _draw_annotation_areas(
+    var under_mark = _filled_annotations_go_under(plot._mark)
+    var area_annotation_requests = List[
+        _TextRequest
+    ]() if under_mark else _draw_annotation_areas(
         svg, plot, result, plot._theme
     )
-    var band_annotation_requests = _draw_annotation_bands(
+    var band_annotation_requests = List[
+        _TextRequest
+    ]() if under_mark else _draw_annotation_bands(
         svg, plot, result, plot._theme
     )
     var vline_annotation_requests = _draw_annotation_vlines(
@@ -4518,6 +4528,25 @@ def write_accessible_svg(
     var f = open(path, "w")
     f.write(accessible_svg_string(svg, title, description))
     f.close()
+
+
+def _filled_annotations_go_under(mark: Mark) raises -> Bool:
+    """Whether `mark` draws its filled annotations -- `annotate_area()`
+    bands and `annotate_band()` ribbons -- *under* its geometry. True
+    for the continuous-frame marks, where a ribbon is a region the mark
+    is meant to be read through, and drawing it last painted
+    `Theme.annotation_area_color` over the line it annotates (#501).
+    Those marks draw the fills between frame and mark inside
+    `_render_generic`; every other mark still draws them after, from
+    `_render_into`/`render_svg`, where a band over solid bars was the
+    order it always had.
+    """
+    return (
+        mark == Mark.POINT
+        or mark == Mark.LINE
+        or mark == Mark.AREA
+        or mark == Mark.EFFECT_SCATTER
+    )
 
 
 def _render_generic[
@@ -4853,6 +4882,19 @@ def _render_generic[
         oy1,
         cache=cache,
     )
+
+    # Filled annotations go under the mark (#501): the area bands and
+    # ribbons are drawn now, against the finished frame, so the mark is
+    # read through them rather than painted over by them. Their labels
+    # join the frame's text requests and are replayed with the rest.
+    # Stroked and text annotations still draw after the mark.
+    var under = frame.result()
+    var under_areas = _draw_annotation_areas(target, plot, under, theme)
+    for k in range(len(under_areas)):
+        frame.text_requests.append(under_areas[k].copy())
+    var under_bands = _draw_annotation_bands(target, plot, under, theme)
+    for k in range(len(under_bands)):
+        frame.text_requests.append(under_bands[k].copy())
 
     if plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER:
         _ = _draw_point_layer(

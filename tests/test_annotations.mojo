@@ -229,10 +229,12 @@ def test_render_annotate_area_raster_draws_ink_at_the_hand_derived_row() raises:
     )
 
 
-def test_render_annotate_area_lets_the_mark_underneath_show_through() raises:
-    # x=200 at row 150 is covered by both the line's stroke and the band's
-    # fill, so the expected color is the band blended over mark_color
-    # (Color(30, 100, 180)).
+def test_render_annotate_area_sits_under_the_mark() raises:
+    # Was `..._lets_the_mark_underneath_show_through` before #501, when
+    # the band was drawn last and x=200 on the line inside the band was
+    # the band blended over mark_color. The band now goes under the
+    # line, so that pixel is the line's own ink, and a band pixel off
+    # the line is the band over the white background.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var plot = (
@@ -244,15 +246,26 @@ def test_render_annotate_area_lets_the_mark_underneath_show_through() raises:
         .size(400, 300)
     )
     var c = render(plot)
-    # _assert_near_color, since x=200 sits on the line's 1px stroke and the
-    # blend isn't pixel-exact.
+    # x=200 sits on the line's 1px antialiased stroke, hence near rather
+    # than exact.
     _assert_near_color(
         c,
         200,
         150,
-        Color(182, 206, 231),
+        Color(30, 100, 180),
         30,
-        "the band blended over the line's own ink, not erasing it",
+        "on the line, inside the band, the line's own ink is on top",
+    )
+    # x=100, row 150 is inside the band's rows and well off the line
+    # (which passes row ~213 there): annotation_area_color (224, 236,
+    # 246) at alpha 200 over white.
+    _assert_near_color(
+        c,
+        100,
+        150,
+        Color(231, 240, 248),
+        30,
+        "off the line, the band is the band over the background",
     )
 
 
@@ -1225,3 +1238,50 @@ def test_annotate_arrow_outside_the_domain_draws_nothing() raises:
 
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
+
+
+def test_filled_annotations_draw_under_a_continuous_mark() raises:
+    """A ribbon or area band is a region the mark is read through, so on
+    a continuous mark it is emitted before the mark's own geometry
+    (#501). Bars keep the old order: a band over solid bars was never
+    hiding anything it should not.
+    """
+    var x: List[Float64] = [1.0, 2.0, 3.0]
+    var y: List[Float64] = [2.0, 4.0, 3.0]
+    var lo: List[Float64] = [1.0, 3.0, 2.0]
+    var hi: List[Float64] = [3.0, 5.0, 4.0]
+    var band = render_svg(
+        Plot()
+        .mark_point()
+        .encode(x=x, y=y)
+        .annotate_band(x, lo, hi)
+        .size(400, 300)
+    ).to_string()
+    var band_at = band.find('fill="#e0ecf6"')
+    var point_at = band.find("<circle")
+    assert_true(band_at >= 0 and point_at >= 0)
+    assert_true(band_at < point_at, "the ribbon is under the points")
+
+    var area = render_svg(
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y)
+        .annotate_area(2.5, 3.5)
+        .size(400, 300)
+    ).to_string()
+    var area_at = area.find('fill="#e0ecf6"')
+    var line_at = area.find('stroke="#1e64b4"')
+    assert_true(area_at >= 0 and line_at >= 0)
+    assert_true(area_at < line_at, "the area band is under the line")
+
+    var cats: List[String] = ["a", "b", "c"]
+    var bars = render_svg(
+        Plot()
+        .mark_bar()
+        .encode_categorical(x=cats, y=y)
+        .annotate_area(2.5, 3.5)
+        .size(400, 300)
+    ).to_string()
+    var bar_band_at = bars.find('fill="#e0ecf6"')
+    var bar_at = bars.find('fill="#1e64b4"')
+    assert_true(bar_band_at > bar_at, "on bars the band still draws over")
