@@ -455,20 +455,21 @@ def box(
         from dataviz import Theme
 
         def main() raises:
-            var groups: List[String] = ["Group A", "Group B", "Group C", "Group D"]
-            var scores: List[List[Int]] = [
-                [72, 75, 78, 80, 81, 83, 85, 88, 90],
-                [60, 65, 68, 70, 72, 74, 77, 79],
-                [55, 70, 73, 75, 76, 78, 80, 82, 20],
-                [82, 84, 85, 86, 87, 88, 89, 91, 93],
+            var regions: List[String] = ["US East", "EU West", "Asia Pacific"]
+            # Illustrative API latency samples (ms), including one slow request
+            # in each region so the whiskers and outlier points do real work.
+            var latency_ms: List[List[Int]] = [
+                [68, 72, 75, 71, 69, 74, 78, 73, 70, 76, 82, 77, 71, 69, 80, 74, 72, 75, 118, 67],
+                [96, 102, 108, 99, 104, 111, 106, 101, 98, 115, 109, 103, 107, 100, 113, 105, 97, 110, 146, 102],
+                [154, 162, 171, 158, 166, 179, 173, 160, 168, 181, 176, 164, 170, 157, 184, 169, 161, 175, 238, 165],
             ]
 
             var c = box(
-                groups,
-                scores,
-                title="Exam Score Distributions",
-                x_title="Group",
-                y_title="Score",
+                regions,
+                latency_ms,
+                title="Illustrative API Latency by Region",
+                x_title="Region",
+                y_title="Latency (ms)",
                 theme=Theme(mark_color=ROYALBLUE),
             )
             save(c, "docs/src/examples/out_box.svg")

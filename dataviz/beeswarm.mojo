@@ -275,19 +275,21 @@ def beeswarm(
         from dataviz import save
 
         def main() raises:
-            var classes: List[String] = ["Section A", "Section B", "Section C"]
-            var scores: List[List[Int]] = [
-                [72, 75, 78, 80, 74, 76, 91],
-                [65, 70, 72, 88, 90, 92, 95],
-                [80, 82, 83, 84, 81, 79, 85],
+            var regions: List[String] = ["US East", "EU West", "Asia Pacific"]
+            # The same illustrative latency sample used by box() and violin(),
+            # with every request visible instead of summarized or smoothed.
+            var latency_ms: List[List[Int]] = [
+                [68, 72, 75, 71, 69, 74, 78, 73, 70, 76, 82, 77, 71, 69, 80, 74, 72, 75, 118, 67],
+                [96, 102, 108, 99, 104, 111, 106, 101, 98, 115, 109, 103, 107, 100, 113, 105, 97, 110, 146, 102],
+                [154, 162, 171, 158, 166, 179, 173, 160, 168, 181, 176, 164, 170, 157, 184, 169, 161, 175, 238, 165],
             ]
 
             var c = beeswarm(
-                classes,
-                scores,
-                title="Exam Score Distributions",
-                x_title="Class",
-                y_title="Score",
+                regions,
+                latency_ms,
+                title="Illustrative API Latency by Region",
+                x_title="Region",
+                y_title="Latency (ms)",
             )
             save(c, "docs/src/examples/out_beeswarm.svg")
         ```
