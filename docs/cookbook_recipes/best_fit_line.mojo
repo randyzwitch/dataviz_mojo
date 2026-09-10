@@ -16,7 +16,7 @@ def main() raises:
         Plot()
         .mark_point()
         .encode(x=x, y=y)
-        .annotate_best_fit(show_equation=True, show_r_squared=True, ci=0.95)
+        .annotate_best_fit(show_equation=True, show_r_squared=True)
         .theme(Theme(mark_color=CORNFLOWERBLUE))
         .labels(
             title="Response Time vs. Load",

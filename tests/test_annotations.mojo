@@ -566,7 +566,7 @@ def test_render_svg_annotate_best_fit_ci_draws_a_band_under_the_line() raises:
         Plot()
         .mark_point()
         .encode(x=x, y=y)
-        .annotate_best_fit(ci=0.95)
+        .annotate_best_fit()
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     ).to_string()
@@ -583,7 +583,7 @@ def test_render_svg_annotate_best_fit_ci_draws_a_band_under_the_line() raises:
         Plot()
         .mark_point()
         .encode(x=x, y=y)
-        .annotate_best_fit()
+        .annotate_best_fit(ci=0.0)
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     ).to_string()
@@ -591,12 +591,14 @@ def test_render_svg_annotate_best_fit_ci_draws_a_band_under_the_line() raises:
 
 
 def test_render_raises_on_annotate_best_fit_ci_that_cannot_be_computed() raises:
+    # Two points: no residual degrees of freedom, so the default band
+    # is skipped rather than raising -- the line still draws.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [1.0, 2.0]
-    with assert_raises():
-        _ = render_svg(
-            Plot().mark_point().encode(x=x, y=y).annotate_best_fit(ci=0.95)
-        )
+    var two = render_svg(
+        Plot().mark_point().encode(x=x, y=y).annotate_best_fit()
+    ).to_string()
+    assert_true(two.find('fill="#e0ecf6"') < 0 and 'stroke="#969696"' in two)
     var x3: List[Float64] = [1.0, 2.0, 3.0]
     var y3: List[Float64] = [1.0, 3.0, 2.0]
     with assert_raises():
@@ -609,14 +611,14 @@ def test_render_raises_on_annotate_best_fit_ci_that_cannot_be_computed() raises:
         )
 
 
-def test_render_svg_annotate_best_fit_draws_only_the_line_with_no_options_set() raises:
+def test_render_svg_annotate_best_fit_ci_zero_draws_only_the_line() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
     var y: List[Float64] = [1.0, 3.0, 2.0, 5.0, 4.0]
     var plot = (
         Plot()
         .mark_point()
         .encode(x=x, y=y)
-        .annotate_best_fit()
+        .annotate_best_fit(ci=0.0)
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
