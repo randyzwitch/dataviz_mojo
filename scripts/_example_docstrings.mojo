@@ -216,25 +216,56 @@ def _first_sentence(docstring: String) -> String:
     return first_char + String(sentence[byte=1:])
 
 
+def _def_indices(
+    lines: List[String], fn_name: String, want_indent: Int
+) raises -> List[Int]:
+    """Every line index where `fn_name` is defined at exactly
+    `want_indent` leading spaces (0 for a free function, 4 for a `Plot`
+    method), in file order. A plain `startswith` on the indented prefix
+    already rejects deeper indents.
+
+    Every index, not the first, because a name can be overloaded and the
+    docstring worth reading may be on any of them (#520). Both spellings
+    count: `def name(` for a concrete overload and `def name[` for one
+    that takes parameters, such as the `DType` forms.
+
+    Args:
+        lines: The module's lines.
+        fn_name: The function to find.
+        want_indent: 0 for a free function, 4 for a method.
+
+    Returns:
+        The line indices, ascending, at least one.
+
+    Raises:
+        Error: No definition of that name at that indent.
+    """
+    var pad = " " * want_indent + "def " + fn_name
+    var out = List[Int]()
+    for i in range(len(lines)):
+        if lines[i].startswith(pad + "(") or lines[i].startswith(pad + "["):
+            out.append(i)
+    if len(out) == 0:
+        raise Error(
+            "gen_example_docs: no `def "
+            + fn_name
+            + "(` at indent "
+            + String(want_indent)
+            + " found"
+        )
+    return out^
+
+
 def _def_index(
     lines: List[String], fn_name: String, want_indent: Int
 ) raises -> Int:
-    """The line index of `fn_name`'s `def` line at exactly `want_indent`
-    leading spaces (0 for a free function, 4 for a `Plot` method), which
-    disambiguates a file with the same name at different nesting. A plain
-    `startswith` on the indented prefix already rejects deeper indents.
+    """The first definition of `fn_name`; see `_def_indices`.
+
+    The callers that read a signature or an `Args:` block want one
+    definition and take the first. Only the example extractor reads all
+    of them.
     """
-    var prefix = " " * want_indent + "def " + fn_name + "("
-    for i in range(len(lines)):
-        if lines[i].startswith(prefix):
-            return i
-    raise Error(
-        "gen_example_docs: no `def "
-        + fn_name
-        + "(` at indent "
-        + String(want_indent)
-        + " found"
-    )
+    return _def_indices(lines, fn_name, want_indent)[0]
 
 
 def _lines_of(file: String) raises -> List[String]:
@@ -422,22 +453,71 @@ def _extract_example_blocks(
     """
     var lines = _lines_of(file)
     var want_indent = 4 if is_method else 0
-    var def_idx = _def_index(lines, fn_name, want_indent)
+    var def_indices = _def_indices(lines, fn_name, want_indent)
     var doc_indent = want_indent + 4
     var doc_indent_str = " " * doc_indent
     var code_indent_str = doc_indent_str + "    "
-
-    var close_idx = -1
-    for i in range(def_idx + 1, len(lines)):
-        if lines[i] == doc_indent_str + '"""':
-            close_idx = i
-            break
-    if close_idx == -1:
-        raise Error(
-            "gen_example_docs: no closing docstring line found for " + fn_name
-        )
+    var next_def_prefix = " " * want_indent + "def "
 
     var blocks = List[_ExampleBlock]()
+    for d in range(len(def_indices)):
+        var def_idx = def_indices[d]
+        # Bounded by the next definition at this indent, so an overload
+        # with no docstring of its own cannot borrow the next one's.
+        var limit = len(lines)
+        for k in range(def_idx + 1, len(lines)):
+            if lines[k].startswith(next_def_prefix):
+                limit = k
+                break
+        var close_idx = -1
+        for k in range(def_idx + 1, limit):
+            if lines[k] == doc_indent_str + '"""':
+                close_idx = k
+                break
+        if close_idx == -1:
+            # No docstring on this overload: nothing to read, and not an
+            # error -- another overload may carry the examples.
+            continue
+        _collect_example_blocks(
+            lines,
+            blocks,
+            fn_name,
+            def_idx,
+            close_idx,
+            doc_indent_str,
+            code_indent_str,
+        )
+
+    if len(blocks) == 0:
+        raise Error(
+            "gen_example_docs: no Example: section found for " + fn_name
+        )
+    var seen = List[String]()
+    for b in range(len(blocks)):
+        for s in range(len(seen)):
+            if seen[s] == blocks[b].heading:
+                raise Error(
+                    "gen_example_docs: two overloads of "
+                    + fn_name
+                    + " carry the same Example heading -- the heading is"
+                    " what picks a block, so they have to differ"
+                )
+        seen.append(blocks[b].heading)
+    return blocks^
+
+
+def _collect_example_blocks(
+    lines: List[String],
+    mut blocks: List[_ExampleBlock],
+    fn_name: String,
+    def_idx: Int,
+    close_idx: Int,
+    doc_indent_str: String,
+    code_indent_str: String,
+) raises:
+    """Append one definition's example blocks to `blocks`: the scanning
+    half of `_extract_example_blocks`, split out so it can run once per
+    overload."""
     var i = def_idx + 1
     while i < close_idx:
         var line = lines[i]
@@ -491,12 +571,6 @@ def _extract_example_blocks(
                 "gen_example_docs: Example: fence never closed for " + fn_name
             )
         blocks.append(_ExampleBlock(heading, code_lines^))
-
-    if len(blocks) == 0:
-        raise Error(
-            "gen_example_docs: no Example: section found for " + fn_name
-        )
-    return blocks^
 
 
 def _output_svg_name(code_lines: List[String]) -> String:

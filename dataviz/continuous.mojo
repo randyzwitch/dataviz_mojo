@@ -940,39 +940,6 @@ def line(
             save(c, "docs/src/examples/out_line.svg")
         ```
 
-    Example (Time Axis):
-        ```mojo
-        from morrow import Morrow
-
-        from dataviz import line, save
-        from dataviz import Theme
-        from dataviz.colors import STEELBLUE
-
-        def main() raises:
-            # Six months of daily readings. Before #195 this axis read
-            # 20454, 20504, 20554 -- epoch day counts -- because the
-            # only way to plot a date was to convert it by hand. Now the
-            # ticks land on month starts, which is where a reader of a
-            # six-month series looks.
-            var day = List[Morrow]()
-            var latency_ms = List[Float64]()
-            var start = Morrow.get(2026, 1, 1)
-            for i in range(180):
-                day.append(start.shift(days=i))
-                # A slow upward drift with a weekly cycle on top.
-                var weekday = Float64((i + 3) % 7)
-                latency_ms.append(
-                    82.0 + Float64(i) * 0.06 + weekday * 1.8
-                )
-            var c = line(
-                day,
-                latency_ms,
-                title="Illustrative Checkout Latency by Day",
-                theme=Theme(mark_color=STEELBLUE),
-                y_title="p50 latency (ms)",
-            )
-            save(c, "docs/src/examples/out_line_time.svg")
-        ```
     Example (Slope Chart):
         ```mojo
         from dataviz import line
@@ -1218,8 +1185,7 @@ def line(
 
     See `Plot.encode_time()` for how the axis is built and
     `_time_ticks` (scale.mojo) for where the ticks land. Everything else
-    is the numeric overload above, whose docstring carries the worked
-    example -- the docs extractor reads only a name's first definition.
+    is the numeric overload above.
 
     Args:
         x: The timestamps, one per point.
@@ -1238,6 +1204,39 @@ def line(
     Raises:
         Error: `morrow` could not convert a value to a timestamp.
 
+    Example (Time Axis):
+        ```mojo
+        from morrow import Morrow
+
+        from dataviz import line, save
+        from dataviz import Theme
+        from dataviz.colors import STEELBLUE
+
+        def main() raises:
+            # Six months of daily readings. Before #195 this axis read
+            # 20454, 20504, 20554 -- epoch day counts -- because the
+            # only way to plot a date was to convert it by hand. Now the
+            # ticks land on month starts, which is where a reader of a
+            # six-month series looks.
+            var day = List[Morrow]()
+            var latency_ms = List[Float64]()
+            var start = Morrow.get(2026, 1, 1)
+            for i in range(180):
+                day.append(start.shift(days=i))
+                # A slow upward drift with a weekly cycle on top.
+                var weekday = Float64((i + 3) % 7)
+                latency_ms.append(
+                    82.0 + Float64(i) * 0.06 + weekday * 1.8
+                )
+            var c = line(
+                day,
+                latency_ms,
+                title="Illustrative Checkout Latency by Day",
+                theme=Theme(mark_color=STEELBLUE),
+                y_title="p50 latency (ms)",
+            )
+            save(c, "docs/src/examples/out_line_time.svg")
+        ```
     """
     var plot = Plot().mark_line(step=step).encode_time(x, y)
     return _finished(plot^, theme, width, height, title, x_title, y_title)
