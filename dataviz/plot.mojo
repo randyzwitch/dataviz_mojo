@@ -4261,6 +4261,8 @@ def _auto_supersample(plot: Plot) -> Int:
         or m == Mark.BOX
         or m == Mark.CANDLESTICK
         or m == Mark.HEATMAP
+        or m == Mark.IMSHOW
+        or m == Mark.PCOLORMESH
         or m == Mark.MARIMEKKO
         or m == Mark.TREEMAP
         or m == Mark.SANKEY
