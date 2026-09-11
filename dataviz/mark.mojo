@@ -49,6 +49,8 @@ describes the drawing. By data shape:
   hist2d.mojo).
 - Points counted into a hexagonal lattice (hexbin.mojo): HEXBIN
   (`encode_hexbin()`).
+- A vector field on a grid, integrated into streamlines
+  (streamplot.mojo): STREAMPLOT (`encode_streamplot()`).
   Not HEATMAP, which needs one category label per row and column.
 - `encode_hierarchy()` (hierarchy.mojo): SUNBURST, TREE, TREEMAP.
 - `encode_chord()` (edge list, edges.mojo): CHORD, ARC_DIAGRAM,
@@ -128,7 +130,8 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime HEXBIN = Self(58)
     comptime QUIVER = Self(59)
     comptime HISTOGRAM = Self(60)
-    comptime COUNT = 61
+    comptime STREAMPLOT = Self(61)
+    comptime COUNT = 62
     """How many marks exist -- one past the largest value above.
 
     Only the raster/SVG layout-equivalence sweep reads this: it
@@ -178,6 +181,8 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
             return "Mark.QUIVER"
         if self == Self.HISTOGRAM:
             return "Mark.HISTOGRAM"
+        if self == Self.STREAMPLOT:
+            return "Mark.STREAMPLOT"
         if self == Self.WATERFALL:
             return "Mark.WATERFALL"
         if self == Self.BOX:

@@ -224,6 +224,7 @@ from dataviz.waterfall import _WaterfallData
 from dataviz.box import _BoxData
 from dataviz.hexbin import _HexbinData, _render_hexbin
 from dataviz.quiver import _render_quiver
+from dataviz.streamplot import _StreamData, _render_streamplot
 from dataviz.hist2d import _hist2d_counts
 from dataviz.boxen import (
     _BoxenData,
@@ -563,6 +564,7 @@ struct Plot(Copyable, Movable):
     var _box: _BoxData
     var _boxen: _BoxenData
     var _hexbin: _HexbinData
+    var _stream: _StreamData
     var _histogram: _HistogramData
     var _quiver_scale: Float64
     var _quiver_color_by_magnitude: Bool
@@ -638,6 +640,7 @@ struct Plot(Copyable, Movable):
         self._box = _BoxData()
         self._boxen = _BoxenData()
         self._hexbin = _HexbinData()
+        self._stream = _StreamData()
         self._histogram = _HistogramData()
         self._quiver_scale = 0.0
         self._quiver_color_by_magnitude = False
@@ -1193,6 +1196,34 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.HEXBIN
+        return self^
+
+    def mark_streamplot(
+        var self,
+        density: Float64 = 1.0,
+        arrows: Bool = True,
+        color_by_magnitude: Bool = False,
+    ) -> Self:
+        """Select `Mark.STREAMPLOT`: a vector field on a grid integrated
+        into streamlines. Pair with `encode_streamplot()`; see
+        `_render_streamplot` (streamplot.mojo) for the integrator and
+        `streamplot()` for the one-call form.
+
+        Args:
+            density: Line spacing, as matplotlib's parameter: the
+                occupancy cells per axis over 30, so larger means more
+                lines.
+            arrows: Draw an arrowhead at the middle of each line.
+            color_by_magnitude: Color each step by the local
+                `hypot(u, v)` through the theme's ramp, with a legend.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.STREAMPLOT
+        self._stream.density = density
+        self._stream.arrows = arrows
+        self._stream.color_by_magnitude = color_by_magnitude
         return self^
 
     def mark_tricontour(var self, levels: Int = 8) -> Self:
@@ -2905,6 +2936,41 @@ struct Plot(Copyable, Movable):
         self._image.x_edges = x_edges.copy()
         self._image.y_edges = y_edges.copy()
         self._image.blank_zero = True
+        return self^
+
+    def encode_streamplot(
+        var self,
+        x: List[Float64],
+        y: List[Float64],
+        u: List[List[Float64]],
+        v: List[List[Float64]],
+    ) -> Self:
+        """Map a gridded vector field onto `Mark.STREAMPLOT`'s shape:
+        `len(x)` column coordinates, `len(y)` row coordinates, and the
+        two components at each node as `u[j][i]`/`v[j][i]`.
+
+        The grid shape rather than `encode_barbs()`'s four flat columns,
+        for the reason `_StreamData`'s docstring gives: a glyph reads
+        the field only where it was sampled, an integrator reads it
+        everywhere between. Checking is deferred to render time, like
+        every other encoder here.
+
+        Args:
+            x: Column coordinates, ascending and evenly spaced.
+            y: Row coordinates, ascending and evenly spaced.
+            u: The x-component at each node.
+            v: The y-component at each node, positive up the page.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self.x_categories = List[String]()
+        self.x_data = List[Float64]()
+        self.y_data = List[Float64]()
+        self._stream.x = x.copy()
+        self._stream.y = y.copy()
+        self._stream.u = u.copy()
+        self._stream.v = v.copy()
         return self^
 
     def encode_hexbin(
@@ -5110,6 +5176,8 @@ def _render_generic[
         )
     if plot._mark == Mark.QUIVER:
         return _render_quiver(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    if plot._mark == Mark.STREAMPLOT:
+        return _render_streamplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.HEXBIN:
         return _render_hexbin(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.TRICONTOUR:

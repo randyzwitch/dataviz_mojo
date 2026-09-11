@@ -47,6 +47,7 @@ from dataviz import (
     hexbin,
     histogram,
     quiver,
+    streamplot,
     tricontour,
     tricontourf,
     tripcolor,
@@ -409,6 +410,24 @@ def _representative_plot(mark: Mark) raises -> Plot:
         return quiver(
             xs, ys, qu, qv, color_by_magnitude=True, width=_W, height=_H
         )
+    if mark == Mark.STREAMPLOT:
+        var sx = List[Float64]()
+        for i in range(9):
+            sx.append(Float64(i) - 4.0)
+        var sy = List[Float64]()
+        for j in range(7):
+            sy.append(Float64(j) - 3.0)
+        var su = List[List[Float64]]()
+        var sv = List[List[Float64]]()
+        for j in range(len(sy)):
+            var urow = List[Float64]()
+            var vrow = List[Float64]()
+            for i in range(len(sx)):
+                urow.append(-sy[j])
+                vrow.append(sx[i])
+            su.append(urow^)
+            sv.append(vrow^)
+        return streamplot(sx, sy, su, sv, width=_W, height=_H)
 
     raise Error(
         "test_backend_equivalence: no representative plot for mark value "
@@ -595,7 +614,7 @@ def test_backends_agree_with_titles_and_rotated_axis_labels() raises:
 def test_mark_count_is_one_past_the_newest_mark() raises:
     """Require `Mark.COUNT` to be one greater than the newest mark value."""
     assert_true(
-        Mark.HISTOGRAM == Mark(Mark.COUNT - 1),
+        Mark.STREAMPLOT == Mark(Mark.COUNT - 1),
         (
             "Mark.COUNT must be one past the newest mark -- update both when"
             " adding one"
