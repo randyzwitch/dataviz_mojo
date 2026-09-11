@@ -58,10 +58,10 @@ def test_a_six_month_daily_series_gets_month_starts() raises:
     var labels = _labels(start, start.shift(days=180))
     # Jan 1 plus 180 days is Jun 30, so Jul 1 is past the end: six
     # ticks, and the last one inside the domain rather than beyond it.
-    assert_equal(
-        _joined(labels),
-        "Jan 2026|Feb 2026|Mar 2026|Apr 2026|May 2026|Jun 2026",
-    )
+    # The year rides on the first tick only -- see `_time_tick_label`,
+    # which appends it where the year changes so an axis inside one year
+    # does not repeat it six times.
+    assert_equal(_joined(labels), "Jan 2026|Feb|Mar|Apr|May|Jun")
     # And they are month starts, not 30-day multiples: check each tick
     # round-trips to the first of a month at midnight.
     for v in _values(start, start.shift(days=180)):
@@ -76,9 +76,11 @@ def test_a_single_year_gets_quarters_not_twelve_months() raises:
     # would not fit, and a rule taking the first step under the target
     # would pick them.
     var start = Morrow.get(2026, 3, 17, 9, 41, 12, 0)
+    # And the year appears twice: on the first tick, and again on the
+    # January that crosses into 2027.
     assert_equal(
         _joined(_labels(start, start.shift(years=1))),
-        "Apr 2026|Jul 2026|Oct 2026|Jan 2027",
+        "Apr 2026|Jul|Oct|Jan 2027",
     )
 
 
@@ -150,15 +152,18 @@ def test_labels_read_in_the_data_s_zone_not_in_utc() raises:
     for i in range(len(values)):
         var utc = Morrow.utcfromtimestamp(values[i])
         assert_equal(utc.hour, 15, "local midnight in Tokyo is 15:00 UTC")
-        # The label is the local date, a day ahead of the UTC one.
+        # The label is the local date, a day ahead of the UTC one. Only
+        # the first tick carries the year (`_time_tick_label`), so
+        # compare against the same format the label would have used.
         var local = Morrow.fromtimestamp(values[i], east)
-        assert_equal(labels[i], local.format("MMM DD"))
+        var fmt = String("MMM DD YYYY") if i == 0 else String("MMM DD")
+        assert_equal(labels[i], local.format(fmt))
         assert_true(
-            labels[i] != utc.format("MMM DD"),
+            labels[i] != utc.format(fmt),
             "the local label differs from the UTC one -- got "
             + labels[i]
             + " for a UTC instant on "
-            + utc.format("MMM DD"),
+            + utc.format(fmt),
         )
 
 
@@ -192,7 +197,9 @@ def test_the_one_call_time_overloads_label_dates() raises:
             days, vals, theme=Theme(show_gridlines=False), width=400, height=300
         )
     ).to_string()
-    assert_true(s.find(">Feb 2026<") >= 0, "the axis reads as months")
+    # The year rides on the first tick; later months are bare.
+    assert_true(s.find(">Jan 2026<") >= 0, "the first tick names the year")
+    assert_true(s.find(">Feb<") >= 0, "and later months do not repeat it")
     assert_true(s.find(">20454<") < 0, "and not as epoch day counts")
 
 
@@ -209,8 +216,26 @@ def test_a_layered_time_series_keeps_the_dated_axis() raises:
         line(days, b, width=400, height=300),
     ]
     var s = render_layers_svg(plots).to_string()
-    assert_true(s.find(">Feb 2026<") >= 0, "an overlay keeps the dates")
+    assert_true(s.find(">Jan 2026<") >= 0, "an overlay keeps the dates")
+    assert_true(s.find(">Feb<") >= 0, "with the year only where it changes")
     assert_true(_count_tag(s, "path") >= 2, "both series draw")
+
+
+def test_the_year_is_repeated_only_where_it_changes() raises:
+    # Ported from the module this change deletes (#523), which had the
+    # better rule: an axis inside one year names it once, and a monthly
+    # axis crossing into a new one names it again at that January.
+    var start = Morrow.get(2026, 3, 17)
+    assert_equal(
+        _joined(_labels(start, start.shift(years=3))),
+        "Jul 2026|Jan 2027|Jul|Jan 2028|Jul|Jan 2029",
+    )
+    # Day rungs follow the same rule. This start is midnight, so the
+    # first day boundary is the domain's own left end.
+    assert_equal(
+        _joined(_labels(start, start.shift(days=5))),
+        "Mar 17 2026|Mar 18|Mar 19|Mar 20|Mar 21|Mar 22",
+    )
 
 
 def main() raises:
