@@ -368,6 +368,7 @@ def _cookbook_categories() -> List[Category]:
                 "despine",
                 "full_axis_box",
                 "axes_through_zero",
+                "bar_zero_baseline",
                 "compact_axis_chrome",
                 "custom_margins",
                 "margin_buffer",
