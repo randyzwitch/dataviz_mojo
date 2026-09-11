@@ -122,6 +122,8 @@ def _titles() -> Dict[String, String]:
     d["histogram"] = "Histogram"
     d["histogram_shared"] = "Shared Bins"
     d["histogram_auto"] = "Automatic Bins"
+    d["histogram_density"] = "Histogram with Density Curve"
+    d["histogram_horizontal"] = "Horizontal Histogram"
     d["slope"] = "Slope"
     d["step"] = "Step"
     d["step_area"] = "Stepped Area"
@@ -207,6 +209,8 @@ def _categories() -> List[Category]:
                 "histogram",
                 "histogram_shared",
                 "histogram_auto",
+                "histogram_density",
+                "histogram_horizontal",
                 "heatmap",
                 "candlestick",
                 "beeswarm",

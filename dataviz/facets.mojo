@@ -260,7 +260,10 @@ def _render_facets_generic[
         # a log y-axis, so the log branch never sees it.
         var any_area = False
         for i in range(len(plots)):
-            if plots[i]._mark == Mark.AREA or plots[i]._mark == Mark.HISTOGRAM:
+            if plots[i]._mark == Mark.AREA or (
+                plots[i]._mark == Mark.HISTOGRAM
+                and not plots[i]._histogram.horizontal
+            ):
                 any_area = True
         var domain = _log_data_extent(combined_y) if shared_y_is_log else (
             _zero_baseline_y_extent(combined_y) if any_area else _data_extent(

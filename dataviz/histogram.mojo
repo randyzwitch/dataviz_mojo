@@ -562,10 +562,15 @@ struct _HistogramData(Copyable, Movable):
 
     var edges: List[Float64]
     var values: List[Float64]
+    var horizontal: Bool
+    """Bins up the y-axis and values running right, from
+    `mark_histogram(horizontal=True)`: the transpose a marginal
+    histogram beside a joint plot's y-axis needs (#437)."""
 
     def __init__(out self):
         self.edges = List[Float64]()
         self.values = List[Float64]()
+        self.horizontal = False
 
 
 def _draw_histogram_layer[
@@ -579,7 +584,8 @@ def _draw_histogram_layer[
     """Draw one `Mark.HISTOGRAM` plot's rectangles into an already-laid-out
     continuous axis frame: for each bin, a rect from `edges[i]` to
     `edges[i + 1]` and from the zero baseline up to `values[i]`, then a
-    separator between every two adjacent nonempty bins.
+    separator between every two adjacent nonempty bins. With
+    `horizontal`, the bins run up the y-axis and the values right.
 
     Every edge is snapped to a pixel boundary (`_snap_pixel_edge`), the
     way `Mark.BAR` and `Mark.IMSHOW` snap theirs: adjacent bins read the
@@ -603,46 +609,82 @@ def _draw_histogram_layer[
     var n = len(plot._histogram.values)
     if n == 0:
         return
-    var baseline = _snap_pixel_edge(y_scale.to_pixel(0.0) - 0.5)
-    var xp = List[Float64](capacity=n + 1)
+    # `along` runs over the bins (x when vertical, y when horizontal)
+    # and `across` over the values; the geometry below is written once
+    # in those terms and emitted either way round.
+    var horizontal = plot._histogram.horizontal
+    var along = y_scale if horizontal else x_scale
+    var across = x_scale if horizontal else y_scale
+    var baseline = _snap_pixel_edge(across.to_pixel(0.0) - 0.5)
+    var ep = List[Float64](capacity=n + 1)
     for i in range(n + 1):
-        xp.append(
-            _snap_pixel_edge(x_scale.to_pixel(plot._histogram.edges[i]) - 0.5)
+        ep.append(
+            _snap_pixel_edge(along.to_pixel(plot._histogram.edges[i]) - 0.5)
         )
-    # A first bin that starts on the y-axis would paint over the axis
-    # line's column; give that column back, the way `Mark.BAR` pulls a
-    # bar off the axis line. The staircase never had the problem only
-    # because its antialiased edge did not reach the column.
-    var axis_column = _snap_pixel_edge(
-        min(x_scale.range_min, x_scale.range_max) - 0.5
-    )
-    if xp[0] == axis_column:
-        xp[0] += 1.0
-    var tops = List[Float64](capacity=n)
+    var vp = List[Float64](capacity=n)
     for i in range(n):
-        tops.append(
-            _snap_pixel_edge(y_scale.to_pixel(plot._histogram.values[i]) - 0.5)
+        vp.append(
+            _snap_pixel_edge(across.to_pixel(plot._histogram.values[i]) - 0.5)
         )
+    # A bar that starts on an axis line would paint over the line's
+    # column: give it back, the way `Mark.BAR` pulls a bar off the axis.
+    # Vertically that is the first bin's left edge on the y-axis;
+    # horizontally it is every bar's baseline on the y-axis (the bins'
+    # own bottom edge stops at the boundary above the x-axis by itself,
+    # as the vertical baseline does). The staircase never had the
+    # problem only because its antialiased edge did not reach the column.
+    if horizontal:
+        var axis_column = _snap_pixel_edge(
+            min(x_scale.range_min, x_scale.range_max) - 0.5
+        )
+        if baseline == axis_column:
+            baseline += 1.0
+    else:
+        var axis_column = _snap_pixel_edge(
+            min(x_scale.range_min, x_scale.range_max) - 0.5
+        )
+        if ep[0] == axis_column:
+            ep[0] += 1.0
+
+    # Each bar's length in pixels. Pixel y grows downward, so vertically
+    # a value sits *above* the baseline (smaller) and horizontally
+    # *right* of it (larger).
+    var ext = List[Float64](capacity=n)
     for i in range(n):
-        var left = min(xp[i], xp[i + 1])
-        var right = max(xp[i], xp[i + 1])
-        var top = tops[i]
-        if right <= left or top >= baseline:
+        ext.append(vp[i] - baseline if horizontal else baseline - vp[i])
+
+    for i in range(n):
+        var lo = min(ep[i], ep[i + 1])
+        var hi = max(ep[i], ep[i + 1])
+        if hi <= lo or ext[i] <= 0.0:
             continue
-        target.fill_rect(
-            left, top, right - left, baseline - top, theme.mark_color
-        )
+        if horizontal:
+            target.fill_rect(
+                baseline, lo, vp[i] - baseline, hi - lo, theme.mark_color
+            )
+        else:
+            target.fill_rect(
+                lo, vp[i], hi - lo, baseline - vp[i], theme.mark_color
+            )
     var edge = theme.histogram_edge_color
     if edge.a == 0:
         return
     var sep = sc.scale
     for i in range(1, n):
-        if tops[i - 1] >= baseline or tops[i] >= baseline:
+        if ext[i - 1] <= 0.0 or ext[i] <= 0.0:
             continue
-        if xp[i] <= xp[i - 1]:
+        if ep[i] == ep[i - 1]:
             continue
-        var top = max(tops[i - 1], tops[i])
-        target.fill_rect(xp[i] - sep, top, sep, baseline - top, edge)
+        # The shorter of the two neighbors.
+        var reach = vp[i - 1]
+        if ext[i] < ext[i - 1]:
+            reach = vp[i]
+        if horizontal:
+            # Bins ascend up the page: bin i - 1 is the lower one and
+            # its last row toward the boundary at ep[i] is just below it.
+            target.fill_rect(baseline, ep[i], reach - baseline, sep, edge)
+        else:
+            target.fill_rect(ep[i] - sep, reach, sep, baseline - reach, edge)
 
 
 def _bin_index(value: Float64, edges: List[Float64]) -> Int:
@@ -1161,6 +1203,7 @@ def histogram(
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
     stepfilled: Bool = False,
+    horizontal: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1210,6 +1253,11 @@ def histogram(
             default). The staircase has no separator between adjacent
             bins of equal height, which is the shape that sits well
             under a density overlay.
+        horizontal: Bins up the y-axis and values running right: the
+            transpose, for a marginal histogram beside a joint plot's
+            y-axis. Standalone and in `render_facets()` only;
+            `render_layers()` refuses it, since its combined domain has
+            no zero baseline on x. Not with `stepfilled`.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -1381,6 +1429,80 @@ def histogram(
             var panels: List[Plot] = [fixed^, chosen^]
             save_facets(panels, 2, "docs/src/examples/out_histogram_auto.svg")
         ```
+
+    Example (With a Density Curve):
+        ```mojo
+        from dataviz import histogram, kdeplot, save_layers
+        from dataviz import Theme
+        from dataviz.colors import STEELBLUE, CRIMSON
+        from dataviz.histogram import HistStat
+        from dataviz import Plot
+
+        def main() raises:
+            # Reaction times from a task with a slow tail. The bars and
+            # the curve share one numeric x-axis, and HistStat.DENSITY
+            # puts the bars on the scale the density curve is on, so
+            # the two are directly comparable: where the curve runs
+            # above a bar the kernel is smoothing over a gap, where it
+            # runs below, a spike.
+            var seed = 2024
+            var reaction_ms = List[Float64]()
+            for _ in range(400):
+                var s = 0.0
+                for _ in range(3):
+                    seed = (seed * 1103515245 + 12345) % 2147483648
+                    s += Float64(seed % 10000) / 10000.0
+                # Sum of three uniforms is bell-shaped; cubing the last
+                # draw skews a share of them slow.
+                seed = (seed * 1103515245 + 12345) % 2147483648
+                var u = Float64(seed % 10000) / 10000.0
+                reaction_ms.append(320.0 + 60.0 * s + 400.0 * u * u * u)
+            var bars = histogram(
+                reaction_ms,
+                bins=24,
+                stat=HistStat.DENSITY,
+                theme=Theme(mark_color=STEELBLUE, show_gridlines=False),
+                title="Illustrative Reaction Times with a Density Curve",
+                x_title="Reaction time (ms)",
+                y_title="Density",
+            )
+            var curve = kdeplot(
+                reaction_ms,
+                theme=Theme(mark_color=CRIMSON, show_gridlines=False),
+            )
+            var layers: List[Plot] = [bars^, curve^]
+            save_layers(layers, "docs/src/examples/out_histogram_density.svg")
+        ```
+
+    Example (Horizontal):
+        ```mojo
+        from dataviz import histogram, save
+        from dataviz import Theme
+        from dataviz.colors import DARKORANGE
+
+        def main() raises:
+            # The shape a marginal histogram takes beside a joint plot's
+            # y-axis: bins up the left edge, counts running right. The
+            # same latency sample as the first example.
+            var latency_ms: List[Int] = [
+                84, 72, 91, 68, 75, 88, 79, 73, 96, 82,
+                77, 69, 85, 74, 101, 80, 71, 93, 76, 87,
+                83, 70, 78, 89, 81, 95, 67, 86, 72, 90,
+                110, 124, 138, 156, 205, 98, 105, 118, 74, 82,
+            ]
+            var c = histogram(
+                latency_ms,
+                bins=10,
+                horizontal=True,
+                theme=Theme(mark_color=DARKORANGE),
+                title="Illustrative Checkout API Latency, Sideways",
+                x_title="Requests",
+                y_title="Latency (ms)",
+                width=420,
+                height=420,
+            )
+            save(c, "docs/src/examples/out_histogram_horizontal.svg")
+        ```
     """
     return histogram(
         data,
@@ -1389,6 +1511,7 @@ def histogram(
         stat=stat,
         cumulative=cumulative,
         stepfilled=stepfilled,
+        horizontal=horizontal,
         theme=theme,
         width=width,
         height=height,
@@ -1407,6 +1530,7 @@ def histogram(
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
     stepfilled: Bool = False,
+    horizontal: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1440,6 +1564,11 @@ def histogram(
             default). The staircase has no separator between adjacent
             bins of equal height, which is the shape that sits well
             under a density overlay.
+        horizontal: Bins up the y-axis and values running right: the
+            transpose, for a marginal histogram beside a joint plot's
+            y-axis. Standalone and in `render_facets()` only;
+            `render_layers()` refuses it, since its combined domain has
+            no zero baseline on x. Not with `stepfilled`.
         theme: Full styling knobs -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot`.
         height: Pixel height of the returned `Plot`.
@@ -1464,6 +1593,12 @@ def histogram(
     # around it: the leftmost and rightmost bars are meant to sit on the
     # axis ends, and padding would leave a strip of empty axis that
     # reads as "no observations here" when the truth is "no bins here".
+    if stepfilled and horizontal:
+        raise Error(
+            "histogram(): stepfilled=True and horizontal=True together are not"
+            " supported -- the staircase is Mark.AREA, which has no"
+            " horizontal form"
+        )
     var plot: Plot
     if stepfilled:
         plot = (
@@ -1475,10 +1610,14 @@ def histogram(
     else:
         plot = (
             Plot()
-            .mark_histogram()
+            .mark_histogram(horizontal=horizontal)
             .encode_histogram_bins(binned)
-            .scale_x_domain(lo, hi)
         )
+        # The bin range is pinned on whichever axis carries the bins.
+        if horizontal:
+            plot = plot^.scale_y_domain(lo, hi)
+        else:
+            plot = plot^.scale_x_domain(lo, hi)
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
@@ -1491,6 +1630,7 @@ def histogram(
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
     stepfilled: Bool = False,
+    horizontal: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1537,6 +1677,11 @@ def histogram(
             default). The staircase has no separator between adjacent
             bins of equal height, which is the shape that sits well
             under a density overlay.
+        horizontal: Bins up the y-axis and values running right: the
+            transpose, for a marginal histogram beside a joint plot's
+            y-axis. Standalone and in `render_facets()` only;
+            `render_layers()` refuses it, since its combined domain has
+            no zero baseline on x. Not with `stepfilled`.
         theme: Full styling knobs -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot`.
         height: Pixel height of the returned `Plot`.
@@ -1560,6 +1705,7 @@ def histogram(
         stat=stat,
         cumulative=cumulative,
         stepfilled=stepfilled,
+        horizontal=horizontal,
         theme=theme,
         width=width,
         height=height,
@@ -1579,6 +1725,7 @@ def histogram[
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
     stepfilled: Bool = False,
+    horizontal: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1612,6 +1759,11 @@ def histogram[
             default). The staircase has no separator between adjacent
             bins of equal height, which is the shape that sits well
             under a density overlay.
+        horizontal: Bins up the y-axis and values running right: the
+            transpose, for a marginal histogram beside a joint plot's
+            y-axis. Standalone and in `render_facets()` only;
+            `render_layers()` refuses it, since its combined domain has
+            no zero baseline on x. Not with `stepfilled`.
         theme: Full styling knobs -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot`.
         height: Pixel height of the returned `Plot`.
@@ -1633,6 +1785,7 @@ def histogram[
         stat=stat,
         cumulative=cumulative,
         stepfilled=stepfilled,
+        horizontal=horizontal,
         theme=theme,
         width=width,
         height=height,
@@ -1652,6 +1805,7 @@ def histogram[
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
     stepfilled: Bool = False,
+    horizontal: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1685,6 +1839,11 @@ def histogram[
             default). The staircase has no separator between adjacent
             bins of equal height, which is the shape that sits well
             under a density overlay.
+        horizontal: Bins up the y-axis and values running right: the
+            transpose, for a marginal histogram beside a joint plot's
+            y-axis. Standalone and in `render_facets()` only;
+            `render_layers()` refuses it, since its combined domain has
+            no zero baseline on x. Not with `stepfilled`.
         theme: Full styling knobs -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot`.
         height: Pixel height of the returned `Plot`.
@@ -1706,6 +1865,7 @@ def histogram[
         stat=stat,
         cumulative=cumulative,
         stepfilled=stepfilled,
+        horizontal=horizontal,
         theme=theme,
         width=width,
         height=height,
@@ -1726,6 +1886,7 @@ def histogram[
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
     stepfilled: Bool = False,
+    horizontal: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1745,6 +1906,7 @@ def histogram[
         stat=stat,
         cumulative=cumulative,
         stepfilled=stepfilled,
+        horizontal=horizontal,
         theme=theme,
         width=width,
         height=height,
