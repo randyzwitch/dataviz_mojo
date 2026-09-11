@@ -226,12 +226,17 @@ def _draw_annotation_bands[
     `result.x_scale` and `result.y_scale`. Raises if a band's `x`/
     `y_lower`/`y_upper` lengths mismatch or any `y_upper[i] < y_lower[i]`.
 
-    No true polygon clip against the inner rect: each vertex's pixel
-    position is clamped independently into the rect before the path is
-    built. A band mostly in range draws correctly; a vertex clamped on
-    one axis draws a straight wall at that boundary rather than a true
-    intersection. A band with every vertex clamped to one corner fills a
-    zero-area region.
+    Clipped against the inner rect, not clamped into it. Clamping each
+    vertex independently moved the polygon's edges rather than cutting
+    them: an edge running from an in-range vertex to an out-of-range one
+    ended at the boundary *below* where it truly crosses, so the band
+    drew a straight wall at the edge instead of its real intersection,
+    and a band with every vertex clamped to one corner filled nothing at
+    all. `push_clip` does the intersection properly (#369); it reached
+    `DrawTarget` in canvas v0.32.0, which is why this was a clamp before.
+
+    The clip is pushed per band, after that band's vertices are computed
+    and validated, so a raise cannot leave one pushed.
     """
     var text_requests = List[_TextRequest]()
     if len(plot._annotations.band_x) == 0:
@@ -281,21 +286,21 @@ def _draw_annotation_bands[
                     + String(i)
                     + ")"
                 )
-            var this_px = min(
-                max(result.x_scale.to_pixel(xs[i]), px_left), px_right
-            )
+            # True pixel positions, off the rect included: the clip
+            # below cuts the polygon where it really crosses.
+            var this_px = result.x_scale.to_pixel(xs[i])
             px_upper.append(this_px)
             px_lower.append(this_px)
-            py_upper.append(
-                min(
-                    max(result.y_scale.to_pixel(ys_upper[i]), py_top), py_bottom
-                )
-            )
-            py_lower.append(
-                min(
-                    max(result.y_scale.to_pixel(ys_lower[i]), py_top), py_bottom
-                )
-            )
+            py_upper.append(result.y_scale.to_pixel(ys_upper[i]))
+            py_lower.append(result.y_scale.to_pixel(ys_lower[i]))
+        var clip_x = round_to_int(px_left)
+        var clip_y = round_to_int(py_top)
+        target.push_clip(
+            clip_x,
+            clip_y,
+            round_to_int(px_right) - clip_x + 1,
+            round_to_int(py_bottom) - clip_y + 1,
+        )
         var path = Path()
         path.move_to(px_upper[0], py_upper[0])
         for i in range(1, len(xs)):
@@ -306,14 +311,22 @@ def _draw_annotation_bands[
         target.fill_path_aa(
             path, theme.annotation_area_color, fill_rule=FillRule.NONZERO
         )
+        target.pop_clip()
 
         var label = plot._annotations.band_labels[k]
         if label.byte_length() > 0:
             var mid = len(xs) // 2
+            # The label's anchor *is* clamped, unlike the polygon's
+            # vertices. Clamping a point moves it into view; clamping a
+            # polygon's vertices changes its shape, which is the whole
+            # reason the fill above is clipped instead. A band running
+            # off the top would otherwise put its label off the canvas.
+            var label_px = min(max(px_upper[mid], px_left), px_right)
+            var label_py = min(max(py_upper[mid], py_top), py_bottom)
             text_requests.append(
                 _TextRequest(
-                    Int(px_upper[mid]),
-                    Int(py_upper[mid]) - sc.label_gap,
+                    Int(label_px),
+                    Int(label_py) - sc.label_gap,
                     label,
                     theme.annotation_color,
                     sc.font_size,
