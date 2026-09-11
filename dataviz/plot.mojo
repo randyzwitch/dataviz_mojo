@@ -770,20 +770,28 @@ struct Plot(Copyable, Movable):
         self._mark_style.step = step
         return self^
 
-    def mark_histogram(var self) -> Self:
+    def mark_histogram(var self, horizontal: Bool = False) -> Self:
         """A histogram drawn as one rectangle per bin at numeric x
         positions, with a separator between adjacent bins
-        (`Theme.histogram_edge_color`). Encoded via
+        (`Theme.histogram_edge_color`); `horizontal` puts the bins up
+        the y-axis and the values running right. Encoded via
         `encode_histogram_bins()`; see `_draw_histogram_layer`
         (histogram.mojo) for the drawing and `histogram()` for the
         one-call form. Follows `Mark.AREA`'s rules everywhere else: a
         zero-baselined y-domain, `render_layers()` and
         `render_facets(shared_y_scale=True)` support, no log y-axis.
+        A horizontal histogram keeps the bins' range on y (pin it with
+        `scale_y_domain()`) and zero-baselines x instead;
+        `render_layers()` refuses it.
+
+        Args:
+            horizontal: Bins up the y-axis, values running right.
 
         Returns:
             Self, for further chaining.
         """
         self._mark = Mark.HISTOGRAM
+        self._histogram.horizontal = horizontal
         return self^
 
     def mark_arc(var self, inner_radius_fraction: Float64 = 0.0) -> Self:
@@ -2838,7 +2846,8 @@ struct Plot(Copyable, Movable):
         bin edges and one value per bin, drawn as a rectangle each.
 
         The bins also go into `x_data`/`y_data` as the `step_x()`/
-        `step_y()` staircase `Mark.AREA` would draw, so every rule that
+        `step_y()` staircase `Mark.AREA` would draw (swapped when the
+        mark is horizontal, so call `mark_histogram()` first), so every rule that
         reads those columns -- the x/y domains, `render_layers()`'s
         combined domain, a facet grid's shared baseline -- works
         unchanged; only the drawing reads the edges and values.
@@ -2851,8 +2860,12 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self.x_categories = List[String]()
-        self.x_data = bins.step_x()
-        self.y_data = bins.step_y()
+        if self._histogram.horizontal:
+            self.x_data = bins.step_y()
+            self.y_data = bins.step_x()
+        else:
+            self.x_data = bins.step_x()
+            self.y_data = bins.step_y()
         self._histogram.edges = bins.edges.copy()
         self._histogram.values = bins.values.copy()
         return self^
@@ -5219,16 +5232,24 @@ def _render_generic[
         ) if has_shared_y_domain else (
             _log_data_extent(y_domain_data) if plot._y_log else (
                 _zero_baseline_y_extent(y_domain_data) if (
-                    plot._mark == Mark.AREA or plot._mark == Mark.HISTOGRAM
+                    plot._mark == Mark.AREA
+                    or (
+                        plot._mark == Mark.HISTOGRAM
+                        and not plot._histogram.horizontal
+                    )
                 ) else _data_extent(y_domain_data)
             )
         )
     )
+    # A horizontal histogram's values run along x, so x takes the zero
+    # baseline its y would have had.
     var x_scale = _domain_override_scale(
         plot._x_domain, plot._x_log
     ) if plot._x_domain.has else (
-        _log_data_extent(plot.x_data) if plot._x_log else _data_extent(
-            plot.x_data
+        _log_data_extent(plot.x_data) if plot._x_log else (
+            _zero_baseline_y_extent(plot.x_data) if (
+                plot._mark == Mark.HISTOGRAM and plot._histogram.horizontal
+            ) else _data_extent(plot.x_data)
         )
     )
 

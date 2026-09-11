@@ -798,6 +798,12 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
     else:
         for v in plot.y_data:
             ys.append(v)
+    if mark == Mark.HISTOGRAM and plot._histogram.horizontal:
+        raise Error(
+            "render_layers(): a horizontal Mark.HISTOGRAM layer isn't"
+            " supported -- the combined domain zero-baselines y, not x."
+            " Use render_facets(), or a vertical histogram."
+        )
     return _LayerDomain(
         plot.x_data.copy(), ys^, mark == Mark.AREA or mark == Mark.HISTOGRAM
     )

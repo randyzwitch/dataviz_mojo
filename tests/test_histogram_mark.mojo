@@ -2,14 +2,25 @@
 x positions, with a separator between adjacent nonempty bins, and the
 `stepfilled` form that keeps the staircase."""
 
-from std.testing import TestSuite, assert_equal, assert_true
+from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
-from _test_helpers import _assert_same_canvas, _attr_values, _count_tag
+from _test_helpers import (
+    _assert_same_canvas,
+    _attr_values,
+    _bbox_of_color,
+    _count_tag,
+)
 from canvas.color import Color
-from dataviz import histogram
-from dataviz.histogram import HistogramBins, uniform_bin_edges
+from dataviz import histogram, kdeplot
+from dataviz.histogram import HistStat, HistogramBins, uniform_bin_edges
 from dataviz.mark import Mark
-from dataviz.plot import Plot, render, render_svg
+from dataviz.plot import (
+    Plot,
+    render,
+    render_facets,
+    render_layers_svg,
+    render_svg,
+)
 from dataviz.theme import Theme
 
 
@@ -160,6 +171,185 @@ def test_dtype_overload_matches_the_float64_path() raises:
         render(histogram(f, bins=4, width=300, height=220)),
         render(histogram(i, bins=4, width=300, height=220)),
         "Int32 histogram matches Float64",
+    )
+
+
+struct _Rect(Copyable, ImplicitlyCopyable, Movable):
+    var x: Float64
+    var y: Float64
+    var w: Float64
+    var h: Float64
+
+    def __init__(out self, x: Float64, y: Float64, w: Float64, h: Float64):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+
+
+def _bin_rects(svg: String) raises -> List[_Rect]:
+    """Every `<rect>` wider and taller than 2 px that is not the
+    background: the bin rects, in document order (bin order)."""
+    var xs = _attr_values(svg, "rect", "x")
+    var ys = _attr_values(svg, "rect", "y")
+    var ws = _attr_values(svg, "rect", "width")
+    var hs = _attr_values(svg, "rect", "height")
+    var out = List[_Rect]()
+    for i in range(len(ws)):
+        var w = Float64(ws[i])
+        var h = Float64(hs[i])
+        if w > 2.0 and h > 2.0 and not (w > 250.0 and h > 250.0):
+            out.append(_Rect(Float64(xs[i]), Float64(ys[i]), w, h))
+    return out^
+
+
+def test_horizontal_is_the_transpose_of_vertical() raises:
+    # A canvas whose plot rect is square (200x200: margins 60/20 across
+    # and 20/50 down), so the same bins draw the same pixel lengths
+    # either way round: bin i's width when vertical is its height when
+    # horizontal, and its height is its width, to the pixel the
+    # axis-line pull-off moves. Bin 0 sits at the left when vertical
+    # and at the bottom (largest y) when horizontal.
+    var data: List[Float64] = [0.5, 1.2, 1.8, 2.1, 2.3, 2.7, 3.0]
+    var edges = uniform_bin_edges(0.0, 3.0, 3)
+    var v = _bin_rects(
+        render_svg(
+            histogram(data, edges=edges, theme=_theme(), width=280, height=270)
+        ).to_string()
+    )
+    var h = _bin_rects(
+        render_svg(
+            histogram(
+                data,
+                edges=edges,
+                horizontal=True,
+                theme=_theme(),
+                width=280,
+                height=270,
+            )
+        ).to_string()
+    )
+    assert_equal(len(v), 3)
+    assert_equal(len(h), 3)
+    for i in range(3):
+        assert_true(abs(v[i].w - h[i].h) <= 1.0, "bin width transposes")
+        assert_true(abs(v[i].h - h[i].w) <= 1.0, "bin value transposes")
+    assert_true(v[0].x < v[1].x and v[1].x < v[2].x, "vertical: left to right")
+    assert_true(h[0].y > h[1].y and h[1].y > h[2].y, "horizontal: bottom up")
+    # And the values run right from the y-axis: every horizontal bar
+    # starts at the same x, one column right of the axis line at 60 --
+    # the 60.5 pixel-center boundary, which the SVG backend writes in
+    # edge coordinates as 61.
+    assert_equal(h[0].x, h[1].x)
+    assert_equal(h[0].x, 61.0)
+
+
+def test_horizontal_separators_are_rows_between_equal_bins() raises:
+    # Counts [2, 2] up the y-axis over a 230 px plot height: the shared
+    # edge at y = 250 - 115 = 135 snaps to 134.5, and the separator is
+    # the lower bin's top row, 135, from the axis to the bar's end.
+    var data: List[Float64] = [0.5, 0.5, 1.5, 1.5]
+    var edges = uniform_bin_edges(0.0, 2.0, 2)
+    var t = _theme()
+    var c = render(
+        histogram(
+            data, edges=edges, horizontal=True, theme=t, width=400, height=300
+        )
+    )
+    assert_true(
+        _is(c.get_pixel(150, 135), t.histogram_edge_color), "separator row"
+    )
+    assert_true(_is(c.get_pixel(150, 134), t.mark_color), "upper bin above it")
+    assert_true(_is(c.get_pixel(150, 136), t.mark_color), "lower bin below it")
+    assert_true(
+        _is(c.get_pixel(60, 200), t.axis_color), "the y-axis line shows"
+    )
+
+
+def test_horizontal_refuses_stepfilled_and_layers() raises:
+    var data: List[Float64] = [0.5, 1.5, 2.5]
+    with assert_raises(contains="stepfilled=True and horizontal=True"):
+        _ = histogram(data, bins=3, horizontal=True, stepfilled=True)
+    var plots: List[Plot] = [
+        histogram(data, bins=3, horizontal=True, width=300, height=220)
+    ]
+    with assert_raises(contains="horizontal Mark.HISTOGRAM layer"):
+        _ = render_layers_svg(plots)
+
+
+def test_horizontal_histograms_facet_without_a_forced_y_baseline() raises:
+    # Two horizontal panels with a shared y-scale: the shared domain is
+    # the bins' range, not zero-baselined -- the bins start at 0.5 here
+    # and the panel's bottom tick must be 0.5, not 0.
+    var a: List[Float64] = [0.5, 1.2, 1.8, 2.1, 2.3, 2.7, 3.0]
+    var b: List[Float64] = [0.6, 0.9, 1.1, 2.9, 3.0, 3.0, 3.0]
+    var edges = uniform_bin_edges(0.5, 3.0, 5)
+    var plots: List[Plot] = [
+        histogram(a, edges=edges, horizontal=True, width=300, height=220),
+        histogram(b, edges=edges, horizontal=True, width=300, height=220),
+    ]
+    var c = render_facets(plots, 2, shared_y_scale=True)
+    assert_true(c.width > 0, "renders")
+
+
+def test_histogram_and_kde_peak_in_the_same_pixel_column() raises:
+    # #437's acceptance criterion: a histogram and a KDE on one frame
+    # share a numeric x-domain, so a known value lands in the same
+    # column in both marks. A sample with a spike at 5.0 puts the
+    # tallest bin around 5 and the KDE's peak at 5; the KDE path's
+    # highest point (smallest y) must fall inside that bin's rect.
+    var data = List[Float64]()
+    for i in range(60):
+        data.append(1.0 + Float64(i) * 0.15)
+    for _ in range(40):
+        data.append(5.0)
+    var h = histogram(
+        data,
+        edges=uniform_bin_edges(1.0, 10.0, 18),
+        stat=HistStat.DENSITY,
+        theme=_theme(),
+        width=400,
+        height=300,
+    )
+    var k = kdeplot(data, theme=_theme(), width=400, height=300)
+    var plots: List[Plot] = [h^, k^]
+    var s = render_layers_svg(plots).to_string()
+    var rects = _bin_rects(s)
+    var tallest = 0
+    for i in range(len(rects)):
+        if rects[i].h > rects[tallest].h:
+            tallest = i
+    # The KDE is the one path: walk "M x,y L x,y ..." for its peak.
+    var d = _attr_values(s, "path", "d")[0]
+    var peak_x = 0.0
+    var peak_y = 1.0e9
+    var at = 0
+    while at < d.byte_length():
+        var ch = d[byte = at : at + 1]
+        if ch == "M" or ch == "L":
+            var sp = d.find(" ", at + 1)
+            if sp < 0:
+                sp = d.byte_length()
+            var pair = String(d[byte = at + 1 : sp])
+            var comma = pair.find(",")
+            var x = Float64(String(pair[byte=:comma]))
+            var y = Float64(String(pair[byte = comma + 1 :]))
+            if y < peak_y:
+                peak_y = y
+                peak_x = x
+            at = sp
+        else:
+            at += 1
+    var r = rects[tallest]
+    assert_true(
+        peak_x >= r.x and peak_x <= r.x + r.w,
+        "the KDE peak at x="
+        + String(peak_x)
+        + " lies in the tallest bin's rect ["
+        + String(r.x)
+        + ", "
+        + String(r.x + r.w)
+        + "]",
     )
 
 
