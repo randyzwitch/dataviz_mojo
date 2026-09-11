@@ -73,6 +73,13 @@ default theme except the factor, `sin(c/9)*cos(r/7)` field, median of 9
 
 ### Supersampled region against the two-step recipe (2026-09-11)
 
+> **These numbers are withdrawn.** They were taken while another session was
+> benchmarking on the same machine (load average 3.8, a `mojo` process at
+> 295% CPU), which this document's own guidance forbids. Re-running the
+> scatter rows on the contended machine swung the same row from 1.005x to
+> 0.749x between passes. Treat everything below as unmeasured until it is
+> retaken on an idle machine.
+
 AMD Threadripper 3970X, Linux, Mojo 1.0.0, canvas_mojo v0.33.2, 800x600,
 default theme, median of 9 renders, both paths interleaved in one process.
 Byte-identity checked first on every row: a speedup on different pixels is
@@ -100,8 +107,16 @@ those. Holding the scene fixed and varying the two candidates:
 | on | off (per-marker `fill_circle_aa`) | **1.97x** |
 | off | on | 1.03x |
 
-So the bulk call alone accounts for it; the clip is not implicated. Scatter
-would gain about 2x if `fill_circles_aa` became recordable upstream.
+So the bulk call alone accounts for it; the clip is not implicated.
+
+The conclusion drawn from that -- that scatter would gain ~2x if
+`fill_circles_aa` became recordable -- **does not follow, and is wrong**.
+Turning the bulk call off changes *both* sides of the comparison: the
+two-step baseline then also draws markers one at a time, which is far
+slower, so the ratio flatters the region rather than measuring the
+primitive. canvas_mojo built the recordable form and measured it slower
+than materializing, because replaying one op per marker across every band
+costs more than the buffer it avoids (canvas_mojo#414).
 
 An earlier entry-free measurement of the two phases in isolation put
 scatter's ceiling at 52% of its render. That ceiling was real but not
