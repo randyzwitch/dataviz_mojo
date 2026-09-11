@@ -4773,20 +4773,15 @@ def render(plot: Plot) raises -> Canvas:
     first.
     """
     var factor = _resolve_supersample(plot, "render")
-    var scratch = Canvas(
-        plot.width * factor, plot.height * factor, plot._theme.background
-    )
-    # The half-pixel that box-downsampling costs: downsample() averages
-    # the device block f*p .. f*p+f-1 into output pixel p, whose center
-    # sits at user coordinate p + (f-1)/(2f). Scaling alone therefore
-    # lands everything (f-1)/(2f) px early -- 0.25 at factor 2, 0.333 at
-    # 3, 0.375 at 4 -- so the origin shifts by (f-1)/2 device px first.
-    scratch.translate(Float64(factor - 1) / 2.0, Float64(factor - 1) / 2.0)
-    scratch.scale(Float64(factor), Float64(factor))
-    # Logical bounds, not the scratch canvas's own: every coordinate
-    # below is in user space now, and the transform maps it up.
-    _render_into(scratch, plot, 0, 0, plot.width, plot.height)
-    return downsample(scratch, factor)
+    var out = Canvas(plot.width, plot.height, plot._theme.background)
+    # `begin_supersampled` owns the half-pixel shift box downsampling
+    # costs and the scale, and replays the recorded shapes one output
+    # band at a time, so the enlarged buffer never exists whole. Byte
+    # identical to the two-step recipe it replaces (canvas_mojo#391).
+    out.begin_supersampled(factor, plot._theme.background)
+    _render_into(out, plot, 0, 0, plot.width, plot.height)
+    out.end_supersampled()
+    return out^
 
 
 def _render_into(

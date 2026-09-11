@@ -70,3 +70,40 @@ default theme except the factor, `sin(c/9)*cos(r/7)` field, median of 9
 | 8x8     | 8.4 ms   | 1.4 ms   |
 | 64x64   | 12.7 ms  | 1.6 ms   |
 | 512x512 | 17.7 ms  | 10.5 ms  |
+
+### Supersampled region against the two-step recipe (2026-09-11)
+
+AMD Threadripper 3970X, Linux, Mojo 1.0.0, canvas_mojo v0.33.2, 800x600,
+default theme, median of 9 renders, both paths interleaved in one process.
+Byte-identity checked first on every row: a speedup on different pixels is
+not a speedup.
+
+| mark | factor | two-step ms | region ms | speedup |
+| --- | --- | --- | --- | --- |
+| pie | 3 | 9.22 | 3.95 | **2.33x** |
+| contourf | 3 | 13.51 | 7.90 | **1.71x** |
+| scatter | 3 | 7.59 | 7.55 | 1.005x |
+| line | 1 | 1.88 | 1.76 | 1.06x |
+| bar | 1 | 1.77 | 1.73 | 1.02x |
+
+Factor-1 marks have no enlarged buffer to avoid, so their ~1.0x is the
+expected result rather than a disappointment.
+
+Scatter is the interesting row. Anything a region cannot record forces it
+to materialize the enlarged buffer and fall back to two-step cost, and
+`fill_circles_aa` -- the bulk marker call a plain scatter uses -- is one of
+those. Holding the scene fixed and varying the two candidates:
+
+| plot-rect clip | bulk marker call | speedup |
+| --- | --- | --- |
+| on | on | 1.005x |
+| on | off (per-marker `fill_circle_aa`) | **1.97x** |
+| off | on | 1.03x |
+
+So the bulk call alone accounts for it; the clip is not implicated. Scatter
+would gain about 2x if `fill_circles_aa` became recordable upstream.
+
+An earlier entry-free measurement of the two phases in isolation put
+scatter's ceiling at 52% of its render. That ceiling was real but not
+reachable, because measuring the phases alone cannot show which primitive
+will force materialization.
