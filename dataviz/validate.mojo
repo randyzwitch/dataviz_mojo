@@ -370,6 +370,80 @@ def _validate_domain_override(
         )
 
 
+def _mark_colors_by_value(plot: Plot) -> Bool:
+    """Whether this plot's colors encode a continuous data value, and so
+    whether `Plot.scale_color_domain()`/`scale_color_center()` have
+    anything to act on.
+
+    The grid, field and contour marks always do. The three continuous
+    marks only do when `Plot.encode(color=...)` was given numbers:
+    `color_categories=` is a qualitative palette lookup with no domain,
+    and a plot with no color channel at all is drawn in one flat color.
+
+    `Mark.BOXENPLOT` is deliberately absent though it builds a
+    `ColorScale`: its ramp runs over the depth of the letter-value nest,
+    an index into the drawing, not a value the reader is asked to read
+    off. An explicit data domain has nothing to say about it, so
+    accepting one would be accepting a setting that does nothing.
+
+    Args:
+        plot: The chart about to be rendered.
+
+    Returns:
+        True when a continuous color domain applies.
+    """
+    if (
+        plot._mark == Mark.POINT
+        or plot._mark == Mark.SINGLE_AXIS
+        or plot._mark == Mark.EFFECT_SCATTER
+    ):
+        return len(plot.color_data) > 0
+    return (
+        plot._mark == Mark.HEATMAP
+        or plot._mark == Mark.CALENDAR_HEATMAP
+        or plot._mark == Mark.CORRPLOT
+        or plot._mark == Mark.IMSHOW
+        or plot._mark == Mark.PCOLORMESH
+        or plot._mark == Mark.HIST2D
+        or plot._mark == Mark.HEXBIN
+        or plot._mark == Mark.CONTOUR
+        or plot._mark == Mark.CONTOURF
+        or plot._mark == Mark.TRICONTOUR
+        or plot._mark == Mark.TRICONTOURF
+        or plot._mark == Mark.TRIPCOLOR
+        or plot._mark == Mark.QUIVER
+        or plot._mark == Mark.STREAMPLOT
+    )
+
+
+def _validate_color_domain(plot: Plot) raises:
+    """Refuse a color-domain override on a mark that has no continuous
+    color channel to apply it to.
+
+    The value checks (`min < max`, the center inside the domain) are not
+    here but in `_color_scale_for()`, because only that function knows
+    the resolved domain -- an override may set a center and leave the
+    limits to the data. This one check has to happen before the render
+    dispatches, since a mark that ignores the setting would otherwise
+    never reach `_color_scale_for()` at all, and an ignored setting is
+    exactly the failure this API exists to prevent.
+    """
+    if not (plot._color_domain.has or plot._color_domain.has_center):
+        return
+    if _mark_colors_by_value(plot):
+        return
+    raise Error(
+        "Plot.scale_color_domain()/scale_color_center(): "
+        + plot._mark.name()
+        + " has no continuous color channel for a color domain to apply to"
+        " -- these apply to the marks that color by a value (HEATMAP,"
+        " CALENDAR_HEATMAP, CORRPLOT, IMSHOW, PCOLORMESH, HIST2D, HEXBIN,"
+        " CONTOUR, CONTOURF, TRICONTOUR, TRICONTOURF, TRIPCOLOR, QUIVER,"
+        " STREAMPLOT) and to Plot.encode(color=...) with numeric values on"
+        " Mark.POINT/SINGLE_AXIS/EFFECT_SCATTER"
+    )
+
+
 def _domain_override_scale(
     override: _DomainOverride, is_log: Bool
 ) -> LinearScale:

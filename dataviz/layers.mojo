@@ -115,6 +115,7 @@ from dataviz.validate import (
     _check_line_smoothing,
     _check_step_smoothing,
     _domain_override_scale,
+    _validate_color_domain,
     _validate_domain_override,
     _validate_categorical_encoding,
     _validate_continuous_encoding,
@@ -964,6 +965,10 @@ def _render_layers_generic[
         # data extent (#434). That is what an overlay means: a layer
         # with no override scales against the same numbers. Two layers
         # asking for different axes have no shared frame, and say so.
+        # Color domains are per-layer, not merged: each layer draws its
+        # own mark with its own colors, and only one layer in an overlay
+        # normally carries a continuous color channel at all.
+        _validate_color_domain(plots[i])
         if plots[i]._x_domain.has:
             _validate_domain_override(
                 plots[i]._x_domain, plots[i]._x_log, "Plot.scale_x_domain"

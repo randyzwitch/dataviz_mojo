@@ -12,7 +12,11 @@ from canvas.vector.draw_target import DrawTarget
 from morrow import Morrow
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import ColorScale, categorical_palette_for
+from dataviz.color_scale import (
+    ColorScale,
+    _color_scale_for,
+    categorical_palette_for,
+)
 from dataviz.frame import (
     _CategoricalIndex,
     _axis_pixel,
@@ -293,7 +297,13 @@ struct _PointChannels(Movable):
         var color_mm = _min_max(plot.color_data) if self.has_color else MinMax(
             0.0, 1.0
         )
-        self.color_scale = ColorScale.from_theme(
+        # Only a numeric color channel has a domain for an override to
+        # act on; a categorical or absent one leaves the scale unused, so
+        # asking `_color_scale_for` about it would raise over a setting
+        # `_validate_color_domain` has already refused for this plot.
+        self.color_scale = _color_scale_for(
+            plot._theme, plot._color_domain, color_mm.min, color_mm.max
+        ) if self.has_color else ColorScale.from_theme(
             plot._theme, color_mm.min, color_mm.max
         )
         self.size_mm = _min_max(plot.size_data) if self.has_size else MinMax(

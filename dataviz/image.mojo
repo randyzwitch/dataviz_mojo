@@ -14,7 +14,7 @@ from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import ColorScale
+from dataviz.color_scale import ColorScale, _color_scale_for
 from dataviz.mark import Mark
 from dataviz.pixel_snap import _snap_pixel_edge
 from dataviz.plot import (
@@ -23,11 +23,12 @@ from dataviz.plot import (
     _RenderResult,
     _Scaled,
     _draw_continuous_axis_frame,
+    _continuous_legend_labels,
     _draw_continuous_color_legend,
     _dynamic_legend_width,
     _finished,
 )
-from dataviz.scale import LinearScale, _format_fixed
+from dataviz.scale import LinearScale
 from dataviz.theme import Theme
 
 
@@ -477,8 +478,9 @@ def _render_image[
       positions on a real axis rather than scanlines. matplotlib splits
       them the same way and for the same reason.
 
-    Colors come from `ColorScale.from_theme` over the array's own
-    `[min, max]`, so `Theme(color_ramp=colormaps.viridis())` reaches
+    Colors come from `_color_scale_for` over the array's own
+    `[min, max]`, or over `Plot.scale_color_domain()`'s limits when one
+    was set, so `Theme(color_ramp=colormaps.viridis())` reaches
     this mark with no code here -- which matters more for an image than
     for anything else this package draws, since a three-stop ramp
     invents contrast in a scalar field where the data has none.
@@ -542,16 +544,16 @@ def _render_image[
     var extent = _grid_min_max(plot._image.z)
     var theme = plot._theme
     var sc = _Scaled(theme)
-    var color_scale = ColorScale.from_theme(theme, extent[0], extent[1])
+    var color_scale = _color_scale_for(
+        theme, plot._color_domain, extent[0], extent[1]
+    )
 
     # Measured against the render's shared font cache before the plot
     # rect is finalized, the way every other legend-bearing mark sizes
     # its column (see `_dynamic_legend_width`).
     var legend = _LegendLayout()
     if theme.show_legend:
-        var legend_labels = List[String]()
-        legend_labels.append(_format_fixed(color_scale.domain_max, 1))
-        legend_labels.append(_format_fixed(color_scale.domain_min, 1))
+        var legend_labels = _continuous_legend_labels(color_scale, theme)
         legend.right = _dynamic_legend_width(
             legend_labels,
             sc.continuous_legend_bar_width,

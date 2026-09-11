@@ -17,7 +17,7 @@ from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import ColorScale
+from dataviz.color_scale import ColorScale, _color_scale_for
 from dataviz.delaunay import _Triangulation, _edge_key, delaunay
 from dataviz.plot import (
     Plot,
@@ -299,9 +299,10 @@ def _render_tripcolor[
 
     Shading is flat -- one color per triangle, from the mean of its three
     vertex values; see `_triangle_means` for why that and not Gouraud.
-    Colors come from `ColorScale.from_theme`, so a `Theme.color_ramp`
+    Colors come from `_color_scale_for`, so a `Theme.color_ramp`
     (`Theme(color_ramp=viridis())`) reaches this mark the same way
-    it reaches every other continuous one.
+    it reaches every other continuous one, and so does
+    `Plot.scale_color_domain()`.
 
     **The color domain is the triangle means, not the vertex values.**
     Averaging pulls every triangle's value inward from `z`'s own range,
@@ -442,7 +443,7 @@ def _draw_tripcolor_layer[
             lo = v
         if v > hi:
             hi = v
-    var color_scale = ColorScale.from_theme(theme, lo, hi)
+    var color_scale = _color_scale_for(theme, plot._color_domain, lo, hi)
 
     var seam_width = sc.scale * _SEAM_STROKE_WIDTH
     for k in range(tri.count()):

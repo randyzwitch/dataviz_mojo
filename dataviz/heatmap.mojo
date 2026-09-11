@@ -5,7 +5,7 @@ from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import ColorScale
+from dataviz.color_scale import ColorScale, _color_scale_for
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     _draw_axis_spines,
@@ -14,6 +14,7 @@ from dataviz.plot import (
     _Scaled,
     _TextRequest,
     _categorical_indices,
+    _continuous_legend_labels,
     _draw_continuous_color_legend,
     _dynamic_legend_width,
     _max_label_width,
@@ -21,7 +22,6 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
-from dataviz.scale import _format_fixed
 from dataviz.theme import Theme
 
 
@@ -219,9 +219,10 @@ def _render_heatmap[
 ) raises -> _RenderResult:
     """Render a `Mark.HEATMAP` plot: `_draw_grid_axis_frame`'s
     two-categorical-axis grid, one filled cell per `encode_heatmap()` row,
-    colored through `ColorScale.from_theme` over `value`'s [min, max] (the
-    same three-stop gradient `Mark.POINT`'s continuous `color=` channel
-    uses).
+    colored through `_color_scale_for` over `value`'s [min, max] -- or
+    over `Plot.scale_color_domain()`'s limits when one was set -- using
+    the same three-stop gradient `Mark.POINT`'s continuous `color=`
+    channel uses.
 
     `x`/`y` are deduplicated into each axis's domain via
     `_categorical_indices` (first-seen order). A missing (x, y)
@@ -251,16 +252,16 @@ def _render_heatmap[
 
     var sc = _Scaled(theme)
     var value_mm = _min_max(plot._heatmap.value)
-    var color_scale = ColorScale.from_theme(theme, value_mm.min, value_mm.max)
+    var color_scale = _color_scale_for(
+        theme, plot._color_domain, value_mm.min, value_mm.max
+    )
 
     # The render's shared cache serves both measurements: the legend's labels
     # here, then the y-axis category labels inside _draw_grid_axis_frame.
 
     var legend_reserve = 0
     if theme.show_legend:
-        var legend_labels = List[String]()
-        legend_labels.append(_format_fixed(color_scale.domain_max, 1))
-        legend_labels.append(_format_fixed(color_scale.domain_min, 1))
+        var legend_labels = _continuous_legend_labels(color_scale, theme)
         legend_reserve = _dynamic_legend_width(
             legend_labels,
             sc.continuous_legend_bar_width,

@@ -5,7 +5,7 @@ from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import ColorScale
+from dataviz.color_scale import ColorScale, _color_scale_for
 from dataviz.contour import _Segments, _chain_segments, _crossing
 from dataviz.delaunay import _Triangulation, _edge_key, delaunay
 from dataviz.plot import (
@@ -437,7 +437,7 @@ def _draw_tricontour_layer[
             lo = v
         if v > hi:
             hi = v
-    var color_scale = ColorScale.from_theme(theme, lo, hi)
+    var color_scale = _color_scale_for(theme, plot._color_domain, lo, hi)
 
     for li in range(len(levels)):
         var level = levels[li]
@@ -564,7 +564,7 @@ def _draw_tricontourf_layer[
             lo = v
         if v > hi:
             hi = v
-    var color_scale = ColorScale.from_theme(theme, lo, hi)
+    var color_scale = _color_scale_for(theme, plot._color_domain, lo, hi)
 
     # Ascending, so each level's region paints over the one below it.
     var sorted_levels = levels.copy()

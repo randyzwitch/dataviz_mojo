@@ -403,6 +403,37 @@ def _continuous_legend_row_height(sc: _Scaled, has_size: Bool) -> Int:
     return tallest + sc.legend_row_gap + sc.margin_buffer
 
 
+def _continuous_legend_labels(
+    color_scale: ColorScale, theme: Theme
+) -> List[String]:
+    """Exactly the labels a continuous color legend will draw: the domain
+    max, the domain min, and the center when the scale was centered
+    (`Plot.scale_color_center()`).
+
+    One function so the column's *width* is measured from the same
+    strings the bar is later labeled with. Each mark used to build its
+    own two-label list with `_format_fixed`, while both legend drawers
+    write `_format_tick` -- so under a `Theme.y_tick_format` carrying a
+    prefix, a suffix or a percent sign the reserved width was measured
+    from a string that is not the one drawn. Adding a third label for a
+    centered scale would have repeated that divergence in eight places,
+    which is reason enough to have one list.
+
+    Args:
+        color_scale: The scale the mark colored with.
+        theme: Supplies `y_tick_format`, the formatter both drawers use.
+
+    Returns:
+        Two labels, or three for a centered scale.
+    """
+    var labels = List[String]()
+    labels.append(_format_tick(color_scale.domain_max, 1, theme.y_tick_format))
+    labels.append(_format_tick(color_scale.domain_min, 1, theme.y_tick_format))
+    if color_scale.has_center:
+        labels.append(_format_tick(color_scale.center, 1, theme.y_tick_format))
+    return labels^
+
+
 def _draw_continuous_color_legend_h[
     T: DrawTarget
 ](
@@ -561,6 +592,20 @@ def _draw_continuous_color_legend[
     each stop's gradient offset is `1.0 - stop.offset`; the stops are
     then sorted back into ascending order (see the body's comment).
 
+    A third label is drawn beside the bar at `color_scale.center` when
+    the scale was centered (`Plot.scale_color_center()`). With
+    asymmetric arms the two end labels no longer say where the ramp's
+    neutral color sits, and that value is the one the chart was centered
+    on -- so leaving it off would hide the very thing the caller asked
+    for. It is suppressed when it would land within one font-size of
+    either end label, since two overlapping numbers say less than one.
+
+    Only the vertical legend does this. The row form
+    (`_draw_continuous_color_legend_h`) puts its labels inline at the
+    two ends precisely so the legend costs no height; a center label
+    there would have to sit above or below the bar and spend the height
+    the row layout exists to save.
+
     Returns the y just below this section (bar height plus one row gap),
     where `_draw_continuous_size_legend` starts when a plot combines
     both.
@@ -624,6 +669,33 @@ def _draw_continuous_color_legend[
             theme.font_family,
         )
     )
+
+    if color_scale.has_center:
+        var span = color_scale.domain_max - color_scale.domain_min
+        if span != 0.0:
+            var t = (color_scale.center - color_scale.domain_min) / span
+            # The bar runs high at the top, so the center's distance from
+            # the top edge is 1 - t, matching the 1 - offset inversion
+            # the gradient stops go through above.
+            var center_y = y + Int((1.0 - t) * Float64(bar_height))
+            var clearance = Int(sc.font_size)
+            if (
+                center_y - y >= clearance
+                and y + bar_height - center_y >= clearance
+            ):
+                text_requests.append(
+                    _TextRequest(
+                        x + bar_width + sc.label_gap,
+                        center_y + label_baseline_offset,
+                        _format_tick(
+                            color_scale.center, 1, theme.y_tick_format
+                        ),
+                        theme.text_color,
+                        sc.font_size,
+                        TextAlign.LEFT,
+                        theme.font_family,
+                    )
+                )
     return y + bar_height + sc.legend_row_gap
 
 
@@ -716,16 +788,8 @@ def _legend_reserve_for(
             ),
         )
     elif ch.has_color:
-        var color_labels = List[String]()
-        color_labels.append(
-            _format_tick(
-                ch.color_scale.domain_max, 1, plot._theme.y_tick_format
-            )
-        )
-        color_labels.append(
-            _format_tick(
-                ch.color_scale.domain_min, 1, plot._theme.y_tick_format
-            )
+        var color_labels = _continuous_legend_labels(
+            ch.color_scale, plot._theme
         )
         reserve = max(
             reserve,
