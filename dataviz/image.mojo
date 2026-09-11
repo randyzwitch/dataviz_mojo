@@ -51,11 +51,16 @@ struct _ImageData(Copyable, Movable):
     var z: List[List[Float64]]
     var x_edges: List[Float64]
     var y_edges: List[Float64]
+    var blank_zero: Bool
+    """Leave a cell whose value is exactly 0 undrawn. Set by
+    `encode_hist2d()`: an empty bin is "nothing here", not the bottom
+    of the ramp."""
 
     def __init__(out self):
         self.z = List[List[Float64]]()
         self.x_edges = List[Float64]()
         self.y_edges = List[Float64]()
+        self.blank_zero = False
 
 
 def _image_grid_shape(
@@ -263,10 +268,15 @@ def _fill_cells[
     x_edges: List[Float64],
     y_edges: List[Float64],
     color_scale: ColorScale,
+    skip_zero: Bool = False,
 ) -> Int:
     """Paint the grid: one `fill_rect` per run of same-colored cells,
-    shared by both marks (and, for a large `Mark.IMSHOW` grid on a
-    vector target, replaced by `_draw_cells_as_image`).
+    shared by every mark that draws one (and, for a large `Mark.IMSHOW`
+    grid on a vector target, replaced by `_draw_cells_as_image`).
+
+    With `skip_zero`, a cell whose value is exactly 0 is not drawn at
+    all and ends the run it would have joined, so the background shows
+    through: `Mark.HIST2D`'s empty bin.
 
     `x_edges`/`y_edges` are snapped pixel boundaries from
     `_edge_pixels`, `len(z[0]) + 1` and `len(z) + 1` of them. Their
@@ -313,6 +323,18 @@ def _fill_cells[
             var left = min(xa, xb)
             var right = max(xa, xb)
             if right <= left:
+                continue
+            if skip_zero and z[r][c] == 0.0:
+                if run_open:
+                    target.fill_rect(
+                        run_left,
+                        top,
+                        run_right - run_left,
+                        bottom - top,
+                        run_color,
+                    )
+                    filled += 1
+                    run_open = False
                 continue
             var color = color_scale.color_at(z[r][c])
             if run_open and _same_color(color, run_color) and left == run_right:
@@ -434,8 +456,10 @@ def _render_image[
     mut cache: FontCache,
     vector_target: Bool,
 ) raises -> _RenderResult:
-    """Render `Mark.IMSHOW` or `Mark.PCOLORMESH`: the array as colored
-    cells over a continuous frame, with a color legend beside it.
+    """Render `Mark.IMSHOW`, `Mark.PCOLORMESH` or `Mark.HIST2D`: the
+    array as colored cells over a continuous frame, with a color legend
+    beside it. `HIST2D` is `PCOLORMESH` with a grid `encode_hist2d()`
+    counted from points, and its empty cells left undrawn.
 
     The two marks differ in exactly two places, both decided here and
     both about *coordinates*, never about drawing:
@@ -481,7 +505,7 @@ def _render_image[
 
     var x_values = List[Float64](capacity=cols + 1)
     var y_values = List[Float64](capacity=rows + 1)
-    if mark == Mark.PCOLORMESH:
+    if mark == Mark.PCOLORMESH or mark == Mark.HIST2D:
         if len(plot._image.x_edges) == 0 and len(plot._image.y_edges) == 0:
             raise Error(
                 "Plot.mark_pcolormesh(): no cell edges to draw the mesh over"
@@ -564,7 +588,14 @@ def _render_image[
     ):
         _draw_cells_as_image(target, plot._image.z, x_px, y_px, color_scale)
     else:
-        _ = _fill_cells(target, plot._image.z, x_px, y_px, color_scale)
+        _ = _fill_cells(
+            target,
+            plot._image.z,
+            x_px,
+            y_px,
+            color_scale,
+            skip_zero=plot._image.blank_zero,
+        )
 
     if theme.show_legend:
         _ = _draw_continuous_color_legend(
