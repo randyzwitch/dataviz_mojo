@@ -6,6 +6,7 @@ from canvas.vector.draw_target import DrawTarget
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
+    _draw_axis_spines,
     Plot,
     _RenderResult,
     _Scaled,
@@ -113,25 +114,31 @@ def _draw_horizontal_categorical_axis_frame[
                 px, plot_y0, px, plot_y1, theme.gridline_color, width=sc.scale
             )
 
-    target.draw_line_aa(
-        plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale
-    )
-    target.draw_line_aa(
-        plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale
+    _draw_axis_spines(
+        target,
+        theme,
+        sc,
+        plot_x0,
+        plot_y0,
+        plot_x1,
+        plot_y1,
+        x_axis_y=plot_y1,
+        y_axis_x=plot_x0,
     )
 
     var text_requests = List[_TextRequest]()
 
     for i in range(len(x_ticks.values)):
         var px = _axis_pixel(out_x_scale, x_ticks.values[i])
-        target.draw_line_aa(
-            px,
-            plot_y1,
-            px,
-            plot_y1 + sc.tick_length,
-            theme.axis_color,
-            width=sc.scale,
-        )
+        if theme.show_axis_bottom:
+            target.draw_line_aa(
+                px,
+                plot_y1,
+                px,
+                plot_y1 + sc.tick_length,
+                theme.axis_color,
+                width=sc.scale,
+            )
         text_requests.append(
             _TextRequest(
                 px,
@@ -147,14 +154,15 @@ def _draw_horizontal_categorical_axis_frame[
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for i in range(len(categories)):
         var center_py = round_to_int(y_scale.center(i))
-        target.draw_line_aa(
-            plot_x0 - sc.tick_length,
-            center_py,
-            plot_x0,
-            center_py,
-            theme.axis_color,
-            width=sc.scale,
-        )
+        if theme.show_axis_left:
+            target.draw_line_aa(
+                plot_x0 - sc.tick_length,
+                center_py,
+                plot_x0,
+                center_py,
+                theme.axis_color,
+                width=sc.scale,
+            )
         text_requests.append(
             _TextRequest(
                 plot_x0 - sc.tick_length - sc.label_gap,

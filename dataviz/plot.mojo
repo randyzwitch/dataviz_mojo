@@ -121,6 +121,7 @@ from dataviz.frame import (
     _axis_pixel,
     _axis_pixel_f,
     _categorical_indices,
+    _draw_axis_spines,
     _draw_categorical_axis_frame,
     _draw_continuous_axis_frame,
     _pull_off_axis_line,

@@ -25,6 +25,7 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign, draw_text
 from canvas.vector.draw_target import DrawTarget
 
+from dataviz.axis_position import AxisPosition
 from dataviz.continuous import area, line
 from dataviz.layers import _render_layers_generic
 from dataviz.legend import _LegendLayout
@@ -543,6 +544,119 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         )
 
 
+def _spine_pixel(scale: LinearScale, edge: Int, position: AxisPosition) -> Int:
+    """The pixel an axis line sits at: `edge` for `AxisPosition.EDGE`,
+    and zero on `scale` for `ZERO`.
+
+    Falls back to `edge` unless the domain spans zero, so the line never
+    lands outside the plot rect -- and on a log scale, where zero has no
+    position at all. `AxisPosition.ZERO` documents that fallback; the
+    alternative, silently drawing a line off the plot, is worse.
+
+    Args:
+        scale: The axis this line is positioned along -- the *y* scale
+            for the horizontal x-axis line, and the x scale for the
+            vertical y-axis line.
+        edge: The plot-rect edge the line sits at otherwise.
+        position: The requested position.
+
+    Returns:
+        A pixel coordinate.
+    """
+    if not (position == AxisPosition.ZERO):
+        return edge
+    if scale.is_log:
+        return edge
+    if scale.domain_min > 0.0 or scale.domain_max < 0.0:
+        return edge
+    return _axis_pixel(scale, 0.0)
+
+
+def _draw_axis_spines[
+    T: DrawTarget
+](
+    mut target: T,
+    theme: Theme,
+    sc: _Scaled,
+    plot_x0: Int,
+    plot_y0: Int,
+    plot_x1: Int,
+    plot_y1: Int,
+    *,
+    x_axis_y: Int,
+    y_axis_x: Int,
+    y_axis_visible: Bool = True,
+) raises:
+    """Draw the four axis lines every frame in this package shares,
+    each gated on its own `Theme.show_axis_*` flag (#346).
+
+    One helper rather than a pair of `draw_line_aa` calls per frame, so
+    a chart's furniture does not depend on which `_draw_*_axis_frame` it
+    happened to go through. `x_axis_y`/`y_axis_x` are where the two
+    lines sit, which is the plot-rect edge everywhere except a
+    continuous frame asking for `AxisPosition.ZERO`; the top and right
+    lines always bound the rect, since a box is a box.
+
+    The left and right lines are skipped when `y_axis_visible` is False:
+    that flag says the mark has no y dimension, and drawing a vertical
+    line for an axis that is not there would contradict it.
+
+    Args:
+        target: Where to draw.
+        theme: Carries the four visibility flags and the axis color.
+        sc: Scaled theme metrics, for the line width.
+        plot_x0: Left edge of the plot rect.
+        plot_y0: Top edge.
+        plot_x1: Right edge.
+        plot_y1: Bottom edge.
+        x_axis_y: Row the horizontal axis line sits on.
+        y_axis_x: Column the vertical axis line sits on.
+        y_axis_visible: Whether this mark has a y-axis at all.
+    """
+    if theme.show_axis_bottom:
+        target.draw_line_aa(
+            plot_x0,
+            x_axis_y,
+            plot_x1,
+            x_axis_y,
+            theme.axis_color,
+            width=sc.scale,
+        )
+    if theme.show_axis_top:
+        target.draw_line_aa(
+            plot_x0,
+            plot_y0,
+            plot_x1,
+            plot_y0,
+            theme.axis_color,
+            width=sc.scale,
+        )
+    if y_axis_visible:
+        if theme.show_axis_left:
+            # At `y_axis_x`, which is the left edge unless the caller
+            # moved this line to zero -- the line *is* the y-axis, so it
+            # goes where the axis goes, even when a right line is also
+            # drawn and the two no longer bound a box. matplotlib moves
+            # its left spine the same way.
+            target.draw_line_aa(
+                y_axis_x,
+                plot_y0,
+                y_axis_x,
+                plot_y1,
+                theme.axis_color,
+                width=sc.scale,
+            )
+        if theme.show_axis_right:
+            target.draw_line_aa(
+                plot_x1,
+                plot_y0,
+                plot_x1,
+                plot_y1,
+                theme.axis_color,
+                width=sc.scale,
+            )
+
+
 def _pull_off_axis_line(
     edge_a: Int, edge_b: Int, axis_line_py: Int
 ) -> _BaselineRect:
@@ -717,7 +831,9 @@ def _draw_continuous_axis_frame[
     `_draw_categorical_axis_frame`'s counterpart for a `LinearScale`
     x-axis: computes the dynamic left margin from `y_scale`'s ticks,
     resolves both scales' pixel ranges against the plot rect, and draws
-    gridlines, both axis lines, and every tick mark plus label.
+    gridlines, the axis lines `Theme.show_axis_*` asks for (at zero when
+    `Theme.x_axis_position`/`y_axis_position` says so, #346), and every
+    tick mark plus label.
 
     Both scales' domains are decided by the caller (ranges are the
     `[0, 1]` placeholder `_data_extent`/`_zero_baseline_y_extent`
@@ -886,13 +1002,26 @@ def _draw_continuous_axis_frame[
                     dashes=theme.gridline_style.dashes(sc.scale),
                 )
 
-    target.draw_line_aa(
-        plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale
+    # Both lines can be moved to zero here, the one frame where both
+    # axes are continuous (#346). The horizontal line is positioned
+    # along y and the vertical one along x, so each reads the *other*
+    # axis's scale.
+    var x_axis_y = _spine_pixel(
+        out_y_scale, plot_y1, theme.x_axis_position
+    ) if y_axis_visible else plot_y1
+    var y_axis_x = _spine_pixel(out_x_scale, plot_x0, theme.y_axis_position)
+    _draw_axis_spines(
+        target,
+        theme,
+        sc,
+        plot_x0,
+        plot_y0,
+        plot_x1,
+        plot_y1,
+        x_axis_y=x_axis_y,
+        y_axis_x=y_axis_x,
+        y_axis_visible=y_axis_visible,
     )
-    if y_axis_visible:
-        target.draw_line_aa(
-            plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale
-        )
 
     var text_requests = List[_TextRequest]()
 
@@ -906,42 +1035,47 @@ def _draw_continuous_axis_frame[
     # margin, which is measured from tick label widths -- worth stating
     # because a reader of that margin computation will wonder.
     if theme.show_minor_ticks:
-        for i in range(len(x_ticks.minor_values)):
-            var mpx = _axis_pixel(out_x_scale, x_ticks.minor_values[i])
-            target.draw_line_aa(
-                mpx,
-                plot_y1,
-                mpx,
-                plot_y1 + sc.minor_tick_length,
-                theme.axis_color,
-                width=sc.scale,
-            )
-        if y_axis_visible:
+        if theme.show_axis_bottom:
+            for i in range(len(x_ticks.minor_values)):
+                var mpx = _axis_pixel(out_x_scale, x_ticks.minor_values[i])
+                target.draw_line_aa(
+                    mpx,
+                    x_axis_y,
+                    mpx,
+                    x_axis_y + sc.minor_tick_length,
+                    theme.axis_color,
+                    width=sc.scale,
+                )
+        if y_axis_visible and theme.show_axis_left:
             for i in range(len(y_ticks.minor_values)):
                 var mpy = _axis_pixel(out_y_scale, y_ticks.minor_values[i])
                 target.draw_line_aa(
-                    plot_x0 - sc.minor_tick_length,
+                    y_axis_x - sc.minor_tick_length,
                     mpy,
-                    plot_x0,
+                    y_axis_x,
                     mpy,
                     theme.axis_color,
                     width=sc.scale,
                 )
 
+    # Tick marks follow their axis line and vanish with it; the labels
+    # follow the line but stay whatever the flags say, since they carry
+    # the numbers (see `Theme.show_axis_left`).
     for i in range(len(x_ticks.values)):
         var px = _axis_pixel(out_x_scale, x_ticks.values[i])
-        target.draw_line_aa(
-            px,
-            plot_y1,
-            px,
-            plot_y1 + sc.tick_length,
-            theme.axis_color,
-            width=sc.scale,
-        )
+        if theme.show_axis_bottom:
+            target.draw_line_aa(
+                px,
+                x_axis_y,
+                px,
+                x_axis_y + sc.tick_length,
+                theme.axis_color,
+                width=sc.scale,
+            )
         text_requests.append(
             _TextRequest(
                 px,
-                plot_y1 + sc.tick_length + sc.label_gap + Int(sc.font_size),
+                x_axis_y + sc.tick_length + sc.label_gap + Int(sc.font_size),
                 x_labels[i],
                 theme.text_color,
                 sc.font_size,
@@ -956,17 +1090,18 @@ def _draw_continuous_axis_frame[
     if y_axis_visible:
         for i in range(len(y_ticks.values)):
             var py = _axis_pixel(out_y_scale, y_ticks.values[i])
-            target.draw_line_aa(
-                plot_x0 - sc.tick_length,
-                py,
-                plot_x0,
-                py,
-                theme.axis_color,
-                width=sc.scale,
-            )
+            if theme.show_axis_left:
+                target.draw_line_aa(
+                    y_axis_x - sc.tick_length,
+                    py,
+                    y_axis_x,
+                    py,
+                    theme.axis_color,
+                    width=sc.scale,
+                )
             text_requests.append(
                 _TextRequest(
-                    plot_x0 - sc.tick_length - sc.label_gap,
+                    y_axis_x - sc.tick_length - sc.label_gap,
                     py + y_label_baseline_offset,
                     y_labels[i],
                     theme.text_color,
@@ -1166,11 +1301,16 @@ def _draw_categorical_axis_frame[
                 dashes=theme.gridline_style.dashes(sc.scale),
             )
 
-    target.draw_line_aa(
-        plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale
-    )
-    target.draw_line_aa(
-        plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale
+    _draw_axis_spines(
+        target,
+        theme,
+        sc,
+        plot_x0,
+        plot_y0,
+        plot_x1,
+        plot_y1,
+        x_axis_y=plot_y1,
+        y_axis_x=plot_x0,
     )
 
     var text_requests = List[_TextRequest]()
@@ -1178,14 +1318,15 @@ def _draw_categorical_axis_frame[
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for i in range(len(y_ticks.values)):
         var py = _axis_pixel(out_y_scale, y_ticks.values[i])
-        target.draw_line_aa(
-            plot_x0 - sc.tick_length,
-            py,
-            plot_x0,
-            py,
-            theme.axis_color,
-            width=sc.scale,
-        )
+        if theme.show_axis_left:
+            target.draw_line_aa(
+                plot_x0 - sc.tick_length,
+                py,
+                plot_x0,
+                py,
+                theme.axis_color,
+                width=sc.scale,
+            )
         text_requests.append(
             _TextRequest(
                 plot_x0 - sc.tick_length - sc.label_gap,
@@ -1200,14 +1341,15 @@ def _draw_categorical_axis_frame[
 
     for i in range(len(categories)):
         var center_px = round_to_int(x_scale.center(i))
-        target.draw_line_aa(
-            center_px,
-            plot_y1,
-            center_px,
-            plot_y1 + sc.tick_length,
-            theme.axis_color,
-            width=sc.scale,
-        )
+        if theme.show_axis_bottom:
+            target.draw_line_aa(
+                center_px,
+                plot_y1,
+                center_px,
+                plot_y1 + sc.tick_length,
+                theme.axis_color,
+                width=sc.scale,
+            )
         if x_label_rotation > 0.0:
             # Right-aligned at the tick and rotated clockwise (screen y
             # increases downward): the anchor is the label's own last
