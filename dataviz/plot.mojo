@@ -150,6 +150,7 @@ from dataviz.legend import (
     _draw_continuous_size_legend,
     _draw_continuous_size_legend_h,
     _draw_legend,
+    _levels_descending,
     _draw_legend_at,
     _dynamic_legend_width,
     _legend_column_x,

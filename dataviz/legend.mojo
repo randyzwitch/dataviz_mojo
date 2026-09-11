@@ -748,6 +748,30 @@ def _draw_continuous_size_legend[
     return top_y
 
 
+def _levels_descending(levels: List[Float64]) -> List[Float64]:
+    """`levels` sorted high to low, for a level legend's row order.
+
+    A contour's key reads top-down like the colorbar beside a heatmap
+    does: the highest band first. The caller's own `levels` order is
+    whatever it was given or computed and carries no display meaning,
+    so the legend imposes one.
+
+    Args:
+        levels: The contour levels, in any order.
+
+    Returns:
+        A sorted copy, descending.
+    """
+    var out = levels.copy()
+    for i in range(len(out)):
+        for j in range(i + 1, len(out)):
+            if out[j] > out[i]:
+                var t = out[i]
+                out[i] = out[j]
+                out[j] = t
+    return out^
+
+
 def _legend_reserve_for(
     plot: Plot, ch: _PointChannels, sc: _Scaled, *, mut cache: FontCache
 ) raises -> _LegendLayout:
