@@ -13,6 +13,8 @@ times a power of ten, so labels read as 0.2/0.4/0.6 rather than
 """
 
 from std.math import ceil, floor, log10, pow
+
+from morrow import Morrow, TimeZone
 from std.utils.numerics import isfinite
 
 from canvas.geometry import round_to_int
@@ -625,6 +627,235 @@ struct Ticks(Movable):
         return result^
 
 
+# Temporal ticks
+# ---------------------------------------------------------------
+#
+# A time axis is a `LinearScale` over POSIX seconds whose `is_time` flag
+# sends `ticks()` here instead of to `_nice_step`. It lives beside its
+# siblings rather than in its own module because `Ticks` does, and the
+# reason a time axis needs its own ladder at all is a tick-placement
+# reason: `_nice_step` picks 1/2/5 times a power of ten, so a six-month
+# daily series gets ticks every 50 days. Time has no such structure --
+# a month is 28 to 31 days and a year 365 or 366 -- and a reader wants
+# month starts, quarters or years, which no multiplier can express.
+#
+# Dates come from `morrow`, which owns the calendar arithmetic; nothing
+# here reimplements it.
+
+comptime _TIME_SECOND = 0
+comptime _TIME_MINUTE = 1
+comptime _TIME_HOUR = 2
+comptime _TIME_DAY = 3
+comptime _TIME_WEEK = 4
+comptime _TIME_MONTH = 5
+comptime _TIME_YEAR = 6
+
+comptime _SECONDS_PER_DAY = 86400.0
+comptime _SECONDS_PER_MONTH = 2629746.0
+"""The mean Gregorian month, 365.2425 / 12 days. Used only to *estimate*
+a tick count when choosing the step; the ticks themselves are placed by
+calendar arithmetic, so no month is ever assumed to be this long."""
+comptime _SECONDS_PER_YEAR = 31556952.0
+"""The mean Gregorian year, 365.2425 days. Estimating only, as above."""
+
+
+struct _TimeStep(Copyable, ImplicitlyCopyable, Movable):
+    """One rung of the tick ladder: a unit, how many of it to step, and
+    roughly how long that is, for choosing between rungs."""
+
+    var unit: Int
+    var count: Int
+    var seconds: Float64
+
+    def __init__(out self, unit: Int, count: Int, seconds: Float64):
+        self.unit = unit
+        self.count = count
+        self.seconds = seconds
+
+
+def _time_ladder() -> List[_TimeStep]:
+    """Every candidate step, ascending.
+
+    The rungs are the ones a reader recognizes -- a quarter of a minute,
+    a quarter of a day, a quarter of a year -- rather than a geometric
+    sequence. Days stop at 2 and hand over to weeks, because a 5- or
+    10-day step has no boundary to snap to: it would count from the
+    epoch and land on arbitrary dates.
+    """
+    var out = List[_TimeStep]()
+    var secs: List[Int] = [1, 2, 5, 10, 15, 30]
+    for s in secs:
+        out.append(_TimeStep(_TIME_SECOND, s, Float64(s)))
+    for s in secs:
+        out.append(_TimeStep(_TIME_MINUTE, s, Float64(s) * 60.0))
+    var hours: List[Int] = [1, 2, 3, 6, 12]
+    for h in hours:
+        out.append(_TimeStep(_TIME_HOUR, h, Float64(h) * 3600.0))
+    var days: List[Int] = [1, 2]
+    for d in days:
+        out.append(_TimeStep(_TIME_DAY, d, Float64(d) * _SECONDS_PER_DAY))
+    out.append(_TimeStep(_TIME_WEEK, 1, 7.0 * _SECONDS_PER_DAY))
+    out.append(_TimeStep(_TIME_WEEK, 2, 14.0 * _SECONDS_PER_DAY))
+    var months: List[Int] = [1, 3, 6]
+    for m in months:
+        out.append(_TimeStep(_TIME_MONTH, m, Float64(m) * _SECONDS_PER_MONTH))
+    var years: List[Int] = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000]
+    for y in years:
+        out.append(_TimeStep(_TIME_YEAR, y, Float64(y) * _SECONDS_PER_YEAR))
+    return out^
+
+
+def _choose_time_step(span: Float64, target_count: Int) -> _TimeStep:
+    """The ladder rung whose tick count comes closest to `target_count`,
+    measured as a ratio so that overshooting by a factor of two counts
+    the same as undershooting by one.
+
+    Closest-ratio rather than "the first rung under the target": over a
+    single year the rungs give 12 monthly ticks or 4 quarterly ones, and
+    a rule that takes the first small enough answer would take the
+    quarters for a two-year chart and the months for a one-year chart,
+    which is backwards. Quarters are right for the year.
+    """
+    var ladder = _time_ladder()
+    var best = ladder[len(ladder) - 1]
+    var best_score = 1.0e18
+    var target = Float64(max(target_count, 1))
+    for i in range(len(ladder)):
+        var count = span / ladder[i].seconds
+        if count <= 0.0:
+            continue
+        var score = count / target if count > target else target / count
+        if score < best_score:
+            best_score = score
+            best = ladder[i]
+    return best
+
+
+def _floor_to_step(local_seconds: Float64, step_seconds: Float64) -> Float64:
+    """`local_seconds` rounded down to a multiple of `step_seconds`.
+
+    In *local* seconds, so a day boundary is local midnight rather than
+    midnight UTC -- an axis whose day ticks landed at 19:00 because the
+    data is in New York would be wrong in a way that still looks
+    plausible.
+    """
+    return floor(local_seconds / step_seconds) * step_seconds
+
+
+def _time_tick_format(unit: Int) -> String:
+    """The label format for a step of this unit.
+
+    One format for the whole axis, the coarsest that still distinguishes
+    neighboring ticks: hours and minutes both read "14:30", because an
+    axis stepping by the hour never shows two ticks in the same hour.
+    """
+    if unit == _TIME_SECOND:
+        return "HH:mm:ss"
+    if unit == _TIME_MINUTE or unit == _TIME_HOUR:
+        return "HH:mm"
+    if unit == _TIME_DAY or unit == _TIME_WEEK:
+        return "MMM DD"
+    if unit == _TIME_MONTH:
+        return "MMM YYYY"
+    return "YYYY"
+
+
+def _time_ticks(
+    domain_min: Float64,
+    domain_max: Float64,
+    tz_offset: Int,
+    target_count: Int,
+) raises -> Ticks:
+    """Tick positions and labels for a time axis, both in POSIX seconds.
+
+    The domain is UTC seconds and `tz_offset` is the data's offset from
+    it, so every boundary here is computed in local time and converted
+    back: a day tick is local midnight, a month tick the local first of
+    the month. Labels are rendered in the same zone, which is what a
+    caller who supplied local timestamps expects to read.
+
+    Sub-month steps advance by a fixed number of seconds from a floored
+    boundary. Month and year steps cannot: they advance through
+    `Morrow.shift`, which knows February. That difference is the whole
+    reason this function exists.
+
+    Args:
+        domain_min: Left end of the axis, in POSIX seconds.
+        domain_max: Right end.
+        tz_offset: The data's offset from UTC, in seconds.
+        target_count: Roughly how many ticks to aim for.
+
+    Returns:
+        The ticks, with one pre-formatted label each.
+
+    Raises:
+        Error: Never in practice; `morrow`'s formatting signature.
+    """
+    var zone = TimeZone(tz_offset)
+    if domain_max <= domain_min:
+        var single: List[Float64] = [domain_min]
+        var one = Morrow.fromtimestamp(domain_min, zone)
+        var single_label: List[String] = [one.format("YYYY-MM-DD")]
+        return Ticks(single^, 0, single_label^)
+
+    var step = _choose_time_step(domain_max - domain_min, target_count)
+    var values = List[Float64]()
+    var labels = List[String]()
+    var fmt = _time_tick_format(step.unit)
+
+    if step.unit == _TIME_MONTH or step.unit == _TIME_YEAR:
+        # Calendar stepping. Start at the first of the month (or of the
+        # year) at or before the domain, then shift.
+        var first = Morrow.fromtimestamp(domain_min, zone)
+        var month = first.month
+        var year = first.year
+        if step.unit == _TIME_YEAR:
+            month = 1
+            # Snap the year down to a multiple of the step, so a decade
+            # axis reads 1980/1990/2000 rather than 1983/1993/2003.
+            year = (year // step.count) * step.count
+        else:
+            month = ((month - 1) // step.count) * step.count + 1
+        var at = Morrow.get(year, month, 1, 0, 0, 0, 0, zone)
+        # Guard against a runaway: the estimate is exact enough that
+        # twice the expected count is never reached in practice.
+        var cap = Int((domain_max - domain_min) / step.seconds * 2.0 + 8.0)
+        for _ in range(cap):
+            var ts = at.timestamp()
+            if ts > domain_max:
+                break
+            if ts >= domain_min:
+                values.append(ts)
+                labels.append(at.format(fmt))
+            if step.unit == _TIME_YEAR:
+                at = at.shift(years=step.count)
+            else:
+                at = at.shift(months=step.count)
+        return Ticks(values^, 0, labels^)
+
+    var step_seconds = step.seconds
+    var start_local = _floor_to_step(
+        domain_min + Float64(tz_offset), step_seconds
+    )
+    if step.unit == _TIME_WEEK:
+        # Weeks snap to Monday, not to a multiple of seven days from the
+        # epoch -- which was a Thursday, and would put every tick on one.
+        var days = floor((domain_min + Float64(tz_offset)) / _SECONDS_PER_DAY)
+        var weekday = (Int(days) + 3) % 7
+        start_local = (days - Float64(weekday)) * _SECONDS_PER_DAY
+    var at_local = start_local
+    var cap = Int((domain_max - domain_min) / step_seconds * 2.0 + 8.0)
+    for _ in range(cap):
+        var ts = at_local - Float64(tz_offset)
+        if ts > domain_max:
+            break
+        if ts >= domain_min:
+            values.append(ts)
+            labels.append(Morrow.fromtimestamp(ts, zone).format(fmt))
+        at_local += step_seconds
+    return Ticks(values^, 0, labels^)
+
+
 struct LinearScale(ImplicitlyCopyable, Movable):
     """A linear map from the domain endpoints to the range endpoints.
     `range_min`/`range_max` are the pixel positions `domain_min`/
@@ -652,6 +883,18 @@ struct LinearScale(ImplicitlyCopyable, Movable):
     every caller keeps passing real-unit values.
     """
 
+    var is_time: Bool
+    """Whether the domain is POSIX seconds and the axis should be
+    labeled as dates and times. Set by `Plot.encode_time()`; sends
+    `ticks()` to `_time_ticks` the way `is_log` sends it to
+    `_log_ticks`, and changes nothing about `to_pixel()` -- a time axis
+    is linear in seconds, which is exactly what makes this a labeling
+    problem rather than a projection one."""
+    var tz_offset: Int
+    """The data's offset from UTC in seconds, so ticks land on local
+    midnights and month starts and labels read in the zone the caller
+    supplied. Meaningless unless `is_time`."""
+
     def __init__(
         out self,
         domain_min: Float64,
@@ -659,6 +902,8 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         range_min: Float64,
         range_max: Float64,
         is_log: Bool = False,
+        is_time: Bool = False,
+        tz_offset: Int = 0,
     ):
         """Construct a `LinearScale` from an already-known domain and
         pixel range.
@@ -671,12 +916,18 @@ struct LinearScale(ImplicitlyCopyable, Movable):
             is_log: Whether `domain_min`/`domain_max` are in log10-
                 space and `to_pixel()` should log-transform its input
                 first; see this field's own docstring.
+            is_time: Whether the domain is POSIX seconds and the ticks
+                should be dates and times; see the field's docstring.
+            tz_offset: The data's offset from UTC in seconds, for
+                placing and labeling those ticks.
         """
         self.domain_min = domain_min
         self.domain_max = domain_max
         self.range_min = range_min
         self.range_max = range_max
         self.is_log = is_log
+        self.is_time = is_time
+        self.tz_offset = tz_offset
 
     def scale(self) -> Float64:
         """The slope for a Transform2D built from this axis:
@@ -710,7 +961,7 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         var v = log10(value) if self.is_log else value
         return v * self.scale() + self.translate()
 
-    def ticks(self, target_count: Int = 5) -> Ticks:
+    def ticks(self, target_count: Int = 5) raises -> Ticks:
         """Return "nice" tick positions within the domain (see
         `_nice_step`), from ceil(domain_min/step)*step to
         floor(domain_max/step)*step, so ticks never extend past the domain; a
@@ -728,7 +979,18 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         Returns:
             The computed tick positions and their shared decimal
             count.
+
+        Raises:
+            Error: Only on a time axis, and only from `morrow`'s
+                formatting signature -- the numeric paths cannot fail.
         """
+        if self.is_time:
+            return _time_ticks(
+                self.domain_min,
+                self.domain_max,
+                self.tz_offset,
+                target_count,
+            )
         if self.is_log:
             return _log_ticks(self.domain_min, self.domain_max)
         if self.domain_min == self.domain_max:

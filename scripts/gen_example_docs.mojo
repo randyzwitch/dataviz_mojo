@@ -126,6 +126,7 @@ def _titles() -> Dict[String, String]:
     d["histogram_density"] = "Histogram with Density Curve"
     d["histogram_horizontal"] = "Horizontal Histogram"
     d["slope"] = "Slope"
+    d["line_time"] = "Time Axis"
     d["step"] = "Step"
     d["step_area"] = "Stepped Area"
     # Cookbook titles come from each recipe's filename or its `# title:`
@@ -160,6 +161,7 @@ def _categories() -> List[Category]:
             [
                 "scatter",
                 "line",
+                "line_time",
                 "step",
                 "bar",
                 "area",
