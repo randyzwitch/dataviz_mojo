@@ -4105,7 +4105,10 @@ def test_render_contourf_leaves_no_unpainted_gaps_inside_the_plot() raises:
         contourf(
             z,
             level_count=5,
-            theme=Theme(show_gridlines=False),
+            # No key: this test measures band coverage over a known
+            # rect, and a legend column would move the rect's right
+            # edge into the scan (#525).
+            theme=Theme(show_gridlines=False, show_legend=False),
             width=360,
             height=280,
         )

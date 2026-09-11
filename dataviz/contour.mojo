@@ -1,5 +1,7 @@
 from std.collections import Dict
 
+from canvas.color import Color
+from canvas.geometry import round_to_int
 from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.path import Path
@@ -12,8 +14,13 @@ from dataviz.plot import (
     _LegendLayout,
     _RenderResult,
     _draw_continuous_axis_frame,
+    _draw_legend,
+    _dynamic_legend_width,
     _finished,
+    _levels_descending,
 )
+from dataviz.scale import _format_tick
+from dataviz.text import _Scaled
 from dataviz.scale import LinearScale
 from dataviz.theme import Theme
 
@@ -645,12 +652,41 @@ def _render_contour[
     ) > 0 else _auto_levels(plot._contour.z, plot._contour.level_count)
 
     var theme = plot._theme
+    # Every level is a band or a line of its own, so the key is one
+    # swatch per level rather than a gradient bar: a smooth ramp would
+    # imply intermediate colors this mark never paints (#525). Built
+    # before the frame because the column has to be reserved out of the
+    # plot rect's width.
+    var legend = _LegendLayout()
+    var level_labels = List[String]()
+    var level_colors = List[Color]()
+    if theme.show_legend and len(levels) > 0:
+        var llo = levels[0]
+        var lhi = levels[0]
+        for v in levels:
+            if v < llo:
+                llo = v
+            if v > lhi:
+                lhi = v
+        # Through the resolver, so a `scale_color_domain()` override
+        # shows in the key. A legend built from the data's own limits
+        # would quietly contradict the bands beside it (#370).
+        var legend_scale = _color_scale_for(theme, plot._color_domain, llo, lhi)
+        var sc0 = _Scaled(theme)
+        for v in _levels_descending(levels):
+            level_labels.append(_format_tick(v, 1, theme.y_tick_format))
+            level_colors.append(legend_scale.color_at(v))
+        legend.right = _dynamic_legend_width(
+            level_labels, sc0.legend_swatch_size, sc0, cache=cache
+        )
+        legend.active = True
+
     var frame = _draw_continuous_axis_frame(
         target,
         LinearScale(0.0, Float64(cols - 1), 0.0, 1.0),
         LinearScale(0.0, Float64(rows - 1), 0.0, 1.0),
         theme,
-        _LegendLayout(),
+        legend,
         ox0,
         oy0,
         ox1,
@@ -688,6 +724,17 @@ def _render_contour[
                         frame.y_scale.to_pixel(line.ys[i]),
                     )
                 target.stroke_path_aa(path, color, width=frame.sc.line_width)
+
+    if legend.active:
+        _draw_legend(
+            target,
+            frame.text_requests,
+            level_labels,
+            level_colors,
+            round_to_int(frame.x_scale.range_max) + frame.sc.margin_right,
+            frame.py0,
+            theme,
+        )
 
     return frame.result()
 
@@ -742,12 +789,41 @@ def _render_contourf[
     ) > 0 else _auto_levels(plot._contour.z, plot._contour.level_count)
 
     var theme = plot._theme
+    # Every level is a band or a line of its own, so the key is one
+    # swatch per level rather than a gradient bar: a smooth ramp would
+    # imply intermediate colors this mark never paints (#525). Built
+    # before the frame because the column has to be reserved out of the
+    # plot rect's width.
+    var legend = _LegendLayout()
+    var level_labels = List[String]()
+    var level_colors = List[Color]()
+    if theme.show_legend and len(levels) > 0:
+        var llo = levels[0]
+        var lhi = levels[0]
+        for v in levels:
+            if v < llo:
+                llo = v
+            if v > lhi:
+                lhi = v
+        # Through the resolver, so a `scale_color_domain()` override
+        # shows in the key. A legend built from the data's own limits
+        # would quietly contradict the bands beside it (#370).
+        var legend_scale = _color_scale_for(theme, plot._color_domain, llo, lhi)
+        var sc0 = _Scaled(theme)
+        for v in _levels_descending(levels):
+            level_labels.append(_format_tick(v, 1, theme.y_tick_format))
+            level_colors.append(legend_scale.color_at(v))
+        legend.right = _dynamic_legend_width(
+            level_labels, sc0.legend_swatch_size, sc0, cache=cache
+        )
+        legend.active = True
+
     var frame = _draw_continuous_axis_frame(
         target,
         LinearScale(0.0, Float64(cols - 1), 0.0, 1.0),
         LinearScale(0.0, Float64(rows - 1), 0.0, 1.0),
         theme,
-        _LegendLayout(),
+        legend,
         ox0,
         oy0,
         ox1,
@@ -792,6 +868,17 @@ def _render_contourf[
                     color_scale.color_at(level),
                     fill_rule=FillRule.NONZERO,
                 )
+
+    if legend.active:
+        _draw_legend(
+            target,
+            frame.text_requests,
+            level_labels,
+            level_colors,
+            round_to_int(frame.x_scale.range_max) + frame.sc.margin_right,
+            frame.py0,
+            theme,
+        )
 
     return frame.result()
 
