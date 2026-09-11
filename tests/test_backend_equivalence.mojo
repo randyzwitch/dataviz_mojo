@@ -45,6 +45,7 @@ from dataviz import (
     pcolormesh,
     hist2d,
     hexbin,
+    quiver,
     tricontour,
     tricontourf,
     tripcolor,
@@ -399,6 +400,12 @@ def _representative_plot(mark: Mark) raises -> Plot:
         var u: List[Float64] = [5.0, 10.0, 15.0]
         var v: List[Float64] = [5.0, -10.0, 0.0]
         return barbs(xs, ys, u, v, width=_W, height=_H)
+    if mark == Mark.QUIVER:
+        var qu: List[Float64] = [5.0, 10.0, 15.0]
+        var qv: List[Float64] = [5.0, -10.0, 0.0]
+        return quiver(
+            xs, ys, qu, qv, color_by_magnitude=True, width=_W, height=_H
+        )
 
     raise Error(
         "test_backend_equivalence: no representative plot for mark value "
@@ -585,7 +592,7 @@ def test_backends_agree_with_titles_and_rotated_axis_labels() raises:
 def test_mark_count_is_one_past_the_newest_mark() raises:
     """Require `Mark.COUNT` to be one greater than the newest mark value."""
     assert_true(
-        Mark.HEXBIN == Mark(Mark.COUNT - 1),
+        Mark.QUIVER == Mark(Mark.COUNT - 1),
         (
             "Mark.COUNT must be one past the newest mark -- update both when"
             " adding one"

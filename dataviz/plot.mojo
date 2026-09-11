@@ -222,6 +222,7 @@ from dataviz.violin import _render_violin, _render_horizontal_violin
 from dataviz.waterfall import _WaterfallData
 from dataviz.box import _BoxData
 from dataviz.hexbin import _HexbinData, _render_hexbin
+from dataviz.quiver import _render_quiver
 from dataviz.hist2d import _hist2d_counts
 from dataviz.boxen import (
     _BoxenData,
@@ -555,6 +556,8 @@ struct Plot(Copyable, Movable):
     var _box: _BoxData
     var _boxen: _BoxenData
     var _hexbin: _HexbinData
+    var _quiver_scale: Float64
+    var _quiver_color_by_magnitude: Bool
     var _candle: _CandleData
     var _bullet: _BulletData
     var _gantt: _GanttData
@@ -627,6 +630,8 @@ struct Plot(Copyable, Movable):
         self._box = _BoxData()
         self._boxen = _BoxenData()
         self._hexbin = _HexbinData()
+        self._quiver_scale = 0.0
+        self._quiver_color_by_magnitude = False
         self._candle = _CandleData()
         self._bullet = _BulletData()
         self._gantt = _GanttData()
@@ -1040,6 +1045,28 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.BARBS
         self._barbs.length = length
         self._barbs.flip = flip
+        return self^
+
+    def mark_quiver(
+        var self, scale: Float64 = 0.0, color_by_magnitude: Bool = False
+    ) -> Self:
+        """Select `Mark.QUIVER`: a vector field as arrows, one per point
+        along `(u, v)` with length proportional to magnitude. Encoded via
+        `encode_quiver()`; see `_render_quiver` (quiver.mojo) for the
+        glyph and `quiver()` for the one-call form.
+
+        Args:
+            scale: Pixels per unit of magnitude before `Theme.scale`, or
+                0 for matplotlib's automatic rule (see `quiver()`).
+            color_by_magnitude: Color each arrow by `hypot(u, v)`
+                through the theme's ramp, with a color legend.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.QUIVER
+        self._quiver_scale = scale
+        self._quiver_color_by_magnitude = color_by_magnitude
         return self^
 
     def mark_contour(var self, levels: Int = 8) -> Self:
@@ -2837,6 +2864,58 @@ struct Plot(Copyable, Movable):
         self._hexbin.y = y.copy()
         self._hexbin.gridsize = gridsize
         return self^
+
+    def encode_quiver(
+        var self,
+        x: List[Float64],
+        y: List[Float64],
+        u: List[Float64],
+        v: List[Float64],
+    ) -> Self:
+        """Map `Mark.QUIVER`'s four channels: continuous `x`/`y` positions
+        plus the `u`/`v` components of the vector at each, `v` positive
+        up the page. The same shape as `encode_barbs()`, stored in the
+        same place, since the two marks draw one field two ways.
+
+        Args:
+            x: The continuous x position of each arrow's tail.
+            y: The continuous y position of each arrow's tail.
+            u: Each vector's x-component, in the same unit as `v`.
+            v: Each vector's y-component, positive pointing up the page.
+
+        Returns:
+            Self, for further chaining.
+        """
+        return self^.encode_barbs(x, y, u, v)
+
+    def encode_quiver[
+        dtype: DType
+    ](
+        var self,
+        x: List[Scalar[dtype]],
+        y: List[Scalar[dtype]],
+        u: List[Scalar[dtype]],
+        v: List[Scalar[dtype]],
+    ) -> Self:
+        """`encode_quiver()` generalized over numeric element type via
+        `_materialize_scalar_list` (array_like.mojo). Delegates to the
+        concrete overload.
+
+        Args:
+            x: The continuous x position of each arrow's tail.
+            y: The continuous y position of each arrow's tail.
+            u: Each vector's x-component -- any numeric `List[Scalar[dtype]]`.
+            v: Each vector's y-component -- any numeric `List[Scalar[dtype]]`.
+
+        Returns:
+            Self, for further chaining.
+        """
+        return self^.encode_quiver(
+            _materialize_scalar_list(x),
+            _materialize_scalar_list(y),
+            _materialize_scalar_list(u),
+            _materialize_scalar_list(v),
+        )
 
     def encode_tricontour(
         var self,
@@ -4959,6 +5038,8 @@ def _render_generic[
             cache=cache,
             vector_target=vector_target,
         )
+    if plot._mark == Mark.QUIVER:
+        return _render_quiver(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.HEXBIN:
         return _render_hexbin(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     if plot._mark == Mark.TRICONTOUR:

@@ -224,6 +224,32 @@ def _render_barbs[
     return frame.result()
 
 
+def _validate_vector_field(plot: Plot, context: String) raises:
+    """The checks every mark over `encode_barbs()`/`encode_quiver()`'s
+    four channels shares: equal-length columns and at least one point.
+    `context` names the encoder in the message.
+    """
+    var n = len(plot._barbs.x)
+    if (
+        len(plot._barbs.y) != n
+        or len(plot._barbs.u) != n
+        or len(plot._barbs.v) != n
+    ):
+        raise Error(
+            context
+            + ": x, y, u, and v must all have the same length (got "
+            + String(n)
+            + " x values, "
+            + String(len(plot._barbs.y))
+            + " y values, "
+            + String(len(plot._barbs.u))
+            + " u values, "
+            + String(len(plot._barbs.v))
+            + " v values)"
+        )
+    _require_non_empty(n, context)
+
+
 def _validate_barbs(plot: Plot) raises:
     """Every check a `Mark.BARBS` render needs before it draws anything:
     four equal-length columns, at least one station, and a positive glyph
@@ -234,25 +260,7 @@ def _validate_barbs(plot: Plot) raises:
     domain before any frame exists, so a mismatched `encode_barbs()` has
     to be caught there rather than inside the drawing.
     """
-    var n = len(plot._barbs.x)
-    if (
-        len(plot._barbs.y) != n
-        or len(plot._barbs.u) != n
-        or len(plot._barbs.v) != n
-    ):
-        raise Error(
-            "Plot.encode_barbs(): x, y, u, and v must all have the same length"
-            " (got "
-            + String(n)
-            + " x values, "
-            + String(len(plot._barbs.y))
-            + " y values, "
-            + String(len(plot._barbs.u))
-            + " u values, "
-            + String(len(plot._barbs.v))
-            + " v values)"
-        )
-    _require_non_empty(n, "Plot.encode_barbs()")
+    _validate_vector_field(plot, "Plot.encode_barbs()")
     if plot._barbs.length <= 0.0:
         raise Error(
             "Plot.mark_barbs(): length must be positive (got "

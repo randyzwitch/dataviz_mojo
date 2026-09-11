@@ -93,6 +93,7 @@ def _titles() -> Dict[String, String]:
     d["corrplot"] = "Correlation Plot"
     d["punchcard"] = "Punchcard"
     d["barbs"] = "Wind Barbs"
+    d["quiver"] = "Vector Arrows"
     d["contour"] = "Contour"
     d["contourf"] = "Filled Contour"
     d["imshow"] = "Image"
@@ -257,6 +258,7 @@ def _categories() -> List[Category]:
             [
                 "parallel",
                 "barbs",
+                "quiver",
                 "contour",
                 "contourf",
                 "tricontour",
