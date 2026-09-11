@@ -36,6 +36,7 @@ from dataviz.annotations import (
 )
 from dataviz.bar import _bar_y_domain_data, _draw_bar_rects, _render_bar
 from dataviz.barbs import _draw_barbs_layer, _validate_barbs
+from dataviz.histogram import _draw_histogram_layer
 from dataviz.continuous import (
     _PointChannels,
     _build_line_path,
@@ -660,6 +661,7 @@ def _is_layerable_mark(mark: Mark) raises -> Bool:
         mark == Mark.POINT
         or mark == Mark.LINE
         or mark == Mark.AREA
+        or mark == Mark.HISTOGRAM
         or mark == Mark.EFFECT_SCATTER
         or mark == Mark.KDE
         or mark == Mark.ECDF
@@ -796,7 +798,9 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
     else:
         for v in plot.y_data:
             ys.append(v)
-    return _LayerDomain(plot.x_data.copy(), ys^, mark == Mark.AREA)
+    return _LayerDomain(
+        plot.x_data.copy(), ys^, mark == Mark.AREA or mark == Mark.HISTOGRAM
+    )
 
 
 def _render_layers_generic[
@@ -920,6 +924,7 @@ def _render_layers_generic[
             plots[i]._mark == Mark.POINT
             or plots[i]._mark == Mark.LINE
             or plots[i]._mark == Mark.AREA
+            or plots[i]._mark == Mark.HISTOGRAM
             or plots[i]._mark == Mark.EFFECT_SCATTER
         ):
             # The same rule _render_generic enforces on a standalone plot,
@@ -1008,10 +1013,13 @@ def _render_layers_generic[
                     + String(i)
                     + ")"
                 )
-        if plots[i]._y_log and plots[i]._mark == Mark.AREA:
+        if plots[i]._y_log and (
+            plots[i]._mark == Mark.AREA or plots[i]._mark == Mark.HISTOGRAM
+        ):
             raise Error(
                 "render_layers(): Plot.scale_y_log() isn't supported on a"
-                " Mark.AREA layer -- its y-domain is always forced through a"
+                " Mark.AREA/HISTOGRAM layer -- its y-domain is always forced"
+                " through a"
                 " zero baseline, and zero has no logarithm (layer "
                 + String(i)
                 + ")"
@@ -1342,6 +1350,12 @@ def _render_layers_generic[
             if len(plots[j].x_data) == 0:
                 continue
             _draw_area_layer(target, plots[j], frame.x_scale, layer_y_scale)
+        elif mark == Mark.HISTOGRAM:
+            if len(plots[j].x_data) == 0:
+                continue
+            _draw_histogram_layer(
+                target, plots[j], frame.x_scale, layer_y_scale
+            )
         elif mark == Mark.KDE:
             # domains[j].xs/ys are the density curve `_layer_domain`
             # already evaluated for the combined domain, passed straight

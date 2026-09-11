@@ -16,7 +16,13 @@ The binning behavior matches `numpy.histogram`:
 
 from std.math import cbrt, ceil, log2, pi, sqrt
 
+from canvas.color import Color
+from canvas.vector.draw_target import DrawTarget
+
 from dataviz.array_like import _materialize_scalar_list
+from dataviz.pixel_snap import _snap_pixel_edge
+from dataviz.scale import LinearScale
+from dataviz.text import _Scaled
 from dataviz.box import _percentile
 from dataviz.plot import Plot, _finished
 from dataviz.scale import _format_fixed, _min_max
@@ -547,6 +553,98 @@ struct HistogramBins(Copyable, Movable, Sized):
         return ys^
 
 
+struct _HistogramData(Copyable, Movable):
+    """The bins `Mark.HISTOGRAM` draws as one rectangle each, from
+    `encode_histogram_bins()`: the `HistogramBins` columns, stored on
+    `Plot._histogram`. The same bins go into `Plot.x_data`/`y_data` as
+    the `step_x()`/`step_y()` staircase, which is what every domain,
+    layering and faceting rule reads; only the drawing reads this."""
+
+    var edges: List[Float64]
+    var values: List[Float64]
+
+    def __init__(out self):
+        self.edges = List[Float64]()
+        self.values = List[Float64]()
+
+
+def _draw_histogram_layer[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+) raises:
+    """Draw one `Mark.HISTOGRAM` plot's rectangles into an already-laid-out
+    continuous axis frame: for each bin, a rect from `edges[i]` to
+    `edges[i + 1]` and from the zero baseline up to `values[i]`, then a
+    separator between every two adjacent nonempty bins.
+
+    Every edge is snapped to a pixel boundary (`_snap_pixel_edge`), the
+    way `Mark.BAR` and `Mark.IMSHOW` snap theirs: adjacent bins read the
+    same snapped boundary, so they tile with no seam and no overlap, and
+    a bin narrower than a pixel collapses rather than drawing a sliver.
+    The rect stops at the boundary above the axis line, so the axis
+    stays visible under a bar that starts at zero, and a first bin that
+    starts on the y-axis gives that one column back for the same reason.
+
+    The separator is what `Mark.AREA`'s staircase cannot draw (#435):
+    two adjacent bins of equal height have no riser between them and
+    read as one wide bar. It is one pixel column (times `Theme.scale`)
+    in `Theme.histogram_edge_color`, the last column of the left bin,
+    from the baseline up to the shorter of the two bins -- so it never
+    sticks out above a neighbor -- and only where both bins are nonempty,
+    since an empty bin's riser is already a boundary. A transparent
+    edge color turns it off.
+    """
+    var theme = plot._theme
+    var sc = _Scaled(theme)
+    var n = len(plot._histogram.values)
+    if n == 0:
+        return
+    var baseline = _snap_pixel_edge(y_scale.to_pixel(0.0) - 0.5)
+    var xp = List[Float64](capacity=n + 1)
+    for i in range(n + 1):
+        xp.append(
+            _snap_pixel_edge(x_scale.to_pixel(plot._histogram.edges[i]) - 0.5)
+        )
+    # A first bin that starts on the y-axis would paint over the axis
+    # line's column; give that column back, the way `Mark.BAR` pulls a
+    # bar off the axis line. The staircase never had the problem only
+    # because its antialiased edge did not reach the column.
+    var axis_column = _snap_pixel_edge(
+        min(x_scale.range_min, x_scale.range_max) - 0.5
+    )
+    if xp[0] == axis_column:
+        xp[0] += 1.0
+    var tops = List[Float64](capacity=n)
+    for i in range(n):
+        tops.append(
+            _snap_pixel_edge(y_scale.to_pixel(plot._histogram.values[i]) - 0.5)
+        )
+    for i in range(n):
+        var left = min(xp[i], xp[i + 1])
+        var right = max(xp[i], xp[i + 1])
+        var top = tops[i]
+        if right <= left or top >= baseline:
+            continue
+        target.fill_rect(
+            left, top, right - left, baseline - top, theme.mark_color
+        )
+    var edge = theme.histogram_edge_color
+    if edge.a == 0:
+        return
+    var sep = sc.scale
+    for i in range(1, n):
+        if tops[i - 1] >= baseline or tops[i] >= baseline:
+            continue
+        if xp[i] <= xp[i - 1]:
+            continue
+        var top = max(tops[i - 1], tops[i])
+        target.fill_rect(xp[i] - sep, top, sep, baseline - top, edge)
+
+
 def _bin_index(value: Float64, edges: List[Float64]) -> Int:
     """Which bin `value` falls in, under the half-open-except-the-last
     rule, or `-1` when it falls outside `[edges[0], edges[-1]]`.
@@ -1062,6 +1160,7 @@ def histogram(
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
+    stepfilled: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1105,6 +1204,12 @@ def histogram(
             raw count makes a wide bin look like a tall one.
         cumulative: Draw each bin as the running total at or below its
             right edge, turning the chart into an empirical CDF.
+        stepfilled: Draw the bins as one filled staircase (matplotlib's
+            `histtype="stepfilled"`, `Mark.AREA` with `StepStyle.POST`)
+            instead of a rectangle per bin (`Mark.HISTOGRAM`, the
+            default). The staircase has no separator between adjacent
+            bins of equal height, which is the shape that sits well
+            under a density overlay.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -1283,6 +1388,7 @@ def histogram(
         weights=weights,
         stat=stat,
         cumulative=cumulative,
+        stepfilled=stepfilled,
         theme=theme,
         width=width,
         height=height,
@@ -1300,6 +1406,7 @@ def histogram(
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
+    stepfilled: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1327,6 +1434,12 @@ def histogram(
             default) for one apiece.
         stat: What a bar's height is; see `HistStat`.
         cumulative: Draw running totals instead of per-bin values.
+        stepfilled: Draw the bins as one filled staircase (matplotlib's
+            `histtype="stepfilled"`, `Mark.AREA` with `StepStyle.POST`)
+            instead of a rectangle per bin (`Mark.HISTOGRAM`, the
+            default). The staircase has no separator between adjacent
+            bins of equal height, which is the shape that sits well
+            under a density overlay.
         theme: Full styling knobs -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot`.
         height: Pixel height of the returned `Plot`.
@@ -1351,12 +1464,21 @@ def histogram(
     # around it: the leftmost and rightmost bars are meant to sit on the
     # axis ends, and padding would leave a strip of empty axis that
     # reads as "no observations here" when the truth is "no bins here".
-    var plot = (
-        Plot()
-        .mark_area(step=StepStyle.POST)
-        .encode(x=binned.step_x(), y=binned.step_y())
-        .scale_x_domain(lo, hi)
-    )
+    var plot: Plot
+    if stepfilled:
+        plot = (
+            Plot()
+            .mark_area(step=StepStyle.POST)
+            .encode(x=binned.step_x(), y=binned.step_y())
+            .scale_x_domain(lo, hi)
+        )
+    else:
+        plot = (
+            Plot()
+            .mark_histogram()
+            .encode_histogram_bins(binned)
+            .scale_x_domain(lo, hi)
+        )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
@@ -1368,6 +1490,7 @@ def histogram(
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
+    stepfilled: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1408,6 +1531,12 @@ def histogram(
             reads the unweighted sample, as numpy's do.
         stat: What a bar's height is; see `HistStat`.
         cumulative: Draw running totals instead of per-bin values.
+        stepfilled: Draw the bins as one filled staircase (matplotlib's
+            `histtype="stepfilled"`, `Mark.AREA` with `StepStyle.POST`)
+            instead of a rectangle per bin (`Mark.HISTOGRAM`, the
+            default). The staircase has no separator between adjacent
+            bins of equal height, which is the shape that sits well
+            under a density overlay.
         theme: Full styling knobs -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot`.
         height: Pixel height of the returned `Plot`.
@@ -1430,6 +1559,7 @@ def histogram(
         weights=weights,
         stat=stat,
         cumulative=cumulative,
+        stepfilled=stepfilled,
         theme=theme,
         width=width,
         height=height,
@@ -1448,6 +1578,7 @@ def histogram[
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
+    stepfilled: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1475,6 +1606,12 @@ def histogram[
         weights: One nonnegative weight per observation, or empty.
         stat: What a bar's height is; see `HistStat`.
         cumulative: Draw running totals instead of per-bin values.
+        stepfilled: Draw the bins as one filled staircase (matplotlib's
+            `histtype="stepfilled"`, `Mark.AREA` with `StepStyle.POST`)
+            instead of a rectangle per bin (`Mark.HISTOGRAM`, the
+            default). The staircase has no separator between adjacent
+            bins of equal height, which is the shape that sits well
+            under a density overlay.
         theme: Full styling knobs -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot`.
         height: Pixel height of the returned `Plot`.
@@ -1495,6 +1632,7 @@ def histogram[
         weights=weights,
         stat=stat,
         cumulative=cumulative,
+        stepfilled=stepfilled,
         theme=theme,
         width=width,
         height=height,
@@ -1513,6 +1651,7 @@ def histogram[
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
+    stepfilled: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1540,6 +1679,12 @@ def histogram[
         weights: One nonnegative weight per observation, or empty.
         stat: What a bar's height is; see `HistStat`.
         cumulative: Draw running totals instead of per-bin values.
+        stepfilled: Draw the bins as one filled staircase (matplotlib's
+            `histtype="stepfilled"`, `Mark.AREA` with `StepStyle.POST`)
+            instead of a rectangle per bin (`Mark.HISTOGRAM`, the
+            default). The staircase has no separator between adjacent
+            bins of equal height, which is the shape that sits well
+            under a density overlay.
         theme: Full styling knobs -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot`.
         height: Pixel height of the returned `Plot`.
@@ -1560,6 +1705,7 @@ def histogram[
         weights=weights,
         stat=stat,
         cumulative=cumulative,
+        stepfilled=stepfilled,
         theme=theme,
         width=width,
         height=height,
@@ -1579,6 +1725,7 @@ def histogram[
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
+    stepfilled: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1597,6 +1744,7 @@ def histogram[
         weights=weights,
         stat=stat,
         cumulative=cumulative,
+        stepfilled=stepfilled,
         theme=theme,
         width=width,
         height=height,

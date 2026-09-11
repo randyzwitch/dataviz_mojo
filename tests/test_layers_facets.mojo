@@ -2991,6 +2991,9 @@ def test_render_layers_overlays_two_histograms_on_shared_bins() raises:
     )
     var plots: List[Plot] = [h0^, h1^]
     var s = render_layers_svg(plots).to_string()
+    # Mark.HISTOGRAM draws one <rect> per nonempty bin (plus the
+    # background rect and the separators); six bins each, both drawn.
     assert_true(
-        _count_tag(s, "path") >= 2, "both histograms are drawn on the one frame"
+        _count_tag(s, "rect") >= 1 + 2 * 4,
+        "both histograms are drawn on the one frame",
     )
