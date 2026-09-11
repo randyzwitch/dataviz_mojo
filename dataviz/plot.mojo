@@ -94,6 +94,7 @@ from dataviz.color_scale import (
 from dataviz.marker import PointShape, _fill_shape_aa, default_marker_shapes
 from dataviz.pixel_snap import _snap_pixel_center, _snap_pixel_edge
 from dataviz.continuous import (
+    _draws_bulk_markers,
     _Decimated,
     _PointChannels,
     _build_line_path,
@@ -4773,6 +4774,23 @@ def render(plot: Plot) raises -> Canvas:
     first.
     """
     var factor = _resolve_supersample(plot, "render")
+    # A plot that batches its markers keeps the two-step recipe: the
+    # bulk call is one of the primitives a region cannot record, so the
+    # region would materialize the enlarged buffer and pay for banding
+    # it never gets. Measured at 0.80 to 0.88x there, against 2.4x for
+    # pie and 1.8x for a filled contour, which is why this is a per-plot
+    # choice rather than one setting for the package
+    # (benchmarks/METHODOLOGY.md; canvas_mojo#414 would remove it).
+    if _draws_bulk_markers(plot):
+        var scratch = Canvas(
+            plot.width * factor, plot.height * factor, plot._theme.background
+        )
+        # The half-pixel box downsampling costs; see `downsample`.
+        scratch.translate(Float64(factor - 1) / 2.0, Float64(factor - 1) / 2.0)
+        scratch.scale(Float64(factor), Float64(factor))
+        _render_into(scratch, plot, 0, 0, plot.width, plot.height)
+        return downsample(scratch, factor)
+
     var out = Canvas(plot.width, plot.height, plot._theme.background)
     # `begin_supersampled` owns the half-pixel shift box downsampling
     # costs and the scale, and replays the recorded shapes one output

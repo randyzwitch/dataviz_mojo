@@ -332,6 +332,58 @@ def _lighten(color: Color, alpha: UInt8, background: Color) -> Color:
     return color.with_alpha(alpha).blend_over(background)
 
 
+def _draws_bulk_markers(plot: Plot, draw_halo: Bool = False) -> Bool:
+    """Whether this plot's markers go to `fill_circles_aa` in one bulk
+    call rather than one `fill_circle_aa` each.
+
+    Read twice: `_draw_point_layer` uses it to decide, and `render()`
+    uses it to pick a supersampling strategy, because the bulk call is
+    one of the primitives a supersampled region cannot record. A region
+    containing one has to materialize the enlarged buffer, which costs
+    more than the banding saves -- measured at 0.80 to 0.88x against the
+    two-step recipe on a plain scatter, three idle passes
+    (benchmarks/METHODOLOGY.md). So a plot that batches its markers is
+    rendered the old way, and one that draws them singly takes the
+    region, where they record fine.
+
+    The conditions are the batch's own. Each is a case where batching
+    would change what is drawn, not merely how fast:
+
+    - a size channel gives each marker its own radius; the batch shares
+      one.
+    - shapes draw through `_fill_shape_aa`, not a disk at all.
+    - tooltips need `begin/end_annotated_group` around each point.
+    - halos and error bars are drawn per point *before* its marker, so
+      batching the markers to the end would let an earlier marker
+      survive a later point's halo that today covers it. That is a
+      z-order change, and overlapping points are exactly when a halo
+      matters.
+
+    Args:
+        plot: The chart.
+        draw_halo: Whether the caller draws a halo per point
+            (`Mark.EFFECT_SCATTER`), which forces per-marker drawing.
+
+    Returns:
+        True when the markers go out in one bulk call.
+    """
+    if not (plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER):
+        return False
+    var theme = plot._theme
+    var has_shapes = len(plot.color_categories) > 0 and theme.shape_by_category
+    var tooltips_on = theme.svg_tooltips and plot._mark_style.point_tooltips
+    var has_error_bars = (
+        len(plot.y_err_data) > 0 or len(plot.y_err_lower_data) > 0
+    )
+    return not (
+        len(plot.size_data) > 0
+        or has_shapes
+        or tooltips_on
+        or draw_halo
+        or has_error_bars
+    )
+
+
 def _draw_point_layer[
     T: DrawTarget
 ](
@@ -389,30 +441,10 @@ def _draw_point_layer[
     # a task. Output is identical to calling `fill_circle_aa` per centre
     # in the same order, translucent overlap included, and the primitive
     # falls back to per-marker calls itself when a transform puts it
-    # outside its closed form.
-    #
-    # Every condition below is a case where the batch would change what
-    # is drawn, not merely how fast:
-    #   - a size channel gives each marker its own radius; the batch
-    #     shares one.
-    #   - shapes draw through `_fill_shape_aa`, not a disk at all.
-    #   - tooltips need `begin/end_annotated_group` around each point.
-    #   - halos and error bars are drawn per point *before* its marker,
-    #     so batching the markers to the end would let an earlier
-    #     marker survive a later point's halo that today covers it.
-    #     That is a z-order change, and overlapping points are exactly
-    #     when a halo matters.
-    var has_error_bars = (
-        len(plot.y_err_data) > 0 or len(plot.y_err_lower_data) > 0
-    )
-    var tooltips_on = theme.svg_tooltips and plot._mark_style.point_tooltips
-    var batched = (
-        not ch.has_size
-        and not ch.has_shapes
-        and not tooltips_on
-        and not draw_halo
-        and not has_error_bars
-    )
+    # outside its closed form. `_draws_bulk_markers` holds the
+    # conditions that rule the batch out, and `render()` reads the same
+    # predicate to choose a supersampling strategy.
+    var batched = _draws_bulk_markers(plot, draw_halo)
     var batch_centers = List[FPoint]()
     var batch_colors = List[Color]()
 

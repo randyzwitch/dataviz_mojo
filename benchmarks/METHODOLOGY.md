@@ -73,52 +73,47 @@ default theme except the factor, `sin(c/9)*cos(r/7)` field, median of 9
 
 ### Supersampled region against the two-step recipe (2026-09-11)
 
-> **These numbers are withdrawn.** They were taken while another session was
-> benchmarking on the same machine (load average 3.8, a `mojo` process at
-> 295% CPU), which this document's own guidance forbids. Re-running the
-> scatter rows on the contended machine swung the same row from 1.005x to
-> 0.749x between passes. Treat everything below as unmeasured until it is
-> retaken on an idle machine.
-
 AMD Threadripper 3970X, Linux, Mojo 1.0.0, canvas_mojo v0.33.2, 800x600,
-default theme, median of 9 renders, both paths interleaved in one process.
-Byte-identity checked first on every row: a speedup on different pixels is
-not a speedup.
+default theme, median of 9 renders per pass, both paths interleaved in one
+process. **Three passes on an idle machine**, reported as a range: an
+earlier attempt at this table was taken while another session was
+benchmarking, and re-running one row under that contention swung it from
+1.005x to 0.749x. Byte-identity was checked on every row of every pass
+before anything was timed.
 
-| mark | factor | two-step ms | region ms | speedup |
-| --- | --- | --- | --- | --- |
-| pie | 3 | 9.22 | 3.95 | **2.33x** |
-| contourf | 3 | 13.51 | 7.90 | **1.71x** |
-| scatter | 3 | 7.59 | 7.55 | 1.005x |
-| line | 1 | 1.88 | 1.76 | 1.06x |
-| bar | 1 | 1.77 | 1.73 | 1.02x |
-
-Factor-1 marks have no enlarged buffer to avoid, so their ~1.0x is the
-expected result rather than a disappointment.
-
-Scatter is the interesting row. Anything a region cannot record forces it
-to materialize the enlarged buffer and fall back to two-step cost, and
-`fill_circles_aa` -- the bulk marker call a plain scatter uses -- is one of
-those. Holding the scene fixed and varying the two candidates:
-
-| plot-rect clip | bulk marker call | speedup |
+| mark | factor | speedup, 3 passes |
 | --- | --- | --- |
-| on | on | 1.005x |
-| on | off (per-marker `fill_circle_aa`) | **1.97x** |
-| off | on | 1.03x |
+| pie | 3 | 2.36 - 2.60x |
+| contourf | 3 | 1.79 - 1.89x |
+| line | 1 | 1.06 - 1.10x |
+| bar | 1 | 1.02 - 1.03x |
+| scatter | 3 | **0.80 - 0.88x** |
 
-So the bulk call alone accounts for it; the clip is not implicated.
+Scatter is a regression, which is why `render()` keeps the two-step recipe
+for plots that batch their markers (`_draws_bulk_markers`). `fill_circles_aa`
+is one of the primitives a region cannot record, so a region containing one
+materializes the enlarged buffer and pays for banding it never gets. Pie is
+the mirror image and the best row here: an arc has no bulk entry point, so
+every wedge records and replays per band.
 
-The conclusion drawn from that -- that scatter would gain ~2x if
-`fill_circles_aa` became recordable -- **does not follow, and is wrong**.
-Turning the bulk call off changes *both* sides of the comparison: the
-two-step baseline then also draws markers one at a time, which is far
-slower, so the ratio flatters the region rather than measuring the
-primitive. canvas_mojo built the recordable form and measured it slower
-than materializing, because replaying one op per marker across every band
-costs more than the buffer it avoids (canvas_mojo#414).
+The factor-1 rows are not the region earning anything. At factor 1
+`begin_supersampled` returns immediately and `end_supersampled` does
+nothing, so there is no region at all; the gain is skipping the scratch
+allocation and the `downsample(c, 1)` full-canvas copy the two-step did
+regardless.
 
-An earlier entry-free measurement of the two phases in isolation put
-scatter's ceiling at 52% of its render. That ceiling was real but not
-reachable, because measuring the phases alone cannot show which primitive
-will force materialization.
+Two wrong turns worth recording, since both looked like results.
+
+A ceiling for scatter, taken by timing the allocate-and-clear and
+downsample phases in isolation, read 52% of its render. Real, but
+unreachable: timing the phases alone cannot show which primitive will force
+materialization.
+
+Disabling the bulk call and re-measuring then showed 1.97x, which looked
+like the gain waiting behind a recordable `fill_circles_aa`. It is not.
+Turning the bulk call off changes *both* sides of the comparison, since the
+two-step baseline then also draws markers one at a time, so the ratio
+flatters the region rather than measuring the primitive. canvas_mojo built
+the recordable per-marker form on that suggestion and measured it slower
+than materializing; canvas_mojo#414 now proposes recording the whole call
+as a single op instead.
