@@ -59,6 +59,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("line", "continuous", "line"),
         ExamplePage("slope", "continuous", "line", block="Slope Chart"),
         ExamplePage("step", "continuous", "line", block="Step Chart"),
+        ExamplePage("line_time", "continuous", "line", block="Time Axis"),
         ExamplePage("area", "continuous", "area"),
         ExamplePage(
             "step_area", "continuous", "area", block="Stepped Area Chart"

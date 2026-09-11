@@ -1128,6 +1128,15 @@ def _render_layers_generic[
             combined_x
         )
     )
+    # A time axis rides along on the combined domain, which is already in
+    # POSIX seconds: overlaying two series recorded in different zones is
+    # legitimate (the instants are absolute), and the axis then reads in
+    # the first layer's zone, the same rule a standalone plot follows.
+    for i in range(len(plots)):
+        if plots[i]._x_time:
+            x_scale.is_time = True
+            x_scale.tz_offset = plots[i]._x_tz_offset
+            break
 
     var has_secondary_data = has_secondary and len(combined_y2) > 0
     var y_scale2 = LinearScale(0.0, 0.0, 0.0, 1.0)

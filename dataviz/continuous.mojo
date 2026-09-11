@@ -9,6 +9,8 @@ from canvas.path import Path
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
+from morrow import Morrow
+
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.color_scale import ColorScale, categorical_palette_for
 from dataviz.frame import (
@@ -918,6 +920,39 @@ def line(
             save(c, "docs/src/examples/out_line.svg")
         ```
 
+    Example (Time Axis):
+        ```mojo
+        from morrow import Morrow
+
+        from dataviz import line, save
+        from dataviz import Theme
+        from dataviz.colors import STEELBLUE
+
+        def main() raises:
+            # Six months of daily readings. Before #195 this axis read
+            # 20454, 20504, 20554 -- epoch day counts -- because the
+            # only way to plot a date was to convert it by hand. Now the
+            # ticks land on month starts, which is where a reader of a
+            # six-month series looks.
+            var day = List[Morrow]()
+            var latency_ms = List[Float64]()
+            var start = Morrow.get(2026, 1, 1)
+            for i in range(180):
+                day.append(start.shift(days=i))
+                # A slow upward drift with a weekly cycle on top.
+                var weekday = Float64((i + 3) % 7)
+                latency_ms.append(
+                    82.0 + Float64(i) * 0.06 + weekday * 1.8
+                )
+            var c = line(
+                day,
+                latency_ms,
+                title="Illustrative Checkout Latency by Day",
+                theme=Theme(mark_color=STEELBLUE),
+                y_title="p50 latency (ms)",
+            )
+            save(c, "docs/src/examples/out_line_time.svg")
+        ```
     Example (Slope Chart):
         ```mojo
         from dataviz import line
@@ -1145,3 +1180,112 @@ def area[
         x_title=x_title,
         y_title=y_title,
     )
+
+
+def line(
+    x: List[Morrow],
+    y: List[Float64],
+    step: StepStyle = StepStyle.NONE,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`line()` over a time axis: `x` as dates or timestamps rather than
+    bare numbers, so the axis reads "Mar 2026" instead of "20515".
+
+    See `Plot.encode_time()` for how the axis is built and
+    `_time_ticks` (scale.mojo) for where the ticks land. Everything else
+    is the numeric overload above, whose docstring carries the worked
+    example -- the docs extractor reads only a name's first definition.
+
+    Args:
+        x: The timestamps, one per point.
+        y: The continuous y column, one entry per point.
+        step: Step (stairs) interpolation; see the numeric overload.
+        theme: Visual theme.
+        width: Canvas width in pixels.
+        height: Canvas height in pixels.
+        title: Chart title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: `morrow` could not convert a value to a timestamp.
+
+    """
+    var plot = Plot().mark_line(step=step).encode_time(x, y)
+    return _finished(plot^, theme, width, height, title, x_title, y_title)
+
+
+def scatter(
+    x: List[Morrow],
+    y: List[Float64],
+    tooltips: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`scatter()` over a time axis; see `line()`'s time overload.
+
+    Args:
+        x: The timestamps, one per point.
+        y: The continuous y column, one entry per point.
+        tooltips: Whether each point carries an SVG `<title>`.
+        theme: Visual theme.
+        width: Canvas width in pixels.
+        height: Canvas height in pixels.
+        title: Chart title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: `morrow` could not convert a value to a timestamp.
+    """
+    var plot = Plot().mark_point(tooltips=tooltips).encode_time(x, y)
+    return _finished(plot^, theme, width, height, title, x_title, y_title)
+
+
+def area(
+    x: List[Morrow],
+    y: List[Float64],
+    step: StepStyle = StepStyle.NONE,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`area()` over a time axis; see `line()`'s time overload.
+
+    Args:
+        x: The timestamps, one per point.
+        y: The continuous y column, one entry per point.
+        step: Step (stairs) interpolation; see the numeric overload.
+        theme: Visual theme.
+        width: Canvas width in pixels.
+        height: Canvas height in pixels.
+        title: Chart title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: `morrow` could not convert a value to a timestamp.
+    """
+    var plot = Plot().mark_area(step=step).encode_time(x, y)
+    return _finished(plot^, theme, width, height, title, x_title, y_title)

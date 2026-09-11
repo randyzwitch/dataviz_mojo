@@ -190,6 +190,8 @@ from dataviz.legend_position import LegendPosition
 from dataviz.line_style import LineStyle
 from dataviz.stack_baseline import StackBaseline
 from dataviz.step_style import StepStyle
+from morrow import Morrow
+
 from dataviz.mark import Mark
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.output_format import OutputFormat
@@ -608,6 +610,13 @@ struct Plot(Copyable, Movable):
     # Set via .scale_y_log()/.scale_x_log().
     var _y_log: Bool
     var _x_log: Bool
+    var _x_time: Bool
+    """Whether `x_data` holds POSIX seconds that the axis should label as
+    dates and times. Set by `encode_time()`; carried onto the frame's
+    `LinearScale.is_time`, which is the only thing that reads it."""
+    var _x_tz_offset: Int
+    """The offset from UTC, in seconds, of the timestamps in `x_data`, so
+    ticks land on local boundaries and read in the caller's zone."""
     # Set via .scale_x_domain()/.scale_y_domain().
     var _x_domain: _DomainOverride
     var _y_domain: _DomainOverride
@@ -674,6 +683,8 @@ struct Plot(Copyable, Movable):
         self._secondary_axis = False
         self._y_log = False
         self._x_log = False
+        self._x_time = False
+        self._x_tz_offset = 0
         self._x_domain = _DomainOverride()
         self._y_domain = _DomainOverride()
         self._horizontal = False
@@ -2871,6 +2882,43 @@ struct Plot(Copyable, Movable):
         self._image.z = z.copy()
         self._image.x_edges = x_edges.copy()
         self._image.y_edges = y_edges.copy()
+        return self^
+
+    def encode_time(var self, x: List[Morrow], y: List[Float64]) raises -> Self:
+        """Map a time series: `x` as dates or timestamps, `y` as the
+        continuous value at each.
+
+        The axis is a `LinearScale` over POSIX seconds, so every
+        continuous mark draws against it unchanged -- a time axis is a
+        labeling problem, not a projection one. What changes is the
+        ticks: they land on local midnights, month starts or year
+        starts rather than on multiples of 50 days, and they read as
+        dates (#195). See `_time_ticks` in scale.mojo.
+
+        The zone is taken from the first value, and every tick is
+        placed and labeled in it. Supplying a mix of zones is allowed --
+        the positions are absolute instants either way -- but the axis
+        will read in the first one's.
+
+        Args:
+            x: The timestamps, one per point.
+            y: The value at each, one per `x`.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            Error: `morrow` could not convert a value to a timestamp.
+        """
+        var seconds = List[Float64](capacity=len(x))
+        for i in range(len(x)):
+            seconds.append(x[i].timestamp())
+        self.x_categories = List[String]()
+        self.x_data = seconds^
+        self.y_data = y.copy()
+        self._x_time = True
+        if len(x) > 0:
+            self._x_tz_offset = x[0].tz.offset
         return self^
 
     def encode_histogram_bins(var self, bins: HistogramBins) -> Self:
@@ -5321,6 +5369,12 @@ def _render_generic[
             ) else _data_extent(plot.x_data)
         )
     )
+    # A time axis is linear in seconds; only its labels differ, so the
+    # domain is whatever the branches above computed and the flag simply
+    # rides along to `LinearScale.ticks()`.
+    if plot._x_time:
+        x_scale.is_time = True
+        x_scale.tz_offset = plot._x_tz_offset
 
     var frame = _draw_continuous_axis_frame(
         target,
