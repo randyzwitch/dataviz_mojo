@@ -17,8 +17,12 @@ from dataviz.arrow import (
     _arrow_head_path,
 )
 from dataviz.barbs import _validate_vector_field
-from dataviz.color_scale import ColorScale
-from dataviz.legend import _draw_continuous_color_legend, _dynamic_legend_width
+from dataviz.color_scale import ColorScale, _color_scale_for
+from dataviz.legend import (
+    _continuous_legend_labels,
+    _draw_continuous_color_legend,
+    _dynamic_legend_width,
+)
 from dataviz.plot import (
     Plot,
     _LegendLayout,
@@ -27,7 +31,7 @@ from dataviz.plot import (
     _draw_continuous_axis_frame,
     _finished,
 )
-from dataviz.scale import LinearScale, _format_fixed
+from dataviz.scale import LinearScale
 from dataviz.text import _Scaled
 from dataviz.theme import Theme
 
@@ -173,13 +177,11 @@ def _render_quiver[
         var u = plot._barbs.u[i]
         var v = plot._barbs.v[i]
         top = max(top, sqrt(u * u + v * v))
-    var color_scale = ColorScale.from_theme(theme, 0.0, top)
+    var color_scale = _color_scale_for(theme, plot._color_domain, 0.0, top)
 
     var legend = _LegendLayout()
     if theme.show_legend and plot._quiver_color_by_magnitude:
-        var legend_labels = List[String]()
-        legend_labels.append(_format_fixed(color_scale.domain_max, 1))
-        legend_labels.append(_format_fixed(color_scale.domain_min, 1))
+        var legend_labels = _continuous_legend_labels(color_scale, theme)
         legend.right = _dynamic_legend_width(
             legend_labels,
             sc.continuous_legend_bar_width,

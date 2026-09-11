@@ -386,6 +386,8 @@ def _cookbook_categories() -> List[Category]:
                 "diverging_color_scale",
                 "diverging_bar",
                 "custom_diverging_colors",
+                "centered_diverging_scale",
+                "shared_color_domain",
                 "shape_by_category",
                 "high_contrast_theme",
                 "print_safe_theme",

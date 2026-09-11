@@ -14,8 +14,12 @@ from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import ColorScale
-from dataviz.legend import _draw_continuous_color_legend, _dynamic_legend_width
+from dataviz.color_scale import ColorScale, _color_scale_for
+from dataviz.legend import (
+    _continuous_legend_labels,
+    _draw_continuous_color_legend,
+    _dynamic_legend_width,
+)
 from dataviz.plot import (
     Plot,
     _LegendLayout,
@@ -24,7 +28,7 @@ from dataviz.plot import (
     _draw_continuous_axis_frame,
     _finished,
 )
-from dataviz.scale import LinearScale, _format_fixed
+from dataviz.scale import LinearScale
 from dataviz.text import _Scaled
 from dataviz.theme import Theme
 
@@ -308,13 +312,13 @@ def _render_hexbin[
     var top = 0
     for c in bins.count:
         top = max(top, c)
-    var color_scale = ColorScale.from_theme(theme, 0.0, Float64(top))
+    var color_scale = _color_scale_for(
+        theme, plot._color_domain, 0.0, Float64(top)
+    )
 
     var legend = _LegendLayout()
     if theme.show_legend:
-        var legend_labels = List[String]()
-        legend_labels.append(_format_fixed(color_scale.domain_max, 1))
-        legend_labels.append(_format_fixed(color_scale.domain_min, 1))
+        var legend_labels = _continuous_legend_labels(color_scale, theme)
         legend.right = _dynamic_legend_width(
             legend_labels,
             sc.continuous_legend_bar_width,

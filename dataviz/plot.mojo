@@ -86,7 +86,11 @@ from dataviz.array_like import (
 )
 from dataviz.numpy_interop import _materialize_python_floats
 from std.python import PythonObject
-from dataviz.color_scale import ColorScale, categorical_palette_for
+from dataviz.color_scale import (
+    ColorScale,
+    _ColorDomainOverride,
+    categorical_palette_for,
+)
 from dataviz.marker import PointShape, _fill_shape_aa, default_marker_shapes
 from dataviz.pixel_snap import _snap_pixel_center, _snap_pixel_edge
 from dataviz.continuous import (
@@ -139,6 +143,7 @@ from dataviz.layers import (
 )
 from dataviz.legend import (
     _LegendLayout,
+    _continuous_legend_labels,
     _continuous_legend_row_height,
     _draw_continuous_color_legend,
     _draw_continuous_color_legend_h,
@@ -173,6 +178,7 @@ from dataviz.validate import (
     _require_some_positive,
     _validate_categorical_encoding,
     _validate_continuous_encoding,
+    _validate_color_domain,
     _validate_domain_override,
 )
 from dataviz.annotations import (
@@ -620,6 +626,9 @@ struct Plot(Copyable, Movable):
     # Set via .scale_x_domain()/.scale_y_domain().
     var _x_domain: _DomainOverride
     var _y_domain: _DomainOverride
+    # Set via .scale_color_domain()/.scale_color_center(); read by every
+    # continuous-color mark through `_color_scale_for()`.
+    var _color_domain: _ColorDomainOverride
     # Set only via a mark_*(horizontal=True) parameter; there is no
     # `.horizontal()` builder method, so this is only ever `True` alongside
     # a `_mark` whose `mark_*()` reads it.
@@ -687,6 +696,7 @@ struct Plot(Copyable, Movable):
         self._x_tz_offset = 0
         self._x_domain = _DomainOverride()
         self._y_domain = _DomainOverride()
+        self._color_domain = _ColorDomainOverride()
         self._horizontal = False
         self._mark = Mark.POINT
         self._theme = Theme.default()
@@ -4368,6 +4378,111 @@ struct Plot(Copyable, Movable):
         self._y_domain = _DomainOverride(min, max)
         return self^
 
+    def scale_color_domain(var self, min: Float64, max: Float64) -> Self:
+        """Pin the continuous color domain to the given minimum and maximum,
+        replacing the `[min, max]` this mark would otherwise take from its
+        own colored values. `scale_x_domain()`'s color counterpart, and
+        the thing that makes two color-encoded charts comparable.
+
+        Without it every continuous-color mark derives its own limits, so
+        two panels of the same quantity are drawn against two different
+        scales and look identical while meaning different things -- the
+        reader has no way to see the difference, because the only place
+        it shows is in two legends whose numbers nobody cross-checks.
+        `shared_color_domain()` computes one domain across several
+        charts' data to pass here; it is the counterpart to
+        `shared_bin_edges()`.
+
+        Applies to every mark that colors by a continuous value:
+        `Mark.HEATMAP`, `CALENDAR_HEATMAP`, `CORRPLOT`, `IMSHOW`,
+        `PCOLORMESH`, `HIST2D`, `HEXBIN`, `CONTOUR`, `CONTOURF`,
+        `TRICONTOUR`, `TRICONTOURF`, `TRIPCOLOR`, `QUIVER`,
+        `STREAMPLOT`, and `Plot.encode(color=...)`'s continuous channel
+        on `Mark.POINT`/`SINGLE_AXIS`/`EFFECT_SCATTER`. Anything else
+        raises rather than accepting a setting it would ignore.
+        `Mark.BOXENPLOT` is not on the list even though it builds a
+        `ColorScale`: its ramp runs over the *depth* of the letter-value
+        nest, not over a data value, so an explicit data domain has
+        nothing to say about it.
+
+        Values outside the domain are not dropped; they clamp to the
+        ramp's end color, because `GradientStops.color_at()` clamps `t`
+        outside `[0, 1]`. A separate under/over color would say more,
+        and is left for its own change (see the module note on
+        `_color_scale_for`).
+
+        The color legend follows automatically: every mark hands the
+        legend the same `ColorScale` it colored with, so the labels read
+        the overridden domain, not the data's.
+
+        Args:
+            min: The value the ramp's low end means.
+            max: The value the ramp's high end means; must be `> min`.
+
+        Returns:
+            Self, for further chaining -- the render raises later if
+            `min >= max` or the mark has no continuous color channel.
+        """
+        self._color_domain.has = True
+        self._color_domain.min = min
+        self._color_domain.max = max
+        return self^
+
+    def scale_color_center(var self, center: Float64) -> Self:
+        """Pin the *middle* of the color ramp to `center`, so a diverging
+        ramp's neutral color lands on a value that means something --
+        zero, a baseline, a target -- instead of on the numeric midpoint
+        of whatever the data happened to span.
+
+        A diverging ramp's whole claim is that its middle is neutral and
+        its two ends are opposite. Placed at the data's midpoint that
+        claim is simply false: over values from -2 to +10 the neutral
+        color sits at +4, so half the positive range is painted in the
+        color that is supposed to mean "negative". Centering fixes the
+        mapping rather than the data, and the two arms are then free to
+        be different sizes -- which is the honest picture when the data
+        is not symmetric.
+
+        Separate from `scale_color_domain()` on purpose. Centering is
+        about where the ramp's middle goes, not about what its ends
+        mean, and the two are wanted independently: a center on its own
+        re-places the middle inside the data's own limits, which is the
+        common case, while a domain on its own leaves the ramp
+        symmetric. Folding both into one call would have forced every
+        caller who wants a centered ramp to also state limits they had
+        no opinion about.
+
+        `center` must lie strictly inside the resolved color domain. It
+        is not quietly widened to fit: widening would move the ramp's
+        ends, so a chart asking only "center this at zero" would get
+        different end colors than the one beside it, which is the silent
+        disagreement the whole feature exists to remove. The render
+        raises and names the domain instead, so the fix is an explicit
+        `scale_color_domain()`.
+
+        This is matplotlib's `TwoSlopeNorm`, reached by moving the
+        ramp's stops instead of bending the value projection; see
+        `ColorScale.from_theme_centered()` for why that route is the one
+        that keeps the legend honest.
+
+        Defined for any ramp, not only a three-stop diverging one -- it
+        means "the color at offset 0.5 lands on `center`" whatever the
+        stops are. On a sequential ramp like `colormaps.viridis()` that
+        is legal but rarely useful.
+
+        Args:
+            center: The value the ramp's middle color sits on. Must be
+                strictly between the color domain's min and max.
+
+        Returns:
+            Self, for further chaining -- the render raises later if
+            `center` is not strictly inside the domain, or the mark has
+            no continuous color channel.
+        """
+        self._color_domain.has_center = True
+        self._color_domain.center = center
+        return self^
+
     def secondary_axis(var self) -> Self:
         """Draw this layer's y values against a second, independent y-domain on
         the plot's right edge instead of `render_layers()`'s shared left-axis
@@ -5101,6 +5216,7 @@ def _render_generic[
     _validate_domain_override(
         plot._y_domain, plot._y_log, "Plot.scale_y_domain"
     )
+    _validate_color_domain(plot)
     if has_shared_y_domain and not (
         plot._mark == Mark.POINT
         or plot._mark == Mark.LINE

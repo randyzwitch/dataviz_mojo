@@ -4,7 +4,7 @@ from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_nested_scalar_list
-from dataviz.color_scale import ColorScale
+from dataviz.color_scale import ColorScale, _color_scale_for
 from dataviz.heatmap import _draw_grid_axis_frame
 from dataviz.mark import Mark
 from dataviz.plot import (
@@ -12,6 +12,7 @@ from dataviz.plot import (
     _RenderResult,
     _Scaled,
     _TextRequest,
+    _continuous_legend_labels,
     _draw_continuous_color_legend,
     _dynamic_legend_width,
     _finished,
@@ -91,15 +92,13 @@ def _render_corrplot[
                 )
 
     var sc = _Scaled(theme)
-    var color_scale = ColorScale.from_theme(theme, -1.0, 1.0)
+    var color_scale = _color_scale_for(theme, plot._color_domain, -1.0, 1.0)
 
     # Reuse the cache for legend and axis-label measurement.
 
     var legend_reserve = 0
     if theme.show_legend:
-        var legend_labels = List[String]()
-        legend_labels.append(_format_fixed(color_scale.domain_max, 1))
-        legend_labels.append(_format_fixed(color_scale.domain_min, 1))
+        var legend_labels = _continuous_legend_labels(color_scale, theme)
         legend_reserve = _dynamic_legend_width(
             legend_labels,
             sc.continuous_legend_bar_width,

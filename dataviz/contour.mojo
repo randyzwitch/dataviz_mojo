@@ -6,7 +6,7 @@ from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import ColorScale
+from dataviz.color_scale import ColorScale, _color_scale_for
 from dataviz.plot import (
     Plot,
     _LegendLayout,
@@ -666,7 +666,7 @@ def _render_contour[
                 lo = v
             if v > hi:
                 hi = v
-        var color_scale = ColorScale.from_theme(theme, lo, hi)
+        var color_scale = _color_scale_for(theme, plot._color_domain, lo, hi)
 
         for li in range(len(levels)):
             var level = levels[li]
@@ -763,7 +763,7 @@ def _render_contourf[
                 lo = v
             if v > hi:
                 hi = v
-        var color_scale = ColorScale.from_theme(theme, lo, hi)
+        var color_scale = _color_scale_for(theme, plot._color_domain, lo, hi)
 
         # The band below the first level, under everything else.
         target.fill_rect(
