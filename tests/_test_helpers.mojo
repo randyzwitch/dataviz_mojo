@@ -529,3 +529,27 @@ def _index_of(data: List[String], value: String) -> Int:
         if data[i] == value:
             return i
     return -1
+
+
+def _drawn(svg: String) -> String:
+    """`svg` with every `<defs>...</defs>` section removed, so a count of
+    drawn elements does not include definitions.
+
+    Plot-area clipping (#369) emits `<defs><clipPath><rect/></clipPath>`
+    per clipped layer. That rect is a shape *definition*, never painted,
+    so a test counting the rects a chart draws has to skip it -- and a
+    test that did not would be counting a thing the reader cannot see.
+    """
+    var out = String("")
+    var at = 0
+    while True:
+        var open_at = svg.find("<defs>", at)
+        if open_at < 0:
+            out += String(svg[byte=at:])
+            break
+        out += String(svg[byte=at:open_at])
+        var close_at = svg.find("</defs>", open_at)
+        if close_at < 0:
+            break
+        at = close_at + 7
+    return out

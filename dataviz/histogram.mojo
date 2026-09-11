@@ -24,7 +24,7 @@ from dataviz.pixel_snap import _snap_pixel_edge
 from dataviz.scale import LinearScale
 from dataviz.text import _Scaled
 from dataviz.box import _percentile
-from dataviz.plot import Plot, _finished
+from dataviz.plot import Plot, _finished, _push_plot_clip
 from dataviz.scale import _format_fixed, _min_max
 from dataviz.step_style import StepStyle
 from dataviz.theme import Theme
@@ -609,6 +609,7 @@ def _draw_histogram_layer[
     var n = len(plot._histogram.values)
     if n == 0:
         return
+    _push_plot_clip(target, x_scale, y_scale)
     # `along` runs over the bins (x when vertical, y when horizontal)
     # and `across` over the values; the geometry below is written once
     # in those terms and emitted either way round.
@@ -668,6 +669,7 @@ def _draw_histogram_layer[
             )
     var edge = theme.histogram_edge_color
     if edge.a == 0:
+        target.pop_clip()
         return
     var sep = sc.scale
     for i in range(1, n):
@@ -685,6 +687,7 @@ def _draw_histogram_layer[
             target.fill_rect(baseline, ep[i], reach - baseline, sep, edge)
         else:
             target.fill_rect(ep[i] - sep, reach, sep, baseline - reach, edge)
+    target.pop_clip()
 
 
 def _bin_index(value: Float64, edges: List[Float64]) -> Int:

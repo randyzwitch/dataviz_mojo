@@ -26,6 +26,7 @@ from _test_helpers import (
     _attr_values,
     _count_tag,
     _group_titles,
+    _drawn,
 )
 from dataviz import bar, box, grouped_bar, pie, rugplot, scatter
 from dataviz.color_scale import default_categorical_palette
@@ -422,8 +423,10 @@ def test_scatter_points_are_circles_not_rects() raises:
     var s = svg.to_string()
     _assert_well_formed_svg(s, "scatter")
 
-    assert_equal(_count_tag(s, "circle"), 3, "one circle per point")
-    assert_equal(_count_tag(s, "rect"), 1, "and no rects beyond the background")
+    assert_equal(_count_tag(_drawn(s), "circle"), 3, "one circle per point")
+    assert_equal(
+        _count_tag(_drawn(s), "rect"), 1, "and no rects beyond the background"
+    )
 
 
 def main() raises:

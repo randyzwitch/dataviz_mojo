@@ -33,6 +33,7 @@ from _test_helpers import (
     _bbox_of_color_in,
     _count_color,
     _count_tag,
+    _drawn,
 )
 from canvas.buffer import Canvas
 from canvas.color import Color
@@ -597,8 +598,10 @@ def test_render_layers_svg_named_layers_get_one_legend_row_each_in_order() raise
     assert_true(
         'fill="#ff6347"' in s, "B's swatch uses its own layer's mark_color"
     )
+    # `_drawn` first: a clipped layer defines a `<rect>` inside a
+    # `<clipPath>` that is never painted (#369).
     assert_equal(
-        s.count('<rect x="') - 1, 2
+        _drawn(s).count('<rect x="') - 1, 2
     )  # the canvas background rect, plus exactly 2 swatches
 
 
@@ -610,7 +613,7 @@ def test_render_layers_svg_no_named_layers_draws_no_legend_at_all() raises:
     var plots: List[Plot] = [a^, b^]
     var s = render_layers_svg(plots).to_string()
     assert_equal(
-        s.count('<rect x="'), 1
+        _drawn(s).count('<rect x="'), 1
     )  # only the canvas background rect -- no legend swatch
 
 

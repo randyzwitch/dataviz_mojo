@@ -657,6 +657,41 @@ def _draw_axis_spines[
             )
 
 
+def _push_plot_clip[
+    T: DrawTarget
+](mut target: T, x_scale: LinearScale, y_scale: LinearScale):
+    """Clip to the plot rectangle the two scales were ranged onto, for a
+    mark layer to draw inside. The caller pops.
+
+    A mark whose data runs past an explicit `scale_x_domain()` used to
+    paint over the axis labels and off the canvas (#369) -- measured at
+    268 stray pixels for a line and 67 for a scatter on a 400x300 chart.
+    Nothing clipped, because the mark layers draw through
+    `T: DrawTarget` and clipping was not on that trait until canvas
+    v0.32.0.
+
+    The rectangle comes from the scales rather than from a frame, which
+    is what lets the *layer* functions clip themselves: `render_layers()`
+    calls the same functions against a frame it built, so a layered chart
+    is clipped by the same line of code as a standalone one.
+
+    The y-scale's range is reversed -- its `range_min` is the bottom of
+    the rect in pixels -- so both axes take a min/max rather than
+    assuming a direction.
+
+    Args:
+        target: Where to draw.
+        x_scale: The frame's x-scale, already ranged onto the plot rect.
+        y_scale: The y-scale this layer draws against.
+    """
+    var x0 = round_to_int(min(x_scale.range_min, x_scale.range_max))
+    var x1 = round_to_int(max(x_scale.range_min, x_scale.range_max))
+    var y0 = round_to_int(min(y_scale.range_min, y_scale.range_max))
+    var y1 = round_to_int(max(y_scale.range_min, y_scale.range_max))
+    # The rect spans those pixels inclusive, hence the + 1.
+    target.push_clip(x0, y0, x1 - x0 + 1, y1 - y0 + 1)
+
+
 def _pull_off_axis_line(
     edge_a: Int, edge_b: Int, axis_line_py: Int
 ) -> _BaselineRect:

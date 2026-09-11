@@ -129,6 +129,7 @@ from dataviz.frame import (
     _draw_categorical_axis_frame,
     _draw_continuous_axis_frame,
     _pull_off_axis_line,
+    _push_plot_clip,
     _pull_off_axis_line_f,
     _resolve_x_label_rotation,
     _with_secondary_axis,

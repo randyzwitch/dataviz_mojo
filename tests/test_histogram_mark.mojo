@@ -9,6 +9,7 @@ from _test_helpers import (
     _attr_values,
     _bbox_of_color,
     _count_tag,
+    _drawn,
 )
 from canvas.color import Color
 from dataviz import histogram, kdeplot
@@ -51,7 +52,7 @@ def test_svg_draws_one_rect_per_nonempty_bin_plus_separators() raises:
             height=300,
         )
     ).to_string()
-    assert_equal(_count_tag(s, "rect"), 1 + 3 + 2)
+    assert_equal(_count_tag(_drawn(s), "rect"), 1 + 3 + 2)
 
 
 def test_an_empty_bin_draws_no_rect_and_no_separator() raises:
@@ -67,7 +68,7 @@ def test_an_empty_bin_draws_no_rect_and_no_separator() raises:
             height=300,
         )
     ).to_string()
-    assert_equal(_count_tag(s, "rect"), 1 + 2)
+    assert_equal(_count_tag(_drawn(s), "rect"), 1 + 2)
 
 
 def test_equal_adjacent_bins_are_separated_by_one_edge_colored_column() raises:
@@ -121,8 +122,8 @@ def test_stepfilled_keeps_the_staircase() raises:
             height=300,
         )
     ).to_string()
-    assert_true(_count_tag(s, "path") >= 1, "the staircase is a path")
-    assert_equal(_count_tag(s, "rect"), 1, "only the background rect")
+    assert_true(_count_tag(_drawn(s), "path") >= 1, "the staircase is a path")
+    assert_equal(_count_tag(_drawn(s), "rect"), 1, "only the background rect")
 
 
 def test_unequal_bin_widths_draw_proportional_rects() raises:
@@ -136,7 +137,7 @@ def test_unequal_bin_widths_draw_proportional_rects() raises:
         histogram(data, edges=edges, theme=_theme(), width=400, height=300)
     ).to_string()
     var widths = List[Float64]()
-    for w in _attr_values(s, "rect", "width"):
+    for w in _attr_values(_drawn(s), "rect", "width"):
         var v = Float64(w)
         # Skip the background (the full canvas) and the 1 px separators.
         if v > 2.0 and v < 350.0:
@@ -187,9 +188,13 @@ struct _Rect(Copyable, ImplicitlyCopyable, Movable):
         self.h = h
 
 
-def _bin_rects(svg: String) raises -> List[_Rect]:
+def _bin_rects(raw: String) raises -> List[_Rect]:
     """Every `<rect>` wider and taller than 2 px that is not the
-    background: the bin rects, in document order (bin order)."""
+    background: the bin rects, in document order (bin order).
+
+    Definitions are stripped first: plot-area clipping (#369) puts a
+    `<rect>` inside a `<clipPath>`, which is never painted."""
+    var svg = _drawn(raw)
     var xs = _attr_values(svg, "rect", "x")
     var ys = _attr_values(svg, "rect", "y")
     var ws = _attr_values(svg, "rect", "width")
