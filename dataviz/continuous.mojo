@@ -38,6 +38,7 @@ from dataviz.pixel_snap import _snap_pixel_center
 from dataviz.plot import (
     Plot,
     _finished,
+    _push_plot_clip,
     _point_tooltip_label,
     _zero_baseline_y_extent,
     render,
@@ -375,6 +376,9 @@ def _draw_point_layer[
     `Plot.encode()`'s `labels`, when set, draw each row's text centered
     `sc.label_gap` above its point; a row whose entry is `""` is skipped.
     """
+    # Markers only: the legend sections below sit outside the plot
+    # rect by construction, so the clip is popped before them (#369).
+    _push_plot_clip(target, x_scale, y_scale)
     var theme = plot._theme
     var sc = _Scaled(theme)
 
@@ -538,6 +542,8 @@ def _draw_point_layer[
                 batch_centers, batch_radius, theme.mark_color
             )
 
+    target.pop_clip()
+
     if not theme.show_legend:
         return legend_y
     if not (ch.has_color_categories or ch.has_color or ch.has_size):
@@ -662,6 +668,7 @@ def _draw_line_layer[
     var sc = _Scaled(theme)
     _check_line_smoothing(theme)
     _check_step_smoothing(theme, plot._mark_style.step)
+    _push_plot_clip(target, x_scale, y_scale)
     if len(plot.y_err_data) > 0:
         var cap_half = round_to_int(sc.error_bar_cap_width)
         for i in range(len(plot.x_data)):
@@ -708,6 +715,7 @@ def _draw_line_layer[
         width=sc.line_width,
         dashes=plot._mark_style.line_style.dashes(sc.scale),
     )
+    target.pop_clip()
 
 
 def _draw_area_layer[
@@ -741,6 +749,7 @@ def _draw_area_layer[
     var theme = plot._theme
     _check_line_smoothing(theme)
     _check_step_smoothing(theme, plot._mark_style.step, Mark.AREA)
+    _push_plot_clip(target, x_scale, y_scale)
     var baseline_py = y_scale.to_pixel(0.0)
     if round_to_int(baseline_py) == round_to_int(y_scale.range_min):
         baseline_py -= 1.0
@@ -764,6 +773,7 @@ def _draw_area_layer[
     path.line_to(thinned.px[0], baseline_py)
     path.close()
     target.fill_path_aa(path, theme.mark_color, fill_rule=FillRule.NONZERO)
+    target.pop_clip()
 
 
 def scatter(
