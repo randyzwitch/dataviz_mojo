@@ -4,6 +4,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.array_like import _materialize_scalar_list
 from dataviz.plot import (
+    _draw_axis_spines,
     Plot,
     _PointChannels,
     _RenderResult,
@@ -99,21 +100,33 @@ def _draw_single_axis_frame[
                 px, plot_y0, px, plot_y1, theme.gridline_color, width=sc.scale
             )
 
-    target.draw_line_aa(
-        plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale
+    # No y-axis at all on this mark, so no left or right line whatever
+    # the theme says; see `_draw_axis_spines`.
+    _draw_axis_spines(
+        target,
+        theme,
+        sc,
+        plot_x0,
+        plot_y0,
+        plot_x1,
+        plot_y1,
+        x_axis_y=plot_y1,
+        y_axis_x=plot_x0,
+        y_axis_visible=False,
     )
 
     var text_requests = List[_TextRequest]()
     for i in range(len(x_ticks.values)):
         var px = _axis_pixel(out_x_scale, x_ticks.values[i])
-        target.draw_line_aa(
-            px,
-            plot_y1,
-            px,
-            plot_y1 + sc.tick_length,
-            theme.axis_color,
-            width=sc.scale,
-        )
+        if theme.show_axis_bottom:
+            target.draw_line_aa(
+                px,
+                plot_y1,
+                px,
+                plot_y1 + sc.tick_length,
+                theme.axis_color,
+                width=sc.scale,
+            )
         text_requests.append(
             _TextRequest(
                 px,

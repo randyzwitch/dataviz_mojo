@@ -9,6 +9,7 @@ from dataviz.funnel import _descending_value_order
 from dataviz.grouped_bar import _validate_grouped_bar_series
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.plot import (
+    _draw_axis_spines,
     Plot,
     _RenderResult,
     _Scaled,
@@ -124,11 +125,16 @@ def _draw_bump_axis_frame[
                 plot_x0, py, plot_x1, py, theme.gridline_color, width=sc.scale
             )
 
-    target.draw_line_aa(
-        plot_x0, plot_y1, plot_x1, plot_y1, theme.axis_color, width=sc.scale
-    )
-    target.draw_line_aa(
-        plot_x0, plot_y0, plot_x0, plot_y1, theme.axis_color, width=sc.scale
+    _draw_axis_spines(
+        target,
+        theme,
+        sc,
+        plot_x0,
+        plot_y0,
+        plot_x1,
+        plot_y1,
+        x_axis_y=plot_y1,
+        y_axis_x=plot_x0,
     )
 
     var text_requests = List[_TextRequest]()
@@ -136,14 +142,15 @@ def _draw_bump_axis_frame[
     var y_label_baseline_offset = Int(sc.font_size * 0.35)
     for r in range(1, n_series + 1):
         var py = _bump_rank_pixel(r, n_series, plot_y0, plot_y1)
-        target.draw_line_aa(
-            plot_x0 - sc.tick_length,
-            py,
-            plot_x0,
-            py,
-            theme.axis_color,
-            width=sc.scale,
-        )
+        if theme.show_axis_left:
+            target.draw_line_aa(
+                plot_x0 - sc.tick_length,
+                py,
+                plot_x0,
+                py,
+                theme.axis_color,
+                width=sc.scale,
+            )
         text_requests.append(
             _TextRequest(
                 plot_x0 - sc.tick_length - sc.label_gap,
@@ -158,14 +165,15 @@ def _draw_bump_axis_frame[
 
     for i in range(len(categories)):
         var center_px = round_to_int(x_scale.center(i))
-        target.draw_line_aa(
-            center_px,
-            plot_y1,
-            center_px,
-            plot_y1 + sc.tick_length,
-            theme.axis_color,
-            width=sc.scale,
-        )
+        if theme.show_axis_bottom:
+            target.draw_line_aa(
+                center_px,
+                plot_y1,
+                center_px,
+                plot_y1 + sc.tick_length,
+                theme.axis_color,
+                width=sc.scale,
+            )
         text_requests.append(
             _TextRequest(
                 center_px,

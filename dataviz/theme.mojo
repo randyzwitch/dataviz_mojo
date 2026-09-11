@@ -66,6 +66,7 @@ from dataviz.color_ramp import ColorRamp
 from dataviz.colors import WHITE
 from dataviz.output_format import OutputFormat
 from dataviz.scale import TickFormat
+from dataviz.axis_position import AxisPosition
 from dataviz.legend_position import LegendPosition
 from dataviz.line_style import LineStyle
 from dataviz.x_label_rotation import XAxisLabelRotation
@@ -289,6 +290,51 @@ struct Theme(ImplicitlyCopyable, Movable):
     (`a=200`) so the mark underneath shows through; both canvas backends
     composite `Color.a`. Label text still uses `annotation_color`.
     """
+    var show_axis_left: Bool
+    """Draw the left axis line (matplotlib's left spine). On by default.
+
+    The four `show_axis_*` flags are the spine controls #346 asked for:
+    all four off is a frameless chart, all four on is the full box
+    several journal styles want, and turning off the top and right --
+    already the default here -- is what seaborn's `despine()` does.
+
+    Hiding an axis hides its tick *marks* too, since a tick with no line
+    to sit on reads as a stray hairline. Tick *labels* stay: they carry
+    the numbers, and a frameless chart is meant to have less furniture,
+    not less information.
+
+    The left and right lines are drawn only when the mark has a y-axis
+    at all; `Mark.RUG` and friends suppress it whatever these say.
+    """
+    var show_axis_right: Bool
+    """Draw the right axis line. Off by default. See `show_axis_left`."""
+    var show_axis_top: Bool
+    """Draw the top axis line. Off by default. See `show_axis_left`."""
+    var show_axis_bottom: Bool
+    """Draw the bottom axis line. On by default. See `show_axis_left`."""
+
+    var x_axis_position: AxisPosition
+    """Where the horizontal (x) axis line sits: `AxisPosition.EDGE` (the
+    bottom of the plot rect, the default) or `ZERO` (at y = 0, crossing
+    the data).
+
+    `ZERO` is the one spine setting that changes meaning rather than
+    appearance: with data spanning zero, an axis at the edge makes a
+    value's sign something you read off a label, and an axis through
+    zero makes it something you see. The x tick marks and their labels
+    move with the line, as matplotlib's do -- which is why the labels
+    can land on top of the data, and why matplotlib leaves that to the
+    caller too.
+
+    Only continuous-axis marks honor it; see `AxisPosition.ZERO` for the
+    fallback rule.
+    """
+    var y_axis_position: AxisPosition
+    """Where the vertical (y) axis line sits: `AxisPosition.EDGE` (the
+    left of the plot rect, the default) or `ZERO` (at x = 0). See
+    `x_axis_position`.
+    """
+
     var histogram_edge_color: Color
     """`Mark.HISTOGRAM`'s separator between two adjacent nonempty bins:
     one pixel column, the last of the left bin, from the baseline to the
@@ -469,6 +515,12 @@ struct Theme(ImplicitlyCopyable, Movable):
         annotation_color: Color = Color(150, 150, 150),
         annotation_area_color: Color = Color(224, 236, 246, 200),
         histogram_edge_color: Color = Color(255, 255, 255),
+        show_axis_left: Bool = True,
+        show_axis_right: Bool = False,
+        show_axis_top: Bool = False,
+        show_axis_bottom: Bool = True,
+        x_axis_position: AxisPosition = AxisPosition.EDGE,
+        y_axis_position: AxisPosition = AxisPosition.EDGE,
         font_family: String = "sans-serif",
         title_bold: Bool = True,
         halo_alpha: UInt8 = 90,
@@ -541,6 +593,12 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.annotation_color = annotation_color
         self.annotation_area_color = annotation_area_color
         self.histogram_edge_color = histogram_edge_color
+        self.show_axis_left = show_axis_left
+        self.show_axis_right = show_axis_right
+        self.show_axis_top = show_axis_top
+        self.show_axis_bottom = show_axis_bottom
+        self.x_axis_position = x_axis_position
+        self.y_axis_position = y_axis_position
         self.font_family = font_family
         self.title_bold = title_bold
         self.halo_alpha = halo_alpha

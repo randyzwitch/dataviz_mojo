@@ -11,6 +11,7 @@ traits in `dataviz.array_like`.
 from dataviz.theme import Theme
 from dataviz.mark import Mark
 from dataviz.output_format import OutputFormat
+from dataviz.axis_position import AxisPosition
 from dataviz.legend_position import LegendPosition
 from dataviz.line_style import LineStyle
 from dataviz.step_style import StepStyle
