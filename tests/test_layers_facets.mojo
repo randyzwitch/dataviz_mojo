@@ -214,8 +214,12 @@ def test_render_layers_svg_annotate_band_and_best_fit_draw_against_the_layers_fr
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
-        '<path d="M74.545,155.909 L365.455,20.000 L365.455,114.091'
-        ' L74.545,250.000 Z" fill="#e0ecf6"'
+        # The domain is [9.75, 15.25] over py [250, 20], a slope of
+        # -230/5.5, so y_upper 17 -> -53.182 and y_lower 8 -> 323.182.
+        # Those vertices keep their true positions and a clip cuts the
+        # fill to the plot rect (#369); they used to clamp to 20 and 250.
+        '<path d="M74.545,155.909 L365.455,-53.182 L365.455,114.091'
+        ' L74.545,323.182 Z" fill="#e0ecf6"'
         ' fill-opacity="0.784"/>'
         in s,
         "the confidence band's filled region",

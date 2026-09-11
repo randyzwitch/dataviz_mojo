@@ -379,8 +379,11 @@ def test_render_svg_annotate_band_matches_hand_derived_path_and_label() raises:
     # Mark.LINE, 2 points (10 -> 20), no gridlines, canvas 400x300, plot
     # area x:[60,380], y:[20,250]. A flat band (y_lower=8, y_upper=22 at
     # x=1 and x=2): x=1 -> px 74.545, x=2 -> px 365.455. Both y values sit
-    # outside the padded mark domain [9.5, 20.5], so each vertex clamps to
-    # the plot rect's top/bottom (20/250); see _draw_annotation_bands.
+    # outside the padded mark domain [9.5, 20.5], and the vertices keep
+    # their true pixel positions rather than clamping (#369): the scale
+    # maps 9.5 -> 250 and 20.5 -> 20, a slope of -230/11, so
+    # y=22 -> 250 - 12.5 * 230/11 = -11.364 and y=8 -> 250 + 1.5 * 230/11
+    # = 281.364. The fill is cut to the rect by a clip instead.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var y_lo: List[Float64] = [8.0, 8.0]
@@ -396,8 +399,8 @@ def test_render_svg_annotate_band_matches_hand_derived_path_and_label() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<path d="M74.545,20.000 L365.455,20.000 L365.455,250.000'
-        ' L74.545,250.000 Z" fill="#e0ecf6"'
+        '<path d="M74.545,-11.364 L365.455,-11.364 L365.455,281.364'
+        ' L74.545,281.364 Z" fill="#e0ecf6"'
         ' fill-opacity="0.784"/>'
         in s,
         (
@@ -487,10 +490,11 @@ def test_render_raises_on_annotate_band_with_an_unsupported_mark() raises:
         _ = render_svg(plot)
 
 
-def test_render_svg_annotate_band_clamps_rather_than_crashes_on_overshoot() raises:
-    # A band whose x/y exceed the padded domain on every edge: every vertex
-    # clamps into the plot rect (px:[60,380], py:[20,250]) rather than
-    # raising or drawing outside it.
+def test_render_svg_annotate_band_clips_rather_than_clamps_on_overshoot() raises:
+    # A band whose x/y exceed the padded domain on every edge. The path
+    # keeps its true, far-off coordinates and a clip cuts it to the plot
+    # rect (px:[60,380], py:[20,250]), rather than every vertex collapsing
+    # onto a corner as it used to (#369).
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var wide_x: List[Float64] = [-50.0, 50.0]
@@ -506,14 +510,19 @@ def test_render_svg_annotate_band_clamps_rather_than_crashes_on_overshoot() rais
     )
     var svg = render_svg(plot)
     var s = svg.to_string()
-    # Every vertex clamps to a corner, so the polygon collapses to the rect
-    # itself.
+    # The clip is the plot rect: x 60..380 and y 20..250, inclusive, so
+    # 321 by 231.
     assert_true(
-        '<path d="M60.000,20.000 L380.000,20.000 L380.000,250.000'
-        ' L60.000,250.000 Z" fill="#e0ecf6"'
-        ' fill-opacity="0.784"/>'
+        '<clipPath id="clip1"><rect x="60" y="20" width="321"'
+        ' height="231"/></clipPath>'
         in s,
-        "every vertex clamped to the plot rect's own corners",
+        "the band is clipped to the plot rect",
+    )
+    # And the polygon inside it keeps coordinates far outside that rect,
+    # which is what says it was cut rather than folded onto the corners.
+    assert_true(
+        '<path d="M-14761.818,-20460.455' in s,
+        "the band's own vertices are not clamped",
     )
 
 
