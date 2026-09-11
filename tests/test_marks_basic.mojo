@@ -2687,10 +2687,12 @@ def _hist_probe_data() -> List[Float64]:
 
 
 def test_render_histogram_bar_heights_track_bin_counts() raises:
-    # Counts [1, 2, 4]; Mark.AREA's zero-baselined y-domain is
+    # Counts [1, 2, 4]; Mark.HISTOGRAM's zero-baselined y-domain is
     # [0, 4.2]. On a 400x300 canvas the plot area is x:[60,380],
-    # y:[20,250], so the fill's top row in each bin came out at 196,
-    # 141 and 32, over a common bottom row of 248.
+    # y:[20,250], so each bin's rect, snapped to pixel boundaries, tops
+    # out at row 195, 140 and 31, over a common bottom row of 249 --
+    # the row above the axis line. (The staircase this mark replaced
+    # antialiased one row lower on each edge: 196/141/32 over 248.)
     var t = Theme(show_gridlines=False)
     var edges = uniform_bin_edges(0.0, 3.0, 3)
     var c = render(
@@ -2701,20 +2703,22 @@ def test_render_histogram_bar_heights_track_bin_counts() raises:
     var bin0 = _column_extent(c, 100, t.mark_color)
     var bin1 = _column_extent(c, 220, t.mark_color)
     var bin2 = _column_extent(c, 326, t.mark_color)
-    assert_equal(bin0.y0, 196, "bin 0 (count 1) tops out at row 196")
-    assert_equal(bin1.y0, 141, "bin 1 (count 2) tops out at row 141")
-    assert_equal(bin2.y0, 32, "bin 2 (count 4) tops out at row 32")
-    assert_equal(bin0.y1, 248, "every bar sits on the same baseline")
-    assert_equal(bin1.y1, 248, "every bar sits on the same baseline")
-    assert_equal(bin2.y1, 248, "every bar sits on the same baseline")
+    assert_equal(bin0.y0, 195, "bin 0 (count 1) tops out at row 195")
+    assert_equal(bin1.y0, 140, "bin 1 (count 2) tops out at row 140")
+    assert_equal(bin2.y0, 31, "bin 2 (count 4) tops out at row 31")
+    assert_equal(bin0.y1, 249, "every bar sits on the same baseline")
+    assert_equal(bin1.y1, 249, "every bar sits on the same baseline")
+    assert_equal(bin2.y1, 249, "every bar sits on the same baseline")
 
 
 def test_render_histogram_puts_each_bar_over_its_own_bin() raises:
     # The x-domain is [0, 3] across the plot area x:[60,380], so the
-    # three bins own x:[60,166.7), [166.7,273.3) and [273.3,380]. This
-    # is what pins StepStyle.POST: PRE would draw the value of bin i+1
-    # over bin i's interval, making the sampled heights [2, 4, 4]
-    # instead of [1, 2, 4], and MID would shift every riser half a bin.
+    # three bins own x:[60,166.7), [166.7,273.3) and [273.3,380]; the
+    # shared boundaries snap to 166.5 and 272.5, and the separator
+    # takes the left bin's last column (166 and 272), so the samples
+    # sit one column inside each bin's own edges. A rect drawn over
+    # the wrong interval would make the sampled heights [2, 4, 4]
+    # instead of [1, 2, 4].
     var t = Theme(show_gridlines=False)
     var edges = uniform_bin_edges(0.0, 3.0, 3)
     var c = render(
@@ -2723,12 +2727,12 @@ def test_render_histogram_puts_each_bar_over_its_own_bin() raises:
         )
     )
     # Sampled just inside each bin's own left and right ends.
-    assert_equal(_column_extent(c, 61, t.mark_color).y0, 196, "bin 0's left")
-    assert_equal(_column_extent(c, 166, t.mark_color).y0, 196, "bin 0's right")
-    assert_equal(_column_extent(c, 168, t.mark_color).y0, 141, "bin 1's left")
-    assert_equal(_column_extent(c, 273, t.mark_color).y0, 141, "bin 1's right")
-    assert_equal(_column_extent(c, 275, t.mark_color).y0, 32, "bin 2's left")
-    assert_equal(_column_extent(c, 379, t.mark_color).y0, 32, "bin 2's right")
+    assert_equal(_column_extent(c, 61, t.mark_color).y0, 195, "bin 0's left")
+    assert_equal(_column_extent(c, 165, t.mark_color).y0, 195, "bin 0's right")
+    assert_equal(_column_extent(c, 167, t.mark_color).y0, 140, "bin 1's left")
+    assert_equal(_column_extent(c, 271, t.mark_color).y0, 140, "bin 1's right")
+    assert_equal(_column_extent(c, 273, t.mark_color).y0, 31, "bin 2's left")
+    assert_equal(_column_extent(c, 379, t.mark_color).y0, 31, "bin 2's right")
 
 
 def test_render_histogram_spans_the_whole_bin_range() raises:
@@ -2770,9 +2774,11 @@ def test_render_histogram_draws_a_constant_sample() raises:
     var c = render(histogram(data, bins=4, theme=t, width=400, height=300))
     var bar_box = _bbox_of_color(c, t.mark_color)
     assert_true(bar_box.found, "a constant sample draws a bar")
-    assert_equal(bar_box.x0, 221, "the single bar starts at bin 2's left edge")
+    # Four bins over [4.5, 5.5] (a constant sample's centered range):
+    # bin 2 spans x:[220, 300) of the plot area, snapped.
+    assert_equal(bar_box.x0, 220, "the single bar starts at bin 2's left edge")
     assert_equal(bar_box.x1, 299, "and ends at its right edge")
-    assert_equal(bar_box.y1, 248, "it stands on the baseline")
+    assert_equal(bar_box.y1, 249, "it stands on the baseline")
 
 
 def test_render_histogram_probability_and_count_draw_the_same_shape() raises:
@@ -2831,7 +2837,7 @@ def test_histogram_weights_change_the_drawn_heights() raises:
     )
     assert_equal(
         _column_extent(weighted, 326, t.mark_color).y0,
-        32,
+        31,
         "the weighted last bar still tops the chart",
     )
 

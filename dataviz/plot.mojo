@@ -281,7 +281,13 @@ from dataviz.arc_diagram import _render_arc_diagram
 from dataviz.graph import _render_graph
 from dataviz.sankey import _render_sankey
 from dataviz.radialbar import _render_radialbar
-from dataviz.histogram import BinRule, _bin_histogram
+from dataviz.histogram import (
+    BinRule,
+    HistogramBins,
+    _HistogramData,
+    _bin_histogram,
+    _draw_histogram_layer,
+)
 from dataviz.lollipop import _render_lollipop, _render_horizontal_lollipop
 from dataviz.pointplot import _render_pointplot
 from dataviz.single_axis import _render_single_axis
@@ -556,6 +562,7 @@ struct Plot(Copyable, Movable):
     var _box: _BoxData
     var _boxen: _BoxenData
     var _hexbin: _HexbinData
+    var _histogram: _HistogramData
     var _quiver_scale: Float64
     var _quiver_color_by_magnitude: Bool
     var _candle: _CandleData
@@ -630,6 +637,7 @@ struct Plot(Copyable, Movable):
         self._box = _BoxData()
         self._boxen = _BoxenData()
         self._hexbin = _HexbinData()
+        self._histogram = _HistogramData()
         self._quiver_scale = 0.0
         self._quiver_color_by_magnitude = False
         self._candle = _CandleData()
@@ -760,6 +768,22 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.AREA
         self._mark_style.step = step
+        return self^
+
+    def mark_histogram(var self) -> Self:
+        """A histogram drawn as one rectangle per bin at numeric x
+        positions, with a separator between adjacent bins
+        (`Theme.histogram_edge_color`). Encoded via
+        `encode_histogram_bins()`; see `_draw_histogram_layer`
+        (histogram.mojo) for the drawing and `histogram()` for the
+        one-call form. Follows `Mark.AREA`'s rules everywhere else: a
+        zero-baselined y-domain, `render_layers()` and
+        `render_facets(shared_y_scale=True)` support, no log y-axis.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.HISTOGRAM
         return self^
 
     def mark_arc(var self, inner_radius_fraction: Float64 = 0.0) -> Self:
@@ -2809,6 +2833,30 @@ struct Plot(Copyable, Movable):
         self._image.y_edges = y_edges.copy()
         return self^
 
+    def encode_histogram_bins(var self, bins: HistogramBins) -> Self:
+        """Map already-binned data onto `Mark.HISTOGRAM`'s shape: the
+        bin edges and one value per bin, drawn as a rectangle each.
+
+        The bins also go into `x_data`/`y_data` as the `step_x()`/
+        `step_y()` staircase `Mark.AREA` would draw, so every rule that
+        reads those columns -- the x/y domains, `render_layers()`'s
+        combined domain, a facet grid's shared baseline -- works
+        unchanged; only the drawing reads the edges and values.
+
+        Args:
+            bins: The binned sample, from `histogram_bins()` or built
+                directly from edges and values.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self.x_categories = List[String]()
+        self.x_data = bins.step_x()
+        self.y_data = bins.step_y()
+        self._histogram.edges = bins.edges.copy()
+        self._histogram.values = bins.values.copy()
+        return self^
+
     def encode_hist2d(
         var self,
         x: List[Float64],
@@ -4432,6 +4480,7 @@ def _auto_supersample(plot: Plot) -> Int:
         or m == Mark.SANKEY
         or m == Mark.LINE
         or m == Mark.AREA
+        or m == Mark.HISTOGRAM
         or m == Mark.VIOLIN
         or m == Mark.PARALLEL
         or m == Mark.RADAR
@@ -4821,6 +4870,7 @@ def _filled_annotations_go_under(mark: Mark) raises -> Bool:
         mark == Mark.POINT
         or mark == Mark.LINE
         or mark == Mark.AREA
+        or mark == Mark.HISTOGRAM
         or mark == Mark.EFFECT_SCATTER
     )
 
@@ -4886,6 +4936,7 @@ def _render_generic[
         plot._mark == Mark.POINT
         or plot._mark == Mark.LINE
         or plot._mark == Mark.AREA
+        or plot._mark == Mark.HISTOGRAM
         or plot._mark == Mark.EFFECT_SCATTER
     ):
         raise Error(
@@ -4894,9 +4945,12 @@ def _render_generic[
             " other non-continuous) mark has no continuous domain for a log"
             " scale to mean anything against"
         )
-    if plot._y_log and plot._mark == Mark.AREA:
+    if plot._y_log and (
+        plot._mark == Mark.AREA or plot._mark == Mark.HISTOGRAM
+    ):
         raise Error(
-            "Plot.scale_y_log(): not supported on Mark.AREA -- its y-domain is"
+            "Plot.scale_y_log(): not supported on Mark.AREA/HISTOGRAM -- the"
+            " y-domain is"
             " always forced through a zero baseline (see"
             " _zero_baseline_y_extent()'s docstring), and zero has no logarithm"
         )
@@ -4904,6 +4958,7 @@ def _render_generic[
         plot._mark == Mark.POINT
         or plot._mark == Mark.LINE
         or plot._mark == Mark.AREA
+        or plot._mark == Mark.HISTOGRAM
         or plot._mark == Mark.EFFECT_SCATTER
     ):
         raise Error(
@@ -4922,6 +4977,7 @@ def _render_generic[
         plot._mark == Mark.POINT
         or plot._mark == Mark.LINE
         or plot._mark == Mark.AREA
+        or plot._mark == Mark.HISTOGRAM
         or plot._mark == Mark.EFFECT_SCATTER
     ):
         raise Error(
@@ -5162,8 +5218,9 @@ def _render_generic[
             shared_y_min, shared_y_max, 0.0, 1.0, is_log=shared_y_is_log
         ) if has_shared_y_domain else (
             _log_data_extent(y_domain_data) if plot._y_log else (
-                _zero_baseline_y_extent(y_domain_data) if plot._mark
-                == Mark.AREA else _data_extent(y_domain_data)
+                _zero_baseline_y_extent(y_domain_data) if (
+                    plot._mark == Mark.AREA or plot._mark == Mark.HISTOGRAM
+                ) else _data_extent(y_domain_data)
             )
         )
     )
@@ -5218,6 +5275,8 @@ def _render_generic[
         _draw_line_layer(target, plot, frame.x_scale, frame.y_scale)
     elif plot._mark == Mark.AREA:
         _draw_area_layer(target, plot, frame.x_scale, frame.y_scale)
+    elif plot._mark == Mark.HISTOGRAM:
+        _draw_histogram_layer(target, plot, frame.x_scale, frame.y_scale)
 
     return frame.result()
 

@@ -7,6 +7,9 @@ EFFECT_SCATTER, `<mark>.mojo` otherwise); its `_render_*` docstring
 describes the drawing. By data shape:
 
 - `encode()` (continuous x/y): POINT, LINE, AREA, EFFECT_SCATTER.
+  HISTOGRAM takes `encode_histogram_bins()` (a `HistogramBins`) and
+  draws one rectangle per bin at numeric x positions (histogram.mojo);
+  it follows AREA's zero-baseline and layering rules.
   BARBS and QUIVER take `encode_barbs()`/`encode_quiver()` (position
   plus u/v components), the same field as barbs or as arrows.
   CONTOUR and CONTOURF take `encode_contour()` (a rectangular
@@ -124,7 +127,8 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime HIST2D = Self(57)
     comptime HEXBIN = Self(58)
     comptime QUIVER = Self(59)
-    comptime COUNT = 60
+    comptime HISTOGRAM = Self(60)
+    comptime COUNT = 61
     """How many marks exist -- one past the largest value above.
 
     Only the raster/SVG layout-equivalence sweep reads this: it
@@ -172,6 +176,8 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
             return "Mark.HEXBIN"
         if self == Self.QUIVER:
             return "Mark.QUIVER"
+        if self == Self.HISTOGRAM:
+            return "Mark.HISTOGRAM"
         if self == Self.WATERFALL:
             return "Mark.WATERFALL"
         if self == Self.BOX:

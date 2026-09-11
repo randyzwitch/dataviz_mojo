@@ -289,6 +289,13 @@ struct Theme(ImplicitlyCopyable, Movable):
     (`a=200`) so the mark underneath shows through; both canvas backends
     composite `Color.a`. Label text still uses `annotation_color`.
     """
+    var histogram_edge_color: Color
+    """`Mark.HISTOGRAM`'s separator between two adjacent nonempty bins:
+    one pixel column, the last of the left bin, from the baseline to the
+    shorter of the two. Defaults to white, the default background, so it
+    reads as a hairline gap; set it to a dark theme's background for the
+    same effect there, or to a transparent color (`a=0`) for none.
+    """
     var font_family: String
     """Every `_TextRequest`'s typeface; defaults to `"sans-serif"`, a
     generic keyword both the raster (fontconfig) and SVG (CSS) text
@@ -461,6 +468,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         axis_title_font_size: Float64 = 14.0,
         annotation_color: Color = Color(150, 150, 150),
         annotation_area_color: Color = Color(224, 236, 246, 200),
+        histogram_edge_color: Color = Color(255, 255, 255),
         font_family: String = "sans-serif",
         title_bold: Bool = True,
         halo_alpha: UInt8 = 90,
@@ -532,6 +540,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.axis_title_font_size = axis_title_font_size
         self.annotation_color = annotation_color
         self.annotation_area_color = annotation_area_color
+        self.histogram_edge_color = histogram_edge_color
         self.font_family = font_family
         self.title_bold = title_bold
         self.halo_alpha = halo_alpha
