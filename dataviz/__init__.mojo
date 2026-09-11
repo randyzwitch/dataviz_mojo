@@ -37,6 +37,7 @@ from dataviz.arc import pie
 from dataviz.bar import bar
 from dataviz.barbs import barbs
 from dataviz.quiver import quiver
+from dataviz.streamplot import streamplot
 from dataviz.beeswarm import beeswarm
 from dataviz.box import box
 from dataviz.boxen import boxenplot
