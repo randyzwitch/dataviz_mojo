@@ -99,6 +99,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("corrplot", "corrplot", "corrplot"),
         ExamplePage("punchcard", "punchcard", "punchcard"),
         ExamplePage("barbs", "barbs", "barbs"),
+        ExamplePage("quiver", "quiver", "quiver"),
         ExamplePage("contour", "contour", "contour"),
         ExamplePage("contourf", "contour", "contourf"),
         ExamplePage("imshow", "image", "imshow"),

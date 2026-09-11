@@ -26,6 +26,11 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign, measure_text
 from canvas.vector.draw_target import DrawTarget
 
+from dataviz.arrow import (
+    _ARROW_HEAD_HALF_WIDTH,
+    _ARROW_HEAD_LENGTH,
+    _arrow_head_path,
+)
 from dataviz.pixel_snap import _snap_pixel_center, _snap_pixel_edge
 from dataviz.scale import _format_fixed
 from dataviz.stats import _OlsFit, _ols_fit
@@ -511,19 +516,6 @@ def _draw_annotation_points[
     return text_requests^
 
 
-comptime _ARROW_HEAD_LENGTH = 11.0
-"""Pixel length of an arrowhead before `Theme.scale`.
-
-Sized from the theme, never from the arrow's own length: a head scaled
-to the shaft would be comically large on a short arrow pointing at a
-nearby point, and invisible on a long one crossing the chart. Every
-other piece of furniture here is theme-sized for the same reason."""
-
-comptime _ARROW_HEAD_HALF_WIDTH = 4.0
-"""Half the arrowhead's base width, before `Theme.scale`. Narrower than
-it is long, which is what reads as a direction rather than a wedge."""
-
-
 def _draw_annotation_arrows[
     T: DrawTarget
 ](
@@ -608,9 +600,6 @@ def _draw_annotation_arrows[
         if length > head_len:
             var ux = dx / length
             var uy = dy / length
-            # Perpendicular, for the head's base corners.
-            var nx = -uy
-            var ny = ux
             var base_x = tx - ux * head_len
             var base_y = ty - uy * head_len
 
@@ -647,13 +636,10 @@ def _draw_annotation_arrows[
                 width=theme.annotation_arrow_width * theme.scale,
             )
 
-            var head = Path()
-            head.move_to(tx, ty)
-            head.line_to(base_x + nx * head_half, base_y + ny * head_half)
-            head.line_to(base_x - nx * head_half, base_y - ny * head_half)
-            head.close()
             target.fill_path_aa(
-                head, theme.annotation_color, fill_rule=FillRule.NONZERO
+                _arrow_head_path(tx, ty, ux, uy, head_len, head_half),
+                theme.annotation_color,
+                fill_rule=FillRule.NONZERO,
             )
 
         if label_text.byte_length() > 0:
