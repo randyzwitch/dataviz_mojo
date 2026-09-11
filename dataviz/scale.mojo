@@ -742,22 +742,40 @@ def _floor_to_step(local_seconds: Float64, step_seconds: Float64) -> Float64:
     return floor(local_seconds / step_seconds) * step_seconds
 
 
-def _time_tick_format(unit: Int) -> String:
-    """The label format for a step of this unit.
+def _time_tick_label(at: Morrow, unit: Int, show_year: Bool) raises -> String:
+    """One tick's label, at the resolution its rung implies.
 
-    One format for the whole axis, the coarsest that still distinguishes
-    neighboring ticks: hours and minutes both read "14:30", because an
-    axis stepping by the hour never shows two ticks in the same hour.
+    The year is appended only to a tick whose year differs from the
+    previous one's, so a six-month axis reads `Jan 2026, Feb, Mar, …`
+    rather than repeating "2026" six times, and a multi-year monthly
+    axis marks each January. The first tick always carries it, since it
+    has no predecessor to match -- dropping the year entirely would
+    leave a reader unable to tell which year the chart is about.
+
+    Sub-day rungs carry no date at all: an axis stepping by the hour is
+    a single day's chart, and repeating its date on every tick says
+    nothing.
+
+    Args:
+        at: The tick's instant, already in the axis's zone.
+        unit: The rung being walked.
+        show_year: Whether this tick opens a new year.
+
+    Returns:
+        The label.
+
+    Raises:
+        Error: `morrow`'s formatting signature.
     """
     if unit == _TIME_SECOND:
-        return "HH:mm:ss"
+        return at.format("HH:mm:ss")
     if unit == _TIME_MINUTE or unit == _TIME_HOUR:
-        return "HH:mm"
+        return at.format("HH:mm")
     if unit == _TIME_DAY or unit == _TIME_WEEK:
-        return "MMM DD"
+        return at.format("MMM DD YYYY") if show_year else at.format("MMM DD")
     if unit == _TIME_MONTH:
-        return "MMM YYYY"
-    return "YYYY"
+        return at.format("MMM YYYY") if show_year else at.format("MMM")
+    return at.format("YYYY")
 
 
 def _time_ticks(
@@ -801,7 +819,10 @@ def _time_ticks(
     var step = _choose_time_step(domain_max - domain_min, target_count)
     var values = List[Float64]()
     var labels = List[String]()
-    var fmt = _time_tick_format(step.unit)
+    # Tracks the year of the tick just emitted, so `_time_tick_label`
+    # can append the year only where it changes. Nothing real has this
+    # year, so the first tick always counts as a change.
+    var last_year = -999999
 
     if step.unit == _TIME_MONTH or step.unit == _TIME_YEAR:
         # Calendar stepping. Start at the first of the month (or of the
@@ -826,7 +847,10 @@ def _time_ticks(
                 break
             if ts >= domain_min:
                 values.append(ts)
-                labels.append(at.format(fmt))
+                labels.append(
+                    _time_tick_label(at, step.unit, at.year != last_year)
+                )
+                last_year = at.year
             if step.unit == _TIME_YEAR:
                 at = at.shift(years=step.count)
             else:
@@ -850,8 +874,10 @@ def _time_ticks(
         if ts > domain_max:
             break
         if ts >= domain_min:
+            var at = Morrow.fromtimestamp(ts, zone)
             values.append(ts)
-            labels.append(Morrow.fromtimestamp(ts, zone).format(fmt))
+            labels.append(_time_tick_label(at, step.unit, at.year != last_year))
+            last_year = at.year
         at_local += step_seconds
     return Ticks(values^, 0, labels^)
 
