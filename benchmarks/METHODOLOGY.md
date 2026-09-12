@@ -200,12 +200,29 @@ reasoning that their scene is markers under a clip with no axis frame,
 ticks, labels or legend, so the fixed work a real chart does either way
 would dilute the gain. It came in higher, 1.91x.
 
-Density is part of it, tested rather than assumed: a 2000-point scatter
+Density is most of it, tested rather than assumed: a 2000-point scatter
 falls to 1.50 - 1.63x. With few markers the fixed
 allocate-and-downsample cost dominates, so avoiding it wins by more; with
 many, marker drawing dominates and the saving is proportionally smaller.
-That is the right direction but does not close the gap to 1.20x, and the
-remainder is not explained by anything measured here.
+
+The rest was the figure I was comparing against. canvas_mojo re-ran their
+published harness after seeing this and found 1.20x was one sample from a
+variable arm: eight paired runs give 1.08 to 1.54x, median about 1.25x,
+with both published runs near the low end. Almost all the movement is in
+the two-step arm, which allocates and downsamples a 4.3-megapixel buffer
+every pass; the region arm stayed at 3,042 to 3,458 microseconds
+throughout.
+
+They also swept marker count on their own scene, which shares none of this
+package's axis frame, ticks or legend: 100 markers 2.21 and 1.98x, 500
+markers 1.80 and 1.79x, 2000 markers 1.47 and 1.42x, 8000 markers 1.13 and
+1.17x. So the density mechanism reproduces independently, and the 1.50 -
+1.63x measured here at 2000 points sits inside their range rather than
+above it.
+
+The two numbers still should not be quoted against each other, since a
+whole chart is not markers under a clip. They no longer disagree, which is
+a different and weaker claim than agreeing.
 
 **A first look said pie had regressed on v0.33.3**, 3.255 ms against
 3.44 - 3.53. That was one control sample against three. Three control
