@@ -5,8 +5,8 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
-from dataviz.funnel import _descending_value_order
-from dataviz.grouped_bar import _validate_grouped_bar_series
+from dataviz.categorical.funnel import _descending_value_order
+from dataviz.categorical.grouped_bar import _validate_grouped_bar_series
 from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     _draw_axis_spines,

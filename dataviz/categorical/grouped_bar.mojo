@@ -5,7 +5,7 @@ from canvas.vector.draw_target import DrawTarget
 from canvas.text.render import TextAlign
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
-from dataviz.gantt import _draw_horizontal_categorical_axis_frame
+from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.core.mark import Mark
 from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import (

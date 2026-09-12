@@ -4,7 +4,7 @@ from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
-from dataviz.gantt import _draw_horizontal_categorical_axis_frame
+from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,

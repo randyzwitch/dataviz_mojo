@@ -6,7 +6,7 @@ from canvas.vector.draw_target import DrawTarget
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.basic.continuous import _step_points
-from dataviz.grouped_bar import _validate_grouped_bar_series
+from dataviz.categorical.grouped_bar import _validate_grouped_bar_series
 from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,

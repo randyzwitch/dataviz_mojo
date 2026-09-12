@@ -17,7 +17,7 @@ the one thing that makes a thin vertical line legible.
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.gantt import _draw_horizontal_categorical_axis_frame
+from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.kde import _draw_snapped_ticks
 from dataviz.plot import (
     Plot,
