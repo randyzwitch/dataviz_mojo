@@ -3,7 +3,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
-from dataviz.gantt import _draw_horizontal_categorical_axis_frame
+from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.plot import (
     Plot,
     _BaselineRectF,

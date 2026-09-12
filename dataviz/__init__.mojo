@@ -41,7 +41,7 @@ from dataviz.streamplot import streamplot
 from dataviz.beeswarm import beeswarm
 from dataviz.box import box
 from dataviz.boxen import boxenplot
-from dataviz.bullet import bullet
+from dataviz.categorical.bullet import bullet
 from dataviz.candlestick import candlestick
 from dataviz.contour import contour, contourf
 from dataviz.ecdf import ecdf
@@ -62,11 +62,11 @@ from dataviz.graph import graph
 from dataviz.sankey import sankey
 from dataviz.basic.effect_scatter import effect_scatter
 from dataviz.eventplot import eventplot
-from dataviz.bump import bump
-from dataviz.funnel import funnel
-from dataviz.gantt import gantt
-from dataviz.span_chart import span_chart
-from dataviz.grouped_bar import grouped_bar
+from dataviz.categorical.bump import bump
+from dataviz.categorical.funnel import funnel
+from dataviz.categorical.gantt import gantt
+from dataviz.categorical.span_chart import span_chart
+from dataviz.categorical.grouped_bar import grouped_bar
 from dataviz.heatmap import heatmap
 from dataviz.calendar_heatmap import calendar_heatmap
 from dataviz.corrplot import corrplot
@@ -76,7 +76,7 @@ from dataviz.sunburst import sunburst
 from dataviz.tree import tree
 from dataviz.treemap import treemap
 from dataviz.histogram import histogram
-from dataviz.lollipop import lollipop
+from dataviz.categorical.lollipop import lollipop
 from dataviz.nightingale import nightingale
 from dataviz.polar import polar
 from dataviz.polar_bar import polarbar
@@ -84,11 +84,11 @@ from dataviz.radialbar import radialbar
 from dataviz.gauge import gauge
 from dataviz.parallel import parallel
 from dataviz.radar import radar
-from dataviz.population_pyramid import population_pyramid
+from dataviz.categorical.population_pyramid import population_pyramid
 from dataviz.basic.single_axis import single_axis
-from dataviz.stacked_bar import stacked_bar
+from dataviz.categorical.stacked_bar import stacked_bar
 from dataviz.core.stack_baseline import StackBaseline
-from dataviz.streamgraph import stacked_area, streamgraph
+from dataviz.categorical.streamgraph import stacked_area, streamgraph
 from dataviz.ridgeline import ridgeline
 from dataviz.violin import violin
-from dataviz.waterfall import waterfall
+from dataviz.categorical.waterfall import waterfall

@@ -233,7 +233,7 @@ from dataviz.basic.bar import (
 from dataviz.beeswarm import _render_beeswarm, _render_horizontal_beeswarm
 from dataviz.ridgeline import _render_ridgeline
 from dataviz.violin import _render_violin, _render_horizontal_violin
-from dataviz.waterfall import _WaterfallData
+from dataviz.categorical.waterfall import _WaterfallData
 from dataviz.box import _BoxData
 from dataviz.hexbin import _HexbinData, _render_hexbin
 from dataviz.quiver import _render_quiver
@@ -246,8 +246,8 @@ from dataviz.boxen import (
     _render_horizontal_boxenplot,
 )
 from dataviz.candlestick import _CandleData
-from dataviz.bullet import _BulletData
-from dataviz.population_pyramid import _PyramidData
+from dataviz.categorical.bullet import _BulletData
+from dataviz.categorical.population_pyramid import _PyramidData
 from dataviz.heatmap import _HeatmapData
 from dataviz.polar import _PolarData
 from dataviz.radar import _RadarData
@@ -265,14 +265,14 @@ from dataviz.marimekko import _MarimekkoData
 from dataviz.edges import _EdgeData
 from dataviz.hierarchy import _HierarchyData
 from dataviz.box import _box_stats, _render_box, _render_horizontal_box
-from dataviz.bullet import _render_bullet
+from dataviz.categorical.bullet import _render_bullet
 from dataviz.candlestick import _render_candlestick
-from dataviz.gantt import _render_gantt
-from dataviz.span_chart import _render_span_chart
-from dataviz.bump import _render_bump
+from dataviz.categorical.gantt import _render_gantt
+from dataviz.categorical.span_chart import _render_span_chart
+from dataviz.categorical.bump import _render_bump
 from dataviz.chord import _render_chord
-from dataviz.funnel import _render_funnel
-from dataviz.grouped_bar import (
+from dataviz.categorical.funnel import _render_funnel
+from dataviz.categorical.grouped_bar import (
     _render_grouped_bar,
     _render_horizontal_grouped_bar,
 )
@@ -303,16 +303,22 @@ from dataviz.histogram import (
     _bin_histogram,
     _draw_histogram_layer,
 )
-from dataviz.lollipop import _render_lollipop, _render_horizontal_lollipop
+from dataviz.categorical.lollipop import (
+    _render_lollipop,
+    _render_horizontal_lollipop,
+)
 from dataviz.pointplot import _render_pointplot
 from dataviz.basic.single_axis import _render_single_axis
-from dataviz.population_pyramid import _render_population_pyramid
-from dataviz.stacked_bar import (
+from dataviz.categorical.population_pyramid import _render_population_pyramid
+from dataviz.categorical.stacked_bar import (
     _render_stacked_bar,
     _render_horizontal_stacked_bar,
 )
-from dataviz.streamgraph import _render_streamgraph
-from dataviz.waterfall import _render_waterfall, _waterfall_running_totals
+from dataviz.categorical.streamgraph import _render_streamgraph
+from dataviz.categorical.waterfall import (
+    _render_waterfall,
+    _waterfall_running_totals,
+)
 
 
 struct _GanttData(Copyable, Movable):

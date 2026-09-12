@@ -21,7 +21,7 @@ from dataviz.plot import (
     _zero_baseline_y_extent,
     _validate_categorical_encoding,
 )
-from dataviz.gantt import _draw_horizontal_categorical_axis_frame
+from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.core.theme import Theme
 
 
