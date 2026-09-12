@@ -47,7 +47,7 @@ from dataviz import (
 from dataviz.barbs import _barb_counts, _barb_glyph
 from dataviz.continuous import _step_points
 from dataviz.histogram import BinRule, bin_edges, histogram_bins
-from dataviz.delaunay import _in_circumcircle, delaunay
+from dataviz.core.delaunay import _in_circumcircle, delaunay
 from dataviz.tricontour import _tricontour_segments
 from dataviz.triplot import _triangle_means, _triplot_edges
 from dataviz.contour import (
@@ -56,9 +56,9 @@ from dataviz.contour import (
     _chain_segments,
     _contour_segments,
 )
-from dataviz.color_ramp import ColorRamp
-from dataviz.color_scale import ColorScale, default_categorical_palette
-from dataviz.colors import BLACK, CORNFLOWERBLUE, WHITE
+from dataviz.core.color_ramp import ColorRamp
+from dataviz.core.color_scale import ColorScale, default_categorical_palette
+from dataviz.core.colors import BLACK, CORNFLOWERBLUE, WHITE
 from dataviz.histogram import (
     BinRule,
     HistStat,
@@ -68,7 +68,7 @@ from dataviz.histogram import (
     shared_bin_edges,
     uniform_bin_edges,
 )
-from dataviz.scale import LinearScale
+from dataviz.core.scale import LinearScale
 from dataviz.plot import (
     Plot,
     render,
@@ -79,7 +79,7 @@ from dataviz.plot import (
     render_svg,
     _build_line_path,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 from std.math import sqrt
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 

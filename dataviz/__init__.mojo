@@ -2,20 +2,20 @@
 core, rendering operations, and commonly used plotting enums.
 
 Specialist vocabulary stays in its named public module: colors in
-`dataviz.colors`, colormaps in `dataviz.colormaps`, histogram utilities in
-`dataviz.histogram`, scales in `dataviz.scale`/`dataviz.color_scale`, theme
-presets in `dataviz.themes`, markers in `dataviz.marker`, and custom-container
-traits in `dataviz.array_like`.
+`dataviz.core.colors`, colormaps in `dataviz.core.colormaps`, histogram utilities in
+`dataviz.histogram`, scales in `dataviz.core.scale`/`dataviz.core.color_scale`, theme
+presets in `dataviz.core.themes`, markers in `dataviz.core.marker`, and custom-container
+traits in `dataviz.core.array_like`.
 """
 
-from dataviz.theme import Theme
-from dataviz.mark import Mark
-from dataviz.output_format import OutputFormat
-from dataviz.axis_position import AxisPosition
-from dataviz.legend_position import LegendPosition
-from dataviz.line_style import LineStyle
-from dataviz.step_style import StepStyle
-from dataviz.x_label_rotation import XAxisLabelRotation
+from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark
+from dataviz.core.output_format import OutputFormat
+from dataviz.core.axis_position import AxisPosition
+from dataviz.core.legend_position import LegendPosition
+from dataviz.core.line_style import LineStyle
+from dataviz.core.step_style import StepStyle
+from dataviz.core.x_label_rotation import XAxisLabelRotation
 from dataviz.plot import (
     Plot,
     area,
@@ -49,7 +49,7 @@ from dataviz.residplot import residplot
 from dataviz.barplot import barplot, countplot
 from dataviz.lineplot import lineplot
 from dataviz.pointplot import pointplot
-from dataviz.stats import ErrorBar, Estimator
+from dataviz.core.stats import ErrorBar, Estimator
 from dataviz.image import imshow, pcolormesh
 from dataviz.hist2d import hist2d
 from dataviz.hexbin import hexbin
@@ -87,7 +87,7 @@ from dataviz.radar import radar
 from dataviz.population_pyramid import population_pyramid
 from dataviz.single_axis import single_axis
 from dataviz.stacked_bar import stacked_bar
-from dataviz.stack_baseline import StackBaseline
+from dataviz.core.stack_baseline import StackBaseline
 from dataviz.streamgraph import stacked_area, streamgraph
 from dataviz.ridgeline import ridgeline
 from dataviz.violin import violin

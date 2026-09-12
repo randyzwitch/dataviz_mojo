@@ -5,8 +5,8 @@ delta_width_fraction` controls how much of each band a delta bar fills.
 """
 from dataviz import waterfall
 from dataviz.plot import save
-from dataviz.colors import SLATEGRAY
-from dataviz.theme import Theme
+from dataviz.core.colors import SLATEGRAY
+from dataviz.core.theme import Theme
 
 
 def main() raises:

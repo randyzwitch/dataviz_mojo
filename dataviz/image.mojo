@@ -13,10 +13,10 @@ from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import ColorScale, _color_scale_for
-from dataviz.mark import Mark
-from dataviz.pixel_snap import _snap_pixel_edge
+from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.color_scale import ColorScale, _color_scale_for
+from dataviz.core.mark import Mark
+from dataviz.core.pixel_snap import _snap_pixel_edge
 from dataviz.plot import (
     Plot,
     _LegendLayout,
@@ -28,8 +28,8 @@ from dataviz.plot import (
     _dynamic_legend_width,
     _finished,
 )
-from dataviz.scale import LinearScale
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale
+from dataviz.core.theme import Theme
 
 
 struct _ImageData(Copyable, Movable):
@@ -684,7 +684,7 @@ def imshow(
         from std.math import exp
 
         from dataviz import imshow
-        from dataviz.colormaps import viridis
+        from dataviz.core.colormaps import viridis
         from dataviz import save
         from dataviz import Theme
 
@@ -817,7 +817,7 @@ def pcolormesh(
         from std.math import exp, sin
 
         from dataviz import pcolormesh
-        from dataviz.colormaps import magma
+        from dataviz.core.colormaps import magma
         from dataviz import save
         from dataviz import Theme
 

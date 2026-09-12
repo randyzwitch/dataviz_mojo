@@ -1,7 +1,7 @@
 """Lower effect-scatter halo opacity when dense points overlap."""
 from dataviz import effect_scatter
 from dataviz.plot import save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

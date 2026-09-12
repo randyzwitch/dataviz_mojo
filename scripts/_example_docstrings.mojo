@@ -419,16 +419,16 @@ def _documented_arg_names(
 def _is_public_example_import(line: String) -> Bool:
     """Whether an example import uses a supported specialist submodule."""
     return (
-        line.startswith("from dataviz.array_like import ")
-        or line.startswith("from dataviz.color_ramp import ")
-        or line.startswith("from dataviz.color_scale import ")
-        or line.startswith("from dataviz.colormaps import ")
-        or line.startswith("from dataviz.colors import ")
+        line.startswith("from dataviz.core.array_like import ")
+        or line.startswith("from dataviz.core.color_ramp import ")
+        or line.startswith("from dataviz.core.color_scale import ")
+        or line.startswith("from dataviz.core.colormaps import ")
+        or line.startswith("from dataviz.core.colors import ")
         or line.startswith("from dataviz.histogram import ")
-        or line.startswith("from dataviz.marker import ")
-        or line.startswith("from dataviz.ordinal_scale import ")
-        or line.startswith("from dataviz.scale import ")
-        or line.startswith("from dataviz.themes import ")
+        or line.startswith("from dataviz.core.marker import ")
+        or line.startswith("from dataviz.core.ordinal_scale import ")
+        or line.startswith("from dataviz.core.scale import ")
+        or line.startswith("from dataviz.core.themes import ")
     )
 
 

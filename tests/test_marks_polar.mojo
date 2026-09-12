@@ -32,7 +32,7 @@ from dataviz import (
     radialbar,
     single_axis,
 )
-from dataviz.color_scale import default_categorical_palette
+from dataviz.core.color_scale import default_categorical_palette
 from dataviz.plot import (
     Plot,
     render,
@@ -43,7 +43,7 @@ from dataviz.plot import (
     render_svg,
     _build_line_path,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 

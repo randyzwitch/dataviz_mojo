@@ -116,7 +116,7 @@ Visual styling lives on `Theme`, applied with `.theme()`. See the
 
 ```mojo
 from dataviz import Plot, Theme, save
-from dataviz.colors import SEAGREEN
+from dataviz.core.colors import SEAGREEN
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
@@ -144,7 +144,7 @@ from steps 2-4 is available as a keyword argument:
 
 ```mojo
 from dataviz import Theme, scatter, save
-from dataviz.colors import SEAGREEN
+from dataviz.core.colors import SEAGREEN
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]

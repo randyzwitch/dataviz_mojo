@@ -11,7 +11,7 @@ from std.testing import (
 
 from dataviz.barplot import barplot, countplot
 from dataviz.plot import render_svg
-from dataviz.stats import ErrorBar, Estimator
+from dataviz.core.stats import ErrorBar, Estimator
 
 
 def _groups() -> List[String]:

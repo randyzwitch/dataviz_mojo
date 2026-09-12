@@ -5,8 +5,8 @@ the same "long or many category names" use case `horizontal_bar`
 covers.
 """
 from dataviz.plot import Plot, save
-from dataviz.colors import ROYALBLUE
-from dataviz.theme import Theme
+from dataviz.core.colors import ROYALBLUE
+from dataviz.core.theme import Theme
 
 
 def main() raises:

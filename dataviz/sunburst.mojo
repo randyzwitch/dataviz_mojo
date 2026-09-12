@@ -4,13 +4,13 @@ from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
+from dataviz.core.array_like import _materialize_scalar_list
 from std.math import cos, sin
 
-from dataviz.color_scale import categorical_palette_for
+from dataviz.core.color_scale import categorical_palette_for
 from dataviz.continuous import _lighten
 from dataviz.hierarchy import _HierarchyIndex, _build_hierarchy_index
-from dataviz.mark import Mark
+from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -22,7 +22,7 @@ from dataviz.plot import (
     _finished,
     _require_non_negative,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 comptime _DEPTH_FADE = 55

@@ -9,7 +9,7 @@ attaching it rather than expecting several theme calls to merge.
 
 ```mojo
 from dataviz import Plot, Theme, save
-from dataviz.colors import SEAGREEN
+from dataviz.core.colors import SEAGREEN
 
 def main() raises:
     var plot = (

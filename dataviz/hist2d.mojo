@@ -3,10 +3,10 @@ points binned into a rectangular grid of counts, drawn as colored
 cells, so a point cloud too dense to read as a scatter shows where it
 concentrates."""
 
-from dataviz.array_like import _materialize_scalar_list
+from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.histogram import BinRule, _bin_index, bin_edges
 from dataviz.plot import Plot, _finished
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def _hist2d_counts(
@@ -158,7 +158,7 @@ def hist2d(
         ```mojo
         from dataviz import hist2d, save
         from dataviz import Theme
-        from dataviz.colormaps import viridis
+        from dataviz.core.colormaps import viridis
 
         def main() raises:
             # Twenty thousand sensor readings that fall in two clusters,

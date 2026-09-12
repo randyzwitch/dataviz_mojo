@@ -4,7 +4,7 @@
 Categories use shape as well as hue, and the continuous scale uses `cividis()`.
 """
 from dataviz.plot import Plot, save
-from dataviz.themes import high_contrast
+from dataviz.core.themes import high_contrast
 
 
 def main() raises:

@@ -4,8 +4,8 @@ row per layer -- a swatch in that layer's own Theme.mark_color plus its
 name, so a multi-line combo chart says which line is which.
 """
 from dataviz.plot import Plot, save_layers
-from dataviz.colors import CORNFLOWERBLUE, SEAGREEN, TOMATO
-from dataviz.theme import Theme
+from dataviz.core.colors import CORNFLOWERBLUE, SEAGREEN, TOMATO
+from dataviz.core.theme import Theme
 
 
 def main() raises:

@@ -14,7 +14,7 @@ from _test_helpers import (
 from canvas.color import Color
 from dataviz import histogram, kdeplot
 from dataviz.histogram import HistStat, HistogramBins, uniform_bin_edges
-from dataviz.mark import Mark
+from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     render,
@@ -22,7 +22,7 @@ from dataviz.plot import (
     render_layers_svg,
     render_svg,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def _theme() -> Theme:

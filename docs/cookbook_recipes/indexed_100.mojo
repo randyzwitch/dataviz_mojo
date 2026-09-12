@@ -3,8 +3,8 @@
 scales become directly comparable.
 """
 from dataviz.plot import Plot, save_layers
-from dataviz.colors import CORNFLOWERBLUE, SEAGREEN
-from dataviz.theme import Theme
+from dataviz.core.colors import CORNFLOWERBLUE, SEAGREEN
+from dataviz.core.theme import Theme
 
 
 def main() raises:

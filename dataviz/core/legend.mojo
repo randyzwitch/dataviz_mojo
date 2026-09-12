@@ -18,15 +18,20 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.color_scale import ColorScale
+from dataviz.core.color_scale import ColorScale
 from dataviz.continuous import _PointChannels
-from dataviz.legend_position import LegendPosition
-from dataviz.mark import Mark
-from dataviz.marker import PointShape, _fill_shape_aa
+from dataviz.core.legend_position import LegendPosition
+from dataviz.core.mark import Mark
+from dataviz.core.marker import PointShape, _fill_shape_aa
 from dataviz.plot import Plot, render
-from dataviz.scale import LinearScale, MinMax, _format_tick
-from dataviz.text import _Scaled, _TextRequest, _max_label_width, _text_advance
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale, MinMax, _format_tick
+from dataviz.core.text import (
+    _Scaled,
+    _TextRequest,
+    _max_label_width,
+    _text_advance,
+)
+from dataviz.core.theme import Theme
 
 
 def _dynamic_legend_width(

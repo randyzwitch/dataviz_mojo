@@ -3,7 +3,7 @@
 from canvas.color import Color
 from canvas.fill_rule import FillRule
 from canvas.geometry import round_to_int
-from dataviz.pixel_snap import _snap_pixel_edge
+from dataviz.core.pixel_snap import _snap_pixel_edge
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 

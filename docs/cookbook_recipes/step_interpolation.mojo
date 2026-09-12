@@ -4,9 +4,9 @@
 samples. Step interpolation and line smoothing are mutually exclusive.
 """
 from dataviz import StepStyle
-from dataviz.colors import CORNFLOWERBLUE, SEAGREEN, TOMATO
+from dataviz.core.colors import CORNFLOWERBLUE, SEAGREEN, TOMATO
 from dataviz.plot import Plot, save_facets
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

@@ -2,7 +2,7 @@
 """Darken radial-bar tracks and widen the gaps between rings."""
 from dataviz import radialbar
 from dataviz.plot import save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 from canvas.color import Color
 
 

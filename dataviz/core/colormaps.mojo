@@ -4,8 +4,8 @@ Each function returns a `List[Color]` for `Theme.color_ramp`, which
 `ColorScale.from_theme` spreads evenly over `[0, 1]`:
 
 ```mojo
-from dataviz.colormaps import viridis
-from dataviz.theme import Theme
+from dataviz.core.colormaps import viridis
+from dataviz.core.theme import Theme
 
 var theme = Theme(color_ramp=viridis())
 ```

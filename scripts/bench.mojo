@@ -27,7 +27,7 @@ from dataviz import (
     line,
 )
 from dataviz.plot import Plot, render, render_svg
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 from std.sys import argv
 
 

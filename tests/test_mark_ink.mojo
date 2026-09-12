@@ -28,9 +28,9 @@ from std.testing import assert_true, TestSuite
 from canvas.buffer import Canvas
 from canvas.color import Color
 
-from dataviz.mark import Mark
+from dataviz.core.mark import Mark
 from dataviz.plot import render
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 from test_backend_equivalence import _representative_plot
 
 

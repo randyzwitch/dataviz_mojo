@@ -3,9 +3,9 @@ from canvas.geometry import round_to_int
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
+from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
-from dataviz.ordinal_scale import OrdinalScale
+from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
     _BaselineRectF,
@@ -21,8 +21,8 @@ from dataviz.plot import (
     _zero_baseline_y_extent,
     _validate_categorical_encoding,
 )
-from dataviz.scale import LinearScale, _format_tick, _label_decimals
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
+from dataviz.core.theme import Theme
 
 
 def _draw_lollipop_stems[
@@ -276,7 +276,7 @@ def lollipop(
         from dataviz import lollipop
         from dataviz import save
         from dataviz import Theme
-        from dataviz.colors import TEAL
+        from dataviz.core.colors import TEAL
 
         def main() raises:
             var countries: List[String] = [

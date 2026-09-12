@@ -25,7 +25,7 @@ from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 from canvas.vector.svg import SvgCanvas
 
-from dataviz.annotations import (
+from dataviz.core.annotations import (
     _draw_annotation_areas,
     _draw_annotation_bands,
     _draw_annotation_best_fit,
@@ -48,7 +48,7 @@ from dataviz.continuous import (
     line,
 )
 from dataviz.facets import _require_uniform_size
-from dataviz.frame import (
+from dataviz.core.frame import (
     _Orientation,
     _axis_pixel,
     _draw_categorical_axis_frame,
@@ -62,15 +62,15 @@ from dataviz.kde import (
     _kde_curve,
     _kde_observations,
 )
-from dataviz.legend import (
+from dataviz.core.legend import (
     _LegendLayout,
     _draw_legend,
     _dynamic_legend_width,
     _legend_reserve_for,
 )
-from dataviz.legend_position import LegendPosition
-from dataviz.mark import Mark
-from dataviz.output_format import OutputFormat
+from dataviz.core.legend_position import LegendPosition
+from dataviz.core.mark import Mark
+from dataviz.core.output_format import OutputFormat
 from dataviz.plot import (
     _DomainOverride,
     _require_non_empty,
@@ -88,8 +88,8 @@ from dataviz.plot import (
     render,
     save,
 )
-from dataviz.scale import LinearScale
-from dataviz.text import (
+from dataviz.core.scale import LinearScale
+from dataviz.core.text import (
     _Scaled,
     _TextRequest,
     _apply_labels,
@@ -99,7 +99,7 @@ from dataviz.text import (
     _replay_text_requests,
     _replay_text_requests_svg,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 from dataviz.tricontour import (
     _draw_tricontour_layer,
     _draw_tricontourf_layer,
@@ -111,7 +111,7 @@ from dataviz.triplot import (
     _validate_tripcolor,
     _validate_triplot,
 )
-from dataviz.validate import (
+from dataviz.core.validate import (
     _check_line_smoothing,
     _check_step_smoothing,
     _domain_override_scale,

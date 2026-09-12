@@ -1,4 +1,4 @@
-"""`dataviz.stats`: the estimation shared by marks that draw an estimate
+"""`dataviz.core.stats`: the estimation shared by marks that draw an estimate
 with its uncertainty (#350, #352). Every value here is worked out by
 hand and pinned, away from any rendering.
 """
@@ -11,7 +11,7 @@ from std.testing import (
     assert_true,
 )
 
-from dataviz.stats import (
+from dataviz.core.stats import (
     ErrorBar,
     Estimator,
     _aggregate,

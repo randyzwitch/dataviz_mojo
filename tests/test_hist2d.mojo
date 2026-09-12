@@ -13,7 +13,7 @@ from canvas.color import Color
 from dataviz.hist2d import _hist2d_counts, hist2d
 from dataviz.histogram import BinRule, bin_edges
 from dataviz.plot import Plot, render, render_svg
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 comptime _LO = Color(0, 0, 255)

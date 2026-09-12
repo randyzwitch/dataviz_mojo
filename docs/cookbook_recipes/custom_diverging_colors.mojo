@@ -5,8 +5,8 @@ palette means overriding both together.
 """
 from dataviz import bar
 from dataviz.plot import save
-from dataviz.colors import SEAGREEN, GOLDENROD
-from dataviz.theme import Theme
+from dataviz.core.colors import SEAGREEN, GOLDENROD
+from dataviz.core.theme import Theme
 
 
 def main() raises:
