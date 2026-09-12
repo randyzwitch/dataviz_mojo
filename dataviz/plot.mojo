@@ -199,7 +199,7 @@ from dataviz.stack_baseline import StackBaseline
 from dataviz.step_style import StepStyle
 from morrow import Morrow
 
-from dataviz.mark import Mark
+from dataviz.mark import Mark, _require_mark
 from dataviz.ordinal_scale import OrdinalScale
 from dataviz.output_format import OutputFormat
 from dataviz.scale import (
@@ -644,6 +644,14 @@ struct Plot(Copyable, Movable):
     `_y_err`. What is left ungrouped is the settings every mark shares
     (`_mark`/`_theme`/`_secondary_axis`/`_horizontal`, ...). A setting
     only one mark reads belongs in that mark's struct, not here (#522).
+
+    **Call `mark_*()` before `encode_*()`.** Each encoder writes the
+    columns for a particular set of marks and raises if the plot is not
+    one of them, naming the encoder, the marks it serves and the mark
+    the plot actually has (#538). `Plot()` starts at `Mark.POINT`, so a
+    plain `encode()` needs no builder call. The reverse order used to
+    work and no longer does: the check has to run where the mistake is,
+    and at that point only the mark already set can be inspected.
 
     `Copyable`, not `ImplicitlyCopyable`: every field is a plain
     data column or a small settings struct, so a member-wise copy is
@@ -1819,7 +1827,7 @@ struct Plot(Copyable, Movable):
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
         labels: List[String] = List[String](),
-    ) -> Self:
+    ) raises -> Self:
         """Map data columns onto channels. `x`/`y` are required; the optional
         channels must match their length, checked at render() time (a
         builder method can't raise mid-chain).
@@ -1886,6 +1894,12 @@ struct Plot(Copyable, Movable):
         See the Cookbook's own "Error Bars" recipe (docs/src/
         cookbook_recipes/error_bars.mojo) for a full worked example.
         """
+        var _ok_encode = List[Mark]()
+        _ok_encode.append(Mark.POINT)
+        _ok_encode.append(Mark.LINE)
+        _ok_encode.append(Mark.AREA)
+        _ok_encode.append(Mark.EFFECT_SCATTER)
+        _require_mark(self._mark, "encode", "mark_point()", _ok_encode^)
         self._continuous.x = x.copy()
         self._continuous.y = y.copy()
         self._categorical.x = List[String]()
@@ -1912,7 +1926,7 @@ struct Plot(Copyable, Movable):
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
-    ) -> Self:
+    ) raises -> Self:
         """`encode()`'s `x`/`y` generalized to anything conforming to
         `Float64Sequence` (array_like.mojo), for data in a custom buffer
         wrapper or a dataframe column type. A type's author has to declare
@@ -1964,7 +1978,7 @@ struct Plot(Copyable, Movable):
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
-    ) -> Self:
+    ) raises -> Self:
         """`encode()`'s `x`/`y` generalized over numeric element type
         (`List[Int]`, `List[Float32]`, any `List[Scalar[dtype]]`), a
         different axis from the `Float64Sequence` overload (element type
@@ -2040,6 +2054,12 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        var _ok_encode = List[Mark]()
+        _ok_encode.append(Mark.POINT)
+        _ok_encode.append(Mark.LINE)
+        _ok_encode.append(Mark.AREA)
+        _ok_encode.append(Mark.EFFECT_SCATTER)
+        _require_mark(self._mark, "encode", "mark_point()", _ok_encode^)
         return self^.encode(
             _materialize_python_floats(x),
             _materialize_python_floats(y),
@@ -2059,7 +2079,7 @@ struct Plot(Copyable, Movable):
         y_err: List[Float64] = List[Float64](),
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
-    ) -> Self:
+    ) raises -> Self:
         """Map a categorical x column and a continuous y column onto the x/y
         channels, for `Mark.BAR` and the other category-plus-value marks.
         `x` is treated as the axis's category order as given, not
@@ -2093,6 +2113,21 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        var _ok_encode_categorical = List[Mark]()
+        _ok_encode_categorical.append(Mark.BAR)
+        _ok_encode_categorical.append(Mark.LOLLIPOP)
+        _ok_encode_categorical.append(Mark.POINTPLOT)
+        _ok_encode_categorical.append(Mark.ARC)
+        _ok_encode_categorical.append(Mark.FUNNEL)
+        _ok_encode_categorical.append(Mark.NIGHTINGALE)
+        _ok_encode_categorical.append(Mark.POLAR_BAR)
+        _ok_encode_categorical.append(Mark.RADIALBAR)
+        _require_mark(
+            self._mark,
+            "encode_categorical",
+            "mark_bar()",
+            _ok_encode_categorical^,
+        )
         self._categorical.x = x.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = y.copy()
@@ -2110,7 +2145,7 @@ struct Plot(Copyable, Movable):
         y_err: List[Float64] = List[Float64](),
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
-    ) -> Self:
+    ) raises -> Self:
         """`encode_categorical()`'s `x` generalized to anything conforming to
         `StringSequence` (array_like.mojo), as `encode()`'s `Float64Sequence`
         overload does for its `x`/`y`. `y` stays a concrete `List[Float64]`;
@@ -2146,7 +2181,7 @@ struct Plot(Copyable, Movable):
         y_err: List[Float64] = List[Float64](),
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
-    ) -> Self:
+    ) raises -> Self:
         """`encode_categorical()`'s `y` generalized over numeric element type
         (`List[Int]`, `List[Float32]`, ...), as `encode()`'s `DType` overload
         is. `x` stays a concrete `List[String]`. Materializes `y` via
@@ -2196,6 +2231,21 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        var _ok_encode_categorical = List[Mark]()
+        _ok_encode_categorical.append(Mark.BAR)
+        _ok_encode_categorical.append(Mark.LOLLIPOP)
+        _ok_encode_categorical.append(Mark.POINTPLOT)
+        _ok_encode_categorical.append(Mark.ARC)
+        _ok_encode_categorical.append(Mark.FUNNEL)
+        _ok_encode_categorical.append(Mark.NIGHTINGALE)
+        _ok_encode_categorical.append(Mark.POLAR_BAR)
+        _ok_encode_categorical.append(Mark.RADIALBAR)
+        _require_mark(
+            self._mark,
+            "encode_categorical",
+            "mark_bar()",
+            _ok_encode_categorical^,
+        )
         return self^.encode_categorical(
             x,
             _materialize_python_floats(y),
@@ -2220,6 +2270,7 @@ struct Plot(Copyable, Movable):
             Error: If data is empty, bins is not positive, or a value is not
                 finite.
         """
+        _require_mark(self._mark, "encode_histogram", "mark_bar()", Mark.BAR)
         var binned = _bin_histogram(data, bins)
         self._categorical.x = binned.labels.copy()
         self._continuous.x = List[Float64]()
@@ -2244,6 +2295,7 @@ struct Plot(Copyable, Movable):
         Raises:
             Error: If data is empty or a value is not finite.
         """
+        _require_mark(self._mark, "encode_histogram", "mark_bar()", Mark.BAR)
         var binned = _bin_histogram(data, rule)
         self._categorical.x = binned.labels.copy()
         self._continuous.x = List[Float64]()
@@ -2255,7 +2307,7 @@ struct Plot(Copyable, Movable):
         categories: List[String],
         deltas: List[Float64],
         is_total: List[Bool] = List[Bool](),
-    ) -> Self:
+    ) raises -> Self:
         """Map a category column and a signed delta column onto
         `Mark.WATERFALL`'s floating-bar shape: `deltas[i]` is how much the
         running total changes at category `i`. Each bar runs from the running
@@ -2285,6 +2337,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(
+            self._mark, "encode_waterfall", "mark_waterfall()", Mark.WATERFALL
+        )
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = deltas.copy()
@@ -2316,6 +2371,9 @@ struct Plot(Copyable, Movable):
             Error: `categories` and `values` differ in length, or a
                 group is empty.
         """
+        _require_mark(
+            self._mark, "encode_boxenplot", "mark_boxenplot()", Mark.BOXENPLOT
+        )
         if len(categories) != len(values):
             raise Error(
                 "Plot.encode_boxenplot(): categories and values must have"
@@ -2383,6 +2441,7 @@ struct Plot(Copyable, Movable):
             If `categories`/`values` lengths don't match, `categories`
             is empty, or any category's value list is empty.
         """
+        _require_mark(self._mark, "encode_boxplot", "mark_box()", Mark.BOX)
         if len(categories) != len(values):
             raise Error(
                 "Plot.encode_boxplot(): categories and values must have"
@@ -2465,7 +2524,7 @@ struct Plot(Copyable, Movable):
         high: List[Float64],
         low: List[Float64],
         close: List[Float64],
-    ) -> Self:
+    ) raises -> Self:
         """Map a category column and four value columns (open/high/low/close)
         onto `Mark.CANDLESTICK`'s wick-plus-body shape. Nothing is computed
         up front, so length checking is deferred to render() time, as for
@@ -2481,6 +2540,12 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(
+            self._mark,
+            "encode_candlestick",
+            "mark_candlestick()",
+            Mark.CANDLESTICK,
+        )
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
@@ -2496,7 +2561,7 @@ struct Plot(Copyable, Movable):
         measures: List[Float64],
         targets: List[Float64],
         ranges: List[List[Float64]],
-    ) -> Self:
+    ) raises -> Self:
         """Map a category column plus `measures` (drawn as a narrower bar),
         `targets` (drawn as a tick mark), and `ranges` (per category, an
         ascending list of qualitative-range thresholds, e.g.
@@ -2517,6 +2582,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(self._mark, "encode_bullet", "mark_bullet()", Mark.BULLET)
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
@@ -2530,7 +2596,7 @@ struct Plot(Copyable, Movable):
         categories: List[String],
         start: List[Float64],
         end: List[Float64],
-    ) -> Self:
+    ) raises -> Self:
         """Map a category column and two value columns (`start`/`end`) onto
         `Mark.GANTT`/`SPAN_CHART`'s span shape. Plain `Float64`, not a
         date/time type (this package has none); a schedule's dates are
@@ -2549,6 +2615,12 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        var _ok_encode_gantt = List[Mark]()
+        _ok_encode_gantt.append(Mark.GANTT)
+        _ok_encode_gantt.append(Mark.SPAN_CHART)
+        _require_mark(
+            self._mark, "encode_gantt", "mark_gantt()", _ok_encode_gantt^
+        )
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
@@ -2562,7 +2634,7 @@ struct Plot(Copyable, Movable):
         series_names: List[String],
         values: List[List[Float64]],
         errors: List[List[Float64]] = List[List[Float64]](),
-    ) -> Self:
+    ) raises -> Self:
         """Map a category column plus several value series onto
         `Mark.GROUPED_BAR`'s shape (also used by `STACKED_BAR`/`BUMP`/
         `STREAMGRAPH`): `values[j][i]` is series `series_names[j]`'s value
@@ -2590,6 +2662,17 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        var _ok_encode_grouped_bar = List[Mark]()
+        _ok_encode_grouped_bar.append(Mark.GROUPED_BAR)
+        _ok_encode_grouped_bar.append(Mark.STACKED_BAR)
+        _ok_encode_grouped_bar.append(Mark.BUMP)
+        _ok_encode_grouped_bar.append(Mark.STREAMGRAPH)
+        _require_mark(
+            self._mark,
+            "encode_grouped_bar",
+            "mark_grouped_bar()",
+            _ok_encode_grouped_bar^,
+        )
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
@@ -2606,7 +2689,7 @@ struct Plot(Copyable, Movable):
         series_names: List[String],
         values: List[List[Float64]],
         errors: List[List[Float64]] = List[List[Float64]](),
-    ) -> Self:
+    ) raises -> Self:
         """`encode_grouped_bar()`'s `categories` generalized to anything
         conforming to `StringSequence` (array_like.mojo), as
         `encode_categorical()`'s `StringSequence` overload is.
@@ -2640,7 +2723,7 @@ struct Plot(Copyable, Movable):
         series_names: List[String],
         values: List[List[Scalar[dtype]]],
         errors: List[List[Float64]] = List[List[Float64]](),
-    ) -> Self:
+    ) raises -> Self:
         """`encode_grouped_bar()`'s `values` generalized over numeric element
         type (`List[List[Int]]`, `List[List[Float32]]`, ...) via
         `_materialize_nested_scalar_list` (array_like.mojo). `categories`/
@@ -2671,7 +2754,7 @@ struct Plot(Copyable, Movable):
         right_values: List[Float64],
         left_name: String = "",
         right_name: String = "",
-    ) -> Self:
+    ) raises -> Self:
         """Map a category column plus two magnitude columns onto
         `Mark.POPULATION_PYRAMID`'s mirrored-bars shape: `left_values[i]`/
         `right_values[i]` each grow outward from a shared, centered zero
@@ -2695,6 +2778,12 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(
+            self._mark,
+            "encode_population_pyramid",
+            "mark_population_pyramid()",
+            Mark.POPULATION_PYRAMID,
+        )
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
@@ -2706,7 +2795,7 @@ struct Plot(Copyable, Movable):
 
     def encode_heatmap(
         var self, x: List[String], y: List[String], value: List[Float64]
-    ) -> Self:
+    ) raises -> Self:
         """Map two category columns plus a value column onto `Mark.HEATMAP`'s
         grid-cell shape: one row per cell (`x[i]`, `y[i]`, `value[i]`). Each
         axis's domain is derived from `x`/`y`'s distinct values in first-seen
@@ -2723,6 +2812,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(
+            self._mark, "encode_heatmap", "mark_heatmap()", Mark.HEATMAP
+        )
         self._categorical.x = List[String]()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
@@ -2733,7 +2825,7 @@ struct Plot(Copyable, Movable):
 
     def encode_calendar(
         var self, dates: List[String], values: List[Float64]
-    ) -> Self:
+    ) raises -> Self:
         """Map a date column and a value column onto `Mark.CALENDAR_HEATMAP`'s
         shape: one row per day, `dates[i]` a `"YYYY-MM-DD"` string (parsed
         only for grid placement; see calendar_heatmap.mojo's `_parse_date`/
@@ -2751,6 +2843,12 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(
+            self._mark,
+            "encode_calendar",
+            "mark_calendar_heatmap()",
+            Mark.CALENDAR_HEATMAP,
+        )
         self._categorical.x = List[String]()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
@@ -2760,7 +2858,7 @@ struct Plot(Copyable, Movable):
 
     def encode_corrplot(
         var self, variables: List[String], matrix: List[List[Float64]]
-    ) -> Self:
+    ) raises -> Self:
         """Map a variable-name list and a square correlation `matrix` onto
         `Mark.CORRPLOT`'s shape: `matrix[row][col]` is the correlation
         between `variables[row]` and `variables[col]`. Squareness and every
@@ -2775,6 +2873,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(
+            self._mark, "encode_corrplot", "mark_corrplot()", Mark.CORRPLOT
+        )
         self._corrplot.variables = variables.copy()
         self._corrplot.matrix = matrix.copy()
         return self^
@@ -2783,7 +2884,7 @@ struct Plot(Copyable, Movable):
         dtype: DType
     ](
         var self, variables: List[String], matrix: List[List[Scalar[dtype]]]
-    ) -> Self:
+    ) raises -> Self:
         """`encode_corrplot()`'s `matrix` generalized over numeric element type
         via `_materialize_nested_scalar_list` (array_like.mojo). `variables`
         stays concrete. Delegates to the concrete overload.
@@ -2803,7 +2904,7 @@ struct Plot(Copyable, Movable):
 
     def encode_punchcard(
         var self, x: List[String], y: List[String], sizes: List[Float64]
-    ) -> Self:
+    ) raises -> Self:
         """Map two category columns plus a size column onto `Mark.PUNCHCARD`'s
         shape, with the same `x`/`y` domain derivation as `encode_heatmap()`
         and `sizes` in place of `value`. A repeated `(x, y)` pair is not
@@ -2819,6 +2920,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(
+            self._mark, "encode_punchcard", "mark_punchcard()", Mark.PUNCHCARD
+        )
         self._categorical.x = List[String]()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
@@ -2833,7 +2937,7 @@ struct Plot(Copyable, Movable):
         y: List[Float64],
         u: List[Float64],
         v: List[Float64],
-    ) -> Self:
+    ) raises -> Self:
         """Map `Mark.BARBS`'s four channels: continuous `x`/`y` positions
         plus the `u`/`v` components of the vector at each. Speed is
         `hypot(u, v)` in whatever unit the caller supplies -- knots by
@@ -2850,6 +2954,14 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        # QUIVER is here because `encode_quiver()` delegates to this;
+        # both marks read `_barbs`, differing only in the glyph drawn.
+        var _ok_encode_barbs = List[Mark]()
+        _ok_encode_barbs.append(Mark.BARBS)
+        _ok_encode_barbs.append(Mark.QUIVER)
+        _require_mark(
+            self._mark, "encode_barbs", "mark_barbs()", _ok_encode_barbs^
+        )
         self._categorical.x = List[String]()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
@@ -2867,7 +2979,7 @@ struct Plot(Copyable, Movable):
         y: List[Scalar[dtype]],
         u: List[Scalar[dtype]],
         v: List[Scalar[dtype]],
-    ) -> Self:
+    ) raises -> Self:
         """`encode_barbs()` generalized over numeric element type via
         `_materialize_scalar_list` (array_like.mojo). Delegates to the
         concrete overload.
@@ -2892,7 +3004,7 @@ struct Plot(Copyable, Movable):
         var self,
         z: List[List[Float64]],
         levels: List[Float64] = List[Float64](),
-    ) -> Self:
+    ) raises -> Self:
         """Map a rectangular grid of values onto `Mark.CONTOUR`'s shape.
 
         `z` is row-major (`z[row][col]`): rows are the y axis and columns
@@ -2910,11 +3022,17 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        var _ok_encode_contour = List[Mark]()
+        _ok_encode_contour.append(Mark.CONTOUR)
+        _ok_encode_contour.append(Mark.CONTOURF)
+        _require_mark(
+            self._mark, "encode_contour", "mark_contour()", _ok_encode_contour^
+        )
         self._contour.z = z.copy()
         self._contour.levels = levels.copy()
         return self^
 
-    def encode_imshow(var self, z: List[List[Float64]]) -> Self:
+    def encode_imshow(var self, z: List[List[Float64]]) raises -> Self:
         """Map a 2D array onto `Mark.IMSHOW`'s shape.
 
         `z` is row-major (`z[row][col]`): rows are the y axis and columns
@@ -2935,6 +3053,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(self._mark, "encode_imshow", "mark_imshow()", Mark.IMSHOW)
         self._image.z = z.copy()
         return self^
 
@@ -2943,7 +3062,7 @@ struct Plot(Copyable, Movable):
         x_edges: List[Float64],
         y_edges: List[Float64],
         z: List[List[Float64]],
-    ) -> Self:
+    ) raises -> Self:
         """Map a 2D array plus its cell boundaries onto
         `Mark.PCOLORMESH`'s shape.
 
@@ -2966,6 +3085,12 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(
+            self._mark,
+            "encode_pcolormesh",
+            "mark_pcolormesh()",
+            Mark.PCOLORMESH,
+        )
         self._image.z = z.copy()
         self._image.x_edges = x_edges.copy()
         self._image.y_edges = y_edges.copy()
@@ -2997,6 +3122,14 @@ struct Plot(Copyable, Movable):
         Raises:
             Error: `morrow` could not convert a value to a timestamp.
         """
+        var _ok_encode_time = List[Mark]()
+        _ok_encode_time.append(Mark.POINT)
+        _ok_encode_time.append(Mark.LINE)
+        _ok_encode_time.append(Mark.AREA)
+        _ok_encode_time.append(Mark.EFFECT_SCATTER)
+        _require_mark(
+            self._mark, "encode_time", "mark_line()", _ok_encode_time^
+        )
         var seconds = List[Float64](capacity=len(x))
         for i in range(len(x)):
             seconds.append(x[i].timestamp())
@@ -3008,7 +3141,7 @@ struct Plot(Copyable, Movable):
             self._x_tz_offset = x[0].tz.offset
         return self^
 
-    def encode_histogram_bins(var self, bins: HistogramBins) -> Self:
+    def encode_histogram_bins(var self, bins: HistogramBins) raises -> Self:
         """Map already-binned data onto `Mark.HISTOGRAM`'s shape: the
         bin edges and one value per bin, drawn as a rectangle each.
 
@@ -3026,6 +3159,12 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(
+            self._mark,
+            "encode_histogram_bins",
+            "mark_histogram()",
+            Mark.HISTOGRAM,
+        )
         self._categorical.x = List[String]()
         if self._histogram.horizontal:
             self._continuous.x = bins.step_y()
@@ -3067,6 +3206,7 @@ struct Plot(Copyable, Movable):
             Error: `x` and `y` differ in length, or an edge list is
                 shorter than 2.
         """
+        _require_mark(self._mark, "encode_hist2d", "mark_hist2d()", Mark.HIST2D)
         self._image.z = _hist2d_counts(x, y, x_edges, y_edges)
         self._image.x_edges = x_edges.copy()
         self._image.y_edges = y_edges.copy()
@@ -3079,7 +3219,7 @@ struct Plot(Copyable, Movable):
         y: List[Float64],
         u: List[List[Float64]],
         v: List[List[Float64]],
-    ) -> Self:
+    ) raises -> Self:
         """Map a gridded vector field onto `Mark.STREAMPLOT`'s shape:
         `len(x)` column coordinates, `len(y)` row coordinates, and the
         two components at each node as `u[j][i]`/`v[j][i]`.
@@ -3099,6 +3239,12 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(
+            self._mark,
+            "encode_streamplot",
+            "mark_streamplot()",
+            Mark.STREAMPLOT,
+        )
         self._categorical.x = List[String]()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
@@ -3110,7 +3256,7 @@ struct Plot(Copyable, Movable):
 
     def encode_hexbin(
         var self, x: List[Float64], y: List[Float64], gridsize: Int = 30
-    ) -> Self:
+    ) raises -> Self:
         """Map `(x, y)` points onto `Mark.HEXBIN`'s shape: the points
         themselves and the lattice width in cells. Binning happens at
         render time (`_hexbin_bins`), over the data's own bounding box.
@@ -3123,6 +3269,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(self._mark, "encode_hexbin", "mark_hexbin()", Mark.HEXBIN)
         self._hexbin.x = x.copy()
         self._hexbin.y = y.copy()
         self._hexbin.gridsize = gridsize
@@ -3134,7 +3281,7 @@ struct Plot(Copyable, Movable):
         y: List[Float64],
         u: List[Float64],
         v: List[Float64],
-    ) -> Self:
+    ) raises -> Self:
         """Map `Mark.QUIVER`'s four channels: continuous `x`/`y` positions
         plus the `u`/`v` components of the vector at each, `v` positive
         up the page. The same shape as `encode_barbs()`, stored in the
@@ -3149,6 +3296,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(self._mark, "encode_quiver", "mark_quiver()", Mark.QUIVER)
         return self^.encode_barbs(x, y, u, v)
 
     def encode_quiver[
@@ -3159,7 +3307,7 @@ struct Plot(Copyable, Movable):
         y: List[Scalar[dtype]],
         u: List[Scalar[dtype]],
         v: List[Scalar[dtype]],
-    ) -> Self:
+    ) raises -> Self:
         """`encode_quiver()` generalized over numeric element type via
         `_materialize_scalar_list` (array_like.mojo). Delegates to the
         concrete overload.
@@ -3186,7 +3334,7 @@ struct Plot(Copyable, Movable):
         y: List[Float64],
         z: List[Float64],
         levels: List[Float64] = List[Float64](),
-    ) -> Self:
+    ) raises -> Self:
         """Map scattered `(x, y, z)` samples onto `Mark.TRICONTOUR`'s
         shape.
 
@@ -3206,6 +3354,15 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        var _ok_encode_tricontour = List[Mark]()
+        _ok_encode_tricontour.append(Mark.TRICONTOUR)
+        _ok_encode_tricontour.append(Mark.TRICONTOURF)
+        _require_mark(
+            self._mark,
+            "encode_tricontour",
+            "mark_tricontour()",
+            _ok_encode_tricontour^,
+        )
         self._tricontour.x = x.copy()
         self._tricontour.y = y.copy()
         self._tricontour.z = z.copy()
@@ -3217,7 +3374,7 @@ struct Plot(Copyable, Movable):
         x: List[Float64],
         y: List[Float64],
         z: List[Float64] = List[Float64](),
-    ) -> Self:
+    ) raises -> Self:
         """Map scattered `(x, y)` positions -- and, for
         `Mark.TRIPCOLOR`, a value at each -- onto the triangulation
         marks' shape.
@@ -3237,6 +3394,12 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        var _ok_encode_triplot = List[Mark]()
+        _ok_encode_triplot.append(Mark.TRIPLOT)
+        _ok_encode_triplot.append(Mark.TRIPCOLOR)
+        _require_mark(
+            self._mark, "encode_triplot", "mark_triplot()", _ok_encode_triplot^
+        )
         self._triplot.x = x.copy()
         self._triplot.y = y.copy()
         self._triplot.z = z.copy()
@@ -3247,7 +3410,7 @@ struct Plot(Copyable, Movable):
         categories: List[String],
         subcategories: List[String],
         values: List[List[Float64]],
-    ) -> Self:
+    ) raises -> Self:
         """Map `Mark.MARIMEKKO`'s three channels: `categories` (one column
         each), `subcategories` (one stacked segment each), and `values`,
         where `values[i][j]` is `subcategories[i]`'s value for
@@ -3266,6 +3429,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(
+            self._mark, "encode_marimekko", "mark_marimekko()", Mark.MARIMEKKO
+        )
         self._marimekko.categories = categories.copy()
         self._marimekko.subcategories = subcategories.copy()
         self._marimekko.values = values.copy()
@@ -3278,7 +3444,7 @@ struct Plot(Copyable, Movable):
         categories: List[String],
         subcategories: List[String],
         values: List[List[Scalar[dtype]]],
-    ) -> Self:
+    ) raises -> Self:
         """`encode_marimekko()`'s `values` generalized over numeric element type
         via `_materialize_nested_scalar_list` (array_like.mojo).
         `categories`/`subcategories` stay concrete. Delegates to the concrete
@@ -3303,7 +3469,7 @@ struct Plot(Copyable, Movable):
         ids: List[String],
         parent_ids: List[String],
         values: List[Float64],
-    ) -> Self:
+    ) raises -> Self:
         """Map a flattened hierarchy onto `Mark.SUNBURST`/`TREE`/`TREEMAP`'s
         shared shape: one row per node, `ids[i]` its name, `parent_ids[i]`
         its parent's id (`""` for the single root, as in `d3.stratify()`),
@@ -3326,6 +3492,16 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        var _ok_encode_hierarchy = List[Mark]()
+        _ok_encode_hierarchy.append(Mark.TREEMAP)
+        _ok_encode_hierarchy.append(Mark.TREE)
+        _ok_encode_hierarchy.append(Mark.SUNBURST)
+        _require_mark(
+            self._mark,
+            "encode_hierarchy",
+            "mark_treemap()",
+            _ok_encode_hierarchy^,
+        )
         self._hierarchy.ids = ids.copy()
         self._hierarchy.parent_ids = parent_ids.copy()
         self._hierarchy.values = values.copy()
@@ -3336,7 +3512,7 @@ struct Plot(Copyable, Movable):
         from_categories: List[String],
         to_categories: List[String],
         values: List[Float64],
-    ) -> Self:
+    ) raises -> Self:
         """Map an edge list onto `Mark.CHORD`'s shape (also used by
         `ARC_DIAGRAM`/`GRAPH`/`SANKEY`): one row per flow from
         `from_categories[i]` to `to_categories[i]` with magnitude
@@ -3355,6 +3531,14 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        var _ok_encode_chord = List[Mark]()
+        _ok_encode_chord.append(Mark.CHORD)
+        _ok_encode_chord.append(Mark.ARC_DIAGRAM)
+        _ok_encode_chord.append(Mark.GRAPH)
+        _ok_encode_chord.append(Mark.SANKEY)
+        _require_mark(
+            self._mark, "encode_chord", "mark_chord()", _ok_encode_chord^
+        )
         self._categorical.x = List[String]()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
@@ -3365,7 +3549,7 @@ struct Plot(Copyable, Movable):
 
     def encode_polar(
         var self, angle: List[Float64], radius: List[Float64]
-    ) -> Self:
+    ) raises -> Self:
         """Map an angle column (radians) and a radius column onto `Mark.POLAR`'s
         two channels: one point per row, connected in row order (not sorted
         by angle, so a spiral past `2*pi` draws correctly). A single unnamed
@@ -3380,6 +3564,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(self._mark, "encode_polar", "mark_polar()", Mark.POLAR)
         self._polar.angle = angle.copy()
         self._polar.radius = radius.copy()
         self._polar.series_names = List[String]()
@@ -3391,7 +3576,7 @@ struct Plot(Copyable, Movable):
         angle: List[Float64],
         series_names: List[String],
         series_values: List[List[Float64]],
-    ) -> Self:
+    ) raises -> Self:
         """Map a shared angle column (radians) plus one or more named series
         onto `Mark.POLAR`'s two channels, the multi-series form of
         `encode_polar()`. Every series shares the `angle` domain and one
@@ -3410,6 +3595,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(
+            self._mark, "encode_polar_series", "mark_polar()", Mark.POLAR
+        )
         self._polar.angle = angle.copy()
         self._polar.radius = List[Float64]()
         self._polar.series_names = series_names.copy()
@@ -3423,7 +3611,7 @@ struct Plot(Copyable, Movable):
         angle: List[Float64],
         series_names: List[String],
         series_values: List[List[Scalar[dtype]]],
-    ) -> Self:
+    ) raises -> Self:
         """`encode_polar_series()`'s `series_values` generalized over numeric
         element type via `_materialize_nested_scalar_list` (array_like.mojo).
         `angle`/`series_names` stay concrete. Delegates to the concrete
@@ -3474,6 +3662,7 @@ struct Plot(Copyable, Movable):
             `series_names`/`series_values` lengths don't match, or any
             series' value count doesn't match `indicators`'s count.
         """
+        _require_mark(self._mark, "encode_radar", "mark_radar()", Mark.RADAR)
         if len(indicators) != len(max_values):
             raise Error(
                 "Plot.encode_radar(): indicators and max_values must have the"
@@ -3591,7 +3780,7 @@ struct Plot(Copyable, Movable):
         max_value: Float64 = 100.0,
         breakpoints: List[Float64] = List[Float64](),
         band_colors: List[Color] = List[Color](),
-    ) -> Self:
+    ) raises -> Self:
         """Map a single reading onto `Mark.GAUGE`'s dial: `value` against
         the configured range (default 0 to 100), clamped at render()
         time rather than rejected. `min_value < max_value` is checked at
@@ -3619,6 +3808,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(self._mark, "encode_gauge", "mark_gauge()", Mark.GAUGE)
         self._gauge.value = value
         self._gauge.min_value = min_value
         self._gauge.max_value = max_value
@@ -3652,6 +3842,9 @@ struct Plot(Copyable, Movable):
             If `row_names`/`data` lengths don't match, or any row's
             value count doesn't match `dims`'s count.
         """
+        _require_mark(
+            self._mark, "encode_parallel", "mark_parallel()", Mark.PARALLEL
+        )
         if len(row_names) != len(data):
             raise Error(
                 "Plot.encode_parallel(): row_names and data must have the same"
@@ -3725,6 +3918,13 @@ struct Plot(Copyable, Movable):
         Raises:
             Error: `values` is empty.
         """
+        # ECDF is here because `encode_ecdf()` delegates to this, so
+        # the inner encoder must accept every mark its callers do.
+        var _ok_encode_kde = List[Mark]()
+        _ok_encode_kde.append(Mark.KDE)
+        _ok_encode_kde.append(Mark.RUG)
+        _ok_encode_kde.append(Mark.ECDF)
+        _require_mark(self._mark, "encode_kde", "mark_kde()", _ok_encode_kde^)
         _require_non_empty(len(values), "Plot.encode_kde()")
         # One ungrouped column, stored in `_DistributionData`'s
         # list-per-category shape as a single entry -- these marks share
@@ -3777,6 +3977,9 @@ struct Plot(Copyable, Movable):
             Error: `labels` is empty, `labels`/`positions` lengths
                 don't match, or every row is empty.
         """
+        _require_mark(
+            self._mark, "encode_eventplot", "mark_eventplot()", Mark.EVENTPLOT
+        )
         if len(labels) != len(positions):
             raise Error(
                 "Plot.encode_eventplot(): labels and positions must have"
@@ -3846,6 +4049,7 @@ struct Plot(Copyable, Movable):
         Raises:
             Error: `values` is empty.
         """
+        _require_mark(self._mark, "encode_ecdf", "mark_ecdf()", Mark.ECDF)
         _require_non_empty(len(values), "Plot.encode_ecdf()")
         return self^.encode_kde(values)
 
@@ -3872,6 +4076,16 @@ struct Plot(Copyable, Movable):
             If `categories`/`values` lengths don't match, `categories`
             is empty, or any category's value list is empty.
         """
+        var _ok_encode_distribution = List[Mark]()
+        _ok_encode_distribution.append(Mark.VIOLIN)
+        _ok_encode_distribution.append(Mark.BEESWARM)
+        _ok_encode_distribution.append(Mark.RIDGELINE)
+        _require_mark(
+            self._mark,
+            "encode_distribution",
+            "mark_violin()",
+            _ok_encode_distribution^,
+        )
         if len(categories) != len(values):
             raise Error(
                 "Plot.encode_distribution(): categories and values must"
@@ -3928,7 +4142,7 @@ struct Plot(Copyable, Movable):
         color: List[Float64] = List[Float64](),
         color_categories: List[String] = List[String](),
         size: List[Float64] = List[Float64](),
-    ) -> Self:
+    ) raises -> Self:
         """Map one continuous column plus the optional `color`/
         `color_categories`/`size` channels onto `Mark.SINGLE_AXIS`'s one-axis
         shape: `encode()` without a `y`. `_continuous.y` is filled with one
@@ -3950,6 +4164,12 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
+        _require_mark(
+            self._mark,
+            "encode_single_axis",
+            "mark_single_axis()",
+            Mark.SINGLE_AXIS,
+        )
         self._continuous.x = x.copy()
         self._categorical.x = List[String]()
         self._continuous.y = List[Float64]()
