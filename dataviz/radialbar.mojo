@@ -45,13 +45,13 @@ def _render_radialbar[
     var theme = plot._theme
     var text_requests = List[_TextRequest]()
 
-    _require_non_negative(plot.y_data, "Mark.RADIALBAR")
-    var max_v = _require_some_positive(plot.y_data, "Mark.RADIALBAR")
+    _require_non_negative(plot._continuous.y, "Mark.RADIALBAR")
+    var max_v = _require_some_positive(plot._continuous.y, "Mark.RADIALBAR")
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend = _legend_layout(
-        plot.x_categories,
+        plot._categorical.x,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -70,7 +70,7 @@ def _render_radialbar[
     )
 
     var palette = categorical_palette_for(theme)
-    var n = len(plot.x_categories)
+    var n = len(plot._categorical.x)
     var ring_slot = max_radius / Float64(n)
     var gap = ring_slot * plot._mark_style.radialbar_ring_gap_fraction
     var start_angle = -pi / 2.0
@@ -87,7 +87,7 @@ def _render_radialbar[
             start_angle + 2.0 * pi,
             theme.radialbar_track_color,
         )
-        var frac = plot.y_data[i] / max_v
+        var frac = plot._continuous.y[i] / max_v
         if frac > 0.0:
             target.fill_ring_sector_aa(
                 cx,
@@ -103,7 +103,7 @@ def _render_radialbar[
         _draw_legend_at(
             target,
             text_requests,
-            plot.x_categories,
+            plot._categorical.x,
             palette,
             legend,
             plot_x0,

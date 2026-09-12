@@ -1542,7 +1542,7 @@ def test_render_facets_raises_on_a_scale_y_log_mix_with_shared_y_scale() raises:
 
 
 def test_render_facets_raises_on_y_err_with_shared_y_scale() raises:
-    # The shared union is computed over plain plot.y_data, not widened for
+    # The shared union is computed over plain plot._continuous.y, not widened for
     # whisker endpoints, so this combination raises. Mark.POINT, since
     # Mark.LINE doesn't support y_err in this context.
     var x: List[Float64] = [1.0, 2.0]
@@ -2280,7 +2280,7 @@ def test_a_lone_layer_of_each_field_mark_draws_the_standalone_chart() raises:
 
     `Mark.BARBS`, `TRICONTOUR`, `TRICONTOURF`, `TRIPLOT` and `TRIPCOLOR`
     all keep their x/y in a field of their own (`_barbs`, `_tricontour`,
-    `_triplot`) rather than in `Plot.encode()`'s `x_data`/`y_data`, so
+    `_triplot`) rather than in `Plot.encode()`'s `_continuous.x`/`_continuous.y`, so
     "the layered path read the wrong column" is a live failure mode for
     each and byte equality is what rules it out.
     """

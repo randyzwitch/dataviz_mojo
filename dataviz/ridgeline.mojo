@@ -56,7 +56,7 @@ def _render_ridgeline[
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         x_scale,
         theme,
         ox0,
@@ -70,7 +70,7 @@ def _render_ridgeline[
     var row_height = frame.y_scale.bandwidth()
     var max_rise = row_height * plot._mark_style.ridgeline_overlap
 
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var values = plot._distribution.values[i].copy()
         var baseline_y = frame.y_scale.band_start(i) + row_height
         # Keep the bottom curve's closing edge off the axis line.

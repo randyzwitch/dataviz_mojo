@@ -81,18 +81,18 @@ def _render_funnel[
     _validate_categorical_encoding(plot)
 
     var theme = plot._theme
-    _require_non_negative(plot.y_data, "Mark.FUNNEL")
+    _require_non_negative(plot._continuous.y, "Mark.FUNNEL")
 
-    var order = _descending_value_order(plot.y_data)
+    var order = _descending_value_order(plot._continuous.y)
     var n = len(order)
-    var largest = plot.y_data[order[0]]
+    var largest = plot._continuous.y[order[0]]
     if largest <= 0.0:
         raise Error("Plot: Mark.FUNNEL requires at least one positive value")
 
     var sc = _Scaled(theme)
     var sorted_categories = List[String]()
     for i in range(n):
-        sorted_categories.append(plot.x_categories[order[i]])
+        sorted_categories.append(plot._categorical.x[order[i]])
 
     var show_legend = theme.show_legend
     var legend = _legend_layout(
@@ -116,7 +116,7 @@ def _render_funnel[
 
     var top_width = List[Float64]()
     for i in range(n):
-        top_width.append((plot.y_data[order[i]] / largest) * max_width)
+        top_width.append((plot._continuous.y[order[i]] / largest) * max_width)
 
     for i in range(n):
         var bottom_width = top_width[i + 1] if i < n - 1 else top_width[i]
@@ -127,7 +127,7 @@ def _render_funnel[
             # the stage's own name and value live at its pre-sort index.
             target.begin_annotated_group(
                 _tooltip_label(
-                    plot.x_categories[order[i]], plot.y_data[order[i]]
+                    plot._categorical.x[order[i]], plot._continuous.y[order[i]]
                 )
             )
         _fill_trapezoid(

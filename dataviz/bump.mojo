@@ -226,7 +226,7 @@ def _render_bump[
     _check_line_smoothing(theme)
 
     var n_series = len(plot._grouped_bar.series_names)
-    var n_categories = len(plot.x_categories)
+    var n_categories = len(plot._categorical.x)
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
@@ -245,7 +245,7 @@ def _render_bump[
 
     var frame = _draw_bump_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         n_series,
         theme,
         ox0 + legend.left,

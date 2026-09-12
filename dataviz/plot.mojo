@@ -326,12 +326,96 @@ struct _GanttData(Copyable, Movable):
         self.end = List[Float64]()
 
 
+struct _ContinuousData(Copyable, Movable):
+    """The continuous position channels, `encode()`'s `x` and `y`. Stored
+    on `Plot._continuous`.
+
+    `y` is every mark's value channel, continuous whether or not the x
+    axis is, so a categorical mark reads `_categorical.x` for its
+    categories and `_continuous.y` for their values. `x` is empty for
+    those marks.
+    """
+
+    var x: List[Float64]
+    var y: List[Float64]
+
+    def __init__(out self):
+        self.x = List[Float64]()
+        self.y = List[Float64]()
+
+
+struct _CategoricalData(Copyable, Movable):
+    """The categorical position channel, `encode_categorical()`'s `x`.
+    Stored on `Plot._categorical`.
+
+    One string per slot, in the order they are drawn; `LinearScale`'s
+    ordinal counterpart indexes this list position for position. Empty
+    when the x axis is continuous.
+    """
+
+    var x: List[String]
+
+    def __init__(out self):
+        self.x = List[String]()
+
+
+struct _ChannelData(Copyable, Movable):
+    """The non-positional encoding channels: color, size and per-point
+    labels. Stored on `Plot._channels`.
+
+    Color arrives one of two ways and they are mutually exclusive.
+    `color` is continuous and maps through the theme's ramp;
+    `color_categories` is discrete and maps through the categorical
+    palette, with `color_map` pinning chosen categories to chosen
+    colors. Which a mark supports is listed in `encode()`.
+    """
+
+    var color: List[Float64]
+    var color_categories: List[String]
+    var color_map: Dict[String, Color]
+    """Explicit category-to-color overrides for `color_categories`. A
+    category absent here takes the palette color for its index."""
+
+    var size: List[Float64]
+    var point_labels: List[String]
+    """Set only via `encode()`'s `labels`; `Mark.POINT`/`EFFECT_SCATTER`
+    only. A point has no obvious default label, so this is a data
+    channel rather than a `Theme` flag: providing it is the opt-in. A
+    row's label may be "" to skip that one point."""
+
+    def __init__(out self):
+        self.color = List[Float64]()
+        self.color_categories = List[String]()
+        self.color_map = Dict[String, Color]()
+        self.size = List[Float64]()
+        self.point_labels = List[String]()
+
+
+struct _ErrorBarData(Copyable, Movable):
+    """Error-bar half-widths on the y channel. Stored on `Plot._y_err`.
+
+    `symmetric` is `encode()`'s `y_err`, one half-width per row drawn
+    both ways. `lower`/`upper` are `y_err_lower`/`y_err_upper`, set
+    together and mutually exclusive with `symmetric`; `_validate_*`
+    rejects giving both.
+    """
+
+    var symmetric: List[Float64]
+    var lower: List[Float64]
+    var upper: List[Float64]
+
+    def __init__(out self):
+        self.symmetric = List[Float64]()
+        self.lower = List[Float64]()
+        self.upper = List[Float64]()
+
+
 struct _NightingaleData(Copyable, Movable):
     """Which of ECharts' two `rose_type` radius formulas each wedge of a
     `Mark.NIGHTINGALE` uses. See `mark_nightingale()`. Stored on
     `Plot._nightingale`.
 
-    The wedge values themselves are `x_categories`/`y_data`, shared with
+    The wedge values themselves are `_categorical.x`/`_continuous.y`, shared with
     the other categorical marks, so this struct holds only the setting.
     """
 
@@ -556,12 +640,12 @@ struct Plot(Copyable, Movable):
 
     Data columns are grouped one struct per mark family (`_box`,
     `_edges`, `_hierarchy`, ...) so each render function sees only its
-    own columns. The shared encoding channels many marks read (`x_data`/
-    `y_data`/`x_categories`/`color_data`/`color_categories`/`size_data`/
-    `y_err_*`/`color_map`/`point_labels`) stay ungrouped, as do the
-    settings every mark shares (`_mark`/`_theme`/`_secondary_axis`/
-    `_horizontal`, ...). A setting only one mark reads belongs in that
-    mark's struct, not here (#522).
+    own columns. The channels many marks share are grouped by what they
+    encode rather than by mark: `_continuous` (x/y), `_categorical`
+    (the categorical x), `_channels` (color, size, point labels) and
+    `_y_err`. What is left ungrouped is the settings every mark shares
+    (`_mark`/`_theme`/`_secondary_axis`/`_horizontal`, ...). A setting
+    only one mark reads belongs in that mark's struct, not here (#522).
 
     `Copyable`, not `ImplicitlyCopyable`: every field is a plain
     data column or a small settings struct, so a member-wise copy is
@@ -577,23 +661,10 @@ struct Plot(Copyable, Movable):
     ```
     """
 
-    var x_data: List[Float64]
-    var y_data: List[Float64]
-    var x_categories: List[String]
-    var color_data: List[Float64]
-    var color_categories: List[String]
-    var size_data: List[Float64]
-    # Set only via encode()'s labels; Mark.POINT/EFFECT_SCATTER only. A
-    # point has no obvious default label, so this is a data channel rather
-    # than a Theme flag: providing it is the opt-in. A row's label may be
-    # "" to skip that one point.
-    var point_labels: List[String]
-    var y_err_data: List[Float64]
-    # Set together, only via encode()'s y_err_lower/y_err_upper; mutually
-    # exclusive with y_err_data.
-    var y_err_lower_data: List[Float64]
-    var y_err_upper_data: List[Float64]
-    var color_map: Dict[String, Color]
+    var _continuous: _ContinuousData
+    var _categorical: _CategoricalData
+    var _channels: _ChannelData
+    var _y_err: _ErrorBarData
     var _waterfall: _WaterfallData
     var _box: _BoxData
     var _boxen: _BoxenData
@@ -635,11 +706,11 @@ struct Plot(Copyable, Movable):
     var _y_log: Bool
     var _x_log: Bool
     var _x_time: Bool
-    """Whether `x_data` holds POSIX seconds that the axis should label as
+    """Whether `_continuous.x` holds POSIX seconds that the axis should label as
     dates and times. Set by `encode_time()`; carried onto the frame's
     `LinearScale.is_time`, which is the only thing that reads it."""
     var _x_tz_offset: Int
-    """The offset from UTC, in seconds, of the timestamps in `x_data`, so
+    """The offset from UTC, in seconds, of the timestamps in `_continuous.x`, so
     ticks land on local boundaries and read in the caller's zone."""
     # Set via .scale_x_domain()/.scale_y_domain().
     var _x_domain: _DomainOverride
@@ -661,17 +732,10 @@ struct Plot(Copyable, Movable):
     """Pixel height; see `width`."""
 
     def __init__(out self):
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
-        self.x_categories = List[String]()
-        self.color_data = List[Float64]()
-        self.color_categories = List[String]()
-        self.size_data = List[Float64]()
-        self.point_labels = List[String]()
-        self.y_err_data = List[Float64]()
-        self.y_err_lower_data = List[Float64]()
-        self.y_err_upper_data = List[Float64]()
-        self.color_map = Dict[String, Color]()
+        self._continuous = _ContinuousData()
+        self._categorical = _CategoricalData()
+        self._channels = _ChannelData()
+        self._y_err = _ErrorBarData()
         self._waterfall = _WaterfallData()
         self._box = _BoxData()
         self._boxen = _BoxenData()
@@ -1824,17 +1888,17 @@ struct Plot(Copyable, Movable):
         See the Cookbook's own "Error Bars" recipe (docs/src/
         cookbook_recipes/error_bars.mojo) for a full worked example.
         """
-        self.x_data = x.copy()
-        self.y_data = y.copy()
-        self.x_categories = List[String]()
-        self.color_data = color.copy()
-        self.color_categories = color_categories.copy()
-        self.size_data = size.copy()
-        self.y_err_data = y_err.copy()
-        self.y_err_lower_data = y_err_lower.copy()
-        self.y_err_upper_data = y_err_upper.copy()
-        self.color_map = color_map.copy()
-        self.point_labels = labels.copy()
+        self._continuous.x = x.copy()
+        self._continuous.y = y.copy()
+        self._categorical.x = List[String]()
+        self._channels.color = color.copy()
+        self._channels.color_categories = color_categories.copy()
+        self._channels.size = size.copy()
+        self._y_err.symmetric = y_err.copy()
+        self._y_err.lower = y_err_lower.copy()
+        self._y_err.upper = y_err_upper.copy()
+        self._channels.color_map = color_map.copy()
+        self._channels.point_labels = labels.copy()
         return self^
 
     def encode[
@@ -2031,12 +2095,12 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_categories = x.copy()
-        self.x_data = List[Float64]()
-        self.y_data = y.copy()
-        self.y_err_data = y_err.copy()
-        self.y_err_lower_data = y_err_lower.copy()
-        self.y_err_upper_data = y_err_upper.copy()
+        self._categorical.x = x.copy()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = y.copy()
+        self._y_err.symmetric = y_err.copy()
+        self._y_err.lower = y_err_lower.copy()
+        self._y_err.upper = y_err_upper.copy()
         return self^
 
     def encode_categorical[
@@ -2159,9 +2223,9 @@ struct Plot(Copyable, Movable):
                 finite.
         """
         var binned = _bin_histogram(data, bins)
-        self.x_categories = binned.labels.copy()
-        self.x_data = List[Float64]()
-        self.y_data = binned.counts.copy()
+        self._categorical.x = binned.labels.copy()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = binned.counts.copy()
         return self^
 
     def encode_histogram(
@@ -2183,9 +2247,9 @@ struct Plot(Copyable, Movable):
             Error: If data is empty or a value is not finite.
         """
         var binned = _bin_histogram(data, rule)
-        self.x_categories = binned.labels.copy()
-        self.x_data = List[Float64]()
-        self.y_data = binned.counts.copy()
+        self._categorical.x = binned.labels.copy()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = binned.counts.copy()
         return self^
 
     def encode_waterfall(
@@ -2207,7 +2271,7 @@ struct Plot(Copyable, Movable):
         start-then-deltas-then-end shape.
 
         Length matching (`categories`/`deltas`, and `is_total` when
-        non-empty) is checked at render() time. `deltas` is kept as `y_data`
+        non-empty) is checked at render() time. `deltas` is kept as `_continuous.y`
         so `_render_waterfall` can color each delta bar by sign.
 
         Args:
@@ -2223,9 +2287,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_categories = categories.copy()
-        self.x_data = List[Float64]()
-        self.y_data = deltas.copy()
+        self._categorical.x = categories.copy()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = deltas.copy()
         self._waterfall.is_total = is_total.copy()
         var bars = _waterfall_running_totals(deltas, is_total)
         self._waterfall.y0 = bars.y0.copy()
@@ -2279,9 +2343,9 @@ struct Plot(Copyable, Movable):
             for v in lv.outliers:
                 data.outlier_cat.append(i)
                 data.outlier_value.append(v)
-        self.x_categories = categories.copy()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = categories.copy()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._boxen = data^
         return self^
 
@@ -2358,9 +2422,9 @@ struct Plot(Copyable, Movable):
                 outlier_cat.append(i)
                 outlier_value.append(v)
 
-        self.x_categories = categories.copy()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = categories.copy()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._box.q1 = q1^
         self._box.median = median^
         self._box.q3 = q3^
@@ -2419,9 +2483,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_categories = categories.copy()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = categories.copy()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._candle.open_price = open.copy()
         self._candle.high = high.copy()
         self._candle.low = low.copy()
@@ -2455,9 +2519,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_categories = categories.copy()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = categories.copy()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._bullet.measure = measures.copy()
         self._bullet.target = targets.copy()
         self._bullet.ranges = ranges.copy()
@@ -2487,9 +2551,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_categories = categories.copy()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = categories.copy()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._gantt.start = start.copy()
         self._gantt.end = end.copy()
         return self^
@@ -2528,9 +2592,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_categories = categories.copy()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = categories.copy()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._grouped_bar.series_names = series_names.copy()
         self._grouped_bar.values = values.copy()
         self._grouped_bar.errors = errors.copy()
@@ -2633,9 +2697,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_categories = categories.copy()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = categories.copy()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._pyramid.left = left_values.copy()
         self._pyramid.right = right_values.copy()
         self._pyramid.left_name = left_name
@@ -2661,9 +2725,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_categories = List[String]()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = List[String]()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._heatmap.x = x.copy()
         self._heatmap.y = y.copy()
         self._heatmap.value = value.copy()
@@ -2689,9 +2753,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_categories = List[String]()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = List[String]()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._calendar.dates = dates.copy()
         self._calendar.values = values.copy()
         return self^
@@ -2757,9 +2821,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_categories = List[String]()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = List[String]()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._punchcard.x = x.copy()
         self._punchcard.y = y.copy()
         self._punchcard.sizes = sizes.copy()
@@ -2788,9 +2852,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_categories = List[String]()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = List[String]()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._barbs.x = x.copy()
         self._barbs.y = y.copy()
         self._barbs.u = u.copy()
@@ -2938,9 +3002,9 @@ struct Plot(Copyable, Movable):
         var seconds = List[Float64](capacity=len(x))
         for i in range(len(x)):
             seconds.append(x[i].timestamp())
-        self.x_categories = List[String]()
-        self.x_data = seconds^
-        self.y_data = y.copy()
+        self._categorical.x = List[String]()
+        self._continuous.x = seconds^
+        self._continuous.y = y.copy()
         self._x_time = True
         if len(x) > 0:
             self._x_tz_offset = x[0].tz.offset
@@ -2950,7 +3014,7 @@ struct Plot(Copyable, Movable):
         """Map already-binned data onto `Mark.HISTOGRAM`'s shape: the
         bin edges and one value per bin, drawn as a rectangle each.
 
-        The bins also go into `x_data`/`y_data` as the `step_x()`/
+        The bins also go into `_continuous.x`/`_continuous.y` as the `step_x()`/
         `step_y()` staircase `Mark.AREA` would draw (swapped when the
         mark is horizontal, so call `mark_histogram()` first), so every rule that
         reads those columns -- the x/y domains, `render_layers()`'s
@@ -2964,13 +3028,13 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_categories = List[String]()
+        self._categorical.x = List[String]()
         if self._histogram.horizontal:
-            self.x_data = bins.step_y()
-            self.y_data = bins.step_x()
+            self._continuous.x = bins.step_y()
+            self._continuous.y = bins.step_x()
         else:
-            self.x_data = bins.step_x()
-            self.y_data = bins.step_y()
+            self._continuous.x = bins.step_x()
+            self._continuous.y = bins.step_y()
         self._histogram.edges = bins.edges.copy()
         self._histogram.values = bins.values.copy()
         return self^
@@ -3037,9 +3101,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_categories = List[String]()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = List[String]()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._stream.x = x.copy()
         self._stream.y = y.copy()
         self._stream.u = u.copy()
@@ -3293,9 +3357,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_categories = List[String]()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = List[String]()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._edges.from_categories = from_categories.copy()
         self._edges.to_categories = to_categories.copy()
         self._edges.values = values.copy()
@@ -3734,9 +3798,9 @@ struct Plot(Copyable, Movable):
                 " individual row with no events is fine, but with no"
                 " event anywhere there is no x-axis to draw them on"
             )
-        self.x_categories = labels.copy()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = labels.copy()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._distribution.values = positions.copy()
         return self^
 
@@ -3828,9 +3892,9 @@ struct Plot(Copyable, Movable):
                     + "' has no values -- can't draw a distribution for"
                     " an empty one"
                 )
-        self.x_categories = categories.copy()
-        self.x_data = List[Float64]()
-        self.y_data = List[Float64]()
+        self._categorical.x = categories.copy()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
         self._distribution.values = values.copy()
         return self^
 
@@ -3869,7 +3933,7 @@ struct Plot(Copyable, Movable):
     ) -> Self:
         """Map one continuous column plus the optional `color`/
         `color_categories`/`size` channels onto `Mark.SINGLE_AXIS`'s one-axis
-        shape: `encode()` without a `y`. `y_data` is filled with one
+        shape: `encode()` without a `y`. `_continuous.y` is filled with one
         placeholder `0.0` per row (never read as a value; see
         `_render_single_axis`) so `_validate_continuous_encoding`'s length
         check and `Mark.POINT`'s `_draw_point_layer` work unchanged.
@@ -3888,14 +3952,14 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self.x_data = x.copy()
-        self.x_categories = List[String]()
-        self.y_data = List[Float64]()
+        self._continuous.x = x.copy()
+        self._categorical.x = List[String]()
+        self._continuous.y = List[Float64]()
         for _ in range(len(x)):
-            self.y_data.append(0.0)
-        self.color_data = color.copy()
-        self.color_categories = color_categories.copy()
-        self.size_data = size.copy()
+            self._continuous.y.append(0.0)
+        self._channels.color = color.copy()
+        self._channels.color_categories = color_categories.copy()
+        self._channels.size = size.copy()
         return self^
 
     def theme(var self, t: Theme) -> Self:
@@ -4244,7 +4308,7 @@ struct Plot(Copyable, Movable):
         ci: Float64 = 0.95,
     ) -> Self:
         """Overlay an ordinary-least-squares best-fit line computed from this
-        plot's own `x_data`/`y_data` at render() time, so it works whether
+        plot's own `_continuous.x`/`_continuous.y` at render() time, so it works whether
         called before or after `.encode()`. Not additive: the last call wins,
         since the fit is determined by the data.
 
@@ -4674,12 +4738,19 @@ def _point_tooltip_label(plot: Plot, i: Int) -> String:
     """One scatter point's hover text: the row's `encode(labels=...)` entry
     when it has one, otherwise its coordinates, `"3.5, 12"`.
     """
-    if len(plot.point_labels) > 0 and plot.point_labels[i] != "":
-        return plot.point_labels[i]
+    if (
+        len(plot._channels.point_labels) > 0
+        and plot._channels.point_labels[i] != ""
+    ):
+        return plot._channels.point_labels[i]
     return (
-        _format_fixed(plot.x_data[i], _label_decimals(plot.x_data[i]))
+        _format_fixed(
+            plot._continuous.x[i], _label_decimals(plot._continuous.x[i])
+        )
         + ", "
-        + _format_fixed(plot.y_data[i], _label_decimals(plot.y_data[i]))
+        + _format_fixed(
+            plot._continuous.y[i], _label_decimals(plot._continuous.y[i])
+        )
     )
 
 
@@ -5269,11 +5340,11 @@ def _render_generic[
             " Plot.scale_y_log() -- got a mix of log and linear cells"
         )
     if has_shared_y_domain and (
-        len(plot.y_err_data) > 0
-        or len(plot.y_err_lower_data) > 0
-        or len(plot.y_err_upper_data) > 0
+        len(plot._y_err.symmetric) > 0
+        or len(plot._y_err.lower) > 0
+        or len(plot._y_err.upper) > 0
     ):
-        # The shared union is computed over plain plot.y_data and isn't widened
+        # The shared union is computed over plain plot._continuous.y and isn't widened
         # for whisker endpoints, so a whisker could extend past the shared
         # axis.
         raise Error(
@@ -5459,7 +5530,7 @@ def _render_generic[
         return _render_parallel(target, plot, ox0, oy0, ox1, oy1, cache=cache)
 
     _validate_continuous_encoding(plot, "Plot.encode()")
-    _require_non_empty(len(plot.x_data), "Plot.encode()")
+    _require_non_empty(len(plot._continuous.x), "Plot.encode()")
 
     var theme = plot._theme
 
@@ -5473,22 +5544,26 @@ def _render_generic[
     var legend_reserve = _legend_reserve_for(plot, ch, sc, cache=cache)
 
     # Mark.AREA forces a zero baseline into the y-domain; every other
-    # continuous mark pads around its data. y_domain_data is plot.y_data,
+    # continuous mark pads around its data. y_domain_data is plot._continuous.y,
     # or every whisker endpoint when y_err (or y_err_lower/y_err_upper) is
     # set, so the domain spans everything drawn. has_shared_y_domain
     # (render_facets(shared_y_scale=True)) short-circuits that with the
     # caller's precomputed domain.
     var y_domain_data = List[Float64]()
-    if len(plot.y_err_data) > 0:
-        for i in range(len(plot.y_data)):
-            y_domain_data.append(plot.y_data[i] - plot.y_err_data[i])
-            y_domain_data.append(plot.y_data[i] + plot.y_err_data[i])
-    elif len(plot.y_err_lower_data) > 0:
-        for i in range(len(plot.y_data)):
-            y_domain_data.append(plot.y_data[i] - plot.y_err_lower_data[i])
-            y_domain_data.append(plot.y_data[i] + plot.y_err_upper_data[i])
+    if len(plot._y_err.symmetric) > 0:
+        for i in range(len(plot._continuous.y)):
+            y_domain_data.append(
+                plot._continuous.y[i] - plot._y_err.symmetric[i]
+            )
+            y_domain_data.append(
+                plot._continuous.y[i] + plot._y_err.symmetric[i]
+            )
+    elif len(plot._y_err.lower) > 0:
+        for i in range(len(plot._continuous.y)):
+            y_domain_data.append(plot._continuous.y[i] - plot._y_err.lower[i])
+            y_domain_data.append(plot._continuous.y[i] + plot._y_err.upper[i])
     else:
-        for v in plot.y_data:
+        for v in plot._continuous.y:
             y_domain_data.append(v)
     var y_scale = _domain_override_scale(
         plot._y_domain, plot._y_log
@@ -5512,10 +5587,10 @@ def _render_generic[
     var x_scale = _domain_override_scale(
         plot._x_domain, plot._x_log
     ) if plot._x_domain.has else (
-        _log_data_extent(plot.x_data) if plot._x_log else (
-            _zero_baseline_y_extent(plot.x_data) if (
+        _log_data_extent(plot._continuous.x) if plot._x_log else (
+            _zero_baseline_y_extent(plot._continuous.x) if (
                 plot._mark == Mark.HISTOGRAM and plot._histogram.horizontal
-            ) else _data_extent(plot.x_data)
+            ) else _data_extent(plot._continuous.x)
         )
     )
     # A time axis is linear in seconds; only its labels differ, so the

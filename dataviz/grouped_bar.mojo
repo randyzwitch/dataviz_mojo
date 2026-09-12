@@ -49,7 +49,7 @@ def _validate_grouped_bar_series(plot: Plot) raises:
             + ")"
         )
     for j in range(len(plot._grouped_bar.values)):
-        if len(plot._grouped_bar.values[j]) != len(plot.x_categories):
+        if len(plot._grouped_bar.values[j]) != len(plot._categorical.x):
             raise Error(
                 "Plot.encode_grouped_bar(): every series' values must"
                 " have the same length as categories (series "
@@ -57,10 +57,10 @@ def _validate_grouped_bar_series(plot: Plot) raises:
                 + " has "
                 + String(len(plot._grouped_bar.values[j]))
                 + ", categories has "
-                + String(len(plot.x_categories))
+                + String(len(plot._categorical.x))
                 + ")"
             )
-    _require_non_empty(len(plot.x_categories), "Plot.encode_grouped_bar()")
+    _require_non_empty(len(plot._categorical.x), "Plot.encode_grouped_bar()")
     _require_non_empty(
         len(plot._grouped_bar.series_names), "Plot.encode_grouped_bar()"
     )
@@ -84,7 +84,7 @@ def _validate_grouped_bar_series(plot: Plot) raises:
             + ")"
         )
     for j in range(len(plot._grouped_bar.errors)):
-        if len(plot._grouped_bar.errors[j]) != len(plot.x_categories):
+        if len(plot._grouped_bar.errors[j]) != len(plot._categorical.x):
             raise Error(
                 "Plot.encode_grouped_bar(): every series' errors must have"
                 " the same length as categories (series "
@@ -92,7 +92,7 @@ def _validate_grouped_bar_series(plot: Plot) raises:
                 + " has "
                 + String(len(plot._grouped_bar.errors[j]))
                 + ", categories has "
-                + String(len(plot.x_categories))
+                + String(len(plot._categorical.x))
                 + ")"
             )
         for v in plot._grouped_bar.errors[j]:
@@ -219,7 +219,7 @@ def _draw_grouped_bars[
     var has_errors = len(plot._grouped_bar.errors) > 0
     var cap_half = sc.error_bar_cap_width
 
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var band_start = band_scale.band_start(i)
         for j in range(n_series):
             var near = band_start + Float64(j) * sub_size
@@ -234,7 +234,7 @@ def _draw_grouped_bars[
             if theme.svg_tooltips:
                 target.begin_annotated_group(
                     _series_tooltip_label(
-                        plot.x_categories[i],
+                        plot._categorical.x[i],
                         plot._grouped_bar.series_names[j],
                         value,
                     )
@@ -330,7 +330,7 @@ def _render_grouped_bar[
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         y_scale,
         theme,
         ox0 + legend.left,
@@ -408,7 +408,7 @@ def _render_horizontal_grouped_bar[
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         x_scale,
         theme,
         ox0 + legend.left,

@@ -25,7 +25,7 @@ from dataviz.theme import Theme
 
 struct _WaterfallData(Copyable, Movable):
     """The running-total bounds `encode_waterfall()` computes from each
-    category's signed delta (`y_data`), for `Mark.WATERFALL`. See that
+    category's signed delta (`_continuous.y`), for `Mark.WATERFALL`. See that
     method. Stored on `Plot._waterfall`.
     """
 
@@ -95,29 +95,29 @@ def _render_waterfall[
     Delta color follows sign; checkpoint bars use the total color. The y-domain
     covers all running-total bounds and includes zero.
     """
-    if len(plot.x_categories) != len(plot.y_data):
+    if len(plot._categorical.x) != len(plot._continuous.y):
         raise Error(
             "Plot.encode_waterfall(): categories and deltas must have the"
             " same length (got "
-            + String(len(plot.x_categories))
+            + String(len(plot._categorical.x))
             + " and "
-            + String(len(plot.y_data))
+            + String(len(plot._continuous.y))
             + ")"
         )
     if len(plot._waterfall.is_total) > 0 and len(
         plot._waterfall.is_total
-    ) != len(plot.x_categories):
+    ) != len(plot._categorical.x):
         raise Error(
             "Plot.encode_waterfall(): is_total, if given, must have the"
             " same length as categories (got "
             + String(len(plot._waterfall.is_total))
             + " and "
-            + String(len(plot.x_categories))
+            + String(len(plot._categorical.x))
             + ")"
         )
 
     var theme = plot._theme
-    _require_non_empty(len(plot.x_categories), "Plot.encode_waterfall()")
+    _require_non_empty(len(plot._categorical.x), "Plot.encode_waterfall()")
     var combined = List[Float64]()
     for v in plot._waterfall.y0:
         combined.append(v)
@@ -127,7 +127,7 @@ def _render_waterfall[
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         y_scale,
         theme,
         ox0,
@@ -150,7 +150,7 @@ def _render_waterfall[
     var bar_x_list = List[Float64]()
     var bar_x1_list = List[Float64]()
     var bandwidth = frame.x_scale.bandwidth()
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var band_start = frame.x_scale.band_start(i)
         var row_is_total = (
             plot._waterfall.is_total[i] if i
@@ -179,7 +179,7 @@ def _render_waterfall[
         var y1_py = _axis_pixel_f(frame.y_scale, plot._waterfall.y1[i])
         var rect = _pull_off_axis_line_f(y0_py, y1_py, Float64(frame.py1))
         var bar_color = theme.waterfall_total_color if row_is_total else (
-            theme.mark_color_negative if plot.y_data[i]
+            theme.mark_color_negative if plot._continuous.y[i]
             < 0.0 else theme.mark_color
         )
         if theme.svg_tooltips:
@@ -189,8 +189,10 @@ def _render_waterfall[
             # from zero, so its height is the running total itself.
             target.begin_annotated_group(
                 _tooltip_label(
-                    plot.x_categories[i],
-                    plot._waterfall.y1[i] if row_is_total else plot.y_data[i],
+                    plot._categorical.x[i],
+                    plot._waterfall.y1[
+                        i
+                    ] if row_is_total else plot._continuous.y[i],
                 )
             )
         var rx0 = _snap_pixel_edge(bar_x)
@@ -201,7 +203,7 @@ def _render_waterfall[
         if theme.svg_tooltips:
             target.end_annotated_group()
         if theme.show_data_labels:
-            var delta = plot.y_data[i]
+            var delta = plot._continuous.y[i]
             var at = orient.outside_band_label(
                 rect,
                 bar_x,
