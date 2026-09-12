@@ -2,10 +2,10 @@
 its uncertainty, and bars of a count -- seaborn's pair, and the first
 charts here that compute an aggregate rather than draw one (#350)."""
 
-from dataviz.array_like import _materialize_scalar_list
+from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import Plot, _finished
-from dataviz.stats import ErrorBar, Estimator, _Aggregate, _aggregate
-from dataviz.theme import Theme
+from dataviz.core.stats import ErrorBar, Estimator, _Aggregate, _aggregate
+from dataviz.core.theme import Theme
 
 
 def barplot(

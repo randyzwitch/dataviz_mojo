@@ -1,6 +1,6 @@
 """Shorten ticks and label gaps to preserve space in a compact chart."""
 from dataviz.plot import Plot, save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

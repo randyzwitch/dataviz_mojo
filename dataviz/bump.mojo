@@ -3,11 +3,11 @@ from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_nested_scalar_list
-from dataviz.color_scale import categorical_palette_for
+from dataviz.core.array_like import _materialize_nested_scalar_list
+from dataviz.core.color_scale import categorical_palette_for
 from dataviz.funnel import _descending_value_order
 from dataviz.grouped_bar import _validate_grouped_bar_series
-from dataviz.ordinal_scale import OrdinalScale
+from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     _draw_axis_spines,
     Plot,
@@ -22,7 +22,7 @@ from dataviz.plot import (
     _max_label_width,
     _finished,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def _bump_rank_pixel(rank: Int, n_series: Int, py0: Int, py1: Int) -> Int:

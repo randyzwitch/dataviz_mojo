@@ -5,10 +5,10 @@ from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_nested_scalar_list
+from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.kde import _KDE_SAMPLES, _kde_bandwidth, _kde_density
-from dataviz.ordinal_scale import OrdinalScale
+from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
     _Orientation,
@@ -19,8 +19,8 @@ from dataviz.plot import (
     _min_max,
     _finished,
 )
-from dataviz.scale import LinearScale, _format_fixed, _label_decimals
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
+from dataviz.core.theme import Theme
 
 
 def _draw_violin_silhouettes[

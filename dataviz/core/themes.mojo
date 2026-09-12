@@ -2,7 +2,7 @@
 
 ```mojo
 from dataviz.plot import Plot, save
-from dataviz.themes import dark
+from dataviz.core.themes import dark
 
 var plot = Plot().mark_line().encode(x=x, y=y).theme(dark())
 ```
@@ -21,11 +21,11 @@ Presets do not compose. Choose the closest preset and override its fields.
 
 from canvas.color import Color
 
-from dataviz.color_ramp import ColorRamp
-from dataviz.colormaps import cividis, viridis
-from dataviz.colors import WHITE
-from dataviz.line_style import LineStyle
-from dataviz.theme import Theme
+from dataviz.core.color_ramp import ColorRamp
+from dataviz.core.colormaps import cividis, viridis
+from dataviz.core.colors import WHITE
+from dataviz.core.line_style import LineStyle
+from dataviz.core.theme import Theme
 
 
 def dark() -> Theme:

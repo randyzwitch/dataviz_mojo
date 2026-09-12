@@ -6,7 +6,7 @@ when the data is lopsided.
 from canvas.color import Color
 from dataviz.heatmap import heatmap
 from dataviz.plot import save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

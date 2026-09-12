@@ -3,11 +3,11 @@ from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_nested_scalar_list
-from dataviz.color_scale import categorical_palette_for
+from dataviz.core.array_like import _materialize_nested_scalar_list
+from dataviz.core.color_scale import categorical_palette_for
 from dataviz.continuous import _step_points
 from dataviz.grouped_bar import _validate_grouped_bar_series
-from dataviz.mark import Mark
+from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -21,11 +21,11 @@ from dataviz.plot import (
     _finished,
     _zero_baseline_y_extent,
 )
-from dataviz.scale import LinearScale
-from dataviz.stack_baseline import StackBaseline
-from dataviz.step_style import StepStyle
-from dataviz.theme import Theme
-from dataviz.validate import _check_step_smoothing
+from dataviz.core.scale import LinearScale
+from dataviz.core.stack_baseline import StackBaseline
+from dataviz.core.step_style import StepStyle
+from dataviz.core.theme import Theme
+from dataviz.core.validate import _check_step_smoothing
 
 
 def _symmetric_zero_baseline_y_extent(

@@ -2,7 +2,7 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
+from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import (
     _draw_axis_spines,
     Plot,
@@ -21,8 +21,8 @@ from dataviz.plot import (
     _require_non_empty,
     _validate_continuous_encoding,
 )
-from dataviz.scale import LinearScale
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale
+from dataviz.core.theme import Theme
 
 
 struct _SingleAxisFrame(Movable):

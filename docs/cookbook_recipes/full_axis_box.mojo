@@ -1,6 +1,6 @@
 """Draw all four axis lines, the box several journal styles require."""
 from dataviz.plot import Plot, save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

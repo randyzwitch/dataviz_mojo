@@ -4,7 +4,7 @@ from std.math import log10
 
 from dataviz.continuous import _draw_area_layer, _draw_line_layer, area, line
 from dataviz.layers import _render_layers_generic, render_layers
-from dataviz.mark import Mark
+from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _DomainOverride,
@@ -14,9 +14,9 @@ from dataviz.plot import (
     _render_generic,
     render,
 )
-from dataviz.scale import LinearScale
-from dataviz.step_style import StepStyle
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale
+from dataviz.core.step_style import StepStyle
+from dataviz.core.theme import Theme
 
 
 def _require_non_empty(count: Int, context: String) raises:

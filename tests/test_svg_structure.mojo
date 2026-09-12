@@ -29,9 +29,9 @@ from _test_helpers import (
     _drawn,
 )
 from dataviz import bar, box, grouped_bar, pie, rugplot, scatter
-from dataviz.color_scale import default_categorical_palette
+from dataviz.core.color_scale import default_categorical_palette
 from dataviz.plot import Plot, render_svg
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_true
 
 

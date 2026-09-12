@@ -1,7 +1,7 @@
 """Visual defaults for a Plot (colors, sizes, margins) as one struct
 with defaults, rather than optional parameters scattered across
 Plot's builder methods. A theme changes how a mark looks, not what
-it means. Every `Color` field takes a `dataviz.colors` constant as
+it means. Every `Color` field takes a `dataviz.core.colors` constant as
 readily as a `Color(r, g, b)`: `Theme(mark_color=CORNFLOWERBLUE)`.
 
 `scale` (default 1.0) uniformly multiplies every other pixel-sized
@@ -29,7 +29,7 @@ light neutral gray at 0.5 is what diverging colormaps like
 
 `color_ramp` (empty by default) replaces all three with an arbitrary
 number of stops, which is what a perceptually uniform sequential map
-needs: `Theme(color_ramp=viridis())`, from `dataviz.colormaps`. Three
+needs: `Theme(color_ramp=viridis())`, from `dataviz.core.colormaps`. Three
 stops are enough for a diverging scale and cannot express viridis and
 its family; see the field's own docstring.
 
@@ -61,15 +61,15 @@ from std.math import pi
 
 from canvas.color import Color
 
-from dataviz.color_palette import ColorPalette
-from dataviz.color_ramp import ColorRamp
-from dataviz.colors import WHITE
-from dataviz.output_format import OutputFormat
-from dataviz.scale import TickFormat
-from dataviz.axis_position import AxisPosition
-from dataviz.legend_position import LegendPosition
-from dataviz.line_style import LineStyle
-from dataviz.x_label_rotation import XAxisLabelRotation
+from dataviz.core.color_palette import ColorPalette
+from dataviz.core.color_ramp import ColorRamp
+from dataviz.core.colors import WHITE
+from dataviz.core.output_format import OutputFormat
+from dataviz.core.scale import TickFormat
+from dataviz.core.axis_position import AxisPosition
+from dataviz.core.legend_position import LegendPosition
+from dataviz.core.line_style import LineStyle
+from dataviz.core.x_label_rotation import XAxisLabelRotation
 
 
 struct Theme(ImplicitlyCopyable, Movable):
@@ -157,7 +157,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     uniform sequential map -- viridis and its family are defined by many
     stops precisely because that is what makes equal steps in the value
     look like equal steps in color, and interpolating three of them
-    throws the property away. See `dataviz.colormaps` for the standard
+    throws the property away. See `dataviz.core.colormaps` for the standard
     ones."""
     var categorical_palette: ColorPalette
     """The colors a multi-series or category-colored chart cycles

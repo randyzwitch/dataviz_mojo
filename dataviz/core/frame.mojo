@@ -25,13 +25,13 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign, draw_text
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.axis_position import AxisPosition
+from dataviz.core.axis_position import AxisPosition
 from dataviz.continuous import area, line
 from dataviz.layers import _render_layers_generic
-from dataviz.legend import _LegendLayout
-from dataviz.mark import Mark
-from dataviz.ordinal_scale import OrdinalScale
-from dataviz.pixel_snap import _snap_pixel_center, _snap_pixel_edge
+from dataviz.core.legend import _LegendLayout
+from dataviz.core.mark import Mark
+from dataviz.core.ordinal_scale import OrdinalScale
+from dataviz.core.pixel_snap import _snap_pixel_center, _snap_pixel_edge
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -40,10 +40,10 @@ from dataviz.plot import (
     _zero_baseline_y_extent,
     render,
 )
-from dataviz.scale import LinearScale
-from dataviz.text import _Scaled, _TextRequest, _max_label_width
-from dataviz.theme import Theme
-from dataviz.x_label_rotation import XAxisLabelRotation
+from dataviz.core.scale import LinearScale
+from dataviz.core.text import _Scaled, _TextRequest, _max_label_width
+from dataviz.core.theme import Theme
+from dataviz.core.x_label_rotation import XAxisLabelRotation
 
 
 struct _CategoricalIndex(Movable):

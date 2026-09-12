@@ -4,7 +4,7 @@ extending left-to-right instead of the default vertical layout --
 when category names are long or there are many of them.
 """
 from dataviz.plot import Plot, save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

@@ -2,9 +2,9 @@ from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_nested_scalar_list
+from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
-from dataviz.ordinal_scale import OrdinalScale
+from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
     _Orientation,
@@ -16,8 +16,8 @@ from dataviz.plot import (
     _draw_categorical_axis_frame,
     _finished,
 )
-from dataviz.scale import LinearScale
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale
+from dataviz.core.theme import Theme
 
 
 def _beeswarm_offsets(y_pixels: List[Int], spacing: Int) -> List[Int]:

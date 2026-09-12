@@ -10,15 +10,15 @@ from canvas.geometry import round_to_int
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
-from dataviz.arrow import (
+from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.arrow import (
     _ARROW_HEAD_HALF_WIDTH,
     _ARROW_HEAD_LENGTH,
     _arrow_head_path,
 )
 from dataviz.barbs import _validate_vector_field
-from dataviz.color_scale import ColorScale, _color_scale_for
-from dataviz.legend import (
+from dataviz.core.color_scale import ColorScale, _color_scale_for
+from dataviz.core.legend import (
     _continuous_legend_labels,
     _draw_continuous_color_legend,
     _dynamic_legend_width,
@@ -31,9 +31,9 @@ from dataviz.plot import (
     _draw_continuous_axis_frame,
     _finished,
 )
-from dataviz.scale import LinearScale
-from dataviz.text import _Scaled
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale
+from dataviz.core.text import _Scaled
+from dataviz.core.theme import Theme
 
 
 comptime _AUTO_SCALE_DIVISOR = 1.8
@@ -303,7 +303,7 @@ def quiver(
 
         from dataviz import quiver, save
         from dataviz import Theme
-        from dataviz.colormaps import viridis
+        from dataviz.core.colormaps import viridis
 
         def main() raises:
             # A circulating flow around the center with a steady drift

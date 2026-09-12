@@ -237,3 +237,49 @@ the night that table was taken (pie two-step 9.22 ms there against
 6.6 - 7.2 ms here), so the machine was in a different state. Ratios from
 different sessions should not be compared; only rows taken under one
 harness on one night are.
+
+### Grouping the infrastructure into a subpackage, compile time (2026-09-12)
+
+AMD Threadripper 3970X, Linux, Mojo 1.0.0, canvas_mojo v0.33.3. #524 flags
+compile time as a real risk rather than a footnote, since the package has a
+monomorphization hot spot, so the first pass of it was measured rather than
+assumed neutral.
+
+Thirty non-mark modules moved to `dataviz/core/`. Three cold builds per
+side, alternating, cache cleared before each.
+
+| pass | main | branch |
+| --- | --- | --- |
+| 1 | 52.67 s | 53.33 s |
+| 2 | 53.63 s | 54.25 s |
+| 3 | 54.49 s | 54.20 s |
+
+**No measurable difference.** The ranges overlap and the orderings cross.
+
+#### The binary-size corroborator does not apply here
+
+The previous entry leaned on the produced binary being identical in size on
+both sides, which is stronger evidence than a timing at three samples. It
+is not available for this change: main produces 3,533,816 bytes and the
+branch 3,535,520, a difference of 1,704 bytes or about 0.05%.
+
+That is expected rather than alarming. Module paths appear in symbol and
+metadata strings, and `dataviz/core/scale.mojo` is a longer path than
+`dataviz/scale.mojo`. But it means the claim here rests on the timings
+alone, which is weaker, and saying so is better than implying a
+corroboration that was not available.
+
+#### A harness bug worth recording
+
+The first attempt timed "main" against a working tree that still held the
+branch's staged file moves. `git checkout` carries staged changes forward
+when they do not conflict, so the checkout succeeded and the tree was
+wrong. The guard caught it -- it greps for `dataviz/core` before each timed
+build and aborts on a mismatch -- but the abort message read as though the
+checkout had failed, and the commit that followed landed on a detached
+HEAD.
+
+The harness now uses `git checkout --force`. The guard was worth having:
+without it three passes of numbers would have been produced comparing a
+tree against itself, which is the same error as a benchmark whose `stash
+pop` silently failed.

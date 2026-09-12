@@ -7,8 +7,8 @@ from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import ColorScale, _color_scale_for
+from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.plot import (
     Plot,
     _LegendLayout,
@@ -19,10 +19,10 @@ from dataviz.plot import (
     _finished,
     _levels_descending,
 )
-from dataviz.scale import _format_tick
-from dataviz.text import _Scaled
-from dataviz.scale import LinearScale
-from dataviz.theme import Theme
+from dataviz.core.scale import _format_tick
+from dataviz.core.text import _Scaled
+from dataviz.core.scale import LinearScale
+from dataviz.core.theme import Theme
 
 
 struct _ContourData(Copyable, Movable):

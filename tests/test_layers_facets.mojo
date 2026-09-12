@@ -39,7 +39,7 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.path import PathOp
 from dataviz import LineStyle, StepStyle
-from dataviz.color_scale import default_categorical_palette
+from dataviz.core.color_scale import default_categorical_palette
 from dataviz.barbs import barbs
 from dataviz.continuous import line, scatter
 from dataviz.contour import contour
@@ -50,7 +50,7 @@ from dataviz.kde import kdeplot, rugplot
 from dataviz.tricontour import tricontour, tricontourf
 from dataviz.triplot import tripcolor, triplot
 from std.math import cos, sin
-from dataviz.colors import CORNFLOWERBLUE, MAGENTA, RED, TOMATO
+from dataviz.core.colors import CORNFLOWERBLUE, MAGENTA, RED, TOMATO
 from dataviz.plot import (
     Plot,
     render,
@@ -61,7 +61,7 @@ from dataviz.plot import (
     render_svg,
     _build_line_path,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 

@@ -8,7 +8,7 @@ primary layers also share one y-domain. Drawing order follows list order.
 
 ```mojo
 from dataviz import Plot, Theme, save_layers
-from dataviz.colors import CORNFLOWERBLUE, TOMATO
+from dataviz.core.colors import CORNFLOWERBLUE, TOMATO
 
 def main() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0]

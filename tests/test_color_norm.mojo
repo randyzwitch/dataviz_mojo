@@ -20,7 +20,7 @@ from canvas.color import Color
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 from _test_helpers import _count_color
-from dataviz.color_scale import (
+from dataviz.core.color_scale import (
     ColorScale,
     _ColorDomainOverride,
     _center_offset,
@@ -29,7 +29,7 @@ from dataviz.color_scale import (
 )
 from dataviz.heatmap import heatmap
 from dataviz.plot import Plot, render, render_svg
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 comptime LOW = Color(10, 20, 30)
 comptime MID = Color(40, 80, 120)

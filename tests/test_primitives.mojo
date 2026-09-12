@@ -13,7 +13,7 @@ Int conversion up to 2^53, whole-number labels from List[Int]).
 from _test_helpers import Lcg, _count_color
 from canvas.color import Color
 from dataviz import bar
-from dataviz.colors import (
+from dataviz.core.colors import (
     CORNFLOWERBLUE,
     DARKGRAY,
     DARKGREY,
@@ -29,7 +29,7 @@ from dataviz.colors import (
     SLATEGRAY,
     SLATEGREY,
 )
-from dataviz.array_like import (
+from dataviz.core.array_like import (
     Float64Sequence,
     StringSequence,
     _materialize_floats,
@@ -37,13 +37,13 @@ from dataviz.array_like import (
     _materialize_strings,
 )
 from dataviz.calendar_heatmap import _Date, _days_from_civil
-from dataviz.color_ramp import ColorRamp
-from dataviz.color_scale import ColorScale
-from dataviz.colormaps import cividis, inferno, magma, plasma, viridis
-from dataviz.colors import BLACK, BLUE, RED, WHITE
-from dataviz.ordinal_scale import OrdinalScale
+from dataviz.core.color_ramp import ColorRamp
+from dataviz.core.color_scale import ColorScale
+from dataviz.core.colormaps import cividis, inferno, magma, plasma, viridis
+from dataviz.core.colors import BLACK, BLUE, RED, WHITE
+from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import Plot, render, render_svg
-from dataviz.scale import (
+from dataviz.core.scale import (
     LinearScale,
     Ticks,
     TickFormat,
@@ -54,7 +54,7 @@ from dataviz.scale import (
     _min_max,
     _nice_step,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 from std.math import floor, log10, pow
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from std.utils.numerics import inf, nan

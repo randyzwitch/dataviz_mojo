@@ -3,7 +3,7 @@
 scale preserve distinctions in grayscale."""
 from dataviz import bar
 from dataviz.plot import save
-from dataviz.themes import print_safe
+from dataviz.core.themes import print_safe
 
 
 def main() raises:

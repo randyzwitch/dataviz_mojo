@@ -1,7 +1,7 @@
 """Set shared colors for annotation lines, points, areas, and bands."""
 from canvas.color import Color
 from dataviz.plot import Plot, save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

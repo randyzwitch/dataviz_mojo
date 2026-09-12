@@ -2,11 +2,11 @@ from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
+from dataviz.core.array_like import _materialize_scalar_list
 
 from canvas.text.render import TextAlign
-from dataviz.ordinal_scale import OrdinalScale
-from dataviz.scale import LinearScale, _format_tick, _label_decimals
+from dataviz.core.ordinal_scale import OrdinalScale
+from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -22,7 +22,7 @@ from dataviz.plot import (
     _validate_categorical_encoding,
 )
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def _bar_fill_color(theme: Theme, value: Float64) -> Color:
@@ -334,7 +334,7 @@ def bar(
         ```mojo
         from dataviz import bar
         from dataviz import save
-        from dataviz.colors import SEAGREEN
+        from dataviz.core.colors import SEAGREEN
         from dataviz import Theme
 
         def main() raises:

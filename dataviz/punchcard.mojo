@@ -2,9 +2,9 @@ from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
+from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.heatmap import _draw_grid_axis_frame
-from dataviz.mark import Mark
+from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -12,7 +12,7 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 struct _PunchcardData(Copyable, Movable):

@@ -12,7 +12,7 @@ arithmetic meant.
 
 from std.testing import TestSuite, assert_equal
 
-from dataviz.pixel_snap import _snap_pixel_center, _snap_pixel_edge
+from dataviz.core.pixel_snap import _snap_pixel_center, _snap_pixel_edge
 
 
 def test_snap_edge_lands_on_half_integers() raises:

@@ -38,7 +38,7 @@ Covers:
 """
 
 from canvas.color import Color
-from dataviz.colors import TOMATO
+from dataviz.core.colors import TOMATO
 from dataviz.plot import (
     Plot,
     render,
@@ -48,7 +48,7 @@ from dataviz.plot import (
     render_svg,
     save_layers,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 from std.collections import Dict
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 

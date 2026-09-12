@@ -3,7 +3,7 @@ read as more dramatically different, instead of the default range's
 more subtle spread.
 """
 from dataviz.plot import Plot, save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

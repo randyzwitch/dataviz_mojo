@@ -2,7 +2,7 @@
 """Render the same chart at a higher pixel density for a crisp export.
 """
 from dataviz.plot import Plot, save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

@@ -6,7 +6,7 @@ from canvas.geometry import round_to_int
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
+from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.bar import _bar_y_domain_data
 from dataviz.plot import (
     Plot,
@@ -18,8 +18,8 @@ from dataviz.plot import (
     _finished,
     _validate_categorical_encoding,
 )
-from dataviz.stats import ErrorBar, Estimator, _Aggregate, _aggregate
-from dataviz.theme import Theme
+from dataviz.core.stats import ErrorBar, Estimator, _Aggregate, _aggregate
+from dataviz.core.theme import Theme
 
 
 def _render_pointplot[

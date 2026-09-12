@@ -21,9 +21,9 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 
 from dataviz import scatter
-from dataviz.legend_position import LegendPosition
+from dataviz.core.legend_position import LegendPosition
 from dataviz.plot import Plot, render
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def _xs() -> List[Float64]:

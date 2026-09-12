@@ -21,7 +21,7 @@ from dataviz.streamplot import (
     _streamlines,
     _trace,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def _coords(n: Int, lo: Float64, step: Float64) -> List[Float64]:

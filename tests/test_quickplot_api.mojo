@@ -66,7 +66,7 @@ from dataviz import (
     waterfall,
 )
 from dataviz.plot import Plot, render, render_svg
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 from std.testing import TestSuite, assert_equal
 
 

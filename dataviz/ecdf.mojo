@@ -18,9 +18,9 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
-from dataviz.scale import LinearScale
-from dataviz.step_style import StepStyle
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale
+from dataviz.core.step_style import StepStyle
+from dataviz.core.theme import Theme
 
 
 struct _EcdfCurve(Movable):

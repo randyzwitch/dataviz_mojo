@@ -1,8 +1,8 @@
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import categorical_palette_for
+from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.color_scale import categorical_palette_for
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.plot import (
     Plot,
@@ -20,8 +20,8 @@ from dataviz.plot import (
     _require_non_empty,
     _series_tooltip_label,
 )
-from dataviz.scale import LinearScale, _format_tick, _label_decimals
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
+from dataviz.core.theme import Theme
 
 
 struct _PyramidData(Copyable, Movable):

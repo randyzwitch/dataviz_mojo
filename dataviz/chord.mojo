@@ -6,9 +6,9 @@ from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import categorical_palette_for
-from dataviz.mark import Mark
+from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.color_scale import categorical_palette_for
+from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -20,7 +20,7 @@ from dataviz.plot import (
     _finished,
 )
 from dataviz.edges import _edge_node_index, _validate_edge_encoding
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def _draw_chord_ribbon[

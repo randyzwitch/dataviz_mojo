@@ -3,9 +3,9 @@ from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_nested_scalar_list
-from dataviz.color_scale import categorical_palette_for
-from dataviz.mark import Mark
+from dataviz.core.array_like import _materialize_nested_scalar_list
+from dataviz.core.color_scale import categorical_palette_for
+from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -17,7 +17,7 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 struct _MarimekkoData(Copyable, Movable):

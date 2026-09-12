@@ -1,10 +1,10 @@
 """`residplot()`: the residuals of a linear fit against its fitted values,
 the standard check on whether a straight line was the right model."""
 
-from dataviz.array_like import _materialize_scalar_list
+from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import Plot, _finished
-from dataviz.stats import _OlsFit, _ols_fit
-from dataviz.theme import Theme
+from dataviz.core.stats import _OlsFit, _ols_fit
+from dataviz.core.theme import Theme
 
 
 def residplot(

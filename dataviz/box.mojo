@@ -2,9 +2,9 @@ from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_nested_scalar_list
+from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
-from dataviz.ordinal_scale import OrdinalScale
+from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
     _BaselineRectF,
@@ -16,8 +16,8 @@ from dataviz.plot import (
     _draw_categorical_axis_frame,
     _finished,
 )
-from dataviz.scale import LinearScale, _format_fixed, _label_decimals
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
+from dataviz.core.theme import Theme
 
 
 struct _BoxData(Copyable, Movable):
@@ -451,7 +451,7 @@ def box(
         ```mojo
         from dataviz import box
         from dataviz import save
-        from dataviz.colors import ROYALBLUE
+        from dataviz.core.colors import ROYALBLUE
         from dataviz import Theme
 
         def main() raises:

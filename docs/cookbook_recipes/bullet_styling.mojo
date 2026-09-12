@@ -4,8 +4,8 @@ thicken the measure bar drawn over it for better contrast.
 """
 from dataviz import bullet
 from dataviz.plot import save
-from dataviz.colors import ALICEBLUE, STEELBLUE
-from dataviz.theme import Theme
+from dataviz.core.colors import ALICEBLUE, STEELBLUE
+from dataviz.core.theme import Theme
 
 
 def main() raises:

@@ -12,7 +12,7 @@ from canvas.vector.svg import SvgCanvas
 from dataviz.continuous import area, line
 from dataviz.facets import render_facets
 from dataviz.layers import render_layers
-from dataviz.mark import Mark
+from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -22,7 +22,7 @@ from dataviz.plot import (
     render,
     render_svg,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 struct _Scaled(Movable):

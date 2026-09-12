@@ -28,7 +28,7 @@ from dataviz.plot import (
     render_layers_svg,
     render_svg,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 

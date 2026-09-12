@@ -3,15 +3,15 @@ from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 
 from canvas.text.render import TextAlign
-from dataviz.array_like import _materialize_nested_scalar_list
-from dataviz.color_scale import categorical_palette_for
+from dataviz.core.array_like import _materialize_nested_scalar_list
+from dataviz.core.color_scale import categorical_palette_for
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.grouped_bar import (
     _draw_series_legend,
     _series_legend_reserve,
     _validate_grouped_bar_series,
 )
-from dataviz.ordinal_scale import OrdinalScale
+from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -25,8 +25,8 @@ from dataviz.plot import (
     _finished,
     _zero_baseline_y_extent,
 )
-from dataviz.scale import LinearScale, _format_tick, _label_decimals
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
+from dataviz.core.theme import Theme
 
 
 def _stacked_bar_domain(plot: Plot, n_series: Int) raises -> LinearScale:

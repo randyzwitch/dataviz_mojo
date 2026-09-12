@@ -68,8 +68,8 @@ from dataviz import (
     treemap,
     waterfall,
 )
-from dataviz.color_scale import default_categorical_palette
-from dataviz.colors import RED
+from dataviz.core.color_scale import default_categorical_palette
+from dataviz.core.colors import RED
 from dataviz.edges import _edge_node_index
 from dataviz.plot import (
     Plot,
@@ -90,10 +90,10 @@ from dataviz.plot import (
     _resolve_x_label_rotation,
     _svg_output_string,
 )
-from dataviz.line_style import LineStyle
-from dataviz.marker import PointShape, default_marker_shapes
-from dataviz.theme import Theme
-from dataviz.x_label_rotation import XAxisLabelRotation
+from dataviz.core.line_style import LineStyle
+from dataviz.core.marker import PointShape, default_marker_shapes
+from dataviz.core.theme import Theme
+from dataviz.core.x_label_rotation import XAxisLabelRotation
 from std.math import pi
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 

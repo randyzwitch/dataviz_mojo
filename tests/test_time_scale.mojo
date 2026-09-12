@@ -13,8 +13,8 @@ from std.testing import TestSuite, assert_equal, assert_true
 from _test_helpers import _count_tag
 from dataviz import line, save
 from dataviz.plot import Plot, render_layers_svg, render_svg
-from dataviz.scale import LinearScale
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale
+from dataviz.core.theme import Theme
 
 
 def _labels(lo: Morrow, hi: Morrow, tz_offset: Int = 0) raises -> List[String]:

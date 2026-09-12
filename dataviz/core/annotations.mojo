@@ -26,15 +26,15 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign, measure_text
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.arrow import (
+from dataviz.core.arrow import (
     _ARROW_HEAD_HALF_WIDTH,
     _ARROW_HEAD_LENGTH,
     _arrow_head_path,
 )
-from dataviz.pixel_snap import _snap_pixel_center, _snap_pixel_edge
-from dataviz.scale import _format_fixed
-from dataviz.stats import _OlsFit, _ols_fit
-from dataviz.theme import Theme
+from dataviz.core.pixel_snap import _snap_pixel_center, _snap_pixel_edge
+from dataviz.core.scale import _format_fixed
+from dataviz.core.stats import _OlsFit, _ols_fit
+from dataviz.core.theme import Theme
 
 # Circular by construction, and resolved within the package: `plot.mojo`
 # imports the six passes back. `_AnnotationData` moved here with them

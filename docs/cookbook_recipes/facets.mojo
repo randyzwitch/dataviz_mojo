@@ -4,8 +4,8 @@ this is purely a grid-layout primitive, not a "split this data by a
 column" faceting feature.
 """
 from dataviz.plot import Plot, save_facets
-from dataviz.colors import CORNFLOWERBLUE, SEAGREEN, TOMATO, GOLD
-from dataviz.theme import Theme
+from dataviz.core.colors import CORNFLOWERBLUE, SEAGREEN, TOMATO, GOLD
+from dataviz.core.theme import Theme
 
 
 def main() raises:

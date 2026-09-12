@@ -4,9 +4,9 @@ from std.math import pi
 
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import categorical_palette_for
-from dataviz.mark import Mark
+from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.color_scale import categorical_palette_for
+from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -20,7 +20,7 @@ from dataviz.plot import (
     _require_non_negative,
     _require_some_positive,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def _render_radialbar[

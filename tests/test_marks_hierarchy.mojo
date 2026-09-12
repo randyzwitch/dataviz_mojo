@@ -10,10 +10,10 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.vector.svg import SvgCanvas
 from dataviz import arc_diagram, chord, graph, sankey, sunburst, tree, treemap
-from dataviz.color_scale import default_categorical_palette
+from dataviz.core.color_scale import default_categorical_palette
 from dataviz.continuous import _lighten
 from dataviz.plot import Plot, render, render_svg
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 

@@ -1,8 +1,8 @@
 """Apply `dark()`, including dark-compatible axes, annotations, tracks, and
 color scales."""
-from dataviz.colors import GOLD
+from dataviz.core.colors import GOLD
 from dataviz.plot import Plot, save
-from dataviz.themes import dark
+from dataviz.core.themes import dark
 
 
 def main() raises:

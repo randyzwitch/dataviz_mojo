@@ -3,7 +3,7 @@
 from std.testing import assert_equal, assert_raises, TestSuite
 from std.python import Python, PythonObject
 
-from dataviz.numpy_interop import _materialize_python_floats
+from dataviz.core.numpy_interop import _materialize_python_floats
 from dataviz.plot import Plot, render_svg
 
 

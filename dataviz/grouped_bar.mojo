@@ -3,11 +3,11 @@ from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 
 from canvas.text.render import TextAlign
-from dataviz.array_like import _materialize_nested_scalar_list
-from dataviz.color_scale import categorical_palette_for
+from dataviz.core.array_like import _materialize_nested_scalar_list
+from dataviz.core.color_scale import categorical_palette_for
 from dataviz.gantt import _draw_horizontal_categorical_axis_frame
-from dataviz.mark import Mark
-from dataviz.ordinal_scale import OrdinalScale
+from dataviz.core.mark import Mark
+from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -25,8 +25,8 @@ from dataviz.plot import (
     _require_non_empty,
     _zero_baseline_y_extent,
 )
-from dataviz.scale import LinearScale, _format_tick, _label_decimals
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
+from dataviz.core.theme import Theme
 
 
 def _validate_grouped_bar_series(plot: Plot) raises:

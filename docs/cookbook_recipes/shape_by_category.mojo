@@ -7,8 +7,8 @@ reads as one series per distinct glyph.
 """
 from canvas.color import Color
 from dataviz.plot import Plot, save
-from dataviz.colors import BLACK
-from dataviz.theme import Theme
+from dataviz.core.colors import BLACK
+from dataviz.core.theme import Theme
 
 
 def main() raises:

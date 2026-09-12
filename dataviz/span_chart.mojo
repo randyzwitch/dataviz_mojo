@@ -1,7 +1,7 @@
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
+from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -13,7 +13,7 @@ from dataviz.plot import (
     _require_non_empty,
     _span_tooltip_label,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def _render_span_chart[

@@ -2,7 +2,7 @@
 """Apply `minimal()` for tight margins and subdued axes, then hide the legend
 when the chart is already self-explanatory."""
 from dataviz.plot import Plot, save
-from dataviz.themes import minimal
+from dataviz.core.themes import minimal
 
 
 def main() raises:

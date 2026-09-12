@@ -4,8 +4,8 @@ and isolines show exact levels."""
 from std.math import cos, sin
 
 from dataviz.plot import Plot, save_layers
-from dataviz.theme import Theme
-from dataviz.colormaps import viridis
+from dataviz.core.theme import Theme
+from dataviz.core.colormaps import viridis
 
 
 def main() raises:

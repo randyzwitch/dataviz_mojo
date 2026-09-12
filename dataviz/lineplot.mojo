@@ -2,15 +2,15 @@
 line with a band for its uncertainty -- seaborn's `lineplot()`, and the
 reason that chart can take a dataset where a plain `line()` cannot."""
 
-from dataviz.array_like import _materialize_scalar_list
+from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import Plot, _finished
-from dataviz.stats import (
+from dataviz.core.stats import (
     ErrorBar,
     Estimator,
     _NumericAggregate,
     _aggregate_by_x,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def lineplot(

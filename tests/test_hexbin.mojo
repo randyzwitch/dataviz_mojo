@@ -12,7 +12,7 @@ from _test_helpers import _assert_same_canvas, _count_color, _count_tag
 from canvas.color import Color
 from dataviz.hexbin import _HexBins, _hexbin_bins, hexbin
 from dataviz.plot import render, render_svg
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 comptime _LO = Color(0, 0, 255)

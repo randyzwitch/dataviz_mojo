@@ -24,7 +24,7 @@ they are not one encoder to one mark:
 from std.testing import TestSuite, assert_raises, assert_true
 
 from dataviz import Theme
-from dataviz.mark import Mark
+from dataviz.core.mark import Mark
 from dataviz.plot import Plot, render
 
 
