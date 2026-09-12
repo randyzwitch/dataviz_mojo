@@ -326,6 +326,23 @@ struct _GanttData(Copyable, Movable):
         self.end = List[Float64]()
 
 
+struct _NightingaleData(Copyable, Movable):
+    """Which of ECharts' two `rose_type` radius formulas each wedge of a
+    `Mark.NIGHTINGALE` uses. See `mark_nightingale()`. Stored on
+    `Plot._nightingale`.
+
+    The wedge values themselves are `x_categories`/`y_data`, shared with
+    the other categorical marks, so this struct holds only the setting.
+    """
+
+    var area: Bool
+    """False scales a wedge's radius by `value / max` ("radius"); True
+    scales its area instead, `sqrt(value / max)` ("area")."""
+
+    def __init__(out self):
+        self.area = False
+
+
 struct _GroupedBarData(Copyable, Movable):
     """One name per series and one value per (series, category) pair, for
     `Mark.GROUPED_BAR`/`STACKED_BAR`/`BUMP`/`STREAMGRAPH`. See
@@ -340,10 +357,15 @@ struct _GroupedBarData(Copyable, Movable):
     `errors` wasn't given. `Mark.GROUPED_BAR` only, checked in
     `_validate_grouped_bar_series`."""
 
+    var percent: Bool
+    """`Mark.STACKED_BAR` only: normalize each category's segments to
+    sum to 100% (ggplot's `position="fill"`). See `mark_stacked_bar()`."""
+
     def __init__(out self):
         self.series_names = List[String]()
         self.values = List[List[Float64]]()
         self.errors = List[List[Float64]]()
+        self.percent = False
 
 
 struct _DistributionData(Copyable, Movable):
@@ -537,8 +559,9 @@ struct Plot(Copyable, Movable):
     own columns. The shared encoding channels many marks read (`x_data`/
     `y_data`/`x_categories`/`color_data`/`color_categories`/`size_data`/
     `y_err_*`/`color_map`/`point_labels`) stay ungrouped, as do the
-    single settings (`_mark`/`_theme`/`_secondary_axis`/
-    `_nightingale_area`, ...).
+    settings every mark shares (`_mark`/`_theme`/`_secondary_axis`/
+    `_horizontal`, ...). A setting only one mark reads belongs in that
+    mark's struct, not here (#522).
 
     `Copyable`, not `ImplicitlyCopyable`: every field is a plain
     data column or a small settings struct, so a member-wise copy is
@@ -577,8 +600,6 @@ struct Plot(Copyable, Movable):
     var _hexbin: _HexbinData
     var _stream: _StreamData
     var _histogram: _HistogramData
-    var _quiver_scale: Float64
-    var _quiver_color_by_magnitude: Bool
     var _candle: _CandleData
     var _bullet: _BulletData
     var _gantt: _GanttData
@@ -587,13 +608,7 @@ struct Plot(Copyable, Movable):
     var _heatmap: _HeatmapData
     var _edges: _EdgeData
     var _distribution: _DistributionData
-    # Mark.NIGHTINGALE only: which of ECharts' two `rose_type` radius
-    # formulas each wedge uses (False = "radius", True = "area"). See
-    # mark_nightingale().
-    var _nightingale_area: Bool
-    # Mark.STACKED_BAR only: normalize each category's segments to sum to
-    # 100% (ggplot's position="fill"). See mark_stacked_bar().
-    var _stacked_bar_percent: Bool
+    var _nightingale: _NightingaleData
     var _polar: _PolarData
     var _radar: _RadarData
     var _gauge: _GaugeData
@@ -663,8 +678,6 @@ struct Plot(Copyable, Movable):
         self._hexbin = _HexbinData()
         self._stream = _StreamData()
         self._histogram = _HistogramData()
-        self._quiver_scale = 0.0
-        self._quiver_color_by_magnitude = False
         self._candle = _CandleData()
         self._bullet = _BulletData()
         self._gantt = _GanttData()
@@ -673,8 +686,7 @@ struct Plot(Copyable, Movable):
         self._heatmap = _HeatmapData()
         self._edges = _EdgeData()
         self._distribution = _DistributionData()
-        self._nightingale_area = False
-        self._stacked_bar_percent = False
+        self._nightingale = _NightingaleData()
         self._polar = _PolarData()
         self._radar = _RadarData()
         self._gauge = _GaugeData()
@@ -850,7 +862,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.NIGHTINGALE
-        self._nightingale_area = area
+        self._nightingale.area = area
         return self^
 
     def mark_polar_bar(var self, padding: Float64 = 0.2) -> Self:
@@ -1125,8 +1137,8 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.QUIVER
-        self._quiver_scale = scale
-        self._quiver_color_by_magnitude = color_by_magnitude
+        self._barbs.scale = scale
+        self._barbs.color_by_magnitude = color_by_magnitude
         return self^
 
     def mark_contour(var self, levels: Int = 8) -> Self:
@@ -1389,7 +1401,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.STACKED_BAR
-        self._stacked_bar_percent = percent
+        self._grouped_bar.percent = percent
         self._horizontal = horizontal
         return self^
 

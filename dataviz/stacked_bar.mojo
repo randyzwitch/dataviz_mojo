@@ -36,7 +36,7 @@ def _stacked_bar_domain(plot: Plot, n_series: Int) raises -> LinearScale:
     positive and negative running totals, the most extreme point each
     direction reaches.
     """
-    if plot._stacked_bar_percent:
+    if plot._grouped_bar.percent:
         return LinearScale(0.0, 100.0, 0.0, 1.0)
     var domain_data = List[Float64]()
     for i in range(len(plot.x_categories)):
@@ -56,7 +56,7 @@ def _stacked_bar_domain(plot: Plot, n_series: Int) raises -> LinearScale:
 def _validate_stacked_bar_percent(plot: Plot, n_series: Int) raises:
     """`percent=True` needs every value non-negative -- a negative
     share has no meaning. Orientation-independent."""
-    if not plot._stacked_bar_percent:
+    if not plot._grouped_bar.percent:
         return
     for j in range(n_series):
         for v in plot._grouped_bar.values[j]:
@@ -112,7 +112,7 @@ def _draw_stacked_segments[
         # all-zero category gets a 0.0 factor and draws an empty column rather
         # than NaN.
         var scale_factor = 1.0
-        if plot._stacked_bar_percent:
+        if plot._grouped_bar.percent:
             var category_total = 0.0
             for j in range(n_series):
                 category_total += plot._grouped_bar.values[j][i]

@@ -76,7 +76,7 @@ def _render_nightingale[
         var end = start + span
         var frac = plot.y_data[i] / max_v
         var radius = max_radius * (
-            sqrt(frac) if plot._nightingale_area else frac
+            sqrt(frac) if plot._nightingale.area else frac
         )
         var color = palette[i % len(palette)]
         target.fill_arc_aa(cx, cy, radius, start, end, color)
