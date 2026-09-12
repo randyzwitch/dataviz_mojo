@@ -35,6 +35,17 @@
 # measured alone (#536); cold AND under full load is not measured, and
 # is plausibly the real worst case. An hour leaves room for it.
 #
+# Two separate claims, and only the first is established. The reasoning
+# above says the limit goes high rather than low. The hour itself is a
+# round number chosen to sit well clear of what was measured, not
+# derived from anything, and its headroom is untested against the two
+# cases nobody has measured: cold under load here, and CI, which runs
+# on `ubuntu-latest` at a width of 2 to 4 where each module gets most
+# of a core and the figures above do not apply at all.
+#
+# So a real module tripping this limit is a false failure to fix by
+# raising it, not a finding about the module.
+#
 # Override with MOJO_MODULE_TIMEOUT (seconds); 0 disables it. CI, where
 # a cold environment is not in play, can set something far tighter.
 set -euo pipefail
