@@ -6,7 +6,7 @@ from canvas.vector.draw_target import DrawTarget
 from canvas.text.render import TextAlign
 
 from dataviz.plot import Plot, _RenderResult, _Scaled, _TextRequest, _finished
-from dataviz.polar import _polar_point
+from dataviz.radial.polar import _polar_point
 from dataviz.core.scale import _format_fixed
 from dataviz.core.theme import Theme
 

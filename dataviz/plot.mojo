@@ -218,12 +218,12 @@ from dataviz.core.theme import Theme
 from dataviz.core.x_label_rotation import XAxisLabelRotation
 
 from dataviz.basic.arc import _render_arc
-from dataviz.nightingale import _render_nightingale
-from dataviz.polar import _render_polar
-from dataviz.polar_bar import _render_polar_bar
-from dataviz.gauge import _render_gauge
+from dataviz.radial.nightingale import _render_nightingale
+from dataviz.radial.polar import _render_polar
+from dataviz.radial.polar_bar import _render_polar_bar
+from dataviz.radial.gauge import _render_gauge
 from dataviz.parallel import _render_parallel
-from dataviz.radar import _render_radar
+from dataviz.radial.radar import _render_radar
 from dataviz.basic.bar import (
     _render_bar,
     _render_horizontal_bar,
@@ -255,9 +255,9 @@ from dataviz.distributions.candlestick import _CandleData
 from dataviz.categorical.bullet import _BulletData
 from dataviz.categorical.population_pyramid import _PyramidData
 from dataviz.heatmap import _HeatmapData
-from dataviz.polar import _PolarData
-from dataviz.radar import _RadarData
-from dataviz.gauge import _GaugeData
+from dataviz.radial.polar import _PolarData
+from dataviz.radial.radar import _RadarData
+from dataviz.radial.gauge import _GaugeData
 from dataviz.parallel import _ParallelData
 from dataviz.calendar_heatmap import _CalendarData
 from dataviz.corrplot import _CorrplotData
@@ -305,7 +305,7 @@ from dataviz.treemap import _render_treemap
 from dataviz.relationships.arc_diagram import _render_arc_diagram
 from dataviz.relationships.graph import _render_graph
 from dataviz.relationships.sankey import _render_sankey
-from dataviz.radialbar import _render_radialbar
+from dataviz.radial.radialbar import _render_radialbar
 from dataviz.binned.histogram import (
     BinRule,
     HistogramBins,
