@@ -153,3 +153,87 @@ The harness checks which tree is checked out before each timed build, by
 grepping for a declaration that exists only on the branch, and refuses to
 record a time if the build failed or produced no binary. A failed build is
 fast, and a fast failure reads as a speedup.
+
+### Deleting the bulk-marker gate, on canvas_mojo v0.33.3 (2026-09-12)
+
+AMD Threadripper 3970X, Linux, Mojo 1.0.0, 800x600, default theme, median
+of 9 renders per pass, three passes, **each side in its own process**.
+Byte-identity asserted on every mark before anything was timed, with
+timings withheld for any mismatch; none mismatched.
+
+Separate processes on purpose. The two-step allocates a canvas `factor`
+times larger every iteration and the region does not, so interleaving them
+lets each side shape the allocator state the other sees. canvas_mojo
+measured that inflating the same ratio from 1.20x to 1.41x.
+
+Region against the two-step recipe it replaces:
+
+| mark | factor | speedup, 3 passes |
+| --- | --- | --- |
+| scatter, 24 points | 3 | 1.91 - 1.95x |
+| pie | 3 | 1.87 - 2.06x |
+| contourf | 3 | 1.69 - 1.84x |
+| scatter, 2000 points | 3 | 1.50 - 1.63x |
+| line | 1 | 0.98 - 1.08x |
+| bar | 1 | 1.00 - 1.06x |
+
+**What actually changed for callers** is narrower than that table, because
+every mark except scatter already took the region before this. Comparing
+what `render()` did on v0.33.2 against what it does now, same harness, same
+night:
+
+| mark | v0.33.2 | v0.33.3 |
+| --- | --- | --- |
+| scatter, 24 points | 6.05 - 6.68 ms | 3.20 - 3.23 ms |
+| scatter, 2000 points | 7.28 - 7.71 ms | 4.77 - 4.83 ms |
+| pie | 3.26 - 3.46 ms | 3.44 - 3.53 ms |
+| contourf | 6.47 - 7.55 ms | 7.03 - 7.12 ms |
+| line | 1.59 - 1.67 ms | 1.60 - 1.70 ms |
+| bar | 1.64 - 1.69 ms | 1.65 - 1.72 ms |
+
+So a scatter got roughly twice as fast and nothing else moved measurably.
+
+#### Two predictions of mine that were wrong
+
+**I expected the end-to-end figure to come in below canvas_mojo's 1.20x**,
+reasoning that their scene is markers under a clip with no axis frame,
+ticks, labels or legend, so the fixed work a real chart does either way
+would dilute the gain. It came in higher, 1.91x.
+
+Density is most of it, tested rather than assumed: a 2000-point scatter
+falls to 1.50 - 1.63x. With few markers the fixed
+allocate-and-downsample cost dominates, so avoiding it wins by more; with
+many, marker drawing dominates and the saving is proportionally smaller.
+
+The rest was the figure I was comparing against. canvas_mojo re-ran their
+published harness after seeing this and found 1.20x was one sample from a
+variable arm: eight paired runs give 1.08 to 1.54x, median about 1.25x,
+with both published runs near the low end. Almost all the movement is in
+the two-step arm, which allocates and downsamples a 4.3-megapixel buffer
+every pass; the region arm stayed at 3,042 to 3,458 microseconds
+throughout.
+
+They also swept marker count on their own scene, which shares none of this
+package's axis frame, ticks or legend: 100 markers 2.21 and 1.98x, 500
+markers 1.80 and 1.79x, 2000 markers 1.47 and 1.42x, 8000 markers 1.13 and
+1.17x. So the density mechanism reproduces independently, and the 1.50 -
+1.63x measured here at 2000 points sits inside their range rather than
+above it.
+
+The two numbers still should not be quoted against each other, since a
+whole chart is not markers under a clip. They no longer disagree, which is
+a different and weaker claim than agreeing.
+
+**A first look said pie had regressed on v0.33.3**, 3.255 ms against
+3.44 - 3.53. That was one control sample against three. Three control
+passes give 3.26 - 3.46 ms, which overlaps, and the regression
+disappeared.
+
+#### Why the earlier table is not comparable
+
+The v0.33.2 entry above records pie at 2.36 - 2.60x where this one records
+1.87 - 2.06x. That is not a change in the library. Both sides were slower
+the night that table was taken (pie two-step 9.22 ms there against
+6.6 - 7.2 ms here), so the machine was in a different state. Ratios from
+different sessions should not be compared; only rows taken under one
+harness on one night are.
