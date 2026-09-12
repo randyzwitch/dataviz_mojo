@@ -241,10 +241,10 @@ from dataviz.distributions.violin import (
 )
 from dataviz.categorical.waterfall import _WaterfallData
 from dataviz.distributions.box import _BoxData
-from dataviz.hexbin import _HexbinData, _render_hexbin
+from dataviz.binned.hexbin import _HexbinData, _render_hexbin
 from dataviz.quiver import _render_quiver
 from dataviz.streamplot import _StreamData, _render_streamplot
-from dataviz.hist2d import _hist2d_counts
+from dataviz.binned.hist2d import _hist2d_counts
 from dataviz.distributions.boxen import (
     _BoxenData,
     _letter_values,
@@ -306,7 +306,7 @@ from dataviz.arc_diagram import _render_arc_diagram
 from dataviz.graph import _render_graph
 from dataviz.sankey import _render_sankey
 from dataviz.radialbar import _render_radialbar
-from dataviz.histogram import (
+from dataviz.binned.histogram import (
     BinRule,
     HistogramBins,
     _HistogramData,
