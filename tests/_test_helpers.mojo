@@ -404,7 +404,7 @@ def _runs_in_row(c: Canvas, y: Int, color: Color) -> Int:
 
 
 def _assert_same_canvas(a: Canvas, b: Canvas, label: String) raises:
-    """Every pixel of `a` matches `b`.
+    """Every pixel of `a` matches `b`, alpha included.
 
     For a sentinel check -- "passing the default explicitly changes
     nothing" -- where the claim is that two renders are identical, not
@@ -425,7 +425,7 @@ def _assert_same_canvas(a: Canvas, b: Canvas, label: String) raises:
         for x in range(a.width):
             var p = a.get_pixel(x, y)
             var q = b.get_pixel(x, y)
-            if p.r != q.r or p.g != q.g or p.b != q.b:
+            if p.r != q.r or p.g != q.g or p.b != q.b or p.a != q.a:
                 assert_true(
                     False,
                     label
@@ -439,12 +439,16 @@ def _assert_same_canvas(a: Canvas, b: Canvas, label: String) raises:
                     + String(p.g)
                     + ","
                     + String(p.b)
+                    + ","
+                    + String(p.a)
                     + ") vs ("
                     + String(q.r)
                     + ","
                     + String(q.g)
                     + ","
                     + String(q.b)
+                    + ","
+                    + String(q.a)
                     + ")",
                 )
 
