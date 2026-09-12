@@ -230,22 +230,28 @@ from dataviz.basic.bar import (
     _draw_bar_rects,
     _bar_y_domain_data,
 )
-from dataviz.beeswarm import _render_beeswarm, _render_horizontal_beeswarm
-from dataviz.ridgeline import _render_ridgeline
-from dataviz.violin import _render_violin, _render_horizontal_violin
+from dataviz.distributions.beeswarm import (
+    _render_beeswarm,
+    _render_horizontal_beeswarm,
+)
+from dataviz.distributions.ridgeline import _render_ridgeline
+from dataviz.distributions.violin import (
+    _render_violin,
+    _render_horizontal_violin,
+)
 from dataviz.categorical.waterfall import _WaterfallData
-from dataviz.box import _BoxData
+from dataviz.distributions.box import _BoxData
 from dataviz.hexbin import _HexbinData, _render_hexbin
 from dataviz.quiver import _render_quiver
 from dataviz.streamplot import _StreamData, _render_streamplot
 from dataviz.hist2d import _hist2d_counts
-from dataviz.boxen import (
+from dataviz.distributions.boxen import (
     _BoxenData,
     _letter_values,
     _render_boxenplot,
     _render_horizontal_boxenplot,
 )
-from dataviz.candlestick import _CandleData
+from dataviz.distributions.candlestick import _CandleData
 from dataviz.categorical.bullet import _BulletData
 from dataviz.categorical.population_pyramid import _PyramidData
 from dataviz.heatmap import _HeatmapData
@@ -264,9 +270,13 @@ from dataviz.triplot import _TriplotData
 from dataviz.marimekko import _MarimekkoData
 from dataviz.edges import _EdgeData
 from dataviz.hierarchy import _HierarchyData
-from dataviz.box import _box_stats, _render_box, _render_horizontal_box
+from dataviz.distributions.box import (
+    _box_stats,
+    _render_box,
+    _render_horizontal_box,
+)
 from dataviz.categorical.bullet import _render_bullet
-from dataviz.candlestick import _render_candlestick
+from dataviz.distributions.candlestick import _render_candlestick
 from dataviz.categorical.gantt import _render_gantt
 from dataviz.categorical.span_chart import _render_span_chart
 from dataviz.categorical.bump import _render_bump
@@ -283,9 +293,9 @@ from dataviz.punchcard import _render_punchcard
 from dataviz.barbs import _render_barbs
 from dataviz.contour import _render_contour, _render_contourf
 from dataviz.image import _render_image
-from dataviz.kde import _render_kde, _render_rug
-from dataviz.ecdf import _render_ecdf
-from dataviz.eventplot import _render_eventplot
+from dataviz.distributions.kde import _render_kde, _render_rug
+from dataviz.distributions.ecdf import _render_ecdf
+from dataviz.distributions.eventplot import _render_eventplot
 from dataviz.tricontour import _render_tricontour, _render_tricontourf
 from dataviz.triplot import _render_tripcolor, _render_triplot
 from dataviz.marimekko import _render_marimekko

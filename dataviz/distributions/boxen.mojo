@@ -7,7 +7,7 @@ from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_nested_scalar_list
-from dataviz.box import _percentile
+from dataviz.distributions.box import _percentile
 from dataviz.core.color_scale import ColorScale
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.core.ordinal_scale import OrdinalScale

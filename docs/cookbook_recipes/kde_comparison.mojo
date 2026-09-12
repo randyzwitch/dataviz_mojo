@@ -2,7 +2,7 @@
 """Layer two KDE curves and a rug on one shared density axis for direct
 comparison."""
 from dataviz.core.colors import CORNFLOWERBLUE, TOMATO
-from dataviz.kde import kdeplot, rugplot
+from dataviz.distributions.kde import kdeplot, rugplot
 from dataviz.plot import Plot, save_layers
 from dataviz.core.theme import Theme
 

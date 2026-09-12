@@ -55,8 +55,8 @@ from dataviz.core.frame import (
     _draw_continuous_axis_frame,
     _with_secondary_axis,
 )
-from dataviz.ecdf import _draw_ecdf_layer, _ecdf_points
-from dataviz.kde import (
+from dataviz.distributions.ecdf import _draw_ecdf_layer, _ecdf_points
+from dataviz.distributions.kde import (
     _draw_kde_layer,
     _draw_rug_ticks,
     _kde_curve,

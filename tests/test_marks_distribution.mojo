@@ -36,8 +36,8 @@ from dataviz import (
 )
 from dataviz.core.color_scale import default_categorical_palette
 from dataviz.core.frame import _draw_continuous_axis_frame
-from dataviz.ecdf import _ecdf_points, _ecdf_step_style
-from dataviz.kde import _kde_curve
+from dataviz.distributions.ecdf import _ecdf_points, _ecdf_step_style
+from dataviz.distributions.kde import _kde_curve
 from dataviz.core.legend import _LegendLayout
 from dataviz.layers import render_layers
 from dataviz.plot import Plot, render, render_svg

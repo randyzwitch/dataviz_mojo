@@ -9,7 +9,11 @@ from std.testing import (
 )
 
 from _test_helpers import _count_tag
-from dataviz.boxen import _letter_value_depth, _letter_values, boxenplot
+from dataviz.distributions.boxen import (
+    _letter_value_depth,
+    _letter_values,
+    boxenplot,
+)
 from dataviz.plot import render_svg
 
 
