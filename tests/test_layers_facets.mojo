@@ -44,9 +44,9 @@ from dataviz.barbs import barbs
 from dataviz.basic.continuous import line, scatter
 from dataviz.contour import contour
 from dataviz.basic.effect_scatter import effect_scatter
-from dataviz.ecdf import _ecdf_points, ecdf
+from dataviz.distributions.ecdf import _ecdf_points, ecdf
 from dataviz.histogram import HistStat, histogram, shared_bin_edges
-from dataviz.kde import kdeplot, rugplot
+from dataviz.distributions.kde import kdeplot, rugplot
 from dataviz.tricontour import tricontour, tricontourf
 from dataviz.triplot import tripcolor, triplot
 from std.math import cos, sin

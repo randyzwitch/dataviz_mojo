@@ -8,7 +8,7 @@ show that the numbers reached the glyph.
 
 from std.math import sqrt
 
-from dataviz.box import _percentile
+from dataviz.distributions.box import _percentile
 
 
 struct _OlsFit(Copyable, Movable):

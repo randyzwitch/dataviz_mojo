@@ -38,13 +38,13 @@ from dataviz.basic.bar import bar
 from dataviz.barbs import barbs
 from dataviz.quiver import quiver
 from dataviz.streamplot import streamplot
-from dataviz.beeswarm import beeswarm
-from dataviz.box import box
-from dataviz.boxen import boxenplot
+from dataviz.distributions.beeswarm import beeswarm
+from dataviz.distributions.box import box
+from dataviz.distributions.boxen import boxenplot
 from dataviz.categorical.bullet import bullet
-from dataviz.candlestick import candlestick
+from dataviz.distributions.candlestick import candlestick
 from dataviz.contour import contour, contourf
-from dataviz.ecdf import ecdf
+from dataviz.distributions.ecdf import ecdf
 from dataviz.residplot import residplot
 from dataviz.barplot import barplot, countplot
 from dataviz.lineplot import lineplot
@@ -53,7 +53,7 @@ from dataviz.core.stats import ErrorBar, Estimator
 from dataviz.image import imshow, pcolormesh
 from dataviz.hist2d import hist2d
 from dataviz.hexbin import hexbin
-from dataviz.kde import kdeplot, rugplot
+from dataviz.distributions.kde import kdeplot, rugplot
 from dataviz.tricontour import tricontour, tricontourf
 from dataviz.triplot import tripcolor, triplot
 from dataviz.chord import chord
@@ -61,7 +61,7 @@ from dataviz.arc_diagram import arc_diagram
 from dataviz.graph import graph
 from dataviz.sankey import sankey
 from dataviz.basic.effect_scatter import effect_scatter
-from dataviz.eventplot import eventplot
+from dataviz.distributions.eventplot import eventplot
 from dataviz.categorical.bump import bump
 from dataviz.categorical.funnel import funnel
 from dataviz.categorical.gantt import gantt
@@ -89,6 +89,6 @@ from dataviz.basic.single_axis import single_axis
 from dataviz.categorical.stacked_bar import stacked_bar
 from dataviz.core.stack_baseline import StackBaseline
 from dataviz.categorical.streamgraph import stacked_area, streamgraph
-from dataviz.ridgeline import ridgeline
-from dataviz.violin import violin
+from dataviz.distributions.ridgeline import ridgeline
+from dataviz.distributions.violin import violin
 from dataviz.categorical.waterfall import waterfall

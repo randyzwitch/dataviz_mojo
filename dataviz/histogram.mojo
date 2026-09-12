@@ -23,7 +23,7 @@ from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.pixel_snap import _snap_pixel_edge
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
-from dataviz.box import _percentile
+from dataviz.distributions.box import _percentile
 from dataviz.plot import Plot, _finished, _push_plot_clip
 from dataviz.core.scale import _format_fixed, _min_max
 from dataviz.core.step_style import StepStyle

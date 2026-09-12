@@ -16,7 +16,7 @@ from dataviz.plot import (
     _finished,
 )
 from dataviz.core.theme import Theme
-from dataviz.kde import _KDE_SAMPLES, _kde_bandwidth, _kde_density
+from dataviz.distributions.kde import _KDE_SAMPLES, _kde_bandwidth, _kde_density
 
 
 def _render_ridgeline[

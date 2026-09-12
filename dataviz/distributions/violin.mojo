@@ -7,7 +7,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
-from dataviz.kde import _KDE_SAMPLES, _kde_bandwidth, _kde_density
+from dataviz.distributions.kde import _KDE_SAMPLES, _kde_bandwidth, _kde_density
 from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import (
     Plot,
