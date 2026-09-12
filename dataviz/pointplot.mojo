@@ -7,7 +7,7 @@ from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
-from dataviz.bar import _bar_y_domain_data
+from dataviz.basic.bar import _bar_y_domain_data
 from dataviz.plot import (
     Plot,
     _RenderResult,

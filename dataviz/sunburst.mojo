@@ -8,7 +8,7 @@ from dataviz.core.array_like import _materialize_scalar_list
 from std.math import cos, sin
 
 from dataviz.core.color_scale import categorical_palette_for
-from dataviz.continuous import _lighten
+from dataviz.basic.continuous import _lighten
 from dataviz.hierarchy import _HierarchyIndex, _build_hierarchy_index
 from dataviz.core.mark import Mark
 from dataviz.plot import (

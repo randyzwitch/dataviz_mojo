@@ -3,7 +3,7 @@
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.continuous import (
+from dataviz.basic.continuous import (
     _build_line_path,
     _decimate_to_pixel_columns,
     _step_points,

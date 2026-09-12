@@ -55,17 +55,17 @@ struct ExamplePage(Copyable, Movable):
 
 def _pages() -> List[ExamplePage]:
     return [
-        ExamplePage("scatter", "continuous", "scatter"),
-        ExamplePage("line", "continuous", "line"),
-        ExamplePage("slope", "continuous", "line", block="Slope Chart"),
-        ExamplePage("step", "continuous", "line", block="Step Chart"),
-        ExamplePage("line_time", "continuous", "line", block="Time Axis"),
-        ExamplePage("area", "continuous", "area"),
+        ExamplePage("scatter", "basic/continuous", "scatter"),
+        ExamplePage("line", "basic/continuous", "line"),
+        ExamplePage("slope", "basic/continuous", "line", block="Slope Chart"),
+        ExamplePage("step", "basic/continuous", "line", block="Step Chart"),
+        ExamplePage("line_time", "basic/continuous", "line", block="Time Axis"),
+        ExamplePage("area", "basic/continuous", "area"),
         ExamplePage(
-            "step_area", "continuous", "area", block="Stepped Area Chart"
+            "step_area", "basic/continuous", "area", block="Stepped Area Chart"
         ),
-        ExamplePage("bar", "bar", "bar"),
-        ExamplePage("pie", "arc", "pie"),
+        ExamplePage("bar", "basic/bar", "bar"),
+        ExamplePage("pie", "basic/arc", "pie"),
         ExamplePage("lollipop", "lollipop", "lollipop"),
         ExamplePage("waterfall", "waterfall", "waterfall"),
         ExamplePage("box", "box", "box"),
@@ -78,8 +78,8 @@ def _pages() -> List[ExamplePage]:
         ),
         ExamplePage("heatmap", "heatmap", "heatmap"),
         ExamplePage("chord", "chord", "chord"),
-        ExamplePage("single_axis", "single_axis", "single_axis"),
-        ExamplePage("effect_scatter", "effect_scatter", "effect_scatter"),
+        ExamplePage("single_axis", "basic/single_axis", "single_axis"),
+        ExamplePage("effect_scatter", "basic/effect_scatter", "effect_scatter"),
         ExamplePage("eventplot", "eventplot", "eventplot"),
         ExamplePage("funnel", "funnel", "funnel"),
         ExamplePage("bump", "bump", "bump"),

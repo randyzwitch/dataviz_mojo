@@ -41,9 +41,9 @@ from canvas.path import PathOp
 from dataviz import LineStyle, StepStyle
 from dataviz.core.color_scale import default_categorical_palette
 from dataviz.barbs import barbs
-from dataviz.continuous import line, scatter
+from dataviz.basic.continuous import line, scatter
 from dataviz.contour import contour
-from dataviz.effect_scatter import effect_scatter
+from dataviz.basic.effect_scatter import effect_scatter
 from dataviz.ecdf import _ecdf_points, ecdf
 from dataviz.histogram import HistStat, histogram, shared_bin_edges
 from dataviz.kde import kdeplot, rugplot

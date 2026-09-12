@@ -33,8 +33,8 @@ from dataviz.plot import (
 )
 
 # One-call chart functions defined in their mark modules.
-from dataviz.arc import pie
-from dataviz.bar import bar
+from dataviz.basic.arc import pie
+from dataviz.basic.bar import bar
 from dataviz.barbs import barbs
 from dataviz.quiver import quiver
 from dataviz.streamplot import streamplot
@@ -60,7 +60,7 @@ from dataviz.chord import chord
 from dataviz.arc_diagram import arc_diagram
 from dataviz.graph import graph
 from dataviz.sankey import sankey
-from dataviz.effect_scatter import effect_scatter
+from dataviz.basic.effect_scatter import effect_scatter
 from dataviz.eventplot import eventplot
 from dataviz.bump import bump
 from dataviz.funnel import funnel
@@ -85,7 +85,7 @@ from dataviz.gauge import gauge
 from dataviz.parallel import parallel
 from dataviz.radar import radar
 from dataviz.population_pyramid import population_pyramid
-from dataviz.single_axis import single_axis
+from dataviz.basic.single_axis import single_axis
 from dataviz.stacked_bar import stacked_bar
 from dataviz.core.stack_baseline import StackBaseline
 from dataviz.streamgraph import stacked_area, streamgraph

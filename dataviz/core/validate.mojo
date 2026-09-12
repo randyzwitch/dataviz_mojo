@@ -2,7 +2,12 @@
 
 from std.math import log10
 
-from dataviz.continuous import _draw_area_layer, _draw_line_layer, area, line
+from dataviz.basic.continuous import (
+    _draw_area_layer,
+    _draw_line_layer,
+    area,
+    line,
+)
 from dataviz.layers import _render_layers_generic, render_layers
 from dataviz.core.mark import Mark
 from dataviz.plot import (
