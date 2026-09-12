@@ -94,6 +94,7 @@ from dataviz.color_scale import (
 from dataviz.marker import PointShape, _fill_shape_aa, default_marker_shapes
 from dataviz.pixel_snap import _snap_pixel_center, _snap_pixel_edge
 from dataviz.continuous import (
+    _draws_bulk_markers,
     _Decimated,
     _PointChannels,
     _build_line_path,
@@ -4773,20 +4774,38 @@ def render(plot: Plot) raises -> Canvas:
     first.
     """
     var factor = _resolve_supersample(plot, "render")
-    var scratch = Canvas(
-        plot.width * factor, plot.height * factor, plot._theme.background
-    )
-    # The half-pixel that box-downsampling costs: downsample() averages
-    # the device block f*p .. f*p+f-1 into output pixel p, whose center
-    # sits at user coordinate p + (f-1)/(2f). Scaling alone therefore
-    # lands everything (f-1)/(2f) px early -- 0.25 at factor 2, 0.333 at
-    # 3, 0.375 at 4 -- so the origin shifts by (f-1)/2 device px first.
-    scratch.translate(Float64(factor - 1) / 2.0, Float64(factor - 1) / 2.0)
-    scratch.scale(Float64(factor), Float64(factor))
-    # Logical bounds, not the scratch canvas's own: every coordinate
-    # below is in user space now, and the transform maps it up.
-    _render_into(scratch, plot, 0, 0, plot.width, plot.height)
-    return downsample(scratch, factor)
+    # A plot that batches its markers keeps the two-step recipe: the
+    # bulk call is one of the primitives a region cannot record, so the
+    # region would materialize the enlarged buffer and pay for banding
+    # it never gets. Measured at 0.80 to 0.88x there, against 2.4x for
+    # pie and 1.8x for a filled contour, which is why this is a per-plot
+    # choice rather than one setting for the package
+    # (benchmarks/METHODOLOGY.md; canvas_mojo#414 would remove it).
+    #
+    # Only above factor 1. At factor 1 there is nothing to trade: the
+    # region is a no-op, while the two-step still allocates a same-size
+    # scratch and runs `downsample(c, 1)` over every pixel to copy it
+    # back. A caller who sets `raster_supersample=1` on a scatter would
+    # otherwise pay that for nothing.
+    if factor > 1 and _draws_bulk_markers(plot):
+        var scratch = Canvas(
+            plot.width * factor, plot.height * factor, plot._theme.background
+        )
+        # The half-pixel box downsampling costs; see `downsample`.
+        scratch.translate(Float64(factor - 1) / 2.0, Float64(factor - 1) / 2.0)
+        scratch.scale(Float64(factor), Float64(factor))
+        _render_into(scratch, plot, 0, 0, plot.width, plot.height)
+        return downsample(scratch, factor)
+
+    var out = Canvas(plot.width, plot.height, plot._theme.background)
+    # `begin_supersampled` owns the half-pixel shift box downsampling
+    # costs and the scale, and replays the recorded shapes one output
+    # band at a time, so the enlarged buffer never exists whole. Byte
+    # identical to the two-step recipe it replaces (canvas_mojo#391).
+    out.begin_supersampled(factor, plot._theme.background)
+    _render_into(out, plot, 0, 0, plot.width, plot.height)
+    out.end_supersampled()
+    return out^
 
 
 def _render_into(

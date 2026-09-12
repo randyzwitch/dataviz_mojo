@@ -147,16 +147,12 @@ def render_facets(
         var f = _resolve_supersample(plots[i], "render_facets")
         if f > factor:
             factor = f
-    var canvas = Canvas(
-        cols * plots[0].width * factor, rows * plots[0].height * factor
-    )
-    # The half-pixel that box-downsampling costs: downsample() averages
-    # the device block f*p .. f*p+f-1 into output pixel p, whose center
-    # sits at user coordinate p + (f-1)/(2f). Scaling alone therefore
-    # lands everything (f-1)/(2f) px early -- 0.25 at factor 2, 0.333 at
-    # 3, 0.375 at 4 -- so the origin shifts by (f-1)/2 device px first.
-    canvas.translate(Float64(factor - 1) / 2.0, Float64(factor - 1) / 2.0)
-    canvas.scale(Float64(factor), Float64(factor))
+    var canvas = Canvas(cols * plots[0].width, rows * plots[0].height)
+    # `begin_supersampled` owns the half-pixel shift box downsampling
+    # costs and the scale, and replays the recorded shapes one output
+    # band at a time, so the enlarged buffer never exists whole. Byte
+    # identical to the two-step recipe it replaces (canvas_mojo#391).
+    canvas.begin_supersampled(factor)
     # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
     # Logical figure bounds, not the scratch canvas's: the transform maps
@@ -171,7 +167,8 @@ def render_facets(
         cache=cache,
     )
     _replay_text_requests(canvas, text_requests, cache)
-    return downsample(canvas, factor)
+    canvas.end_supersampled()
+    return canvas^
 
 
 def render_facets_svg(

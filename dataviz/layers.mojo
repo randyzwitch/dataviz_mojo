@@ -221,14 +221,12 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
         var f = _resolve_supersample(plots[i], "render_layers")
         if f > factor:
             factor = f
-    var canvas = Canvas(plots[0].width * factor, plots[0].height * factor)
-    # The half-pixel that box-downsampling costs: downsample() averages
-    # the device block f*p .. f*p+f-1 into output pixel p, whose center
-    # sits at user coordinate p + (f-1)/(2f). Scaling alone therefore
-    # lands everything (f-1)/(2f) px early -- 0.25 at factor 2, 0.333 at
-    # 3, 0.375 at 4 -- so the origin shifts by (f-1)/2 device px first.
-    canvas.translate(Float64(factor - 1) / 2.0, Float64(factor - 1) / 2.0)
-    canvas.scale(Float64(factor), Float64(factor))
+    var canvas = Canvas(plots[0].width, plots[0].height)
+    # `begin_supersampled` owns the half-pixel shift box downsampling
+    # costs and the scale, and replays the recorded shapes one output
+    # band at a time, so the enlarged buffer never exists whole. Byte
+    # identical to the two-step recipe it replaces (canvas_mojo#391).
+    canvas.begin_supersampled(factor)
     # Logical bounds; the transform maps them up. See render().
     var cx1 = plots[0].width
     var cy1 = plots[0].height
@@ -281,7 +279,8 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
         )
     _replay_text_requests(canvas, label_requests, cache)
     _replay_text_requests(canvas, result.text_requests, cache)
-    return downsample(canvas, factor)
+    canvas.end_supersampled()
+    return canvas^
 
 
 def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
