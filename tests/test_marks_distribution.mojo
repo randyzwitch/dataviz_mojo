@@ -34,16 +34,16 @@ from dataviz import (
     streamgraph,
     violin,
 )
-from dataviz.color_scale import default_categorical_palette
-from dataviz.frame import _draw_continuous_axis_frame
+from dataviz.core.color_scale import default_categorical_palette
+from dataviz.core.frame import _draw_continuous_axis_frame
 from dataviz.ecdf import _ecdf_points, _ecdf_step_style
 from dataviz.kde import _kde_curve
-from dataviz.legend import _LegendLayout
+from dataviz.core.legend import _LegendLayout
 from dataviz.layers import render_layers
 from dataviz.plot import Plot, render, render_svg
-from dataviz.scale import LinearScale
-from dataviz.stack_baseline import StackBaseline
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale
+from dataviz.core.stack_baseline import StackBaseline
+from dataviz.core.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 

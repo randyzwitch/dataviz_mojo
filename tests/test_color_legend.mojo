@@ -20,7 +20,7 @@ from std.testing import TestSuite, assert_equal, assert_true
 from _test_helpers import _attr_values, _count_tag
 from dataviz import contour, contourf
 from dataviz.plot import Plot, render_svg
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def _grid() -> List[List[Float64]]:

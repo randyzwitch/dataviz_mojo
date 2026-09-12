@@ -88,8 +88,8 @@ from dataviz import (
     violin,
     waterfall,
 )
-from dataviz.colors import WHITE
-from dataviz.mark import Mark
+from dataviz.core.colors import WHITE
+from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     area,
@@ -97,8 +97,8 @@ from dataviz.plot import (
     scatter,
     _render_generic,
 )
-from dataviz.theme import Theme
-from dataviz.validate import _step_setter_name
+from dataviz.core.theme import Theme
+from dataviz.core.validate import _step_setter_name
 from std.testing import TestSuite, assert_equal, assert_true
 
 

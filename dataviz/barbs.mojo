@@ -7,7 +7,7 @@ from canvas.path import Path
 from dataviz.plot import FontCache, _LegendLayout
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
+from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -16,9 +16,9 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
-from dataviz.scale import LinearScale
-from dataviz.text import _Scaled
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale
+from dataviz.core.text import _Scaled
+from dataviz.core.theme import Theme
 
 
 struct _BarbsData(Copyable, Movable):

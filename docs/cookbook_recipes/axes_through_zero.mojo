@@ -1,7 +1,7 @@
 """Cross the axes at the origin so a value's sign is visible, not read."""
-from dataviz.axis_position import AxisPosition
+from dataviz.core.axis_position import AxisPosition
 from dataviz.plot import Plot, save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

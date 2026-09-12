@@ -22,9 +22,9 @@ from dataviz import (
     sunburst,
 )
 from dataviz.plot import Plot, render
-from dataviz.color_scale import default_categorical_palette
-from dataviz.theme import Theme
-from dataviz.themes import dark, high_contrast, minimal, print_safe
+from dataviz.core.color_scale import default_categorical_palette
+from dataviz.core.theme import Theme
+from dataviz.core.themes import dark, high_contrast, minimal, print_safe
 
 
 # ---------------------------------------------------------------

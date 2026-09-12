@@ -4,7 +4,7 @@ of one flat color.
 """
 from dataviz import bar
 from dataviz.plot import save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

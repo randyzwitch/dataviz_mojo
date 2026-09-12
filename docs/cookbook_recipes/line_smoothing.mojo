@@ -4,8 +4,8 @@ of drawing straight segments.
 """
 from dataviz import line
 from dataviz.plot import save
-from dataviz.colors import CORNFLOWERBLUE
-from dataviz.theme import Theme
+from dataviz.core.colors import CORNFLOWERBLUE
+from dataviz.core.theme import Theme
 
 
 def main() raises:

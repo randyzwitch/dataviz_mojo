@@ -4,10 +4,10 @@ from canvas.path import Path
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import ColorScale, _color_scale_for
+from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.contour import _Segments, _chain_segments, _crossing
-from dataviz.delaunay import _Triangulation, _edge_key, delaunay
+from dataviz.core.delaunay import _Triangulation, _edge_key, delaunay
 from dataviz.plot import (
     Plot,
     _LegendLayout,
@@ -17,9 +17,9 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
-from dataviz.scale import LinearScale
-from dataviz.text import _Scaled
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale
+from dataviz.core.text import _Scaled
+from dataviz.core.theme import Theme
 
 
 struct _TriContourData(Copyable, Movable):

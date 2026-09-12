@@ -13,7 +13,7 @@ from canvas.color import Color
 from std.testing import TestSuite, assert_equal, assert_true
 
 from dataviz import Theme, area, histogram, line, scatter
-from dataviz.colors import CRIMSON
+from dataviz.core.colors import CRIMSON
 from dataviz.plot import Plot, render, render_layers
 
 

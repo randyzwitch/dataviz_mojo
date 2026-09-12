@@ -9,7 +9,7 @@ from canvas.color import Color
 from canvas.buffer import Canvas
 from std.testing import assert_equal, assert_true
 
-from dataviz.colors import WHITE
+from dataviz.core.colors import WHITE
 
 comptime BG = WHITE
 

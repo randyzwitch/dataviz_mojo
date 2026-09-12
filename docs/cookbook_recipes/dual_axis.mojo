@@ -7,7 +7,7 @@ one axis without one of them going flat.
 """
 from canvas.color import Color
 from dataviz.plot import Plot, save_layers
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

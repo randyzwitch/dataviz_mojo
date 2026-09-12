@@ -19,15 +19,15 @@ from std.math import cbrt, ceil, log2, pi, sqrt
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
-from dataviz.pixel_snap import _snap_pixel_edge
-from dataviz.scale import LinearScale
-from dataviz.text import _Scaled
+from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.pixel_snap import _snap_pixel_edge
+from dataviz.core.scale import LinearScale
+from dataviz.core.text import _Scaled
 from dataviz.box import _percentile
 from dataviz.plot import Plot, _finished, _push_plot_clip
-from dataviz.scale import _format_fixed, _min_max
-from dataviz.step_style import StepStyle
-from dataviz.theme import Theme
+from dataviz.core.scale import _format_fixed, _min_max
+from dataviz.core.step_style import StepStyle
+from dataviz.core.theme import Theme
 
 
 struct HistStat(Copyable, ImplicitlyCopyable, Movable):
@@ -1284,7 +1284,7 @@ def histogram(
         ```mojo
         from dataviz import histogram
         from dataviz import save
-        from dataviz.colors import REBECCAPURPLE
+        from dataviz.core.colors import REBECCAPURPLE
         from dataviz import Theme
 
         def main() raises:
@@ -1312,7 +1312,7 @@ def histogram(
         ```mojo
         from dataviz import save_facets
         from dataviz import histogram
-        from dataviz.colors import CRIMSON, STEELBLUE
+        from dataviz.core.colors import CRIMSON, STEELBLUE
         from dataviz.histogram import HistStat, shared_bin_edges
         from dataviz import Plot
         from dataviz import Theme
@@ -1383,7 +1383,7 @@ def histogram(
         ```mojo
         from dataviz import save_facets
         from dataviz import histogram
-        from dataviz.colors import DARKORANGE, STEELBLUE
+        from dataviz.core.colors import DARKORANGE, STEELBLUE
         from dataviz.histogram import BinRule
         from dataviz import Plot
         from dataviz import Theme
@@ -1437,7 +1437,7 @@ def histogram(
         ```mojo
         from dataviz import histogram, kdeplot, save_layers
         from dataviz import Theme
-        from dataviz.colors import STEELBLUE, CRIMSON
+        from dataviz.core.colors import STEELBLUE, CRIMSON
         from dataviz.histogram import HistStat
         from dataviz import Plot
 
@@ -1481,7 +1481,7 @@ def histogram(
         ```mojo
         from dataviz import histogram, save
         from dataviz import Theme
-        from dataviz.colors import DARKORANGE
+        from dataviz.core.colors import DARKORANGE
 
         def main() raises:
             # The shape a marginal histogram takes beside a joint plot's

@@ -14,7 +14,7 @@ from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 from canvas.vector.svg import SvgCanvas
 
-from dataviz.annotations import (
+from dataviz.core.annotations import (
     _draw_annotation_areas,
     _draw_annotation_bands,
     _draw_annotation_best_fit,
@@ -23,8 +23,8 @@ from dataviz.annotations import (
     _draw_annotation_vlines,
 )
 from dataviz.layers import render_layers, render_layers_svg, save_layers
-from dataviz.mark import Mark
-from dataviz.output_format import OutputFormat
+from dataviz.core.mark import Mark
+from dataviz.core.output_format import OutputFormat
 from dataviz.plot import (
     _filled_annotations_go_under,
     _resolve_supersample,
@@ -41,7 +41,7 @@ from dataviz.plot import (
     save,
     write_accessible_svg,
 )
-from dataviz.text import (
+from dataviz.core.text import (
     _Scaled,
     _TextRequest,
     _apply_labels,

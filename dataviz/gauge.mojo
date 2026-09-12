@@ -7,8 +7,8 @@ from canvas.text.render import TextAlign
 
 from dataviz.plot import Plot, _RenderResult, _Scaled, _TextRequest, _finished
 from dataviz.polar import _polar_point
-from dataviz.scale import _format_fixed
-from dataviz.theme import Theme
+from dataviz.core.scale import _format_fixed
+from dataviz.core.theme import Theme
 
 
 struct _GaugeData(Copyable, Movable):

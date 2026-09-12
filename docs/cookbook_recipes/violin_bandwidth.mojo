@@ -1,7 +1,7 @@
 """Override KDE bandwidth when the automatic estimate over-smooths a violin."""
 from dataviz import violin
 from dataviz.plot import save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

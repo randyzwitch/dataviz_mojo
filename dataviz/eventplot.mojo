@@ -26,7 +26,7 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def _render_eventplot[

@@ -5,7 +5,7 @@ already carries the main point and the rest is supporting detail.
 """
 from canvas.color import Color
 from dataviz.plot import Plot, save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

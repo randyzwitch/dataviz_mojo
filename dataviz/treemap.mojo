@@ -4,10 +4,10 @@ from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import categorical_palette_for
+from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.color_scale import categorical_palette_for
 from dataviz.hierarchy import _HierarchyIndex, _build_hierarchy_index
-from dataviz.mark import Mark
+from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -19,7 +19,7 @@ from dataviz.plot import (
     _finished,
     _require_non_negative,
 )
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 from dataviz.tree import _assign_branch_colors
 
 

@@ -3,10 +3,10 @@ from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_nested_scalar_list
-from dataviz.color_scale import ColorScale, _color_scale_for
+from dataviz.core.array_like import _materialize_nested_scalar_list
+from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.heatmap import _draw_grid_axis_frame
-from dataviz.mark import Mark
+from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -18,8 +18,8 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
-from dataviz.scale import _format_fixed
-from dataviz.theme import Theme
+from dataviz.core.scale import _format_fixed
+from dataviz.core.theme import Theme
 
 
 struct _CorrplotData(Copyable, Movable):

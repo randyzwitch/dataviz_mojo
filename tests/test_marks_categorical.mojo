@@ -40,9 +40,9 @@ from dataviz import (
     span_chart,
     stacked_bar,
 )
-from dataviz.color_scale import ColorScale, default_categorical_palette
+from dataviz.core.color_scale import ColorScale, default_categorical_palette
 from dataviz.image import _draw_cells_as_image, _edge_pixels, _fill_cells
-from dataviz.colormaps import viridis
+from dataviz.core.colormaps import viridis
 from dataviz.plot import (
     Plot,
     render,
@@ -53,8 +53,8 @@ from dataviz.plot import (
     render_svg,
     _build_line_path,
 )
-from dataviz.scale import LinearScale
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale
+from dataviz.core.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 
@@ -2044,7 +2044,7 @@ def test_imshow_takes_its_colors_from_the_theme_ramp() raises:
     # code of its own -- which matters more here than anywhere else,
     # since a scalar field shown through three stops gets contrast the
     # data does not have. viridis()'s own first and last entries are the
-    # expected colors; they come from dataviz.colormaps, not from the
+    # expected colors; they come from dataviz.core.colormaps, not from the
     # render.
     var ramp = viridis()
     var z: List[List[Float64]] = [[0.0, 1.0]]

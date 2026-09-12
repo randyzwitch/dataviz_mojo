@@ -4,7 +4,7 @@ a `List[Float64]` first -- conform a struct to `Float64Sequence`
 (`__len__` plus `Int`-indexed `Float64` access) and pass it straight to
 `Plot.encode()`'s `x`/`y`.
 """
-from dataviz.array_like import Float64Sequence
+from dataviz.core.array_like import Float64Sequence
 from dataviz.plot import Plot, save
 
 

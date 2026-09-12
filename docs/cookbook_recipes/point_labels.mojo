@@ -4,7 +4,7 @@ since (unlike a bar's own value) a point has no one obvious default
 label; pass `""` for any point that shouldn't get one.
 """
 from dataviz.plot import Plot, save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

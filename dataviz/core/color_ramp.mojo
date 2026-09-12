@@ -5,7 +5,7 @@ from canvas.color import Color
 
 comptime _RAMP_CAPACITY = 64
 """The most stops a `ColorRamp` holds. Sets `_packed`'s SIMD width, so it
-must stay a power of two. The built-in maps in `dataviz.colormaps` are
+must stay a power of two. The built-in maps in `dataviz.core.colormaps` are
 exactly this long."""
 
 

@@ -4,7 +4,7 @@ several charts, or to make one category (here, a region that just
 missed its target) stand out from the rest.
 """
 from dataviz.plot import Plot, save
-from dataviz.colors import CRIMSON
+from dataviz.core.colors import CRIMSON
 
 
 def main() raises:

@@ -11,20 +11,20 @@ from canvas.vector.draw_target import DrawTarget
 
 from morrow import Morrow
 
-from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import (
+from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.color_scale import (
     ColorScale,
     _color_scale_for,
     categorical_palette_for,
 )
-from dataviz.frame import (
+from dataviz.core.frame import (
     _CategoricalIndex,
     _axis_pixel,
     _axis_pixel_f,
     _categorical_indices,
     _pull_off_axis_line,
 )
-from dataviz.legend import (
+from dataviz.core.legend import (
     _draw_continuous_color_legend,
     _draw_continuous_color_legend_h,
     _draw_continuous_size_legend,
@@ -32,9 +32,13 @@ from dataviz.legend import (
     _draw_legend,
     _legend_reserve_for,
 )
-from dataviz.mark import Mark
-from dataviz.marker import PointShape, _fill_shape_aa, default_marker_shapes
-from dataviz.pixel_snap import _snap_pixel_center
+from dataviz.core.mark import Mark
+from dataviz.core.marker import (
+    PointShape,
+    _fill_shape_aa,
+    default_marker_shapes,
+)
+from dataviz.core.pixel_snap import _snap_pixel_center
 from dataviz.plot import (
     Plot,
     _finished,
@@ -45,11 +49,11 @@ from dataviz.plot import (
     render_svg,
     save,
 )
-from dataviz.scale import LinearScale, MinMax, _min_max
-from dataviz.step_style import StepStyle
-from dataviz.text import _Scaled, _TextRequest, _text_advance
-from dataviz.theme import Theme
-from dataviz.validate import _check_line_smoothing, _check_step_smoothing
+from dataviz.core.scale import LinearScale, MinMax, _min_max
+from dataviz.core.step_style import StepStyle
+from dataviz.core.text import _Scaled, _TextRequest, _text_advance
+from dataviz.core.theme import Theme
+from dataviz.core.validate import _check_line_smoothing, _check_step_smoothing
 
 
 def _build_line_path(
@@ -949,7 +953,7 @@ def line(
         ```mojo
         from dataviz import line
         from dataviz import save
-        from dataviz.colors import BROWN
+        from dataviz.core.colors import BROWN
         from dataviz import Theme
 
         def main() raises:
@@ -984,7 +988,7 @@ def line(
         from dataviz import line
         from dataviz import save
         from dataviz import Theme
-        from dataviz.colors import SEAGREEN
+        from dataviz.core.colors import SEAGREEN
 
         def main() raises:
             # x=0.0 ("2023"), x=1.0 ("2024") -- revenue, in millions.
@@ -1012,7 +1016,7 @@ def line(
         ```mojo
         from dataviz import StepStyle, line
         from dataviz import save
-        from dataviz.colors import CRIMSON
+        from dataviz.core.colors import CRIMSON
         from dataviz import Theme
 
         def main() raises:
@@ -1116,7 +1120,7 @@ def area(
         ```mojo
         from dataviz import area
         from dataviz import save
-        from dataviz.colors import STEELBLUE
+        from dataviz.core.colors import STEELBLUE
         from dataviz import Theme
 
         def main() raises:
@@ -1146,7 +1150,7 @@ def area(
         ```mojo
         from dataviz import StepStyle, area
         from dataviz import save
-        from dataviz.colors import SEAGREEN
+        from dataviz.core.colors import SEAGREEN
         from dataviz import Theme
 
         def main() raises:
@@ -1249,7 +1253,7 @@ def line(
 
         from dataviz import line, save
         from dataviz import Theme
-        from dataviz.colors import STEELBLUE
+        from dataviz.core.colors import STEELBLUE
 
         def main() raises:
             # Six months of daily readings. Before #195 this axis read

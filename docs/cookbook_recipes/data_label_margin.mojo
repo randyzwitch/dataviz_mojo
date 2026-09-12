@@ -1,6 +1,6 @@
 """Widen the right margin to fit labels beyond horizontal bar tips."""
 from dataviz.plot import Plot, save
-from dataviz.theme import Theme
+from dataviz.core.theme import Theme
 
 
 def main() raises:

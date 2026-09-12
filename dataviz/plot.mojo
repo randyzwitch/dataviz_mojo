@@ -75,7 +75,7 @@ from canvas.vector.svg import SvgCanvas, _escape_xml_text, _escape_xml_attr
 from canvas.text.render import draw_text, measure_text, FontWeight, TextAlign
 from canvas.text.font_cache import FontCache
 
-from dataviz.array_like import (
+from dataviz.core.array_like import (
     Float64Sequence,
     StringSequence,
     _materialize_floats,
@@ -83,15 +83,19 @@ from dataviz.array_like import (
     _materialize_scalar_list,
     _materialize_strings,
 )
-from dataviz.numpy_interop import _materialize_python_floats
+from dataviz.core.numpy_interop import _materialize_python_floats
 from std.python import PythonObject
-from dataviz.color_scale import (
+from dataviz.core.color_scale import (
     ColorScale,
     _ColorDomainOverride,
     categorical_palette_for,
 )
-from dataviz.marker import PointShape, _fill_shape_aa, default_marker_shapes
-from dataviz.pixel_snap import _snap_pixel_center, _snap_pixel_edge
+from dataviz.core.marker import (
+    PointShape,
+    _fill_shape_aa,
+    default_marker_shapes,
+)
+from dataviz.core.pixel_snap import _snap_pixel_center, _snap_pixel_edge
 from dataviz.continuous import (
     _Decimated,
     _PointChannels,
@@ -112,7 +116,7 @@ from dataviz.facets import (
     render_facets_svg,
     save_facets,
 )
-from dataviz.frame import (
+from dataviz.core.frame import (
     _BandLabel,
     _BandLabelPoint,
     _BaselineRect,
@@ -141,7 +145,7 @@ from dataviz.layers import (
     render_layers_svg,
     save_layers,
 )
-from dataviz.legend import (
+from dataviz.core.legend import (
     _LegendLayout,
     _continuous_legend_labels,
     _continuous_legend_row_height,
@@ -159,7 +163,7 @@ from dataviz.legend import (
     _legend_origin_y,
     _legend_reserve_for,
 )
-from dataviz.text import (
+from dataviz.core.text import (
     _LabelsFrame,
     _Scaled,
     _TextRequest,
@@ -171,7 +175,7 @@ from dataviz.text import (
     _replay_text_requests_svg,
     _text_advance,
 )
-from dataviz.validate import (
+from dataviz.core.validate import (
     _check_line_smoothing,
     _domain_override_scale,
     _require_non_empty,
@@ -182,7 +186,7 @@ from dataviz.validate import (
     _validate_color_domain,
     _validate_domain_override,
 )
-from dataviz.annotations import (
+from dataviz.core.annotations import (
     _AnnotationData,
     _draw_annotation_areas,
     _draw_annotation_bands,
@@ -193,16 +197,16 @@ from dataviz.annotations import (
     _draw_annotation_vlines,
     _validate_log_scale_annotations,
 )
-from dataviz.legend_position import LegendPosition
-from dataviz.line_style import LineStyle
-from dataviz.stack_baseline import StackBaseline
-from dataviz.step_style import StepStyle
+from dataviz.core.legend_position import LegendPosition
+from dataviz.core.line_style import LineStyle
+from dataviz.core.stack_baseline import StackBaseline
+from dataviz.core.step_style import StepStyle
 from morrow import Morrow
 
-from dataviz.mark import Mark, _require_mark
-from dataviz.ordinal_scale import OrdinalScale
-from dataviz.output_format import OutputFormat
-from dataviz.scale import (
+from dataviz.core.mark import Mark, _require_mark
+from dataviz.core.ordinal_scale import OrdinalScale
+from dataviz.core.output_format import OutputFormat
+from dataviz.core.scale import (
     LinearScale,
     MinMax,
     _format_fixed,
@@ -210,8 +214,8 @@ from dataviz.scale import (
     _label_decimals,
     _min_max,
 )
-from dataviz.theme import Theme
-from dataviz.x_label_rotation import XAxisLabelRotation
+from dataviz.core.theme import Theme
+from dataviz.core.x_label_rotation import XAxisLabelRotation
 
 from dataviz.arc import _render_arc
 from dataviz.nightingale import _render_nightingale

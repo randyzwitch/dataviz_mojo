@@ -3,8 +3,8 @@ from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 from canvas.text.render import TextAlign
 
-from dataviz.array_like import _materialize_nested_scalar_list
-from dataviz.color_scale import categorical_palette_for
+from dataviz.core.array_like import _materialize_nested_scalar_list
+from dataviz.core.color_scale import categorical_palette_for
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -16,8 +16,8 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
-from dataviz.scale import _min_max
-from dataviz.theme import Theme
+from dataviz.core.scale import _min_max
+from dataviz.core.theme import Theme
 
 
 struct _ParallelData(Copyable, Movable):

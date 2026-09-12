@@ -19,8 +19,8 @@ several charts' data so they can be compared (the color counterpart to
 
 from canvas.color import Color
 from canvas.gradient import GradientStops
-from dataviz.scale import MinMax, _min_max
-from dataviz.theme import Theme
+from dataviz.core.scale import MinMax, _min_max
+from dataviz.core.theme import Theme
 
 
 struct ColorScale(Movable):

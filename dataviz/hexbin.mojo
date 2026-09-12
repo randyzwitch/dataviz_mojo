@@ -13,9 +13,9 @@ from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.array_like import _materialize_scalar_list
-from dataviz.color_scale import ColorScale, _color_scale_for
-from dataviz.legend import (
+from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.color_scale import ColorScale, _color_scale_for
+from dataviz.core.legend import (
     _continuous_legend_labels,
     _draw_continuous_color_legend,
     _dynamic_legend_width,
@@ -28,9 +28,9 @@ from dataviz.plot import (
     _draw_continuous_axis_frame,
     _finished,
 )
-from dataviz.scale import LinearScale
-from dataviz.text import _Scaled
-from dataviz.theme import Theme
+from dataviz.core.scale import LinearScale
+from dataviz.core.text import _Scaled
+from dataviz.core.theme import Theme
 
 
 struct _HexbinData(Copyable, Movable):
@@ -420,7 +420,7 @@ def hexbin(
         ```mojo
         from dataviz import hexbin, save
         from dataviz import Theme
-        from dataviz.colormaps import viridis
+        from dataviz.core.colormaps import viridis
 
         def main() raises:
             # Twenty thousand readings along a diagonal ridge with a
