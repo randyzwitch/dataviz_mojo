@@ -57,6 +57,24 @@ fi
 
 CORES="$(getconf _NPROCESSORS_ONLN)"
 MODULE_TIMEOUT="${MOJO_MODULE_TIMEOUT:-3600}"
+
+# `timeout` is GNU coreutils and macOS does not ship it, so the limit is
+# best effort: where no timeout program exists the modules run unguarded
+# rather than the run failing. Without this the workers exited 127,
+# "command not found", on every module on macos-latest while Linux passed.
+# `gtimeout` is what Homebrew's coreutils installs it as.
+TIMEOUT_BIN=""
+if [ "$MODULE_TIMEOUT" -gt 0 ]; then
+    if command -v timeout > /dev/null 2>&1; then
+        TIMEOUT_BIN="timeout"
+    elif command -v gtimeout > /dev/null 2>&1; then
+        TIMEOUT_BIN="gtimeout"
+    else
+        printf 'note: no timeout(1) on this system; modules run without a\n' >&2
+        printf '      wall-clock limit, so a wedged one will stall the run\n' >&2
+        printf '      rather than reporting (dataviz_mojo#535).\n' >&2
+    fi
+fi
 REQUESTED=$#
 STATUS_DIR="$(mktemp -d)"
 trap 'rm -rf "$STATUS_DIR"' EXIT
@@ -65,8 +83,8 @@ trap 'rm -rf "$STATUS_DIR"' EXIT
 # workers never write to the same file and nothing is lost to interleaving.
 code=0
 printf '%s\n' "$@" | xargs -P "$CORES" -I {} bash -c '
-    if [ "$3" -gt 0 ]; then
-        out="$(timeout --kill-after=30 "$3" mojo run -I . -I tests "$1" 2>&1)"
+    if [ -n "$4" ]; then
+        out="$("$4" --kill-after=30 "$3" mojo run -I . -I tests "$1" 2>&1)"
     else
         out="$(mojo run -I . -I tests "$1" 2>&1)"
     fi
@@ -86,7 +104,7 @@ printf '%s\n' "$@" | xargs -P "$CORES" -I {} bash -c '
         printf "%s\t%s%s\n" "$1" "$status" "$note" \
             > "$2/$(printf "%s" "$1" | tr "/." "__")"
     fi
-' _ {} "$STATUS_DIR" "$MODULE_TIMEOUT" || code=$?
+' _ {} "$STATUS_DIR" "$MODULE_TIMEOUT" "$TIMEOUT_BIN" || code=$?
 
 FAILED="$(find "$STATUS_DIR" -type f | wc -l)"
 printf '\n%s of %s modules ran clean.\n' "$((REQUESTED - FAILED))" "$REQUESTED"
