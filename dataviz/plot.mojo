@@ -254,20 +254,20 @@ from dataviz.distributions.boxen import (
 from dataviz.distributions.candlestick import _CandleData
 from dataviz.categorical.bullet import _BulletData
 from dataviz.categorical.population_pyramid import _PyramidData
-from dataviz.heatmap import _HeatmapData
+from dataviz.grid.heatmap import _HeatmapData
 from dataviz.radial.polar import _PolarData
 from dataviz.radial.radar import _RadarData
 from dataviz.radial.gauge import _GaugeData
 from dataviz.multivariate.parallel import _ParallelData
-from dataviz.calendar_heatmap import _CalendarData
-from dataviz.corrplot import _CorrplotData
-from dataviz.punchcard import _PunchcardData
+from dataviz.grid.calendar_heatmap import _CalendarData
+from dataviz.grid.corrplot import _CorrplotData
+from dataviz.grid.punchcard import _PunchcardData
 from dataviz.multivariate.barbs import _BarbsData
 from dataviz.multivariate.contour import _ContourData
-from dataviz.image import _ImageData
+from dataviz.grid.image import _ImageData
 from dataviz.multivariate.tricontour import _TriContourData
 from dataviz.multivariate.triplot import _TriplotData
-from dataviz.marimekko import _MarimekkoData
+from dataviz.grid.marimekko import _MarimekkoData
 from dataviz.relationships.edges import _EdgeData
 from dataviz.hierarchy import _HierarchyData
 from dataviz.distributions.box import (
@@ -286,13 +286,13 @@ from dataviz.categorical.grouped_bar import (
     _render_grouped_bar,
     _render_horizontal_grouped_bar,
 )
-from dataviz.heatmap import _render_heatmap
-from dataviz.calendar_heatmap import _render_calendar_heatmap
-from dataviz.corrplot import _render_corrplot
-from dataviz.punchcard import _render_punchcard
+from dataviz.grid.heatmap import _render_heatmap
+from dataviz.grid.calendar_heatmap import _render_calendar_heatmap
+from dataviz.grid.corrplot import _render_corrplot
+from dataviz.grid.punchcard import _render_punchcard
 from dataviz.multivariate.barbs import _render_barbs
 from dataviz.multivariate.contour import _render_contour, _render_contourf
-from dataviz.image import _render_image
+from dataviz.grid.image import _render_image
 from dataviz.distributions.kde import _render_kde, _render_rug
 from dataviz.distributions.ecdf import _render_ecdf
 from dataviz.distributions.eventplot import _render_eventplot
@@ -301,7 +301,7 @@ from dataviz.multivariate.tricontour import (
     _render_tricontourf,
 )
 from dataviz.multivariate.triplot import _render_tripcolor, _render_triplot
-from dataviz.marimekko import _render_marimekko
+from dataviz.grid.marimekko import _render_marimekko
 from dataviz.sunburst import _render_sunburst
 from dataviz.tree import _render_tree
 from dataviz.treemap import _render_treemap

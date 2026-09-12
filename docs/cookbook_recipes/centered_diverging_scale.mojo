@@ -4,7 +4,7 @@ midpoint of the data, so positive and negative read as opposite even
 when the data is lopsided.
 """
 from canvas.color import Color
-from dataviz.heatmap import heatmap
+from dataviz.grid.heatmap import heatmap
 from dataviz.plot import save
 from dataviz.core.theme import Theme
 

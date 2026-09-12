@@ -36,7 +36,7 @@ from dataviz.core.array_like import (
     _materialize_scalar_list,
     _materialize_strings,
 )
-from dataviz.calendar_heatmap import _Date, _days_from_civil
+from dataviz.grid.calendar_heatmap import _Date, _days_from_civil
 from dataviz.core.color_ramp import ColorRamp
 from dataviz.core.color_scale import ColorScale
 from dataviz.core.colormaps import cividis, inferno, magma, plasma, viridis

@@ -27,7 +27,7 @@ from dataviz.core.color_scale import (
     _color_scale_for,
     shared_color_domain,
 )
-from dataviz.heatmap import heatmap
+from dataviz.grid.heatmap import heatmap
 from dataviz.plot import Plot, render, render_svg
 from dataviz.core.theme import Theme
 
