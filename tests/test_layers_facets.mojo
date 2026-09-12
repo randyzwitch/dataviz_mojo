@@ -45,7 +45,7 @@ from dataviz.basic.continuous import line, scatter
 from dataviz.contour import contour
 from dataviz.basic.effect_scatter import effect_scatter
 from dataviz.distributions.ecdf import _ecdf_points, ecdf
-from dataviz.histogram import HistStat, histogram, shared_bin_edges
+from dataviz.binned.histogram import HistStat, histogram, shared_bin_edges
 from dataviz.distributions.kde import kdeplot, rugplot
 from dataviz.tricontour import tricontour, tricontourf
 from dataviz.triplot import tripcolor, triplot

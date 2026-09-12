@@ -4,7 +4,7 @@ cells, so a point cloud too dense to read as a scatter shows where it
 concentrates."""
 
 from dataviz.core.array_like import _materialize_scalar_list
-from dataviz.histogram import BinRule, _bin_index, bin_edges
+from dataviz.binned.histogram import BinRule, _bin_index, bin_edges
 from dataviz.plot import Plot, _finished
 from dataviz.core.theme import Theme
 

@@ -3,7 +3,7 @@ core, rendering operations, and commonly used plotting enums.
 
 Specialist vocabulary stays in its named public module: colors in
 `dataviz.core.colors`, colormaps in `dataviz.core.colormaps`, histogram utilities in
-`dataviz.histogram`, scales in `dataviz.core.scale`/`dataviz.core.color_scale`, theme
+`dataviz.binned.histogram`, scales in `dataviz.core.scale`/`dataviz.core.color_scale`, theme
 presets in `dataviz.core.themes`, markers in `dataviz.core.marker`, and custom-container
 traits in `dataviz.core.array_like`.
 """
@@ -51,8 +51,8 @@ from dataviz.lineplot import lineplot
 from dataviz.pointplot import pointplot
 from dataviz.core.stats import ErrorBar, Estimator
 from dataviz.image import imshow, pcolormesh
-from dataviz.hist2d import hist2d
-from dataviz.hexbin import hexbin
+from dataviz.binned.hist2d import hist2d
+from dataviz.binned.hexbin import hexbin
 from dataviz.distributions.kde import kdeplot, rugplot
 from dataviz.tricontour import tricontour, tricontourf
 from dataviz.triplot import tripcolor, triplot
@@ -75,7 +75,7 @@ from dataviz.marimekko import marimekko
 from dataviz.sunburst import sunburst
 from dataviz.tree import tree
 from dataviz.treemap import treemap
-from dataviz.histogram import histogram
+from dataviz.binned.histogram import histogram
 from dataviz.categorical.lollipop import lollipop
 from dataviz.nightingale import nightingale
 from dataviz.polar import polar

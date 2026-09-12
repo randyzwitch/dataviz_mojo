@@ -10,8 +10,8 @@ from std.testing import (
 
 from _test_helpers import _assert_same_canvas, _bbox_of_color, _count_tag
 from canvas.color import Color
-from dataviz.hist2d import _hist2d_counts, hist2d
-from dataviz.histogram import BinRule, bin_edges
+from dataviz.binned.hist2d import _hist2d_counts, hist2d
+from dataviz.binned.histogram import BinRule, bin_edges
 from dataviz.plot import Plot, render, render_svg
 from dataviz.core.theme import Theme
 

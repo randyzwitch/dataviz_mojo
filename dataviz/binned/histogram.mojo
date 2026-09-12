@@ -1313,7 +1313,7 @@ def histogram(
         from dataviz import save_facets
         from dataviz import histogram
         from dataviz.core.colors import CRIMSON, STEELBLUE
-        from dataviz.histogram import HistStat, shared_bin_edges
+        from dataviz.binned.histogram import HistStat, shared_bin_edges
         from dataviz import Plot
         from dataviz import Theme
 
@@ -1384,7 +1384,7 @@ def histogram(
         from dataviz import save_facets
         from dataviz import histogram
         from dataviz.core.colors import DARKORANGE, STEELBLUE
-        from dataviz.histogram import BinRule
+        from dataviz.binned.histogram import BinRule
         from dataviz import Plot
         from dataviz import Theme
 
@@ -1438,7 +1438,7 @@ def histogram(
         from dataviz import histogram, kdeplot, save_layers
         from dataviz import Theme
         from dataviz.core.colors import STEELBLUE, CRIMSON
-        from dataviz.histogram import HistStat
+        from dataviz.binned.histogram import HistStat
         from dataviz import Plot
 
         def main() raises:

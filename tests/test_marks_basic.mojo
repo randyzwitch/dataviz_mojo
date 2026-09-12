@@ -46,7 +46,7 @@ from dataviz import (
 )
 from dataviz.barbs import _barb_counts, _barb_glyph
 from dataviz.basic.continuous import _step_points
-from dataviz.histogram import BinRule, bin_edges, histogram_bins
+from dataviz.binned.histogram import BinRule, bin_edges, histogram_bins
 from dataviz.core.delaunay import _in_circumcircle, delaunay
 from dataviz.tricontour import _tricontour_segments
 from dataviz.triplot import _triangle_means, _triplot_edges
@@ -59,7 +59,7 @@ from dataviz.contour import (
 from dataviz.core.color_ramp import ColorRamp
 from dataviz.core.color_scale import ColorScale, default_categorical_palette
 from dataviz.core.colors import BLACK, CORNFLOWERBLUE, WHITE
-from dataviz.histogram import (
+from dataviz.binned.histogram import (
     BinRule,
     HistStat,
     HistogramBins,

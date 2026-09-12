@@ -13,7 +13,7 @@ from _test_helpers import (
 )
 from canvas.color import Color
 from dataviz import histogram, kdeplot
-from dataviz.histogram import HistStat, HistogramBins, uniform_bin_edges
+from dataviz.binned.histogram import HistStat, HistogramBins, uniform_bin_edges
 from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,

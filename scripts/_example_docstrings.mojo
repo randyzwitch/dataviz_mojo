@@ -108,8 +108,8 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("contourf", "contour", "contourf"),
         ExamplePage("imshow", "image", "imshow"),
         ExamplePage("pcolormesh", "image", "pcolormesh"),
-        ExamplePage("hist2d", "hist2d", "hist2d"),
-        ExamplePage("hexbin", "hexbin", "hexbin"),
+        ExamplePage("hist2d", "binned/hist2d", "hist2d"),
+        ExamplePage("hexbin", "binned/hexbin", "hexbin"),
         ExamplePage("tricontour", "tricontour", "tricontour"),
         ExamplePage("tricontourf", "tricontour", "tricontourf"),
         ExamplePage("triplot", "triplot", "triplot"),
@@ -129,21 +129,30 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("arc_diagram", "arc_diagram", "arc_diagram"),
         ExamplePage("graph", "graph", "graph"),
         ExamplePage("sankey", "sankey", "sankey"),
-        ExamplePage("histogram", "histogram", "histogram"),
+        ExamplePage("histogram", "binned/histogram", "histogram"),
         ExamplePage(
-            "histogram_shared", "histogram", "histogram", block="Shared Bins"
+            "histogram_shared",
+            "binned/histogram",
+            "histogram",
+            block="Shared Bins",
         ),
         ExamplePage(
-            "histogram_auto", "histogram", "histogram", block="Automatic Bins"
+            "histogram_auto",
+            "binned/histogram",
+            "histogram",
+            block="Automatic Bins",
         ),
         ExamplePage(
             "histogram_density",
-            "histogram",
+            "binned/histogram",
             "histogram",
             block="With a Density Curve",
         ),
         ExamplePage(
-            "histogram_horizontal", "histogram", "histogram", block="Horizontal"
+            "histogram_horizontal",
+            "binned/histogram",
+            "histogram",
+            block="Horizontal",
         ),
         ExamplePage("grouped_bar", "categorical/grouped_bar", "grouped_bar"),
         ExamplePage("stacked_bar", "categorical/stacked_bar", "stacked_bar"),
@@ -426,7 +435,7 @@ def _is_public_example_import(line: String) -> Bool:
         or line.startswith("from dataviz.core.color_scale import ")
         or line.startswith("from dataviz.core.colormaps import ")
         or line.startswith("from dataviz.core.colors import ")
-        or line.startswith("from dataviz.histogram import ")
+        or line.startswith("from dataviz.binned.histogram import ")
         or line.startswith("from dataviz.core.marker import ")
         or line.startswith("from dataviz.core.ordinal_scale import ")
         or line.startswith("from dataviz.core.scale import ")

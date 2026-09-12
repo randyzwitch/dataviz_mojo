@@ -36,7 +36,7 @@ from dataviz.core.annotations import (
 )
 from dataviz.basic.bar import _bar_y_domain_data, _draw_bar_rects, _render_bar
 from dataviz.barbs import _draw_barbs_layer, _validate_barbs
-from dataviz.histogram import _draw_histogram_layer
+from dataviz.binned.histogram import _draw_histogram_layer
 from dataviz.basic.continuous import (
     _PointChannels,
     _build_line_path,
