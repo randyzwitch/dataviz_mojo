@@ -9,7 +9,7 @@ from std.testing import (
 )
 
 from dataviz.plot import render_svg
-from dataviz.residplot import residplot
+from dataviz.aggregation.residplot import residplot
 
 
 def test_residplot_points_are_hand_derived_fitted_values_and_residuals() raises:

@@ -45,10 +45,10 @@ from dataviz.categorical.bullet import bullet
 from dataviz.distributions.candlestick import candlestick
 from dataviz.contour import contour, contourf
 from dataviz.distributions.ecdf import ecdf
-from dataviz.residplot import residplot
-from dataviz.barplot import barplot, countplot
-from dataviz.lineplot import lineplot
-from dataviz.pointplot import pointplot
+from dataviz.aggregation.residplot import residplot
+from dataviz.aggregation.barplot import barplot, countplot
+from dataviz.aggregation.lineplot import lineplot
+from dataviz.aggregation.pointplot import pointplot
 from dataviz.core.stats import ErrorBar, Estimator
 from dataviz.image import imshow, pcolormesh
 from dataviz.binned.hist2d import hist2d

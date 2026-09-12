@@ -317,7 +317,7 @@ from dataviz.categorical.lollipop import (
     _render_lollipop,
     _render_horizontal_lollipop,
 )
-from dataviz.pointplot import _render_pointplot
+from dataviz.aggregation.pointplot import _render_pointplot
 from dataviz.basic.single_axis import _render_single_axis
 from dataviz.categorical.population_pyramid import _render_population_pyramid
 from dataviz.categorical.stacked_bar import (
