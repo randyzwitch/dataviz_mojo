@@ -22,7 +22,7 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
-from dataviz.polar import _polar_point
+from dataviz.radial.polar import _polar_point
 from dataviz.core.theme import Theme
 
 
