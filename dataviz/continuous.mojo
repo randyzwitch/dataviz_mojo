@@ -370,7 +370,9 @@ def _draws_bulk_markers(plot: Plot, draw_halo: Bool = False) -> Bool:
     if not (plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER):
         return False
     var theme = plot._theme
-    var has_shapes = len(plot._channels.color_categories) > 0 and theme.shape_by_category
+    var has_shapes = (
+        len(plot._channels.color_categories) > 0 and theme.shape_by_category
+    )
     var tooltips_on = theme.svg_tooltips and plot._mark_style.point_tooltips
     var has_error_bars = (
         len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
