@@ -14,6 +14,40 @@
 # This runner is shared by `pixi run test` and `pixi run example`, and a
 # docs example prints no summary by design, so the summary is a note on a
 # failure and never a failure by itself.
+#
+# Each module also gets a wall-clock timeout (#535). The toolchain
+# occasionally deadlocks under parallel load: every thread of a `mojo
+# run` parks on a futex at zero CPU and the process never exits. Without
+# a timeout that stalls the whole run forever, and a stall is worse than
+# a crash because it produces no exit code to key on. `timeout` turns it
+# into exit 124, which the failure list below then names.
+#
+# The default is deliberately far above any honest module, because the
+# two error costs are not symmetric. A deadlocked module never finishes,
+# so *any* finite limit catches it and the only price of a generous one
+# is waiting longer to hear about it. A limit that fires on honest work
+# costs something worse: a false failure that makes the whole gate
+# untrustworthy.
+#
+# Measured here, warm, with all 35 modules sharing the machine: the
+# slowest is `test_quickplot_api.mojo` at 840-873s across six runs.
+# `test_numpy_interop.mojo` takes about 1,015s on a cold environment
+# measured alone (#536); cold AND under full load is not measured, and
+# is plausibly the real worst case. An hour leaves room for it.
+#
+# Two separate claims, and only the first is established. The reasoning
+# above says the limit goes high rather than low. The hour itself is a
+# round number chosen to sit well clear of what was measured, not
+# derived from anything, and its headroom is untested against the two
+# cases nobody has measured: cold under load here, and CI, which runs
+# on `ubuntu-latest` at a width of 2 to 4 where each module gets most
+# of a core and the figures above do not apply at all.
+#
+# So a real module tripping this limit is a false failure to fix by
+# raising it, not a finding about the module.
+#
+# Override with MOJO_MODULE_TIMEOUT (seconds); 0 disables it. CI, where
+# a cold environment is not in play, can set something far tighter.
 set -euo pipefail
 
 if [ "$#" -eq 0 ]; then
@@ -22,6 +56,37 @@ if [ "$#" -eq 0 ]; then
 fi
 
 CORES="$(getconf _NPROCESSORS_ONLN)"
+MODULE_TIMEOUT="${MOJO_MODULE_TIMEOUT:-3600}"
+
+# `timeout` is GNU coreutils and macOS does not ship it, so the limit is
+# best effort: where no timeout program exists the modules run unguarded
+# rather than the run failing. Without this the workers exited 127,
+# "command not found", on every module on macos-latest while Linux passed.
+# `gtimeout` is what Homebrew's coreutils installs it as.
+TIMEOUT_BIN=""
+if [ "$MODULE_TIMEOUT" -gt 0 ]; then
+    if command -v timeout > /dev/null 2>&1; then
+        TIMEOUT_BIN="timeout"
+    elif command -v gtimeout > /dev/null 2>&1; then
+        TIMEOUT_BIN="gtimeout"
+    fi
+fi
+
+# Say which of the three states this run is in. A guard that is silently
+# absent looks exactly like a guard that is working, and the only tell is
+# a run that never ends -- which is the failure the guard exists to
+# prevent and the one nobody is watching for. One line, so a CI log says
+# what protected it.
+if [ "$MODULE_TIMEOUT" -le 0 ]; then
+    printf 'module timeout: disabled by MOJO_MODULE_TIMEOUT=0\n' >&2
+elif [ -n "$TIMEOUT_BIN" ]; then
+    printf 'module timeout: %ss per module via %s\n' \
+        "$MODULE_TIMEOUT" "$TIMEOUT_BIN" >&2
+else
+    printf 'module timeout: UNGUARDED -- no timeout(1) on this system, so\n' >&2
+    printf '  a wedged module stalls the run instead of reporting it\n' >&2
+    printf '  (dataviz_mojo#535)\n' >&2
+fi
 REQUESTED=$#
 STATUS_DIR="$(mktemp -d)"
 trap 'rm -rf "$STATUS_DIR"' EXIT
@@ -30,19 +95,28 @@ trap 'rm -rf "$STATUS_DIR"' EXIT
 # workers never write to the same file and nothing is lost to interleaving.
 code=0
 printf '%s\n' "$@" | xargs -P "$CORES" -I {} bash -c '
-    out="$(mojo run -I . -I tests "$1" 2>&1)"
+    if [ -n "$4" ]; then
+        out="$("$4" --kill-after=30 "$3" mojo run -I . -I tests "$1" 2>&1)"
+    else
+        out="$(mojo run -I . -I tests "$1" 2>&1)"
+    fi
     status=$?
     printf "%s\n" "$out"
     if [ "$status" -ne 0 ]; then
         note=""
-        case "$out" in
-            *"Summary ["*) ;;
-            *) note=", printed no test summary" ;;
+        case "$status" in
+            124|137) note=", timed out after ${3}s -- see #535" ;;
+            *)
+                case "$out" in
+                    *"Summary ["*) ;;
+                    *) note=", printed no test summary" ;;
+                esac
+                ;;
         esac
         printf "%s\t%s%s\n" "$1" "$status" "$note" \
             > "$2/$(printf "%s" "$1" | tr "/." "__")"
     fi
-' _ {} "$STATUS_DIR" || code=$?
+' _ {} "$STATUS_DIR" "$MODULE_TIMEOUT" "$TIMEOUT_BIN" || code=$?
 
 FAILED="$(find "$STATUS_DIR" -type f | wc -l)"
 printf '\n%s of %s modules ran clean.\n' "$((REQUESTED - FAILED))" "$REQUESTED"
