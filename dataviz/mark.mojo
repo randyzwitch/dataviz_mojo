@@ -282,3 +282,69 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
         if self == Self.EVENTPLOT:
             return "Mark.EVENTPLOT"
         return "Mark(" + String(self._value) + ")"
+
+
+def _require_mark(
+    mark: Mark, encoder: String, builder: String, accepted: List[Mark]
+) raises:
+    """Raise unless `mark` is one of `accepted`, naming both sides (#538).
+
+    `Plot` carries every mark's data on one struct with the mark as a
+    runtime field, so `Plot().mark_line().encode_boxenplot(...)`
+    compiles. Without this it fails later, in the render or as an empty
+    chart, with an error naming neither the mark the caller chose nor
+    the encoder they called. Mojo 1.0 has no way to make that a type
+    error: a trait cannot be a collection's element type, and
+    `render_layers()` takes `List[Plot]` (#522).
+
+    The check is here rather than in `render()` on purpose. It costs
+    the order `mark_*()` then `encode_*()`, which is now required, and
+    buys an error at the call that is wrong rather than one
+    reconstructed later from which payload structs are non-empty.
+
+    Args:
+        mark: The plot's current mark.
+        encoder: The encoder's name, for the message.
+        builder: The `mark_*()` call that would fix it.
+        accepted: The marks this encoder writes data for.
+
+    Raises:
+        Error: `mark` is not in `accepted`.
+    """
+    for i in range(len(accepted)):
+        if mark == accepted[i]:
+            return
+    var names = String("")
+    for i in range(len(accepted)):
+        if i > 0:
+            names += " or " if i == len(accepted) - 1 else ", "
+        names += accepted[i].name()
+    raise Error(
+        encoder
+        + "() needs "
+        + names
+        + ", but this plot is "
+        + mark.name()
+        + ". Call "
+        + builder
+        + " before it."
+    )
+
+
+def _require_mark(
+    mark: Mark, encoder: String, builder: String, accepted: Mark
+) raises:
+    """Single-mark form of `_require_mark`, which most encoders take.
+
+    Args:
+        mark: The plot's current mark.
+        encoder: The encoder's name, for the message.
+        builder: The `mark_*()` call that would fix it.
+        accepted: The only mark this encoder writes data for.
+
+    Raises:
+        Error: `mark` is not `accepted`.
+    """
+    var one = List[Mark]()
+    one.append(accepted)
+    _require_mark(mark, encoder, builder, one)

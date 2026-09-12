@@ -1087,7 +1087,7 @@ def test_a_kde_keeps_its_y_annotations() raises:
 # ---------------------------------------------------------------
 
 
-def _arrow_plot() -> Plot:
+def _arrow_plot() raises -> Plot:
     """A 400x300 line plot with one arrow from (3, 3) to (8, 8).
 
     Both axes carry the same data [0, 10], so `_data_extent`'s 5% pad
