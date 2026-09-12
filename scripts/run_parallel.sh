@@ -22,11 +22,21 @@
 # a crash because it produces no exit code to key on. `timeout` turns it
 # into exit 124, which the failure list below then names.
 #
-# The default is deliberately generous. A cold environment makes
-# `test_numpy_interop.mojo` take about 17 minutes, so anything tighter
-# would fail a legitimately slow module on a first run after
-# `pixi install`. Override with MOJO_MODULE_TIMEOUT (seconds); 0
-# disables it.
+# The default is deliberately far above any honest module, because the
+# two error costs are not symmetric. A deadlocked module never finishes,
+# so *any* finite limit catches it and the only price of a generous one
+# is waiting longer to hear about it. A limit that fires on honest work
+# costs something worse: a false failure that makes the whole gate
+# untrustworthy.
+#
+# Measured here, warm, with all 35 modules sharing the machine: the
+# slowest is `test_quickplot_api.mojo` at 840-873s across six runs.
+# `test_numpy_interop.mojo` takes about 1,015s on a cold environment
+# measured alone (#536); cold AND under full load is not measured, and
+# is plausibly the real worst case. An hour leaves room for it.
+#
+# Override with MOJO_MODULE_TIMEOUT (seconds); 0 disables it. CI, where
+# a cold environment is not in play, can set something far tighter.
 set -euo pipefail
 
 if [ "$#" -eq 0 ]; then
@@ -35,7 +45,7 @@ if [ "$#" -eq 0 ]; then
 fi
 
 CORES="$(getconf _NPROCESSORS_ONLN)"
-MODULE_TIMEOUT="${MOJO_MODULE_TIMEOUT:-1800}"
+MODULE_TIMEOUT="${MOJO_MODULE_TIMEOUT:-3600}"
 REQUESTED=$#
 STATUS_DIR="$(mktemp -d)"
 trap 'rm -rf "$STATUS_DIR"' EXIT
