@@ -56,10 +56,10 @@ from dataviz.binned.hexbin import hexbin
 from dataviz.distributions.kde import kdeplot, rugplot
 from dataviz.tricontour import tricontour, tricontourf
 from dataviz.triplot import tripcolor, triplot
-from dataviz.chord import chord
-from dataviz.arc_diagram import arc_diagram
-from dataviz.graph import graph
-from dataviz.sankey import sankey
+from dataviz.relationships.chord import chord
+from dataviz.relationships.arc_diagram import arc_diagram
+from dataviz.relationships.graph import graph
+from dataviz.relationships.sankey import sankey
 from dataviz.basic.effect_scatter import effect_scatter
 from dataviz.distributions.eventplot import eventplot
 from dataviz.categorical.bump import bump

@@ -511,7 +511,7 @@ def _unique_categories(data: List[String]) -> List[String]:
     """Every distinct value in `data` in first-seen order, by a plain O(n^2)
     scan: a naive reference implementation kept as an oracle for
     `dataviz.plot._categorical_indices` and
-    `dataviz.edges._edge_node_index`, which resolve the same domain in
+    `dataviz.relationships.edges._edge_node_index`, which resolve the same domain in
     one hashed pass.
     """
     var result = List[String]()
