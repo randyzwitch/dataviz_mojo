@@ -180,10 +180,14 @@ def test_encode_time_puts_posix_seconds_on_the_axis() raises:
         vals.append(Float64(i))
     var p = Plot().mark_line().encode_time(days, vals)
     assert_true(p._x_time, "the axis is marked temporal")
-    assert_equal(len(p.x_data), 5)
-    assert_equal(p.x_data[0], Morrow.get(2026, 1, 1).timestamp())
-    assert_equal(p.x_data[1] - p.x_data[0], 86400.0, "one day apart in seconds")
-    assert_equal(len(p.y_data), 5)
+    assert_equal(len(p._continuous.x), 5)
+    assert_equal(p._continuous.x[0], Morrow.get(2026, 1, 1).timestamp())
+    assert_equal(
+        p._continuous.x[1] - p._continuous.x[0],
+        86400.0,
+        "one day apart in seconds",
+    )
+    assert_equal(len(p._continuous.y), 5)
 
 
 def test_the_one_call_time_overloads_label_dates() raises:

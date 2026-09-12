@@ -158,9 +158,11 @@ def test_encode_histogram_bins_keeps_the_staircase_columns_for_the_domains() rai
         .mark_histogram()
         .encode_histogram_bins(HistogramBins(edges.copy(), values.copy()))
     )
-    assert_equal(len(p.x_data), 3, "step_x(): every edge")
-    assert_equal(len(p.y_data), 3, "step_y(): values plus the last repeated")
-    assert_equal(p.y_data[2], 1.0)
+    assert_equal(len(p._continuous.x), 3, "step_x(): every edge")
+    assert_equal(
+        len(p._continuous.y), 3, "step_y(): values plus the last repeated"
+    )
+    assert_equal(p._continuous.y[2], 1.0)
     assert_equal(len(p._histogram.edges), 3)
     assert_equal(p._histogram.values[0], 3.0)
 

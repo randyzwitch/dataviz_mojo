@@ -678,7 +678,7 @@ def _draw_annotation_best_fit[
     """Draw `Plot.annotate_best_fit()`'s ordinary-least-squares line and
     return its optional label/equation/R-squared text as `_TextRequest`s.
 
-    The regression is computed here from `plot.x_data`/`plot.y_data`, so
+    The regression is computed here from `plot._continuous.x`/`plot._continuous.y`, so
     the fit sees whatever data the plot ends up with regardless of call
     order, by `_ols_fit` (stats.mojo): closed-form OLS, `slope =
     (n*sum_xy - sum_x*sum_y) / (n*sum_xx - sum_x^2)`, `intercept =
@@ -703,7 +703,7 @@ def _draw_annotation_best_fit[
         )
     var fit: _OlsFit
     try:
-        fit = _ols_fit(plot.x_data, plot.y_data)
+        fit = _ols_fit(plot._continuous.x, plot._continuous.y)
     except e:
         raise Error("Plot.annotate_best_fit(): " + String(e))
     var slope = fit.slope
@@ -849,10 +849,10 @@ def _draw_annotation_best_fit[
         var ss_res = 0.0
         var ss_tot = 0.0
         for i in range(n_points):
-            var predicted = slope * plot.x_data[i] + intercept
-            var residual = plot.y_data[i] - predicted
+            var predicted = slope * plot._continuous.x[i] + intercept
+            var residual = plot._continuous.y[i] - predicted
             ss_res += residual * residual
-            var deviation = plot.y_data[i] - mean_y
+            var deviation = plot._continuous.y[i] - mean_y
             ss_tot += deviation * deviation
         var r_squared = 1.0 if ss_tot == 0.0 else 1.0 - ss_res / ss_tot
         text_requests.append(

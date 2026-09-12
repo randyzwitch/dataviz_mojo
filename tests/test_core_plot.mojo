@@ -245,8 +245,8 @@ def test_plot_copy_produces_an_independent_render_unaffected_by_further_mutation
 
     # The original base plot was never .encode()'d itself -- copying it
     # doesn't retroactively give it either copy's data.
-    assert_equal(len(base.x_data), 0)
-    assert_equal(len(base.y_data), 0)
+    assert_equal(len(base._continuous.x), 0)
+    assert_equal(len(base._continuous.y), 0)
 
 
 def test_render_and_save_accept_an_unbound_temporary_plot() raises:

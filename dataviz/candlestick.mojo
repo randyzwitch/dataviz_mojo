@@ -75,11 +75,11 @@ def _render_candlestick[
     Wicks span low to high. Bodies span open to close and use positive or
     negative mark colors; equal open and close values draw a one-pixel body.
     """
-    if len(plot.x_categories) != len(plot._candle.open_price):
+    if len(plot._categorical.x) != len(plot._candle.open_price):
         raise Error(
             "Plot.encode_candlestick(): categories and open/high/low/close"
             " must all have the same length (got "
-            + String(len(plot.x_categories))
+            + String(len(plot._categorical.x))
             + " categories and "
             + String(len(plot._candle.open_price))
             + " open values)"
@@ -103,7 +103,7 @@ def _render_candlestick[
         )
 
     var theme = plot._theme
-    _require_non_empty(len(plot.x_categories), "Plot.encode_candlestick()")
+    _require_non_empty(len(plot._categorical.x), "Plot.encode_candlestick()")
     var domain_data = List[Float64]()
     for v in plot._candle.open_price:
         domain_data.append(v)
@@ -117,7 +117,7 @@ def _render_candlestick[
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         y_scale,
         theme,
         ox0,
@@ -127,7 +127,7 @@ def _render_candlestick[
         cache=cache,
     )
 
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var center_px = _snap_pixel_center(frame.x_scale.center(i))
         var high_py = _axis_pixel_f(frame.y_scale, plot._candle.high[i])
         var low_py = _axis_pixel_f(frame.y_scale, plot._candle.low[i])
@@ -136,7 +136,7 @@ def _render_candlestick[
             # datum, so hovering either should name the same candle.
             target.begin_annotated_group(
                 _candle_tooltip_label(
-                    plot.x_categories[i],
+                    plot._categorical.x[i],
                     plot._candle.open_price[i],
                     plot._candle.high[i],
                     plot._candle.low[i],

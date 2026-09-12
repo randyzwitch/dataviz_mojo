@@ -52,7 +52,7 @@ def _render_pointplot[
     var y_scale = _data_extent(_bar_y_domain_data(plot))
     var frame = _draw_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         y_scale,
         theme,
         ox0,
@@ -62,27 +62,27 @@ def _render_pointplot[
         cache=cache,
     )
     var sc = _Scaled(theme)
-    var n = len(plot.x_categories)
-    var has_err = len(plot.y_err_data) > 0 or len(plot.y_err_lower_data) > 0
+    var n = len(plot._categorical.x)
+    var has_err = len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
     var cap_half = sc.error_bar_cap_width
 
     var cxs = List[Float64](capacity=n)
     var pys = List[Float64](capacity=n)
     for i in range(n):
         cxs.append(frame.x_scale.center(i))
-        pys.append(_axis_pixel_f(frame.y_scale, plot.y_data[i]))
+        pys.append(_axis_pixel_f(frame.y_scale, plot._continuous.y[i]))
 
     if has_err:
         for i in range(n):
-            var value = plot.y_data[i]
+            var value = plot._continuous.y[i]
             var lo: Float64
             var hi: Float64
-            if len(plot.y_err_data) > 0:
-                lo = value - plot.y_err_data[i]
-                hi = value + plot.y_err_data[i]
+            if len(plot._y_err.symmetric) > 0:
+                lo = value - plot._y_err.symmetric[i]
+                hi = value + plot._y_err.symmetric[i]
             else:
-                lo = value - plot.y_err_lower_data[i]
-                hi = value + plot.y_err_upper_data[i]
+                lo = value - plot._y_err.lower[i]
+                hi = value + plot._y_err.upper[i]
             var py_lo = _axis_pixel_f(frame.y_scale, lo)
             var py_hi = _axis_pixel_f(frame.y_scale, hi)
             target.draw_line_aa(

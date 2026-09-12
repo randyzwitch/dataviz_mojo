@@ -26,11 +26,11 @@ def _y() -> List[Float64]:
 
 def test_lineplot_line_is_the_per_x_mean_with_a_band_of_the_interval() raises:
     var p = lineplot(_x(), _y(), errorbar=ErrorBar.se())
-    assert_equal(len(p.x_data), 3)
-    assert_equal(p.x_data[0], 1.0)
-    assert_equal(p.y_data[0], 11.0)
-    assert_equal(p.y_data[1], 21.0)
-    assert_equal(p.y_data[2], 32.0)
+    assert_equal(len(p._continuous.x), 3)
+    assert_equal(p._continuous.x[0], 1.0)
+    assert_equal(p._continuous.y[0], 11.0)
+    assert_equal(p._continuous.y[1], 21.0)
+    assert_equal(p._continuous.y[2], 32.0)
     # One band: its edges are the estimate minus and plus one se, which
     # for each pair here is half the gap -- so the band runs exactly
     # through the raw readings.

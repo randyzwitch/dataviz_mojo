@@ -163,12 +163,12 @@ def _render_single_axis[
     legends) unchanged through a degenerate `y_scale` whose
     `range_min == range_max == point_y`: `LinearScale.to_pixel` collapses
     to a constant `range_min` when the range span is zero, so every point
-    lands on the same row regardless of `plot.y_data[i]`.
-    `encode_single_axis()` fills `y_data` with one placeholder `0.0` per
+    lands on the same row regardless of `plot._continuous.y[i]`.
+    `encode_single_axis()` fills `_continuous.y` with one placeholder `0.0` per
     row so the loop has a same-length list to index.
     """
     _validate_continuous_encoding(plot, "Plot.encode_single_axis()")
-    _require_non_empty(len(plot.x_data), "Plot.encode_single_axis()")
+    _require_non_empty(len(plot._continuous.x), "Plot.encode_single_axis()")
 
     var theme = plot._theme
 
@@ -176,7 +176,7 @@ def _render_single_axis[
     var ch = _PointChannels(plot, sc)
     var legend_reserve = _legend_reserve_for(plot, ch, sc, cache=cache)
 
-    var x_scale = _data_extent(plot.x_data)
+    var x_scale = _data_extent(plot._continuous.x)
     var frame = _draw_single_axis_frame(
         target, x_scale, theme, legend_reserve, ox0, oy0, ox1, oy1
     )
