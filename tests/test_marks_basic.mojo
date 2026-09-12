@@ -44,13 +44,13 @@ from dataviz import (
     scatter,
     waterfall,
 )
-from dataviz.barbs import _barb_counts, _barb_glyph
+from dataviz.multivariate.barbs import _barb_counts, _barb_glyph
 from dataviz.basic.continuous import _step_points
 from dataviz.binned.histogram import BinRule, bin_edges, histogram_bins
 from dataviz.core.delaunay import _in_circumcircle, delaunay
-from dataviz.tricontour import _tricontour_segments
-from dataviz.triplot import _triangle_means, _triplot_edges
-from dataviz.contour import (
+from dataviz.multivariate.tricontour import _tricontour_segments
+from dataviz.multivariate.triplot import _triangle_means, _triplot_edges
+from dataviz.multivariate.contour import (
     _append_above_region,
     _auto_levels,
     _chain_segments,

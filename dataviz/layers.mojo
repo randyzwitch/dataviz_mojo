@@ -35,7 +35,7 @@ from dataviz.core.annotations import (
     _validate_log_scale_annotations,
 )
 from dataviz.basic.bar import _bar_y_domain_data, _draw_bar_rects, _render_bar
-from dataviz.barbs import _draw_barbs_layer, _validate_barbs
+from dataviz.multivariate.barbs import _draw_barbs_layer, _validate_barbs
 from dataviz.binned.histogram import _draw_histogram_layer
 from dataviz.basic.continuous import (
     _PointChannels,
@@ -100,12 +100,12 @@ from dataviz.core.text import (
     _replay_text_requests_svg,
 )
 from dataviz.core.theme import Theme
-from dataviz.tricontour import (
+from dataviz.multivariate.tricontour import (
     _draw_tricontour_layer,
     _draw_tricontourf_layer,
     _validate_tricontour,
 )
-from dataviz.triplot import (
+from dataviz.multivariate.triplot import (
     _draw_tripcolor_layer,
     _draw_triplot_layer,
     _validate_tripcolor,

@@ -35,15 +35,15 @@ from dataviz.plot import (
 # One-call chart functions defined in their mark modules.
 from dataviz.basic.arc import pie
 from dataviz.basic.bar import bar
-from dataviz.barbs import barbs
-from dataviz.quiver import quiver
-from dataviz.streamplot import streamplot
+from dataviz.multivariate.barbs import barbs
+from dataviz.multivariate.quiver import quiver
+from dataviz.multivariate.streamplot import streamplot
 from dataviz.distributions.beeswarm import beeswarm
 from dataviz.distributions.box import box
 from dataviz.distributions.boxen import boxenplot
 from dataviz.categorical.bullet import bullet
 from dataviz.distributions.candlestick import candlestick
-from dataviz.contour import contour, contourf
+from dataviz.multivariate.contour import contour, contourf
 from dataviz.distributions.ecdf import ecdf
 from dataviz.aggregation.residplot import residplot
 from dataviz.aggregation.barplot import barplot, countplot
@@ -54,8 +54,8 @@ from dataviz.image import imshow, pcolormesh
 from dataviz.binned.hist2d import hist2d
 from dataviz.binned.hexbin import hexbin
 from dataviz.distributions.kde import kdeplot, rugplot
-from dataviz.tricontour import tricontour, tricontourf
-from dataviz.triplot import tripcolor, triplot
+from dataviz.multivariate.tricontour import tricontour, tricontourf
+from dataviz.multivariate.triplot import tripcolor, triplot
 from dataviz.relationships.chord import chord
 from dataviz.relationships.arc_diagram import arc_diagram
 from dataviz.relationships.graph import graph
@@ -82,7 +82,7 @@ from dataviz.radial.polar import polar
 from dataviz.radial.polar_bar import polarbar
 from dataviz.radial.radialbar import radialbar
 from dataviz.radial.gauge import gauge
-from dataviz.parallel import parallel
+from dataviz.multivariate.parallel import parallel
 from dataviz.radial.radar import radar
 from dataviz.categorical.population_pyramid import population_pyramid
 from dataviz.basic.single_axis import single_axis

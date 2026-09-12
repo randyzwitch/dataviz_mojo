@@ -13,7 +13,7 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from _test_helpers import _assert_same_canvas, _count_tag
 from dataviz import streamplot
 from dataviz.plot import Plot, render, render_svg
-from dataviz.streamplot import (
+from dataviz.multivariate.streamplot import (
     _STEP,
     _Line,
     _Occupancy,

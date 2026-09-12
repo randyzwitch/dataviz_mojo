@@ -6,7 +6,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import ColorScale, _color_scale_for
-from dataviz.contour import _Segments, _chain_segments, _crossing
+from dataviz.multivariate.contour import _Segments, _chain_segments, _crossing
 from dataviz.core.delaunay import _Triangulation, _edge_key, delaunay
 from dataviz.plot import (
     Plot,

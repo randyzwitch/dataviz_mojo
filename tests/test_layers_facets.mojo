@@ -40,15 +40,15 @@ from canvas.color import Color
 from canvas.path import PathOp
 from dataviz import LineStyle, StepStyle
 from dataviz.core.color_scale import default_categorical_palette
-from dataviz.barbs import barbs
+from dataviz.multivariate.barbs import barbs
 from dataviz.basic.continuous import line, scatter
-from dataviz.contour import contour
+from dataviz.multivariate.contour import contour
 from dataviz.basic.effect_scatter import effect_scatter
 from dataviz.distributions.ecdf import _ecdf_points, ecdf
 from dataviz.binned.histogram import HistStat, histogram, shared_bin_edges
 from dataviz.distributions.kde import kdeplot, rugplot
-from dataviz.tricontour import tricontour, tricontourf
-from dataviz.triplot import tripcolor, triplot
+from dataviz.multivariate.tricontour import tricontour, tricontourf
+from dataviz.multivariate.triplot import tripcolor, triplot
 from std.math import cos, sin
 from dataviz.core.colors import CORNFLOWERBLUE, MAGENTA, RED, TOMATO
 from dataviz.plot import (
