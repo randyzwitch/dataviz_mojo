@@ -70,7 +70,7 @@ from dataviz import (
 )
 from dataviz.core.color_scale import default_categorical_palette
 from dataviz.core.colors import RED
-from dataviz.edges import _edge_node_index
+from dataviz.relationships.edges import _edge_node_index
 from dataviz.plot import (
     Plot,
     _RenderResult,

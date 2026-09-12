@@ -16,7 +16,10 @@ from dataviz.plot import (
     _min_max,
     _finished,
 )
-from dataviz.edges import _edge_node_index, _validate_edge_encoding
+from dataviz.relationships.edges import (
+    _edge_node_index,
+    _validate_edge_encoding,
+)
 from dataviz.core.theme import Theme
 
 

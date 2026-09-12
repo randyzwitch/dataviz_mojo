@@ -268,7 +268,7 @@ from dataviz.image import _ImageData
 from dataviz.tricontour import _TriContourData
 from dataviz.triplot import _TriplotData
 from dataviz.marimekko import _MarimekkoData
-from dataviz.edges import _EdgeData
+from dataviz.relationships.edges import _EdgeData
 from dataviz.hierarchy import _HierarchyData
 from dataviz.distributions.box import (
     _box_stats,
@@ -280,7 +280,7 @@ from dataviz.distributions.candlestick import _render_candlestick
 from dataviz.categorical.gantt import _render_gantt
 from dataviz.categorical.span_chart import _render_span_chart
 from dataviz.categorical.bump import _render_bump
-from dataviz.chord import _render_chord
+from dataviz.relationships.chord import _render_chord
 from dataviz.categorical.funnel import _render_funnel
 from dataviz.categorical.grouped_bar import (
     _render_grouped_bar,
@@ -302,9 +302,9 @@ from dataviz.marimekko import _render_marimekko
 from dataviz.sunburst import _render_sunburst
 from dataviz.tree import _render_tree
 from dataviz.treemap import _render_treemap
-from dataviz.arc_diagram import _render_arc_diagram
-from dataviz.graph import _render_graph
-from dataviz.sankey import _render_sankey
+from dataviz.relationships.arc_diagram import _render_arc_diagram
+from dataviz.relationships.graph import _render_graph
+from dataviz.relationships.sankey import _render_sankey
 from dataviz.radialbar import _render_radialbar
 from dataviz.binned.histogram import (
     BinRule,
