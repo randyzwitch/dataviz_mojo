@@ -26,7 +26,7 @@ from canvas.text.render import TextAlign, draw_text
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.axis_position import AxisPosition
-from dataviz.continuous import area, line
+from dataviz.basic.continuous import area, line
 from dataviz.layers import _render_layers_generic
 from dataviz.core.legend import _LegendLayout
 from dataviz.core.mark import Mark

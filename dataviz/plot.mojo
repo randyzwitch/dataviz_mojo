@@ -96,7 +96,7 @@ from dataviz.core.marker import (
     default_marker_shapes,
 )
 from dataviz.core.pixel_snap import _snap_pixel_center, _snap_pixel_edge
-from dataviz.continuous import (
+from dataviz.basic.continuous import (
     _Decimated,
     _PointChannels,
     _build_line_path,
@@ -217,14 +217,14 @@ from dataviz.core.scale import (
 from dataviz.core.theme import Theme
 from dataviz.core.x_label_rotation import XAxisLabelRotation
 
-from dataviz.arc import _render_arc
+from dataviz.basic.arc import _render_arc
 from dataviz.nightingale import _render_nightingale
 from dataviz.polar import _render_polar
 from dataviz.polar_bar import _render_polar_bar
 from dataviz.gauge import _render_gauge
 from dataviz.parallel import _render_parallel
 from dataviz.radar import _render_radar
-from dataviz.bar import (
+from dataviz.basic.bar import (
     _render_bar,
     _render_horizontal_bar,
     _draw_bar_rects,
@@ -305,7 +305,7 @@ from dataviz.histogram import (
 )
 from dataviz.lollipop import _render_lollipop, _render_horizontal_lollipop
 from dataviz.pointplot import _render_pointplot
-from dataviz.single_axis import _render_single_axis
+from dataviz.basic.single_axis import _render_single_axis
 from dataviz.population_pyramid import _render_population_pyramid
 from dataviz.stacked_bar import (
     _render_stacked_bar,

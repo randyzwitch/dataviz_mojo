@@ -9,7 +9,7 @@ from canvas.text.render import FontWeight, TextAlign, draw_text, measure_text
 from canvas.vector.draw_target import DrawTarget
 from canvas.vector.svg import SvgCanvas
 
-from dataviz.continuous import area, line
+from dataviz.basic.continuous import area, line
 from dataviz.facets import render_facets
 from dataviz.layers import render_layers
 from dataviz.core.mark import Mark

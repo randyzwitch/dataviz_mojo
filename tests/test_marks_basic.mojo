@@ -45,7 +45,7 @@ from dataviz import (
     waterfall,
 )
 from dataviz.barbs import _barb_counts, _barb_glyph
-from dataviz.continuous import _step_points
+from dataviz.basic.continuous import _step_points
 from dataviz.histogram import BinRule, bin_edges, histogram_bins
 from dataviz.core.delaunay import _in_circumcircle, delaunay
 from dataviz.tricontour import _tricontour_segments

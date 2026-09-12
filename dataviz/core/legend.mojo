@@ -19,7 +19,7 @@ from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.color_scale import ColorScale
-from dataviz.continuous import _PointChannels
+from dataviz.basic.continuous import _PointChannels
 from dataviz.core.legend_position import LegendPosition
 from dataviz.core.mark import Mark
 from dataviz.core.marker import PointShape, _fill_shape_aa
