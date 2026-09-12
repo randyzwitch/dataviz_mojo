@@ -4781,7 +4781,13 @@ def render(plot: Plot) raises -> Canvas:
     # pie and 1.8x for a filled contour, which is why this is a per-plot
     # choice rather than one setting for the package
     # (benchmarks/METHODOLOGY.md; canvas_mojo#414 would remove it).
-    if _draws_bulk_markers(plot):
+    #
+    # Only above factor 1. At factor 1 there is nothing to trade: the
+    # region is a no-op, while the two-step still allocates a same-size
+    # scratch and runs `downsample(c, 1)` over every pixel to copy it
+    # back. A caller who sets `raster_supersample=1` on a scatter would
+    # otherwise pay that for nothing.
+    if factor > 1 and _draws_bulk_markers(plot):
         var scratch = Canvas(
             plot.width * factor, plot.height * factor, plot._theme.background
         )
