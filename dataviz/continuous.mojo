@@ -267,13 +267,13 @@ struct _PointChannels(Movable):
     var size_scale: LinearScale
 
     def __init__(out self, plot: Plot, sc: _Scaled) raises:
-        self.has_color = len(plot.color_data) > 0
-        self.has_color_categories = len(plot.color_categories) > 0
-        self.has_size = len(plot.size_data) > 0
+        self.has_color = len(plot._channels.color) > 0
+        self.has_color_categories = len(plot._channels.color_categories) > 0
+        self.has_size = len(plot._channels.size) > 0
         # Branch rather than resolving an empty column: `plot` is borrowed, so
         # a ternary would need a full copy of `color_categories`.
         if self.has_color_categories:
-            self.cat = _categorical_indices(plot.color_categories)
+            self.cat = _categorical_indices(plot._channels.color_categories)
         else:
             self.cat = _CategoricalIndex(List[String](), List[Int]())
         self.palette = List[Color]()
@@ -281,8 +281,8 @@ struct _PointChannels(Movable):
             var default_palette = categorical_palette_for(plot._theme)
             for i in range(len(self.cat.domain)):
                 var name = self.cat.domain[i]
-                if name in plot.color_map:
-                    self.palette.append(plot.color_map[name])
+                if name in plot._channels.color_map:
+                    self.palette.append(plot._channels.color_map[name])
                 else:
                     self.palette.append(
                         default_palette[i % len(default_palette)]
@@ -295,9 +295,9 @@ struct _PointChannels(Movable):
             var default_shapes = default_marker_shapes()
             for i in range(len(self.cat.domain)):
                 self.shapes.append(default_shapes[i % len(default_shapes)])
-        var color_mm = _min_max(plot.color_data) if self.has_color else MinMax(
-            0.0, 1.0
-        )
+        var color_mm = _min_max(
+            plot._channels.color
+        ) if self.has_color else MinMax(0.0, 1.0)
         # Only a numeric color channel has a domain for an override to
         # act on; a categorical or absent one leaves the scale unused, so
         # asking `_color_scale_for` about it would raise over a setting
@@ -307,9 +307,9 @@ struct _PointChannels(Movable):
         ) if self.has_color else ColorScale.from_theme(
             plot._theme, color_mm.min, color_mm.max
         )
-        self.size_mm = _min_max(plot.size_data) if self.has_size else MinMax(
-            0.0, 1.0
-        )
+        self.size_mm = _min_max(
+            plot._channels.size
+        ) if self.has_size else MinMax(0.0, 1.0)
         self.size_scale = LinearScale(
             self.size_mm.min,
             self.size_mm.max,
@@ -370,13 +370,15 @@ def _draws_bulk_markers(plot: Plot, draw_halo: Bool = False) -> Bool:
     if not (plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER):
         return False
     var theme = plot._theme
-    var has_shapes = len(plot.color_categories) > 0 and theme.shape_by_category
+    var has_shapes = (
+        len(plot._channels.color_categories) > 0 and theme.shape_by_category
+    )
     var tooltips_on = theme.svg_tooltips and plot._mark_style.point_tooltips
     var has_error_bars = (
-        len(plot.y_err_data) > 0 or len(plot.y_err_lower_data) > 0
+        len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
     )
     return not (
-        len(plot.size_data) > 0
+        len(plot._channels.size) > 0
         or has_shapes
         or tooltips_on
         or draw_halo
@@ -448,14 +450,14 @@ def _draw_point_layer[
     var batch_centers = List[FPoint]()
     var batch_colors = List[Color]()
 
-    for i in range(len(plot.y_data)):
+    for i in range(len(plot._continuous.y)):
         var px = band_px[i] if len(band_px) > 0 else _axis_pixel_f(
-            x_scale, plot.x_data[i]
+            x_scale, plot._continuous.x[i]
         )
-        var py = _axis_pixel_f(y_scale, plot.y_data[i])
+        var py = _axis_pixel_f(y_scale, plot._continuous.y[i])
         var color: Color
         if ch.has_color:
-            color = ch.color_scale.color_at(plot.color_data[i])
+            color = ch.color_scale.color_at(plot._channels.color[i])
         elif ch.has_color_categories:
             # A plain lookup: _PointChannels resolved every row's domain index up
             # front.
@@ -474,7 +476,7 @@ def _draw_point_layer[
         # whole-pixel steps, and two points 20% apart in value can come
         # out the same size.
         var radius = ch.size_scale.to_pixel(
-            plot.size_data[i]
+            plot._channels.size[i]
         ) if ch.has_size else Float64(round_to_int(sc.point_radius))
         # One group per point, covering its error bar, halo and marker
         # -- all one datum. The deferred label sits outside it, since
@@ -482,19 +484,19 @@ def _draw_point_layer[
         var tooltip = theme.svg_tooltips and plot._mark_style.point_tooltips
         if tooltip:
             target.begin_annotated_group(_point_tooltip_label(plot, i))
-        if len(plot.y_err_data) > 0 or len(plot.y_err_lower_data) > 0:
+        if len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0:
             # Whisker first, point on top, in this point's own resolved `color`.
             # y_err and y_err_lower/y_err_upper are mutually exclusive, so exactly
             # one branch has data.
             var lo: Float64
             var hi: Float64
-            if len(plot.y_err_data) > 0:
-                var err = plot.y_err_data[i]
-                lo = plot.y_data[i] - err
-                hi = plot.y_data[i] + err
+            if len(plot._y_err.symmetric) > 0:
+                var err = plot._y_err.symmetric[i]
+                lo = plot._continuous.y[i] - err
+                hi = plot._continuous.y[i] + err
             else:
-                lo = plot.y_data[i] - plot.y_err_lower_data[i]
-                hi = plot.y_data[i] + plot.y_err_upper_data[i]
+                lo = plot._continuous.y[i] - plot._y_err.lower[i]
+                hi = plot._continuous.y[i] + plot._y_err.upper[i]
             # Snap the hairline and caps to matching pixel centers.
             var bar_x = _snap_pixel_center(px)
             var py_hi = _snap_pixel_center(_axis_pixel_f(y_scale, hi))
@@ -545,7 +547,10 @@ def _draw_point_layer[
             target.fill_circle_aa(px, py, radius, color)
         if tooltip:
             target.end_annotated_group()
-        if len(plot.point_labels) > 0 and plot.point_labels[i] != "":
+        if (
+            len(plot._channels.point_labels) > 0
+            and plot._channels.point_labels[i] != ""
+        ):
             # Baseline placed label_gap above the point's top edge (py - radius).
             # Text anchors are pixel indices, so the top edge rounds
             # here and the gap stays a whole number of pixels.
@@ -553,7 +558,7 @@ def _draw_point_layer[
                 _TextRequest(
                     round_to_int(px),
                     round_to_int(py - radius) - sc.label_gap,
-                    plot.point_labels[i],
+                    plot._channels.point_labels[i],
                     theme.text_color,
                     sc.font_size,
                     TextAlign.CENTER,
@@ -691,7 +696,7 @@ def _draw_line_layer[
 
     `Plot.encode()`'s `y_err` whisker, when set, draws once per original
     data point before the line (whisker first, line on top), over the
-    untouched `plot.x_data`/`y_data` rather than the decimated path, in
+    untouched `plot._continuous.x`/`_continuous.y` rather than the decimated path, in
     `theme.mark_color` (`Mark.LINE` has no per-point color). Stepping
     does not move a whisker: it belongs to a sample, not to the segment
     between two of them.
@@ -701,13 +706,13 @@ def _draw_line_layer[
     _check_line_smoothing(theme)
     _check_step_smoothing(theme, plot._mark_style.step)
     _push_plot_clip(target, x_scale, y_scale)
-    if len(plot.y_err_data) > 0:
+    if len(plot._y_err.symmetric) > 0:
         var cap_half = round_to_int(sc.error_bar_cap_width)
-        for i in range(len(plot.x_data)):
-            var px_i = round_to_int(x_scale.to_pixel(plot.x_data[i]))
-            var err = plot.y_err_data[i]
-            var py_hi = _axis_pixel(y_scale, plot.y_data[i] + err)
-            var py_lo = _axis_pixel(y_scale, plot.y_data[i] - err)
+        for i in range(len(plot._continuous.x)):
+            var px_i = round_to_int(x_scale.to_pixel(plot._continuous.x[i]))
+            var err = plot._y_err.symmetric[i]
+            var py_hi = _axis_pixel(y_scale, plot._continuous.y[i] + err)
+            var py_lo = _axis_pixel(y_scale, plot._continuous.y[i] - err)
             target.draw_line_aa(
                 px_i, py_hi, px_i, py_lo, theme.mark_color, width=sc.scale
             )
@@ -727,13 +732,14 @@ def _draw_line_layer[
                 theme.mark_color,
                 width=sc.scale,
             )
-    var px = List[Float64](capacity=len(plot.y_data))
-    var py = List[Float64](capacity=len(plot.y_data))
-    for i in range(len(plot.y_data)):
+    var px = List[Float64](capacity=len(plot._continuous.y))
+    var py = List[Float64](capacity=len(plot._continuous.y))
+    for i in range(len(plot._continuous.y)):
         px.append(
-            band_px[i] if len(band_px) > 0 else x_scale.to_pixel(plot.x_data[i])
+            band_px[i] if len(band_px)
+            > 0 else x_scale.to_pixel(plot._continuous.x[i])
         )
-        py.append(y_scale.to_pixel(plot.y_data[i]))
+        py.append(y_scale.to_pixel(plot._continuous.y[i]))
     # Thin the expanded geometry so step risers retain their true positions.
     var stepped = _step_points(px, py, plot._mark_style.step)
     # Drop sub-pixel detail before the rasterizer has to pay for it --
@@ -785,13 +791,14 @@ def _draw_area_layer[
     var baseline_py = y_scale.to_pixel(0.0)
     if round_to_int(baseline_py) == round_to_int(y_scale.range_min):
         baseline_py -= 1.0
-    var px = List[Float64](capacity=len(plot.x_data))
-    var py = List[Float64](capacity=len(plot.x_data))
-    for i in range(len(plot.x_data)):
+    var px = List[Float64](capacity=len(plot._continuous.x))
+    var py = List[Float64](capacity=len(plot._continuous.x))
+    for i in range(len(plot._continuous.x)):
         px.append(
-            band_px[i] if len(band_px) > 0 else x_scale.to_pixel(plot.x_data[i])
+            band_px[i] if len(band_px)
+            > 0 else x_scale.to_pixel(plot._continuous.x[i])
         )
-        py.append(y_scale.to_pixel(plot.y_data[i]))
+        py.append(y_scale.to_pixel(plot._continuous.y[i]))
     # Step first, decimate second, the order and the reasoning
     # _draw_line_layer's own comment spells out: thin the geometry that
     # is actually drawn, so the two-points-per-column cap applies to the

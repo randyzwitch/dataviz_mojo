@@ -118,7 +118,7 @@ def test_render_svg_error_bar_uses_the_points_own_resolved_color() raises:
 def test_render_widens_the_y_domain_to_include_the_whisker_extent() raises:
     # y=[10], y_err=[20]: the whisker reaches -10, so domain data becomes
     # [-10, 30], padded to [-12, 32], and _nice_step picks step 10 -> ticks
-    # [-10, 0, 10, 20, 30]. A domain from plot.y_data alone would never
+    # [-10, 0, 10, 20, 30]. A domain from plot._continuous.y alone would never
     # show a negative tick.
     var x: List[Float64] = [1.0]
     var y: List[Float64] = [10.0]

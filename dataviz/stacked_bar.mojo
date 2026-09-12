@@ -36,10 +36,10 @@ def _stacked_bar_domain(plot: Plot, n_series: Int) raises -> LinearScale:
     positive and negative running totals, the most extreme point each
     direction reaches.
     """
-    if plot._stacked_bar_percent:
+    if plot._grouped_bar.percent:
         return LinearScale(0.0, 100.0, 0.0, 1.0)
     var domain_data = List[Float64]()
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var pos_total = 0.0
         var neg_total = 0.0
         for j in range(n_series):
@@ -56,7 +56,7 @@ def _stacked_bar_domain(plot: Plot, n_series: Int) raises -> LinearScale:
 def _validate_stacked_bar_percent(plot: Plot, n_series: Int) raises:
     """`percent=True` needs every value non-negative -- a negative
     share has no meaning. Orientation-independent."""
-    if not plot._stacked_bar_percent:
+    if not plot._grouped_bar.percent:
         return
     for j in range(n_series):
         for v in plot._grouped_bar.values[j]:
@@ -106,13 +106,13 @@ def _draw_stacked_segments[
     var n_series = len(plot._grouped_bar.series_names)
     var band_size = band_scale.bandwidth()
 
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var band_pos = band_scale.band_start(i)
         # percent=True rescales each category against its own total. An
         # all-zero category gets a 0.0 factor and draws an empty column rather
         # than NaN.
         var scale_factor = 1.0
-        if plot._stacked_bar_percent:
+        if plot._grouped_bar.percent:
             var category_total = 0.0
             for j in range(n_series):
                 category_total += plot._grouped_bar.values[j][i]
@@ -142,7 +142,7 @@ def _draw_stacked_segments[
             if theme.svg_tooltips:
                 target.begin_annotated_group(
                     _series_tooltip_label(
-                        plot.x_categories[i],
+                        plot._categorical.x[i],
                         plot._grouped_bar.series_names[j],
                         v,
                     )
@@ -208,7 +208,7 @@ def _render_stacked_bar[
     var legend = _series_legend_reserve(plot, sc, ox1 - ox0, cache=cache)
     var frame = _draw_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         y_scale,
         theme,
         ox0 + legend.left,
@@ -282,7 +282,7 @@ def _render_horizontal_stacked_bar[
     var legend = _series_legend_reserve(plot, sc, ox1 - ox0, cache=cache)
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         x_scale,
         theme,
         ox0 + legend.left,

@@ -21,12 +21,12 @@ def test_residplot_points_are_hand_derived_fitted_values_and_residuals() raises:
     var p = residplot(x, y)
     var fitted: List[Float64] = [1.4, 2.2, 3.0, 3.8, 4.6]
     var resid: List[Float64] = [-0.4, 0.8, -1.0, 1.2, -0.6]
-    assert_equal(len(p.x_data), 5)
+    assert_equal(len(p._continuous.x), 5)
     var total = 0.0
     for i in range(5):
-        assert_almost_equal(p.x_data[i], fitted[i], atol=1e-12)
-        assert_almost_equal(p.y_data[i], resid[i], atol=1e-12)
-        total += p.y_data[i]
+        assert_almost_equal(p._continuous.x[i], fitted[i], atol=1e-12)
+        assert_almost_equal(p._continuous.y[i], resid[i], atol=1e-12)
+        total += p._continuous.y[i]
     # OLS residuals always sum to zero.
     assert_almost_equal(total, 0.0, atol=1e-12)
     assert_equal(p._annotations.line_values[0], 0.0)
@@ -36,7 +36,7 @@ def test_residplot_perfect_fit_has_all_zero_residuals() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0]
     var y: List[Float64] = [2.0, 4.0, 6.0, 8.0]
     var p = residplot(x, y)
-    for v in p.y_data:
+    for v in p._continuous.y:
         assert_equal(v, 0.0)
 
 

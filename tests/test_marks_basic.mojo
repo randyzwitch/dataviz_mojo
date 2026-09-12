@@ -1636,17 +1636,17 @@ def test_encode_histogram_bins_match_hand_derived_counts() raises:
     # max) lands in the last bin.
     var data: List[Float64] = [1.0, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 8.0, 9.0]
     var plot = Plot().mark_bar().encode_histogram(data, bins=5)
-    assert_equal(len(plot.x_categories), 5)
-    assert_equal(plot.x_categories[0], "1.0-2.6")
-    assert_equal(plot.x_categories[1], "2.6-4.2")
-    assert_equal(plot.x_categories[2], "4.2-5.8")
-    assert_equal(plot.x_categories[3], "5.8-7.4")
-    assert_equal(plot.x_categories[4], "7.4-9.0")
-    assert_equal(plot.y_data[0], 3.0)
-    assert_equal(plot.y_data[1], 3.0)
-    assert_equal(plot.y_data[2], 2.0)
-    assert_equal(plot.y_data[3], 0.0)
-    assert_equal(plot.y_data[4], 2.0)
+    assert_equal(len(plot._categorical.x), 5)
+    assert_equal(plot._categorical.x[0], "1.0-2.6")
+    assert_equal(plot._categorical.x[1], "2.6-4.2")
+    assert_equal(plot._categorical.x[2], "4.2-5.8")
+    assert_equal(plot._categorical.x[3], "5.8-7.4")
+    assert_equal(plot._categorical.x[4], "7.4-9.0")
+    assert_equal(plot._continuous.y[0], 3.0)
+    assert_equal(plot._continuous.y[1], 3.0)
+    assert_equal(plot._continuous.y[2], 2.0)
+    assert_equal(plot._continuous.y[3], 0.0)
+    assert_equal(plot._continuous.y[4], 2.0)
 
 
 def test_encode_histogram_rule_matches_hand_derived_bins() raises:
@@ -1657,11 +1657,11 @@ def test_encode_histogram_rule_matches_hand_derived_bins() raises:
     for i in range(16):
         data.append(Float64(i) * 0.8)
     var plot = Plot().mark_bar().encode_histogram(data, BinRule.SQRT)
-    assert_equal(len(plot.x_categories), 4)
-    assert_equal(plot.x_categories[0], "0.0-3.0")
-    assert_equal(plot.x_categories[3], "9.0-12.0")
+    assert_equal(len(plot._categorical.x), 4)
+    assert_equal(plot._categorical.x[0], "0.0-3.0")
+    assert_equal(plot._categorical.x[3], "9.0-12.0")
     for i in range(4):
-        assert_equal(plot.y_data[i], 4.0)
+        assert_equal(plot._continuous.y[i], 4.0)
 
 
 def test_encode_histogram_rule_agrees_with_the_numeric_path() raises:
@@ -1671,9 +1671,9 @@ def test_encode_histogram_rule_agrees_with_the_numeric_path() raises:
     var data: List[Float64] = [1.0, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 8.0, 9.0]
     var plot = Plot().mark_bar().encode_histogram(data, BinRule.AUTO)
     var numeric = histogram_bins(data, bin_edges(data, BinRule.AUTO))
-    assert_equal(len(plot.y_data), len(numeric.values))
+    assert_equal(len(plot._continuous.y), len(numeric.values))
     for i in range(len(numeric.values)):
-        assert_equal(plot.y_data[i], numeric.values[i])
+        assert_equal(plot._continuous.y[i], numeric.values[i])
 
 
 def test_encode_histogram_rule_raises_on_empty_data() raises:
@@ -1703,15 +1703,15 @@ def test_encode_histogram_centers_bins_on_a_constant_sample() raises:
     # counts [0, 0, 3, 0, 0].
     var data: List[Float64] = [5.0, 5.0, 5.0]
     var plot = Plot().mark_bar().encode_histogram(data, bins=5)
-    assert_equal(len(plot.x_categories), 5)
-    assert_equal(plot.x_categories[0], "4.5-4.7")
-    assert_equal(plot.x_categories[2], "4.9-5.1")
-    assert_equal(plot.x_categories[4], "5.3-5.5")
-    assert_equal(plot.y_data[0], 0.0)
-    assert_equal(plot.y_data[1], 0.0)
-    assert_equal(plot.y_data[2], 3.0)
-    assert_equal(plot.y_data[3], 0.0)
-    assert_equal(plot.y_data[4], 0.0)
+    assert_equal(len(plot._categorical.x), 5)
+    assert_equal(plot._categorical.x[0], "4.5-4.7")
+    assert_equal(plot._categorical.x[2], "4.9-5.1")
+    assert_equal(plot._categorical.x[4], "5.3-5.5")
+    assert_equal(plot._continuous.y[0], 0.0)
+    assert_equal(plot._continuous.y[1], 0.0)
+    assert_equal(plot._continuous.y[2], 3.0)
+    assert_equal(plot._continuous.y[3], 0.0)
+    assert_equal(plot._continuous.y[4], 0.0)
 
 
 def test_render_histogram_draws_as_an_ordinary_bar_chart() raises:

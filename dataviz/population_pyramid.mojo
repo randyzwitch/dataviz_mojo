@@ -73,13 +73,13 @@ def _render_population_pyramid[
     Both sides share a symmetric domain. Zero values draw no bar, and the
     optional legend names the two sides.
     """
-    if len(plot.x_categories) != len(plot._pyramid.left) or len(
+    if len(plot._categorical.x) != len(plot._pyramid.left) or len(
         plot._pyramid.right
     ) != len(plot._pyramid.left):
         raise Error(
             "Plot.encode_population_pyramid(): categories, left_values, and"
             " right_values must all have the same length (got "
-            + String(len(plot.x_categories))
+            + String(len(plot._categorical.x))
             + " categories, "
             + String(len(plot._pyramid.left))
             + " left_values, "
@@ -89,7 +89,7 @@ def _render_population_pyramid[
 
     var theme = plot._theme
     _require_non_empty(
-        len(plot.x_categories), "Plot.encode_population_pyramid()"
+        len(plot._categorical.x), "Plot.encode_population_pyramid()"
     )
     var sc = _Scaled(theme)
     # Tooltips need side names even when the legend is hidden.
@@ -119,7 +119,7 @@ def _render_population_pyramid[
     )
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         x_scale,
         theme,
         ox0 + legend.left,
@@ -133,7 +133,7 @@ def _render_population_pyramid[
     var center_px = _axis_pixel_f(frame.x_scale, 0.0)
     var row_height = frame.y_scale.bandwidth()
     var orient = _Orientation(True)  # bars grow horizontally from center
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var row_y = frame.y_scale.band_start(i)
 
         var left_edge_px = _axis_pixel_f(
@@ -145,7 +145,7 @@ def _render_population_pyramid[
             if theme.svg_tooltips:
                 target.begin_annotated_group(
                     _series_tooltip_label(
-                        plot.x_categories[i],
+                        plot._categorical.x[i],
                         left_name,
                         plot._pyramid.left[i],
                     )
@@ -194,7 +194,7 @@ def _render_population_pyramid[
             if theme.svg_tooltips:
                 target.begin_annotated_group(
                     _series_tooltip_label(
-                        plot.x_categories[i],
+                        plot._categorical.x[i],
                         right_name,
                         plot._pyramid.right[i],
                     )

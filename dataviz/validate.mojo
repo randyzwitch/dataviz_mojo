@@ -32,22 +32,22 @@ def _validate_categorical_encoding(plot: Plot) raises:
        (`_require_non_empty`), shared by every mark reading a
        category/value pair. Also validates `y_err`/`y_err_lower`/`y_err_upper`
     when set, mirroring `_validate_continuous_encoding`'s rules for
-       `encode()`'s same three channels but against `x_categories`' length and
+       `encode()`'s same three channels but against `_categorical.x`' length and
        restricted to `Mark.BAR` -- the only categorical mark drawing them today.
     """
-    if len(plot.x_categories) != len(plot.y_data):
+    if len(plot._categorical.x) != len(plot._continuous.y):
         raise Error(
             "Plot.encode_categorical(): x and y must have the same length (got "
-            + String(len(plot.x_categories))
+            + String(len(plot._categorical.x))
             + " and "
-            + String(len(plot.y_data))
+            + String(len(plot._continuous.y))
             + ")"
         )
-    _require_non_empty(len(plot.x_categories), "Plot.encode_categorical()")
+    _require_non_empty(len(plot._categorical.x), "Plot.encode_categorical()")
 
-    var has_y_err = len(plot.y_err_data) > 0
-    var has_y_err_lower = len(plot.y_err_lower_data) > 0
-    var has_y_err_upper = len(plot.y_err_upper_data) > 0
+    var has_y_err = len(plot._y_err.symmetric) > 0
+    var has_y_err_lower = len(plot._y_err.lower) > 0
+    var has_y_err_upper = len(plot._y_err.upper) > 0
     if not (has_y_err or has_y_err_lower or has_y_err_upper):
         return
 
@@ -66,43 +66,43 @@ def _validate_categorical_encoding(plot: Plot) raises:
             "Plot.encode_categorical(): y_err/y_err_lower/y_err_upper is only"
             " supported for Mark.BAR and Mark.POINTPLOT today"
         )
-    if has_y_err and len(plot.y_err_data) != len(plot.x_categories):
+    if has_y_err and len(plot._y_err.symmetric) != len(plot._categorical.x):
         raise Error(
             "Plot.encode_categorical(): y_err must be the same length as"
             " x/y (got "
-            + String(len(plot.y_err_data))
+            + String(len(plot._y_err.symmetric))
             + " and "
-            + String(len(plot.x_categories))
+            + String(len(plot._categorical.x))
             + ")"
         )
     if has_y_err:
-        for v in plot.y_err_data:
+        for v in plot._y_err.symmetric:
             if v < 0.0:
                 raise Error(
                     "Plot.encode_categorical(): y_err values must be >= 0 (got "
                     + String(v)
                     + ")"
                 )
-    if has_y_err_lower and len(plot.y_err_lower_data) != len(plot.x_categories):
+    if has_y_err_lower and len(plot._y_err.lower) != len(plot._categorical.x):
         raise Error(
             "Plot.encode_categorical(): y_err_lower must be the same length"
             " as x/y (got "
-            + String(len(plot.y_err_lower_data))
+            + String(len(plot._y_err.lower))
             + " and "
-            + String(len(plot.x_categories))
+            + String(len(plot._categorical.x))
             + ")"
         )
-    if has_y_err_upper and len(plot.y_err_upper_data) != len(plot.x_categories):
+    if has_y_err_upper and len(plot._y_err.upper) != len(plot._categorical.x):
         raise Error(
             "Plot.encode_categorical(): y_err_upper must be the same length"
             " as x/y (got "
-            + String(len(plot.y_err_upper_data))
+            + String(len(plot._y_err.upper))
             + " and "
-            + String(len(plot.x_categories))
+            + String(len(plot._categorical.x))
             + ")"
         )
     if has_y_err_lower:
-        for v in plot.y_err_lower_data:
+        for v in plot._y_err.lower:
             if v < 0.0:
                 raise Error(
                     "Plot.encode_categorical(): y_err_lower values must be"
@@ -111,7 +111,7 @@ def _validate_categorical_encoding(plot: Plot) raises:
                     + ")"
                 )
     if has_y_err_upper:
-        for v in plot.y_err_upper_data:
+        for v in plot._y_err.upper:
             if v < 0.0:
                 raise Error(
                     "Plot.encode_categorical(): y_err_upper values must be"
@@ -167,34 +167,36 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
     `render_layers()` enforces is specific to layering and stays at its
     call site (`_is_layerable_mark`, layers.mojo).
     """
-    if len(plot.x_data) != len(plot.y_data):
+    if len(plot._continuous.x) != len(plot._continuous.y):
         raise Error(
             context
             + ": x and y must have the same length (got "
-            + String(len(plot.x_data))
+            + String(len(plot._continuous.x))
             + " and "
-            + String(len(plot.y_data))
+            + String(len(plot._continuous.y))
             + ")"
         )
-    var has_color = len(plot.color_data) > 0
-    var has_color_categories = len(plot.color_categories) > 0
-    var has_size = len(plot.size_data) > 0
-    if has_color and len(plot.color_data) != len(plot.x_data):
+    var has_color = len(plot._channels.color) > 0
+    var has_color_categories = len(plot._channels.color_categories) > 0
+    var has_size = len(plot._channels.size) > 0
+    if has_color and len(plot._channels.color) != len(plot._continuous.x):
         raise Error(
             context
             + ": color must be the same length as x/y (got "
-            + String(len(plot.color_data))
+            + String(len(plot._channels.color))
             + " and "
-            + String(len(plot.x_data))
+            + String(len(plot._continuous.x))
             + ")"
         )
-    if has_color_categories and len(plot.color_categories) != len(plot.x_data):
+    if has_color_categories and len(plot._channels.color_categories) != len(
+        plot._continuous.x
+    ):
         raise Error(
             context
             + ": color_categories must be the same length as x/y (got "
-            + String(len(plot.color_categories))
+            + String(len(plot._channels.color_categories))
             + " and "
-            + String(len(plot.x_data))
+            + String(len(plot._continuous.x))
             + ")"
         )
     if has_color and has_color_categories:
@@ -203,13 +205,13 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             + ": color and color_categories are mutually exclusive -- pass"
             " one or the other, not both"
         )
-    if has_size and len(plot.size_data) != len(plot.x_data):
+    if has_size and len(plot._channels.size) != len(plot._continuous.x):
         raise Error(
             context
             + ": size must be the same length as x/y (got "
-            + String(len(plot.size_data))
+            + String(len(plot._channels.size))
             + " and "
-            + String(len(plot.x_data))
+            + String(len(plot._continuous.x))
             + ")"
         )
     if (has_color or has_color_categories or has_size) and not (
@@ -222,18 +224,18 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             + ": color/size encoding is only supported for"
             " Mark.POINT/SINGLE_AXIS/EFFECT_SCATTER today"
         )
-    var has_y_err = len(plot.y_err_data) > 0
-    if has_y_err and len(plot.y_err_data) != len(plot.x_data):
+    var has_y_err = len(plot._y_err.symmetric) > 0
+    if has_y_err and len(plot._y_err.symmetric) != len(plot._continuous.x):
         raise Error(
             context
             + ": y_err must be the same length as x/y (got "
-            + String(len(plot.y_err_data))
+            + String(len(plot._y_err.symmetric))
             + " and "
-            + String(len(plot.x_data))
+            + String(len(plot._continuous.x))
             + ")"
         )
     if has_y_err:
-        for v in plot.y_err_data:
+        for v in plot._y_err.symmetric:
             if v < 0.0:
                 raise Error(
                     context
@@ -256,8 +258,8 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             " today"
         )
 
-    var has_y_err_lower = len(plot.y_err_lower_data) > 0
-    var has_y_err_upper = len(plot.y_err_upper_data) > 0
+    var has_y_err_lower = len(plot._y_err.lower) > 0
+    var has_y_err_upper = len(plot._y_err.upper) > 0
     if has_y_err_lower != has_y_err_upper:
         raise Error(
             context
@@ -270,26 +272,26 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             + ": y_err and y_err_lower/y_err_upper are mutually exclusive --"
             " pass one or the other, not both"
         )
-    if has_y_err_lower and len(plot.y_err_lower_data) != len(plot.x_data):
+    if has_y_err_lower and len(plot._y_err.lower) != len(plot._continuous.x):
         raise Error(
             context
             + ": y_err_lower must be the same length as x/y (got "
-            + String(len(plot.y_err_lower_data))
+            + String(len(plot._y_err.lower))
             + " and "
-            + String(len(plot.x_data))
+            + String(len(plot._continuous.x))
             + ")"
         )
-    if has_y_err_upper and len(plot.y_err_upper_data) != len(plot.x_data):
+    if has_y_err_upper and len(plot._y_err.upper) != len(plot._continuous.x):
         raise Error(
             context
             + ": y_err_upper must be the same length as x/y (got "
-            + String(len(plot.y_err_upper_data))
+            + String(len(plot._y_err.upper))
             + " and "
-            + String(len(plot.x_data))
+            + String(len(plot._continuous.x))
             + ")"
         )
     if has_y_err_lower:
-        for v in plot.y_err_lower_data:
+        for v in plot._y_err.lower:
             if v < 0.0:
                 raise Error(
                     context
@@ -298,7 +300,7 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
                     + ")"
                 )
     if has_y_err_upper:
-        for v in plot.y_err_upper_data:
+        for v in plot._y_err.upper:
             if v < 0.0:
                 raise Error(
                     context
@@ -315,7 +317,7 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             " Mark.POINT/EFFECT_SCATTER today"
         )
 
-    if len(plot.color_map) > 0 and not has_color_categories:
+    if len(plot._channels.color_map) > 0 and not has_color_categories:
         raise Error(
             context
             + ": color_map is only meaningful alongside color_categories --"
@@ -323,14 +325,16 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             " color_map with color_categories empty"
         )
 
-    var has_labels = len(plot.point_labels) > 0
-    if has_labels and len(plot.point_labels) != len(plot.x_data):
+    var has_labels = len(plot._channels.point_labels) > 0
+    if has_labels and len(plot._channels.point_labels) != len(
+        plot._continuous.x
+    ):
         raise Error(
             context
             + ": labels must be the same length as x/y (got "
-            + String(len(plot.point_labels))
+            + String(len(plot._channels.point_labels))
             + " and "
-            + String(len(plot.x_data))
+            + String(len(plot._continuous.x))
             + ")"
         )
     if has_labels and not (
@@ -397,7 +401,7 @@ def _mark_colors_by_value(plot: Plot) -> Bool:
         or plot._mark == Mark.SINGLE_AXIS
         or plot._mark == Mark.EFFECT_SCATTER
     ):
-        return len(plot.color_data) > 0
+        return len(plot._channels.color) > 0
     return (
         plot._mark == Mark.HEATMAP
         or plot._mark == Mark.CALENDAR_HEATMAP

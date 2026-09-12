@@ -342,8 +342,8 @@ def _render_bar_combo_layers[
     categorical x-axis instead of a continuous one.
 
     Every non-bar layer aligns to the categories by position:
-    `plots[j].y_data[k]` plots at category `k`'s band center, and its
-    `x_data` must have exactly `len(bar_categories)` entries (checked
+    `plots[j]._continuous.y[k]` plots at category `k`'s band center, and its
+    `_continuous.x` must have exactly `len(bar_categories)` entries (checked
     here) but its numeric content is never read; callers commonly pass
     `x=[0.0, 1.0, 2.0, ...]`.
 
@@ -359,7 +359,7 @@ def _render_bar_combo_layers[
     in its own `Theme`. The shared y-domain always includes a zero
     baseline (`_zero_baseline_y_extent`), as `Mark.BAR` requires.
     """
-    var bar_categories = plots[bar_index].x_categories.copy()
+    var bar_categories = plots[bar_index]._categorical.x.copy()
     _validate_categorical_encoding(plots[bar_index])
 
     for i in range(len(plots)):
@@ -414,36 +414,36 @@ def _render_bar_combo_layers[
                 + String(i)
                 + ")"
             )
-        if len(plots[i].x_data) != len(bar_categories):
+        if len(plots[i]._continuous.x) != len(bar_categories):
             raise Error(
                 "render_layers(): with a Mark.BAR layer present, every other"
                 " layer's own data must have one entry per bar category --"
                 " layer "
                 + String(i)
                 + " has "
-                + String(len(plots[i].x_data))
+                + String(len(plots[i]._continuous.x))
                 + " points, the bar layer has "
                 + String(len(bar_categories))
                 + " categories"
             )
-        if len(plots[i].y_data) != len(plots[i].x_data):
+        if len(plots[i]._continuous.y) != len(plots[i]._continuous.x):
             raise Error(
                 "render_layers(): layer "
                 + String(i)
                 + ": x and y must have the same length (got "
-                + String(len(plots[i].x_data))
+                + String(len(plots[i]._continuous.x))
                 + " and "
-                + String(len(plots[i].y_data))
+                + String(len(plots[i]._continuous.y))
                 + ")"
             )
         if (
-            len(plots[i].color_data) > 0
-            or len(plots[i].color_categories) > 0
-            or len(plots[i].size_data) > 0
-            or len(plots[i].y_err_data) > 0
-            or len(plots[i].y_err_lower_data) > 0
-            or len(plots[i].y_err_upper_data) > 0
-            or len(plots[i].point_labels) > 0
+            len(plots[i]._channels.color) > 0
+            or len(plots[i]._channels.color_categories) > 0
+            or len(plots[i]._channels.size) > 0
+            or len(plots[i]._y_err.symmetric) > 0
+            or len(plots[i]._y_err.lower) > 0
+            or len(plots[i]._y_err.upper) > 0
+            or len(plots[i]._channels.point_labels) > 0
         ):
             raise Error(
                 "render_layers():"
@@ -465,7 +465,7 @@ def _render_bar_combo_layers[
             for v in _bar_y_domain_data(plots[i]):
                 combined_y.append(v)
         else:
-            for v in plots[i].y_data:
+            for v in plots[i]._continuous.y:
                 combined_y.append(v)
     var y_scale = _zero_baseline_y_extent(combined_y)
 
@@ -538,8 +538,8 @@ def _render_bar_combo_layers[
         # mark_point(tooltips=True) (#422), each found only after it
         # shipped, because a dropped argument renders a different claim
         # about the data rather than an error.
-        var band_px = List[Float64](capacity=len(plots[i].y_data))
-        for k in range(len(plots[i].y_data)):
+        var band_px = List[Float64](capacity=len(plots[i]._continuous.y))
+        for k in range(len(plots[i]._continuous.y)):
             band_px.append(frame.x_scale.center(k))
 
         # Decimation is a no-op here rather than something to suppress:
@@ -679,7 +679,7 @@ struct _LayerDomain(Copyable, Movable):
     domain, plus how that layer wants its y-axis anchored.
 
     Marks reach the shared frame from four different data fields --
-    `Plot.encode()`'s `x_data`/`y_data`, `_distribution.values`,
+    `Plot.encode()`'s `_continuous.x`/`_continuous.y`, `_distribution.values`,
     `_tricontour.x`/`y`, `_triplot.x`/`y`, `_barbs.x`/`y` -- so the
     domain pass reads them through `_layer_domain` once and works in
     plain columns from there, rather than branching on the mark at every
@@ -787,16 +787,16 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
     # each whisker's endpoints, so the shared axis spans everything
     # drawn, exactly as _render_generic's y_domain_data does.
     var ys = List[Float64]()
-    if len(plot.y_err_data) > 0:
-        for i in range(len(plot.y_data)):
-            ys.append(plot.y_data[i] - plot.y_err_data[i])
-            ys.append(plot.y_data[i] + plot.y_err_data[i])
-    elif len(plot.y_err_lower_data) > 0:
-        for i in range(len(plot.y_data)):
-            ys.append(plot.y_data[i] - plot.y_err_lower_data[i])
-            ys.append(plot.y_data[i] + plot.y_err_upper_data[i])
+    if len(plot._y_err.symmetric) > 0:
+        for i in range(len(plot._continuous.y)):
+            ys.append(plot._continuous.y[i] - plot._y_err.symmetric[i])
+            ys.append(plot._continuous.y[i] + plot._y_err.symmetric[i])
+    elif len(plot._y_err.lower) > 0:
+        for i in range(len(plot._continuous.y)):
+            ys.append(plot._continuous.y[i] - plot._y_err.lower[i])
+            ys.append(plot._continuous.y[i] + plot._y_err.upper[i])
     else:
-        for v in plot.y_data:
+        for v in plot._continuous.y:
             ys.append(v)
     if mark == Mark.HISTOGRAM and plot._histogram.horizontal:
         raise Error(
@@ -805,7 +805,9 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
             " Use render_facets(), or a vertical histogram."
         )
     return _LayerDomain(
-        plot.x_data.copy(), ys^, mark == Mark.AREA or mark == Mark.HISTOGRAM
+        plot._continuous.x.copy(),
+        ys^,
+        mark == Mark.AREA or mark == Mark.HISTOGRAM,
     )
 
 
@@ -1347,7 +1349,7 @@ def _render_layers_generic[
             j
         ]._secondary_axis else frame.y_scale
         if mark == Mark.POINT or mark == Mark.EFFECT_SCATTER:
-            if len(plots[j].x_data) == 0:
+            if len(plots[j]._continuous.x) == 0:
                 continue
             var ch_j = _PointChannels(plots[j], layer_sc)
             legend_y = _draw_point_layer(
@@ -1362,15 +1364,15 @@ def _render_layers_generic[
                 draw_halo=mark == Mark.EFFECT_SCATTER,
             )
         elif mark == Mark.LINE:
-            if len(plots[j].x_data) == 0:
+            if len(plots[j]._continuous.x) == 0:
                 continue
             _draw_line_layer(target, plots[j], frame.x_scale, layer_y_scale)
         elif mark == Mark.AREA:
-            if len(plots[j].x_data) == 0:
+            if len(plots[j]._continuous.x) == 0:
                 continue
             _draw_area_layer(target, plots[j], frame.x_scale, layer_y_scale)
         elif mark == Mark.HISTOGRAM:
-            if len(plots[j].x_data) == 0:
+            if len(plots[j]._continuous.x) == 0:
                 continue
             _draw_histogram_layer(
                 target, plots[j], frame.x_scale, layer_y_scale

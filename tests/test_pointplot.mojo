@@ -29,11 +29,11 @@ def test_pointplot_points_are_the_group_means_with_se_whiskers() raises:
     # x: [1, 3] -> mean 2, sd sqrt(2), se 1.0. y: [10, 20] -> mean 15,
     # sd sqrt(50), se 5.0.
     var p = pointplot(_groups(), _values(), errorbar=ErrorBar.se())
-    assert_equal(len(p.x_categories), 2)
-    assert_equal(p.y_data[0], 2.0)
-    assert_equal(p.y_data[1], 15.0)
-    assert_almost_equal(p.y_err_lower_data[0], 1.0, atol=1e-12)
-    assert_almost_equal(p.y_err_upper_data[1], 5.0, atol=1e-12)
+    assert_equal(len(p._categorical.x), 2)
+    assert_equal(p._continuous.y[0], 2.0)
+    assert_equal(p._continuous.y[1], 15.0)
+    assert_almost_equal(p._y_err.lower[0], 1.0, atol=1e-12)
+    assert_almost_equal(p._y_err.upper[1], 5.0, atol=1e-12)
 
 
 def test_pointplot_renders_points_a_joining_line_and_whiskers() raises:

@@ -4,7 +4,7 @@ categorical axis uses (like d3's `scaleBand`, with a single `padding`
 fraction applied as an equal gap on both sides of every band).
 
 Index-based (`band_start(i)`/`center(i)`), never looked up by category
-string: `Plot.x_categories` is this scale's domain, index for index.
+string: `Plot._categorical.x` is this scale's domain, index for index.
 Repeated categories (grouped/stacked bars) go through
 `Plot.encode_grouped_bar()` instead.
 """
@@ -13,7 +13,7 @@ Repeated categories (grouped/stacked bars) go through
 struct OrdinalScale(Movable):
     var domain: List[String]
     """The fixed-order category list this scale's bands index into --
-    `Plot`'s own `x_categories`, index for index."""
+    `Plot`'s own `_categorical.x`, index for index."""
     var range_min: Float64
     """The pixel position the first category's band starts from."""
     var range_max: Float64

@@ -556,7 +556,7 @@ struct HistogramBins(Copyable, Movable, Sized):
 struct _HistogramData(Copyable, Movable):
     """The bins `Mark.HISTOGRAM` draws as one rectangle each, from
     `encode_histogram_bins()`: the `HistogramBins` columns, stored on
-    `Plot._histogram`. The same bins go into `Plot.x_data`/`y_data` as
+    `Plot._histogram`. The same bins go into `Plot._continuous.x`/`_continuous.y` as
     the `step_x()`/`step_y()` staircase, which is what every domain,
     layering and faceting rule reads; only the drawing reads this."""
 

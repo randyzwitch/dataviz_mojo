@@ -44,13 +44,13 @@ def _render_nightingale[
     var theme = plot._theme
     var text_requests = List[_TextRequest]()
 
-    _require_non_negative(plot.y_data, "Mark.NIGHTINGALE")
-    var max_v = _require_some_positive(plot.y_data, "Mark.NIGHTINGALE")
+    _require_non_negative(plot._continuous.y, "Mark.NIGHTINGALE")
+    var max_v = _require_some_positive(plot._continuous.y, "Mark.NIGHTINGALE")
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend = _legend_layout(
-        plot.x_categories,
+        plot._categorical.x,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -69,14 +69,14 @@ def _render_nightingale[
     )
 
     var palette = categorical_palette_for(theme)
-    var n = len(plot.x_categories)
+    var n = len(plot._categorical.x)
     var span = 2.0 * pi / Float64(n)
     var start = -pi / 2.0
     for i in range(n):
         var end = start + span
-        var frac = plot.y_data[i] / max_v
+        var frac = plot._continuous.y[i] / max_v
         var radius = max_radius * (
-            sqrt(frac) if plot._nightingale_area else frac
+            sqrt(frac) if plot._nightingale.area else frac
         )
         var color = palette[i % len(palette)]
         target.fill_arc_aa(cx, cy, radius, start, end, color)
@@ -86,7 +86,7 @@ def _render_nightingale[
         _draw_legend_at(
             target,
             text_requests,
-            plot.x_categories,
+            plot._categorical.x,
             palette,
             legend,
             plot_x0,

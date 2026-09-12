@@ -103,7 +103,7 @@ def _draw_beeswarm_points[
     """
     var theme = plot._theme
     var spacing = 2 * radius
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var center = round_to_int(band_scale.center(i))
         var value_pixels = List[Int]()
         for v in plot._distribution.values[i]:
@@ -114,7 +114,7 @@ def _draw_beeswarm_points[
             if tooltip:
                 target.begin_annotated_group(
                     _tooltip_label(
-                        plot.x_categories[i], plot._distribution.values[i][j]
+                        plot._categorical.x[i], plot._distribution.values[i][j]
                     )
                 )
             orient.band_point(
@@ -152,7 +152,7 @@ def _render_beeswarm[
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         value_scale,
         theme,
         ox0,
@@ -200,7 +200,7 @@ def _render_horizontal_beeswarm[
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         value_scale,
         theme,
         ox0,

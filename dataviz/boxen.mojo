@@ -136,7 +136,7 @@ def _draw_boxen_glyphs[
     var theme = plot._theme
     var band_size = band_scale.bandwidth()
     var half = band_size / 2.0
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var center = band_scale.center(i)
         var depth = len(plot._boxen.lower[i])
         var scale = ColorScale.from_theme(
@@ -180,11 +180,11 @@ def _draw_boxen_glyphs[
 def _boxen_domain_data(plot: Plot) raises -> List[Float64]:
     """The deepest level's ends and every outlier -- exactly the values
     drawn -- for `_data_extent`."""
-    if len(plot.x_categories) != len(plot._boxen.median):
+    if len(plot._categorical.x) != len(plot._boxen.median):
         raise Error(
             "Plot.encode_boxenplot(): categories and values must have the"
             " same length (got "
-            + String(len(plot.x_categories))
+            + String(len(plot._categorical.x))
             + " and "
             + String(len(plot._boxen.median))
             + ")"
@@ -217,7 +217,7 @@ def _render_boxenplot[
     var y_scale = _data_extent(_boxen_domain_data(plot))
     var frame = _draw_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         y_scale,
         theme,
         ox0,
@@ -256,7 +256,7 @@ def _render_horizontal_boxenplot[
     var x_scale = _data_extent(_boxen_domain_data(plot))
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         x_scale,
         theme,
         ox0,
