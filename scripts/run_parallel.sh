@@ -69,11 +69,23 @@ if [ "$MODULE_TIMEOUT" -gt 0 ]; then
         TIMEOUT_BIN="timeout"
     elif command -v gtimeout > /dev/null 2>&1; then
         TIMEOUT_BIN="gtimeout"
-    else
-        printf 'note: no timeout(1) on this system; modules run without a\n' >&2
-        printf '      wall-clock limit, so a wedged one will stall the run\n' >&2
-        printf '      rather than reporting (dataviz_mojo#535).\n' >&2
     fi
+fi
+
+# Say which of the three states this run is in. A guard that is silently
+# absent looks exactly like a guard that is working, and the only tell is
+# a run that never ends -- which is the failure the guard exists to
+# prevent and the one nobody is watching for. One line, so a CI log says
+# what protected it.
+if [ "$MODULE_TIMEOUT" -le 0 ]; then
+    printf 'module timeout: disabled by MOJO_MODULE_TIMEOUT=0\n' >&2
+elif [ -n "$TIMEOUT_BIN" ]; then
+    printf 'module timeout: %ss per module via %s\n' \
+        "$MODULE_TIMEOUT" "$TIMEOUT_BIN" >&2
+else
+    printf 'module timeout: UNGUARDED -- no timeout(1) on this system, so\n' >&2
+    printf '  a wedged module stalls the run instead of reporting it\n' >&2
+    printf '  (dataviz_mojo#535)\n' >&2
 fi
 REQUESTED=$#
 STATUS_DIR="$(mktemp -d)"
