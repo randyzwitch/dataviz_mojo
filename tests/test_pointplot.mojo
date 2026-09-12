@@ -11,7 +11,7 @@ from std.testing import (
 
 from _test_helpers import _count_tag
 from dataviz.plot import Plot, render_svg
-from dataviz.pointplot import pointplot
+from dataviz.aggregation.pointplot import pointplot
 from dataviz.core.stats import ErrorBar, Estimator
 
 

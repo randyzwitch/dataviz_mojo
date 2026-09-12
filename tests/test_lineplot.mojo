@@ -9,7 +9,7 @@ from std.testing import (
     assert_true,
 )
 
-from dataviz.lineplot import lineplot
+from dataviz.aggregation.lineplot import lineplot
 from dataviz.plot import render_svg
 from dataviz.core.stats import ErrorBar, Estimator
 
