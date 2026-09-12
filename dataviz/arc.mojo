@@ -44,9 +44,9 @@ def _render_arc[
     var theme = plot._theme
     var text_requests = List[_TextRequest]()
 
-    _require_non_negative(plot.y_data, "Mark.ARC")
+    _require_non_negative(plot._continuous.y, "Mark.ARC")
     var total = 0.0
-    for v in plot.y_data:
+    for v in plot._continuous.y:
         total += v
     if total <= 0.0:
         raise Error(
@@ -70,7 +70,7 @@ def _render_arc[
 
     var show_legend = theme.show_legend
     var legend = _legend_layout(
-        plot.x_categories,
+        plot._categorical.x,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -90,8 +90,8 @@ def _render_arc[
 
     var palette = categorical_palette_for(theme)
     var start = -pi / 2.0
-    for i in range(len(plot.x_categories)):
-        var span = (plot.y_data[i] / total) * 2.0 * pi
+    for i in range(len(plot._categorical.x)):
+        var span = (plot._continuous.y[i] / total) * 2.0 * pi
         var end = start + span
         var color = palette[i % len(palette)]
         if is_donut:
@@ -106,7 +106,7 @@ def _render_arc[
         _draw_legend_at(
             target,
             text_requests,
-            plot.x_categories,
+            plot._categorical.x,
             palette,
             legend,
             plot_x0,

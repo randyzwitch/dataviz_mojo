@@ -60,10 +60,10 @@ def _draw_lollipop_stems[
     var baseline_on_axis_line = abs(baseline - Float64(baseline_edge)) < 0.5
     var band_size = band_scale.bandwidth()
 
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var band_pos = band_scale.band_start(i)
         var center = band_scale.center(i)
-        var value = value_scale.to_pixel(plot.y_data[i])
+        var value = value_scale.to_pixel(plot._continuous.y[i])
         var stem_from = (
             baseline
             + orient.baseline_pull() if (
@@ -72,7 +72,7 @@ def _draw_lollipop_stems[
         )
         if theme.svg_tooltips:
             target.begin_annotated_group(
-                _tooltip_label(plot.x_categories[i], plot.y_data[i])
+                _tooltip_label(plot._categorical.x[i], plot._continuous.y[i])
             )
         target.stroke_path_aa(
             orient.value_stem_path(stem_from, value, center),
@@ -91,14 +91,14 @@ def _draw_lollipop_stems[
         if theme.show_data_labels:
             var extent = _pull_off_axis_line_f(
                 _axis_pixel_f(value_scale, 0.0),
-                _axis_pixel_f(value_scale, plot.y_data[i]),
+                _axis_pixel_f(value_scale, plot._continuous.y[i]),
                 Float64(baseline_edge),
             )
             var padded_extent = _BaselineRectF(
                 extent.y - Float64(radius),
                 extent.height + 2.0 * Float64(radius),
             )
-            var label_value = plot.y_data[i]
+            var label_value = plot._continuous.y[i]
             var at = orient.outside_band_label(
                 padded_extent,
                 band_pos,
@@ -149,10 +149,10 @@ def _render_lollipop[
     _validate_categorical_encoding(plot)
 
     var theme = plot._theme
-    var y_scale = _zero_baseline_y_extent(plot.y_data)
+    var y_scale = _zero_baseline_y_extent(plot._continuous.y)
     var frame = _draw_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         y_scale,
         theme,
         ox0,
@@ -201,10 +201,10 @@ def _render_horizontal_lollipop[
     _validate_categorical_encoding(plot)
 
     var theme = plot._theme
-    var x_scale = _zero_baseline_y_extent(plot.y_data)
+    var x_scale = _zero_baseline_y_extent(plot._continuous.y)
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         x_scale,
         theme,
         ox0,

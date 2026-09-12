@@ -220,7 +220,7 @@ def _render_facets_generic[
     adjacent cells share the exact boundary pixel.
 
     `shared_y_scale` gives every cell one y-domain (`_data_extent` over
-    the union of every cell's `y_data`, `_zero_baseline_y_extent` over it
+    the union of every cell's `_continuous.y`, `_zero_baseline_y_extent` over it
     when any cell is `Mark.AREA`, or `_log_data_extent` when every cell
     agrees on `Plot.scale_y_log()`). Only `Mark.POINT`/`LINE`/`AREA`/
     `EFFECT_SCATTER` support it, every cell must use one of those marks,
@@ -246,7 +246,7 @@ def _render_facets_generic[
     if shared_y_scale:
         var combined_y = List[Float64]()
         for i in range(len(plots)):
-            for v in plots[i].y_data:
+            for v in plots[i]._continuous.y:
                 combined_y.append(v)
         # A Mark.AREA cell anywhere forces the zero baseline for the whole
         # grid, the rule render_layers() applies to an axis group: an

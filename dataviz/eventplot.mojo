@@ -71,7 +71,7 @@ def _render_eventplot[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `x_categories` (row labels) and
+        plot: The chart, whose `_categorical.x` (row labels) and
             `_distribution` values (each row's positions) this reads.
         ox0: Left edge of the outer bounds.
         oy0: Top edge.
@@ -86,7 +86,7 @@ def _render_eventplot[
         Error: No rows, a row-count mismatch, no events at all, or a
             non-positive `line_length`.
     """
-    var labels = plot.x_categories.copy()
+    var labels = plot._categorical.x.copy()
     var rows = plot._distribution.values.copy()
     _require_non_empty(len(labels), "Plot.encode_eventplot()")
     if len(rows) != len(labels):

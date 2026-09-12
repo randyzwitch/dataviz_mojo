@@ -164,10 +164,10 @@ def _render_quiver[
             scale.
     """
     _validate_vector_field(plot, "Plot.encode_quiver()")
-    if plot._quiver_scale < 0.0:
+    if plot._barbs.scale < 0.0:
         raise Error(
             "Plot.mark_quiver(): scale must be 0 (automatic) or positive (got "
-            + String(plot._quiver_scale)
+            + String(plot._barbs.scale)
             + ")"
         )
     var theme = plot._theme
@@ -180,7 +180,7 @@ def _render_quiver[
     var color_scale = _color_scale_for(theme, plot._color_domain, 0.0, top)
 
     var legend = _LegendLayout()
-    if theme.show_legend and plot._quiver_color_by_magnitude:
+    if theme.show_legend and plot._barbs.color_by_magnitude:
         var legend_labels = _continuous_legend_labels(color_scale, theme)
         legend.right = _dynamic_legend_width(
             legend_labels,
@@ -202,8 +202,8 @@ def _render_quiver[
         oy1,
         cache=cache,
     )
-    var pixels_per_unit = plot._quiver_scale * sc.scale
-    if plot._quiver_scale == 0.0:
+    var pixels_per_unit = plot._barbs.scale * sc.scale
+    if plot._barbs.scale == 0.0:
         pixels_per_unit = _auto_pixels_per_unit(
             plot._barbs.u,
             plot._barbs.v,
@@ -217,7 +217,7 @@ def _render_quiver[
         frame.sc,
         pixels_per_unit,
         color_scale,
-        plot._quiver_color_by_magnitude,
+        plot._barbs.color_by_magnitude,
     )
     if legend.active:
         _ = _draw_continuous_color_legend(

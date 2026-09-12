@@ -86,14 +86,14 @@ def _render_bullet[
     3. The target tick (`theme.axis_color`, full band width), drawn last.
     """
     if (
-        len(plot.x_categories) != len(plot._bullet.measure)
+        len(plot._categorical.x) != len(plot._bullet.measure)
         or len(plot._bullet.target) != len(plot._bullet.measure)
         or len(plot._bullet.ranges) != len(plot._bullet.measure)
     ):
         raise Error(
             "Plot.encode_bullet(): categories, measures, targets, and"
             " ranges must all have the same length (got "
-            + String(len(plot.x_categories))
+            + String(len(plot._categorical.x))
             + " categories, "
             + String(len(plot._bullet.measure))
             + " measures, "
@@ -106,7 +106,7 @@ def _render_bullet[
         if len(plot._bullet.ranges[i]) == 0:
             raise Error(
                 "Plot.encode_bullet(): category '"
-                + plot.x_categories[i]
+                + plot._categorical.x[i]
                 + "' has no range thresholds -- a bullet chart needs at"
                 " least one qualitative range"
             )
@@ -114,15 +114,15 @@ def _render_bullet[
             if plot._bullet.ranges[i][j] < plot._bullet.ranges[i][j - 1]:
                 raise Error(
                     "Plot.encode_bullet(): category '"
-                    + plot.x_categories[i]
+                    + plot._categorical.x[i]
                     + "' has non-ascending range thresholds -- each"
                     " threshold must be >= the one before it"
                 )
 
-    _require_non_empty(len(plot.x_categories), "Plot.encode_bullet()")
+    _require_non_empty(len(plot._categorical.x), "Plot.encode_bullet()")
     var theme = plot._theme
     var domain_data = List[Float64]()
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         domain_data.append(0.0)
         domain_data.append(
             plot._bullet.ranges[i][len(plot._bullet.ranges[i]) - 1]
@@ -133,7 +133,7 @@ def _render_bullet[
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         y_scale,
         theme,
         ox0,
@@ -160,7 +160,7 @@ def _render_bullet[
     var sc = _Scaled(theme)
     var orient = _Orientation(False)  # Mark.BULLET has no horizontal variant
 
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var band_x = frame.x_scale.band_start(i)
         var band_x1 = band_x + bandwidth
         var band_count = len(plot._bullet.ranges[i])
@@ -195,7 +195,7 @@ def _render_bullet[
             # bands are background and stay outside the group.
             target.begin_annotated_group(
                 _bullet_tooltip_label(
-                    plot.x_categories[i],
+                    plot._categorical.x[i],
                     plot._bullet.measure[i],
                     plot._bullet.target[i],
                 )

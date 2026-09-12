@@ -59,7 +59,7 @@ def _draw_violin_silhouettes[
         band_scale.bandwidth() * plot._mark_style.violin_width_fraction
     )
 
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var values = plot._distribution.values[i].copy()
         var center = band_scale.center(i)
         var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
@@ -88,7 +88,7 @@ def _draw_violin_silhouettes[
             # A silhouette encodes a distribution, not a value, so the hover text
             # is what shaped it: how many points and over what range.
             target.begin_annotated_group(
-                plot.x_categories[i]
+                plot._categorical.x[i]
                 + ": n="
                 + String(len(values))
                 + ", range "
@@ -165,7 +165,7 @@ def _render_violin[
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         value_scale,
         theme,
         ox0,
@@ -219,7 +219,7 @@ def _render_horizontal_violin[
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         value_scale,
         theme,
         ox0,

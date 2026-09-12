@@ -22,14 +22,21 @@ from dataviz.theme import Theme
 
 
 struct _BarbsData(Copyable, Movable):
-    """One (x, y, u, v) row per wind barb, plus the glyph knobs
-    `mark_barbs()` sets. See `encode_barbs()`. Stored on `Plot._barbs`.
+    """One (x, y, u, v) row per vector, plus the knobs `mark_barbs()`
+    and `mark_quiver()` set. Shared by `Mark.BARBS` and `Mark.QUIVER`,
+    which differ in the glyph they draw rather than in the data they
+    read. See `encode_barbs()` and `encode_quiver()`. Stored on
+    `Plot._barbs`.
 
     `u`/`v` are the vector's components in the same units as each
     other; `hypot(u, v)` is the speed the glyph decomposes into flags,
     barbs and a half barb. The unit is the caller's -- knots by
     meteorological convention, since the 50/10/5 increments below are
     the knot ones.
+
+    `length` and `flip` are the barb glyph's; `scale` and
+    `color_by_magnitude` are the arrow glyph's. Each mark ignores the
+    other's, which is why they can share one struct.
     """
 
     var x: List[Float64]
@@ -38,6 +45,14 @@ struct _BarbsData(Copyable, Movable):
     var v: List[Float64]
     var length: Float64
     var flip: Bool
+    var scale: Float64
+    """`Mark.QUIVER` only: data units per pixel of arrow length. 0.0
+    means `mark_quiver()` was left at its default and `_render_quiver`
+    picks a scale from the data. Negative is rejected there."""
+
+    var color_by_magnitude: Bool
+    """`Mark.QUIVER` only: color each arrow by `hypot(u, v)` through
+    the theme's ramp, and draw a color legend for it."""
 
     def __init__(out self):
         self.x = List[Float64]()
@@ -46,6 +61,8 @@ struct _BarbsData(Copyable, Movable):
         self.v = List[Float64]()
         self.length = 28.0
         self.flip = False
+        self.scale = 0.0
+        self.color_by_magnitude = False
 
 
 # Feature sizes as fractions of the staff length, matching matplotlib's

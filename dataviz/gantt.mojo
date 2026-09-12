@@ -218,13 +218,13 @@ def _render_gantt[
     No dependency arrows between bars; `encode_gantt()`'s data has no
     notion of dependencies.
     """
-    if len(plot.x_categories) != len(plot._gantt.start) or len(
+    if len(plot._categorical.x) != len(plot._gantt.start) or len(
         plot._gantt.end
     ) != len(plot._gantt.start):
         raise Error(
             "Plot.encode_gantt(): categories, start, and end must all have"
             " the same length (got "
-            + String(len(plot.x_categories))
+            + String(len(plot._categorical.x))
             + " categories, "
             + String(len(plot._gantt.start))
             + " start values, "
@@ -233,7 +233,7 @@ def _render_gantt[
         )
 
     var theme = plot._theme
-    _require_non_empty(len(plot.x_categories), "Plot.encode_gantt()")
+    _require_non_empty(len(plot._categorical.x), "Plot.encode_gantt()")
     var domain_data = List[Float64]()
     for v in plot._gantt.start:
         domain_data.append(v)
@@ -243,7 +243,7 @@ def _render_gantt[
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         x_scale,
         theme,
         ox0,
@@ -254,7 +254,7 @@ def _render_gantt[
     )
 
     var row_height = frame.y_scale.bandwidth()
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var row_y = frame.y_scale.band_start(i)
         var start_px = _axis_pixel_f(frame.x_scale, plot._gantt.start[i])
         var end_px = _axis_pixel_f(frame.x_scale, plot._gantt.end[i])

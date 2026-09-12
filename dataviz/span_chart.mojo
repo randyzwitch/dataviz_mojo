@@ -33,13 +33,13 @@ def _render_span_chart[
     Endpoint order does not matter. Bars use the full category bandwidth, and
     zero-length spans remain visible as one-pixel bars.
     """
-    if len(plot.x_categories) != len(plot._gantt.start) or len(
+    if len(plot._categorical.x) != len(plot._gantt.start) or len(
         plot._gantt.end
     ) != len(plot._gantt.start):
         raise Error(
             "Plot.encode_gantt(): categories, start, and end must all have"
             " the same length (got "
-            + String(len(plot.x_categories))
+            + String(len(plot._categorical.x))
             + " categories, "
             + String(len(plot._gantt.start))
             + " start values, "
@@ -48,7 +48,7 @@ def _render_span_chart[
         )
 
     var theme = plot._theme
-    _require_non_empty(len(plot.x_categories), "Plot.encode_gantt()")
+    _require_non_empty(len(plot._categorical.x), "Plot.encode_gantt()")
     var domain_data = List[Float64]()
     for v in plot._gantt.start:
         domain_data.append(v)
@@ -58,7 +58,7 @@ def _render_span_chart[
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         y_scale,
         theme,
         ox0,
@@ -69,7 +69,7 @@ def _render_span_chart[
     )
 
     var bandwidth = frame.x_scale.bandwidth()
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var band_start = frame.x_scale.band_start(i)
         var low_py = _axis_pixel_f(frame.y_scale, plot._gantt.start[i])
         var high_py = _axis_pixel_f(frame.y_scale, plot._gantt.end[i])
@@ -83,7 +83,7 @@ def _render_span_chart[
         if theme.svg_tooltips:
             target.begin_annotated_group(
                 _span_tooltip_label(
-                    plot.x_categories[i],
+                    plot._categorical.x[i],
                     plot._gantt.start[i],
                     plot._gantt.end[i],
                 )

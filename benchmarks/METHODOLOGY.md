@@ -117,3 +117,39 @@ flatters the region rather than measuring the primitive. canvas_mojo built
 the recordable per-marker form on that suggestion and measured it slower
 than materializing; canvas_mojo#414 now proposes recording the whole call
 as a single op instead.
+### Grouping Plot's data columns, compile-time effect (2026-09-11)
+
+AMD Threadripper 3970X, Linux, Mojo 1.0.0, canvas_mojo v0.32.0. #522 warned
+that grouping `Plot`'s eleven shared data columns into four structs touches
+the monomorphization hot spot `pixi.toml` describes, so it should be
+measured rather than assumed neutral.
+
+A build target that pulls in `render()` and `render_svg()` for five marks,
+forcing `_render_generic` to monomorphize over both `DrawTarget`
+implementations. Three passes per side, alternating, same directory and
+environment with only the checkout swapped.
+
+| pass | main | branch |
+| --- | --- | --- |
+| 1 | 52.92 s | 53.33 s |
+| 2 | 53.28 s | 52.06 s |
+| 3 | 53.26 s | 51.76 s |
+
+**No measurable difference.** The ranges overlap, and the produced binary
+is 3,442,880 bytes on both sides in all six builds, which is the stronger
+evidence: the same code is being generated, not merely generated in the
+same time.
+
+Two notes on method, because the first attempt measured nothing.
+
+The cache must be cleared before each build. A warm build returns cached
+artifacts in 9.1 seconds and, on the second and third passes, was identical
+to three decimal places across both trees. That is a cache lookup being
+timed, not a compile, and it would have read as "no difference" for the
+wrong reason. The cache is `$MODULAR_HOME/cache/.mojo_cache`, inside the
+worktree's own pixi environment.
+
+The harness checks which tree is checked out before each timed build, by
+grepping for a declaration that exists only on the branch, and refuses to
+record a time if the build failed or produced no binary. A failed build is
+fast, and a fast failure reads as a speedup.

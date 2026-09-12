@@ -26,14 +26,14 @@ def _values() -> List[Float64]:
 
 def test_barplot_bars_are_the_group_means_with_whiskers() raises:
     var p = barplot(_groups(), _values(), errorbar=ErrorBar.se())
-    assert_equal(len(p.x_categories), 2)
-    assert_equal(p.x_categories[0], "x")
-    assert_equal(p.x_categories[1], "y")
-    assert_equal(p.y_data[0], 2.0)
-    assert_equal(p.y_data[1], 20.0)
+    assert_equal(len(p._categorical.x), 2)
+    assert_equal(p._categorical.x[0], "x")
+    assert_equal(p._categorical.x[1], "y")
+    assert_equal(p._continuous.y[0], 2.0)
+    assert_equal(p._continuous.y[1], 20.0)
     # se of [1,2,3] is 1/sqrt(3); of [10,20,30] is 10/sqrt(3).
-    assert_almost_equal(p.y_err_lower_data[0], 0.5773502691896258, atol=1e-12)
-    assert_almost_equal(p.y_err_upper_data[1], 5.773502691896258, atol=1e-12)
+    assert_almost_equal(p._y_err.lower[0], 0.5773502691896258, atol=1e-12)
+    assert_almost_equal(p._y_err.upper[1], 5.773502691896258, atol=1e-12)
 
 
 def test_barplot_names_the_estimator_on_the_y_axis_by_default() raises:
@@ -51,8 +51,8 @@ def test_barplot_names_the_estimator_on_the_y_axis_by_default() raises:
 
 def test_barplot_with_no_errorbar_has_no_whiskers() raises:
     var p = barplot(_groups(), _values(), errorbar=ErrorBar.none())
-    assert_equal(len(p.y_err_lower_data), 0)
-    assert_equal(len(p.y_err_data), 0)
+    assert_equal(len(p._y_err.lower), 0)
+    assert_equal(len(p._y_err.symmetric), 0)
 
 
 def test_barplot_dtype_overload_matches_the_float64_path() raises:
@@ -66,13 +66,13 @@ def test_barplot_dtype_overload_matches_the_float64_path() raises:
 def test_countplot_counts_in_first_seen_order() raises:
     var c: List[String] = ["chat", "email", "chat", "chat", "phone", "email"]
     var p = countplot(c)
-    assert_equal(p.x_categories[0], "chat")
-    assert_equal(p.x_categories[1], "email")
-    assert_equal(p.x_categories[2], "phone")
-    assert_equal(p.y_data[0], 3.0)
-    assert_equal(p.y_data[1], 2.0)
-    assert_equal(p.y_data[2], 1.0)
-    assert_equal(len(p.y_err_lower_data), 0)
+    assert_equal(p._categorical.x[0], "chat")
+    assert_equal(p._categorical.x[1], "email")
+    assert_equal(p._categorical.x[2], "phone")
+    assert_equal(p._continuous.y[0], 3.0)
+    assert_equal(p._continuous.y[1], 2.0)
+    assert_equal(p._continuous.y[2], 1.0)
+    assert_equal(len(p._y_err.lower), 0)
     assert_true(">Count<" in render_svg(p).to_string())
 
 

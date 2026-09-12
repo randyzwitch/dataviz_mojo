@@ -36,23 +36,23 @@ def _bar_fill_color(theme: Theme, value: Float64) -> Color:
 
 
 def _bar_y_domain_data(plot: Plot) -> List[Float64]:
-    """`plot.y_data`, or every error-bar whisker endpoint when `y_err`
+    """`plot._continuous.y`, or every error-bar whisker endpoint when `y_err`
     (or `y_err_lower`/`y_err_upper`) is set, so the y-domain spans
     everything `_draw_bar_rects` actually draws -- the same
     `y_domain_data` pattern `_render_generic` uses for `POINT`/`LINE`/
     `EFFECT_SCATTER`.
     """
     var domain_data = List[Float64]()
-    if len(plot.y_err_data) > 0:
-        for i in range(len(plot.y_data)):
-            domain_data.append(plot.y_data[i] - plot.y_err_data[i])
-            domain_data.append(plot.y_data[i] + plot.y_err_data[i])
-    elif len(plot.y_err_lower_data) > 0:
-        for i in range(len(plot.y_data)):
-            domain_data.append(plot.y_data[i] - plot.y_err_lower_data[i])
-            domain_data.append(plot.y_data[i] + plot.y_err_upper_data[i])
+    if len(plot._y_err.symmetric) > 0:
+        for i in range(len(plot._continuous.y)):
+            domain_data.append(plot._continuous.y[i] - plot._y_err.symmetric[i])
+            domain_data.append(plot._continuous.y[i] + plot._y_err.symmetric[i])
+    elif len(plot._y_err.lower) > 0:
+        for i in range(len(plot._continuous.y)):
+            domain_data.append(plot._continuous.y[i] - plot._y_err.lower[i])
+            domain_data.append(plot._continuous.y[i] + plot._y_err.upper[i])
     else:
-        for v in plot.y_data:
+        for v in plot._continuous.y:
             domain_data.append(v)
     return domain_data^
 
@@ -97,29 +97,29 @@ def _draw_bar_rects[
     # bandwidth() doesn't depend on the category index, so it's hoisted out
     # of the loop.
     var band_size = band_scale.bandwidth()
-    var has_y_err = len(plot.y_err_data) > 0 or len(plot.y_err_lower_data) > 0
+    var has_y_err = len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
     var cap_half = sc.error_bar_cap_width
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var band_pos = band_scale.band_start(i)
-        var value = plot.y_data[i]
+        var value = plot._continuous.y[i]
         var extent = _pull_off_axis_line_f(
             baseline, _axis_pixel_f(value_scale, value), Float64(baseline_edge)
         )
         var color = _bar_fill_color(theme, value)
         if theme.svg_tooltips:
             target.begin_annotated_group(
-                _tooltip_label(plot.x_categories[i], value)
+                _tooltip_label(plot._categorical.x[i], value)
             )
         if has_y_err:
             var lo: Float64
             var hi: Float64
-            if len(plot.y_err_data) > 0:
-                var err = plot.y_err_data[i]
+            if len(plot._y_err.symmetric) > 0:
+                var err = plot._y_err.symmetric[i]
                 lo = value - err
                 hi = value + err
             else:
-                lo = value - plot.y_err_lower_data[i]
-                hi = value + plot.y_err_upper_data[i]
+                lo = value - plot._y_err.lower[i]
+                hi = value + plot._y_err.upper[i]
             var center_i = band_scale.center(i)
             var py_hi = _axis_pixel_f(value_scale, hi)
             var py_lo = _axis_pixel_f(value_scale, lo)
@@ -208,7 +208,7 @@ def _render_bar[
     var y_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))
     var frame = _draw_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         y_scale,
         theme,
         ox0,
@@ -266,7 +266,7 @@ def _render_horizontal_bar[
     var x_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         x_scale,
         theme,
         ox0,

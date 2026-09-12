@@ -44,13 +44,13 @@ def _render_polar_bar[
     var theme = plot._theme
     var text_requests = List[_TextRequest]()
 
-    _require_non_negative(plot.y_data, "Mark.POLAR_BAR")
-    var max_v = _require_some_positive(plot.y_data, "Mark.POLAR_BAR")
+    _require_non_negative(plot._continuous.y, "Mark.POLAR_BAR")
+    var max_v = _require_some_positive(plot._continuous.y, "Mark.POLAR_BAR")
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend = _legend_layout(
-        plot.x_categories,
+        plot._categorical.x,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -69,14 +69,14 @@ def _render_polar_bar[
     )
 
     var palette = categorical_palette_for(theme)
-    var n = len(plot.x_categories)
+    var n = len(plot._categorical.x)
     var slot = 2.0 * pi / Float64(n)
     var gap = slot * plot._mark_style.polar_bar_padding
     var slot_start = -pi / 2.0
     for i in range(n):
         var start = slot_start + gap / 2.0
         var end = slot_start + slot - gap / 2.0
-        var radius = max_radius * (plot.y_data[i] / max_v)
+        var radius = max_radius * (plot._continuous.y[i] / max_v)
         var color = palette[i % len(palette)]
         target.fill_arc_aa(cx, cy, radius, start, end, color)
         slot_start += slot
@@ -85,7 +85,7 @@ def _render_polar_bar[
         _draw_legend_at(
             target,
             text_requests,
-            plot.x_categories,
+            plot._categorical.x,
             palette,
             legend,
             plot_x0,

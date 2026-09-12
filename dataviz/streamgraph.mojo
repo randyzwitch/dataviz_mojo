@@ -155,7 +155,7 @@ def _render_streamgraph[
     _check_line_smoothing(theme)
     _check_step_smoothing(theme, step, Mark.STREAMGRAPH)
     var n_series = len(plot._grouped_bar.series_names)
-    var n_categories = len(plot.x_categories)
+    var n_categories = len(plot._categorical.x)
 
     for series in plot._grouped_bar.values:
         for v in series:
@@ -196,7 +196,7 @@ def _render_streamgraph[
     )
     var frame = _draw_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         y_scale,
         theme,
         ox0 + legend.left,

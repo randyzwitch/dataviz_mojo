@@ -161,7 +161,7 @@ def _draw_box_glyphs[
     var half = band_size / 2.0
     var cap_half = band_size / 4.0
 
-    for i in range(len(plot.x_categories)):
+    for i in range(len(plot._categorical.x)):
         var center = band_scale.center(i)
         var q1 = value_scale.to_pixel(plot._box.q1[i])
         var q3 = value_scale.to_pixel(plot._box.q3[i])
@@ -173,7 +173,7 @@ def _draw_box_glyphs[
             # The five-number summary is what the shape encodes, so that's the
             # hover text. One per category, so the longer label is cheap.
             target.begin_annotated_group(
-                plot.x_categories[i]
+                plot._categorical.x[i]
                 + ": median "
                 + _format_fixed(
                     plot._box.median[i], _label_decimals(plot._box.median[i])
@@ -256,7 +256,7 @@ def _draw_box_glyphs[
         if theme.svg_tooltips:
             target.begin_annotated_group(
                 _tooltip_label(
-                    plot.x_categories[plot._box.outlier_cat[j]],
+                    plot._categorical.x[plot._box.outlier_cat[j]],
                     plot._box.outlier_value[j],
                 )
                 + " (outlier)"
@@ -295,11 +295,11 @@ def _render_box[
     Outliers are drawn in one final pass after every category's box so no
     outlier is occluded by a neighboring box.
     """
-    if len(plot.x_categories) != len(plot._box.q1):
+    if len(plot._categorical.x) != len(plot._box.q1):
         raise Error(
             "Plot.encode_boxplot(): categories and values must have the"
             " same length (got "
-            + String(len(plot.x_categories))
+            + String(len(plot._categorical.x))
             + " and "
             + String(len(plot._box.q1))
             + ")"
@@ -317,7 +317,7 @@ def _render_box[
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         y_scale,
         theme,
         ox0,
@@ -361,11 +361,11 @@ def _render_horizontal_box[
         rather than an orientation flag, for the reasons in
         `_render_horizontal_bar`'s docstring (bar.mojo).
     """
-    if len(plot.x_categories) != len(plot._box.q1):
+    if len(plot._categorical.x) != len(plot._box.q1):
         raise Error(
             "Plot.encode_boxplot(): categories and values must have the"
             " same length (got "
-            + String(len(plot.x_categories))
+            + String(len(plot._categorical.x))
             + " and "
             + String(len(plot._box.q1))
             + ")"
@@ -383,7 +383,7 @@ def _render_horizontal_box[
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot.x_categories,
+        plot._categorical.x,
         x_scale,
         theme,
         ox0,
