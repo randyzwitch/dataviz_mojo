@@ -458,6 +458,11 @@ def _draw_continuous_color_legend_h[
     whole point of a row legend is that it costs height, so a label
     stacked under the bar would spend the height it saved.
 
+    A centered scale (`Plot.scale_color_center()`) gets a tick on the
+    bar at the center's offset rather than the third label the vertical
+    form draws beside it, for the same reason (#526). The tick carries
+    no number; what it says is that the neutral color is here.
+
     Args:
         target: The draw target.
         text_requests: Collected label draws, appended to.
@@ -498,6 +503,39 @@ def _draw_continuous_color_legend_h[
     for stop in color_scale.stops:
         gradient.add_stop(stop.offset, stop.color)
     target.fill_rect_gradient(bar_x, y, bar_length, bar_thickness, gradient)
+
+    # A centered ramp needs its neutral point marked: with asymmetric
+    # arms the two end labels no longer say where it sits (#526). A tick
+    # on the bar rather than a label under it, because a row legend
+    # exists to cost no height and a label would spend exactly what it
+    # saved. No text, so it says "the neutral color is here" without
+    # saying which number -- enough while the centered value is almost
+    # always zero. `_continuous_legend_labels` still returns the third
+    # string, so a labeled variant needs no new plumbing.
+    if color_scale.has_center:
+        var span = color_scale.domain_max - color_scale.domain_min
+        if span != 0.0:
+            # Low at the left here, so no `1.0 - t` inversion; the
+            # vertical form needs one because its bar runs high at top.
+            var t = (color_scale.center - color_scale.domain_min) / span
+            var tick_w = max(1, round_to_int(sc.line_width))
+            var center_x = bar_x + Int(t * Float64(bar_length))
+            # Skip a tick that would sit on the bar's own edge, where it
+            # reads as a border rather than as a mark. The vertical form
+            # guards the same case with a font-size clearance, because
+            # what it places there is a label; a tick needs only its own
+            # width.
+            if (
+                center_x - bar_x >= tick_w
+                and bar_x + bar_length - center_x >= tick_w
+            ):
+                target.fill_rect(
+                    center_x - tick_w // 2,
+                    y,
+                    tick_w,
+                    bar_thickness,
+                    theme.text_color,
+                )
 
     var high_x = bar_x + bar_length + sc.label_gap
     text_requests.append(
