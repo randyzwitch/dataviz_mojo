@@ -11,7 +11,7 @@ from std.testing import (
 
 from _test_helpers import _assert_same_canvas, _attr_values, _count_color
 from canvas.color import Color
-from dataviz.quiver import _auto_pixels_per_unit, quiver
+from dataviz.multivariate.quiver import _auto_pixels_per_unit, quiver
 from dataviz.plot import Plot, render, render_svg
 from dataviz.core.theme import Theme
 

@@ -16,7 +16,7 @@ from dataviz.core.arrow import (
     _ARROW_HEAD_LENGTH,
     _arrow_head_path,
 )
-from dataviz.barbs import _validate_vector_field
+from dataviz.multivariate.barbs import _validate_vector_field
 from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.core.legend import (
     _continuous_legend_labels,
