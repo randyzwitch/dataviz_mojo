@@ -1,6 +1,6 @@
 """Deferred text drawing and theme-scaled layout metrics."""
 
-from std.math import pi
+from std.math import ceil, pi
 
 from canvas.buffer import Canvas
 from canvas.color import Color
@@ -151,17 +151,36 @@ struct _TextRequest(Copyable, Movable):
         self.rotation = rotation
 
 
-def _text_advance(text: String, sc: _Scaled) -> Int:
-    """Estimate text width for spacing continuous legend sections.
+def _text_advance(
+    text: String, sc: _Scaled, *, mut cache: FontCache
+) raises -> Int:
+    """The rendered width of `text`, for spacing a row legend's sections.
+
+    This used to estimate, as `byte_length * font_size * 0.62`, and was
+    wrong two ways (#573). `byte_length` counts UTF-8 bytes, so any
+    non-ASCII label was charged for more characters than it has -- a
+    two-byte accented letter counted double, a three-byte CJK character
+    triple. And a single advance per character is only right for a
+    monospaced font, which none of the defaults are.
+
+    Both errors grow with the label, and a row legend laid out from a bad
+    width either overlaps its neighbor or leaves a gap where it stopped
+    short. Every other label in the library is measured; these were the
+    exceptions.
 
     Args:
         text: The label.
         sc: The render's scaled layout metrics.
+        cache: The render's shared font cache.
 
     Returns:
-        An approximate advance width in pixels.
+        The advance width in pixels, rounded up so a section never starts
+        inside the label before it.
+
+    Raises:
+        Error: Whatever `measure_text()` raises.
     """
-    return Int(Float64(text.byte_length()) * sc.font_size * 0.62)
+    return Int(ceil(measure_text(text, sc.font_size, cache=cache).width))
 
 
 struct _LabelsFrame(Movable):

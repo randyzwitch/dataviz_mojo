@@ -448,6 +448,8 @@ def _draw_continuous_color_legend_h[
     x: Int,
     y: Int,
     theme: Theme,
+    *,
+    mut cache: FontCache,
 ) raises -> Int:
     """`_draw_continuous_color_legend` laid out along a row, for
     `LegendPosition.TOP`/`BOTTOM`.
@@ -475,9 +477,14 @@ def _draw_continuous_color_legend_h[
         x: Section's left edge.
         y: Section's top edge.
         theme: Supplies colors and font.
+        cache: The render's shared font cache, for measuring the two
+            end labels (#573).
 
     Returns:
         The x just past this section, where the next one starts.
+
+    Raises:
+        Error: Whatever measuring a label raises.
     """
     var sc = _Scaled(theme)
     var bar_length = sc.continuous_legend_bar_height
@@ -501,7 +508,7 @@ def _draw_continuous_color_legend_h[
             theme.font_family,
         )
     )
-    var bar_x = x + _text_advance(low, sc) + sc.label_gap
+    var bar_x = x + _text_advance(low, sc, cache=cache) + sc.label_gap
     var gradient = LinearGradient(
         Float64(bar_x), Float64(y), Float64(bar_x + bar_length), Float64(y)
     )
@@ -554,7 +561,7 @@ def _draw_continuous_color_legend_h[
             theme.font_family,
         )
     )
-    return high_x + _text_advance(high, sc) + sc.legend_swatch_size
+    return high_x + _text_advance(high, sc, cache=cache) + sc.legend_swatch_size
 
 
 def _draw_continuous_size_legend_h[

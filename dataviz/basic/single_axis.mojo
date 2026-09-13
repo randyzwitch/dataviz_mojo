@@ -194,6 +194,7 @@ def _render_single_axis[
         _legend_origin_x(legend_reserve, frame.px0, frame.px1, sc),
         _legend_origin_y(legend_reserve, frame.py0, frame.py1, sc),
         legend_horizontal=legend_reserve.position.is_horizontal(),
+        cache=cache,
     )
 
     return frame.result()

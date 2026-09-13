@@ -5957,6 +5957,7 @@ def _render_generic[
             _legend_origin_y(legend_reserve, frame.py0, frame.py1, sc),
             draw_halo=plot._mark == Mark.EFFECT_SCATTER,
             legend_horizontal=legend_reserve.position.is_horizontal(),
+            cache=cache,
         )
     elif plot._mark == Mark.LINE:
         _draw_line_layer(target, plot, frame.x_scale, frame.y_scale)
