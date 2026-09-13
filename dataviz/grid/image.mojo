@@ -11,6 +11,7 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
+from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import (
@@ -55,6 +56,17 @@ struct _ImageData(Copyable, Movable):
     var z: List[List[Float64]]
     var x_edges: List[Float64]
     var y_edges: List[Float64]
+    var x_corners: List[List[Float64]]
+    """`Mark.PCOLORMESH` curvilinear form: one x per grid *vertex*,
+    shaped `(rows + 1) x (cols + 1)`, so a cell is any quadrilateral
+    rather than an axis-aligned rectangle (#424). Empty for the
+    rectilinear form, which is what `x_edges`/`y_edges` describe.
+
+    Both forms cannot be set at once: `encode_pcolormesh()` clears the
+    other, so `len(x_corners) > 0` is what the renderer branches on."""
+
+    var y_corners: List[List[Float64]]
+    """The matching y per vertex, the same shape as `x_corners`."""
     var blank_zero: Bool
     """Leave a cell whose value is exactly 0 undrawn. Set by
     `encode_hist2d()`: an empty bin is "nothing here", not the bottom
@@ -63,6 +75,8 @@ struct _ImageData(Copyable, Movable):
     def __init__(out self):
         self.z = List[List[Float64]]()
         self.x_edges = List[Float64]()
+        self.x_corners = List[List[Float64]]()
+        self.y_corners = List[List[Float64]]()
         self.y_edges = List[Float64]()
         self.blank_zero = False
 
@@ -447,6 +461,143 @@ def _draw_cells_as_image[
     target.draw_image(cells, left, top, right - left, bottom - top)
 
 
+def _check_corner_grid(
+    corners: List[List[Float64]], rows: Int, cols: Int, which: String
+) raises:
+    """A curvilinear corner array is `(rows + 1) x (cols + 1)` (#424).
+
+    Checked here rather than at encode time, like every other shape rule
+    in this package, because `z` and the corners arrive through separate
+    calls and only the renderer sees both.
+
+    Args:
+        corners: The array to check.
+        rows: `z`'s row count.
+        cols: `z`'s column count.
+        which: "x" or "y", for the message.
+
+    Raises:
+        Error: Wrong number of rows, or any row the wrong length.
+    """
+    if len(corners) != rows + 1:
+        raise Error(
+            "Plot.encode_pcolormesh(): "
+            + which
+            + "_corners needs one row per grid vertex, so rows + 1 = "
+            + String(rows + 1)
+            + " for a z with "
+            + String(rows)
+            + " rows -- got "
+            + String(len(corners))
+        )
+    for i in range(len(corners)):
+        if len(corners[i]) != cols + 1:
+            raise Error(
+                "Plot.encode_pcolormesh(): "
+                + which
+                + "_corners row "
+                + String(i)
+                + " has "
+                + String(len(corners[i]))
+                + " entries, but a z with "
+                + String(cols)
+                + " columns needs cols + 1 = "
+                + String(cols + 1)
+            )
+
+
+def _corner_extent(
+    corners: List[List[Float64]],
+) raises -> Tuple[Float64, Float64]:
+    """The min and max over every vertex.
+
+    The rectilinear form takes its domain from the first and last edge,
+    which a curvilinear mesh cannot do: a rotated grid's leftmost point
+    can be in the middle of any row.
+
+    Args:
+        corners: The vertex array.
+
+    Returns:
+        `(min, max)`.
+
+    Raises:
+        Error: The array is empty.
+    """
+    if len(corners) == 0 or len(corners[0]) == 0:
+        raise Error("Plot.encode_pcolormesh(): empty corner array")
+    var lo = corners[0][0]
+    var hi = corners[0][0]
+    for r in range(len(corners)):
+        for c in range(len(corners[r])):
+            var v = corners[r][c]
+            if v < lo:
+                lo = v
+            if v > hi:
+                hi = v
+    return (lo, hi)
+
+
+def _fill_quad_cells[
+    T: DrawTarget
+](
+    mut target: T,
+    z: List[List[Float64]],
+    x_corners: List[List[Float64]],
+    y_corners: List[List[Float64]],
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+    color_scale: ColorScale,
+    skip_zero: Bool,
+) raises:
+    """One filled quadrilateral per cell, for the curvilinear mesh.
+
+    The rectilinear path merges runs of same-colored cells into one
+    `fill_rect`, which this cannot do: two neighbouring quads share an
+    edge but not a rectangle, so a merged run has no rectangular
+    outline. One path fill per cell instead.
+
+    Cells are drawn in row-major order, so a later cell paints over an
+    earlier one where a self-overlapping mesh folds back on itself. That
+    is matplotlib's rule too, and it is why no validation rejects a
+    non-convex cell.
+
+    Args:
+        target: The draw target.
+        z: The values, row-major.
+        x_corners: Vertex x, `(rows + 1) x (cols + 1)`.
+        y_corners: Vertex y, the same shape.
+        x_scale: Data to pixels, horizontally.
+        y_scale: Data to pixels, vertically.
+        color_scale: Value to color.
+        skip_zero: Leave exactly-zero cells unpainted.
+    """
+    for r in range(len(z)):
+        for c in range(len(z[r])):
+            var value = z[r][c]
+            if skip_zero and value == 0.0:
+                continue
+            var path = Path()
+            path.move_to(
+                x_scale.to_pixel(x_corners[r][c]),
+                y_scale.to_pixel(y_corners[r][c]),
+            )
+            path.line_to(
+                x_scale.to_pixel(x_corners[r][c + 1]),
+                y_scale.to_pixel(y_corners[r][c + 1]),
+            )
+            path.line_to(
+                x_scale.to_pixel(x_corners[r + 1][c + 1]),
+                y_scale.to_pixel(y_corners[r + 1][c + 1]),
+            )
+            path.line_to(
+                x_scale.to_pixel(x_corners[r + 1][c]),
+                y_scale.to_pixel(y_corners[r + 1][c]),
+            )
+            path.close()
+            target.fill_path_aa(path, color_scale.color_at(value))
+
+
 def _render_image[
     T: DrawTarget
 ](
@@ -511,7 +662,11 @@ def _render_image[
     var x_values = List[Float64](capacity=cols + 1)
     var y_values = List[Float64](capacity=rows + 1)
     if mark == Mark.PCOLORMESH or mark == Mark.HIST2D:
-        if len(plot._image.x_edges) == 0 and len(plot._image.y_edges) == 0:
+        if (
+            len(plot._image.x_edges) == 0
+            and len(plot._image.y_edges) == 0
+            and len(plot._image.x_corners) == 0
+        ):
             raise Error(
                 "Plot.mark_pcolormesh(): no cell edges to draw the mesh over"
                 " -- "
@@ -519,10 +674,29 @@ def _render_image[
                 + " needs Plot.encode_pcolormesh(x_edges, y_edges, z), not"
                 " Plot.encode_imshow(z), which has no coordinates of its own"
             )
-        _check_strictly_increasing(plot._image.x_edges, cols, "x")
-        _check_strictly_increasing(plot._image.y_edges, rows, "y")
-        x_values = plot._image.x_edges.copy()
-        y_values = plot._image.y_edges.copy()
+        if len(plot._image.x_corners) > 0:
+            # Curvilinear (#424). The axis frame still needs a domain, and
+            # a rotated mesh's extremes can be anywhere in the grid, so it
+            # comes from every vertex rather than from a first and last
+            # edge. `x_values`/`y_values` below carry only that domain;
+            # the cells are drawn from the corner arrays directly.
+            _check_corner_grid(plot._image.x_corners, rows, cols, "x")
+            _check_corner_grid(plot._image.y_corners, rows, cols, "y")
+            var xe = _corner_extent(plot._image.x_corners)
+            var ye = _corner_extent(plot._image.y_corners)
+            for c in range(cols + 1):
+                x_values.append(
+                    xe[0] + (xe[1] - xe[0]) * Float64(c) / Float64(cols)
+                )
+            for r in range(rows + 1):
+                y_values.append(
+                    ye[0] + (ye[1] - ye[0]) * Float64(r) / Float64(rows)
+                )
+        else:
+            _check_strictly_increasing(plot._image.x_edges, cols, "x")
+            _check_strictly_increasing(plot._image.y_edges, rows, "y")
+            x_values = plot._image.x_edges.copy()
+            y_values = plot._image.y_edges.copy()
     else:
         # The mirror of the check above, and the more dangerous
         # direction: a mark that quietly ignored coordinates the caller
@@ -592,6 +766,17 @@ def _render_image[
         and rows * cols > _IMAGE_MAX_RECT_CELLS
     ):
         _draw_cells_as_image(target, plot._image.z, x_px, y_px, color_scale)
+    elif len(plot._image.x_corners) > 0:
+        _fill_quad_cells(
+            target,
+            plot._image.z,
+            plot._image.x_corners,
+            plot._image.y_corners,
+            frame.x_scale,
+            frame.y_scale,
+            color_scale,
+            skip_zero=plot._image.blank_zero,
+        )
     else:
         _ = _fill_cells(
             target,
