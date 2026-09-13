@@ -283,3 +283,43 @@ The harness now uses `git checkout --force`. The guard was worth having:
 without it three passes of numbers would have been produced comparing a
 tree against itself, which is the same error as a benchmark whose `stash
 pop` silently failed.
+
+
+### Hexbin's cell sort, selection against counting (2026-09-13)
+
+AMD Threadripper 3970X, Linux, Mojo 1.0.0, canvas_mojo v0.35.0, 800x600,
+200,000 points, raster. Three passes each, median with the observed
+range.
+
+`_draw_hexbin_layer` groups cells by count so that cells sharing a color
+share one path. The grouping was a selection sort, quadratic in the
+number of nonempty cells, and that number grows with `gridsize` squared.
+
+| gridsize | selection sort | counting sort |
+| --- | --- | --- |
+| 20 | 18 ms (18-19) | 17 ms (17-18) |
+| 40 | 28 ms (27-29) | 21 ms (19-22) |
+| 80 | 154 ms (154-155) | 32 ms (31-33) |
+| 160 | 1,972 ms (1,971-1,975) | 82 ms (79-84) |
+
+The spreads are tight enough that the comparison does not rest on the
+sample size. The shape is the point rather than any single number: four
+times the cells cost the old code roughly twelve times the work between
+the last two rows, and the new code roughly two and a half.
+
+This is an end-to-end render time, not the sort in isolation, so the
+small sizes show almost no difference -- at gridsize 20 the sort was
+never the bottleneck and still is not.
+
+#### One-level output change
+
+The two sorts put cells in the same groups but in a different order
+within a group, because the selection sort was not stable and the
+counting sort is. All cells in a group go into one path and are filled
+once, so this should not change what is drawn, and almost everywhere it
+does not. At gridsize 30 on a 420x320 render, six channel values out of
+403,200 differ, by one level each.
+
+That is anti-aliased coverage being accumulated in a different order,
+which is a floating-point artifact rather than a geometry change. It is
+recorded because it is real, not because it is visible.

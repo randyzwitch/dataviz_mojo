@@ -241,15 +241,31 @@ def _draw_hexbin_layer[
     if n == 0:
         return
     # Cells in ascending count, so one path per run of equal counts.
+    #
+    # A counting sort rather than a comparison sort, because the key is
+    # already a small non-negative integer: a cell's count. This was a
+    # selection sort, which is quadratic in the number of nonempty cells,
+    # and that count grows with `gridsize` squared -- so the sort, not
+    # the drawing, set the cost of a fine grid. Linear in cells plus the
+    # largest count now. Timings in benchmarks/METHODOLOGY.md.
+    var top = 0
+    for c in bins.count:
+        if c > top:
+            top = c
+    var tally = List[Int](capacity=top + 2)
+    for _ in range(top + 2):
+        tally.append(0)
+    for c in bins.count:
+        tally[c + 1] += 1
+    for c in range(1, top + 2):
+        tally[c] += tally[c - 1]
     var order = List[Int](capacity=n)
+    for _ in range(n):
+        order.append(0)
     for i in range(n):
-        order.append(i)
-    for i in range(n):
-        for j in range(i + 1, n):
-            if bins.count[order[j]] < bins.count[order[i]]:
-                var t = order[i]
-                order[i] = order[j]
-                order[j] = t
+        var c = bins.count[i]
+        order[tally[c]] = i
+        tally[c] += 1
     var at = 0
     while at < n:
         var c = bins.count[order[at]]
