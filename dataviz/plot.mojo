@@ -4803,6 +4803,29 @@ struct Plot(Copyable, Movable):
         self._color_domain.max = max
         return self^
 
+    def scale_color_log(var self) raises -> Self:
+        """Normalize color by `log10` instead of linearly (#370).
+
+        A linear ramp cannot resolve values spread over several orders
+        of magnitude: on a 1-to-10,000 domain everything below 1,000
+        lands in the first tenth of the ramp and reads as one color.
+        With this, equal *ratios* get equal color distance, so 1 to 10
+        spans as much of the ramp as 1,000 to 10,000.
+
+        The domain must be strictly positive, whether it came from the
+        data or from `scale_color_domain()`. That is checked at render
+        time, because until then the mark's own limits are not known.
+
+        Not combinable with `scale_color_center()`: centering places the
+        neutral color by linear distance from each end, which a log
+        domain does not preserve.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._color_domain.log = True
+        return self^
+
     def scale_color_center(var self, center: Float64) -> Self:
         """Pin the *middle* of the color ramp to `center`, so a diverging
         ramp's neutral color lands on a value that means something --
