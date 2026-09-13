@@ -223,9 +223,11 @@ def _render_horizontal_beeswarm[
     return frame.result()
 
 
-def beeswarm(
+def beeswarm[
+    dtype: DType
+](
     categories: List[String],
-    values: List[List[Float64]],
+    values: List[List[Scalar[dtype]]],
     tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -294,46 +296,12 @@ def beeswarm(
             save(c, "docs/src/examples/out_beeswarm.svg")
         ```
     """
+    var values_f = _materialize_nested_scalar_list(values)
     var plot = (
         Plot()
         .mark_beeswarm(horizontal=horizontal, tooltips=tooltips)
-        .encode_distribution(categories=categories, values=values)
+        .encode_distribution(categories=categories, values=values_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def beeswarm[
-    dtype: DType
-](
-    categories: List[String],
-    values: List[List[Scalar[dtype]]],
-    tooltips: Bool = False,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-    horizontal: Bool = False,
-) raises -> Plot:
-    """`beeswarm()` generalized over numeric element type for `values`, via
-    `_materialize_nested_scalar_list` (array_like.mojo); see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return beeswarm(
-        categories,
-        _materialize_nested_scalar_list(values),
-        tooltips=tooltips,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
-        horizontal=horizontal,
     )

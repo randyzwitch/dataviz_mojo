@@ -249,10 +249,12 @@ def _render_population_pyramid[
     return frame.result()
 
 
-def population_pyramid(
+def population_pyramid[
+    dtype: DType
+](
     categories: List[String],
-    left_values: List[Float64],
-    right_values: List[Float64],
+    left_values: List[Scalar[dtype]],
+    right_values: List[Scalar[dtype]],
     left_name: String = "",
     right_name: String = "",
     theme: Theme = Theme(),
@@ -317,54 +319,19 @@ def population_pyramid(
             save(c, "docs/src/examples/out_population_pyramid.svg")
         ```
     """
+    var left_values_f = _materialize_scalar_list(left_values)
+    var right_values_f = _materialize_scalar_list(right_values)
     var plot = (
         Plot()
         .mark_population_pyramid()
         .encode_population_pyramid(
             categories=categories,
-            left_values=left_values,
-            right_values=right_values,
+            left_values=left_values_f,
+            right_values=right_values_f,
             left_name=left_name,
             right_name=right_name,
         )
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def population_pyramid[
-    dtype: DType
-](
-    categories: List[String],
-    left_values: List[Scalar[dtype]],
-    right_values: List[Scalar[dtype]],
-    left_name: String = "",
-    right_name: String = "",
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`population_pyramid()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (continuous.mojo). `left_values`/
-    `right_values` share one dtype. Delegates to the concrete overload
-    above.
-    """
-    return population_pyramid(
-        categories,
-        _materialize_scalar_list(left_values),
-        _materialize_scalar_list(right_values),
-        left_name=left_name,
-        right_name=right_name,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

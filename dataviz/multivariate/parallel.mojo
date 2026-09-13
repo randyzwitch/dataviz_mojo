@@ -164,8 +164,10 @@ def _render_parallel[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def parallel(
-    data: List[List[Float64]],
+def parallel[
+    dtype: DType
+](
+    data: List[List[Scalar[dtype]]],
     dims: List[String],
     row_names: List[String],
     theme: Theme = Theme(),
@@ -241,44 +243,12 @@ def parallel(
             save(c, "docs/src/examples/out_parallel.svg")
         ```
     """
+    var data_f = _materialize_nested_scalar_list(data)
     var plot = (
         Plot()
         .mark_parallel()
-        .encode_parallel(dims=dims, row_names=row_names, data=data)
+        .encode_parallel(dims=dims, row_names=row_names, data=data_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def parallel[
-    dtype: DType
-](
-    data: List[List[Scalar[dtype]]],
-    dims: List[String],
-    row_names: List[String],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`parallel()` generalized over numeric element type for `data`, via
-    `_materialize_nested_scalar_list` (array_like.mojo); see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return parallel(
-        _materialize_nested_scalar_list(data),
-        dims,
-        row_names,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

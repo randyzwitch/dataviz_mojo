@@ -119,9 +119,11 @@ def _render_arc[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def pie(
+def pie[
+    dtype: DType
+](
     categories: List[String],
-    values: List[Float64],
+    values: List[Scalar[dtype]],
     inner_radius_fraction: Float64 = 0.0,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -205,43 +207,12 @@ def pie(
             save(c_donut, "docs/src/examples/out_pie_donut.svg")
         ```
     """
+    var values_f = _materialize_scalar_list(values)
     var plot = (
         Plot()
         .mark_arc(inner_radius_fraction=inner_radius_fraction)
-        .encode_categorical(x=categories, y=values)
+        .encode_categorical(x=categories, y=values_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def pie[
-    dtype: DType
-](
-    categories: List[String],
-    values: List[Scalar[dtype]],
-    inner_radius_fraction: Float64 = 0.0,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`pie()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return pie(
-        categories,
-        _materialize_scalar_list(values),
-        inner_radius_fraction=inner_radius_fraction,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

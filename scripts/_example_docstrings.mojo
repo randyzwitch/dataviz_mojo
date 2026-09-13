@@ -394,13 +394,27 @@ def _docstring_section_has_content(
 def _signature_arg_names(
     fn_name: String, file: String, is_method: Bool
 ) raises -> List[String]:
-    """Parameter names from the registered callable's multiline signature."""
+    """Argument names from the registered callable's multiline signature.
+
+    A compile-time parameter block is skipped. `def bar[\n dtype: DType\n](`
+    puts `dtype: DType` on its own line, which reads exactly like an
+    argument, so it used to be counted as one and every generic function
+    looked like it documented one argument too few. Compile-time
+    parameters belong in a `Parameters:` section, not `Args:`, so they are
+    not this function's business.
+    """
     var lines = _lines_of(file)
     var want_indent = 4 if is_method else 0
     var def_idx = _def_index(lines, fn_name, want_indent)
     var result = List[String]()
+    var in_parameters = String(lines[def_idx].strip()).endswith("[")
     for i in range(def_idx + 1, len(lines)):
         var line = String(lines[i].strip())
+        if in_parameters:
+            # `](` closes the parameter block and opens the argument one.
+            if line.startswith("]("):
+                in_parameters = False
+            continue
         if line.startswith(")"):
             break
         var colon = line.find(":")

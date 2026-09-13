@@ -678,11 +678,13 @@ def _render_streamplot[
     return frame.result()
 
 
-def streamplot(
-    x: List[Float64],
-    y: List[Float64],
-    u: List[List[Float64]],
-    v: List[List[Float64]],
+def streamplot[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
+    u: List[List[Scalar[dtype]]],
+    v: List[List[Scalar[dtype]]],
     density: Float64 = 1.0,
     arrows: Bool = True,
     color_by_magnitude: Bool = False,
@@ -797,6 +799,10 @@ def streamplot(
             save(chart, "docs/src/examples/out_streamplot.svg")
         ```
     """
+    var x_f = _materialize_scalar_list(x)
+    var y_f = _materialize_scalar_list(y)
+    var u_f = _materialize_nested_scalar_list(u)
+    var v_f = _materialize_nested_scalar_list(v)
     if density <= 0.0:
         raise Error(
             "streamplot(): density must be positive -- got " + String(density)
@@ -808,73 +814,8 @@ def streamplot(
             arrows=arrows,
             color_by_magnitude=color_by_magnitude,
         )
-        .encode_streamplot(x, y, u, v)
+        .encode_streamplot(x_f, y_f, u_f, v_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def streamplot[
-    dtype: DType
-](
-    x: List[Scalar[dtype]],
-    y: List[Scalar[dtype]],
-    u: List[List[Scalar[dtype]]],
-    v: List[List[Scalar[dtype]]],
-    density: Float64 = 1.0,
-    arrows: Bool = True,
-    color_by_magnitude: Bool = False,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`streamplot()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (continuous.mojo). Delegates to the
-    concrete overload above.
-
-    Parameters:
-        dtype: The element type of the grid and the field.
-
-    Args:
-        x: Column coordinates, ascending and evenly spaced.
-        y: Row coordinates, ascending and evenly spaced.
-        u: The x-component at each node.
-        v: The y-component at each node.
-        density: Line spacing; 1.0 is matplotlib's default.
-        arrows: Draw an arrowhead at the middle of each line.
-        color_by_magnitude: Color each step by the local magnitude.
-        theme: Visual theme.
-        width: Canvas width in pixels.
-        height: Canvas height in pixels.
-        title: Chart title.
-        subtitle: Text under the title.
-        x_title: Horizontal axis label.
-        y_title: Vertical axis label.
-
-    Returns:
-        The finished `Plot` -- unrendered.
-
-    Raises:
-        Error: As the concrete overload.
-    """
-    return streamplot(
-        _materialize_scalar_list(x),
-        _materialize_scalar_list(y),
-        _materialize_nested_scalar_list(u),
-        _materialize_nested_scalar_list(v),
-        density=density,
-        arrows=arrows,
-        color_by_magnitude=color_by_magnitude,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

@@ -178,12 +178,14 @@ def _render_candlestick[
     return frame.result()
 
 
-def candlestick(
+def candlestick[
+    dtype: DType
+](
     categories: List[String],
-    open: List[Float64],
-    high: List[Float64],
-    low: List[Float64],
-    close: List[Float64],
+    open: List[Scalar[dtype]],
+    high: List[Scalar[dtype]],
+    low: List[Scalar[dtype]],
+    close: List[Scalar[dtype]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -250,50 +252,21 @@ def candlestick(
             save(c, "docs/src/examples/out_candlestick.svg")
         ```
     """
+    var open_f = _materialize_scalar_list(open)
+    var high_f = _materialize_scalar_list(high)
+    var low_f = _materialize_scalar_list(low)
+    var close_f = _materialize_scalar_list(close)
     var plot = (
         Plot()
         .mark_candlestick()
         .encode_candlestick(
-            categories=categories, open=open, high=high, low=low, close=close
+            categories=categories,
+            open=open_f,
+            high=high_f,
+            low=low_f,
+            close=close_f,
         )
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def candlestick[
-    dtype: DType
-](
-    categories: List[String],
-    open: List[Scalar[dtype]],
-    high: List[Scalar[dtype]],
-    low: List[Scalar[dtype]],
-    close: List[Scalar[dtype]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`candlestick()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (continuous.mojo).
-    `open`/`high`/`low`/`close` share one dtype. Delegates to the concrete
-    overload above.
-    """
-    return candlestick(
-        categories,
-        _materialize_scalar_list(open),
-        _materialize_scalar_list(high),
-        _materialize_scalar_list(low),
-        _materialize_scalar_list(close),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

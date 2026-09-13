@@ -349,9 +349,11 @@ def _render_calendar_heatmap[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def calendar_heatmap(
+def calendar_heatmap[
+    dtype: DType
+](
     dates: List[String],
-    values: List[Float64],
+    values: List[Scalar[dtype]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -428,41 +430,12 @@ def calendar_heatmap(
             save(c, "docs/src/examples/out_calendar_heatmap.svg")
         ```
     """
+    var values_f = _materialize_scalar_list(values)
     var plot = (
         Plot()
         .mark_calendar_heatmap()
-        .encode_calendar(dates=dates, values=values)
+        .encode_calendar(dates=dates, values=values_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def calendar_heatmap[
-    dtype: DType
-](
-    dates: List[String],
-    values: List[Scalar[dtype]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`calendar_heatmap()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (continuous.mojo). Delegates to the concrete
-    overload above.
-    """
-    return calendar_heatmap(
-        dates,
-        _materialize_scalar_list(values),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

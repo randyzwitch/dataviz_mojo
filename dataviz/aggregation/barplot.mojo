@@ -8,9 +8,11 @@ from dataviz.core.stats import ErrorBar, Estimator, _Aggregate, _aggregate
 from dataviz.core.theme import Theme
 
 
-def barplot(
+def barplot[
+    dtype: DType
+](
     categories: List[String],
-    values: List[Float64],
+    values: List[Scalar[dtype]],
     estimator: Estimator = Estimator.MEAN,
     errorbar: ErrorBar = ErrorBar.ci(0.95),
     seed: Int = 12345,
@@ -99,9 +101,12 @@ def barplot(
             save(chart, "docs/src/examples/out_barplot.svg")
         ```
     """
+    var values_f = _materialize_scalar_list(values)
     var agg: _Aggregate
     try:
-        agg = _aggregate(categories, values, estimator, errorbar, UInt64(seed))
+        agg = _aggregate(
+            categories, values_f, estimator, errorbar, UInt64(seed)
+        )
     except e:
         raise Error("barplot(): " + String(e))
     var plot = Plot().mark_bar(horizontal=horizontal)
@@ -129,44 +134,6 @@ def barplot(
         x_title,
         resolved_y,
         subtitle=subtitle,
-    )
-
-
-def barplot[
-    dtype: DType
-](
-    categories: List[String],
-    values: List[Scalar[dtype]],
-    estimator: Estimator = Estimator.MEAN,
-    errorbar: ErrorBar = ErrorBar.ci(0.95),
-    seed: Int = 12345,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-    horizontal: Bool = False,
-) raises -> Plot:
-    """`barplot()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return barplot(
-        categories,
-        _materialize_scalar_list(values),
-        estimator=estimator,
-        errorbar=errorbar,
-        seed=seed,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
-        horizontal=horizontal,
     )
 
 

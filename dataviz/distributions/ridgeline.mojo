@@ -124,9 +124,11 @@ def _render_ridgeline[
     return frame.result()
 
 
-def ridgeline(
+def ridgeline[
+    dtype: DType
+](
     categories: List[String],
-    values: List[List[Float64]],
+    values: List[List[Scalar[dtype]]],
     bandwidth: Float64 = 0.0,
     scale_by_count: Bool = False,
     overlap: Float64 = 1.3,
@@ -206,49 +208,14 @@ def ridgeline(
             save(c, "docs/src/examples/out_ridgeline.svg")
         ```
     """
+    var values_f = _materialize_nested_scalar_list(values)
     var plot = (
         Plot()
         .mark_ridgeline(
             bandwidth=bandwidth, scale_by_count=scale_by_count, overlap=overlap
         )
-        .encode_distribution(categories=categories, values=values)
+        .encode_distribution(categories=categories, values=values_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def ridgeline[
-    dtype: DType
-](
-    categories: List[String],
-    values: List[List[Scalar[dtype]]],
-    bandwidth: Float64 = 0.0,
-    scale_by_count: Bool = False,
-    overlap: Float64 = 1.3,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`ridgeline()` generalized over numeric element type for `values`; see
-    `beeswarm()`'s `DType` overload. Delegates to the concrete overload
-    above.
-    """
-    return ridgeline(
-        categories,
-        _materialize_nested_scalar_list(values),
-        bandwidth=bandwidth,
-        scale_by_count=scale_by_count,
-        overlap=overlap,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

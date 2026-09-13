@@ -336,10 +336,12 @@ def _render_heatmap[
     return frame.result()
 
 
-def heatmap(
+def heatmap[
+    dtype: DType
+](
     x: List[String],
     y: List[String],
-    value: List[Float64],
+    value: List[Scalar[dtype]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -419,39 +421,8 @@ def heatmap(
             save(c, "docs/src/examples/out_heatmap.svg")
         ```
     """
-    var plot = Plot().mark_heatmap().encode_heatmap(x=x, y=y, value=value)
+    var value_f = _materialize_scalar_list(value)
+    var plot = Plot().mark_heatmap().encode_heatmap(x=x, y=y, value=value_f)
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def heatmap[
-    dtype: DType
-](
-    x: List[String],
-    y: List[String],
-    value: List[Scalar[dtype]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`heatmap()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return heatmap(
-        x,
-        y,
-        _materialize_scalar_list(value),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

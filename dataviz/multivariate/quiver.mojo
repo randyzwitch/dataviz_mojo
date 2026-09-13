@@ -231,11 +231,13 @@ def _render_quiver[
     return frame.result()
 
 
-def quiver(
-    x: List[Float64],
-    y: List[Float64],
-    u: List[Float64],
-    v: List[Float64],
+def quiver[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
+    u: List[Scalar[dtype]],
+    v: List[Scalar[dtype]],
     scale: Float64 = 0.0,
     color_by_magnitude: Bool = False,
     theme: Theme = Theme(),
@@ -335,73 +337,15 @@ def quiver(
             save(chart, "docs/src/examples/out_quiver.svg")
         ```
     """
+    var x_f = _materialize_scalar_list(x)
+    var y_f = _materialize_scalar_list(y)
+    var u_f = _materialize_scalar_list(u)
+    var v_f = _materialize_scalar_list(v)
     var plot = (
         Plot()
         .mark_quiver(scale=scale, color_by_magnitude=color_by_magnitude)
-        .encode_quiver(x, y, u, v)
+        .encode_quiver(x_f, y_f, u_f, v_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def quiver[
-    dtype: DType
-](
-    x: List[Scalar[dtype]],
-    y: List[Scalar[dtype]],
-    u: List[Scalar[dtype]],
-    v: List[Scalar[dtype]],
-    scale: Float64 = 0.0,
-    color_by_magnitude: Bool = False,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`quiver()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-
-    Parameters:
-        dtype: The element type of `x`, `y`, `u` and `v`.
-
-    Args:
-        x: The continuous x position of each arrow's tail.
-        y: The continuous y position of each arrow's tail.
-        u: Each vector's x-component.
-        v: Each vector's y-component, positive pointing up the page.
-        scale: Pixels per unit of magnitude, or 0 for automatic.
-        color_by_magnitude: Color arrows by magnitude, with a legend.
-        theme: Visual theme.
-        width: Canvas width in pixels.
-        height: Canvas height in pixels.
-        title: Chart title.
-        subtitle: Text under the title.
-        x_title: Horizontal axis label.
-        y_title: Vertical axis label.
-
-    Returns:
-        The finished `Plot` -- unrendered.
-
-    Raises:
-        Error: As the concrete overload.
-    """
-    return quiver(
-        _materialize_scalar_list(x),
-        _materialize_scalar_list(y),
-        _materialize_scalar_list(u),
-        _materialize_scalar_list(v),
-        scale=scale,
-        color_by_magnitude=color_by_magnitude,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

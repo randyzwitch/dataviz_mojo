@@ -105,10 +105,12 @@ def _render_punchcard[
     return frame.result()
 
 
-def punchcard(
+def punchcard[
+    dtype: DType
+](
     x: List[String],
     y: List[String],
-    sizes: List[Float64],
+    sizes: List[Scalar[dtype]],
     scale: Float64 = 10.0,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -191,45 +193,12 @@ def punchcard(
             save(c, "docs/src/examples/out_punchcard.svg")
         ```
     """
+    var sizes_f = _materialize_scalar_list(sizes)
     var plot = (
         Plot()
         .mark_punchcard(scale=scale)
-        .encode_punchcard(x=x, y=y, sizes=sizes)
+        .encode_punchcard(x=x, y=y, sizes=sizes_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def punchcard[
-    dtype: DType
-](
-    x: List[String],
-    y: List[String],
-    sizes: List[Scalar[dtype]],
-    scale: Float64 = 10.0,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`punchcard()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return punchcard(
-        x,
-        y,
-        _materialize_scalar_list(sizes),
-        scale=scale,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

@@ -305,10 +305,12 @@ def _render_bump[
     return frame.result()
 
 
-def bump(
+def bump[
+    dtype: DType
+](
     categories: List[String],
     series_names: List[String],
-    values: List[List[Float64]],
+    values: List[List[Scalar[dtype]]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -376,43 +378,14 @@ def bump(
             save(c, "docs/src/examples/out_bump.svg")
         ```
     """
+    var values_f = _materialize_nested_scalar_list(values)
     var plot = (
         Plot()
         .mark_bump()
         .encode_grouped_bar(
-            categories=categories, series_names=series_names, values=values
+            categories=categories, series_names=series_names, values=values_f
         )
     )
     return _finished(
         plot^, theme, width, height, title, x_title, "Rank", subtitle=subtitle
-    )
-
-
-def bump[
-    dtype: DType
-](
-    categories: List[String],
-    series_names: List[String],
-    values: List[List[Scalar[dtype]]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-) raises -> Plot:
-    """`bump()` generalized over numeric element type for `values`; see
-    `grouped_bar()`'s `DType` overload. Delegates to the concrete overload
-    above.
-    """
-    return bump(
-        categories,
-        series_names,
-        _materialize_nested_scalar_list(values),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
     )

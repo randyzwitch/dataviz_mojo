@@ -3,9 +3,11 @@ from dataviz.plot import Plot, _finished
 from dataviz.core.theme import Theme
 
 
-def effect_scatter(
-    x: List[Float64],
-    y: List[Float64],
+def effect_scatter[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
     tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -74,39 +76,9 @@ def effect_scatter(
             save(c, "docs/src/examples/out_effect_scatter.svg")
         ```
     """
-    var plot = Plot().mark_effect_scatter().encode(x=x, y=y)
+    var x_f = _materialize_scalar_list(x)
+    var y_f = _materialize_scalar_list(y)
+    var plot = Plot().mark_effect_scatter().encode(x=x_f, y=y_f)
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def effect_scatter[
-    dtype: DType
-](
-    x: List[Scalar[dtype]],
-    y: List[Scalar[dtype]],
-    tooltips: Bool = False,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`effect_scatter()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (continuous.mojo). Delegates to the concrete
-    overload above.
-    """
-    return effect_scatter(
-        _materialize_scalar_list(x),
-        _materialize_scalar_list(y),
-        tooltips=tooltips,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

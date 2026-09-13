@@ -203,10 +203,12 @@ def _render_chord[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def chord(
+def chord[
+    dtype: DType
+](
     from_categories: List[String],
     to_categories: List[String],
-    values: List[Float64],
+    values: List[Scalar[dtype]],
     ring_fraction: Float64 = 0.08,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -276,49 +278,16 @@ def chord(
             save(c, "docs/src/examples/out_chord.svg")
         ```
     """
+    var values_f = _materialize_scalar_list(values)
     var plot = (
         Plot()
         .mark_chord(ring_fraction=ring_fraction)
         .encode_chord(
             from_categories=from_categories,
             to_categories=to_categories,
-            values=values,
+            values=values_f,
         )
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def chord[
-    dtype: DType
-](
-    from_categories: List[String],
-    to_categories: List[String],
-    values: List[Scalar[dtype]],
-    ring_fraction: Float64 = 0.08,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`chord()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return chord(
-        from_categories,
-        to_categories,
-        _materialize_scalar_list(values),
-        ring_fraction=ring_fraction,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

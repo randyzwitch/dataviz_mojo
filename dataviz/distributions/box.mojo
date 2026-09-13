@@ -405,9 +405,11 @@ def _render_horizontal_box[
     return frame.result()
 
 
-def box(
+def box[
+    dtype: DType
+](
     categories: List[String],
-    values: List[List[Float64]],
+    values: List[List[Scalar[dtype]]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -475,43 +477,12 @@ def box(
             save(c, "docs/src/examples/out_box.svg")
         ```
     """
+    var values_f = _materialize_nested_scalar_list(values)
     var plot = (
         Plot()
         .mark_box(horizontal=horizontal)
-        .encode_boxplot(categories=categories, values=values)
+        .encode_boxplot(categories=categories, values=values_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def box[
-    dtype: DType
-](
-    categories: List[String],
-    values: List[List[Scalar[dtype]]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-    horizontal: Bool = False,
-) raises -> Plot:
-    """`box()` generalized over numeric element type for `values`; see
-    `beeswarm()`'s `DType` overload. Delegates to the concrete overload
-    above.
-    """
-    return box(
-        categories,
-        _materialize_nested_scalar_list(values),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
-        horizontal=horizontal,
     )
