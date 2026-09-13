@@ -21,23 +21,76 @@ triangle in place rather than deleting it on a divide-by-zero.
 """
 
 
-struct _Triangulation(Movable):
+struct Triangulation(Copyable, Movable):
     """Triangles over a point set, as flat index triples.
 
     `xs`/`ys` are the input points in their original order, so a caller
-    can index its own `z` column with the same index. `tri` holds three
+    can index its own `z` column with the same index. `triangles` holds three
     vertex indices per triangle, so triangle `t` is
-    `tri[3*t]`, `tri[3*t + 1]`, `tri[3*t + 2]`.
+    `triangles[3*t]`, `triangles[3*t + 1]`, `triangles[3*t + 2]`.
+
+    Public since #397: a caller who owns the triangle order can index a
+    per-triangle value column against it, which is what matplotlib's
+    `tripcolor(facecolors=...)` needs.
     """
 
-    var xs: List[Float64]
-    var ys: List[Float64]
-    var tri: List[Int]
+    var x: List[Float64]
+    var y: List[Float64]
+    var triangles: List[Int]
 
     def __init__(out self):
-        self.xs = List[Float64]()
-        self.ys = List[Float64]()
-        self.tri = List[Int]()
+        self.x = List[Float64]()
+        self.y = List[Float64]()
+        self.triangles = List[Int]()
+
+    def __init__(
+        out self, x: List[Float64], y: List[Float64], triangles: List[Int]
+    ) raises:
+        """Build from a caller's own triangle list rather than by
+        triangulating (#397).
+
+        The point of a public type: a caller who supplied the triangles
+        knows their order, and can therefore index a per-triangle value
+        column against them. A triangulation this package computed has
+        an order that is an artifact of Bowyer-Watson's insertion
+        sequence, which nobody outside can predict.
+
+        Args:
+            x: Point x coordinates.
+            y: Point y coordinates, one per `x`.
+            triangles: Three vertex indices per triangle, flat.
+
+        Raises:
+            Error: Mismatched point columns, a triangle count that is
+                not a multiple of three, or an index outside the points.
+        """
+        if len(x) != len(y):
+            raise Error(
+                "Triangulation(): x and y must be the same length -- got "
+                + String(len(x))
+                + " and "
+                + String(len(y))
+            )
+        if len(triangles) % 3 != 0:
+            raise Error(
+                "Triangulation(): triangles holds three vertex indices per"
+                " triangle, so its length must be a multiple of 3 -- got "
+                + String(len(triangles))
+            )
+        for i in range(len(triangles)):
+            if triangles[i] < 0 or triangles[i] >= len(x):
+                raise Error(
+                    "Triangulation(): vertex index "
+                    + String(triangles[i])
+                    + " at position "
+                    + String(i)
+                    + " is outside the "
+                    + String(len(x))
+                    + " points supplied"
+                )
+        self.x = x.copy()
+        self.y = y.copy()
+        self.triangles = triangles.copy()
 
     def count(self) -> Int:
         """How many triangles.
@@ -45,7 +98,7 @@ struct _Triangulation(Movable):
         Returns:
             `len(tri) // 3`.
         """
-        return len(self.tri) // 3
+        return len(self.triangles) // 3
 
 
 def _in_circumcircle(
@@ -268,7 +321,7 @@ def _contains_in_circle(
     )
 
 
-def delaunay(xs: List[Float64], ys: List[Float64]) raises -> _Triangulation:
+def delaunay(xs: List[Float64], ys: List[Float64]) raises -> Triangulation:
     """Triangulate the points, Bowyer-Watson.
 
     Duplicate points are dropped: inserting a point that already exists
@@ -298,9 +351,9 @@ def delaunay(xs: List[Float64], ys: List[Float64]) raises -> _Triangulation:
             + ")"
         )
 
-    var out = _Triangulation()
-    out.xs = xs.copy()
-    out.ys = ys.copy()
+    var out = Triangulation()
+    out.x = xs.copy()
+    out.y = ys.copy()
     if n < 3:
         return out^
 
@@ -539,8 +592,8 @@ def delaunay(xs: List[Float64], ys: List[Float64]) raises -> _Triangulation:
         var i2 = tri[3 * t + 2]
         if i0 >= s0 or i1 >= s0 or i2 >= s0:
             continue
-        out.tri.append(i0)
-        out.tri.append(i1)
-        out.tri.append(i2)
+        out.triangles.append(i0)
+        out.triangles.append(i1)
+        out.triangles.append(i2)
 
     return out^

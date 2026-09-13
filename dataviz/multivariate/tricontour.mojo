@@ -7,7 +7,7 @@ from canvas.vector.draw_target import DrawTarget
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.multivariate.contour import _Segments, _chain_segments, _crossing
-from dataviz.core.delaunay import _Triangulation, _edge_key, delaunay
+from dataviz.core.delaunay import Triangulation, _edge_key, delaunay
 from dataviz.plot import (
     Plot,
     _LegendLayout,
@@ -75,7 +75,7 @@ def _auto_levels_from(values: List[Float64], count: Int) -> List[Float64]:
 
 
 def _tricontour_segments(
-    t: _Triangulation, z: List[Float64], level: Float64
+    t: Triangulation, z: List[Float64], level: Float64
 ) -> _Segments:
     """Every isoline segment at `level`, one per triangle that the level
     crosses.
@@ -93,7 +93,7 @@ def _tricontour_segments(
 
     Args:
         t: The triangulation.
-        z: One value per vertex, indexed as `t.xs`/`t.ys` are.
+        z: One value per vertex, indexed as `t.x`/`t.y` are.
         level: The value to trace.
 
     Returns:
@@ -101,9 +101,9 @@ def _tricontour_segments(
     """
     var segs = _Segments()
     for k in range(t.count()):
-        var i0 = t.tri[3 * k]
-        var i1 = t.tri[3 * k + 1]
-        var i2 = t.tri[3 * k + 2]
+        var i0 = t.triangles[3 * k]
+        var i1 = t.triangles[3 * k + 1]
+        var i2 = t.triangles[3 * k + 2]
         var a = z[i0]
         var b = z[i1]
         var c = z[i2]
@@ -135,10 +135,10 @@ def _tricontour_segments(
         var zl = z[lone]
         var f1 = _crossing(zl, z[other1], level)
         var f2 = _crossing(zl, z[other2], level)
-        var x1 = t.xs[lone] + (t.xs[other1] - t.xs[lone]) * f1
-        var y1 = t.ys[lone] + (t.ys[other1] - t.ys[lone]) * f1
-        var x2 = t.xs[lone] + (t.xs[other2] - t.xs[lone]) * f2
-        var y2 = t.ys[lone] + (t.ys[other2] - t.ys[lone]) * f2
+        var x1 = t.x[lone] + (t.x[other1] - t.x[lone]) * f1
+        var y1 = t.y[lone] + (t.y[other1] - t.y[lone]) * f1
+        var x2 = t.x[lone] + (t.x[other2] - t.x[lone]) * f2
+        var y2 = t.y[lone] + (t.y[other2] - t.y[lone]) * f2
 
         segs.add(
             _edge_key(lone, other1),
@@ -205,7 +205,7 @@ def _fill_region_above[
     T: DrawTarget
 ](
     mut target: T,
-    tri: _Triangulation,
+    tri: Triangulation,
     z: List[Float64],
     level: Float64,
     color: Color,
@@ -245,9 +245,9 @@ def _fill_region_above[
     var path = Path()
     var any = False
     for k in range(tri.count()):
-        var i0 = tri.tri[3 * k]
-        var i1 = tri.tri[3 * k + 1]
-        var i2 = tri.tri[3 * k + 2]
+        var i0 = tri.triangles[3 * k]
+        var i1 = tri.triangles[3 * k + 1]
+        var i2 = tri.triangles[3 * k + 2]
         var z0 = z[i0]
         var z1 = z[i1]
         var z2 = z[i2]
@@ -272,17 +272,17 @@ def _fill_region_above[
         var b0 = z0
         var b1 = z1
         var b2 = z2
-        var cross = (tri.xs[i1] - tri.xs[i0]) * (tri.ys[i2] - tri.ys[i0]) - (
-            tri.ys[i1] - tri.ys[i0]
-        ) * (tri.xs[i2] - tri.xs[i0])
+        var cross = (tri.x[i1] - tri.x[i0]) * (tri.y[i2] - tri.y[i0]) - (
+            tri.y[i1] - tri.y[i0]
+        ) * (tri.x[i2] - tri.x[i0])
         if cross < 0.0:
             a1 = i2
             a2 = i1
             b1 = z2
             b2 = z1
 
-        var xs: List[Float64] = [tri.xs[a0], tri.xs[a1], tri.xs[a2]]
-        var ys: List[Float64] = [tri.ys[a0], tri.ys[a1], tri.ys[a2]]
+        var xs: List[Float64] = [tri.x[a0], tri.x[a1], tri.x[a2]]
+        var ys: List[Float64] = [tri.y[a0], tri.y[a1], tri.y[a2]]
         if zmin < level:
             var zs: List[Float64] = [b0, b1, b2]
             var clipped = _clip_above(xs, ys, zs, level)
