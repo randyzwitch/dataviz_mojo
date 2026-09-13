@@ -19,7 +19,7 @@
 # occasionally deadlocks under parallel load: every thread of a `mojo
 # run` parks on a futex at zero CPU and the process never exits. Without
 # a timeout that stalls the whole run forever, and a stall is worse than
-# a crash because it produces no exit code to key on. `timeout` turns it
+# a crash because it produces no exit code to key on. The guard turns it
 # into exit 124, which the failure list below then names.
 #
 # The default is deliberately far above any honest module, because the
@@ -58,17 +58,29 @@ fi
 CORES="$(getconf _NPROCESSORS_ONLN)"
 MODULE_TIMEOUT="${MOJO_MODULE_TIMEOUT:-3600}"
 
-# `timeout` is GNU coreutils and macOS does not ship it, so the limit is
-# best effort: where no timeout program exists the modules run unguarded
-# rather than the run failing. Without this the workers exited 127,
-# "command not found", on every module on macos-latest while Linux passed.
-# `gtimeout` is what Homebrew's coreutils installs it as.
-TIMEOUT_BIN=""
+# `timeout` is GNU coreutils and macOS ships neither it nor Homebrew's
+# `gtimeout`, so until #543 half the CI matrix ran every module unguarded
+# -- and so did every contributor on a Mac. The third choice is perl,
+# which macOS does ship, so the guard needs no dependency and no CI
+# install step; scripts/module_timeout.pl says why that program forks
+# rather than exec-ing, which is the difference between breaking a wedge
+# and reporting it while still waiting for it.
+#
+# All three exit 124 on a timeout and kill the wedged module's whole
+# process group, so nothing below has to know which one fired.
+#
+# Unguarded is still the last resort rather than a failure: without the
+# fallback the workers exited 127, "command not found", on every module
+# on macos-latest while Linux passed.
+GUARD_SCRIPT="$(cd "$(dirname "$0")" && pwd)/module_timeout.pl"
+GUARD=""
 if [ "$MODULE_TIMEOUT" -gt 0 ]; then
     if command -v timeout > /dev/null 2>&1; then
-        TIMEOUT_BIN="timeout"
+        GUARD="timeout"
     elif command -v gtimeout > /dev/null 2>&1; then
-        TIMEOUT_BIN="gtimeout"
+        GUARD="gtimeout"
+    elif command -v perl > /dev/null 2>&1 && [ -f "$GUARD_SCRIPT" ]; then
+        GUARD="perl"
     fi
 fi
 
@@ -79,11 +91,11 @@ fi
 # what protected it.
 if [ "$MODULE_TIMEOUT" -le 0 ]; then
     printf 'module timeout: disabled by MOJO_MODULE_TIMEOUT=0\n' >&2
-elif [ -n "$TIMEOUT_BIN" ]; then
+elif [ -n "$GUARD" ]; then
     printf 'module timeout: %ss per module via %s\n' \
-        "$MODULE_TIMEOUT" "$TIMEOUT_BIN" >&2
+        "$MODULE_TIMEOUT" "$GUARD" >&2
 else
-    printf 'module timeout: UNGUARDED -- no timeout(1) on this system, so\n' >&2
+    printf 'module timeout: UNGUARDED -- no timeout, gtimeout or perl, so\n' >&2
     printf '  a wedged module stalls the run instead of reporting it\n' >&2
     printf '  (dataviz_mojo#535)\n' >&2
 fi
@@ -95,11 +107,17 @@ trap 'rm -rf "$STATUS_DIR"' EXIT
 # workers never write to the same file and nothing is lost to interleaving.
 code=0
 printf '%s\n' "$@" | xargs -P "$CORES" -I {} bash -c '
-    if [ -n "$4" ]; then
-        out="$("$4" --kill-after=30 "$3" mojo run -I . -I tests "$1" 2>&1)"
-    else
-        out="$(mojo run -I . -I tests "$1" 2>&1)"
-    fi
+    case "$4" in
+        perl)
+            out="$(perl "$5" "$3" 30 mojo run -I . -I tests "$1" 2>&1)"
+            ;;
+        "")
+            out="$(mojo run -I . -I tests "$1" 2>&1)"
+            ;;
+        *)
+            out="$("$4" --kill-after=30 "$3" mojo run -I . -I tests "$1" 2>&1)"
+            ;;
+    esac
     status=$?
     printf "%s\n" "$out"
     if [ "$status" -ne 0 ]; then
@@ -116,7 +134,7 @@ printf '%s\n' "$@" | xargs -P "$CORES" -I {} bash -c '
         printf "%s\t%s%s\n" "$1" "$status" "$note" \
             > "$2/$(printf "%s" "$1" | tr "/." "__")"
     fi
-' _ {} "$STATUS_DIR" "$MODULE_TIMEOUT" "$TIMEOUT_BIN" || code=$?
+' _ {} "$STATUS_DIR" "$MODULE_TIMEOUT" "$GUARD" "$GUARD_SCRIPT" || code=$?
 
 FAILED="$(find "$STATUS_DIR" -type f | wc -l)"
 printf '\n%s of %s modules ran clean.\n' "$((REQUESTED - FAILED))" "$REQUESTED"
