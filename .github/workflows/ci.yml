@@ -56,6 +56,9 @@ jobs:
           pixi-version: v0.76.2
           cache: true
 
+      - name: Check the runner's module-timeout guard
+        run: pixi run test-runner
+
       - name: Run tests
         run: pixi run test
 

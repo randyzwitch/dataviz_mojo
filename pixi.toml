@@ -25,6 +25,10 @@ pandas = ">=2.0,<3"
 example = "mkdir -p docs/src/examples && rm -rf docs/src/examples/verify && rm -f docs/src/examples/*.mojo docs/src/examples/out_* && mojo run -I . -I scripts scripts/extract_docstring_examples.mojo && mojo run -I . -I scripts scripts/build_verify_batches.mojo && bash scripts/run_parallel.sh docs/src/examples/verify/*.mojo"
 example-quickstart = "bash scripts/run_parallel.sh docs/src/examples/quickstart/*.mojo"
 test = "bash scripts/run_parallel.sh tests/test_*.mojo"
+# The parallel runner's own timeout guard. `test` runs Mojo modules and
+# cannot see the runner that launches them, so a guard that quietly stops
+# working leaves a green suite and a run that never ends (#543).
+test-runner = "bash tests/test_run_parallel_guard.sh"
 # Run likely affected test modules. Use `test` for complete verification.
 test-changed = "bash scripts/test_changed.sh"
 # Format source, or format and fail if tracked files change.
