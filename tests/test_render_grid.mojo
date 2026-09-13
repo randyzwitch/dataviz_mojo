@@ -402,6 +402,49 @@ def test_equal_tracks_land_on_the_pixels_facets_always_used() raises:
     assert_equal(third, 66, "the third equal track does not start at 66")
 
 
+def test_an_empty_square_takes_the_figure_background() raises:
+    """A grid may have a hole on purpose.
+
+    The corner opposite a joint plot's two marginals is the standard
+    case. An unpainted square is white, which reads as a hole in any
+    theme whose background is not, so the figure is filled before the
+    cells are.
+    """
+    var dark = Theme(
+        show_gridlines=False, show_legend=False, background=Color(20, 20, 30)
+    )
+    var plots = List[Plot]()
+    var cells = List[GridCell]()
+    var coords = List[Int]()
+    coords.append(0)
+    coords.append(2)
+    coords.append(3)
+    for i in range(3):
+        plots.append(
+            Plot()
+            .mark_line()
+            .encode(x=_xs(8), y=_ys(8, 1.0))
+            .theme(dark)
+            .size(200, 150)
+        )
+        cells.append(GridCell(coords[i] // 2, coords[i] % 2))
+    var c = render_grid(plots, cells, 400, 300)
+    # Row 0, column 1 has no plot in it.
+    var p = c.get_pixel(300, 20)
+    assert_true(
+        p.r == 20 and p.g == 20 and p.b == 30,
+        (
+            "the empty square is ("
+            + String(p.r)
+            + ","
+            + String(p.g)
+            + ","
+            + String(p.b)
+            + "), not the theme background"
+        ),
+    )
+
+
 def test_a_uniform_grid_is_a_facet_grid() raises:
     """One figure, two entry points, the same pixels.
 

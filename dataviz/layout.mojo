@@ -551,6 +551,12 @@ def render_grid(
             factor = f
     var canvas = Canvas(width, height)
     canvas.begin_supersampled(factor)
+    # A grid may leave a square empty on purpose -- the corner opposite a
+    # joint plot's two marginals is the standard case -- and an unpainted
+    # square is white, which is a hole in any theme that is not. Filled
+    # before the cells so each cell's own fill still wins; with no gaps
+    # this is entirely overdrawn.
+    canvas.fill_rect(0, 0, width, height, plots[0]._theme.background)
     var cache = FontCache()
     var text_requests = _render_cells_generic(
         canvas,
@@ -596,6 +602,8 @@ def render_grid_svg(
     """
     _check_grid_args(plots, cells, "render_grid_svg")
     var svg = SvgCanvas(width, height)
+    # See render_grid(): an empty square is a hole without this.
+    svg.fill_rect(0, 0, width, height, plots[0]._theme.background)
     var cache = FontCache()
     var text_requests = _render_cells_generic(
         svg,
