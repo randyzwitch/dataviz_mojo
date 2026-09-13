@@ -13,8 +13,8 @@ from dataviz.plot import (
     _axis_pixel_f,
     _draw_categorical_axis_frame,
     _pull_off_axis_line_f,
-    _snap_pixel_center,
-    _snap_pixel_edge,
+    snap_to_pixel_center,
+    snap_to_pixel_edge,
     _finished,
     _require_non_empty,
     _zero_baseline_y_extent,
@@ -176,10 +176,10 @@ def _render_bullet[
             var band_rect = _pull_off_axis_line_f(
                 top_py, bottom_py, Float64(frame.py1)
             )
-            var bx0 = _snap_pixel_edge(band_x)
-            var bx1 = _snap_pixel_edge(band_x1)
-            var by0 = _snap_pixel_edge(band_rect.y)
-            var by1 = _snap_pixel_edge(band_rect.y + band_rect.height)
+            var bx0 = snap_to_pixel_edge(band_x)
+            var bx1 = snap_to_pixel_edge(band_x1)
+            var by0 = snap_to_pixel_edge(band_rect.y)
+            var by1 = snap_to_pixel_edge(band_rect.y + band_rect.height)
             target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, band_color)
             prev_threshold = plot._bullet.ranges[i][j]
 
@@ -200,10 +200,10 @@ def _render_bullet[
                     plot._bullet.target[i],
                 )
             )
-        var mx0 = _snap_pixel_edge(measure_x)
-        var mx1 = _snap_pixel_edge(measure_x + measure_width)
-        var my0 = _snap_pixel_edge(measure_rect.y)
-        var my1 = _snap_pixel_edge(measure_rect.y + measure_rect.height)
+        var mx0 = snap_to_pixel_edge(measure_x)
+        var mx1 = snap_to_pixel_edge(measure_x + measure_width)
+        var my0 = snap_to_pixel_edge(measure_rect.y)
+        var my1 = snap_to_pixel_edge(measure_rect.y + measure_rect.height)
         target.fill_rect(mx0, my0, mx1 - mx0, my1 - my0, theme.mark_color)
         if theme.show_data_labels:
             var measure = plot._bullet.measure[i]
@@ -230,7 +230,7 @@ def _render_bullet[
             )
 
         var target_py = _axis_pixel_f(frame.y_scale, plot._bullet.target[i])
-        var target_row = _snap_pixel_center(target_py)
+        var target_row = snap_to_pixel_center(target_py)
         target.draw_line_aa(
             band_x,
             target_row,

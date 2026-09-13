@@ -26,7 +26,7 @@ from dataviz.plot import (
     _min_max,
     _require_non_empty,
 )
-from dataviz.core.pixel_snap import _snap_pixel_center
+from canvas.geometry import snap_to_pixel_center
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
@@ -555,7 +555,7 @@ def _draw_snapped_ticks[
     Only x is snapped; y endpoints retain their layout positions.
     """
     for v in values:
-        var px = _snap_pixel_center(x_scale.to_pixel(v))
+        var px = snap_to_pixel_center(x_scale.to_pixel(v))
         target.draw_line_aa(px, y_bottom, px, y_top, color, width=width)
 
 

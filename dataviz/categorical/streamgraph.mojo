@@ -1,5 +1,6 @@
 from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
+from canvas.geometry import FPoint
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
@@ -52,12 +53,29 @@ def _symmetric_zero_baseline_y_extent(
 def _append_smoothed_edge(
     mut path: Path, px: List[Float64], py: List[Float64], smoothing: Float64
 ) raises:
-    """Append `line_to`/`cubic_curve_to` segments for `px[0]->...->px[n-1]`
-    onto `path`, continuing from its current point (no `move_to`). Same
-    Catmull-Rom math as `_build_line_path` (continuous.mojo), duplicated because
-    a streamgraph band runs it twice on one continuous `Path` (top edge,
-    then bottom edge) and `_build_line_path` always starts a fresh
-    subpath.
+    """Append `px[0] -> ... -> px[n-1]` onto `path`, continuing from its
+    current point rather than starting a subpath.
+
+    That continuation is the whole reason this exists. A streamgraph
+    band is one closed path running along its top edge and back along
+    its bottom, so the second edge has to pick up where the first left
+    off; `Path.curve_through` opens with a `move_to` and would split the
+    band into two subpaths.
+
+    The Catmull-Rom math used to be copied here from `_build_line_path`
+    (continuous.mojo) for the same reason. `Path.curve_to_through` is
+    the continue-from-current-point form and does it now (#579), with
+    the same control points -- checked by stroking both and comparing
+    pixels, at two smoothing values.
+
+    Args:
+        path: The band's path, already positioned at the first point.
+        px: Pixel x of every point, including the first.
+        py: Pixel y, the same length.
+        smoothing: 0 for straight segments, 1 for full Catmull-Rom.
+
+    Raises:
+        Error: Whatever `Path.curve_to_through()` raises.
     """
     if len(px) <= 1:
         return
@@ -65,23 +83,12 @@ def _append_smoothed_edge(
         for i in range(1, len(px)):
             path.line_to(px[i], py[i])
         return
-
-    var n = len(px)
-    for i in range(n - 1):
-        var prev = i - 1 if i > 0 else i
-        var next2 = i + 2 if i + 2 < n else i + 1
-        var t1x = (px[i + 1] - px[prev]) / 6.0 * smoothing
-        var t1y = (py[i + 1] - py[prev]) / 6.0 * smoothing
-        var t2x = (px[next2] - px[i]) / 6.0 * smoothing
-        var t2y = (py[next2] - py[i]) / 6.0 * smoothing
-        path.cubic_curve_to(
-            px[i] + t1x,
-            py[i] + t1y,
-            px[i + 1] - t2x,
-            py[i + 1] - t2y,
-            px[i + 1],
-            py[i + 1],
-        )
+    # The current point is implicit, as it is for line_to, so this hands
+    # over every point after the first.
+    var rest = List[FPoint](capacity=len(px) - 1)
+    for i in range(1, len(px)):
+        rest.append(FPoint(px[i], py[i]))
+    path.curve_to_through(rest, smoothing)
 
 
 def _render_streamgraph[

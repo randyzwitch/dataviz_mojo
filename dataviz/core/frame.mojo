@@ -31,7 +31,7 @@ from dataviz.layers import _render_layers_generic
 from dataviz.core.legend import _LegendLayout
 from dataviz.core.mark import Mark
 from dataviz.core.ordinal_scale import OrdinalScale
-from dataviz.core.pixel_snap import _snap_pixel_center, _snap_pixel_edge
+from canvas.geometry import snap_to_pixel_center, snap_to_pixel_edge
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -223,7 +223,7 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         snapped to whole pixels.
 
         Filled rectangles snap; nothing else here does. See
-        `_snap_pixel_edge` for why, and for why the snap happens in
+        `snap_to_pixel_edge` for why, and for why the snap happens in
         logical space rather than being left to the primitive.
 
         Snapping the two edges independently and taking the width from
@@ -232,10 +232,10 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         `band_start` and `bandwidth` apart from each other, so their
         errors accumulated.
         """
-        var along0 = _snap_pixel_edge(extent.y)
-        var along1 = _snap_pixel_edge(extent.y + extent.height)
-        var across0 = _snap_pixel_edge(band_pos)
-        var across1 = _snap_pixel_edge(band_pos + band_size)
+        var along0 = snap_to_pixel_edge(extent.y)
+        var along1 = snap_to_pixel_edge(extent.y + extent.height)
+        var across0 = snap_to_pixel_edge(band_pos)
+        var across1 = snap_to_pixel_edge(band_pos + band_size)
         if self.horizontal:
             target.fill_rect(
                 along0, across0, along1 - along0, across1 - across0, color
@@ -280,10 +280,10 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
     ):
         """`value_line` in `Float64` geometry, with the fixed cross-axis
         coordinate snapped to a pixel center so a 1px line stays hard.
-        See `_snap_pixel_center`; the two ends keep their exact
+        See `snap_to_pixel_center`; the two ends keep their exact
         positions.
         """
-        var fixed = _snap_pixel_center(across)
+        var fixed = snap_to_pixel_center(across)
         if self.horizontal:
             target.draw_line_aa(
                 along_a, fixed, along_b, fixed, color, width=width
@@ -329,10 +329,10 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
     ):
         """`band_line` in `Float64` geometry, with the fixed value-axis
         coordinate snapped to a pixel center so a 1px line stays hard.
-        See `_snap_pixel_center`; the two ends keep their exact
+        See `snap_to_pixel_center`; the two ends keep their exact
         positions.
         """
-        var fixed = _snap_pixel_center(along)
+        var fixed = snap_to_pixel_center(along)
         if self.horizontal:
             target.draw_line_aa(
                 fixed, across_a, fixed, across_b, color, width=width

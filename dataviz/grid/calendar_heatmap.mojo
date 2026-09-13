@@ -1,6 +1,6 @@
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
-from dataviz.core.pixel_snap import _snap_pixel_edge
+from canvas.geometry import snap_to_pixel_edge
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
@@ -325,14 +325,14 @@ def _render_calendar_heatmap[
         var y_start = Float64(plot_y0) - 0.5 + Float64(row) * cell_height
         var x_stop = Float64(plot_x0) - 0.5 + Float64(col + 1) * cell_width
         var y_stop = Float64(plot_y0) - 0.5 + Float64(row + 1) * cell_height
-        var cell_x = _snap_pixel_edge(x_start)
-        var cell_y = _snap_pixel_edge(y_start)
+        var cell_x = snap_to_pixel_edge(x_start)
+        var cell_y = snap_to_pixel_edge(y_start)
         var color = color_scale.color_at(plot._calendar.values[i])
         target.fill_rect(
             cell_x,
             cell_y,
-            _snap_pixel_edge(x_stop) - cell_x,
-            _snap_pixel_edge(y_stop) - cell_y,
+            snap_to_pixel_edge(x_stop) - cell_x,
+            snap_to_pixel_edge(y_stop) - cell_y,
             color,
         )
 

@@ -12,8 +12,8 @@ from dataviz.plot import (
     _axis_pixel_f,
     _draw_categorical_axis_frame,
     _pull_off_axis_line_f,
-    _snap_pixel_center,
-    _snap_pixel_edge,
+    snap_to_pixel_center,
+    snap_to_pixel_edge,
     _finished,
     _require_non_empty,
     _tooltip_label,
@@ -195,10 +195,10 @@ def _render_waterfall[
                     ] if row_is_total else plot._continuous.y[i],
                 )
             )
-        var rx0 = _snap_pixel_edge(bar_x)
-        var rx1 = _snap_pixel_edge(bar_x1)
-        var ry0 = _snap_pixel_edge(rect.y)
-        var ry1 = _snap_pixel_edge(rect.y + rect.height)
+        var rx0 = snap_to_pixel_edge(bar_x)
+        var rx1 = snap_to_pixel_edge(bar_x1)
+        var ry0 = snap_to_pixel_edge(rect.y)
+        var ry1 = snap_to_pixel_edge(rect.y + rect.height)
         target.fill_rect(rx0, ry0, rx1 - rx0, ry1 - ry0, bar_color)
         if theme.svg_tooltips:
             target.end_annotated_group()
@@ -227,7 +227,7 @@ def _render_waterfall[
             )
 
         if i > 0:
-            var prev_end_py = _snap_pixel_center(
+            var prev_end_py = snap_to_pixel_center(
                 _axis_pixel_f(frame.y_scale, plot._waterfall.y1[i - 1])
             )
             # With no totals, the edge comes from the band geometry (band_start +

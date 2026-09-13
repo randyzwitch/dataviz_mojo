@@ -91,7 +91,7 @@ from dataviz.core.color_scale import (
     categorical_palette_for,
 )
 
-from dataviz.core.pixel_snap import _snap_pixel_center, _snap_pixel_edge
+from canvas.geometry import snap_to_pixel_center, snap_to_pixel_edge
 from dataviz.basic.continuous import (
     _PointChannels,
     _build_line_path,
