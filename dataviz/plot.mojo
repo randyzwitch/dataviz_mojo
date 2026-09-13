@@ -3058,6 +3058,65 @@ struct Plot(Copyable, Movable):
         self._image.z = z.copy()
         self._image.x_edges = x_edges.copy()
         self._image.y_edges = y_edges.copy()
+        # The two forms are exclusive; see the curvilinear overload.
+        self._image.x_corners = List[List[Float64]]()
+        self._image.y_corners = List[List[Float64]]()
+        return self^
+
+    def encode_pcolormesh(
+        var self,
+        x_corners: List[List[Float64]],
+        y_corners: List[List[Float64]],
+        z: List[List[Float64]],
+    ) raises -> Self:
+        """Map a 2D array onto a *curvilinear* mesh: one coordinate per
+        grid vertex rather than one boundary per row and column (#424).
+
+        `x_corners`/`y_corners` are both `(rows + 1) x (cols + 1)`, so
+        cell `(r, c)` is the quadrilateral through vertices `(r, c)`,
+        `(r, c + 1)`, `(r + 1, c + 1)` and `(r + 1, c)`. That is
+        matplotlib's 2D `pcolormesh` rule, and it is what a rotated,
+        sheared, polar or model-output grid needs: the 1D overload can
+        only describe axis-aligned rectangles, because it sets column
+        widths and row heights independently.
+
+        Nothing is required of the shape beyond the vertex count. Cells
+        may be non-convex or self-overlapping; they are drawn in row
+        order and a later cell paints over an earlier one, which is the
+        same rule matplotlib follows.
+
+        Cell boundaries are antialiased rather than snapped to whole
+        pixels, which the 1D form does. A quad has no rectangular
+        outline to snap to, and neighbouring cells share an edge rather
+        than a rectangle, so the run-merging the rectilinear path uses
+        does not apply either. The visible effect is slightly softer
+        cell edges; cell interiors are identical between the two forms
+        for a mesh that could be described either way.
+
+        Length checks are deferred to render() time, like every other
+        encode method here.
+
+        Args:
+            x_corners: Vertex x coordinates, `(rows + 1) x (cols + 1)`.
+            y_corners: Vertex y coordinates, the same shape.
+            z: The array, row-major and rectangular, non-empty.
+
+        Returns:
+            Self, for further chaining.
+        """
+        _require_mark(
+            self._mark,
+            "encode_pcolormesh",
+            "mark_pcolormesh()",
+            Mark.PCOLORMESH,
+        )
+        self._image.z = z.copy()
+        self._image.x_corners = x_corners.copy()
+        self._image.y_corners = y_corners.copy()
+        # Exclusive with the rectilinear form: a plot carrying both would
+        # leave the renderer to guess which the caller meant.
+        self._image.x_edges = List[Float64]()
+        self._image.y_edges = List[Float64]()
         return self^
 
     def encode_time(var self, x: List[Morrow], y: List[Float64]) raises -> Self:
