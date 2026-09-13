@@ -5,7 +5,10 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
-from dataviz.hierarchy import _HierarchyIndex, _build_hierarchy_index
+from dataviz.hierarchy_marks.hierarchy import (
+    _HierarchyIndex,
+    _build_hierarchy_index,
+)
 from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,

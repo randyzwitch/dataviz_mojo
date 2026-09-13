@@ -72,9 +72,9 @@ from dataviz.grid.calendar_heatmap import calendar_heatmap
 from dataviz.grid.corrplot import corrplot
 from dataviz.grid.punchcard import punchcard
 from dataviz.grid.marimekko import marimekko
-from dataviz.sunburst import sunburst
-from dataviz.tree import tree
-from dataviz.treemap import treemap
+from dataviz.hierarchy_marks.sunburst import sunburst
+from dataviz.hierarchy_marks.tree import tree
+from dataviz.hierarchy_marks.treemap import treemap
 from dataviz.binned.histogram import histogram
 from dataviz.categorical.lollipop import lollipop
 from dataviz.radial.nightingale import nightingale

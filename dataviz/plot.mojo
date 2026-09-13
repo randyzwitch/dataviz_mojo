@@ -269,7 +269,7 @@ from dataviz.multivariate.tricontour import _TriContourData
 from dataviz.multivariate.triplot import _TriplotData
 from dataviz.grid.marimekko import _MarimekkoData
 from dataviz.relationships.edges import _EdgeData
-from dataviz.hierarchy import _HierarchyData
+from dataviz.hierarchy_marks.hierarchy import _HierarchyData
 from dataviz.distributions.box import (
     _box_stats,
     _render_box,
@@ -302,9 +302,9 @@ from dataviz.multivariate.tricontour import (
 )
 from dataviz.multivariate.triplot import _render_tripcolor, _render_triplot
 from dataviz.grid.marimekko import _render_marimekko
-from dataviz.sunburst import _render_sunburst
-from dataviz.tree import _render_tree
-from dataviz.treemap import _render_treemap
+from dataviz.hierarchy_marks.sunburst import _render_sunburst
+from dataviz.hierarchy_marks.tree import _render_tree
+from dataviz.hierarchy_marks.treemap import _render_treemap
 from dataviz.relationships.arc_diagram import _render_arc_diagram
 from dataviz.relationships.graph import _render_graph
 from dataviz.relationships.sankey import _render_sankey

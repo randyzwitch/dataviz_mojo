@@ -1,15 +1,15 @@
-from std.math import pi
-
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
+from canvas.geometry import round_to_int
+from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
-from std.math import cos, sin
-
 from dataviz.core.color_scale import categorical_palette_for
-from dataviz.basic.continuous import _lighten
-from dataviz.hierarchy import _HierarchyIndex, _build_hierarchy_index
+from dataviz.hierarchy_marks.hierarchy import (
+    _HierarchyIndex,
+    _build_hierarchy_index,
+)
 from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -23,121 +23,101 @@ from dataviz.plot import (
     _require_non_negative,
 )
 from dataviz.core.theme import Theme
+from dataviz.hierarchy_marks.tree import _assign_branch_colors
 
 
-comptime _DEPTH_FADE = 55
-"""How much alpha each ring loses against white relative to the one
-inside it. 55 of 255 is about a fifth, which separates adjacent rings
-clearly at a glance without the outer ring reading as a different
-series.
-"""
-
-comptime _MIN_DEPTH_ALPHA = 90
-"""The floor `_DEPTH_FADE` stops at. Past about four levels the fade
-would wash the outermost ring out to near-white and lose the branch
-color entirely; holding at 90 keeps a deep tree readable.
-"""
-
-
-def _fill_ring_sector[
-    T: DrawTarget
-](
-    mut target: T,
-    cx: Float64,
-    cy: Float64,
-    inner: Float64,
-    outer: Float64,
-    a0: Float64,
-    a1: Float64,
-    color: Color,
-) raises:
-    """A ring sector, or a full wedge when `inner == 0.0` (the innermost ring
-    touches the center): `fill_arc_aa` for the wedge case,
-    `fill_ring_sector_aa` otherwise, the same pie-vs-donut split
-    `Mark.ARC` uses.
-    """
-    if inner <= 0.0:
-        target.fill_arc_aa(cx, cy, outer, a0, a1, color)
-    else:
-        target.fill_ring_sector_aa(cx, cy, inner, outer, a0, a1, color)
-
-
-def _draw_sunburst_node[
+def _draw_treemap_node[
     T: DrawTarget
 ](
     mut target: T,
     node: Int,
-    start_angle: Float64,
-    end_angle: Float64,
+    x0: Int,
+    y0: Int,
+    x1: Int,
+    y1: Int,
+    depth: Int,
     idx: _HierarchyIndex,
-    cx: Float64,
-    cy: Float64,
-    ring_width: Float64,
-    color: Color,
-    background: Color,
-    separator: Color,
-    separator_width: Float64,
+    ids: List[String],
+    branch: List[Int],
+    palette: List[Color],
+    theme: Theme,
+    sc: _Scaled,
+    mut text_requests: List[_TextRequest],
 ) raises:
-    """Draw a node sector and recursively divide it among its children.
+    """Recursively divide a rectangle by child subtree values.
 
-    Ring position follows depth, angle follows subtree share, hue follows the
-    top-level branch, and lightness separates depths. Strokes separate siblings.
+    Split axes alternate by depth. Cumulative rounding keeps sibling edges
+    aligned; leaves use their top-level branch color and a centered label.
     """
-    var depth = idx.depth[node]
-    var inner = ring_width * Float64(depth - 1)
-    var outer = ring_width * Float64(depth)
-
-    # Fade with depth without making outer rings disappear.
-    var fade = 255 - _DEPTH_FADE * (depth - 1)
-    if fade < _MIN_DEPTH_ALPHA:
-        fade = _MIN_DEPTH_ALPHA
-    _fill_ring_sector(
-        target,
-        cx,
-        cy,
-        inner,
-        outer,
-        start_angle,
-        end_angle,
-        _lighten(color, UInt8(fade), background),
-    )
-
-    # A radial line at the sector's leading edge, in the background
-    # color, so siblings sharing a hue are still countable.
-    target.draw_line_aa(
-        cx + inner * cos(start_angle),
-        cy + inner * sin(start_angle),
-        cx + outer * cos(start_angle),
-        cy + outer * sin(start_angle),
-        separator,
-        width=separator_width,
-    )
+    if len(idx.children[node]) == 0:
+        var color = (
+            palette[branch[node] % len(palette)] if branch[node]
+            >= 0 else theme.mark_color
+        )
+        target.fill_rect(x0, y0, x1 - x0, y1 - y0, color)
+        text_requests.append(
+            _TextRequest(
+                (x0 + x1) // 2,
+                (y0 + y1) // 2 + Int(sc.font_size * 0.35),
+                ids[node],
+                theme.treemap_label_color,
+                sc.font_size,
+                TextAlign.CENTER,
+                theme.font_family,
+            )
+        )
+        return
 
     var total = idx.subtree_value[node]
     if total <= 0.0:
         return
-    var span = end_angle - start_angle
-    var a = start_angle
+
+    var split_x = depth % 2 == 0
+    var span = Float64(x1 - x0) if split_x else Float64(y1 - y0)
+    var origin = x0 if split_x else y0
+    var cum = 0.0
+    var prev = origin
     for c in idx.children[node]:
-        var a_end = a + span * (idx.subtree_value[c] / total)
-        _draw_sunburst_node(
-            target,
-            c,
-            a,
-            a_end,
-            idx,
-            cx,
-            cy,
-            ring_width,
-            color,
-            background,
-            separator,
-            separator_width,
-        )
-        a = a_end
+        cum += idx.subtree_value[c] / total
+        var next_pos = origin + round_to_int(span * cum)
+        if split_x:
+            _draw_treemap_node(
+                target,
+                c,
+                prev,
+                y0,
+                next_pos,
+                y1,
+                depth + 1,
+                idx,
+                ids,
+                branch,
+                palette,
+                theme,
+                sc,
+                text_requests,
+            )
+        else:
+            _draw_treemap_node(
+                target,
+                c,
+                x0,
+                prev,
+                x1,
+                next_pos,
+                depth + 1,
+                idx,
+                ids,
+                branch,
+                palette,
+                theme,
+                sc,
+                text_requests,
+            )
+        prev = next_pos
 
 
-def _render_sunburst[
+def _render_treemap[
     T: DrawTarget
 ](
     mut target: T,
@@ -149,20 +129,13 @@ def _render_sunburst[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.SUNBURST` plot: `_build_hierarchy_index`'s `children`/
-    `depth`/`subtree_value` (hierarchy.mojo) drawn as concentric ring
-    sectors, one `fill_ring_sector_aa` call per node.
-
-    The root itself is never drawn (there is no ring at depth 0).
-    Rendering starts from each of the root's direct children, each
-    claiming an angular slice proportional to its share of the root's
-    subtree total and a palette color (`categorical_palette_for(theme)` by
-    position among siblings, the same palette `_draw_legend` uses) that
-    stays fixed through all of its descendants.
+    """Render a `Mark.TREEMAP` plot: `_build_hierarchy_index`'s `children`/
+    `subtree_value` (hierarchy.mojo) laid out by `_draw_treemap_node`'s
+    slice-and-dice recursion from the whole inner plot rect at the root,
+    with one color per top-level branch as in `Mark.SUNBURST`.
 
     Every value must be non-negative and the root's subtree total
-    positive, the same validation `Mark.ARC` applies to its
-    share-of-a-whole data.
+    positive, the same validation `Mark.SUNBURST` applies.
     """
     if len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids) or len(
         plot._hierarchy.values
@@ -179,21 +152,28 @@ def _render_sunburst[
         )
 
     var theme = plot._theme
-    _require_non_negative(plot._hierarchy.values, "Mark.SUNBURST")
+    _require_non_negative(plot._hierarchy.values, "Mark.TREEMAP")
 
     var idx = _build_hierarchy_index(
         plot._hierarchy.ids, plot._hierarchy.parent_ids, plot._hierarchy.values
     )
     if idx.subtree_value[idx.root] <= 0.0:
         raise Error(
-            "Plot: Mark.SUNBURST requires at least one positive leaf value"
+            "Plot: Mark.TREEMAP requires at least one positive leaf value"
             " (root's subtree total was "
             + String(idx.subtree_value[idx.root])
             + ")"
         )
 
-    var text_requests = List[_TextRequest]()
+    var n = len(plot._hierarchy.ids)
+    var branch = List[Int](capacity=n)
+    for _ in range(n):
+        branch.append(-1)
     var root_children = idx.children[idx.root].copy()
+    for i in range(len(root_children)):
+        _assign_branch_colors(root_children[i], i, idx, branch)
+
+    var text_requests = List[_TextRequest]()
     var legend_labels = List[String]()
     for c in root_children:
         legend_labels.append(plot._hierarchy.ids[c])
@@ -208,34 +188,24 @@ def _render_sunburst[
     var plot_y0 = oy0 + sc.margin_top + legend.top
     var plot_x1 = ox1 - sc.margin_right - legend.right
     var plot_y1 = oy1 - sc.margin_bottom - legend.bottom
-    var cx = Float64(plot_x0 + plot_x1) / 2.0
-    var cy = Float64(plot_y0 + plot_y1) / 2.0
-    var max_radius = (
-        Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
-    )
-    var ring_width = max_radius / Float64(max(idx.max_depth, 1))
 
     var palette = categorical_palette_for(theme)
-    var root_total = idx.subtree_value[idx.root]
-    var start = -pi / 2.0
-    for i in range(len(root_children)):
-        var c = root_children[i]
-        var end = start + 2.0 * pi * (idx.subtree_value[c] / root_total)
-        _draw_sunburst_node(
-            target,
-            c,
-            start,
-            end,
-            idx,
-            cx,
-            cy,
-            ring_width,
-            palette[i % len(palette)],
-            theme.background,
-            theme.background,
-            sc.scale,
-        )
-        start = end
+    _draw_treemap_node(
+        target,
+        idx.root,
+        plot_x0,
+        plot_y0,
+        plot_x1,
+        plot_y1,
+        0,
+        idx,
+        plot._hierarchy.ids,
+        branch,
+        palette,
+        theme,
+        sc,
+        text_requests,
+    )
 
     if show_legend:
         _draw_legend_at(
@@ -254,7 +224,7 @@ def _render_sunburst[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def sunburst(
+def treemap(
     ids: List[String],
     parent_ids: List[String],
     values: List[Float64],
@@ -266,21 +236,22 @@ def sunburst(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A sunburst chart: a hierarchy drawn as concentric rings, each ring
-    a level of depth and each arc's angle proportional to its value, for
-    showing both a hierarchy's structure and its values' relative sizes
-    in one view.
+    """A treemap, Ben Shneiderman's format for visualizing hierarchical
+    data as nested rectangles: each rectangle's area proportional to its
+    value, for showing a hierarchy's structure and its values' relative
+    sizes in a compact, space-filling layout.
 
-    `Mark.SUNBURST`: a hierarchy (`Plot.encode_hierarchy()`'s flattened
-    `ids`/`parent_ids`/`values`) drawn as concentric ring sectors, one
-    ring per depth level. See `_render_sunburst`.
+    `Mark.TREEMAP`: a hierarchy (`Plot.encode_hierarchy()`'s flattened
+    `ids`/`parent_ids`/`values`) laid out as nested, area-proportional
+    rectangles via slice-and-dice. See `_draw_treemap_node`.
 
     Args:
         ids: Every node's unique id, flattened (not nested), one
             entry per node.
         parent_ids: Each node's parent id (must be a value present in
-            `ids`, or empty for a root); paired with `ids[i]`.
-        values: Each leaf node's size; an internal node's size is the
+            `ids`, or empty for the single root); paired with
+            `ids[i]`.
+        values: Each leaf node's area; an internal node's area is the
             sum of its descendants' -- see `Plot.encode_hierarchy()`'s
             docstring for the exact rule.
         theme: Full styling knobs beyond this function's own
@@ -298,12 +269,12 @@ def sunburst(
 
     Example:
         ```mojo
-        from dataviz import sunburst
+        from dataviz import treemap
         from dataviz import save
 
         def main() raises:
-            # Illustrative annual revenue by product line ($M). Internal nodes
-            # are zero: their area is derived from their children's values.
+            # The same illustrative portfolio used by the sunburst example:
+            # annual revenue by product line ($M), grouped into divisions.
             var ids: List[String] = [
                 "Portfolio", "Cloud", "Commerce", "Data",
                 "Compute", "Storage", "Security",
@@ -320,18 +291,18 @@ def sunburst(
                 0, 0, 0, 0, 48, 31, 24, 42, 28, 19, 36, 22, 14,
             ]
 
-            var c = sunburst(
+            var c = treemap(
                 ids,
                 parent_ids,
                 revenue,
                 title="Illustrative Product Portfolio Revenue ($M)",
             )
-            save(c, "docs/src/examples/out_sunburst.svg")
+            save(c, "docs/src/examples/out_treemap.svg")
         ```
     """
     var plot = (
         Plot()
-        .mark_sunburst()
+        .mark_treemap()
         .encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
     )
     return _finished(
@@ -339,7 +310,7 @@ def sunburst(
     )
 
 
-def sunburst[
+def treemap[
     dtype: DType
 ](
     ids: List[String],
@@ -353,11 +324,11 @@ def sunburst[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`sunburst()` generalized over numeric element type; see `scatter()`'s
+    """`treemap()` generalized over numeric element type; see `scatter()`'s
     `DType` overload (continuous.mojo). Delegates to the concrete overload
     above.
     """
-    return sunburst(
+    return treemap(
         ids,
         parent_ids,
         _materialize_scalar_list(values),
