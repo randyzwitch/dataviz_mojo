@@ -1,52 +1,29 @@
-"""`render_facets()`: one plot per cell, laid out in a grid.
+"""`render_facets()`: one plot per cell, laid out in a uniform grid.
 
-Split out of `plot.mojo`. Each cell is an independent render
-into a sub-rect of one shared canvas, which is why this is so much
-smaller than `layers.mojo`: facets do not have to reconcile anything
-between cells unless `shared_y_scale` asks them to.
+The cell-layout work lives in `layout.mojo` and is shared with
+`render_grid()`; a facet grid is that core's degenerate case, one cell
+per plot with equal tracks. What is left here is the facet-shaped
+interface to it: `cols` instead of a cell list, and a canvas size derived
+from the plots rather than given.
 """
 
 from canvas.buffer import Canvas
 from canvas.io.bmp import write_bmp
 from canvas.io.png import write_png
-from canvas.resize import downsample
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 from canvas.vector.svg import SvgCanvas
 
-from dataviz.core.annotations import (
-    _draw_annotation_areas,
-    _draw_annotation_bands,
-    _draw_annotation_best_fit,
-    _draw_annotation_lines,
-    _draw_annotation_points,
-    _draw_annotation_vlines,
-)
-from dataviz.layers import render_layers, render_layers_svg, save_layers
-from dataviz.core.mark import Mark
+from dataviz.layout import _render_cells_generic, uniform_cells
 from dataviz.core.output_format import OutputFormat
 from dataviz.plot import (
-    _filled_annotations_go_under,
-    _resolve_supersample,
     Plot,
-    _data_extent,
-    _log_data_extent,
-    _zero_baseline_y_extent,
-    _render_generic,
-    _render_into,
-    _require_positive_supersample,
     _resolve_output_format,
+    _resolve_supersample,
     _svg_output_string,
-    render,
-    save,
-    write_accessible_svg,
 )
 from dataviz.core.text import (
-    _Scaled,
     _TextRequest,
-    _apply_labels,
-    _extend_text_requests,
-    _label_text_requests,
     _replay_text_requests,
     _replay_text_requests_svg,
 )
@@ -207,182 +184,37 @@ def _render_facets_generic[
     *,
     mut cache: FontCache,
 ) raises -> List[_TextRequest]:
-    """The shared cell-layout core `render_facets()`/`render_facets_svg()`
-    delegate to. `width`/`height` are passed in because `DrawTarget` has
-    no size accessor.
+    """A uniform grid, expressed as cells and handed to
+    `_render_cells_generic()`. `width`/`height` are passed in because
+    `DrawTarget` has no size accessor.
 
     `cols` columns, enough rows to fit `len(plots)`; a partial final row
-    leaves cells blank. Each cell is laid out as a standalone render
-    would lay out the whole target, with its own `Plot.labels()` titles
-    and every `annotate_*()` kind (areas, bands, lines, vlines, points,
-    best_fit), by pointing `_render_generic`'s bounds at the cell's
-    label-shrunk rect. Cell boundaries are `width * col // cols`, so
-    adjacent cells share the exact boundary pixel.
+    leaves cells blank. Everything a cell does -- its own labels, its own
+    legend, all six `annotate_*()` passes, the gutter between stacked
+    rows, and `shared_y_scale` -- is the shared core's, so a facet grid
+    and a gridspec figure cannot drift apart.
 
-    `shared_y_scale` gives every cell one y-domain (`_data_extent` over
-    the union of every cell's `_continuous.y`, `_zero_baseline_y_extent` over it
-    when any cell is `Mark.AREA`, or `_log_data_extent` when every cell
-    agrees on `Plot.scale_y_log()`). Only `Mark.POINT`/`LINE`/`AREA`/
-    `EFFECT_SCATTER` support it, every cell must use one of those marks,
-    and it doesn't combine with `y_err*` (the shared union isn't widened
-    for whiskers); `_render_generic` raises for each case, including a
-    log/linear mix.
+    `shared_y_scale` gives every cell one y-domain. Only
+    `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER` support it, every cell
+    must use one of those marks, and it does not combine with `y_err*`
+    (the shared union is not widened for whiskers); `_render_generic`
+    raises for each case, including a log/linear mix.
     """
-    var text_requests = List[_TextRequest]()
     if cols <= 0:
         raise Error(
             "render_facets(): cols must be positive (got " + String(cols) + ")"
         )
+    var text_requests = List[_TextRequest]()
     if len(plots) == 0:
         return text_requests^
-
-    # Computed once up front when asked for, so every cell reads the same
-    # two numbers. shared_y_is_log follows plots[0]; a mix raises inside
-    # _render_generic's own per-cell check rather than here, so the error
-    # names which cell disagrees.
-    var shared_y_min = 0.0
-    var shared_y_max = 0.0
-    var shared_y_is_log = shared_y_scale and plots[0]._y_log
-    if shared_y_scale:
-        var combined_y = List[Float64]()
-        for i in range(len(plots)):
-            for v in plots[i]._continuous.y:
-                combined_y.append(v)
-        # A Mark.AREA cell anywhere forces the zero baseline for the whole
-        # grid, the rule render_layers() applies to an axis group: an
-        # area's height is measured from a baseline, so a shared domain
-        # that floats above zero would draw every cell's fill from a
-        # different, meaningless floor. That is also what makes a faceted
-        # histogram comparable across panels (#442). AREA already rejects
-        # a log y-axis, so the log branch never sees it.
-        var any_area = False
-        for i in range(len(plots)):
-            if plots[i]._mark == Mark.AREA or (
-                plots[i]._mark == Mark.HISTOGRAM
-                and not plots[i]._histogram.horizontal
-            ):
-                any_area = True
-        var domain = _log_data_extent(combined_y) if shared_y_is_log else (
-            _zero_baseline_y_extent(combined_y) if any_area else _data_extent(
-                combined_y
-            )
-        )
-        shared_y_min = domain.domain_min
-        shared_y_max = domain.domain_max
-
-    var rows = (len(plots) + cols - 1) // cols
-
-    # Cells tile edge to edge, so a cell's x-axis title lands directly
-    # against the next row's chart title: measured at three clear pixel
-    # rows on a 2x2 grid of 320x240 cells, one of which carried a
-    # descender. Each cell reserves the space its own labels need
-    # and nothing reserves space *between* cells.
-    #
-    # The gutter comes off every cell's bottom rather than off the rows
-    # that collide, so all cells keep an identical content rect. Making
-    # only the lower rows shorter would give cells different pixel
-    # ranges for the same domain, and under `shared_y_scale` the same
-    # value would then draw at different heights in different rows --
-    # which is the one thing a facet grid exists to make comparable.
-    #
-    # Zero unless the grid actually has the collision, so a grid with no
-    # x-axis titles, or a single row, renders exactly as it did before.
-    var wants_gutter = rows > 1
-    if wants_gutter:
-        var any_x_title = False
-        var any_title = False
-        for i in range(len(plots)):
-            if plots[i]._labels.x_title.byte_length() > 0:
-                any_x_title = True
-            if plots[i]._labels.title.byte_length() > 0:
-                any_title = True
-        wants_gutter = any_x_title and any_title
-    var gutter = Int(
-        _Scaled(plots[0]._theme).label_gap * 2
-    ) if wants_gutter else 0
-
-    for i in range(len(plots)):
-        var row = i // cols
-        var col = i % cols
-        var cell_x0 = width * col // cols
-        var cell_x1 = width * (col + 1) // cols
-        var cell_y0 = height * row // rows
-        var cell_y1 = height * (row + 1) // rows
-        # Each cell's full rect is filled with that cell's background,
-        # including the strip a title's margin reserves.
-        target.fill_rect(
-            cell_x0,
-            cell_y0,
-            cell_x1 - cell_x0,
-            cell_y1 - cell_y0,
-            plots[i]._theme.background,
-        )
-        var cell_content_y1 = cell_y1 - gutter
-        var frame = _apply_labels(
-            plots[i], cell_x0, cell_y0, cell_x1, cell_content_y1
-        )
-        var cell_result = _render_generic(
-            target,
-            plots[i],
-            frame.ox0,
-            frame.oy0,
-            frame.ox1,
-            frame.oy1,
-            has_shared_y_domain=shared_y_scale,
-            shared_y_min=shared_y_min,
-            shared_y_max=shared_y_max,
-            shared_y_is_log=shared_y_is_log,
-            cache=cache,
-        )
-        var label_requests = _label_text_requests(
-            plots[i],
-            cell_x0,
-            cell_y0,
-            cell_x1,
-            cell_content_y1,
-            cell_result.px0,
-            cell_result.py0,
-            cell_result.px1,
-            cell_result.py1,
-        )
-        # Each cell's annotations draw against that cell's own x/y scale, in
-        # the same order a standalone render uses (areas and bands
-        # underneath, then lines/vlines, points on top, best_fit last).
-        # cell_result comes straight from _render_generic, so a continuous
-        # mark's cell carries a real x_scale/y_scale and a categorical
-        # mark's cell correctly has has_x_scale=False -- each pass below
-        # raises its own "no continuous axis" error exactly as it would for
-        # a standalone plot, with no extra branching needed here.
-        var cell_under = _filled_annotations_go_under(plots[i]._mark)
-        var cell_area_requests = List[
-            _TextRequest
-        ]() if cell_under else _draw_annotation_areas(
-            target, plots[i], cell_result, plots[i]._theme
-        )
-        var cell_band_requests = List[
-            _TextRequest
-        ]() if cell_under else _draw_annotation_bands(
-            target, plots[i], cell_result, plots[i]._theme
-        )
-        var cell_vline_requests = _draw_annotation_vlines(
-            target, plots[i], cell_result, plots[i]._theme
-        )
-        var cell_line_requests = _draw_annotation_lines(
-            target, plots[i], cell_result, plots[i]._theme
-        )
-        var cell_point_requests = _draw_annotation_points(
-            target, plots[i], cell_result, plots[i]._theme
-        )
-        var cell_best_fit_requests = _draw_annotation_best_fit(
-            target, plots[i], cell_result, plots[i]._theme
-        )
-        _extend_text_requests(text_requests, label_requests)
-        _extend_text_requests(text_requests, cell_area_requests)
-        _extend_text_requests(text_requests, cell_band_requests)
-        _extend_text_requests(text_requests, cell_vline_requests)
-        _extend_text_requests(text_requests, cell_line_requests)
-        _extend_text_requests(text_requests, cell_point_requests)
-        _extend_text_requests(text_requests, cell_best_fit_requests)
-        _extend_text_requests(text_requests, cell_result.text_requests)
-
-    return text_requests^
+    return _render_cells_generic(
+        target,
+        width,
+        height,
+        plots,
+        uniform_cells(len(plots), cols),
+        List[Float64](),
+        List[Float64](),
+        shared_y_scale,
+        cache=cache,
+    )

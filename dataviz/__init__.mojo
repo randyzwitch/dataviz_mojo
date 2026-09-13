@@ -34,8 +34,14 @@ from dataviz.plot import (
 )
 
 # Unequal-cell composition (#347). Imported directly rather than
-# re-exported through plot.mojo, which grid_layout.mojo depends on.
-from dataviz.grid_layout import GridCell, render_grid
+# re-exported through plot.mojo, which layout.mojo depends on.
+from dataviz.layout import (
+    GridCell,
+    render_grid,
+    render_grid_svg,
+    save_grid,
+    uniform_cells,
+)
 
 # One-call chart functions defined in their mark modules.
 from dataviz.basic.arc import pie
