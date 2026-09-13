@@ -1,6 +1,6 @@
 """Point, line, and area rendering and their one-call constructors."""
 
-from std.math import sin
+from std.math import floor, sin
 
 from canvas.color import Color
 from canvas.fill_rule import FillRule
@@ -390,6 +390,44 @@ def _draws_bulk_markers(plot: Plot, draw_halo: Bool = False) -> Bool:
     )
 
 
+comptime _JITTER_PHI_X = 0.6180339887498949
+"""The golden ratio's conjugate, `(sqrt(5) - 1) / 2`."""
+
+comptime _JITTER_PHI_Y = 0.7548776662466927
+"""The plastic number's reciprocal. A different irrational for y so the
+two axes' offsets do not march in step and turn a cloud into a diagonal
+line, which is what using one constant for both produces."""
+
+
+def _jitter_offset(index: Int, amount: Float64, phi: Float64) -> Float64:
+    """The deterministic offset for point `index`, in pixels, within
+    `[-amount, +amount]` (#149).
+
+    `frac(index * phi)` for an irrational `phi` is a low-discrepancy
+    sequence: successive points land far apart and the whole run fills
+    the interval evenly, which is what separating overplotted points
+    needs. Random sampling clumps, which is the opposite.
+
+    Deterministic on purpose. This package's tests assert hand-derived
+    pixel positions, so a render that moved points by a sampled amount
+    could not be checked at all, and a seeded generator would only be
+    checkable for one seed. Here a test computes `frac(i * phi)` itself.
+
+    Args:
+        index: The point's position in the data, from 0.
+        amount: Half-width of the offset in pixels; 0.0 returns 0.0.
+        phi: The irrational multiplier, `_JITTER_PHI_X` or `_JITTER_PHI_Y`.
+
+    Returns:
+        The offset in pixels.
+    """
+    if amount == 0.0:
+        return 0.0
+    var t = Float64(index) * phi
+    var frac = t - floor(t)
+    return (2.0 * frac - 1.0) * amount
+
+
 def _draw_point_layer[
     T: DrawTarget
 ](
@@ -459,6 +497,12 @@ def _draw_point_layer[
             x_scale, plot._continuous.x[i]
         )
         var py = _axis_pixel_f(y_scale, plot._continuous.y[i])
+        # Jitter is applied here, after the scale and before anything is
+        # drawn, so every per-point decoration -- halo, error bar, label,
+        # tooltip anchor -- moves with its point rather than staying at
+        # the unjittered position (#149).
+        px += _jitter_offset(i, plot._mark_style.point_jitter_x, _JITTER_PHI_X)
+        py += _jitter_offset(i, plot._mark_style.point_jitter_y, _JITTER_PHI_Y)
         var color: Color
         if ch.has_color:
             color = ch.color_scale.color_at(plot._channels.color[i])

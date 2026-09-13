@@ -469,6 +469,22 @@ struct _MarkStyle(Copyable, Movable):
     """
 
     var point_tooltips: Bool
+    var point_jitter_x: Float64
+    """`Mark.POINT`/`EFFECT_SCATTER` only: half-width of the deterministic
+    offset applied to each point's x, **in pixels**. 0.0 is off, which is
+    the default and leaves every point exactly where it was.
+
+    Pixels rather than data units on purpose. #149's open question was
+    what a continuous scatter jitters *within*: a categorical mark has its
+    category's band, and a continuous axis has no such region. A pixel
+    width sidesteps that by describing the visual separation the caller
+    wants rather than a quantity in the data's own units, and it stays
+    constant as the domain changes."""
+
+    var point_jitter_y: Float64
+    """The same for y. Independent of `point_jitter_x` so a caller can
+    spread along one axis only, which is the common case when one axis is
+    discrete-valued."""
     var donut_inner_radius_fraction: Float64
     var bullet_measure_width_fraction: Float64
     var waterfall_delta_width_fraction: Float64
@@ -520,6 +536,8 @@ struct _MarkStyle(Copyable, Movable):
 
     def __init__(out self):
         self.point_tooltips = False
+        self.point_jitter_x = 0.0
+        self.point_jitter_y = 0.0
         self.donut_inner_radius_fraction = 0.0
         self.bullet_measure_width_fraction = 0.35
         self.waterfall_delta_width_fraction = 0.6
@@ -760,20 +778,57 @@ struct Plot(Copyable, Movable):
         self.height = height
         return self^
 
-    def mark_point(var self, tooltips: Bool = False) -> Self:
+    def mark_point(
+        var self,
+        tooltips: Bool = False,
+        jitter_x: Float64 = 0.0,
+        jitter_y: Float64 = 0.0,
+    ) raises -> Self:
         """A scatter plot: one point per (x, y) pair.
 
         When `tooltips` and `Theme.svg_tooltips` are enabled, each SVG point
         includes a hover title using its encoded label or coordinates.
 
+        `jitter_x`/`jitter_y` offset each point by up to that many pixels,
+        to separate points that would otherwise overplot (ggplot's
+        `geom_jitter()`, seaborn's `stripplot(jitter=True)`). Both default
+        to 0.0, which leaves every point exactly where it was.
+
+        The offset is **deterministic, not random**: point `i` moves by
+        `(2 * frac(i * phi) - 1) * jitter`, where `phi` is the golden
+        ratio's conjugate. That spreads successive points evenly rather
+        than clumping the way sampling does, is hand-derivable in a test,
+        and gives the same picture on every render, which a seeded
+        generator would only give for a fixed seed. See
+        `_jitter_offset()`.
+
+        Jitter is a *visual* device. It moves points away from their data
+        positions on purpose, so a reader cannot recover exact values from
+        a jittered chart, and it should not be used where they need to.
+
         Args:
             tooltips: Whether each point carries a hover `<title>`.
+            jitter_x: Half-width in pixels of the x offset; 0.0 is off.
+            jitter_y: The same for y.
 
         Returns:
             Self, for further chaining.
+
+        Raises:
+            Error: Either jitter is negative.
         """
+        if jitter_x < 0.0 or jitter_y < 0.0:
+            raise Error(
+                "Plot.mark_point(): jitter must not be negative -- got"
+                " jitter_x="
+                + String(jitter_x)
+                + ", jitter_y="
+                + String(jitter_y)
+            )
         self._mark = Mark.POINT
         self._mark_style.point_tooltips = tooltips
+        self._mark_style.point_jitter_x = jitter_x
+        self._mark_style.point_jitter_y = jitter_y
         return self^
 
     def mark_line(
