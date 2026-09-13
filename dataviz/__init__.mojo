@@ -50,7 +50,7 @@ from dataviz.aggregation.barplot import barplot, countplot
 from dataviz.aggregation.lineplot import lineplot
 from dataviz.aggregation.pointplot import pointplot
 from dataviz.core.stats import ErrorBar, Estimator
-from dataviz.image import imshow, pcolormesh
+from dataviz.grid.image import imshow, pcolormesh
 from dataviz.binned.hist2d import hist2d
 from dataviz.binned.hexbin import hexbin
 from dataviz.distributions.kde import kdeplot, rugplot
@@ -67,11 +67,11 @@ from dataviz.categorical.funnel import funnel
 from dataviz.categorical.gantt import gantt
 from dataviz.categorical.span_chart import span_chart
 from dataviz.categorical.grouped_bar import grouped_bar
-from dataviz.heatmap import heatmap
-from dataviz.calendar_heatmap import calendar_heatmap
-from dataviz.corrplot import corrplot
-from dataviz.punchcard import punchcard
-from dataviz.marimekko import marimekko
+from dataviz.grid.heatmap import heatmap
+from dataviz.grid.calendar_heatmap import calendar_heatmap
+from dataviz.grid.corrplot import corrplot
+from dataviz.grid.punchcard import punchcard
+from dataviz.grid.marimekko import marimekko
 from dataviz.sunburst import sunburst
 from dataviz.tree import tree
 from dataviz.treemap import treemap

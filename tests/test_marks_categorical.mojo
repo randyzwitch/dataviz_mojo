@@ -41,7 +41,7 @@ from dataviz import (
     stacked_bar,
 )
 from dataviz.core.color_scale import ColorScale, default_categorical_palette
-from dataviz.image import _draw_cells_as_image, _edge_pixels, _fill_cells
+from dataviz.grid.image import _draw_cells_as_image, _edge_pixels, _fill_cells
 from dataviz.core.colormaps import viridis
 from dataviz.plot import (
     Plot,

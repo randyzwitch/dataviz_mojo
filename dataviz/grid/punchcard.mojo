@@ -3,7 +3,7 @@ from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
-from dataviz.heatmap import _draw_grid_axis_frame
+from dataviz.grid.heatmap import _draw_grid_axis_frame
 from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
