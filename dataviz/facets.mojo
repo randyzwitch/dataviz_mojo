@@ -130,6 +130,19 @@ def render_facets(
     # band at a time, so the enlarged buffer never exists whole. Byte
     # identical to the two-step recipe it replaces (canvas_mojo#391).
     canvas.begin_supersampled(factor)
+    # A plot count that is not a multiple of `cols` leaves squares in the
+    # last row with no cell in them. Each cell fills its own rect, so
+    # those were filled by nobody and came out white: invisible on the
+    # default light theme and a hole in the corner of any other (#568).
+    # Filled before the cells so each cell's own fill still wins, and
+    # entirely overdrawn when the last row is full.
+    canvas.fill_rect(
+        0,
+        0,
+        cols * plots[0].width,
+        rows * plots[0].height,
+        plots[0]._theme.background,
+    )
     # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
     # Logical figure bounds, not the scratch canvas's: the transform maps
@@ -163,6 +176,8 @@ def render_facets_svg(
     _require_uniform_size(plots, "render_facets_svg")
     var rows = (len(plots) + cols - 1) // cols
     var svg = SvgCanvas(cols * plots[0].width, rows * plots[0].height)
+    # See render_facets(): a partial last row is a hole without this.
+    svg.fill_rect(0, 0, svg.width, svg.height, plots[0]._theme.background)
     # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
     var text_requests = _render_facets_generic(

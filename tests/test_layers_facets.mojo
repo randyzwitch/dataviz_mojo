@@ -1224,8 +1224,9 @@ def test_render_facets_leaves_trailing_cells_blank_when_plots_dont_fill_the_grid
     # row-major: (0,0), (0,1), (1,0); (1,1) is never touched. Each filled
     # cell reuses the single-point geometry offset by its cell origin:
     # (220,135), (620,135), (220,435). Every plot's background is
-    # (10,20,30), so an untouched cell (the canvas's white default) is
-    # distinguishable from a rendered one.
+    # (10,20,30), and so is the figure's, so the empty cell is
+    # distinguishable from a rendered one by having no mark in it rather
+    # than by being a different color (#568 stopped it being white).
     var xy: List[Float64] = [5.0]
     var theme = Theme(background=Color(10, 20, 30))
     var plot0 = (
@@ -1275,9 +1276,15 @@ def test_render_facets_leaves_trailing_cells_blank_when_plots_dont_fill_the_grid
         "cell (1,0) is cell (0,0) shifted one cell height",
     )
 
-    # The empty cell keeps the canvas's own white default, never painted.
-    var blank = _bbox_of_color_in(c, Color(255, 255, 255), 400, 300, 799, 599)
-    assert_true(blank.found, "cell (1,1) is still the untouched background")
+    # The empty cell carries the figure background rather than the
+    # canvas's white default, which is what #568 changed: it used to be
+    # white, invisible on a light theme and a hole on any other.
+    var blank = _bbox_of_color_in(c, Color(10, 20, 30), 400, 300, 799, 599)
+    assert_true(blank.found, "cell (1,1) is the figure background")
+    var white = _bbox_of_color_in(c, Color(255, 255, 255), 400, 300, 799, 599)
+    assert_true(
+        not white.found, "cell (1,1) still shows the canvas's white default"
+    )
 
 
 def test_render_facets_raises_on_non_positive_cols() raises:
@@ -2861,6 +2868,64 @@ def test_bar_combo_line_layer_is_styled_like_a_standalone_line() raises:
         _line_path_without_coords(combo_svg),
         _line_path_without_coords(solo_svg),
         "a bar-combo line is styled exactly as the same line standalone",
+    )
+
+
+def test_a_partial_last_row_takes_the_figure_background() raises:
+    """A plot count that is not a multiple of `cols` leaves squares with
+    no cell in them, and each cell fills only its own rect.
+
+    Those squares were filled by nobody and came out white: invisible on
+    the default light theme, which is why this went unnoticed, and a hole
+    in the corner of any theme whose background is not (#568).
+
+    Five plots in three columns leaves the bottom-right square empty.
+    """
+    var dark = Color(20, 20, 30)
+    var theme = Theme(background=dark, show_gridlines=False, show_legend=False)
+    var x: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    var y: List[Float64] = [1.0, 3.0, 2.0, 4.0]
+    var plots = List[Plot]()
+    for _ in range(5):
+        plots.append(
+            Plot().mark_line().encode(x=x, y=y).theme(theme).size(120, 90)
+        )
+    var c = render_facets(plots, 3)
+    assert_equal(c.width, 360, "three columns of 120")
+    assert_equal(c.height, 180, "two rows of 90")
+
+    # The middle of the missing square: column 2 (0-based), row 1.
+    var p = c.get_pixel(300, 135)
+    assert_true(
+        p.r == dark.r and p.g == dark.g and p.b == dark.b,
+        (
+            "the empty square is ("
+            + String(p.r)
+            + ","
+            + String(p.g)
+            + ","
+            + String(p.b)
+            + "), not the figure background"
+        ),
+    )
+
+
+def test_a_partial_last_row_takes_the_figure_background_in_svg() raises:
+    # The vector path fills the figure too, so a saved SVG has no hole
+    # either. The fill is the first rect in the document.
+    var dark = Color(20, 20, 30)
+    var theme = Theme(background=dark, show_gridlines=False, show_legend=False)
+    var x: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    var y: List[Float64] = [1.0, 3.0, 2.0, 4.0]
+    var plots = List[Plot]()
+    for _ in range(5):
+        plots.append(
+            Plot().mark_line().encode(x=x, y=y).theme(theme).size(120, 90)
+        )
+    var s = render_facets_svg(plots, 3).to_string()
+    assert_true(
+        'width="360" height="180" fill="#14141e"' in s,
+        "the figure background rect is not in the svg",
     )
 
 
