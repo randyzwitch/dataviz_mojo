@@ -17,6 +17,12 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 failures=0
+skips=0
+
+skip() {
+    printf '  SKIP  %s\n' "$1"
+    skips=$((skips + 1))
+}
 
 check() {
     # check <description> <expected> <actual>
@@ -83,22 +89,32 @@ run_guard() {
 MODULES=(tests/ok_one.mojo tests/wedge_two.mojo tests/segv_three.mojo
     tests/fail_four.mojo)
 
-printf 'A stock Linux PATH picks timeout(1)\n'
-build_path "$WORK/gnu"
-result=($(run_guard "$WORK/gnu" 3 "${MODULES[@]}"))
-check "names timeout" "yes" \
-    "$(grep -q 'via timeout' "$WORK/out" && echo yes || echo no)"
-check "breaks the wedge instead of waiting it out" "yes" \
-    "$([ "${result[1]}" -lt 30 ] && echo yes || echo no)"
-check "reports the timeout as 124" "yes" \
-    "$(grep -q 'wedge_two.mojo (exit 124' "$WORK/out" && echo yes || echo no)"
-check "reports a crash as 139 with no summary" "yes" \
-    "$(grep -q 'segv_three.mojo (exit 139, printed no test summary)' \
-        "$WORK/out" && echo yes || echo no)"
-check "reports an honest failure as 1" "yes" \
-    "$(grep -q 'fail_four.mojo (exit 1)' "$WORK/out" && echo yes || echo no)"
-check "counts the clean modules" "yes" \
-    "$(grep -q '1 of 4 modules ran clean' "$WORK/out" && echo yes || echo no)"
+# A state can only be exercised where the host has the program it needs.
+# A macOS runner has no `timeout(1)` to put on a simulated PATH, which is
+# the whole reason #543 existed, so the GNU block is skipped there rather
+# than asserted and failed -- and the skip is printed, because a state
+# that quietly went unchecked is what this file exists to prevent.
+if command -v timeout > /dev/null 2>&1; then
+    printf 'A PATH with timeout(1) picks it\n'
+    build_path "$WORK/gnu"
+    result=($(run_guard "$WORK/gnu" 3 "${MODULES[@]}"))
+    check "names timeout" "yes" \
+        "$(grep -q 'via timeout' "$WORK/out" && echo yes || echo no)"
+    check "breaks the wedge instead of waiting it out" "yes" \
+        "$([ "${result[1]}" -lt 30 ] && echo yes || echo no)"
+    check "reports the timeout as 124" "yes" \
+        "$(grep -q 'wedge_two.mojo (exit 124' "$WORK/out" && echo yes || echo no)"
+    check "reports a crash as 139 with no summary" "yes" \
+        "$(grep -q 'segv_three.mojo (exit 139, printed no test summary)' \
+            "$WORK/out" && echo yes || echo no)"
+    check "reports an honest failure as 1" "yes" \
+        "$(grep -q 'fail_four.mojo (exit 1)' "$WORK/out" && echo yes || echo no)"
+    check "counts the clean modules" "yes" \
+        "$(grep -q '1 of 4 modules ran clean' "$WORK/out" && echo yes || echo no)"
+else
+    printf 'A PATH with timeout(1) picks it\n'
+    skip "no timeout(1) on this host, so the GNU path cannot be exercised"
+fi
 
 printf 'A stock macOS PATH has no timeout or gtimeout and picks perl (#543)\n'
 build_path "$WORK/mac" timeout gtimeout
@@ -138,7 +154,7 @@ check "exits clean" "0" "${result[0]}"
 
 printf '\n'
 if [ "$failures" -ne 0 ]; then
-    printf '%s check(s) failed.\n' "$failures"
+    printf '%s check(s) failed, %s skipped.\n' "$failures" "$skips"
     exit 1
 fi
-printf 'All guard checks passed.\n'
+printf 'All guard checks passed, %s skipped.\n' "$skips"
