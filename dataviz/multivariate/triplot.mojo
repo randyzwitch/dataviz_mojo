@@ -53,6 +53,19 @@ struct _TriplotData(Copyable, Movable):
     caller knows the triangle order and can index `facecolors` against
     it."""
 
+    var gouraud: Bool
+    """Interpolate the color across each face from its three vertices
+    instead of filling it flat (matplotlib's `shading="gouraud"`).
+
+    Off by default, which is matplotlib's default too: a flat fill says
+    "this triangle has this value", which is what the data supports.
+    Gouraud says the field varies smoothly between samples, which is an
+    assumption, and a true one often enough to be worth offering.
+
+    Not combinable with `facecolors`, which is one value per triangle
+    and therefore has nothing to interpolate between (#398).
+    """
+
     var facecolors: List[Float64]
     """One value per *triangle*, matplotlib's `tripcolor(facecolors=)`.
 
@@ -67,6 +80,7 @@ struct _TriplotData(Copyable, Movable):
         self.z = List[Float64]()
         self.show_points = True
         self.triangulation = Triangulation()
+        self.gouraud = False
         self.facecolors = List[Float64]()
 
 
@@ -429,6 +443,14 @@ def _draw_tripcolor_layer[
     counterpart and the field a `render_layers()` stack puts a scatter or
     a mesh on top of.
 
+    **Gouraud is the one place the backends differ on purpose.** With
+    `gouraud=True` the raster backend interpolates each face's color
+    across it from its three vertices and PDF gets a native mesh
+    shading, but SVG has no mesh gradient that ships in browsers, so
+    canvas draws each face flat at the mean of its corners. A caller who
+    needs raster and SVG to match pixel for pixel should leave
+    `gouraud` off, which is the default.
+
     Every face goes into one `fill_mesh`, so nothing here is sized from a
     theme. The layer used to take its own `_Scaled` because the seam
     stroke scaled by this layer's `Theme.scale` rather than the frame's,
@@ -454,6 +476,44 @@ def _draw_tripcolor_layer[
         plot._triplot.x, plot._triplot.y
     )
     if tri.count() == 0:
+        return
+
+    # Gouraud reads the color at each vertex, so it normalizes over the
+    # vertex values; flat shading reads it per face and normalizes over
+    # the face values. Different domains for different questions, and
+    # matplotlib does the same.
+    if plot._triplot.gouraud:
+        if len(plot._triplot.facecolors) > 0:
+            raise Error(
+                "Plot.encode_triplot(facecolors=...) is one value per"
+                " triangle, so there is nothing to interpolate between."
+                " Drop facecolors, or drop gouraud=True"
+            )
+        if len(plot._triplot.z) != len(tri.x):
+            raise Error(
+                "Mark.TRIPCOLOR with gouraud=True: needs one z per vertex, so "
+                + String(len(tri.x))
+                + " for this triangulation -- got "
+                + String(len(plot._triplot.z))
+            )
+        var lo_v = plot._triplot.z[0]
+        var hi_v = plot._triplot.z[0]
+        for v in plot._triplot.z:
+            if v < lo_v:
+                lo_v = v
+            if v > hi_v:
+                hi_v = v
+        var vertex_scale = _color_scale_for(
+            theme, plot._color_domain, lo_v, hi_v
+        )
+        var vpoints = List[FPoint](capacity=len(tri.x))
+        var vcolors = List[Color](capacity=len(tri.x))
+        for i in range(len(tri.x)):
+            vpoints.append(
+                FPoint(x_scale.to_pixel(tri.x[i]), y_scale.to_pixel(tri.y[i]))
+            )
+            vcolors.append(vertex_scale.color_at(plot._triplot.z[i]))
+        target.fill_mesh_shaded(vpoints, tri.triangles, vcolors)
         return
 
     # One value per triangle if the caller supplied them, else the mean
@@ -588,6 +648,7 @@ def tripcolor[
     x: List[Scalar[dtype]],
     y: List[Scalar[dtype]],
     z: List[Scalar[dtype]],
+    gouraud: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -620,6 +681,10 @@ def tripcolor[
         x: Each sample's x position.
         y: Each sample's y position, one per `x` entry.
         z: The value at each sample, one per `x` entry.
+        gouraud: Interpolate each triangle's color across it from its
+            three vertices instead of filling it flat, matplotlib's
+            `shading="gouraud"`. Off by default (#398). SVG output
+            approximates it; see `_draw_tripcolor_layer`.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -683,7 +748,11 @@ def tripcolor[
     var x_f = _materialize_scalar_list(x)
     var y_f = _materialize_scalar_list(y)
     var z_f = _materialize_scalar_list(z)
-    var plot = Plot().mark_tripcolor().encode_triplot(x=x_f, y=y_f, z=z_f)
+    var plot = (
+        Plot()
+        .mark_tripcolor()
+        .encode_triplot(x=x_f, y=y_f, z=z_f, gouraud=gouraud)
+    )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
