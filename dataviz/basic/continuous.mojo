@@ -7,6 +7,7 @@ from canvas.fill_rule import FillRule
 from canvas.geometry import FPoint, round_to_int
 from canvas.path import Path
 from canvas.text.render import TextAlign
+from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
 from morrow import Morrow
@@ -442,6 +443,8 @@ def _draw_point_layer[
     draw_halo: Bool = False,
     legend_horizontal: Bool = False,
     band_px: List[Float64] = List[Float64](),
+    *,
+    mut cache: FontCache,
 ) raises -> Int:
     """Draw one `Mark.POINT` plot's points into an already-laid-out
     continuous axis frame, plus the legend sections its encoded channels
@@ -676,12 +679,18 @@ def _draw_point_layer[
                 )
                 cursor = (
                     label_x
-                    + _text_advance(ch.cat.domain[i], sc_row)
+                    + _text_advance(ch.cat.domain[i], sc_row, cache=cache)
                     + sc_row.legend_swatch_size
                 )
         elif ch.has_color:
             cursor = _draw_continuous_color_legend_h(
-                target, text_requests, ch.color_scale, cursor, legend_y, theme
+                target,
+                text_requests,
+                ch.color_scale,
+                cursor,
+                legend_y,
+                theme,
+                cache=cache,
             )
         if ch.has_size:
             cursor = _draw_continuous_size_legend_h(

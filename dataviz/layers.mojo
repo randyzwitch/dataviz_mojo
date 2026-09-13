@@ -564,6 +564,7 @@ def _render_bar_combo_layers[
                 0,
                 0,
                 band_px=band_px,
+                cache=cache,
             )
         elif plots[i]._mark == Mark.LINE:
             _draw_line_layer(
@@ -1361,6 +1362,7 @@ def _render_layers_generic[
                 legend_x,
                 legend_y,
                 draw_halo=mark == Mark.EFFECT_SCATTER,
+                cache=cache,
             )
         elif mark == Mark.LINE:
             if len(plots[j]._continuous.x) == 0:
