@@ -71,7 +71,7 @@ from canvas.io.png import write_png
 from canvas.vector.draw_target import DrawTarget
 from canvas.geometry import FPoint, round_to_int
 from canvas.path import Path
-from canvas.vector.svg import SvgCanvas, _escape_xml_text, _escape_xml_attr
+from canvas.vector.svg import SvgCanvas
 from canvas.text.render import draw_text, measure_text, FontWeight, TextAlign
 from canvas.text.font_cache import FontCache
 
@@ -5445,16 +5445,19 @@ def _resolve_description(labels: _LabelData) -> String:
     )
 
 
-def _svg_output_string(svg: SvgCanvas, labels: _LabelData) raises -> String:
+def _svg_output_string(var svg: SvgCanvas, labels: _LabelData) raises -> String:
     """What `save()`/`save_layers()`/`save_facets()` write for SVG output
     : `accessible_svg_string()`'s markup when `labels.title` is set
         (`_resolve_description()`'s `<desc>`), or plain `svg.to_string()`
         otherwise. A pure string decision, factored out of the file-writing
         `save*()` functions so it's directly testable with no disk I/O.
+
+    Takes the canvas by value, for the reason `accessible_svg_string()`
+    does; every caller here passes a freshly rendered one.
     """
     if labels.title.byte_length() > 0:
         return accessible_svg_string(
-            svg, labels.title, _resolve_description(labels)
+            svg^, labels.title, _resolve_description(labels)
         )
     return svg.to_string()
 
@@ -5509,7 +5512,7 @@ def save(canvas: Canvas, path: String) raises:
 
 
 def accessible_svg_string(
-    svg: SvgCanvas, title: String, description: String = ""
+    var svg: SvgCanvas, title: String, description: String = ""
 ) raises -> String:
     """`svg.to_string()` with SVG accessibility markup added: `role="img"`
     and `aria-label` on the root `<svg>` element, plus a `<title>` (and a
@@ -5517,54 +5520,51 @@ def accessible_svg_string(
     elements, which is what screen readers that support SVG look for.
 
     `title` is required; the same string passed to `.labels(title=...)`
-    is usually right. A post-processing wrapper around `to_string()`
-    using canvas_mojo's `_escape_xml_text`/`_escape_xml_attr`, relying on
-    `<svg ...>` being the literal start of the output so its first `>` is
-    the opening tag's end; if `SvgCanvas.to_string` changes shape, this
-    needs revisiting.
+    is usually right.
+
+    `SvgCanvas.set_title()` does the work. This was once a
+    post-processing wrapper that spliced the attributes and children into
+    `to_string()`'s output as text, which meant depending on `<svg ...>`
+    being the literal start of that output and on two of canvas_mojo's
+    private escaping helpers. Nothing upstream owed us either (#572).
 
     This only helps where the SVG's accessible tree is walked: inline
     `<svg>` markup, a standalone `.svg`, or an `<object>`/`<iframe>`
     embed. A plain `<img src="chart.svg">` (how the docs site embeds
     examples) treats the SVG as an opaque image, and a screen reader
     reads the `<img>`'s `alt` text instead.
+
+    Taking the canvas by value is the one visible change: `set_title()`
+    is a mutation and `SvgCanvas` is movable but not copyable, so a
+    caller holding one passes `svg^` rather than `svg`. Every call here
+    passes a freshly rendered canvas, which moves on its own.
+
+    Args:
+        svg: The rendered chart, consumed.
+        title: The accessible name. Required.
+        description: A longer description, omitted when empty.
+
+    Returns:
+        The SVG document, titled.
+
+    Raises:
+        Error: Whatever `set_title()` raises.
     """
-    var s = svg.to_string()
-    var tag_end = s.find(">")
-    if tag_end == -1:
-        raise Error(
-            "accessible_svg_string: svg.to_string() produced no root element to"
-            " attach accessibility markup to"
-        )
-    var opening_tag = String(s[byte=0:tag_end])
-    var rest = String(s[byte=tag_end:])
-
-    var escaped_title_attr = _escape_xml_attr(title)
-    var accessible_tag = (
-        opening_tag + ' role="img" aria-label="' + escaped_title_attr + '"'
-    )
-
-    var children = "<title>" + _escape_xml_text(title) + "</title>\n"
-    if description.byte_length() > 0:
-        children += "<desc>" + _escape_xml_text(description) + "</desc>\n"
-
-    return (
-        accessible_tag
-        + String(rest[byte=0:1])
-        + children
-        + String(rest[byte=1:])
-    )
+    svg.set_title(title, description)
+    return svg.to_string()
 
 
 def write_accessible_svg(
-    svg: SvgCanvas, path: String, title: String, description: String = ""
+    var svg: SvgCanvas, path: String, title: String, description: String = ""
 ) raises:
     """`accessible_svg_string()` written to `path`. See the Cookbook's "SVG
     Accessibility" recipe
     (docs/cookbook_recipes/svg_accessibility.mojo).
+
+    Consumes the canvas, as `accessible_svg_string()` does.
     """
     var f = open(path, "w")
-    f.write(accessible_svg_string(svg, title, description))
+    f.write(accessible_svg_string(svg^, title, description))
     f.close()
 
 

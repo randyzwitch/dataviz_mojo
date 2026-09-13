@@ -19,8 +19,10 @@ def main() raises:
     )
 
     var svg = render_svg(plot)
+    # `svg^` because titling the canvas is a mutation and an SvgCanvas
+    # moves rather than copies, so this call consumes it.
     write_accessible_svg(
-        svg,
+        svg^,
         "docs/src/examples/out_svg_accessibility.svg",
         "Regional Revenue comparison chart",
         (
