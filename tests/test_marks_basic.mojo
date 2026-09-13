@@ -4274,9 +4274,9 @@ def test_delaunay_satisfies_the_empty_circumcircle_property() raises:
             ys.append(rng.uniform(-50.0, 50.0))
         var t = delaunay(xs, ys)
         for k in range(t.count()):
-            var i0 = t.tri[3 * k]
-            var i1 = t.tri[3 * k + 1]
-            var i2 = t.tri[3 * k + 2]
+            var i0 = t.triangles[3 * k]
+            var i1 = t.triangles[3 * k + 1]
+            var i2 = t.triangles[3 * k + 2]
             for pt in range(len(xs)):
                 if pt == i0 or pt == i1 or pt == i2:
                     continue
@@ -4609,9 +4609,9 @@ def test_triplot_edges_name_real_vertex_pairs() raises:
         )
         var found = False
         for k in range(t.count()):
-            var v0 = t.tri[3 * k]
-            var v1 = t.tri[3 * k + 1]
-            var v2 = t.tri[3 * k + 2]
+            var v0 = t.triangles[3 * k]
+            var v1 = t.triangles[3 * k + 1]
+            var v2 = t.triangles[3 * k + 2]
             if (
                 (a == v0 and b == v1)
                 or (a == v1 and b == v2)
@@ -4791,7 +4791,11 @@ def test_tripcolor_paints_each_triangle_its_own_vertex_mean() raises:
     var means = List[Float64]()
     for k in range(t.count()):
         means.append(
-            (zs[t.tri[3 * k]] + zs[t.tri[3 * k + 1]] + zs[t.tri[3 * k + 2]])
+            (
+                zs[t.triangles[3 * k]]
+                + zs[t.triangles[3 * k + 1]]
+                + zs[t.triangles[3 * k + 2]]
+            )
             / 3.0
         )
     var lo = means[0]

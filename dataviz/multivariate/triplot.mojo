@@ -18,7 +18,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import ColorScale, _color_scale_for
-from dataviz.core.delaunay import _Triangulation, _edge_key, delaunay
+from dataviz.core.delaunay import Triangulation, _edge_key, delaunay
 from dataviz.plot import (
     Plot,
     _LegendLayout,
@@ -43,12 +43,30 @@ struct _TriplotData(Copyable, Movable):
     var y: List[Float64]
     var z: List[Float64]
     var show_points: Bool
+    var triangulation: Triangulation
+    """A caller's own triangulation, or an empty one (#397).
+
+    When supplied, `_render_triplot`/`_render_tripcolor` use it instead
+    of calling `delaunay()`, which both saves the second triangulation a
+    layered chart otherwise pays for and, more importantly, means the
+    caller knows the triangle order and can index `facecolors` against
+    it."""
+
+    var facecolors: List[Float64]
+    """One value per *triangle*, matplotlib's `tripcolor(facecolors=)`.
+
+    Empty means colour each triangle by the mean of its three vertices'
+    `z`, which is what this mark did before and still does by default.
+    Only meaningful with `triangulation` set, since otherwise nothing
+    outside knows what order the triangles are in."""
 
     def __init__(out self):
         self.x = List[Float64]()
         self.y = List[Float64]()
         self.z = List[Float64]()
         self.show_points = True
+        self.triangulation = Triangulation()
+        self.facecolors = List[Float64]()
 
 
 comptime _POINT_RADIUS_FRACTION = 0.6
@@ -59,7 +77,7 @@ comptime _SEAM_STROKE_WIDTH = 1.5
 """Triangle-outline width in `Theme.scale` units, used to hide seams."""
 
 
-def _triplot_edges(t: _Triangulation) raises -> Tuple[List[Int], List[Int]]:
+def _triplot_edges(t: Triangulation) raises -> Tuple[List[Int], List[Int]]:
     """Every edge of the triangulation exactly once, as parallel lists of
     endpoint vertex indices.
 
@@ -75,9 +93,9 @@ def _triplot_edges(t: _Triangulation) raises -> Tuple[List[Int], List[Int]]:
     var eb = List[Int]()
     var seen = Dict[Int, Bool]()
     for k in range(t.count()):
-        var v0 = t.tri[3 * k]
-        var v1 = t.tri[3 * k + 1]
-        var v2 = t.tri[3 * k + 2]
+        var v0 = t.triangles[3 * k]
+        var v1 = t.triangles[3 * k + 1]
+        var v2 = t.triangles[3 * k + 2]
         for e in range(3):
             var a = v0
             var b = v1
@@ -96,7 +114,7 @@ def _triplot_edges(t: _Triangulation) raises -> Tuple[List[Int], List[Int]]:
     return (ea^, eb^)
 
 
-def _triangle_means(t: _Triangulation, z: List[Float64]) -> List[Float64]:
+def _triangle_means(t: Triangulation, z: List[Float64]) -> List[Float64]:
     """Each triangle's flat-shading value: the mean of the values at its
     three vertices.
 
@@ -116,15 +134,20 @@ def _triangle_means(t: _Triangulation, z: List[Float64]) -> List[Float64]:
 
     Args:
         t: The triangulation.
-        z: One value per vertex, indexed as `t.xs`/`t.ys` are.
+        z: One value per vertex, indexed as `t.x`/`t.y` are.
 
     Returns:
-        One value per triangle, in `t.tri` order.
+        One value per triangle, in `t.triangles` order.
     """
     var out = List[Float64](capacity=t.count())
     for k in range(t.count()):
         out.append(
-            (z[t.tri[3 * k]] + z[t.tri[3 * k + 1]] + z[t.tri[3 * k + 2]]) / 3.0
+            (
+                z[t.triangles[3 * k]]
+                + z[t.triangles[3 * k + 1]]
+                + z[t.triangles[3 * k + 2]]
+            )
+            / 3.0
         )
     return out^
 
@@ -255,19 +278,21 @@ def _draw_triplot_layer[
         sc: This layer's scaled theme metrics.
     """
     var theme = plot._theme
-    var tri = delaunay(plot._triplot.x, plot._triplot.y)
+    # A caller's own triangulation wins (#397). Besides saving the
+    # second triangulation a layered chart pays for, it is the only way
+    # the triangle order can be known outside this package, which is
+    # what makes `facecolors` indexable.
+    var tri = plot._triplot.triangulation.copy() if plot._triplot.triangulation.count() > 0 else delaunay(
+        plot._triplot.x, plot._triplot.y
+    )
     var edges = _triplot_edges(tri)
     if len(edges[0]) > 0:
         var mesh = Path()
         for i in range(len(edges[0])):
             var a = edges[0][i]
             var b = edges[1][i]
-            mesh.move_to(
-                x_scale.to_pixel(tri.xs[a]), y_scale.to_pixel(tri.ys[a])
-            )
-            mesh.line_to(
-                x_scale.to_pixel(tri.xs[b]), y_scale.to_pixel(tri.ys[b])
-            )
+            mesh.move_to(x_scale.to_pixel(tri.x[a]), y_scale.to_pixel(tri.y[a]))
+            mesh.line_to(x_scale.to_pixel(tri.x[b]), y_scale.to_pixel(tri.y[b]))
         target.stroke_path_aa(mesh, theme.mark_color, width=sc.scale)
 
     if plot._triplot.show_points:
@@ -431,11 +456,30 @@ def _draw_tripcolor_layer[
         sc: This layer's scaled theme metrics.
     """
     var theme = plot._theme
-    var tri = delaunay(plot._triplot.x, plot._triplot.y)
+    # A caller's own triangulation wins (#397). Besides saving the
+    # second triangulation a layered chart pays for, it is the only way
+    # the triangle order can be known outside this package, which is
+    # what makes `facecolors` indexable.
+    var tri = plot._triplot.triangulation.copy() if plot._triplot.triangulation.count() > 0 else delaunay(
+        plot._triplot.x, plot._triplot.y
+    )
     if tri.count() == 0:
         return
 
-    var means = _triangle_means(tri, plot._triplot.z)
+    # One value per triangle if the caller supplied them, else the mean
+    # of each triangle's three vertex values, which is what this mark
+    # did before `facecolors` existed.
+    var means = plot._triplot.facecolors.copy() if len(
+        plot._triplot.facecolors
+    ) > 0 else _triangle_means(tri, plot._triplot.z)
+    if len(plot._triplot.facecolors) > 0 and len(means) != tri.count():
+        raise Error(
+            "Plot.encode_triplot(facecolors=...): needs one value per"
+            " triangle, so "
+            + String(tri.count())
+            + " for this triangulation -- got "
+            + String(len(means))
+        )
     var lo = means[0]
     var hi = means[0]
     for v in means:
@@ -447,13 +491,13 @@ def _draw_tripcolor_layer[
 
     var seam_width = sc.scale * _SEAM_STROKE_WIDTH
     for k in range(tri.count()):
-        var i0 = tri.tri[3 * k]
-        var i1 = tri.tri[3 * k + 1]
-        var i2 = tri.tri[3 * k + 2]
+        var i0 = tri.triangles[3 * k]
+        var i1 = tri.triangles[3 * k + 1]
+        var i2 = tri.triangles[3 * k + 2]
         var face = Path()
-        face.move_to(x_scale.to_pixel(tri.xs[i0]), y_scale.to_pixel(tri.ys[i0]))
-        face.line_to(x_scale.to_pixel(tri.xs[i1]), y_scale.to_pixel(tri.ys[i1]))
-        face.line_to(x_scale.to_pixel(tri.xs[i2]), y_scale.to_pixel(tri.ys[i2]))
+        face.move_to(x_scale.to_pixel(tri.x[i0]), y_scale.to_pixel(tri.y[i0]))
+        face.line_to(x_scale.to_pixel(tri.x[i1]), y_scale.to_pixel(tri.y[i1]))
+        face.line_to(x_scale.to_pixel(tri.x[i2]), y_scale.to_pixel(tri.y[i2]))
         face.close()
         var color = color_scale.color_at(means[k])
         # A single triangle has no self-intersection, so the fill rule

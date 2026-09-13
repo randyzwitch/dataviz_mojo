@@ -182,6 +182,7 @@ from dataviz.core.stack_baseline import StackBaseline
 from dataviz.core.step_style import StepStyle
 from morrow import Morrow
 
+from dataviz.core.delaunay import Triangulation, delaunay
 from dataviz.core.mark import Mark, _require_mark
 from dataviz.basic.dispatch import _render_basic_family
 from dataviz.categorical.dispatch import _render_categorical_family
@@ -3452,6 +3453,8 @@ struct Plot(Copyable, Movable):
         x: List[Float64],
         y: List[Float64],
         z: List[Float64] = List[Float64](),
+        triangulation: Triangulation = Triangulation(),
+        facecolors: List[Float64] = List[Float64](),
     ) raises -> Self:
         """Map scattered `(x, y)` positions -- and, for
         `Mark.TRIPCOLOR`, a value at each -- onto the triangulation
@@ -3468,10 +3471,29 @@ struct Plot(Copyable, Movable):
             y: Each sample's y position, one per `x` entry.
             z: The value at each sample, one per `x` entry. Left empty
                 (the default) for `Mark.TRIPLOT`.
+            triangulation: A `Triangulation` to draw instead of
+                computing one from `x`/`y`. Empty (the default)
+                triangulates internally, as before.
+            facecolors: One value per *triangle*, matplotlib's
+                `tripcolor(facecolors=)`. Empty (the default) colors
+                each triangle by the mean of its vertices' `z`.
 
         Returns:
             Self, for further chaining.
+
+        Raises:
+            Error: `facecolors` without a `triangulation`.
         """
+        if len(facecolors) > 0 and triangulation.count() == 0:
+            raise Error(
+                "Plot.encode_triplot(facecolors=...): needs a triangulation"
+                " to index against. Without one this package computes the"
+                " triangles itself, in an order that is an artifact of the"
+                " insertion sequence and not predictable from outside, so"
+                " a per-triangle column would be assigned arbitrarily."
+                " Pass triangulation=delaunay(x, y), or build a"
+                " Triangulation from your own triangle list (#397)"
+            )
         var _ok_encode_triplot = List[Mark]()
         _ok_encode_triplot.append(Mark.TRIPLOT)
         _ok_encode_triplot.append(Mark.TRIPCOLOR)
@@ -3481,6 +3503,8 @@ struct Plot(Copyable, Movable):
         self._triplot.x = x.copy()
         self._triplot.y = y.copy()
         self._triplot.z = z.copy()
+        self._triplot.triangulation = triangulation.copy()
+        self._triplot.facecolors = facecolors.copy()
         return self^
 
     def encode_marimekko(
