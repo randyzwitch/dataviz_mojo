@@ -4827,6 +4827,45 @@ struct Plot(Copyable, Movable):
         self._color_domain.max = max
         return self^
 
+    def scale_color_thresholds(
+        var self, boundaries: List[Float64]
+    ) raises -> Self:
+        """Color in discrete bands instead of a continuous ramp (#370).
+
+        `n` boundaries make `n - 1` bands, and every value in a band
+        gets one flat color. That is what a reader needs when the
+        question is "which category is this" rather than "how much":
+        soil pH bands, risk tiers, a legend with named ranges.
+
+        Intervals are **lower-inclusive**, `[b[i], b[i+1])`, with the
+        last closed at the top so the domain maximum has somewhere to
+        go. A value exactly on an interior boundary belongs to the band
+        above it. That is matplotlib's `BoundaryNorm` rule, and the one
+        place this is easy to get wrong, so it is stated here and
+        tested.
+
+        Values below the first boundary take the lowest band and values
+        above the last take the highest, rather than raising. Clipping
+        rather than rejecting keeps a shared threshold list usable
+        across facets whose data ranges differ.
+
+        Boundaries must be strictly increasing, checked at render time
+        along with the rest of the color domain.
+
+        Not combinable with `scale_color_log()` or
+        `scale_color_center()`: thresholds already say where every band
+        starts, so there is nothing left for either to place.
+
+        Args:
+            boundaries: The band edges, at least two, strictly
+                increasing.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._color_domain.thresholds = boundaries.copy()
+        return self^
+
     def scale_color_log(var self) raises -> Self:
         """Normalize color by `log10` instead of linearly (#370).
 
