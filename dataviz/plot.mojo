@@ -90,39 +90,28 @@ from dataviz.core.color_scale import (
     _ColorDomainOverride,
     categorical_palette_for,
 )
-from dataviz.core.marker import (
-    PointShape,
-    _fill_shape_aa,
-    default_marker_shapes,
-)
+
 from dataviz.core.pixel_snap import _snap_pixel_center, _snap_pixel_edge
 from dataviz.basic.continuous import (
-    _Decimated,
     _PointChannels,
     _build_line_path,
     _decimate_to_pixel_columns,
     _draw_area_layer,
     _draw_line_layer,
     _draw_point_layer,
-    _lighten,
     area,
     line,
     scatter,
 )
 from dataviz.facets import (
     _render_facets_generic,
-    _require_uniform_size,
     render_facets,
     render_facets_svg,
     save_facets,
 )
 from dataviz.core.frame import (
-    _BandLabel,
-    _BandLabelPoint,
-    _BaselineRect,
     _BaselineRectF,
     _CategoricalFrame,
-    _CategoricalIndex,
     _ContinuousFrame,
     _Orientation,
     _axis_pixel,
@@ -131,11 +120,9 @@ from dataviz.core.frame import (
     _draw_axis_spines,
     _draw_categorical_axis_frame,
     _draw_continuous_axis_frame,
-    _pull_off_axis_line,
     _push_plot_clip,
     _pull_off_axis_line_f,
     _resolve_x_label_rotation,
-    _with_secondary_axis,
 )
 from dataviz.layers import (
     _render_bar_combo_layers,
@@ -148,32 +135,24 @@ from dataviz.layers import (
 from dataviz.core.legend import (
     _LegendLayout,
     _continuous_legend_labels,
-    _continuous_legend_row_height,
     _draw_continuous_color_legend,
-    _draw_continuous_color_legend_h,
-    _draw_continuous_size_legend,
-    _draw_continuous_size_legend_h,
     _draw_legend,
     _levels_descending,
     _draw_legend_at,
     _dynamic_legend_width,
-    _legend_column_x,
     _legend_layout,
     _legend_origin_x,
     _legend_origin_y,
     _legend_reserve_for,
 )
 from dataviz.core.text import (
-    _LabelsFrame,
     _Scaled,
     _TextRequest,
     _apply_labels,
-    _extend_text_requests,
     _label_text_requests,
     _max_label_width,
     _replay_text_requests,
     _replay_text_requests_svg,
-    _text_advance,
 )
 from dataviz.core.validate import (
     _check_line_smoothing,
@@ -197,48 +176,40 @@ from dataviz.core.annotations import (
     _draw_annotation_vlines,
     _validate_log_scale_annotations,
 )
-from dataviz.core.legend_position import LegendPosition
+
 from dataviz.core.line_style import LineStyle
 from dataviz.core.stack_baseline import StackBaseline
 from dataviz.core.step_style import StepStyle
 from morrow import Morrow
 
 from dataviz.core.mark import Mark, _require_mark
-from dataviz.core.ordinal_scale import OrdinalScale
+from dataviz.basic.dispatch import _render_basic_family
+from dataviz.categorical.dispatch import _render_categorical_family
+from dataviz.distributions.dispatch import _render_distributions_family
+from dataviz.binned.dispatch import _render_binned_family
+from dataviz.aggregation.dispatch import _render_aggregation_family
+from dataviz.relationships.dispatch import _render_relationships_family
+from dataviz.radial.dispatch import _render_radial_family
+from dataviz.multivariate.dispatch import _render_multivariate_family
+from dataviz.grid.dispatch import _render_grid_family
+from dataviz.hierarchy_marks.dispatch import _render_hierarchy_marks_family
+
 from dataviz.core.output_format import OutputFormat
 from dataviz.core.scale import (
     LinearScale,
-    MinMax,
     _format_fixed,
-    _format_tick,
     _label_decimals,
     _min_max,
 )
 from dataviz.core.theme import Theme
-from dataviz.core.x_label_rotation import XAxisLabelRotation
 
-from dataviz.basic.arc import _render_arc
 from dataviz.radial.nightingale import _render_nightingale
 from dataviz.radial.polar import _render_polar
-from dataviz.radial.polar_bar import _render_polar_bar
-from dataviz.radial.gauge import _render_gauge
-from dataviz.multivariate.parallel import _render_parallel
-from dataviz.radial.radar import _render_radar
-from dataviz.basic.bar import (
-    _render_bar,
-    _render_horizontal_bar,
-    _draw_bar_rects,
-    _bar_y_domain_data,
-)
-from dataviz.distributions.beeswarm import (
-    _render_beeswarm,
-    _render_horizontal_beeswarm,
-)
-from dataviz.distributions.ridgeline import _render_ridgeline
-from dataviz.distributions.violin import (
-    _render_violin,
-    _render_horizontal_violin,
-)
+
+from dataviz.basic.bar import _render_horizontal_bar
+from dataviz.distributions.beeswarm import _render_horizontal_beeswarm
+
+from dataviz.distributions.violin import _render_horizontal_violin
 from dataviz.categorical.waterfall import _WaterfallData
 from dataviz.distributions.box import _BoxData
 from dataviz.binned.hexbin import _HexbinData, _render_hexbin
@@ -249,7 +220,6 @@ from dataviz.distributions.boxen import (
     _BoxenData,
     _letter_values,
     _render_boxenplot,
-    _render_horizontal_boxenplot,
 )
 from dataviz.distributions.candlestick import _CandleData
 from dataviz.categorical.bullet import _BulletData
@@ -270,45 +240,22 @@ from dataviz.multivariate.triplot import _TriplotData
 from dataviz.grid.marimekko import _MarimekkoData
 from dataviz.relationships.edges import _EdgeData
 from dataviz.hierarchy_marks.hierarchy import _HierarchyData
-from dataviz.distributions.box import (
-    _box_stats,
-    _render_box,
-    _render_horizontal_box,
-)
-from dataviz.categorical.bullet import _render_bullet
-from dataviz.distributions.candlestick import _render_candlestick
-from dataviz.categorical.gantt import _render_gantt
-from dataviz.categorical.span_chart import _render_span_chart
-from dataviz.categorical.bump import _render_bump
-from dataviz.relationships.chord import _render_chord
-from dataviz.categorical.funnel import _render_funnel
-from dataviz.categorical.grouped_bar import (
-    _render_grouped_bar,
-    _render_horizontal_grouped_bar,
-)
-from dataviz.grid.heatmap import _render_heatmap
-from dataviz.grid.calendar_heatmap import _render_calendar_heatmap
+from dataviz.distributions.box import _box_stats, _render_horizontal_box
+
+from dataviz.categorical.grouped_bar import _render_horizontal_grouped_bar
+
 from dataviz.grid.corrplot import _render_corrplot
 from dataviz.grid.punchcard import _render_punchcard
 from dataviz.multivariate.barbs import _render_barbs
 from dataviz.multivariate.contour import _render_contour, _render_contourf
 from dataviz.grid.image import _render_image
-from dataviz.distributions.kde import _render_kde, _render_rug
-from dataviz.distributions.ecdf import _render_ecdf
-from dataviz.distributions.eventplot import _render_eventplot
+
 from dataviz.multivariate.tricontour import (
     _render_tricontour,
     _render_tricontourf,
 )
 from dataviz.multivariate.triplot import _render_tripcolor, _render_triplot
-from dataviz.grid.marimekko import _render_marimekko
-from dataviz.hierarchy_marks.sunburst import _render_sunburst
-from dataviz.hierarchy_marks.tree import _render_tree
-from dataviz.hierarchy_marks.treemap import _render_treemap
-from dataviz.relationships.arc_diagram import _render_arc_diagram
-from dataviz.relationships.graph import _render_graph
-from dataviz.relationships.sankey import _render_sankey
-from dataviz.radial.radialbar import _render_radialbar
+
 from dataviz.binned.histogram import (
     BinRule,
     HistogramBins,
@@ -316,17 +263,11 @@ from dataviz.binned.histogram import (
     _bin_histogram,
     _draw_histogram_layer,
 )
-from dataviz.categorical.lollipop import (
-    _render_lollipop,
-    _render_horizontal_lollipop,
-)
+from dataviz.categorical.lollipop import _render_horizontal_lollipop
 from dataviz.aggregation.pointplot import _render_pointplot
 from dataviz.basic.single_axis import _render_single_axis
-from dataviz.categorical.population_pyramid import _render_population_pyramid
-from dataviz.categorical.stacked_bar import (
-    _render_stacked_bar,
-    _render_horizontal_stacked_bar,
-)
+
+from dataviz.categorical.stacked_bar import _render_horizontal_stacked_bar
 from dataviz.categorical.streamgraph import _render_streamgraph
 from dataviz.categorical.waterfall import (
     _render_waterfall,
@@ -5578,181 +5519,134 @@ def _render_generic[
             " domain isn't widened for whisker endpoints yet"
         )
     _validate_log_scale_annotations(plot)
-    if plot._mark == Mark.BAR:
-        if plot._horizontal:
-            return _render_horizontal_bar(
-                target, plot, ox0, oy0, ox1, oy1, cache=cache
-            )
-        return _render_bar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.POINTPLOT:
-        return _render_pointplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.LOLLIPOP:
-        if plot._horizontal:
-            return _render_horizontal_lollipop(
-                target, plot, ox0, oy0, ox1, oy1, cache=cache
-            )
-        return _render_lollipop(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.WATERFALL:
-        return _render_waterfall(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.BOXENPLOT:
-        if plot._horizontal:
-            return _render_horizontal_boxenplot(
-                target, plot, ox0, oy0, ox1, oy1, cache=cache
-            )
-        return _render_boxenplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.BOX:
-        if plot._horizontal:
-            return _render_horizontal_box(
-                target, plot, ox0, oy0, ox1, oy1, cache=cache
-            )
-        return _render_box(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.CANDLESTICK:
-        return _render_candlestick(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
-        )
-    if plot._mark == Mark.BULLET:
-        return _render_bullet(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.GROUPED_BAR:
-        if plot._horizontal:
-            return _render_horizontal_grouped_bar(
-                target, plot, ox0, oy0, ox1, oy1, cache=cache
-            )
-        return _render_grouped_bar(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
-        )
-    if plot._mark == Mark.STACKED_BAR:
-        if plot._horizontal:
-            return _render_horizontal_stacked_bar(
-                target, plot, ox0, oy0, ox1, oy1, cache=cache
-            )
-        return _render_stacked_bar(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
-        )
-    if plot._mark == Mark.GANTT:
-        return _render_gantt(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.SPAN_CHART:
-        return _render_span_chart(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.POPULATION_PYRAMID:
-        return _render_population_pyramid(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
-        )
-    if plot._mark == Mark.HEATMAP:
-        return _render_heatmap(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.CALENDAR_HEATMAP:
-        return _render_calendar_heatmap(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
-        )
-    if plot._mark == Mark.CORRPLOT:
-        return _render_corrplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.PUNCHCARD:
-        return _render_punchcard(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.BARBS:
-        return _render_barbs(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.CONTOUR:
-        return _render_contour(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.CONTOURF:
-        return _render_contourf(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if (
-        plot._mark == Mark.IMSHOW
-        or plot._mark == Mark.PCOLORMESH
-        or plot._mark == Mark.HIST2D
-    ):
-        return _render_image(
-            target,
-            plot,
-            ox0,
-            oy0,
-            ox1,
-            oy1,
-            cache=cache,
-            vector_target=vector_target,
-        )
-    if plot._mark == Mark.QUIVER:
-        return _render_quiver(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.STREAMPLOT:
-        return _render_streamplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.HEXBIN:
-        return _render_hexbin(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.TRICONTOUR:
-        return _render_tricontour(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.KDE:
-        return _render_kde(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.RUG:
-        return _render_rug(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.EVENTPLOT:
-        return _render_eventplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.ECDF:
-        return _render_ecdf(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.TRICONTOURF:
-        return _render_tricontourf(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
-        )
-    if plot._mark == Mark.TRIPLOT:
-        return _render_triplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.TRIPCOLOR:
-        return _render_tripcolor(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.MARIMEKKO:
-        return _render_marimekko(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.SUNBURST:
-        return _render_sunburst(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.TREE:
-        return _render_tree(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.TREEMAP:
-        return _render_treemap(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.CHORD:
-        return _render_chord(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.ARC_DIAGRAM:
-        return _render_arc_diagram(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
-        )
-    if plot._mark == Mark.GRAPH:
-        return _render_graph(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.SANKEY:
-        return _render_sankey(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.SINGLE_AXIS:
-        return _render_single_axis(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
-        )
-    if plot._mark == Mark.FUNNEL:
-        return _render_funnel(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.BUMP:
-        return _render_bump(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.STREAMGRAPH:
-        return _render_streamgraph(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
-        )
-    if plot._mark == Mark.BEESWARM:
-        if plot._horizontal:
-            return _render_horizontal_beeswarm(
-                target, plot, ox0, oy0, ox1, oy1, cache=cache
-            )
-        return _render_beeswarm(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.VIOLIN:
-        if plot._horizontal:
-            return _render_horizontal_violin(
-                target, plot, ox0, oy0, ox1, oy1, cache=cache
-            )
-        return _render_violin(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.RIDGELINE:
-        return _render_ridgeline(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.ARC:
-        return _render_arc(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.NIGHTINGALE:
-        return _render_nightingale(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
-        )
-    if plot._mark == Mark.POLAR_BAR:
-        return _render_polar_bar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.RADIALBAR:
-        return _render_radialbar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.POLAR:
-        return _render_polar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.RADAR:
-        return _render_radar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.GAUGE:
-        return _render_gauge(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    if plot._mark == Mark.PARALLEL:
-        return _render_parallel(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    # One entry point per mark family (#524). Each holds the `Mark`
+    # branches for its own marks and answers with an empty `Optional`
+    # for anything else, so this file no longer names every mark in
+    # the package and adding one touches its family instead of here.
+    #
+    # The continuous marks are the exception and are still drawn
+    # below: they share the frame this function builds rather than
+    # owning a `_render_*` of their own.
+    var r_basic = _render_basic_family(
+        target,
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
+    if r_basic:
+        return r_basic.take()
+    var r_categorical = _render_categorical_family(
+        target,
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
+    if r_categorical:
+        return r_categorical.take()
+    var r_distributions = _render_distributions_family(
+        target,
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
+    if r_distributions:
+        return r_distributions.take()
+    var r_binned = _render_binned_family(
+        target,
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
+    if r_binned:
+        return r_binned.take()
+    var r_aggregation = _render_aggregation_family(
+        target,
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
+    if r_aggregation:
+        return r_aggregation.take()
+    var r_relationships = _render_relationships_family(
+        target,
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
+    if r_relationships:
+        return r_relationships.take()
+    var r_radial = _render_radial_family(
+        target,
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
+    if r_radial:
+        return r_radial.take()
+    var r_multivariate = _render_multivariate_family(
+        target,
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
+    if r_multivariate:
+        return r_multivariate.take()
+    var r_grid = _render_grid_family(
+        target,
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
+    if r_grid:
+        return r_grid.take()
+    var r_hierarchy_marks = _render_hierarchy_marks_family(
+        target,
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
+    if r_hierarchy_marks:
+        return r_hierarchy_marks.take()
 
     _validate_continuous_encoding(plot, "Plot.encode()")
     _require_non_empty(len(plot._continuous.x), "Plot.encode()")
