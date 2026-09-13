@@ -17,6 +17,7 @@ several charts' data so they can be compared (the color counterpart to
 `shared_bin_edges()`).
 """
 
+from std.math import log10
 from canvas.color import Color
 from canvas.gradient import GradientStops
 from dataviz.core.scale import MinMax, _min_max
@@ -38,6 +39,13 @@ struct ColorScale(Movable):
     """The gradient's own color stops, added via `add_stop()`. A
     `GradientStops` keeps itself sorted by offset so `color_at` can
     binary-search for the bracketing pair."""
+    var is_log: Bool
+    """Whether values are normalized by `log10` before the ramp is
+    indexed (`Plot.scale_color_log()`, #370). A linear ramp cannot
+    resolve small values across several orders of magnitude: on a
+    1-to-10,000 domain everything under 1,000 lands in the first tenth
+    of the ramp and reads as one color."""
+
     var has_center: Bool
     """Whether this scale was built by `from_theme_centered()`. Recorded
     only so a legend can label the center; `color_at()` never reads it,
@@ -58,6 +66,7 @@ struct ColorScale(Movable):
         self.domain_min = domain_min
         self.domain_max = domain_max
         self.stops = GradientStops()
+        self.is_log = False
         self.has_center = False
         self.center = 0.0
 
@@ -83,6 +92,20 @@ struct ColorScale(Movable):
         Returns:
             The interpolated color at `value`.
         """
+        if self.is_log:
+            # The domain is guaranteed positive by
+            # `Plot.scale_color_log()`, so the only guard needed is for a
+            # value below it, which clamps to the low end the way an
+            # out-of-range value does on a linear scale.
+            if value <= 0.0:
+                return self.stops.color_at(0.0)
+            var lo = log10(self.domain_min)
+            var hi = log10(self.domain_max)
+            var lspan = hi - lo
+            var lt = 0.0
+            if lspan != 0.0:
+                lt = (log10(value) - lo) / lspan
+            return self.stops.color_at(lt)
         var span = self.domain_max - self.domain_min
         var t = 0.0
         if span != 0.0:
@@ -246,6 +269,10 @@ struct _ColorDomainOverride(Copyable, ImplicitlyCopyable, Movable):
     var max: Float64
     var has_center: Bool
     var center: Float64
+    var log: Bool
+    """`Plot.scale_color_log()`. Independent of `has`: a log ramp over
+    the data's own limits is the common case, and an explicit domain
+    without one stays linear."""
 
     def __init__(out self):
         self.has = False
@@ -253,6 +280,7 @@ struct _ColorDomainOverride(Copyable, ImplicitlyCopyable, Movable):
         self.max = 0.0
         self.has_center = False
         self.center = 0.0
+        self.log = False
 
 
 def _color_scale_for(
@@ -301,6 +329,29 @@ def _color_scale_for(
             + String(hi)
             + ")"
         )
+    if domain.log:
+        # Rejected here rather than at the builder, because the domain is
+        # only known once the mark's own data limits are in: a caller who
+        # asked for a log ramp without stating limits cannot be told
+        # anything useful until this point (#370).
+        if lo <= 0.0:
+            raise Error(
+                "Plot.scale_color_log(): a logarithmic color scale needs a"
+                " strictly positive domain, and this one starts at "
+                + String(lo)
+                + " -- set Plot.scale_color_domain(min, max) with a"
+                " positive min, or drop the non-positive values"
+            )
+        if domain.has_center:
+            raise Error(
+                "Plot.scale_color_log(): a logarithmic ramp and a pinned"
+                " center are not combinable -- centering places the"
+                " neutral color by linear distance from each end, which"
+                " a log domain does not preserve. Choose one."
+            )
+        var scale = ColorScale.from_theme(theme, lo, hi)
+        scale.is_log = True
+        return scale^
     if not domain.has_center:
         return ColorScale.from_theme(theme, lo, hi)
     if domain.center <= lo or domain.center >= hi:
