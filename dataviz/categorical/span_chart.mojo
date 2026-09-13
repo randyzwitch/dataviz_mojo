@@ -95,10 +95,12 @@ def _render_span_chart[
     return frame.result()
 
 
-def span_chart(
+def span_chart[
+    dtype: DType
+](
     categories: List[String],
-    low: List[Float64],
-    high: List[Float64],
+    low: List[Scalar[dtype]],
+    high: List[Scalar[dtype]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -160,43 +162,13 @@ def span_chart(
             save(c, "docs/src/examples/out_span_chart.svg")
         ```
     """
+    var low_f = _materialize_scalar_list(low)
+    var high_f = _materialize_scalar_list(high)
     var plot = (
         Plot()
         .mark_span_chart()
-        .encode_gantt(categories=categories, start=low, end=high)
+        .encode_gantt(categories=categories, start=low_f, end=high_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def span_chart[
-    dtype: DType
-](
-    categories: List[String],
-    low: List[Scalar[dtype]],
-    high: List[Scalar[dtype]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`span_chart()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (continuous.mojo). `low`/`high` share one
-    dtype. Delegates to the concrete overload above.
-    """
-    return span_chart(
-        categories,
-        _materialize_scalar_list(low),
-        _materialize_scalar_list(high),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

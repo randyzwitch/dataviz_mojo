@@ -161,9 +161,11 @@ def _render_funnel[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def funnel(
+def funnel[
+    dtype: DType
+](
     categories: List[String],
-    values: List[Float64],
+    values: List[Scalar[dtype]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -214,37 +216,8 @@ def funnel(
             save(c, "docs/src/examples/out_funnel.svg")
         ```
     """
-    var plot = Plot().mark_funnel().encode_categorical(x=categories, y=values)
+    var values_f = _materialize_scalar_list(values)
+    var plot = Plot().mark_funnel().encode_categorical(x=categories, y=values_f)
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def funnel[
-    dtype: DType
-](
-    categories: List[String],
-    values: List[Scalar[dtype]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`funnel()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return funnel(
-        categories,
-        _materialize_scalar_list(values),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

@@ -7,9 +7,11 @@ from dataviz.core.stats import _OlsFit, _ols_fit
 from dataviz.core.theme import Theme
 
 
-def residplot(
-    x: List[Float64],
-    y: List[Float64],
+def residplot[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -77,58 +79,30 @@ def residplot(
             save(c, "docs/src/examples/out_residplot.svg")
         ```
     """
-    if len(x) != len(y):
+    var x_f = _materialize_scalar_list(x)
+    var y_f = _materialize_scalar_list(y)
+    if len(x_f) != len(y_f):
         raise Error(
-            "residplot(): x and y must have the same length (got "
-            + String(len(x))
+            "residplot(): x_f and y_f must have the same length (got "
+            + String(len(x_f))
             + " and "
-            + String(len(y))
+            + String(len(y_f))
             + ")"
         )
     var fit: _OlsFit
     try:
-        fit = _ols_fit(x, y)
+        fit = _ols_fit(x_f, y_f)
     except e:
         raise Error("residplot(): " + String(e))
-    var fitted = List[Float64](capacity=len(x))
-    var residuals = List[Float64](capacity=len(x))
-    for i in range(len(x)):
-        var f = fit.predict(x[i])
+    var fitted = List[Float64](capacity=len(x_f))
+    var residuals = List[Float64](capacity=len(x_f))
+    for i in range(len(x_f)):
+        var f = fit.predict(x_f[i])
         fitted.append(f)
-        residuals.append(y[i] - f)
+        residuals.append(y_f[i] - f)
     var plot = (
         Plot().mark_point().encode(x=fitted, y=residuals).annotate_line(0.0)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def residplot[
-    dtype: DType
-](
-    x: List[Scalar[dtype]],
-    y: List[Scalar[dtype]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "Fitted value",
-    y_title: String = "Residual",
-) raises -> Plot:
-    """`residplot()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (continuous.mojo). Delegates to the
-    concrete overload above.
-    """
-    return residplot(
-        _materialize_scalar_list(x),
-        _materialize_scalar_list(y),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

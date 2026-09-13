@@ -322,10 +322,12 @@ def _render_horizontal_stacked_bar[
     return frame.result()
 
 
-def stacked_bar(
+def stacked_bar[
+    dtype: DType
+](
     categories: List[String],
     series_names: List[String],
-    values: List[List[Float64]],
+    values: List[List[Scalar[dtype]]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -397,49 +399,14 @@ def stacked_bar(
             save(c, "docs/src/examples/out_stacked_bar.svg")
         ```
     """
+    var values_f = _materialize_nested_scalar_list(values)
     var plot = (
         Plot()
         .mark_stacked_bar(percent=percent, horizontal=horizontal)
         .encode_grouped_bar(
-            categories=categories, series_names=series_names, values=values
+            categories=categories, series_names=series_names, values=values_f
         )
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def stacked_bar[
-    dtype: DType
-](
-    categories: List[String],
-    series_names: List[String],
-    values: List[List[Scalar[dtype]]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-    percent: Bool = False,
-    horizontal: Bool = False,
-) raises -> Plot:
-    """`stacked_bar()` generalized over numeric element type for `values`;
-    see `grouped_bar()`'s `DType` overload. Delegates to the concrete
-    overload above.
-    """
-    return stacked_bar(
-        categories,
-        series_names,
-        _materialize_nested_scalar_list(values),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
-        percent=percent,
-        horizontal=horizontal,
     )

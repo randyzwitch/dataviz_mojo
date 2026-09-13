@@ -245,10 +245,12 @@ def _render_bullet[
     return frame.result()
 
 
-def bullet(
+def bullet[
+    dtype: DType
+](
     categories: List[String],
-    measures: List[Float64],
-    targets: List[Float64],
+    measures: List[Scalar[dtype]],
+    targets: List[Scalar[dtype]],
     ranges: List[List[Float64]],
     measure_width_fraction: Float64 = 0.35,
     theme: Theme = Theme(),
@@ -326,6 +328,8 @@ def bullet(
             save(c, "docs/src/examples/out_bullet.svg")
         ```
     """
+    var measures_f = _materialize_scalar_list(measures)
+    var targets_f = _materialize_scalar_list(targets)
     var plot = (
         Plot()
         .mark_bullet(
@@ -333,48 +337,11 @@ def bullet(
         )
         .encode_bullet(
             categories=categories,
-            measures=measures,
-            targets=targets,
+            measures=measures_f,
+            targets=targets_f,
             ranges=ranges,
         )
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def bullet[
-    dtype: DType
-](
-    categories: List[String],
-    measures: List[Scalar[dtype]],
-    targets: List[Scalar[dtype]],
-    ranges: List[List[Float64]],
-    measure_width_fraction: Float64 = 0.35,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`bullet()` generalized over numeric element type for `measures`/
-    `targets` (sharing one dtype); see `scatter()`'s `DType` overload
-    (continuous.mojo). `ranges` stays a concrete `List[List[Float64]]`.
-    Delegates to the concrete overload above.
-    """
-    return bullet(
-        categories,
-        _materialize_scalar_list(measures),
-        _materialize_scalar_list(targets),
-        ranges,
-        measure_width_fraction=measure_width_fraction,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

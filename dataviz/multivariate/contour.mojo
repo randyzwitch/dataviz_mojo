@@ -7,7 +7,10 @@ from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.array_like import (
+    _materialize_nested_scalar_list,
+    _materialize_scalar_list,
+)
 from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.plot import (
     Plot,
@@ -883,8 +886,10 @@ def _render_contourf[
     return frame.result()
 
 
-def contour(
-    z: List[List[Float64]],
+def contour[
+    dtype: DType
+](
+    z: List[List[Scalar[dtype]]],
     levels: List[Float64] = List[Float64](),
     level_count: Int = 8,
     theme: Theme = Theme(),
@@ -958,53 +963,21 @@ def contour(
             save(c, "docs/src/examples/out_contour.svg")
         ```
     """
+    var z_f = _materialize_nested_scalar_list(z)
     var plot = (
         Plot()
         .mark_contour(levels=level_count)
-        .encode_contour(z=z, levels=levels)
+        .encode_contour(z=z_f, levels=levels)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
 
 
-def contour[
+def contourf[
     dtype: DType
 ](
     z: List[List[Scalar[dtype]]],
-    levels: List[Float64] = List[Float64](),
-    level_count: Int = 8,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`contour()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Each row is materialized in turn.
-    Delegates to the concrete overload above.
-    """
-    var rows = List[List[Float64]](capacity=len(z))
-    for r in range(len(z)):
-        rows.append(_materialize_scalar_list(z[r]))
-    return contour(
-        rows,
-        levels=levels,
-        level_count=level_count,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
-    )
-
-
-def contourf(
-    z: List[List[Float64]],
     levels: List[Float64] = List[Float64](),
     level_count: Int = 8,
     theme: Theme = Theme(),
@@ -1079,46 +1052,12 @@ def contourf(
             save(c, "docs/src/examples/out_contourf.svg")
         ```
     """
+    var z_f = _materialize_nested_scalar_list(z)
     var plot = (
         Plot()
         .mark_contourf(levels=level_count)
-        .encode_contour(z=z, levels=levels)
+        .encode_contour(z=z_f, levels=levels)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def contourf[
-    dtype: DType
-](
-    z: List[List[Scalar[dtype]]],
-    levels: List[Float64] = List[Float64](),
-    level_count: Int = 8,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`contourf()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Each row is materialized in turn.
-    Delegates to the concrete overload above.
-    """
-    var rows = List[List[Float64]](capacity=len(z))
-    for r in range(len(z)):
-        rows.append(_materialize_scalar_list(z[r]))
-    return contourf(
-        rows,
-        levels=levels,
-        level_count=level_count,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

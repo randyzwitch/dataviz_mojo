@@ -372,11 +372,13 @@ def _draw_barbs_layer[
             )
 
 
-def barbs(
-    x: List[Float64],
-    y: List[Float64],
-    u: List[Float64],
-    v: List[Float64],
+def barbs[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
+    u: List[Scalar[dtype]],
+    v: List[Scalar[dtype]],
     length: Float64 = 28.0,
     flip: Bool = False,
     theme: Theme = Theme(),
@@ -451,49 +453,15 @@ def barbs(
             save(c, "docs/src/examples/out_barbs.svg")
         ```
     """
+    var x_f = _materialize_scalar_list(x)
+    var y_f = _materialize_scalar_list(y)
+    var u_f = _materialize_scalar_list(u)
+    var v_f = _materialize_scalar_list(v)
     var plot = (
         Plot()
         .mark_barbs(length=length, flip=flip)
-        .encode_barbs(x=x, y=y, u=u, v=v)
+        .encode_barbs(x=x_f, y=y_f, u=u_f, v=v_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def barbs[
-    dtype: DType
-](
-    x: List[Scalar[dtype]],
-    y: List[Scalar[dtype]],
-    u: List[Scalar[dtype]],
-    v: List[Scalar[dtype]],
-    length: Float64 = 28.0,
-    flip: Bool = False,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`barbs()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return barbs(
-        _materialize_scalar_list(x),
-        _materialize_scalar_list(y),
-        _materialize_scalar_list(u),
-        _materialize_scalar_list(v),
-        length=length,
-        flip=flip,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

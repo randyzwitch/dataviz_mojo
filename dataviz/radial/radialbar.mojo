@@ -116,9 +116,11 @@ def _render_radialbar[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def radialbar(
+def radialbar[
+    dtype: DType
+](
     categories: List[String],
-    values: List[Float64],
+    values: List[Scalar[dtype]],
     ring_gap_fraction: Float64 = 0.25,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -180,43 +182,12 @@ def radialbar(
             save(c, "docs/src/examples/out_radialbar.svg")
         ```
     """
+    var values_f = _materialize_scalar_list(values)
     var plot = (
         Plot()
         .mark_radialbar(ring_gap_fraction=ring_gap_fraction)
-        .encode_categorical(x=categories, y=values)
+        .encode_categorical(x=categories, y=values_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def radialbar[
-    dtype: DType
-](
-    categories: List[String],
-    values: List[Scalar[dtype]],
-    ring_gap_fraction: Float64 = 0.25,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`radialbar()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return radialbar(
-        categories,
-        _materialize_scalar_list(values),
-        ring_gap_fraction=ring_gap_fraction,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

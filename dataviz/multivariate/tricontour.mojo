@@ -605,103 +605,6 @@ def _draw_tricontourf_layer[
         )
 
 
-def tricontour(
-    x: List[Float64],
-    y: List[Float64],
-    z: List[Float64],
-    levels: List[Float64] = List[Float64](),
-    level_count: Int = 8,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """A contour plot of scattered samples: isolines over `(x, y, z)`
-    points that sit on no grid, Delaunay-triangulated first -- the
-    reading for a field measured at stations, boreholes or any other
-    irregular set of positions.
-
-    `Mark.TRICONTOUR`: matplotlib's `tricontour()`. See
-    `Plot.encode_tricontour()` (plot.mojo) for the data shape, and
-    `contour()` for the regular-grid form.
-
-    Args:
-        x: Each sample's x position.
-        y: Each sample's y position, one per `x` entry.
-        z: Each sample's value, one per `x` entry.
-        levels: The values to trace. Left empty (the default),
-            `level_count` levels are spaced evenly inside `z`'s own
-            range.
-        level_count: How many levels to choose when `levels` is empty;
-            defaults to `8`. Ignored when `levels` is given.
-        theme: Full styling knobs beyond this function's own
-            parameters (colors, margins, fonts, gridlines, ...) --
-            see `Theme`'s docstring.
-        width: Pixel width of the returned `Plot` (`.size()`).
-        height: Pixel height of the returned `Plot` (`.size()`).
-        title: The chart's title, shown above the plot.
-        subtitle: A secondary line shown under the title.
-        x_title: The x-axis caption.
-        y_title: The y-axis caption.
-
-    Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
-
-    Example:
-        ```mojo
-        from std.math import exp, sin
-
-        from dataviz import tricontour
-        from dataviz import save
-
-        def main() raises:
-            var x = List[Float64]()
-            var y = List[Float64]()
-            var z = List[Float64]()
-            var seed = 12345
-            for _ in range(240):
-                seed = (seed * 1103515245 + 12345) % 2147483648
-                var px = Float64(seed % 1200) / 100.0
-                seed = (seed * 1103515245 + 12345) % 2147483648
-                var py = Float64(seed % 800) / 100.0
-                x.append(px)
-                y.append(py)
-                # Illustrative nitrate readings from irregular monitoring
-                # wells: two localized sources sit on a gentle regional trend.
-                var farm_x = (px - 3.2) / 1.6
-                var farm_y = (py - 5.3) / 1.3
-                var plant_x = (px - 9.0) / 1.2
-                var plant_y = (py - 2.1) / 1.0
-                var nitrate = 1.8 + 0.12 * px + 0.4 * sin(py * 1.7)
-                nitrate += 5.8 * exp(-(farm_x * farm_x + farm_y * farm_y))
-                nitrate += 3.6 * exp(-(plant_x * plant_x + plant_y * plant_y))
-                z.append(nitrate)
-
-            var c = tricontour(
-                x,
-                y,
-                z,
-                level_count=10,
-                title="Illustrative Groundwater Nitrate Isolines (mg/L)",
-                x_title="Easting (km)",
-                y_title="Northing (km)",
-            )
-            save(c, "docs/src/examples/out_tricontour.svg")
-        ```
-    """
-    var plot = (
-        Plot()
-        .mark_tricontour(levels=level_count)
-        .encode_tricontour(x=x, y=y, z=z, levels=levels)
-    )
-    return _finished(
-        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
 def tricontourf(
     x: List[Float64],
     y: List[Float64],
@@ -831,21 +734,87 @@ def tricontour[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`tricontour()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (continuous.mojo). Delegates to the concrete
-    overload above.
+    """A contour plot of scattered samples: isolines over `(x, y, z)`
+    points that sit on no grid, Delaunay-triangulated first -- the
+    reading for a field measured at stations, boreholes or any other
+    irregular set of positions.
+
+    `Mark.TRICONTOUR`: matplotlib's `tricontour()`. See
+    `Plot.encode_tricontour()` (plot.mojo) for the data shape, and
+    `contour()` for the regular-grid form.
+
+    Args:
+        x: Each sample's x position.
+        y: Each sample's y position, one per `x` entry.
+        z: Each sample's value, one per `x` entry.
+        levels: The values to trace. Left empty (the default),
+            `level_count` levels are spaced evenly inside `z`'s own
+            range.
+        level_count: How many levels to choose when `levels` is empty;
+            defaults to `8`. Ignored when `levels` is given.
+        theme: Full styling knobs beyond this function's own
+            parameters (colors, margins, fonts, gridlines, ...) --
+            see `Theme`'s docstring.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A secondary line shown under the title.
+        x_title: The x-axis caption.
+        y_title: The y-axis caption.
+
+    Returns:
+        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+
+    Example:
+        ```mojo
+        from std.math import exp, sin
+
+        from dataviz import tricontour
+        from dataviz import save
+
+        def main() raises:
+            var x = List[Float64]()
+            var y = List[Float64]()
+            var z = List[Float64]()
+            var seed = 12345
+            for _ in range(240):
+                seed = (seed * 1103515245 + 12345) % 2147483648
+                var px = Float64(seed % 1200) / 100.0
+                seed = (seed * 1103515245 + 12345) % 2147483648
+                var py = Float64(seed % 800) / 100.0
+                x.append(px)
+                y.append(py)
+                # Illustrative nitrate readings from irregular monitoring
+                # wells: two localized sources sit on a gentle regional trend.
+                var farm_x = (px - 3.2) / 1.6
+                var farm_y = (py - 5.3) / 1.3
+                var plant_x = (px - 9.0) / 1.2
+                var plant_y = (py - 2.1) / 1.0
+                var nitrate = 1.8 + 0.12 * px + 0.4 * sin(py * 1.7)
+                nitrate += 5.8 * exp(-(farm_x * farm_x + farm_y * farm_y))
+                nitrate += 3.6 * exp(-(plant_x * plant_x + plant_y * plant_y))
+                z.append(nitrate)
+
+            var c = tricontour(
+                x,
+                y,
+                z,
+                level_count=10,
+                title="Illustrative Groundwater Nitrate Isolines (mg/L)",
+                x_title="Easting (km)",
+                y_title="Northing (km)",
+            )
+            save(c, "docs/src/examples/out_tricontour.svg")
+        ```
     """
-    return tricontour(
-        _materialize_scalar_list(x),
-        _materialize_scalar_list(y),
-        _materialize_scalar_list(z),
-        levels=levels,
-        level_count=level_count,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
+    var x_f = _materialize_scalar_list(x)
+    var y_f = _materialize_scalar_list(y)
+    var z_f = _materialize_scalar_list(z)
+    var plot = (
+        Plot()
+        .mark_tricontour(levels=level_count)
+        .encode_tricontour(x=x_f, y=y_f, z=z_f, levels=levels)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )

@@ -276,9 +276,11 @@ def _render_horizontal_boxenplot[
     return frame.result()
 
 
-def boxenplot(
+def boxenplot[
+    dtype: DType
+](
     categories: List[String],
-    values: List[List[Float64]],
+    values: List[List[Scalar[dtype]]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -352,42 +354,12 @@ def boxenplot(
             save(chart, "docs/src/examples/out_boxenplot.svg")
         ```
     """
+    var values_f = _materialize_nested_scalar_list(values)
     var plot = (
         Plot()
         .mark_boxenplot(horizontal=horizontal)
-        .encode_boxenplot(categories, values)
+        .encode_boxenplot(categories, values_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def boxenplot[
-    dtype: DType
-](
-    categories: List[String],
-    values: List[List[Scalar[dtype]]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-    horizontal: Bool = False,
-) raises -> Plot:
-    """`boxenplot()` generalized over numeric element type; see `box()`'s
-    `DType` overload. Delegates to the concrete overload above.
-    """
-    return boxenplot(
-        categories,
-        _materialize_nested_scalar_list(values),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
-        horizontal=horizontal,
     )

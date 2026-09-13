@@ -199,8 +199,10 @@ def _render_single_axis[
     return frame.result()
 
 
-def single_axis(
-    x: List[Float64],
+def single_axis[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
     color: List[Float64] = List[Float64](),
     color_categories: List[String] = List[String](),
     size: List[Float64] = List[Float64](),
@@ -269,47 +271,14 @@ def single_axis(
             save(c, "docs/src/examples/out_single_axis.svg")
         ```
     """
+    var x_f = _materialize_scalar_list(x)
     var plot = (
         Plot()
         .mark_single_axis()
         .encode_single_axis(
-            x=x, color=color, color_categories=color_categories, size=size
+            x=x_f, color=color, color_categories=color_categories, size=size
         )
     )
     return _finished(
         plot^, theme, width, height, title, x_title, "", subtitle=subtitle
-    )
-
-
-def single_axis[
-    dtype: DType
-](
-    x: List[Scalar[dtype]],
-    color: List[Float64] = List[Float64](),
-    color_categories: List[String] = List[String](),
-    size: List[Float64] = List[Float64](),
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-) raises -> Plot:
-    """`single_axis()` generalized over numeric element type for `x`; see
-    `scatter()`'s `DType` overload (continuous.mojo).
-    `color`/`color_categories`/`size` stay concrete, as in
-    `Plot.encode()`'s array-like overloads. Delegates to the concrete
-    overload above.
-    """
-    return single_axis(
-        _materialize_scalar_list(x),
-        color=color,
-        color_categories=color_categories,
-        size=size,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
     )

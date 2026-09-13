@@ -252,9 +252,11 @@ def _render_waterfall[
     return frame.result()
 
 
-def waterfall(
+def waterfall[
+    dtype: DType
+](
     categories: List[String],
-    deltas: List[Float64],
+    deltas: List[Scalar[dtype]],
     is_total: List[Bool] = List[Bool](),
     delta_width_fraction: Float64 = 0.6,
     theme: Theme = Theme(),
@@ -323,47 +325,14 @@ def waterfall(
             save(c, "docs/src/examples/out_waterfall.svg")
         ```
     """
+    var deltas_f = _materialize_scalar_list(deltas)
     var plot = (
         Plot()
         .mark_waterfall(delta_width_fraction=delta_width_fraction)
         .encode_waterfall(
-            categories=categories, deltas=deltas, is_total=is_total
+            categories=categories, deltas=deltas_f, is_total=is_total
         )
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def waterfall[
-    dtype: DType
-](
-    categories: List[String],
-    deltas: List[Scalar[dtype]],
-    is_total: List[Bool] = List[Bool](),
-    delta_width_fraction: Float64 = 0.6,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`waterfall()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return waterfall(
-        categories,
-        _materialize_scalar_list(deltas),
-        is_total=is_total,
-        delta_width_fraction=delta_width_fraction,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

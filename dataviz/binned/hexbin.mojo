@@ -361,9 +361,11 @@ def _render_hexbin[
     return frame.result()
 
 
-def hexbin(
-    x: List[Float64],
-    y: List[Float64],
+def hexbin[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
     gridsize: Int = 30,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -456,60 +458,9 @@ def hexbin(
             save(chart, "docs/src/examples/out_hexbin.svg")
         ```
     """
-    var plot = Plot().mark_hexbin().encode_hexbin(x, y, gridsize)
+    var x_f = _materialize_scalar_list(x)
+    var y_f = _materialize_scalar_list(y)
+    var plot = Plot().mark_hexbin().encode_hexbin(x_f, y_f, gridsize)
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def hexbin[
-    dtype: DType
-](
-    x: List[Scalar[dtype]],
-    y: List[Scalar[dtype]],
-    gridsize: Int = 30,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`hexbin()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-
-    Parameters:
-        dtype: The element type of `x` and `y`.
-
-    Args:
-        x: The horizontal coordinates.
-        y: The vertical coordinates, one per `x`.
-        gridsize: Hexagons across the x range, at least 1.
-        theme: Visual theme.
-        width: Canvas width in pixels.
-        height: Canvas height in pixels.
-        title: Chart title.
-        subtitle: Text under the title.
-        x_title: Horizontal axis label.
-        y_title: Vertical axis label.
-
-    Returns:
-        The finished `Plot` -- unrendered.
-
-    Raises:
-        Error: As the concrete overload.
-    """
-    return hexbin(
-        _materialize_scalar_list(x),
-        _materialize_scalar_list(y),
-        gridsize,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

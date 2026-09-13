@@ -279,10 +279,12 @@ def _render_streamgraph[
     return frame.result()
 
 
-def streamgraph(
+def streamgraph[
+    dtype: DType
+](
     categories: List[String],
     series_names: List[String],
-    values: List[List[Float64]],
+    values: List[List[Scalar[dtype]]],
     theme: Theme = Theme(),
     smoothing: Float64 = 0.6,
     width: Int = 640,
@@ -365,13 +367,14 @@ def streamgraph(
             save(c, "docs/src/examples/out_streamgraph.svg")
         ```
     """
+    var values_f = _materialize_nested_scalar_list(values)
     var t = theme
     t.line_smoothing = smoothing
     var plot = (
         Plot()
         .mark_streamgraph()
         .encode_grouped_bar(
-            categories=categories, series_names=series_names, values=values
+            categories=categories, series_names=series_names, values=values_f
         )
     )
     return _finished(
@@ -379,42 +382,12 @@ def streamgraph(
     )
 
 
-def streamgraph[
+def stacked_area[
     dtype: DType
 ](
     categories: List[String],
     series_names: List[String],
     values: List[List[Scalar[dtype]]],
-    theme: Theme = Theme(),
-    smoothing: Float64 = 0.6,
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-) raises -> Plot:
-    """`streamgraph()` generalized over numeric element type for `values`;
-    see `grouped_bar()`'s `DType` overload. Delegates to the concrete
-    overload above.
-    """
-    return streamgraph(
-        categories,
-        series_names,
-        _materialize_nested_scalar_list(values),
-        theme=theme,
-        smoothing=smoothing,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-    )
-
-
-def stacked_area(
-    categories: List[String],
-    series_names: List[String],
-    values: List[List[Float64]],
     theme: Theme = Theme(),
     smoothing: Float64 = 0.0,
     step: StepStyle = StepStyle.NONE,
@@ -505,51 +478,16 @@ def stacked_area(
             save(c, "docs/src/examples/out_stacked_area.svg")
         ```
     """
+    var values_f = _materialize_nested_scalar_list(values)
     var t = theme
     t.line_smoothing = smoothing
     var plot = (
         Plot()
         .mark_streamgraph(baseline=StackBaseline.ZERO, step=step)
         .encode_grouped_bar(
-            categories=categories, series_names=series_names, values=values
+            categories=categories, series_names=series_names, values=values_f
         )
     )
     return _finished(
         plot^, t, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def stacked_area[
-    dtype: DType
-](
-    categories: List[String],
-    series_names: List[String],
-    values: List[List[Scalar[dtype]]],
-    theme: Theme = Theme(),
-    smoothing: Float64 = 0.0,
-    step: StepStyle = StepStyle.NONE,
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`stacked_area()` generalized over numeric element type for
-    `values`; see `grouped_bar()`'s `DType` overload. Delegates to the
-    concrete overload above.
-    """
-    return stacked_area(
-        categories,
-        series_names,
-        _materialize_nested_scalar_list(values),
-        theme=theme,
-        smoothing=smoothing,
-        step=step,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

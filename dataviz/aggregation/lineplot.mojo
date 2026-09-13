@@ -13,9 +13,11 @@ from dataviz.core.stats import (
 from dataviz.core.theme import Theme
 
 
-def lineplot(
-    x: List[Float64],
-    y: List[Float64],
+def lineplot[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
     estimator: Estimator = Estimator.MEAN,
     errorbar: ErrorBar = ErrorBar.ci(0.95),
     seed: Int = 12345,
@@ -100,9 +102,11 @@ def lineplot(
             save(chart, "docs/src/examples/out_lineplot.svg")
         ```
     """
+    var x_f = _materialize_scalar_list(x)
+    var y_f = _materialize_scalar_list(y)
     var agg: _NumericAggregate
     try:
-        agg = _aggregate_by_x(x, y, estimator, errorbar, UInt64(seed))
+        agg = _aggregate_by_x(x_f, y_f, estimator, errorbar, UInt64(seed))
     except e:
         raise Error("lineplot(): " + String(e))
     var plot = Plot().mark_line().encode(x=agg.xs, y=agg.estimates)
@@ -118,40 +122,4 @@ def lineplot(
         x_title,
         resolved_y,
         subtitle=subtitle,
-    )
-
-
-def lineplot[
-    dtype: DType
-](
-    x: List[Scalar[dtype]],
-    y: List[Scalar[dtype]],
-    estimator: Estimator = Estimator.MEAN,
-    errorbar: ErrorBar = ErrorBar.ci(0.95),
-    seed: Int = 12345,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`lineplot()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (continuous.mojo). Delegates to the
-    concrete overload above.
-    """
-    return lineplot(
-        _materialize_scalar_list(x),
-        _materialize_scalar_list(y),
-        estimator=estimator,
-        errorbar=errorbar,
-        seed=seed,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

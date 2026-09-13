@@ -463,9 +463,11 @@ def _draw_tripcolor_layer[
         target.stroke_path_aa(face, color, width=seam_width)
 
 
-def triplot(
-    x: List[Float64],
-    y: List[Float64],
+def triplot[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
     show_points: Bool = True,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -539,18 +541,24 @@ def triplot(
             save(c, "docs/src/examples/out_triplot.svg")
         ```
     """
+    var x_f = _materialize_scalar_list(x)
+    var y_f = _materialize_scalar_list(y)
     var plot = (
-        Plot().mark_triplot(show_points=show_points).encode_triplot(x=x, y=y)
+        Plot()
+        .mark_triplot(show_points=show_points)
+        .encode_triplot(x=x_f, y=y_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
 
 
-def tripcolor(
-    x: List[Float64],
-    y: List[Float64],
-    z: List[Float64],
+def tripcolor[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
+    z: List[Scalar[dtype]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -643,71 +651,10 @@ def tripcolor(
             save(c, "docs/src/examples/out_tripcolor.svg")
         ```
     """
-    var plot = Plot().mark_tripcolor().encode_triplot(x=x, y=y, z=z)
+    var x_f = _materialize_scalar_list(x)
+    var y_f = _materialize_scalar_list(y)
+    var z_f = _materialize_scalar_list(z)
+    var plot = Plot().mark_tripcolor().encode_triplot(x=x_f, y=y_f, z=z_f)
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def triplot[
-    dtype: DType
-](
-    x: List[Scalar[dtype]],
-    y: List[Scalar[dtype]],
-    show_points: Bool = True,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`triplot()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return triplot(
-        _materialize_scalar_list(x),
-        _materialize_scalar_list(y),
-        show_points=show_points,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
-    )
-
-
-def tripcolor[
-    dtype: DType
-](
-    x: List[Scalar[dtype]],
-    y: List[Scalar[dtype]],
-    z: List[Scalar[dtype]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`tripcolor()` generalized over numeric element type; see
-    `scatter()`'s `DType` overload (continuous.mojo). Delegates to the
-    concrete overload above.
-    """
-    return tripcolor(
-        _materialize_scalar_list(x),
-        _materialize_scalar_list(y),
-        _materialize_scalar_list(z),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

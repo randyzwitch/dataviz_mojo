@@ -175,9 +175,11 @@ def _render_corrplot[
     return frame.result()
 
 
-def corrplot(
+def corrplot[
+    dtype: DType
+](
     variables: List[String],
-    matrix: List[List[Float64]],
+    matrix: List[List[Scalar[dtype]]],
     layout: String = "full",
     diag: Bool = True,
     labels: Bool = True,
@@ -256,6 +258,7 @@ def corrplot(
             save(c, "docs/src/examples/out_corrplot.svg")
         ```
     """
+    var matrix_f = _materialize_nested_scalar_list(matrix)
     var plot = (
         Plot()
         .mark_corrplot(
@@ -264,47 +267,8 @@ def corrplot(
             labels=labels,
             bubble_fraction=bubble_fraction,
         )
-        .encode_corrplot(variables=variables, matrix=matrix)
+        .encode_corrplot(variables=variables, matrix=matrix_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def corrplot[
-    dtype: DType
-](
-    variables: List[String],
-    matrix: List[List[Scalar[dtype]]],
-    layout: String = "full",
-    diag: Bool = True,
-    labels: Bool = True,
-    bubble_fraction: Float64 = 0.42,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`corrplot()` generalized over numeric element type for `matrix`, via
-    `_materialize_nested_scalar_list` (array_like.mojo); see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return corrplot(
-        variables,
-        _materialize_nested_scalar_list(matrix),
-        layout=layout,
-        diag=diag,
-        labels=labels,
-        bubble_fraction=bubble_fraction,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

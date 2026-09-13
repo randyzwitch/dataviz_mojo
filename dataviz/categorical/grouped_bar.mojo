@@ -448,10 +448,12 @@ def _render_horizontal_grouped_bar[
     return frame.result()
 
 
-def grouped_bar(
+def grouped_bar[
+    dtype: DType
+](
     categories: List[String],
     series_names: List[String],
-    values: List[List[Float64]],
+    values: List[List[Scalar[dtype]]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -518,49 +520,14 @@ def grouped_bar(
             save(c, "docs/src/examples/out_grouped_bar.svg")
         ```
     """
+    var values_f = _materialize_nested_scalar_list(values)
     var plot = (
         Plot()
         .mark_grouped_bar(horizontal=horizontal)
         .encode_grouped_bar(
-            categories=categories, series_names=series_names, values=values
+            categories=categories, series_names=series_names, values=values_f
         )
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def grouped_bar[
-    dtype: DType
-](
-    categories: List[String],
-    series_names: List[String],
-    values: List[List[Scalar[dtype]]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-    horizontal: Bool = False,
-) raises -> Plot:
-    """`grouped_bar()` generalized over numeric element type for `values`
-    (`List[List[Int]]`, `List[List[Float32]]`, ...), via
-    `_materialize_nested_scalar_list` (array_like.mojo); see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return grouped_bar(
-        categories,
-        series_names,
-        _materialize_nested_scalar_list(values),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
-        horizontal=horizontal,
     )

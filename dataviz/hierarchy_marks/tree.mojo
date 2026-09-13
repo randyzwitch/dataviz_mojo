@@ -243,10 +243,12 @@ def _render_tree[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def tree(
+def tree[
+    dtype: DType
+](
     ids: List[String],
     parent_ids: List[String],
-    values: List[Float64],
+    values: List[Scalar[dtype]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -315,43 +317,12 @@ def tree(
             save(c, "docs/src/examples/out_tree.svg")
         ```
     """
+    var values_f = _materialize_scalar_list(values)
     var plot = (
         Plot()
         .mark_tree()
-        .encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values)
+        .encode_hierarchy(ids=ids, parent_ids=parent_ids, values=values_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def tree[
-    dtype: DType
-](
-    ids: List[String],
-    parent_ids: List[String],
-    values: List[Scalar[dtype]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`tree()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return tree(
-        ids,
-        parent_ids,
-        _materialize_scalar_list(values),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

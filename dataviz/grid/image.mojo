@@ -13,7 +13,10 @@ from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.array_like import (
+    _materialize_nested_scalar_list,
+    _materialize_scalar_list,
+)
 from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.core.mark import Mark
 from dataviz.core.pixel_snap import _snap_pixel_edge
@@ -612,8 +615,10 @@ def _render_image[
     return frame.result()
 
 
-def imshow(
-    z: List[List[Float64]],
+def imshow[
+    dtype: DType
+](
+    z: List[List[Scalar[dtype]]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -715,40 +720,10 @@ def imshow(
             save(chart, "docs/src/examples/out_imshow.svg")
         ```
     """
-    var plot = Plot().mark_imshow().encode_imshow(z=z)
+    var z_f = _materialize_nested_scalar_list(z)
+    var plot = Plot().mark_imshow().encode_imshow(z=z_f)
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def imshow[
-    dtype: DType
-](
-    z: List[List[Scalar[dtype]]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`imshow()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Each row is materialized in turn.
-    Delegates to the concrete overload above.
-    """
-    var rows = List[List[Float64]](capacity=len(z))
-    for r in range(len(z)):
-        rows.append(_materialize_scalar_list(z[r]))
-    return imshow(
-        rows,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )
 
 

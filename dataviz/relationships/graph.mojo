@@ -128,10 +128,12 @@ def _render_graph[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def graph(
+def graph[
+    dtype: DType
+](
     from_categories: List[String],
     to_categories: List[String],
-    values: List[Float64],
+    values: List[Scalar[dtype]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -197,47 +199,16 @@ def graph(
             save(c, "docs/src/examples/out_graph.svg")
         ```
     """
+    var values_f = _materialize_scalar_list(values)
     var plot = (
         Plot()
         .mark_graph()
         .encode_chord(
             from_categories=from_categories,
             to_categories=to_categories,
-            values=values,
+            values=values_f,
         )
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def graph[
-    dtype: DType
-](
-    from_categories: List[String],
-    to_categories: List[String],
-    values: List[Scalar[dtype]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`graph()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). Delegates to the concrete overload
-    above.
-    """
-    return graph(
-        from_categories,
-        to_categories,
-        _materialize_scalar_list(values),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

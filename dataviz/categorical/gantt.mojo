@@ -273,10 +273,12 @@ def _render_gantt[
     return frame.result()
 
 
-def gantt(
+def gantt[
+    dtype: DType
+](
     categories: List[String],
-    start: List[Float64],
-    end: List[Float64],
+    start: List[Scalar[dtype]],
+    end: List[Scalar[dtype]],
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -338,43 +340,13 @@ def gantt(
             save(c, "docs/src/examples/out_gantt.svg")
         ```
     """
+    var start_f = _materialize_scalar_list(start)
+    var end_f = _materialize_scalar_list(end)
     var plot = (
         Plot()
         .mark_gantt()
-        .encode_gantt(categories=categories, start=start, end=end)
+        .encode_gantt(categories=categories, start=start_f, end=end_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def gantt[
-    dtype: DType
-](
-    categories: List[String],
-    start: List[Scalar[dtype]],
-    end: List[Scalar[dtype]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Plot:
-    """`gantt()` generalized over numeric element type; see `scatter()`'s
-    `DType` overload (continuous.mojo). `start`/`end` share one dtype. Delegates
-    to the concrete overload above.
-    """
-    return gantt(
-        categories,
-        _materialize_scalar_list(start),
-        _materialize_scalar_list(end),
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
     )

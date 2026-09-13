@@ -236,9 +236,11 @@ def _render_horizontal_violin[
     return frame.result()
 
 
-def violin(
+def violin[
+    dtype: DType
+](
     categories: List[String],
-    values: List[List[Float64]],
+    values: List[List[Scalar[dtype]]],
     bandwidth: Float64 = 0.0,
     scale_by_count: Bool = False,
     width_fraction: Float64 = 0.4,
@@ -321,6 +323,7 @@ def violin(
             save(c, "docs/src/examples/out_violin.svg")
         ```
     """
+    var values_f = _materialize_nested_scalar_list(values)
     var plot = (
         Plot()
         .mark_violin(
@@ -329,46 +332,8 @@ def violin(
             horizontal=horizontal,
             width_fraction=width_fraction,
         )
-        .encode_distribution(categories=categories, values=values)
+        .encode_distribution(categories=categories, values=values_f)
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
-    )
-
-
-def violin[
-    dtype: DType
-](
-    categories: List[String],
-    values: List[List[Scalar[dtype]]],
-    bandwidth: Float64 = 0.0,
-    scale_by_count: Bool = False,
-    width_fraction: Float64 = 0.4,
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "",
-    horizontal: Bool = False,
-) raises -> Plot:
-    """`violin()` generalized over numeric element type for `values`; see
-    `beeswarm()`'s `DType` overload. Delegates to the concrete overload
-    above.
-    """
-    return violin(
-        categories,
-        _materialize_nested_scalar_list(values),
-        bandwidth=bandwidth,
-        scale_by_count=scale_by_count,
-        width_fraction=width_fraction,
-        theme=theme,
-        width=width,
-        height=height,
-        title=title,
-        subtitle=subtitle,
-        x_title=x_title,
-        y_title=y_title,
-        horizontal=horizontal,
     )
