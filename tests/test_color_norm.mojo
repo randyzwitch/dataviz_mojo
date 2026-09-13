@@ -54,7 +54,7 @@ def _override(min: Float64, max: Float64) -> _ColorDomainOverride:
     d.has = True
     d.min = min
     d.max = max
-    return d
+    return d^
 
 
 def _text_y(svg: String, label: String) raises -> Int:

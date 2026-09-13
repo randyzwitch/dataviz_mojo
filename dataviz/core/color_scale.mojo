@@ -39,6 +39,16 @@ struct ColorScale(Movable):
     """The gradient's own color stops, added via `add_stop()`. A
     `GradientStops` keeps itself sorted by offset so `color_at` can
     binary-search for the bracketing pair."""
+    var thresholds: List[Float64]
+    """Interval boundaries for a discrete ramp (`Plot.scale_color_thresholds()`,
+    #370). Empty for a continuous one.
+
+    `n` boundaries make `n - 1` bands, and every value in a band gets
+    one flat color sampled from the middle of that band's slice of the
+    ramp. Intervals are lower-inclusive, `[b[i], b[i+1])`, with the last
+    one closed at the top so the domain maximum has somewhere to go.
+    That is matplotlib's `BoundaryNorm` rule."""
+
     var is_log: Bool
     """Whether values are normalized by `log10` before the ramp is
     indexed (`Plot.scale_color_log()`, #370). A linear ramp cannot
@@ -66,6 +76,7 @@ struct ColorScale(Movable):
         self.domain_min = domain_min
         self.domain_max = domain_max
         self.stops = GradientStops()
+        self.thresholds = List[Float64]()
         self.is_log = False
         self.has_center = False
         self.center = 0.0
@@ -92,6 +103,29 @@ struct ColorScale(Movable):
         Returns:
             The interpolated color at `value`.
         """
+        if len(self.thresholds) > 1:
+            # Lower-inclusive, last interval closed: a value equal to an
+            # interior boundary belongs to the band *above* it, and the
+            # domain maximum belongs to the top band rather than falling
+            # off the end.
+            var bands = len(self.thresholds) - 1
+            var band = 0
+            if value < self.thresholds[0]:
+                band = 0
+            elif value >= self.thresholds[bands]:
+                band = bands - 1
+            else:
+                for i in range(bands):
+                    if (
+                        value >= self.thresholds[i]
+                        and value < self.thresholds[i + 1]
+                    ):
+                        band = i
+                        break
+            # The middle of the band's own slice, so adjacent bands are
+            # visibly different rather than two samples of nearly the
+            # same place on the ramp.
+            return self.stops.color_at((Float64(band) + 0.5) / Float64(bands))
         if self.is_log:
             # The domain is guaranteed positive by
             # `Plot.scale_color_log()`, so the only guard needed is for a
@@ -249,7 +283,7 @@ def _center_offset(offset: Float64, t: Float64) -> Float64:
     return t + (offset - 0.5) * 2.0 * (1.0 - t)
 
 
-struct _ColorDomainOverride(Copyable, ImplicitlyCopyable, Movable):
+struct _ColorDomainOverride(Copyable, Movable):
     """An explicit color domain and/or ramp center, set via
     `Plot.scale_color_domain()`/`Plot.scale_color_center()`, overriding
     the `[min, max]` a continuous-color mark would otherwise take from
@@ -257,6 +291,10 @@ struct _ColorDomainOverride(Copyable, ImplicitlyCopyable, Movable):
     spatial axis; this one is separate because a color domain has a
     third thing to say (`center`) and applies to a different, much
     larger set of marks. Stored on `Plot._color_domain`.
+
+    Not `ImplicitlyCopyable`: `thresholds` is a `List`, which is not,
+    and an explicit `.copy()` at the two places this is read is a
+    better trade than keeping the band edges somewhere else (#370).
 
     `has` and `has_center` move independently: a center on its own
     re-places the ramp inside the data's own limits, and a domain on its
@@ -269,6 +307,10 @@ struct _ColorDomainOverride(Copyable, ImplicitlyCopyable, Movable):
     var max: Float64
     var has_center: Bool
     var center: Float64
+    var thresholds: List[Float64]
+    """`Plot.scale_color_thresholds()`. Empty leaves the ramp
+    continuous."""
+
     var log: Bool
     """`Plot.scale_color_log()`. Independent of `has`: a log ramp over
     the data's own limits is the common case, and an explicit domain
@@ -281,6 +323,7 @@ struct _ColorDomainOverride(Copyable, ImplicitlyCopyable, Movable):
         self.has_center = False
         self.center = 0.0
         self.log = False
+        self.thresholds = List[Float64]()
 
 
 def _color_scale_for(
@@ -329,6 +372,33 @@ def _color_scale_for(
             + String(hi)
             + ")"
         )
+    if len(domain.thresholds) > 0:
+        if len(domain.thresholds) < 2:
+            raise Error(
+                "Plot.scale_color_thresholds(): needs at least two"
+                " boundaries to make one band -- got "
+                + String(len(domain.thresholds))
+            )
+        for i in range(1, len(domain.thresholds)):
+            if domain.thresholds[i] <= domain.thresholds[i - 1]:
+                raise Error(
+                    "Plot.scale_color_thresholds(): boundaries must be"
+                    " strictly increasing -- boundary "
+                    + String(i)
+                    + " is "
+                    + String(domain.thresholds[i])
+                    + " after "
+                    + String(domain.thresholds[i - 1])
+                )
+        if domain.log or domain.has_center:
+            raise Error(
+                "Plot.scale_color_thresholds(): thresholds already say"
+                " where every band starts, so a log normalization or a"
+                " pinned center has nothing left to place. Choose one."
+            )
+        var banded = ColorScale.from_theme(theme, lo, hi)
+        banded.thresholds = domain.thresholds.copy()
+        return banded^
     if domain.log:
         # Rejected here rather than at the builder, because the domain is
         # only known once the mark's own data limits are in: a caller who
