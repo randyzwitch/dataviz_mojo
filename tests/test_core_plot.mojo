@@ -2299,7 +2299,7 @@ def test_accessible_svg_string_adds_role_and_aria_label_to_root_element() raises
         Plot().mark_bar().encode_categorical(x=cats, y=vals).size(400, 300)
     )
     var svg = render_svg(plot)
-    var s = accessible_svg_string(svg, "Widget Sales")
+    var s = accessible_svg_string(svg^, "Widget Sales")
     assert_true(
         '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"'
         ' viewBox="0 0 400 300" role="img" aria-label="Widget Sales">'
@@ -2319,7 +2319,7 @@ def test_accessible_svg_string_adds_title_and_desc_as_leading_children() raises:
     )
     var svg = render_svg(plot)
     var s = accessible_svg_string(
-        svg, "Widget Sales", "A bar chart of widget sales by category."
+        svg^, "Widget Sales", "A bar chart of widget sales by category."
     )
     var title_idx = s.find("<title>Widget Sales</title>")
     var desc_idx = s.find(
@@ -2344,7 +2344,7 @@ def test_accessible_svg_string_omits_desc_when_description_is_empty() raises:
         Plot().mark_bar().encode_categorical(x=cats, y=vals).size(400, 300)
     )
     var svg = render_svg(plot)
-    var s = accessible_svg_string(svg, "Widget Sales")
+    var s = accessible_svg_string(svg^, "Widget Sales")
     assert_true(
         "<desc>" not in s,
         "no description was given, so no <desc> element draws at all",
@@ -2361,7 +2361,7 @@ def test_accessible_svg_string_escapes_special_characters() raises:
         Plot().mark_bar().encode_categorical(x=cats, y=vals).size(400, 300)
     )
     var svg = render_svg(plot)
-    var s = accessible_svg_string(svg, 'Sales & "Returns" <2024>')
+    var s = accessible_svg_string(svg^, 'Sales & "Returns" <2024>')
     assert_true(
         'aria-label="Sales &amp; &quot;Returns&quot; &lt;2024>"' in s,
         (
@@ -2388,7 +2388,7 @@ def test_accessible_svg_string_preserves_the_chart_body_unchanged() raises:
     )
     var svg = render_svg(plot)
     var original = svg.to_string()
-    var accessible = accessible_svg_string(svg, "Widget Sales")
+    var accessible = accessible_svg_string(svg^, "Widget Sales")
     # Every line of the original body (everything after its first
     # ">") still appears, unmodified, inside the accessible version.
     var body_start = original.find(">") + 1

@@ -19,7 +19,6 @@ from canvas.fill_rule import FillRule
 from canvas.geometry import round_to_int
 from canvas.io.bmp import write_bmp
 from canvas.io.png import write_png
-from canvas.resize import downsample
 from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
