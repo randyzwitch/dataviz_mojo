@@ -4875,10 +4875,15 @@ def test_tripcolor_lets_no_background_through_between_triangles() raises:
     That is a sharper instrument than looking for pale pixels: it does
     not care what colors the triangles are, so a legitimately light
     sliver between two darker neighbors never reads as a defect, and a
-    seam of any color is caught. Against a 255-level swing in what is
-    underneath, the worst interior pixel moves 1 level with
-    `_SEAM_STROKE_WIDTH` in place and 86 without it, so the bound below
-    is nowhere near either.
+    seam of any color is caught.
+
+    Against a 255-level swing in what is underneath, the worst interior
+    pixel moves 86 levels with the faces drawn independently, 1 level
+    with the seam stroke that used to hide it, and 0 now that every face
+    goes into one `fill_mesh` (#575). The bound is exact rather than
+    slack, because "no page shows through" is now literally true: a
+    shared edge is interior to a single shape and never composited
+    against the page at all.
 
     Gridlines are off because they are drawn on the page before the
     fills, so they would change with it too and be counted as bleed. The
@@ -4937,12 +4942,13 @@ def test_tripcolor_lets_no_background_through_between_triangles() raises:
             if d > worst:
                 worst = d
     assert_true(checked > 4000, "the sweep actually looked at the fill")
-    assert_true(
-        worst <= 2,
+    assert_equal(
+        worst,
+        0,
         (
-            "no page shows through between the triangles (worst pixel moved "
+            "the page shows through between the triangles: worst pixel moved "
             + String(worst)
-            + " levels of 255 when the page went white to black)"
+            + " levels of 255 when the page went white to black"
         ),
     )
 

@@ -11,6 +11,7 @@ Both use data supplied by `encode_triplot()`; `TRIPLOT` needs only x and y.
 from std.collections import Dict
 
 from canvas.color import Color
+from canvas.geometry import FPoint
 from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.text.font_cache import FontCache
@@ -71,10 +72,6 @@ struct _TriplotData(Copyable, Movable):
 
 comptime _POINT_RADIUS_FRACTION = 0.6
 """Vertex-dot radius as a fraction of `Theme.point_radius`."""
-
-
-comptime _SEAM_STROKE_WIDTH = 1.5
-"""Triangle-outline width in `Theme.scale` units, used to hide seams."""
 
 
 def _triplot_edges(t: Triangulation) raises -> Tuple[List[Int], List[Int]]:
@@ -341,36 +338,27 @@ def _render_tripcolor[
     **No pale seams between the fills.** Two adjacent triangles filled
     independently each antialias the edge they share, and two
     half-covered pixels composited over the background do not add up to a
-    covered one -- the mesh comes out webbed with pale lines, the bug
-    class caused by independently antialiasing adjacent fills.
-    `_fill_region_above` (tricontour.mojo) avoids it by putting every
-    triangle of one color into a single nonzero fill, so shared edges are
-    interior and cancel. That is not available here: flat shading gives
-    almost every triangle a *different* color, so there is nothing to
-    group. Instead each triangle is stroked along its own outline in its
-    own fill color, which is matplotlib's `edgecolors="face"`.
+    covered one -- the mesh comes out webbed with pale lines. Every face
+    goes into one `fill_mesh` call instead, so a shared edge is interior
+    to a single shape and there is nothing to blend against the page.
 
-    A stroke of width `w` extends a triangle's coverage `w / 2` past its
-    edge, so the two triangles' extended regions overlap in a band
-    straddling the edge and there is nothing left for the page to show
-    through. How wide `w` has to be for that to hold in practice is a
-    measurement, not an argument, and the measurement is:
-    **render the same mesh twice, once on a white page and once on a
-    black one, and compare the interior pixels.** A pixel that changes is
-    a pixel where the background is getting through; a pixel that does
-    not cannot be showing any. Taken over the middle of a scattered mesh
-    at `raster_supersample=1` with gridlines off, so that nothing but the
-    page is underneath, the worst interior pixel moves **5 levels out of
-    255 at `w = 1.0`** and **1 level at `w = 1.5`**, against a 255-level
-    swing in what is beneath it -- hence `_SEAM_STROKE_WIDTH`. With no
-    stroke at all it moves **87**, a third of the way to the page: that
-    is the seam, and it is what the fix has to remove.
+    Until #575 this was a stroke instead: each triangle outlined in its
+    own fill color, matplotlib's `edgecolors="face"`, wide enough that
+    two neighbors' extended coverage overlapped across their shared
+    edge. It worked, at a width picked by measurement, but it was a
+    workaround for something the drawing layer can now do directly, and
+    it cost a second pass over every face plus a sub-pixel bias toward
+    whichever neighbor drew last.
+
+    The measurement is the same either way: render the mesh twice, once
+    on a white page and once on a black one, and compare the interior
+    pixels. A pixel that changes is showing some of the page; a pixel
+    that does not cannot be. Over the middle of a scattered mesh at
+    `raster_supersample=1` with gridlines off, the worst interior pixel
+    moves **87 levels of 255** with neither stroke nor mesh, **1 level**
+    with the stroke, and **0** now.
     `test_tripcolor_lets_no_background_through_between_triangles` keeps
-    that measurement as a standing assertion.
-
-    The price is that the later of two neighbors wins their shared
-    boundary by up to `w / 2`. That is sub-pixel, invisible, and the same
-    trade the pixel-snapped heatmap makes.
+    that as a standing assertion.
 
     Args:
         target: Where to draw.
@@ -403,7 +391,7 @@ def _render_tripcolor[
         cache=cache,
     )
 
-    _draw_tripcolor_layer(target, plot, frame.x_scale, frame.y_scale, frame.sc)
+    _draw_tripcolor_layer(target, plot, frame.x_scale, frame.y_scale)
     return frame.result()
 
 
@@ -435,25 +423,27 @@ def _draw_tripcolor_layer[
     plot: Plot,
     x_scale: LinearScale,
     y_scale: LinearScale,
-    sc: _Scaled,
 ) raises:
     """Draw one `Mark.TRIPCOLOR` plot's filled faces into an
     already-laid-out continuous axis frame, `_draw_triplot_layer`'s
     counterpart and the field a `render_layers()` stack puts a scatter or
     a mesh on top of.
 
-    `sc` is the *layer's* own `_Scaled`, not the frame's: identical for a
-    standalone render, but in a stack the frame belongs to `plots[0]`
-    while `_SEAM_STROKE_WIDTH` scales by this layer's `Theme.scale`, and
-    a seam sized from the wrong theme is the pale-webbing bug this mark's
-    own docstring measures.
+    Every face goes into one `fill_mesh`, so nothing here is sized from a
+    theme. The layer used to take its own `_Scaled` because the seam
+    stroke scaled by this layer's `Theme.scale` rather than the frame's,
+    and in a stack those differ; with the stroke gone (#575) there is
+    nothing left to get wrong.
 
     Args:
         target: Where to draw.
         plot: The chart, whose `_triplot` data this reads.
         x_scale: The frame's x-scale, already ranged onto the plot rect.
         y_scale: The y-scale this layer draws against.
-        sc: This layer's scaled theme metrics.
+
+    Raises:
+        Error: A `facecolors` length that does not match the
+            triangulation, or whatever `fill_mesh()` raises.
     """
     var theme = plot._theme
     # A caller's own triangulation wins (#397). Besides saving the
@@ -489,22 +479,17 @@ def _draw_tripcolor_layer[
             hi = v
     var color_scale = _color_scale_for(theme, plot._color_domain, lo, hi)
 
-    var seam_width = sc.scale * _SEAM_STROKE_WIDTH
+    # Every vertex once, so two faces meeting at a corner index the same
+    # point and there is no interior edge for the page to show through.
+    var points = List[FPoint](capacity=len(tri.x))
+    for i in range(len(tri.x)):
+        points.append(
+            FPoint(x_scale.to_pixel(tri.x[i]), y_scale.to_pixel(tri.y[i]))
+        )
+    var colors = List[Color](capacity=tri.count())
     for k in range(tri.count()):
-        var i0 = tri.triangles[3 * k]
-        var i1 = tri.triangles[3 * k + 1]
-        var i2 = tri.triangles[3 * k + 2]
-        var face = Path()
-        face.move_to(x_scale.to_pixel(tri.x[i0]), y_scale.to_pixel(tri.y[i0]))
-        face.line_to(x_scale.to_pixel(tri.x[i1]), y_scale.to_pixel(tri.y[i1]))
-        face.line_to(x_scale.to_pixel(tri.x[i2]), y_scale.to_pixel(tri.y[i2]))
-        face.close()
-        var color = color_scale.color_at(means[k])
-        # A single triangle has no self-intersection, so the fill rule
-        # cannot matter -- NONZERO for consistency with every other
-        # polygon fill in the package.
-        target.fill_path_aa(face, color, fill_rule=FillRule.NONZERO)
-        target.stroke_path_aa(face, color, width=seam_width)
+        colors.append(color_scale.color_at(means[k]))
+    target.fill_mesh(points, tri.triangles, colors)
 
 
 def triplot[

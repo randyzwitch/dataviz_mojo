@@ -1437,7 +1437,7 @@ def _render_layers_generic[
             )
         elif mark == Mark.TRIPCOLOR:
             _draw_tripcolor_layer(
-                target, plots[j], frame.x_scale, layer_y_scale, layer_sc
+                target, plots[j], frame.x_scale, layer_y_scale
             )
 
     # Each layer's annotate_*() draws last, against that layer's own
