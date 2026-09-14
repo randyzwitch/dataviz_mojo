@@ -29,6 +29,9 @@ test = "bash scripts/run_parallel.sh tests/test_*.mojo"
 # cannot see the runner that launches them, so a guard that quietly stops
 # working leaves a green suite and a run that never ends (#543).
 test-runner = "bash tests/test_run_parallel_guard.sh"
+# Regenerate tests/output_digest.txt after a rendering change you meant
+# to make, then read the diff before committing it (#570).
+digest-update = "mojo run -I . -I tests -I scripts scripts/write_digest.mojo"
 # Run likely affected test modules. Use `test` for complete verification.
 test-changed = "bash scripts/test_changed.sh"
 # Format source, or format and fail if tracked files change.
