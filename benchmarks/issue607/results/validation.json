@@ -1,0 +1,40 @@
+{
+  "exact_output_files": 132,
+  "all_outputs_identical": true,
+  "marks": 62,
+  "test_counts": {
+    "test_binned": {
+      "run": 30,
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0
+    },
+    "test_marks_basic": {
+      "run": 185,
+      "passed": 185,
+      "failed": 0,
+      "skipped": 0
+    },
+    "test_output_digest": {
+      "run": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    "test_core_plot": {
+      "run": 109,
+      "passed": 109,
+      "failed": 0,
+      "skipped": 0
+    },
+    "test_layers_facets": {
+      "run": 88,
+      "passed": 88,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "precompile_passed": true,
+  "isolated_package_consumer_stdout": "400 4893",
+  "full_suite_run": false
+}

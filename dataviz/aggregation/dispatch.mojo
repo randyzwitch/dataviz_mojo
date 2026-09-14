@@ -54,3 +54,28 @@ def _render_aggregation_family[
             _render_pointplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
         )
     return None
+
+
+def _callback_aggregation[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    mut cache: FontCache,
+    vector_target: Bool,
+) raises -> Optional[_RenderResult]:
+    """Positional adapter for the stored family callback (#607 prototype)."""
+    return _render_aggregation_family(
+        target,
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
