@@ -376,6 +376,50 @@ def _row_extent(c: Canvas, y: Int, color: Color) -> _Bbox:
     return _bbox_of_color_in(c, color, 0, y, c.width - 1, y)
 
 
+def _painted_extent_in_row(c: Canvas, y: Int, background: Color) -> _Bbox:
+    """How far row `y` is painted with anything that is not `background`.
+
+    `_row_extent`'s complement, and the one to reach for when a mark is
+    many colors -- a filled contour, a gradient, a heatmap -- so there is
+    no single color to scan for. "Where does the drawing start and stop"
+    is answerable without knowing what it drew.
+
+    Added for #218, after a migration reached for `_row_extent` with the
+    background color and got back where the background *is*, which is
+    the opposite question and quietly passed a weaker test.
+
+    Args:
+        c: The rendered canvas.
+        y: The row to scan.
+        background: The color that counts as unpainted.
+
+    Returns:
+        A box one pixel tall spanning the painted run, or `found=False`
+        for a row with nothing on it.
+    """
+    if y < 0 or y >= c.height:
+        return _Bbox()
+    var first = -1
+    var last = -1
+    for x in range(c.width):
+        var p = c.get_pixel(x, y)
+        if not (
+            p.r == background.r and p.g == background.g and p.b == background.b
+        ):
+            if first == -1:
+                first = x
+            last = x
+    if first == -1:
+        return _Bbox()
+    var box = _Bbox()
+    box.found = True
+    box.x0 = first
+    box.y0 = y
+    box.x1 = last
+    box.y1 = y
+    return box^
+
+
 def _runs_in_row(c: Canvas, y: Int, color: Color) -> Int:
     """How many separated runs of `color` row `y` contains.
 

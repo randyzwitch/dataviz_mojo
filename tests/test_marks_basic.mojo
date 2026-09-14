@@ -19,6 +19,7 @@ from _test_helpers import (
     _column_extent,
     _count_color,
     _count_tag,
+    _painted_extent_in_row,
     _row_extent,
     _runs_in_row,
 )
@@ -109,20 +110,27 @@ def test_render_point_mark_centers_on_the_hand_derived_pixel() raises:
 
 
 def test_render_color_encoding_matches_hand_derived_colors() raises:
-    # Two points at x=[0,10], y=[0,0] (zero-span y padded to [-1,1], so
-    # y=0.0 maps to the vertical midpoint, 135). x-domain [0,10] pads to
-    # [-0.5,10.5], landing the points at x=75 and x=365.
-    #
     # color_data=[0.0,10.0] over a theme whose color_scale_low/high are
     # black/white (the same domain and stops the color-scale test uses), so
-    # the two points must be exactly black and white. show_legend=False
-    # keeps the continuous legend from shifting these positions; legend
-    # layout is covered separately.
+    # the two points must be exactly black and white, and the low one must
+    # be the left one. show_legend=False keeps the continuous legend out of
+    # the way; legend layout is covered separately.
+    #
+    # Located by scanning for those two colors rather than by pixel
+    # coordinate (#218). What this test is about is the color mapping, so
+    # the positions were only ever a way to find the points, and pinning
+    # them made the test fail for every change to a margin or to the 5%
+    # padding -- neither of which this test has an opinion about.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
     var color: List[Float64] = [0.0, 10.0]
+    # A background that is neither end of the ramp, so scanning for
+    # black and for white finds the two points and not the page.
     var t = Theme(
-        color_scale_low=BLACK, color_scale_high=WHITE, show_legend=False
+        color_scale_low=BLACK,
+        color_scale_high=WHITE,
+        background=Color(128, 128, 128),
+        show_legend=False,
     )
     var plot = (
         Plot()
@@ -133,15 +141,26 @@ def test_render_color_encoding_matches_hand_derived_colors() raises:
     )
     var c = render(plot)
 
-    var p0 = c.get_pixel(75, 135)
-    assert_equal(p0.r, 0)
-    assert_equal(p0.g, 0)
-    assert_equal(p0.b, 0)
-
-    var p1 = c.get_pixel(365, 135)
-    assert_equal(p1.r, 255)
-    assert_equal(p1.g, 255)
-    assert_equal(p1.b, 255)
+    var low = _bbox_of_color(c, BLACK)
+    var high = _bbox_of_color(c, WHITE)
+    assert_true(low.found, "no black point: the low end of the ramp is missing")
+    assert_true(
+        high.found, "no white point: the high end of the ramp is missing"
+    )
+    assert_true(
+        low.x1 < high.x0,
+        (
+            "the black point spans x "
+            + String(low.x0)
+            + ".."
+            + String(low.x1)
+            + " and the white one "
+            + String(high.x0)
+            + ".."
+            + String(high.x1)
+            + "; the low colour should be entirely left of the high one"
+        ),
+    )
 
 
 def test_render_size_encoding_matches_hand_derived_radii() raises:
@@ -1727,15 +1746,18 @@ def test_render_histogram_draws_as_an_ordinary_bar_chart() raises:
     )
     var c = render(plot)
     # Bin 0 ([1.0, 3.667)) holds 3 of the 5 values, so its bar is the
-    # tallest and covers the plot's vertical center.
-    var mid_of_plot_area = c.get_pixel(113, 135)
+    # tallest. Located by scanning for the mark color rather than at a
+    # hand-derived pixel (#218): the claim is that the tallest bar reaches
+    # above the plot's vertical middle, and where that bar sits
+    # horizontally is not part of it.
+    var bars = _bbox_of_color(c, Theme.default().mark_color)
+    assert_true(bars.found, "no bars were drawn")
     assert_true(
-        mid_of_plot_area.r != 255
-        or mid_of_plot_area.g != 255
-        or mid_of_plot_area.b != 255,
+        bars.y0 < 135,
         (
-            "bin 0's bar (3 of 5 values) reaches well above the plot area's"
-            " midpoint"
+            "the tallest bar starts at y "
+            + String(bars.y0)
+            + ", not above the plot area's vertical midpoint at 135"
         ),
     )
 
@@ -4081,8 +4103,14 @@ def test_render_contourf_paints_bands_in_level_order() raises:
             height=300,
         )
     )
-    var left = c.get_pixel(80, 150)
-    var right = c.get_pixel(360, 150)
+    # The first and last painted pixels of a row through the middle,
+    # rather than two hand-picked columns (#218). The claim is that the
+    # two ends of the ramp are different colors; which columns they fall
+    # in depends on margins this test has no opinion about.
+    var row = _painted_extent_in_row(c, 150, Color(255, 255, 255))
+    assert_true(row.found, "the plot row is entirely unpainted")
+    var left = c.get_pixel(row.x0 + 2, 150)
+    var right = c.get_pixel(row.x1 - 2, 150)
     assert_true(
         left.r != right.r or left.g != right.g or left.b != right.b,
         "the low and high ends of the ramp are in different bands",
