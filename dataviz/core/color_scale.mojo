@@ -62,6 +62,18 @@ struct ColorScale(Movable):
     var center: Float64
     """The value the ramp's middle color sits on when `has_center`;
     meaningless otherwise. See `from_theme_centered()`."""
+    var has_under: Bool
+    """Whether a value below `domain_min` gets its own color rather than
+    the ramp's low end (`Plot.scale_color_under()`, #370)."""
+    var under: Color
+    """The color for a value below `domain_min`; meaningless unless
+    `has_under`."""
+    var has_over: Bool
+    """Whether a value above `domain_max` gets its own color rather than
+    the ramp's high end (`Plot.scale_color_over()`, #370)."""
+    var over: Color
+    """The color for a value above `domain_max`; meaningless unless
+    `has_over`."""
 
     def __init__(out self, domain_min: Float64, domain_max: Float64):
         """Construct an empty `ColorScale` from `domain_min` to `domain_max`. Add
@@ -79,6 +91,10 @@ struct ColorScale(Movable):
         self.is_log = False
         self.has_center = False
         self.center = 0.0
+        self.has_under = False
+        self.under = Color(0, 0, 0)
+        self.has_over = False
+        self.over = Color(0, 0, 0)
 
     def add_stop(mut self, offset: Float64, color: Color):
         """Add one color stop to the gradient.
@@ -102,6 +118,22 @@ struct ColorScale(Movable):
         Returns:
             The interpolated color at `value`.
         """
+        # Out of range before anything else, so one branch covers the
+        # continuous, log and banded forms alike. Which values are "out"
+        # is the band edges when there are bands and the domain
+        # otherwise, because those are what the ramp actually spans.
+        if self.has_under or self.has_over:
+            var lo = self.domain_min
+            var hi = self.domain_max
+            if len(self.thresholds) > 1:
+                lo = self.thresholds[0]
+                hi = self.thresholds[len(self.thresholds) - 1]
+            if self.has_under and value < lo:
+                return self.under
+            # Strictly above: the top end belongs to the ramp, which is
+            # the same rule the last band already follows.
+            if self.has_over and value > hi:
+                return self.over
         if len(self.thresholds) > 1:
             # Lower-inclusive, last interval closed: a value equal to an
             # interior boundary belongs to the band *above* it, and the
@@ -313,6 +345,12 @@ struct _ColorDomainOverride(Copyable, Movable):
     """`Plot.scale_color_log()`. Independent of `has`: a log ramp over
     the data's own limits is the common case, and an explicit domain
     without one stays linear."""
+    var has_under: Bool
+    """`Plot.scale_color_under()`."""
+    var under: Color
+    var has_over: Bool
+    """`Plot.scale_color_over()`."""
+    var over: Color
 
     def __init__(out self):
         self.has = False
@@ -321,6 +359,10 @@ struct _ColorDomainOverride(Copyable, Movable):
         self.has_center = False
         self.center = 0.0
         self.log = False
+        self.has_under = False
+        self.under = Color(0, 0, 0)
+        self.has_over = False
+        self.over = Color(0, 0, 0)
         self.thresholds = List[Float64]()
 
 
@@ -330,8 +372,46 @@ def _color_scale_for(
     data_min: Float64,
     data_max: Float64,
 ) raises -> ColorScale:
-    """The one call every continuous-color mark makes instead of
+    """The scale a mark colors with: `_color_scale_ramp()`'s ramp, plus
+    the out-of-range colors `Plot.scale_color_under()`/`scale_color_over()`
+    asked for.
+
+    Stamped here rather than inside the ramp builder because the ramp has
+    four exits -- banded, log, plain and centered -- and an out-of-range
+    color applies to all four identically. One place to set them is one
+    place to get them wrong.
+
+    Args:
+        theme: Supplies the ramp's stops.
+        domain: The chart's override, usually `Plot._color_domain`.
+        data_min: The low limit this mark's own data implies.
+        data_max: The high limit this mark's own data implies.
+
+    Returns:
+        The `ColorScale` the mark should color with, and hand to its
+        legend.
+
+    Raises:
+        Error: Whatever `_color_scale_ramp()` raises.
+    """
+    var scale = _color_scale_ramp(theme, domain, data_min, data_max)
+    scale.has_under = domain.has_under
+    scale.under = domain.under
+    scale.has_over = domain.has_over
+    scale.over = domain.over
+    return scale^
+
+
+def _color_scale_ramp(
+    theme: Theme,
+    domain: _ColorDomainOverride,
+    data_min: Float64,
+    data_max: Float64,
+) raises -> ColorScale:
+    """The ramp itself, before out-of-range colors: what every
+    continuous-color mark would build with
     `ColorScale.from_theme(theme, <its own min>, <its own max>)`.
+    Reached through `_color_scale_for()`, which is what marks call.
 
     Each mark still computes the limits its own data implies and passes
     them as `data_min`/`data_max`; this decides whether they win. They
@@ -434,6 +514,51 @@ def _color_scale_for(
             + "]) -- widen it with Plot.scale_color_domain(min, max)"
         )
     return ColorScale.from_theme_centered(theme, lo, hi, domain.center)
+
+
+def symmetric_color_domain(
+    samples: List[List[Float64]], center: Float64 = 0.0
+) raises -> MinMax:
+    """One color domain across several charts' data, symmetric about
+    `center`: `[center - r, center + r]` for the largest distance `r`
+    any value sits from it.
+
+    `shared_color_domain()`'s counterpart for a diverging ramp. That one
+    gives every panel the same limits, which is what makes two panels
+    comparable at all. A diverging ramp needs one thing more: equal
+    distances either side of the center have to be equally intense, and
+    they are not when the domain is lopsided. Data running -2 to +8
+    about a center of 0 puts the deepest low color on -2 and the deepest
+    high on +8, so a reader comparing a -2 against a +2 sees a strong
+    color against a pale one and reads a difference that is not there.
+    A symmetric domain fixes that; pass it to `Plot.scale_color_domain()`
+    alongside `Plot.scale_color_center(center)`.
+
+    The cost is range: with data running -2 to +8 this returns
+    `[-8, 8]`, so the low half of the ramp is barely used. That is the
+    honest trade for comparability, and `shared_color_domain()` is
+    still there when a lopsided ramp is what the chart wants.
+
+    Args:
+        samples: One list of values per chart; empty lists are skipped.
+        center: The value the two halves are measured from.
+
+    Returns:
+        The symmetric domain, as `[center - r, center + r]`.
+
+    Raises:
+        Error: Every list is empty, or a value is not finite.
+    """
+    var span = shared_color_domain(samples)
+    var r = span.max - center
+    if center - span.min > r:
+        r = center - span.min
+    if r <= 0.0:
+        # Every value sits on the center. A zero-span domain colors
+        # everything the ramp's low end, which says nothing; a hair of
+        # width on each side at least keeps the center neutral.
+        r = 1.0
+    return MinMax(center - r, center + r)
 
 
 def shared_color_domain(samples: List[List[Float64]]) raises -> MinMax:
