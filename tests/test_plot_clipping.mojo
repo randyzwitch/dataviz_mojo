@@ -64,15 +64,17 @@ def test_a_pinned_x_domain_keeps_every_mark_inside_the_plot_rect() raises:
     # off both edges of the canvas.
     var d = _ramp()
     var s = render(
-        scatter(d[0], d[1], theme=_theme(), width=400, height=300)
-        ^.scale_x_domain(15.0, 25.0)
+        scatter(
+            d[0], d[1], theme=_theme(), width=400, height=300
+        ).scale_x_domain(15.0, 25.0)
     )
     assert_equal(_outside(s), 0, "no scatter marker escapes the plot rect")
     assert_true(_inside(s) > 100, "and the markers inside are still drawn")
 
     var l = render(
-        line(d[0], d[1], theme=_theme(), width=400, height=300)
-        ^.scale_x_domain(15.0, 25.0)
+        line(d[0], d[1], theme=_theme(), width=400, height=300).scale_x_domain(
+            15.0, 25.0
+        )
     )
     assert_equal(_outside(l), 0, "no line segment escapes the plot rect")
     assert_true(_inside(l) > 300, "and the line inside is still drawn")
@@ -81,8 +83,9 @@ def test_a_pinned_x_domain_keeps_every_mark_inside_the_plot_rect() raises:
 def test_a_pinned_y_domain_clips_too() raises:
     var d = _ramp()
     var s = render(
-        scatter(d[0], d[1], theme=_theme(), width=400, height=300)
-        ^.scale_y_domain(5.0, 12.0)
+        scatter(
+            d[0], d[1], theme=_theme(), width=400, height=300
+        ).scale_y_domain(5.0, 12.0)
     )
     assert_equal(_outside(s), 0, "clipping is not an x-axis-only fix")
     assert_true(_inside(s) > 100, "the visible markers survive")
@@ -91,8 +94,9 @@ def test_a_pinned_y_domain_clips_too() raises:
 def test_an_area_and_a_histogram_are_clipped_as_well() raises:
     var d = _ramp()
     var a = render(
-        area(d[0], d[1], theme=_theme(), width=400, height=300)
-        ^.scale_x_domain(15.0, 25.0)
+        area(d[0], d[1], theme=_theme(), width=400, height=300).scale_x_domain(
+            15.0, 25.0
+        )
     )
     assert_equal(_outside(a), 0, "the area fill stops at the plot rect")
     assert_true(_inside(a) > 500, "and still fills inside it")
@@ -101,8 +105,9 @@ def test_an_area_and_a_histogram_are_clipped_as_well() raises:
     for i in range(60):
         values.append(Float64(i % 20))
     var h = render(
-        histogram(values, bins=8, theme=_theme(), width=400, height=300)
-        ^.scale_x_domain(5.0, 12.0)
+        histogram(
+            values, bins=8, theme=_theme(), width=400, height=300
+        ).scale_x_domain(5.0, 12.0)
     )
     assert_equal(_outside(h), 0, "no bar escapes the plot rect")
     assert_true(_inside(h) > 500, "and the bars inside are drawn")
@@ -114,10 +119,12 @@ def test_a_layered_chart_is_clipped_by_the_same_code() raises:
     # layer rather than from a frame outside it.
     var d = _ramp()
     var plots: List[Plot] = [
-        line(d[0], d[1], theme=_theme(), width=400, height=300)
-        ^.scale_x_domain(15.0, 25.0),
-        scatter(d[0], d[1], theme=_theme(), width=400, height=300)
-        ^.scale_x_domain(15.0, 25.0),
+        line(d[0], d[1], theme=_theme(), width=400, height=300).scale_x_domain(
+            15.0, 25.0
+        ),
+        scatter(
+            d[0], d[1], theme=_theme(), width=400, height=300
+        ).scale_x_domain(15.0, 25.0),
     ]
     var c = render_layers(plots)
     assert_equal(_outside(c), 0, "an overlay clips its layers too")
@@ -131,8 +138,9 @@ def test_the_axis_furniture_is_not_clipped_away() raises:
     var d = _ramp()
     var t = Theme(show_gridlines=False)
     var c = render(
-        line(d[0], d[1], theme=t, width=400, height=300)
-        ^.scale_x_domain(15.0, 25.0)
+        line(d[0], d[1], theme=t, width=400, height=300).scale_x_domain(
+            15.0, 25.0
+        )
     )
     # Counted as "not the page color" rather than as an exact text
     # color: the glyphs are antialiased, so only a handful of pixels

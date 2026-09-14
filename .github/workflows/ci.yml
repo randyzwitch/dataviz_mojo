@@ -86,9 +86,12 @@ jobs:
           pixi-version: v0.76.2
           cache: true
 
-      - name: Build the package
-        run: pixi build
-
+      # The consumer's path dependency below builds this package with the
+      # same pixi-build-mojo backend, so it is the build check. A separate
+      # `pixi build` step used to run first; pixi deprecated that command
+      # in 0.68 in favor of `pixi publish`, which refuses a package whose
+      # run dependencies come from source (canvas_mojo's git pin), so the
+      # step went rather than the warning staying.
       - name: Create a throwaway consumer workspace
         run: |
           mkdir -p "$RUNNER_TEMP/consumer"

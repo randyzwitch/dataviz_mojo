@@ -4668,7 +4668,6 @@ struct Plot(Copyable, Movable):
                 draws (independent of `show_equation`/`show_r_
                 squared` -- a `label` with both left `False` still
                 draws only the line, no text at all).
-
             ci: Two-sided confidence level for a band around the fitted
                 line. `0.95` (the default) shades the 95% confidence
                 interval of the fitted *mean* at each x, as seaborn's
