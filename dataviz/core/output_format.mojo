@@ -1,4 +1,4 @@
-"""Output formats supported by `save()`: SVG, PNG, and BMP."""
+"""Output formats supported by `save()`: SVG, PNG, BMP and PDF."""
 
 
 struct OutputFormat(Copyable, ImplicitlyCopyable, Movable):
@@ -7,6 +7,7 @@ struct OutputFormat(Copyable, ImplicitlyCopyable, Movable):
     comptime SVG = Self(0)
     comptime PNG = Self(1)
     comptime BMP = Self(2)
+    comptime PDF = Self(3)
 
     def __init__(out self, value: Int):
         self._value = value

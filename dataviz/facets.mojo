@@ -12,6 +12,7 @@ from canvas.io.bmp import write_bmp
 from canvas.io.png import write_png
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
+from canvas.vector.pdf import PdfCanvas, write_pdf
 from canvas.vector.svg import SvgCanvas
 
 from dataviz.layout import (
@@ -29,6 +30,7 @@ from dataviz.plot import (
 from dataviz.core.text import (
     _TextRequest,
     _replay_text_requests,
+    _replay_text_requests_pdf,
     _replay_text_requests_svg,
 )
 
@@ -68,6 +70,9 @@ def save_facets(
             )
         )
         f.close()
+    elif format == OutputFormat.PDF:
+        var doc = render_facets_pdf(plots, cols, shared_y_scale)
+        write_pdf(doc, path)
     elif format == OutputFormat.PNG:
         write_png(render_facets(plots, cols, shared_y_scale), path)
     else:
@@ -210,6 +215,57 @@ def render_facets_svg(
     )
     _replay_text_requests_svg(svg, text_requests)
     return svg^
+
+
+def render_facets_pdf(
+    plots: List[Plot],
+    cols: Int,
+    shared_y_scale: Bool = False,
+    title: String = "",
+) raises -> PdfCanvas:
+    """`render_facets()`'s counterpart for a one-page `PdfCanvas`, with
+    the same `cols` guard, title band and `_render_facets_generic` core
+    (#372). The figure's size is in points, 1/72 inch, so the page is
+    the figure.
+
+    Args:
+        plots: The charts, one per cell.
+        cols: Cells per row.
+        shared_y_scale: Give every cell one y-domain.
+        title: A figure title above the cells.
+
+    Returns:
+        The finished document.
+
+    Raises:
+        Error: As `render_facets()`.
+    """
+    if cols <= 0:
+        raise Error(
+            "render_facets_pdf(): cols must be positive (got "
+            + String(cols)
+            + ")"
+        )
+    _require_uniform_size(plots, "render_facets_pdf")
+    var rows = (len(plots) + cols - 1) // cols
+    var pdf = PdfCanvas(
+        cols * plots[0].width,
+        rows * plots[0].height + _figure_title_band(plots[0]._theme, title),
+    )
+    pdf.fill_rect(0, 0, pdf.width, pdf.height, plots[0]._theme.background)
+    var cache = FontCache()
+    var text_requests = _render_facets_generic(
+        pdf,
+        pdf.width,
+        pdf.height,
+        plots,
+        cols,
+        shared_y_scale,
+        title,
+        cache=cache,
+    )
+    _replay_text_requests_pdf(pdf, text_requests)
+    return pdf^
 
 
 def _render_facets_generic[

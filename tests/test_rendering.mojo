@@ -6,7 +6,12 @@ One module rather than 4: every test module pays the same dependency
 compilation, so the suite is organized by family (#605).
 """
 
-from std.testing import TestSuite, assert_equal, assert_true
+from std.testing import (
+    TestSuite,
+    assert_equal,
+    assert_raises,
+    assert_true,
+)
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.resize import downsample
@@ -81,8 +86,12 @@ from dataviz.core.colors import CRIMSON, WHITE
 from dataviz.core.mark import Mark
 from dataviz.core.theme import Theme
 from dataviz.core.validate import _step_setter_name
+from dataviz.layout import GridCell, save_grid
+from dataviz.facets import save_facets
+from dataviz.layers import save_layers
 from dataviz.plot import (
     Plot,
+    _at_dpi,
     _render_generic,
     _render_into,
     _resolve_supersample,
@@ -90,6 +99,8 @@ from dataviz.plot import (
     line,
     render,
     render_layers,
+    render_pdf,
+    save,
     scatter,
 )
 from _mark_registry import (
@@ -839,6 +850,201 @@ def test_an_unpinned_chart_is_unchanged() raises:
     var c = render(scatter(d[0], d[1], theme=_theme(), width=400, height=300))
     assert_equal(_outside(c), 0)
     assert_true(_inside(c) > 100, "the whole scatter is inside anyway")
+
+
+# ==== PDF export and the physical-size contract (#372) ====
+# One layout unit is one point, 1/72 inch: that is the whole contract,
+# and everything below is a consequence of it.
+
+
+def _pdf_plot() raises -> Plot:
+    var x: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    var y: List[Float64] = [1.0, 3.0, 2.0, 4.0]
+    return scatter(
+        x, y, theme=Theme(show_legend=False), title="Export"
+    ).size_inches(6.5, 4.0)
+
+
+def _bytes_have(data: List[UInt8], needle: String) -> Bool:
+    """Whether the ASCII `needle` appears in `data`."""
+    var n = needle.as_bytes()
+    if len(n) == 0 or len(data) < len(n):
+        return False
+    for i in range(len(data) - len(n) + 1):
+        var hit = True
+        for j in range(len(n)):
+            if data[i + j] != n[j]:
+                hit = False
+                break
+        if hit:
+            return True
+    return False
+
+
+def _file_bytes(path: String) raises -> List[UInt8]:
+    var f = open(path, "r")
+    var data = f.read_bytes()
+    f.close()
+    return data^
+
+
+def test_a_pdf_page_is_the_figure_in_points() raises:
+    # 6.5 by 4 inches at 72 points to the inch.
+    var p = _pdf_plot()
+    assert_equal(p.width, 468, "6.5 inches is 468 points")
+    assert_equal(p.height, 288, "4 inches is 288 points")
+    var doc = render_pdf(p)
+    assert_equal(doc.width, 468, "and the page is the figure")
+    assert_equal(doc.height, 288)
+    var out = doc.to_bytes()
+    assert_true(
+        _bytes_have(out, "/MediaBox [0 0 468 288]"),
+        "the document says so too",
+    )
+
+
+def test_size_inches_and_size_mm_meet_on_the_same_page() raises:
+    # 6.5 inches is 165.1 mm; both have to land on the same points or
+    # one of the two conversions is wrong.
+    var x: List[Float64] = [0.0, 1.0]
+    var y: List[Float64] = [1.0, 2.0]
+    var inches = scatter(x, y).size_inches(6.5, 4.0)
+    var mm = scatter(x, y).size_mm(165.1, 101.6)
+    assert_equal(inches.width, mm.width)
+    assert_equal(inches.height, mm.height)
+
+
+def test_a_pdf_carries_its_labels_as_embedded_text() raises:
+    # The reason to write a PDF rather than place a PNG: the title is
+    # text in an embedded font subset, so it is selectable, searchable
+    # and sharp at any zoom, not a picture of itself.
+    var doc = render_pdf(_pdf_plot())
+    var out = doc.to_bytes()
+    assert_true(_bytes_have(out, "/FontFile"), "a font is embedded")
+    assert_true(_bytes_have(out, "/ToUnicode"), "with a character map")
+
+
+def test_saving_a_pdf_writes_a_pdf() raises:
+    var path = "/tmp/dataviz_test_export.pdf"
+    save(_pdf_plot(), path)
+    var data = _file_bytes(path)
+    assert_true(len(data) > 0, "the file has content")
+    assert_equal(Int(data[0]), 37, "starts with %")
+    assert_equal(Int(data[1]), 80, "P")
+    assert_equal(Int(data[2]), 68, "D")
+    assert_equal(Int(data[3]), 70, "F")
+
+
+def _ink_fraction(c: Canvas, theme: Theme) -> Float64:
+    var bg = theme.background
+    var n = 0
+    for y in range(c.height):
+        for x in range(c.width):
+            var p = c.get_pixel(x, y)
+            if not (p.r == bg.r and p.g == bg.g and p.b == bg.b):
+                n += 1
+    return Float64(n) / Float64(c.width * c.height)
+
+
+def test_dpi_multiplies_the_pixels_and_keeps_the_figure() raises:
+    # The claim a resolution has to keep: the same figure, finer. If
+    # only the canvas grew, the furniture would stay the size it was and
+    # cover a far smaller share of it.
+    var x: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    var y: List[Float64] = [1.0, 3.0, 2.0, 4.0]
+    var t = Theme(show_legend=False)
+    var base = scatter(x, y, theme=t, title="Export").size(200, 150)
+    var low = render(base)
+    var high = render(_at_dpi(base, 288.0))
+    assert_equal(high.width, 800, "four times the pixels across")
+    assert_equal(high.height, 600)
+    var a = _ink_fraction(low, t)
+    var b = _ink_fraction(high, t)
+    assert_true(
+        abs(a - b) < 0.02,
+        "the same share of the page is ink: "
+        + String(a)
+        + " against "
+        + String(b),
+    )
+
+
+def test_the_default_resolution_leaves_a_raster_where_it_was() raises:
+    # Every existing call goes through `_at_dpi` now, so the identity
+    # case is worth pinning: one pixel per point, nothing rescaled.
+    var x: List[Float64] = [0.0, 1.0, 2.0]
+    var y: List[Float64] = [1.0, 3.0, 2.0]
+    var p = scatter(x, y, theme=Theme(show_legend=False)).size(200, 150)
+    var plain = render(p)
+    var same = render(_at_dpi(p, 72.0))
+    assert_equal(same.width, plain.width)
+    assert_equal(same.height, plain.height)
+    for yy in range(0, plain.height, 7):
+        for xx in range(0, plain.width, 7):
+            var q = plain.get_pixel(xx, yy)
+            var r = same.get_pixel(xx, yy)
+            assert_true(
+                q.r == r.r and q.g == r.g and q.b == r.b,
+                "pixel (" + String(xx) + ", " + String(yy) + ") moved",
+            )
+
+
+def test_a_resolution_has_to_be_positive() raises:
+    var x: List[Float64] = [0.0, 1.0]
+    var y: List[Float64] = [1.0, 2.0]
+    with assert_raises(contains="dpi must be positive"):
+        save(scatter(x, y), "/tmp/dataviz_test_bad_dpi.png", dpi=0.0)
+
+
+def test_a_transparent_background_reaches_the_file() raises:
+    # Part of the export contract, and already supported by the raster
+    # backend: a zero-alpha background leaves the page clear rather than
+    # white, and the writer keeps the alpha channel.
+    var x: List[Float64] = [0.0, 1.0, 2.0]
+    var y: List[Float64] = [1.0, 3.0, 2.0]
+    var t = Theme(background=Color(255, 255, 255, 0), show_legend=False)
+    var c = render(scatter(x, y, theme=t).size(200, 150))
+    assert_equal(Int(c.get_pixel(2, 2).a), 0, "the corner is clear")
+    var path = "/tmp/dataviz_test_clear.png"
+    save(scatter(x, y, theme=t).size(200, 150), path)
+    var data = _file_bytes(path)
+    # IHDR's color type byte: 6 is truecolor with alpha.
+    assert_equal(Int(data[25]), 6, "the PNG keeps an alpha channel")
+
+
+def test_every_multi_plot_save_writes_a_real_pdf() raises:
+    # Each of the three had an `else: write_bmp` fallthrough, so a .pdf
+    # path would have written BMP bytes under a PDF name. They go
+    # through their own PDF renders now, and this is what says so.
+    var x: List[Float64] = [0.0, 1.0, 2.0, 3.0]
+    var y: List[Float64] = [1.0, 3.0, 2.0, 4.0]
+    var t = Theme(show_legend=False)
+    var plots = List[Plot]()
+    plots.append(scatter(x, y, theme=t).size(300, 200))
+    plots.append(line(x, y, theme=t).size(300, 200))
+
+    var facets = "/tmp/dataviz_test_facets.pdf"
+    save_facets(plots, 2, facets)
+    var a = _file_bytes(facets)
+    assert_equal(Int(a[0]), 37, "save_facets wrote a PDF")
+    assert_true(_bytes_have(a, "/MediaBox [0 0 600 200]"), "at 2x300 points")
+
+    var layers = "/tmp/dataviz_test_layers.pdf"
+    save_layers(plots, layers)
+    var b = _file_bytes(layers)
+    assert_equal(Int(b[0]), 37, "save_layers wrote a PDF")
+    assert_true(_bytes_have(b, "/MediaBox [0 0 300 200]"), "at one plot size")
+
+    var cells = List[GridCell]()
+    cells.append(GridCell(0, 0))
+    cells.append(GridCell(0, 1))
+    var grid = "/tmp/dataviz_test_grid_export.pdf"
+    save_grid(plots, cells, 640, 300, grid)
+    var c = _file_bytes(grid)
+    assert_equal(Int(c[0]), 37, "save_grid wrote a PDF")
+    assert_true(
+        _bytes_have(c, "/MediaBox [0 0 640 300]"), "at the size it was given"
+    )
 
 
 def main() raises:

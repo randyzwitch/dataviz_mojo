@@ -22,6 +22,7 @@ from canvas.io.png import write_png
 from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
+from canvas.vector.pdf import PdfCanvas, write_pdf
 from canvas.vector.svg import SvgCanvas
 
 from dataviz.core.annotations import (
@@ -96,6 +97,7 @@ from dataviz.core.text import (
     _label_text_requests,
     _max_label_width,
     _replay_text_requests,
+    _replay_text_requests_pdf,
     _replay_text_requests_svg,
 )
 from dataviz.core.theme import Theme
@@ -138,6 +140,9 @@ def save_layers(plots: List[Plot], path: String) raises:
         var f = open(path, "w")
         f.write(_svg_output_string(render_layers_svg(plots), plots[0]._labels))
         f.close()
+    elif format == OutputFormat.PDF:
+        var doc = render_layers_pdf(plots)
+        write_pdf(doc, path)
     elif format == OutputFormat.PNG:
         write_png(render_layers(plots), path)
     else:
@@ -321,6 +326,56 @@ def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
     _replay_text_requests_svg(svg, label_requests)
     _replay_text_requests_svg(svg, result.text_requests)
     return svg^
+
+
+def render_layers_pdf(plots: List[Plot]) raises -> PdfCanvas:
+    """`render_layers()`'s counterpart for a one-page `PdfCanvas`, with
+    the same `_render_layers_generic` core and `_require_uniform_size`
+    precondition (#372). The figure's size is in points, 1/72 inch, so
+    the page is the figure.
+
+    Args:
+        plots: The layers, all the same size.
+
+    Returns:
+        The finished document.
+
+    Raises:
+        Error: As `render_layers()`.
+    """
+    _require_uniform_size(plots, "render_layers_pdf")
+    var pdf = PdfCanvas(plots[0].width, plots[0].height)
+    var cx1 = pdf.width
+    var cy1 = pdf.height
+    pdf.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
+    var sc = _Scaled(plots[0]._theme)
+    var y2_title = _secondary_axis_y_title(plots)
+    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1)
+    if y2_title.byte_length() > 0:
+        frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
+    var cache = FontCache()
+    var result = _render_layers_generic(
+        pdf, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
+    )
+    var label_requests = _label_text_requests(
+        plots[0], 0, 0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
+    )
+    if y2_title.byte_length() > 0:
+        label_requests.append(
+            _TextRequest(
+                cx1 - Int(sc.axis_title_font_size * 0.8),
+                (result.py0 + result.py1) // 2,
+                y2_title,
+                plots[0]._theme.text_color,
+                sc.axis_title_font_size,
+                TextAlign.CENTER,
+                plots[0]._theme.font_family,
+                rotation=pi / 2.0,
+            )
+        )
+    _replay_text_requests_pdf(pdf, label_requests)
+    _replay_text_requests_pdf(pdf, result.text_requests)
+    return pdf^
 
 
 def _render_bar_combo_layers[
