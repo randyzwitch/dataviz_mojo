@@ -382,6 +382,11 @@ def _representative_plot(mark: Mark) raises -> Plot:
             px.append(a)
             py.append(b)
             pz.append(a * b)
+        # Flat shading, which is the default. Do not add gouraud=True
+        # here: SVG has no mesh gradient, so canvas draws each face flat
+        # at the mean of its corners while raster interpolates, and the
+        # two backends diverge on purpose (#398). This sweep exists to
+        # catch divergence that is *not* on purpose.
         return tripcolor(px, py, pz, width=_W, height=_H)
     if mark == Mark.KDE:
         var kv: List[Float64] = [1.0, 2.0, 2.0, 3.0, 5.0, 5.0, 6.0, 8.0]

@@ -3455,6 +3455,7 @@ struct Plot(Copyable, Movable):
         z: List[Float64] = List[Float64](),
         triangulation: Triangulation = Triangulation(),
         facecolors: List[Float64] = List[Float64](),
+        gouraud: Bool = False,
     ) raises -> Self:
         """Map scattered `(x, y)` positions -- and, for
         `Mark.TRIPCOLOR`, a value at each -- onto the triangulation
@@ -3477,13 +3478,23 @@ struct Plot(Copyable, Movable):
             facecolors: One value per *triangle*, matplotlib's
                 `tripcolor(facecolors=)`. Empty (the default) colors
                 each triangle by the mean of its vertices' `z`.
+            gouraud: Interpolate each face's color across it from its
+                three vertices instead of filling it flat, matplotlib's
+                `shading="gouraud"` (#398). `Mark.TRIPCOLOR` only.
 
         Returns:
             Self, for further chaining.
 
         Raises:
-            Error: `facecolors` without a `triangulation`.
+            Error: `facecolors` without a `triangulation`, or `gouraud`
+                together with `facecolors`.
         """
+        if gouraud and len(facecolors) > 0:
+            raise Error(
+                "Plot.encode_triplot(): facecolors is one value per triangle,"
+                " so gouraud=True has nothing to interpolate between. Pass"
+                " one or the other"
+            )
         if len(facecolors) > 0 and triangulation.count() == 0:
             raise Error(
                 "Plot.encode_triplot(facecolors=...): needs a triangulation"
@@ -3505,6 +3516,7 @@ struct Plot(Copyable, Movable):
         self._triplot.z = z.copy()
         self._triplot.triangulation = triangulation.copy()
         self._triplot.facecolors = facecolors.copy()
+        self._triplot.gouraud = gouraud
         return self^
 
     def encode_marimekko(
