@@ -31,6 +31,7 @@ from canvas.io.png import write_png
 from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
+from canvas.vector.pdf import PdfCanvas, write_pdf
 from canvas.vector.svg import SvgCanvas
 
 from dataviz.core.annotations import (
@@ -51,6 +52,7 @@ from dataviz.core.text import (
     _extend_text_requests,
     _label_text_requests,
     _replay_text_requests,
+    _replay_text_requests_pdf,
     _replay_text_requests_svg,
 )
 from dataviz.plot import (
@@ -869,6 +871,59 @@ def render_grid_svg(
     return svg^
 
 
+def render_grid_pdf(
+    plots: List[Plot],
+    cells: List[GridCell],
+    width: Int,
+    height: Int,
+    row_weights: List[Float64] = List[Float64](),
+    col_weights: List[Float64] = List[Float64](),
+    shared_y_scale: Bool = False,
+    align_axes: Bool = False,
+    title: String = "",
+) raises -> PdfCanvas:
+    """`render_grid()`'s counterpart for a one-page `PdfCanvas` (#372),
+    with the same cell layout. `width`/`height` are points, 1/72 inch,
+    so the page is the figure.
+
+    Args:
+        plots: The charts, one per cell.
+        cells: Where each plot goes.
+        width: Figure width in points.
+        height: Figure height in points.
+        row_weights: Relative row heights, empty for equal rows.
+        col_weights: Relative column widths, empty for equal columns.
+        shared_y_scale: Give every cell one y-domain.
+        align_axes: Share plot-rect edges, as `render_grid()`.
+        title: A figure title above the cells, as `render_grid()`.
+
+    Returns:
+        The finished document.
+
+    Raises:
+        Error: As `render_grid()`.
+    """
+    _check_grid_args(plots, cells, "render_grid_pdf")
+    var pdf = PdfCanvas(width, height)
+    pdf.fill_rect(0, 0, width, height, plots[0]._theme.background)
+    var cache = FontCache()
+    var text_requests = _render_cells_generic(
+        pdf,
+        width,
+        height,
+        plots,
+        cells,
+        row_weights,
+        col_weights,
+        shared_y_scale,
+        align_axes,
+        title,
+        cache=cache,
+    )
+    _replay_text_requests_pdf(pdf, text_requests)
+    return pdf^
+
+
 def save_grid(
     plots: List[Plot],
     cells: List[GridCell],
@@ -924,6 +979,19 @@ def save_grid(
             )
         )
         f.close()
+    elif format == OutputFormat.PDF:
+        var doc = render_grid_pdf(
+            plots,
+            cells,
+            width,
+            height,
+            row_weights,
+            col_weights,
+            shared_y_scale,
+            align_axes,
+            title,
+        )
+        write_pdf(doc, path)
     elif format == OutputFormat.PNG:
         write_png(
             render_grid(

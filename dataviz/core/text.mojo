@@ -7,6 +7,7 @@ from canvas.color import Color
 from canvas.text.font_cache import FontCache
 from canvas.text.render import FontWeight, TextAlign, draw_text, measure_text
 from canvas.vector.draw_target import DrawTarget
+from canvas.vector.pdf import PdfCanvas
 from canvas.vector.svg import SvgCanvas
 
 from dataviz.basic.continuous import area, line
@@ -382,6 +383,29 @@ def _replay_text_requests_svg(
             req.color,
             req.size,
             req.align,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+        )
+
+
+def _replay_text_requests_pdf(
+    mut pdf: PdfCanvas, requests: List[_TextRequest]
+) raises:
+    """`_replay_text_requests`' counterpart for `PdfCanvas`, via
+    `PdfCanvas.draw_text`, which embeds a subset of the font so a label
+    is selectable and searchable in the document. A separate function
+    for the reason the SVG one is: `DrawTarget` has no `draw_text` to
+    dispatch through.
+    """
+    for req in requests:
+        pdf.draw_text(
+            Float64(req.x),
+            Float64(req.y),
+            req.text,
+            req.color,
+            req.size,
+            align=req.align,
             family=req.family,
             weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
             rotation=req.rotation,

@@ -71,6 +71,7 @@ from canvas.io.png import write_png
 from canvas.vector.draw_target import DrawTarget
 from canvas.geometry import FPoint, round_to_int
 from canvas.path import Path
+from canvas.vector.pdf import PdfCanvas, write_pdf
 from canvas.vector.svg import SvgCanvas
 from canvas.text.render import draw_text, measure_text, FontWeight, TextAlign
 from canvas.text.font_cache import FontCache
@@ -106,6 +107,7 @@ from dataviz.basic.continuous import (
 from dataviz.facets import (
     _render_facets_generic,
     render_facets,
+    render_facets_pdf,
     render_facets_svg,
     save_facets,
 )
@@ -129,6 +131,7 @@ from dataviz.layers import (
     _render_layers_generic,
     _secondary_axis_y_title,
     render_layers,
+    render_layers_pdf,
     render_layers_svg,
     save_layers,
 )
@@ -152,6 +155,7 @@ from dataviz.core.text import (
     _label_text_requests,
     _max_label_width,
     _replay_text_requests,
+    _replay_text_requests_pdf,
     _replay_text_requests_svg,
 )
 from dataviz.core.validate import (
@@ -787,11 +791,60 @@ struct Plot(Copyable, Movable):
         self.height = 420
 
     def size(var self, width: Int, height: Int) -> Self:
-        """Set the pixel dimensions `render()`/`render_svg()`/`save()` construct
+        """Set the dimensions `render()`/`render_svg()`/`save()` construct
         their target at. Defaults to 640x420.
+
+        **The unit is a point, 1/72 inch**, which is what makes a figure
+        size mean something physical (#372). On the raster backends one
+        point is one pixel at the default resolution, so nothing about
+        the old reading changes; `save(..., dpi=300)` keeps the physical
+        size and multiplies the pixels. In a PDF it is a point on the
+        page. `size_inches()`/`size_mm()` say the same thing in the
+        units a page is usually specified in.
+
+        Args:
+            width: Figure width in points.
+            height: Figure height in points.
+
+        Returns:
+            Self, for further chaining.
         """
         self.width = width
         self.height = height
+        return self^
+
+    def size_inches(var self, width: Float64, height: Float64) -> Self:
+        """`size()` in inches: 72 points to the inch, rounded to whole
+        points (#372).
+
+        A figure for a journal column or a slide is specified
+        physically, and `size(468, 312)` does not read as "6.5 by 4.3
+        inches" to anyone.
+
+        Args:
+            width: Figure width in inches.
+            height: Figure height in inches.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self.width = Int(width * 72.0 + 0.5)
+        self.height = Int(height * 72.0 + 0.5)
+        return self^
+
+    def size_mm(var self, width: Float64, height: Float64) -> Self:
+        """`size()` in millimeters: 25.4 mm to the inch and 72 points to
+        the inch, rounded to whole points (#372).
+
+        Args:
+            width: Figure width in millimeters.
+            height: Figure height in millimeters.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self.width = Int(width * 72.0 / 25.4 + 0.5)
+        self.height = Int(height * 72.0 / 25.4 + 0.5)
         return self^
 
     def mark_point(
@@ -5647,7 +5700,7 @@ def _resolve_output_format(
     theme_format: OutputFormat, path: String
 ) -> OutputFormat:
     """The format `save()`/`save_layers()`/`save_facets()` use: `path`'s
-    extension when it's `.svg`/`.png`/`.bmp` (case-insensitive),
+    extension when it's `.svg`/`.png`/`.bmp`/`.pdf` (case-insensitive),
     otherwise `theme_format` (`Theme.output_format`).
     """
     var lower = path.lower()
@@ -5657,6 +5710,8 @@ def _resolve_output_format(
         return OutputFormat.PNG
     elif lower.endswith(".bmp"):
         return OutputFormat.BMP
+    elif lower.endswith(".pdf"):
+        return OutputFormat.PDF
     return theme_format
 
 
@@ -5689,7 +5744,148 @@ def _svg_output_string(var svg: SvgCanvas, labels: _LabelData) raises -> String:
     return svg.to_string()
 
 
-def save(plot: Plot, path: String) raises:
+def render_pdf(plot: Plot) raises -> PdfCanvas:
+    """Render `plot` into a one-page `PdfCanvas` sized `plot.width` by
+    `plot.height` points and return it; `render_svg()`'s counterpart for
+    a print-ready document (#372).
+
+    **One layout unit is one PDF point, 1/72 inch**, which is the whole
+    physical-size contract: a 640 by 420 chart is a 640 by 420 point
+    page, 8.89 by 5.83 inches. `size_inches()`/`size_mm()` say it the
+    other way round. Nothing is resampled on the way out, because
+    nothing is a pixel: paths stay paths and text stays text, embedded
+    as a font subset so a label is selectable and searchable rather
+    than a picture of itself.
+
+    `Theme.scale` still multiplies every font size, margin and stroke
+    width as it does on the other backends, so it changes how large the
+    furniture is *on the page* rather than how many pixels it gets. The
+    raster supersample factor has no meaning here and is ignored.
+
+    Args:
+        plot: The chart to render.
+
+    Returns:
+        The finished document, ready for `canvas.vector.pdf.write_pdf`
+        or the `save()` path that wraps it.
+
+    Raises:
+        Error: Whatever rendering the plot raises.
+    """
+    var pdf = PdfCanvas(plot.width, plot.height)
+    _ = _render_pdf_into(pdf, plot, 0, 0, plot.width, plot.height)
+    return pdf^
+
+
+def _render_pdf_into(
+    mut pdf: PdfCanvas,
+    plot: Plot,
+    ox0: Int = 0,
+    oy0: Int = 0,
+    ox1: Int = -1,
+    oy1: Int = -1,
+    fill_background: Bool = True,
+) raises -> Tuple[Int, Int, Int, Int]:
+    """`_render_svg_into`'s counterpart for `PdfCanvas`: same bounds
+    resolution, `_apply_labels`/`_render_generic` core and annotation
+    passes, with the `_TextRequest`s drawn through
+    `_replay_text_requests_pdf`.
+
+    Args:
+        pdf: The document to draw into.
+        plot: The chart.
+        ox0: Left edge of the bounds to lay out in.
+        oy0: Top edge.
+        ox1: Right edge; -1 means the page width.
+        oy1: Bottom edge; -1 means the page height.
+        fill_background: Whether to paint the theme's background over
+            the bounds first.
+
+    Returns:
+        The inner plot rect as `(px0, py0, px1, py1)`.
+
+    Raises:
+        Error: Whatever rendering the plot raises.
+    """
+    var cx1 = ox1 if ox1 >= 0 else pdf.width
+    var cy1 = oy1 if oy1 >= 0 else pdf.height
+    if fill_background:
+        pdf.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
+    var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
+    var cache = FontCache()
+    var result = _render_generic(
+        pdf, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
+    )
+    var label_requests = _label_text_requests(
+        plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
+    )
+    var under_mark = _filled_annotations_go_under(plot._mark)
+    var area_requests = List[
+        _TextRequest
+    ]() if under_mark else _draw_annotation_areas(
+        pdf, plot, result, plot._theme
+    )
+    var band_requests = List[
+        _TextRequest
+    ]() if under_mark else _draw_annotation_bands(
+        pdf, plot, result, plot._theme
+    )
+    var vline_requests = _draw_annotation_vlines(pdf, plot, result, plot._theme)
+    var line_requests = _draw_annotation_lines(pdf, plot, result, plot._theme)
+    var point_requests = _draw_annotation_points(pdf, plot, result, plot._theme)
+    var arrow_requests = _draw_annotation_arrows(
+        pdf, plot, result, plot._theme, cache=cache
+    )
+    var best_fit_requests = _draw_annotation_best_fit(
+        pdf, plot, result, plot._theme
+    )
+    _replay_text_requests_pdf(pdf, label_requests)
+    _replay_text_requests_pdf(pdf, area_requests)
+    _replay_text_requests_pdf(pdf, band_requests)
+    _replay_text_requests_pdf(pdf, vline_requests)
+    _replay_text_requests_pdf(pdf, line_requests)
+    _replay_text_requests_pdf(pdf, point_requests)
+    _replay_text_requests_pdf(pdf, arrow_requests)
+    _replay_text_requests_pdf(pdf, best_fit_requests)
+    _replay_text_requests_pdf(pdf, result.text_requests)
+    return (result.px0, result.py0, result.px1, result.py1)
+
+
+def _at_dpi(plot: Plot, dpi: Float64) raises -> Plot:
+    """`plot` laid out for a raster export at `dpi` (#372).
+
+    The figure's size is in points, 1/72 inch, so a raster at `dpi`
+    wants `dpi / 72` pixels per point. Multiplying the target's size
+    alone would spread the same furniture over more pixels and print
+    the text at a third of its physical size; multiplying `Theme.scale`
+    by the same factor keeps every font size, margin and stroke width
+    the same fraction of the page. So the output is the same figure at
+    a finer resolution, which is what asking for a resolution means.
+
+    Args:
+        plot: The chart, sized in points.
+        dpi: Pixels per inch for the export.
+
+    Returns:
+        A copy sized and scaled for that resolution; `plot` itself at
+        72, where the factor is 1.
+
+    Raises:
+        Error: `dpi` is not positive.
+    """
+    if dpi <= 0.0:
+        raise Error("save(): dpi must be positive (got " + String(dpi) + ")")
+    var factor = dpi / 72.0
+    var out = plot.copy()
+    if factor == 1.0:
+        return out^
+    out.width = Int(Float64(plot.width) * factor + 0.5)
+    out.height = Int(Float64(plot.height) * factor + 0.5)
+    out._theme.scale = plot._theme.scale * factor
+    return out^
+
+
+def save(plot: Plot, path: String, dpi: Float64 = 72.0) raises:
     """Render `plot` and write it to `path` in one call. The format
     comes from `_resolve_output_format()` (the path's extension, falling
     back to `plot._theme.output_format`); `PNG`/`BMP` both go through
@@ -5701,6 +5897,15 @@ def save(plot: Plot, path: String) raises:
     itself. `save_layers()`/`save_facets()` are the `List[Plot]`
     counterparts; the `save(canvas: Canvas, path)` overload below writes
     an already-rendered `Canvas`.
+
+    `dpi` applies to the raster formats and says how many pixels one
+    inch of the figure gets. The figure's own size is in points, 1/72
+    inch (`Plot.size()`), so the default of 72 is one pixel per point
+    and every existing call renders exactly as before; 300 gives the
+    same figure at print resolution, with the text and strokes the same
+    fraction of the page rather than a third the size. The vector
+    formats ignore it, having no pixels to count. A `.pdf` path writes a
+    one-page document through `render_pdf()`.
 
     SVG output with a non-empty `.labels(title=...)` writes accessible
     markup automatically, via `_svg_output_string()`/
@@ -5714,10 +5919,13 @@ def save(plot: Plot, path: String) raises:
         var f = open(path, "w")
         f.write(_svg_output_string(render_svg(plot), plot._labels))
         f.close()
+    elif format == OutputFormat.PDF:
+        var doc = render_pdf(plot)
+        write_pdf(doc, path)
     elif format == OutputFormat.PNG:
-        write_png(render(plot), path)
+        write_png(render(_at_dpi(plot, dpi)), path)
     else:
-        write_bmp(render(plot), path)
+        write_bmp(render(_at_dpi(plot, dpi)), path)
 
 
 def save(canvas: Canvas, path: String) raises:
