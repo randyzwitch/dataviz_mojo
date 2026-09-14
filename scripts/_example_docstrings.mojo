@@ -122,6 +122,8 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("lineplot", "aggregation/lineplot", "lineplot"),
         ExamplePage("pairplot", "aggregation/pairplot", "pairplot"),
         ExamplePage("jointplot", "aggregation/jointplot", "jointplot"),
+        ExamplePage("clustermap", "aggregation/clustermap", "clustermap"),
+        ExamplePage("dendrogram", "hierarchy_marks/dendrogram", "dendrogram"),
         ExamplePage("pointplot", "aggregation/pointplot", "pointplot"),
         ExamplePage("kdeplot", "distributions/kde", "kdeplot"),
         ExamplePage("rugplot", "distributions/kde", "rugplot"),

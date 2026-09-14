@@ -237,6 +237,8 @@ from dataviz.multivariate.barbs import _BarbsData
 from dataviz.multivariate.contour import _ContourData
 from dataviz.grid.image import _ImageData
 from dataviz.multivariate.tricontour import _TriContourData
+from dataviz.core.cluster import Dendrogram
+from dataviz.hierarchy_marks.dendrogram import _DendrogramData
 from dataviz.multivariate.triplot import _TriplotData
 from dataviz.grid.marimekko import _MarimekkoData
 from dataviz.relationships.edges import _EdgeData
@@ -680,6 +682,7 @@ struct Plot(Copyable, Movable):
     var _image: _ImageData
     var _tricontour: _TriContourData
     var _triplot: _TriplotData
+    var _dendrogram: _DendrogramData
     var _marimekko: _MarimekkoData
     var _hierarchy: _HierarchyData
     var _labels: _LabelData
@@ -751,6 +754,7 @@ struct Plot(Copyable, Movable):
         self._image = _ImageData()
         self._tricontour = _TriContourData()
         self._triplot = _TriplotData()
+        self._dendrogram = _DendrogramData()
         self._marimekko = _MarimekkoData()
         self._hierarchy = _HierarchyData()
         self._labels = _LabelData()
@@ -1381,6 +1385,76 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.TRICONTOURF
         self._tricontour.level_count = levels
+        return self^
+
+    def mark_dendrogram(var self, horizontal: Bool = False) -> Self:
+        """Select `Mark.DENDROGRAM`: the merge tree agglomerative
+        clustering produces, drawn as brackets. Encoded via
+        `encode_dendrogram()`; see `dendrogram()` for the one-call form
+        that clusters the rows for you (#355).
+
+        Args:
+            horizontal: Run the leaves down the y-axis with the brackets
+                reaching right, for a tree that sits beside a matrix's
+                rows rather than above its columns.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.DENDROGRAM
+        self._dendrogram.horizontal = horizontal
+        return self^
+
+    def encode_dendrogram(
+        var self,
+        tree: Dendrogram,
+        labels: List[String],
+        horizontal: Bool = False,
+    ) -> Self:
+        """Give `Mark.DENDROGRAM` a merge tree from
+        `dataviz.core.cluster.linkage()` and one label per leaf (#355).
+
+        `labels` is in the tree's *leaf order*, not the caller's original
+        row order, because that reordering is the whole point of
+        clustering: `tree.leaf_order` says which original row each
+        position holds.
+
+        The tree is flattened here into three parallel lists, which is
+        what the render walks. Ids are positions along the leaf axis for
+        the leaves and `len(labels) + k` for merge `k`, and because
+        `linkage()` returns its merges sorted so a node's children come
+        first, one forward pass places every node.
+
+        Args:
+            tree: The merge tree.
+            labels: One name per leaf, in leaf order.
+            horizontal: Leaves down the y-axis rather than across the x.
+
+        Returns:
+            Self, for further chaining -- `render()` raises later if the
+            tree and the labels disagree.
+        """
+        var left = List[Int](capacity=len(tree.merges))
+        var right = List[Int](capacity=len(tree.merges))
+        var height = List[Float64](capacity=len(tree.merges))
+        # The tree names leaves by their original row index; the drawing
+        # needs their position along the axis, which is where that row
+        # sits in the leaf order.
+        var position_of = List[Int](capacity=len(tree.leaf_order))
+        for _ in range(len(tree.leaf_order)):
+            position_of.append(0)
+        for i in range(len(tree.leaf_order)):
+            position_of[tree.leaf_order[i]] = i
+        var n = len(tree.leaf_order)
+        for m in tree.merges:
+            left.append(position_of[m.left] if m.left < n else m.left)
+            right.append(position_of[m.right] if m.right < n else m.right)
+            height.append(m.height)
+        self._dendrogram.left = left^
+        self._dendrogram.right = right^
+        self._dendrogram.height = height^
+        self._dendrogram.labels = labels.copy()
+        self._dendrogram.horizontal = horizontal
         return self^
 
     def mark_triplot(var self, show_points: Bool = True) -> Self:
