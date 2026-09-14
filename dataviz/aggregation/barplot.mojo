@@ -1,6 +1,6 @@
 """`barplot()`: bars of an estimate per category with its uncertainty,
-seaborn's, and the first chart here that computes an aggregate rather
-than draws one (#350)."""
+the first chart here that computes an aggregate rather than draws one
+(#350)."""
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import Plot, _finished
@@ -27,7 +27,7 @@ def barplot[
 ) raises -> Plot:
     """One bar per distinct category holding an *estimate* of that
     category's values -- the mean by default -- with a whisker for its
-    uncertainty: seaborn's `barplot()`. Unlike `bar()`, which draws the
+    uncertainty. Unlike `bar()`, which draws the
     numbers it is given, this takes raw observations, several per
     category, and reduces them.
 
