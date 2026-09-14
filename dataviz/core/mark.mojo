@@ -154,7 +154,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
             The constant's qualified name, or `"Mark(<n>)"` for a value
             outside the constants above -- which is reachable, since
             `Mark(n)` is public and the sweep in
-            tests/test_backend_equivalence.mojo constructs marks by
+            tests/test_rendering.mojo constructs marks by
             number.
         """
         if self == Self.POINT:

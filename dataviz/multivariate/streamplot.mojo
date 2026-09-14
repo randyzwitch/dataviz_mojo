@@ -14,7 +14,7 @@ time. This one integrates a vector field.
 This is a numerical problem before it is a drawing one, and the picture
 depends far more on the integrator, the seeding and the termination rule
 than on the stroking. The three are `_rk4_step`, `_seed_order` and
-`_trace`; each has its own docstring, and `tests/test_streamplot.mojo`
+`_trace`; each has its own docstring, and `tests/test_field_marks.mojo`
 pins both against fields whose exact streamlines are known.
 """
 
@@ -315,7 +315,7 @@ def _rk4_step(field: _Field, fi: Float64, fj: Float64, h: Float64) -> _Dir:
     streamline spirals visibly outward over one revolution. On solid-body
     rotation, where the exact streamlines are circles, RK4 at a quarter
     cell holds the radius to parts in a million over a full turn -- which
-    `tests/test_streamplot.mojo` pins, because "looks like flow" is not
+    `tests/test_field_marks.mojo` pins, because "looks like flow" is not
     evidence of anything.
     """
     var k1 = _unit_direction(field, fi, fj)
