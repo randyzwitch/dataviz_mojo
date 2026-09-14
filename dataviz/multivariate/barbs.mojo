@@ -96,8 +96,8 @@ def _barb_counts(speed: Float64) -> _BarbCounts:
     """Decompose `speed` into flags (50), full barbs (10) and a half
     barb (5), the standard station-model reading.
 
-    The speed is rounded to the nearest 5 first, as matplotlib's
-    `_find_tails` does, so 7.4 draws one half barb rather than nothing
+    The speed is rounded to the nearest 5 first, so 7.4 draws one half
+    barb rather than nothing
     and 12.6 draws a full barb plus a half. A speed rounding to 0 (under
     2.5) is `calm`: no staff, just the small circle meteorologists read
     as "wind under the plotting threshold".
@@ -131,7 +131,7 @@ def _barb_glyph(
     two lists index-aligned for the caller's speed-bucket cache.
 
     `flip` mirrors every feature across the staff, the southern-
-    hemisphere convention matplotlib spells `flip_barb`.
+    hemisphere convention.
 
     The caller rotates and translates this into place, so one glyph is
     built per distinct speed bucket rather than per point.
@@ -193,8 +193,7 @@ def _render_barbs[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.BARBS` plot: `encode_barbs()`'s continuous `x`/`y`
-    positions with a wind barb at each, the vector field convention
-    matplotlib's `barbs()` draws.
+    positions with a wind barb at each.
 
     Layout is the shared continuous-axis frame every `Mark.POINT`-shaped
     mark uses (`_draw_continuous_axis_frame`), so the axes, gridlines and
@@ -218,8 +217,7 @@ def _render_barbs[
     even that.)
 
     Glyphs are not clipped to the plot rect, so a barb on a point at the
-    very edge of the data can reach into the margin -- matplotlib behaves
-    the same way.
+    very edge of the data can reach into the margin.
     """
     _validate_barbs(plot)
 
@@ -392,7 +390,7 @@ def barbs[
     """A wind barb field: one station-model glyph per point, where the
     staff points upwind and the flags, barbs and half barb hanging off
     its end add up to the speed -- the meteorological reading of a vector
-    field, and the shape matplotlib's `barbs()` draws.
+    field.
 
     `Mark.BARBS` over continuous `x`/`y` with `u`/`v` components. Speed is
     `hypot(u, v)` in the caller's own unit, decomposed against the knot
@@ -407,7 +405,7 @@ def barbs[
         length: Staff length in pixels before `Theme.scale`, so a
             HiDPI export grows the glyphs with everything else.
         flip: Mirror every feature across its staff -- the southern-
-            hemisphere convention (matplotlib's `flip_barb`).
+            hemisphere convention.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.

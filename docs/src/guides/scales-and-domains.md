@@ -11,8 +11,7 @@ computes position domains from the data and adds padding where appropriate.
 
 A point or line chart pads its domain by 5% of the data's span on each
 side, so that a point at the extreme does not sit half-clipped on the
-frame. matplotlib does the same by default, and the consequence catches
-people out the first time either way.
+frame. The consequence catches people out the first time.
 
 For `x = [1.0 ... 10.0]` the span is 9, so the domain becomes about
 `[0.55, 10.45]`. The y-axis line stands at x = 0.55. It is not x = 0 and

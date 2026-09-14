@@ -406,7 +406,7 @@ struct _GroupedBarData(Copyable, Movable):
 
     var percent: Bool
     """`Mark.STACKED_BAR` only: normalize each category's segments to
-    sum to 100% (ggplot's `position="fill"`). See `mark_stacked_bar()`."""
+    sum to 100%. See `mark_stacked_bar()`."""
 
     def __init__(out self):
         self.series_names = List[String]()
@@ -422,9 +422,8 @@ struct _DistributionData(Copyable, Movable):
 
     `kde_bandwidth_override` is a caller's kernel-density bandwidth,
     overriding each category's Silverman's-rule default; 0.0 means use
-    the default. `kde_scale_by_count` selects ggplot2's `scale = "area"`
-    (scale each category's maximum width/rise by `sqrt(n_i / max(n))`)
-    over the default `scale = "width"`. See `mark_violin()`/
+    the default. `kde_scale_by_count` scales each category's maximum
+    width/rise by `sqrt(n_i / max(n))`. See `mark_violin()`/
     `mark_ridgeline()`.
 
     `ecdf_complementary` draws `Mark.ECDF` as `1 - F(x)` rather than
@@ -791,8 +790,7 @@ struct Plot(Copyable, Movable):
         includes a hover title using its encoded label or coordinates.
 
         `jitter_x`/`jitter_y` offset each point by up to that many pixels,
-        to separate points that would otherwise overplot (ggplot's
-        `geom_jitter()`, seaborn's `stripplot(jitter=True)`). Both default
+        to separate points that would otherwise overplot. Both default
         to 0.0, which leaves every point exactly where it was.
 
         The offset is **deterministic, not random**: point `i` moves by
@@ -851,9 +849,7 @@ struct Plot(Copyable, Movable):
             step: Where the riser between two samples sits -- `NONE`
                 (the default: a straight segment, no stepping), `PRE`
                 (at the earlier x), `MID` (halfway) or `POST` (at the
-                later x). Same three placements as matplotlib's
-                `drawstyle='steps-pre'/'steps-mid'/'steps-post'`; see
-                `StepStyle` for which one claims what.
+                later x); see `StepStyle` for which one claims what.
 
         Returns:
             Self, for further chaining.
@@ -888,9 +884,7 @@ struct Plot(Copyable, Movable):
             step: Where the riser between two samples sits -- `NONE`
                 (the default: a straight top edge, no stepping), `PRE`
                 (at the earlier x), `MID` (halfway) or `POST` (at the
-                later x). Same three placements as matplotlib's
-                `drawstyle='steps-pre'/'steps-mid'/'steps-post'`; see
-                `StepStyle` for which one claims what. Mutually
+                later x); see `StepStyle` for which one claims what. Mutually
                 exclusive with `Theme.line_smoothing`, which raises.
 
         Returns:
@@ -1199,7 +1193,7 @@ struct Plot(Copyable, Movable):
             length: Staff length in pixels before `Theme.scale`, which
                 every feature on the glyph is sized as a fraction of.
             flip: Mirror every feature across its staff -- the southern-
-                hemisphere convention (matplotlib's `flip_barb`).
+                hemisphere convention.
 
         Returns:
             Self, for further chaining.
@@ -1219,7 +1213,7 @@ struct Plot(Copyable, Movable):
 
         Args:
             scale: Pixels per unit of magnitude before `Theme.scale`, or
-                0 for matplotlib's automatic rule (see `quiver()`).
+                0 for the automatic rule (see `quiver()`).
             color_by_magnitude: Color each arrow by `hypot(u, v)`
                 through the theme's ramp, with a color legend.
 
@@ -1336,7 +1330,7 @@ struct Plot(Copyable, Movable):
         `streamplot()` for the one-call form.
 
         Args:
-            density: Line spacing, as matplotlib's parameter: the
+            density: Line spacing: the
                 occupancy cells per axis over 30, so larger means more
                 lines.
             arrows: Draw an arrowhead at the middle of each line.
@@ -1397,8 +1391,7 @@ struct Plot(Copyable, Movable):
 
         Args:
             show_points: Draw a dot at every sample on top of the mesh.
-                Defaults to `True`; matplotlib's `triplot()` draws lines
-                only, and `_render_triplot` says why this differs.
+                Defaults to `True`; `_render_triplot` says why.
 
         Returns:
             Self, for further chaining.
@@ -1470,8 +1463,8 @@ struct Plot(Copyable, Movable):
         as a segment on the previous running total. Encoded via
         `encode_grouped_bar()`, the same data as `mark_grouped_bar()`.
 
-        `percent=True` normalizes each category's segments to sum to 100%
-        (ggplot's `position = "fill"`), fixing the y-axis from 0 to 100.
+        `percent=True` normalizes each category's segments to sum to 100%,
+        fixing the y-axis from 0 to 100.
         Every value must then be non-negative, checked at render() time; an
         all-zero category draws as an empty column.
 
@@ -1659,8 +1652,8 @@ struct Plot(Copyable, Movable):
         violin.mojo) with one shared value, so categories' shapes can be
         compared without Silverman's rule reacting to each sample size.
         `scale_by_count=True` scales each category's maximum width by
-        `sqrt(n_i / max(n))` (ggplot2's `scale = "area"`) instead of giving
-        every category the same maximum width (`scale = "width"`).
+        `sqrt(n_i / max(n))` instead of giving every category the same
+        maximum width.
 
         Args:
             bandwidth: Overrides every category's Silverman's-rule
@@ -3088,8 +3081,7 @@ struct Plot(Copyable, Movable):
 
         `z` is row-major as in `encode_imshow()`. `x_edges`/`y_edges`
         *bound* the cells rather than sit at their centers, so there is
-        one more of each than the array has columns and rows --
-        matplotlib's own rule for 1D `pcolormesh` coordinates. Both must
+        one more of each than the array has columns and rows. Both must
         be strictly increasing.
 
         Length and ordering checks are deferred to render() time, like
@@ -3130,16 +3122,15 @@ struct Plot(Copyable, Movable):
 
         `x_corners`/`y_corners` are both `(rows + 1) x (cols + 1)`, so
         cell `(r, c)` is the quadrilateral through vertices `(r, c)`,
-        `(r, c + 1)`, `(r + 1, c + 1)` and `(r + 1, c)`. That is
-        matplotlib's 2D `pcolormesh` rule, and it is what a rotated,
+        `(r, c + 1)`, `(r + 1, c + 1)` and `(r + 1, c)`. That is what a
+        rotated,
         sheared, polar or model-output grid needs: the 1D overload can
         only describe axis-aligned rectangles, because it sets column
         widths and row heights independently.
 
         Nothing is required of the shape beyond the vertex count. Cells
         may be non-convex or self-overlapping; they are drawn in row
-        order and a later cell paints over an earlier one, which is the
-        same rule matplotlib follows.
+        order and a later cell paints over an earlier one.
 
         Cell boundaries are antialiased rather than snapped to whole
         pixels, which the 1D form does. A quad has no rectangular
@@ -3475,12 +3466,12 @@ struct Plot(Copyable, Movable):
             triangulation: A `Triangulation` to draw instead of
                 computing one from `x`/`y`. Empty (the default)
                 triangulates internally, as before.
-            facecolors: One value per *triangle*, matplotlib's
-                `tripcolor(facecolors=)`. Empty (the default) colors
+            facecolors: One value per *triangle*. Empty (the default)
+                colors
                 each triangle by the mean of its vertices' `z`.
             gouraud: Interpolate each face's color across it from its
-                three vertices instead of filling it flat, matplotlib's
-                `shading="gouraud"` (#398). `Mark.TRIPCOLOR` only.
+                three vertices instead of filling it flat (#398).
+                `Mark.TRIPCOLOR` only.
 
         Returns:
             Self, for further chaining.
@@ -4535,7 +4526,7 @@ struct Plot(Copyable, Movable):
         text_y: Float64,
     ) -> Self:
         """Point at `(x, y)` with an arrow, labeled `text` placed at
-        `(text_x, text_y)` (matplotlib's `ax.annotate(..., arrowprops=)`).
+        `(text_x, text_y)`.
         Each call adds an arrow.
 
         This is the only annotation that can be placed in empty space,
@@ -4545,17 +4536,15 @@ struct Plot(Copyable, Movable):
         often the whole point of a chart going into a document: it is
         what turns a plot into an argument.
 
-        **Both ends are in data coordinates**, unlike matplotlib, which
-        mixes coordinate systems through `xycoords`/`textcoords`.
-        Everything else in this API is in data space, and a second
+        **Both ends are in data coordinates.** Everything else in this API is in data space, and a second
         convention would need explaining every time it appeared. The
         cost is that a label position has to be chosen against the
         data's own range; the benefit is that it stays put when the
         chart is resized.
 
-        Straight arrows only. matplotlib's curved connectors, head
-        styles and shrink factors are refinements on top of a feature
-        that did not exist; the straight case carries most of the value.
+        Straight arrows only. Curved connectors, head styles and shrink
+        factors are refinements on top of a feature that did not exist;
+        the straight case carries most of the value.
 
         Needs a continuous coordinate on both axes, so only `Mark.POINT`/
         `LINE`/`AREA`/`EFFECT_SCATTER` support it; raises otherwise. An
@@ -4589,8 +4578,8 @@ struct Plot(Copyable, Movable):
         label: String = "",
     ) -> Self:
         """Shade the region between two curves that vary with `x`: a confidence
-        band around a trend line, or a min/max envelope (matplotlib's
-        `fill_between`, ggplot's `geom_ribbon`). `annotate_area()`'s band is
+        band around a trend line, or a min/max envelope. `annotate_area()`'s
+        band is
         a constant `(y0, y1)` pair; this takes two parallel lists keyed by
         `x`. Each call adds a band.
 
@@ -4670,8 +4659,8 @@ struct Plot(Copyable, Movable):
                 draws only the line, no text at all).
             ci: Two-sided confidence level for a band around the fitted
                 line. `0.95` (the default) shades the 95% confidence
-                interval of the fitted *mean* at each x, as seaborn's
-                `regplot` does; pass `0.0` for the bare line. The band
+                interval of the fitted *mean* at each x; pass `0.0` for
+                the bare line. The band
                 is narrowest at the mean of `x` and flares toward the
                 ends, which is the point of drawing it: a line without
                 one invites the reader to trust the slope more than the
@@ -4851,8 +4840,8 @@ struct Plot(Copyable, Movable):
         Intervals are **lower-inclusive**, `[b[i], b[i+1])`, with the
         last closed at the top so the domain maximum has somewhere to
         go. A value exactly on an interior boundary belongs to the band
-        above it. That is matplotlib's `BoundaryNorm` rule, and the one
-        place this is easy to get wrong, so it is stated here and
+        above it. That is the one place this is easy to get wrong, so it
+        is stated here and
         tested.
 
         Values below the first boundary take the lowest band and values
@@ -4932,8 +4921,8 @@ struct Plot(Copyable, Movable):
         raises and names the domain instead, so the fix is an explicit
         `scale_color_domain()`.
 
-        This is matplotlib's `TwoSlopeNorm`, reached by moving the
-        ramp's stops instead of bending the value projection; see
+        This is reached by moving the ramp's stops instead of bending
+        the value projection; see
         `ColorScale.from_theme_centered()` for why that route is the one
         that keeps the legend honest.
 
@@ -4983,7 +4972,7 @@ def _data_extent(data: List[Float64]) raises -> LinearScale:
     """Return `data`'s minimum and maximum padded 5% on each side.
 
     So that a point at the extreme is not drawn half-clipped on the
-    frame. matplotlib's default margin is the same 5%.
+    frame.
 
     The consequence is worth stating because it surprises people (#133):
     **the axis line is not the origin.** For `x = [1, 10]` the domain

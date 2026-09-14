@@ -619,8 +619,7 @@ def _render_contour[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.CONTOUR` plot: isolines over a regular grid, the
-    shape matplotlib's `contour()` draws.
+    """Render a `Mark.CONTOUR` plot: isolines over a regular grid.
 
     Layout is the shared continuous-axis frame (`_draw_continuous_axis_frame`),
     with both domains in grid-index units and no padding, so the grid
@@ -755,7 +754,7 @@ def _render_contourf[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.CONTOURF` plot: filled bands between consecutive
-    levels, the shape matplotlib's `contourf()` draws.
+    levels.
 
     Painted back to front.
     The plot rect is filled with the lowest band's color, then each

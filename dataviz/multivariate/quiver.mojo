@@ -37,7 +37,7 @@ from dataviz.core.theme import Theme
 
 
 comptime _AUTO_SCALE_DIVISOR = 1.8
-"""matplotlib's constant in its `quiver` autoscale: an arrow of the mean
+"""The autoscale divisor: an arrow of the mean
 magnitude is drawn `plot width / (1.8 * max(10, sqrt(N)))` long, so a
 field of N arrows on a grid fills its cells without crossing them."""
 
@@ -248,7 +248,7 @@ def quiver[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A vector field as arrows, matplotlib's `quiver()`: one arrow per
+    """A vector field as arrows: one arrow per
     `(x, y)` sample, pointing along `(u, v)` with a length proportional
     to the magnitude and a filled head at the tip.
 
@@ -260,7 +260,7 @@ def quiver[
 
     `scale` is pixels per unit of magnitude, before `Theme.scale`, so
     `scale=2.0` draws a vector of magnitude 10 as a 20-pixel arrow. At
-    the default of 0 it is chosen from the data, by matplotlib's rule:
+    the default of 0 it is chosen from the data:
     an arrow of the mean magnitude is drawn `plot width / (1.8 *
     max(10, sqrt(N)))` long, so a field of N arrows on a grid fills its
     cells without crossing them. Set it explicitly to compare two

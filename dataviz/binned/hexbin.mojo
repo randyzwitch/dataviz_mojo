@@ -72,7 +72,7 @@ def _hexbin_bins(
     x: List[Float64], y: List[Float64], gridsize: Int
 ) raises -> _HexBins:
     """Count `(x, y)` points into a hexagonal lattice `gridsize` cells
-    across, matplotlib's `hexbin` lattice exactly.
+    across.
 
     The lattice is two offset rectangular lattices over the data's
     bounding box. `nx = gridsize` columns of spacing `sx` and
@@ -234,7 +234,7 @@ def _draw_hexbin_layer[
     filled once under the nonzero rule: a shared edge inside one fill
     has full coverage and no seam. Cells of different counts still meet
     along antialiased edges, so each path is then stroked in its own
-    color at the theme's line width, matplotlib's `edgecolors="face"`:
+    color at the theme's line width:
     the stroke covers the hairline the two fills leave between them.
     """
     var n = len(bins.count)
@@ -303,7 +303,7 @@ def _render_hexbin[
     outermost centers sit on the data's bounding box, so a hexagon
     reaches half a cell past it -- padded as every scatter's extent is.
     That keeps the boundary cells whole inside the plot rect instead of
-    cut at the axis, as matplotlib's autoscale keeps them.
+    cut at the axis.
 
     Args:
         target: Where to draw.
@@ -391,7 +391,7 @@ def hexbin[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A hexagonal-bin density plot, matplotlib's `hexbin()`: `(x, y)`
+    """A hexagonal-bin density plot: `(x, y)`
     points counted into a lattice of hexagons `gridsize` cells across,
     each hexagon colored by how many points fell in it.
 
@@ -411,9 +411,8 @@ def hexbin[
 
     `gridsize` is the number of hexagons across the x range; the row
     count follows so the hexagons are regular when the plot rect is
-    square, as matplotlib sizes them. matplotlib's default of 100 is
-    tuned for figures with many more pixels than a 640x420 chart, so
-    the default here is 30.
+    square. The default of 30 suits a 640x420 chart; a figure with many
+    more pixels can take more.
 
     Args:
         x: The horizontal coordinates.

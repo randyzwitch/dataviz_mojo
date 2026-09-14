@@ -1,7 +1,7 @@
 """Every numeric variable against every other, in one grid (#353).
 
-seaborn's `pairplot`, and the first thing many people run on a new
-dataset, because it answers "what is related to what" in one figure.
+The first thing many people run on a new dataset, because it answers
+"what is related to what" in one figure.
 
 This is composition, not a new mark. Cell `(i, j)` is a scatter of
 variable `j` against variable `i`, the diagonal is variable `i`'s own
@@ -89,8 +89,7 @@ def pairplot[
 
     The diagonal is variable `i`'s histogram. Its y-axis is a count and
     therefore does not share the row's domain, which is the one place
-    the grid's scale rule deliberately does not apply; seaborn does the
-    same.
+    the grid's scale rule deliberately does not apply.
 
     Example:
         ```mojo

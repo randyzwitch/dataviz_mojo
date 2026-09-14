@@ -1,4 +1,4 @@
-"""Where an axis line (matplotlib's spine) sits."""
+"""Where an axis line sits."""
 
 
 struct AxisPosition(Copyable, ImplicitlyCopyable, Movable):
@@ -9,8 +9,7 @@ struct AxisPosition(Copyable, ImplicitlyCopyable, Movable):
     for the y-axis. The default, and what every chart did before."""
     comptime ZERO = Self(1)
     """At zero on the axis it is positioned along, so the line crosses
-    the data instead of bounding it -- matplotlib's
-    `spine.set_position("zero")`.
+    the data instead of bounding it.
 
     Falls back to `EDGE`, rather than drawing a line outside the plot
     rect, unless that axis is continuous and its domain spans zero. So a

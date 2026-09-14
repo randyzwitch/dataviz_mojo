@@ -48,9 +48,7 @@ struct _ImageData(Copyable, Movable):
     `x_edges`/`y_edges` are empty for `IMSHOW`, which puts cell centers
     at the integers `0 .. cols - 1` and so needs no coordinates of its
     own. For `PCOLORMESH` they are the cell *boundaries*, so there is
-    one more of each than there are columns/rows -- the same
-    `len(X) == cols + 1` rule matplotlib's `pcolormesh` uses for 1D
-    coordinates.
+    one more of each than there are columns/rows.
     """
 
     var z: List[List[Float64]]
@@ -195,10 +193,10 @@ def _check_strictly_increasing(
     dropping a column of data is exactly the failure this package's
     encode checks exist to prevent.
 
-    Increasing rather than merely monotonic: matplotlib accepts a
-    descending coordinate array and flips the axis for it, but an axis
-    that counts *down* because of the order values happened to arrive in
-    is a surprising thing to infer from data. `Mark.IMSHOW` counts down
+    Increasing rather than merely monotonic: a descending coordinate
+    array could be read as a request to flip the axis, but an axis that
+    counts *down* because of the order values happened to arrive in is a
+    surprising thing to infer from data. `Mark.IMSHOW` counts down
     deliberately and says so; here the caller can reverse the array and
     the values with it.
 
@@ -561,8 +559,8 @@ def _fill_quad_cells[
     through in the first place.
 
     Faces go in row-major order, which `fill_mesh` preserves, so a
-    self-overlapping mesh still paints later cells over earlier ones --
-    matplotlib's rule, and why no validation rejects a non-convex cell.
+    self-overlapping mesh still paints later cells over earlier ones,
+    which is why no validation rejects a non-convex cell.
 
     Args:
         target: The draw target.
@@ -646,16 +644,15 @@ def _render_image[
 
     - Where the cell boundaries are. `IMSHOW` has none of its own, so it
       puts cell centers on the integers and boundaries on the
-      half-integers: the grid spans `[-0.5, cols - 0.5]`, matching
-      matplotlib's default `extent` and keeping the axis in the same
+      half-integers: the grid spans `[-0.5, cols - 0.5]`, keeping the
+      axis in the same
       grid-index units `Mark.CONTOUR` uses for the same `z`.
       `PCOLORMESH` is handed its boundaries.
     - Which way y counts. `IMSHOW` counts *down* -- row 0 at the top --
       because a raster's first row is its top scanline; see
       `_draw_continuous_axis_frame`'s `y_descending`. `PCOLORMESH`
       counts up like every other continuous mark, because its rows are
-      positions on a real axis rather than scanlines. matplotlib splits
-      them the same way and for the same reason.
+      positions on a real axis rather than scanlines.
 
     Colors come from `_color_scale_for` over the array's own
     `[min, max]`, or over `Plot.scale_color_domain()`'s limits when one
@@ -670,9 +667,9 @@ def _render_image[
     into it.
 
     Aspect: the grid fills the plot rect, which is what every other mark
-    here does and what makes the axes bound the data. It is *not*
-    matplotlib's `imshow` default of square pixels -- see `imshow()`'s
-    own docstring for what that costs and how to get square pixels back.
+    here does and what makes the axes bound the data. Pixels are not
+    square unless the rect is -- see `imshow()`'s own docstring for what
+    square pixels would cost and how to get them.
 
     `vector_target` says whether `target` keeps what it is given as
     elements rather than pixels (the SVG backend). There, a large
@@ -840,7 +837,7 @@ def imshow[
     """Display a 2D array as an image: one colored cell per element, on
     continuous axes in row/column index units.
 
-    `Mark.IMSHOW`, matplotlib's `imshow()`. This is the chart for
+    `Mark.IMSHOW`. This is the chart for
     anything that *is* an array rather than a table -- a matrix, a
     raster, a spectrogram, a correlation surface, a decoded PNG.
     `Mark.HEATMAP` looks like the same thing and is not: it takes
@@ -848,16 +845,15 @@ def imshow[
     array would need 512 category labels.
 
     **Row 0 is at the top**, and the y-axis counts downward to match.
-    That is matplotlib's `origin='upper'` default, the order a raster's
-    scanlines arrive in, and the order a matrix is written in --
+    That is the order a raster's scanlines arrive in, and the order a
+    matrix is written in --
     `imshow(read_png(...))` comes out the right way up. It is the
     opposite of `contour()`, which puts row 0 at the bottom because its
-    grid is a sampled surface rather than an image; matplotlib splits
-    the two the same way.
+    grid is a sampled surface rather than an image.
 
     **The image fills the plot rect**, so its pixels are only square
-    when the rect happens to be. matplotlib instead defaults `imshow` to
-    square pixels and leaves the axes partly empty. Filling is the right
+    when the rect happens to be. The alternative, square pixels that
+    leave the axes partly empty, is not the default. Filling is the right
     default here because every other mark in this package fills its
     rect, and because the common case -- a matrix, a correlation
     surface, a field -- has no physical aspect to preserve. For a photo
@@ -952,8 +948,8 @@ def pcolormesh(
     """Display a 2D array over cell boundaries you supply: `imshow()`
     for a grid whose rows and columns are not evenly spaced.
 
-    `Mark.PCOLORMESH`, matplotlib's `pcolormesh()` with 1D coordinate
-    arrays. The array is the same as `imshow()`'s; what changes is that
+    `Mark.PCOLORMESH`: an image over 1D coordinate arrays. The array is
+    the same as `imshow()`'s; what changes is that
     each cell's extent comes from `x_edges`/`y_edges` rather than from
     its index, so a log-spaced frequency axis, unequal time bins, or a
     grid that was never regular in the first place lands where it
@@ -961,20 +957,19 @@ def pcolormesh(
 
     The edges *bound* the cells, so there is one more of each than the
     array has columns and rows -- `len(x_edges) == cols + 1`,
-    `len(y_edges) == rows + 1`, the same rule matplotlib uses. Both must
+    `len(y_edges) == rows + 1`. Both must
     be strictly increasing.
 
     **Row 0 is at the bottom**, unlike `imshow()`. `y_edges[0]` is a
     position on a real axis, not a scanline, so the axis counts upward
-    the way every other continuous mark's does. matplotlib makes the
-    same split between its two functions.
+    the way every other continuous mark's does.
 
     Cells are flat colors and the color scale is the theme's, exactly as
     in `imshow()` -- see that docstring for why `Theme(color_ramp=...)`
     matters here.
 
-    Only 1D edges are supported: a fully curvilinear mesh (matplotlib's
-    2D `X`/`Y`) would need a quad per cell rather than a rect, which is
+    Only 1D edges are supported: a fully curvilinear mesh would need a
+    quad per cell rather than a rect, which is
     a different drawing path.
 
     Args:

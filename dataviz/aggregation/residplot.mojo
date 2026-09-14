@@ -22,7 +22,7 @@ def residplot[
 ) raises -> Plot:
     """Fit `y = m*x + b` by ordinary least squares and scatter each point's
     residual (`y - fitted`) against its fitted value, with a reference
-    line at zero: seaborn's `residplot()`, the diagnostic for whether a
+    line at zero: the diagnostic for whether a
     linear fit was appropriate at all (#352).
 
     A fit that is right leaves residuals scattered evenly about zero
