@@ -56,11 +56,20 @@ jobs:
           pixi-version: v0.76.2
           cache: true
 
+      - uses: ./.github/actions/mojo-cache-restore
+        with:
+          name: test
+
       - name: Check the runner's module-timeout guard
         run: pixi run test-runner
 
       - name: Run tests
         run: pixi run test
+
+      - uses: ./.github/actions/mojo-cache-save
+        if: always()
+        with:
+          name: test
 
   package:
     name: Build the package and compile a consumer against it
@@ -142,11 +151,20 @@ jobs:
           pixi-version: v0.76.2
           cache: true
 
+      - uses: ./.github/actions/mojo-cache-restore
+        with:
+          name: docs
+
       - name: Render examples
         run: pixi run example
 
       - name: Render quickstart tutorial examples
         run: pixi run example-quickstart
+
+      - uses: ./.github/actions/mojo-cache-save
+        if: always()
+        with:
+          name: docs
 
       - name: Build docs site
         run: pixi run docs
