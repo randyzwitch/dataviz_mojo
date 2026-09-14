@@ -21,10 +21,16 @@ runs:
     - id: count
       shell: bash
       run: |
+        # Composite steps run bash with -e and pipefail, so a `find` on a
+        # directory that does not exist yet (a cold run, or a miss) would
+        # fail the pipeline and the step with it. Test for it first.
         dir="$RUNNER_TEMP/mojo-cache"
-        n=$(find "$dir" -type f 2>/dev/null | wc -l)
-        size=$(du -sh "$dir" 2>/dev/null | cut -f1)
-        echo "mojo cache after: $n entries, ${size:-0} (before: ${MOJO_CACHE_ENTRIES_BEFORE:-unknown})"
+        n=0; size=0
+        if [ -d "$dir" ]; then
+          n=$(find "$dir" -type f | wc -l)
+          size=$(du -sh "$dir" | cut -f1)
+        fi
+        echo "mojo cache after: $n entries, $size (before: ${MOJO_CACHE_ENTRIES_BEFORE:-unknown})"
         if [ "$n" -gt "${MOJO_CACHE_ENTRIES_BEFORE:-0}" ]; then
           echo "grew=true" >> "$GITHUB_OUTPUT"
         fi
