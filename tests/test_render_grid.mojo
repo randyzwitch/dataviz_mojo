@@ -27,10 +27,13 @@ from canvas.color import Color
 from dataviz import (
     GridCell,
     Theme,
+    render,
     render_facets,
     render_facets_svg,
     render_grid,
     render_grid_svg,
+    render_inset,
+    render_inset_svg,
     save_grid,
 )
 from dataviz.core.text import _Scaled
@@ -747,6 +750,179 @@ def test_a_facet_title_reaches_the_svg_backend_too() raises:
     assert_equal(
         _attr_values(svg, "svg", "height")[0],
         String(150 + _title_band(_theme())),
+    )
+
+
+# ---- render_inset -------------------------------------------------------
+
+comptime _RED = Color(200, 0, 0)
+comptime _BLUE = Color(0, 0, 200)
+comptime _INSET_BG = Color(230, 230, 255)
+
+
+def _base_plot() raises -> Plot:
+    # Points rather than a line so the mark leaves solid, exactly colored
+    # pixels to count; they climb to the top right, which is where the
+    # tests put the inset.
+    return (
+        Plot()
+        .mark_point()
+        .encode(x=_xs(8), y=_ys(8, 1.0))
+        .theme(Theme(show_gridlines=False, show_legend=False, mark_color=_RED))
+        .size(400, 300)
+    )
+
+
+def _inset_plot() raises -> Plot:
+    return (
+        Plot()
+        .mark_point()
+        .encode(x=_xs(5), y=_ys(5, 2.0))
+        .theme(
+            Theme(
+                show_gridlines=False,
+                show_legend=False,
+                mark_color=_BLUE,
+                background=_INSET_BG,
+            )
+        )
+        .size(50, 50)
+    )
+
+
+def _same(c: Canvas, x: Int, y: Int, color: Color) -> Bool:
+    var p = c.get_pixel(x, y)
+    return p.r == color.r and p.g == color.g and p.b == color.b
+
+
+def _count_in(
+    c: Canvas, color: Color, x0: Int, y0: Int, x1: Int, y1: Int
+) -> Int:
+    """Pixels of exactly `color` with `x0 <= x < x1` and `y0 <= y < y1`."""
+    var n = 0
+    for y in range(y0, y1):
+        for x in range(x0, x1):
+            if _same(c, x, y, color):
+                n += 1
+    return n
+
+
+def _color_bbox(c: Canvas, color: Color) raises -> Tuple[Int, Int, Int, Int]:
+    """The bounding box `(x0, y0, x1, y1)`, exclusive at the far edges, of
+    every pixel of exactly `color`.
+    """
+    var x0 = c.width
+    var y0 = c.height
+    var x1 = -1
+    var y1 = -1
+    for y in range(c.height):
+        for x in range(c.width):
+            if _same(c, x, y, color):
+                if x < x0:
+                    x0 = x
+                if y < y0:
+                    y0 = y
+                if x + 1 > x1:
+                    x1 = x + 1
+                if y + 1 > y1:
+                    y1 = y + 1
+    if x1 < 0:
+        raise Error("no pixel of that color")
+    return (x0, y0, x1, y1)
+
+
+def test_an_inset_covers_part_of_the_base_and_leaves_the_rest() raises:
+    var plain = render(_base_plot())
+    var figure = render_inset(_base_plot(), _inset_plot(), 0.55, 0.05, 0.4, 0.4)
+    assert_equal(figure.width, plain.width, "the figure is the base's size")
+    assert_equal(figure.height, plain.height)
+    # The inset's background paints exactly its axes area, and that area
+    # is strictly inside the canvas: the base's plot rect has margins.
+    var r = _color_bbox(figure, _INSET_BG)
+    assert_true(r[0] > 0 and r[1] > 0, "the inset starts inside the margins")
+    assert_true(r[2] < figure.width and r[3] < figure.height)
+    assert_true(
+        (r[2] - r[0]) * (r[3] - r[1]) < figure.width * figure.height // 2,
+        "a 0.4 by 0.4 inset is well under half the figure",
+    )
+    # The inset's own marks are in there, and the base's marks that were
+    # under it are covered: the axes area is opaque.
+    var blue = _color_bbox(figure, _BLUE)
+    assert_true(
+        blue[0] >= r[0]
+        and blue[1] >= r[1]
+        and blue[2] <= r[2]
+        and blue[3] <= r[3],
+        "every inset point is inside the inset's axes area",
+    )
+    assert_true(
+        _count_in(plain, _RED, r[0], r[1], r[2], r[3]) > 0,
+        "the base had points where the inset now sits",
+    )
+    assert_equal(
+        _count_in(figure, _RED, r[0], r[1], r[2], r[3]),
+        0,
+        "and they are covered",
+    )
+    # Below and left of the inset, far from its labels, the base is as it
+    # was: every red pixel of the plain render is still red.
+    var moved = 0
+    for yy in range(r[3] + 30, plain.height):
+        for xx in range(0, r[0] - 40):
+            if _same(plain, xx, yy, _RED) and not _same(figure, xx, yy, _RED):
+                moved += 1
+    assert_equal(moved, 0, "the base is untouched away from the inset")
+
+
+def test_an_inset_s_size_follows_its_fractions() raises:
+    # The inset's background paints exactly its axes area, so a width
+    # fraction of 0.4 makes an area twice as wide as 0.2, to rounding.
+    var wide = _color_bbox(
+        render_inset(_base_plot(), _inset_plot(), 0.5, 0.1, 0.4, 0.3),
+        _INSET_BG,
+    )
+    var narrow = _color_bbox(
+        render_inset(_base_plot(), _inset_plot(), 0.5, 0.1, 0.2, 0.3),
+        _INSET_BG,
+    )
+    var wide_w = wide[2] - wide[0]
+    var narrow_w = narrow[2] - narrow[0]
+    assert_true(
+        wide_w >= 2 * narrow_w - 2 and wide_w <= 2 * narrow_w + 2,
+        "0.4 is twice 0.2: " + String(wide_w) + " vs " + String(narrow_w),
+    )
+    assert_equal(wide[0], narrow[0], "same x, same left edge")
+    assert_equal(wide[1], narrow[1], "same y, same top edge")
+    assert_equal(wide[3], narrow[3], "same height, same bottom edge")
+
+
+def test_inset_fractions_are_checked_and_named() raises:
+    with assert_raises(contains="x must be within [0, 1]"):
+        _ = render_inset(_base_plot(), _inset_plot(), -0.1, 0.1, 0.3, 0.3)
+    with assert_raises(contains="width must be positive"):
+        _ = render_inset(_base_plot(), _inset_plot(), 0.1, 0.1, 0.0, 0.3)
+    with assert_raises(contains="past the plot rect's right edge"):
+        _ = render_inset(_base_plot(), _inset_plot(), 0.8, 0.1, 0.3, 0.3)
+    with assert_raises(contains="past the plot rect's bottom edge"):
+        _ = render_inset(_base_plot(), _inset_plot(), 0.1, 0.8, 0.3, 0.3)
+    with assert_raises(contains="rounds to nothing"):
+        _ = render_inset(_base_plot(), _inset_plot(), 0.1, 0.1, 0.0001, 0.3)
+
+
+def test_an_inset_renders_to_svg_with_its_own_background() raises:
+    var svg = render_inset_svg(
+        _base_plot(), _inset_plot(), 0.55, 0.05, 0.4, 0.4
+    ).to_string()
+    # rect 0 is the base's full background; rect 1 is the inset's axes
+    # area, which is narrower and starts inside the figure.
+    var widths = _attr_values(svg, "rect", "width")
+    var xs = _attr_values(svg, "rect", "x")
+    assert_equal(widths[0], "400")
+    assert_true(widths[1] != "400", "the inset's rect is smaller")
+    assert_true(xs[1] != "0", "and starts inside the figure")
+    assert_true(
+        svg.find("rgb(230, 230, 255)") != -1 or svg.find("#e6e6ff") != -1,
+        "the inset's background color is in the document",
     )
 
 
