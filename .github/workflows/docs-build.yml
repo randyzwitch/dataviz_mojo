@@ -23,20 +23,11 @@ jobs:
           pixi-version: v0.76.2
           cache: true
 
-      - uses: ./.github/actions/mojo-cache-restore
-        with:
-          name: docs
-
       - name: Render examples
         run: pixi run example
 
       - name: Render quickstart tutorial examples
         run: pixi run example-quickstart
-
-      - uses: ./.github/actions/mojo-cache-save
-        if: always()
-        with:
-          name: docs
 
       - name: Build docs site
         run: pixi run docs
