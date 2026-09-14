@@ -110,6 +110,8 @@ def _titles() -> Dict[String, String]:
     d["barplot"] = "Estimate Bars"
     d["countplot"] = "Count Bars"
     d["lineplot"] = "Estimate Line"
+    d["pairplot"] = "Pair Plot"
+    d["jointplot"] = "Joint Plot"
     d["pointplot"] = "Estimate Points"
     d["kdeplot"] = "Density Curve"
     d["rugplot"] = "Rug"
@@ -227,6 +229,8 @@ def _categories() -> List[Category]:
                 "countplot",
                 "lineplot",
                 "pointplot",
+                "pairplot",
+                "jointplot",
                 "eventplot",
             ],
         )

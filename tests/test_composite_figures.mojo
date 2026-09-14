@@ -262,6 +262,39 @@ def _ink(c: Canvas, theme: Theme) -> Int:
     return n
 
 
+def _ink_rows(c: Canvas, y0: Int, y1: Int, theme: Theme) -> Int:
+    """`_ink` over rows `y0` up to `y1` only."""
+    var bg = theme.background
+    var n = 0
+    for y in range(y0, y1):
+        for x in range(c.width):
+            var p = c.get_pixel(x, y)
+            if not (p.r == bg.r and p.g == bg.g and p.b == bg.b):
+                n += 1
+    return n
+
+
+def test_pairplot_title_sits_in_a_band_above_the_panels() raises:
+    # The figure grows by the band; the panels underneath do not move.
+    var data = _three()
+    var plain = pairplot(data[0], data[1], theme=_theme_pairplot())
+    var titled = pairplot(
+        data[0], data[1], theme=_theme_pairplot(), title="Three variables"
+    )
+    var band = titled.height - plain.height
+    assert_true(band > 0, "a title adds a band")
+    assert_equal(titled.width, plain.width)
+    assert_true(
+        _ink_rows(titled, 0, band, _theme_pairplot()) > 0,
+        "the band holds the title",
+    )
+    assert_equal(
+        _ink_rows(titled, band, titled.height, _theme_pairplot()),
+        _ink(plain, _theme_pairplot()),
+        "the panels are unchanged under it",
+    )
+
+
 def test_the_figure_is_n_by_n_cells() raises:
     var d = _three()
     var c = pairplot(

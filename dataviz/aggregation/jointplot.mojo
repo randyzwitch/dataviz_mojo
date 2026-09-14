@@ -120,23 +120,32 @@ def jointplot[
     `Plot`, for the reason `pairplot()` does: the result is several
     charts in a grid, and a `Plot` is one chart.
 
-    ```mojo
-    from dataviz import jointplot
-    from canvas.io.png import write_png
+    Example:
+        ```mojo
+        from dataviz import jointplot, save
 
-    def main() raises:
-        var x = List[Float64]()
-        var y = List[Float64]()
-        var seed = 20260913
-        for _ in range(400):
-            seed = (seed * 1103515245 + 12345) % 2147483648
-            var a = Float64(seed % 10000) / 1000.0
-            seed = (seed * 1103515245 + 12345) % 2147483648
-            var b = Float64(seed % 10000) / 1000.0
-            x.append(a)
-            y.append(a * 0.6 + b * 0.4)
-        write_png(jointplot(x, y, title="Joint distribution"), "joint.png")
-    ```
+        def main() raises:
+            # A correlated pair from a fixed linear congruential sequence,
+            # so the figure is the same on every run.
+            var x = List[Float64]()
+            var y = List[Float64]()
+            var seed = 20260913
+            for _ in range(400):
+                seed = (seed * 1103515245 + 12345) % 2147483648
+                var a = Float64(seed % 10000) / 1000.0
+                seed = (seed * 1103515245 + 12345) % 2147483648
+                var b = Float64(seed % 10000) / 1000.0
+                x.append(a)
+                y.append(a * 0.6 + b * 0.4)
+            var c = jointplot(
+                x,
+                y,
+                title="Joint distribution",
+                x_title="x",
+                y_title="0.6 x + noise",
+            )
+            save(c, "docs/src/examples/out_jointplot.png")
+        ```
 
     Args:
         x: The horizontal variable.

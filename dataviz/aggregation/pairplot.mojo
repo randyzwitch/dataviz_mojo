@@ -68,6 +68,7 @@ def pairplot[
     cell_width: Int = 220,
     cell_height: Int = 180,
     bins: Int = 10,
+    title: String = "",
 ) raises -> Canvas:
     """Every variable against every other, with distributions down the
     diagonal (#353).
@@ -91,6 +92,26 @@ def pairplot[
     the grid's scale rule deliberately does not apply; seaborn does the
     same.
 
+    Example:
+        ```mojo
+        from dataviz import pairplot, save
+
+        def main() raises:
+            # Illustrative measurements for a dozen sedans: engine size
+            # in liters, horsepower, and highway miles per gallon.
+            var columns: List[List[Float64]] = [
+                [1.5, 1.6, 1.8, 2.0, 2.0, 2.4, 2.5, 3.0, 3.3, 3.5, 4.0, 4.4],
+                [118, 132, 140, 158, 170, 185, 203, 255, 268, 290, 335, 375],
+                [38, 36, 34, 31, 30, 28, 27, 24, 23, 21, 19, 17],
+            ]
+            var c = pairplot(
+                columns,
+                ["Engine (L)", "Horsepower", "MPG"],
+                title="Sedan specifications, pairwise",
+            )
+            save(c, "docs/src/examples/out_pairplot.png")
+        ```
+
     Args:
         columns: One list per variable, all the same length.
         names: One label per variable, used as each panel's axis title.
@@ -98,6 +119,9 @@ def pairplot[
         cell_width: Each panel's width in pixels.
         cell_height: Each panel's height.
         bins: Histogram bins on the diagonal.
+        title: A figure title above the whole grid; the figure grows by
+            the title's band so the panels keep `cell_height`. Empty
+            for none.
 
     Returns:
         The rendered figure, `len(columns)` panels across.
@@ -169,4 +193,4 @@ def pairplot[
                     .size(cell_width, cell_height)
                     .labels(x_title=names[j], y_title=names[i])
                 )
-    return render_facets(plots, n)
+    return render_facets(plots, n, title=title)
