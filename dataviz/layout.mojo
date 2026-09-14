@@ -256,6 +256,131 @@ def _grid_shape(cells: List[GridCell]) -> Tuple[Int, Int]:
     return (rows, cols)
 
 
+def _measure_alignment_insets(
+    plots: List[Plot],
+    cells: List[GridCell],
+    x_edges: List[Int],
+    y_edges: List[Int],
+    gutter: Int,
+    rows: Int,
+    cols: Int,
+    shared_y_scale: Bool,
+    shared_y_min: Float64,
+    shared_y_max: Float64,
+    shared_y_is_log: Bool,
+    width: Int,
+    height: Int,
+    mut inset_left: List[Int],
+    mut inset_right: List[Int],
+    mut inset_top: List[Int],
+    mut inset_bottom: List[Int],
+) raises:
+    """Work out how far to inset each cell so a column shares its plot
+    rect's left and right edges, and a row its top and bottom (#569).
+
+    Measured rather than predicted. Each cell is rendered once into a
+    scratch canvas and asked where its plot rect actually landed, which
+    is the only way to know: a margin comes from the width of tick
+    labels this library chose, and predicting those means reimplementing
+    the tick selection.
+
+    A spanning cell takes part in the column it starts in and the column
+    it ends in, which are the only two edges a span has.
+
+    The scratch is a raster canvas whatever the real target is, because
+    a margin comes from `measure_text` and does not depend on the
+    backend. Its own font cache is thrown away with it; the real render
+    builds its own, and sharing one would mean the measure pass decided
+    what the draw pass had cached.
+
+    Args:
+        plots: The charts.
+        cells: Where each goes.
+        x_edges: Column boundaries.
+        y_edges: Row boundaries.
+        gutter: Height taken off every cell's bottom.
+        rows: Grid height.
+        cols: Grid width.
+        shared_y_scale: Whether a shared y-domain is in force.
+        shared_y_min: Its low end.
+        shared_y_max: Its high end.
+        shared_y_is_log: Whether it is logarithmic.
+        width: Figure width, for the scratch.
+        height: Figure height.
+        inset_left: Filled in, one per plot.
+        inset_right: Filled in.
+        inset_top: Filled in.
+        inset_bottom: Filled in.
+
+    Raises:
+        Error: Whatever rendering a cell raises. A figure that cannot be
+            measured cannot be drawn either, so this surfaces the same
+            error one pass earlier.
+    """
+    var own_left = List[Int](capacity=len(plots))
+    var own_right = List[Int](capacity=len(plots))
+    var own_top = List[Int](capacity=len(plots))
+    var own_bottom = List[Int](capacity=len(plots))
+
+    var scratch = Canvas(width, height)
+    var scratch_cache = FontCache()
+    for i in range(len(plots)):
+        var c = cells[i]
+        var cell_x0 = x_edges[c.col]
+        var cell_x1 = x_edges[c.col + c.col_span]
+        var cell_y0 = y_edges[c.row]
+        var cell_y1 = y_edges[c.row + c.row_span] - gutter
+        var frame = _apply_labels(plots[i], cell_x0, cell_y0, cell_x1, cell_y1)
+        var probe = _render_generic(
+            scratch,
+            plots[i],
+            frame.ox0,
+            frame.oy0,
+            frame.ox1,
+            frame.oy1,
+            has_shared_y_domain=shared_y_scale,
+            shared_y_min=shared_y_min,
+            shared_y_max=shared_y_max,
+            shared_y_is_log=shared_y_is_log,
+            cache=scratch_cache,
+        )
+        own_left.append(probe.px0 - cell_x0)
+        own_right.append(cell_x1 - probe.px1)
+        own_top.append(probe.py0 - cell_y0)
+        own_bottom.append(cell_y1 - probe.py1)
+
+    var col_left = List[Int](capacity=cols)
+    var col_right = List[Int](capacity=cols)
+    for _ in range(cols):
+        col_left.append(0)
+        col_right.append(0)
+    var row_top = List[Int](capacity=rows)
+    var row_bottom = List[Int](capacity=rows)
+    for _ in range(rows):
+        row_top.append(0)
+        row_bottom.append(0)
+
+    for i in range(len(plots)):
+        var c = cells[i]
+        var last_col = c.col + c.col_span - 1
+        var last_row = c.row + c.row_span - 1
+        if own_left[i] > col_left[c.col]:
+            col_left[c.col] = own_left[i]
+        if own_right[i] > col_right[last_col]:
+            col_right[last_col] = own_right[i]
+        if own_top[i] > row_top[c.row]:
+            row_top[c.row] = own_top[i]
+        if own_bottom[i] > row_bottom[last_row]:
+            row_bottom[last_row] = own_bottom[i]
+
+    for i in range(len(plots)):
+        var c = cells[i]
+        inset_left[i] = col_left[c.col] - own_left[i]
+        inset_right[i] = col_right[c.col + c.col_span - 1] - own_right[i]
+        inset_top[i] = row_top[c.row] - own_top[i]
+        inset_bottom[i] = row_bottom[c.row + c.row_span - 1] - own_bottom[i]
+
+
 def _render_cells_generic[
     T: DrawTarget
 ](
@@ -267,6 +392,7 @@ def _render_cells_generic[
     row_weights: List[Float64] = List[Float64](),
     col_weights: List[Float64] = List[Float64](),
     shared_y_scale: Bool = False,
+    align_axes: Bool = False,
     *,
     mut cache: FontCache,
 ) raises -> List[_TextRequest]:
@@ -283,6 +409,30 @@ def _render_cells_generic[
     support it; `_render_generic` raises per cell for the rest, including
     a log/linear mix, so the error names the cell that disagrees.
 
+    `align_axes` is its pixel counterpart (#569). A shared domain puts
+    two cells on the same numbers; it does not put them on the same
+    pixels, because each cell sizes its own margins from its own tick
+    labels and those are rarely the same width. For a facet grid that
+    hardly matters, since every cell shows the same kind of number. For a
+    joint plot it is the whole feature: the marginal above a scatter
+    counts observations while the scatter shows the data, so their
+    y-labels differ in width, and a marginal offset from the panel it
+    describes is lying about where the mass is.
+
+    It works by measuring rather than by predicting. Every cell is
+    rendered once into a scratch canvas and asked where its plot rect
+    actually landed; the widest left margin in a column, and the widest
+    right, become that column's, and likewise top and bottom per row.
+    The draw pass then hands each cell a rect inset by the difference
+    between its column's margin and its own, so every plot rect in the
+    column lands on the same edges. Margins do not depend on where a rect
+    starts, only on its size and content, which is what makes the
+    arithmetic hold.
+
+    The measure pass costs a second full render, so it happens only when
+    asked for. It uses a raster scratch whatever `T` is, because a
+    margin comes from `measure_text` and is the same either way.
+
     Args:
         target: The draw target, raster or vector.
         width: Figure width in pixels.
@@ -292,6 +442,9 @@ def _render_cells_generic[
         row_weights: Relative row heights, empty for equal.
         col_weights: Relative column widths, empty for equal.
         shared_y_scale: One y-domain across every cell.
+        align_axes: Give every cell in a column the same left and right
+            plot-rect edges, and every cell in a row the same top and
+            bottom.
         cache: The figure's shared font cache.
 
     Returns:
@@ -361,6 +514,38 @@ def _render_cells_generic[
         _Scaled(plots[0]._theme).label_gap * 2
     ) if wants_gutter else 0
 
+    # How far each cell's own rect is inset to bring its plot rect onto
+    # its column's and row's shared edges. All zero unless align_axes.
+    var inset_left = List[Int](capacity=len(plots))
+    var inset_right = List[Int](capacity=len(plots))
+    var inset_top = List[Int](capacity=len(plots))
+    var inset_bottom = List[Int](capacity=len(plots))
+    for _ in range(len(plots)):
+        inset_left.append(0)
+        inset_right.append(0)
+        inset_top.append(0)
+        inset_bottom.append(0)
+    if align_axes:
+        _measure_alignment_insets(
+            plots,
+            cells,
+            x_edges,
+            y_edges,
+            gutter,
+            rows,
+            cols,
+            shared_y_scale,
+            shared_y_min,
+            shared_y_max,
+            shared_y_is_log,
+            width,
+            height,
+            inset_left,
+            inset_right,
+            inset_top,
+            inset_bottom,
+        )
+
     for i in range(len(plots)):
         var c = cells[i]
         var cell_x0 = x_edges[c.col]
@@ -377,9 +562,13 @@ def _render_cells_generic[
             plots[i]._theme.background,
         )
         var cell_content_y1 = cell_y1 - gutter
-        var frame = _apply_labels(
-            plots[i], cell_x0, cell_y0, cell_x1, cell_content_y1
-        )
+        # The inset rect the cell actually lays out in. Identical to the
+        # cell rect unless align_axes asked for shared edges.
+        var laid_x0 = cell_x0 + inset_left[i]
+        var laid_x1 = cell_x1 - inset_right[i]
+        var laid_y0 = cell_y0 + inset_top[i]
+        var laid_y1 = cell_content_y1 - inset_bottom[i]
+        var frame = _apply_labels(plots[i], laid_x0, laid_y0, laid_x1, laid_y1)
         var cell_result = _render_generic(
             target,
             plots[i],
@@ -499,6 +688,7 @@ def render_grid(
     row_weights: List[Float64] = List[Float64](),
     col_weights: List[Float64] = List[Float64](),
     shared_y_scale: Bool = False,
+    align_axes: Bool = False,
 ) raises -> Canvas:
     """Place each plot in its own cell of one `width` by `height` canvas.
 
@@ -533,6 +723,10 @@ def render_grid(
         row_weights: Relative row heights, empty for equal rows.
         col_weights: Relative column widths, empty for equal columns.
         shared_y_scale: Give every cell one y-domain.
+        align_axes: Share plot-rect edges down each column and across
+            each row, so a cell lines up with its neighbors rather than
+            with whatever its own tick labels happened to need (#569).
+            Costs a second measuring render.
 
     Returns:
         The rendered figure.
@@ -567,6 +761,7 @@ def render_grid(
         row_weights,
         col_weights,
         shared_y_scale,
+        align_axes,
         cache=cache,
     )
     _replay_text_requests(canvas, text_requests, cache)
@@ -582,6 +777,7 @@ def render_grid_svg(
     row_weights: List[Float64] = List[Float64](),
     col_weights: List[Float64] = List[Float64](),
     shared_y_scale: Bool = False,
+    align_axes: Bool = False,
 ) raises -> SvgCanvas:
     """`render_grid()`'s counterpart for `SvgCanvas`.
 
@@ -593,6 +789,7 @@ def render_grid_svg(
         row_weights: Relative row heights, empty for equal rows.
         col_weights: Relative column widths, empty for equal columns.
         shared_y_scale: Give every cell one y-domain.
+        align_axes: Share plot-rect edges, as `render_grid()`.
 
     Returns:
         The rendered figure as vector markup.
@@ -614,6 +811,7 @@ def render_grid_svg(
         row_weights,
         col_weights,
         shared_y_scale,
+        align_axes,
         cache=cache,
     )
     _replay_text_requests_svg(svg, text_requests)
@@ -629,6 +827,7 @@ def save_grid(
     row_weights: List[Float64] = List[Float64](),
     col_weights: List[Float64] = List[Float64](),
     shared_y_scale: Bool = False,
+    align_axes: Bool = False,
 ) raises:
     """`render_grid()`'s counterpart that writes a file, picking the
     format from `plots[0]`'s theme or the path's extension.
@@ -646,6 +845,7 @@ def save_grid(
         row_weights: Relative row heights, empty for equal rows.
         col_weights: Relative column widths, empty for equal columns.
         shared_y_scale: Give every cell one y-domain.
+        align_axes: Share plot-rect edges, as `render_grid()`.
 
     Raises:
         Error: Whatever `render_grid()` raises, or a write failure.
@@ -664,6 +864,7 @@ def save_grid(
                     row_weights,
                     col_weights,
                     shared_y_scale,
+                    align_axes,
                 ),
                 plots[0]._labels,
             )
@@ -679,6 +880,7 @@ def save_grid(
                 row_weights,
                 col_weights,
                 shared_y_scale,
+                align_axes,
             ),
             path,
         )
@@ -692,6 +894,7 @@ def save_grid(
                 row_weights,
                 col_weights,
                 shared_y_scale,
+                align_axes,
             ),
             path,
         )

@@ -477,5 +477,174 @@ def test_a_uniform_grid_is_a_facet_grid() raises:
     )
 
 
+def _axis_left(c: Canvas, y0: Int, y1: Int) -> Int:
+    """Leftmost column holding a tall run of the axis color: the left
+    spine, which is where the plot rect starts.
+
+    Tick labels sit outside that rect and are not it, which an earlier
+    version of this measured by mistake and got a confusing answer from:
+    wide labels start further left precisely because the rect they
+    belong to starts further right.
+    """
+    var axis = Theme().axis_color
+    for x in range(c.width):
+        var run = 0
+        for y in range(y0, y1):
+            var p = c.get_pixel(x, y)
+            if p.r == axis.r and p.g == axis.g and p.b == axis.b:
+                run += 1
+        if run > (y1 - y0) // 2:
+            return x
+    return -1
+
+
+def _axis_bottom(c: Canvas, x0: Int, x1: Int) -> Int:
+    """Lowest row holding a wide run of the axis color: the bottom
+    spine."""
+    var axis = Theme().axis_color
+    for y in range(c.height - 1, -1, -1):
+        var run = 0
+        for x in range(x0, x1):
+            var p = c.get_pixel(x, y)
+            if p.r == axis.r and p.g == axis.g and p.b == axis.b:
+                run += 1
+        if run > (x1 - x0) // 2:
+            return y
+    return -1
+
+
+def _wide_and_narrow_labels() raises -> Tuple[List[Plot], List[GridCell]]:
+    """Two cells stacked in one column, whose y-labels differ a lot in
+    width: values near 1 above, values in the millions below.
+
+    That width difference is the whole problem. Each cell sizes its own
+    left margin from its own tick labels, so a shared domain puts the
+    two on the same numbers while leaving them on different pixels.
+    """
+    var small = List[Float64]()
+    var large = List[Float64]()
+    for i in range(8):
+        small.append(Float64(i) * 0.1 + 1.0)
+        large.append(Float64(i) * 1000000.0 + 5000000.0)
+    var plots = List[Plot]()
+    plots.append(
+        Plot()
+        .mark_line()
+        .encode(x=_xs(8), y=small)
+        .theme(_theme())
+        .size(300, 200)
+    )
+    plots.append(
+        Plot()
+        .mark_line()
+        .encode(x=_xs(8), y=large)
+        .theme(_theme())
+        .size(300, 200)
+    )
+    var cells = List[GridCell]()
+    cells.append(GridCell(0, 0))
+    cells.append(GridCell(1, 0))
+    return (plots^, cells^)
+
+
+def test_align_axes_puts_a_column_on_one_left_edge() raises:
+    """#569's point, and what #354's joint plot needs.
+
+    `shared_y_scale` is the domain half of this and has always existed.
+    The pixel half did not: two cells on the same numbers still sat on
+    different pixels, because each sized its margins from its own tick
+    labels.
+    """
+    var d = _wide_and_narrow_labels()
+    var loose = render_grid(d[0], d[1], 400, 400)
+    var top = _axis_left(loose, 10, 190)
+    var bottom = _axis_left(loose, 210, 390)
+    assert_true(
+        top != bottom,
+        (
+            "both cells already start at "
+            + String(top)
+            + ", so there is nothing for align_axes to fix and this test"
+            " proves nothing"
+        ),
+    )
+
+    var tight = render_grid(d[0], d[1], 400, 400, align_axes=True)
+    var atop = _axis_left(tight, 10, 190)
+    var abottom = _axis_left(tight, 210, 390)
+    assert_equal(
+        atop,
+        abottom,
+        (
+            "aligned, the two cells' left spines are at "
+            + String(atop)
+            + " and "
+            + String(abottom)
+        ),
+    )
+    # And it aligns on the widest margin rather than the narrowest, so
+    # no cell has its labels clipped to fit.
+    assert_equal(
+        atop, max(top, bottom), "the column did not take the widest margin"
+    )
+
+
+def test_align_axes_shares_a_row_s_bottom_edge() raises:
+    # The other axis. Two cells side by side, one with an x-axis title
+    # and one without, so their bottom margins differ.
+    var plain = (
+        Plot()
+        .mark_line()
+        .encode(x=_xs(8), y=_ys(8, 1.0))
+        .theme(_theme())
+        .size(200, 200)
+    )
+    var titled = (
+        Plot()
+        .mark_line()
+        .encode(x=_xs(8), y=_ys(8, 1.0))
+        .labels(x_title="quarter")
+        .theme(_theme())
+        .size(200, 200)
+    )
+    var plots = List[Plot]()
+    plots.append(plain^)
+    plots.append(titled^)
+    var cells = List[GridCell]()
+    cells.append(GridCell(0, 0))
+    cells.append(GridCell(0, 1))
+
+    var loose = render_grid(plots, cells, 400, 240)
+    var left = _axis_bottom(loose, 20, 180)
+    var right = _axis_bottom(loose, 220, 380)
+    assert_true(
+        left != right,
+        "the two cells already share a bottom edge, so this proves nothing",
+    )
+
+    var tight = render_grid(plots, cells, 400, 240, align_axes=True)
+    assert_equal(
+        _axis_bottom(tight, 20, 180),
+        _axis_bottom(tight, 220, 380),
+        "aligned, the row's two cells do not share a bottom edge",
+    )
+
+
+def test_align_axes_is_off_by_default() raises:
+    # It costs a second measuring render, so it has to be asked for, and
+    # asking for nothing has to draw what it always drew.
+    var d = _wide_and_narrow_labels()
+    var implicit = render_grid(d[0], d[1], 400, 400)
+    var explicit = render_grid(d[0], d[1], 400, 400, align_axes=False)
+    var diff = 0
+    for y in range(implicit.height):
+        for x in range(implicit.width):
+            var a = implicit.get_pixel(x, y)
+            var b = explicit.get_pixel(x, y)
+            if a.r != b.r or a.g != b.g or a.b != b.b:
+                diff += 1
+    assert_equal(diff, 0, "align_axes=False is not the default")
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
