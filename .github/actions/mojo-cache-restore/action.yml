@@ -1,0 +1,44 @@
+name: Restore the Mojo build cache
+description: >-
+  Restore the Mojo build cache saved by an earlier run on main, and record
+  how many entries it holds so the save step can tell whether this run
+  added any. Requires MODULAR_CACHE_DIR in the job's env (#598).
+
+# Mojo caches the dependency compilation (canvas_mojo, the standard
+# library) per top-level module, keyed on that module's path string and
+# not on any source content or mtime. So a cache saved on main hits for
+# every module that already existed, whatever a PR changes; only a new or
+# renamed module, a canvas pin change, or a toolchain change is cold. The
+# lock hash in the key covers the last two.
+#
+# The exact key ends in the run id and never matches; restore-keys picks
+# the newest cache for this platform and lock. That is deliberate: a save
+# only happens when a run adds entries, so "newest" is also "most
+# complete", and a PR cannot save at all (a cache written on a PR is
+# invisible to main and to other PRs).
+
+inputs:
+  name:
+    description: Which job's cache this is (test, docs). Jobs compile different modules.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache/restore@v4
+      with:
+        path: ${{ env.MODULAR_CACHE_DIR }}
+        key: mojo-${{ inputs.name }}-${{ runner.os }}-${{ hashFiles('pixi.lock') }}-${{ github.run_id }}
+        restore-keys: |
+          mojo-${{ inputs.name }}-${{ runner.os }}-${{ hashFiles('pixi.lock') }}-
+
+    # One line that says whether a cache arrived. A cache that silently
+    # failed to restore looks exactly like one that is working, except
+    # that every module then compiles cold; the per-module times in the
+    # test log are the real check, this is the one-glance tell.
+    - shell: bash
+      run: |
+        n=$(find "$MODULAR_CACHE_DIR" -type f 2>/dev/null | wc -l)
+        size=$(du -sh "$MODULAR_CACHE_DIR" 2>/dev/null | cut -f1)
+        echo "mojo cache before: $n entries, ${size:-0} at $MODULAR_CACHE_DIR"
+        echo "MOJO_CACHE_ENTRIES_BEFORE=$n" >> "$GITHUB_ENV"

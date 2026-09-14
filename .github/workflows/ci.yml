@@ -40,6 +40,10 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    env:
+      # Mojo's build cache, kept outside .pixi so setup-pixi's tarball and
+      # the cache below never overlap. See .github/actions/mojo-cache-restore.
+      MODULAR_CACHE_DIR: ${{ runner.temp }}/mojo-cache
     steps:
       - uses: actions/checkout@v7
 
@@ -56,11 +60,20 @@ jobs:
           pixi-version: v0.76.2
           cache: true
 
+      - uses: ./.github/actions/mojo-cache-restore
+        with:
+          name: test
+
       - name: Check the runner's module-timeout guard
         run: pixi run test-runner
 
       - name: Run tests
         run: pixi run test
+
+      - uses: ./.github/actions/mojo-cache-save
+        if: always()
+        with:
+          name: test
 
   package:
     name: Build the package and compile a consumer against it
@@ -131,6 +144,8 @@ jobs:
     name: Docs build (status check)
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      MODULAR_CACHE_DIR: ${{ runner.temp }}/mojo-cache
     steps:
       - uses: actions/checkout@v7
 
@@ -142,11 +157,20 @@ jobs:
           pixi-version: v0.76.2
           cache: true
 
+      - uses: ./.github/actions/mojo-cache-restore
+        with:
+          name: docs
+
       - name: Render examples
         run: pixi run example
 
       - name: Render quickstart tutorial examples
         run: pixi run example-quickstart
+
+      - uses: ./.github/actions/mojo-cache-save
+        if: always()
+        with:
+          name: docs
 
       - name: Build docs site
         run: pixi run docs

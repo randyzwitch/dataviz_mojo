@@ -1,0 +1,35 @@
+name: Save the Mojo build cache
+description: >-
+  Save the Mojo build cache when this run added entries, and only on main,
+  where a cache is visible to every later run. Pair with mojo-cache-restore.
+
+# Saving only when the entry count grew keeps the number of caches small:
+# a run whose module set matches the restored cache adds nothing and
+# saves nothing. A run that adds a module, or the first run after a lock
+# change, saves under a fresh key that the next restore-keys lookup
+# prefers. Call this with `if: always()` so a failing test run on main
+# still seeds the cache for the runs that follow.
+
+inputs:
+  name:
+    description: The same name given to mojo-cache-restore.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - id: count
+      shell: bash
+      run: |
+        n=$(find "$MODULAR_CACHE_DIR" -type f 2>/dev/null | wc -l)
+        size=$(du -sh "$MODULAR_CACHE_DIR" 2>/dev/null | cut -f1)
+        echo "mojo cache after: $n entries, ${size:-0} (before: ${MOJO_CACHE_ENTRIES_BEFORE:-unknown})"
+        if [ "$n" -gt "${MOJO_CACHE_ENTRIES_BEFORE:-0}" ]; then
+          echo "grew=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - if: steps.count.outputs.grew == 'true' && github.ref == 'refs/heads/main'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ env.MODULAR_CACHE_DIR }}
+        key: mojo-${{ inputs.name }}-${{ runner.os }}-${{ hashFiles('pixi.lock') }}-${{ github.run_id }}

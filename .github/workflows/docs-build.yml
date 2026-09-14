@@ -12,6 +12,8 @@ jobs:
     name: Build docs
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      MODULAR_CACHE_DIR: ${{ runner.temp }}/mojo-cache
     steps:
       - uses: actions/checkout@v7
 
@@ -23,11 +25,20 @@ jobs:
           pixi-version: v0.76.2
           cache: true
 
+      - uses: ./.github/actions/mojo-cache-restore
+        with:
+          name: docs
+
       - name: Render examples
         run: pixi run example
 
       - name: Render quickstart tutorial examples
         run: pixi run example-quickstart
+
+      - uses: ./.github/actions/mojo-cache-save
+        if: always()
+        with:
+          name: docs
 
       - name: Build docs site
         run: pixi run docs
