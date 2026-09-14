@@ -42,7 +42,7 @@ def _render_eventplot[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.EVENTPLOT` plot: one row of ticks per series, each
-    tick at the position of one event -- matplotlib's `ax.eventplot()`.
+    tick at the position of one event.
 
     Rows run top to bottom on the `OrdinalScale` y-axis that
     `_draw_horizontal_categorical_axis_frame` (gantt.mojo) builds, the
@@ -59,8 +59,8 @@ def _render_eventplot[
     way a dropped line vertex is not: a polyline's missing vertex still
     leaves the line passing through where it was, while a missing tick
     says nothing happened. With thousands of events per row the ticks do
-    overlap into a solid bar -- matplotlib does not solve this either --
-    and `mark_eventplot(line_length=...)` is the honest lever, since a
+    overlap into a solid bar, and `mark_eventplot(line_length=...)` is
+    the honest lever, since a
     shorter tick relieves crowding between rows without touching what is
     drawn along one.
 
@@ -159,9 +159,7 @@ def eventplot(
     """One row of tick marks per series, each tick at the position of one
     event: a raster plot.
 
-    `Mark.EVENTPLOT`: matplotlib's `ax.eventplot()`.
-
-    The chart for things that happen rather than things that have a
+    `Mark.EVENTPLOT`: the chart for things that happen rather than things that have a
     value -- spike trains, request logs, error occurrences, release
     dates. Every event is drawn where it happened, so nothing is lost to
     a bucket the way it is in a histogram or a calendar heatmap; the

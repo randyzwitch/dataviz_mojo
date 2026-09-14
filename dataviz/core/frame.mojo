@@ -883,9 +883,7 @@ def _draw_continuous_axis_frame[
     is the same length and sits on the baseline, so the placeholder
     `LinearScale(0, 1, ...)` the frame requires would otherwise be
     published to the reader as the labels `0.0 0.2 ... 1.0`, a density
-    that does not exist. seaborn's standalone `rugplot()` keeps those
-    0-1 limits; this is a deliberate improvement on the reference, not a
-    deviation from it.
+    that does not exist.
 
     The vertical gridlines and the whole x-axis stay: they carry the
     mark's only real dimension. Only the y half goes.
@@ -895,8 +893,8 @@ def _draw_continuous_axis_frame[
     with the ticks and labels gone the bare spine is 190 unexplained
     pixels of `axis_color` in a single column of a 400x260 rug, more ink
     than the observations it stands next to, and it reads as a y-axis
-    whose labels failed to draw rather than as a frame. matplotlib's own
-    answer for this chart is `despine(left=True)`. The x-axis line still
+    whose labels failed to draw rather than as a frame. The x-axis line
+    still
     terminates at `plot_x0`, so the rect is unambiguous without it.
 
     The flag also collapses `dynamic_left_margin`, so the left margin
@@ -914,9 +912,8 @@ def _draw_continuous_axis_frame[
     `y_descending=True` flips which end of the plot rect the
     y-domain's *minimum* lands on, so the axis counts downward: 0 at the
     top, growing toward the bottom. Only `Mark.IMSHOW` asks for it, and
-    only because a raster's row 0 is its top scanline -- the same
-    convention matplotlib's `imshow(origin='upper')` has as its default,
-    and the one every matrix is printed in. Drawing an image the other
+    only because a raster's row 0 is its top scanline, the order every
+    matrix is printed in. Drawing an image the other
     way up is not a styling choice; `imshow(read_png(...))` would come
     out mirrored, which is the plainest kind of wrong chart.
 

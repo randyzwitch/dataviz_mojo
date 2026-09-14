@@ -1,7 +1,7 @@
 """A bivariate chart with each variable's own distribution beside it (#354).
 
-seaborn's `jointplot`. A scatter of `y` against `x`, a histogram of `x`
-along the top, and a histogram of `y` down the right side.
+A scatter of `y` against `x`, a histogram of `x` along the top, and a
+histogram of `y` down the right side.
 
 It is the natural chart for "are these two related, and what does each
 look like on its own", and the answer is often that a convincing-looking
@@ -25,8 +25,7 @@ their plot rects would start at different pixels. `render_grid`'s
 `align_axes` measures every cell and puts a column on one pair of
 vertical edges (#569). That is the piece this chart was waiting on.
 
-The corner opposite the two marginals is left empty, as seaborn leaves
-it, and takes the figure background rather than showing through.
+The corner opposite the two marginals is left empty and takes the figure background rather than showing through.
 """
 
 from canvas.buffer import Canvas
@@ -116,7 +115,7 @@ def jointplot[
     """A scatter of `y` against `x` with each variable's distribution
     along its own axis.
 
-    seaborn's `jointplot`. Returns a rendered `Canvas` rather than a
+    Returns a rendered `Canvas` rather than a
     `Plot`, for the reason `pairplot()` does: the result is several
     charts in a grid, and a `Plot` is one chart.
 
@@ -155,8 +154,8 @@ def jointplot[
         height: Figure height in pixels.
         bins: Intervals in each marginal.
         ratio: How many times the main panel's size the marginals are
-            divided into. seaborn uses about 4, so a marginal is a fifth
-            of the figure.
+            divided into. At the default of 4 a marginal is a fifth of
+            the figure.
         title: Shown above the top marginal, which is the top of the
             figure.
         x_title: The horizontal axis caption, on the main panel.

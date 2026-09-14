@@ -125,7 +125,7 @@ def _render_kde[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.KDE` plot: one smooth density curve over raw
-    observations, the shape seaborn's `kdeplot()` draws.
+    observations.
 
     The same estimate `Mark.VIOLIN` computes, drawn on a continuous
     frame -- value across, density up -- rather than mirrored inside a
@@ -311,7 +311,7 @@ def _render_rug[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.RUG` plot: one short tick per observation along the
-    x axis, the shape seaborn's `rugplot()` draws.
+    x axis.
 
     A density curve is smooth everywhere and says nothing about how many
     observations are behind it, or where they actually fall. A rug is the
@@ -400,15 +400,14 @@ def kdeplot(
     """A kernel-density curve over raw observations: the smooth estimate
     of a distribution's shape, without a histogram's bin-width choice.
 
-    `Mark.KDE`: seaborn's `kdeplot()`. The same estimate `Mark.VIOLIN`
+    `Mark.KDE`: the same estimate `Mark.VIOLIN`
     computes, drawn on a continuous frame -- value across, density up --
     which is the form for comparing two or three distributions on shared
     axes.
 
-    Comparing them on one frame is what seaborn does by calling
-    `kdeplot()` twice onto the same axes, and
-    `render_layers([kdeplot(a), kdeplot(b)])` is how to say that here
-    : the curves share one density axis, so their peak heights are
+    To compare them on one frame,
+    `render_layers([kdeplot(a), kdeplot(b)])` is how to say that: the
+    curves share one density axis, so their peak heights are
     comparable, which is the whole point. `render_facets()` puts them
     side by side instead, a weaker reading but useful when the
     distributions barely overlap.
@@ -486,7 +485,7 @@ def rugplot(
 ) raises -> Plot:
     """One short tick per observation along the x axis.
 
-    `Mark.RUG`: seaborn's `rugplot()`. The same ticks `kdeplot(rug=True)`
+    `Mark.RUG`: the same ticks `kdeplot(rug=True)`
     draws under its curve, as a chart of their own -- or as a layer, via
     `render_layers([kdeplot(v), rugplot(v)])`, which draws exactly what
     `kdeplot(rug=True)` does.

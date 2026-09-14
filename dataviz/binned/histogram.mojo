@@ -980,8 +980,7 @@ def histogram_bins(
     bins and would depend on how many bins the caller asked for.
     Accumulating mass instead makes `DENSITY` cumulative the empirical
     CDF (last bin exactly `1.0`) and `FREQUENCY` cumulative the running
-    count, matching matplotlib's `hist(cumulative=True, density=...)`
-    on both equal- and unequal-width edges.
+    count, on both equal- and unequal-width edges.
 
     Args:
         data: The observations to bin.
@@ -1250,8 +1249,8 @@ def histogram(
             raw count makes a wide bin look like a tall one.
         cumulative: Draw each bin as the running total at or below its
             right edge, turning the chart into an empirical CDF.
-        stepfilled: Draw the bins as one filled staircase (matplotlib's
-            `histtype="stepfilled"`, `Mark.AREA` with `StepStyle.POST`)
+        stepfilled: Draw the bins as one filled staircase (`Mark.AREA`
+            with `StepStyle.POST`)
             instead of a rectangle per bin (`Mark.HISTOGRAM`, the
             default). The staircase has no separator between adjacent
             bins of equal height, which is the shape that sits well
@@ -1561,8 +1560,8 @@ def histogram(
             default) for one apiece.
         stat: What a bar's height is; see `HistStat`.
         cumulative: Draw running totals instead of per-bin values.
-        stepfilled: Draw the bins as one filled staircase (matplotlib's
-            `histtype="stepfilled"`, `Mark.AREA` with `StepStyle.POST`)
+        stepfilled: Draw the bins as one filled staircase (`Mark.AREA`
+            with `StepStyle.POST`)
             instead of a rectangle per bin (`Mark.HISTOGRAM`, the
             default). The staircase has no separator between adjacent
             bins of equal height, which is the shape that sits well
@@ -1658,8 +1657,8 @@ def histogram(
     `numpy.histogram` is a counting function whose output a program
     consumes, where a stable count is a stability guarantee; this is a
     chart, and ten bins is a guess that is wrong in both directions -- a
-    comb over fourteen readings, a smear over five thousand. seaborn
-    makes the same call. `Plot.encode_histogram()`'s categorical path
+    comb over fourteen readings, a smear over five thousand.
+    `Plot.encode_histogram()`'s categorical path
     keeps 10, since its bins are range labels a reader expects to be
     stable.
 
@@ -1674,8 +1673,8 @@ def histogram(
             reads the unweighted sample, as numpy's do.
         stat: What a bar's height is; see `HistStat`.
         cumulative: Draw running totals instead of per-bin values.
-        stepfilled: Draw the bins as one filled staircase (matplotlib's
-            `histtype="stepfilled"`, `Mark.AREA` with `StepStyle.POST`)
+        stepfilled: Draw the bins as one filled staircase (`Mark.AREA`
+            with `StepStyle.POST`)
             instead of a rectangle per bin (`Mark.HISTOGRAM`, the
             default). The staircase has no separator between adjacent
             bins of equal height, which is the shape that sits well
@@ -1753,8 +1752,8 @@ def histogram[
         weights: One nonnegative weight per observation, or empty.
         stat: What a bar's height is; see `HistStat`.
         cumulative: Draw running totals instead of per-bin values.
-        stepfilled: Draw the bins as one filled staircase (matplotlib's
-            `histtype="stepfilled"`, `Mark.AREA` with `StepStyle.POST`)
+        stepfilled: Draw the bins as one filled staircase (`Mark.AREA`
+            with `StepStyle.POST`)
             instead of a rectangle per bin (`Mark.HISTOGRAM`, the
             default). The staircase has no separator between adjacent
             bins of equal height, which is the shape that sits well
@@ -1833,8 +1832,8 @@ def histogram[
         weights: One nonnegative weight per observation, or empty.
         stat: What a bar's height is; see `HistStat`.
         cumulative: Draw running totals instead of per-bin values.
-        stepfilled: Draw the bins as one filled staircase (matplotlib's
-            `histtype="stepfilled"`, `Mark.AREA` with `StepStyle.POST`)
+        stepfilled: Draw the bins as one filled staircase (`Mark.AREA`
+            with `StepStyle.POST`)
             instead of a rectangle per bin (`Mark.HISTOGRAM`, the
             default). The staircase has no separator between adjacent
             bins of equal height, which is the shape that sits well

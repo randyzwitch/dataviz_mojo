@@ -116,8 +116,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     """Whether to draw a short tick mark at each minor tick;
     defaults to `False`, so no existing chart changes.
 
-    Separate from `show_minor_gridlines` the way matplotlib separates
-    `minorticks_on()` from `grid(which="minor")`: a minor level on the
+    Separate from `show_minor_gridlines`: a minor level on the
     axis and a minor level across the plot are different amounts of
     ink, and a log axis often wants the first without the second."""
     var show_minor_gridlines: Bool
@@ -291,12 +290,12 @@ struct Theme(ImplicitlyCopyable, Movable):
     composite `Color.a`. Label text still uses `annotation_color`.
     """
     var show_axis_left: Bool
-    """Draw the left axis line (matplotlib's left spine). On by default.
+    """Draw the left axis line. On by default.
 
     The four `show_axis_*` flags are the spine controls #346 asked for:
     all four off is a frameless chart, all four on is the full box
-    several journal styles want, and turning off the top and right --
-    already the default here -- is what seaborn's `despine()` does.
+    several journal styles want, and turning off the top and right is
+    the default here.
 
     Hiding an axis hides its tick *marks* too, since a tick with no line
     to sit on reads as a stray hairline. Tick *labels* stay: they carry
@@ -322,9 +321,8 @@ struct Theme(ImplicitlyCopyable, Movable):
     appearance: with data spanning zero, an axis at the edge makes a
     value's sign something you read off a label, and an axis through
     zero makes it something you see. The x tick marks and their labels
-    move with the line, as matplotlib's do -- which is why the labels
-    can land on top of the data, and why matplotlib leaves that to the
-    caller too.
+    move with the line, which is why the labels can land on top of the
+    data; that is left to the caller.
 
     Only continuous-axis marks honor it; see `AxisPosition.ZERO` for the
     fallback rule.

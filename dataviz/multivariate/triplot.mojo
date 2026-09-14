@@ -55,9 +55,9 @@ struct _TriplotData(Copyable, Movable):
 
     var gouraud: Bool
     """Interpolate the color across each face from its three vertices
-    instead of filling it flat (matplotlib's `shading="gouraud"`).
+    instead of filling it flat.
 
-    Off by default, which is matplotlib's default too: a flat fill says
+    Off by default: a flat fill says
     "this triangle has this value", which is what the data supports.
     Gouraud says the field varies smoothly between samples, which is an
     assumption, and a true one often enough to be worth offering.
@@ -67,7 +67,7 @@ struct _TriplotData(Copyable, Movable):
     """
 
     var facecolors: List[Float64]
-    """One value per *triangle*, matplotlib's `tripcolor(facecolors=)`.
+    """One value per *triangle*.
 
     Empty means colour each triangle by the mean of its three vertices'
     `z`, which is what this mark did before and still does by default.
@@ -130,11 +130,10 @@ def _triangle_means(t: Triangulation, z: List[Float64]) -> List[Float64]:
     three vertices.
 
     **Flat, not Gouraud.** A per-vertex value means each triangle spans a
-    range of values, and there are two readings of that. matplotlib's
-    `tripcolor` defaults to `shading='flat'`, which paints each triangle
-    one color from the mean of its three vertices, and offers
-    `shading='gouraud'` to interpolate across the face instead. This
-    ships flat, the default, for the reason the interpolated form is an
+    range of values, and there are two readings of that: flat paints each
+    triangle one color from the mean of its three vertices, and Gouraud
+    interpolates across the face instead. This ships flat, the default,
+    for the reason the interpolated form is an
     addition rather than a variant: `DrawTarget.fill_path_aa` fills a
     path with a single color, so Gouraud would need either per-pixel
     evaluation of the barycentric interpolant or subdividing every
@@ -176,7 +175,7 @@ def _render_triplot[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.TRIPLOT` plot: the Delaunay mesh over scattered
-    `(x, y)` samples, the shape matplotlib's `triplot()` draws.
+    `(x, y)` samples.
 
     The points are triangulated (`delaunay`, Bowyer-Watson), the
     triangles' edges deduplicated by `_triplot_edges`, and all of them
@@ -191,9 +190,7 @@ def _render_triplot[
     `scatter()` over a mesh, share one domain by construction.
 
     Vertex dots are drawn on top when `mark_triplot(show_points=True)`,
-    which is this package's default and a deliberate divergence:
-    matplotlib's `triplot()` draws lines only unless the caller asks for
-    markers in its format string. A mesh with no vertices shown does not
+    which is this package's default. A mesh with no vertices shown does not
     say which crossings are samples and which are just where edges
     happen to meet, and telling those apart is most of what the mark is
     for.
@@ -330,8 +327,7 @@ def _render_tripcolor[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.TRIPCOLOR` plot: every triangle of the Delaunay
-    mesh filled from the values at its vertices, the shape matplotlib's
-    `tripcolor()` draws.
+    mesh filled from the values at its vertices.
 
     Shading is flat -- one color per triangle, from the mean of its three
     vertex values; see `_triangle_means` for why that and not Gouraud.
@@ -343,8 +339,7 @@ def _render_tripcolor[
     **The color domain is the triangle means, not the vertex values.**
     Averaging pulls every triangle's value inward from `z`'s own range,
     so normalizing against the vertex range would leave both ends of the
-    ramp unused and the chart flatter than the data. matplotlib
-    normalizes over the face values for the same reason. The cost is that
+    ramp unused and the chart flatter than the data. The cost is that
     `tripcolor` and `tricontourf` of the same samples do not share a
     color mapping, which is the honest consequence of flat shading:
     a triangle's color is a property of the triangle, not of a point.
@@ -357,7 +352,7 @@ def _render_tripcolor[
     to a single shape and there is nothing to blend against the page.
 
     Until #575 this was a stroke instead: each triangle outlined in its
-    own fill color, matplotlib's `edgecolors="face"`, wide enough that
+    own fill color, wide enough that
     two neighbors' extended coverage overlapped across their shared
     edge. It worked, at a width picked by measurement, but it was a
     workaround for something the drawing layer can now do directly, and
@@ -571,7 +566,7 @@ def triplot[
     mesh-inspection view, and what you look at when a `tricontour()` or
     `tripcolor()` over the same points comes out wrong.
 
-    `Mark.TRIPLOT`: matplotlib's `triplot()`. See `_render_triplot` for
+    `Mark.TRIPLOT`. See `_render_triplot` for
     the drawing, `tripcolor()` for the filled counterpart, and
     `tricontour()` for contouring the same samples.
 
@@ -583,8 +578,7 @@ def triplot[
         x: Each sample's x position.
         y: Each sample's y position, one per `x` entry.
         show_points: Draw a dot at every sample on top of the mesh.
-            Defaults to `True`, where matplotlib's `triplot()` draws
-            lines only: without the dots a reader cannot tell a sample
+            Defaults to `True`: without the dots a reader cannot tell a sample
             from a place where edges happen to meet, which is most of
             what the mark is for. Pass `False` for the mesh alone.
         theme: Full styling knobs beyond this function's own
@@ -663,12 +657,12 @@ def tripcolor[
     measured at stations, boreholes or any other irregular set of
     positions.
 
-    `Mark.TRIPCOLOR`: matplotlib's `tripcolor()`. See `_render_tripcolor`
+    `Mark.TRIPCOLOR`. See `_render_tripcolor`
     for the painting, `triplot()` for the bare mesh, and `tricontourf()`
     for filled contour *bands* over the same samples.
 
     Shading is flat: one color per triangle, from the mean of its three
-    vertex values, which is matplotlib's default. Colors come from
+    vertex values. Colors come from
     `Theme`'s color scale, so `Theme(color_ramp=viridis())` makes
     it perceptually uniform.
 
@@ -682,8 +676,8 @@ def tripcolor[
         y: Each sample's y position, one per `x` entry.
         z: The value at each sample, one per `x` entry.
         gouraud: Interpolate each triangle's color across it from its
-            three vertices instead of filling it flat, matplotlib's
-            `shading="gouraud"`. Off by default (#398). SVG output
+            three vertices instead of filling it flat. Off by default
+            (#398). SVG output
             approximates it; see `_draw_tripcolor_layer`.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --

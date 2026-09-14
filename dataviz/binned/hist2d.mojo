@@ -110,7 +110,7 @@ def hist2d(
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A 2D histogram, matplotlib's `hist2d()`: `(x, y)` points binned
+    """A 2D histogram: `(x, y)` points binned
     into a `bins` by `bins` grid of equal-width cells over each axis's
     own range, each cell colored by how many points fell in it.
 
@@ -129,7 +129,7 @@ def hist2d(
     most.
 
     `bins` counts bins per axis; the grid is always square in bin
-    count, as matplotlib's integer `bins` is. For bins chosen by a rule
+    count. For bins chosen by a rule
     from the data, see the overload that takes a `BinRule`, which is
     also what the no-argument default does. To bin one axis differently
     from the other, build the plot by hand: `Plot().mark_hist2d()

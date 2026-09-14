@@ -24,10 +24,6 @@ struct StepStyle(Copyable, ImplicitlyCopyable, Movable):
     different claims about when the value changed, and only the caller
     knows which one is true.
 
-    Same names and meanings as matplotlib's
-    `drawstyle='steps-pre'/'steps-mid'/'steps-post'`, so a reader
-    porting a plot does not have to re-derive which is which.
-
     Mutually exclusive with `Theme.line_smoothing`: a smoothed staircase
     rounds off the corners that carry the whole meaning, and the risers
     -- two points at the same x -- would pick up horizontal Catmull-Rom

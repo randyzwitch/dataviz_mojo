@@ -17,9 +17,8 @@ from canvas.color import Color
 
 
 def viridis() -> List[Color]:
-    """Viridis: dark blue-purple through green to yellow. Matplotlib's
-    default sequential map since 2.0, and the usual first choice for
-    data that runs low to high.
+    """Viridis: dark blue-purple through green to yellow, the usual first
+    choice for data that runs low to high.
 
     Designed by Nathaniel Smith and Stefan van der Walt to be
     perceptually uniform -- equal steps in the data look like equal

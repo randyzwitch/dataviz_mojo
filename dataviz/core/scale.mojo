@@ -6,7 +6,7 @@ Transform2D from an x-scale and a y-scale (the y-scale's range
 reversed, since pixel y increases downward).
 
 `ticks()` implements Paul Heckbert's "nice numbers for graph labels"
-(Graphics Gems, 1990), the approach d3/matplotlib use: round the
+(Graphics Gems, 1990): round the
 ideal step for a target tick count up to the nearest 1, 2, 5, or 10
 times a power of ten, so labels read as 0.2/0.4/0.6 rather than
 0.1934/0.3868/0.5802.
@@ -233,8 +233,8 @@ def _label_decimals(value: Float64, max_decimals: Int = 2) -> Int:
 
 comptime _MINOR_SUBDIVISIONS = 5
 """How many parts a minor level cuts each major step into on a linear
-axis. Five matches matplotlib's `AutoMinorLocator` default and
-suits the 1-2-5 nice steps `_nice_step` produces: a step of 1 gets
+axis. Five suits the 1-2-5 nice steps `_nice_step` produces: a step
+of 1 gets
 minors every 0.2, a step of 5 every 1, both of which read as round
 numbers. Four would leave a step of 5 with minors at 1.25."""
 
@@ -480,7 +480,7 @@ def _log_ticks(domain_min: Float64, domain_max: Float64) -> Ticks:
     `log10()` of its input itself when `is_log` is set.
 
     Major ticks only (`1 * 10^k`) when the visible span covers more than
-    2 decades (matplotlib's `LogLocator` convention); `1`/`2`/`5 * 10^k`
+    2 decades; `1`/`2`/`5 * 10^k`
     per decade otherwise. A log domain from 0 to 3 (real values 1 to 1000)
     gives ticks 1, 10, 100, and 1000; a log domain from 0 to 1 gives
     ticks 1, 2, 5, and 10.

@@ -1,6 +1,6 @@
 """`lineplot()`: the estimate per x of repeated measurements, drawn as a
-line with a band for its uncertainty -- seaborn's `lineplot()`, and the
-reason that chart can take a dataset where a plain `line()` cannot."""
+line with a band for its uncertainty, and the reason that chart can take
+a dataset where a plain `line()` cannot."""
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import Plot, _finished
@@ -30,8 +30,8 @@ def lineplot[
     y_title: String = "",
 ) raises -> Plot:
     """A line through the *estimate* of `y` at each distinct `x` -- the
-    mean by default -- with a shaded band for its uncertainty: seaborn's
-    `lineplot()`. Where `line()` connects the points it is given,
+    mean by default -- with a shaded band for its uncertainty. Where
+    `line()` connects the points it is given,
     this takes repeated measurements, several `y` per `x`, reduces each
     `x` to one estimate and draws the interval around it.
 

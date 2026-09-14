@@ -290,7 +290,7 @@ def boxenplot[
     y_title: String = "",
     horizontal: Bool = False,
 ) raises -> Plot:
-    """A letter-value plot, seaborn's `boxenplot()`: like `box()`, but the
+    """A letter-value plot: like `box()`, but the
     single box and two whiskers become nested boxes at successively
     finer quantiles -- the quartiles, then the eighths, the sixteenths
     and on -- each half as wide as the last, with only the observations

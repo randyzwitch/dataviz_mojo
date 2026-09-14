@@ -314,7 +314,7 @@ def _render_tricontour[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.TRICONTOUR` plot: isolines over scattered `(x, y, z)`
-    samples, the shape matplotlib's `tricontour()` draws.
+    samples.
 
     The points are Delaunay-triangulated (`delaunay`, Bowyer-Watson) and
     each level is traced over the triangles, chained into whole isolines
@@ -472,7 +472,7 @@ def _render_tricontourf[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.TRICONTOURF` plot: filled bands over scattered
-    `(x, y, z)` samples, the shape matplotlib's `tricontourf()` draws.
+    `(x, y, z)` samples.
 
     `Mark.TRICONTOUR`'s filled counterpart, and the same relationship
     `Mark.CONTOURF` has to `Mark.CONTOUR`: the same triangulation, the
@@ -488,8 +488,7 @@ def _render_tricontourf[
 
     The fill covers the samples' convex hull rather than the plot rect,
     because the triangulation is the hull: scattered data says nothing
-    about the corners it does not reach, and matplotlib leaves them
-    blank too.
+    about the corners it does not reach.
 
     Args:
         target: Where to draw.
@@ -624,7 +623,7 @@ def tricontourf(
     the reading for a field measured at stations, boreholes or any other
     irregular set of positions.
 
-    `Mark.TRICONTOURF`: matplotlib's `tricontourf()`. See
+    `Mark.TRICONTOURF`. See
     `Plot.encode_tricontour()` (plot.mojo) for the data shape, which is
     the same one `tricontour()` takes, and `_render_tricontourf` for how
     the bands are painted.
@@ -633,9 +632,9 @@ def tricontourf(
     isolines alone leave the reader to work out which side of a line is
     higher, and the fill is what carries the color scale.
 
-    Drawing both at once is what matplotlib does, and
+    To draw both at once,
     `render_layers([tricontourf(...), tricontour(...)])` is how to say it
-    here -- filled bands underneath, isolines on top. Both marks
+    -- filled bands underneath, isolines on top. Both marks
     lay out through the same `_draw_continuous_axis_frame` over the same
     `_data_extent` of the same samples, so the combined domain is each
     one's own and every isoline lands on exactly the pixel the
@@ -739,7 +738,7 @@ def tricontour[
     reading for a field measured at stations, boreholes or any other
     irregular set of positions.
 
-    `Mark.TRICONTOUR`: matplotlib's `tricontour()`. See
+    `Mark.TRICONTOUR`. See
     `Plot.encode_tricontour()` (plot.mojo) for the data shape, and
     `contour()` for the regular-grid form.
 

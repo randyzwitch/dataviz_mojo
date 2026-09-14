@@ -46,8 +46,7 @@ struct ColorScale(Movable):
     `n` boundaries make `n - 1` bands, and every value in a band gets
     one flat color sampled from the middle of that band's slice of the
     ramp. Intervals are lower-inclusive, `[b[i], b[i+1])`, with the last
-    one closed at the top so the domain maximum has somewhere to go.
-    That is matplotlib's `BoundaryNorm` rule."""
+    one closed at the top so the domain maximum has somewhere to go."""
 
     var is_log: Bool
     """Whether values are normalized by `log10` before the ramp is
@@ -219,12 +218,11 @@ struct ColorScale(Movable):
         symmetric bar for an asymmetric mapping, which is the exact class
         of silent disagreement this API was added to remove.
 
-        The result is matplotlib's `TwoSlopeNorm` by another route, and
-        agrees with it value for value: each arm of the remap is linear,
-        stop interpolation is linear, so compressing the ramp's offsets
-        into an arm and compressing the values into it give the same
-        color. Only `t` has to be computed here; `TwoSlopeNorm`
-        normalizes every value twice.
+        Moving the stops and bending the values agree value for value:
+        each arm of the remap is linear, stop interpolation is linear, so
+        compressing the ramp's offsets into an arm and compressing the
+        values into it give the same color. Only `t` has to be computed
+        here.
 
         Centering is defined for any ramp, not only a three-stop
         diverging one -- it means "the color at offset 0.5 lands on

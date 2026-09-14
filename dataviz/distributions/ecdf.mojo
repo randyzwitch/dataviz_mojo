@@ -69,7 +69,7 @@ def _ecdf_points(
     survival analysis read) reverses that: the vertex list starts at 1,
     the last x is repeated instead of the first, and the risers land on
     the *earlier* sample, which is `PRE`. Same staircase, walked the
-    other way -- again matching matplotlib's `complementary=True`.
+    other way.
 
     Args:
         values: The observations, in any order; not modified.
@@ -133,15 +133,13 @@ def _render_ecdf[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render a `Mark.ECDF` plot: the empirical cumulative distribution
-    as a staircase, the shape matplotlib's `ax.ecdf()` and seaborn's
-    `ecdfplot()` draw.
+    as a staircase.
 
     The y-domain is fixed at exactly `[0, 1]` rather than taken from the
     drawn values. It is a proportion, and its two ends mean "none of the
     sample" and "all of it" -- numbers that do not depend on this
     sample, so padding them would caption the axis with proportions
-    outside `[0, 1]`, which do not exist. matplotlib pins the same two
-    ends (`line.sticky_edges.y[:] = [0, 1]`). The x-domain is
+    outside `[0, 1]`, which do not exist. The x-domain is
     `_data_extent`'s usual padded data range.
 
     `Theme.line_smoothing` is ignored here rather than raising the way
@@ -276,9 +274,7 @@ def ecdf(
     """The empirical cumulative distribution of `values`: the fraction of
     observations at or below each x, as a staircase rising from 0 to 1.
 
-    `Mark.ECDF`: matplotlib's `ax.ecdf()`, seaborn's `ecdfplot()`.
-
-    The honest alternative to a histogram. There is no bin width and no
+    `Mark.ECDF`: the honest alternative to a histogram. There is no bin width and no
     bandwidth, so there is no parameter that can change what the chart
     says -- the same sample always produces the same curve, and every
     observation is visible in it rather than summarized into a bucket.
