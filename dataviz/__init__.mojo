@@ -61,7 +61,7 @@ from dataviz.distributions.candlestick import candlestick
 from dataviz.multivariate.contour import contour, contourf
 from dataviz.distributions.ecdf import ecdf
 from dataviz.aggregation.residplot import residplot
-from dataviz.aggregation.barplot import barplot, countplot
+from dataviz.aggregation.barplot import barplot
 from dataviz.aggregation.lineplot import lineplot
 from dataviz.aggregation.pointplot import pointplot
 from dataviz.core.stats import ErrorBar, Estimator

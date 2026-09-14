@@ -13,7 +13,7 @@ from std.testing import (
     assert_raises,
     assert_true,
 )
-from dataviz.aggregation.barplot import barplot, countplot
+from dataviz.aggregation.barplot import barplot
 from dataviz.aggregation.lineplot import lineplot
 from dataviz.aggregation.pointplot import pointplot
 from dataviz.aggregation.residplot import residplot
@@ -162,8 +162,7 @@ def test_residplot_raises_where_no_line_fits() raises:
 
 
 # ==== from test_barplot.mojo ====
-# `barplot()` and `countplot()`: bars of an estimate with its interval,
-# and bars of a count (#350).
+# `barplot()`: bars of an estimate with its interval (#350).
 
 
 def _groups() -> List[String]:
@@ -215,27 +214,11 @@ def test_barplot_dtype_overload_matches_the_float64_path() raises:
     )
 
 
-def test_countplot_counts_in_first_seen_order() raises:
-    var c: List[String] = ["chat", "email", "chat", "chat", "phone", "email"]
-    var p = countplot(c)
-    assert_equal(p._categorical.x[0], "chat")
-    assert_equal(p._categorical.x[1], "email")
-    assert_equal(p._categorical.x[2], "phone")
-    assert_equal(p._continuous.y[0], 3.0)
-    assert_equal(p._continuous.y[1], 2.0)
-    assert_equal(p._continuous.y[2], 1.0)
-    assert_equal(len(p._y_err.lower), 0)
-    assert_true(">Count<" in render_svg(p).to_string())
-
-
 def test_barplot_raises_on_mismatched_or_empty_input() raises:
     var g: List[String] = ["a"]
     var two: List[Float64] = [1.0, 2.0]
     with assert_raises():
         _ = barplot(g, two)
-    var none = List[String]()
-    with assert_raises():
-        _ = countplot(none)
 
 
 # ==== from test_pointplot.mojo ====
