@@ -119,7 +119,6 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("ecdf", "distributions/ecdf", "ecdf"),
         ExamplePage("residplot", "aggregation/residplot", "residplot"),
         ExamplePage("barplot", "aggregation/barplot", "barplot"),
-        ExamplePage("countplot", "aggregation/barplot", "countplot"),
         ExamplePage("lineplot", "aggregation/lineplot", "lineplot"),
         ExamplePage("pairplot", "aggregation/pairplot", "pairplot"),
         ExamplePage("jointplot", "aggregation/jointplot", "jointplot"),
