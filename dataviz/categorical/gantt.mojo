@@ -13,7 +13,7 @@ from dataviz.plot import (
     _TextRequest,
     _axis_pixel,
     _axis_pixel_f,
-    _snap_pixel_edge,
+    snap_to_pixel_edge,
     _data_extent,
     _max_label_width,
     _finished,
@@ -262,12 +262,12 @@ def _render_gantt[
         # zero-length task still draws a mark. The floor comes after the
         # snap: two equal edges snap to one boundary, which is exactly
         # the case it guards.
-        var bx0 = _snap_pixel_edge(min(start_px, end_px))
-        var bx1 = _snap_pixel_edge(max(start_px, end_px))
+        var bx0 = snap_to_pixel_edge(min(start_px, end_px))
+        var bx1 = snap_to_pixel_edge(max(start_px, end_px))
         if bx1 - bx0 < 1.0:
             bx1 = bx0 + 1.0
-        var by0 = _snap_pixel_edge(row_y)
-        var by1 = _snap_pixel_edge(row_y + row_height)
+        var by0 = snap_to_pixel_edge(row_y)
+        var by1 = snap_to_pixel_edge(row_y + row_height)
         target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, theme.mark_color)
 
     return frame.result()

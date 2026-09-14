@@ -6,7 +6,7 @@ from dataviz.plot import (
     Plot,
     _RenderResult,
     _axis_pixel_f,
-    _snap_pixel_edge,
+    snap_to_pixel_edge,
     _data_extent,
     _draw_categorical_axis_frame,
     _finished,
@@ -74,10 +74,10 @@ def _render_span_chart[
         var low_py = _axis_pixel_f(frame.y_scale, plot._gantt.start[i])
         var high_py = _axis_pixel_f(frame.y_scale, plot._gantt.end[i])
         # Snap all edges, then preserve a one-pixel minimum height.
-        var bx0 = _snap_pixel_edge(band_start)
-        var bx1 = _snap_pixel_edge(band_start + bandwidth)
-        var by0 = _snap_pixel_edge(min(low_py, high_py))
-        var by1 = _snap_pixel_edge(max(low_py, high_py))
+        var bx0 = snap_to_pixel_edge(band_start)
+        var bx1 = snap_to_pixel_edge(band_start + bandwidth)
+        var by0 = snap_to_pixel_edge(min(low_py, high_py))
+        var by1 = snap_to_pixel_edge(max(low_py, high_py))
         if by1 - by0 < 1.0:
             by1 = by0 + 1.0
         if theme.svg_tooltips:

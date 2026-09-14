@@ -31,7 +31,7 @@ from dataviz.core.arrow import (
     _ARROW_HEAD_LENGTH,
     _arrow_head_path,
 )
-from dataviz.core.pixel_snap import _snap_pixel_center, _snap_pixel_edge
+from canvas.geometry import snap_to_pixel_center, snap_to_pixel_edge
 from dataviz.core.scale import _format_fixed
 from dataviz.core.stats import _OlsFit, _ols_fit
 from dataviz.core.theme import Theme
@@ -174,10 +174,10 @@ def _draw_annotation_areas[
         # snap to pixel boundaries: it keeps hard edges, and its height
         # comes from the snapped pair rather than from a rounded height
         # laid off a rounded top.
-        var py_a = _snap_pixel_edge(
+        var py_a = snap_to_pixel_edge(
             _axis_pixel_f(result.y_scale, plot._annotations.area_y0[i])
         )
-        var py_b = _snap_pixel_edge(
+        var py_b = snap_to_pixel_edge(
             _axis_pixel_f(result.y_scale, plot._annotations.area_y1[i])
         )
         var band_top = min(py_a, py_b)
@@ -382,7 +382,7 @@ def _draw_annotation_lines[
         # index already did here; saying it this way is what lets the
         # value stay Float64 up to the point where crispness is the
         # reason to move it.
-        var py = _snap_pixel_center(
+        var py = snap_to_pixel_center(
             _axis_pixel_f(result.y_scale, plot._annotations.line_values[i])
         )
         if py < Float64(py_top) or py > Float64(py_bottom):
@@ -441,7 +441,7 @@ def _draw_annotation_vlines[
     for i in range(len(plot._annotations.vline_values)):
         # A vertical hairline: same rule as annotate_hline, on the other
         # axis.
-        var px = _snap_pixel_center(
+        var px = snap_to_pixel_center(
             _axis_pixel_f(result.x_scale, plot._annotations.vline_values[i])
         )
         if px < Float64(px_left) or px > Float64(px_right):
@@ -797,7 +797,7 @@ def _draw_annotation_best_fit[
         Float64(py_bottom),
     )
     if py_left == py_right:
-        py_left = _snap_pixel_center(py_left)
+        py_left = snap_to_pixel_center(py_left)
         py_right = py_left
     target.draw_line_aa(
         px_left,

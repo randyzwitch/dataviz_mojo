@@ -20,7 +20,7 @@ from dataviz.core.array_like import (
 )
 from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.core.mark import Mark
-from dataviz.core.pixel_snap import _snap_pixel_edge
+from canvas.geometry import snap_to_pixel_edge
 from dataviz.plot import (
     Plot,
     _LegendLayout,
@@ -264,18 +264,8 @@ def _edge_pixels(scale: LinearScale, values: List[Float64]) -> List[Float64]:
     """
     var out = List[Float64](capacity=len(values))
     for i in range(len(values)):
-        out.append(_snap_pixel_edge(scale.to_pixel(values[i]) - 0.5))
+        out.append(snap_to_pixel_edge(scale.to_pixel(values[i]) - 0.5))
     return out^
-
-
-def _same_color(a: Color, b: Color) -> Bool:
-    """Whether two colors are identical in all four channels.
-
-    Used only to merge horizontally adjacent cells into one rect, so it
-    has to be exact: "close enough" would blur a real boundary between
-    two values, which is the one thing an image must not do.
-    """
-    return a.r == b.r and a.g == b.g and a.b == b.b and a.a == b.a
 
 
 def _fill_cells[
@@ -355,7 +345,7 @@ def _fill_cells[
                     run_open = False
                 continue
             var color = color_scale.color_at(z[r][c])
-            if run_open and _same_color(color, run_color) and left == run_right:
+            if run_open and color == run_color and left == run_right:
                 run_right = right
                 continue
             if run_open:
@@ -406,7 +396,7 @@ def _draw_cells_as_image[
     is the one thing they buy.
 
     The raster backend never comes here. Its rect path snaps every cell
-    edge in logical space (see `_snap_pixel_edge`) so the edges stay
+    edge in logical space (see `snap_to_pixel_edge`) so the edges stay
     hard under supersampling, while `draw_image` snaps in device space
     and lands interior edges between logical pixels; and building the
     device-sized block costs more than the rects do. `_render_image`

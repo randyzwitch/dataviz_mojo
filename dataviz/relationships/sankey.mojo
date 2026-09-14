@@ -1,7 +1,7 @@
 from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.geometry import round_to_int
-from dataviz.core.pixel_snap import _snap_pixel_edge
+from canvas.geometry import snap_to_pixel_edge
 from canvas.path import Path
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
@@ -238,13 +238,13 @@ def _render_sankey[
         # moved the rect off the ribbons, which are drawn from the exact
         # col_x and node_y above -- every ribbon met its node up to half
         # a pixel away from where the node actually was.
-        var x = _snap_pixel_edge(col_x[column[i]])
-        var y0 = _snap_pixel_edge(node_y0[i])
-        var x1 = _snap_pixel_edge(col_x[column[i]] + node_width)
+        var x = snap_to_pixel_edge(col_x[column[i]])
+        var y0 = snap_to_pixel_edge(node_y0[i])
+        var x1 = snap_to_pixel_edge(col_x[column[i]] + node_width)
         # Height comes from the snapped pair, and never collapses to
         # nothing: a node carrying a tiny share of the total still has
         # to be visible.
-        var y1 = max(y0 + 1.0, _snap_pixel_edge(node_y1[i]))
+        var y1 = max(y0 + 1.0, snap_to_pixel_edge(node_y1[i]))
         target.fill_rect(x, y0, x1 - x, y1 - y0, palette[i % len(palette)])
         var label_x = round_to_int(x1) + sc.label_gap
         var label_y = round_to_int((y0 + y1) / 2.0) + Int(sc.font_size * 0.35)

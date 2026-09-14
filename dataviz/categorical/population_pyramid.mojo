@@ -12,7 +12,7 @@ from dataviz.plot import (
     _Scaled,
     _TextRequest,
     _axis_pixel_f,
-    _snap_pixel_edge,
+    snap_to_pixel_edge,
     _LegendLayout,
     _draw_legend_at,
     _legend_layout,
@@ -150,10 +150,10 @@ def _render_population_pyramid[
                         plot._pyramid.left[i],
                     )
                 )
-            var lx0 = _snap_pixel_edge(left_x)
-            var lx1 = _snap_pixel_edge(left_x + left_w)
-            var ly0 = _snap_pixel_edge(row_y)
-            var ly1 = _snap_pixel_edge(row_y + row_height)
+            var lx0 = snap_to_pixel_edge(left_x)
+            var lx1 = snap_to_pixel_edge(left_x + left_w)
+            var ly0 = snap_to_pixel_edge(row_y)
+            var ly1 = snap_to_pixel_edge(row_y + row_height)
             target.fill_rect(lx0, ly0, lx1 - lx0, ly1 - ly0, palette[0])
             if theme.svg_tooltips:
                 target.end_annotated_group()
@@ -199,10 +199,10 @@ def _render_population_pyramid[
                         plot._pyramid.right[i],
                     )
                 )
-            var rx0 = _snap_pixel_edge(right_x)
-            var rx1 = _snap_pixel_edge(right_x + right_w)
-            var ry0 = _snap_pixel_edge(row_y)
-            var ry1 = _snap_pixel_edge(row_y + row_height)
+            var rx0 = snap_to_pixel_edge(right_x)
+            var rx1 = snap_to_pixel_edge(right_x + right_w)
+            var ry0 = snap_to_pixel_edge(row_y)
+            var ry1 = snap_to_pixel_edge(row_y + row_height)
             target.fill_rect(rx0, ry0, rx1 - rx0, ry1 - ry0, palette[1])
             if theme.svg_tooltips:
                 target.end_annotated_group()

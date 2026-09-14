@@ -39,7 +39,7 @@ from dataviz.core.marker import (
     _fill_shape_aa,
     default_marker_shapes,
 )
-from dataviz.core.pixel_snap import _snap_pixel_center
+from canvas.geometry import snap_to_pixel_center
 from dataviz.plot import (
     Plot,
     _finished,
@@ -549,9 +549,9 @@ def _draw_point_layer[
                 lo = plot._continuous.y[i] - plot._y_err.lower[i]
                 hi = plot._continuous.y[i] + plot._y_err.upper[i]
             # Snap the hairline and caps to matching pixel centers.
-            var bar_x = _snap_pixel_center(px)
-            var py_hi = _snap_pixel_center(_axis_pixel_f(y_scale, hi))
-            var py_lo = _snap_pixel_center(_axis_pixel_f(y_scale, lo))
+            var bar_x = snap_to_pixel_center(px)
+            var py_hi = snap_to_pixel_center(_axis_pixel_f(y_scale, hi))
+            var py_lo = snap_to_pixel_center(_axis_pixel_f(y_scale, lo))
             var cap_half = Float64(round_to_int(sc.error_bar_cap_width))
             target.draw_line_aa(
                 bar_x, py_hi, bar_x, py_lo, color, width=sc.scale

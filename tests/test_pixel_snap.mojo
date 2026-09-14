@@ -1,4 +1,10 @@
-"""`_snap_pixel_edge` breaks its tie by rule, not by float error.
+"""`snap_to_pixel_edge` breaks its tie by rule, not by float error.
+
+These helpers now live in `canvas.geometry`, because canvas owns the
+pixel-center convention they encode and a local copy of someone else's
+convention can drift from its source without anyone noticing (#579).
+The tests stay here: this library is what #314 was reported against, and
+the tie rule is what its charts depend on.
 
 A pixel `k` spans `k - 0.5` to `k + 0.5`, so the snap targets are the
 half-integers and a coordinate exactly on a whole number -- a pixel
@@ -12,36 +18,36 @@ arithmetic meant.
 
 from std.testing import TestSuite, assert_equal
 
-from dataviz.core.pixel_snap import _snap_pixel_center, _snap_pixel_edge
+from canvas.geometry import snap_to_pixel_center, snap_to_pixel_edge
 
 
 def test_snap_edge_lands_on_half_integers() raises:
-    assert_equal(_snap_pixel_edge(134.4), 134.5)
-    assert_equal(_snap_pixel_edge(134.6), 134.5)
-    assert_equal(_snap_pixel_edge(135.9), 135.5)
-    assert_equal(_snap_pixel_edge(136.1), 136.5)
-    assert_equal(_snap_pixel_edge(135.5), 135.5)
-    assert_equal(_snap_pixel_edge(0.0), 0.5)
+    assert_equal(snap_to_pixel_edge(134.4), 134.5)
+    assert_equal(snap_to_pixel_edge(134.6), 134.5)
+    assert_equal(snap_to_pixel_edge(135.9), 135.5)
+    assert_equal(snap_to_pixel_edge(136.1), 136.5)
+    assert_equal(snap_to_pixel_edge(135.5), 135.5)
+    assert_equal(snap_to_pixel_edge(0.0), 0.5)
 
 
 def test_snap_edge_tie_goes_up_and_float_error_does_not_change_it() raises:
     # The case from #314: domain [9.5, 20.5], range [250, 20],
     # to_pixel(15.0) is mathematically 135.0 and comes out
     # 134.99999999999997. Both must snap to the same boundary.
-    assert_equal(_snap_pixel_edge(135.0), 135.5)
-    assert_equal(_snap_pixel_edge(134.99999999999997), 135.5)
+    assert_equal(snap_to_pixel_edge(135.0), 135.5)
+    assert_equal(snap_to_pixel_edge(134.99999999999997), 135.5)
 
 
 def test_snap_edge_tolerance_is_far_below_any_real_fraction() raises:
     # A tenth of a pixel under the center is a real position, not float
     # noise, and snaps down as it always did.
-    assert_equal(_snap_pixel_edge(134.9), 134.5)
-    assert_equal(_snap_pixel_edge(134.999), 134.5)
+    assert_equal(snap_to_pixel_edge(134.9), 134.5)
+    assert_equal(snap_to_pixel_edge(134.999), 134.5)
 
 
 def test_snap_center_is_unchanged() raises:
-    assert_equal(_snap_pixel_center(134.4), 134.0)
-    assert_equal(_snap_pixel_center(134.6), 135.0)
+    assert_equal(snap_to_pixel_center(134.4), 134.0)
+    assert_equal(snap_to_pixel_center(134.6), 135.0)
 
 
 def main() raises:

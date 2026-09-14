@@ -6,8 +6,8 @@ from dataviz.plot import (
     Plot,
     _RenderResult,
     _axis_pixel_f,
-    _snap_pixel_center,
-    _snap_pixel_edge,
+    snap_to_pixel_center,
+    snap_to_pixel_edge,
     _data_extent,
     _draw_categorical_axis_frame,
     _finished,
@@ -128,7 +128,7 @@ def _render_candlestick[
     )
 
     for i in range(len(plot._categorical.x)):
-        var center_px = _snap_pixel_center(frame.x_scale.center(i))
+        var center_px = snap_to_pixel_center(frame.x_scale.center(i))
         var high_py = _axis_pixel_f(frame.y_scale, plot._candle.high[i])
         var low_py = _axis_pixel_f(frame.y_scale, plot._candle.low[i])
         if theme.svg_tooltips:
@@ -159,12 +159,12 @@ def _render_candlestick[
         # same pixel) still draws a line rather than nothing. The floor
         # has to come after the snap: rounding two equal edges gives a
         # zero-height rect, which is exactly the case it guards.
-        var bx0 = _snap_pixel_edge(frame.x_scale.band_start(i))
-        var bx1 = _snap_pixel_edge(
+        var bx0 = snap_to_pixel_edge(frame.x_scale.band_start(i))
+        var bx1 = snap_to_pixel_edge(
             frame.x_scale.band_start(i) + frame.x_scale.bandwidth()
         )
-        var by0 = _snap_pixel_edge(min(open_py, close_py))
-        var by1 = _snap_pixel_edge(max(open_py, close_py))
+        var by0 = snap_to_pixel_edge(min(open_py, close_py))
+        var by1 = snap_to_pixel_edge(max(open_py, close_py))
         if by1 - by0 < 1.0:
             by1 = by0 + 1.0
         var body_color = (

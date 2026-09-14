@@ -1,6 +1,6 @@
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
-from dataviz.core.pixel_snap import _snap_pixel_edge
+from canvas.geometry import snap_to_pixel_edge
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
@@ -312,14 +312,14 @@ def _render_heatmap[
         var y_start = frame.y_scale.band_start(y_idx.indices[i]) - 0.5
         var x_stop = frame.x_scale.band_end(x_idx.indices[i]) - 0.5
         var y_stop = frame.y_scale.band_end(y_idx.indices[i]) - 0.5
-        var cell_x = _snap_pixel_edge(x_start)
-        var cell_y = _snap_pixel_edge(y_start)
+        var cell_x = snap_to_pixel_edge(x_start)
+        var cell_y = snap_to_pixel_edge(y_start)
         var color = color_scale.color_at(plot._heatmap.value[i])
         target.fill_rect(
             cell_x,
             cell_y,
-            _snap_pixel_edge(x_stop) - cell_x,
-            _snap_pixel_edge(y_stop) - cell_y,
+            snap_to_pixel_edge(x_stop) - cell_x,
+            snap_to_pixel_edge(y_stop) - cell_y,
             color,
         )
 

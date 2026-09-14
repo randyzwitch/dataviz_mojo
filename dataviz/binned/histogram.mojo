@@ -20,7 +20,7 @@ from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
-from dataviz.core.pixel_snap import _snap_pixel_edge
+from canvas.geometry import snap_to_pixel_edge
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.distributions.box import _percentile
@@ -587,7 +587,7 @@ def _draw_histogram_layer[
     separator between every two adjacent nonempty bins. With
     `horizontal`, the bins run up the y-axis and the values right.
 
-    Every edge is snapped to a pixel boundary (`_snap_pixel_edge`), the
+    Every edge is snapped to a pixel boundary (`snap_to_pixel_edge`), the
     way `Mark.BAR` and `Mark.IMSHOW` snap theirs: adjacent bins read the
     same snapped boundary, so they tile with no seam and no overlap, and
     a bin narrower than a pixel collapses rather than drawing a sliver.
@@ -616,16 +616,16 @@ def _draw_histogram_layer[
     var horizontal = plot._histogram.horizontal
     var along = y_scale if horizontal else x_scale
     var across = x_scale if horizontal else y_scale
-    var baseline = _snap_pixel_edge(across.to_pixel(0.0) - 0.5)
+    var baseline = snap_to_pixel_edge(across.to_pixel(0.0) - 0.5)
     var ep = List[Float64](capacity=n + 1)
     for i in range(n + 1):
         ep.append(
-            _snap_pixel_edge(along.to_pixel(plot._histogram.edges[i]) - 0.5)
+            snap_to_pixel_edge(along.to_pixel(plot._histogram.edges[i]) - 0.5)
         )
     var vp = List[Float64](capacity=n)
     for i in range(n):
         vp.append(
-            _snap_pixel_edge(across.to_pixel(plot._histogram.values[i]) - 0.5)
+            snap_to_pixel_edge(across.to_pixel(plot._histogram.values[i]) - 0.5)
         )
     # A bar that starts on an axis line would paint over the line's
     # column: give it back, the way `Mark.BAR` pulls a bar off the axis.
@@ -635,13 +635,13 @@ def _draw_histogram_layer[
     # as the vertical baseline does). The staircase never had the
     # problem only because its antialiased edge did not reach the column.
     if horizontal:
-        var axis_column = _snap_pixel_edge(
+        var axis_column = snap_to_pixel_edge(
             min(x_scale.range_min, x_scale.range_max) - 0.5
         )
         if baseline == axis_column:
             baseline += 1.0
     else:
-        var axis_column = _snap_pixel_edge(
+        var axis_column = snap_to_pixel_edge(
             min(x_scale.range_min, x_scale.range_max) - 0.5
         )
         if ep[0] == axis_column:

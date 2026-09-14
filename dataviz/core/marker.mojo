@@ -2,8 +2,9 @@
 
 from canvas.color import Color
 from canvas.fill_rule import FillRule
-from canvas.geometry import round_to_int
-from dataviz.core.pixel_snap import _snap_pixel_edge
+from std.math import pi
+
+from canvas.geometry import round_to_int, snap_to_pixel_edge
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
@@ -42,8 +43,6 @@ def default_marker_shapes() -> List[PointShape]:
     ]
 
 
-# Triangle vertex offset: cos(30 degrees).
-comptime _COS_30 = 0.8660254037844387
 # X vertex offset: cos(45 degrees).
 comptime _COS_45 = 0.7071067811865476
 
@@ -75,21 +74,20 @@ def _fill_shape_aa[
             cx - radius, cy - radius, 2 * radius, 2 * radius, color
         )
     elif shape == PointShape.TRIANGLE:
-        var r = Float64(radius)
+        # A regular polygon with its first vertex straight up, which in
+        # pixel coordinates (y growing downward) is -pi/2. The vertex
+        # math used to be written out here; canvas owns it now (#579).
         var path = Path()
-        path.move_to(Float64(cx), Float64(cy) - r)
-        path.line_to(Float64(cx) + r * _COS_30, Float64(cy) + r * 0.5)
-        path.line_to(Float64(cx) - r * _COS_30, Float64(cy) + r * 0.5)
-        path.close()
+        path.regular_polygon(
+            Float64(cx), Float64(cy), Float64(radius), 3, -pi / 2.0
+        )
         target.fill_path_aa(path, color, fill_rule=FillRule.NONZERO)
     elif shape == PointShape.DIAMOND:
-        var r = Float64(radius)
+        # A square on its corner, so the same first-vertex rule.
         var path = Path()
-        path.move_to(Float64(cx), Float64(cy) - r)
-        path.line_to(Float64(cx) + r, Float64(cy))
-        path.line_to(Float64(cx), Float64(cy) + r)
-        path.line_to(Float64(cx) - r, Float64(cy))
-        path.close()
+        path.regular_polygon(
+            Float64(cx), Float64(cy), Float64(radius), 4, -pi / 2.0
+        )
         target.fill_path_aa(path, color, fill_rule=FillRule.NONZERO)
     elif shape == PointShape.CROSS:
         var width = Float64(radius) * 0.65
@@ -138,27 +136,20 @@ def _fill_shape_aa[
     if shape == PointShape.CIRCLE:
         target.fill_circle_aa(cx, cy, radius, color)
     elif shape == PointShape.SQUARE:
-        var x0 = _snap_pixel_edge(cx - radius)
-        var x1 = _snap_pixel_edge(cx + radius)
-        var y0 = _snap_pixel_edge(cy - radius)
-        var y1 = _snap_pixel_edge(cy + radius)
+        var x0 = snap_to_pixel_edge(cx - radius)
+        var x1 = snap_to_pixel_edge(cx + radius)
+        var y0 = snap_to_pixel_edge(cy - radius)
+        var y1 = snap_to_pixel_edge(cy + radius)
         target.fill_rect(x0, y0, x1 - x0, y1 - y0, color)
     elif shape == PointShape.TRIANGLE:
-        var r = radius
+        # First vertex straight up, which is -pi/2 with pixel y growing
+        # downward. See the Int overload above.
         var path = Path()
-        path.move_to(cx, cy - r)
-        path.line_to(cx + r * _COS_30, cy + r * 0.5)
-        path.line_to(cx - r * _COS_30, cy + r * 0.5)
-        path.close()
+        path.regular_polygon(cx, cy, radius, 3, -pi / 2.0)
         target.fill_path_aa(path, color, fill_rule=FillRule.NONZERO)
     elif shape == PointShape.DIAMOND:
-        var r = radius
         var path = Path()
-        path.move_to(cx, cy - r)
-        path.line_to(cx + r, cy)
-        path.line_to(cx, cy + r)
-        path.line_to(cx - r, cy)
-        path.close()
+        path.regular_polygon(cx, cy, radius, 4, -pi / 2.0)
         target.fill_path_aa(path, color, fill_rule=FillRule.NONZERO)
     elif shape == PointShape.CROSS:
         var width = radius * 0.65
