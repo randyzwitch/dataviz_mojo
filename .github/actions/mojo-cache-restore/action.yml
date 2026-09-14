@@ -1,8 +1,9 @@
 name: Restore the Mojo build cache
 description: >-
-  Restore the Mojo build cache saved by an earlier run on main, and record
-  how many entries it holds so the save step can tell whether this run
-  added any. Requires MODULAR_CACHE_DIR in the job's env (#598).
+  Restore the Mojo build cache saved by an earlier run on main, point
+  MODULAR_CACHE_DIR at it for the rest of the job, and record how many
+  entries it holds so the save step can tell whether this run added any
+  (#598).
 
 # Mojo caches the dependency compilation (canvas_mojo, the standard
 # library) per top-level module, keyed on that module's path string and
@@ -25,9 +26,17 @@ inputs:
 runs:
   using: composite
   steps:
+    # The cache lives under the runner's temp dir, outside .pixi, so
+    # setup-pixi's tarball and this cache never overlap. The path is
+    # defined here and in mojo-cache-save rather than in the job's env
+    # because the runner context is not available at job level, only in
+    # steps. Exporting it here is what makes `pixi run` compile into it.
+    - shell: bash
+      run: echo "MODULAR_CACHE_DIR=$RUNNER_TEMP/mojo-cache" >> "$GITHUB_ENV"
+
     - uses: actions/cache/restore@v4
       with:
-        path: ${{ env.MODULAR_CACHE_DIR }}
+        path: ${{ runner.temp }}/mojo-cache
         key: mojo-${{ inputs.name }}-${{ runner.os }}-${{ hashFiles('pixi.lock') }}-${{ github.run_id }}
         restore-keys: |
           mojo-${{ inputs.name }}-${{ runner.os }}-${{ hashFiles('pixi.lock') }}-
@@ -38,7 +47,8 @@ runs:
     # test log are the real check, this is the one-glance tell.
     - shell: bash
       run: |
-        n=$(find "$MODULAR_CACHE_DIR" -type f 2>/dev/null | wc -l)
-        size=$(du -sh "$MODULAR_CACHE_DIR" 2>/dev/null | cut -f1)
-        echo "mojo cache before: $n entries, ${size:-0} at $MODULAR_CACHE_DIR"
+        dir="$RUNNER_TEMP/mojo-cache"
+        n=$(find "$dir" -type f 2>/dev/null | wc -l)
+        size=$(du -sh "$dir" 2>/dev/null | cut -f1)
+        echo "mojo cache before: $n entries, ${size:-0} at $dir"
         echo "MOJO_CACHE_ENTRIES_BEFORE=$n" >> "$GITHUB_ENV"

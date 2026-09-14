@@ -21,8 +21,9 @@ runs:
     - id: count
       shell: bash
       run: |
-        n=$(find "$MODULAR_CACHE_DIR" -type f 2>/dev/null | wc -l)
-        size=$(du -sh "$MODULAR_CACHE_DIR" 2>/dev/null | cut -f1)
+        dir="$RUNNER_TEMP/mojo-cache"
+        n=$(find "$dir" -type f 2>/dev/null | wc -l)
+        size=$(du -sh "$dir" 2>/dev/null | cut -f1)
         echo "mojo cache after: $n entries, ${size:-0} (before: ${MOJO_CACHE_ENTRIES_BEFORE:-unknown})"
         if [ "$n" -gt "${MOJO_CACHE_ENTRIES_BEFORE:-0}" ]; then
           echo "grew=true" >> "$GITHUB_OUTPUT"
@@ -31,5 +32,5 @@ runs:
     - if: steps.count.outputs.grew == 'true' && github.ref == 'refs/heads/main'
       uses: actions/cache/save@v4
       with:
-        path: ${{ env.MODULAR_CACHE_DIR }}
+        path: ${{ runner.temp }}/mojo-cache
         key: mojo-${{ inputs.name }}-${{ runner.os }}-${{ hashFiles('pixi.lock') }}-${{ github.run_id }}
