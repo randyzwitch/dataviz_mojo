@@ -107,6 +107,7 @@ from dataviz.basic.continuous import (
 from dataviz.facets import (
     _render_facets_generic,
     render_facets,
+    render_facets_pdf,
     render_facets_svg,
     save_facets,
 )
@@ -130,6 +131,7 @@ from dataviz.layers import (
     _render_layers_generic,
     _secondary_axis_y_title,
     render_layers,
+    render_layers_pdf,
     render_layers_svg,
     save_layers,
 )
