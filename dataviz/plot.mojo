@@ -5275,7 +5275,7 @@ def render(plot: Plot) raises -> Canvas:
     # records the whole call as one op and that was the last primitive
     # that did so (benchmarks/METHODOLOGY.md).
     out.begin_supersampled(factor, plot._theme.background)
-    _render_into(out, plot, 0, 0, plot.width, plot.height)
+    _ = _render_into(out, plot, 0, 0, plot.width, plot.height)
     out.end_supersampled()
     return out^
 
@@ -5287,7 +5287,8 @@ def _render_into(
     oy0: Int = 0,
     ox1: Int = -1,
     oy1: Int = -1,
-) raises:
+    fill_background: Bool = True,
+) raises -> Tuple[Int, Int, Int, Int]:
     """Render `plot` into `canvas` within the outer bounds (background, then
     the axis frame and mark, then annotations and text). `ox1`/`oy1`
     default to -1, meaning the canvas's width/height; every current
@@ -5306,10 +5307,20 @@ def _render_into(
     `Theme.raster_supersample` by bumping that value on a copy before
     this call. Hand-verified pixel tests go through `render()` and so see
     supersampled output, exact for any solid-color interior point.
+
+    `fill_background=False` skips the outer fill, for `render_inset()`,
+    which paints only the inset's plot rect so its labels sit over the
+    base rather than on a blank panel.
+
+    Returns:
+        The inner plot rect as `(px0, py0, px1, py1)`, the area the mark
+        was drawn in after margins and labels; `render_inset()` places an
+        inset against it.
     """
     var cx1 = ox1 if ox1 >= 0 else canvas.width
     var cy1 = oy1 if oy1 >= 0 else canvas.height
-    canvas.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
+    if fill_background:
+        canvas.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
     var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
     # One FontCache for the whole render, built on first use: every
     # measurement the layout makes (tick labels, legend entries) and then
@@ -5358,6 +5369,7 @@ def _render_into(
     _replay_text_requests(canvas, arrow_annotation_requests, cache)
     _replay_text_requests(canvas, best_fit_annotation_requests, cache)
     _replay_text_requests(canvas, result.text_requests, cache)
+    return (result.px0, result.py0, result.px1, result.py1)
 
 
 def render_svg(plot: Plot) raises -> SvgCanvas:
@@ -5366,7 +5378,7 @@ def render_svg(plot: Plot) raises -> SvgCanvas:
     wrapping `_render_svg_into`.
     """
     var svg = SvgCanvas(plot.width, plot.height)
-    _render_svg_into(svg, plot)
+    _ = _render_svg_into(svg, plot)
     return svg^
 
 
@@ -5377,15 +5389,26 @@ def _render_svg_into(
     oy0: Int = 0,
     ox1: Int = -1,
     oy1: Int = -1,
-) raises:
+    fill_background: Bool = True,
+) raises -> Tuple[Int, Int, Int, Int]:
     """`_render_into`'s counterpart for `SvgCanvas`: same bounds resolution,
     `_apply_labels`/`_render_generic` core, and annotation passes, with
     the `_TextRequest`s drawn via `SvgCanvas.draw_text`. `render_svg()`
     is its only caller.
+
+    `fill_background=False` skips the outer fill, for `render_inset()`,
+    which paints only the inset's plot rect so its labels sit over the
+    base rather than on a blank panel.
+
+    Returns:
+        The inner plot rect as `(px0, py0, px1, py1)`, the area the mark
+        was drawn in after margins and labels; `render_inset()` places an
+        inset against it.
     """
     var cx1 = ox1 if ox1 >= 0 else svg.width
     var cy1 = oy1 if oy1 >= 0 else svg.height
-    svg.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
+    if fill_background:
+        svg.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
     var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
     # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
@@ -5437,6 +5460,7 @@ def _render_svg_into(
     _replay_text_requests_svg(svg, arrow_annotation_requests)
     _replay_text_requests_svg(svg, best_fit_annotation_requests)
     _replay_text_requests_svg(svg, result.text_requests)
+    return (result.px0, result.py0, result.px1, result.py1)
 
 
 def _resolve_output_format(

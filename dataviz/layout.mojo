@@ -2,7 +2,7 @@
 
 A figure made of cells is one idea with two faces. `render_facets()` is
 the uniform one: `n` plots, `cols` per row, every cell the same size.
-`render_grid()` is matplotlib's gridspec: each plot names a row, a column
+`render_grid()` is the unequal one: each plot names a row, a column
 and optional spans, over tracks that can carry weights, so "a wide time
 series above two narrow detail panels" is expressible (#347).
 
@@ -17,9 +17,12 @@ which is the visible part, and quietly omits the parts nobody looked at
 yet. Vector output and per-cell annotations are both in that category,
 and neither absence would show up in a screenshot.
 
-Insets are not here. #347 treats them as a separate entry point on
-purpose: an inset is an overlay, not a cell, and folding it into the grid
-model would distort both.
+Insets are the other half of #347 and deliberately not cells.
+`render_inset()` draws a base plot and then a second plot inside a
+fractional sub-rect of the base's plot rect, over it. An inset is an
+overlay, not a cell: it has no track, no weight and no neighbor, and
+folding it into the grid model would distort both. It shares nothing
+with the cell core beyond the two render helpers `render()` itself uses.
 """
 
 from canvas.buffer import Canvas
@@ -56,6 +59,8 @@ from dataviz.plot import (
     _filled_annotations_go_under,
     _log_data_extent,
     _render_generic,
+    _render_into,
+    _render_svg_into,
     _resolve_output_format,
     _resolve_supersample,
     _svg_output_string,
@@ -949,3 +954,251 @@ def save_grid(
             ),
             path,
         )
+
+
+def _inset_rect(
+    plot_rect: Tuple[Int, Int, Int, Int],
+    x: Float64,
+    y: Float64,
+    width: Float64,
+    height: Float64,
+    caller: String,
+) raises -> Tuple[Int, Int, Int, Int]:
+    """The inset's pixel rect from its fractions of the base's plot rect.
+
+    The fractions are checked here rather than at the top of the caller
+    so the raster and vector entry points cannot drift on what they
+    accept. Each edge is rounded from the fraction rather than from an
+    accumulated width, so an inset at `x + width == 1.0` ends exactly on
+    the plot rect's right edge.
+
+    Args:
+        plot_rect: The base's `(px0, py0, px1, py1)`.
+        x: Left edge, as a fraction of the plot rect's width from its
+            left.
+        y: Top edge, as a fraction of the plot rect's height from its
+            top.
+        width: Width as a fraction of the plot rect's width.
+        height: Height as a fraction of the plot rect's height.
+        caller: The entry point to name in an error.
+
+    Returns:
+        `(x0, y0, x1, y1)` in pixels.
+
+    Raises:
+        Error: A fraction outside `[0, 1]`, a non-positive size, an
+            inset that runs past the plot rect, or one that rounds to
+            nothing.
+    """
+    if x < 0.0 or x > 1.0:
+        raise Error(caller + "(): x must be within [0, 1] -- got " + String(x))
+    if y < 0.0 or y > 1.0:
+        raise Error(caller + "(): y must be within [0, 1] -- got " + String(y))
+    if width <= 0.0:
+        raise Error(
+            caller + "(): width must be positive -- got " + String(width)
+        )
+    if height <= 0.0:
+        raise Error(
+            caller + "(): height must be positive -- got " + String(height)
+        )
+    if x + width > 1.0:
+        raise Error(
+            caller
+            + "(): the inset runs past the plot rect's right edge -- x + width"
+            " is "
+            + String(x + width)
+        )
+    if y + height > 1.0:
+        raise Error(
+            caller
+            + "(): the inset runs past the plot rect's bottom edge -- y +"
+            " height is "
+            + String(y + height)
+        )
+    var pw = Float64(plot_rect[2] - plot_rect[0])
+    var ph = Float64(plot_rect[3] - plot_rect[1])
+    var x0 = plot_rect[0] + Int(x * pw + 0.5)
+    var y0 = plot_rect[1] + Int(y * ph + 0.5)
+    var x1 = plot_rect[0] + Int((x + width) * pw + 0.5)
+    var y1 = plot_rect[1] + Int((y + height) * ph + 0.5)
+    if x1 - x0 < 1 or y1 - y0 < 1:
+        raise Error(
+            caller
+            + "(): the inset rounds to nothing -- "
+            + String(x1 - x0)
+            + " by "
+            + String(y1 - y0)
+            + " pixels of a "
+            + String(Int(pw))
+            + " by "
+            + String(Int(ph))
+            + " plot rect"
+        )
+    return (x0, y0, x1, y1)
+
+
+def _inset_outer_bounds(
+    inset: Plot, rect: Tuple[Int, Int, Int, Int], width: Int, height: Int
+) raises -> Tuple[Int, Int, Int, Int]:
+    """The outer bounds that put `inset`'s plot rect on `rect`.
+
+    A plot's plot rect is its outer bounds less the margins its own tick
+    labels, axis titles and title need, and those margins come from
+    measured text, so the only way to know them is to render once and
+    ask. Same approach as `align_axes`: one scratch render into a raster
+    the figure's size, read where the plot rect landed, and expand the
+    bounds by the difference. Margins depend on the rect's size and
+    content, not on where it starts, so the expansion holds.
+
+    Args:
+        inset: The plot being placed.
+        rect: Where its plot rect should land, `(x0, y0, x1, y1)`.
+        width: The figure's width, for the scratch canvas.
+        height: The figure's height.
+
+    Returns:
+        `(x0, y0, x1, y1)` to hand `_render_into`, each edge pushed out
+        by that side's margin; it may extend past the figure, where the
+        labels are simply clipped.
+
+    Raises:
+        Error: Whatever rendering `inset` raises.
+    """
+    var scratch = Canvas(width, height, inset._theme.background)
+    var landed = _render_into(
+        scratch, inset, rect[0], rect[1], rect[2], rect[3]
+    )
+    return (
+        rect[0] - (landed[0] - rect[0]),
+        rect[1] - (landed[1] - rect[1]),
+        rect[2] + (rect[2] - landed[2]),
+        rect[3] + (rect[3] - landed[3]),
+    )
+
+
+def render_inset(
+    base: Plot,
+    inset: Plot,
+    x: Float64,
+    y: Float64,
+    width: Float64,
+    height: Float64,
+) raises -> Canvas:
+    """Render `base` as `render()` would, then `inset` over it inside a
+    sub-rect of the base's plot rect: a zoomed detail inside the chart it
+    details (#347).
+
+    The four fractions are of the base's *plot rect*, the area inside its
+    margins and axes where the marks are, not of the canvas, and they
+    describe the inset's own plot rect, its axes area. `x` and `y` place that area's top-left corner from the base plot
+    rect's top-left, in the row-down order every grid in this library
+    reads, so `x=0.55, y=0.05, width=0.4, height=0.4` is the top-right
+    quarter. Only that area is painted with the inset's background, so
+    it covers the base beneath it; the inset's tick labels, axis titles
+    and title sit outside it, over the base, rather than on a blank panel
+    that would punch a larger hole than the axes. The inset draws its own legend and annotations,
+    and its own `.size()` is ignored, as a cell's is in `render_grid()`.
+
+    The canvas is the base's size, supersampled by the larger of the two
+    plots' factors so a curved inset over a bar chart is drawn at the
+    curve's factor.
+
+    ```mojo
+    from dataviz import Plot, render_inset
+    from canvas.io.png import write_png
+
+    def main():
+        var x = List[Float64](0.0, 1.0, 2.0, 3.0, 4.0, 5.0)
+        var y = List[Float64](1.0, 4.0, 2.0, 5.0, 3.0, 6.0)
+        var base = Plot().mark_line().encode(x=x, y=y).size(640, 420)
+        var detail = Plot().mark_point().encode(
+            x=List[Float64](2.0, 3.0), y=List[Float64](2.0, 5.0)
+        )
+        write_png(render_inset(base, detail, 0.55, 0.05, 0.4, 0.4), "inset.png")
+    ```
+
+    Args:
+        base: The chart drawn first, at its own size.
+        inset: The chart drawn over it.
+        x: The inset's left edge, as a fraction of the base's plot-rect
+            width from the plot rect's left.
+        y: The inset's top edge, as a fraction of the plot-rect height
+            from the plot rect's top.
+        width: The inset's width as a fraction of the plot-rect width.
+        height: The inset's height as a fraction of the plot-rect height.
+
+    Returns:
+        The rendered figure, `base.width` by `base.height`.
+
+    Raises:
+        Error: A fraction outside `[0, 1]`, a non-positive size, an
+            inset that runs past the plot rect or rounds to nothing, or
+            anything rendering either plot raises.
+    """
+    var factor = _resolve_supersample(base, "render_inset")
+    var inset_factor = _resolve_supersample(inset, "render_inset")
+    if inset_factor > factor:
+        factor = inset_factor
+    var canvas = Canvas(base.width, base.height, base._theme.background)
+    canvas.begin_supersampled(factor, base._theme.background)
+    var plot_rect = _render_into(canvas, base, 0, 0, base.width, base.height)
+    var r = _inset_rect(plot_rect, x, y, width, height, "render_inset")
+    var outer = _inset_outer_bounds(inset, r, base.width, base.height)
+    canvas.fill_rect(
+        r[0], r[1], r[2] - r[0], r[3] - r[1], inset._theme.background
+    )
+    _ = _render_into(
+        canvas,
+        inset,
+        outer[0],
+        outer[1],
+        outer[2],
+        outer[3],
+        fill_background=False,
+    )
+    canvas.end_supersampled()
+    return canvas^
+
+
+def render_inset_svg(
+    base: Plot,
+    inset: Plot,
+    x: Float64,
+    y: Float64,
+    width: Float64,
+    height: Float64,
+) raises -> SvgCanvas:
+    """`render_inset()`'s counterpart for `SvgCanvas`: the same placement
+    rule against the base's plot rect, through `render_svg()`'s own
+    helper.
+
+    Args:
+        base: The chart drawn first, at its own size.
+        inset: The chart drawn over it.
+        x: The inset's left edge, as a fraction of the plot-rect width.
+        y: The inset's top edge, as a fraction of the plot-rect height.
+        width: The inset's width as a fraction of the plot-rect width.
+        height: The inset's height as a fraction of the plot-rect height.
+
+    Returns:
+        The rendered figure.
+
+    Raises:
+        Error: As `render_inset()`.
+    """
+    var svg = SvgCanvas(base.width, base.height)
+    var plot_rect = _render_svg_into(svg, base, 0, 0, base.width, base.height)
+    var r = _inset_rect(plot_rect, x, y, width, height, "render_inset_svg")
+    var outer = _inset_outer_bounds(inset, r, base.width, base.height)
+    svg.fill_rect(r[0], r[1], r[2] - r[0], r[3] - r[1], inset._theme.background)
+    _ = _render_svg_into(
+        svg,
+        inset,
+        outer[0],
+        outer[1],
+        outer[2],
+        outer[3],
+        fill_background=False,
+    )
+    return svg^

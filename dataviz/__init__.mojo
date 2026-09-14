@@ -41,6 +41,8 @@ from dataviz.layout import (
     GridCell,
     render_grid,
     render_grid_svg,
+    render_inset,
+    render_inset_svg,
     save_grid,
     uniform_cells,
 )
