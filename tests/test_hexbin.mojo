@@ -129,6 +129,106 @@ def test_svg_fills_one_path_per_distinct_count() raises:
     assert_equal(_count_tag(s, "path"), 4)
 
 
+def _hex_byte(pair: String) raises -> Int:
+    """`"4f"` to 79. The SVG backend writes colors as `#rrggbb`."""
+    var value = 0
+    for ch in pair.codepoints():
+        var c = ch.to_u32()
+        var digit = 0
+        if c >= 48 and c <= 57:
+            digit = Int(c) - 48
+        elif c >= 97 and c <= 102:
+            digit = Int(c) - 87
+        elif c >= 65 and c <= 70:
+            digit = Int(c) - 55
+        else:
+            raise Error("not a hex digit: " + pair)
+        value = value * 16 + digit
+    return value
+
+
+def test_paths_come_out_grouped_and_in_ascending_count() raises:
+    """What the cell sort is for, asserted directly.
+
+    Cells sharing a count share a color and go into one path, so the
+    sort has to do two things: put equal counts together, and put the
+    groups in ascending order. Nothing checked either, so the sort could
+    have been replaced with anything that happened to keep the path
+    count right -- which is most of what a wrong sort does.
+
+    The colors read off the ramp say both. Each fill's color is that
+    group's count mapped through a blue-to-red ramp, so the reds must
+    increase down the document and no color may appear twice.
+    """
+    # Counts 1, 2, 3 and 4, so four groups in a known order.
+    var x = List[Float64]()
+    var y = List[Float64]()
+    var cells = List[Int]()
+    cells.append(1)
+    cells.append(2)
+    cells.append(3)
+    cells.append(4)
+    for i in range(len(cells)):
+        for _ in range(cells[i]):
+            x.append(Float64(i) * 4.0)
+            y.append(0.0)
+    var s = render_svg(
+        hexbin(x, y, gridsize=4, theme=_theme(), width=360, height=260)
+    ).to_string()
+
+    # Fill colors in document order, keeping only the ones off this
+    # theme's own ramp. _LO is pure blue and _HI pure red, so a ramp
+    # color has no green and its red and blue sum to about 255 -- which
+    # the green background and the near-black tick labels do not. About,
+    # because each channel rounds independently: the midpoint comes out
+    # #800080, which sums to 256.
+    var reds = List[Int]()
+    var rest = s
+    while True:
+        var at = rest.find('fill="#')
+        if at == -1:
+            break
+        var r = _hex_byte(String(rest[byte = at + 7 : at + 9]))
+        var g = _hex_byte(String(rest[byte = at + 9 : at + 11]))
+        var b = _hex_byte(String(rest[byte = at + 11 : at + 13]))
+        if g == 0 and r + b >= 254 and r + b <= 256:
+            reds.append(r)
+        var tail = String(rest[byte = at + 7 :])
+        rest = tail
+    assert_true(
+        len(reds) >= 4,
+        "expected at least one fill per count group, found "
+        + String(len(reds)),
+    )
+
+    # Strokes repeat each fill's color, so take every distinct value in
+    # the order it first appears: that is the group order.
+    var groups = List[Int]()
+    for r in reds:
+        var seen = False
+        for g in groups:
+            if g == r:
+                seen = True
+        if not seen:
+            groups.append(r)
+    assert_equal(
+        len(groups), 4, "four distinct counts should give four distinct colors"
+    )
+    for i in range(1, len(groups)):
+        assert_true(
+            groups[i] > groups[i - 1],
+            (
+                "group "
+                + String(i)
+                + " has red "
+                + String(groups[i])
+                + ", not above the previous group's "
+                + String(groups[i - 1])
+                + "; the groups are not in ascending count order"
+            ),
+        )
+
+
 def test_dtype_overload_renders_identically() raises:
     var xf: List[Float64] = [0.0, 1.0, 2.0, 3.0, 4.0, 2.0, 2.0]
     var yf: List[Float64] = [0.0, 0.0, 0.0, 0.0, 4.0, 2.0, 2.0]
