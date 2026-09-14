@@ -7,10 +7,20 @@ compilation, so the suite is organized by family (#605).
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.buffer import Canvas
 from canvas.color import Color
-from dataviz import Theme, clustermap, jointplot, pairplot
+from dataviz import (
+    Theme,
+    clustermap,
+    clustermap_svg,
+    jointplot,
+    jointplot_svg,
+    pairplot,
+    pairplot_svg,
+    save,
+)
 from dataviz.core.cluster import linkage
 from dataviz.grid.heatmap import heatmap
 from dataviz.plot import render_svg
+from _test_helpers import _attr_values, _count_tag
 
 
 # ==== from test_jointplot.mojo ====
@@ -590,6 +600,76 @@ def test_a_clustermap_checks_its_input() raises:
 
     with assert_raises(contains="ratio must be above zero"):
         _ = clustermap(_interleaved(), _row_names(), _col_names(), ratio=0.0)
+
+
+# ==== vector output for the composite figures (#620) ====
+# These two were the only charts in the library that could not be
+# exported as vector, because they return a rendered raster canvas.
+
+
+def test_a_vector_pairplot_draws_the_same_panels() raises:
+    # The panels are built once and handed to whichever render_facets
+    # the caller asked for, so the two forms cannot drift. The check:
+    # the same number of cells with the same axis titles.
+    var data = _three()
+    var raster = pairplot(data[0], data[1], theme=_theme_pairplot())
+    var svg = pairplot_svg(
+        data[0], data[1], theme=_theme_pairplot()
+    ).to_string()
+    assert_equal(
+        Int(Float64(_attr_values(svg, "svg", "width")[0])),
+        raster.width,
+        "the vector figure is the same size",
+    )
+    assert_equal(
+        Int(Float64(_attr_values(svg, "svg", "height")[0])), raster.height
+    )
+    for name in data[1]:
+        assert_true(
+            svg.find(">" + name + "<") != -1,
+            "every variable is still named: " + name,
+        )
+    # Nine panels of three variables, each with its own axis frame.
+    assert_true(_count_tag(svg, "circle") > 0, "the scatters drew")
+    assert_true(_count_tag(svg, "rect") > 9, "and the histograms")
+
+
+def test_a_vector_jointplot_draws_the_same_panels() raises:
+    var s = _samples(120)
+    var raster = jointplot(s[0], s[1], theme=_theme(), width=400, height=400)
+    var svg = jointplot_svg(
+        s[0], s[1], theme=_theme(), width=400, height=400, title="Joint"
+    ).to_string()
+    assert_equal(Int(Float64(_attr_values(svg, "svg", "width")[0])), 400)
+    assert_equal(
+        Int(Float64(_attr_values(svg, "svg", "height")[0])), raster.height
+    )
+    assert_true(svg.find(">Joint<") != -1, "the title carries over")
+    assert_true(_count_tag(svg, "circle") > 0, "the scatter drew")
+
+
+def test_saving_a_vector_figure_writes_markup() raises:
+    var s = _samples(120)
+    var path = "/tmp/dataviz_test_jointplot.svg"
+    save(
+        jointplot_svg(s[0], s[1], theme=_theme(), width=300, height=300),
+        path,
+    )
+    var f = open(path, "r")
+    var text = f.read()
+    f.close()
+    assert_true("<svg" in text, "the file is a document")
+    assert_true("</svg>" in text)
+
+
+def test_saving_vector_markup_to_a_raster_path_raises() raises:
+    # A clear refusal beats writing markup into a file named .png.
+    var s = _samples(120)
+    with assert_raises(contains="vector markup, not pixels"):
+        save(
+            jointplot_svg(s[0], s[1], theme=_theme(), width=300, height=300),
+            "/tmp/dataviz_test_jointplot.png",
+        )
 
 
 def main() raises:

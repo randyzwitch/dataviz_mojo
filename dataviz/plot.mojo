@@ -6002,6 +6002,37 @@ def save(plot: Plot, path: String, dpi: Float64 = 72.0) raises:
         write_bmp(render(_at_dpi(plot, dpi)), path)
 
 
+def save(svg: SvgCanvas, path: String) raises:
+    """Write an already-rendered `SvgCanvas` to `path` (#620).
+
+    The vector counterpart of the `Canvas` overload below, so a
+    composite figure that renders to vector -- `jointplot_svg()`,
+    `pairplot_svg()` -- is saved the same way every other chart is
+    rather than reaching for canvas's own writer. A raster extension
+    raises: this is markup, and turning it into pixels is `render()`'s
+    job from the `Plot` it came from, at whatever size and resolution
+    that caller wants.
+
+    Args:
+        svg: The rendered document.
+        path: Where to write it; the extension must be `.svg`, or
+            absent.
+
+    Raises:
+        Error: A `.png` or `.bmp` path, or the write fails.
+    """
+    var lower = path.lower()
+    if lower.endswith(".png") or lower.endswith(".bmp"):
+        raise Error(
+            "save(): an SvgCanvas is vector markup, not pixels -- render"
+            " the Plot it came from with render() and save that, which"
+            " lets you choose the size and resolution the raster gets."
+        )
+    var f = open(path, "w")
+    f.write(svg.to_string())
+    f.close()
+
+
 def save(canvas: Canvas, path: String) raises:
     """Write an already-rendered `Canvas` to `path`: BMP for a `.bmp`
     extension, PNG otherwise. A `.svg` path raises, since raster pixels

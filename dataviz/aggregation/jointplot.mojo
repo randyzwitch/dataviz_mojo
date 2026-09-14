@@ -34,7 +34,9 @@ from dataviz.binned.histogram import bin_edges, histogram_bins
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.scale import MinMax
 from dataviz.core.theme import Theme
-from dataviz.layout import GridCell, render_grid
+from canvas.vector.svg import SvgCanvas
+
+from dataviz.layout import GridCell, render_grid, render_grid_svg
 from dataviz.plot import Plot
 
 
@@ -98,71 +100,44 @@ def _even_edges(lo: Float64, hi: Float64, bins: Int) raises -> List[Float64]:
     return edges^
 
 
-def jointplot[
+def _jointplot_panels[
     dtype: DType
 ](
     x: List[Scalar[dtype]],
     y: List[Scalar[dtype]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 640,
-    bins: Int = 20,
-    ratio: Float64 = 4.0,
-    title: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> Canvas:
-    """A scatter of `y` against `x` with each variable's distribution
-    along its own axis.
+    theme: Theme,
+    width: Int,
+    height: Int,
+    bins: Int,
+    ratio: Float64,
+    title: String,
+    x_title: String,
+    y_title: String,
+    mut plots: List[Plot],
+    mut cells: List[GridCell],
+) raises:
+    """The three panels `jointplot()` lays out and where each goes,
+    built once for both the raster and the vector form (#620).
 
-    Returns a rendered `Canvas` rather than a
-    `Plot`, for the reason `pairplot()` does: the result is several
-    charts in a grid, and a `Plot` is one chart.
-
-    Example:
-        ```mojo
-        from dataviz import jointplot, save
-
-        def main() raises:
-            # A correlated pair from a fixed linear congruential sequence,
-            # so the figure is the same on every run.
-            var x = List[Float64]()
-            var y = List[Float64]()
-            var seed = 20260913
-            for _ in range(400):
-                seed = (seed * 1103515245 + 12345) % 2147483648
-                var a = Float64(seed % 10000) / 1000.0
-                seed = (seed * 1103515245 + 12345) % 2147483648
-                var b = Float64(seed % 10000) / 1000.0
-                x.append(a)
-                y.append(a * 0.6 + b * 0.4)
-            var c = jointplot(
-                x,
-                y,
-                title="Joint distribution",
-                x_title="x",
-                y_title="0.6 x + noise",
-            )
-            save(c, "docs/src/examples/out_jointplot.png")
-        ```
+    Everything that decides what the figure says -- the shared domains,
+    the two marginals\' bin edges, which panel carries the title -- is
+    here, so the two entry points differ only in which `render_grid`
+    they hand the result to and cannot drift into drawing different
+    charts.
 
     Args:
         x: The horizontal variable.
-        y: The vertical variable, one per `x` entry.
+        y: The vertical variable.
         theme: Colors and fonts, shared by all three panels.
-        width: Figure width in pixels.
-        height: Figure height in pixels.
+        width: Figure width.
+        height: Figure height.
         bins: Intervals in each marginal.
-        ratio: How many times the main panel's size the marginals are
-            divided into. At the default of 4 a marginal is a fifth of
-            the figure.
-        title: Shown above the top marginal, which is the top of the
-            figure.
-        x_title: The horizontal axis caption, on the main panel.
-        y_title: The vertical axis caption, on the main panel.
-
-    Returns:
-        The rendered figure.
+        ratio: How many times a marginal\'s size the main panel is.
+        title: Shown above the top marginal.
+        x_title: The horizontal axis caption.
+        y_title: The vertical axis caption.
+        plots: Filled with the three panels.
+        cells: Filled with where each one goes.
 
     Raises:
         Error: Empty or mismatched columns, a non-positive `bins`, or a
@@ -226,23 +201,186 @@ def jointplot[
 
     # Top-left is the x marginal, bottom-left the panel, bottom-right the
     # y marginal. Top-right stays empty, as seaborn leaves it.
-    var plots = List[Plot]()
     plots.append(top^)
     plots.append(main^)
     plots.append(right^)
-    var cells = List[GridCell]()
     cells.append(GridCell(0, 0))
     cells.append(GridCell(1, 0))
     cells.append(GridCell(1, 1))
 
-    var rows = List[Float64]()
+
+def _jointplot_weights(
+    ratio: Float64, mut rows: List[Float64], mut cols: List[Float64]
+):
+    """The grid's track weights: a marginal, then the main panel at
+    `ratio` times its size, down and across.
+
+    Args:
+        ratio: How many times a marginal's size the main panel is.
+        rows: Filled with the row weights.
+        cols: Filled with the column weights.
+    """
     rows.append(1.0)
     rows.append(ratio)
-    var cols = List[Float64]()
     cols.append(ratio)
     cols.append(1.0)
 
+
+def jointplot[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 640,
+    bins: Int = 20,
+    ratio: Float64 = 4.0,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Canvas:
+    """A scatter of `y` against `x` with each variable's distribution
+    along its own axis.
+
+    Returns a rendered `Canvas` rather than a
+    `Plot`, for the reason `pairplot()` does: the result is several
+    charts in a grid, and a `Plot` is one chart.
+
+    Example:
+        ```mojo
+        from dataviz import jointplot_svg, save
+
+        def main() raises:
+            # A correlated pair from a fixed linear congruential sequence,
+            # so the figure is the same on every run.
+            var x = List[Float64]()
+            var y = List[Float64]()
+            var seed = 20260913
+            for _ in range(400):
+                seed = (seed * 1103515245 + 12345) % 2147483648
+                var a = Float64(seed % 10000) / 1000.0
+                seed = (seed * 1103515245 + 12345) % 2147483648
+                var b = Float64(seed % 10000) / 1000.0
+                x.append(a)
+                y.append(a * 0.6 + b * 0.4)
+            var c = jointplot_svg(
+                x,
+                y,
+                title="Joint distribution",
+                x_title="x",
+                y_title="0.6 x + noise",
+            )
+            save(c, "docs/src/examples/out_jointplot.svg")
+        ```
+
+    Args:
+        x: The horizontal variable.
+        y: The vertical variable, one per `x` entry.
+        theme: Colors and fonts, shared by all three panels.
+        width: Figure width in pixels.
+        height: Figure height in pixels.
+        bins: Intervals in each marginal.
+        ratio: How many times the main panel's size the marginals are
+            divided into. At the default of 4 a marginal is a fifth of
+            the figure.
+        title: Shown above the top marginal, which is the top of the
+            figure.
+        x_title: The horizontal axis caption, on the main panel.
+        y_title: The vertical axis caption, on the main panel.
+
+    Returns:
+        The rendered figure.
+
+    Raises:
+        Error: Empty or mismatched columns, a non-positive `bins`, or a
+            `ratio` that is not above zero.
+    """
+    var plots = List[Plot]()
+    var cells = List[GridCell]()
+    _jointplot_panels(
+        x,
+        y,
+        theme,
+        width,
+        height,
+        bins,
+        ratio,
+        title,
+        x_title,
+        y_title,
+        plots,
+        cells,
+    )
+    var rows = List[Float64]()
+    var cols = List[Float64]()
+    _jointplot_weights(ratio, rows, cols)
     return render_grid(
+        plots,
+        cells,
+        width,
+        height,
+        row_weights=rows,
+        col_weights=cols,
+        align_axes=True,
+    )
+
+
+def jointplot_svg[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 640,
+    bins: Int = 20,
+    ratio: Float64 = 4.0,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> SvgCanvas:
+    """`jointplot()`'s vector counterpart, over the same panels (#620).
+
+    Args:
+        x: The horizontal variable.
+        y: The vertical variable, one per `x` entry.
+        theme: Colors and fonts, shared by all three panels.
+        width: Figure width in points.
+        height: Figure height in points.
+        bins: Intervals in each marginal.
+        ratio: How many times the main panel's size the marginals are
+            divided into.
+        title: Shown above the top marginal.
+        x_title: The horizontal axis caption, on the main panel.
+        y_title: The vertical axis caption, on the main panel.
+
+    Returns:
+        The rendered figure.
+
+    Raises:
+        Error: As `jointplot()`.
+    """
+    var plots = List[Plot]()
+    var cells = List[GridCell]()
+    _jointplot_panels(
+        x,
+        y,
+        theme,
+        width,
+        height,
+        bins,
+        ratio,
+        title,
+        x_title,
+        y_title,
+        plots,
+        cells,
+    )
+    var rows = List[Float64]()
+    var cols = List[Float64]()
+    _jointplot_weights(ratio, rows, cols)
+    return render_grid_svg(
         plots,
         cells,
         width,
