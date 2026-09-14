@@ -26,6 +26,7 @@ from canvas.buffer import Canvas
 from canvas.io.bmp import write_bmp
 from canvas.io.png import write_png
 from canvas.text.font_cache import FontCache
+from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 from canvas.vector.svg import SvgCanvas
 
@@ -38,6 +39,7 @@ from dataviz.core.annotations import (
     _draw_annotation_vlines,
 )
 from dataviz.core.mark import Mark
+from dataviz.core.theme import Theme
 from dataviz.core.output_format import OutputFormat
 from dataviz.core.text import (
     _Scaled,
@@ -89,6 +91,19 @@ struct GridCell(Copyable, ImplicitlyCopyable, Movable):
         self.col = col
         self.row_span = row_span
         self.col_span = col_span
+
+
+def _figure_title_band(theme: Theme, title: String) -> Int:
+    """The strip a figure title reserves above the cells: zero for no
+    title, else the same band a chart's own title takes in
+    `_apply_labels`, so a figure title and a chart title sit at the same
+    height and in the same face. `theme` is the figure's, which is
+    `plots[0]`'s everywhere a figure has one.
+    """
+    if title.byte_length() == 0:
+        return 0
+    var sc = _Scaled(theme)
+    return Int(sc.title_font_size) + sc.label_gap
 
 
 def _weighted_edges(
@@ -393,6 +408,7 @@ def _render_cells_generic[
     col_weights: List[Float64] = List[Float64](),
     shared_y_scale: Bool = False,
     align_axes: Bool = False,
+    title: String = "",
     *,
     mut cache: FontCache,
 ) raises -> List[_TextRequest]:
@@ -445,6 +461,9 @@ def _render_cells_generic[
         align_axes: Give every cell in a column the same left and right
             plot-rect edges, and every cell in a row the same top and
             bottom.
+        title: A figure title, centered above every cell in the band
+            `_figure_title_band` reserves; the cells share what is left
+            of `height`. Empty draws nothing and reserves nothing.
         cache: The figure's shared font cache.
 
     Returns:
@@ -462,8 +481,28 @@ def _render_cells_generic[
     var rows = shape[0]
     var cols = shape[1]
     _check_cells(cells, rows, cols)
+    # A figure title takes a band off the top and the cells tile what
+    # remains, so the tracks still add up to the canvas exactly.
+    var band = _figure_title_band(plots[0]._theme, title)
     var x_edges = _weighted_edges(width, col_weights, cols)
-    var y_edges = _weighted_edges(height, row_weights, rows)
+    var y_edges = _weighted_edges(height - band, row_weights, rows)
+    if band > 0:
+        for k in range(len(y_edges)):
+            y_edges[k] += band
+        var theme = plots[0]._theme
+        var sc = _Scaled(theme)
+        text_requests.append(
+            _TextRequest(
+                width // 2,
+                Int(sc.title_font_size * 0.8),
+                title,
+                theme.text_color,
+                sc.title_font_size,
+                TextAlign.CENTER,
+                theme.font_family,
+                bold=theme.title_bold,
+            )
+        )
 
     # Computed once up front when asked for, so every cell reads the same
     # two numbers. shared_y_is_log follows plots[0]; a mix raises inside
@@ -689,6 +728,7 @@ def render_grid(
     col_weights: List[Float64] = List[Float64](),
     shared_y_scale: Bool = False,
     align_axes: Bool = False,
+    title: String = "",
 ) raises -> Canvas:
     """Place each plot in its own cell of one `width` by `height` canvas.
 
@@ -727,6 +767,8 @@ def render_grid(
             each row, so a cell lines up with its neighbors rather than
             with whatever its own tick labels happened to need (#569).
             Costs a second measuring render.
+        title: A figure title, centered above the cells, which share
+            the height left under it. Empty for none.
 
     Returns:
         The rendered figure.
@@ -762,6 +804,7 @@ def render_grid(
         col_weights,
         shared_y_scale,
         align_axes,
+        title,
         cache=cache,
     )
     _replay_text_requests(canvas, text_requests, cache)
@@ -778,6 +821,7 @@ def render_grid_svg(
     col_weights: List[Float64] = List[Float64](),
     shared_y_scale: Bool = False,
     align_axes: Bool = False,
+    title: String = "",
 ) raises -> SvgCanvas:
     """`render_grid()`'s counterpart for `SvgCanvas`.
 
@@ -790,6 +834,7 @@ def render_grid_svg(
         col_weights: Relative column widths, empty for equal columns.
         shared_y_scale: Give every cell one y-domain.
         align_axes: Share plot-rect edges, as `render_grid()`.
+        title: A figure title above the cells, as `render_grid()`.
 
     Returns:
         The rendered figure as vector markup.
@@ -812,6 +857,7 @@ def render_grid_svg(
         col_weights,
         shared_y_scale,
         align_axes,
+        title,
         cache=cache,
     )
     _replay_text_requests_svg(svg, text_requests)
@@ -828,6 +874,7 @@ def save_grid(
     col_weights: List[Float64] = List[Float64](),
     shared_y_scale: Bool = False,
     align_axes: Bool = False,
+    title: String = "",
 ) raises:
     """`render_grid()`'s counterpart that writes a file, picking the
     format from `plots[0]`'s theme or the path's extension.
@@ -846,6 +893,7 @@ def save_grid(
         col_weights: Relative column widths, empty for equal columns.
         shared_y_scale: Give every cell one y-domain.
         align_axes: Share plot-rect edges, as `render_grid()`.
+        title: A figure title above the cells, as `render_grid()`.
 
     Raises:
         Error: Whatever `render_grid()` raises, or a write failure.
@@ -865,6 +913,7 @@ def save_grid(
                     col_weights,
                     shared_y_scale,
                     align_axes,
+                    title,
                 ),
                 plots[0]._labels,
             )
@@ -881,6 +930,7 @@ def save_grid(
                 col_weights,
                 shared_y_scale,
                 align_axes,
+                title,
             ),
             path,
         )
@@ -895,6 +945,7 @@ def save_grid(
                 col_weights,
                 shared_y_scale,
                 align_axes,
+                title,
             ),
             path,
         )

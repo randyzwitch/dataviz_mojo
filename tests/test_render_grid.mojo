@@ -19,6 +19,8 @@ rendering one figure both ways and comparing the pixels.
 
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
+from _test_helpers import _attr_values
+
 from canvas.buffer import Canvas
 from canvas.color import Color
 
@@ -26,10 +28,12 @@ from dataviz import (
     GridCell,
     Theme,
     render_facets,
+    render_facets_svg,
     render_grid,
     render_grid_svg,
     save_grid,
 )
+from dataviz.core.text import _Scaled
 from dataviz.plot import Plot
 
 
@@ -644,6 +648,106 @@ def test_align_axes_is_off_by_default() raises:
             if a.r != b.r or a.g != b.g or a.b != b.b:
                 diff += 1
     assert_equal(diff, 0, "align_axes=False is not the default")
+
+
+def _title_band(theme: Theme) -> Int:
+    """What a figure title reserves: the same band a chart title takes."""
+    var sc = _Scaled(theme)
+    return Int(sc.title_font_size) + sc.label_gap
+
+
+def _ink_between(c: Canvas, y0: Int, y1: Int, theme: Theme) -> Int:
+    """Pixels that are not the background in rows `y0` up to `y1`."""
+    var bg = theme.background
+    var n = 0
+    for y in range(y0, y1):
+        for x in range(c.width):
+            var p = c.get_pixel(x, y)
+            if not (p.r == bg.r and p.g == bg.g and p.b == bg.b):
+                n += 1
+    return n
+
+
+def test_a_grid_title_takes_a_band_and_the_cells_tile_the_rest() raises:
+    # The figure keeps its given size, so the cells give up the band.
+    var pc = _two_across()
+    var plain = render_grid_svg(pc[0], pc[1], 400, 200).to_string()
+    var titled = render_grid_svg(
+        pc[0], pc[1], 400, 200, title="Two across"
+    ).to_string()
+    assert_true(plain.find(">Two across<") == -1, "no title unless asked")
+    assert_true(titled.find(">Two across<") != -1, "the title is drawn")
+    # rect 0 is the figure fill in both; rect 1 is the first cell's
+    # background, which starts at the top without a title and under
+    # the band with one.
+    var plain_ys = _attr_values(plain, "rect", "y")
+    var titled_ys = _attr_values(titled, "rect", "y")
+    assert_equal(plain_ys[1], plain_ys[0], "no title: the cell starts at 0")
+    assert_true(
+        titled_ys[1] != titled_ys[0],
+        "a title pushes the first cell below the top",
+    )
+    assert_equal(
+        _attr_values(titled, "svg", "height")[0],
+        _attr_values(plain, "svg", "height")[0],
+        "render_grid keeps the size it was given",
+    )
+
+
+def test_a_grid_title_is_centered_on_the_figure() raises:
+    var pc = _two_across()
+    var svg = render_grid_svg(
+        pc[0], pc[1], 400, 200, title="Two across"
+    ).to_string()
+    # The title is the first <text> written: the core appends it before
+    # any cell runs.
+    var xs = _attr_values(svg, "text", "x")
+    var anchors = _attr_values(svg, "text", "text-anchor")
+    assert_equal(xs[0], "200", "centered on the 400-wide figure")
+    assert_equal(anchors[0], "middle")
+
+
+def test_a_facet_title_grows_the_figure_and_leaves_the_cells_alone() raises:
+    # render_facets sizes the figure from the plots, so a title adds its
+    # band on top rather than shrinking the cells: everything below the
+    # band is the untitled figure, pixel for pixel.
+    var plots = List[Plot]()
+    plots.append(_plot(1.0))
+    plots.append(_plot(3.0))
+    var plain = render_facets(plots, 2)
+    var titled = render_facets(plots, 2, title="Two across")
+    var band = _title_band(_theme())
+    assert_true(band > 0)
+    assert_equal(titled.height, plain.height + band)
+    assert_equal(titled.width, plain.width)
+    assert_true(
+        _ink_between(titled, 0, band, _theme()) > 0,
+        "the band holds the title's ink",
+    )
+    for y in range(plain.height):
+        for x in range(plain.width):
+            var a = plain.get_pixel(x, y)
+            var b = titled.get_pixel(x, y + band)
+            if not (a.r == b.r and a.g == b.g and a.b == b.b):
+                raise Error(
+                    "pixel differs under the band at ("
+                    + String(x)
+                    + ", "
+                    + String(y)
+                    + ")"
+                )
+
+
+def test_a_facet_title_reaches_the_svg_backend_too() raises:
+    var plots = List[Plot]()
+    plots.append(_plot(1.0))
+    plots.append(_plot(3.0))
+    var svg = render_facets_svg(plots, 2, title="Two across").to_string()
+    assert_true(svg.find(">Two across<") != -1)
+    assert_equal(
+        _attr_values(svg, "svg", "height")[0],
+        String(150 + _title_band(_theme())),
+    )
 
 
 def main() raises:
