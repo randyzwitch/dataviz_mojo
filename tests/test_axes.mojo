@@ -4,7 +4,12 @@ One module rather than 2: every test module pays the same dependency
 compilation, so the suite is organized by family (#605).
 """
 
-from std.testing import TestSuite, assert_equal, assert_true
+from std.testing import (
+    TestSuite,
+    assert_equal,
+    assert_raises,
+    assert_true,
+)
 from dataviz import AxisPosition, Theme, bar, line, rugplot, save, scatter
 from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
@@ -519,6 +524,391 @@ def test_the_year_is_repeated_only_where_it_changes() raises:
         _joined(_labels(start, start.shift(days=5))),
         "Mar 17 2026|Mar 18|Mar 19|Mar 20|Mar 21|Mar 22",
     )
+
+
+# ==== axis controls (#368) ====
+# Explicit ticks, reversed axes and equal aspect, asserted on the SVG's
+# own numbers: circle centers for where the data landed, the two axis
+# spines for where the plot rect is, and the short segments hanging off
+# the rect for where the ticks are.
+
+
+def _controls_theme() -> Theme:
+    return Theme(show_gridlines=False, show_legend=False)
+
+
+def _diagonal() -> List[Float64]:
+    """Five points up the diagonal, used for both axes, so a tick at a
+    data value can be compared against that point's own pixel.
+    """
+    var v: List[Float64] = [0.0, 1.0, 2.0, 3.0, 4.0]
+    return v^
+
+
+def _rect(svg: String) raises -> Tuple[Int, Int, Int, Int]:
+    """The plot rect as `(x0, y0, x1, y1)`, from the two axis spines: the
+    longest vertical line is the left one and the longest horizontal the
+    bottom one, and each spans the rect exactly.
+    """
+    var segs = _segments(svg)
+    var vi = -1
+    var hi = -1
+    var best_v = -1
+    var best_h = -1
+    for i in range(len(segs)):
+        var s = segs[i]
+        if s.x1 == s.x2:
+            var length = abs(s.y2 - s.y1)
+            if length > best_v:
+                best_v = length
+                vi = i
+        elif s.y1 == s.y2:
+            var length = abs(s.x2 - s.x1)
+            if length > best_h:
+                best_h = length
+                hi = i
+    if vi < 0 or hi < 0:
+        raise Error("no axis spines in the document")
+    var v = segs[vi]
+    var h = segs[hi]
+    return (v.x1, min(v.y1, v.y2), max(h.x1, h.x2), h.y1)
+
+
+def _center_xs(svg: String) raises -> List[Float64]:
+    """Every scatter marker's center x, in document order."""
+    var out = List[Float64]()
+    for v in _attr_values(svg, "circle", "cx"):
+        out.append(Float64(v))
+    return out^
+
+
+def _center_ys(svg: String) raises -> List[Float64]:
+    """Every scatter marker's center y, in document order."""
+    var out = List[Float64]()
+    for v in _attr_values(svg, "circle", "cy"):
+        out.append(Float64(v))
+    return out^
+
+
+def _x_tick_pixels(svg: String) raises -> List[Int]:
+    """Each x tick mark's column: the short vertical segments hanging
+    below the plot rect's bottom edge.
+    """
+    var r = _rect(svg)
+    var out = List[Int]()
+    for s in _segments(svg):
+        if s.x1 == s.x2 and min(s.y1, s.y2) == r[3] and max(s.y1, s.y2) > r[3]:
+            out.append(s.x1)
+    return out^
+
+
+def test_an_explicit_x_tick_lands_on_its_own_data_value() raises:
+    # The decisive check, and one that needs no pixel arithmetic in the
+    # test: a tick asked for at x=1 must print in the same column as the
+    # marker at x=1, because they go through the same scale.
+    var pos: List[Float64] = [1.0, 3.0]
+    var names: List[String] = ["one", "three"]
+    var svg = render_svg(
+        scatter(
+            _diagonal(),
+            _diagonal(),
+            theme=_controls_theme(),
+            width=400,
+            height=300,
+        ).scale_x_ticks(pos, names)
+    ).to_string()
+    var ticks = _x_tick_pixels(svg)
+    assert_equal(len(ticks), 2, "two ticks asked for, two drawn")
+    # A tick mark is rounded to a pixel column; a marker center keeps
+    # its fraction. Same column is the most the two can agree on.
+    var cx = _center_xs(svg)
+    assert_equal(
+        ticks[0], Int(cx[1] + 0.5), "the tick at x=1 is on that marker"
+    )
+    assert_equal(
+        ticks[1], Int(cx[3] + 0.5), "the tick at x=3 is on that marker"
+    )
+    assert_true(svg.find(">one<") != -1, "and carries its label")
+    assert_true(svg.find(">three<") != -1)
+
+
+def test_explicit_ticks_replace_the_computed_ones_entirely() raises:
+    var plain = render_svg(
+        scatter(
+            _diagonal(),
+            _diagonal(),
+            theme=_controls_theme(),
+            width=400,
+            height=300,
+        )
+    ).to_string()
+    var pos: List[Float64] = [1.0, 3.0]
+    var pinned = render_svg(
+        scatter(
+            _diagonal(),
+            _diagonal(),
+            theme=_controls_theme(),
+            width=400,
+            height=300,
+        ).scale_x_ticks(pos)
+    ).to_string()
+    assert_true(
+        len(_x_tick_pixels(plain)) > 2, "the computed axis has more ticks"
+    )
+    assert_equal(len(_x_tick_pixels(pinned)), 2, "the explicit set is all")
+    # With no labels given the positions are formatted like any others.
+    assert_true(pinned.find(">1<") != -1, "an unlabeled tick is formatted")
+
+
+def test_a_tick_outside_the_domain_is_dropped() raises:
+    var pos: List[Float64] = [1.0, 99.0]
+    var svg = render_svg(
+        scatter(
+            _diagonal(),
+            _diagonal(),
+            theme=_controls_theme(),
+            width=400,
+            height=300,
+        ).scale_x_ticks(pos)
+    ).to_string()
+    assert_equal(
+        len(_x_tick_pixels(svg)), 1, "only the one inside the domain draws"
+    )
+    assert_true(svg.find(">99<") == -1, "and the other prints nothing")
+
+
+def test_explicit_y_labels_set_the_left_margin() raises:
+    # The y labels are what the margin is measured from, so a long one
+    # has to move the plot rect right or it would print over the axis.
+    var pos: List[Float64] = [1.0, 3.0]
+    var short: List[String] = ["a", "b"]
+    var long: List[String] = [
+        "a very long tick label",
+        "another long one",
+    ]
+    var narrow = _rect(
+        render_svg(
+            scatter(
+                _diagonal(),
+                _diagonal(),
+                theme=_controls_theme(),
+                width=400,
+                height=300,
+            ).scale_y_ticks(pos, short)
+        ).to_string()
+    )
+    var wide = _rect(
+        render_svg(
+            scatter(
+                _diagonal(),
+                _diagonal(),
+                theme=_controls_theme(),
+                width=400,
+                height=300,
+            ).scale_y_ticks(pos, long)
+        ).to_string()
+    )
+    assert_true(
+        wide[0] > narrow[0],
+        "the long labels push the rect right: "
+        + String(wide[0])
+        + " vs "
+        + String(narrow[0]),
+    )
+
+
+def test_a_reversed_x_axis_mirrors_every_marker() raises:
+    var plain = render_svg(
+        scatter(
+            _diagonal(),
+            _diagonal(),
+            theme=_controls_theme(),
+            width=400,
+            height=300,
+        )
+    ).to_string()
+    var flipped = render_svg(
+        scatter(
+            _diagonal(),
+            _diagonal(),
+            theme=_controls_theme(),
+            width=400,
+            height=300,
+        ).scale_x_reverse()
+    ).to_string()
+    var r = _rect(plain)
+    assert_equal(_rect(flipped)[0], r[0], "the rect itself does not move")
+    assert_equal(_rect(flipped)[2], r[2])
+    var a = _center_xs(plain)
+    var b = _center_xs(flipped)
+    assert_equal(len(a), len(b))
+    var edges = Float64(r[0] + r[2])
+    for i in range(len(a)):
+        assert_true(
+            abs(a[i] + b[i] - edges) < 0.01,
+            "marker "
+            + String(i)
+            + " mirrors about the rect: "
+            + String(a[i])
+            + " and "
+            + String(b[i]),
+        )
+    # Ascending before, descending after: the order really reversed.
+    assert_true(a[0] < a[4] and b[0] > b[4])
+
+
+def test_a_reversed_y_axis_mirrors_every_marker() raises:
+    var plain = render_svg(
+        scatter(
+            _diagonal(),
+            _diagonal(),
+            theme=_controls_theme(),
+            width=400,
+            height=300,
+        )
+    ).to_string()
+    var flipped = render_svg(
+        scatter(
+            _diagonal(),
+            _diagonal(),
+            theme=_controls_theme(),
+            width=400,
+            height=300,
+        ).scale_y_reverse()
+    ).to_string()
+    var r = _rect(plain)
+    var a = _center_ys(plain)
+    var b = _center_ys(flipped)
+    var edges = Float64(r[1] + r[3])
+    for i in range(len(a)):
+        assert_true(abs(a[i] + b[i] - edges) < 0.01, "marker " + String(i))
+    assert_true(a[0] > a[4] and b[0] < b[4], "y ran up, now it runs down")
+
+
+def test_reversing_keeps_the_ticks_and_their_labels() raises:
+    # Only the pixels swap: the domain still walks low to high, so the
+    # same tick values are drawn and only their columns move.
+    var pos: List[Float64] = [1.0, 3.0]
+    var names: List[String] = ["one", "three"]
+    var svg = render_svg(
+        scatter(
+            _diagonal(),
+            _diagonal(),
+            theme=_controls_theme(),
+            width=400,
+            height=300,
+        )
+        .scale_x_ticks(pos, names)
+        .scale_x_reverse()
+    ).to_string()
+    var ticks = _x_tick_pixels(svg)
+    assert_equal(len(ticks), 2)
+    assert_true(svg.find(">one<") != -1 and svg.find(">three<") != -1)
+    var cx = _center_xs(svg)
+    assert_equal(ticks[0], Int(cx[1] + 0.5), "still on the marker it names")
+    assert_equal(ticks[1], Int(cx[3] + 0.5))
+
+
+def test_equal_aspect_gives_equal_distances_equal_pixel_lengths() raises:
+    # One unit right and one unit up, from the same corner.
+    var xs: List[Float64] = [0.0, 1.0, 0.0]
+    var ys: List[Float64] = [0.0, 0.0, 1.0]
+    var free = render_svg(
+        scatter(xs, ys, theme=_controls_theme(), width=400, height=300)
+    ).to_string()
+    var equal = render_svg(
+        scatter(
+            xs, ys, theme=_controls_theme(), width=400, height=300
+        ).equal_aspect()
+    ).to_string()
+    var fx = _center_xs(free)
+    var fy = _center_ys(free)
+    var free_x = abs(fx[1] - fx[0])
+    var free_y = abs(fy[2] - fy[0])
+    assert_true(
+        abs(free_x - free_y) > 10.0,
+        "without it the same distance is drawn at two lengths",
+    )
+    var ex = _center_xs(equal)
+    var ey = _center_ys(equal)
+    var eq_x = abs(ex[1] - ex[0])
+    var eq_y = abs(ey[2] - ey[0])
+    assert_true(
+        abs(eq_x - eq_y) <= 1.0,
+        "with it they match: " + String(eq_x) + " and " + String(eq_y),
+    )
+
+
+def test_equal_aspect_shrinks_the_rect_and_centers_it() raises:
+    var xs: List[Float64] = [0.0, 1.0, 0.0]
+    var ys: List[Float64] = [0.0, 0.0, 1.0]
+    var free = _rect(
+        render_svg(
+            scatter(xs, ys, theme=_controls_theme(), width=400, height=300)
+        ).to_string()
+    )
+    var equal = _rect(
+        render_svg(
+            scatter(
+                xs, ys, theme=_controls_theme(), width=400, height=300
+            ).equal_aspect()
+        ).to_string()
+    )
+    assert_true(
+        equal[2] - equal[0] <= free[2] - free[0], "no wider than it had"
+    )
+    assert_true(
+        equal[3] - equal[1] <= free[3] - free[1], "no taller than it had"
+    )
+    # Equal domain spans on both axes, so the rect comes out square.
+    assert_true(
+        abs((equal[2] - equal[0]) - (equal[3] - equal[1])) <= 1,
+        "square for equal spans: "
+        + String(equal[2] - equal[0])
+        + " by "
+        + String(equal[3] - equal[1]),
+    )
+    # Centered in the room it gave up, to within the odd pixel.
+    var left_gap = equal[0] - free[0]
+    var right_gap = free[2] - equal[2]
+    assert_true(
+        abs(left_gap - right_gap) <= 1,
+        "centered: gaps " + String(left_gap) + " and " + String(right_gap),
+    )
+
+
+def test_axis_control_inputs_are_checked() raises:
+    var none: List[Float64] = []
+    with assert_raises(contains="at least one tick position"):
+        _ = render_svg(scatter(_diagonal(), _diagonal()).scale_x_ticks(none))
+    var two: List[Float64] = [1.0, 2.0]
+    var one: List[String] = ["only one"]
+    with assert_raises(contains="one label per position"):
+        _ = render_svg(
+            scatter(_diagonal(), _diagonal()).scale_y_ticks(two, one)
+        )
+    var neg: List[Float64] = [-1.0, 1.0]
+    with assert_raises(contains="must be > 0 on a log-scaled axis"):
+        _ = render_svg(
+            scatter(_diagonal(), _diagonal()).scale_x_log().scale_x_ticks(neg)
+        )
+
+
+def test_equal_aspect_refuses_an_axis_with_no_constant_unit() raises:
+    with assert_raises(contains="not supported on a log-scaled axis"):
+        _ = render_svg(
+            scatter(_diagonal(), _diagonal()).scale_y_log().equal_aspect()
+        )
+
+
+def test_the_axis_controls_raise_on_a_mark_that_ignores_them() raises:
+    var cats: List[String] = ["a", "b", "c"]
+    var vals: List[Float64] = [1.0, 2.0, 3.0]
+    var pos: List[Float64] = [1.0]
+    with assert_raises(contains="only apply to"):
+        _ = render_svg(bar(cats, vals).scale_x_ticks(pos))
+    with assert_raises(contains="only apply to"):
+        _ = render_svg(bar(cats, vals).equal_aspect())
 
 
 def main() raises:

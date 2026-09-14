@@ -164,7 +164,9 @@ from dataviz.core.validate import (
     _validate_continuous_encoding,
     _validate_color_domain,
     _validate_domain_override,
+    _validate_tick_override,
 )
+from dataviz.core.axis_controls import _AxisControls, _TickOverride
 from dataviz.core.annotations import (
     _AnnotationData,
     _draw_annotation_areas,
@@ -703,6 +705,15 @@ struct Plot(Copyable, Movable):
     # Set via .scale_x_domain()/.scale_y_domain().
     var _x_domain: _DomainOverride
     var _y_domain: _DomainOverride
+    # Set via .scale_x_ticks()/.scale_y_ticks()/.scale_x_reverse()/
+    # .scale_y_reverse()/.equal_aspect() (#368). All five reach the
+    # continuous frame together as one `_AxisControls`; nothing else
+    # reads them.
+    var _x_tick_override: _TickOverride
+    var _y_tick_override: _TickOverride
+    var _x_reversed: Bool
+    var _y_reversed: Bool
+    var _equal_aspect: Bool
     # Set via .scale_color_domain()/.scale_color_center(); read by every
     # continuous-color mark through `_color_scale_for()`.
     var _color_domain: _ColorDomainOverride
@@ -763,6 +774,11 @@ struct Plot(Copyable, Movable):
         self._x_tz_offset = 0
         self._x_domain = _DomainOverride()
         self._y_domain = _DomainOverride()
+        self._x_tick_override = _TickOverride()
+        self._y_tick_override = _TickOverride()
+        self._x_reversed = False
+        self._y_reversed = False
+        self._equal_aspect = False
         self._color_domain = _ColorDomainOverride()
         self._horizontal = False
         self._mark = Mark.POINT
@@ -4777,6 +4793,130 @@ struct Plot(Copyable, Movable):
         self._y_domain = _DomainOverride(min, max)
         return self^
 
+    def scale_x_ticks(
+        var self,
+        values: List[Float64],
+        labels: List[String] = List[String](),
+    ) -> Self:
+        """Put the x-axis major ticks exactly at `values`, instead of at the
+        1-2-5 positions the axis would choose (#368).
+
+        For an axis whose meaningful positions are not round numbers: a
+        threshold, a target, the two dates a study ran between. The
+        gridline, the tick mark and the label all move together, because
+        they are one tick.
+
+        `labels` replaces the formatted numbers when given, one per
+        position, which is how an axis reads `Q1 Q2 Q3 Q4` over values
+        that are really `1 2 3 4`. Left empty, the positions are
+        formatted the way computed ticks are, at one decimal count for
+        the whole set.
+
+        A position outside the axis domain is dropped rather than drawn:
+        its pixel would fall outside the plot rect and its label would
+        print in the margin beside nothing. `scale_x_domain()` is what
+        moves the domain; this only says where the ticks go inside it.
+
+        Minor ticks are not derived from an explicit set, since the
+        caller said where the ticks belong and a subdivision of an
+        irregular set has no meaning.
+
+        Args:
+            values: Tick positions, in the axis's own units.
+            labels: One label per position, or empty to format the
+                positions.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later if the list is empty, a label count does not
+            match, a position is not finite, a position is not positive
+            on a log axis, or the mark does not support this.
+        """
+        self._x_tick_override = _TickOverride(values.copy(), labels.copy())
+        return self^
+
+    def scale_y_ticks(
+        var self,
+        values: List[Float64],
+        labels: List[String] = List[String](),
+    ) -> Self:
+        """`scale_x_ticks()`'s y-axis mirror -- see that method's docstring
+        for the shared rules.
+
+        The y labels are what the left margin is measured from, so an
+        explicit set widens or narrows the plot rect to fit itself,
+        exactly as computed labels do.
+
+        Args:
+            values: Tick positions, in the axis's own units.
+            labels: One label per position, or empty to format the
+                positions.
+
+        Returns:
+            Self, for further chaining -- see `scale_x_ticks()`.
+        """
+        self._y_tick_override = _TickOverride(values.copy(), labels.copy())
+        return self^
+
+    def scale_x_reverse(var self) -> Self:
+        """Run the x-axis right to left: the domain's low end lands on the
+        plot rect's right edge (#368).
+
+        For a quantity that reads better descending -- a rank where 1 is
+        best, a countdown, a depth below a surface. Only the two pixel
+        positions swap. The domain stays ascending, so the ticks are the
+        same ticks in the same order and every mark keeps handing the
+        scale the same values; what changes is where they land.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later if the mark does not support this.
+        """
+        self._x_reversed = True
+        return self^
+
+    def scale_y_reverse(var self) -> Self:
+        """Run the y-axis top to bottom: the domain's low end lands on the
+        plot rect's top edge (#368).
+
+        `scale_x_reverse()`'s mirror. On `Mark.IMSHOW`, whose y-axis
+        already counts downward so that row 0 is at the top, this
+        composes rather than competes: it puts row 0 back at the bottom.
+
+        Returns:
+            Self, for further chaining -- see `scale_x_reverse()`.
+        """
+        self._y_reversed = True
+        return self^
+
+    def equal_aspect(var self) -> Self:
+        """Give one data unit the same pixel length on both axes (#368).
+
+        For anything whose two axes are the same kind of quantity, where
+        the shape of what is drawn is part of what it says: a map, a
+        circle that has to look round, a residual plot read against the
+        45-degree line.
+
+        **The plot rect shrinks; the domains do not grow.** With equal
+        aspect something has to give, and the two choices are showing a
+        wider range than the caller asked for or leaving part of the
+        figure empty. This leaves space: the rect keeps the aspect the
+        data implies and centers itself in the room it had. Nothing is
+        drawn outside the data's own range, and the axis labels, ticks
+        and margins are the ones measured for the domains as given.
+
+        Not available on a log or time axis, where a "data unit" is not
+        a constant length: raises at `render()` time rather than
+        claiming a guarantee it cannot keep.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later on a log or time axis, or if the mark does not
+            support this.
+        """
+        self._equal_aspect = True
+        return self^
+
     def scale_color_domain(var self, min: Float64, max: Float64) -> Self:
         """Pin the continuous color domain to the given minimum and maximum,
         replacing the `[min, max]` this mark would otherwise take from its
@@ -5722,6 +5862,45 @@ def _render_generic[
     _validate_domain_override(
         plot._y_domain, plot._y_log, "Plot.scale_y_domain"
     )
+    if (
+        plot._x_tick_override.has
+        or plot._y_tick_override.has
+        or plot._x_reversed
+        or plot._y_reversed
+        or plot._equal_aspect
+    ) and not (
+        plot._mark == Mark.POINT
+        or plot._mark == Mark.LINE
+        or plot._mark == Mark.AREA
+        or plot._mark == Mark.HISTOGRAM
+        or plot._mark == Mark.EFFECT_SCATTER
+    ):
+        raise Error(
+            "Plot.scale_x_ticks()/scale_y_ticks()/scale_x_reverse()/"
+            "scale_y_reverse()/equal_aspect() only apply to"
+            " Mark.POINT/LINE/AREA/HISTOGRAM/EFFECT_SCATTER today -- the"
+            " other marks reach the continuous frame through their own"
+            " renders, which do not carry these yet (#368)"
+        )
+    _validate_tick_override(
+        plot._x_tick_override, plot._x_log, "Plot.scale_x_ticks"
+    )
+    _validate_tick_override(
+        plot._y_tick_override, plot._y_log, "Plot.scale_y_ticks"
+    )
+    if plot._equal_aspect and (plot._x_log or plot._y_log):
+        raise Error(
+            "Plot.equal_aspect(): not supported on a log-scaled axis -- a"
+            " data unit is a different length at each end of a log axis,"
+            " so equal pixel lengths for equal data distances is not a"
+            " property it can have"
+        )
+    if plot._equal_aspect and plot._x_time:
+        raise Error(
+            "Plot.equal_aspect(): not supported on a time axis -- a second"
+            " and a unit of y are not comparable lengths, so there is no"
+            " aspect to equalize"
+        )
     _validate_color_domain(plot)
     if has_shared_y_domain and not (
         plot._mark == Mark.POINT
@@ -5955,6 +6134,12 @@ def _render_generic[
         x_scale.is_time = True
         x_scale.tz_offset = plot._x_tz_offset
 
+    var controls = _AxisControls()
+    controls.x_ticks = plot._x_tick_override.copy()
+    controls.y_ticks = plot._y_tick_override.copy()
+    controls.x_reversed = plot._x_reversed
+    controls.y_reversed = plot._y_reversed
+    controls.equal_aspect = plot._equal_aspect
     var frame = _draw_continuous_axis_frame(
         target,
         x_scale,
@@ -5965,6 +6150,7 @@ def _render_generic[
         oy0,
         ox1,
         oy1,
+        controls=controls,
         cache=cache,
     )
 
