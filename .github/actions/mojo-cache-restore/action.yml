@@ -53,7 +53,7 @@ runs:
         dir="$RUNNER_TEMP/mojo-cache"
         n=0; size=0
         if [ -d "$dir" ]; then
-          n=$(find "$dir" -type f | wc -l)
+          n=$(find "$dir" -type f | wc -l | tr -d " ")
           size=$(du -sh "$dir" | cut -f1)
         fi
         echo "mojo cache before: $n entries, $size at $dir"
