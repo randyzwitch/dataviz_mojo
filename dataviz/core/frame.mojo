@@ -25,6 +25,7 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign, draw_text
 from canvas.vector.draw_target import DrawTarget
 
+from dataviz.core.axis_controls import _AxisControls, _override_ticks
 from dataviz.core.axis_position import AxisPosition
 from dataviz.basic.continuous import area, line
 from dataviz.layers import _render_layers_generic
@@ -859,6 +860,7 @@ def _draw_continuous_axis_frame[
     *,
     y_axis_visible: Bool = True,
     y_descending: Bool = False,
+    controls: _AxisControls = _AxisControls(),
     mut cache: FontCache,
 ) raises -> _ContinuousFrame:
     """The layout and axis-frame core every continuous-x render path shares
@@ -927,7 +929,13 @@ def _draw_continuous_axis_frame[
     # can be sized to fit their labels, `max`'d against Theme's configured
     # minimum. With the y-axis hidden there are no labels to fit, so the
     # dynamic part collapses to 0 and `margin_left` alone decides.
-    var y_ticks = y_scale.ticks()
+    #
+    # Explicit ticks (#368) are resolved here rather than after the rect,
+    # for the same reason: a caller's labels have to be the ones
+    # measured, or a long one prints over the axis line.
+    var y_ticks = _override_ticks(
+        controls.y_ticks, y_scale
+    ) if controls.y_ticks.has else y_scale.ticks()
     var y_labels = y_ticks.labels(theme.y_tick_format)
     var dynamic_left_margin = (
         Int(_max_label_width(y_labels, sc.font_size, cache=cache))
@@ -941,9 +949,45 @@ def _draw_continuous_axis_frame[
     var plot_x1 = ox1 - sc.margin_right - legend.right
     var plot_y1 = oy1 - sc.margin_bottom - legend.bottom
 
+    # Equal aspect (#368) shrinks the plot rect rather than widening a
+    # domain. Both domains, and the y tick labels that set the left
+    # margin, are decided above; growing a domain here would change its
+    # ticks, and the new labels could be wider than the margin already
+    # measured for the old ones. Shrinking the rect leaves every one of
+    # those numbers true. The cost is the strip the rect no longer
+    # covers, which is the honest price: with equal aspect something has
+    # to give, and this gives space rather than showing data nobody
+    # asked for.
+    if controls.equal_aspect:
+        var avail_w = Float64(plot_x1 - plot_x0)
+        var avail_h = Float64(plot_y1 - plot_y0)
+        var x_span = x_scale.domain_max - x_scale.domain_min
+        var y_span = y_scale.domain_max - y_scale.domain_min
+        if avail_w > 0.0 and avail_h > 0.0 and x_span > 0.0 and y_span > 0.0:
+            # Data units per pixel on each axis; the coarser one wins, so
+            # the rect only ever shrinks inside the bounds set above.
+            var upp = x_span / avail_w
+            if y_span / avail_h > upp:
+                upp = y_span / avail_h
+            var want_w = Int(x_span / upp + 0.5)
+            var want_h = Int(y_span / upp + 0.5)
+            if want_w >= 1 and want_h >= 1:
+                plot_x0 += (plot_x1 - plot_x0 - want_w) // 2
+                plot_x1 = plot_x0 + want_w
+                plot_y0 += (plot_y1 - plot_y0 - want_h) // 2
+                plot_y1 = plot_y0 + want_h
+
     var out_x_scale = x_scale
-    out_x_scale.range_min = Float64(plot_x0)
-    out_x_scale.range_max = Float64(plot_x1)
+    # A reversed axis (#368) swaps which end of the rect the domain's
+    # two ends land on. Only the pixel numbers move: the domain stays
+    # ascending, so `ticks()` still walks it low to high and every
+    # caller keeps going through `to_pixel`.
+    out_x_scale.range_min = Float64(
+        plot_x1
+    ) if controls.x_reversed else Float64(plot_x0)
+    out_x_scale.range_max = Float64(
+        plot_x0
+    ) if controls.x_reversed else Float64(plot_x1)
 
     # y range is reversed: domain_min (smallest data value) lands at
     # the *bottom* of the plot area (the larger pixel y), domain_max
@@ -954,15 +998,22 @@ def _draw_continuous_axis_frame[
     # still walks it low to high, and everything downstream already
     # goes through `_axis_pixel`/`to_pixel` rather than assuming a
     # sign. See the parameter's docstring for why an image needs it.
+    #
+    # `controls.y_reversed` composes with `y_descending` rather than one
+    # winning, so reversing an image's y-axis puts row 0 back at the
+    # bottom.
     var out_y_scale = y_scale
-    out_y_scale.range_min = Float64(plot_y0) if y_descending else Float64(
+    var y_top_first = y_descending != controls.y_reversed
+    out_y_scale.range_min = Float64(plot_y0) if y_top_first else Float64(
         plot_y1
     )
-    out_y_scale.range_max = Float64(plot_y1) if y_descending else Float64(
+    out_y_scale.range_max = Float64(plot_y1) if y_top_first else Float64(
         plot_y0
     )
 
-    var x_ticks = out_x_scale.ticks()
+    var x_ticks = _override_ticks(
+        controls.x_ticks, out_x_scale
+    ) if controls.x_ticks.has else out_x_scale.ticks()
     var x_labels = x_ticks.labels(theme.x_tick_format)
 
     # Gridlines, the axis lines and every tick are recorded and drawn in

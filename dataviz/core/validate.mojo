@@ -1,6 +1,6 @@
 """Shared encoding and render-time validation."""
 
-from std.math import log10
+from std.math import isfinite, log10
 
 from dataviz.basic.continuous import (
     _draw_area_layer,
@@ -9,6 +9,7 @@ from dataviz.basic.continuous import (
     line,
 )
 from dataviz.layers import _render_layers_generic, render_layers
+from dataviz.core.axis_controls import _TickOverride
 from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -349,6 +350,66 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             context
             + ": labels is only supported for Mark.POINT/EFFECT_SCATTER today"
         )
+
+
+def _validate_tick_override(
+    override: _TickOverride, is_log: Bool, context: String
+) raises:
+    """`Plot.scale_x_ticks()`/`scale_y_ticks()`'s own value checks: at
+    least one tick, a label count that matches when labels were given,
+    finite positions, and (mirroring `_validate_domain_override`)
+    positive positions on a log-scaled axis. A no-op when
+    `override.has` is `False`.
+
+    A tick outside the axis domain is not an error and is dropped when
+    the frame resolves it; a tick that cannot be placed at all is.
+
+    Args:
+        override: The caller's tick positions and labels.
+        is_log: Whether the matching axis is log-scaled.
+        context: The method name to put in an error.
+
+    Raises:
+        Error: No positions, a mismatched label count, a non-finite
+            position, or a non-positive position on a log axis.
+    """
+    if not override.has:
+        return
+    if len(override.values) == 0:
+        raise Error(
+            context
+            + "(): needs at least one tick position -- pass none of these"
+            " methods to keep the computed ticks"
+        )
+    if len(override.labels) > 0 and len(override.labels) != len(
+        override.values
+    ):
+        raise Error(
+            context
+            + "(): one label per position, so "
+            + String(len(override.values))
+            + " -- got "
+            + String(len(override.labels))
+        )
+    for i in range(len(override.values)):
+        var v = override.values[i]
+        if not isfinite(v):
+            raise Error(
+                context
+                + "(): every tick position must be finite -- got "
+                + String(v)
+                + " at index "
+                + String(i)
+            )
+        if is_log and v <= 0.0:
+            raise Error(
+                context
+                + "(): tick positions must be > 0 on a log-scaled axis"
+                " (log10(0) and log10(negative) are undefined) -- got "
+                + String(v)
+                + " at index "
+                + String(i)
+            )
 
 
 def _validate_domain_override(
