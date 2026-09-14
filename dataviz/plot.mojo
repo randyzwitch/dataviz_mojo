@@ -4983,6 +4983,18 @@ struct Plot(Copyable, Movable):
 def _data_extent(data: List[Float64]) raises -> LinearScale:
     """Return `data`'s minimum and maximum padded 5% on each side.
 
+    So that a point at the extreme is not drawn half-clipped on the
+    frame. matplotlib's default margin is the same 5%.
+
+    The consequence is worth stating because it surprises people (#133):
+    **the axis line is not the origin.** For `x = [1, 10]` the domain
+    becomes about `[0.55, 10.45]`, so the y-axis line stands at 0.55,
+    and the first point is not halfway between the axis and the "2"
+    tick. It is in the right place; the axis line just does not name a
+    value, and only the tick marks do. `scale_x_domain()` is the way to
+    an axis line that means something, and the zero-baseline marks below
+    get one for free.
+
     The scale's placeholder unit range is replaced during rendering once the
     plot area is known. A zero-span column gets a fixed 1.0 padding.
     Spatial axes only; color/size domains use `_min_max` unpadded so a
