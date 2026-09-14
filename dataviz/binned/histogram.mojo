@@ -1741,10 +1741,8 @@ def histogram[
     `DType` overload (continuous.mojo). Delegates to the concrete overload
     above.
 
-    `edges` and `weights` stay `List[Float64]` rather than following
-    `dtype`: they are axis positions and multipliers, not observations,
-    and a caller with `List[Int32]` samples still wants a bin boundary
-    at 2.5.
+    `weights` stays `List[Float64]` rather than following `dtype`: the
+    weights are multipliers, not observations.
 
     Parameters:
         dtype: The element type of `data`.
@@ -1752,7 +1750,6 @@ def histogram[
     Args:
         data: The raw values to bin.
         bins: How many equal-width intervals to divide `data`'s range into.
-        edges: Explicit bin boundaries; empty derives them from `data`.
         weights: One nonnegative weight per observation, or empty.
         stat: What a bar's height is; see `HistStat`.
         cumulative: Draw running totals instead of per-bin values.

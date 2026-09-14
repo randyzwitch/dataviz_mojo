@@ -134,7 +134,7 @@ def _hex_byte(pair: String) raises -> Int:
     var value = 0
     for ch in pair.codepoints():
         var c = ch.to_u32()
-        var digit = 0
+        var digit: Int
         if c >= 48 and c <= 57:
             digit = Int(c) - 48
         elif c >= 97 and c <= 102:

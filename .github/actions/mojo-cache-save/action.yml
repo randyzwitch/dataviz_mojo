@@ -36,7 +36,7 @@ runs:
         fi
 
     - if: steps.count.outputs.grew == 'true' && github.ref == 'refs/heads/main'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@v6
       with:
         path: ${{ runner.temp }}/mojo-cache
         key: mojo-${{ inputs.name }}-${{ runner.os }}-${{ hashFiles('pixi.lock') }}-${{ github.run_id }}

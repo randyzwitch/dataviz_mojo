@@ -41,8 +41,9 @@ def test_a_band_crossing_the_top_keeps_its_true_intersection() raises:
     var lo: List[Float64] = [0.0, 0.0]
     var hi: List[Float64] = [0.0, 100.0]
     var c = render(
-        line(xs, ys, theme=_chart(), width=400, height=300)
-        ^.annotate_band(bx, lo, hi)
+        line(xs, ys, theme=_chart(), width=400, height=300).annotate_band(
+            bx, lo, hi
+        )
     )
     # Middle of the plot, two rows below the top edge.
     var p = c.get_pixel(220, _TOP + 2)
@@ -71,8 +72,9 @@ def test_a_band_entirely_above_the_domain_draws_nothing_inside() raises:
     var hi: List[Float64] = [100.0, 100.0]
     _assert_same_canvas(
         render(
-            line(xs, ys, theme=_chart(), width=400, height=300)
-            ^.annotate_band(bx, lo, hi)
+            line(xs, ys, theme=_chart(), width=400, height=300).annotate_band(
+                bx, lo, hi
+            )
         ),
         render(line(xs, ys, theme=_chart(), width=400, height=300)),
         "an out-of-range band paints nothing",
@@ -88,8 +90,9 @@ def test_a_band_inside_the_domain_is_unchanged() raises:
     var lo: List[Float64] = [2.0, 2.0]
     var hi: List[Float64] = [6.0, 6.0]
     var c = render(
-        line(xs, ys, theme=_chart(), width=400, height=300)
-        ^.annotate_band(bx, lo, hi)
+        line(xs, ys, theme=_chart(), width=400, height=300).annotate_band(
+            bx, lo, hi
+        )
     )
     var inside = c.get_pixel(220, 150)
     assert_true(_painted(inside.r, inside.g, inside.b), "the band fills")

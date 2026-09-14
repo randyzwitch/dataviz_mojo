@@ -1774,7 +1774,7 @@ def test_imshow_y_axis_labels_count_downward() raises:
     var z = List[List[Float64]]()
     for r in range(5):
         var row = List[Float64]()
-        for c in range(5):
+        for _ in range(5):
             row.append(Float64(r))
         z.append(row^)
     var svg = render_svg(imshow(z, width=640, height=420)).to_string()

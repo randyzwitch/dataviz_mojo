@@ -34,7 +34,7 @@ runs:
     - shell: bash
       run: echo "MODULAR_CACHE_DIR=$RUNNER_TEMP/mojo-cache" >> "$GITHUB_ENV"
 
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@v6
       with:
         path: ${{ runner.temp }}/mojo-cache
         key: mojo-${{ inputs.name }}-${{ runner.os }}-${{ hashFiles('pixi.lock') }}-${{ github.run_id }}

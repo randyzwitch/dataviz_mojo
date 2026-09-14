@@ -103,8 +103,9 @@ def test_a_key_swatch_is_the_color_of_the_band_it_keys() raises:
     # honor a `scale_color_domain()` override: every swatch color must
     # be a color actually painted on the chart.
     var pinned = render_svg(
-        contourf(_grid(), level_count=4, theme=_on(), width=460, height=320)
-        ^.scale_color_domain(-40.0, 40.0)
+        contourf(
+            _grid(), level_count=4, theme=_on(), width=460, height=320
+        ).scale_color_domain(-40.0, 40.0)
     ).to_string()
     var band_fills = _attr_values(pinned, "path", "fill")
     var swatch_fills = _attr_values(pinned, "rect", "fill")
