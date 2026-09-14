@@ -4866,6 +4866,57 @@ struct Plot(Copyable, Movable):
         self._color_domain.thresholds = boundaries.copy()
         return self^
 
+    def scale_color_under(var self, color: Color) -> Self:
+        """Color values below the color domain with `color` instead of the
+        ramp's low end (#370).
+
+        Without it an out-of-range value clamps: a reading of -40 on a
+        domain starting at 0 is painted the same as a reading of 0, and
+        the chart says the two are alike. A distinct color says "this is
+        off the scale", which is a different statement and usually the
+        one that matters -- a sensor out of range, a region with no
+        data of its own, a value the domain was deliberately narrowed to
+        exclude.
+
+        Applies to every mark `scale_color_domain()` applies to, and to
+        every form of the ramp: continuous, logarithmic and banded. With
+        `scale_color_thresholds()` the band edges are the range, so
+        "below" means below the first boundary.
+
+        The color legend shows it, as a block at the low end of the bar
+        inside the bar's own footprint, so the legend costs exactly the
+        room it did before and its end labels stay attached to the ends
+        of the ramp, where those numbers are true.
+
+        Args:
+            color: The color for a value below the domain.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._color_domain.has_under = True
+        self._color_domain.under = color
+        return self^
+
+    def scale_color_over(var self, color: Color) -> Self:
+        """Color values above the color domain with `color` instead of the
+        ramp's high end -- `scale_color_under()`'s mirror, and see that
+        method's docstring for the shared rules (#370).
+
+        Values exactly at the domain maximum belong to the ramp, not to
+        the over color: the top end is part of the range, which is the
+        rule the last threshold band already follows.
+
+        Args:
+            color: The color for a value above the domain.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._color_domain.has_over = True
+        self._color_domain.over = color
+        return self^
+
     def scale_color_log(var self) raises -> Self:
         """Normalize color by `log10` instead of linearly (#370).
 

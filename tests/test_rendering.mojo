@@ -448,7 +448,7 @@ def _two_step(plot: Plot) raises -> Canvas:
     )
     scratch.translate(Float64(factor - 1) / 2.0, Float64(factor - 1) / 2.0)
     scratch.scale(Float64(factor), Float64(factor))
-    _render_into(scratch, plot, 0, 0, plot.width, plot.height)
+    _ = _render_into(scratch, plot, 0, 0, plot.width, plot.height)
     return downsample(scratch, factor)
 
 

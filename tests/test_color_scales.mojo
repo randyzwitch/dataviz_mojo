@@ -14,13 +14,14 @@ from std.testing import (
     assert_true,
 )
 from canvas.color import Color
-from dataviz import Theme, contour, contourf
+from dataviz import LegendPosition, Theme, contour, contourf
 from dataviz.core.color_scale import (
     ColorScale,
     _ColorDomainOverride,
     _center_offset,
     _color_scale_for,
     shared_color_domain,
+    symmetric_color_domain,
 )
 from dataviz.core.theme import Theme
 from dataviz.grid.heatmap import heatmap
@@ -379,6 +380,7 @@ def test_legend_labels_the_center() raises:
     var ys: List[String] = ["r", "r", "r"]
     var values: List[Float64] = [-2.0, 1.0, 10.0]
 
+    var cells = _cells()
     var plain = render_svg(
         heatmap(xs, ys, values, theme=_ramp_theme(True))
     ).to_string()
@@ -1070,6 +1072,276 @@ def test_turning_the_legend_off_removes_the_key_entirely() raises:
         _count_tag(on, "rect") > _count_tag(s, "rect"),
         "the key's swatches are rects, and they go with the legend",
     )
+
+
+# ==== out-of-range colors and a symmetric shared domain (#370) ====
+# `Plot.scale_color_under()`/`scale_color_over()` give a value outside
+# the domain its own color instead of the ramp's end, and
+# `symmetric_color_domain()` balances a diverging ramp's two arms.
+
+
+comptime UNDER = Color(250, 0, 250)
+comptime OVER = Color(0, 250, 250)
+
+
+def _out_of_range(
+    min: Float64,
+    max: Float64,
+    under: Bool = True,
+    over: Bool = True,
+) -> _ColorDomainOverride:
+    var d = _override(min, max)
+    d.has_under = under
+    d.under = UNDER
+    d.has_over = over
+    d.over = OVER
+    return d^
+
+
+def test_a_value_outside_the_domain_takes_its_own_color() raises:
+    var scale = _color_scale_for(
+        _ramp_theme(), _out_of_range(0.0, 10.0), 0.0, 10.0
+    )
+    _assert_same_color(scale.color_at(-0.5), UNDER, "below the domain")
+    _assert_same_color(scale.color_at(-1000.0), UNDER, "far below")
+    _assert_same_color(scale.color_at(10.5), OVER, "above the domain")
+    _assert_same_color(scale.color_at(1000.0), OVER, "far above")
+
+
+def test_the_domain_ends_belong_to_the_ramp() raises:
+    # The boundary rule, stated once: the ends are in range, so they
+    # keep the ramp's own colors and only what is strictly outside is
+    # out.
+    var scale = _color_scale_for(
+        _ramp_theme(), _out_of_range(0.0, 10.0), 0.0, 10.0
+    )
+    _assert_same_color(scale.color_at(0.0), LOW, "the minimum is in range")
+    _assert_same_color(scale.color_at(10.0), HIGH, "so is the maximum")
+
+
+def test_each_out_of_range_color_stands_alone() raises:
+    var only_under = _color_scale_for(
+        _ramp_theme(), _out_of_range(0.0, 10.0, over=False), 0.0, 10.0
+    )
+    _assert_same_color(only_under.color_at(-1.0), UNDER, "under is set")
+    _assert_same_color(
+        only_under.color_at(11.0), HIGH, "over is not, so it still clamps"
+    )
+    var only_over = _color_scale_for(
+        _ramp_theme(), _out_of_range(0.0, 10.0, under=False), 0.0, 10.0
+    )
+    _assert_same_color(only_over.color_at(11.0), OVER, "over is set")
+    _assert_same_color(only_over.color_at(-1.0), LOW, "under is not")
+
+
+def test_without_them_an_out_of_range_value_still_clamps() raises:
+    # The behavior every chart had before this existed, pinned so the
+    # default cannot drift.
+    var scale = _color_scale_for(_ramp_theme(), _override(0.0, 10.0), 0.0, 10.0)
+    _assert_same_color(scale.color_at(-5.0), LOW, "clamps to the low end")
+    _assert_same_color(scale.color_at(15.0), HIGH, "and to the high end")
+
+
+def test_out_of_range_colors_reach_a_banded_ramp() raises:
+    # With thresholds the band edges are the range, not the domain.
+    var d = _out_of_range(0.0, 10.0)
+    var edges: List[Float64] = [2.0, 5.0, 8.0]
+    d.thresholds = edges.copy()
+    var scale = _color_scale_for(_ramp_theme(), d, 0.0, 10.0)
+    _assert_same_color(scale.color_at(1.0), UNDER, "below the first edge")
+    _assert_same_color(scale.color_at(9.0), OVER, "above the last edge")
+    _assert_same_color(
+        scale.color_at(8.0), scale.color_at(7.9), "the last edge is in range"
+    )
+
+
+def test_out_of_range_colors_reach_a_log_ramp() raises:
+    var d = _out_of_range(1.0, 1000.0)
+    d.log = True
+    var scale = _color_scale_for(_ramp_theme(), d, 1.0, 1000.0)
+    _assert_same_color(scale.color_at(0.5), UNDER, "below a log domain")
+    _assert_same_color(scale.color_at(5000.0), OVER, "above it")
+    _assert_same_color(scale.color_at(1.0), LOW, "the ends are still in range")
+    _assert_same_color(scale.color_at(1000.0), HIGH, "and the high end")
+
+
+def _floats(svg: String, attr: String) raises -> List[Float64]:
+    """Every `<rect>`'s `attr`, in document order."""
+    var out = List[Float64]()
+    for v in _attr_values(svg, "rect", attr):
+        out.append(Float64(v))
+    return out^
+
+
+def _bar_extent(svg: String) raises -> Tuple[Float64, Float64]:
+    """The color bar's top and bottom, blocks included.
+
+    The ramp is the one rect painted with a gradient; the out-of-range
+    blocks, when there are any, are the rects sharing its column and
+    sitting flush against its two ends. Found by geometry rather than by
+    document order, which the SVG backend is free to choose (it emits
+    gradient fills last).
+    """
+    var xs = _floats(svg, "x")
+    var ys = _floats(svg, "y")
+    var ws = _floats(svg, "width")
+    var hs = _floats(svg, "height")
+    var fills = _attr_values(svg, "rect", "fill")
+    var ramp = -1
+    for i in range(len(fills)):
+        if fills[i].startswith("url("):
+            if ramp >= 0:
+                raise Error("more than one gradient rect")
+            ramp = i
+    if ramp < 0:
+        raise Error("no gradient rect in the document")
+    var top = ys[ramp]
+    var bottom = ys[ramp] + hs[ramp]
+    for i in range(len(ys)):
+        if i == ramp or xs[i] != xs[ramp] or ws[i] != ws[ramp]:
+            continue
+        if ys[i] + hs[i] == ys[ramp]:
+            top = ys[i]
+        if ys[i] == ys[ramp] + hs[ramp]:
+            bottom = ys[i] + hs[i]
+    return (top, bottom)
+
+
+def _cells() raises -> Tuple[List[String], List[String], List[Float64]]:
+    """A 4x4 heatmap in the long form `heatmap()` takes: one x, one y and
+    one value per cell, the values running 0 to 15.
+    """
+    var xs = List[String]()
+    var ys = List[String]()
+    var vals = List[Float64]()
+    for r in range(4):
+        for c in range(4):
+            xs.append(String(c))
+            ys.append(String(r))
+            vals.append(Float64(r * 4 + c))
+    return (xs^, ys^, vals^)
+
+
+def test_the_color_bar_shows_the_out_of_range_colors() raises:
+    # A legend that did not show them would disagree with the marks for
+    # exactly the values the colors exist to call out.
+    var cells = _cells()
+    var c = render(
+        heatmap(
+            cells[0], cells[1], cells[2], theme=_ramp_theme(show_legend=True)
+        )
+        .scale_color_domain(4.0, 11.0)
+        .scale_color_under(UNDER)
+        .scale_color_over(OVER)
+    )
+    assert_true(_count_color(c, UNDER) > 0, "the under block is drawn")
+    assert_true(_count_color(c, OVER) > 0, "and the over block")
+
+
+def test_the_color_bar_keeps_its_footprint() raises:
+    # The blocks take a slice off the ramp rather than extending the
+    # bar, so a legend with them reserves exactly the room one without
+    # them does and everything stacked below stays put.
+    var cells = _cells()
+    var plain = render_svg(
+        heatmap(
+            cells[0], cells[1], cells[2], theme=_ramp_theme(show_legend=True)
+        ).scale_color_domain(4.0, 11.0)
+    ).to_string()
+    var marked = render_svg(
+        heatmap(
+            cells[0], cells[1], cells[2], theme=_ramp_theme(show_legend=True)
+        )
+        .scale_color_domain(4.0, 11.0)
+        .scale_color_under(UNDER)
+        .scale_color_over(OVER)
+    ).to_string()
+    var a = _bar_extent(plain)
+    var b = _bar_extent(marked)
+    assert_equal(b[0], a[0], "the bar starts where it did")
+    assert_equal(b[1], a[1], "and ends where it did")
+    # And the ramp itself gave up the room, which is what makes that
+    # possible.
+    var a_h = _floats(plain, "height")
+    var b_h = _floats(marked, "height")
+    var a_f = _attr_values(plain, "rect", "fill")
+    var b_f = _attr_values(marked, "rect", "fill")
+    var a_ramp = 0.0
+    for i in range(len(a_f)):
+        if a_f[i].startswith("url("):
+            a_ramp = a_h[i]
+    var b_ramp = 0.0
+    for i in range(len(b_f)):
+        if b_f[i].startswith("url("):
+            b_ramp = b_h[i]
+    assert_true(
+        b_ramp < a_ramp,
+        "the ramp is shorter by the two blocks: "
+        + String(b_ramp)
+        + " against "
+        + String(a_ramp),
+    )
+
+
+def test_a_row_legend_shows_them_too() raises:
+    # The row form lays its bar out along x with the labels inline, so
+    # it slices the two ends rather than the top and bottom. Same
+    # promise, other axis.
+    var cells = _cells()
+    var theme = Theme(
+        color_scale_low=LOW,
+        color_scale_mid=MID,
+        color_scale_high=HIGH,
+        show_legend=True,
+        legend_position=LegendPosition.BOTTOM,
+    )
+    var c = render(
+        heatmap(cells[0], cells[1], cells[2], theme=theme)
+        .scale_color_domain(4.0, 11.0)
+        .scale_color_under(UNDER)
+        .scale_color_over(OVER)
+    )
+    assert_true(_count_color(c, UNDER) > 0, "the under block is drawn")
+    assert_true(_count_color(c, OVER) > 0, "and the over block")
+
+
+def test_symmetric_color_domain_balances_the_arms() raises:
+    var samples = List[List[Float64]]()
+    var a: List[Float64] = [-2.0, 0.0, 3.0]
+    var b: List[Float64] = [1.0, 8.0]
+    samples.append(a^)
+    samples.append(b^)
+    var d = symmetric_color_domain(samples)
+    assert_equal(d.min, -8.0, "the far arm sets the radius")
+    assert_equal(d.max, 8.0)
+    # Which is the point: equal distances either side of the center are
+    # now equally intense, where the data's own limits would have made
+    # -2 the deepest low and +8 the deepest high.
+    var lopsided = shared_color_domain(samples)
+    assert_equal(lopsided.min, -2.0, "the plain shared domain is lopsided")
+    assert_equal(lopsided.max, 8.0)
+
+
+def test_symmetric_color_domain_takes_the_center_it_is_given() raises:
+    var samples = List[List[Float64]]()
+    var a: List[Float64] = [10.0, 14.0, 19.0]
+    samples.append(a^)
+    var d = symmetric_color_domain(samples, 15.0)
+    assert_equal(d.min, 10.0, "5 below a center of 15")
+    assert_equal(d.max, 20.0, "and 5 above it")
+
+
+def test_a_symmetric_domain_on_data_that_is_all_center_still_has_width() raises:
+    # A zero-span domain colors everything the ramp's low end, which
+    # says nothing at all; a unit of width at least keeps the center
+    # neutral.
+    var samples = List[List[Float64]]()
+    var a: List[Float64] = [0.0, 0.0, 0.0]
+    samples.append(a^)
+    var d = symmetric_color_domain(samples)
+    assert_true(d.max > d.min, "the domain has width")
+    assert_equal(d.min, -1.0)
+    assert_equal(d.max, 1.0)
 
 
 def main() raises:
