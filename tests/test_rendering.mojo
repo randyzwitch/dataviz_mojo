@@ -292,17 +292,6 @@ def test_backends_agree_with_titles_and_rotated_axis_labels() raises:
     _ = _assert_same_layout(Mark.BAR._value, plot)
 
 
-def test_mark_count_is_one_past_the_newest_mark() raises:
-    """Require `Mark.COUNT` to be one greater than the newest mark value."""
-    assert_true(
-        Mark.STREAMPLOT == Mark(Mark.COUNT - 1),
-        (
-            "Mark.COUNT must be one past the newest mark -- update both when"
-            " adding one"
-        ),
-    )
-
-
 def test_mark_name_spells_the_constant() raises:
     """`Mark.name()` returns the qualified constant name a caller would
     type.
@@ -377,6 +366,28 @@ def test_mark_name_falls_back_for_an_unknown_value() raises:
     Paired with the sweep above this pins the branch list to exactly
     `Mark.COUNT` entries: that test fails if a value below `COUNT` hits
     the fallback, this one fails if `COUNT` itself does not.
+
+    **The pair only works while `name()` is complete, and once it was
+    not.** `Mark.DENDROGRAM` arrived as `Self(62)` with `COUNT` left at
+    62 and no `name()` branch of its own. This test asked for
+    `Mark(62).name()` to be the fallback, and it was -- not because 62
+    was past the end, but because the branch was missing. The two
+    defects cancelled and both tests passed, while every sweep over
+    `range(Mark.COUNT)` stopped one short of the new mark: the output
+    digest never fingerprinted it, `_mark_registry`'s "raises for a
+    mark with no entry" never fired for it, and the missing entry went
+    unnoticed for as long as that held.
+
+    A third test used to guard `COUNT` directly and named
+    `Mark.STREAMPLOT` as the newest mark by hand, so it rotted the
+    moment a newer one arrived and passed against the wrong constant.
+    It was removed rather than re-pinned to `DENDROGRAM`, which would
+    only restart the same clock.
+
+    So when adding a mark: bump `COUNT`, add the `name()` branch, and
+    add the `_mark_registry` entry. Two of the three are checked here;
+    the digest gaining a line for the new mark is what shows the third
+    landed.
     """
     assert_equal(Mark(Mark.COUNT).name(), "Mark(" + String(Mark.COUNT) + ")")
     assert_equal(Mark(-1).name(), "Mark(-1)")
