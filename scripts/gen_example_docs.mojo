@@ -115,6 +115,9 @@ def _titles() -> Dict[String, String]:
     d["dendrogram"] = "Dendrogram"
     d["scatter3d"] = "3D Scatter"
     d["plot3d"] = "3D Line"
+    d["surface3d"] = "3D Surface"
+    d["wire3d"] = "3D Wireframe"
+    d["trisurf3d"] = "3D Triangulated Surface"
     d["pointplot"] = "Estimate Points"
     d["kdeplot"] = "Density Curve"
     d["rugplot"] = "Rug"
@@ -296,7 +299,7 @@ def _categories() -> List[Category]:
                 " view direction. Where the question is about two"
                 " variables, the 2D charts above answer it better."
             ),
-            ["scatter3d", "plot3d"],
+            ["scatter3d", "plot3d", "surface3d", "wire3d", "trisurf3d"],
         )
     )
     cats.append(

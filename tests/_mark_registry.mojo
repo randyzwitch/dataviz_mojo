@@ -46,6 +46,9 @@ from dataviz import (
     plot3d,
     rugplot,
     scatter3d,
+    surface3d,
+    trisurf3d,
+    wire3d,
     corrplot,
     ecdf,
     effect_scatter,
@@ -461,6 +464,41 @@ def _representative_plot(mark: Mark) raises -> Plot:
         if mark == Mark.SCATTER3D:
             return scatter3d(hx, hy, hz, width=_W, height=_H)
         return plot3d(hx, hy, hz, width=_W, height=_H)
+
+    if mark == Mark.TRISURF3D:
+        # Integer coordinates, like every other triangulated mark here,
+        # and deliberately not the helix above. A helix's points are
+        # cocircular, which is where the in-circle test sits on its
+        # tolerance boundary: a last-ulp difference between two
+        # platforms' cos and sin would flip which triangles come out and
+        # move this digest on one platform only. These coordinates are
+        # bit-identical everywhere.
+        var sx = List[Float64]()
+        var sy = List[Float64]()
+        var sz = List[Float64]()
+        for i in range(24):
+            var a = Float64(i % 6)
+            var b = Float64((i * 5) % 7)
+            sx.append(a)
+            sy.append(b)
+            sz.append(a * b)
+        return trisurf3d(sx, sy, sz, width=_W, height=_H)
+
+    if mark == Mark.SURFACE3D or mark == Mark.WIRE3D:
+        # A saddle: it rises along one axis and falls along the other,
+        # so a surface drawn with the two lattice axes swapped, or with
+        # z read off the wrong index, comes out visibly different.
+        var grid = List[List[Float64]]()
+        for r in range(6):
+            var row = List[Float64]()
+            for c in range(6):
+                var u = (Float64(c) - 2.5) / 2.5
+                var v = (Float64(r) - 2.5) / 2.5
+                row.append(u * u - v * v)
+            grid.append(row^)
+        if mark == Mark.SURFACE3D:
+            return surface3d(grid, width=_W, height=_H)
+        return wire3d(grid, width=_W, height=_H)
 
     raise Error(
         "test_backend_equivalence: no representative plot for mark value "

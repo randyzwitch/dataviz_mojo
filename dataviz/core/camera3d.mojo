@@ -30,8 +30,7 @@ it as the thing that feeds it.
 unit of data is the same size wherever it sits in the scene, which is
 what makes a 3D axis readable at all: under perspective the far end of
 an axis is shorter than the near end, so a tick spacing means two
-different things in one picture. matplotlib's `mplot3d` is effectively
-orthographic for the same reason.
+different things in one picture.
 
 **Depth is for ordering, not for measuring.** `project()` returns a
 `z` alongside the 2D position, and the only use for it is sorting what
@@ -41,17 +40,16 @@ second. That makes the ordering the whole of the correctness, and it
 has a documented failure: two shapes that interpenetrate, or one long
 thin shape crossing another, have no single right order and a
 centroid-depth sort will pick a wrong one. Splitting the geometry or a
-real z-buffer are the fixes, and canvas has neither. `mplot3d` has
-exactly this limitation; matching it is acceptable and pretending
-otherwise is not.
+real z-buffer are the fixes, and canvas has neither. Saying so is
+part of the contract; pretending otherwise is not.
 """
 
 from std.math import cos, pi, sin
 
 
 comptime _DEGREES_TO_RADIANS = pi / 180.0
-"""Both angles are given in degrees, as matplotlib's `view_init` takes
-them, and used in radians."""
+"""Both angles are given to callers in degrees and used here in
+radians."""
 
 
 struct Projected(ImplicitlyCopyable, Movable):
@@ -95,10 +93,10 @@ struct Camera3D(ImplicitlyCopyable, Movable):
     azimuth in degrees.
 
     `elev` is the angle above the x-y plane and `azim` the rotation
-    about the z axis, matching `mplot3d`'s `view_init(elev, azim)` so a
-    reader who knows those numbers gets the view they expect.
-    matplotlib's default view is `elev=30, azim=-60`, which is this
-    struct's default too.
+    about the z axis. The defaults, `elev=30` and `azim=-60`, look down
+    on the scene from one corner: enough elevation to separate the
+    three axes, and an azimuth that leaves none of them pointing
+    straight at the reader, where it would have no length to read.
 
     The two rotations compose in one order and only one: azimuth about
     z first, then elevation about the rotated x. Doing it the other way
@@ -147,11 +145,20 @@ struct Camera3D(ImplicitlyCopyable, Movable):
 
             horizontal = x'
             vertical   = -y' sin(e) + z cos(e)
-            depth      =  y' cos(e) + z sin(e)
+            depth      = -(y' cos(e) + z sin(e))
 
-        At `elev=0, azim=0` this degenerates to `(x, z)` with depth `y`
-        -- a plain side-on view -- which is the case a test can check
-        against the 2D frame without trusting any of the trigonometry.
+        **The minus sign on depth is the whole of the convention.** The
+        camera sits at large `y'` and large `z` -- above the scene and
+        on the near side of it -- which is what `vertical` already says
+        by putting large `y'` low on the page, where the near edge of
+        an elevated view belongs. Distance from that camera therefore
+        *decreases* as `y'` and `z` grow, so the raw combination is
+        nearness and the negation is what makes larger mean farther.
+
+        At `elev=0, azim=0` this degenerates to `(x, z)` with depth
+        `-y` -- a plain side-on view -- which is the case a test can
+        check against the 2D frame without trusting any of the
+        trigonometry.
 
         Args:
             x: Data-space x.
@@ -166,5 +173,5 @@ struct Camera3D(ImplicitlyCopyable, Movable):
         return Projected(
             rx,
             -ry * self._sin_elev + z * self._cos_elev,
-            ry * self._cos_elev + z * self._sin_elev,
+            -(ry * self._cos_elev + z * self._sin_elev),
         )
