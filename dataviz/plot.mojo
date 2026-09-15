@@ -4,9 +4,9 @@ columnar `List[Float64]`/`List[String]` passed to `encode()`/
 consume and return `Self` (`var self` -> `return self^`) so calls
 chain: `Plot().mark_point().encode(x=xs, y=ys).theme(t)`.
 
-`render(plot)`/`render_svg(plot)` turn a Plot into a `Canvas`/
-`SvgCanvas` sized `plot.width` x `plot.height`; `save()` picks the
-backend from the file extension. Each wraps a core (`_render_into`/
+`render(plot)`, `render_svg(plot)`, and `render_pdf(plot)` create a
+`Canvas`, `SvgCanvas`, or `PdfCanvas` sized `plot.width` x `plot.height`;
+`save()` picks the backend from the file extension. Each wraps a core (`_render_into`/
 `_render_svg_into`) that fills the background, reserves title margins
 (`_apply_labels`), and hands off to `_render_generic`;
 `render_facets()`/`render_layers()` have their own per-cell/
@@ -46,6 +46,31 @@ module importing from here and imported back the same way:
 Every one of those names is imported back into this module, so where a
 symbol lives is not something a caller has to know: `from dataviz.plot
 import _Orientation` still resolves, as it did before the split.
+
+## Family callback registration
+
+`Plot` stores three noncapturing function pointers, specialized for
+Canvas, SVG, and PDF. Each `mark_*()` setter binds all three to its own
+family adapter. `_render_generic` invokes only the callback for its
+concrete backend; it does not probe every family. Default plots and
+continuous marks bind `_callback_continuous` and continue through the
+shared continuous path. Copies and moves carry these pointers with the
+payloads. Mark changes must replace all three pointers, including changes
+back to a continuous mark, so a previous renderer cannot remain attached.
+
+Adding a mark:
+
+1. Add its `Mark` constant and `name()` entry, and update `Mark.COUNT`.
+2. Add its data/encoder and family render branch, then bind that family's
+   Canvas, SVG, and PDF adapters in the `mark_*()` setter.
+3. Add a representative constructor to `tests/_mark_registry.mojo` and
+   review its output digest. The normal test suite checks the registry's
+   marks through copying, moving, collections, and all three backends.
+
+Registering a family still references all three backend specializations;
+it avoids unused families, not unused backends. The builder still imports
+the families and carries their payloads. Supporting another draw target
+requires extending the stored callback interface explicitly.
 
 ## The one-call convenience functions
 
@@ -672,7 +697,7 @@ struct Plot(Copyable, Movable):
     ```
     """
 
-    # #607 prototype: constructors bind only their own family's renderers.
+    # Each mark setter binds its family for all three backends (#607).
     var _render_canvas_family: def(
         mut Canvas, Plot, Int, Int, Int, Int, mut FontCache, Bool
     ) raises thin -> Optional[_RenderResult]

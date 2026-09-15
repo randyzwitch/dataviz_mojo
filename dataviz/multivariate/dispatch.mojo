@@ -1,8 +1,9 @@
 """Render dispatch for the multi-dimension charts (#524).
 
-`plot.mojo` calls one entry point per family instead of importing every
-mark's render function and branching over every `Mark`. Adding a mark
-touches this file and its own module rather than the hub.
+Each `Plot.mark_*()` setter registers this family's callback for Canvas,
+SVG, and PDF. `_render_generic` invokes the selected callback rather than
+probing every family. Add a mark's render branch here and register these
+adapters in its setter; see `plot.mojo`'s mark-adding checklist.
 
 The "not mine" answer is an empty `Optional`. `_RenderResult` is
 `Movable` but not `Copyable`, and this function is generic over
@@ -113,7 +114,7 @@ def _callback_multivariate[
     mut cache: FontCache,
     vector_target: Bool,
 ) raises -> Optional[_RenderResult]:
-    """Positional adapter for the stored family callback (#607 prototype)."""
+    """Positional adapter for the stored family callback (#607)."""
     return _render_multivariate_family(
         target,
         plot,

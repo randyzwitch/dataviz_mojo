@@ -29,6 +29,7 @@ from dataviz import (
     chord,
     contour,
     contourf,
+    dendrogram,
     imshow,
     pcolormesh,
     hist2d,
@@ -135,6 +136,8 @@ def _representative_plot(mark: Mark) raises -> Plot:
     var ys: List[Float64] = [2.0, 1.0, 3.0]
     var series: List[String] = ["s1", "s2"]
 
+    if mark == Mark.DENDROGRAM:
+        return dendrogram(_nested(), series, width=_W, height=_H)
     if mark == Mark.POINT:
         return scatter(xs, ys, width=_W, height=_H)
     if mark == Mark.LINE:

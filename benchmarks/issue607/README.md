@@ -1,184 +1,77 @@
-# Issue #607: family renderer callback prototype
+# Family renderer callbacks (#607)
 
-> Integration update (2026-09-15): merged main through `5f29ae9`.
-> The current prototype also registers PDF callbacks and binds the new
-> dendrogram mark to the hierarchy family. The evaluation below and its
-> raw results describe commit `fa6b42e` against `059a676`, before these
-> upstream changes; compile timings have not been rerun for this merge.
-> Check out `fa6b42e` to reproduce that original two-backend evaluation.
-> Merge validation: library precompilation and 91 tests passed across
-> `test_rendering`, `test_output_digest`, and `test_marks_hierarchy`,
-> covering PDF output, composition digests, and dendrogram rendering.
+`Plot.mark_*()` binds its family's renderer for Canvas, SVG, and PDF.
+`_render_generic` invokes the selected backend callback instead of probing
+all ten families. Public constructors, mark changes, copying/moving, and
+heterogeneous `List[Plot]` composition retain their existing interfaces.
 
-This worktree evaluates replacing `_render_generic`'s ten runtime family
-probes with a callback selected when a mark is constructed. Baseline:
-`059a676` (the starting checkout; neither checkout is switched during runs).
+Continuous marks bind a no-op and use the existing shared continuous path.
+Family renderers use positional adapters around their existing dispatch.
+The three noncapturing (`thin`) pointers follow Plot's ordinary value
+semantics; there is no closure allocation or separate callback lifetime.
+The registration checklist lives in `dataviz/plot.mojo` and is referenced
+from `dataviz/core/mark.mojo` and each family dispatcher.
 
-## Implementation
+This change removes unused-family compilation. It does not remove the
+per-mark payload fields (#223), family imports in the builder, or dispatch
+within a selected family. Registering all three callbacks can retain work
+for unused backends. Adding another draw target requires extending the
+callback fields and the concrete-backend dispatch.
 
-`Plot` carries two noncapturing (`thin`) function pointers, specialized for
-`Canvas` and `SvgCanvas`. Each `mark_*()` method binds its family, so both
-quickplot constructors and the fluent builder use the same mechanism.
-Changing a mark rebinds both pointers. The default plot and continuous
-marks bind a no-op callback and continue into the existing continuous path.
+## Current evaluation
 
-Each family supplies a positional adapter around its existing dispatcher.
-The shared validation and continuous rendering code stay in place. The
-backend is selected at compile time before invoking its stored callback.
-The existing import cycles compile with this implementation.
+The comparison uses unmodified main at `5f29ae9` and the current
+three-backend implementation, both with canvas_mojo 0.36.0 and Mojo 1.0.0.
+The six small programs render line or hexbin using raster + SVG, SVG only,
+or PDF only. Every chart is 400 x 300 with three data points and default
+styling. PDF cases compare output length and a byte fingerprint.
 
-This is deliberately a dispatch experiment, not a complete decoupling of
-`Plot`: the payload fields, family imports in the builder, layer domain
-switches, and within-family dispatch all remain. The internal generic
-renderer now supports the two concrete public backends; it no longer offers
-an arbitrary `DrawTarget` extension point. A public API using a third
-backend would require extending the callback mechanism.
+Three cold builds per program and tree run in alternating order, with only
+one build running at a time. The harness clears each tree's private Mojo
+cache before every build, checks library/lockfile and benchmark hashes,
+rejects failed builds, compares program stdout, and records wall time, CPU
+time, peak memory, binary size, compiler versions, and source hashes.
 
-The plain `def(Int) -> Int` field type is rejected by Mojo 1.0 as a trait;
-`def(Int) thin -> Int` is the concrete pointer type. `callback_probe.mojo`
-is the minimal copy/move/List reproduction that runs successfully.
+Updated measurements are in progress; results will be recorded here before
+this cleanup is published. The old two-backend figures are historical and
+are not claims about the current implementation.
+
+## Permanent validation
+
+`tests/test_renderer_callbacks.mojo` exercises all enumerated marks through
+copying, moving into a heterogeneous collection, and list copying on all
+three backends. It also checks default construction, fluent changes between
+families and back to continuous rendering, mixed facets, and mixed layers.
+Comparisons use complete raster pixels, SVG strings, and PDF bytes.
+
+Dendrogram now has a qualified name, is included in `Mark.COUNT`, and has a
+representative fixture and committed raster/SVG digest. Its expected digest
+was generated with the unmodified main renderer, not the callback branch.
+The existing mark and composition digests otherwise remain unchanged.
 
 ## Reproduce
 
-Create two worktrees at the baseline commit, apply this prototype to one,
-and run `pixi install --locked` separately in each. Then, from the prototype:
+Create a detached worktree at `5f29ae9` and install its environment with
+`pixi install --locked`. Install the PR's locked environment separately.
+From the PR checkout, run:
 
 ```bash
-python3 benchmarks/issue607/measure.py /path/to/baseline /path/to/prototype /tmp/607-compile-results
-python3 benchmarks/issue607/validate.py /path/to/baseline /path/to/prototype /tmp/607-validation-results
+python3 benchmarks/issue607/measure.py /path/to/main-baseline /path/to/pr /tmp/607-current-results
+pixi run --as-is mojo run -I . -I tests tests/test_renderer_callbacks.mojo
+pixi run --as-is mojo run -I . -I tests tests/test_output_digest.mojo
 ```
 
-Run the scripts sequentially so correctness builds do not compete with
-compile measurements. `measure.py` performs three alternating cold builds
-per case and tree. It removes only each worktree's private Mojo cache,
-checks source/lockfile hashes before every build, fails on compiler errors,
-and records wall time, CPU time, peak memory, binary size, and stdout.
-The four cases are line and hexbin, each with SVG alone and both backends.
-Their stdout checks are only smoke checks; `validate.py` supplies the full
-output comparison.
+Run correctness builds after the compile measurements so they do not
+compete for resources. `pixi run test` runs the full suite, including the
+new permanent tests. The cold-compile harness requires Linux utilities
+`lscpu` and GNU `/usr/bin/time`; the Mojo regression tests also run in the
+macOS CI job.
 
-`validate.py` exports all 62 representative marks on both backends after
-copying each plot, moving it into a heterogeneous list, and copying the
-list. It also exports mixed facets, line/point layers, and changes from
-hexbin to line and back. Every BMP and SVG file must match the baseline
-byte for byte. It runs five existing test modules and takes 41 warmed
-render samples per mark/backend, in three alternating process pairs.
+## Earlier experiment
 
-## Cold compile results (2026-09-14)
-
-Linux, AMD Ryzen Threadripper 3970X (32 cores / 64 threads), Mojo 1.0.0
-(ed45d567), canvas_mojo 0.35.0, locked dependencies, default themes,
-400 x 300 charts with three data points. The two installed canvas and
-morrow precompiled packages were byte-identical. Builds ran serially;
-observed machine load averages were approximately 2–3 on 64 logical CPUs.
-
-Three builds per cell, with tree order alternated. Seconds are medians;
-parentheses give the observed minimum–maximum. MB is decimal. Binary sizes
-were identical across all three repetitions within each configuration.
-
-| Program | Baseline wall s | Callback wall s | Wall reduction | Baseline CPU s | Callback CPU s | Binary MB, baseline → callback |
-| --- | --- | --- | --- | --- | --- | --- |
-| Line, raster + SVG | 56.18 (56.01–59.74) | 27.38 (26.80–31.10) | 51.3% | 145.60 | 81.45 | 3.725 → 1.614 |
-| Line, SVG only | 38.52 (38.39–39.00) | 20.39 (20.02–20.39) | 47.1% | 103.49 | 62.83 | 2.218 → 1.031 |
-| Hexbin, raster + SVG | 56.20 (56.08–56.22) | 27.50 (27.22–27.86) | 51.1% | 145.99 | 84.82 | 3.725 → 1.652 |
-| Hexbin, SVG only | 38.61 (38.11–38.82) | 23.71 (23.50–23.79) | 38.6% | 102.13 | 72.96 | 2.218 → 1.303 |
-
-The line case reproduces the issue's manually pruned renderer result:
-roughly half the wall time and a 1.61 MB binary, while keeping the public
-API and all families available. Hexbin demonstrates that the gain also
-applies to an actual stored family renderer, not just the continuous
-fallback. CPU reductions are 44.1%, 39.3%, 41.9%, and 28.6%, respectively.
-
-These measurements do not establish a whole-suite speedup. Constructors
-still instantiate their entire family, and callers using every family
-retain that cost. Payload construction and shared infrastructure also
-remain. Raw measurements and source hashes are in `results/`.
-
-## Backend diagnostic
-
-An SVG-only hexbin executable still contains raster drawing routines.
-To establish the cause, `ablate_backend.py` copies the prototype's source
-and changes exactly one binding: hexbin's raster callback becomes the
-continuous no-op. The SVG callback is untouched. This diagnostic source
-cannot render raster hexbin correctly and is not the proposed patch.
-
-Three alternating cold builds per configuration, with complete SVG stdout
-compared byte for byte. This diagnostic prints the full SVG rather than
-its length, so its binary sizes differ slightly from the main table.
-
-| Hexbin, SVG only | Wall s, median (range) | CPU s, median | Binary bytes |
-| --- | --- | --- | --- |
-| Both callbacks registered | 23.34 (23.29–24.00) | 71.91 | 1,302,336 |
-| Only the SVG callback registered | 20.33 (20.19–20.33) | 61.89 | 1,049,520 |
-
-The unused raster callback costs about **3.01 wall seconds, 10.02 CPU
-seconds, and 252,816 bytes** in this diagnostic. Thus this approach solves
-unused-family compilation while retaining some unused-backend compilation.
-The two axes should not be described as fully independent once both
-backend functions are bound during construction.
-
-Reproduce this optional diagnostic between measurement and validation:
-
-```bash
-python3 benchmarks/issue607/ablate_backend.py /path/to/prototype /tmp/607-backend-results
-```
-
-## Correctness and runtime
-
-**Exact output: 132 of 132 files match byte for byte.** This includes
-all 62 marks on raster and SVG, a mixed-mark facet grid, line/point layers,
-and changing a plot from hexbin to line and from line to hexbin. Every
-mark also passed copy equality, move-into-list, and list-copy exercises.
-SHA-256 hashes for all outputs are retained in `results/output_sha256.json`.
-
-Runtime: 128 data points, constructor defaults (640 x 420), 41 warmed
-renders per process and three alternating baseline/prototype process
-pairs. Each entry below is the median of the three process medians; the
-range covers those process medians, not the individual render samples.
-Raw samples are in `results/runtime-*.txt`.
-
-| Case | Baseline ms, median (range) | Callback ms, median (range) |
-| --- | --- | --- |
-| Line, raster | 1.666 (1.558–1.676) | 1.554 (1.545–1.589) |
-| Line, SVG | 1.100 (1.084–1.114) | 1.083 (1.083–1.125) |
-| Hexbin, raster | 4.905 (4.873–4.970) | 4.830 (4.724–5.090) |
-| Hexbin, SVG | 1.339 (1.336–1.346) | 1.362 (1.348–1.374) |
-
-SVG hexbin is about **1.7% slower** in these samples, with nonoverlapping
-process-median ranges. Raster line is about 6.7% faster; the other two
-cases have overlapping ranges. This is a small, two-mark runtime sample,
-not evidence that every mark is runtime-neutral. The clear win is compile
-time, with a small observed SVG hexbin runtime cost.
-
-All **414 tests passed, with zero failures or skips**, across the five
-selected existing modules:
-
-- `test_output_digest`: 2 tests.
-- `test_core_plot`: 109 tests.
-- `test_layers_facets`: 88 tests.
-- `test_marks_basic`: 185 tests.
-- `test_binned`: 30 tests.
-
-The full test suite was not run. `mojo precompile -I . dataviz` also
-succeeded, and a separate consumer built from that precompiled package
-(with no source directory on its import path) rendered hexbin on both
-backends successfully.
-
-
-
-## Assessment
-
-The callback route is viable on Mojo 1.0.0 and merits a production change
-for #607, with the small measured SVG hexbin runtime cost recorded. It provides the expected compile savings without replacing
-`Plot` or changing the public constructor/render signatures. Existing
-import cycles do not prevent compilation, and the concrete function
-pointer type supports the existing `Copyable`/`Movable` model.
-
-This is not a fix for #223. `Plot` still owns every payload, and the
-builder still knows every family. It also does not finish backend
-isolation. A production follow-up should preserve the tested ownership
-and mark-switching behavior, document the binding invariant next to the
-mark-adding checklist, and decide whether supporting additional draw
-targets is a requirement before fixing the callback interface to two
-concrete targets.
-
+The original two-backend evaluation and its raw data are preserved in
+commit `fa6b42e`, under this same directory. It measured the original
+compile savings, byte-identical raster/SVG output, and a small SVG-hexbin
+runtime cost. Its diagnostic disabled hexbin's unused raster callback;
+that diagnostic does not model the current PDF callback. Check out that
+commit to reproduce those historical results.

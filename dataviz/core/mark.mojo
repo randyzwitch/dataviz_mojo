@@ -53,6 +53,7 @@ describes the drawing. By data shape:
   (streamplot.mojo): STREAMPLOT (`encode_streamplot()`).
   Not HEATMAP, which needs one category label per row and column.
 - `encode_hierarchy()` (hierarchy.mojo): SUNBURST, TREE, TREEMAP.
+- `encode_dendrogram()` (dendrogram.mojo): DENDROGRAM.
 - `encode_chord()` (edge list, edges.mojo): CHORD, ARC_DIAGRAM,
   GRAPH, SANKEY.
 
@@ -62,6 +63,11 @@ Vertical categorical marks share `_draw_categorical_axis_frame`
 `_draw_grid_axis_frame` (heatmap.mojo). BAR/BOX/VIOLIN/BEESWARM/
 LOLLIPOP/GROUPED_BAR/STACKED_BAR each have a `horizontal=True`
 variant.
+
+Adding a mark requires its constant and name, an updated `COUNT`, a
+representative plot in `tests/_mark_registry.mojo`, and a reviewed output
+digest. Its `Plot.mark_*()` setter must bind its family's Canvas, SVG,
+and PDF callbacks; see the checklist in `plot.mojo`.
 """
 
 
@@ -132,11 +138,11 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime HISTOGRAM = Self(60)
     comptime STREAMPLOT = Self(61)
     comptime DENDROGRAM = Self(62)
-    comptime COUNT = 62
+    comptime COUNT = 63
     """How many marks exist -- one past the largest value above.
 
-    Only the raster/SVG layout-equivalence sweep reads this: it
-    walks `Mark(0)` through `Mark(COUNT - 1)` and requires a
+    The layout, output-digest, and callback ownership sweeps read this.
+    Each walks `Mark(0)` through `Mark(COUNT - 1)` and requires a
     representative dataset for each, so a mark added without one fails
     loudly instead of silently going untested. Bump it in the same edit
     that adds the mark above.
@@ -282,6 +288,8 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
             return "Mark.PCOLORMESH"
         if self == Self.EVENTPLOT:
             return "Mark.EVENTPLOT"
+        if self == Self.DENDROGRAM:
+            return "Mark.DENDROGRAM"
         return "Mark(" + String(self._value) + ")"
 
 
