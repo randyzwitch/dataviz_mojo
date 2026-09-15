@@ -12,6 +12,11 @@ from canvas.vector.draw_target import DrawTarget
 from dataviz.core.mark import Mark
 from dataviz.plot import Plot, _RenderResult
 from dataviz.spatial.scatter3d import _render_plot3d, _render_scatter3d
+from dataviz.spatial.surface3d import (
+    _render_surface3d,
+    _render_trisurf3d,
+    _render_wire3d,
+)
 
 
 def _render_spatial_family[
@@ -38,8 +43,8 @@ def _render_spatial_family[
         ox1: Outer right bound.
         oy1: Outer bottom bound.
         cache: The render's shared font cache.
-        vector_target: Unused here; both marks draw the same geometry
-            to every backend.
+        vector_target: Unused here; every mark in this family draws
+            the same geometry to every backend.
 
     Returns:
         The render result, or nothing.
@@ -54,5 +59,17 @@ def _render_spatial_family[
     if plot._mark == Mark.PLOT3D:
         return Optional(
             _render_plot3d(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+        )
+    if plot._mark == Mark.SURFACE3D:
+        return Optional(
+            _render_surface3d(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+        )
+    if plot._mark == Mark.WIRE3D:
+        return Optional(
+            _render_wire3d(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+        )
+    if plot._mark == Mark.TRISURF3D:
+        return Optional(
+            _render_trisurf3d(target, plot, ox0, oy0, ox1, oy1, cache=cache)
         )
     return None

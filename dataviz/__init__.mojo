@@ -13,6 +13,7 @@ from dataviz.core.mark import Mark
 from dataviz.core.output_format import OutputFormat
 from dataviz.core.axis_position import AxisPosition
 from dataviz.spatial.scatter3d import plot3d, scatter3d
+from dataviz.spatial.surface3d import surface3d, trisurf3d, wire3d
 from dataviz.aggregation.clustermap import (
     clustermap,
     clustermap_pdf,
