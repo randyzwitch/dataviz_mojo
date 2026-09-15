@@ -13,6 +13,8 @@ Int conversion up to 2^53, whole-number labels from List[Int]).
 from _test_helpers import Lcg, _count_color
 from canvas.color import Color
 from dataviz import bar
+from dataviz.core.camera3d import Camera3D
+from dataviz.core.frame3d import _Extent3D, _fit_frame3d, _unit
 from dataviz.core.colors import (
     CORNFLOWERBLUE,
     DARKGRAY,
@@ -45,6 +47,7 @@ from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import Plot, render, render_svg
 from dataviz.core.scale import (
     LinearScale,
+    MinMax,
     Ticks,
     TickFormat,
     _format_fixed,
@@ -55,8 +58,14 @@ from dataviz.core.scale import (
     _nice_step,
 )
 from dataviz.core.theme import Theme
-from std.math import floor, log10, pow
-from std.testing import TestSuite, assert_equal, assert_raises, assert_true
+from std.math import floor, log10, pow, sqrt
+from std.testing import (
+    TestSuite,
+    assert_almost_equal,
+    assert_equal,
+    assert_raises,
+    assert_true,
+)
 from std.utils.numerics import inf, nan
 
 
@@ -1466,6 +1475,299 @@ def test_sweep_log_ticks_are_1_2_or_5_decade_positions_inside_the_domain() raise
         if failure:
             break
     assert_true(failure == "", failure)
+
+
+# ==== the 3D camera (#345) ====
+# The first of #345's five steps, and the one everything else depends
+# on. A camera is exactly testable: a known point at a known angle
+# lands at a hand-computable position, so none of this is asserted
+# against a previous run.
+#
+# The two rotations compose in one order only -- azimuth about z, then
+# elevation about the rotated x -- and the difference is invisible at
+# elev=0, which is exactly what a careless test would check. Several of
+# these use a nonzero elevation for that reason.
+
+
+def test_the_degenerate_view_is_a_plain_side_on_projection() raises:
+    # elev=0, azim=0 should collapse to (x, z) with depth y: a flat
+    # side-on view that can be reasoned about without trusting any
+    # trigonometry. Everything else builds on this being right.
+    var cam = Camera3D(elev=0.0, azim=0.0)
+    var p = cam.project(3.0, 7.0, 5.0)
+    assert_almost_equal(p.x, 3.0, atol=1e-12, msg="x is not the data x")
+    assert_almost_equal(p.y, 5.0, atol=1e-12, msg="y is not the data z")
+    assert_almost_equal(p.depth, 7.0, atol=1e-12, msg="depth is not the data y")
+
+
+def test_a_quarter_turn_of_azimuth_swaps_the_horizontal_axis() raises:
+    # At azim=90 the scene turns a quarter turn about z, so the data's
+    # y axis is what now runs across the page and the data's x runs
+    # into it.
+    var cam = Camera3D(elev=0.0, azim=90.0)
+    var on_x = cam.project(1.0, 0.0, 0.0)
+    assert_almost_equal(
+        on_x.x, 0.0, atol=1e-12, msg="the x axis still points across"
+    )
+    assert_almost_equal(
+        on_x.depth, -1.0, atol=1e-12, msg="the x axis did not turn away"
+    )
+    var on_y = cam.project(0.0, 1.0, 0.0)
+    assert_almost_equal(
+        on_y.x, 1.0, atol=1e-12, msg="the y axis did not turn across"
+    )
+
+
+def test_looking_straight_down_flattens_z() raises:
+    # elev=90 is the top-down view: the z axis points at the camera, so
+    # it contributes nothing to the page and everything to depth.
+    var cam = Camera3D(elev=90.0, azim=0.0)
+    var p = cam.project(0.0, 0.0, 5.0)
+    assert_almost_equal(p.x, 0.0, atol=1e-12, msg="z moved the point across")
+    assert_almost_equal(p.y, 0.0, atol=1e-12, msg="z moved the point up")
+    assert_almost_equal(
+        p.depth, 5.0, atol=1e-12, msg="z is not the whole of the depth"
+    )
+    # And the data's y now runs down the page rather than into it.
+    var q = cam.project(0.0, 1.0, 0.0)
+    assert_almost_equal(
+        q.y, -1.0, atol=1e-12, msg="y does not run down the page from above"
+    )
+
+
+def test_height_rises_on_the_page() raises:
+    # The sign convention the whole package depends on: a larger z is
+    # further up, in camera space where y points up. Getting this
+    # backwards would render every surface upside down and no other
+    # test here would notice.
+    var cam = Camera3D()
+    var low = cam.project(0.0, 0.0, 0.0)
+    var high = cam.project(0.0, 0.0, 1.0)
+    assert_true(
+        high.y > low.y,
+        "a taller point did not land higher on the page",
+    )
+
+
+def test_a_point_further_from_the_camera_sorts_farther() raises:
+    # Depth is an ordering key and nothing else, so what matters is the
+    # comparison, not the value.
+    var cam = Camera3D()
+    var near = cam.project(0.0, -1.0, 0.0)
+    var far = cam.project(0.0, 1.0, 0.0)
+    assert_true(
+        far.depth > near.depth,
+        "the farther point did not get the larger depth",
+    )
+
+
+def test_the_projection_is_orthographic() raises:
+    # Parallel stays parallel and a unit of data is one size wherever it
+    # sits: two segments of equal length, at different depths, project
+    # to equal lengths. Under perspective they would not, and a 3D axis
+    # would stop being readable.
+    var cam = Camera3D()
+    var a0 = cam.project(0.0, -5.0, 0.0)
+    var a1 = cam.project(1.0, -5.0, 0.0)
+    var b0 = cam.project(0.0, 5.0, 0.0)
+    var b1 = cam.project(1.0, 5.0, 0.0)
+    var near_len = sqrt(
+        (a1.x - a0.x) * (a1.x - a0.x) + (a1.y - a0.y) * (a1.y - a0.y)
+    )
+    var far_len = sqrt(
+        (b1.x - b0.x) * (b1.x - b0.x) + (b1.y - b0.y) * (b1.y - b0.y)
+    )
+    assert_almost_equal(
+        near_len,
+        far_len,
+        atol=1e-12,
+        msg="depth changed a length, so the projection is not orthographic",
+    )
+
+
+def test_the_rotations_compose_in_one_order() raises:
+    # Azimuth about z, then elevation about the rotated x. Applying
+    # them the other way round tilts the axes out of plane, and the two
+    # orders agree at elev=0 -- so this uses a nonzero elevation, which
+    # is the whole point of the test.
+    #
+    # Hand-computed: elev=30, azim=45, point (1, 0, 0).
+    #   rx = cos(45) = 0.7071067811865476
+    #   ry = -sin(45) = -0.7071067811865476
+    #   y  = -ry sin(30) = 0.3535533905932737
+    #   d  =  ry cos(30) = -0.6123724356957945
+    #
+    # The y here is the value the code produces, not sqrt(2)/4 exactly.
+    # `sin(radians(30))` is 0.49999999999999994 rather than 0.5, so the
+    # product lands one ulp below the ideal 0.3535533905932738. The
+    # tolerance covers it either way; the literal is the computed value
+    # because a "hand-computed" number that the code cannot produce is
+    # the kind of thing a reader trusts and should not.
+    var cam = Camera3D(elev=30.0, azim=45.0)
+    var p = cam.project(1.0, 0.0, 0.0)
+    assert_almost_equal(
+        p.x, 0.7071067811865476, atol=1e-12, msg="x disagrees with hand math"
+    )
+    assert_almost_equal(
+        p.y, 0.3535533905932737, atol=1e-12, msg="y disagrees with hand math"
+    )
+    assert_almost_equal(
+        p.depth,
+        -0.6123724356957945,
+        atol=1e-12,
+        msg="depth disagrees with hand math",
+    )
+
+
+def test_the_default_view_is_matplotlibs() raises:
+    # So a reader who knows `view_init(30, -60)` gets the picture they
+    # expect without being told.
+    var cam = Camera3D()
+    assert_almost_equal(cam.elev, 30.0, atol=1e-12, msg="default elevation")
+    assert_almost_equal(cam.azim, -60.0, atol=1e-12, msg="default azimuth")
+
+
+# ==== the 3D frame (#345) ====
+# Normalising to a centred cube, and fitting the projected cube inside
+# the plot rect without shearing it.
+
+
+def _cube_extent(lo: Float64, hi: Float64) -> _Extent3D:
+    """The same range on all three axes."""
+    return _Extent3D(MinMax(lo, hi), MinMax(lo, hi), MinMax(lo, hi))
+
+
+def test_normalising_centres_the_data_on_the_origin() raises:
+    # Rotation is about the origin, so centring first is what makes the
+    # camera turn the scene instead of swinging it around the page.
+    var span = MinMax(10.0, 20.0)
+    assert_almost_equal(
+        _unit(10.0, span), -0.5, atol=1e-12, msg="the low end is not -0.5"
+    )
+    assert_almost_equal(
+        _unit(20.0, span), 0.5, atol=1e-12, msg="the high end is not 0.5"
+    )
+    assert_almost_equal(
+        _unit(15.0, span), 0.0, atol=1e-12, msg="the middle is not the origin"
+    )
+
+
+def test_a_flat_axis_collapses_to_the_centre() raises:
+    # One distinct value on an axis has no spread to show, and a flat
+    # slice is the honest picture -- not a divide by zero.
+    var flat = MinMax(7.0, 7.0)
+    assert_almost_equal(
+        _unit(7.0, flat), 0.0, atol=1e-12, msg="a flat axis did not centre"
+    )
+
+
+def test_each_axis_normalises_independently() raises:
+    # A box is a viewing volume, not a shared unit: an axis spanning
+    # nanometres and one spanning kilometres come out the same size, or
+    # every axis but the largest collapses to nothing.
+    var tiny = MinMax(0.0, 1e-9)
+    var huge = MinMax(0.0, 1e9)
+    assert_almost_equal(
+        _unit(1e-9, tiny),
+        _unit(1e9, huge),
+        atol=1e-12,
+        msg="the two axes did not normalise to the same extent",
+    )
+
+
+def test_the_fit_preserves_aspect() raises:
+    # One scale for both screen directions. Using each direction's own
+    # ratio would fill the rect and shear the projection.
+    #
+    # The property is that pixel distance is a fixed multiple of
+    # camera-space distance, whatever the direction. It is *not* that a
+    # unit along x equals a unit along z on the page: an axis tilted
+    # away from the camera is genuinely shorter, which is foreshortening
+    # and the whole point of a 3D view. The first version of this test
+    # asserted the second thing and failed by exactly the foreshortening
+    # ratio -- 1.3093073414159544 at the default view, matching
+    # cos(30) / hypot(cos(-60), sin(-60) sin(30)) to fifteen digits.
+    #
+    # Checked on a deliberately non-square rect, where an
+    # aspect-breaking fit would differ most.
+    var frame = _fit_frame3d(Camera3D(), _cube_extent(0.0, 1.0), 0, 0, 800, 200)
+    var probes: List[Tuple[Float64, Float64, Float64]] = [
+        (0.0, 0.0, 0.0),
+        (1.0, 0.0, 0.0),
+        (0.0, 1.0, 0.0),
+        (0.0, 0.0, 1.0),
+        (1.0, 1.0, 1.0),
+    ]
+    var ratio = 0.0
+    for i in range(len(probes)):
+        for j in range(i + 1, len(probes)):
+            var ca = frame.project(probes[i][0], probes[i][1], probes[i][2])
+            var cb = frame.project(probes[j][0], probes[j][1], probes[j][2])
+            var cam_dist = sqrt(
+                (cb.x - ca.x) * (cb.x - ca.x) + (cb.y - ca.y) * (cb.y - ca.y)
+            )
+            if cam_dist < 1e-9:
+                continue
+            var pa = frame.to_pixel(probes[i][0], probes[i][1], probes[i][2])
+            var pb = frame.to_pixel(probes[j][0], probes[j][1], probes[j][2])
+            var px_dist = sqrt(
+                (pb[0] - pa[0]) * (pb[0] - pa[0])
+                + (pb[1] - pa[1]) * (pb[1] - pa[1])
+            )
+            var this_ratio = px_dist / cam_dist
+            if ratio == 0.0:
+                ratio = this_ratio
+            else:
+                assert_almost_equal(
+                    this_ratio,
+                    ratio,
+                    atol=1e-9,
+                    msg=(
+                        "pixels per unit of camera space differ by"
+                        " direction, so the fit shears the projection"
+                    ),
+                )
+    assert_true(ratio > 0.0, "no pair was far enough apart to measure")
+
+
+def test_the_whole_cube_lands_inside_the_plot_rect() raises:
+    # Every data point normalises into the cube, so fitting the eight
+    # corners fits the chart: no point can escape the rect by being at
+    # an extreme.
+    var frame = _fit_frame3d(
+        Camera3D(), _cube_extent(0.0, 1.0), 50, 40, 450, 340
+    )
+    for i in range(8):
+        var x = 0.0 if (i & 1) == 0 else 1.0
+        var y = 0.0 if (i & 2) == 0 else 1.0
+        var z = 0.0 if (i & 4) == 0 else 1.0
+        var at = frame.to_pixel(x, y, z)
+        assert_true(
+            at[0] >= 49.0 and at[0] <= 451.0,
+            "a corner escaped the rect horizontally at " + String(at[0]),
+        )
+        assert_true(
+            at[1] >= 39.0 and at[1] <= 341.0,
+            "a corner escaped the rect vertically at " + String(at[1]),
+        )
+
+
+def test_a_rect_with_no_area_raises() raises:
+    with assert_raises(contains="no area"):
+        _ = _fit_frame3d(Camera3D(), _cube_extent(0.0, 1.0), 10, 10, 10, 90)
+
+
+def test_height_still_rises_after_the_pixel_flip() raises:
+    # Camera space points up, pixel rows grow down, and the frame flips
+    # exactly once. Getting the count of flips wrong renders every 3D
+    # chart upside down, and the camera's own test cannot see it.
+    var frame = _fit_frame3d(Camera3D(), _cube_extent(0.0, 1.0), 0, 0, 400, 400)
+    var low = frame.to_pixel(0.5, 0.5, 0.0)
+    var high = frame.to_pixel(0.5, 0.5, 1.0)
+    assert_true(
+        high[1] < low[1],
+        "a taller point did not land higher on the page (smaller pixel y)",
+    )
 
 
 def main() raises:

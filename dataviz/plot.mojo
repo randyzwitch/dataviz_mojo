@@ -203,6 +203,7 @@ from dataviz.aggregation.dispatch import _render_aggregation_family
 from dataviz.relationships.dispatch import _render_relationships_family
 from dataviz.radial.dispatch import _render_radial_family
 from dataviz.multivariate.dispatch import _render_multivariate_family
+from dataviz.spatial.dispatch import _render_spatial_family
 from dataviz.grid.dispatch import _render_grid_family
 from dataviz.hierarchy_marks.dispatch import _render_hierarchy_marks_family
 
@@ -228,6 +229,7 @@ from dataviz.distributions.box import _BoxData
 from dataviz.binned.hexbin import _HexbinData, _render_hexbin
 from dataviz.multivariate.quiver import _render_quiver
 from dataviz.multivariate.streamplot import _StreamData, _render_streamplot
+from dataviz.spatial.scatter3d import _Xyz
 from dataviz.binned.hist2d import _hist2d_counts
 from dataviz.distributions.boxen import (
     _BoxenData,
@@ -703,6 +705,7 @@ struct Plot(Copyable, Movable):
     var _punchcard: _PunchcardData
     var _barbs: _BarbsData
     var _contour: _ContourData
+    var _xyz: _Xyz
     var _image: _ImageData
     var _tricontour: _TriContourData
     var _triplot: _TriplotData
@@ -791,6 +794,7 @@ struct Plot(Copyable, Movable):
         self._punchcard = _PunchcardData()
         self._barbs = _BarbsData()
         self._contour = _ContourData()
+        self._xyz = _Xyz()
         self._image = _ImageData()
         self._tricontour = _TriContourData()
         self._triplot = _TriplotData()
@@ -2273,6 +2277,91 @@ struct Plot(Copyable, Movable):
             color_map=color_map,
             shape_map=shape_map,
         )
+
+    def mark_scatter3d(
+        var self, elev: Float64 = 30.0, azim: Float64 = -60.0
+    ) -> Self:
+        """Select `Mark.SCATTER3D`: one marker per (x, y, z), drawn in
+        an orthographic projection of a viewing cube (#345).
+
+        `elev` and `azim` are the view in degrees, matching `mplot3d`'s
+        `view_init(elev, azim)` so a reader who knows those numbers gets
+        the picture they expect. They live on the mark rather than on
+        `Theme` because a view angle belongs to this chart's data the
+        way a domain override does, not to a house style.
+
+        Encoded via `encode_xyz()`.
+
+        Args:
+            elev: Degrees above the x-y plane.
+            azim: Degrees of rotation about the z axis.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.SCATTER3D
+        self._xyz.elev = elev
+        self._xyz.azim = azim
+        return self^
+
+    def mark_plot3d(
+        var self, elev: Float64 = 30.0, azim: Float64 = -60.0
+    ) -> Self:
+        """Select `Mark.PLOT3D`: the points joined in data order as one
+        polyline through the cube (#345).
+
+        Not depth sorted, and it cannot be: a polyline is one connected
+        path, so reordering its segments by depth would reorder the
+        line. A segment passing behind another is drawn over it when it
+        comes later in the series, which is what `mplot3d` does too.
+
+        Args:
+            elev: Degrees above the x-y plane.
+            azim: Degrees of rotation about the z axis.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.PLOT3D
+        self._xyz.elev = elev
+        self._xyz.azim = azim
+        return self^
+
+    def encode_xyz(
+        var self,
+        x: List[Float64],
+        y: List[Float64],
+        z: List[Float64],
+    ) raises -> Self:
+        """Give a 3D mark its three equal-length columns (#345).
+
+        Each axis is normalised to the viewing cube independently, so
+        one axis spanning nanometres and another kilometres come out the
+        same size. A 3D box is a viewing volume rather than a shared
+        unit, and scaling them together would collapse every axis but
+        the largest.
+
+        Length agreement is checked at render time, like every other
+        encode method here.
+
+        Args:
+            x: The x column.
+            y: The y column, the same length.
+            z: The z column, the same length.
+
+        Returns:
+            Self, for further chaining.
+        """
+        var _ok_encode_xyz = List[Mark]()
+        _ok_encode_xyz.append(Mark.SCATTER3D)
+        _ok_encode_xyz.append(Mark.PLOT3D)
+        _require_mark(
+            self._mark, "encode_xyz", "mark_scatter3d()", _ok_encode_xyz^
+        )
+        self._xyz.x = x.copy()
+        self._xyz.y = y.copy()
+        self._xyz.z = z.copy()
+        return self^
 
     def encode_categorical(
         var self,
@@ -6807,6 +6896,18 @@ def _render_generic[
     )
     if r_multivariate:
         return r_multivariate.take()
+    var r_spatial = _render_spatial_family(
+        target,
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
+    if r_spatial:
+        return r_spatial.take()
     var r_grid = _render_grid_family(
         target,
         plot,
