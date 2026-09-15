@@ -3162,20 +3162,36 @@ struct Plot(Copyable, Movable):
         var self,
         z: List[List[Float64]],
         levels: List[Float64] = List[Float64](),
+        x: List[Float64] = List[Float64](),
+        y: List[Float64] = List[Float64](),
     ) raises -> Self:
         """Map a rectangular grid of values onto `Mark.CONTOUR`'s shape.
 
-        `z` is row-major (`z[row][col]`): rows are the y axis and columns
-        the x axis, both in grid-index units, so a 10x20 grid spans x
-        x from 0 to 19 and y from 0 to 9 with row 0 at the bottom. Shape checking
-        (rectangular, at least 2x2) is deferred to render() time, like
-        every other encode method here.
+        `z` is row-major (`z[row][col]`): rows are the y axis and
+        columns the x axis, with row 0 at the bottom.
+
+        Without `x`/`y` the axes are in **grid-index units**, so a 10x20
+        grid spans x from 0 to 19 and y from 0 to 9, unpadded, and the
+        grid meets the plot rect's edges. With them the axes are in the
+        caller's own units and get the same 5% padding every other
+        continuous mark has, so a contour can share a frame with a
+        scatter and mean the same thing by its x (#423). They are one
+        value per column and per row, strictly increasing, and need not
+        be evenly spaced.
+
+        Shape checking (rectangular, at least 2x2) and the coordinate
+        checks are deferred to render() time, like every other encode
+        method here.
 
         Args:
             z: The grid, row-major and rectangular, at least 2x2.
             levels: The values to trace. Left empty (the default), the
                 count from `mark_contour(levels=n)` decides how many
                 are placed inside the data's range.
+            x: One x coordinate per column of `z`, strictly increasing.
+                Empty (the default) keeps grid-index units.
+            y: One y coordinate per row of `z`, strictly increasing.
+                Empty (the default) keeps grid-index units.
 
         Returns:
             Self, for further chaining.
@@ -3188,6 +3204,8 @@ struct Plot(Copyable, Movable):
         )
         self._contour.z = z.copy()
         self._contour.levels = levels.copy()
+        self._contour.x = x.copy()
+        self._contour.y = y.copy()
         return self^
 
     def encode_imshow(var self, z: List[List[Float64]]) raises -> Self:
