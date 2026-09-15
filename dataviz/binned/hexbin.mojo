@@ -4,10 +4,11 @@ drawn as colored hexagons. The lattice tiles the plane without the
 axis-aligned artifacts a rectangular grid shows on diagonal structure,
 which is the reason it exists alongside `hist2d()`."""
 
-from std.math import floor, sqrt
+from std.math import floor, pi, sqrt
 
 from canvas.color import Color
 from canvas.fill_rule import FillRule
+from canvas.geometry import Transform2D
 from canvas.path import Path
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
@@ -191,28 +192,90 @@ def _hexbin_bins(
     return out^
 
 
-def _hexagon_path(
+def _unit_hexagon() raises -> Path:
+    """A pointy-top regular hexagon at unit radius about the origin, the
+    shape every cell is a scaled copy of.
+
+    Built once per layer and mapped per cell with `_cell_transform`,
+    which is how `Path.regular_polygon`'s own docstring says to draw a
+    shape that is regular in data space through two different axis
+    scales: it is not regular in pixels, so it cannot be built at
+    pixel size directly.
+
+    `-pi / 2` puts the first vertex at twelve o'clock. Scaled by
+    `(sx / sqrt(3), sy / 3)` its six vertices are exactly the ones this
+    function used to write out by hand -- the same points in the same
+    winding, starting one vertex earlier round the ring (#579).
+
+    Returns:
+        The unit hexagon, closed.
+
+    Raises:
+        Error: Whatever `Path.regular_polygon()` raises.
+    """
+    var unit = Path()
+    unit.regular_polygon(0.0, 0.0, 1.0, 6, -pi / 2.0)
+    return unit^
+
+
+def _cell_transform(
     cx: Float64,
     cy: Float64,
     sx: Float64,
     sy: Float64,
     x_scale: LinearScale,
     y_scale: LinearScale,
-    mut path: Path,
-) raises:
-    """Append the pointy-top hexagon centered on data point `(cx, cy)`
-    to `path`, in pixels: `sx` wide, `2 sy / 3` tall, the cell of the
-    lattice `_hexbin_bins` builds."""
-    var hx = sx / 2.0
-    var qy = sy / 6.0
-    var ty = sy / 3.0
-    path.move_to(x_scale.to_pixel(cx + hx), y_scale.to_pixel(cy - qy))
-    path.line_to(x_scale.to_pixel(cx + hx), y_scale.to_pixel(cy + qy))
-    path.line_to(x_scale.to_pixel(cx), y_scale.to_pixel(cy + ty))
-    path.line_to(x_scale.to_pixel(cx - hx), y_scale.to_pixel(cy + qy))
-    path.line_to(x_scale.to_pixel(cx - hx), y_scale.to_pixel(cy - qy))
-    path.line_to(x_scale.to_pixel(cx), y_scale.to_pixel(cy - ty))
-    path.close()
+) raises -> Transform2D:
+    """The transform taking `_unit_hexagon()` to the cell centered on
+    data point `(cx, cy)`, in pixels.
+
+    A cell is `sx` wide and `2 sy / 3` tall in data units, which is a
+    regular hexagon scaled by `(sx / sqrt(3), sy / 3)` -- regular in
+    pixels only when `sx = sy / sqrt(3)`, which the lattice does not
+    promise. Composing that with each axis's data-to-pixel slope gives
+    one affine map per cell.
+
+    **Both scales must be linear.** `to_pixel` is affine only then, and
+    a `Transform2D` cannot express a logarithmic axis: the hexagons
+    would be drawn at plausible but wrong positions rather than
+    failing. `_render_hexbin` passes `_data_extent`, so they always are
+    -- but that is a property of one call site rather than a promise
+    the type makes, so it is checked here instead of assumed.
+
+    Args:
+        cx: Cell center x, in data units.
+        cy: Cell center y.
+        sx: Lattice column pitch, in data units.
+        sy: Lattice row pitch.
+        x_scale: Data-to-pixel for x.
+        y_scale: For y.
+
+    Returns:
+        The cell's transform, for `Path.transformed`.
+
+    Raises:
+        Error: Either scale is logarithmic.
+    """
+    if x_scale.is_log or y_scale.is_log:
+        raise Error(
+            "Mark.HEXBIN: a hexagonal cell is mapped to pixels with one"
+            " affine transform per cell, which a logarithmic axis is"
+            " not -- the cells would be drawn in the wrong places"
+            " rather than raising. Give hexbin() linear axes."
+        )
+    # The slope of each axis, read from its own endpoints rather than
+    # from a difference of two to_pixel calls, so a degenerate domain
+    # shows up here as a division rather than as silently zero.
+    var x_span = x_scale.domain_max - x_scale.domain_min
+    var y_span = y_scale.domain_max - y_scale.domain_min
+    var x_slope = (x_scale.range_max - x_scale.range_min) / x_span
+    var y_slope = (y_scale.range_max - y_scale.range_min) / y_span
+    return Transform2D(
+        x_slope * sx / sqrt(3.0),
+        y_slope * sy / 3.0,
+        x_scale.to_pixel(cx),
+        y_scale.to_pixel(cy),
+    )
 
 
 def _draw_hexbin_layer[
@@ -263,14 +326,26 @@ def _draw_hexbin_layer[
         var c = bins.count[i]
         order[tally[c]] = i
         tally[c] += 1
+    # One unit hexagon for the whole layer: every cell is a transformed
+    # copy of it, so the shape is built once rather than per cell.
+    var unit = _unit_hexagon()
     var at = 0
     while at < n:
         var c = bins.count[order[at]]
         var path = Path()
         while at < n and bins.count[order[at]] == c:
             var k = order[at]
-            _hexagon_path(
-                bins.cx[k], bins.cy[k], bins.sx, bins.sy, x_scale, y_scale, path
+            path.extend(
+                unit.transformed(
+                    _cell_transform(
+                        bins.cx[k],
+                        bins.cy[k],
+                        bins.sx,
+                        bins.sy,
+                        x_scale,
+                        y_scale,
+                    )
+                )
             )
             at += 1
         var color = color_scale.color_at(Float64(c))
