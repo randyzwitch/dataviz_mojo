@@ -10,7 +10,7 @@ from std.utils.numerics import isfinite
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
-from canvas.geometry import FPoint, round_to_int
+from canvas.geometry import FPoint
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
@@ -23,13 +23,11 @@ from dataviz.core.mark import Mark
 from canvas.geometry import snap_to_pixel_edge
 from dataviz.plot import (
     Plot,
-    _LegendLayout,
     _RenderResult,
     _Scaled,
     _draw_continuous_axis_frame,
-    _continuous_legend_labels,
-    _draw_continuous_color_legend,
-    _dynamic_legend_width,
+    _continuous_color_legend_layout,
+    _draw_continuous_color_legend_at,
     _finished,
 )
 from dataviz.core.scale import LinearScale
@@ -750,16 +748,9 @@ def _render_image[
     # Measured against the render's shared font cache before the plot
     # rect is finalized, the way every other legend-bearing mark sizes
     # its column (see `_dynamic_legend_width`).
-    var legend = _LegendLayout()
-    if theme.show_legend:
-        var legend_labels = _continuous_legend_labels(color_scale, theme)
-        legend.right = _dynamic_legend_width(
-            legend_labels,
-            sc.continuous_legend_bar_width,
-            sc,
-            cache=cache,
-        )
-        legend.active = True
+    var legend = _continuous_color_legend_layout(
+        color_scale, theme, sc, cache=cache
+    )
 
     var frame = _draw_continuous_axis_frame(
         target,
@@ -809,15 +800,18 @@ def _render_image[
             skip_zero=plot._image.blank_zero,
         )
 
-    if theme.show_legend:
-        _ = _draw_continuous_color_legend(
-            target,
-            frame.text_requests,
-            color_scale,
-            round_to_int(frame.x_scale.range_max) + sc.margin_right,
-            frame.py0,
-            theme,
-        )
+    _draw_continuous_color_legend_at(
+        target,
+        frame.text_requests,
+        color_scale,
+        legend,
+        frame.px0,
+        frame.py0,
+        frame.px1,
+        frame.py1,
+        theme,
+        cache=cache,
+    )
 
     return frame.result()
 

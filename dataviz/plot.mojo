@@ -137,8 +137,10 @@ from dataviz.layers import (
 )
 from dataviz.core.legend import (
     _LegendLayout,
+    _continuous_color_legend_layout,
     _continuous_legend_labels,
     _draw_continuous_color_legend,
+    _draw_continuous_color_legend_at,
     _draw_legend,
     _levels_descending,
     _draw_legend_at,
