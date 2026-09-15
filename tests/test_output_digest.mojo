@@ -44,13 +44,14 @@ from canvas.buffer import Canvas
 from _composition_registry import (
     _COMPOSITION_COUNT,
     _composition_name,
+    _composition_pdf,
     _composition_raster,
     _composition_svg,
     _dark_ground,
 )
 from _mark_registry import _H, _W, _representative_plot
 from dataviz.core.mark import Mark
-from dataviz.plot import render, render_svg
+from dataviz.plot import render, render_pdf, render_svg
 
 
 def _canvas_digest(c: Canvas) -> Int:
@@ -79,12 +80,34 @@ def _text_digest(s: String) -> Int:
     return h
 
 
-def _line(name: String, raster: Canvas, svg: String) -> String:
-    """One digest line: `name raster_digest svg_bytes svg_digest`.
+def _bytes_digest(data: List[UInt8]) -> Int:
+    """`_text_digest`'s counterpart for a byte string, for the PDF."""
+    var h = 0
+    for i in range(len(data)):
+        h = (h * 131 + Int(data[i]) * (i + 1)) % 1000000007
+    return h
 
-    Both backends, because they diverge in different ways. A raster
-    regression moves pixels; an SVG one moves elements, which the byte
-    count alone would sometimes miss and the hash will not.
+
+def _line(
+    name: String, raster: Canvas, svg: String, pdf: List[UInt8]
+) -> String:
+    """One digest line:
+    `name raster_digest svg_bytes svg_digest pdf_bytes pdf_digest`.
+
+    All three backends, because they diverge in different ways. A
+    raster regression moves pixels; a vector one moves elements, which
+    the byte count alone would sometimes miss and the hash will not.
+
+    PDF is here because #372 asks for exactly this comparison -- "an
+    SVG-against-PDF comparison on a representative figure" -- and the
+    sweep already renders every figure, so it costs a third column
+    rather than a new harness. It also covers the one thing neither
+    other backend can: the embedded font subset, which lives only in
+    the PDF and would otherwise have nothing watching it.
+
+    The bytes are the compressed ones `save()` writes, not the
+    uncompressed intermediate, so the digest watches the file a user
+    actually gets.
     """
     return (
         name
@@ -94,6 +117,10 @@ def _line(name: String, raster: Canvas, svg: String) -> String:
         + String(svg.byte_length())
         + " "
         + String(_text_digest(svg))
+        + " "
+        + String(len(pdf))
+        + " "
+        + String(_bytes_digest(pdf))
     )
 
 
@@ -110,18 +137,26 @@ def _digest_lines() raises -> List[String]:
         # One Plot, both backends. Building it twice doubled the cost of
         # the slowest module in the suite for nothing.
         var plot = _representative_plot(mark)
+        var pdf = render_pdf(plot)
         out.append(
-            _line(mark.name(), render(plot), render_svg(plot).to_string())
+            _line(
+                mark.name(),
+                render(plot),
+                render_svg(plot).to_string(),
+                pdf.to_bytes(),
+            )
         )
     for index in range(_COMPOSITION_COUNT):
         # Two calls rather than one, unlike a mark: a composition's two
         # backends are separate entry points taking their own arguments,
         # not one `Plot` handed to two renders.
+        var pdf = _composition_pdf(index)
         out.append(
             _line(
                 _composition_name(index),
                 _composition_raster(index),
                 _composition_svg(index).to_string(),
+                pdf.to_bytes(),
             )
         )
     return out^
@@ -235,6 +270,33 @@ def test_the_facet_figure_can_see_its_own_background() raises:
             " already is, so filling it moves no pixels and the digest"
             " cannot see a figure-background change"
         ),
+    )
+
+
+def test_the_pdf_bytes_are_reproducible() raises:
+    """The PDF column is only a gate if the same figure gives the same
+    bytes twice.
+
+    A document format is a reasonable place to expect otherwise: PDFs
+    commonly carry a creation timestamp, and canvas's are compressed,
+    so either could make this column change on every run and train
+    everyone to regenerate the file without reading the diff -- which
+    is worse than not having the column.
+
+    canvas writes a static `/Producer` and no date, and deflate is
+    deterministic for the same input, so they do not. This says so in a
+    way that fails if it ever stops being true.
+    """
+    var plot = _representative_plot(Mark.POINT)
+    var first = render_pdf(plot)
+    var second = render_pdf(plot)
+    var a = first.to_bytes()
+    var b = second.to_bytes()
+    assert_equal(len(a), len(b), "two renders gave different byte counts")
+    assert_equal(
+        _bytes_digest(a),
+        _bytes_digest(b),
+        "the same figure rendered to two different PDFs",
     )
 
 

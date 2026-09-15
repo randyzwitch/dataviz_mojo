@@ -34,9 +34,15 @@ from dataviz.binned.histogram import bin_edges, histogram_bins
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.scale import MinMax
 from dataviz.core.theme import Theme
+from canvas.vector.pdf import PdfCanvas
 from canvas.vector.svg import SvgCanvas
 
-from dataviz.layout import GridCell, render_grid, render_grid_svg
+from dataviz.layout import (
+    GridCell,
+    render_grid,
+    render_grid_pdf,
+    render_grid_svg,
+)
 from dataviz.plot import Plot
 
 
@@ -381,6 +387,78 @@ def jointplot_svg[
     var cols = List[Float64]()
     _jointplot_weights(ratio, rows, cols)
     return render_grid_svg(
+        plots,
+        cells,
+        width,
+        height,
+        row_weights=rows,
+        col_weights=cols,
+        align_axes=True,
+    )
+
+
+def jointplot_pdf[
+    dtype: DType
+](
+    x: List[Scalar[dtype]],
+    y: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 640,
+    bins: Int = 20,
+    ratio: Float64 = 4.0,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> PdfCanvas:
+    """`jointplot()`'s one-page PDF counterpart, over the same
+    panels (#372).
+
+    One layout unit is one PDF point, 1/72 inch, so `width` by
+    `height` is the page: a 640 by 640 figure is 8.89 inches square.
+    Paths stay paths and text stays text, embedded as a font subset,
+    so a panel's labels are selectable rather than a picture of
+    themselves.
+
+    Args:
+        x: The horizontal variable.
+        y: The vertical variable, one per `x` entry.
+        theme: Colors and fonts, shared by all three panels.
+        width: Figure width in points.
+        height: Figure height in points.
+        bins: Intervals in each marginal.
+        ratio: How many times the main panel's size the marginals are
+            divided into.
+        title: Shown above the top marginal.
+        x_title: The horizontal axis caption, on the main panel.
+        y_title: The vertical axis caption, on the main panel.
+
+    Returns:
+        The rendered figure.
+
+    Raises:
+        Error: As `jointplot()`.
+    """
+    var plots = List[Plot]()
+    var cells = List[GridCell]()
+    _jointplot_panels(
+        x,
+        y,
+        theme,
+        width,
+        height,
+        bins,
+        ratio,
+        title,
+        x_title,
+        y_title,
+        plots,
+        cells,
+    )
+    var rows = List[Float64]()
+    var cols = List[Float64]()
+    _jointplot_weights(ratio, rows, cols)
+    return render_grid_pdf(
         plots,
         cells,
         width,
