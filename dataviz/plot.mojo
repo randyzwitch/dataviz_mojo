@@ -2651,6 +2651,10 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.SURFACE3D
+        self._render_canvas_family = _callback_spatial[Canvas]
+        self._render_svg_family = _callback_spatial[SvgCanvas]
+        self._render_pdf_family = _callback_spatial[PdfCanvas]
+        self._render_bounds_family = _callback_spatial[BoundsTarget]
         self._surface.elev = elev
         self._surface.azim = azim
         return self^
@@ -2676,6 +2680,10 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.WIRE3D
+        self._render_canvas_family = _callback_spatial[Canvas]
+        self._render_svg_family = _callback_spatial[SvgCanvas]
+        self._render_pdf_family = _callback_spatial[PdfCanvas]
+        self._render_bounds_family = _callback_spatial[BoundsTarget]
         self._surface.elev = elev
         self._surface.azim = azim
         return self^
@@ -2698,6 +2706,10 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.TRISURF3D
+        self._render_canvas_family = _callback_spatial[Canvas]
+        self._render_svg_family = _callback_spatial[SvgCanvas]
+        self._render_pdf_family = _callback_spatial[PdfCanvas]
+        self._render_bounds_family = _callback_spatial[BoundsTarget]
         self._xyz.elev = elev
         self._xyz.azim = azim
         return self^
