@@ -10,10 +10,13 @@ from canvas.color import Color
 from dataviz import (
     Theme,
     clustermap,
+    clustermap_pdf,
     clustermap_svg,
     jointplot,
+    jointplot_pdf,
     jointplot_svg,
     pairplot,
+    pairplot_pdf,
     pairplot_svg,
     save,
 )
@@ -694,6 +697,65 @@ def test_a_vector_clustermap_draws_the_same_figure() raises:
         assert_true(
             svg.find(">" + name + "<") != -1, "every row is still named"
         )
+
+
+# ==== every composite can produce a PDF too (#372) ====
+# `jointplot`, `pairplot` and `clustermap` got vector output in #620,
+# and nothing for PDF, so a publication workflow could reach a
+# composition in SVG and not in the format a journal asks for.
+#
+# These assert the document rather than its bytes. A PDF embeds the
+# font program, and the CI matrix installs DejaVu from apt on Linux and
+# brew on macOS -- the same glyph outlines, different file bytes -- so
+# a byte-level assertion here would fail on one platform for a
+# difference that is not a regression. What is stable, and what these
+# check, is that a real PDF came out with the figure's own page size.
+
+
+def _is_pdf(data: List[UInt8]) -> Bool:
+    """Whether `data` opens with the PDF magic bytes, `%PDF`."""
+    if len(data) < 4:
+        return False
+    return data[0] == 37 and data[1] == 80 and data[2] == 68 and data[3] == 70
+
+
+def test_a_jointplot_renders_to_pdf() raises:
+    var xy = _samples(40)
+    var doc = jointplot_pdf(xy[0], xy[1], width=360, height=360)
+    assert_equal(doc.width, 360, "the page is not the figure's width")
+    assert_equal(doc.height, 360, "the page is not the figure's height")
+    assert_true(_is_pdf(doc.to_bytes()), "jointplot_pdf wrote no PDF")
+
+
+def test_a_pairplot_renders_to_pdf() raises:
+    var cols = _three()
+    var doc = pairplot_pdf(cols[0], cols[1], cell_width=140, cell_height=120)
+    assert_true(doc.width > 0, "the page has no width")
+    assert_true(_is_pdf(doc.to_bytes()), "pairplot_pdf wrote no PDF")
+
+
+def test_a_clustermap_renders_to_pdf() raises:
+    var doc = clustermap_pdf(_interleaved(), width=420, height=360)
+    assert_equal(doc.width, 420, "the page is not the figure's width")
+    assert_true(_is_pdf(doc.to_bytes()), "clustermap_pdf wrote no PDF")
+
+
+def test_the_same_figure_gives_the_same_pdf_twice() raises:
+    # Reproducibility on one machine, which is what `save()` promises a
+    # caller re-exporting the same chart. Cross-machine is a different
+    # question and an open one -- see #631.
+    var xy = _samples(40)
+    var a = jointplot_pdf(xy[0], xy[1], width=360, height=360)
+    var b = jointplot_pdf(xy[0], xy[1], width=360, height=360)
+    var ab = a.to_bytes()
+    var bb = b.to_bytes()
+    assert_equal(len(ab), len(bb), "two renders gave different byte counts")
+    var same = True
+    for i in range(len(ab)):
+        if ab[i] != bb[i]:
+            same = False
+            break
+    assert_true(same, "the same figure gave two different PDFs")
 
 
 def main() raises:

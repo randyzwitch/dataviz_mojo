@@ -85,6 +85,16 @@ def _line(name: String, raster: Canvas, svg: String) -> String:
     Both backends, because they diverge in different ways. A raster
     regression moves pixels; an SVG one moves elements, which the byte
     count alone would sometimes miss and the hash will not.
+
+    **PDF is deliberately not here**, though #372 asks for an
+    SVG-against-PDF comparison and the sweep already renders one. A PDF
+    embeds the font program itself, and the CI matrix installs DejaVu
+    from `apt` on Linux and from `brew` on macOS -- the same family,
+    the same glyph outlines (the raster digests match exactly across
+    both), but not the same file bytes. Adding the column turned every
+    macOS run red on all 66 figures for a difference that is not a
+    regression. See #631 for what a platform-stable PDF gate would
+    need.
     """
     return (
         name
