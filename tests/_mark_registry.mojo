@@ -12,6 +12,8 @@ nothing decorative. What either sweep asserts is about the rendering,
 not about the data.
 """
 
+from std.math import cos, sin
+
 from canvas.buffer import Canvas
 from canvas.text.font_cache import FontCache
 from canvas.vector.svg import SvgCanvas
@@ -41,7 +43,9 @@ from dataviz import (
     tripcolor,
     triplot,
     kdeplot,
+    plot3d,
     rugplot,
+    scatter3d,
     corrplot,
     ecdf,
     effect_scatter,
@@ -441,6 +445,22 @@ def _representative_plot(mark: Mark) raises -> Plot:
             .encode_dendrogram(linkage(rows), labels)
             .size(_W, _H)
         )
+
+    if mark == Mark.SCATTER3D or mark == Mark.PLOT3D:
+        # A helix: every one of the three columns varies, and the curve
+        # passes both in front of and behind itself, so a projection
+        # that dropped an axis or sorted depth backwards would show.
+        var hx = List[Float64]()
+        var hy = List[Float64]()
+        var hz = List[Float64]()
+        for i in range(40):
+            var t = Float64(i) * 0.3
+            hx.append(cos(t))
+            hy.append(sin(t))
+            hz.append(Float64(i) * 0.05)
+        if mark == Mark.SCATTER3D:
+            return scatter3d(hx, hy, hz, width=_W, height=_H)
+        return plot3d(hx, hy, hz, width=_W, height=_H)
 
     raise Error(
         "test_backend_equivalence: no representative plot for mark value "
