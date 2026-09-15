@@ -6209,6 +6209,24 @@ def render_pdf(plot: Plot) raises -> PdfCanvas:
     as a font subset so a label is selectable and searchable rather
     than a picture of itself.
 
+    **What an export promises is the same glyphs, not the same bytes**
+    (#631). The subset embedded here is cut from whichever copy of the
+    family the machine has, and two packagings of one family -- DejaVu
+    from `apt` and from `brew`, say -- agree on every outline while
+    differing in the hinting programs they carry. So the same chart
+    exported on two machines draws identically and compares
+    byte-for-byte unequal, and a build that diffs or caches PDFs should
+    compare the rendering rather than the file.
+
+    Byte-identity would mean shipping a font rather than resolving one,
+    which is a packaging decision and not one this contract makes. The
+    font is most of a small document -- a two-word label embeds roughly
+    12 KB of a 14 KB file -- so a byte comparison is mostly a
+    comparison of the machine's font anyway.
+
+    A family the machine does not have raises rather than substituting
+    silently, so a wrong font is never quietly embedded.
+
     `Theme.scale` still multiplies every font size, margin and stroke
     width as it does on the other backends, so it changes how large the
     furniture is *on the page* rather than how many pixels it gets. The
