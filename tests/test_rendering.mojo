@@ -101,6 +101,9 @@ from dataviz.plot import (
     render_layers,
     render_pdf,
     render_svg,
+    render_tight,
+    render_tight_pdf,
+    render_tight_svg,
     save,
     scatter,
 )
@@ -1142,6 +1145,187 @@ def test_an_opaque_background_costs_no_alpha_machinery() raises:
     assert_true(
         not _pdf_contains(bytes, "/ca"),
         "an opaque figure still emitted an alpha graphics state",
+    )
+
+
+# ==== tight bounds: crop a figure to its ink (#372) ====
+# The last item of #372, and the one that needed an upstream primitive:
+# cropping needs the ink's extent, which a raster canvas can be scanned
+# for and an SvgCanvas or PdfCanvas cannot. canvas_mojo#460 added
+# `BoundsTarget`, a DrawTarget that paints nothing and keeps the union
+# of what it was asked to draw.
+#
+# The figure is laid out at its full size and then cropped, never laid
+# out smaller: margins, tick spacing and legend width all derive from
+# the rect, so a smaller layout would move the ink and the crop would
+# chase it.
+
+
+def _roomy_plot() raises -> Plot:
+    """A small chart on a deliberately oversized figure, so there is
+    whitespace for a crop to remove."""
+    var xs: List[Float64] = [1.0, 2.0, 3.0]
+    var ys: List[Float64] = [1.0, 4.0, 2.0]
+    return line(xs, ys).size(600, 450)
+
+
+def _ink_box_by_scanning(
+    c: Canvas, bg: Color
+) raises -> Tuple[Int, Int, Int, Int]:
+    """The box around every pixel that is not the background, found by
+    scanning. The independent answer a raster canvas can give, which is
+    what `BoundsTarget`'s answer is checked against."""
+    var min_x = c.width
+    var min_y = c.height
+    var max_x = -1
+    var max_y = -1
+    for y in range(c.height):
+        for x in range(c.width):
+            var p = c.get_pixel(x, y)
+            if p.r != bg.r or p.g != bg.g or p.b != bg.b:
+                if x < min_x:
+                    min_x = x
+                if x > max_x:
+                    max_x = x
+                if y < min_y:
+                    min_y = y
+                if y > max_y:
+                    max_y = y
+    return (min_x, min_y, max_x, max_y)
+
+
+def test_a_tight_render_is_smaller_than_the_figure() raises:
+    # The point of the feature: the whitespace a fixed size reserves is
+    # gone.
+    var full = render(_roomy_plot())
+    var tight = render_tight(_roomy_plot())
+    assert_true(
+        tight.width < full.width and tight.height < full.height,
+        (
+            "the tight render did not shrink: "
+            + String(tight.width)
+            + "x"
+            + String(tight.height)
+            + " against "
+            + String(full.width)
+            + "x"
+            + String(full.height)
+        ),
+    )
+
+
+def test_the_measured_box_agrees_with_the_ink_it_crops_to() raises:
+    # The check that the measured extent is the *ink* and not the
+    # geometry someone assumed the ink would be. `BoundsTarget` answers
+    # from the draw calls; this scans the pixels the same figure
+    # actually produced and requires the two to agree.
+    #
+    # The box may be a pixel generous per side -- an anti-aliased edge
+    # is partly covered, and a box that excluded a barely-inked pixel
+    # would crop away ink -- so erring outward is the safe direction and
+    # the only one allowed here.
+    var plot = _roomy_plot()
+    var bg = plot._theme.background
+    var full = render(plot)
+    var scanned = _ink_box_by_scanning(full, bg)
+    var tight = render_tight(_roomy_plot())
+
+    var scanned_w = scanned[2] - scanned[0] + 1
+    var scanned_h = scanned[3] - scanned[1] + 1
+    assert_true(
+        tight.width >= scanned_w and tight.height >= scanned_h,
+        (
+            "the crop is smaller than the ink it should cover: "
+            + String(tight.width)
+            + "x"
+            + String(tight.height)
+            + " against scanned "
+            + String(scanned_w)
+            + "x"
+            + String(scanned_h)
+        ),
+    )
+    assert_true(
+        tight.width <= scanned_w + 2 and tight.height <= scanned_h + 2,
+        (
+            "the crop is more than a pixel per side larger than the ink: "
+            + String(tight.width)
+            + "x"
+            + String(tight.height)
+            + " against scanned "
+            + String(scanned_w)
+            + "x"
+            + String(scanned_h)
+        ),
+    )
+
+
+def test_a_tight_render_keeps_the_ink() raises:
+    # Cropping must not shave the thing it cropped to. Every cropped
+    # figure still has ink on it, and as much of it as before.
+    var plot = _roomy_plot()
+    var bg = plot._theme.background
+    var full = render(plot)
+    var tight = render_tight(_roomy_plot())
+    var full_ink = 0
+    for y in range(full.height):
+        for x in range(full.width):
+            var p = full.get_pixel(x, y)
+            if p.r != bg.r or p.g != bg.g or p.b != bg.b:
+                full_ink += 1
+    var tight_ink = 0
+    for y in range(tight.height):
+        for x in range(tight.width):
+            var p = tight.get_pixel(x, y)
+            if p.r != bg.r or p.g != bg.g or p.b != bg.b:
+                tight_ink += 1
+    assert_true(
+        tight_ink >= full_ink,
+        (
+            "the crop lost ink: "
+            + String(tight_ink)
+            + " inked pixels against "
+            + String(full_ink)
+            + " before"
+        ),
+    )
+
+
+def test_tight_cropping_reaches_the_vector_backends() raises:
+    # The reason a measuring target was worth asking for: neither of
+    # these has pixels to scan, so nothing else could have cropped them.
+    var svg = render_tight_svg(_roomy_plot())
+    assert_true(svg.width < 600, "the SVG did not crop")
+    assert_true(svg.height < 450, "the SVG did not crop")
+    var pdf = render_tight_pdf(_roomy_plot())
+    assert_true(pdf.width < 600, "the PDF page did not crop")
+    assert_true(pdf.height < 450, "the PDF page did not crop")
+
+
+def test_all_three_backends_crop_to_the_same_box() raises:
+    # One measurement, so a figure exported three ways is the same
+    # figure at the same size rather than three near-misses.
+    var raster = render_tight(_roomy_plot())
+    var svg = render_tight_svg(_roomy_plot())
+    var pdf = render_tight_pdf(_roomy_plot())
+    assert_equal(svg.width, pdf.width, "SVG and PDF cropped differently")
+    assert_equal(svg.height, pdf.height, "SVG and PDF cropped differently")
+    # The raster figure is measured for a raster draw, which can differ
+    # from the vector one where a mark draws differently for markup, so
+    # this asks only that it is the same to within a pixel per side.
+    assert_true(
+        abs(raster.width - svg.width) <= 2
+        and abs(raster.height - svg.height) <= 2,
+        (
+            "raster and vector crops disagree: "
+            + String(raster.width)
+            + "x"
+            + String(raster.height)
+            + " against "
+            + String(svg.width)
+            + "x"
+            + String(svg.height)
+        ),
     )
 
 

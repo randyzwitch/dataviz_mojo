@@ -62,6 +62,7 @@ would. Facets, layering, and `color`/`size` encoding still need the
 from std.collections import Dict
 from std.math import cos, log10, pi, sin
 
+from canvas.bounds import BoundsTarget
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.gradient import LinearGradient
@@ -154,6 +155,7 @@ from dataviz.core.text import (
     _Scaled,
     _TextRequest,
     _apply_labels,
+    _extend_text_requests,
     _label_text_requests,
     _max_label_width,
     _replay_text_requests,
@@ -5752,6 +5754,305 @@ def render(plot: Plot) raises -> Canvas:
     return out^
 
 
+struct _DrawnFigure(Movable):
+    """What `_draw_figure_into` drew: the inner plot rect, and every
+    label the pass collected, already in replay order.
+
+    The labels are handed back rather than drawn because `DrawTarget`
+    carries no `draw_text` this package can reach generically without
+    changing its SVG output (#578), so each backend still replays them
+    its own way. What the struct buys is that the *drawing* -- the
+    background, the labels' margins, the mark, and the seven annotation
+    passes -- is written once instead of once per backend.
+    """
+
+    var px0: Int
+    var py0: Int
+    var px1: Int
+    var py1: Int
+    var text: List[_TextRequest]
+
+    def __init__(
+        out self,
+        px0: Int,
+        py0: Int,
+        px1: Int,
+        py1: Int,
+        var text: List[_TextRequest],
+    ):
+        self.px0 = px0
+        self.py0 = py0
+        self.px1 = px1
+        self.py1 = py1
+        self.text = text^
+
+
+def _draw_figure_into[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    fill_background: Bool,
+    vector_target: Bool,
+    mut cache: FontCache,
+) raises -> _DrawnFigure:
+    """Draw everything of `plot` except its text into `target`, and
+    return the inner plot rect with the labels the pass collected.
+
+    The shared body of `_render_into`, `_render_svg_into` and
+    `_render_pdf_into`, which were three near-identical copies differing
+    only in the target's type, `vector_target`, and how they replay
+    text. Every piece they called was already generic over
+    `T: DrawTarget`; only the replay was not, so only the replay stayed
+    behind.
+
+    It is also what lets a figure be *measured* rather than drawn:
+    `_tight_box` runs this into a `BoundsTarget`, which keeps the union
+    of what it was asked to draw and paints nothing (#372). A fourth
+    copy of sixty lines would have been the alternative, and copies of
+    this particular body have drifted before.
+
+    Args:
+        target: Where to draw.
+        plot: The chart.
+        ox0: Outer left bound.
+        oy0: Outer top bound.
+        ox1: Outer right bound.
+        oy1: Outer bottom bound.
+        fill_background: Whether to fill the outer rect first;
+            `render_inset()` passes False so its labels sit over the
+            base rather than on a blank panel.
+        vector_target: Passed to `_render_generic`, which draws some
+            marks differently when the output is markup rather than
+            pixels.
+        cache: The render's shared font cache.
+
+    Returns:
+        The inner plot rect and the collected labels.
+
+    Raises:
+        Error: Whatever the mark's render raises.
+    """
+    if fill_background:
+        target.fill_rect(ox0, oy0, ox1 - ox0, oy1 - oy0, plot._theme.background)
+    var frame = _apply_labels(plot, ox0, oy0, ox1, oy1)
+    var result = _render_generic(
+        target,
+        plot,
+        frame.ox0,
+        frame.oy0,
+        frame.ox1,
+        frame.oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
+    var text = _label_text_requests(
+        plot, ox0, oy0, ox1, oy1, result.px0, result.py0, result.px1, result.py1
+    )
+    var under_mark = _filled_annotations_go_under(plot._mark)
+    if not under_mark:
+        _extend_text_requests(
+            text, _draw_annotation_areas(target, plot, result, plot._theme)
+        )
+        _extend_text_requests(
+            text, _draw_annotation_bands(target, plot, result, plot._theme)
+        )
+    _extend_text_requests(
+        text, _draw_annotation_vlines(target, plot, result, plot._theme)
+    )
+    _extend_text_requests(
+        text, _draw_annotation_lines(target, plot, result, plot._theme)
+    )
+    _extend_text_requests(
+        text, _draw_annotation_points(target, plot, result, plot._theme)
+    )
+    _extend_text_requests(
+        text,
+        _draw_annotation_arrows(target, plot, result, plot._theme, cache=cache),
+    )
+    _extend_text_requests(
+        text, _draw_annotation_best_fit(target, plot, result, plot._theme)
+    )
+    _extend_text_requests(text, result.text_requests)
+    return _DrawnFigure(result.px0, result.py0, result.px1, result.py1, text^)
+
+
+def render_tight(plot: Plot) raises -> Canvas:
+    """`render()` cropped to the figure's ink: the whitespace a fixed
+    figure size reserves for a longer title or a legend that is not
+    there is trimmed away (#372).
+
+    matplotlib spells this `savefig(bbox_inches="tight")`. The figure is
+    laid out at its full `size()` and then cropped, rather than being
+    laid out smaller -- laying out smaller would change where everything
+    goes, and the crop would chase a moving target instead of framing
+    the figure the caller asked for.
+
+    The ink is measured with `_tight_box`, which draws the figure into a
+    `BoundsTarget` that paints nothing and keeps the union of the
+    extents. Text counts: a title's box is the box of the glyphs the
+    same layout would draw.
+
+    A figure with no ink keeps its full size, since a zero-sized canvas
+    is not usable.
+
+    Args:
+        plot: The chart to render.
+
+    Returns:
+        A canvas the size of the figure's ink.
+
+    Raises:
+        Error: Whatever `render()` raises.
+    """
+    var box = _tight_box(plot, False)
+    var factor = _resolve_supersample(plot, "render_tight")
+    var out = Canvas(box[2], box[3], plot._theme.background)
+    out.begin_supersampled(factor, plot._theme.background)
+    # Draw the figure at its full size into a smaller canvas, shifted so
+    # the ink's top-left lands at the origin. Everything outside the
+    # canvas is clipped, which is exactly the crop.
+    out.translate(-Float64(box[0]), -Float64(box[1]))
+    _ = _render_into(out, plot, 0, 0, plot.width, plot.height)
+    out.end_supersampled()
+    return out^
+
+
+def render_tight_svg(plot: Plot) raises -> SvgCanvas:
+    """`render_svg()` cropped to the figure's ink; `render_tight()`'s
+    vector counterpart (#372).
+
+    The same three steps -- measure, size, redraw -- and the reason the
+    measuring target was worth asking canvas for: an `SvgCanvas` has no
+    pixels to scan for ink, so nothing else could have answered this.
+
+    Args:
+        plot: The chart to render.
+
+    Returns:
+        An `SvgCanvas` the size of the figure's ink.
+
+    Raises:
+        Error: Whatever `render_svg()` raises.
+    """
+    var box = _tight_box(plot, True)
+    var svg = SvgCanvas(box[2], box[3])
+    svg.translate(-Float64(box[0]), -Float64(box[1]))
+    _ = _render_svg_into(svg, plot, 0, 0, plot.width, plot.height)
+    return svg^
+
+
+def render_tight_pdf(plot: Plot) raises -> PdfCanvas:
+    """`render_pdf()` cropped to the figure's ink, so the page is the
+    figure rather than the figure plus its margins (#372).
+
+    The page shrinks with the crop, and one layout unit is still one
+    point, so a cropped export is still physically specified -- it is
+    simply a smaller page.
+
+    Args:
+        plot: The chart to render.
+
+    Returns:
+        A one-page `PdfCanvas` the size of the figure's ink.
+
+    Raises:
+        Error: Whatever `render_pdf()` raises.
+    """
+    var box = _tight_box(plot, True)
+    var pdf = PdfCanvas(box[2], box[3])
+    pdf.translate(-Float64(box[0]), -Float64(box[1]))
+    _ = _render_pdf_into(pdf, plot, 0, 0, plot.width, plot.height)
+    return pdf^
+
+
+def _replay_text_requests_bounds(
+    mut probe: BoundsTarget, requests: List[_TextRequest], mut cache: FontCache
+) raises:
+    """Draw every label into a `BoundsTarget` so the measured box covers
+    the text as well as the marks.
+
+    A fourth replay, and the only one that could not be avoided. The
+    other three exist because `DrawTarget` gained `draw_text` after this
+    package had already grown one per backend, and switching them to
+    the trait method changes the SVG output (#578). Nothing renders
+    from a `BoundsTarget`, so here the trait method is simply the
+    right call: it takes the same anchor, alignment and rotation the
+    real draw will, which is what makes the measured extent the one the
+    ink will have.
+
+    Args:
+        probe: The measuring target.
+        requests: The labels the draw pass collected.
+        cache: The render's shared font cache.
+
+    Raises:
+        Error: Whatever `draw_text` raises.
+    """
+    for req in requests:
+        probe.draw_text(
+            Float64(req.x),
+            Float64(req.y),
+            req.text,
+            req.color,
+            req.size,
+            family=req.family,
+            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            rotation=req.rotation,
+            align=req.align,
+            cache=cache,
+        )
+
+
+def _tight_box(
+    plot: Plot, vector_target: Bool
+) raises -> Tuple[Int, Int, Int, Int]:
+    """The whole-pixel box around everything `plot` would draw, as
+    `(x, y, width, height)` in the figure's own coordinates (#372).
+
+    Measured by drawing the figure into a `BoundsTarget`, which keeps
+    the union of the extents it is asked to draw and paints nothing.
+    That is the only way to get this for a vector backend: a raster
+    canvas could be scanned for non-background pixels, but an
+    `SvgCanvas` or a `PdfCanvas` has no pixels to scan, and a figure
+    that cropped only for PNG would be the wrong shape for a feature
+    whose point is publication output.
+
+    The background fill is deliberately skipped while measuring. It
+    covers the whole page by construction, so counting it would make
+    every box the full page and the crop a no-op.
+
+    A figure with no ink at all -- no marks, no labels -- keeps its
+    full size rather than collapsing to nothing, since a zero-sized
+    canvas is not a thing a caller can use.
+
+    Args:
+        plot: The chart to measure.
+        vector_target: Whether the real draw will be to a vector
+            backend; passed through so the measured geometry is the
+            geometry that will be drawn.
+
+    Returns:
+        `(x, y, width, height)`.
+
+    Raises:
+        Error: Whatever the mark's render raises.
+    """
+    var probe = BoundsTarget(plot.width, plot.height)
+    var cache = FontCache()
+    var drawn = _draw_figure_into(
+        probe, plot, 0, 0, plot.width, plot.height, False, vector_target, cache
+    )
+    _replay_text_requests_bounds(probe, drawn.text, cache)
+    if not probe.has_ink():
+        return (0, 0, plot.width, plot.height)
+    return probe.ink_pixels()
+
+
 def _render_into(
     mut canvas: Canvas,
     plot: Plot,
@@ -5791,57 +6092,16 @@ def _render_into(
     """
     var cx1 = ox1 if ox1 >= 0 else canvas.width
     var cy1 = oy1 if oy1 >= 0 else canvas.height
-    if fill_background:
-        canvas.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
-    var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
     # One FontCache for the whole render, built on first use: every
-    # measurement the layout makes (tick labels, legend entries) and then
-    # every label drawn afterwards resolve fonts and rasterize glyphs
-    # through it once, and a render with no text never scans the fonts
-    # Use the shared FontCache.
+    # measurement the layout makes (tick labels, legend entries) and
+    # then every label drawn afterwards resolve fonts and rasterize
+    # glyphs through it once.
     var cache = FontCache()
-    var result = _render_generic(
-        canvas, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
+    var drawn = _draw_figure_into(
+        canvas, plot, ox0, oy0, cx1, cy1, fill_background, False, cache
     )
-    var label_requests = _label_text_requests(
-        plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
-    )
-    var under_mark = _filled_annotations_go_under(plot._mark)
-    var area_annotation_requests = List[
-        _TextRequest
-    ]() if under_mark else _draw_annotation_areas(
-        canvas, plot, result, plot._theme
-    )
-    var band_annotation_requests = List[
-        _TextRequest
-    ]() if under_mark else _draw_annotation_bands(
-        canvas, plot, result, plot._theme
-    )
-    var vline_annotation_requests = _draw_annotation_vlines(
-        canvas, plot, result, plot._theme
-    )
-    var annotation_requests = _draw_annotation_lines(
-        canvas, plot, result, plot._theme
-    )
-    var point_annotation_requests = _draw_annotation_points(
-        canvas, plot, result, plot._theme
-    )
-    var arrow_annotation_requests = _draw_annotation_arrows(
-        canvas, plot, result, plot._theme, cache=cache
-    )
-    var best_fit_annotation_requests = _draw_annotation_best_fit(
-        canvas, plot, result, plot._theme
-    )
-    _replay_text_requests(canvas, label_requests, cache)
-    _replay_text_requests(canvas, area_annotation_requests, cache)
-    _replay_text_requests(canvas, band_annotation_requests, cache)
-    _replay_text_requests(canvas, vline_annotation_requests, cache)
-    _replay_text_requests(canvas, annotation_requests, cache)
-    _replay_text_requests(canvas, point_annotation_requests, cache)
-    _replay_text_requests(canvas, arrow_annotation_requests, cache)
-    _replay_text_requests(canvas, best_fit_annotation_requests, cache)
-    _replay_text_requests(canvas, result.text_requests, cache)
-    return (result.px0, result.py0, result.px1, result.py1)
+    _replay_text_requests(canvas, drawn.text, cache)
+    return (drawn.px0, drawn.py0, drawn.px1, drawn.py1)
 
 
 def render_svg(plot: Plot) raises -> SvgCanvas:
@@ -5879,60 +6139,13 @@ def _render_svg_into(
     """
     var cx1 = ox1 if ox1 >= 0 else svg.width
     var cy1 = oy1 if oy1 >= 0 else svg.height
-    if fill_background:
-        svg.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
-    var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
     # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
-    var result = _render_generic(
-        svg,
-        plot,
-        frame.ox0,
-        frame.oy0,
-        frame.ox1,
-        frame.oy1,
-        cache=cache,
-        vector_target=True,
+    var drawn = _draw_figure_into(
+        svg, plot, ox0, oy0, cx1, cy1, fill_background, True, cache
     )
-    var label_requests = _label_text_requests(
-        plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
-    )
-    var under_mark = _filled_annotations_go_under(plot._mark)
-    var area_annotation_requests = List[
-        _TextRequest
-    ]() if under_mark else _draw_annotation_areas(
-        svg, plot, result, plot._theme
-    )
-    var band_annotation_requests = List[
-        _TextRequest
-    ]() if under_mark else _draw_annotation_bands(
-        svg, plot, result, plot._theme
-    )
-    var vline_annotation_requests = _draw_annotation_vlines(
-        svg, plot, result, plot._theme
-    )
-    var annotation_requests = _draw_annotation_lines(
-        svg, plot, result, plot._theme
-    )
-    var point_annotation_requests = _draw_annotation_points(
-        svg, plot, result, plot._theme
-    )
-    var arrow_annotation_requests = _draw_annotation_arrows(
-        svg, plot, result, plot._theme, cache=cache
-    )
-    var best_fit_annotation_requests = _draw_annotation_best_fit(
-        svg, plot, result, plot._theme
-    )
-    _replay_text_requests_svg(svg, label_requests)
-    _replay_text_requests_svg(svg, area_annotation_requests)
-    _replay_text_requests_svg(svg, band_annotation_requests)
-    _replay_text_requests_svg(svg, vline_annotation_requests)
-    _replay_text_requests_svg(svg, annotation_requests)
-    _replay_text_requests_svg(svg, point_annotation_requests)
-    _replay_text_requests_svg(svg, arrow_annotation_requests)
-    _replay_text_requests_svg(svg, best_fit_annotation_requests)
-    _replay_text_requests_svg(svg, result.text_requests)
-    return (result.px0, result.py0, result.px1, result.py1)
+    _replay_text_requests_svg(svg, drawn.text)
+    return (drawn.px0, drawn.py0, drawn.px1, drawn.py1)
 
 
 def _resolve_output_format(
@@ -6048,46 +6261,13 @@ def _render_pdf_into(
     """
     var cx1 = ox1 if ox1 >= 0 else pdf.width
     var cy1 = oy1 if oy1 >= 0 else pdf.height
-    if fill_background:
-        pdf.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
-    var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
+    # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
-    var result = _render_generic(
-        pdf, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
+    var drawn = _draw_figure_into(
+        pdf, plot, ox0, oy0, cx1, cy1, fill_background, True, cache
     )
-    var label_requests = _label_text_requests(
-        plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
-    )
-    var under_mark = _filled_annotations_go_under(plot._mark)
-    var area_requests = List[
-        _TextRequest
-    ]() if under_mark else _draw_annotation_areas(
-        pdf, plot, result, plot._theme
-    )
-    var band_requests = List[
-        _TextRequest
-    ]() if under_mark else _draw_annotation_bands(
-        pdf, plot, result, plot._theme
-    )
-    var vline_requests = _draw_annotation_vlines(pdf, plot, result, plot._theme)
-    var line_requests = _draw_annotation_lines(pdf, plot, result, plot._theme)
-    var point_requests = _draw_annotation_points(pdf, plot, result, plot._theme)
-    var arrow_requests = _draw_annotation_arrows(
-        pdf, plot, result, plot._theme, cache=cache
-    )
-    var best_fit_requests = _draw_annotation_best_fit(
-        pdf, plot, result, plot._theme
-    )
-    _replay_text_requests_pdf(pdf, label_requests)
-    _replay_text_requests_pdf(pdf, area_requests)
-    _replay_text_requests_pdf(pdf, band_requests)
-    _replay_text_requests_pdf(pdf, vline_requests)
-    _replay_text_requests_pdf(pdf, line_requests)
-    _replay_text_requests_pdf(pdf, point_requests)
-    _replay_text_requests_pdf(pdf, arrow_requests)
-    _replay_text_requests_pdf(pdf, best_fit_requests)
-    _replay_text_requests_pdf(pdf, result.text_requests)
-    return (result.px0, result.py0, result.px1, result.py1)
+    _replay_text_requests_pdf(pdf, drawn.text)
+    return (drawn.px0, drawn.py0, drawn.px1, drawn.py1)
 
 
 def _at_dpi(plot: Plot, dpi: Float64) raises -> Plot:
@@ -6124,7 +6304,9 @@ def _at_dpi(plot: Plot, dpi: Float64) raises -> Plot:
     return out^
 
 
-def save(plot: Plot, path: String, dpi: Float64 = 72.0) raises:
+def save(
+    plot: Plot, path: String, dpi: Float64 = 72.0, tight: Bool = False
+) raises:
     """Render `plot` and write it to `path` in one call. The format
     comes from `_resolve_output_format()` (the path's extension, falling
     back to `plot._theme.output_format`); `PNG`/`BMP` both go through
@@ -6136,6 +6318,12 @@ def save(plot: Plot, path: String, dpi: Float64 = 72.0) raises:
     itself. `save_layers()`/`save_facets()` are the `List[Plot]`
     counterparts; the `save(canvas: Canvas, path)` overload below writes
     an already-rendered `Canvas`.
+
+    `tight=True` crops the output to the figure's ink, trimming the
+    whitespace a fixed `size()` reserves for a longer title or an
+    absent legend -- matplotlib's `bbox_inches="tight"` (#372). It
+    applies to every format, because the measurement is taken from the
+    drawing rather than from pixels; see `render_tight()`.
 
     `dpi` applies to the raster formats and says how many pixels one
     inch of the figure gets. The figure's own size is in points, 1/72
@@ -6154,17 +6342,37 @@ def save(plot: Plot, path: String, dpi: Float64 = 72.0) raises:
     An untitled plot's SVG is unaffected.
     """
     var format = _resolve_output_format(plot._theme.output_format, path)
+    # Each arm binds its canvas with `^` rather than through a ternary:
+    # none of the three canvas types is `ImplicitlyCopyable`, so a
+    # ternary would have to copy one to choose between the branches.
     if format == OutputFormat.SVG:
         var f = open(path, "w")
-        f.write(_svg_output_string(render_svg(plot), plot._labels))
+        if tight:
+            var vector = render_tight_svg(plot)
+            f.write(_svg_output_string(vector^, plot._labels))
+        else:
+            var vector = render_svg(plot)
+            f.write(_svg_output_string(vector^, plot._labels))
         f.close()
     elif format == OutputFormat.PDF:
-        var doc = render_pdf(plot)
-        write_pdf(doc, path)
+        if tight:
+            var doc = render_tight_pdf(plot)
+            write_pdf(doc, path)
+        else:
+            var doc = render_pdf(plot)
+            write_pdf(doc, path)
     elif format == OutputFormat.PNG:
-        write_png(render(_at_dpi(plot, dpi)), path)
+        var scaled = _at_dpi(plot, dpi)
+        if tight:
+            write_png(render_tight(scaled), path)
+        else:
+            write_png(render(scaled), path)
     else:
-        write_bmp(render(_at_dpi(plot, dpi)), path)
+        var bmp_scaled = _at_dpi(plot, dpi)
+        if tight:
+            write_bmp(render_tight(bmp_scaled), path)
+        else:
+            write_bmp(render(bmp_scaled), path)
 
 
 def save(svg: SvgCanvas, path: String) raises:
