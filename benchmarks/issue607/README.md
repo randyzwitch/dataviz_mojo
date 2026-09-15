@@ -1,27 +1,32 @@
 # Family renderer callbacks (#607)
 
-`Plot.mark_*()` binds its family's renderer for Canvas, SVG, and PDF.
+`Plot.mark_*()` binds its family's renderer for Canvas, SVG, PDF, and BoundsTarget.
 `_render_generic` invokes the selected backend callback instead of probing
-all ten families. Public constructors, mark changes, copying/moving, and
+every family. Public constructors, mark changes, copying/moving, and
 heterogeneous `List[Plot]` composition retain their existing interfaces.
 
 Continuous marks bind a no-op and use the existing shared continuous path.
 Family renderers use positional adapters around their existing dispatch.
-The three noncapturing (`thin`) pointers follow Plot's ordinary value
+The four noncapturing (`thin`) pointers follow Plot's ordinary value
 semantics; there is no closure allocation or separate callback lifetime.
 The registration checklist lives in `dataviz/plot.mojo` and is referenced
 from `dataviz/core/mark.mojo` and each family dispatcher.
 
 This change removes unused-family compilation. It does not remove the
 per-mark payload fields (#223), family imports in the builder, or dispatch
-within a selected family. Registering all three callbacks can retain work
+within a selected family. Registering all four callbacks can retain work
 for unused backends. Adding another draw target requires extending the
 callback fields and the concrete-backend dispatch.
 
-## Current evaluation
+## Recorded evaluation
 
-The comparison uses unmodified main at `a7271c8` and the current
-three-backend implementation, both with canvas_mojo 0.37.1 and Mojo 1.0.0.
+The branch now includes main through `dbf5870`, with 65 marks, the spatial
+family, and a fourth callback for tight-crop bounds measurement. The
+measurements below predate that integration and describe the three-target
+implementation at `9e838b9`; they have not been rerun for four targets.
+
+The comparison uses unmodified main at `a7271c8` and the
+three-backend implementation at `9e838b9`, both with canvas_mojo 0.37.1 and Mojo 1.0.0.
 The six small programs render line or hexbin using raster + SVG, SVG only,
 or PDF only. Every chart is 400 x 300 with three data points and default
 styling. PDF cases compare output length and a byte fingerprint.
@@ -43,8 +48,7 @@ time, peak memory, binary size, compiler versions, and source hashes.
 
 Measured on Linux with an AMD Ryzen Threadripper 3970X (32 cores,
 64 logical CPUs). Baseline: `a7271c84a77ffd182fd3a078a69ca7f7c6cf418d`;
-callback source: `9e838b9` (the merged library source is unchanged by
-this report). Both use Mojo 1.0.0 (ed45d567). This was not an isolated
+callback source: `9e838b9`. Both use Mojo 1.0.0 (ed45d567). This was not an isolated
 machine: wall times varied substantially in some runs, and all samples
 are retained. CPU medians corroborate reduced compiler work; these small
 cases do not predict every application's compile time.
@@ -86,16 +90,18 @@ smaller binaries. Raw samples and process medians are in `results/runtime-*`.
 copying, moving into a heterogeneous collection, and list copying on all
 three backends. It also checks default construction, fluent changes between
 families and back to continuous rendering, mixed facets, and mixed layers.
-Comparisons use complete raster pixels, SVG strings, and PDF bytes.
+Comparisons use complete raster pixels, SVG strings, and PDF bytes,
+including tight-cropped renders that exercise BoundsTarget.
 
-Main's dendrogram registry fix is incorporated: all 63 marks participate,
+Main's dendrogram registry fix is incorporated: all 65 marks participate,
 including its four-row clustered fixture. The committed raster/SVG mark
 and composition digests are identical to main's expected outputs.
 
 ## Reproduce
 
 Create a detached worktree at `a7271c8` and install its environment with
-`pixi install --locked`. Install the PR's locked environment separately.
+`pixi install --locked`. Check out `9e838b9` for the measured callback source and install its locked
+environment separately; use the latest branch to evaluate the new integration.
 From the PR checkout, run:
 
 ```bash

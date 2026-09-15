@@ -113,6 +113,8 @@ def _titles() -> Dict[String, String]:
     d["jointplot"] = "Joint Plot"
     d["clustermap"] = "Clustered Heatmap"
     d["dendrogram"] = "Dendrogram"
+    d["scatter3d"] = "3D Scatter"
+    d["plot3d"] = "3D Line"
     d["pointplot"] = "Estimate Points"
     d["kdeplot"] = "Density Curve"
     d["rugplot"] = "Rug"
@@ -280,6 +282,21 @@ def _categories() -> List[Category]:
                 "triplot",
                 "tripcolor",
             ],
+        )
+    )
+    cats.append(
+        Category(
+            "Three dimensions",
+            (
+                "A third axis projected onto the page. Orthographic, so"
+                " parallel stays parallel and a tick spacing means one"
+                " thing across the whole picture -- but a single view"
+                " still collapses three dimensions onto two, and two"
+                " points that look adjacent may be far apart along the"
+                " view direction. Where the question is about two"
+                " variables, the 2D charts above answer it better."
+            ),
+            ["scatter3d", "plot3d"],
         )
     )
     cats.append(

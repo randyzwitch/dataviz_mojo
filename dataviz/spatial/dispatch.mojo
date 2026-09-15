@@ -1,4 +1,4 @@
-"""Render dispatch for the tree charts (#524).
+"""Render dispatch for the 3D charts (#345).
 
 Each `Plot.mark_*()` setter registers this family's callback for Canvas,
 SVG, PDF, and BoundsTarget. `_render_generic` invokes the selected callback rather than
@@ -16,13 +16,10 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.mark import Mark
 from dataviz.plot import Plot, _RenderResult
-from dataviz.hierarchy_marks.sunburst import _render_sunburst
-from dataviz.hierarchy_marks.dendrogram import _render_dendrogram
-from dataviz.hierarchy_marks.tree import _render_tree
-from dataviz.hierarchy_marks.treemap import _render_treemap
+from dataviz.spatial.scatter3d import _render_plot3d, _render_scatter3d
 
 
-def _render_hierarchy_marks_family[
+def _render_spatial_family[
     T: DrawTarget
 ](
     mut target: T,
@@ -35,44 +32,38 @@ def _render_hierarchy_marks_family[
     mut cache: FontCache,
     vector_target: Bool = False,
 ) raises -> Optional[_RenderResult]:
-    """Render `plot` when its mark is one of this family's.
+    """Render `plot` if it is a 3D mark, else return an empty
+    `Optional`.
 
     Args:
         target: The draw target.
         plot: The chart.
-        ox0: Left bound.
-        oy0: Top bound.
-        ox1: Right bound.
-        oy1: Bottom bound.
-        cache: Shared font cache.
-        vector_target: True when `target` keeps what it is given as
-            shapes rather than pixels. Only the image marks read it, but
-            every family takes it so the hub calls them all alike.
+        ox0: Outer left bound.
+        oy0: Outer top bound.
+        ox1: Outer right bound.
+        oy1: Outer bottom bound.
+        cache: The render's shared font cache.
+        vector_target: Unused here; both marks draw the same geometry
+            to every backend.
 
     Returns:
-        The render result, or an empty `Optional` when the mark belongs
-        to another family.
+        The render result, or nothing.
+
+    Raises:
+        Error: Whatever the mark's render raises.
     """
-    if plot._mark == Mark.SUNBURST:
+    if plot._mark == Mark.SCATTER3D:
         return Optional(
-            _render_sunburst(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+            _render_scatter3d(target, plot, ox0, oy0, ox1, oy1, cache=cache)
         )
-    if plot._mark == Mark.TREE:
+    if plot._mark == Mark.PLOT3D:
         return Optional(
-            _render_tree(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-        )
-    if plot._mark == Mark.DENDROGRAM:
-        return Optional(
-            _render_dendrogram(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-        )
-    if plot._mark == Mark.TREEMAP:
-        return Optional(
-            _render_treemap(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+            _render_plot3d(target, plot, ox0, oy0, ox1, oy1, cache=cache)
         )
     return None
 
 
-def _callback_hierarchy_marks[
+def _callback_spatial[
     T: DrawTarget
 ](
     mut target: T,
@@ -85,7 +76,7 @@ def _callback_hierarchy_marks[
     vector_target: Bool,
 ) raises -> Optional[_RenderResult]:
     """Positional adapter for the stored family callback (#607)."""
-    return _render_hierarchy_marks_family(
+    return _render_spatial_family(
         target,
         plot,
         ox0,

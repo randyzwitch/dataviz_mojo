@@ -1,7 +1,7 @@
 """Render dispatch for the distribution shapes (#524).
 
 Each `Plot.mark_*()` setter registers this family's callback for Canvas,
-SVG, and PDF. `_render_generic` invokes the selected callback rather than
+SVG, PDF, and BoundsTarget. `_render_generic` invokes the selected callback rather than
 probing every family. Add a mark's render branch here and register these
 adapters in its setter; see `plot.mojo`'s mark-adding checklist.
 

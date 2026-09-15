@@ -22,6 +22,7 @@ from dataviz import (
     render_layers_pdf,
 )
 from dataviz.core.mark import Mark
+from dataviz.plot import render_tight, render_tight_svg, render_tight_pdf
 
 
 def _pdf_bytes(var doc: PdfCanvas) raises -> List[UInt8]:
@@ -39,6 +40,13 @@ def _assert_same_plot(a: Plot, b: Plot) raises:
     _assert_same_canvas(render(a), render(b), a._mark.name())
     assert_equal(render_svg(a).to_string(), render_svg(b).to_string())
     _assert_same_bytes(_pdf_bytes(render_pdf(a)), _pdf_bytes(render_pdf(b)))
+    _assert_same_canvas(render_tight(a), render_tight(b), a._mark.name())
+    assert_equal(
+        render_tight_svg(a).to_string(), render_tight_svg(b).to_string()
+    )
+    _assert_same_bytes(
+        _pdf_bytes(render_tight_pdf(a)), _pdf_bytes(render_tight_pdf(b))
+    )
 
 
 def test_every_mark_survives_copy_move_and_a_heterogeneous_list() raises:

@@ -67,7 +67,7 @@ variant.
 Adding a mark requires its constant and name, an updated `COUNT`, a
 representative plot in `tests/_mark_registry.mojo`, and a reviewed output
 digest. Its `Plot.mark_*()` setter must bind its family's Canvas, SVG,
-and PDF callbacks; see the checklist in `plot.mojo`.
+PDF, and BoundsTarget callbacks; see the checklist in `plot.mojo`.
 """
 
 
@@ -138,7 +138,9 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime HISTOGRAM = Self(60)
     comptime STREAMPLOT = Self(61)
     comptime DENDROGRAM = Self(62)
-    comptime COUNT = 63
+    comptime SCATTER3D = Self(63)
+    comptime PLOT3D = Self(64)
+    comptime COUNT = 65
     """How many marks exist -- one past the largest value above.
 
     The layout, output-digest, and callback ownership sweeps read this.
@@ -192,6 +194,10 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
             return "Mark.STREAMPLOT"
         if self == Self.DENDROGRAM:
             return "Mark.DENDROGRAM"
+        if self == Self.SCATTER3D:
+            return "Mark.SCATTER3D"
+        if self == Self.PLOT3D:
+            return "Mark.PLOT3D"
         if self == Self.WATERFALL:
             return "Mark.WATERFALL"
         if self == Self.BOX:
