@@ -235,6 +235,7 @@ from dataviz.core.scale import (
     _format_fixed,
     _label_decimals,
     _min_max,
+    _symlog_forward,
 )
 from dataviz.core.theme import Theme
 
@@ -752,6 +753,13 @@ struct Plot(Copyable, Movable):
     # Set via .scale_y_log()/.scale_x_log().
     var _y_log: Bool
     var _x_log: Bool
+    # Set via .scale_y_symlog()/.scale_x_symlog(). The threshold is only
+    # meaningful when the flag is set; both are carried onto the frame's
+    # `LinearScale.is_symlog`/`symlog_linthresh` (#368).
+    var _y_symlog: Bool
+    var _x_symlog: Bool
+    var _y_symlog_linthresh: Float64
+    var _x_symlog_linthresh: Float64
     var _x_time: Bool
     """Whether `_continuous.x` holds POSIX seconds that the axis should label as
     dates and times. Set by `encode_time()`; carried onto the frame's
@@ -828,6 +836,10 @@ struct Plot(Copyable, Movable):
         self._secondary_axis = False
         self._y_log = False
         self._x_log = False
+        self._y_symlog = False
+        self._x_symlog = False
+        self._y_symlog_linthresh = 1.0
+        self._x_symlog_linthresh = 1.0
         self._x_time = False
         self._x_tz_offset = 0
         self._x_domain = _DomainOverride()
@@ -5139,6 +5151,58 @@ struct Plot(Copyable, Movable):
         self._x_log = True
         return self^
 
+    def scale_y_symlog(var self, linthresh: Float64 = 1.0) -> Self:
+        """Scale the y-axis symmetrically logarithmically: linear within
+        `[-linthresh, linthresh]`, logarithmic beyond it, continuous
+        where they meet (#368).
+
+        What `scale_y_log()` cannot do. A log axis needs strictly
+        positive values, so a series that crosses zero -- a temperature
+        anomaly, a profit and loss, a residual -- cannot go on one at
+        all; and a linear axis collapses every small value against the
+        largest. Symlog keeps zero, keeps the sign, and still resolves
+        several orders of magnitude on each side.
+
+        `linthresh` is the half-width of the linear region in data
+        units, and must be positive. It sets what counts as "near
+        zero": values inside it are laid out linearly, so the noise
+        floor of the measurement is usually the right choice. The
+        linear region takes exactly as much axis as one decade of the
+        logarithmic region, which is the only ratio that makes the two
+        halves comparable without a second knob.
+
+        `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER`, standalone
+        `render()`/`render_svg()` only, the same scope
+        `scale_y_log()` has. Mutually exclusive with `scale_y_log()`;
+        setting both raises at render time rather than silently
+        preferring one.
+
+        Args:
+            linthresh: Half-width of the linear region around zero, in
+                data units. Must be positive.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._y_symlog = True
+        self._y_symlog_linthresh = linthresh
+        return self^
+
+    def scale_x_symlog(var self, linthresh: Float64 = 1.0) -> Self:
+        """`scale_y_symlog()`'s x-axis mirror, with the same scope and
+        the same `linthresh` meaning (#368).
+
+        Args:
+            linthresh: Half-width of the linear region around zero, in
+                data units. Must be positive.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._x_symlog = True
+        self._x_symlog_linthresh = linthresh
+        return self^
+
     def scale_x_domain(var self, min: Float64, max: Float64) -> Self:
         """Pin the x-axis domain to the given minimum and maximum, replacing
         `_data_extent()`'s 5%-padded domain (or `_log_data_extent()`'s
@@ -5603,6 +5667,57 @@ def _zero_baseline_y_extent(data: List[Float64]) raises -> LinearScale:
     var padded_lo = lo - pad if lo < 0.0 else lo
     var padded_hi = hi + pad if hi > 0.0 else hi
     return LinearScale(padded_lo, padded_hi, 0.0, 1.0)
+
+
+def _symlog_data_extent(
+    data: List[Float64], linthresh: Float64
+) raises -> LinearScale:
+    """`_data_extent()`'s symlog counterpart for `Plot.scale_x_symlog()`/
+    `scale_y_symlog()` (#368).
+
+    Every value is allowed, including zero and negatives -- that is the
+    whole point of the transform, and why this has no equivalent of
+    `_log_data_extent`'s positivity check. The domain is computed and
+    padded in symlog space, 5% of the transformed span, because that is
+    the space the axis is linear in and so the space a constant margin
+    means something in.
+
+    The returned scale carries `is_symlog` and the threshold; values are
+    still passed to `to_pixel()` in real units.
+
+    Args:
+        data: The column to size the axis from.
+        linthresh: Half-width of the linear region, real units.
+
+    Returns:
+        The scale, ranged 0 to 1 for the frame to re-range.
+
+    Raises:
+        Error: `linthresh` is not positive, or `data` is empty or
+            non-finite (via `_min_max`).
+    """
+    if linthresh <= 0.0:
+        raise Error(
+            "scale_x_symlog()/scale_y_symlog(): linthresh must be positive"
+            " -- it is the half-width of the linear region around zero,"
+            " and a zero or negative width leaves nowhere for zero to"
+            " live (got "
+            + String(linthresh)
+            + ")"
+        )
+    var mm = _min_max(data)
+    var lo = _symlog_forward(mm.min, linthresh)
+    var hi = _symlog_forward(mm.max, linthresh)
+    var span = hi - lo
+    var pad = span * 0.05 if span > 0.0 else 1.0
+    return LinearScale(
+        lo - pad,
+        hi + pad,
+        0.0,
+        1.0,
+        is_symlog=True,
+        symlog_linthresh=linthresh,
+    )
 
 
 def _log_data_extent(data: List[Float64]) raises -> LinearScale:
@@ -6462,7 +6577,21 @@ def _render_generic[
             "render_layers_svg() -- a standalone plot has only one"
             " series, nothing for a second y-axis to pair against"
         )
-    if (plot._y_log or plot._x_log) and not (
+    if plot._y_log and plot._y_symlog:
+        raise Error(
+            "Plot.scale_y_log()/scale_y_symlog(): an axis cannot be both."
+            " A log axis has no zero to be linear around, which is the"
+            " whole of what symlog adds -- choose one"
+        )
+    if plot._x_log and plot._x_symlog:
+        raise Error(
+            "Plot.scale_x_log()/scale_x_symlog(): an axis cannot be both."
+            " A log axis has no zero to be linear around, which is the"
+            " whole of what symlog adds -- choose one"
+        )
+    if (
+        plot._y_log or plot._x_log or plot._y_symlog or plot._x_symlog
+    ) and not (
         plot._mark == Mark.POINT
         or plot._mark == Mark.LINE
         or plot._mark == Mark.AREA
@@ -6631,13 +6760,17 @@ def _render_generic[
             shared_y_min, shared_y_max, 0.0, 1.0, is_log=shared_y_is_log
         ) if has_shared_y_domain else (
             _log_data_extent(y_domain_data) if plot._y_log else (
-                _zero_baseline_y_extent(y_domain_data) if (
-                    plot._mark == Mark.AREA
-                    or (
-                        plot._mark == Mark.HISTOGRAM
-                        and not plot._histogram.horizontal
-                    )
-                ) else _data_extent(y_domain_data)
+                _symlog_data_extent(
+                    y_domain_data, plot._y_symlog_linthresh
+                ) if plot._y_symlog else (
+                    _zero_baseline_y_extent(y_domain_data) if (
+                        plot._mark == Mark.AREA
+                        or (
+                            plot._mark == Mark.HISTOGRAM
+                            and not plot._histogram.horizontal
+                        )
+                    ) else _data_extent(y_domain_data)
+                )
             )
         )
     )
@@ -6647,9 +6780,13 @@ def _render_generic[
         plot._x_domain, plot._x_log
     ) if plot._x_domain.has else (
         _log_data_extent(plot._continuous.x) if plot._x_log else (
-            _zero_baseline_y_extent(plot._continuous.x) if (
-                plot._mark == Mark.HISTOGRAM and plot._histogram.horizontal
-            ) else _data_extent(plot._continuous.x)
+            _symlog_data_extent(
+                plot._continuous.x, plot._x_symlog_linthresh
+            ) if plot._x_symlog else (
+                _zero_baseline_y_extent(plot._continuous.x) if (
+                    plot._mark == Mark.HISTOGRAM and plot._histogram.horizontal
+                ) else _data_extent(plot._continuous.x)
+            )
         )
     )
     # A time axis is linear in seconds; only its labels differ, so the

@@ -29,7 +29,6 @@ from dataviz import (
     chord,
     contour,
     contourf,
-    dendrogram,
     imshow,
     pcolormesh,
     hist2d,
@@ -78,6 +77,7 @@ from dataviz import (
     waterfall,
 )
 from dataviz.core.colors import WHITE
+from dataviz.core.cluster import linkage
 from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
@@ -136,8 +136,6 @@ def _representative_plot(mark: Mark) raises -> Plot:
     var ys: List[Float64] = [2.0, 1.0, 3.0]
     var series: List[String] = ["s1", "s2"]
 
-    if mark == Mark.DENDROGRAM:
-        return dendrogram(_nested(), series, width=_W, height=_H)
     if mark == Mark.POINT:
         return scatter(xs, ys, width=_W, height=_H)
     if mark == Mark.LINE:
@@ -424,6 +422,25 @@ def _representative_plot(mark: Mark) raises -> Plot:
             su.append(urow^)
             sv.append(vrow^)
         return streamplot(sx, sy, su, sv, width=_W, height=_H)
+
+    if mark == Mark.DENDROGRAM:
+        # Four rows that cluster into two obvious pairs, so the merge
+        # tree has a shape rather than a chain. `linkage` does the
+        # clustering; this mark draws the tree it returns.
+        var rows = List[List[Float64]]()
+        var seeds: List[Float64] = [0.0, 0.4, 5.0, 5.6]
+        for i in range(len(seeds)):
+            var row = List[Float64]()
+            for k in range(3):
+                row.append(seeds[i] + Float64(k) * 0.1)
+            rows.append(row^)
+        var labels: List[String] = ["a", "b", "c", "d"]
+        return (
+            Plot()
+            .mark_dendrogram()
+            .encode_dendrogram(linkage(rows), labels)
+            .size(_W, _H)
+        )
 
     raise Error(
         "test_backend_equivalence: no representative plot for mark value "

@@ -25,9 +25,14 @@ from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.scale import MinMax
 from dataviz.core.theme import Theme
 from dataviz.binned.histogram import bin_edges, histogram_bins
+from canvas.vector.pdf import PdfCanvas
 from canvas.vector.svg import SvgCanvas
 
-from dataviz.facets import render_facets, render_facets_svg
+from dataviz.facets import (
+    render_facets,
+    render_facets_pdf,
+    render_facets_svg,
+)
 from dataviz.plot import Plot
 
 
@@ -271,6 +276,52 @@ def pairplot_svg[
         Error: As `pairplot()`.
     """
     return render_facets_svg(
+        _pairplot_panels(columns, names, theme, cell_width, cell_height, bins),
+        len(columns),
+        title=title,
+    )
+
+
+def pairplot_pdf[
+    dtype: DType
+](
+    columns: List[List[Scalar[dtype]]],
+    names: List[String],
+    theme: Theme = Theme(),
+    cell_width: Int = 220,
+    cell_height: Int = 180,
+    bins: Int = 10,
+    title: String = "",
+) raises -> PdfCanvas:
+    """`pairplot()`'s one-page PDF counterpart, over the same
+    panels (#372).
+
+    One layout unit is one PDF point, 1/72 inch, so `width` by
+    `height` is the page: a 640 by 640 figure is 8.89 inches square.
+    Paths stay paths and text stays text, embedded as a font subset,
+    so a panel's labels are selectable rather than a picture of
+    themselves.
+
+    A pair plot is the figure most likely to end up in a paper, and the
+    raster form is either large or soft at print resolution. This gives
+    it the same vector output every single-chart function has had.
+
+    Args:
+        columns: One list per variable, all the same length.
+        names: One label per variable, used as each panel's axis title.
+        theme: Applied to every panel.
+        cell_width: Each panel's width in points.
+        cell_height: Each panel's height.
+        bins: Histogram bins on the diagonal.
+        title: A figure title above the whole grid.
+
+    Returns:
+        The rendered figure, `len(columns)` panels across.
+
+    Raises:
+        Error: As `pairplot()`.
+    """
+    return render_facets_pdf(
         _pairplot_panels(columns, names, theme, cell_width, cell_height, bins),
         len(columns),
         title=title,

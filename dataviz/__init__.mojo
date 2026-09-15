@@ -12,9 +12,21 @@ from dataviz.core.theme import Theme
 from dataviz.core.mark import Mark
 from dataviz.core.output_format import OutputFormat
 from dataviz.core.axis_position import AxisPosition
-from dataviz.aggregation.clustermap import clustermap, clustermap_svg
-from dataviz.aggregation.jointplot import jointplot, jointplot_svg
-from dataviz.aggregation.pairplot import pairplot, pairplot_svg
+from dataviz.aggregation.clustermap import (
+    clustermap,
+    clustermap_pdf,
+    clustermap_svg,
+)
+from dataviz.aggregation.jointplot import (
+    jointplot,
+    jointplot_pdf,
+    jointplot_svg,
+)
+from dataviz.aggregation.pairplot import (
+    pairplot,
+    pairplot_pdf,
+    pairplot_svg,
+)
 from dataviz.core.delaunay import Triangulation, delaunay
 from dataviz.core.legend_position import LegendPosition
 from dataviz.core.line_style import LineStyle

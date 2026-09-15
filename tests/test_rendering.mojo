@@ -100,6 +100,7 @@ from dataviz.plot import (
     render,
     render_layers,
     render_pdf,
+    render_svg,
     save,
     scatter,
 )
@@ -291,17 +292,6 @@ def test_backends_agree_with_titles_and_rotated_axis_labels() raises:
     _ = _assert_same_layout(Mark.BAR._value, plot)
 
 
-def test_mark_count_is_one_past_the_newest_mark() raises:
-    """Require `Mark.COUNT` to be one greater than the newest mark value."""
-    assert_true(
-        Mark.STREAMPLOT == Mark(Mark.COUNT - 1),
-        (
-            "Mark.COUNT must be one past the newest mark -- update both when"
-            " adding one"
-        ),
-    )
-
-
 def test_mark_name_spells_the_constant() raises:
     """`Mark.name()` returns the qualified constant name a caller would
     type.
@@ -376,6 +366,28 @@ def test_mark_name_falls_back_for_an_unknown_value() raises:
     Paired with the sweep above this pins the branch list to exactly
     `Mark.COUNT` entries: that test fails if a value below `COUNT` hits
     the fallback, this one fails if `COUNT` itself does not.
+
+    **The pair only works while `name()` is complete, and once it was
+    not.** `Mark.DENDROGRAM` arrived as `Self(62)` with `COUNT` left at
+    62 and no `name()` branch of its own. This test asked for
+    `Mark(62).name()` to be the fallback, and it was -- not because 62
+    was past the end, but because the branch was missing. The two
+    defects cancelled and both tests passed, while every sweep over
+    `range(Mark.COUNT)` stopped one short of the new mark: the output
+    digest never fingerprinted it, `_mark_registry`'s "raises for a
+    mark with no entry" never fired for it, and the missing entry went
+    unnoticed for as long as that held.
+
+    A third test used to guard `COUNT` directly and named
+    `Mark.STREAMPLOT` as the newest mark by hand, so it rotted the
+    moment a newer one arrived and passed against the wrong constant.
+    It was removed rather than re-pinned to `DENDROGRAM`, which would
+    only restart the same clock.
+
+    So when adding a mark: bump `COUNT`, add the `name()` branch, and
+    add the `_mark_registry` entry. Two of the three are checked here;
+    the digest gaining a line for the new mark is what shows the third
+    landed.
     """
     assert_equal(Mark(Mark.COUNT).name(), "Mark(" + String(Mark.COUNT) + ")")
     assert_equal(Mark(-1).name(), "Mark(-1)")
@@ -1044,6 +1056,92 @@ def test_every_multi_plot_save_writes_a_real_pdf() raises:
     assert_equal(Int(c[0]), 37, "save_grid wrote a PDF")
     assert_true(
         _bytes_have(c, "/MediaBox [0 0 640 300]"), "at the size it was given"
+    )
+
+
+# ==== a transparent background is the same promise on every backend (#372) ====
+# `test_a_transparent_background_reaches_the_file` above pins the raster
+# half: the corner pixel's alpha, and the PNG keeping an alpha channel.
+# Its comment says "already supported by the raster backend", which was
+# the honest scope at the time.
+#
+# The vector backends were the gap. Both already honor it -- SVG emits
+# `fill-opacity="0.000"` on the figure ground and PDF adds an ExtGState
+# carrying `/ca` -- but nothing said so, and each reaches transparency
+# by a different mechanism, so any one of the three could regress
+# without the other two noticing. #372 wants the export contract to
+# hold across formats, which means all three are checked or the promise
+# is only about PNG.
+
+
+def _clear_theme() -> Theme:
+    """A theme whose background is fully transparent."""
+    return Theme(background=Color(255, 255, 255, 0))
+
+
+def _tiny_plot(theme: Theme) raises -> Plot:
+    """A small line chart under `theme`, enough to have a background."""
+    var xs: List[Float64] = [1.0, 2.0, 3.0]
+    var ys: List[Float64] = [1.0, 4.0, 2.0]
+    return line(xs, ys, theme=theme).size(200, 150)
+
+
+def _pdf_contains(data: List[UInt8], needle: String) -> Bool:
+    """Whether the uncompressed PDF bytes contain `needle`."""
+    var n = needle.as_bytes()
+    for i in range(len(data) - len(n) + 1):
+        var hit = True
+        for j in range(len(n)):
+            if data[i + j] != n[j]:
+                hit = False
+                break
+        if hit:
+            return True
+    return False
+
+
+def test_a_transparent_background_reaches_the_raster_backend() raises:
+    var c = render(_tiny_plot(_clear_theme()))
+    var corner = c.get_pixel(1, 1)
+    assert_equal(Int(corner.a), 0, "the raster corner is not transparent")
+
+
+def test_a_transparent_background_reaches_the_svg_backend() raises:
+    # The figure ground is still emitted as a rect; what makes it
+    # transparent is its fill-opacity, so that is what is asserted
+    # rather than the rect's absence.
+    var svg = render_svg(_tiny_plot(_clear_theme())).to_string()
+    assert_true(
+        'fill-opacity="0.000"' in svg,
+        "the SVG background carries no zero fill-opacity",
+    )
+
+
+def test_a_transparent_background_reaches_the_pdf_backend() raises:
+    # PDF has no per-fill alpha channel: transparency is a graphics
+    # state, so an ExtGState with /ca is what carrying it looks like.
+    var pdf = render_pdf(_tiny_plot(_clear_theme()))
+    var bytes = pdf.to_bytes(compress=False)
+    assert_true(
+        _pdf_contains(bytes, "/ca"),
+        "the PDF carries no alpha graphics state",
+    )
+    assert_true(
+        _pdf_contains(bytes, "ExtGState"),
+        "the PDF carries no ExtGState",
+    )
+
+
+def test_an_opaque_background_costs_no_alpha_machinery() raises:
+    # The other half of the contract, and what keeps the test above
+    # honest: if a PDF always carried an ExtGState, finding one would
+    # say nothing about transparency.
+    var opaque = Theme(background=Color(255, 255, 255, 255))
+    var pdf = render_pdf(_tiny_plot(opaque))
+    var bytes = pdf.to_bytes(compress=False)
+    assert_true(
+        not _pdf_contains(bytes, "/ca"),
+        "an opaque figure still emitted an alpha graphics state",
     )
 
 

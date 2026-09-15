@@ -190,6 +190,8 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
             return "Mark.HISTOGRAM"
         if self == Self.STREAMPLOT:
             return "Mark.STREAMPLOT"
+        if self == Self.DENDROGRAM:
+            return "Mark.DENDROGRAM"
         if self == Self.WATERFALL:
             return "Mark.WATERFALL"
         if self == Self.BOX:
@@ -288,8 +290,6 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
             return "Mark.PCOLORMESH"
         if self == Self.EVENTPLOT:
             return "Mark.EVENTPLOT"
-        if self == Self.DENDROGRAM:
-            return "Mark.DENDROGRAM"
         return "Mark(" + String(self._value) + ")"
 
 
