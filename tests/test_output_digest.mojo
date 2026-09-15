@@ -23,6 +23,16 @@ The marks come from `_mark_registry`, shared with
 for one without an entry. So a new mark is covered here the day it is
 added, without anybody remembering to add it.
 
+The compositions come from `_composition_registry` and do not get that
+for free: a facet grid, a `render_grid` figure, a pairplot, a jointplot
+and a clustermap are functions, not enum values, so there is nothing to
+walk (#600). That list is hand-maintained and says so. It exists
+because a composition is exactly where a change is least likely to be
+caught elsewhere -- the per-mark tests pin pixels, while a
+composition's own tests assert that this cell is left of that one --
+and #588 proved the gap by changing facet rendering with the digest
+none the wiser.
+
 Run `pixi run digest-update` to regenerate the file after a change you
 meant to make. Read the diff before committing it: that is the review.
 """
@@ -31,6 +41,13 @@ from std.testing import TestSuite, assert_equal, assert_true
 
 from canvas.buffer import Canvas
 
+from _composition_registry import (
+    _COMPOSITION_COUNT,
+    _composition_name,
+    _composition_raster,
+    _composition_svg,
+    _dark_ground,
+)
 from _mark_registry import _H, _W, _representative_plot
 from dataviz.core.mark import Mark
 from dataviz.plot import render, render_svg
@@ -62,12 +79,30 @@ def _text_digest(s: String) -> Int:
     return h
 
 
-def _digest_lines() raises -> List[String]:
-    """One line per mark: `name raster_digest svg_bytes svg_digest`.
+def _line(name: String, raster: Canvas, svg: String) -> String:
+    """One digest line: `name raster_digest svg_bytes svg_digest`.
 
     Both backends, because they diverge in different ways. A raster
     regression moves pixels; an SVG one moves elements, which the byte
     count alone would sometimes miss and the hash will not.
+    """
+    return (
+        name
+        + " "
+        + String(_canvas_digest(raster))
+        + " "
+        + String(svg.byte_length())
+        + " "
+        + String(_text_digest(svg))
+    )
+
+
+def _digest_lines() raises -> List[String]:
+    """Every mark, then every composition, in that order.
+
+    One list rather than two files: the gate below reads it
+    positionally, and a single ordered list is what makes "these four
+    changed" readable in a diff.
     """
     var out = List[String]()
     for value in range(Mark.COUNT):
@@ -75,16 +110,19 @@ def _digest_lines() raises -> List[String]:
         # One Plot, both backends. Building it twice doubled the cost of
         # the slowest module in the suite for nothing.
         var plot = _representative_plot(mark)
-        var raster = render(plot)
-        var svg = render_svg(plot).to_string()
         out.append(
-            mark.name()
-            + " "
-            + String(_canvas_digest(raster))
-            + " "
-            + String(svg.byte_length())
-            + " "
-            + String(_text_digest(svg))
+            _line(mark.name(), render(plot), render_svg(plot).to_string())
+        )
+    for index in range(_COMPOSITION_COUNT):
+        # Two calls rather than one, unlike a mark: a composition's two
+        # backends are separate entry points taking their own arguments,
+        # not one `Plot` handed to two renders.
+        out.append(
+            _line(
+                _composition_name(index),
+                _composition_raster(index),
+                _composition_svg(index).to_string(),
+            )
         )
     return out^
 
@@ -111,7 +149,7 @@ def test_every_mark_renders_what_it_rendered_before() raises:
         (
             "the digest file has "
             + String(len(want))
-            + " marks and this run produced "
+            + " entries and this run produced "
             + String(len(got))
             + "; run `pixi run digest-update`"
         ),
@@ -126,31 +164,78 @@ def test_every_mark_renders_what_it_rendered_before() raises:
             detail += "\n" + m
         raise Error(
             String(len(mismatches))
-            + " mark(s) render differently than the committed digest."
+            + " figure(s) render differently than the committed digest."
             + " If that was the point, run `pixi run digest-update` and"
             + " include the diff in the same commit:"
             + detail
         )
 
 
-def test_the_digest_file_covers_every_mark() raises:
-    """The file could drift into listing fewer marks than exist, which
+def test_the_digest_file_covers_every_mark_and_composition() raises:
+    """The file could drift into listing fewer entries than exist, which
     would narrow the gate rather than fail it.
 
     Reads the file rather than rendering again: the sweep above is the
     slowest thing in the suite, and running it twice to count its own
     output would double that for nothing.
+
+    The two halves are told apart by the `Mark.` prefix, which is what
+    `Mark.name()` produces and no composition name has.
     """
     var f = open("tests/output_digest.txt", "r")
     var text = f.read()
     f.close()
-    var listed = 0
+    var marks = 0
+    var compositions = 0
     for line in text.split("\n"):
         var trimmed = String(String(line).strip())
-        if trimmed.byte_length() > 0 and not trimmed.startswith("#"):
-            listed += 1
-    assert_equal(listed, Mark.COUNT, "one digest line per Mark value")
+        if trimmed.byte_length() == 0 or trimmed.startswith("#"):
+            continue
+        if trimmed.startswith("Mark."):
+            marks += 1
+        else:
+            compositions += 1
+    assert_equal(marks, Mark.COUNT, "one digest line per Mark value")
     assert_true(Mark.COUNT > 40, "the mark list collapsed")
+    assert_equal(
+        compositions,
+        _COMPOSITION_COUNT,
+        (
+            "one digest line per composition; this list is hand-maintained,"
+            " see tests/_composition_registry.mojo"
+        ),
+    )
+
+
+def test_the_facet_figure_can_see_its_own_background() raises:
+    """The composition entries are only worth their runtime if they can
+    see the changes they were added for, and the first one they were
+    added for is #588: the figure ground `render_facets` fills so a
+    partial last row is not a white hole.
+
+    A figure on the default theme cannot see that change at all. The
+    canvas is already white when the fill runs, so on white the fill
+    writes white over white and moves no pixels -- which is why a
+    deliberate facet-rendering change slipped past the digest in the
+    first place. Shortening that fill by a row was tried against a
+    default-theme facet figure while writing this, and the digest stayed
+    green.
+
+    So `_dark_ground` is load-bearing, and this says so out loud. Point
+    the facet registry entry back at the default theme and this fails,
+    rather than the digest quietly going blind again.
+    """
+    var blank = Canvas(8, 8)
+    var fresh = blank.get_pixel(0, 0)
+    var ground = _dark_ground().background
+    assert_true(
+        ground.r != fresh.r or ground.g != fresh.g or ground.b != fresh.b,
+        (
+            "the facet figure's background is the color a fresh canvas"
+            " already is, so filling it moves no pixels and the digest"
+            " cannot see a figure-background change"
+        ),
+    )
 
 
 def main() raises:
