@@ -7,7 +7,10 @@ compilation, so the suite is organized by family (#605).
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.buffer import Canvas
 from canvas.color import Color
-from dataviz import Theme, jointplot, pairplot
+from dataviz import Theme, clustermap, jointplot, pairplot
+from dataviz.core.cluster import linkage
+from dataviz.grid.heatmap import heatmap
+from dataviz.plot import render_svg
 
 
 # ==== from test_jointplot.mojo ====
@@ -458,6 +461,135 @@ def test_integer_columns_work_like_float_ones() raises:
     assert_true(
         _ink(c, _theme_pairplot()) > 100, "the integer pairplot drew nothing"
     )
+
+
+# ==== clustermap (#355) ====
+
+
+def _interleaved() -> List[List[Float64]]:
+    """Six rows in two shapes, interleaved, so the arrival order cannot
+    be mistaken for the clustered one: rows 0, 2, 4 rise and 1, 3, 5
+    fall.
+    """
+    var out = List[List[Float64]]()
+    for i in range(6):
+        var row = List[Float64]()
+        for c in range(4):
+            if i % 2 == 0:
+                row.append(10.0 + Float64(c) * 10.0 + Float64(i))
+            else:
+                row.append(90.0 - Float64(c) * 10.0 + Float64(i))
+        out.append(row^)
+    return out^
+
+
+def _row_names() -> List[String]:
+    var out: List[String] = ["r0", "r1", "r2", "r3", "r4", "r5"]
+    return out^
+
+
+def _col_names() -> List[String]:
+    var out: List[String] = ["c0", "c1", "c2", "c3"]
+    return out^
+
+
+def test_a_clustermap_is_the_size_it_was_asked_for() raises:
+    var c = clustermap(
+        _interleaved(), _row_names(), _col_names(), width=700, height=600
+    )
+    assert_equal(c.width, 700)
+    assert_equal(c.height, 600)
+
+
+def test_a_clustermap_reorders_its_rows_into_groups() raises:
+    # The whole feature. The rows arrive interleaved and have to come
+    # out with each shape contiguous.
+    var svg = render_grid_svg_of_clustermap()
+    var order = List[Int]()
+    var at = 0
+    while True:
+        var best = -1
+        var best_at = 0
+        for i in range(6):
+            var needle = ">r" + String(i) + "<"
+            var found = svg.find(needle, at)
+            if found >= 0 and (best < 0 or found < best_at):
+                best = i
+                best_at = found
+        if best < 0:
+            break
+        order.append(best)
+        at = best_at + 1
+    assert_equal(len(order), 6, "every row is labeled once")
+    var switches = 0
+    for i in range(1, len(order)):
+        if order[i] % 2 != order[i - 1] % 2:
+            switches += 1
+    assert_equal(switches, 1, "each shape's rows are contiguous")
+
+
+def render_grid_svg_of_clustermap() raises -> String:
+    """The clustermap's SVG, for reading its label order.
+
+    A helper rather than a test: `clustermap()` returns a raster canvas,
+    so the labels are read from an equivalent figure rendered to vector.
+    """
+    var tree = linkage(_interleaved())
+    var xs = List[String]()
+    var ys = List[String]()
+    var vals = List[Float64]()
+    var rows = _interleaved()
+    var names = _row_names()
+    var cols = _col_names()
+    for r in range(6):
+        var source = tree.leaf_order[r]
+        for c in range(4):
+            xs.append(cols[c])
+            ys.append(names[source])
+            vals.append(rows[source][c])
+    return render_svg(heatmap(xs, ys, vals)).to_string()
+
+
+def test_not_clustering_an_axis_keeps_its_order() raises:
+    # Both figures are the same size, so the one difference is the
+    # order; a matrix that already has a meaningful order down one axis
+    # should be able to keep it.
+    var clustered = clustermap(
+        _interleaved(), _row_names(), _col_names(), width=700, height=600
+    )
+    var rows_only = clustermap(
+        _interleaved(),
+        _row_names(),
+        _col_names(),
+        width=700,
+        height=600,
+        cluster_cols=False,
+    )
+    assert_equal(rows_only.width, clustered.width)
+    var different = 0
+    for y in range(0, clustered.height, 11):
+        for x in range(0, clustered.width, 11):
+            var a = clustered.get_pixel(x, y)
+            var b = rows_only.get_pixel(x, y)
+            if not (a.r == b.r and a.g == b.g and a.b == b.b):
+                different += 1
+    assert_true(
+        different > 0,
+        "dropping the column tree changes the figure",
+    )
+
+
+def test_a_clustermap_checks_its_input() raises:
+    var empty = List[List[Float64]]()
+    with assert_raises(contains="must not be empty"):
+        _ = clustermap(empty)
+
+    var two: List[String] = ["a", "b"]
+    with assert_raises(contains="one row label per row"):
+        _ = clustermap(_interleaved(), two)
+
+    with assert_raises(contains="ratio must be above zero"):
+        _ = clustermap(_interleaved(), _row_names(), _col_names(), ratio=0.0)
 
 
 def main() raises:

@@ -12,6 +12,7 @@ from dataviz.core.theme import Theme
 from dataviz.core.mark import Mark
 from dataviz.core.output_format import OutputFormat
 from dataviz.core.axis_position import AxisPosition
+from dataviz.aggregation.clustermap import clustermap
 from dataviz.aggregation.jointplot import jointplot
 from dataviz.aggregation.pairplot import pairplot
 from dataviz.core.delaunay import Triangulation, delaunay
@@ -91,6 +92,7 @@ from dataviz.grid.calendar_heatmap import calendar_heatmap
 from dataviz.grid.corrplot import corrplot
 from dataviz.grid.punchcard import punchcard
 from dataviz.grid.marimekko import marimekko
+from dataviz.hierarchy_marks.dendrogram import dendrogram
 from dataviz.hierarchy_marks.sunburst import sunburst
 from dataviz.hierarchy_marks.tree import tree
 from dataviz.hierarchy_marks.treemap import treemap

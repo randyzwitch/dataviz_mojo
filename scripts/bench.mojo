@@ -11,6 +11,7 @@ from std.time import perf_counter
 from std.math import cos, pi, sin
 
 from dataviz import (
+    clustermap,
     bar,
     beeswarm,
     chord,
@@ -26,6 +27,7 @@ from dataviz import (
     scatter,
     line,
 )
+from dataviz.core.cluster import linkage
 from dataviz.plot import Plot, render, render_svg
 from dataviz.core.theme import Theme
 from std.sys import argv
@@ -373,12 +375,75 @@ def _bench_tricontour(mut timings: List[_Timing], sizes: List[Int]) raises:
         _record(timings, "TRICONTOUR", "svg", n, perf_counter() - t0)
 
 
+def _cluster_rows(n: Int) -> List[List[Float64]]:
+    """`n` rows of eight columns in two interleaved shapes, so the
+    clustering has real structure to find rather than noise.
+    """
+    var out = List[List[Float64]](capacity=n)
+    for i in range(n):
+        var row = List[Float64](capacity=8)
+        for c in range(8):
+            var base = 10.0 + Float64(c) if i % 2 == 0 else 90.0 - Float64(c)
+            row.append(base + Float64((i * 7) % 11))
+        out.append(row^)
+    return out^
+
+
+def _bench_clustermap(mut timings: List[_Timing], sizes: List[Int]) raises:
+    """The one mark here whose cost is an algorithm rather than a draw.
+
+    Clustering is quadratic in the row count and the drawing is linear
+    in it, so this is the series that would show a cubic linkage
+    creeping back in (#355); `_check_scaling` flags it the same way it
+    flags a quadratic renderer.
+    """
+    for n in sizes:
+        var rows = _cluster_rows(n)
+        var t0 = perf_counter()
+        _ = linkage(rows)
+        _record(timings, "LINKAGE", "compute", n, perf_counter() - t0)
+        t0 = perf_counter()
+        _ = clustermap(rows, width=800, height=600)
+        _record(timings, "CLUSTERMAP", "raster", n, perf_counter() - t0)
+
+
+comptime _CHECK_MAX_RATIO_QUADRATIC = 200.0
+"""The budget for a series that is quadratic on purpose (#355).
+
+`_CHECK_MAX_RATIO` asks "did a renderer that should be roughly linear
+in its input stop being that", and clustering never was: comparing
+every pair of rows is n^2 work, so a 10x row count is about 100x the
+time and the ordinary budget would fail on a correct implementation.
+
+What is worth catching here is a *cubic* linkage -- the naive
+"rescan for the closest pair each round" that the nearest-neighbour
+chain exists to avoid -- which would be about 1000x. Measured on an
+idle 64-core machine, LINKAGE runs 125x and 130x across the two steps,
+so 200 sits clear of a correct run and five times clear of a cubic one.
+"""
+
+
+def _max_ratio_for(mark: String) -> Float64:
+    """The time-ratio budget for one series.
+
+    Args:
+        mark: The series' mark name.
+
+    Returns:
+        The largest ratio a 10x size step may take before it is
+        suspect.
+    """
+    if mark == "LINKAGE" or mark == "CLUSTERMAP":
+        return _CHECK_MAX_RATIO_QUADRATIC
+    return _CHECK_MAX_RATIO
+
+
 def _check_scaling(timings: List[_Timing]) raises -> Bool:
     """A coarse O(n^2) detector: for each (mark, backend), compares every
     pair of consecutive sizes and flags a ~10x size jump that took more
-    than `_CHECK_MAX_RATIO` times as long. Prints every comparison it
-    makes either way, so a clean run's own output still shows the
-    ratios, not just silence.
+    than that series' budget (`_max_ratio_for`) times as long. Prints
+    every comparison it makes either way, so a clean run's own output
+    still shows the ratios, not just silence.
     """
     var all_ok = True
     for i in range(len(timings)):
@@ -397,7 +462,7 @@ def _check_scaling(timings: List[_Timing]) raises -> Bool:
                 continue
             var time_ratio = timings[j].seconds / max(timings[i].seconds, 1e-6)
             var verdict = "OK"
-            if time_ratio > _CHECK_MAX_RATIO:
+            if time_ratio > _max_ratio_for(timings[i].mark):
                 verdict = "SUSPECT"
                 all_ok = False
             print(
@@ -452,6 +517,7 @@ def main() raises:
     _bench_hierarchy(timings, small_sizes)
     _bench_heatmap(timings, small_sizes)
     _bench_tricontour(timings, small_sizes)
+    _bench_clustermap(timings, small_sizes)
 
     if check_mode:
         print("")

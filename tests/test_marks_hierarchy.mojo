@@ -5,11 +5,21 @@ Mark.CHORD, Mark.ARC_DIAGRAM, Mark.GRAPH, and Mark.SANKEY (with
 encode_chord()'s shared validation), each raster + SVG.
 """
 
-from _test_helpers import BG, _assert_color, _bbox_of_color
+from _test_helpers import BG, _assert_color, _bbox_of_color, _count_tag
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.vector.svg import SvgCanvas
-from dataviz import arc_diagram, chord, graph, sankey, sunburst, tree, treemap
+from dataviz import (
+    arc_diagram,
+    chord,
+    dendrogram,
+    graph,
+    sankey,
+    sunburst,
+    tree,
+    treemap,
+)
+from dataviz.core.cluster import linkage
 from dataviz.core.color_scale import default_categorical_palette
 from dataviz.basic.continuous import _lighten
 from dataviz.plot import Plot, render, render_svg
@@ -894,6 +904,103 @@ def test_render_sankey_raises_on_no_data() raises:
     with assert_raises():
         var _hoisted7 = sankey(from_c, to_c, v, width=100, height=80)
         _ = render(_hoisted7)
+
+
+# ==== Mark.DENDROGRAM (#355) ====
+
+
+def _rain() -> List[List[Float64]]:
+    """Four places' rainfall: two wet-winter, two wet-summer."""
+    var out = List[List[Float64]]()
+    var a: List[Float64] = [80.0, 70.0, 65.0, 55.0, 45.0, 30.0]
+    var b: List[Float64] = [75.0, 68.0, 60.0, 52.0, 40.0, 28.0]
+    var c: List[Float64] = [10.0, 12.0, 18.0, 30.0, 55.0, 70.0]
+    var d: List[Float64] = [12.0, 15.0, 20.0, 34.0, 58.0, 75.0]
+    out.append(a^)
+    out.append(b^)
+    out.append(c^)
+    out.append(d^)
+    return out^
+
+
+def _names() -> List[String]:
+    var out: List[String] = ["Porto", "Bilbao", "Perth", "Adelaide"]
+    return out^
+
+
+def test_a_dendrogram_draws_one_bracket_per_merge() raises:
+    # Four leaves, three merges, three brackets. Each is one stroked
+    # path rather than three segments, so the count is the merge count.
+    var svg = render_svg(
+        dendrogram(_rain(), _names(), theme=Theme(show_gridlines=False))
+    ).to_string()
+    assert_equal(_count_tag(svg, "path"), 3, "one path per merge")
+
+
+def test_a_dendrogram_labels_its_leaves_in_tree_order() raises:
+    # The reordering is the point: the two wet-winter places end up
+    # together and the two wet-summer places together, whatever order
+    # they arrived in.
+    var svg = render_svg(
+        dendrogram(_rain(), _names(), theme=Theme(show_gridlines=False))
+    ).to_string()
+    for name in _names():
+        assert_true(svg.find(">" + name + "<") != -1, "every leaf is named")
+    var porto = svg.find(">Porto<")
+    var bilbao = svg.find(">Bilbao<")
+    var perth = svg.find(">Perth<")
+    var adelaide = svg.find(">Adelaide<")
+    # The labels are written along the axis in order, so document order
+    # is axis order: neither pair may be split by a member of the other.
+    if porto < perth:
+        assert_true(
+            bilbao < perth and bilbao < adelaide,
+            "the wet-winter pair stays together",
+        )
+    else:
+        assert_true(
+            adelaide < porto and adelaide < bilbao,
+            "the wet-summer pair stays together",
+        )
+
+
+def test_a_horizontal_dendrogram_swaps_its_axes() raises:
+    # Same tree, leaves down the y-axis. The brackets are the same
+    # count; what changes is which axis carries the distance.
+    var tree = linkage(_rain())
+    var ordered = List[String]()
+    var names = _names()
+    for i in tree.leaf_order:
+        ordered.append(names[i])
+    var plot = (
+        Plot()
+        .mark_dendrogram(horizontal=True)
+        .encode_dendrogram(tree, ordered, horizontal=True)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var svg = render_svg(plot).to_string()
+    assert_equal(_count_tag(svg, "path"), 3, "still one path per merge")
+    for name in _names():
+        assert_true(svg.find(">" + name + "<") != -1)
+
+
+def test_a_dendrogram_checks_its_tree() raises:
+    var tree = linkage(_rain())
+    var too_few: List[String] = ["only", "three", "labels"]
+    with assert_raises(contains="has 2 merges"):
+        _ = render_svg(
+            Plot().mark_dendrogram().encode_dendrogram(tree, too_few)
+        )
+    var one: List[String] = ["alone"]
+    with assert_raises(contains="at least two leaves"):
+        _ = render_svg(Plot().mark_dendrogram().encode_dendrogram(tree, one))
+
+
+def test_dendrogram_wants_one_label_per_row() raises:
+    var two: List[String] = ["a", "b"]
+    with assert_raises(contains="one label per row"):
+        _ = dendrogram(_rain(), two)
 
 
 def main() raises:
