@@ -14,7 +14,16 @@ from _test_helpers import Lcg, _count_color
 from canvas.color import Color
 from dataviz import bar
 from dataviz.core.camera3d import Camera3D
-from dataviz.core.frame3d import _Extent3D, _fit_frame3d, _unit
+from dataviz.core.frame3d import (
+    Frame3D,
+    _Extent3D,
+    _axis_ends,
+    _fit_frame3d,
+    _outward,
+    _point_on_axis,
+    _tick_edge,
+    _unit,
+)
 from dataviz.core.colors import (
     CORNFLOWERBLUE,
     DARKGRAY,
@@ -1767,6 +1776,104 @@ def test_height_still_rises_after_the_pixel_flip() raises:
     assert_true(
         high[1] < low[1],
         "a taller point did not land higher on the page (smaller pixel y)",
+    )
+
+
+# ==== choosing which edge carries a 3D axis's ticks (#345) ====
+# Twelve edges, three of which get labels. The choice has to follow the
+# camera or labels land inside the box or on an edge hidden behind it,
+# and the rule is decided from projected positions rather than from the
+# azimuth quadrant -- which is what makes it work at any angle instead
+# of only the one it was written in.
+
+
+def _framed(elev: Float64, azim: Float64) raises -> Frame3D:
+    """A unit cube viewed from `elev`/`azim`, fitted to a square rect."""
+    return _fit_frame3d(
+        Camera3D(elev, azim), _cube_extent(0.0, 1.0), 0, 0, 400, 400
+    )
+
+
+def test_x_and_y_ticks_go_on_a_bottom_edge() raises:
+    # A horizontal axis is read along the bottom of the box. Both pin
+    # the z end low, whatever the azimuth.
+    for azim in [-120.0, -60.0, 0.0, 60.0, 135.0]:
+        var frame = _framed(30.0, azim)
+        for axis in range(2):
+            var edge = _tick_edge(frame, axis)
+            assert_true(
+                not edge[1],
+                (
+                    "axis "
+                    + String(axis)
+                    + " labelled a top edge at azim "
+                    + String(azim)
+                ),
+            )
+
+
+def test_the_chosen_horizontal_edge_is_the_lowest_one() raises:
+    # Of the two bottom edges parallel to the axis, the one nearer the
+    # viewer runs lower on the page. Labelling the far one would put the
+    # numbers behind the box.
+    var frame = _framed(30.0, -60.0)
+    for axis in range(2):
+        var edge = _tick_edge(frame, axis)
+        var ends = _axis_ends(frame, axis)
+        var mid = (ends[0] + ends[1]) / 2.0
+        var chosen = _point_on_axis(frame, axis, mid, edge[0], False)
+        var other = _point_on_axis(frame, axis, mid, not edge[0], False)
+        assert_true(
+            chosen[1] >= other[1],
+            "the chosen edge is not the lower one for axis " + String(axis),
+        )
+
+
+def test_z_ticks_go_on_the_leftmost_vertical_edge() raises:
+    # The height scale belongs beside the box, not through it.
+    for azim in [-120.0, -60.0, 0.0, 60.0, 135.0]:
+        var frame = _framed(30.0, azim)
+        var edge = _tick_edge(frame, 2)
+        var ends = _axis_ends(frame, 2)
+        var mid = (ends[0] + ends[1]) / 2.0
+        var chosen = _point_on_axis(frame, 2, mid, edge[0], edge[1])
+        for ai in range(2):
+            for bi in range(2):
+                var other = _point_on_axis(frame, 2, mid, ai == 1, bi == 1)
+                assert_true(
+                    chosen[0] <= other[0] + 1e-9,
+                    (
+                        "a vertical edge further left was available at azim "
+                        + String(azim)
+                    ),
+                )
+
+
+def test_a_label_is_pushed_away_from_the_cube() raises:
+    # Away from the centre, not perpendicular to the edge: a projected
+    # edge's perpendicular can point into the box, and a label inside
+    # the cube is worse than one a little off the perpendicular.
+    var frame = _framed(30.0, -60.0)
+    var centre = frame.to_pixel(0.5, 0.5, 0.5)
+    var at = _point_on_axis(frame, 0, 0.5, False, False)
+    var placed = _outward(frame, at, 10.0)
+    var before = sqrt(
+        (at[0] - centre[0]) * (at[0] - centre[0])
+        + (at[1] - centre[1]) * (at[1] - centre[1])
+    )
+    var after = sqrt(
+        (placed[0] - centre[0]) * (placed[0] - centre[0])
+        + (placed[1] - centre[1]) * (placed[1] - centre[1])
+    )
+    assert_true(
+        after > before,
+        "the label moved toward the cube rather than away from it",
+    )
+    assert_almost_equal(
+        after - before,
+        10.0,
+        atol=1e-9,
+        msg="the label did not move by the gap it was given",
     )
 
 

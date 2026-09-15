@@ -253,3 +253,107 @@ def _fit_frame3d(
         (Float64(px0) + avail_w / 2.0) - mid_x * scale,
         (Float64(py0) + avail_h / 2.0) + mid_y * scale,
     )
+
+
+def _axis_ends(frame: Frame3D, axis: Int) -> Tuple[Float64, Float64]:
+    """The data range of `axis`: 0 for x, 1 for y, 2 for z."""
+    if axis == 0:
+        return (frame.extent.x.min, frame.extent.x.max)
+    if axis == 1:
+        return (frame.extent.y.min, frame.extent.y.max)
+    return (frame.extent.z.min, frame.extent.z.max)
+
+
+def _point_on_axis(
+    frame: Frame3D, axis: Int, value: Float64, a_end: Bool, b_end: Bool
+) -> Tuple[Float64, Float64]:
+    """The pixel for `value` along `axis`, with the other two axes
+    pinned to a chosen end of their ranges.
+
+    `a_end`/`b_end` pick the high end of the two axes that are not
+    `axis`, in ascending axis order -- so for the x axis they are the y
+    and z ends, and for the z axis the x and y ends.
+    """
+    var xs = _axis_ends(frame, 0)
+    var ys = _axis_ends(frame, 1)
+    var zs = _axis_ends(frame, 2)
+    var x = value
+    var y = value
+    var z = value
+    if axis == 0:
+        y = ys[1] if a_end else ys[0]
+        z = zs[1] if b_end else zs[0]
+    elif axis == 1:
+        x = xs[1] if a_end else xs[0]
+        z = zs[1] if b_end else zs[0]
+    else:
+        x = xs[1] if a_end else xs[0]
+        y = ys[1] if b_end else ys[0]
+    return frame.to_pixel(x, y, z)
+
+
+def _tick_edge(frame: Frame3D, axis: Int) -> Tuple[Bool, Bool]:
+    """Which of the four parallel edges carries `axis`'s tick labels,
+    as the two ends the other axes are pinned to.
+
+    The choice has to follow the camera, or labels end up inside the
+    box or on an edge hidden behind it. The rule:
+
+    - **x and y** label a *bottom* edge -- `z` at its low end -- and
+      pick whichever of the two runs lowest on the page. That is the
+      near-bottom edge from any azimuth, which is where a reader looks
+      for a horizontal axis.
+    - **z** labels a *vertical* edge, whichever of the four runs
+      furthest left, so the height scale sits beside the box rather
+      than through it.
+
+    Lowest and leftmost are measured on the projected midpoint, which
+    is what makes this work at any angle rather than only in the
+    quadrant it was written in.
+    """
+    var ends = _axis_ends(frame, axis)
+    var mid = (ends[0] + ends[1]) / 2.0
+    var best_a = False
+    var best_b = False
+    var best_score = 0.0
+    var first = True
+    for ai in range(2):
+        for bi in range(2):
+            var a = ai == 1
+            var b = bi == 1
+            if axis != 2 and b:
+                # x and y label a bottom edge, so the z end is fixed low.
+                continue
+            var at = _point_on_axis(frame, axis, mid, a, b)
+            # Lower on the page for x/y (larger pixel y), further left
+            # for z (smaller pixel x, negated so larger is better).
+            var score = at[1] if axis != 2 else -at[0]
+            if first or score > best_score:
+                best_score = score
+                best_a = a
+                best_b = b
+                first = False
+    return (best_a, best_b)
+
+
+def _outward(
+    frame: Frame3D, at: Tuple[Float64, Float64], gap: Float64
+) -> Tuple[Float64, Float64]:
+    """`at` pushed `gap` pixels away from the cube's centre.
+
+    Away from the centre rather than perpendicular to the edge: the
+    perpendicular of a projected edge can point *into* the box for some
+    views, and a label inside the cube is worse than one a little off
+    the perpendicular.
+    """
+    var centre = frame.to_pixel(
+        (frame.extent.x.min + frame.extent.x.max) / 2.0,
+        (frame.extent.y.min + frame.extent.y.max) / 2.0,
+        (frame.extent.z.min + frame.extent.z.max) / 2.0,
+    )
+    var dx = at[0] - centre[0]
+    var dy = at[1] - centre[1]
+    var norm = (dx * dx + dy * dy) ** 0.5
+    if norm < 1e-9:
+        return (at[0], at[1] + gap)
+    return (at[0] + dx / norm * gap, at[1] + dy / norm * gap)
