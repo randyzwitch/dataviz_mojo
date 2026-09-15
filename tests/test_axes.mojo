@@ -11,9 +11,19 @@ from std.testing import (
     assert_true,
 )
 from dataviz import AxisPosition, Theme, bar, line, rugplot, save, scatter
-from dataviz.core.scale import LinearScale
+from dataviz.core.scale import (
+    LinearScale,
+    _symlog_forward,
+    _symlog_inverse,
+)
 from dataviz.core.theme import Theme
-from dataviz.plot import Plot, render_layers_svg, render_svg
+from dataviz.plot import (
+    Plot,
+    _symlog_data_extent,
+    render,
+    render_layers_svg,
+    render_svg,
+)
 from _test_helpers import _attr_values, _count_tag
 from morrow import Morrow, TimeZone
 
@@ -909,6 +919,166 @@ def test_the_axis_controls_raise_on_a_mark_that_ignores_them() raises:
         _ = render_svg(bar(cats, vals).scale_x_ticks(pos))
     with assert_raises(contains="only apply to"):
         _ = render_svg(bar(cats, vals).equal_aspect())
+
+
+# ==== symlog: a log axis that can show zero and negatives (#368) ====
+# `scale_y_log()` needs strictly positive values, so a series crossing
+# zero cannot go on one at all, and a linear axis collapses everything
+# small against the largest value. Symlog is linear within
+# `[-linthresh, linthresh]` and logarithmic beyond it.
+#
+# The transform is pinned by its definition rather than by a previous
+# run: the two halves must agree at the threshold, the inverse must
+# undo the forward everywhere, and zero must stay zero.
+
+
+def test_symlog_is_continuous_where_the_two_halves_meet() raises:
+    # The whole difficulty of a piecewise transform is the seam. At
+    # |v| = linthresh both branches must give the same answer, or the
+    # axis has a step in it exactly where the data is densest.
+    var t = 10.0
+    assert_equal(_symlog_forward(t, t), 1.0, "the positive seam")
+    assert_equal(_symlog_forward(-t, t), -1.0, "the negative seam")
+    # Approaching from the logarithmic side.
+    var just_above = _symlog_forward(t * 1.0000001, t)
+    assert_true(
+        just_above > 1.0 and just_above < 1.000001,
+        "the log side does not start at 1 -- got " + String(just_above),
+    )
+
+
+def test_symlog_keeps_zero_at_zero_and_keeps_the_sign() raises:
+    var t = 2.5
+    assert_equal(_symlog_forward(0.0, t), 0.0, "zero moved")
+    assert_true(_symlog_forward(-100.0, t) < 0.0, "a negative went positive")
+    assert_true(_symlog_forward(100.0, t) > 0.0, "a positive went negative")
+    # Symmetric about zero, which is what the name promises.
+    assert_equal(
+        _symlog_forward(-100.0, t),
+        -_symlog_forward(100.0, t),
+        "the two sides are not mirror images",
+    )
+
+
+def test_symlog_inverse_undoes_forward_on_both_sides() raises:
+    # Round-trip over values inside the linear region, at the seam, and
+    # several decades out on each side.
+    var t = 1.0
+    var probes: List[Float64] = [
+        0.0,
+        0.25,
+        -0.25,
+        1.0,
+        -1.0,
+        9.5,
+        -9.5,
+        1000.0,
+        -1000.0,
+    ]
+    for v in probes:
+        var back = _symlog_inverse(_symlog_forward(v, t), t)
+        # Relative, not absolute. The logarithmic branch round-trips
+        # through log10 and pow, which preserve relative precision:
+        # 9.5 comes back as 9.499999997584657, wrong by 2.4e-9 in
+        # absolute terms and by 2.5e-10 in relative ones. An absolute
+        # bound would tighten as the values grow, which is backwards
+        # for a transform whose whole purpose is spanning decades.
+        var scale = abs(v) if abs(v) > 1.0 else 1.0
+        assert_true(
+            abs(back - v) <= 1e-9 * scale,
+            "round trip lost " + String(v) + " -- got " + String(back),
+        )
+
+
+def test_a_decade_is_a_decade_on_the_log_side() raises:
+    # Equal ratios take equal space once past the threshold, which is
+    # the property a log axis is chosen for and the one symlog has to
+    # keep outside the linear region.
+    var t = 1.0
+    var a = _symlog_forward(10.0, t) - _symlog_forward(1.0, t)
+    var b = _symlog_forward(100.0, t) - _symlog_forward(10.0, t)
+    assert_true(
+        abs(a - b) < 1e-12,
+        "two decades took different space: "
+        + String(a)
+        + " against "
+        + String(b),
+    )
+
+
+def test_the_linear_region_is_one_decade_wide() raises:
+    # The ratio that makes the two halves comparable without a second
+    # knob, and the thing a reader has to be able to rely on when
+    # judging distance near zero against distance far from it.
+    var t = 3.0
+    var linear_half = _symlog_forward(t, t) - _symlog_forward(0.0, t)
+    var one_decade = _symlog_forward(t * 10.0, t) - _symlog_forward(t, t)
+    assert_true(
+        abs(linear_half - one_decade) < 1e-12,
+        "the linear half is not one decade wide",
+    )
+
+
+def test_a_symlog_domain_accepts_zero_and_negatives() raises:
+    # `_log_data_extent` raises on these; that is the gap.
+    var data: List[Float64] = [-500.0, -1.0, 0.0, 1.0, 500.0]
+    var scale = _symlog_data_extent(data, 1.0)
+    assert_true(scale.is_symlog, "the scale is not marked symlog")
+    assert_equal(scale.symlog_linthresh, 1.0, "the threshold was lost")
+    # Zero sits at the middle of a domain symmetric about it.
+    var mid = (scale.to_pixel(0.0) - scale.to_pixel(-500.0)) / (
+        scale.to_pixel(500.0) - scale.to_pixel(-500.0)
+    )
+    assert_true(
+        abs(mid - 0.5) < 1e-9,
+        "zero is not centered on symmetric data -- at " + String(mid),
+    )
+
+
+def test_a_symlog_domain_rejects_a_non_positive_threshold() raises:
+    var data: List[Float64] = [-1.0, 0.0, 1.0]
+    with assert_raises(contains="linthresh must be positive"):
+        _ = _symlog_data_extent(data, 0.0)
+    with assert_raises(contains="linthresh must be positive"):
+        _ = _symlog_data_extent(data, -2.0)
+
+
+def test_symlog_ticks_include_zero_and_the_threshold() raises:
+    var data: List[Float64] = [-1000.0, 0.0, 1000.0]
+    var scale = _symlog_data_extent(data, 1.0)
+    var ticks = scale.ticks()
+    var has_zero = False
+    var has_thresh = False
+    var has_neg_decade = False
+    for v in ticks.values:
+        if v == 0.0:
+            has_zero = True
+        if v == 1.0:
+            has_thresh = True
+        if abs(v + 100.0) < 1e-6:
+            has_neg_decade = True
+    assert_true(has_zero, "a symlog axis did not label zero")
+    assert_true(has_thresh, "the threshold is not a tick")
+    assert_true(has_neg_decade, "the negative decades are missing")
+
+
+def test_an_axis_cannot_be_both_log_and_symlog() raises:
+    var x: List[Float64] = [1.0, 2.0, 3.0]
+    var y: List[Float64] = [1.0, 2.0, 3.0]
+    with assert_raises(contains="an axis cannot be both"):
+        _ = render(scatter(x, y).scale_y_log().scale_y_symlog())
+    with assert_raises(contains="an axis cannot be both"):
+        _ = render(scatter(x, y).scale_x_log().scale_x_symlog())
+
+
+def test_a_symlog_chart_renders_data_that_crosses_zero() raises:
+    # The end-to-end case: a series a log axis could not take at all.
+    var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
+    var y: List[Float64] = [-1000.0, -10.0, 0.0, 10.0, 1000.0]
+    var c = render(
+        scatter(x, y, width=400, height=300).scale_y_symlog(linthresh=1.0)
+    )
+    assert_equal(c.width, 400, "the chart did not render")
 
 
 def main() raises:
