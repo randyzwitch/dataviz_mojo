@@ -34,7 +34,6 @@ on one that differs from the canvas's starting color.
 
 from canvas.buffer import Canvas
 from canvas.color import Color
-from canvas.vector.pdf import PdfCanvas
 from canvas.vector.svg import SvgCanvas
 
 from dataviz import (
@@ -42,20 +41,15 @@ from dataviz import (
     Plot,
     Theme,
     clustermap,
-    clustermap_pdf,
     clustermap_svg,
     jointplot,
-    jointplot_pdf,
     jointplot_svg,
     line,
     pairplot,
-    pairplot_pdf,
     pairplot_svg,
     render_facets,
-    render_facets_pdf,
     render_facets_svg,
     render_grid,
-    render_grid_pdf,
     render_grid_svg,
     scatter,
 )
@@ -202,28 +196,3 @@ def _composition_svg(index: Int) raises -> SvgCanvas:
     if index == 4:
         return clustermap_svg(_matrix(), width=420, height=360)
     raise Error("_composition_svg(): no composition at index " + String(index))
-
-
-def _composition_pdf(index: Int) raises -> PdfCanvas:
-    """Composition `index` rendered to a one-page PDF, the same figure
-    as `_composition_raster` and `_composition_svg`.
-
-    A third entry point per composition rather than a conversion of one
-    of the others: that is the whole point of the contract #372 states,
-    that nothing is resampled on the way out.
-    """
-    if index == 0:
-        return render_facets_pdf(_facet_plots(), 2, title="Facets")
-    if index == 1:
-        return render_grid_pdf(
-            _grid_plots(), _grid_cells(), 520, 420, align_axes=True
-        )
-    if index == 2:
-        var c = _columns()
-        return pairplot_pdf(c[0], c[1], cell_width=140, cell_height=120)
-    if index == 3:
-        var s = _series()
-        return jointplot_pdf(s[0], s[1], width=360, height=360)
-    if index == 4:
-        return clustermap_pdf(_matrix(), width=420, height=360)
-    raise Error("_composition_pdf(): no composition at index " + String(index))
