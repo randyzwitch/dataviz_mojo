@@ -11,7 +11,11 @@ from test_output_digest import _digest_lines
 def main() raises:
     var lines = _digest_lines()
     var out = String(
-        "# One line per Mark: name, raster digest, svg bytes, svg digest.\n"
+        "# One line per figure: name, raster digest, svg bytes, svg"
+        " digest.\n"
+        "# Every Mark first, then the compositions, which are"
+        " hand-maintained\n"
+        "# in tests/_composition_registry.mojo.\n"
         "# Regenerate with `pixi run digest-update`; see"
         " tests/test_output_digest.mojo.\n"
     )
