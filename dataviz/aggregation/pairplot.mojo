@@ -25,7 +25,9 @@ from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.scale import MinMax
 from dataviz.core.theme import Theme
 from dataviz.binned.histogram import bin_edges, histogram_bins
-from dataviz.facets import render_facets
+from canvas.vector.svg import SvgCanvas
+
+from dataviz.facets import render_facets, render_facets_svg
 from dataviz.plot import Plot
 
 
@@ -59,75 +61,39 @@ def _column_extent(values: List[Float64]) raises -> MinMax:
     return MinMax(lo - pad, hi + pad)
 
 
-def pairplot[
+def _pairplot_panels[
     dtype: DType
 ](
     columns: List[List[Scalar[dtype]]],
     names: List[String],
-    theme: Theme = Theme(),
-    cell_width: Int = 220,
-    cell_height: Int = 180,
-    bins: Int = 10,
-    title: String = "",
-) raises -> Canvas:
-    """Every variable against every other, with distributions down the
-    diagonal (#353).
+    theme: Theme,
+    cell_width: Int,
+    cell_height: Int,
+    bins: Int,
+) raises -> List[Plot]:
+    """The n-squared panels `pairplot()` lays out, built once for both
+    the raster and the vector form (#620).
 
-    Returns a rendered `Canvas` rather than a `Plot`, because a pairplot
-    is a *figure* of n-squared panels and `Plot` is one chart. That is
-    the same reason `render_facets()` returns a canvas.
-
-    Column `j` shares one x-domain and row `i` shares one y-domain, both
-    taken from the variable's own padded range, so every panel showing a
-    variable draws it at the same scale. A grid of independently scaled
-    cells would look identical and mean something else.
-
-    The diagonal uses `Mark.HISTOGRAM` rather than a bar chart of bin
-    labels, because that one draws its rectangles at numeric x positions
-    and so lines up with the scatter panels in its column. A bar chart's
-    categorical axis would not.
-
-    The diagonal is variable `i`'s histogram. Its y-axis is a count and
-    therefore does not share the row's domain, which is the one place
-    the grid's scale rule deliberately does not apply.
-
-    Example:
-        ```mojo
-        from dataviz import pairplot, save
-
-        def main() raises:
-            # Illustrative measurements for a dozen sedans: engine size
-            # in liters, horsepower, and highway miles per gallon.
-            var columns: List[List[Float64]] = [
-                [1.5, 1.6, 1.8, 2.0, 2.0, 2.4, 2.5, 3.0, 3.3, 3.5, 4.0, 4.4],
-                [118, 132, 140, 158, 170, 185, 203, 255, 268, 290, 335, 375],
-                [38, 36, 34, 31, 30, 28, 27, 24, 23, 21, 19, 17],
-            ]
-            var c = pairplot(
-                columns,
-                ["Engine (L)", "Horsepower", "MPG"],
-                title="Sedan specifications, pairwise",
-            )
-            save(c, "docs/src/examples/out_pairplot.png")
-        ```
+    Everything that decides what the figure *says* -- the shared
+    domains, the histogram diagonal, the panel titles -- is here;
+    the two entry points differ only in which `render_facets` they hand
+    the result to, so the two can never drift into drawing different
+    charts.
 
     Args:
-        columns: One list per variable, all the same length.
-        names: One label per variable, used as each panel's axis title.
+        columns: One list per variable.
+        names: One label per variable.
         theme: Applied to every panel.
-        cell_width: Each panel's width in pixels.
+        cell_width: Each panel's width.
         cell_height: Each panel's height.
         bins: Histogram bins on the diagonal.
-        title: A figure title above the whole grid; the figure grows by
-            the title's band so the panels keep `cell_height`. Empty
-            for none.
 
     Returns:
-        The rendered figure, `len(columns)` panels across.
+        The panels, row-major.
 
     Raises:
-        Error: Fewer than two variables, a name count that does not match,
-            columns of differing length, or an empty column.
+        Error: Fewer than two variables, a name count that does not
+            match, columns of differing length, or an empty column.
     """
     var n = len(columns)
     if n < 2:
@@ -192,4 +158,120 @@ def pairplot[
                     .size(cell_width, cell_height)
                     .labels(x_title=names[j], y_title=names[i])
                 )
-    return render_facets(plots, n, title=title)
+    return plots^
+
+
+def pairplot[
+    dtype: DType
+](
+    columns: List[List[Scalar[dtype]]],
+    names: List[String],
+    theme: Theme = Theme(),
+    cell_width: Int = 220,
+    cell_height: Int = 180,
+    bins: Int = 10,
+    title: String = "",
+) raises -> Canvas:
+    """Every variable against every other, with distributions down the
+    diagonal (#353).
+
+    Returns a rendered `Canvas` rather than a `Plot`, because a pairplot
+    is a *figure* of n-squared panels and `Plot` is one chart. That is
+    the same reason `render_facets()` returns a canvas.
+
+    Column `j` shares one x-domain and row `i` shares one y-domain, both
+    taken from the variable's own padded range, so every panel showing a
+    variable draws it at the same scale. A grid of independently scaled
+    cells would look identical and mean something else.
+
+    The diagonal uses `Mark.HISTOGRAM` rather than a bar chart of bin
+    labels, because that one draws its rectangles at numeric x positions
+    and so lines up with the scatter panels in its column. A bar chart's
+    categorical axis would not.
+
+    The diagonal is variable `i`'s histogram. Its y-axis is a count and
+    therefore does not share the row's domain, which is the one place
+    the grid's scale rule deliberately does not apply.
+
+    Example:
+        ```mojo
+        from dataviz import pairplot_svg, save
+
+        def main() raises:
+            # Illustrative measurements for a dozen sedans: engine size
+            # in liters, horsepower, and highway miles per gallon.
+            var columns: List[List[Float64]] = [
+                [1.5, 1.6, 1.8, 2.0, 2.0, 2.4, 2.5, 3.0, 3.3, 3.5, 4.0, 4.4],
+                [118, 132, 140, 158, 170, 185, 203, 255, 268, 290, 335, 375],
+                [38, 36, 34, 31, 30, 28, 27, 24, 23, 21, 19, 17],
+            ]
+            var c = pairplot_svg(
+                columns,
+                ["Engine (L)", "Horsepower", "MPG"],
+                title="Sedan specifications, pairwise",
+            )
+            save(c, "docs/src/examples/out_pairplot.svg")
+        ```
+
+    Args:
+        columns: One list per variable, all the same length.
+        names: One label per variable, used as each panel's axis title.
+        theme: Applied to every panel.
+        cell_width: Each panel's width in pixels.
+        cell_height: Each panel's height.
+        bins: Histogram bins on the diagonal.
+        title: A figure title above the whole grid; the figure grows by
+            the title's band so the panels keep `cell_height`. Empty
+            for none.
+
+    Returns:
+        The rendered figure, `len(columns)` panels across.
+
+    Raises:
+        Error: Fewer than two variables, a name count that does not match,
+            columns of differing length, or an empty column.
+    """
+    return render_facets(
+        _pairplot_panels(columns, names, theme, cell_width, cell_height, bins),
+        len(columns),
+        title=title,
+    )
+
+
+def pairplot_svg[
+    dtype: DType
+](
+    columns: List[List[Scalar[dtype]]],
+    names: List[String],
+    theme: Theme = Theme(),
+    cell_width: Int = 220,
+    cell_height: Int = 180,
+    bins: Int = 10,
+    title: String = "",
+) raises -> SvgCanvas:
+    """`pairplot()`'s vector counterpart, over the same panels (#620).
+
+    A pair plot is the figure most likely to end up in a paper, and the
+    raster form is either large or soft at print resolution. This gives
+    it the same vector output every single-chart function has had.
+
+    Args:
+        columns: One list per variable, all the same length.
+        names: One label per variable, used as each panel's axis title.
+        theme: Applied to every panel.
+        cell_width: Each panel's width in points.
+        cell_height: Each panel's height.
+        bins: Histogram bins on the diagonal.
+        title: A figure title above the whole grid.
+
+    Returns:
+        The rendered figure, `len(columns)` panels across.
+
+    Raises:
+        Error: As `pairplot()`.
+    """
+    return render_facets_svg(
+        _pairplot_panels(columns, names, theme, cell_width, cell_height, bins),
+        len(columns),
+        title=title,
+    )
