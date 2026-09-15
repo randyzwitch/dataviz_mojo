@@ -145,11 +145,20 @@ struct Camera3D(ImplicitlyCopyable, Movable):
 
             horizontal = x'
             vertical   = -y' sin(e) + z cos(e)
-            depth      =  y' cos(e) + z sin(e)
+            depth      = -(y' cos(e) + z sin(e))
 
-        At `elev=0, azim=0` this degenerates to `(x, z)` with depth `y`
-        -- a plain side-on view -- which is the case a test can check
-        against the 2D frame without trusting any of the trigonometry.
+        **The minus sign on depth is the whole of the convention.** The
+        camera sits at large `y'` and large `z` -- above the scene and
+        on the near side of it -- which is what `vertical` already says
+        by putting large `y'` low on the page, where the near edge of
+        an elevated view belongs. Distance from that camera therefore
+        *decreases* as `y'` and `z` grow, so the raw combination is
+        nearness and the negation is what makes larger mean farther.
+
+        At `elev=0, azim=0` this degenerates to `(x, z)` with depth
+        `-y` -- a plain side-on view -- which is the case a test can
+        check against the 2D frame without trusting any of the
+        trigonometry.
 
         Args:
             x: Data-space x.
@@ -164,5 +173,5 @@ struct Camera3D(ImplicitlyCopyable, Movable):
         return Projected(
             rx,
             -ry * self._sin_elev + z * self._cos_elev,
-            ry * self._cos_elev + z * self._sin_elev,
+            -(ry * self._cos_elev + z * self._sin_elev),
         )

@@ -1499,14 +1499,18 @@ def test_sweep_log_ticks_are_1_2_or_5_decade_positions_inside_the_domain() raise
 
 
 def test_the_degenerate_view_is_a_plain_side_on_projection() raises:
-    # elev=0, azim=0 should collapse to (x, z) with depth y: a flat
+    # elev=0, azim=0 should collapse to (x, z) with depth -y: a flat
     # side-on view that can be reasoned about without trusting any
-    # trigonometry. Everything else builds on this being right.
+    # trigonometry. Everything else builds on this being right. The
+    # minus is the camera's side: it stands at large y, so growing y
+    # comes toward it and the distance from it falls.
     var cam = Camera3D(elev=0.0, azim=0.0)
     var p = cam.project(3.0, 7.0, 5.0)
     assert_almost_equal(p.x, 3.0, atol=1e-12, msg="x is not the data x")
     assert_almost_equal(p.y, 5.0, atol=1e-12, msg="y is not the data z")
-    assert_almost_equal(p.depth, 7.0, atol=1e-12, msg="depth is not the data y")
+    assert_almost_equal(
+        p.depth, -7.0, atol=1e-12, msg="depth is not the negated data y"
+    )
 
 
 def test_a_quarter_turn_of_azimuth_swaps_the_horizontal_axis() raises:
@@ -1519,7 +1523,7 @@ def test_a_quarter_turn_of_azimuth_swaps_the_horizontal_axis() raises:
         on_x.x, 0.0, atol=1e-12, msg="the x axis still points across"
     )
     assert_almost_equal(
-        on_x.depth, -1.0, atol=1e-12, msg="the x axis did not turn away"
+        on_x.depth, 1.0, atol=1e-12, msg="the x axis did not turn away"
     )
     var on_y = cam.project(0.0, 1.0, 0.0)
     assert_almost_equal(
@@ -1529,13 +1533,14 @@ def test_a_quarter_turn_of_azimuth_swaps_the_horizontal_axis() raises:
 
 def test_looking_straight_down_flattens_z() raises:
     # elev=90 is the top-down view: the z axis points at the camera, so
-    # it contributes nothing to the page and everything to depth.
+    # it contributes nothing to the page and everything to depth --
+    # negatively, since a taller point is a nearer one from up there.
     var cam = Camera3D(elev=90.0, azim=0.0)
     var p = cam.project(0.0, 0.0, 5.0)
     assert_almost_equal(p.x, 0.0, atol=1e-12, msg="z moved the point across")
     assert_almost_equal(p.y, 0.0, atol=1e-12, msg="z moved the point up")
     assert_almost_equal(
-        p.depth, 5.0, atol=1e-12, msg="z is not the whole of the depth"
+        p.depth, -5.0, atol=1e-12, msg="z is not the whole of the depth"
     )
     # And the data's y now runs down the page rather than into it.
     var q = cam.project(0.0, 1.0, 0.0)
@@ -1561,12 +1566,47 @@ def test_height_rises_on_the_page() raises:
 def test_a_point_further_from_the_camera_sorts_farther() raises:
     # Depth is an ordering key and nothing else, so what matters is the
     # comparison, not the value.
+    #
+    # Which point is the farther one is *derived*, not assumed. Naming
+    # one of them `far` and asserting it sorts farther only restates
+    # the convention, and restating it is how a sign error survives:
+    # every 3D mark sorted nearest-first for two releases under a test
+    # shaped that way.
+    #
+    # The page is what settles it. In a view from above, the near edge
+    # of the scene is the bottom one -- that is what an elevated view
+    # means -- so of two points differing only in y, whichever lands
+    # lower on the page is the nearer, and must carry the smaller
+    # depth. This ties the two halves of the projection together, which
+    # is the coupling that broke.
     var cam = Camera3D()
-    var near = cam.project(0.0, -1.0, 0.0)
-    var far = cam.project(0.0, 1.0, 0.0)
+    var a = cam.project(0.0, -1.0, 0.0)
+    var b = cam.project(0.0, 1.0, 0.0)
+    var lower = a if a.y < b.y else b
+    var higher = b if a.y < b.y else a
     assert_true(
-        far.depth > near.depth,
-        "the farther point did not get the larger depth",
+        a.y != b.y, "the two points landed at the same height on the page"
+    )
+    assert_true(
+        higher.depth > lower.depth,
+        (
+            "the point higher on the page did not sort farther, so depth"
+            " and the page disagree about which way the camera is"
+        ),
+    )
+
+
+def test_a_taller_point_sorts_nearer_from_above() raises:
+    # The same coupling on the other axis, and the one a surface of
+    # boxes shows first: from a camera above, a raised point is closer
+    # to it, so the top of a box has to sort nearer than its base or
+    # the base is drawn over the box.
+    var cam = Camera3D()
+    var base = cam.project(0.0, 0.0, 0.0)
+    var top = cam.project(0.0, 0.0, 1.0)
+    assert_true(
+        top.depth < base.depth,
+        "a raised point did not sort nearer than the one below it",
     )
 
 
@@ -1622,7 +1662,7 @@ def test_the_rotations_compose_in_one_order() raises:
     )
     assert_almost_equal(
         p.depth,
-        -0.6123724356957945,
+        0.6123724356957945,
         atol=1e-12,
         msg="depth disagrees with hand math",
     )

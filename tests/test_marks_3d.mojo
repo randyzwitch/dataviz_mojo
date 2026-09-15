@@ -38,16 +38,17 @@ def _flat_grid(rows: Int, cols: Int, value: Float64) -> List[List[Float64]]:
     return z^
 
 
-def _walled_grid(far: Bool) -> List[List[Float64]]:
+def _walled_grid(near: Bool) -> List[List[Float64]]:
     """A flat field with a wall standing along one edge of it.
 
-    At the default view row 4 is the far edge and row 0 the near one.
-    The far wall is the case that needs the depth sort: its lower part
-    lies behind the plane in projection, so the plane has to be drawn
-    over it.
+    At the default view the last row is the near edge: `vertical` puts
+    a growing y low on the page, and the bottom of an elevated view is
+    the edge closest to the reader. The near wall is the case that
+    needs the depth sort -- it stands between the reader and the plane,
+    so it has to be drawn over it.
     """
     var z = _flat_grid(5, 5, 0.0)
-    var wall = 4 if far else 0
+    var wall = 4 if near else 0
     for c in range(5):
         z[wall][c] = 4.0
     return z^
@@ -89,26 +90,28 @@ def test_depth_sorted_faces_keeps_ties_in_their_original_order() raises:
     assert_equal(order[2], 2)
 
 
-def test_a_wall_behind_the_field_never_eats_into_it() raises:
-    # The whole point of the depth sort, stated without a threshold:
-    # the flat plane is in front of a far wall and in front of nothing
-    # at all when the wall is near, so both renders must show exactly as
-    # much plane as each other.
+def test_a_near_wall_hides_the_plane_and_a_far_one_does_not() raises:
+    # The whole point of the depth sort, and stated so that only the
+    # right order passes. A wall on the near edge stands between the
+    # reader and the plane, so it must cover part of it. The same wall
+    # on the far edge is behind the plane and must cover none of it.
     #
-    # Measured here: 9508 pixels either way with the faces handed over
-    # farthest first. Reverse that order and the far case drops to 6887
-    # -- the wall painted over a quarter of the plane -- while the near
-    # case is unchanged, which is why the assertion compares the two
-    # rather than checking one against a number.
-    var near = _count_plane_pixels(_walled_grid(False))
-    var far = _count_plane_pixels(_walled_grid(True))
-    assert_true(near > 5000, "the plane barely drew at all: " + String(near))
-    assert_equal(
-        far,
-        near,
+    # Measured: 6887 pixels of plane with the wall near and 9508 with it
+    # far. Hand the faces over nearest-first instead and the two swap,
+    # so a test that only checked one of them, or only that they
+    # differed, would pass with the sort inverted -- which is how an
+    # inverted sort survived two releases here.
+    var near = _count_plane_pixels(_walled_grid(True))
+    var far = _count_plane_pixels(_walled_grid(False))
+    assert_true(far > 5000, "the plane barely drew at all: " + String(far))
+    assert_true(
+        near < far,
         (
-            "a wall on the far side covered part of the plane in front of"
-            " it -- the faces are not going over farthest first"
+            "a wall on the near edge covered none of the plane behind it ("
+            + String(near)
+            + " against "
+            + String(far)
+            + ") -- the faces are not going over farthest first"
         ),
     )
 
