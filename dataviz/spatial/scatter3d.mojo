@@ -11,10 +11,10 @@ painter's-algorithm rasteriser with no z-buffer, so a nearer point hides
 a farther one only by being drawn second. For points that is a sort by
 projected depth and it is exact. For a polyline it is not: a line is
 drawn in data order, so a segment that passes behind another is drawn
-over it if it comes later in the series. `mplot3d` has the same
-behaviour for `plot3d` -- the fix is splitting segments at their
-crossings, which needs geometry canvas does not have -- and it is
-stated here rather than left to be discovered.
+over it if it comes later in the series. The fix is splitting
+segments at their crossings, which needs geometry canvas does not
+have, so the behavior is stated here rather than left to be
+discovered.
 """
 
 from canvas.color import Color
@@ -289,9 +289,8 @@ def _render_plot3d[
     **Not depth sorted, and it cannot be.** A polyline is one connected
     path; reordering its segments by depth would reorder the line
     itself. So a segment passing behind another is drawn over it when it
-    comes later in the series. `mplot3d` behaves the same way, and the
-    fix -- splitting segments where they cross in projection -- needs
-    geometry canvas does not have.
+    comes later in the series. The fix -- splitting segments where
+    they cross in projection -- needs geometry canvas does not have.
     """
     _validate_xyz(plot)
     var theme = plot._theme
@@ -351,8 +350,9 @@ def scatter3d[
         x: The x column.
         y: The y column, the same length.
         z: The z column, the same length.
-        elev: Degrees above the x-y plane; `mplot3d`'s `view_init`.
-        azim: Degrees of rotation about the z axis.
+        elev: Degrees to look down on the scene from, above the x-y
+            plane.
+        azim: Degrees to turn the scene through, about the z axis.
         theme: Full styling knobs beyond this function's own
             parameters -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot` (`.size()`).
@@ -426,7 +426,7 @@ def plot3d[
     **Not depth sorted**, and it cannot be: a polyline is one connected
     path, so reordering its segments by depth would reorder the line
     itself. A segment passing behind another is drawn over it when it
-    comes later in the series. `mplot3d` behaves the same way; the fix
+    comes later in the series; the fix
     is splitting segments where they cross in projection, which needs
     geometry the renderer does not have.
 
@@ -434,8 +434,9 @@ def plot3d[
         x: The x column.
         y: The y column, the same length.
         z: The z column, the same length.
-        elev: Degrees above the x-y plane; `mplot3d`'s `view_init`.
-        azim: Degrees of rotation about the z axis.
+        elev: Degrees to look down on the scene from, above the x-y
+            plane.
+        azim: Degrees to turn the scene through, about the z axis.
         theme: Full styling knobs beyond this function's own
             parameters -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot` (`.size()`).
