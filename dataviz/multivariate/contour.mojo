@@ -1,7 +1,6 @@
 from std.collections import Dict
 
 from canvas.color import Color
-from canvas.geometry import round_to_int
 from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.path import Path
@@ -17,9 +16,9 @@ from dataviz.plot import (
     _LegendLayout,
     _RenderResult,
     _draw_continuous_axis_frame,
-    _draw_legend,
-    _dynamic_legend_width,
+    _draw_legend_at,
     _finished,
+    _legend_layout,
     _levels_descending,
 )
 from dataviz.core.scale import _format_tick
@@ -678,10 +677,14 @@ def _render_contour[
         for v in _levels_descending(levels):
             level_labels.append(_format_tick(v, 1, theme.y_tick_format))
             level_colors.append(legend_scale.color_at(v))
-        legend.right = _dynamic_legend_width(
-            level_labels, sc0.legend_swatch_size, sc0, cache=cache
+        legend = _legend_layout(
+            level_labels,
+            sc0.legend_swatch_size,
+            sc0,
+            theme,
+            ox1 - ox0,
+            cache=cache,
         )
-        legend.active = True
 
     var frame = _draw_continuous_axis_frame(
         target,
@@ -727,16 +730,18 @@ def _render_contour[
                     )
                 target.stroke_path_aa(path, color, width=frame.sc.line_width)
 
-    if legend.active:
-        _draw_legend(
-            target,
-            frame.text_requests,
-            level_labels,
-            level_colors,
-            round_to_int(frame.x_scale.range_max) + frame.sc.margin_right,
-            frame.py0,
-            theme,
-        )
+    _draw_legend_at(
+        target,
+        frame.text_requests,
+        level_labels,
+        level_colors,
+        legend,
+        frame.px0,
+        frame.py0,
+        frame.px1,
+        frame.py1,
+        theme,
+    )
 
     return frame.result()
 
@@ -815,10 +820,14 @@ def _render_contourf[
         for v in _levels_descending(levels):
             level_labels.append(_format_tick(v, 1, theme.y_tick_format))
             level_colors.append(legend_scale.color_at(v))
-        legend.right = _dynamic_legend_width(
-            level_labels, sc0.legend_swatch_size, sc0, cache=cache
+        legend = _legend_layout(
+            level_labels,
+            sc0.legend_swatch_size,
+            sc0,
+            theme,
+            ox1 - ox0,
+            cache=cache,
         )
-        legend.active = True
 
     var frame = _draw_continuous_axis_frame(
         target,
@@ -871,16 +880,18 @@ def _render_contourf[
                     fill_rule=FillRule.NONZERO,
                 )
 
-    if legend.active:
-        _draw_legend(
-            target,
-            frame.text_requests,
-            level_labels,
-            level_colors,
-            round_to_int(frame.x_scale.range_max) + frame.sc.margin_right,
-            frame.py0,
-            theme,
-        )
+    _draw_legend_at(
+        target,
+        frame.text_requests,
+        level_labels,
+        level_colors,
+        legend,
+        frame.px0,
+        frame.py0,
+        frame.px1,
+        frame.py1,
+        theme,
+    )
 
     return frame.result()
 

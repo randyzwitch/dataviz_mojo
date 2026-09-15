@@ -821,6 +821,116 @@ def _draw_continuous_color_legend[
     return y + bar_height + sc.legend_row_gap
 
 
+def _continuous_color_legend_layout(
+    color_scale: ColorScale,
+    theme: Theme,
+    sc: _Scaled,
+    *,
+    mut cache: FontCache,
+) raises -> _LegendLayout:
+    """How much room a bar-only continuous color legend needs and on
+    which edge, for the marks whose only legend is that bar
+    (`Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`/`IMSHOW`/`PCOLORMESH`/
+    `HEXBIN`/`QUIVER`/`STREAMPLOT`).
+
+    `_legend_reserve_for` answers the same question for a point mark,
+    whose legend can also carry categories and a size ramp. This is the
+    one-section case, so a row reserves `_continuous_legend_row_height`
+    with no size section and a column reserves the bar plus its widest
+    label.
+
+    Args:
+        color_scale: The scale the mark colored with; its labels set the
+            column width.
+        theme: Supplies `show_legend` and `legend_position`.
+        sc: The render's scaled layout metrics.
+        cache: The render's shared font cache, for measuring labels.
+
+    Returns:
+        The layout; `active` is False when `Theme.show_legend` is off.
+    """
+    var layout = _LegendLayout()
+    if not theme.show_legend:
+        return layout^
+    layout.active = True
+    layout.position = theme.legend_position
+    if theme.legend_position == LegendPosition.TOP:
+        layout.top = _continuous_legend_row_height(sc, False)
+    elif theme.legend_position == LegendPosition.BOTTOM:
+        layout.bottom = _continuous_legend_row_height(sc, False)
+    else:
+        var width = _dynamic_legend_width(
+            _continuous_legend_labels(color_scale, theme),
+            sc.continuous_legend_bar_width,
+            sc,
+            cache=cache,
+        )
+        if theme.legend_position == LegendPosition.LEFT:
+            layout.left = width
+        else:
+            layout.right = width
+    return layout^
+
+
+def _draw_continuous_color_legend_at[
+    T: DrawTarget
+](
+    mut target: T,
+    mut text_requests: List[_TextRequest],
+    color_scale: ColorScale,
+    layout: _LegendLayout,
+    plot_x0: Int,
+    plot_y0: Int,
+    plot_x1: Int,
+    plot_y1: Int,
+    theme: Theme,
+    *,
+    mut cache: FontCache,
+) raises:
+    """Draw a continuous color bar on whichever edge `layout` reserved,
+    against a plot rect that already has that reserve taken out of it.
+
+    `_draw_legend_at` is this for a categorical legend, and this exists
+    for the same reason: a mark that picks the drawer itself picks the
+    vertical one, and `Theme.legend_position` is then a setting that is
+    accepted and silently does nothing (#618). Routing here means a mark
+    names the legend it has, not the shape it happens to be drawn in.
+
+    `RIGHT` lands where every mark drew before: `_legend_column_x` is
+    `plot_x1 + margin_right`, and the plot rect's right edge is what
+    those marks were passing as `x_scale.range_max`.
+
+    Args:
+        target: The draw target.
+        text_requests: Collected label draws, appended to.
+        color_scale: The scale whose stops and domain are shown.
+        layout: What `_continuous_color_legend_layout` returned.
+        plot_x0: Final plot rect's left edge.
+        plot_y0: Final plot rect's top edge.
+        plot_x1: Final plot rect's right edge.
+        plot_y1: Final plot rect's bottom edge.
+        theme: Supplies colors and font.
+        cache: The render's shared font cache; the row form measures its
+            end labels to place the bar.
+
+    Raises:
+        Error: Whatever the two drawers raise.
+    """
+    if not layout.active:
+        return
+    var sc = _Scaled(theme)
+    var x = _legend_origin_x(layout, plot_x0, plot_x1, sc)
+    var y = _legend_origin_y(layout, plot_y0, plot_y1, sc)
+    if layout.position.is_horizontal():
+        _ = _draw_continuous_color_legend_h(
+            target, text_requests, color_scale, x, y, theme, cache=cache
+        )
+    else:
+        _ = _draw_continuous_color_legend(
+            target, text_requests, color_scale, x, y, theme
+        )
+
+
 def _draw_continuous_size_legend[
     T: DrawTarget
 ](
