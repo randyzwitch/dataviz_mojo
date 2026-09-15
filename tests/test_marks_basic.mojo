@@ -4033,12 +4033,8 @@ def _above_subpaths(
     # coordinates is the identity on the index, so this is the same
     # mapping the two scales were doing before #423 gave the mark real
     # coordinates.
-    var unit_x = _GridAxis(
-        List[Float64](), LinearScale(0.0, 1.0, 0.0, 100.0)
-    )
-    var unit_y = _GridAxis(
-        List[Float64](), LinearScale(0.0, 1.0, 0.0, 100.0)
-    )
+    var unit_x = _GridAxis(List[Float64](), LinearScale(0.0, 1.0, 0.0, 100.0))
+    var unit_y = _GridAxis(List[Float64](), LinearScale(0.0, 1.0, 0.0, 100.0))
     var path = Path()
     return _append_above_region(path, z, rows, cols, level, unit_x, unit_y)
 
