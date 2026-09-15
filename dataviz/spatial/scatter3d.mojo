@@ -24,7 +24,15 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.camera3d import Camera3D
-from dataviz.core.frame3d import Frame3D, _Extent3D, _fit_frame3d
+from dataviz.core.frame3d import (
+    Frame3D,
+    _Extent3D,
+    _axis_ends,
+    _fit_frame3d,
+    _outward,
+    _point_on_axis,
+    _tick_edge,
+)
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -34,7 +42,9 @@ from dataviz.plot import (
     _min_max,
     _require_non_empty,
 )
+from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
+from canvas.text.render import TextAlign
 
 
 struct _Xyz(Copyable, Movable):
@@ -170,6 +180,56 @@ def _draw_box[
                 )
 
 
+def _tick_labels(
+    frame: Frame3D, theme: Theme, sc: _Scaled, mut out: List[_TextRequest]
+) raises:
+    """Label the three axes, each on the edge `_tick_edge` chose.
+
+    Values come from the same `LinearScale.ticks()` every 2D axis uses,
+    so a 3D axis is labelled at the same "nice" numbers and formatted by
+    the same `Theme.y_tick_format` -- a reader should not have to learn
+    a second convention because the chart gained an axis.
+
+    Alignment follows which side of the box the label landed on: a
+    label to the left of the cube ends at its anchor, one to the right
+    starts at it. Anchoring every label the same way would push half of
+    them back over the box they are labelling.
+    """
+    var gap = Float64(sc.tick_length + sc.label_gap)
+    for axis in range(3):
+        var ends = _axis_ends(frame, axis)
+        var scale = LinearScale(ends[0], ends[1], 0.0, 1.0)
+        var ticks = scale.ticks()
+        var labels = ticks.labels(theme.y_tick_format)
+        var edge = _tick_edge(frame, axis)
+        for i in range(len(ticks.values)):
+            var at = _point_on_axis(
+                frame, axis, ticks.values[i], edge[0], edge[1]
+            )
+            var placed = _outward(frame, at, gap)
+            # Left of the cube's centre reads right-to-left, so the text
+            # ends at the anchor; right of it, the text starts there.
+            var centre_x = frame.to_pixel(
+                (frame.extent.x.min + frame.extent.x.max) / 2.0,
+                (frame.extent.y.min + frame.extent.y.max) / 2.0,
+                (frame.extent.z.min + frame.extent.z.max) / 2.0,
+            )[0]
+            var align = (
+                TextAlign.RIGHT if placed[0] < centre_x else TextAlign.LEFT
+            )
+            out.append(
+                _TextRequest(
+                    Int(placed[0]),
+                    Int(placed[1] + sc.font_size * 0.35),
+                    labels[i],
+                    theme.text_color,
+                    sc.font_size,
+                    align,
+                    theme.font_family,
+                )
+            )
+
+
 def _render_scatter3d[
     T: DrawTarget
 ](
@@ -197,6 +257,8 @@ def _render_scatter3d[
     var py1 = oy1 - sc.margin_bottom
     var frame = _frame_for(plot, px0, py0, px1, py1)
     _draw_box(target, frame, theme, sc)
+    var text = List[_TextRequest]()
+    _tick_labels(frame, theme, sc, text)
 
     var order = _depth_order(plot, frame)
     var radius = sc.point_radius
@@ -206,7 +268,7 @@ def _render_scatter3d[
         # A circle, not `Theme.shape_by_category`'s cycle: shapes there
         # encode a category, and this mark has no category channel yet.
         target.fill_circle_aa(at[0], at[1], radius, theme.mark_color)
-    return _RenderResult(List[_TextRequest](), px0, py0, px1, py1)
+    return _RenderResult(text^, px0, py0, px1, py1)
 
 
 def _render_plot3d[
@@ -240,6 +302,8 @@ def _render_plot3d[
     var py1 = oy1 - sc.margin_bottom
     var frame = _frame_for(plot, px0, py0, px1, py1)
     _draw_box(target, frame, theme, sc)
+    var text = List[_TextRequest]()
+    _tick_labels(frame, theme, sc, text)
 
     var n = len(plot._xyz.x)
     if n >= 2:
@@ -254,7 +318,7 @@ def _render_plot3d[
             )
             path.line_to(at[0], at[1])
         target.stroke_path_aa(path, theme.mark_color, width=sc.line_width)
-    return _RenderResult(List[_TextRequest](), px0, py0, px1, py1)
+    return _RenderResult(text^, px0, py0, px1, py1)
 
 
 def scatter3d[
