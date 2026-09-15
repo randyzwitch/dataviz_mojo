@@ -218,9 +218,12 @@ def _render_surface3d[
     var text = List[_TextRequest]()
     _tick_labels(frame, theme, sc, text)
 
-    # One vertex per lattice point, shared by the faces that meet there:
-    # `fill_mesh` needs shared indices to know two faces touch, which is
-    # the whole basis of its seamless fill.
+    # One vertex per lattice point, shared by the faces that meet
+    # there. Not what makes the fill seamless -- `fill_mesh` decides
+    # that geometrically, by giving each sub-sample of a shared edge to
+    # exactly one face -- but it is what guarantees the two faces are
+    # talking about the same edge, and it projects each point once
+    # instead of up to six times.
     var points = List[FPoint]()
     for r in range(rows):
         for c in range(cols):
