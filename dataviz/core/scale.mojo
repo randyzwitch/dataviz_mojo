@@ -472,6 +472,125 @@ def _format_tick(value: Float64, decimals: Int, format: TickFormat) -> String:
     return format.prefix + _format_fixed(value, format._n) + format.suffix
 
 
+def _symlog_forward(value: Float64, linthresh: Float64) -> Float64:
+    """`value` in symlog space: linear within `[-linthresh, linthresh]`,
+    logarithmic outside it, and continuous where they meet.
+
+    The transform is
+
+        |v| <= t:  sign(v) * |v| / t
+        |v| >  t:  sign(v) * (1 + log10(|v| / t))
+
+    so `+/-t` maps to `+/-1` from both sides and zero maps to zero. The
+    linear region therefore occupies exactly as much axis as one decade
+    of the logarithmic region, which is matplotlib's `linscale=1.0` and
+    the only choice that makes the two halves comparable without a
+    second knob.
+
+    Signed data spanning orders of magnitude is the case this exists
+    for (#368): a log axis cannot show zero or negative values at all,
+    and a linear one collapses everything small against the largest
+    value.
+
+    Args:
+        value: The real data value.
+        linthresh: Half-width of the linear region; must be positive,
+            which `scale_x_symlog()`/`scale_y_symlog()` enforce.
+
+    Returns:
+        The transformed value.
+    """
+    var mag = abs(value)
+    var sign = 1.0 if value >= 0.0 else -1.0
+    if mag <= linthresh:
+        return sign * mag / linthresh
+    return sign * (1.0 + log10(mag / linthresh))
+
+
+def _symlog_inverse(value: Float64, linthresh: Float64) -> Float64:
+    """`_symlog_forward`'s exact inverse, for turning an axis position
+    back into a data value.
+
+    Args:
+        value: A value in symlog space.
+        linthresh: The same threshold the forward transform used.
+
+    Returns:
+        The real data value.
+    """
+    var mag = abs(value)
+    var sign = 1.0 if value >= 0.0 else -1.0
+    if mag <= 1.0:
+        return sign * mag * linthresh
+    return sign * linthresh * pow(10.0, mag - 1.0)
+
+
+def _symlog_ticks(
+    domain_min: Float64, domain_max: Float64, linthresh: Float64
+) -> Ticks:
+    """Tick positions for a symlog-scaled `LinearScale`. `domain_min`/
+    `domain_max` are in symlog space (per `LinearScale.to_pixel()`), and
+    the returned values are in real units, as `_log_ticks` does.
+
+    Zero, then `+/-linthresh`, then a decade per power of ten beyond it
+    on whichever sides the domain reaches. Zero is always included when
+    it is in range: it is the value a symlog axis exists to be able to
+    show, and an axis that could show it but does not label it would be
+    hiding its own point.
+
+    Decades rather than `1`/`2`/`5` subdivisions, because a symlog axis
+    is usually reached for when the span is wide, and the linear region
+    already carries the detail near zero.
+    """
+    var values = List[Float64]()
+    var labels = List[String]()
+
+    var lo = domain_min
+    var hi = domain_max
+    if lo > hi:
+        var swap = lo
+        lo = hi
+        hi = swap
+
+    # Walk symlog space in whole steps: 0 is 0, +/-1 is +/-linthresh, and
+    # each further unit is another decade. Working in the transformed
+    # space rather than in real units is what keeps the two sides
+    # symmetric by construction.
+    var first = Int(floor(lo))
+    var last = Int(ceil(hi))
+    for k in range(first, last + 1):
+        var t = Float64(k)
+        if t < lo - 1e-9 or t > hi + 1e-9:
+            continue
+        var v = _symlog_inverse(t, linthresh)
+        # Snap the linear region's own endpoints so a tick at +/-1 reads
+        # as linthresh exactly rather than as its round trip.
+        if k == 0:
+            v = 0.0
+        elif k == 1:
+            v = linthresh
+        elif k == -1:
+            v = -linthresh
+        values.append(v)
+        var decimals = 0
+        if abs(v) > 0.0 and abs(v) < 1.0:
+            decimals = max(0, -Int(floor(log10(abs(v)))))
+        labels.append(_format_fixed(v, decimals))
+
+    if len(values) == 0:
+        var ends: List[Float64] = [
+            _symlog_inverse(lo, linthresh),
+            _symlog_inverse(hi, linthresh),
+        ]
+        var end_labels: List[String] = [
+            _format_fixed(ends[0], 0),
+            _format_fixed(ends[1], 0),
+        ]
+        return Ticks(ends^, 0, end_labels^)
+
+    return Ticks(values^, 0, labels^)
+
+
 def _log_ticks(domain_min: Float64, domain_max: Float64) -> Ticks:
     """Tick positions for a log10-scaled `LinearScale`. `domain_min`/
     `domain_max` are in log10-space (per `LinearScale.to_pixel()`), so
@@ -909,6 +1028,16 @@ struct LinearScale(ImplicitlyCopyable, Movable):
     every caller keeps passing real-unit values.
     """
 
+    var is_symlog: Bool
+    """Whether `domain_min`/`domain_max` are in symlog space and
+    `to_pixel()` should transform through `_symlog_forward` (#368).
+    Mutually exclusive with `is_log`: a value cannot be both linear
+    near zero and logarithmic there."""
+
+    var symlog_linthresh: Float64
+    """Half-width of the linear region, in real units. Meaningless
+    unless `is_symlog`; kept positive by the builders."""
+
     var is_time: Bool
     """Whether the domain is POSIX seconds and the axis should be
     labeled as dates and times. Set by `Plot.encode_time()`; sends
@@ -928,6 +1057,8 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         range_min: Float64,
         range_max: Float64,
         is_log: Bool = False,
+        is_symlog: Bool = False,
+        symlog_linthresh: Float64 = 1.0,
         is_time: Bool = False,
         tz_offset: Int = 0,
     ):
@@ -942,6 +1073,9 @@ struct LinearScale(ImplicitlyCopyable, Movable):
             is_log: Whether `domain_min`/`domain_max` are in log10-
                 space and `to_pixel()` should log-transform its input
                 first; see this field's own docstring.
+            is_symlog: Whether the domain is in symlog space.
+            symlog_linthresh: Half-width of the linear region, real
+                units, when `is_symlog`.
             is_time: Whether the domain is POSIX seconds and the ticks
                 should be dates and times; see the field's docstring.
             tz_offset: The data's offset from UTC in seconds, for
@@ -952,6 +1086,8 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         self.range_min = range_min
         self.range_max = range_max
         self.is_log = is_log
+        self.is_symlog = is_symlog
+        self.symlog_linthresh = symlog_linthresh
         self.is_time = is_time
         self.tz_offset = tz_offset
 
@@ -974,8 +1110,9 @@ struct LinearScale(ImplicitlyCopyable, Movable):
 
     def to_pixel(self, value: Float64) -> Float64:
         """Map a data value onto its pixel position: `scale()` times `value`
-        plus `translate()`. Takes `log10(value)` first when `is_log` is set;
-        `value` is always the real, untransformed data value.
+        plus `translate()`. Takes `log10(value)` first when `is_log` is
+        set, or `_symlog_forward(value)` when `is_symlog` is; `value` is
+        always the real, untransformed data value.
 
         Args:
             value: The data value to map, in real units (never
@@ -984,7 +1121,11 @@ struct LinearScale(ImplicitlyCopyable, Movable):
         Returns:
             The pixel position `value` lands on.
         """
-        var v = log10(value) if self.is_log else value
+        var v = value
+        if self.is_log:
+            v = log10(value)
+        elif self.is_symlog:
+            v = _symlog_forward(value, self.symlog_linthresh)
         return v * self.scale() + self.translate()
 
     def ticks(self, target_count: Int = 5) raises -> Ticks:
@@ -1019,6 +1160,10 @@ struct LinearScale(ImplicitlyCopyable, Movable):
             )
         if self.is_log:
             return _log_ticks(self.domain_min, self.domain_max)
+        if self.is_symlog:
+            return _symlog_ticks(
+                self.domain_min, self.domain_max, self.symlog_linthresh
+            )
         if self.domain_min == self.domain_max:
             var single: List[Float64] = [self.domain_min]
             return Ticks(single^, 0)
