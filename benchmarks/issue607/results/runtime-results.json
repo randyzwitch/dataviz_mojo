@@ -1,0 +1,254 @@
+[
+  {
+    "tree": "baseline",
+    "run": 1,
+    "mark": "line",
+    "backend": "raster",
+    "median_s": 0.0015417709946632385
+  },
+  {
+    "tree": "baseline",
+    "run": 1,
+    "mark": "line",
+    "backend": "svg",
+    "median_s": 0.0010842750780284405
+  },
+  {
+    "tree": "baseline",
+    "run": 1,
+    "mark": "line",
+    "backend": "pdf",
+    "median_s": 0.0019942460348829627
+  },
+  {
+    "tree": "baseline",
+    "run": 1,
+    "mark": "hexbin",
+    "backend": "raster",
+    "median_s": 0.004745388985611498
+  },
+  {
+    "tree": "baseline",
+    "run": 1,
+    "mark": "hexbin",
+    "backend": "svg",
+    "median_s": 0.0013825759524479508
+  },
+  {
+    "tree": "baseline",
+    "run": 1,
+    "mark": "hexbin",
+    "backend": "pdf",
+    "median_s": 0.0022498490288853645
+  },
+  {
+    "tree": "prototype",
+    "run": 1,
+    "mark": "line",
+    "backend": "raster",
+    "median_s": 0.0016459969338029623
+  },
+  {
+    "tree": "prototype",
+    "run": 1,
+    "mark": "line",
+    "backend": "svg",
+    "median_s": 0.0011359530035406351
+  },
+  {
+    "tree": "prototype",
+    "run": 1,
+    "mark": "line",
+    "backend": "pdf",
+    "median_s": 0.0020992730278521776
+  },
+  {
+    "tree": "prototype",
+    "run": 1,
+    "mark": "hexbin",
+    "backend": "raster",
+    "median_s": 0.005463546025566757
+  },
+  {
+    "tree": "prototype",
+    "run": 1,
+    "mark": "hexbin",
+    "backend": "svg",
+    "median_s": 0.0014483029954135418
+  },
+  {
+    "tree": "prototype",
+    "run": 1,
+    "mark": "hexbin",
+    "backend": "pdf",
+    "median_s": 0.002305487054400146
+  },
+  {
+    "tree": "prototype",
+    "run": 2,
+    "mark": "line",
+    "backend": "raster",
+    "median_s": 0.0016161591047421098
+  },
+  {
+    "tree": "prototype",
+    "run": 2,
+    "mark": "line",
+    "backend": "svg",
+    "median_s": 0.0011216149432584643
+  },
+  {
+    "tree": "prototype",
+    "run": 2,
+    "mark": "line",
+    "backend": "pdf",
+    "median_s": 0.002079213969409466
+  },
+  {
+    "tree": "prototype",
+    "run": 2,
+    "mark": "hexbin",
+    "backend": "raster",
+    "median_s": 0.005090538063086569
+  },
+  {
+    "tree": "prototype",
+    "run": 2,
+    "mark": "hexbin",
+    "backend": "svg",
+    "median_s": 0.0013956360053271055
+  },
+  {
+    "tree": "prototype",
+    "run": 2,
+    "mark": "hexbin",
+    "backend": "pdf",
+    "median_s": 0.0023032770259305835
+  },
+  {
+    "tree": "baseline",
+    "run": 2,
+    "mark": "line",
+    "backend": "raster",
+    "median_s": 0.001610259059816599
+  },
+  {
+    "tree": "baseline",
+    "run": 2,
+    "mark": "line",
+    "backend": "svg",
+    "median_s": 0.001137543935328722
+  },
+  {
+    "tree": "baseline",
+    "run": 2,
+    "mark": "line",
+    "backend": "pdf",
+    "median_s": 0.0021096430718898773
+  },
+  {
+    "tree": "baseline",
+    "run": 2,
+    "mark": "hexbin",
+    "backend": "raster",
+    "median_s": 0.004932772950269282
+  },
+  {
+    "tree": "baseline",
+    "run": 2,
+    "mark": "hexbin",
+    "backend": "svg",
+    "median_s": 0.0014164140447974205
+  },
+  {
+    "tree": "baseline",
+    "run": 2,
+    "mark": "hexbin",
+    "backend": "pdf",
+    "median_s": 0.002344344975426793
+  },
+  {
+    "tree": "baseline",
+    "run": 3,
+    "mark": "line",
+    "backend": "raster",
+    "median_s": 0.0015723899705335498
+  },
+  {
+    "tree": "baseline",
+    "run": 3,
+    "mark": "line",
+    "backend": "svg",
+    "median_s": 0.0011345730163156986
+  },
+  {
+    "tree": "baseline",
+    "run": 3,
+    "mark": "line",
+    "backend": "pdf",
+    "median_s": 0.002057243953458965
+  },
+  {
+    "tree": "baseline",
+    "run": 3,
+    "mark": "hexbin",
+    "backend": "raster",
+    "median_s": 0.004858565051108599
+  },
+  {
+    "tree": "baseline",
+    "run": 3,
+    "mark": "hexbin",
+    "backend": "svg",
+    "median_s": 0.0013945449609309435
+  },
+  {
+    "tree": "baseline",
+    "run": 3,
+    "mark": "hexbin",
+    "backend": "pdf",
+    "median_s": 0.0022858569864183664
+  },
+  {
+    "tree": "prototype",
+    "run": 3,
+    "mark": "line",
+    "backend": "raster",
+    "median_s": 0.0016454269643872976
+  },
+  {
+    "tree": "prototype",
+    "run": 3,
+    "mark": "line",
+    "backend": "svg",
+    "median_s": 0.0010918950429186225
+  },
+  {
+    "tree": "prototype",
+    "run": 3,
+    "mark": "line",
+    "backend": "pdf",
+    "median_s": 0.00201609602663666
+  },
+  {
+    "tree": "prototype",
+    "run": 3,
+    "mark": "hexbin",
+    "backend": "raster",
+    "median_s": 0.005288872052915394
+  },
+  {
+    "tree": "prototype",
+    "run": 3,
+    "mark": "hexbin",
+    "backend": "svg",
+    "median_s": 0.0014622329035773873
+  },
+  {
+    "tree": "prototype",
+    "run": 3,
+    "mark": "hexbin",
+    "backend": "pdf",
+    "median_s": 0.0023476460482925177
+  }
+]

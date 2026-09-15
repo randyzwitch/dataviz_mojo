@@ -1,8 +1,9 @@
 """Render dispatch for the tree charts (#524).
 
-`plot.mojo` calls one entry point per family instead of importing every
-mark's render function and branching over every `Mark`. Adding a mark
-touches this file and its own module rather than the hub.
+Each `Plot.mark_*()` setter registers this family's callback for Canvas,
+SVG, PDF, and BoundsTarget. `_render_generic` invokes the selected callback rather than
+probing every family. Add a mark's render branch here and register these
+adapters in its setter; see `plot.mojo`'s mark-adding checklist.
 
 The "not mine" answer is an empty `Optional`. `_RenderResult` is
 `Movable` but not `Copyable`, and this function is generic over
@@ -69,3 +70,28 @@ def _render_hierarchy_marks_family[
             _render_treemap(target, plot, ox0, oy0, ox1, oy1, cache=cache)
         )
     return None
+
+
+def _callback_hierarchy_marks[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    mut cache: FontCache,
+    vector_target: Bool,
+) raises -> Optional[_RenderResult]:
+    """Positional adapter for the stored family callback (#607)."""
+    return _render_hierarchy_marks_family(
+        target,
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )

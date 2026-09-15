@@ -1,9 +1,14 @@
 """Render dispatch for the 3D charts (#345).
 
-`plot.mojo` calls one entry point per family instead of importing every
-mark's render and branching over every `Mark`; see
-`dataviz/multivariate/dispatch.mojo` for the pattern and why the "not
-mine" answer is an empty `Optional`.
+Each `Plot.mark_*()` setter registers this family's callback for Canvas,
+SVG, PDF, and BoundsTarget. `_render_generic` invokes the selected callback rather than
+probing every family. Add a mark's render branch here and register these
+adapters in its setter; see `plot.mojo`'s mark-adding checklist.
+
+The "not mine" answer is an empty `Optional`. `_RenderResult` is
+`Movable` but not `Copyable`, and this function is generic over
+`T: DrawTarget` because `_render_generic` is, so that combination was
+checked in a spike before the design rather than assumed to work.
 """
 
 from canvas.text.font_cache import FontCache
@@ -28,7 +33,7 @@ def _render_spatial_family[
     vector_target: Bool = False,
 ) raises -> Optional[_RenderResult]:
     """Render `plot` if it is a 3D mark, else return an empty
-    `Optional` so the hub tries the next family.
+    `Optional`.
 
     Args:
         target: The draw target.
@@ -56,3 +61,28 @@ def _render_spatial_family[
             _render_plot3d(target, plot, ox0, oy0, ox1, oy1, cache=cache)
         )
     return None
+
+
+def _callback_spatial[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    mut cache: FontCache,
+    vector_target: Bool,
+) raises -> Optional[_RenderResult]:
+    """Positional adapter for the stored family callback (#607)."""
+    return _render_spatial_family(
+        target,
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
