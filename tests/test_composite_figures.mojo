@@ -672,5 +672,29 @@ def test_saving_vector_markup_to_a_raster_path_raises() raises:
         )
 
 
+def test_a_vector_clustermap_draws_the_same_figure() raises:
+    # The third composite figure, split the same way.
+    var raster = clustermap(
+        _interleaved(), _row_names(), _col_names(), width=700, height=600
+    )
+    var svg = clustermap_svg(
+        _interleaved(),
+        _row_names(),
+        _col_names(),
+        width=700,
+        height=600,
+        title="Clustered",
+    ).to_string()
+    assert_equal(Int(Float64(_attr_values(svg, "svg", "width")[0])), 700)
+    assert_equal(
+        Int(Float64(_attr_values(svg, "svg", "height")[0])), raster.height
+    )
+    assert_true(svg.find(">Clustered<") != -1, "the title carries over")
+    for name in _row_names():
+        assert_true(
+            svg.find(">" + name + "<") != -1, "every row is still named"
+        )
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
