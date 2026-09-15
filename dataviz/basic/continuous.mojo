@@ -299,7 +299,14 @@ struct _PointChannels(Movable):
         if self.has_shapes:
             var default_shapes = default_marker_shapes()
             for i in range(len(self.cat.domain)):
-                self.shapes.append(default_shapes[i % len(default_shapes)])
+                # By name first, by position otherwise -- the same rule
+                # the palette above follows, so a figure can pin both
+                # channels the same way (#365).
+                var name = self.cat.domain[i]
+                if name in plot._channels.shape_map:
+                    self.shapes.append(plot._channels.shape_map[name])
+                else:
+                    self.shapes.append(default_shapes[i % len(default_shapes)])
         var color_mm = _min_max(
             plot._channels.color
         ) if self.has_color else MinMax(0.0, 1.0)

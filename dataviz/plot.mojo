@@ -192,6 +192,7 @@ from morrow import Morrow
 
 from dataviz.core.delaunay import Triangulation, delaunay
 from dataviz.core.mark import Mark, _require_mark
+from dataviz.core.marker import PointShape
 from dataviz.basic.dispatch import _render_basic_family
 from dataviz.categorical.dispatch import _render_categorical_family
 from dataviz.distributions.dispatch import _render_distributions_family
@@ -349,6 +350,17 @@ struct _ChannelData(Copyable, Movable):
     """Explicit category-to-color overrides for `color_categories`. A
     category absent here takes the palette color for its index."""
 
+    var shape_map: Dict[String, PointShape]
+    """Explicit category-to-shape overrides for `color_categories`, used
+    only under `Theme.shape_by_category`. A category absent here takes
+    the shape for its index, as before.
+
+    `color_map`'s counterpart, and it exists for the same reason one
+    figure's panels need `shared_shape_map()`: shapes were dealt by
+    position in each panel's own category domain, so a category missing
+    from one panel shifted the shapes of every panel after it, with no
+    way to pin one (#365)."""
+
     var size: List[Float64]
     var point_labels: List[String]
     """Set only via `encode()`'s `labels`; `Mark.POINT`/`EFFECT_SCATTER`
@@ -360,6 +372,7 @@ struct _ChannelData(Copyable, Movable):
         self.color = List[Float64]()
         self.color_categories = List[String]()
         self.color_map = Dict[String, Color]()
+        self.shape_map = Dict[String, PointShape]()
         self.size = List[Float64]()
         self.point_labels = List[String]()
 
@@ -1984,6 +1997,7 @@ struct Plot(Copyable, Movable):
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
+        shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
         labels: List[String] = List[String](),
     ) raises -> Self:
         """Map data columns onto channels. `x`/`y` are required; the optional
@@ -2042,6 +2056,12 @@ struct Plot(Copyable, Movable):
                 alongside `color_categories`. `Mark.POINT`/`SINGLE_
                 AXIS`/`EFFECT_SCATTER` only (whatever mark `color_
                 categories` is used on).
+            shape_map: Optional explicit category-to-shape overrides,
+                used only under `Theme.shape_by_category`. A category
+                absent here takes the shape for its index.
+                `shared_shape_map()` builds one covering a whole figure
+                so a category missing from one panel does not shift the
+                shapes of the others (#365).
             labels: Optional per-point text, drawn above each point;
                 an entry of `""` skips that one point's label.
                 `Mark.POINT`/`EFFECT_SCATTER` only.
@@ -2068,6 +2088,7 @@ struct Plot(Copyable, Movable):
         self._y_err.lower = y_err_lower.copy()
         self._y_err.upper = y_err_upper.copy()
         self._channels.color_map = color_map.copy()
+        self._channels.shape_map = shape_map.copy()
         self._channels.point_labels = labels.copy()
         return self^
 
@@ -2084,6 +2105,7 @@ struct Plot(Copyable, Movable):
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
+        shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
     ) raises -> Self:
         """`encode()`'s `x`/`y` generalized to anything conforming to
         `Float64Sequence` (array_like.mojo), for data in a custom buffer
@@ -2107,6 +2129,7 @@ struct Plot(Copyable, Movable):
             y_err_lower: See `encode()`'s own docstring.
             y_err_upper: See `encode()`'s own docstring.
             color_map: See `encode()`'s own docstring.
+            shape_map: See `encode()`'s own docstring.
 
         Returns:
             Self, for further chaining.
@@ -2121,6 +2144,7 @@ struct Plot(Copyable, Movable):
             y_err_lower=y_err_lower,
             y_err_upper=y_err_upper,
             color_map=color_map,
+            shape_map=shape_map,
         )
 
     def encode[
@@ -2136,6 +2160,7 @@ struct Plot(Copyable, Movable):
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
+        shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
     ) raises -> Self:
         """`encode()`'s `x`/`y` generalized over numeric element type
         (`List[Int]`, `List[Float32]`, any `List[Scalar[dtype]]`), a
@@ -2159,6 +2184,7 @@ struct Plot(Copyable, Movable):
             y_err_lower: See `encode()`'s own docstring.
             y_err_upper: See `encode()`'s own docstring.
             color_map: See `encode()`'s own docstring.
+            shape_map: See `encode()`'s own docstring.
 
         Returns:
             Self, for further chaining.
@@ -2173,6 +2199,7 @@ struct Plot(Copyable, Movable):
             y_err_lower=y_err_lower,
             y_err_upper=y_err_upper,
             color_map=color_map,
+            shape_map=shape_map,
         )
 
     def encode(
@@ -2186,6 +2213,7 @@ struct Plot(Copyable, Movable):
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
+        shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
     ) raises -> Self:
         """`encode()`'s `x`/`y` generalized to a numpy `ndarray`, a pandas
         `Series`, or a plain Python list of numbers (see numpy_interop.mojo).
@@ -2208,6 +2236,7 @@ struct Plot(Copyable, Movable):
             y_err_lower: See `encode()`'s own docstring.
             y_err_upper: See `encode()`'s own docstring.
             color_map: See `encode()`'s own docstring.
+            shape_map: See `encode()`'s own docstring.
 
         Returns:
             Self, for further chaining.
@@ -2228,6 +2257,7 @@ struct Plot(Copyable, Movable):
             y_err_lower=y_err_lower,
             y_err_upper=y_err_upper,
             color_map=color_map,
+            shape_map=shape_map,
         )
 
     def encode_categorical(
