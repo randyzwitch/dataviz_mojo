@@ -17,9 +17,11 @@ several charts' data so they can be compared (the color counterpart to
 `shared_bin_edges()`).
 """
 
+from std.collections import Dict
 from std.math import log10
 from canvas.color import Color
 from canvas.gradient import GradientStops
+from dataviz.core.marker import PointShape, default_marker_shapes
 from dataviz.core.scale import MinMax, _min_max
 from dataviz.core.theme import Theme
 
@@ -638,6 +640,127 @@ def shared_color_domain(grids: List[List[List[Float64]]]) raises -> MinMax:
             " across all charts"
         )
     return _min_max(pooled)
+
+
+def shared_categories(panels: List[List[String]]) -> List[String]:
+    """One category order covering every panel: first-seen across the
+    panels in turn, so panel 0's categories come first in its own order,
+    then whatever panel 1 adds, and so on.
+
+    The categorical counterpart to `shared_color_domain()`, and for the
+    same reason. Each chart resolves its own categories with
+    `_categorical_indices`, which is first-seen *within that panel*, and
+    the palette is then indexed by position in that panel's domain. So
+    two panels whose categories arrive in a different order, or one of
+    which is missing a category the other has, give the same name two
+    different colors -- and nothing on either chart says so. The panels
+    have to be told the answer, because neither can see the other.
+
+    Returning the order rather than applying it keeps this usable for
+    the cases that are not a facet grid: two standalone charts, a chart
+    compared against last quarter's, or an order sorted into something
+    presentable before being used. Pass the result to
+    `shared_color_map()`, and hand that to each panel's
+    `Plot.encode(color_map=...)`.
+
+    Args:
+        panels: One category column per panel, in panel order. Empty
+            columns are allowed and contribute nothing.
+
+    Returns:
+        Every distinct category once, in resolved order.
+    """
+    var seen = Dict[String, Int]()
+    var out = List[String]()
+    for panel in panels:
+        for name in panel:
+            if name not in seen:
+                seen[name] = 1
+                out.append(name)
+    return out^
+
+
+def shared_color_map(
+    panels: List[List[String]],
+    theme: Theme = Theme(),
+    overrides: Dict[String, Color] = Dict[String, Color](),
+) raises -> Dict[String, Color]:
+    """One category-to-color mapping covering every panel, ready for
+    each panel's `Plot.encode(color_map=...)`.
+
+    Colors come from `categorical_palette_for(theme)`, cycled by each
+    category's position in `shared_categories(panels)` -- so a name gets
+    the same color in every panel whether or not the others contain it,
+    which is the whole point. A category missing from one panel no
+    longer shifts the colors of the rest.
+
+    `overrides` win, and they are applied *after* the palette is dealt
+    out rather than instead of it. So pinning one category to a chosen
+    color leaves every other category on the color it already had,
+    rather than sliding them all up a slot. Adding or removing an
+    override is then a local change to the chart, which is what makes
+    it usable for the "this series is always red" case.
+
+    An override naming a category no entry uses is kept rather than
+    dropped, so a caller can pin a color for a category that has not
+    appeared in the data yet without the call order mattering.
+
+    Independent mappings remain the default: a chart that does not pass
+    a `color_map` still resolves its own categories against its own
+    palette exactly as before. This is opt-in per figure.
+
+    Args:
+        panels: One category column per panel, in panel order.
+        theme: Supplies the palette, via `categorical_palette_for`.
+        overrides: Explicit category-to-color pins, which win.
+
+    Returns:
+        A color for every category in any panel, plus any override.
+
+    Raises:
+        Error: Building the dictionary fails.
+    """
+    var order = shared_categories(panels)
+    var palette = categorical_palette_for(theme)
+    var out = Dict[String, Color]()
+    for i in range(len(order)):
+        out[order[i]] = palette[i % len(palette)]
+    for entry in overrides.items():
+        out[entry.key] = entry.value
+    return out^
+
+
+def shared_shape_map(
+    panels: List[List[String]],
+    overrides: Dict[String, PointShape] = Dict[String, PointShape](),
+) raises -> Dict[String, PointShape]:
+    """`shared_color_map()`'s counterpart for point shapes, for a figure
+    drawn under `Theme.shape_by_category`.
+
+    Shapes had the same defect and no way to fix it: they are dealt from
+    `default_marker_shapes()` by position in each panel's own domain,
+    with no per-name override at all, so a category missing from one
+    panel shifted the shapes of the rest. `Plot.encode(shape_map=...)`
+    takes this the way `color_map` takes the color one.
+
+    Args:
+        panels: One category column per panel, in panel order.
+        overrides: Explicit category-to-shape pins, which win.
+
+    Returns:
+        A shape for every category in any panel, plus any override.
+
+    Raises:
+        Error: Building the dictionary fails.
+    """
+    var order = shared_categories(panels)
+    var shapes = default_marker_shapes()
+    var out = Dict[String, PointShape]()
+    for i in range(len(order)):
+        out[order[i]] = shapes[i % len(shapes)]
+    for entry in overrides.items():
+        out[entry.key] = entry.value
+    return out^
 
 
 def categorical_palette_for(theme: Theme) -> List[Color]:

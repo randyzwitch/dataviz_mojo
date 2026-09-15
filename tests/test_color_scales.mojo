@@ -5,6 +5,7 @@ One module rather than 4: every test module pays the same dependency
 compilation, so the suite is organized by family (#605).
 """
 
+from std.collections import Dict
 from std.math import cos, log10, sin
 from std.testing import (
     TestSuite,
@@ -20,10 +21,16 @@ from dataviz.core.color_scale import (
     _ColorDomainOverride,
     _center_offset,
     _color_scale_for,
+    categorical_palette_for,
+    shared_categories,
     shared_color_domain,
+    shared_color_map,
+    shared_shape_map,
     symmetric_color_domain,
 )
+from dataviz.core.marker import PointShape, default_marker_shapes
 from dataviz.core.theme import Theme
+from dataviz.basic.continuous import scatter
 from dataviz.grid.heatmap import heatmap
 from dataviz.plot import Plot, render, render_svg
 from _test_helpers import _attr_values, _count_color, _count_tag
@@ -1342,6 +1349,151 @@ def test_a_symmetric_domain_on_data_that_is_all_center_still_has_width() raises:
     assert_true(d.max > d.min, "the domain has width")
     assert_equal(d.min, -1.0)
     assert_equal(d.max, 1.0)
+
+
+# ==== shared semantic mappings across panels (#365) ====
+# Each chart resolves its own categories with `_categorical_indices`,
+# first-seen *within that panel*, and then indexes the palette by
+# position in that panel's domain. So two panels whose categories arrive
+# in a different order, or one of which is missing a category the other
+# has, give the same name two different colors -- and nothing on either
+# chart says so.
+#
+# The scenario throughout is the one the issue asks for: two panels with
+# reordered and partially missing categories.
+
+
+def _panels() -> List[List[String]]:
+    """Two panels with reordered and partially missing categories: panel
+    0 has north/south/east in that order, panel 1 has east/north and no
+    south at all."""
+    var a: List[String] = ["north", "south", "east"]
+    var b: List[String] = ["east", "north"]
+    var out = List[List[String]]()
+    out.append(a^)
+    out.append(b^)
+    return out^
+
+
+def test_shared_categories_unions_the_panels_in_first_seen_order() raises:
+    var order = shared_categories(_panels())
+    assert_equal(len(order), 3, "a category was lost or duplicated")
+    assert_equal(order[0], "north", "panel 0 leads, in its own order")
+    assert_equal(order[1], "south", "including the one panel 1 lacks")
+    assert_equal(order[2], "east", "then whatever panel 1 adds")
+
+
+def test_a_category_missing_from_one_panel_does_not_shift_the_others() raises:
+    # The defect, stated directly. Left to themselves the two panels
+    # disagree about "east": it is third in panel A and first in panel
+    # B, so it takes two different palette slots.
+    var palette = categorical_palette_for(Theme())
+    var a_alone = palette[2]
+    var b_alone = palette[0]
+    assert_true(
+        a_alone.r != b_alone.r
+        or a_alone.g != b_alone.g
+        or a_alone.b != b_alone.b,
+        (
+            "the palette's slots 0 and 2 are the same color, so this test"
+            " cannot tell the panels apart"
+        ),
+    )
+
+    var shared = shared_color_map(_panels())
+    var east = shared["east"]
+    assert_equal(east.r, palette[2].r, "east keeps its union-order slot")
+    assert_equal(east.g, palette[2].g, "east keeps its union-order slot")
+    assert_equal(east.b, palette[2].b, "east keeps its union-order slot")
+    # And the point: one map, so both panels draw it the same.
+    assert_equal(len(shared), 3, "every category got a color")
+
+
+def test_an_override_wins_and_leaves_the_others_where_they_were() raises:
+    # Applied after the palette is dealt out rather than instead of it,
+    # so pinning one category does not slide the rest up a slot. That is
+    # what makes "this series is always red" a local change.
+    var plain = shared_color_map(_panels())
+    var pins = Dict[String, Color]()
+    pins["south"] = Color(255, 0, 0)
+    var pinned = shared_color_map(_panels(), Theme(), pins)
+
+    assert_equal(pinned["south"].r, 255, "the override did not win")
+    assert_equal(pinned["south"].g, 0, "the override did not win")
+    for name in ["north", "east"]:
+        assert_equal(
+            pinned[name].r, plain[name].r, name + " moved when south was pinned"
+        )
+        assert_equal(
+            pinned[name].g, plain[name].g, name + " moved when south was pinned"
+        )
+        assert_equal(
+            pinned[name].b, plain[name].b, name + " moved when south was pinned"
+        )
+
+
+def test_an_override_for_a_category_no_panel_has_is_kept() raises:
+    # So a caller can pin a color for a category that has not appeared
+    # in the data yet, without the call order mattering.
+    var pins = Dict[String, Color]()
+    pins["west"] = Color(1, 2, 3)
+    var m = shared_color_map(_panels(), Theme(), pins)
+    assert_equal(len(m), 4, "the unseen override was dropped")
+    assert_equal(m["west"].r, 1, "the unseen override lost its color")
+
+
+def test_shared_shape_map_pins_shapes_the_same_way() raises:
+    # Shapes had the same defect and no override at all until now.
+    var shapes = default_marker_shapes()
+    var m = shared_shape_map(_panels())
+    assert_equal(len(m), 3, "every category got a shape")
+    assert_true(
+        m["east"] == shapes[2], "east did not keep its union-order shape"
+    )
+    var pins = Dict[String, PointShape]()
+    pins["east"] = PointShape.CROSS
+    var pinned = shared_shape_map(_panels(), pins)
+    assert_true(pinned["east"] == PointShape.CROSS, "the override did not win")
+    assert_true(
+        pinned["north"] == m["north"], "north moved when east was pinned"
+    )
+
+
+def test_a_panel_draws_the_shared_color_it_was_given() raises:
+    # The resolvers are only worth anything if the map actually reaches
+    # the marks. `color_map` wins over the positional palette by name,
+    # which is what makes this work with no change to the render path.
+    var shared = shared_color_map(_panels())
+    var xs: List[Float64] = [1.0, 2.0]
+    var ys: List[Float64] = [1.0, 2.0]
+    var cats: List[String] = ["east", "north"]
+    var c = render(
+        scatter(xs, ys, width=300, height=200).encode(
+            xs, ys, color_categories=cats, color_map=shared
+        )
+    )
+    assert_true(
+        _count_color(c, shared["east"]) > 0,
+        "the panel did not draw east in its shared color",
+    )
+
+
+def test_independent_mappings_are_still_the_default() raises:
+    # Opt-in per figure: a chart that passes no map resolves its own
+    # categories against its own palette exactly as before.
+    var palette = categorical_palette_for(Theme())
+    var xs: List[Float64] = [1.0, 2.0]
+    var ys: List[Float64] = [1.0, 2.0]
+    var cats: List[String] = ["east", "north"]
+    var c = render(
+        scatter(xs, ys, width=300, height=200).encode(
+            xs, ys, color_categories=cats
+        )
+    )
+    assert_true(
+        _count_color(c, palette[0]) > 0,
+        "east lost the first palette slot its own panel gives it",
+    )
 
 
 def main() raises:
