@@ -39,10 +39,14 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.path import PathOp
 from dataviz import LineStyle, StepStyle
-from dataviz.core.color_scale import default_categorical_palette
+from dataviz.core.color_scale import (
+    _ColorDomainOverride,
+    _color_scale_for,
+    default_categorical_palette,
+)
 from dataviz.multivariate.barbs import barbs
 from dataviz.basic.continuous import line, scatter
-from dataviz.multivariate.contour import contour
+from dataviz.multivariate.contour import contour, contourf
 from dataviz.basic.effect_scatter import effect_scatter
 from dataviz.distributions.ecdf import _ecdf_points, ecdf
 from dataviz.binned.histogram import HistStat, histogram, shared_bin_edges
@@ -2591,15 +2595,9 @@ def test_an_annotation_on_an_empty_secondary_layer_raises_instead_of_drawing() r
         _ = render_layers(plots)
 
 
-def test_render_layers_still_rejects_a_contour_layer_and_says_why() raises:
-    """`Mark.CONTOUR`/`CONTOURF` draw through the same
-    `_draw_continuous_axis_frame` as everything  admitted, and are
-    still refused -- their axes are unpadded *grid-index* units, not the
-    caller's coordinates, so sharing an x with a coordinate mark would
-    equate column 12 with the value 12.
-
-    The error must explain the incompatible coordinate system.
-    """
+def _contour_grid() raises -> List[List[Float64]]:
+    """A 3x3 field with a single interior peak, enough for marching
+    squares to trace a closed isoline."""
     var z = List[List[Float64]]()
     var row0: List[Float64] = [0.0, 1.0, 2.0]
     var row1: List[Float64] = [1.0, 3.0, 1.0]
@@ -2607,15 +2605,101 @@ def test_render_layers_still_rejects_a_contour_layer_and_says_why() raises:
     z.append(row0^)
     z.append(row1^)
     z.append(row2^)
+    return z^
+
+
+def test_a_grid_index_contour_cannot_share_an_axis_with_a_coordinate_mark() raises:
+    """The half of the old refusal that is still right (#423).
+
+    A contour left in grid-index units has axes that are column and row
+    numbers spanning the rect edge to edge; a line's are its own
+    coordinates, padded 5%. One x-axis cannot mean both, and padding
+    the union would move the grid off the edge while not padding it
+    would clip the line's extreme point.
+
+    The error must say which layers disagree and how to fix it.
+    """
+    var plots = List[Plot]()
+    var lx: List[Float64] = [0.0, 2.0]
+    var ly: List[Float64] = [0.0, 2.0]
+    plots.append(line(lx, ly, width=400, height=300))
+    plots.append(contour(_contour_grid(), width=400, height=300))
+    with assert_raises(contains="grid-index units"):
+        _ = render_layers(plots)
+    with assert_raises(contains="encode_contour(x=..., y=...)"):
+        _ = render_layers(plots)
+
+
+def test_a_contour_with_coordinates_layers_over_a_line() raises:
+    """Given coordinates, a contour is an ordinary padded layer and
+    stacks with anything -- the point of giving it any (#423)."""
+    var xs: List[Float64] = [0.0, 1.0, 2.0]
+    var ys: List[Float64] = [0.0, 1.0, 2.0]
     var lx: List[Float64] = [0.0, 2.0]
     var ly: List[Float64] = [0.0, 2.0]
     var plots = List[Plot]()
     plots.append(line(lx, ly, width=400, height=300))
-    plots.append(contour(z, width=400, height=300))
-    with assert_raises(contains="layer 1"):
-        _ = render_layers(plots)
-    with assert_raises(contains="grid-index units"):
-        _ = render_layers(plots)
+    plots.append(contour(_contour_grid(), x=xs, y=ys, width=400, height=300))
+    var c = render_layers(plots)
+    assert_equal(c.width, 400, "the stack rendered at the shared size")
+
+
+def test_a_contour_over_a_contourf_reproduces_the_standalone_isolines() raises:
+    """The composition this was opened for: the grid counterpart of the
+    tricontour/tricontourf pair.
+
+    The discriminating assertion is the one #376 used for its own
+    marks. It is not "some ink was drawn" -- that passes with a domain
+    padded when it should not be, which would shrink the grid away from
+    the rect edges and move every isoline inward. It is that the
+    layered render puts the isolines on the *same pixels* the
+    standalone `contour(z)` does.
+    """
+    var z = _contour_grid()
+    var levels: List[Float64] = [1.5]
+    # The two layers get different ramps on purpose. Both marks color
+    # through the same `_color_scale_for`, so on one ramp the band the
+    # contourf fills is painted in the very color the isoline is
+    # stroked in, and "pixels of the isoline's color" would then find
+    # the whole filled band as well.
+    var bare = Theme(show_legend=False)
+    var grey = Theme(
+        show_legend=False,
+        color_scale_low=Color(40, 40, 40),
+        color_scale_mid=Color(120, 120, 120),
+        color_scale_high=Color(200, 200, 200),
+    )
+    var alone = render(
+        contour(z, levels=levels, theme=bare, width=400, height=300)
+    )
+    var plots = List[Plot]()
+    plots.append(contourf(z, levels=levels, theme=grey, width=400, height=300))
+    plots.append(contour(z, levels=levels, theme=bare, width=400, height=300))
+    var stacked = render_layers(plots)
+
+    # The isoline's own color, which the grey bands underneath cannot
+    # produce.
+    var scale = _color_scale_for(bare, _ColorDomainOverride(), 1.5, 1.5)
+    var ink = scale.color_at(1.5)
+    var alone_cols = _columns_with(alone, ink)
+    assert_true(len(alone_cols) > 0, "the standalone contour drew no isoline")
+    assert_equal(
+        _columns_with(stacked, ink),
+        alone_cols,
+        "the layered isoline is not on the standalone one's pixels",
+    )
+
+
+def _columns_with(c: Canvas, ink: Color) raises -> List[Int]:
+    """Every column holding a pixel of exactly `ink`, left to right."""
+    var out = List[Int]()
+    for x in range(c.width):
+        for y in range(c.height):
+            var p = c.get_pixel(x, y)
+            if p.r == ink.r and p.g == ink.g and p.b == ink.b:
+                out.append(x)
+                break
+    return out^
 
 
 # ---------------------------------------------------------------

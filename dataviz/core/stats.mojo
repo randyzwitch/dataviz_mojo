@@ -277,8 +277,8 @@ struct _Lcg(Movable):
 
 
 struct Estimator(Copyable, ImplicitlyCopyable, Movable):
-    """What a group of observations is reduced to: seaborn's
-    `estimator=` vocabulary. Pass one to `barplot()`.
+    """What a group of observations is reduced to. Pass one to
+    `barplot()`.
 
     `COUNT` ignores the values and reports how many there were, so its
     interval is always empty -- a count has no sampling error to
@@ -310,8 +310,7 @@ struct Estimator(Copyable, ImplicitlyCopyable, Movable):
 
 
 struct ErrorBar(Copyable, ImplicitlyCopyable, Movable):
-    """How the uncertainty around an estimate is sized: seaborn's
-    `errorbar=` vocabulary.
+    """How the uncertainty around an estimate is sized.
 
     - `ErrorBar.none()` -- no interval.
     - `ErrorBar.sd(k)` -- `k` sample standard deviations, the spread of
@@ -377,7 +376,7 @@ struct ErrorBar(Copyable, ImplicitlyCopyable, Movable):
 
 
 comptime _BOOTSTRAP_RESAMPLES = 1000
-"""Resamples per bootstrap interval. seaborn's default; enough that the
+"""Resamples per bootstrap interval; enough that the
 percentile ends are stable to the second figure."""
 
 
@@ -577,7 +576,7 @@ def _aggregate_by_x(
     """`_aggregate()` for a continuous key: every observation whose `x`
     is exactly equal is one group, and the groups come back sorted by
     `x` so a line can be drawn through the estimates in order -- the
-    per-x estimation seaborn's `lineplot()` performs on repeated
+    per-x estimation `lineplot()` performs on repeated
     measurements.
 
     Exact equality is deliberate. Two readings at 1.0 and 1.0000001 are

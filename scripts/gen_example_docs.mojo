@@ -108,8 +108,11 @@ def _titles() -> Dict[String, String]:
     d["ecdf"] = "ECDF"
     d["residplot"] = "Residual Plot"
     d["barplot"] = "Estimate Bars"
-    d["countplot"] = "Count Bars"
     d["lineplot"] = "Estimate Line"
+    d["pairplot"] = "Pair Plot"
+    d["jointplot"] = "Joint Plot"
+    d["clustermap"] = "Clustered Heatmap"
+    d["dendrogram"] = "Dendrogram"
     d["pointplot"] = "Estimate Points"
     d["kdeplot"] = "Density Curve"
     d["rugplot"] = "Rug"
@@ -224,9 +227,12 @@ def _categories() -> List[Category]:
                 "ecdf",
                 "residplot",
                 "barplot",
-                "countplot",
                 "lineplot",
                 "pointplot",
+                "pairplot",
+                "jointplot",
+                "clustermap",
+                "dendrogram",
                 "eventplot",
             ],
         )
@@ -389,6 +395,7 @@ def _cookbook_categories() -> List[Category]:
                 "custom_diverging_colors",
                 "centered_diverging_scale",
                 "shared_color_domain",
+                "shared_semantic_mapping",
                 "shape_by_category",
                 "high_contrast_theme",
                 "print_safe_theme",

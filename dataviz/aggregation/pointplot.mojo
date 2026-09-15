@@ -1,6 +1,6 @@
 """`Mark.POINTPLOT` and `pointplot()`: the estimate per category as a
-point with its interval as a whisker, joined across categories --
-seaborn's `pointplot()`, `barplot()`'s estimate with a lighter glyph."""
+point with its interval as a whisker, joined across categories:
+`barplot()`'s estimate with a lighter glyph."""
 
 from canvas.geometry import round_to_int
 from canvas.text.font_cache import FontCache
@@ -140,7 +140,7 @@ def pointplot[
 ) raises -> Plot:
     """One point per distinct category at an *estimate* of that category's
     values -- the mean by default -- with a whisker for its uncertainty
-    and a line joining the points: seaborn's `pointplot()`. The same
+    and a line joining the points. The same
     reduction as `barplot()`, drawn as a position rather than a length,
     which is the better glyph when the estimates sit far from zero or
     when the shape across categories is the point.

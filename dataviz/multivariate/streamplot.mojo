@@ -21,7 +21,6 @@ pins both against fields whose exact streamlines are known.
 from std.math import sqrt
 
 from canvas.fill_rule import FillRule
-from canvas.geometry import round_to_int
 from canvas.path import Path
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
@@ -37,9 +36,8 @@ from dataviz.core.arrow import (
 )
 from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.core.legend import (
-    _continuous_legend_labels,
-    _draw_continuous_color_legend,
-    _dynamic_legend_width,
+    _continuous_color_legend_layout,
+    _draw_continuous_color_legend_at,
 )
 from dataviz.plot import (
     Plot,
@@ -74,7 +72,7 @@ off in an arbitrary direction.
 """
 
 comptime _BLANK_CELLS_PER_DENSITY = 30
-"""Occupancy cells per axis at `density=1.0`, matplotlib's constant.
+"""Occupancy cells per axis at `density=1.0`.
 
 Streamline spacing is set by this grid, not by the data grid: a line
 stops when it enters a cell another line already owns, which is what
@@ -130,8 +128,8 @@ struct _StreamData(Copyable, Movable):
     ascending and evenly spaced; `u[j][i]` and `v[j][i]` are the field at
     `(x[i], y[j])`, row-major like every other 2D array in this package.
 
-    This is matplotlib's `streamplot` shape and *not* `encode_barbs()`'s
-    four flat columns, which #343 suggested reusing. A glyph mark reads
+    This is a grid, *not* `encode_barbs()`'s four flat columns, which
+    #343 suggested reusing. A glyph mark reads
     the field only where it was sampled, so scattered points are fine
     there; an integrator reads it everywhere between the samples, and
     bilinear interpolation needs to know which samples are neighbors.
@@ -165,7 +163,7 @@ def _even_spacing(values: List[Float64], axis: String) raises -> Float64:
     grid a cell's width in data units depends on where you are, so the
     same index-space velocity would mean different data-space speeds in
     different places and the curve would be wrong in a way that still
-    looks like flow. matplotlib refuses the same input.
+    looks like flow.
 
     Args:
         values: The coordinates along one axis.
@@ -383,8 +381,8 @@ def _seed_order(nx: Int, ny: Int) -> List[Int]:
     Order matters because the first line through a region owns it. Going
     row by row grows every line out of one corner and leaves the far side
     to whatever is left over; spiralling inward lays the boundary flow
-    down first and fills the interior against it, which is matplotlib's
-    choice and what makes two runs of the same field look alike.
+    down first and fills the interior against it, which is what makes
+    two runs of the same field look alike.
     """
     var out = List[Int](capacity=nx * ny)
     var top = 0
@@ -586,12 +584,10 @@ def _render_streamplot[
     )
 
     var legend = _LegendLayout()
-    if theme.show_legend and data.color_by_magnitude:
-        var legend_labels = _continuous_legend_labels(color_scale, theme)
-        legend.right = _dynamic_legend_width(
-            legend_labels, sc.continuous_legend_bar_width, sc, cache=cache
+    if data.color_by_magnitude:
+        legend = _continuous_color_legend_layout(
+            color_scale, theme, sc, cache=cache
         )
-        legend.active = True
 
     var frame = _draw_continuous_axis_frame(
         target,
@@ -666,15 +662,18 @@ def _render_streamplot[
             fill_rule=FillRule.NONZERO,
         )
 
-    if legend.active:
-        _ = _draw_continuous_color_legend(
-            target,
-            frame.text_requests,
-            color_scale,
-            round_to_int(frame.x_scale.range_max) + sc.margin_right,
-            frame.py0,
-            theme,
-        )
+    _draw_continuous_color_legend_at(
+        target,
+        frame.text_requests,
+        color_scale,
+        legend,
+        frame.px0,
+        frame.py0,
+        frame.px1,
+        frame.py1,
+        theme,
+        cache=cache,
+    )
     return frame.result()
 
 
@@ -696,7 +695,7 @@ def streamplot[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A vector field as streamlines, matplotlib's `streamplot()`: the
+    """A vector field as streamlines: the
     curves a particle released into the field would follow.
 
     `quiver()` shows the vector *at* each sample; this shows where a
@@ -715,8 +714,7 @@ def streamplot[
     `density` scales the spacing between lines. It is the number of
     occupancy cells per axis over 30: a line stops when it enters a cell
     another line already owns, so a larger density means smaller cells,
-    more lines and finer detail. This is matplotlib's parameter and it
-    behaves the same way.
+    more lines and finer detail.
 
     Lines are traced with RK4 at a quarter-cell step over the bilinearly
     interpolated field, both upstream and downstream from each seed, and
@@ -728,7 +726,7 @@ def streamplot[
         y: Row coordinates, ascending and evenly spaced.
         u: The x-component at each node, `len(y)` rows of `len(x)`.
         v: The y-component at each node, positive pointing up the page.
-        density: Line spacing; 1.0 is matplotlib's default.
+        density: Line spacing; 1.0 by default.
         arrows: Draw an arrowhead at the middle of each line.
         color_by_magnitude: Color each step by the local `hypot(u, v)`
             through the theme's ramp, with a legend.

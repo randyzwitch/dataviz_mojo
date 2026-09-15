@@ -16,6 +16,7 @@ from canvas.vector.draw_target import DrawTarget
 from dataviz.core.mark import Mark
 from dataviz.plot import Plot, _RenderResult
 from dataviz.hierarchy_marks.sunburst import _render_sunburst
+from dataviz.hierarchy_marks.dendrogram import _render_dendrogram
 from dataviz.hierarchy_marks.tree import _render_tree
 from dataviz.hierarchy_marks.treemap import _render_treemap
 
@@ -58,6 +59,10 @@ def _render_hierarchy_marks_family[
     if plot._mark == Mark.TREE:
         return Optional(
             _render_tree(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+        )
+    if plot._mark == Mark.DENDROGRAM:
+        return Optional(
+            _render_dendrogram(target, plot, ox0, oy0, ox1, oy1, cache=cache)
         )
     if plot._mark == Mark.TREEMAP:
         return Optional(

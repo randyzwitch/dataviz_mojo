@@ -149,8 +149,7 @@ def ridgeline[
     `Mark.RIDGELINE`: one overlapping density-estimate row per category,
     top to bottom. `bandwidth` (when positive) overrides every category's
     Silverman's-rule bandwidth with one shared value; `scale_by_count=True`
-    switches from ggplot2's `scale = "width"` to `scale = "area"` (see
-    `Plot.mark_violin()`). See `Plot.encode_distribution()` (plot.mojo)
+    scales each category by its count (see `Plot.mark_violin()`). See `Plot.encode_distribution()` (plot.mojo)
     for the data shape, shared with `beeswarm()`/`violin()`.
 
     Args:
@@ -163,9 +162,8 @@ def ridgeline[
             kernel-density bandwidth with one shared value; must be
             positive if given. Left at its default `0.0`, each
             category gets its own Silverman's-rule bandwidth.
-        scale_by_count: `False` (the default, ggplot2's `scale =
-            "width"`) gives every category's peak the same maximum
-            width; `True` (`scale = "area"`) additionally scales a
+        scale_by_count: `False` (the default) gives every category's peak
+            the same maximum width; `True` additionally scales a
             category's maximum width by `sqrt(n_i / max(n))`, so one
             built from fewer raw values draws visibly narrower.
         overlap: How far each row rises into the rows above, as a multiple

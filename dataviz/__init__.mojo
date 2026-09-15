@@ -12,8 +12,9 @@ from dataviz.core.theme import Theme
 from dataviz.core.mark import Mark
 from dataviz.core.output_format import OutputFormat
 from dataviz.core.axis_position import AxisPosition
-from dataviz.aggregation.jointplot import jointplot
-from dataviz.aggregation.pairplot import pairplot
+from dataviz.aggregation.clustermap import clustermap, clustermap_svg
+from dataviz.aggregation.jointplot import jointplot, jointplot_svg
+from dataviz.aggregation.pairplot import pairplot, pairplot_svg
 from dataviz.core.delaunay import Triangulation, delaunay
 from dataviz.core.legend_position import LegendPosition
 from dataviz.core.line_style import LineStyle
@@ -25,9 +26,12 @@ from dataviz.plot import (
     line,
     render,
     render_facets,
+    render_facets_pdf,
     render_facets_svg,
     render_layers,
+    render_layers_pdf,
     render_layers_svg,
+    render_pdf,
     render_svg,
     save,
     save_facets,
@@ -40,7 +44,10 @@ from dataviz.plot import (
 from dataviz.layout import (
     GridCell,
     render_grid,
+    render_grid_pdf,
     render_grid_svg,
+    render_inset,
+    render_inset_svg,
     save_grid,
     uniform_cells,
 )
@@ -59,7 +66,7 @@ from dataviz.distributions.candlestick import candlestick
 from dataviz.multivariate.contour import contour, contourf
 from dataviz.distributions.ecdf import ecdf
 from dataviz.aggregation.residplot import residplot
-from dataviz.aggregation.barplot import barplot, countplot
+from dataviz.aggregation.barplot import barplot
 from dataviz.aggregation.lineplot import lineplot
 from dataviz.aggregation.pointplot import pointplot
 from dataviz.core.stats import ErrorBar, Estimator
@@ -85,6 +92,7 @@ from dataviz.grid.calendar_heatmap import calendar_heatmap
 from dataviz.grid.corrplot import corrplot
 from dataviz.grid.punchcard import punchcard
 from dataviz.grid.marimekko import marimekko
+from dataviz.hierarchy_marks.dendrogram import dendrogram
 from dataviz.hierarchy_marks.sunburst import sunburst
 from dataviz.hierarchy_marks.tree import tree
 from dataviz.hierarchy_marks.treemap import treemap

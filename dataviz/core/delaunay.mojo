@@ -30,7 +30,7 @@ struct Triangulation(Copyable, Movable):
     `triangles[3*t]`, `triangles[3*t + 1]`, `triangles[3*t + 2]`.
 
     Public since #397: a caller who owns the triangle order can index a
-    per-triangle value column against it, which is what matplotlib's
+    per-triangle value column against it, which is what
     `tripcolor(facecolors=...)` needs.
     """
 

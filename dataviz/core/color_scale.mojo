@@ -17,9 +17,11 @@ several charts' data so they can be compared (the color counterpart to
 `shared_bin_edges()`).
 """
 
+from std.collections import Dict
 from std.math import log10
 from canvas.color import Color
 from canvas.gradient import GradientStops
+from dataviz.core.marker import PointShape, default_marker_shapes
 from dataviz.core.scale import MinMax, _min_max
 from dataviz.core.theme import Theme
 
@@ -46,8 +48,7 @@ struct ColorScale(Movable):
     `n` boundaries make `n - 1` bands, and every value in a band gets
     one flat color sampled from the middle of that band's slice of the
     ramp. Intervals are lower-inclusive, `[b[i], b[i+1])`, with the last
-    one closed at the top so the domain maximum has somewhere to go.
-    That is matplotlib's `BoundaryNorm` rule."""
+    one closed at the top so the domain maximum has somewhere to go."""
 
     var is_log: Bool
     """Whether values are normalized by `log10` before the ramp is
@@ -63,6 +64,18 @@ struct ColorScale(Movable):
     var center: Float64
     """The value the ramp's middle color sits on when `has_center`;
     meaningless otherwise. See `from_theme_centered()`."""
+    var has_under: Bool
+    """Whether a value below `domain_min` gets its own color rather than
+    the ramp's low end (`Plot.scale_color_under()`, #370)."""
+    var under: Color
+    """The color for a value below `domain_min`; meaningless unless
+    `has_under`."""
+    var has_over: Bool
+    """Whether a value above `domain_max` gets its own color rather than
+    the ramp's high end (`Plot.scale_color_over()`, #370)."""
+    var over: Color
+    """The color for a value above `domain_max`; meaningless unless
+    `has_over`."""
 
     def __init__(out self, domain_min: Float64, domain_max: Float64):
         """Construct an empty `ColorScale` from `domain_min` to `domain_max`. Add
@@ -80,6 +93,10 @@ struct ColorScale(Movable):
         self.is_log = False
         self.has_center = False
         self.center = 0.0
+        self.has_under = False
+        self.under = Color(0, 0, 0)
+        self.has_over = False
+        self.over = Color(0, 0, 0)
 
     def add_stop(mut self, offset: Float64, color: Color):
         """Add one color stop to the gradient.
@@ -103,6 +120,22 @@ struct ColorScale(Movable):
         Returns:
             The interpolated color at `value`.
         """
+        # Out of range before anything else, so one branch covers the
+        # continuous, log and banded forms alike. Which values are "out"
+        # is the band edges when there are bands and the domain
+        # otherwise, because those are what the ramp actually spans.
+        if self.has_under or self.has_over:
+            var lo = self.domain_min
+            var hi = self.domain_max
+            if len(self.thresholds) > 1:
+                lo = self.thresholds[0]
+                hi = self.thresholds[len(self.thresholds) - 1]
+            if self.has_under and value < lo:
+                return self.under
+            # Strictly above: the top end belongs to the ramp, which is
+            # the same rule the last band already follows.
+            if self.has_over and value > hi:
+                return self.over
         if len(self.thresholds) > 1:
             # Lower-inclusive, last interval closed: a value equal to an
             # interior boundary belongs to the band *above* it, and the
@@ -219,12 +252,11 @@ struct ColorScale(Movable):
         symmetric bar for an asymmetric mapping, which is the exact class
         of silent disagreement this API was added to remove.
 
-        The result is matplotlib's `TwoSlopeNorm` by another route, and
-        agrees with it value for value: each arm of the remap is linear,
-        stop interpolation is linear, so compressing the ramp's offsets
-        into an arm and compressing the values into it give the same
-        color. Only `t` has to be computed here; `TwoSlopeNorm`
-        normalizes every value twice.
+        Moving the stops and bending the values agree value for value:
+        each arm of the remap is linear, stop interpolation is linear, so
+        compressing the ramp's offsets into an arm and compressing the
+        values into it give the same color. Only `t` has to be computed
+        here.
 
         Centering is defined for any ramp, not only a three-stop
         diverging one -- it means "the color at offset 0.5 lands on
@@ -315,6 +347,12 @@ struct _ColorDomainOverride(Copyable, Movable):
     """`Plot.scale_color_log()`. Independent of `has`: a log ramp over
     the data's own limits is the common case, and an explicit domain
     without one stays linear."""
+    var has_under: Bool
+    """`Plot.scale_color_under()`."""
+    var under: Color
+    var has_over: Bool
+    """`Plot.scale_color_over()`."""
+    var over: Color
 
     def __init__(out self):
         self.has = False
@@ -323,6 +361,10 @@ struct _ColorDomainOverride(Copyable, Movable):
         self.has_center = False
         self.center = 0.0
         self.log = False
+        self.has_under = False
+        self.under = Color(0, 0, 0)
+        self.has_over = False
+        self.over = Color(0, 0, 0)
         self.thresholds = List[Float64]()
 
 
@@ -332,8 +374,46 @@ def _color_scale_for(
     data_min: Float64,
     data_max: Float64,
 ) raises -> ColorScale:
-    """The one call every continuous-color mark makes instead of
+    """The scale a mark colors with: `_color_scale_ramp()`'s ramp, plus
+    the out-of-range colors `Plot.scale_color_under()`/`scale_color_over()`
+    asked for.
+
+    Stamped here rather than inside the ramp builder because the ramp has
+    four exits -- banded, log, plain and centered -- and an out-of-range
+    color applies to all four identically. One place to set them is one
+    place to get them wrong.
+
+    Args:
+        theme: Supplies the ramp's stops.
+        domain: The chart's override, usually `Plot._color_domain`.
+        data_min: The low limit this mark's own data implies.
+        data_max: The high limit this mark's own data implies.
+
+    Returns:
+        The `ColorScale` the mark should color with, and hand to its
+        legend.
+
+    Raises:
+        Error: Whatever `_color_scale_ramp()` raises.
+    """
+    var scale = _color_scale_ramp(theme, domain, data_min, data_max)
+    scale.has_under = domain.has_under
+    scale.under = domain.under
+    scale.has_over = domain.has_over
+    scale.over = domain.over
+    return scale^
+
+
+def _color_scale_ramp(
+    theme: Theme,
+    domain: _ColorDomainOverride,
+    data_min: Float64,
+    data_max: Float64,
+) raises -> ColorScale:
+    """The ramp itself, before out-of-range colors: what every
+    continuous-color mark would build with
     `ColorScale.from_theme(theme, <its own min>, <its own max>)`.
+    Reached through `_color_scale_for()`, which is what marks call.
 
     Each mark still computes the limits its own data implies and passes
     them as `data_min`/`data_max`; this decides whether they win. They
@@ -438,6 +518,51 @@ def _color_scale_for(
     return ColorScale.from_theme_centered(theme, lo, hi, domain.center)
 
 
+def symmetric_color_domain(
+    samples: List[List[Float64]], center: Float64 = 0.0
+) raises -> MinMax:
+    """One color domain across several charts' data, symmetric about
+    `center`: `[center - r, center + r]` for the largest distance `r`
+    any value sits from it.
+
+    `shared_color_domain()`'s counterpart for a diverging ramp. That one
+    gives every panel the same limits, which is what makes two panels
+    comparable at all. A diverging ramp needs one thing more: equal
+    distances either side of the center have to be equally intense, and
+    they are not when the domain is lopsided. Data running -2 to +8
+    about a center of 0 puts the deepest low color on -2 and the deepest
+    high on +8, so a reader comparing a -2 against a +2 sees a strong
+    color against a pale one and reads a difference that is not there.
+    A symmetric domain fixes that; pass it to `Plot.scale_color_domain()`
+    alongside `Plot.scale_color_center(center)`.
+
+    The cost is range: with data running -2 to +8 this returns
+    `[-8, 8]`, so the low half of the ramp is barely used. That is the
+    honest trade for comparability, and `shared_color_domain()` is
+    still there when a lopsided ramp is what the chart wants.
+
+    Args:
+        samples: One list of values per chart; empty lists are skipped.
+        center: The value the two halves are measured from.
+
+    Returns:
+        The symmetric domain, as `[center - r, center + r]`.
+
+    Raises:
+        Error: Every list is empty, or a value is not finite.
+    """
+    var span = shared_color_domain(samples)
+    var r = span.max - center
+    if center - span.min > r:
+        r = center - span.min
+    if r <= 0.0:
+        # Every value sits on the center. A zero-span domain colors
+        # everything the ramp's low end, which says nothing; a hair of
+        # width on each side at least keeps the center neutral.
+        r = 1.0
+    return MinMax(center - r, center + r)
+
+
 def shared_color_domain(samples: List[List[Float64]]) raises -> MinMax:
     """One color domain covering every list in `samples`: the smallest
     value anywhere to the largest value anywhere. Hand it to each
@@ -515,6 +640,127 @@ def shared_color_domain(grids: List[List[List[Float64]]]) raises -> MinMax:
             " across all charts"
         )
     return _min_max(pooled)
+
+
+def shared_categories(panels: List[List[String]]) -> List[String]:
+    """One category order covering every panel: first-seen across the
+    panels in turn, so panel 0's categories come first in its own order,
+    then whatever panel 1 adds, and so on.
+
+    The categorical counterpart to `shared_color_domain()`, and for the
+    same reason. Each chart resolves its own categories with
+    `_categorical_indices`, which is first-seen *within that panel*, and
+    the palette is then indexed by position in that panel's domain. So
+    two panels whose categories arrive in a different order, or one of
+    which is missing a category the other has, give the same name two
+    different colors -- and nothing on either chart says so. The panels
+    have to be told the answer, because neither can see the other.
+
+    Returning the order rather than applying it keeps this usable for
+    the cases that are not a facet grid: two standalone charts, a chart
+    compared against last quarter's, or an order sorted into something
+    presentable before being used. Pass the result to
+    `shared_color_map()`, and hand that to each panel's
+    `Plot.encode(color_map=...)`.
+
+    Args:
+        panels: One category column per panel, in panel order. Empty
+            columns are allowed and contribute nothing.
+
+    Returns:
+        Every distinct category once, in resolved order.
+    """
+    var seen = Dict[String, Int]()
+    var out = List[String]()
+    for panel in panels:
+        for name in panel:
+            if name not in seen:
+                seen[name] = 1
+                out.append(name)
+    return out^
+
+
+def shared_color_map(
+    panels: List[List[String]],
+    theme: Theme = Theme(),
+    overrides: Dict[String, Color] = Dict[String, Color](),
+) raises -> Dict[String, Color]:
+    """One category-to-color mapping covering every panel, ready for
+    each panel's `Plot.encode(color_map=...)`.
+
+    Colors come from `categorical_palette_for(theme)`, cycled by each
+    category's position in `shared_categories(panels)` -- so a name gets
+    the same color in every panel whether or not the others contain it,
+    which is the whole point. A category missing from one panel no
+    longer shifts the colors of the rest.
+
+    `overrides` win, and they are applied *after* the palette is dealt
+    out rather than instead of it. So pinning one category to a chosen
+    color leaves every other category on the color it already had,
+    rather than sliding them all up a slot. Adding or removing an
+    override is then a local change to the chart, which is what makes
+    it usable for the "this series is always red" case.
+
+    An override naming a category no entry uses is kept rather than
+    dropped, so a caller can pin a color for a category that has not
+    appeared in the data yet without the call order mattering.
+
+    Independent mappings remain the default: a chart that does not pass
+    a `color_map` still resolves its own categories against its own
+    palette exactly as before. This is opt-in per figure.
+
+    Args:
+        panels: One category column per panel, in panel order.
+        theme: Supplies the palette, via `categorical_palette_for`.
+        overrides: Explicit category-to-color pins, which win.
+
+    Returns:
+        A color for every category in any panel, plus any override.
+
+    Raises:
+        Error: Building the dictionary fails.
+    """
+    var order = shared_categories(panels)
+    var palette = categorical_palette_for(theme)
+    var out = Dict[String, Color]()
+    for i in range(len(order)):
+        out[order[i]] = palette[i % len(palette)]
+    for entry in overrides.items():
+        out[entry.key] = entry.value
+    return out^
+
+
+def shared_shape_map(
+    panels: List[List[String]],
+    overrides: Dict[String, PointShape] = Dict[String, PointShape](),
+) raises -> Dict[String, PointShape]:
+    """`shared_color_map()`'s counterpart for point shapes, for a figure
+    drawn under `Theme.shape_by_category`.
+
+    Shapes had the same defect and no way to fix it: they are dealt from
+    `default_marker_shapes()` by position in each panel's own domain,
+    with no per-name override at all, so a category missing from one
+    panel shifted the shapes of the rest. `Plot.encode(shape_map=...)`
+    takes this the way `color_map` takes the color one.
+
+    Args:
+        panels: One category column per panel, in panel order.
+        overrides: Explicit category-to-shape pins, which win.
+
+    Returns:
+        A shape for every category in any panel, plus any override.
+
+    Raises:
+        Error: Building the dictionary fails.
+    """
+    var order = shared_categories(panels)
+    var shapes = default_marker_shapes()
+    var out = Dict[String, PointShape]()
+    for i in range(len(order)):
+        out[order[i]] = shapes[i % len(shapes)]
+    for entry in overrides.items():
+        out[entry.key] = entry.value
+    return out^
 
 
 def categorical_palette_for(theme: Theme) -> List[Color]:

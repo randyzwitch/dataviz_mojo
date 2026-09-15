@@ -12,9 +12,8 @@ from dataviz.plot import (
     _RenderResult,
     _Scaled,
     _TextRequest,
-    _continuous_legend_labels,
-    _draw_continuous_color_legend,
-    _dynamic_legend_width,
+    _continuous_color_legend_layout,
+    _draw_continuous_color_legend_at,
     _finished,
     _require_non_empty,
 )
@@ -96,25 +95,19 @@ def _render_corrplot[
 
     # Reuse the cache for legend and axis-label measurement.
 
-    var legend_reserve = 0
-    if theme.show_legend:
-        var legend_labels = _continuous_legend_labels(color_scale, theme)
-        legend_reserve = _dynamic_legend_width(
-            legend_labels,
-            sc.continuous_legend_bar_width,
-            sc,
-            cache=cache,
-        )
+    var legend = _continuous_color_legend_layout(
+        color_scale, theme, sc, cache=cache
+    )
 
     var frame = _draw_grid_axis_frame(
         target,
         plot._corrplot.variables,
         plot._corrplot.variables,
         theme,
-        ox0,
-        oy0,
-        ox1 - legend_reserve,
-        oy1,
+        ox0 + legend.left,
+        oy0 + legend.top,
+        ox1 - legend.right,
+        oy1 - legend.bottom,
         cache=cache,
     )
 
@@ -162,15 +155,18 @@ def _render_corrplot[
                     )
                 )
 
-    if theme.show_legend:
-        _ = _draw_continuous_color_legend(
-            target,
-            frame.text_requests,
-            color_scale,
-            round_to_int(frame.x_scale.range_max) + sc.margin_right,
-            frame.py0,
-            theme,
-        )
+    _draw_continuous_color_legend_at(
+        target,
+        frame.text_requests,
+        color_scale,
+        legend,
+        frame.px0,
+        frame.py0,
+        frame.px1,
+        frame.py1,
+        theme,
+        cache=cache,
+    )
 
     return frame.result()
 

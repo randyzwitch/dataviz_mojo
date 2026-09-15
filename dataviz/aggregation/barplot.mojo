@@ -1,6 +1,6 @@
-"""`barplot()` and `countplot()`: bars of an estimate per category with
-its uncertainty, and bars of a count -- seaborn's pair, and the first
-charts here that compute an aggregate rather than draw one (#350)."""
+"""`barplot()`: bars of an estimate per category with its uncertainty,
+the first chart here that computes an aggregate rather than draws one
+(#350)."""
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import Plot, _finished
@@ -27,7 +27,7 @@ def barplot[
 ) raises -> Plot:
     """One bar per distinct category holding an *estimate* of that
     category's values -- the mean by default -- with a whisker for its
-    uncertainty: seaborn's `barplot()`. Unlike `bar()`, which draws the
+    uncertainty. Unlike `bar()`, which draws the
     numbers it is given, this takes raw observations, several per
     category, and reduces them.
 
@@ -134,77 +134,4 @@ def barplot[
         x_title,
         resolved_y,
         subtitle=subtitle,
-    )
-
-
-def countplot(
-    categories: List[String],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 420,
-    title: String = "",
-    subtitle: String = "",
-    x_title: String = "",
-    y_title: String = "Count",
-    horizontal: Bool = False,
-) raises -> Plot:
-    """One bar per distinct category holding how many times it appears:
-    seaborn's `countplot()`, the degenerate `barplot()` whose estimator
-    is a count and which therefore has no interval.
-
-    Args:
-        categories: One entry per observation; repeated as observations
-            repeat. Bars keep first-seen order.
-        theme: Full styling knobs beyond this function's own arguments.
-        width: Canvas width in pixels.
-        height: Canvas height in pixels.
-        title: Chart title; empty for none.
-        subtitle: Chart subtitle; empty for none.
-        x_title: X-axis title; empty for none.
-        y_title: Y-axis title; "Count" by default.
-        horizontal: Draw categories top-to-bottom with bars running
-            left-to-right.
-
-    Returns:
-        The finished `Plot`, ready to `render()` or `save()`.
-
-    Raises:
-        Error: `categories` is empty.
-
-    Example:
-        ```mojo
-        from dataviz import countplot, save
-
-        def main() raises:
-            # Illustrative support tickets by channel over a week: one
-            # entry per ticket, counted into a bar per channel.
-            var channel = List[String]()
-            var n: List[Int] = [23, 41, 9, 17]
-            var names: List[String] = ["email", "chat", "phone", "form"]
-            for i in range(len(names)):
-                for _ in range(n[i]):
-                    channel.append(names[i])
-            var chart = countplot(
-                channel, title="Illustrative Support Tickets by Channel"
-            )
-            save(chart, "docs/src/examples/out_countplot.svg")
-        ```
-    """
-    var ones = List[Float64](capacity=len(categories))
-    for _ in range(len(categories)):
-        ones.append(1.0)
-    var agg: _Aggregate
-    try:
-        agg = _aggregate(
-            categories, ones, Estimator.COUNT, ErrorBar.none(), UInt64(0)
-        )
-    except e:
-        raise Error("countplot(): " + String(e))
-    var plot = (
-        Plot()
-        .mark_bar(horizontal=horizontal)
-        .encode_categorical(x=agg.categories, y=agg.estimates)
-    )
-    return _finished(
-        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )

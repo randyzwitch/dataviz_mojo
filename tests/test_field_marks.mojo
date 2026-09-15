@@ -10,6 +10,10 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.buffer import Canvas
 from canvas.color import Color
 from dataviz import Theme, Triangulation, delaunay, streamplot
+from dataviz.core.color_scale import (
+    _ColorDomainOverride,
+    _color_scale_for,
+)
 from dataviz.core.colormaps import viridis
 from dataviz.core.theme import Theme
 from dataviz.multivariate.quiver import _auto_pixels_per_unit, quiver
@@ -21,6 +25,7 @@ from dataviz.multivariate.streamplot import (
     _streamlines,
     _trace,
 )
+from dataviz.multivariate.contour import contour, contourf
 from dataviz.multivariate.triplot import tripcolor
 from dataviz.plot import Plot, render, render_svg
 from _test_helpers import (
@@ -1535,6 +1540,139 @@ def test_streamplot_raises_with_names() raises:
     var p4 = streamplot(xs, ys, short, _zeros_streamplot(5, 4))
     with assert_raises(contains="one entry per x coordinate"):
         _ = render(p4)
+
+
+# ==== a contour on the caller's own coordinates (#423) ====
+# `contour(z)` lays out in grid-index units, unpadded, so the grid meets
+# the plot rect's edges. That is a fine default and a bad axis to share:
+# layered under a scatter it would put column 12 and the reading 12 on
+# the same pixel. `x`/`y` put the grid on real coordinates, padded like
+# every other continuous mark, which is what makes the axis mean
+# something a co-layer can agree with.
+
+
+def _peak_grid() raises -> List[List[Float64]]:
+    """A 3x3 field with one interior peak."""
+    var z = List[List[Float64]]()
+    var row0: List[Float64] = [0.0, 1.0, 2.0]
+    var row1: List[Float64] = [1.0, 3.0, 1.0]
+    var row2: List[Float64] = [2.0, 1.0, 0.0]
+    z.append(row0^)
+    z.append(row1^)
+    z.append(row2^)
+    return z^
+
+
+def _ink_columns(c: Canvas, ink: Color) raises -> List[Int]:
+    """Every column holding a pixel of exactly `ink`, left to right."""
+    var out = List[Int]()
+    for x in range(c.width):
+        for y in range(c.height):
+            var p = c.get_pixel(x, y)
+            if p.r == ink.r and p.g == ink.g and p.b == ink.b:
+                out.append(x)
+                break
+    return out^
+
+
+def _isoline_columns(x: List[Float64], y: List[Float64]) raises -> List[Int]:
+    """Every column a single isoline of `_peak_grid()` reaches, drawn
+    with the given coordinates (empty for grid indices)."""
+    var levels: List[Float64] = [1.5]
+    var bare = Theme(show_legend=False)
+    var c = render(
+        contour(
+            _peak_grid(),
+            levels=levels,
+            x=x,
+            y=y,
+            theme=bare,
+            width=400,
+            height=300,
+        )
+    )
+    var scale = _color_scale_for(bare, _ColorDomainOverride(), 1.5, 1.5)
+    var cols = _ink_columns(c, scale.color_at(1.5))
+    if len(cols) == 0:
+        raise Error("no isoline was drawn")
+    return cols^
+
+
+def _isoline_span(x: List[Float64], y: List[Float64]) raises -> Tuple[Int, Int]:
+    """The first and last column that isoline reaches."""
+    var cols = _isoline_columns(x, y)
+    return (cols[0], cols[len(cols) - 1])
+
+
+def test_coordinates_pad_the_axis_that_grid_indices_leave_flush() raises:
+    # Index units span the rect edge to edge; coordinates get the same
+    # 5% every other continuous mark gets. So the same field on the same
+    # numbers draws narrower once it is on a real axis -- which is the
+    # visible half of "it is now an ordinary layer".
+    var none = List[Float64]()
+    var flush = _isoline_span(none, none)
+    var coords: List[Float64] = [0.0, 1.0, 2.0]
+    var padded = _isoline_span(coords, coords)
+    assert_true(
+        padded[0] > flush[0] and padded[1] < flush[1],
+        (
+            "the coordinate contour was not inset: flush "
+            + String(flush[0])
+            + ".."
+            + String(flush[1])
+            + " against padded "
+            + String(padded[0])
+            + ".."
+            + String(padded[1])
+        ),
+    )
+
+
+def test_coordinates_need_not_be_evenly_spaced() raises:
+    # A crossing is a fraction along a cell edge, and the coordinate is
+    # interpolated the same way, so stretching one cell stretches that
+    # half of the isoline. Even spacing is not assumed anywhere.
+    #
+    # Compared over every column the isoline touches rather than its two
+    # ends: both grids run 0 to 2, so the domain and therefore the span
+    # are identical either way, and only the shape in between moves.
+    var even: List[Float64] = [0.0, 1.0, 2.0]
+    var uneven: List[Float64] = [0.0, 1.8, 2.0]
+    var a = _isoline_columns(even, even)
+    var b = _isoline_columns(uneven, even)
+    var differs = len(a) != len(b)
+    if not differs:
+        for i in range(len(a)):
+            if a[i] != b[i]:
+                differs = True
+    assert_true(differs, "a stretched first cell moved nothing")
+
+
+def test_a_coordinate_column_must_match_the_grid() raises:
+    var short: List[Float64] = [0.0, 1.0]
+    var ok: List[Float64] = [0.0, 1.0, 2.0]
+    with assert_raises(contains="one value per column"):
+        _ = render(contour(_peak_grid(), x=short, y=ok))
+
+
+def test_coordinates_must_be_strictly_increasing() raises:
+    # Repeated collapses a cell to zero width; decreasing is
+    # `scale_x_reverse()`'s job, and two ways to say it could disagree.
+    var flat: List[Float64] = [0.0, 1.0, 1.0]
+    var ok: List[Float64] = [0.0, 1.0, 2.0]
+    with assert_raises(contains="strictly increasing"):
+        _ = render(contour(_peak_grid(), x=flat, y=ok))
+    var back: List[Float64] = [0.0, 2.0, 1.0]
+    with assert_raises(contains="strictly increasing"):
+        _ = render(contourf(_peak_grid(), x=ok, y=back))
+
+
+def test_x_and_y_come_as_a_pair() raises:
+    # One alone would leave the grid padded on one axis and flush on the
+    # other, a frame nothing else here draws.
+    var ok: List[Float64] = [0.0, 1.0, 2.0]
+    with assert_raises(contains="both x and y or neither"):
+        _ = render(contour(_peak_grid(), x=ok))
 
 
 def main() raises:

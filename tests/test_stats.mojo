@@ -1,6 +1,8 @@
-"""`dataviz.core.stats`: the estimation shared by marks that draw an estimate
-with its uncertainty (#350, #352). Every value here is worked out by
-hand and pinned, away from any rendering.
+"""`dataviz.core.stats` and `dataviz.core.cluster`: the estimation shared
+by marks that draw an estimate with its uncertainty (#350, #352), and
+the hierarchical clustering a clustermap's reordering comes from (#355).
+Every value here is worked out by hand and pinned, away from any
+rendering.
 """
 
 from std.testing import (
@@ -11,6 +13,11 @@ from std.testing import (
     assert_true,
 )
 
+from dataviz.core.cluster import (
+    DistanceMetric,
+    Linkage,
+    linkage,
+)
 from dataviz.core.stats import (
     ErrorBar,
     Estimator,
@@ -212,6 +219,188 @@ def test_estimation_raises_on_bad_input() raises:
     var one: List[Float64] = [1.0]
     with assert_raises():
         _ = _aggregate(g, one, Estimator.MEAN, ErrorBar.none(), 1)
+
+
+# ==== hierarchical clustering (#355) ====
+# The numbers a clustermap's reordering comes from, checked without
+# drawing anything. The four-point example below is worked by hand in
+# the comment, which is what makes it a test of the algorithm rather
+# than a recording of its output.
+
+
+def _four_points() -> List[List[Float64]]:
+    """Four points on a line at 0, 1, 4 and 6.
+
+    Pairwise distances, by hand: (0,1)=1, (0,2)=4, (0,3)=6, (1,2)=3,
+    (1,3)=5, (2,3)=2.
+    """
+    var out = List[List[Float64]]()
+    var at: List[Float64] = [0.0, 1.0, 4.0, 6.0]
+    for v in at:
+        var row = List[Float64]()
+        row.append(v)
+        out.append(row^)
+    return out^
+
+
+def test_average_linkage_matches_the_hand_worked_example() raises:
+    # Closest pair is (0,1) at 1. Merging them puts the new cluster at
+    # (4+3)/2 = 3.5 from point 2 and (6+5)/2 = 5.5 from point 3. The
+    # closest pair is now (2,3) at 2. Merging those leaves one distance,
+    # (3.5 + 5.5)/2 = 4.5.
+    var tree = linkage(
+        _four_points(), DistanceMetric.EUCLIDEAN, Linkage.AVERAGE
+    )
+    assert_equal(len(tree.merges), 3, "three merges for four points")
+    assert_equal(tree.merges[0].left, 0)
+    assert_equal(tree.merges[0].right, 1)
+    assert_equal(tree.merges[0].height, 1.0)
+    assert_equal(tree.merges[0].size, 2)
+    assert_equal(tree.merges[1].left, 2)
+    assert_equal(tree.merges[1].right, 3)
+    assert_equal(tree.merges[1].height, 2.0)
+    assert_equal(tree.merges[2].left, 4, "the root joins the two pairs")
+    assert_equal(tree.merges[2].right, 5)
+    assert_equal(tree.merges[2].height, 4.5)
+    assert_equal(tree.merges[2].size, 4)
+
+
+def test_single_and_complete_differ_where_the_hand_work_says() raises:
+    # Same two pairs, and only the last height changes: single takes the
+    # closest pair across the two clusters (3), complete the furthest
+    # (6). That the first two merges are identical is the point -- the
+    # linkage rule only starts to matter once there are clusters.
+    var single = linkage(
+        _four_points(), DistanceMetric.EUCLIDEAN, Linkage.SINGLE
+    )
+    var complete = linkage(
+        _four_points(), DistanceMetric.EUCLIDEAN, Linkage.COMPLETE
+    )
+    assert_equal(single.merges[0].height, 1.0)
+    assert_equal(complete.merges[0].height, 1.0)
+    assert_equal(single.merges[1].height, 2.0)
+    assert_equal(complete.merges[1].height, 2.0)
+    assert_equal(single.merges[2].height, 3.0, "closest across the pairs")
+    assert_equal(complete.merges[2].height, 6.0, "furthest across them")
+
+
+def test_the_leaf_order_is_a_permutation_in_tree_order() raises:
+    var tree = linkage(_four_points())
+    assert_equal(len(tree.leaf_order), 4)
+    var seen = List[Bool]()
+    for _ in range(4):
+        seen.append(False)
+    for v in tree.leaf_order:
+        assert_true(v >= 0 and v < 4, "a real row index")
+        assert_true(not seen[v], "each row exactly once")
+        seen[v] = True
+    assert_equal(tree.leaf_order[0], 0, "and in the tree's own order")
+    assert_equal(tree.leaf_order[1], 1)
+    assert_equal(tree.leaf_order[2], 2)
+    assert_equal(tree.leaf_order[3], 3)
+
+
+def test_a_child_always_comes_before_its_parent() raises:
+    # What sorting the merges by height buys: anything reading the tree
+    # can place every node in one forward pass.
+    var tree = linkage(_four_points())
+    var n = 4
+    for k in range(len(tree.merges)):
+        var m = tree.merges[k]
+        assert_true(m.left < n + k, "left child already exists")
+        assert_true(m.right < n + k, "right child already exists")
+        if k > 0:
+            assert_true(
+                tree.merges[k].height >= tree.merges[k - 1].height,
+                "heights do not go backwards",
+            )
+
+
+def _blocks() -> List[List[Float64]]:
+    """Six rows in two obvious blocks, interleaved so the input order
+    cannot be mistaken for the answer: rows 0, 2, 4 are one shape and
+    rows 1, 3, 5 the other.
+    """
+    var out = List[List[Float64]]()
+    for i in range(6):
+        var row = List[Float64]()
+        for c in range(4):
+            if i % 2 == 0:
+                row.append(10.0 + Float64(c) + Float64(i) * 0.01)
+            else:
+                row.append(90.0 - Float64(c) + Float64(i) * 0.01)
+        out.append(row^)
+    return out^
+
+
+def test_block_structure_comes_out_grouped() raises:
+    # A property rather than a pinned order, so it survives any
+    # tie-breaking change: whatever the leaf order is, each block's rows
+    # are contiguous in it. That is the whole claim a clustermap makes.
+    var tree = linkage(_blocks())
+    ref order = tree.leaf_order
+    var first_parity = order[0] % 2
+    var switches = 0
+    for i in range(1, len(order)):
+        if order[i] % 2 != order[i - 1] % 2:
+            switches += 1
+    assert_equal(
+        switches, 1, "the order crosses between the blocks exactly once"
+    )
+    assert_true(first_parity == 0 or first_parity == 1)
+
+
+def test_correlation_groups_rows_that_move_together() raises:
+    # Two rows with the same shape at very different levels are far
+    # apart by Euclidean distance and close by correlation. This is the
+    # reason the metric is a choice rather than a constant.
+    var rows = List[List[Float64]]()
+    var low: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var high: List[Float64] = [101.0, 102.0, 103.0, 104.0]
+    var falling: List[Float64] = [4.0, 3.0, 2.0, 1.0]
+    rows.append(low^)
+    rows.append(high^)
+    rows.append(falling^)
+    var by_shape = linkage(rows, DistanceMetric.CORRELATION, Linkage.AVERAGE)
+    # The two rising rows are identical in shape, so they join at a
+    # distance of zero, before anything joins the falling one.
+    assert_true(
+        by_shape.merges[0].height < 1e-9,
+        "two identically shaped rows are the same to correlation",
+    )
+    assert_true(
+        by_shape.merges[1].height > 1.0,
+        "and the falling row is far from both",
+    )
+
+
+def test_ward_needs_euclidean_distance() raises:
+    with assert_raises(contains="only means anything with"):
+        _ = linkage(_four_points(), DistanceMetric.CORRELATION, Linkage.WARD)
+
+
+def test_clustering_checks_its_input() raises:
+    var one = List[List[Float64]]()
+    var row: List[Float64] = [1.0]
+    one.append(row^)
+    with assert_raises(contains="at least two rows"):
+        _ = linkage(one)
+
+    var ragged = List[List[Float64]]()
+    var a: List[Float64] = [1.0, 2.0]
+    var b: List[Float64] = [1.0]
+    ragged.append(a^)
+    ragged.append(b^)
+    with assert_raises(contains="same number of columns"):
+        _ = linkage(ragged)
+
+    var bad = List[List[Float64]]()
+    var c: List[Float64] = [1.0, 2.0]
+    var d: List[Float64] = [1.0, Float64("nan")]
+    bad.append(c^)
+    bad.append(d^)
+    with assert_raises(contains="must be finite"):
+        _ = linkage(bad)
 
 
 def main() raises:

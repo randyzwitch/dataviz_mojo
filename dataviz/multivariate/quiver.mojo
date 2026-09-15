@@ -6,7 +6,6 @@ field in the meteorologist's station notation."""
 from std.math import sqrt
 
 from canvas.fill_rule import FillRule
-from canvas.geometry import round_to_int
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
@@ -19,9 +18,8 @@ from dataviz.core.arrow import (
 from dataviz.multivariate.barbs import _validate_vector_field
 from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.core.legend import (
-    _continuous_legend_labels,
-    _draw_continuous_color_legend,
-    _dynamic_legend_width,
+    _continuous_color_legend_layout,
+    _draw_continuous_color_legend_at,
 )
 from dataviz.plot import (
     Plot,
@@ -37,7 +35,7 @@ from dataviz.core.theme import Theme
 
 
 comptime _AUTO_SCALE_DIVISOR = 1.8
-"""matplotlib's constant in its `quiver` autoscale: an arrow of the mean
+"""The autoscale divisor: an arrow of the mean
 magnitude is drawn `plot width / (1.8 * max(10, sqrt(N)))` long, so a
 field of N arrows on a grid fills its cells without crossing them."""
 
@@ -180,15 +178,10 @@ def _render_quiver[
     var color_scale = _color_scale_for(theme, plot._color_domain, 0.0, top)
 
     var legend = _LegendLayout()
-    if theme.show_legend and plot._barbs.color_by_magnitude:
-        var legend_labels = _continuous_legend_labels(color_scale, theme)
-        legend.right = _dynamic_legend_width(
-            legend_labels,
-            sc.continuous_legend_bar_width,
-            sc,
-            cache=cache,
+    if plot._barbs.color_by_magnitude:
+        legend = _continuous_color_legend_layout(
+            color_scale, theme, sc, cache=cache
         )
-        legend.active = True
 
     var frame = _draw_continuous_axis_frame(
         target,
@@ -219,15 +212,18 @@ def _render_quiver[
         color_scale,
         plot._barbs.color_by_magnitude,
     )
-    if legend.active:
-        _ = _draw_continuous_color_legend(
-            target,
-            frame.text_requests,
-            color_scale,
-            round_to_int(frame.x_scale.range_max) + sc.margin_right,
-            frame.py0,
-            theme,
-        )
+    _draw_continuous_color_legend_at(
+        target,
+        frame.text_requests,
+        color_scale,
+        legend,
+        frame.px0,
+        frame.py0,
+        frame.px1,
+        frame.py1,
+        theme,
+        cache=cache,
+    )
     return frame.result()
 
 
@@ -248,7 +244,7 @@ def quiver[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A vector field as arrows, matplotlib's `quiver()`: one arrow per
+    """A vector field as arrows: one arrow per
     `(x, y)` sample, pointing along `(u, v)` with a length proportional
     to the magnitude and a filled head at the tip.
 
@@ -260,7 +256,7 @@ def quiver[
 
     `scale` is pixels per unit of magnitude, before `Theme.scale`, so
     `scale=2.0` draws a vector of magnitude 10 as a 20-pixel arrow. At
-    the default of 0 it is chosen from the data, by matplotlib's rule:
+    the default of 0 it is chosen from the data:
     an arrow of the mean magnitude is drawn `plot width / (1.8 *
     max(10, sqrt(N)))` long, so a field of N arrows on a grid fills its
     cells without crossing them. Set it explicitly to compare two

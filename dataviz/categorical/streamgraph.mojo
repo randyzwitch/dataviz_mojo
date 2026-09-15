@@ -406,8 +406,7 @@ def stacked_area[
     y_title: String = "",
 ) raises -> Plot:
     """A stacked area chart: the same series `streamgraph()` stacks, laid
-    on a flat zero baseline instead of a centered one. matplotlib's
-    `stackplot`.
+    on a flat zero baseline instead of a centered one.
 
     `Mark.STREAMGRAPH` with `StackBaseline.ZERO`. The two charts share
     all their machinery and differ only in where each category's stack
@@ -451,9 +450,7 @@ def stacked_area[
             (the default: straight segments), `PRE` (at the earlier
             category), `MID` (halfway) or `POST` (at the later one).
             Every band's top and bottom edge steps together, so the
-            stack still tiles. Same three placements as matplotlib's
-            `drawstyle='steps-pre'/'steps-mid'/'steps-post'`; see
-            `StepStyle`. Mutually exclusive with a non-zero
+            stack still tiles; see `StepStyle`. Mutually exclusive with a non-zero
             `smoothing`, which raises.
         width: Pixel width of the returned `Plot` (`.size()`).
         height: Pixel height of the returned `Plot` (`.size()`).

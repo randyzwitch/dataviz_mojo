@@ -12,9 +12,14 @@ from canvas.io.bmp import write_bmp
 from canvas.io.png import write_png
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
+from canvas.vector.pdf import PdfCanvas, write_pdf
 from canvas.vector.svg import SvgCanvas
 
-from dataviz.layout import _render_cells_generic, uniform_cells
+from dataviz.layout import (
+    _figure_title_band,
+    _render_cells_generic,
+    uniform_cells,
+)
 from dataviz.core.output_format import OutputFormat
 from dataviz.plot import (
     Plot,
@@ -25,6 +30,7 @@ from dataviz.plot import (
 from dataviz.core.text import (
     _TextRequest,
     _replay_text_requests,
+    _replay_text_requests_pdf,
     _replay_text_requests_svg,
 )
 
@@ -64,6 +70,9 @@ def save_facets(
             )
         )
         f.close()
+    elif format == OutputFormat.PDF:
+        var doc = render_facets_pdf(plots, cols, shared_y_scale)
+        write_pdf(doc, path)
     elif format == OutputFormat.PNG:
         write_png(render_facets(plots, cols, shared_y_scale), path)
     else:
@@ -99,10 +108,14 @@ def _require_uniform_size(plots: List[Plot], caller: String) raises:
 
 
 def render_facets(
-    plots: List[Plot], cols: Int, shared_y_scale: Bool = False
+    plots: List[Plot],
+    cols: Int,
+    shared_y_scale: Bool = False,
+    title: String = "",
 ) raises -> Canvas:
     """Render each of `plots` into its grid cell of a fresh `Canvas` sized
-    from the plots (`_require_uniform_size`), supersampled by
+    from the plots (`_require_uniform_size`), plus the band a `title`
+    reserves above them so the cells keep their own size, supersampled by
     `plots[0]._theme.raster_supersample` like `render()` (`plots` is a
     plain borrow -- a copy is what actually gets the scale bump,
     so a temporary list literal binds fine). See `_render_facets_generic`
@@ -124,7 +137,10 @@ def render_facets(
         var f = _resolve_supersample(plots[i], "render_facets")
         if f > factor:
             factor = f
-    var canvas = Canvas(cols * plots[0].width, rows * plots[0].height)
+    var figure_height = rows * plots[0].height + _figure_title_band(
+        plots[0]._theme, title
+    )
+    var canvas = Canvas(cols * plots[0].width, figure_height)
     # `begin_supersampled` owns the half-pixel shift box downsampling
     # costs and the scale, and replays the recorded shapes one output
     # band at a time, so the enlarged buffer never exists whole. Byte
@@ -140,7 +156,7 @@ def render_facets(
         0,
         0,
         cols * plots[0].width,
-        rows * plots[0].height,
+        figure_height,
         plots[0]._theme.background,
     )
     # One lazily built FontCache for the whole figure; see _render_into.
@@ -150,10 +166,11 @@ def render_facets(
     var text_requests = _render_facets_generic(
         canvas,
         cols * plots[0].width,
-        rows * plots[0].height,
+        figure_height,
         plots,
         cols,
         shared_y_scale,
+        title,
         cache=cache,
     )
     _replay_text_requests(canvas, text_requests, cache)
@@ -162,10 +179,13 @@ def render_facets(
 
 
 def render_facets_svg(
-    plots: List[Plot], cols: Int, shared_y_scale: Bool = False
+    plots: List[Plot],
+    cols: Int,
+    shared_y_scale: Bool = False,
+    title: String = "",
 ) raises -> SvgCanvas:
     """`render_facets()`'s counterpart for `SvgCanvas`, with the same `cols`
-    guard and `_render_facets_generic` core.
+    guard, title band and `_render_facets_generic` core.
     """
     if cols <= 0:
         raise Error(
@@ -175,16 +195,77 @@ def render_facets_svg(
         )
     _require_uniform_size(plots, "render_facets_svg")
     var rows = (len(plots) + cols - 1) // cols
-    var svg = SvgCanvas(cols * plots[0].width, rows * plots[0].height)
+    var svg = SvgCanvas(
+        cols * plots[0].width,
+        rows * plots[0].height + _figure_title_band(plots[0]._theme, title),
+    )
     # See render_facets(): a partial last row is a hole without this.
     svg.fill_rect(0, 0, svg.width, svg.height, plots[0]._theme.background)
     # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
     var text_requests = _render_facets_generic(
-        svg, svg.width, svg.height, plots, cols, shared_y_scale, cache=cache
+        svg,
+        svg.width,
+        svg.height,
+        plots,
+        cols,
+        shared_y_scale,
+        title,
+        cache=cache,
     )
     _replay_text_requests_svg(svg, text_requests)
     return svg^
+
+
+def render_facets_pdf(
+    plots: List[Plot],
+    cols: Int,
+    shared_y_scale: Bool = False,
+    title: String = "",
+) raises -> PdfCanvas:
+    """`render_facets()`'s counterpart for a one-page `PdfCanvas`, with
+    the same `cols` guard, title band and `_render_facets_generic` core
+    (#372). The figure's size is in points, 1/72 inch, so the page is
+    the figure.
+
+    Args:
+        plots: The charts, one per cell.
+        cols: Cells per row.
+        shared_y_scale: Give every cell one y-domain.
+        title: A figure title above the cells.
+
+    Returns:
+        The finished document.
+
+    Raises:
+        Error: As `render_facets()`.
+    """
+    if cols <= 0:
+        raise Error(
+            "render_facets_pdf(): cols must be positive (got "
+            + String(cols)
+            + ")"
+        )
+    _require_uniform_size(plots, "render_facets_pdf")
+    var rows = (len(plots) + cols - 1) // cols
+    var pdf = PdfCanvas(
+        cols * plots[0].width,
+        rows * plots[0].height + _figure_title_band(plots[0]._theme, title),
+    )
+    pdf.fill_rect(0, 0, pdf.width, pdf.height, plots[0]._theme.background)
+    var cache = FontCache()
+    var text_requests = _render_facets_generic(
+        pdf,
+        pdf.width,
+        pdf.height,
+        plots,
+        cols,
+        shared_y_scale,
+        title,
+        cache=cache,
+    )
+    _replay_text_requests_pdf(pdf, text_requests)
+    return pdf^
 
 
 def _render_facets_generic[
@@ -196,6 +277,7 @@ def _render_facets_generic[
     plots: List[Plot],
     cols: Int,
     shared_y_scale: Bool = False,
+    title: String = "",
     *,
     mut cache: FontCache,
 ) raises -> List[_TextRequest]:
@@ -231,5 +313,6 @@ def _render_facets_generic[
         List[Float64](),
         List[Float64](),
         shared_y_scale,
+        title=title,
         cache=cache,
     )

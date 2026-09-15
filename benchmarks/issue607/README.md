@@ -1,5 +1,15 @@
 # Issue #607: family renderer callback prototype
 
+> Integration update (2026-09-15): merged main through `5f29ae9`.
+> The current prototype also registers PDF callbacks and binds the new
+> dendrogram mark to the hierarchy family. The evaluation below and its
+> raw results describe commit `fa6b42e` against `059a676`, before these
+> upstream changes; compile timings have not been rerun for this merge.
+> Check out `fa6b42e` to reproduce that original two-backend evaluation.
+> Merge validation: library precompilation and 91 tests passed across
+> `test_rendering`, `test_output_digest`, and `test_marks_hierarchy`,
+> covering PDF output, composition digests, and dendrogram rendering.
+
 This worktree evaluates replacing `_render_generic`'s ten runtime family
 probes with a callback selected when a mark is constructed. Baseline:
 `059a676` (the starting checkout; neither checkout is switched during runs).

@@ -5,6 +5,7 @@ One module rather than 4: every test module pays the same dependency
 compilation, so the suite is organized by family (#605).
 """
 
+from std.collections import Dict
 from std.math import cos, log10, sin
 from std.testing import (
     TestSuite,
@@ -14,15 +15,22 @@ from std.testing import (
     assert_true,
 )
 from canvas.color import Color
-from dataviz import Theme, contour, contourf
+from dataviz import LegendPosition, Theme, contour, contourf
 from dataviz.core.color_scale import (
     ColorScale,
     _ColorDomainOverride,
     _center_offset,
     _color_scale_for,
+    categorical_palette_for,
+    shared_categories,
     shared_color_domain,
+    shared_color_map,
+    shared_shape_map,
+    symmetric_color_domain,
 )
+from dataviz.core.marker import PointShape, default_marker_shapes
 from dataviz.core.theme import Theme
+from dataviz.basic.continuous import scatter
 from dataviz.grid.heatmap import heatmap
 from dataviz.plot import Plot, render, render_svg
 from _test_helpers import _attr_values, _count_color, _count_tag
@@ -379,6 +387,7 @@ def test_legend_labels_the_center() raises:
     var ys: List[String] = ["r", "r", "r"]
     var values: List[Float64] = [-2.0, 1.0, 10.0]
 
+    var cells = _cells()
     var plain = render_svg(
         heatmap(xs, ys, values, theme=_ramp_theme(True))
     ).to_string()
@@ -1069,6 +1078,421 @@ def test_turning_the_legend_off_removes_the_key_entirely() raises:
     assert_true(
         _count_tag(on, "rect") > _count_tag(s, "rect"),
         "the key's swatches are rects, and they go with the legend",
+    )
+
+
+# ==== out-of-range colors and a symmetric shared domain (#370) ====
+# `Plot.scale_color_under()`/`scale_color_over()` give a value outside
+# the domain its own color instead of the ramp's end, and
+# `symmetric_color_domain()` balances a diverging ramp's two arms.
+
+
+comptime UNDER = Color(250, 0, 250)
+comptime OVER = Color(0, 250, 250)
+
+
+def _out_of_range(
+    min: Float64,
+    max: Float64,
+    under: Bool = True,
+    over: Bool = True,
+) -> _ColorDomainOverride:
+    var d = _override(min, max)
+    d.has_under = under
+    d.under = UNDER
+    d.has_over = over
+    d.over = OVER
+    return d^
+
+
+def test_a_value_outside_the_domain_takes_its_own_color() raises:
+    var scale = _color_scale_for(
+        _ramp_theme(), _out_of_range(0.0, 10.0), 0.0, 10.0
+    )
+    _assert_same_color(scale.color_at(-0.5), UNDER, "below the domain")
+    _assert_same_color(scale.color_at(-1000.0), UNDER, "far below")
+    _assert_same_color(scale.color_at(10.5), OVER, "above the domain")
+    _assert_same_color(scale.color_at(1000.0), OVER, "far above")
+
+
+def test_the_domain_ends_belong_to_the_ramp() raises:
+    # The boundary rule, stated once: the ends are in range, so they
+    # keep the ramp's own colors and only what is strictly outside is
+    # out.
+    var scale = _color_scale_for(
+        _ramp_theme(), _out_of_range(0.0, 10.0), 0.0, 10.0
+    )
+    _assert_same_color(scale.color_at(0.0), LOW, "the minimum is in range")
+    _assert_same_color(scale.color_at(10.0), HIGH, "so is the maximum")
+
+
+def test_each_out_of_range_color_stands_alone() raises:
+    var only_under = _color_scale_for(
+        _ramp_theme(), _out_of_range(0.0, 10.0, over=False), 0.0, 10.0
+    )
+    _assert_same_color(only_under.color_at(-1.0), UNDER, "under is set")
+    _assert_same_color(
+        only_under.color_at(11.0), HIGH, "over is not, so it still clamps"
+    )
+    var only_over = _color_scale_for(
+        _ramp_theme(), _out_of_range(0.0, 10.0, under=False), 0.0, 10.0
+    )
+    _assert_same_color(only_over.color_at(11.0), OVER, "over is set")
+    _assert_same_color(only_over.color_at(-1.0), LOW, "under is not")
+
+
+def test_without_them_an_out_of_range_value_still_clamps() raises:
+    # The behavior every chart had before this existed, pinned so the
+    # default cannot drift.
+    var scale = _color_scale_for(_ramp_theme(), _override(0.0, 10.0), 0.0, 10.0)
+    _assert_same_color(scale.color_at(-5.0), LOW, "clamps to the low end")
+    _assert_same_color(scale.color_at(15.0), HIGH, "and to the high end")
+
+
+def test_out_of_range_colors_reach_a_banded_ramp() raises:
+    # With thresholds the band edges are the range, not the domain.
+    var d = _out_of_range(0.0, 10.0)
+    var edges: List[Float64] = [2.0, 5.0, 8.0]
+    d.thresholds = edges.copy()
+    var scale = _color_scale_for(_ramp_theme(), d, 0.0, 10.0)
+    _assert_same_color(scale.color_at(1.0), UNDER, "below the first edge")
+    _assert_same_color(scale.color_at(9.0), OVER, "above the last edge")
+    _assert_same_color(
+        scale.color_at(8.0), scale.color_at(7.9), "the last edge is in range"
+    )
+
+
+def test_out_of_range_colors_reach_a_log_ramp() raises:
+    var d = _out_of_range(1.0, 1000.0)
+    d.log = True
+    var scale = _color_scale_for(_ramp_theme(), d, 1.0, 1000.0)
+    _assert_same_color(scale.color_at(0.5), UNDER, "below a log domain")
+    _assert_same_color(scale.color_at(5000.0), OVER, "above it")
+    _assert_same_color(scale.color_at(1.0), LOW, "the ends are still in range")
+    _assert_same_color(scale.color_at(1000.0), HIGH, "and the high end")
+
+
+def _floats(svg: String, attr: String) raises -> List[Float64]:
+    """Every `<rect>`'s `attr`, in document order."""
+    var out = List[Float64]()
+    for v in _attr_values(svg, "rect", attr):
+        out.append(Float64(v))
+    return out^
+
+
+def _bar_extent(svg: String) raises -> Tuple[Float64, Float64]:
+    """The color bar's top and bottom, blocks included.
+
+    The ramp is the one rect painted with a gradient; the out-of-range
+    blocks, when there are any, are the rects sharing its column and
+    sitting flush against its two ends. Found by geometry rather than by
+    document order, which the SVG backend is free to choose (it emits
+    gradient fills last).
+    """
+    var xs = _floats(svg, "x")
+    var ys = _floats(svg, "y")
+    var ws = _floats(svg, "width")
+    var hs = _floats(svg, "height")
+    var fills = _attr_values(svg, "rect", "fill")
+    var ramp = -1
+    for i in range(len(fills)):
+        if fills[i].startswith("url("):
+            if ramp >= 0:
+                raise Error("more than one gradient rect")
+            ramp = i
+    if ramp < 0:
+        raise Error("no gradient rect in the document")
+    var top = ys[ramp]
+    var bottom = ys[ramp] + hs[ramp]
+    for i in range(len(ys)):
+        if i == ramp or xs[i] != xs[ramp] or ws[i] != ws[ramp]:
+            continue
+        if ys[i] + hs[i] == ys[ramp]:
+            top = ys[i]
+        if ys[i] == ys[ramp] + hs[ramp]:
+            bottom = ys[i] + hs[i]
+    return (top, bottom)
+
+
+def _cells() raises -> Tuple[List[String], List[String], List[Float64]]:
+    """A 4x4 heatmap in the long form `heatmap()` takes: one x, one y and
+    one value per cell, the values running 0 to 15.
+    """
+    var xs = List[String]()
+    var ys = List[String]()
+    var vals = List[Float64]()
+    for r in range(4):
+        for c in range(4):
+            xs.append(String(c))
+            ys.append(String(r))
+            vals.append(Float64(r * 4 + c))
+    return (xs^, ys^, vals^)
+
+
+def test_the_color_bar_shows_the_out_of_range_colors() raises:
+    # A legend that did not show them would disagree with the marks for
+    # exactly the values the colors exist to call out.
+    var cells = _cells()
+    var c = render(
+        heatmap(
+            cells[0], cells[1], cells[2], theme=_ramp_theme(show_legend=True)
+        )
+        .scale_color_domain(4.0, 11.0)
+        .scale_color_under(UNDER)
+        .scale_color_over(OVER)
+    )
+    assert_true(_count_color(c, UNDER) > 0, "the under block is drawn")
+    assert_true(_count_color(c, OVER) > 0, "and the over block")
+
+
+def test_the_color_bar_keeps_its_footprint() raises:
+    # The blocks take a slice off the ramp rather than extending the
+    # bar, so a legend with them reserves exactly the room one without
+    # them does and everything stacked below stays put.
+    var cells = _cells()
+    var plain = render_svg(
+        heatmap(
+            cells[0], cells[1], cells[2], theme=_ramp_theme(show_legend=True)
+        ).scale_color_domain(4.0, 11.0)
+    ).to_string()
+    var marked = render_svg(
+        heatmap(
+            cells[0], cells[1], cells[2], theme=_ramp_theme(show_legend=True)
+        )
+        .scale_color_domain(4.0, 11.0)
+        .scale_color_under(UNDER)
+        .scale_color_over(OVER)
+    ).to_string()
+    var a = _bar_extent(plain)
+    var b = _bar_extent(marked)
+    assert_equal(b[0], a[0], "the bar starts where it did")
+    assert_equal(b[1], a[1], "and ends where it did")
+    # And the ramp itself gave up the room, which is what makes that
+    # possible.
+    var a_h = _floats(plain, "height")
+    var b_h = _floats(marked, "height")
+    var a_f = _attr_values(plain, "rect", "fill")
+    var b_f = _attr_values(marked, "rect", "fill")
+    var a_ramp = 0.0
+    for i in range(len(a_f)):
+        if a_f[i].startswith("url("):
+            a_ramp = a_h[i]
+    var b_ramp = 0.0
+    for i in range(len(b_f)):
+        if b_f[i].startswith("url("):
+            b_ramp = b_h[i]
+    assert_true(
+        b_ramp < a_ramp,
+        "the ramp is shorter by the two blocks: "
+        + String(b_ramp)
+        + " against "
+        + String(a_ramp),
+    )
+
+
+def test_a_row_legend_shows_them_too() raises:
+    # The row form lays its bar out along x with the labels inline, so
+    # it slices the two ends rather than the top and bottom. Same
+    # promise, other axis.
+    var cells = _cells()
+    var theme = Theme(
+        color_scale_low=LOW,
+        color_scale_mid=MID,
+        color_scale_high=HIGH,
+        show_legend=True,
+        legend_position=LegendPosition.BOTTOM,
+    )
+    var c = render(
+        heatmap(cells[0], cells[1], cells[2], theme=theme)
+        .scale_color_domain(4.0, 11.0)
+        .scale_color_under(UNDER)
+        .scale_color_over(OVER)
+    )
+    assert_true(_count_color(c, UNDER) > 0, "the under block is drawn")
+    assert_true(_count_color(c, OVER) > 0, "and the over block")
+
+
+def test_symmetric_color_domain_balances_the_arms() raises:
+    var samples = List[List[Float64]]()
+    var a: List[Float64] = [-2.0, 0.0, 3.0]
+    var b: List[Float64] = [1.0, 8.0]
+    samples.append(a^)
+    samples.append(b^)
+    var d = symmetric_color_domain(samples)
+    assert_equal(d.min, -8.0, "the far arm sets the radius")
+    assert_equal(d.max, 8.0)
+    # Which is the point: equal distances either side of the center are
+    # now equally intense, where the data's own limits would have made
+    # -2 the deepest low and +8 the deepest high.
+    var lopsided = shared_color_domain(samples)
+    assert_equal(lopsided.min, -2.0, "the plain shared domain is lopsided")
+    assert_equal(lopsided.max, 8.0)
+
+
+def test_symmetric_color_domain_takes_the_center_it_is_given() raises:
+    var samples = List[List[Float64]]()
+    var a: List[Float64] = [10.0, 14.0, 19.0]
+    samples.append(a^)
+    var d = symmetric_color_domain(samples, 15.0)
+    assert_equal(d.min, 10.0, "5 below a center of 15")
+    assert_equal(d.max, 20.0, "and 5 above it")
+
+
+def test_a_symmetric_domain_on_data_that_is_all_center_still_has_width() raises:
+    # A zero-span domain colors everything the ramp's low end, which
+    # says nothing at all; a unit of width at least keeps the center
+    # neutral.
+    var samples = List[List[Float64]]()
+    var a: List[Float64] = [0.0, 0.0, 0.0]
+    samples.append(a^)
+    var d = symmetric_color_domain(samples)
+    assert_true(d.max > d.min, "the domain has width")
+    assert_equal(d.min, -1.0)
+    assert_equal(d.max, 1.0)
+
+
+# ==== shared semantic mappings across panels (#365) ====
+# Each chart resolves its own categories with `_categorical_indices`,
+# first-seen *within that panel*, and then indexes the palette by
+# position in that panel's domain. So two panels whose categories arrive
+# in a different order, or one of which is missing a category the other
+# has, give the same name two different colors -- and nothing on either
+# chart says so.
+#
+# The scenario throughout is the one the issue asks for: two panels with
+# reordered and partially missing categories.
+
+
+def _panels() -> List[List[String]]:
+    """Two panels with reordered and partially missing categories: panel
+    0 has north/south/east in that order, panel 1 has east/north and no
+    south at all."""
+    var a: List[String] = ["north", "south", "east"]
+    var b: List[String] = ["east", "north"]
+    var out = List[List[String]]()
+    out.append(a^)
+    out.append(b^)
+    return out^
+
+
+def test_shared_categories_unions_the_panels_in_first_seen_order() raises:
+    var order = shared_categories(_panels())
+    assert_equal(len(order), 3, "a category was lost or duplicated")
+    assert_equal(order[0], "north", "panel 0 leads, in its own order")
+    assert_equal(order[1], "south", "including the one panel 1 lacks")
+    assert_equal(order[2], "east", "then whatever panel 1 adds")
+
+
+def test_a_category_missing_from_one_panel_does_not_shift_the_others() raises:
+    # The defect, stated directly. Left to themselves the two panels
+    # disagree about "east": it is third in panel A and first in panel
+    # B, so it takes two different palette slots.
+    var palette = categorical_palette_for(Theme())
+    var a_alone = palette[2]
+    var b_alone = palette[0]
+    assert_true(
+        a_alone.r != b_alone.r
+        or a_alone.g != b_alone.g
+        or a_alone.b != b_alone.b,
+        (
+            "the palette's slots 0 and 2 are the same color, so this test"
+            " cannot tell the panels apart"
+        ),
+    )
+
+    var shared = shared_color_map(_panels())
+    var east = shared["east"]
+    assert_equal(east.r, palette[2].r, "east keeps its union-order slot")
+    assert_equal(east.g, palette[2].g, "east keeps its union-order slot")
+    assert_equal(east.b, palette[2].b, "east keeps its union-order slot")
+    # And the point: one map, so both panels draw it the same.
+    assert_equal(len(shared), 3, "every category got a color")
+
+
+def test_an_override_wins_and_leaves_the_others_where_they_were() raises:
+    # Applied after the palette is dealt out rather than instead of it,
+    # so pinning one category does not slide the rest up a slot. That is
+    # what makes "this series is always red" a local change.
+    var plain = shared_color_map(_panels())
+    var pins = Dict[String, Color]()
+    pins["south"] = Color(255, 0, 0)
+    var pinned = shared_color_map(_panels(), Theme(), pins)
+
+    assert_equal(pinned["south"].r, 255, "the override did not win")
+    assert_equal(pinned["south"].g, 0, "the override did not win")
+    for name in ["north", "east"]:
+        assert_equal(
+            pinned[name].r, plain[name].r, name + " moved when south was pinned"
+        )
+        assert_equal(
+            pinned[name].g, plain[name].g, name + " moved when south was pinned"
+        )
+        assert_equal(
+            pinned[name].b, plain[name].b, name + " moved when south was pinned"
+        )
+
+
+def test_an_override_for_a_category_no_panel_has_is_kept() raises:
+    # So a caller can pin a color for a category that has not appeared
+    # in the data yet, without the call order mattering.
+    var pins = Dict[String, Color]()
+    pins["west"] = Color(1, 2, 3)
+    var m = shared_color_map(_panels(), Theme(), pins)
+    assert_equal(len(m), 4, "the unseen override was dropped")
+    assert_equal(m["west"].r, 1, "the unseen override lost its color")
+
+
+def test_shared_shape_map_pins_shapes_the_same_way() raises:
+    # Shapes had the same defect and no override at all until now.
+    var shapes = default_marker_shapes()
+    var m = shared_shape_map(_panels())
+    assert_equal(len(m), 3, "every category got a shape")
+    assert_true(
+        m["east"] == shapes[2], "east did not keep its union-order shape"
+    )
+    var pins = Dict[String, PointShape]()
+    pins["east"] = PointShape.CROSS
+    var pinned = shared_shape_map(_panels(), pins)
+    assert_true(pinned["east"] == PointShape.CROSS, "the override did not win")
+    assert_true(
+        pinned["north"] == m["north"], "north moved when east was pinned"
+    )
+
+
+def test_a_panel_draws_the_shared_color_it_was_given() raises:
+    # The resolvers are only worth anything if the map actually reaches
+    # the marks. `color_map` wins over the positional palette by name,
+    # which is what makes this work with no change to the render path.
+    var shared = shared_color_map(_panels())
+    var xs: List[Float64] = [1.0, 2.0]
+    var ys: List[Float64] = [1.0, 2.0]
+    var cats: List[String] = ["east", "north"]
+    var c = render(
+        scatter(xs, ys, width=300, height=200).encode(
+            xs, ys, color_categories=cats, color_map=shared
+        )
+    )
+    assert_true(
+        _count_color(c, shared["east"]) > 0,
+        "the panel did not draw east in its shared color",
+    )
+
+
+def test_independent_mappings_are_still_the_default() raises:
+    # Opt-in per figure: a chart that passes no map resolves its own
+    # categories against its own palette exactly as before.
+    var palette = categorical_palette_for(Theme())
+    var xs: List[Float64] = [1.0, 2.0]
+    var ys: List[Float64] = [1.0, 2.0]
+    var cats: List[String] = ["east", "north"]
+    var c = render(
+        scatter(xs, ys, width=300, height=200).encode(
+            xs, ys, color_categories=cats
+        )
+    )
+    assert_true(
+        _count_color(c, palette[0]) > 0,
+        "east lost the first palette slot its own panel gives it",
     )
 
 

@@ -387,6 +387,26 @@ def _draw_legend[
         )
 
 
+def _out_of_range_block(sc: _Scaled) -> Int:
+    """How much of a color bar one out-of-range block takes (#370).
+
+    The blocks sit inside the bar's own footprint rather than extending
+    it, so a legend with out-of-range colors reserves exactly the room
+    one without them does, and every layout that stacks sections below
+    a color bar keeps working untouched. What shrinks is the ramp, which
+    is the part that can afford it: the bar's job is to say which color
+    means what, and a block at each end says that about the two values
+    the ramp itself cannot.
+
+    Args:
+        sc: The theme's scaled metrics.
+
+    Returns:
+        The block's length along the bar, in pixels.
+    """
+    return max(2, Int(sc.font_size * 0.55))
+
+
 def _continuous_legend_row_height(sc: _Scaled, has_size: Bool) -> Int:
     """How tall one row of horizontal continuous legend is: the tallest
     section it can contain, plus the gap separating it from the plot.
@@ -509,12 +529,37 @@ def _draw_continuous_color_legend_h[
         )
     )
     var bar_x = x + _text_advance(low, sc, cache=cache) + sc.label_gap
+    # Out-of-range blocks take a slice off each end, under at the left
+    # where the low values are and over at the right, inside the bar's
+    # own length so the row costs what it did before (#370).
+    var block = _out_of_range_block(sc)
+    var left_block = block if color_scale.has_under else 0
+    var right_block = block if color_scale.has_over else 0
+    var ramp_x = bar_x + left_block
+    var ramp_length = bar_length - left_block - right_block
+    if ramp_length < 1:
+        left_block = 0
+        right_block = 0
+        ramp_x = bar_x
+        ramp_length = bar_length
     var gradient = LinearGradient(
-        Float64(bar_x), Float64(y), Float64(bar_x + bar_length), Float64(y)
+        Float64(ramp_x), Float64(y), Float64(ramp_x + ramp_length), Float64(y)
     )
     for stop in color_scale.stops:
         gradient.add_stop(stop.offset, stop.color)
-    target.fill_rect_gradient(bar_x, y, bar_length, bar_thickness, gradient)
+    # Emitted along the bar -- under, ramp, over -- matching the reading
+    # order of a row legend.
+    if left_block > 0:
+        target.fill_rect(bar_x, y, left_block, bar_thickness, color_scale.under)
+    target.fill_rect_gradient(ramp_x, y, ramp_length, bar_thickness, gradient)
+    if right_block > 0:
+        target.fill_rect(
+            ramp_x + ramp_length,
+            y,
+            right_block,
+            bar_thickness,
+            color_scale.over,
+        )
 
     # A centered ramp needs its neutral point marked: with asymmetric
     # arms the two end labels no longer say where it sits (#526). A tick
@@ -531,15 +576,15 @@ def _draw_continuous_color_legend_h[
             # vertical form needs one because its bar runs high at top.
             var t = (color_scale.center - color_scale.domain_min) / span
             var tick_w = max(1, round_to_int(sc.line_width))
-            var center_x = bar_x + Int(t * Float64(bar_length))
+            var center_x = ramp_x + Int(t * Float64(ramp_length))
             # Skip a tick that would sit on the bar's own edge, where it
             # reads as a border rather than as a mark. The vertical form
             # guards the same case with a font-size clearance, because
             # what it places there is a label; a tick needs only its own
             # width.
             if (
-                center_x - bar_x >= tick_w
-                and bar_x + bar_length - center_x >= tick_w
+                center_x - ramp_x >= tick_w
+                and ramp_x + ramp_length - center_x >= tick_w
             ):
                 target.fill_rect(
                     center_x - tick_w // 2,
@@ -694,13 +739,40 @@ def _draw_continuous_color_legend[
     for i in range(len(offsets)):
         gradient.add_stop(offsets[i], colors[i])
 
-    target.fill_rect_gradient(x, y, bar_width, bar_height, gradient)
+    # Out-of-range blocks take a slice off each end of the bar: the over
+    # color at the top, where values above the domain would go, and the
+    # under color at the bottom. See `_out_of_range_block`.
+    var block = _out_of_range_block(sc)
+    var top_block = block if color_scale.has_over else 0
+    var bottom_block = block if color_scale.has_under else 0
+    var ramp_y = y + top_block
+    var ramp_height = bar_height - top_block - bottom_block
+    if ramp_height < 1:
+        # A bar too short to slice keeps the ramp whole; the blocks are
+        # a refinement, not a reason to render nothing.
+        top_block = 0
+        bottom_block = 0
+        ramp_y = y
+        ramp_height = bar_height
+    if top_block > 0:
+        target.fill_rect(x, y, bar_width, top_block, color_scale.over)
+    if bottom_block > 0:
+        target.fill_rect(
+            x,
+            ramp_y + ramp_height,
+            bar_width,
+            bottom_block,
+            color_scale.under,
+        )
+    target.fill_rect_gradient(x, ramp_y, bar_width, ramp_height, gradient)
 
+    # Labels attach to the ramp's ends, not the bar's: those are the two
+    # values the numbers are true of.
     var label_baseline_offset = Int(sc.font_size * 0.35)
     text_requests.append(
         _TextRequest(
             x + bar_width + sc.label_gap,
-            y + label_baseline_offset,
+            ramp_y + label_baseline_offset,
             _format_tick(color_scale.domain_max, 1, theme.y_tick_format),
             theme.text_color,
             sc.font_size,
@@ -711,7 +783,7 @@ def _draw_continuous_color_legend[
     text_requests.append(
         _TextRequest(
             x + bar_width + sc.label_gap,
-            y + bar_height + label_baseline_offset,
+            ramp_y + ramp_height + label_baseline_offset,
             _format_tick(color_scale.domain_min, 1, theme.y_tick_format),
             theme.text_color,
             sc.font_size,
@@ -727,11 +799,11 @@ def _draw_continuous_color_legend[
             # The bar runs high at the top, so the center's distance from
             # the top edge is 1 - t, matching the 1 - offset inversion
             # the gradient stops go through above.
-            var center_y = y + Int((1.0 - t) * Float64(bar_height))
+            var center_y = ramp_y + Int((1.0 - t) * Float64(ramp_height))
             var clearance = Int(sc.font_size)
             if (
-                center_y - y >= clearance
-                and y + bar_height - center_y >= clearance
+                center_y - ramp_y >= clearance
+                and ramp_y + ramp_height - center_y >= clearance
             ):
                 text_requests.append(
                     _TextRequest(
@@ -747,6 +819,116 @@ def _draw_continuous_color_legend[
                     )
                 )
     return y + bar_height + sc.legend_row_gap
+
+
+def _continuous_color_legend_layout(
+    color_scale: ColorScale,
+    theme: Theme,
+    sc: _Scaled,
+    *,
+    mut cache: FontCache,
+) raises -> _LegendLayout:
+    """How much room a bar-only continuous color legend needs and on
+    which edge, for the marks whose only legend is that bar
+    (`Mark.HEATMAP`/`CORRPLOT`/`CALENDAR_HEATMAP`/`IMSHOW`/`PCOLORMESH`/
+    `HEXBIN`/`QUIVER`/`STREAMPLOT`).
+
+    `_legend_reserve_for` answers the same question for a point mark,
+    whose legend can also carry categories and a size ramp. This is the
+    one-section case, so a row reserves `_continuous_legend_row_height`
+    with no size section and a column reserves the bar plus its widest
+    label.
+
+    Args:
+        color_scale: The scale the mark colored with; its labels set the
+            column width.
+        theme: Supplies `show_legend` and `legend_position`.
+        sc: The render's scaled layout metrics.
+        cache: The render's shared font cache, for measuring labels.
+
+    Returns:
+        The layout; `active` is False when `Theme.show_legend` is off.
+    """
+    var layout = _LegendLayout()
+    if not theme.show_legend:
+        return layout^
+    layout.active = True
+    layout.position = theme.legend_position
+    if theme.legend_position == LegendPosition.TOP:
+        layout.top = _continuous_legend_row_height(sc, False)
+    elif theme.legend_position == LegendPosition.BOTTOM:
+        layout.bottom = _continuous_legend_row_height(sc, False)
+    else:
+        var width = _dynamic_legend_width(
+            _continuous_legend_labels(color_scale, theme),
+            sc.continuous_legend_bar_width,
+            sc,
+            cache=cache,
+        )
+        if theme.legend_position == LegendPosition.LEFT:
+            layout.left = width
+        else:
+            layout.right = width
+    return layout^
+
+
+def _draw_continuous_color_legend_at[
+    T: DrawTarget
+](
+    mut target: T,
+    mut text_requests: List[_TextRequest],
+    color_scale: ColorScale,
+    layout: _LegendLayout,
+    plot_x0: Int,
+    plot_y0: Int,
+    plot_x1: Int,
+    plot_y1: Int,
+    theme: Theme,
+    *,
+    mut cache: FontCache,
+) raises:
+    """Draw a continuous color bar on whichever edge `layout` reserved,
+    against a plot rect that already has that reserve taken out of it.
+
+    `_draw_legend_at` is this for a categorical legend, and this exists
+    for the same reason: a mark that picks the drawer itself picks the
+    vertical one, and `Theme.legend_position` is then a setting that is
+    accepted and silently does nothing (#618). Routing here means a mark
+    names the legend it has, not the shape it happens to be drawn in.
+
+    `RIGHT` lands where every mark drew before: `_legend_column_x` is
+    `plot_x1 + margin_right`, and the plot rect's right edge is what
+    those marks were passing as `x_scale.range_max`.
+
+    Args:
+        target: The draw target.
+        text_requests: Collected label draws, appended to.
+        color_scale: The scale whose stops and domain are shown.
+        layout: What `_continuous_color_legend_layout` returned.
+        plot_x0: Final plot rect's left edge.
+        plot_y0: Final plot rect's top edge.
+        plot_x1: Final plot rect's right edge.
+        plot_y1: Final plot rect's bottom edge.
+        theme: Supplies colors and font.
+        cache: The render's shared font cache; the row form measures its
+            end labels to place the bar.
+
+    Raises:
+        Error: Whatever the two drawers raise.
+    """
+    if not layout.active:
+        return
+    var sc = _Scaled(theme)
+    var x = _legend_origin_x(layout, plot_x0, plot_x1, sc)
+    var y = _legend_origin_y(layout, plot_y0, plot_y1, sc)
+    if layout.position.is_horizontal():
+        _ = _draw_continuous_color_legend_h(
+            target, text_requests, color_scale, x, y, theme, cache=cache
+        )
+    else:
+        _ = _draw_continuous_color_legend(
+            target, text_requests, color_scale, x, y, theme
+        )
 
 
 def _draw_continuous_size_legend[

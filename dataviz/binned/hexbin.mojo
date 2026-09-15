@@ -4,25 +4,23 @@ drawn as colored hexagons. The lattice tiles the plane without the
 axis-aligned artifacts a rectangular grid shows on diagonal structure,
 which is the reason it exists alongside `hist2d()`."""
 
-from std.math import floor, sqrt
+from std.math import floor, pi, sqrt
 
 from canvas.color import Color
 from canvas.fill_rule import FillRule
+from canvas.geometry import Transform2D
 from canvas.path import Path
 from canvas.text.font_cache import FontCache
-from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.core.legend import (
-    _continuous_legend_labels,
-    _draw_continuous_color_legend,
-    _dynamic_legend_width,
+    _continuous_color_legend_layout,
+    _draw_continuous_color_legend_at,
 )
 from dataviz.plot import (
     Plot,
-    _LegendLayout,
     _RenderResult,
     _data_extent,
     _draw_continuous_axis_frame,
@@ -72,7 +70,7 @@ def _hexbin_bins(
     x: List[Float64], y: List[Float64], gridsize: Int
 ) raises -> _HexBins:
     """Count `(x, y)` points into a hexagonal lattice `gridsize` cells
-    across, matplotlib's `hexbin` lattice exactly.
+    across.
 
     The lattice is two offset rectangular lattices over the data's
     bounding box. `nx = gridsize` columns of spacing `sx` and
@@ -194,28 +192,90 @@ def _hexbin_bins(
     return out^
 
 
-def _hexagon_path(
+def _unit_hexagon() raises -> Path:
+    """A pointy-top regular hexagon at unit radius about the origin, the
+    shape every cell is a scaled copy of.
+
+    Built once per layer and mapped per cell with `_cell_transform`,
+    which is how `Path.regular_polygon`'s own docstring says to draw a
+    shape that is regular in data space through two different axis
+    scales: it is not regular in pixels, so it cannot be built at
+    pixel size directly.
+
+    `-pi / 2` puts the first vertex at twelve o'clock. Scaled by
+    `(sx / sqrt(3), sy / 3)` its six vertices are exactly the ones this
+    function used to write out by hand -- the same points in the same
+    winding, starting one vertex earlier round the ring (#579).
+
+    Returns:
+        The unit hexagon, closed.
+
+    Raises:
+        Error: Whatever `Path.regular_polygon()` raises.
+    """
+    var unit = Path()
+    unit.regular_polygon(0.0, 0.0, 1.0, 6, -pi / 2.0)
+    return unit^
+
+
+def _cell_transform(
     cx: Float64,
     cy: Float64,
     sx: Float64,
     sy: Float64,
     x_scale: LinearScale,
     y_scale: LinearScale,
-    mut path: Path,
-) raises:
-    """Append the pointy-top hexagon centered on data point `(cx, cy)`
-    to `path`, in pixels: `sx` wide, `2 sy / 3` tall, the cell of the
-    lattice `_hexbin_bins` builds."""
-    var hx = sx / 2.0
-    var qy = sy / 6.0
-    var ty = sy / 3.0
-    path.move_to(x_scale.to_pixel(cx + hx), y_scale.to_pixel(cy - qy))
-    path.line_to(x_scale.to_pixel(cx + hx), y_scale.to_pixel(cy + qy))
-    path.line_to(x_scale.to_pixel(cx), y_scale.to_pixel(cy + ty))
-    path.line_to(x_scale.to_pixel(cx - hx), y_scale.to_pixel(cy + qy))
-    path.line_to(x_scale.to_pixel(cx - hx), y_scale.to_pixel(cy - qy))
-    path.line_to(x_scale.to_pixel(cx), y_scale.to_pixel(cy - ty))
-    path.close()
+) raises -> Transform2D:
+    """The transform taking `_unit_hexagon()` to the cell centered on
+    data point `(cx, cy)`, in pixels.
+
+    A cell is `sx` wide and `2 sy / 3` tall in data units, which is a
+    regular hexagon scaled by `(sx / sqrt(3), sy / 3)` -- regular in
+    pixels only when `sx = sy / sqrt(3)`, which the lattice does not
+    promise. Composing that with each axis's data-to-pixel slope gives
+    one affine map per cell.
+
+    **Both scales must be linear.** `to_pixel` is affine only then, and
+    a `Transform2D` cannot express a logarithmic axis: the hexagons
+    would be drawn at plausible but wrong positions rather than
+    failing. `_render_hexbin` passes `_data_extent`, so they always are
+    -- but that is a property of one call site rather than a promise
+    the type makes, so it is checked here instead of assumed.
+
+    Args:
+        cx: Cell center x, in data units.
+        cy: Cell center y.
+        sx: Lattice column pitch, in data units.
+        sy: Lattice row pitch.
+        x_scale: Data-to-pixel for x.
+        y_scale: For y.
+
+    Returns:
+        The cell's transform, for `Path.transformed`.
+
+    Raises:
+        Error: Either scale is logarithmic.
+    """
+    if x_scale.is_log or y_scale.is_log:
+        raise Error(
+            "Mark.HEXBIN: a hexagonal cell is mapped to pixels with one"
+            " affine transform per cell, which a logarithmic axis is"
+            " not -- the cells would be drawn in the wrong places"
+            " rather than raising. Give hexbin() linear axes."
+        )
+    # The slope of each axis, read from its own endpoints rather than
+    # from a difference of two to_pixel calls, so a degenerate domain
+    # shows up here as a division rather than as silently zero.
+    var x_span = x_scale.domain_max - x_scale.domain_min
+    var y_span = y_scale.domain_max - y_scale.domain_min
+    var x_slope = (x_scale.range_max - x_scale.range_min) / x_span
+    var y_slope = (y_scale.range_max - y_scale.range_min) / y_span
+    return Transform2D(
+        x_slope * sx / sqrt(3.0),
+        y_slope * sy / 3.0,
+        x_scale.to_pixel(cx),
+        y_scale.to_pixel(cy),
+    )
 
 
 def _draw_hexbin_layer[
@@ -234,7 +294,7 @@ def _draw_hexbin_layer[
     filled once under the nonzero rule: a shared edge inside one fill
     has full coverage and no seam. Cells of different counts still meet
     along antialiased edges, so each path is then stroked in its own
-    color at the theme's line width, matplotlib's `edgecolors="face"`:
+    color at the theme's line width:
     the stroke covers the hairline the two fills leave between them.
     """
     var n = len(bins.count)
@@ -266,14 +326,26 @@ def _draw_hexbin_layer[
         var c = bins.count[i]
         order[tally[c]] = i
         tally[c] += 1
+    # One unit hexagon for the whole layer: every cell is a transformed
+    # copy of it, so the shape is built once rather than per cell.
+    var unit = _unit_hexagon()
     var at = 0
     while at < n:
         var c = bins.count[order[at]]
         var path = Path()
         while at < n and bins.count[order[at]] == c:
             var k = order[at]
-            _hexagon_path(
-                bins.cx[k], bins.cy[k], bins.sx, bins.sy, x_scale, y_scale, path
+            path.extend(
+                unit.transformed(
+                    _cell_transform(
+                        bins.cx[k],
+                        bins.cy[k],
+                        bins.sx,
+                        bins.sy,
+                        x_scale,
+                        y_scale,
+                    )
+                )
             )
             at += 1
         var color = color_scale.color_at(Float64(c))
@@ -303,7 +375,7 @@ def _render_hexbin[
     outermost centers sit on the data's bounding box, so a hexagon
     reaches half a cell past it -- padded as every scatter's extent is.
     That keeps the boundary cells whole inside the plot rect instead of
-    cut at the axis, as matplotlib's autoscale keeps them.
+    cut at the axis.
 
     Args:
         target: Where to draw.
@@ -332,16 +404,9 @@ def _render_hexbin[
         theme, plot._color_domain, 0.0, Float64(top)
     )
 
-    var legend = _LegendLayout()
-    if theme.show_legend:
-        var legend_labels = _continuous_legend_labels(color_scale, theme)
-        legend.right = _dynamic_legend_width(
-            legend_labels,
-            sc.continuous_legend_bar_width,
-            sc,
-            cache=cache,
-        )
-        legend.active = True
+    var legend = _continuous_color_legend_layout(
+        color_scale, theme, sc, cache=cache
+    )
 
     var reach = List[Float64]()
     var reach_y = List[Float64]()
@@ -365,15 +430,18 @@ def _render_hexbin[
     _draw_hexbin_layer(
         target, bins, color_scale, frame.x_scale, frame.y_scale, sc
     )
-    if theme.show_legend:
-        _ = _draw_continuous_color_legend(
-            target,
-            frame.text_requests,
-            color_scale,
-            round_to_int(frame.x_scale.range_max) + sc.margin_right,
-            frame.py0,
-            theme,
-        )
+    _draw_continuous_color_legend_at(
+        target,
+        frame.text_requests,
+        color_scale,
+        legend,
+        frame.px0,
+        frame.py0,
+        frame.px1,
+        frame.py1,
+        theme,
+        cache=cache,
+    )
     return frame.result()
 
 
@@ -391,7 +459,7 @@ def hexbin[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """A hexagonal-bin density plot, matplotlib's `hexbin()`: `(x, y)`
+    """A hexagonal-bin density plot: `(x, y)`
     points counted into a lattice of hexagons `gridsize` cells across,
     each hexagon colored by how many points fell in it.
 
@@ -411,9 +479,8 @@ def hexbin[
 
     `gridsize` is the number of hexagons across the x range; the row
     count follows so the hexagons are regular when the plot rect is
-    square, as matplotlib sizes them. matplotlib's default of 100 is
-    tuned for figures with many more pixels than a 640x420 chart, so
-    the default here is 30.
+    square. The default of 30 suits a 640x420 chart; a figure with many
+    more pixels can take more.
 
     Args:
         x: The horizontal coordinates.

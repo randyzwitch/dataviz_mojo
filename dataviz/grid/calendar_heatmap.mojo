@@ -11,9 +11,8 @@ from dataviz.plot import (
     _RenderResult,
     _Scaled,
     _TextRequest,
-    _continuous_legend_labels,
-    _draw_continuous_color_legend,
-    _dynamic_legend_width,
+    _continuous_color_legend_layout,
+    _draw_continuous_color_legend_at,
     _max_label_width,
     _min_max,
     _finished,
@@ -231,20 +230,16 @@ def _render_calendar_heatmap[
         theme, plot._color_domain, value_mm.min, value_mm.max
     )
 
-    var legend_reserve = 0
-    if theme.show_legend:
-        var legend_labels = _continuous_legend_labels(color_scale, theme)
-        legend_reserve = _dynamic_legend_width(
-            legend_labels,
-            sc.continuous_legend_bar_width,
-            sc,
-            cache=cache,
-        )
+    var legend = _continuous_color_legend_layout(
+        color_scale, theme, sc, cache=cache
+    )
 
-    var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin)
-    var plot_y0 = oy0 + sc.margin_top + Int(sc.font_size) + sc.label_gap
-    var plot_x1 = ox1 - sc.margin_right - legend_reserve
-    var plot_y1 = oy1 - sc.margin_bottom
+    var plot_x0 = ox0 + max(sc.margin_left, dynamic_left_margin) + legend.left
+    var plot_y0 = (
+        oy0 + sc.margin_top + Int(sc.font_size) + sc.label_gap + legend.top
+    )
+    var plot_x1 = ox1 - sc.margin_right - legend.right
+    var plot_y1 = oy1 - sc.margin_bottom - legend.bottom
 
     var cell_width = Float64(plot_x1 - plot_x0) / Float64(n_cols)
     var cell_height = Float64(plot_y1 - plot_y0) / 7.0
@@ -336,15 +331,18 @@ def _render_calendar_heatmap[
             color,
         )
 
-    if theme.show_legend:
-        _ = _draw_continuous_color_legend(
-            target,
-            text_requests,
-            color_scale,
-            plot_x1 + sc.margin_right,
-            plot_y0,
-            theme,
-        )
+    _draw_continuous_color_legend_at(
+        target,
+        text_requests,
+        color_scale,
+        legend,
+        plot_x0,
+        plot_y0,
+        plot_x1,
+        plot_y1,
+        theme,
+        cache=cache,
+    )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 

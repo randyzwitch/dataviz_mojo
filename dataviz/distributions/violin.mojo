@@ -42,8 +42,8 @@ def _draw_violin_silhouettes[
     center.
 
     Each violin is scaled independently: its own peak density maps to
-    `mark_violin(width_fraction=...)` of its band (ggplot2's
-    `scale = "width"`). `scale_by_count=True` multiplies that maximum by
+    `mark_violin(width_fraction=...)` of its band. `scale_by_count=True`
+    multiplies that maximum by
     `sqrt(n_i / max(n))` (`scale = "area"`).
 
     An all-identical category (`span == 0`) samples the same value
@@ -261,8 +261,7 @@ def violin[
     `Mark.VIOLIN`: a symmetric kernel-density-estimate silhouette per
     category. `bandwidth` (when positive) overrides every category's
     Silverman's-rule bandwidth with one shared value; `scale_by_count=True`
-    switches from ggplot2's `scale = "width"` to `scale = "area"` (see
-    `Plot.mark_violin()`). See `Plot.encode_distribution()` (plot.mojo)
+    scales each category by its count (see `Plot.mark_violin()`). See `Plot.encode_distribution()` (plot.mojo)
     for the data shape, shared with `beeswarm()`/`ridgeline()`.
 
     Args:
@@ -274,9 +273,8 @@ def violin[
             kernel-density bandwidth with one shared value; must be
             positive if given. Left at its default `0.0`, each
             category gets its own Silverman's-rule bandwidth.
-        scale_by_count: `False` (the default, ggplot2's `scale =
-            "width"`) gives every category's peak the same maximum
-            width; `True` (`scale = "area"`) additionally scales a
+        scale_by_count: `False` (the default) gives every category's peak
+            the same maximum width; `True` additionally scales a
             category's maximum width by `sqrt(n_i / max(n))`, so one
             built from fewer raw values draws visibly narrower.
         width_fraction: Each violin's maximum half-width as a fraction of its band

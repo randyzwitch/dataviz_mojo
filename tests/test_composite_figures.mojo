@@ -7,7 +7,20 @@ compilation, so the suite is organized by family (#605).
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.buffer import Canvas
 from canvas.color import Color
-from dataviz import Theme, jointplot, pairplot
+from dataviz import (
+    Theme,
+    clustermap,
+    clustermap_svg,
+    jointplot,
+    jointplot_svg,
+    pairplot,
+    pairplot_svg,
+    save,
+)
+from dataviz.core.cluster import linkage
+from dataviz.grid.heatmap import heatmap
+from dataviz.plot import render_svg
+from _test_helpers import _attr_values, _count_tag
 
 
 # ==== from test_jointplot.mojo ====
@@ -262,6 +275,39 @@ def _ink(c: Canvas, theme: Theme) -> Int:
     return n
 
 
+def _ink_rows(c: Canvas, y0: Int, y1: Int, theme: Theme) -> Int:
+    """`_ink` over rows `y0` up to `y1` only."""
+    var bg = theme.background
+    var n = 0
+    for y in range(y0, y1):
+        for x in range(c.width):
+            var p = c.get_pixel(x, y)
+            if not (p.r == bg.r and p.g == bg.g and p.b == bg.b):
+                n += 1
+    return n
+
+
+def test_pairplot_title_sits_in_a_band_above_the_panels() raises:
+    # The figure grows by the band; the panels underneath do not move.
+    var data = _three()
+    var plain = pairplot(data[0], data[1], theme=_theme_pairplot())
+    var titled = pairplot(
+        data[0], data[1], theme=_theme_pairplot(), title="Three variables"
+    )
+    var band = titled.height - plain.height
+    assert_true(band > 0, "a title adds a band")
+    assert_equal(titled.width, plain.width)
+    assert_true(
+        _ink_rows(titled, 0, band, _theme_pairplot()) > 0,
+        "the band holds the title",
+    )
+    assert_equal(
+        _ink_rows(titled, band, titled.height, _theme_pairplot()),
+        _ink(plain, _theme_pairplot()),
+        "the panels are unchanged under it",
+    )
+
+
 def test_the_figure_is_n_by_n_cells() raises:
     var d = _three()
     var c = pairplot(
@@ -425,6 +471,229 @@ def test_integer_columns_work_like_float_ones() raises:
     assert_true(
         _ink(c, _theme_pairplot()) > 100, "the integer pairplot drew nothing"
     )
+
+
+# ==== clustermap (#355) ====
+
+
+def _interleaved() -> List[List[Float64]]:
+    """Six rows in two shapes, interleaved, so the arrival order cannot
+    be mistaken for the clustered one: rows 0, 2, 4 rise and 1, 3, 5
+    fall.
+    """
+    var out = List[List[Float64]]()
+    for i in range(6):
+        var row = List[Float64]()
+        for c in range(4):
+            if i % 2 == 0:
+                row.append(10.0 + Float64(c) * 10.0 + Float64(i))
+            else:
+                row.append(90.0 - Float64(c) * 10.0 + Float64(i))
+        out.append(row^)
+    return out^
+
+
+def _row_names() -> List[String]:
+    var out: List[String] = ["r0", "r1", "r2", "r3", "r4", "r5"]
+    return out^
+
+
+def _col_names() -> List[String]:
+    var out: List[String] = ["c0", "c1", "c2", "c3"]
+    return out^
+
+
+def test_a_clustermap_is_the_size_it_was_asked_for() raises:
+    var c = clustermap(
+        _interleaved(), _row_names(), _col_names(), width=700, height=600
+    )
+    assert_equal(c.width, 700)
+    assert_equal(c.height, 600)
+
+
+def test_a_clustermap_reorders_its_rows_into_groups() raises:
+    # The whole feature. The rows arrive interleaved and have to come
+    # out with each shape contiguous.
+    var svg = render_grid_svg_of_clustermap()
+    var order = List[Int]()
+    var at = 0
+    while True:
+        var best = -1
+        var best_at = 0
+        for i in range(6):
+            var needle = ">r" + String(i) + "<"
+            var found = svg.find(needle, at)
+            if found >= 0 and (best < 0 or found < best_at):
+                best = i
+                best_at = found
+        if best < 0:
+            break
+        order.append(best)
+        at = best_at + 1
+    assert_equal(len(order), 6, "every row is labeled once")
+    var switches = 0
+    for i in range(1, len(order)):
+        if order[i] % 2 != order[i - 1] % 2:
+            switches += 1
+    assert_equal(switches, 1, "each shape's rows are contiguous")
+
+
+def render_grid_svg_of_clustermap() raises -> String:
+    """The clustermap's SVG, for reading its label order.
+
+    A helper rather than a test: `clustermap()` returns a raster canvas,
+    so the labels are read from an equivalent figure rendered to vector.
+    """
+    var tree = linkage(_interleaved())
+    var xs = List[String]()
+    var ys = List[String]()
+    var vals = List[Float64]()
+    var rows = _interleaved()
+    var names = _row_names()
+    var cols = _col_names()
+    for r in range(6):
+        var source = tree.leaf_order[r]
+        for c in range(4):
+            xs.append(cols[c])
+            ys.append(names[source])
+            vals.append(rows[source][c])
+    return render_svg(heatmap(xs, ys, vals)).to_string()
+
+
+def test_not_clustering_an_axis_keeps_its_order() raises:
+    # Both figures are the same size, so the one difference is the
+    # order; a matrix that already has a meaningful order down one axis
+    # should be able to keep it.
+    var clustered = clustermap(
+        _interleaved(), _row_names(), _col_names(), width=700, height=600
+    )
+    var rows_only = clustermap(
+        _interleaved(),
+        _row_names(),
+        _col_names(),
+        width=700,
+        height=600,
+        cluster_cols=False,
+    )
+    assert_equal(rows_only.width, clustered.width)
+    var different = 0
+    for y in range(0, clustered.height, 11):
+        for x in range(0, clustered.width, 11):
+            var a = clustered.get_pixel(x, y)
+            var b = rows_only.get_pixel(x, y)
+            if not (a.r == b.r and a.g == b.g and a.b == b.b):
+                different += 1
+    assert_true(
+        different > 0,
+        "dropping the column tree changes the figure",
+    )
+
+
+def test_a_clustermap_checks_its_input() raises:
+    var empty = List[List[Float64]]()
+    with assert_raises(contains="must not be empty"):
+        _ = clustermap(empty)
+
+    var two: List[String] = ["a", "b"]
+    with assert_raises(contains="one row label per row"):
+        _ = clustermap(_interleaved(), two)
+
+    with assert_raises(contains="ratio must be above zero"):
+        _ = clustermap(_interleaved(), _row_names(), _col_names(), ratio=0.0)
+
+
+# ==== vector output for the composite figures (#620) ====
+# These two were the only charts in the library that could not be
+# exported as vector, because they return a rendered raster canvas.
+
+
+def test_a_vector_pairplot_draws_the_same_panels() raises:
+    # The panels are built once and handed to whichever render_facets
+    # the caller asked for, so the two forms cannot drift. The check:
+    # the same number of cells with the same axis titles.
+    var data = _three()
+    var raster = pairplot(data[0], data[1], theme=_theme_pairplot())
+    var svg = pairplot_svg(
+        data[0], data[1], theme=_theme_pairplot()
+    ).to_string()
+    assert_equal(
+        Int(Float64(_attr_values(svg, "svg", "width")[0])),
+        raster.width,
+        "the vector figure is the same size",
+    )
+    assert_equal(
+        Int(Float64(_attr_values(svg, "svg", "height")[0])), raster.height
+    )
+    for name in data[1]:
+        assert_true(
+            svg.find(">" + name + "<") != -1,
+            "every variable is still named: " + name,
+        )
+    # Nine panels of three variables, each with its own axis frame.
+    assert_true(_count_tag(svg, "circle") > 0, "the scatters drew")
+    assert_true(_count_tag(svg, "rect") > 9, "and the histograms")
+
+
+def test_a_vector_jointplot_draws_the_same_panels() raises:
+    var s = _samples(120)
+    var raster = jointplot(s[0], s[1], theme=_theme(), width=400, height=400)
+    var svg = jointplot_svg(
+        s[0], s[1], theme=_theme(), width=400, height=400, title="Joint"
+    ).to_string()
+    assert_equal(Int(Float64(_attr_values(svg, "svg", "width")[0])), 400)
+    assert_equal(
+        Int(Float64(_attr_values(svg, "svg", "height")[0])), raster.height
+    )
+    assert_true(svg.find(">Joint<") != -1, "the title carries over")
+    assert_true(_count_tag(svg, "circle") > 0, "the scatter drew")
+
+
+def test_saving_a_vector_figure_writes_markup() raises:
+    var s = _samples(120)
+    var path = "/tmp/dataviz_test_jointplot.svg"
+    save(
+        jointplot_svg(s[0], s[1], theme=_theme(), width=300, height=300),
+        path,
+    )
+    var f = open(path, "r")
+    var text = f.read()
+    f.close()
+    assert_true("<svg" in text, "the file is a document")
+    assert_true("</svg>" in text)
+
+
+def test_saving_vector_markup_to_a_raster_path_raises() raises:
+    # A clear refusal beats writing markup into a file named .png.
+    var s = _samples(120)
+    with assert_raises(contains="vector markup, not pixels"):
+        save(
+            jointplot_svg(s[0], s[1], theme=_theme(), width=300, height=300),
+            "/tmp/dataviz_test_jointplot.png",
+        )
+
+
+def test_a_vector_clustermap_draws_the_same_figure() raises:
+    # The third composite figure, split the same way.
+    var raster = clustermap(
+        _interleaved(), _row_names(), _col_names(), width=700, height=600
+    )
+    var svg = clustermap_svg(
+        _interleaved(),
+        _row_names(),
+        _col_names(),
+        width=700,
+        height=600,
+        title="Clustered",
+    ).to_string()
+    assert_equal(Int(Float64(_attr_values(svg, "svg", "width")[0])), 700)
+    assert_equal(
+        Int(Float64(_attr_values(svg, "svg", "height")[0])), raster.height
+    )
+    assert_true(svg.find(">Clustered<") != -1, "the title carries over")
+    for name in _row_names():
+        assert_true(
+            svg.find(">" + name + "<") != -1, "every row is still named"
+        )
 
 
 def main() raises:

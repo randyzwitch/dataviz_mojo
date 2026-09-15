@@ -22,6 +22,7 @@ from canvas.io.png import write_png
 from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
+from canvas.vector.pdf import PdfCanvas, write_pdf
 from canvas.vector.svg import SvgCanvas
 
 from dataviz.core.annotations import (
@@ -78,6 +79,7 @@ from dataviz.plot import (
     _RenderResult,
     _data_extent,
     _log_data_extent,
+    _min_max,
     _render_generic,
     _render_into,
     _require_positive_supersample,
@@ -96,9 +98,15 @@ from dataviz.core.text import (
     _label_text_requests,
     _max_label_width,
     _replay_text_requests,
+    _replay_text_requests_pdf,
     _replay_text_requests_svg,
 )
 from dataviz.core.theme import Theme
+from dataviz.multivariate.contour import (
+    _draw_contour_layer,
+    _draw_contourf_layer,
+    _validate_contour,
+)
 from dataviz.multivariate.tricontour import (
     _draw_tricontour_layer,
     _draw_tricontourf_layer,
@@ -138,6 +146,9 @@ def save_layers(plots: List[Plot], path: String) raises:
         var f = open(path, "w")
         f.write(_svg_output_string(render_layers_svg(plots), plots[0]._labels))
         f.close()
+    elif format == OutputFormat.PDF:
+        var doc = render_layers_pdf(plots)
+        write_pdf(doc, path)
     elif format == OutputFormat.PNG:
         write_png(render_layers(plots), path)
     else:
@@ -321,6 +332,56 @@ def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
     _replay_text_requests_svg(svg, label_requests)
     _replay_text_requests_svg(svg, result.text_requests)
     return svg^
+
+
+def render_layers_pdf(plots: List[Plot]) raises -> PdfCanvas:
+    """`render_layers()`'s counterpart for a one-page `PdfCanvas`, with
+    the same `_render_layers_generic` core and `_require_uniform_size`
+    precondition (#372). The figure's size is in points, 1/72 inch, so
+    the page is the figure.
+
+    Args:
+        plots: The layers, all the same size.
+
+    Returns:
+        The finished document.
+
+    Raises:
+        Error: As `render_layers()`.
+    """
+    _require_uniform_size(plots, "render_layers_pdf")
+    var pdf = PdfCanvas(plots[0].width, plots[0].height)
+    var cx1 = pdf.width
+    var cy1 = pdf.height
+    pdf.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
+    var sc = _Scaled(plots[0]._theme)
+    var y2_title = _secondary_axis_y_title(plots)
+    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1)
+    if y2_title.byte_length() > 0:
+        frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
+    var cache = FontCache()
+    var result = _render_layers_generic(
+        pdf, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
+    )
+    var label_requests = _label_text_requests(
+        plots[0], 0, 0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
+    )
+    if y2_title.byte_length() > 0:
+        label_requests.append(
+            _TextRequest(
+                cx1 - Int(sc.axis_title_font_size * 0.8),
+                (result.py0 + result.py1) // 2,
+                y2_title,
+                plots[0]._theme.text_color,
+                sc.axis_title_font_size,
+                TextAlign.CENTER,
+                plots[0]._theme.font_family,
+                rotation=pi / 2.0,
+            )
+        )
+    _replay_text_requests_pdf(pdf, label_requests)
+    _replay_text_requests_pdf(pdf, result.text_requests)
+    return pdf^
 
 
 def _render_bar_combo_layers[
@@ -618,6 +679,34 @@ def _merge_override(
         )
 
 
+def _exact_extent(data: List[Float64]) raises -> LinearScale:
+    """`data`'s minimum and maximum with no padding at all.
+
+    The third extent rule, beside `_data_extent`'s 5% and
+    `_zero_baseline_y_extent`'s anchored zero, and the one a grid-index
+    `Mark.CONTOUR`/`CONTOURF` layer needs: its standalone frame spans
+    `[0, cols - 1]` by `[0, rows - 1]` edge to edge, so anything wider
+    would inset the grid and the layered render would stop reproducing
+    the standalone one (#423).
+
+    Only reachable when every layer in the group is unpadded --
+    `_render_layers_generic` raises on a mix -- so this never has to
+    decide what an exact domain means for a mark that wanted padding.
+
+    Args:
+        data: The combined column.
+
+    Returns:
+        The scale over exactly its range.
+
+    Raises:
+        Error: Whatever `_min_max` raises (empty, or a non-finite
+            value).
+    """
+    var mm = _min_max(data)
+    return LinearScale(mm.min, mm.max, 0.0, 1.0)
+
+
 def _is_layerable_mark(mark: Mark) raises -> Bool:
     """Whether `mark` can share `_render_layers_generic`'s continuous
     frame.
@@ -648,12 +737,16 @@ def _is_layerable_mark(mark: Mark) raises -> Bool:
       `_draw_single_axis_frame` and pins its points at the rect's
       vertical midpoint, which encodes nothing and would mean nothing
       against a co-layer's real y-axis.
-    - **Grid-index units** (CONTOUR, CONTOURF): continuous, unpadded, and
-      spanning the rect edge to edge in *column and row numbers* rather
-      than the data's own coordinates. Sharing an axis with a coordinate
-      mark would silently equate column 12 with the value 12, and even a
-      contour-over-contourf stack needs an unpadded combined domain this
-      path has no rule for.
+    `Mark.CONTOUR`/`CONTOURF` were the third reason until #423 and are
+    now in, on both halves of what kept them out. Given coordinates
+    (`encode_contour(x=..., y=...)`) they place data on the axes in the
+    caller's own units like everything else here. Left in grid-index
+    units they carry `_LayerDomain.unpadded`, and a stack of those gets
+    an unpadded combined domain -- which is the contour-over-contourf
+    case, the grid counterpart of the tricontour/tricontourf pair. What
+    is still rejected is the *mix*: an index-unit grid and a coordinate
+    mark on one axis, which is the reading that would silently equate
+    column 12 with the value 12.
 
     A `raises` `def` only because `Mark.__eq__` is one.
     """
@@ -671,6 +764,8 @@ def _is_layerable_mark(mark: Mark) raises -> Bool:
         or mark == Mark.TRICONTOURF
         or mark == Mark.TRIPLOT
         or mark == Mark.TRIPCOLOR
+        or mark == Mark.CONTOUR
+        or mark == Mark.CONTOURF
     )
 
 
@@ -714,15 +809,34 @@ struct _LayerDomain(Copyable, Movable):
     exactly. One such layer anywhere in an axis group forces the
     baseline for that whole group, the rule `Mark.AREA` already had."""
 
+    var unpadded: Bool
+    """Whether this layer needs its domain taken *exactly*, with none of
+    the 5% `_data_extent` adds.
+
+    True only for a `Mark.CONTOUR`/`CONTOURF` layer left in grid-index
+    units, whose standalone frame spans `[0, cols - 1]` by
+    `[0, rows - 1]` edge to edge. Padding it would inset the grid from
+    the rect and the layered render would not reproduce the standalone
+    one.
+
+    A stack may not mix padded and unpadded layers: there is no honest
+    combined domain for "column index" and "degrees C" on one axis, and
+    padding the union would quietly move the grid off the rect edge.
+    `_render_layers_generic` raises on the mix. Giving a contour real
+    coordinates with `encode_contour(x=..., y=...)` makes it an
+    ordinary padded layer that stacks with anything (#423)."""
+
     def __init__(
         out self,
         var xs: List[Float64],
         var ys: List[Float64],
         zero_baseline: Bool,
+        unpadded: Bool = False,
     ):
         self.xs = xs^
         self.ys = ys^
         self.zero_baseline = zero_baseline
+        self.unpadded = unpadded
 
 
 def _layer_domain(plot: Plot) raises -> _LayerDomain:
@@ -771,6 +885,25 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
         return _LayerDomain(
             plot._tricontour.x.copy(), plot._tricontour.y.copy(), False
         )
+    if mark == Mark.CONTOUR or mark == Mark.CONTOURF:
+        var shape = _validate_contour(
+            plot,
+            "Plot.mark_contour()" if mark
+            == Mark.CONTOUR else "Plot.mark_contourf()",
+        )
+        # The grid's own coordinates, or its indices when it has none.
+        # Either way these are the two columns the standalone frame is
+        # sized from, so a lone contour layer reproduces it exactly.
+        var unpadded = len(plot._contour.x) == 0 and len(plot._contour.y) == 0
+        var xs = plot._contour.x.copy()
+        var ys = plot._contour.y.copy()
+        if len(xs) == 0:
+            for c in range(shape[1]):
+                xs.append(Float64(c))
+        if len(ys) == 0:
+            for r in range(shape[0]):
+                ys.append(Float64(r))
+        return _LayerDomain(xs^, ys^, False, unpadded)
     if mark == Mark.TRIPLOT:
         _validate_triplot(plot)
         return _LayerDomain(
@@ -1068,12 +1201,15 @@ def _render_layers_generic[
     var combined_y2 = List[Float64]()
     var any_zero_baseline = False
     var any_zero_baseline2 = False
+    var unpadded_layers = 0
     # Every primary layer an ECDF: the y-axis is a proportion whose two
     # ends mean "none of the sample" and "all of it", so it is pinned to
     # exactly [0, 1] as _render_ecdf pins it, rather than padded to
     # 1.05. Any other mark in the group and the axis is data again.
     var all_ecdf = True
     for i in range(len(plots)):
+        if domains[i].unpadded:
+            unpadded_layers += 1
         for v in domains[i].xs:
             combined_x.append(v)
         if plots[i]._secondary_axis:
@@ -1088,6 +1224,27 @@ def _render_layers_generic[
                 any_zero_baseline = True
             if not (plots[i]._mark == Mark.ECDF):
                 all_ecdf = False
+
+    # All unpadded or none. A grid-index contour spans its rect edge to
+    # edge and every other mark's domain is padded 5%, so there is no
+    # combined domain that is honest to both: padding the union moves
+    # the grid off the edge, and not padding it clips a point at the
+    # extreme. Raising says which layers disagree and how to fix it,
+    # rather than drawing a chart whose x-axis means two things (#423).
+    if unpadded_layers > 0 and unpadded_layers < len(plots):
+        raise Error(
+            "render_layers(): "
+            + String(unpadded_layers)
+            + " of "
+            + String(len(plots))
+            + " layers are a Mark.CONTOUR/CONTOURF in grid-index units,"
+            " whose axes are column and row numbers spanning the plot"
+            " rect edge to edge, and the rest put data on padded axes in"
+            " their own units -- one x-axis cannot mean both. Give the"
+            " contour real coordinates with encode_contour(x=..., y=...)"
+            " to put it on the same axes as the other layers, or make"
+            " every layer a grid-index contour"
+        )
 
     if len(combined_x) == 0:
         return _RenderResult(text_requests^, ox0, oy0, ox1, oy1)
@@ -1120,18 +1277,24 @@ def _render_layers_generic[
             y_override, y_log_value
         ) if y_override.has else (
             LinearScale(0.0, 1.0, 0.0, 1.0) if all_ecdf else (
-                _log_data_extent(combined_y) if y_log_value else (
-                    _zero_baseline_y_extent(
-                        combined_y
-                    ) if any_zero_baseline else _data_extent(combined_y)
+                _exact_extent(combined_y) if unpadded_layers
+                > 0 else (
+                    _log_data_extent(combined_y) if y_log_value else (
+                        _zero_baseline_y_extent(
+                            combined_y
+                        ) if any_zero_baseline else _data_extent(combined_y)
+                    )
                 )
             )
         )
     var x_scale = _domain_override_scale(
         x_override, x_log_value
     ) if x_override.has else (
-        _log_data_extent(combined_x) if x_log_value else _data_extent(
-            combined_x
+        _exact_extent(combined_x) if unpadded_layers
+        > 0 else (
+            _log_data_extent(combined_x) if x_log_value else _data_extent(
+                combined_x
+            )
         )
     )
     # A time axis rides along on the combined domain, which is already in
@@ -1439,6 +1602,12 @@ def _render_layers_generic[
             _draw_tripcolor_layer(
                 target, plots[j], frame.x_scale, layer_y_scale
             )
+        elif mark == Mark.CONTOUR:
+            _draw_contour_layer(
+                target, plots[j], frame.x_scale, layer_y_scale, layer_sc
+            )
+        elif mark == Mark.CONTOURF:
+            _draw_contourf_layer(target, plots[j], frame.x_scale, layer_y_scale)
 
     # Each layer's annotate_*() draws last, against that layer's own
     # y_scale (primary or secondary) and the one shared x_scale (there is

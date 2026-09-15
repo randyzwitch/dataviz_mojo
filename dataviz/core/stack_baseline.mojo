@@ -23,8 +23,7 @@ struct StackBaseline(Copyable, ImplicitlyCopyable, Movable):
     when the totals themselves are not the point."""
     comptime ZERO = Self(1)
     """Every category's stack starts at a flat zero, giving the ordinary
-    stacked area chart (matplotlib's `stackplot`, and what
-    `stacked_area()` selects).
+    stacked area chart (what `stacked_area()` selects).
 
     The bottom series then sits on a straight axis and can actually be
     read against it, and the top edge is the running total. That is the

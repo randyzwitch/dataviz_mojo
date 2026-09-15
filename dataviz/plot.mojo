@@ -71,6 +71,7 @@ from canvas.io.png import write_png
 from canvas.vector.draw_target import DrawTarget
 from canvas.geometry import FPoint, round_to_int
 from canvas.path import Path
+from canvas.vector.pdf import PdfCanvas, write_pdf
 from canvas.vector.svg import SvgCanvas
 from canvas.text.render import draw_text, measure_text, FontWeight, TextAlign
 from canvas.text.font_cache import FontCache
@@ -106,6 +107,7 @@ from dataviz.basic.continuous import (
 from dataviz.facets import (
     _render_facets_generic,
     render_facets,
+    render_facets_pdf,
     render_facets_svg,
     save_facets,
 )
@@ -129,13 +131,16 @@ from dataviz.layers import (
     _render_layers_generic,
     _secondary_axis_y_title,
     render_layers,
+    render_layers_pdf,
     render_layers_svg,
     save_layers,
 )
 from dataviz.core.legend import (
     _LegendLayout,
+    _continuous_color_legend_layout,
     _continuous_legend_labels,
     _draw_continuous_color_legend,
+    _draw_continuous_color_legend_at,
     _draw_legend,
     _levels_descending,
     _draw_legend_at,
@@ -152,6 +157,7 @@ from dataviz.core.text import (
     _label_text_requests,
     _max_label_width,
     _replay_text_requests,
+    _replay_text_requests_pdf,
     _replay_text_requests_svg,
 )
 from dataviz.core.validate import (
@@ -164,7 +170,9 @@ from dataviz.core.validate import (
     _validate_continuous_encoding,
     _validate_color_domain,
     _validate_domain_override,
+    _validate_tick_override,
 )
+from dataviz.core.axis_controls import _AxisControls, _TickOverride
 from dataviz.core.annotations import (
     _AnnotationData,
     _draw_annotation_areas,
@@ -184,6 +192,7 @@ from morrow import Morrow
 
 from dataviz.core.delaunay import Triangulation, delaunay
 from dataviz.core.mark import Mark, _require_mark
+from dataviz.core.marker import PointShape
 from dataviz.basic.dispatch import _callback_basic
 from dataviz.categorical.dispatch import _callback_categorical
 from dataviz.distributions.dispatch import _callback_distributions
@@ -237,6 +246,8 @@ from dataviz.multivariate.barbs import _BarbsData
 from dataviz.multivariate.contour import _ContourData
 from dataviz.grid.image import _ImageData
 from dataviz.multivariate.tricontour import _TriContourData
+from dataviz.core.cluster import Dendrogram
+from dataviz.hierarchy_marks.dendrogram import _DendrogramData
 from dataviz.multivariate.triplot import _TriplotData
 from dataviz.grid.marimekko import _MarimekkoData
 from dataviz.relationships.edges import _EdgeData
@@ -339,6 +350,17 @@ struct _ChannelData(Copyable, Movable):
     """Explicit category-to-color overrides for `color_categories`. A
     category absent here takes the palette color for its index."""
 
+    var shape_map: Dict[String, PointShape]
+    """Explicit category-to-shape overrides for `color_categories`, used
+    only under `Theme.shape_by_category`. A category absent here takes
+    the shape for its index, as before.
+
+    `color_map`'s counterpart, and it exists for the same reason one
+    figure's panels need `shared_shape_map()`: shapes were dealt by
+    position in each panel's own category domain, so a category missing
+    from one panel shifted the shapes of every panel after it, with no
+    way to pin one (#365)."""
+
     var size: List[Float64]
     var point_labels: List[String]
     """Set only via `encode()`'s `labels`; `Mark.POINT`/`EFFECT_SCATTER`
@@ -350,6 +372,7 @@ struct _ChannelData(Copyable, Movable):
         self.color = List[Float64]()
         self.color_categories = List[String]()
         self.color_map = Dict[String, Color]()
+        self.shape_map = Dict[String, PointShape]()
         self.size = List[Float64]()
         self.point_labels = List[String]()
 
@@ -406,7 +429,7 @@ struct _GroupedBarData(Copyable, Movable):
 
     var percent: Bool
     """`Mark.STACKED_BAR` only: normalize each category's segments to
-    sum to 100% (ggplot's `position="fill"`). See `mark_stacked_bar()`."""
+    sum to 100%. See `mark_stacked_bar()`."""
 
     def __init__(out self):
         self.series_names = List[String]()
@@ -422,9 +445,8 @@ struct _DistributionData(Copyable, Movable):
 
     `kde_bandwidth_override` is a caller's kernel-density bandwidth,
     overriding each category's Silverman's-rule default; 0.0 means use
-    the default. `kde_scale_by_count` selects ggplot2's `scale = "area"`
-    (scale each category's maximum width/rise by `sqrt(n_i / max(n))`)
-    over the default `scale = "width"`. See `mark_violin()`/
+    the default. `kde_scale_by_count` scales each category's maximum
+    width/rise by `sqrt(n_i / max(n))`. See `mark_violin()`/
     `mark_ridgeline()`.
 
     `ecdf_complementary` draws `Mark.ECDF` as `1 - F(x)` rather than
@@ -654,6 +676,9 @@ struct Plot(Copyable, Movable):
     var _render_canvas_family: def(
         mut Canvas, Plot, Int, Int, Int, Int, mut FontCache, Bool
     ) raises thin -> Optional[_RenderResult]
+    var _render_pdf_family: def(
+        mut PdfCanvas, Plot, Int, Int, Int, Int, mut FontCache, Bool
+    ) raises thin -> Optional[_RenderResult]
     var _render_svg_family: def(
         mut SvgCanvas, Plot, Int, Int, Int, Int, mut FontCache, Bool
     ) raises thin -> Optional[_RenderResult]
@@ -688,6 +713,7 @@ struct Plot(Copyable, Movable):
     var _image: _ImageData
     var _tricontour: _TriContourData
     var _triplot: _TriplotData
+    var _dendrogram: _DendrogramData
     var _marimekko: _MarimekkoData
     var _hierarchy: _HierarchyData
     var _labels: _LabelData
@@ -711,6 +737,15 @@ struct Plot(Copyable, Movable):
     # Set via .scale_x_domain()/.scale_y_domain().
     var _x_domain: _DomainOverride
     var _y_domain: _DomainOverride
+    # Set via .scale_x_ticks()/.scale_y_ticks()/.scale_x_reverse()/
+    # .scale_y_reverse()/.equal_aspect() (#368). All five reach the
+    # continuous frame together as one `_AxisControls`; nothing else
+    # reads them.
+    var _x_tick_override: _TickOverride
+    var _y_tick_override: _TickOverride
+    var _x_reversed: Bool
+    var _y_reversed: Bool
+    var _equal_aspect: Bool
     # Set via .scale_color_domain()/.scale_color_center(); read by every
     # continuous-color mark through `_color_scale_for()`.
     var _color_domain: _ColorDomainOverride
@@ -759,6 +794,7 @@ struct Plot(Copyable, Movable):
         self._image = _ImageData()
         self._tricontour = _TriContourData()
         self._triplot = _TriplotData()
+        self._dendrogram = _DendrogramData()
         self._marimekko = _MarimekkoData()
         self._hierarchy = _HierarchyData()
         self._labels = _LabelData()
@@ -771,21 +807,76 @@ struct Plot(Copyable, Movable):
         self._x_tz_offset = 0
         self._x_domain = _DomainOverride()
         self._y_domain = _DomainOverride()
+        self._x_tick_override = _TickOverride()
+        self._y_tick_override = _TickOverride()
+        self._x_reversed = False
+        self._y_reversed = False
+        self._equal_aspect = False
         self._color_domain = _ColorDomainOverride()
         self._horizontal = False
         self._mark = Mark.POINT
         self._render_canvas_family = _callback_continuous[Canvas]
         self._render_svg_family = _callback_continuous[SvgCanvas]
+        self._render_pdf_family = _callback_continuous[PdfCanvas]
         self._theme = Theme.default()
         self.width = 640
         self.height = 420
 
     def size(var self, width: Int, height: Int) -> Self:
-        """Set the pixel dimensions `render()`/`render_svg()`/`save()` construct
+        """Set the dimensions `render()`/`render_svg()`/`save()` construct
         their target at. Defaults to 640x420.
+
+        **The unit is a point, 1/72 inch**, which is what makes a figure
+        size mean something physical (#372). On the raster backends one
+        point is one pixel at the default resolution, so nothing about
+        the old reading changes; `save(..., dpi=300)` keeps the physical
+        size and multiplies the pixels. In a PDF it is a point on the
+        page. `size_inches()`/`size_mm()` say the same thing in the
+        units a page is usually specified in.
+
+        Args:
+            width: Figure width in points.
+            height: Figure height in points.
+
+        Returns:
+            Self, for further chaining.
         """
         self.width = width
         self.height = height
+        return self^
+
+    def size_inches(var self, width: Float64, height: Float64) -> Self:
+        """`size()` in inches: 72 points to the inch, rounded to whole
+        points (#372).
+
+        A figure for a journal column or a slide is specified
+        physically, and `size(468, 312)` does not read as "6.5 by 4.3
+        inches" to anyone.
+
+        Args:
+            width: Figure width in inches.
+            height: Figure height in inches.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self.width = Int(width * 72.0 + 0.5)
+        self.height = Int(height * 72.0 + 0.5)
+        return self^
+
+    def size_mm(var self, width: Float64, height: Float64) -> Self:
+        """`size()` in millimeters: 25.4 mm to the inch and 72 points to
+        the inch, rounded to whole points (#372).
+
+        Args:
+            width: Figure width in millimeters.
+            height: Figure height in millimeters.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self.width = Int(width * 72.0 / 25.4 + 0.5)
+        self.height = Int(height * 72.0 / 25.4 + 0.5)
         return self^
 
     def mark_point(
@@ -800,8 +891,7 @@ struct Plot(Copyable, Movable):
         includes a hover title using its encoded label or coordinates.
 
         `jitter_x`/`jitter_y` offset each point by up to that many pixels,
-        to separate points that would otherwise overplot (ggplot's
-        `geom_jitter()`, seaborn's `stripplot(jitter=True)`). Both default
+        to separate points that would otherwise overplot. Both default
         to 0.0, which leaves every point exactly where it was.
 
         The offset is **deterministic, not random**: point `i` moves by
@@ -838,6 +928,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.POINT
         self._render_canvas_family = _callback_continuous[Canvas]
         self._render_svg_family = _callback_continuous[SvgCanvas]
+        self._render_pdf_family = _callback_continuous[PdfCanvas]
         self._mark_style.point_tooltips = tooltips
         self._mark_style.point_jitter_x = jitter_x
         self._mark_style.point_jitter_y = jitter_y
@@ -862,9 +953,7 @@ struct Plot(Copyable, Movable):
             step: Where the riser between two samples sits -- `NONE`
                 (the default: a straight segment, no stepping), `PRE`
                 (at the earlier x), `MID` (halfway) or `POST` (at the
-                later x). Same three placements as matplotlib's
-                `drawstyle='steps-pre'/'steps-mid'/'steps-post'`; see
-                `StepStyle` for which one claims what.
+                later x); see `StepStyle` for which one claims what.
 
         Returns:
             Self, for further chaining.
@@ -872,6 +961,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.LINE
         self._render_canvas_family = _callback_continuous[Canvas]
         self._render_svg_family = _callback_continuous[SvgCanvas]
+        self._render_pdf_family = _callback_continuous[PdfCanvas]
         self._mark_style.line_style = style
         self._mark_style.step = step
         return self^
@@ -887,6 +977,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.BAR
         self._render_canvas_family = _callback_basic[Canvas]
         self._render_svg_family = _callback_basic[SvgCanvas]
+        self._render_pdf_family = _callback_basic[PdfCanvas]
         self._horizontal = horizontal
         return self^
 
@@ -903,9 +994,7 @@ struct Plot(Copyable, Movable):
             step: Where the riser between two samples sits -- `NONE`
                 (the default: a straight top edge, no stepping), `PRE`
                 (at the earlier x), `MID` (halfway) or `POST` (at the
-                later x). Same three placements as matplotlib's
-                `drawstyle='steps-pre'/'steps-mid'/'steps-post'`; see
-                `StepStyle` for which one claims what. Mutually
+                later x); see `StepStyle` for which one claims what. Mutually
                 exclusive with `Theme.line_smoothing`, which raises.
 
         Returns:
@@ -914,6 +1003,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.AREA
         self._render_canvas_family = _callback_continuous[Canvas]
         self._render_svg_family = _callback_continuous[SvgCanvas]
+        self._render_pdf_family = _callback_continuous[PdfCanvas]
         self._mark_style.step = step
         return self^
 
@@ -940,6 +1030,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.HISTOGRAM
         self._render_canvas_family = _callback_continuous[Canvas]
         self._render_svg_family = _callback_continuous[SvgCanvas]
+        self._render_pdf_family = _callback_continuous[PdfCanvas]
         self._histogram.horizontal = horizontal
         return self^
 
@@ -952,6 +1043,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.ARC
         self._render_canvas_family = _callback_basic[Canvas]
         self._render_svg_family = _callback_basic[SvgCanvas]
+        self._render_pdf_family = _callback_basic[PdfCanvas]
         self._mark_style.donut_inner_radius_fraction = inner_radius_fraction
         return self^
 
@@ -975,6 +1067,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.NIGHTINGALE
         self._render_canvas_family = _callback_radial[Canvas]
         self._render_svg_family = _callback_radial[SvgCanvas]
+        self._render_pdf_family = _callback_radial[PdfCanvas]
         self._nightingale.area = area
         return self^
 
@@ -989,6 +1082,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.POLAR_BAR
         self._render_canvas_family = _callback_radial[Canvas]
         self._render_svg_family = _callback_radial[SvgCanvas]
+        self._render_pdf_family = _callback_radial[PdfCanvas]
         self._mark_style.polar_bar_padding = padding
         return self^
 
@@ -1004,6 +1098,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.RADIALBAR
         self._render_canvas_family = _callback_radial[Canvas]
         self._render_svg_family = _callback_radial[SvgCanvas]
+        self._render_pdf_family = _callback_radial[PdfCanvas]
         self._mark_style.radialbar_ring_gap_fraction = ring_gap_fraction
         return self^
 
@@ -1019,6 +1114,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.POLAR
         self._render_canvas_family = _callback_radial[Canvas]
         self._render_svg_family = _callback_radial[SvgCanvas]
+        self._render_pdf_family = _callback_radial[PdfCanvas]
         self._mark_style.polar_grid_rings = grid_rings
         self._mark_style.polar_grid_spokes = grid_spokes
         return self^
@@ -1031,6 +1127,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.RADAR
         self._render_canvas_family = _callback_radial[Canvas]
         self._render_svg_family = _callback_radial[SvgCanvas]
+        self._render_pdf_family = _callback_radial[PdfCanvas]
         self._mark_style.radar_grid_rings = grid_rings
         return self^
 
@@ -1050,6 +1147,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.GAUGE
         self._render_canvas_family = _callback_radial[Canvas]
         self._render_svg_family = _callback_radial[SvgCanvas]
+        self._render_pdf_family = _callback_radial[PdfCanvas]
         self._mark_style.gauge_band_inner_fraction = band_inner_fraction
         self._mark_style.gauge_needle_fraction = needle_fraction
         self._mark_style.gauge_start_angle = start_angle
@@ -1064,6 +1162,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.PARALLEL
         self._render_canvas_family = _callback_multivariate[Canvas]
         self._render_svg_family = _callback_multivariate[SvgCanvas]
+        self._render_pdf_family = _callback_multivariate[PdfCanvas]
         return self^
 
     def mark_pointplot(var self) -> Self:
@@ -1079,6 +1178,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.POINTPLOT
         self._render_canvas_family = _callback_aggregation[Canvas]
         self._render_svg_family = _callback_aggregation[SvgCanvas]
+        self._render_pdf_family = _callback_aggregation[PdfCanvas]
         return self^
 
     def mark_lollipop(var self, horizontal: Bool = False) -> Self:
@@ -1091,6 +1191,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.LOLLIPOP
         self._render_canvas_family = _callback_categorical[Canvas]
         self._render_svg_family = _callback_categorical[SvgCanvas]
+        self._render_pdf_family = _callback_categorical[PdfCanvas]
         self._horizontal = horizontal
         return self^
 
@@ -1104,6 +1205,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.WATERFALL
         self._render_canvas_family = _callback_categorical[Canvas]
         self._render_svg_family = _callback_categorical[SvgCanvas]
+        self._render_pdf_family = _callback_categorical[PdfCanvas]
         self._mark_style.waterfall_delta_width_fraction = delta_width_fraction
         return self^
 
@@ -1123,6 +1225,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.BOXENPLOT
         self._render_canvas_family = _callback_distributions[Canvas]
         self._render_svg_family = _callback_distributions[SvgCanvas]
+        self._render_pdf_family = _callback_distributions[PdfCanvas]
         self._horizontal = horizontal
         return self^
 
@@ -1136,6 +1239,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.BOX
         self._render_canvas_family = _callback_distributions[Canvas]
         self._render_svg_family = _callback_distributions[SvgCanvas]
+        self._render_pdf_family = _callback_distributions[PdfCanvas]
         self._horizontal = horizontal
         return self^
 
@@ -1146,6 +1250,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.CANDLESTICK
         self._render_canvas_family = _callback_distributions[Canvas]
         self._render_svg_family = _callback_distributions[SvgCanvas]
+        self._render_pdf_family = _callback_distributions[PdfCanvas]
         return self^
 
     def mark_bullet(var self, measure_width_fraction: Float64 = 0.35) -> Self:
@@ -1157,6 +1262,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.BULLET
         self._render_canvas_family = _callback_categorical[Canvas]
         self._render_svg_family = _callback_categorical[SvgCanvas]
+        self._render_pdf_family = _callback_categorical[PdfCanvas]
         self._mark_style.bullet_measure_width_fraction = measure_width_fraction
         return self^
 
@@ -1169,6 +1275,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.GANTT
         self._render_canvas_family = _callback_categorical[Canvas]
         self._render_svg_family = _callback_categorical[SvgCanvas]
+        self._render_pdf_family = _callback_categorical[PdfCanvas]
         return self^
 
     def mark_span_chart(var self) -> Self:
@@ -1179,6 +1286,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.SPAN_CHART
         self._render_canvas_family = _callback_categorical[Canvas]
         self._render_svg_family = _callback_categorical[SvgCanvas]
+        self._render_pdf_family = _callback_categorical[PdfCanvas]
         return self^
 
     def mark_calendar_heatmap(var self) -> Self:
@@ -1189,6 +1297,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.CALENDAR_HEATMAP
         self._render_canvas_family = _callback_grid[Canvas]
         self._render_svg_family = _callback_grid[SvgCanvas]
+        self._render_pdf_family = _callback_grid[PdfCanvas]
         return self^
 
     def mark_corrplot(
@@ -1220,6 +1329,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.CORRPLOT
         self._render_canvas_family = _callback_grid[Canvas]
         self._render_svg_family = _callback_grid[SvgCanvas]
+        self._render_pdf_family = _callback_grid[PdfCanvas]
         self._corrplot.layout = layout
         self._corrplot.diag = diag
         self._corrplot.labels = labels
@@ -1243,6 +1353,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.PUNCHCARD
         self._render_canvas_family = _callback_grid[Canvas]
         self._render_svg_family = _callback_grid[SvgCanvas]
+        self._render_pdf_family = _callback_grid[PdfCanvas]
         self._punchcard.scale = scale
         return self^
 
@@ -1258,7 +1369,7 @@ struct Plot(Copyable, Movable):
             length: Staff length in pixels before `Theme.scale`, which
                 every feature on the glyph is sized as a fraction of.
             flip: Mirror every feature across its staff -- the southern-
-                hemisphere convention (matplotlib's `flip_barb`).
+                hemisphere convention.
 
         Returns:
             Self, for further chaining.
@@ -1266,6 +1377,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.BARBS
         self._render_canvas_family = _callback_multivariate[Canvas]
         self._render_svg_family = _callback_multivariate[SvgCanvas]
+        self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._barbs.length = length
         self._barbs.flip = flip
         return self^
@@ -1280,7 +1392,7 @@ struct Plot(Copyable, Movable):
 
         Args:
             scale: Pixels per unit of magnitude before `Theme.scale`, or
-                0 for matplotlib's automatic rule (see `quiver()`).
+                0 for the automatic rule (see `quiver()`).
             color_by_magnitude: Color each arrow by `hypot(u, v)`
                 through the theme's ramp, with a color legend.
 
@@ -1290,6 +1402,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.QUIVER
         self._render_canvas_family = _callback_multivariate[Canvas]
         self._render_svg_family = _callback_multivariate[SvgCanvas]
+        self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._barbs.scale = scale
         self._barbs.color_by_magnitude = color_by_magnitude
         return self^
@@ -1311,6 +1424,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.CONTOUR
         self._render_canvas_family = _callback_multivariate[Canvas]
         self._render_svg_family = _callback_multivariate[SvgCanvas]
+        self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._contour.level_count = levels
         return self^
 
@@ -1332,6 +1446,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.CONTOURF
         self._render_canvas_family = _callback_multivariate[Canvas]
         self._render_svg_family = _callback_multivariate[SvgCanvas]
+        self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._contour.level_count = levels
         return self^
 
@@ -1352,6 +1467,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.IMSHOW
         self._render_canvas_family = _callback_grid[Canvas]
         self._render_svg_family = _callback_grid[SvgCanvas]
+        self._render_pdf_family = _callback_grid[PdfCanvas]
         return self^
 
     def mark_pcolormesh(var self) -> Self:
@@ -1369,6 +1485,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.PCOLORMESH
         self._render_canvas_family = _callback_grid[Canvas]
         self._render_svg_family = _callback_grid[SvgCanvas]
+        self._render_pdf_family = _callback_grid[PdfCanvas]
         return self^
 
     def mark_hist2d(var self) -> Self:
@@ -1383,6 +1500,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.HIST2D
         self._render_canvas_family = _callback_grid[Canvas]
         self._render_svg_family = _callback_grid[SvgCanvas]
+        self._render_pdf_family = _callback_grid[PdfCanvas]
         return self^
 
     def mark_hexbin(var self) -> Self:
@@ -1397,6 +1515,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.HEXBIN
         self._render_canvas_family = _callback_binned[Canvas]
         self._render_svg_family = _callback_binned[SvgCanvas]
+        self._render_pdf_family = _callback_binned[PdfCanvas]
         return self^
 
     def mark_streamplot(
@@ -1411,7 +1530,7 @@ struct Plot(Copyable, Movable):
         `streamplot()` for the one-call form.
 
         Args:
-            density: Line spacing, as matplotlib's parameter: the
+            density: Line spacing: the
                 occupancy cells per axis over 30, so larger means more
                 lines.
             arrows: Draw an arrowhead at the middle of each line.
@@ -1424,6 +1543,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.STREAMPLOT
         self._render_canvas_family = _callback_multivariate[Canvas]
         self._render_svg_family = _callback_multivariate[SvgCanvas]
+        self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._stream.density = density
         self._stream.arrows = arrows
         self._stream.color_by_magnitude = color_by_magnitude
@@ -1446,6 +1566,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.TRICONTOUR
         self._render_canvas_family = _callback_multivariate[Canvas]
         self._render_svg_family = _callback_multivariate[SvgCanvas]
+        self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._tricontour.level_count = levels
         return self^
 
@@ -1467,7 +1588,81 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.TRICONTOURF
         self._render_canvas_family = _callback_multivariate[Canvas]
         self._render_svg_family = _callback_multivariate[SvgCanvas]
+        self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._tricontour.level_count = levels
+        return self^
+
+    def mark_dendrogram(var self, horizontal: Bool = False) -> Self:
+        """Select `Mark.DENDROGRAM`: the merge tree agglomerative
+        clustering produces, drawn as brackets. Encoded via
+        `encode_dendrogram()`; see `dendrogram()` for the one-call form
+        that clusters the rows for you (#355).
+
+        Args:
+            horizontal: Run the leaves down the y-axis with the brackets
+                reaching right, for a tree that sits beside a matrix's
+                rows rather than above its columns.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.DENDROGRAM
+        self._render_canvas_family = _callback_hierarchy_marks[Canvas]
+        self._render_svg_family = _callback_hierarchy_marks[SvgCanvas]
+        self._render_pdf_family = _callback_hierarchy_marks[PdfCanvas]
+        self._dendrogram.horizontal = horizontal
+        return self^
+
+    def encode_dendrogram(
+        var self,
+        tree: Dendrogram,
+        labels: List[String],
+        horizontal: Bool = False,
+    ) -> Self:
+        """Give `Mark.DENDROGRAM` a merge tree from
+        `dataviz.core.cluster.linkage()` and one label per leaf (#355).
+
+        `labels` is in the tree's *leaf order*, not the caller's original
+        row order, because that reordering is the whole point of
+        clustering: `tree.leaf_order` says which original row each
+        position holds.
+
+        The tree is flattened here into three parallel lists, which is
+        what the render walks. Ids are positions along the leaf axis for
+        the leaves and `len(labels) + k` for merge `k`, and because
+        `linkage()` returns its merges sorted so a node's children come
+        first, one forward pass places every node.
+
+        Args:
+            tree: The merge tree.
+            labels: One name per leaf, in leaf order.
+            horizontal: Leaves down the y-axis rather than across the x.
+
+        Returns:
+            Self, for further chaining -- `render()` raises later if the
+            tree and the labels disagree.
+        """
+        var left = List[Int](capacity=len(tree.merges))
+        var right = List[Int](capacity=len(tree.merges))
+        var height = List[Float64](capacity=len(tree.merges))
+        # The tree names leaves by their original row index; the drawing
+        # needs their position along the axis, which is where that row
+        # sits in the leaf order.
+        var position_of = List[Int](capacity=len(tree.leaf_order))
+        for _ in range(len(tree.leaf_order)):
+            position_of.append(0)
+        for i in range(len(tree.leaf_order)):
+            position_of[tree.leaf_order[i]] = i
+        var n = len(tree.leaf_order)
+        for m in tree.merges:
+            left.append(position_of[m.left] if m.left < n else m.left)
+            right.append(position_of[m.right] if m.right < n else m.right)
+            height.append(m.height)
+        self._dendrogram.left = left^
+        self._dendrogram.right = right^
+        self._dendrogram.height = height^
+        self._dendrogram.labels = labels.copy()
+        self._dendrogram.horizontal = horizontal
         return self^
 
     def mark_triplot(var self, show_points: Bool = True) -> Self:
@@ -1478,8 +1673,7 @@ struct Plot(Copyable, Movable):
 
         Args:
             show_points: Draw a dot at every sample on top of the mesh.
-                Defaults to `True`; matplotlib's `triplot()` draws lines
-                only, and `_render_triplot` says why this differs.
+                Defaults to `True`; `_render_triplot` says why.
 
         Returns:
             Self, for further chaining.
@@ -1487,6 +1681,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.TRIPLOT
         self._render_canvas_family = _callback_multivariate[Canvas]
         self._render_svg_family = _callback_multivariate[SvgCanvas]
+        self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._triplot.show_points = show_points
         return self^
 
@@ -1504,6 +1699,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.TRIPCOLOR
         self._render_canvas_family = _callback_multivariate[Canvas]
         self._render_svg_family = _callback_multivariate[SvgCanvas]
+        self._render_pdf_family = _callback_multivariate[PdfCanvas]
         return self^
 
     def mark_marimekko(var self) -> Self:
@@ -1515,6 +1711,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.MARIMEKKO
         self._render_canvas_family = _callback_grid[Canvas]
         self._render_svg_family = _callback_grid[SvgCanvas]
+        self._render_pdf_family = _callback_grid[PdfCanvas]
         return self^
 
     def mark_sunburst(var self) -> Self:
@@ -1525,6 +1722,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.SUNBURST
         self._render_canvas_family = _callback_hierarchy_marks[Canvas]
         self._render_svg_family = _callback_hierarchy_marks[SvgCanvas]
+        self._render_pdf_family = _callback_hierarchy_marks[PdfCanvas]
         return self^
 
     def mark_tree(var self) -> Self:
@@ -1534,6 +1732,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.TREE
         self._render_canvas_family = _callback_hierarchy_marks[Canvas]
         self._render_svg_family = _callback_hierarchy_marks[SvgCanvas]
+        self._render_pdf_family = _callback_hierarchy_marks[PdfCanvas]
         return self^
 
     def mark_treemap(var self) -> Self:
@@ -1543,6 +1742,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.TREEMAP
         self._render_canvas_family = _callback_hierarchy_marks[Canvas]
         self._render_svg_family = _callback_hierarchy_marks[SvgCanvas]
+        self._render_pdf_family = _callback_hierarchy_marks[PdfCanvas]
         return self^
 
     def mark_grouped_bar(var self, horizontal: Bool = False) -> Self:
@@ -1555,6 +1755,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.GROUPED_BAR
         self._render_canvas_family = _callback_categorical[Canvas]
         self._render_svg_family = _callback_categorical[SvgCanvas]
+        self._render_pdf_family = _callback_categorical[PdfCanvas]
         self._horizontal = horizontal
         return self^
 
@@ -1565,8 +1766,8 @@ struct Plot(Copyable, Movable):
         as a segment on the previous running total. Encoded via
         `encode_grouped_bar()`, the same data as `mark_grouped_bar()`.
 
-        `percent=True` normalizes each category's segments to sum to 100%
-        (ggplot's `position = "fill"`), fixing the y-axis from 0 to 100.
+        `percent=True` normalizes each category's segments to sum to 100%,
+        fixing the y-axis from 0 to 100.
         Every value must then be non-negative, checked at render() time; an
         all-zero category draws as an empty column.
 
@@ -1588,6 +1789,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.STACKED_BAR
         self._render_canvas_family = _callback_categorical[Canvas]
         self._render_svg_family = _callback_categorical[SvgCanvas]
+        self._render_pdf_family = _callback_categorical[PdfCanvas]
         self._grouped_bar.percent = percent
         self._horizontal = horizontal
         return self^
@@ -1601,6 +1803,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.POPULATION_PYRAMID
         self._render_canvas_family = _callback_categorical[Canvas]
         self._render_svg_family = _callback_categorical[SvgCanvas]
+        self._render_pdf_family = _callback_categorical[PdfCanvas]
         return self^
 
     def mark_heatmap(var self) -> Self:
@@ -1610,6 +1813,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.HEATMAP
         self._render_canvas_family = _callback_grid[Canvas]
         self._render_svg_family = _callback_grid[SvgCanvas]
+        self._render_pdf_family = _callback_grid[PdfCanvas]
         return self^
 
     def mark_chord(var self, ring_fraction: Float64 = 0.08) -> Self:
@@ -1621,6 +1825,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.CHORD
         self._render_canvas_family = _callback_relationships[Canvas]
         self._render_svg_family = _callback_relationships[SvgCanvas]
+        self._render_pdf_family = _callback_relationships[PdfCanvas]
         self._mark_style.chord_ring_fraction = ring_fraction
         return self^
 
@@ -1631,6 +1836,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.ARC_DIAGRAM
         self._render_canvas_family = _callback_relationships[Canvas]
         self._render_svg_family = _callback_relationships[SvgCanvas]
+        self._render_pdf_family = _callback_relationships[PdfCanvas]
         return self^
 
     def mark_graph(var self) -> Self:
@@ -1641,6 +1847,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.GRAPH
         self._render_canvas_family = _callback_relationships[Canvas]
         self._render_svg_family = _callback_relationships[SvgCanvas]
+        self._render_pdf_family = _callback_relationships[PdfCanvas]
         return self^
 
     def mark_sankey(var self, node_width: Float64 = 12.0) -> Self:
@@ -1652,6 +1859,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.SANKEY
         self._render_canvas_family = _callback_relationships[Canvas]
         self._render_svg_family = _callback_relationships[SvgCanvas]
+        self._render_pdf_family = _callback_relationships[PdfCanvas]
         self._mark_style.sankey_node_width = node_width
         return self^
 
@@ -1663,6 +1871,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.SINGLE_AXIS
         self._render_canvas_family = _callback_basic[Canvas]
         self._render_svg_family = _callback_basic[SvgCanvas]
+        self._render_pdf_family = _callback_basic[PdfCanvas]
         return self^
 
     def mark_effect_scatter(var self, tooltips: Bool = False) -> Self:
@@ -1674,6 +1883,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.EFFECT_SCATTER
         self._render_canvas_family = _callback_continuous[Canvas]
         self._render_svg_family = _callback_continuous[SvgCanvas]
+        self._render_pdf_family = _callback_continuous[PdfCanvas]
         self._mark_style.point_tooltips = tooltips
         return self^
 
@@ -1684,6 +1894,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.FUNNEL
         self._render_canvas_family = _callback_categorical[Canvas]
         self._render_svg_family = _callback_categorical[SvgCanvas]
+        self._render_pdf_family = _callback_categorical[PdfCanvas]
         return self^
 
     def mark_bump(var self) -> Self:
@@ -1694,6 +1905,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.BUMP
         self._render_canvas_family = _callback_categorical[Canvas]
         self._render_svg_family = _callback_categorical[SvgCanvas]
+        self._render_pdf_family = _callback_categorical[PdfCanvas]
         return self^
 
     def mark_streamgraph(
@@ -1744,6 +1956,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.STREAMGRAPH
         self._render_canvas_family = _callback_categorical[Canvas]
         self._render_svg_family = _callback_categorical[SvgCanvas]
+        self._render_pdf_family = _callback_categorical[PdfCanvas]
         self._mark_style.streamgraph_baseline = baseline
         self._mark_style.step = step
         return self^
@@ -1761,6 +1974,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.BEESWARM
         self._render_canvas_family = _callback_distributions[Canvas]
         self._render_svg_family = _callback_distributions[SvgCanvas]
+        self._render_pdf_family = _callback_distributions[PdfCanvas]
         self._horizontal = horizontal
         self._mark_style.point_tooltips = tooltips
         return self^
@@ -1780,8 +1994,8 @@ struct Plot(Copyable, Movable):
         violin.mojo) with one shared value, so categories' shapes can be
         compared without Silverman's rule reacting to each sample size.
         `scale_by_count=True` scales each category's maximum width by
-        `sqrt(n_i / max(n))` (ggplot2's `scale = "area"`) instead of giving
-        every category the same maximum width (`scale = "width"`).
+        `sqrt(n_i / max(n))` instead of giving every category the same
+        maximum width.
 
         Args:
             bandwidth: Overrides every category's Silverman's-rule
@@ -1811,6 +2025,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.VIOLIN
         self._render_canvas_family = _callback_distributions[Canvas]
         self._render_svg_family = _callback_distributions[SvgCanvas]
+        self._render_pdf_family = _callback_distributions[PdfCanvas]
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
         self._horizontal = horizontal
@@ -1852,6 +2067,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.KDE
         self._render_canvas_family = _callback_distributions[Canvas]
         self._render_svg_family = _callback_distributions[SvgCanvas]
+        self._render_pdf_family = _callback_distributions[PdfCanvas]
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_fill = fill
         self._distribution.kde_rug = rug
@@ -1871,6 +2087,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.RUG
         self._render_canvas_family = _callback_distributions[Canvas]
         self._render_svg_family = _callback_distributions[SvgCanvas]
+        self._render_pdf_family = _callback_distributions[PdfCanvas]
         return self^
 
     def mark_ecdf(var self, complementary: Bool = False) -> Self:
@@ -1902,6 +2119,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.ECDF
         self._render_canvas_family = _callback_distributions[Canvas]
         self._render_svg_family = _callback_distributions[SvgCanvas]
+        self._render_pdf_family = _callback_distributions[PdfCanvas]
         self._distribution.ecdf_complementary = complementary
         return self^
 
@@ -1929,6 +2147,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.EVENTPLOT
         self._render_canvas_family = _callback_distributions[Canvas]
         self._render_svg_family = _callback_distributions[SvgCanvas]
+        self._render_pdf_family = _callback_distributions[PdfCanvas]
         self._mark_style.eventplot_line_length = line_length
         return self^
 
@@ -1963,6 +2182,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.RIDGELINE
         self._render_canvas_family = _callback_distributions[Canvas]
         self._render_svg_family = _callback_distributions[SvgCanvas]
+        self._render_pdf_family = _callback_distributions[PdfCanvas]
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
         self._mark_style.ridgeline_overlap = overlap
@@ -1979,6 +2199,7 @@ struct Plot(Copyable, Movable):
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
+        shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
         labels: List[String] = List[String](),
     ) raises -> Self:
         """Map data columns onto channels. `x`/`y` are required; the optional
@@ -2037,6 +2258,12 @@ struct Plot(Copyable, Movable):
                 alongside `color_categories`. `Mark.POINT`/`SINGLE_
                 AXIS`/`EFFECT_SCATTER` only (whatever mark `color_
                 categories` is used on).
+            shape_map: Optional explicit category-to-shape overrides,
+                used only under `Theme.shape_by_category`. A category
+                absent here takes the shape for its index.
+                `shared_shape_map()` builds one covering a whole figure
+                so a category missing from one panel does not shift the
+                shapes of the others (#365).
             labels: Optional per-point text, drawn above each point;
                 an entry of `""` skips that one point's label.
                 `Mark.POINT`/`EFFECT_SCATTER` only.
@@ -2063,6 +2290,7 @@ struct Plot(Copyable, Movable):
         self._y_err.lower = y_err_lower.copy()
         self._y_err.upper = y_err_upper.copy()
         self._channels.color_map = color_map.copy()
+        self._channels.shape_map = shape_map.copy()
         self._channels.point_labels = labels.copy()
         return self^
 
@@ -2079,6 +2307,7 @@ struct Plot(Copyable, Movable):
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
+        shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
     ) raises -> Self:
         """`encode()`'s `x`/`y` generalized to anything conforming to
         `Float64Sequence` (array_like.mojo), for data in a custom buffer
@@ -2102,6 +2331,7 @@ struct Plot(Copyable, Movable):
             y_err_lower: See `encode()`'s own docstring.
             y_err_upper: See `encode()`'s own docstring.
             color_map: See `encode()`'s own docstring.
+            shape_map: See `encode()`'s own docstring.
 
         Returns:
             Self, for further chaining.
@@ -2116,6 +2346,7 @@ struct Plot(Copyable, Movable):
             y_err_lower=y_err_lower,
             y_err_upper=y_err_upper,
             color_map=color_map,
+            shape_map=shape_map,
         )
 
     def encode[
@@ -2131,6 +2362,7 @@ struct Plot(Copyable, Movable):
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
+        shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
     ) raises -> Self:
         """`encode()`'s `x`/`y` generalized over numeric element type
         (`List[Int]`, `List[Float32]`, any `List[Scalar[dtype]]`), a
@@ -2154,6 +2386,7 @@ struct Plot(Copyable, Movable):
             y_err_lower: See `encode()`'s own docstring.
             y_err_upper: See `encode()`'s own docstring.
             color_map: See `encode()`'s own docstring.
+            shape_map: See `encode()`'s own docstring.
 
         Returns:
             Self, for further chaining.
@@ -2168,6 +2401,7 @@ struct Plot(Copyable, Movable):
             y_err_lower=y_err_lower,
             y_err_upper=y_err_upper,
             color_map=color_map,
+            shape_map=shape_map,
         )
 
     def encode(
@@ -2181,6 +2415,7 @@ struct Plot(Copyable, Movable):
         y_err_lower: List[Float64] = List[Float64](),
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
+        shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
     ) raises -> Self:
         """`encode()`'s `x`/`y` generalized to a numpy `ndarray`, a pandas
         `Series`, or a plain Python list of numbers (see numpy_interop.mojo).
@@ -2203,6 +2438,7 @@ struct Plot(Copyable, Movable):
             y_err_lower: See `encode()`'s own docstring.
             y_err_upper: See `encode()`'s own docstring.
             color_map: See `encode()`'s own docstring.
+            shape_map: See `encode()`'s own docstring.
 
         Returns:
             Self, for further chaining.
@@ -2223,6 +2459,7 @@ struct Plot(Copyable, Movable):
             y_err_lower=y_err_lower,
             y_err_upper=y_err_upper,
             color_map=color_map,
+            shape_map=shape_map,
         )
 
     def encode_categorical(
@@ -3157,20 +3394,36 @@ struct Plot(Copyable, Movable):
         var self,
         z: List[List[Float64]],
         levels: List[Float64] = List[Float64](),
+        x: List[Float64] = List[Float64](),
+        y: List[Float64] = List[Float64](),
     ) raises -> Self:
         """Map a rectangular grid of values onto `Mark.CONTOUR`'s shape.
 
-        `z` is row-major (`z[row][col]`): rows are the y axis and columns
-        the x axis, both in grid-index units, so a 10x20 grid spans x
-        x from 0 to 19 and y from 0 to 9 with row 0 at the bottom. Shape checking
-        (rectangular, at least 2x2) is deferred to render() time, like
-        every other encode method here.
+        `z` is row-major (`z[row][col]`): rows are the y axis and
+        columns the x axis, with row 0 at the bottom.
+
+        Without `x`/`y` the axes are in **grid-index units**, so a 10x20
+        grid spans x from 0 to 19 and y from 0 to 9, unpadded, and the
+        grid meets the plot rect's edges. With them the axes are in the
+        caller's own units and get the same 5% padding every other
+        continuous mark has, so a contour can share a frame with a
+        scatter and mean the same thing by its x (#423). They are one
+        value per column and per row, strictly increasing, and need not
+        be evenly spaced.
+
+        Shape checking (rectangular, at least 2x2) and the coordinate
+        checks are deferred to render() time, like every other encode
+        method here.
 
         Args:
             z: The grid, row-major and rectangular, at least 2x2.
             levels: The values to trace. Left empty (the default), the
                 count from `mark_contour(levels=n)` decides how many
                 are placed inside the data's range.
+            x: One x coordinate per column of `z`, strictly increasing.
+                Empty (the default) keeps grid-index units.
+            y: One y coordinate per row of `z`, strictly increasing.
+                Empty (the default) keeps grid-index units.
 
         Returns:
             Self, for further chaining.
@@ -3183,6 +3436,8 @@ struct Plot(Copyable, Movable):
         )
         self._contour.z = z.copy()
         self._contour.levels = levels.copy()
+        self._contour.x = x.copy()
+        self._contour.y = y.copy()
         return self^
 
     def encode_imshow(var self, z: List[List[Float64]]) raises -> Self:
@@ -3221,8 +3476,7 @@ struct Plot(Copyable, Movable):
 
         `z` is row-major as in `encode_imshow()`. `x_edges`/`y_edges`
         *bound* the cells rather than sit at their centers, so there is
-        one more of each than the array has columns and rows --
-        matplotlib's own rule for 1D `pcolormesh` coordinates. Both must
+        one more of each than the array has columns and rows. Both must
         be strictly increasing.
 
         Length and ordering checks are deferred to render() time, like
@@ -3263,16 +3517,15 @@ struct Plot(Copyable, Movable):
 
         `x_corners`/`y_corners` are both `(rows + 1) x (cols + 1)`, so
         cell `(r, c)` is the quadrilateral through vertices `(r, c)`,
-        `(r, c + 1)`, `(r + 1, c + 1)` and `(r + 1, c)`. That is
-        matplotlib's 2D `pcolormesh` rule, and it is what a rotated,
+        `(r, c + 1)`, `(r + 1, c + 1)` and `(r + 1, c)`. That is what a
+        rotated,
         sheared, polar or model-output grid needs: the 1D overload can
         only describe axis-aligned rectangles, because it sets column
         widths and row heights independently.
 
         Nothing is required of the shape beyond the vertex count. Cells
         may be non-convex or self-overlapping; they are drawn in row
-        order and a later cell paints over an earlier one, which is the
-        same rule matplotlib follows.
+        order and a later cell paints over an earlier one.
 
         Cell boundaries are antialiased rather than snapped to whole
         pixels, which the 1D form does. A quad has no rectangular
@@ -3608,12 +3861,12 @@ struct Plot(Copyable, Movable):
             triangulation: A `Triangulation` to draw instead of
                 computing one from `x`/`y`. Empty (the default)
                 triangulates internally, as before.
-            facecolors: One value per *triangle*, matplotlib's
-                `tripcolor(facecolors=)`. Empty (the default) colors
+            facecolors: One value per *triangle*. Empty (the default)
+                colors
                 each triangle by the mean of its vertices' `z`.
             gouraud: Interpolate each face's color across it from its
-                three vertices instead of filling it flat, matplotlib's
-                `shading="gouraud"` (#398). `Mark.TRIPCOLOR` only.
+                three vertices instead of filling it flat (#398).
+                `Mark.TRIPCOLOR` only.
 
         Returns:
             Self, for further chaining.
@@ -4668,7 +4921,7 @@ struct Plot(Copyable, Movable):
         text_y: Float64,
     ) -> Self:
         """Point at `(x, y)` with an arrow, labeled `text` placed at
-        `(text_x, text_y)` (matplotlib's `ax.annotate(..., arrowprops=)`).
+        `(text_x, text_y)`.
         Each call adds an arrow.
 
         This is the only annotation that can be placed in empty space,
@@ -4678,17 +4931,15 @@ struct Plot(Copyable, Movable):
         often the whole point of a chart going into a document: it is
         what turns a plot into an argument.
 
-        **Both ends are in data coordinates**, unlike matplotlib, which
-        mixes coordinate systems through `xycoords`/`textcoords`.
-        Everything else in this API is in data space, and a second
+        **Both ends are in data coordinates.** Everything else in this API is in data space, and a second
         convention would need explaining every time it appeared. The
         cost is that a label position has to be chosen against the
         data's own range; the benefit is that it stays put when the
         chart is resized.
 
-        Straight arrows only. matplotlib's curved connectors, head
-        styles and shrink factors are refinements on top of a feature
-        that did not exist; the straight case carries most of the value.
+        Straight arrows only. Curved connectors, head styles and shrink
+        factors are refinements on top of a feature that did not exist;
+        the straight case carries most of the value.
 
         Needs a continuous coordinate on both axes, so only `Mark.POINT`/
         `LINE`/`AREA`/`EFFECT_SCATTER` support it; raises otherwise. An
@@ -4722,8 +4973,8 @@ struct Plot(Copyable, Movable):
         label: String = "",
     ) -> Self:
         """Shade the region between two curves that vary with `x`: a confidence
-        band around a trend line, or a min/max envelope (matplotlib's
-        `fill_between`, ggplot's `geom_ribbon`). `annotate_area()`'s band is
+        band around a trend line, or a min/max envelope. `annotate_area()`'s
+        band is
         a constant `(y0, y1)` pair; this takes two parallel lists keyed by
         `x`. Each call adds a band.
 
@@ -4803,8 +5054,8 @@ struct Plot(Copyable, Movable):
                 draws only the line, no text at all).
             ci: Two-sided confidence level for a band around the fitted
                 line. `0.95` (the default) shades the 95% confidence
-                interval of the fitted *mean* at each x, as seaborn's
-                `regplot` does; pass `0.0` for the bare line. The band
+                interval of the fitted *mean* at each x; pass `0.0` for
+                the bare line. The band
                 is narrowest at the mean of `x` and flares toward the
                 ends, which is the point of drawing it: a line without
                 one invites the reader to trust the slope more than the
@@ -4921,6 +5172,130 @@ struct Plot(Copyable, Movable):
         self._y_domain = _DomainOverride(min, max)
         return self^
 
+    def scale_x_ticks(
+        var self,
+        values: List[Float64],
+        labels: List[String] = List[String](),
+    ) -> Self:
+        """Put the x-axis major ticks exactly at `values`, instead of at the
+        1-2-5 positions the axis would choose (#368).
+
+        For an axis whose meaningful positions are not round numbers: a
+        threshold, a target, the two dates a study ran between. The
+        gridline, the tick mark and the label all move together, because
+        they are one tick.
+
+        `labels` replaces the formatted numbers when given, one per
+        position, which is how an axis reads `Q1 Q2 Q3 Q4` over values
+        that are really `1 2 3 4`. Left empty, the positions are
+        formatted the way computed ticks are, at one decimal count for
+        the whole set.
+
+        A position outside the axis domain is dropped rather than drawn:
+        its pixel would fall outside the plot rect and its label would
+        print in the margin beside nothing. `scale_x_domain()` is what
+        moves the domain; this only says where the ticks go inside it.
+
+        Minor ticks are not derived from an explicit set, since the
+        caller said where the ticks belong and a subdivision of an
+        irregular set has no meaning.
+
+        Args:
+            values: Tick positions, in the axis's own units.
+            labels: One label per position, or empty to format the
+                positions.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later if the list is empty, a label count does not
+            match, a position is not finite, a position is not positive
+            on a log axis, or the mark does not support this.
+        """
+        self._x_tick_override = _TickOverride(values.copy(), labels.copy())
+        return self^
+
+    def scale_y_ticks(
+        var self,
+        values: List[Float64],
+        labels: List[String] = List[String](),
+    ) -> Self:
+        """`scale_x_ticks()`'s y-axis mirror -- see that method's docstring
+        for the shared rules.
+
+        The y labels are what the left margin is measured from, so an
+        explicit set widens or narrows the plot rect to fit itself,
+        exactly as computed labels do.
+
+        Args:
+            values: Tick positions, in the axis's own units.
+            labels: One label per position, or empty to format the
+                positions.
+
+        Returns:
+            Self, for further chaining -- see `scale_x_ticks()`.
+        """
+        self._y_tick_override = _TickOverride(values.copy(), labels.copy())
+        return self^
+
+    def scale_x_reverse(var self) -> Self:
+        """Run the x-axis right to left: the domain's low end lands on the
+        plot rect's right edge (#368).
+
+        For a quantity that reads better descending -- a rank where 1 is
+        best, a countdown, a depth below a surface. Only the two pixel
+        positions swap. The domain stays ascending, so the ticks are the
+        same ticks in the same order and every mark keeps handing the
+        scale the same values; what changes is where they land.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later if the mark does not support this.
+        """
+        self._x_reversed = True
+        return self^
+
+    def scale_y_reverse(var self) -> Self:
+        """Run the y-axis top to bottom: the domain's low end lands on the
+        plot rect's top edge (#368).
+
+        `scale_x_reverse()`'s mirror. On `Mark.IMSHOW`, whose y-axis
+        already counts downward so that row 0 is at the top, this
+        composes rather than competes: it puts row 0 back at the bottom.
+
+        Returns:
+            Self, for further chaining -- see `scale_x_reverse()`.
+        """
+        self._y_reversed = True
+        return self^
+
+    def equal_aspect(var self) -> Self:
+        """Give one data unit the same pixel length on both axes (#368).
+
+        For anything whose two axes are the same kind of quantity, where
+        the shape of what is drawn is part of what it says: a map, a
+        circle that has to look round, a residual plot read against the
+        45-degree line.
+
+        **The plot rect shrinks; the domains do not grow.** With equal
+        aspect something has to give, and the two choices are showing a
+        wider range than the caller asked for or leaving part of the
+        figure empty. This leaves space: the rect keeps the aspect the
+        data implies and centers itself in the room it had. Nothing is
+        drawn outside the data's own range, and the axis labels, ticks
+        and margins are the ones measured for the domains as given.
+
+        Not available on a log or time axis, where a "data unit" is not
+        a constant length: raises at `render()` time rather than
+        claiming a guarantee it cannot keep.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()`
+            raise later on a log or time axis, or if the mark does not
+            support this.
+        """
+        self._equal_aspect = True
+        return self^
+
     def scale_color_domain(var self, min: Float64, max: Float64) -> Self:
         """Pin the continuous color domain to the given minimum and maximum,
         replacing the `[min, max]` this mark would otherwise take from its
@@ -4984,8 +5359,8 @@ struct Plot(Copyable, Movable):
         Intervals are **lower-inclusive**, `[b[i], b[i+1])`, with the
         last closed at the top so the domain maximum has somewhere to
         go. A value exactly on an interior boundary belongs to the band
-        above it. That is matplotlib's `BoundaryNorm` rule, and the one
-        place this is easy to get wrong, so it is stated here and
+        above it. That is the one place this is easy to get wrong, so it
+        is stated here and
         tested.
 
         Values below the first boundary take the lowest band and values
@@ -5008,6 +5383,57 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._color_domain.thresholds = boundaries.copy()
+        return self^
+
+    def scale_color_under(var self, color: Color) -> Self:
+        """Color values below the color domain with `color` instead of the
+        ramp's low end (#370).
+
+        Without it an out-of-range value clamps: a reading of -40 on a
+        domain starting at 0 is painted the same as a reading of 0, and
+        the chart says the two are alike. A distinct color says "this is
+        off the scale", which is a different statement and usually the
+        one that matters -- a sensor out of range, a region with no
+        data of its own, a value the domain was deliberately narrowed to
+        exclude.
+
+        Applies to every mark `scale_color_domain()` applies to, and to
+        every form of the ramp: continuous, logarithmic and banded. With
+        `scale_color_thresholds()` the band edges are the range, so
+        "below" means below the first boundary.
+
+        The color legend shows it, as a block at the low end of the bar
+        inside the bar's own footprint, so the legend costs exactly the
+        room it did before and its end labels stay attached to the ends
+        of the ramp, where those numbers are true.
+
+        Args:
+            color: The color for a value below the domain.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._color_domain.has_under = True
+        self._color_domain.under = color
+        return self^
+
+    def scale_color_over(var self, color: Color) -> Self:
+        """Color values above the color domain with `color` instead of the
+        ramp's high end -- `scale_color_under()`'s mirror, and see that
+        method's docstring for the shared rules (#370).
+
+        Values exactly at the domain maximum belong to the ramp, not to
+        the over color: the top end is part of the range, which is the
+        rule the last threshold band already follows.
+
+        Args:
+            color: The color for a value above the domain.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._color_domain.has_over = True
+        self._color_domain.over = color
         return self^
 
     def scale_color_log(var self) raises -> Self:
@@ -5065,8 +5491,8 @@ struct Plot(Copyable, Movable):
         raises and names the domain instead, so the fix is an explicit
         `scale_color_domain()`.
 
-        This is matplotlib's `TwoSlopeNorm`, reached by moving the
-        ramp's stops instead of bending the value projection; see
+        This is reached by moving the ramp's stops instead of bending
+        the value projection; see
         `ColorScale.from_theme_centered()` for why that route is the one
         that keeps the legend honest.
 
@@ -5116,7 +5542,7 @@ def _data_extent(data: List[Float64]) raises -> LinearScale:
     """Return `data`'s minimum and maximum padded 5% on each side.
 
     So that a point at the extreme is not drawn half-clipped on the
-    frame. matplotlib's default margin is the same 5%.
+    frame.
 
     The consequence is worth stating because it surprises people (#133):
     **the axis line is not the origin.** For `x = [1, 10]` the domain
@@ -5408,7 +5834,7 @@ def render(plot: Plot) raises -> Canvas:
     # records the whole call as one op and that was the last primitive
     # that did so (benchmarks/METHODOLOGY.md).
     out.begin_supersampled(factor, plot._theme.background)
-    _render_into(out, plot, 0, 0, plot.width, plot.height)
+    _ = _render_into(out, plot, 0, 0, plot.width, plot.height)
     out.end_supersampled()
     return out^
 
@@ -5420,7 +5846,8 @@ def _render_into(
     oy0: Int = 0,
     ox1: Int = -1,
     oy1: Int = -1,
-) raises:
+    fill_background: Bool = True,
+) raises -> Tuple[Int, Int, Int, Int]:
     """Render `plot` into `canvas` within the outer bounds (background, then
     the axis frame and mark, then annotations and text). `ox1`/`oy1`
     default to -1, meaning the canvas's width/height; every current
@@ -5439,10 +5866,20 @@ def _render_into(
     `Theme.raster_supersample` by bumping that value on a copy before
     this call. Hand-verified pixel tests go through `render()` and so see
     supersampled output, exact for any solid-color interior point.
+
+    `fill_background=False` skips the outer fill, for `render_inset()`,
+    which paints only the inset's plot rect so its labels sit over the
+    base rather than on a blank panel.
+
+    Returns:
+        The inner plot rect as `(px0, py0, px1, py1)`, the area the mark
+        was drawn in after margins and labels; `render_inset()` places an
+        inset against it.
     """
     var cx1 = ox1 if ox1 >= 0 else canvas.width
     var cy1 = oy1 if oy1 >= 0 else canvas.height
-    canvas.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
+    if fill_background:
+        canvas.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
     var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
     # One FontCache for the whole render, built on first use: every
     # measurement the layout makes (tick labels, legend entries) and then
@@ -5491,6 +5928,7 @@ def _render_into(
     _replay_text_requests(canvas, arrow_annotation_requests, cache)
     _replay_text_requests(canvas, best_fit_annotation_requests, cache)
     _replay_text_requests(canvas, result.text_requests, cache)
+    return (result.px0, result.py0, result.px1, result.py1)
 
 
 def render_svg(plot: Plot) raises -> SvgCanvas:
@@ -5499,7 +5937,7 @@ def render_svg(plot: Plot) raises -> SvgCanvas:
     wrapping `_render_svg_into`.
     """
     var svg = SvgCanvas(plot.width, plot.height)
-    _render_svg_into(svg, plot)
+    _ = _render_svg_into(svg, plot)
     return svg^
 
 
@@ -5510,15 +5948,26 @@ def _render_svg_into(
     oy0: Int = 0,
     ox1: Int = -1,
     oy1: Int = -1,
-) raises:
+    fill_background: Bool = True,
+) raises -> Tuple[Int, Int, Int, Int]:
     """`_render_into`'s counterpart for `SvgCanvas`: same bounds resolution,
     `_apply_labels`/`_render_generic` core, and annotation passes, with
     the `_TextRequest`s drawn via `SvgCanvas.draw_text`. `render_svg()`
     is its only caller.
+
+    `fill_background=False` skips the outer fill, for `render_inset()`,
+    which paints only the inset's plot rect so its labels sit over the
+    base rather than on a blank panel.
+
+    Returns:
+        The inner plot rect as `(px0, py0, px1, py1)`, the area the mark
+        was drawn in after margins and labels; `render_inset()` places an
+        inset against it.
     """
     var cx1 = ox1 if ox1 >= 0 else svg.width
     var cy1 = oy1 if oy1 >= 0 else svg.height
-    svg.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
+    if fill_background:
+        svg.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
     var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
     # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
@@ -5570,13 +6019,14 @@ def _render_svg_into(
     _replay_text_requests_svg(svg, arrow_annotation_requests)
     _replay_text_requests_svg(svg, best_fit_annotation_requests)
     _replay_text_requests_svg(svg, result.text_requests)
+    return (result.px0, result.py0, result.px1, result.py1)
 
 
 def _resolve_output_format(
     theme_format: OutputFormat, path: String
 ) -> OutputFormat:
     """The format `save()`/`save_layers()`/`save_facets()` use: `path`'s
-    extension when it's `.svg`/`.png`/`.bmp` (case-insensitive),
+    extension when it's `.svg`/`.png`/`.bmp`/`.pdf` (case-insensitive),
     otherwise `theme_format` (`Theme.output_format`).
     """
     var lower = path.lower()
@@ -5586,6 +6036,8 @@ def _resolve_output_format(
         return OutputFormat.PNG
     elif lower.endswith(".bmp"):
         return OutputFormat.BMP
+    elif lower.endswith(".pdf"):
+        return OutputFormat.PDF
     return theme_format
 
 
@@ -5618,7 +6070,148 @@ def _svg_output_string(var svg: SvgCanvas, labels: _LabelData) raises -> String:
     return svg.to_string()
 
 
-def save(plot: Plot, path: String) raises:
+def render_pdf(plot: Plot) raises -> PdfCanvas:
+    """Render `plot` into a one-page `PdfCanvas` sized `plot.width` by
+    `plot.height` points and return it; `render_svg()`'s counterpart for
+    a print-ready document (#372).
+
+    **One layout unit is one PDF point, 1/72 inch**, which is the whole
+    physical-size contract: a 640 by 420 chart is a 640 by 420 point
+    page, 8.89 by 5.83 inches. `size_inches()`/`size_mm()` say it the
+    other way round. Nothing is resampled on the way out, because
+    nothing is a pixel: paths stay paths and text stays text, embedded
+    as a font subset so a label is selectable and searchable rather
+    than a picture of itself.
+
+    `Theme.scale` still multiplies every font size, margin and stroke
+    width as it does on the other backends, so it changes how large the
+    furniture is *on the page* rather than how many pixels it gets. The
+    raster supersample factor has no meaning here and is ignored.
+
+    Args:
+        plot: The chart to render.
+
+    Returns:
+        The finished document, ready for `canvas.vector.pdf.write_pdf`
+        or the `save()` path that wraps it.
+
+    Raises:
+        Error: Whatever rendering the plot raises.
+    """
+    var pdf = PdfCanvas(plot.width, plot.height)
+    _ = _render_pdf_into(pdf, plot, 0, 0, plot.width, plot.height)
+    return pdf^
+
+
+def _render_pdf_into(
+    mut pdf: PdfCanvas,
+    plot: Plot,
+    ox0: Int = 0,
+    oy0: Int = 0,
+    ox1: Int = -1,
+    oy1: Int = -1,
+    fill_background: Bool = True,
+) raises -> Tuple[Int, Int, Int, Int]:
+    """`_render_svg_into`'s counterpart for `PdfCanvas`: same bounds
+    resolution, `_apply_labels`/`_render_generic` core and annotation
+    passes, with the `_TextRequest`s drawn through
+    `_replay_text_requests_pdf`.
+
+    Args:
+        pdf: The document to draw into.
+        plot: The chart.
+        ox0: Left edge of the bounds to lay out in.
+        oy0: Top edge.
+        ox1: Right edge; -1 means the page width.
+        oy1: Bottom edge; -1 means the page height.
+        fill_background: Whether to paint the theme's background over
+            the bounds first.
+
+    Returns:
+        The inner plot rect as `(px0, py0, px1, py1)`.
+
+    Raises:
+        Error: Whatever rendering the plot raises.
+    """
+    var cx1 = ox1 if ox1 >= 0 else pdf.width
+    var cy1 = oy1 if oy1 >= 0 else pdf.height
+    if fill_background:
+        pdf.fill_rect(ox0, oy0, cx1 - ox0, cy1 - oy0, plot._theme.background)
+    var frame = _apply_labels(plot, ox0, oy0, cx1, cy1)
+    var cache = FontCache()
+    var result = _render_generic(
+        pdf, plot, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
+    )
+    var label_requests = _label_text_requests(
+        plot, ox0, oy0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
+    )
+    var under_mark = _filled_annotations_go_under(plot._mark)
+    var area_requests = List[
+        _TextRequest
+    ]() if under_mark else _draw_annotation_areas(
+        pdf, plot, result, plot._theme
+    )
+    var band_requests = List[
+        _TextRequest
+    ]() if under_mark else _draw_annotation_bands(
+        pdf, plot, result, plot._theme
+    )
+    var vline_requests = _draw_annotation_vlines(pdf, plot, result, plot._theme)
+    var line_requests = _draw_annotation_lines(pdf, plot, result, plot._theme)
+    var point_requests = _draw_annotation_points(pdf, plot, result, plot._theme)
+    var arrow_requests = _draw_annotation_arrows(
+        pdf, plot, result, plot._theme, cache=cache
+    )
+    var best_fit_requests = _draw_annotation_best_fit(
+        pdf, plot, result, plot._theme
+    )
+    _replay_text_requests_pdf(pdf, label_requests)
+    _replay_text_requests_pdf(pdf, area_requests)
+    _replay_text_requests_pdf(pdf, band_requests)
+    _replay_text_requests_pdf(pdf, vline_requests)
+    _replay_text_requests_pdf(pdf, line_requests)
+    _replay_text_requests_pdf(pdf, point_requests)
+    _replay_text_requests_pdf(pdf, arrow_requests)
+    _replay_text_requests_pdf(pdf, best_fit_requests)
+    _replay_text_requests_pdf(pdf, result.text_requests)
+    return (result.px0, result.py0, result.px1, result.py1)
+
+
+def _at_dpi(plot: Plot, dpi: Float64) raises -> Plot:
+    """`plot` laid out for a raster export at `dpi` (#372).
+
+    The figure's size is in points, 1/72 inch, so a raster at `dpi`
+    wants `dpi / 72` pixels per point. Multiplying the target's size
+    alone would spread the same furniture over more pixels and print
+    the text at a third of its physical size; multiplying `Theme.scale`
+    by the same factor keeps every font size, margin and stroke width
+    the same fraction of the page. So the output is the same figure at
+    a finer resolution, which is what asking for a resolution means.
+
+    Args:
+        plot: The chart, sized in points.
+        dpi: Pixels per inch for the export.
+
+    Returns:
+        A copy sized and scaled for that resolution; `plot` itself at
+        72, where the factor is 1.
+
+    Raises:
+        Error: `dpi` is not positive.
+    """
+    if dpi <= 0.0:
+        raise Error("save(): dpi must be positive (got " + String(dpi) + ")")
+    var factor = dpi / 72.0
+    var out = plot.copy()
+    if factor == 1.0:
+        return out^
+    out.width = Int(Float64(plot.width) * factor + 0.5)
+    out.height = Int(Float64(plot.height) * factor + 0.5)
+    out._theme.scale = plot._theme.scale * factor
+    return out^
+
+
+def save(plot: Plot, path: String, dpi: Float64 = 72.0) raises:
     """Render `plot` and write it to `path` in one call. The format
     comes from `_resolve_output_format()` (the path's extension, falling
     back to `plot._theme.output_format`); `PNG`/`BMP` both go through
@@ -5630,6 +6223,15 @@ def save(plot: Plot, path: String) raises:
     itself. `save_layers()`/`save_facets()` are the `List[Plot]`
     counterparts; the `save(canvas: Canvas, path)` overload below writes
     an already-rendered `Canvas`.
+
+    `dpi` applies to the raster formats and says how many pixels one
+    inch of the figure gets. The figure's own size is in points, 1/72
+    inch (`Plot.size()`), so the default of 72 is one pixel per point
+    and every existing call renders exactly as before; 300 gives the
+    same figure at print resolution, with the text and strokes the same
+    fraction of the page rather than a third the size. The vector
+    formats ignore it, having no pixels to count. A `.pdf` path writes a
+    one-page document through `render_pdf()`.
 
     SVG output with a non-empty `.labels(title=...)` writes accessible
     markup automatically, via `_svg_output_string()`/
@@ -5643,10 +6245,44 @@ def save(plot: Plot, path: String) raises:
         var f = open(path, "w")
         f.write(_svg_output_string(render_svg(plot), plot._labels))
         f.close()
+    elif format == OutputFormat.PDF:
+        var doc = render_pdf(plot)
+        write_pdf(doc, path)
     elif format == OutputFormat.PNG:
-        write_png(render(plot), path)
+        write_png(render(_at_dpi(plot, dpi)), path)
     else:
-        write_bmp(render(plot), path)
+        write_bmp(render(_at_dpi(plot, dpi)), path)
+
+
+def save(svg: SvgCanvas, path: String) raises:
+    """Write an already-rendered `SvgCanvas` to `path` (#620).
+
+    The vector counterpart of the `Canvas` overload below, so a
+    composite figure that renders to vector -- `jointplot_svg()`,
+    `pairplot_svg()` -- is saved the same way every other chart is
+    rather than reaching for canvas's own writer. A raster extension
+    raises: this is markup, and turning it into pixels is `render()`'s
+    job from the `Plot` it came from, at whatever size and resolution
+    that caller wants.
+
+    Args:
+        svg: The rendered document.
+        path: Where to write it; the extension must be `.svg`, or
+            absent.
+
+    Raises:
+        Error: A `.png` or `.bmp` path, or the write fails.
+    """
+    var lower = path.lower()
+    if lower.endswith(".png") or lower.endswith(".bmp"):
+        raise Error(
+            "save(): an SvgCanvas is vector markup, not pixels -- render"
+            " the Plot it came from with render() and save that, which"
+            " lets you choose the size and resolution the raster gets."
+        )
+    var f = open(path, "w")
+    f.write(svg.to_string())
+    f.close()
 
 
 def save(canvas: Canvas, path: String) raises:
@@ -5842,6 +6478,45 @@ def _render_generic[
     _validate_domain_override(
         plot._y_domain, plot._y_log, "Plot.scale_y_domain"
     )
+    if (
+        plot._x_tick_override.has
+        or plot._y_tick_override.has
+        or plot._x_reversed
+        or plot._y_reversed
+        or plot._equal_aspect
+    ) and not (
+        plot._mark == Mark.POINT
+        or plot._mark == Mark.LINE
+        or plot._mark == Mark.AREA
+        or plot._mark == Mark.HISTOGRAM
+        or plot._mark == Mark.EFFECT_SCATTER
+    ):
+        raise Error(
+            "Plot.scale_x_ticks()/scale_y_ticks()/scale_x_reverse()/"
+            "scale_y_reverse()/equal_aspect() only apply to"
+            " Mark.POINT/LINE/AREA/HISTOGRAM/EFFECT_SCATTER today -- the"
+            " other marks reach the continuous frame through their own"
+            " renders, which do not carry these yet (#368)"
+        )
+    _validate_tick_override(
+        plot._x_tick_override, plot._x_log, "Plot.scale_x_ticks"
+    )
+    _validate_tick_override(
+        plot._y_tick_override, plot._y_log, "Plot.scale_y_ticks"
+    )
+    if plot._equal_aspect and (plot._x_log or plot._y_log):
+        raise Error(
+            "Plot.equal_aspect(): not supported on a log-scaled axis -- a"
+            " data unit is a different length at each end of a log axis,"
+            " so equal pixel lengths for equal data distances is not a"
+            " property it can have"
+        )
+    if plot._equal_aspect and plot._x_time:
+        raise Error(
+            "Plot.equal_aspect(): not supported on a time axis -- a second"
+            " and a unit of y are not comparable lengths, so there is no"
+            " aspect to equalize"
+        )
     _validate_color_domain(plot)
     if has_shared_y_domain and not (
         plot._mark == Mark.POINT
@@ -5959,6 +6634,12 @@ def _render_generic[
         x_scale.is_time = True
         x_scale.tz_offset = plot._x_tz_offset
 
+    var controls = _AxisControls()
+    controls.x_ticks = plot._x_tick_override.copy()
+    controls.y_ticks = plot._y_tick_override.copy()
+    controls.x_reversed = plot._x_reversed
+    controls.y_reversed = plot._y_reversed
+    controls.equal_aspect = plot._equal_aspect
     var frame = _draw_continuous_axis_frame(
         target,
         x_scale,
@@ -5969,6 +6650,7 @@ def _render_generic[
         oy0,
         ox1,
         oy1,
+        controls=controls,
         cache=cache,
     )
 
@@ -6072,9 +6754,20 @@ def _call_selected_family[
             cache,
             vector_target,
         )
-    else:
+    elif T == SvgCanvas:
         return plot._render_svg_family(
             rebind[SvgCanvas](target),
+            plot,
+            ox0,
+            oy0,
+            ox1,
+            oy1,
+            cache,
+            vector_target,
+        )
+    else:
+        return plot._render_pdf_family(
+            rebind[PdfCanvas](target),
             plot,
             ox0,
             oy0,

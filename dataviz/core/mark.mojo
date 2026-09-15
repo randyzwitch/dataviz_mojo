@@ -131,6 +131,7 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime QUIVER = Self(59)
     comptime HISTOGRAM = Self(60)
     comptime STREAMPLOT = Self(61)
+    comptime DENDROGRAM = Self(62)
     comptime COUNT = 62
     """How many marks exist -- one past the largest value above.
 

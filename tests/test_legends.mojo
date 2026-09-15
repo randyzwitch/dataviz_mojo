@@ -14,7 +14,11 @@ from dataviz import LegendPosition, Plot, Theme, render_svg, scatter
 from dataviz.core.legend_position import LegendPosition
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
+from dataviz import contourf
+from dataviz.grid.heatmap import heatmap
+from dataviz.grid.image import imshow
 from dataviz.plot import Plot, render
+from _test_helpers import _attr_values
 
 
 # ==== from test_legend_text_measure.mojo ====
@@ -423,6 +427,254 @@ def test_a_center_all_but_on_the_domain_edge_draws_no_tick() raises:
         _tick_columns(_uncentered(0.0, 30.0), _theme_h_legend_center_tick())
     )
     assert_equal(edge, plain, "a tick was drawn at the bar's end")
+
+
+# ==== the continuous color bar honors Theme.legend_position (#618) ====
+# Every mark whose only legend is a color bar drew it in the right-hand
+# column whatever `legend_position` said: the marks reached for the
+# vertical drawer by name instead of asking which edge was reserved.
+# A setting that is accepted and then ignored is worse than one that is
+# not offered, because nothing in the output tells the caller it did
+# nothing -- so what these pin is that each of the four positions puts
+# the bar somewhere a reader would call that edge.
+#
+# `_ramp_rect` finds the bar by its gradient fill rather than by
+# document order, which the SVG backend chooses for itself: it emits
+# gradient-filled rects last whatever order they were drawn in.
+
+comptime _FIG_W = 400
+comptime _FIG_H = 300
+
+
+def _bar_theme(position: LegendPosition) -> Theme:
+    """A theme showing a legend on `position`, everything else default."""
+    return Theme(show_legend=True, legend_position=position)
+
+
+def _matrix() -> Tuple[List[String], List[String], List[Float64]]:
+    """A 3x3 matrix in the long form `heatmap()` takes, values 0 to 8."""
+    var xs = List[String]()
+    var ys = List[String]()
+    var vals = List[Float64]()
+    for r in range(3):
+        for c in range(3):
+            xs.append(String(c))
+            ys.append(String(r))
+            vals.append(Float64(r * 3 + c))
+    return (xs^, ys^, vals^)
+
+
+def _ramp_rect(svg: String) raises -> Tuple[Float64, Float64, Float64, Float64]:
+    """The color bar's ramp as (x, y, width, height).
+
+    The ramp is the one rect painted with a gradient, so it is found by
+    its fill rather than by where it sits in the document.
+    """
+    var fills = _attr_values(svg, "rect", "fill")
+    var xs = _attr_values(svg, "rect", "x")
+    var ys = _attr_values(svg, "rect", "y")
+    var ws = _attr_values(svg, "rect", "width")
+    var hs = _attr_values(svg, "rect", "height")
+    for i in range(len(fills)):
+        if fills[i].startswith("url("):
+            return (
+                Float64(xs[i]),
+                Float64(ys[i]),
+                Float64(ws[i]),
+                Float64(hs[i]),
+            )
+    raise Error("no gradient rect in the document: the bar was not drawn")
+
+
+def _heatmap_ramp(
+    position: LegendPosition,
+) raises -> Tuple[Float64, Float64, Float64, Float64]:
+    """A 3x3 heatmap's color bar with the legend on `position`."""
+    var cells = _matrix()
+    return _ramp_rect(
+        render_svg(
+            heatmap(
+                cells[0], cells[1], cells[2], theme=_bar_theme(position)
+            ).size(_FIG_W, _FIG_H)
+        ).to_string()
+    )
+
+
+def test_a_bottom_color_bar_is_not_the_right_hand_one() raises:
+    # The defect exactly as measured: at 400x300 with a 3x3 matrix, both
+    # RIGHT and BOTTOM put the gradient rect at x=270, y=20.
+    var right = _heatmap_ramp(LegendPosition.RIGHT)
+    var bottom = _heatmap_ramp(LegendPosition.BOTTOM)
+    assert_true(
+        right[0] != bottom[0] or right[1] != bottom[1],
+        "BOTTOM drew the bar where RIGHT does, at ("
+        + String(right[0])
+        + ", "
+        + String(right[1])
+        + ")",
+    )
+
+
+def test_a_color_bar_lies_along_the_edge_it_was_put_on() raises:
+    # A row legend's bar runs left to right and a column's runs top to
+    # bottom, so the shape alone says which drawer ran.
+    var right = _heatmap_ramp(LegendPosition.RIGHT)
+    assert_true(right[3] > right[2], "the RIGHT bar is not a column")
+    var bottom = _heatmap_ramp(LegendPosition.BOTTOM)
+    assert_true(bottom[2] > bottom[3], "the BOTTOM bar is not a row")
+    var top = _heatmap_ramp(LegendPosition.TOP)
+    assert_true(top[2] > top[3], "the TOP bar is not a row")
+
+
+def test_each_position_puts_the_bar_on_its_own_side() raises:
+    # Below the figure's middle for BOTTOM and above it for TOP; past
+    # the middle for RIGHT and short of it for LEFT. Halves rather than
+    # exact pixels, because what is being pinned is the edge, not the
+    # layout arithmetic that put it there.
+    var bottom = _heatmap_ramp(LegendPosition.BOTTOM)
+    assert_true(
+        bottom[1] > Float64(_FIG_H) / 2.0,
+        "the BOTTOM bar is in the upper half, at y=" + String(bottom[1]),
+    )
+    var top = _heatmap_ramp(LegendPosition.TOP)
+    assert_true(
+        top[1] < Float64(_FIG_H) / 2.0,
+        "the TOP bar is in the lower half, at y=" + String(top[1]),
+    )
+    var right = _heatmap_ramp(LegendPosition.RIGHT)
+    assert_true(
+        right[0] > Float64(_FIG_W) / 2.0,
+        "the RIGHT bar is in the left half, at x=" + String(right[0]),
+    )
+    var left = _heatmap_ramp(LegendPosition.LEFT)
+    assert_true(
+        left[0] < Float64(_FIG_W) / 2.0,
+        "the LEFT bar is in the right half, at x=" + String(left[0]),
+    )
+
+
+def test_the_plot_keeps_the_room_a_row_legend_did_not_take() raises:
+    # A row legend costs height rather than width, so the cells reach
+    # further right than they do with a column beside them. Without
+    # this, a mark could "honor" the setting by drawing the bar on the
+    # new edge while still reserving the old one.
+    var cells = _matrix()
+    var row = render_svg(
+        heatmap(
+            cells[0],
+            cells[1],
+            cells[2],
+            theme=_bar_theme(LegendPosition.BOTTOM),
+        ).size(_FIG_W, _FIG_H)
+    ).to_string()
+    var column = render_svg(
+        heatmap(
+            cells[0],
+            cells[1],
+            cells[2],
+            theme=_bar_theme(LegendPosition.RIGHT),
+        ).size(_FIG_W, _FIG_H)
+    ).to_string()
+    assert_true(
+        _rightmost_cell_edge(row) > _rightmost_cell_edge(column),
+        "a row legend still took the width a column would have",
+    )
+
+
+def _rightmost_cell_edge(svg: String) raises -> Float64:
+    """The largest `x + width` over the matrix's own rects: how far the
+    cells reach.
+
+    Two rects are skipped. The gradient one is the legend's bar, which
+    would answer for the legend rather than the plot. And any rect as
+    wide as the figure is the background the render fills first, which
+    reaches the right edge whatever the plot rect does.
+    """
+    var fills = _attr_values(svg, "rect", "fill")
+    var xs = _attr_values(svg, "rect", "x")
+    var ws = _attr_values(svg, "rect", "width")
+    var far = 0.0
+    for i in range(len(fills)):
+        if fills[i].startswith("url("):
+            continue
+        var width = Float64(ws[i])
+        if width >= Float64(_FIG_W):
+            continue
+        var edge = Float64(xs[i]) + width
+        if edge > far:
+            far = edge
+    return far
+
+
+def test_a_continuous_frame_mark_moves_its_bar_too() raises:
+    # The same routing gap ran through every mark whose legend is a
+    # color bar, not just the two-categorical-axis ones, so one mark on
+    # the other frame is pinned as well.
+    var z = List[List[Float64]]()
+    for r in range(3):
+        var row = List[Float64]()
+        for c in range(3):
+            row.append(Float64(r * 3 + c))
+        z.append(row^)
+    var bottom = _ramp_rect(
+        render_svg(
+            imshow(z, theme=_bar_theme(LegendPosition.BOTTOM)).size(
+                _FIG_W, _FIG_H
+            )
+        ).to_string()
+    )
+    assert_true(
+        bottom[2] > bottom[3] and bottom[1] > Float64(_FIG_H) / 2.0,
+        "imshow drew a column bar at y=" + String(bottom[1]),
+    )
+
+
+def _swatch_xs(svg: String) raises -> List[Float64]:
+    """The x of every small square rect: a legend swatch and nothing
+    else. The figure background is a rect too, and far too big to be
+    mistaken for one."""
+    var xs = _attr_values(svg, "rect", "x")
+    var ws = _attr_values(svg, "rect", "width")
+    var hs = _attr_values(svg, "rect", "height")
+    var out = List[Float64]()
+    for i in range(len(xs)):
+        var w = Float64(ws[i])
+        if w == Float64(hs[i]) and w <= 30.0:
+            out.append(Float64(xs[i]))
+    return out^
+
+
+def _contour_swatch_xs(position: LegendPosition) raises -> List[Float64]:
+    """A contourf's level key with the legend on `position`."""
+    var z = List[List[Float64]]()
+    for r in range(6):
+        var row = List[Float64]()
+        for c in range(6):
+            row.append(Float64(r * r + c * c))
+        z.append(row^)
+    return _swatch_xs(
+        render_svg(
+            contourf(z, theme=_bar_theme(position)).size(_FIG_W, _FIG_H)
+        ).to_string()
+    )
+
+
+def test_a_level_key_stacks_in_a_column_and_runs_along_a_row() raises:
+    # `Mark.CONTOUR`/`CONTOURF` key their levels with one swatch each
+    # rather than a gradient bar, and reached for the column drawer by
+    # name the same way (#618). A column puts every swatch at one x; a
+    # row walks them across.
+    var column = _contour_swatch_xs(LegendPosition.RIGHT)
+    assert_true(len(column) > 1, "the level key drew no swatches")
+    for x in column:
+        assert_equal(x, column[0], "a column swatch is out of line")
+    var row = _contour_swatch_xs(LegendPosition.BOTTOM)
+    assert_equal(len(row), len(column), "the row key lost a level")
+    var moved = False
+    for x in row:
+        if x != row[0]:
+            moved = True
+    assert_true(moved, "every BOTTOM swatch sits at one x: still a column")
 
 
 def main() raises:
