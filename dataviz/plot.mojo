@@ -255,6 +255,7 @@ from dataviz.binned.hexbin import _HexbinData, _render_hexbin
 from dataviz.multivariate.quiver import _render_quiver
 from dataviz.multivariate.streamplot import _StreamData, _render_streamplot
 from dataviz.spatial.scatter3d import _Xyz
+from dataviz.spatial.bar3d import _Bars3D, _Voxels
 from dataviz.spatial.surface3d import _Surface
 from dataviz.binned.hist2d import _hist2d_counts
 from dataviz.distributions.boxen import (
@@ -746,6 +747,8 @@ struct Plot(Copyable, Movable):
     var _contour: _ContourData
     var _xyz: _Xyz
     var _surface: _Surface
+    var _bars3d: _Bars3D
+    var _voxels: _Voxels
     var _image: _ImageData
     var _tricontour: _TriContourData
     var _triplot: _TriplotData
@@ -836,6 +839,8 @@ struct Plot(Copyable, Movable):
         self._contour = _ContourData()
         self._xyz = _Xyz()
         self._surface = _Surface()
+        self._bars3d = _Bars3D()
+        self._voxels = _Voxels()
         self._image = _ImageData()
         self._tricontour = _TriContourData()
         self._triplot = _TriplotData()
@@ -2712,6 +2717,123 @@ struct Plot(Copyable, Movable):
         self._render_bounds_family = _callback_spatial[BoundsTarget]
         self._xyz.elev = elev
         self._xyz.azim = azim
+        return self^
+
+    def mark_bar3d(
+        var self,
+        bar_width: Float64 = 0.8,
+        bar_depth: Float64 = 0.8,
+        elev: Float64 = 30.0,
+        azim: Float64 = -60.0,
+    ) -> Self:
+        """Select `Mark.BAR3D`: one shaded box per sample, standing on
+        the base plane (#345).
+
+        Encoded via `encode_bars3d()`. The footprints are fractions of
+        the closest spacing between two bars rather than absolute
+        sizes, so a lattice of bars leaves a gap without the caller
+        measuring their own grid.
+
+        Args:
+            bar_width: The bar's footprint along x, as a fraction of
+                the closest spacing between two bars.
+            bar_depth: The same along y.
+            elev: Degrees to look down on the scene from, above the
+                x-y plane.
+            azim: Degrees to turn the scene through, about the z axis.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.BAR3D
+        self._render_canvas_family = _callback_spatial[Canvas]
+        self._render_svg_family = _callback_spatial[SvgCanvas]
+        self._render_pdf_family = _callback_spatial[PdfCanvas]
+        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._bars3d.bar_width = bar_width
+        self._bars3d.bar_depth = bar_depth
+        self._bars3d.elev = elev
+        self._bars3d.azim = azim
+        return self^
+
+    def mark_voxels(
+        var self, elev: Float64 = 30.0, azim: Float64 = -60.0
+    ) -> Self:
+        """Select `Mark.VOXELS`: a unit cube per filled cell of a solid
+        occupancy grid (#345).
+
+        Encoded via `encode_voxels()`. Faces between two filled cells
+        are not drawn: they are inside the solid, so nothing outside it
+        can see them.
+
+        Args:
+            elev: Degrees to look down on the scene from, above the
+                x-y plane.
+            azim: Degrees to turn the scene through, about the z axis.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.VOXELS
+        self._render_canvas_family = _callback_spatial[Canvas]
+        self._render_svg_family = _callback_spatial[SvgCanvas]
+        self._render_pdf_family = _callback_spatial[PdfCanvas]
+        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._voxels.elev = elev
+        self._voxels.azim = azim
+        return self^
+
+    def encode_bars3d(
+        var self,
+        x: List[Float64],
+        y: List[Float64],
+        z: List[Float64],
+    ) raises -> Self:
+        """Give `Mark.BAR3D` its bar centers and heights (#345).
+
+        `x` and `y` are each bar's center on the base plane, not a
+        corner: a bar is read as a column over a position, and centers
+        are what a lattice of positions gives you.
+
+        Length agreement is checked at render time, like every other
+        encode method here.
+
+        Args:
+            x: Each bar's center along x.
+            y: Each bar's center along y, the same length.
+            z: Each bar's height from the base plane, the same length.
+
+        Returns:
+            Self, for further chaining.
+        """
+        var _ok_encode_bars3d = List[Mark]()
+        _ok_encode_bars3d.append(Mark.BAR3D)
+        _require_mark(
+            self._mark, "encode_bars3d", "mark_bar3d()", _ok_encode_bars3d^
+        )
+        self._bars3d.x = x.copy()
+        self._bars3d.y = y.copy()
+        self._bars3d.z = z.copy()
+        return self^
+
+    def encode_voxels(var self, filled: List[List[List[Bool]]]) raises -> Self:
+        """Give `Mark.VOXELS` its occupancy grid (#345).
+
+        Args:
+            filled: `filled[layer][row][col]`, `True` where the cell is
+                solid. Layers run up z, rows along y and columns along
+                x -- `encode_surface()`'s order with a third index in
+                front.
+
+        Returns:
+            Self, for further chaining.
+        """
+        var _ok_encode_voxels = List[Mark]()
+        _ok_encode_voxels.append(Mark.VOXELS)
+        _require_mark(
+            self._mark, "encode_voxels", "mark_voxels()", _ok_encode_voxels^
+        )
+        self._voxels.filled = filled.copy()
         return self^
 
     def encode_surface(

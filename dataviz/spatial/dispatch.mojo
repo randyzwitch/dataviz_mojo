@@ -16,6 +16,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.mark import Mark
 from dataviz.plot import Plot, _RenderResult
+from dataviz.spatial.bar3d import _render_bar3d, _render_voxels
 from dataviz.spatial.scatter3d import _render_plot3d, _render_scatter3d
 from dataviz.spatial.surface3d import (
     _render_surface3d,
@@ -76,6 +77,14 @@ def _render_spatial_family[
     if plot._mark == Mark.TRISURF3D:
         return Optional(
             _render_trisurf3d(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+        )
+    if plot._mark == Mark.BAR3D:
+        return Optional(
+            _render_bar3d(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+        )
+    if plot._mark == Mark.VOXELS:
+        return Optional(
+            _render_voxels(target, plot, ox0, oy0, ox1, oy1, cache=cache)
         )
     return None
 

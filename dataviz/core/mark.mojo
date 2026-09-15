@@ -143,7 +143,9 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     comptime SURFACE3D = Self(65)
     comptime WIRE3D = Self(66)
     comptime TRISURF3D = Self(67)
-    comptime COUNT = 68
+    comptime BAR3D = Self(68)
+    comptime VOXELS = Self(69)
+    comptime COUNT = 70
     """How many marks exist -- one past the largest value above.
 
     The layout, output-digest, and callback ownership sweeps read this.
@@ -207,6 +209,10 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
             return "Mark.WIRE3D"
         if self == Self.TRISURF3D:
             return "Mark.TRISURF3D"
+        if self == Self.BAR3D:
+            return "Mark.BAR3D"
+        if self == Self.VOXELS:
+            return "Mark.VOXELS"
         if self == Self.WATERFALL:
             return "Mark.WATERFALL"
         if self == Self.BOX:

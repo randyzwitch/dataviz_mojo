@@ -128,6 +128,8 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("surface3d", "spatial/surface3d", "surface3d"),
         ExamplePage("wire3d", "spatial/surface3d", "wire3d"),
         ExamplePage("trisurf3d", "spatial/surface3d", "trisurf3d"),
+        ExamplePage("bar3d", "spatial/bar3d", "bar3d"),
+        ExamplePage("voxels", "spatial/bar3d", "voxels"),
         ExamplePage("dendrogram", "hierarchy_marks/dendrogram", "dendrogram"),
         ExamplePage("pointplot", "aggregation/pointplot", "pointplot"),
         ExamplePage("kdeplot", "distributions/kde", "kdeplot"),
