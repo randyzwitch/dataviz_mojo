@@ -72,8 +72,8 @@ which is why they are written down rather than left to the compiler:
 1. **The value.** Add its `Mark` constant in `dataviz/core/mark.mojo`,
    its `name()` branch, and raise `Mark.COUNT` to one past the new
    value. Every sweep walks `Mark(0)` through `Mark(COUNT - 1)`, so a
-   `COUNT` left behind silently skips the new mark (#634) and nothing
-   fails yet (#648).
+   `COUNT` left behind silently skips the new mark (#634);
+   `test_count_is_one_past_the_last_named_mark` is what fails for it.
 2. **The data.** Its payload struct as a `Plot` field, initialized in
    `__init__`; the `mark_*()` setter; and an `encode_*()` that calls
    `_require_mark` with the marks it serves.

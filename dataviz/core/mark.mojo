@@ -159,7 +159,9 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     That protection does not reach `COUNT` itself. A mark added at or
     past it is never visited, so every sweep skips it and nothing fails
     -- which is how #634 happened. Raise it in the same edit that adds
-    the mark above; #648 tracks a check that would catch forgetting.
+    the mark above. `test_count_is_one_past_the_last_named_mark` fails
+    when it is not, by asking `name()` whether the value at `COUNT` has
+    a constant.
     """
 
     def __init__(out self, value: Int):
