@@ -112,6 +112,24 @@ def test_copied_mixed_layers_keep_their_marks() raises:
     )
 
 
+def test_count_is_one_past_the_last_named_mark() raises:
+    # `name()` answers `"Mark(<n>)"` for a value with no constant. So
+    # the value at `COUNT` must have no name -- a constant added there
+    # without raising `COUNT` is exactly the skip #634 was, and every
+    # sweep walks `range(COUNT)`, so nothing else fails for it -- and the
+    # value one below must have one, or `COUNT` was raised past the end.
+    # Relies on the values being contiguous and every constant having a
+    # `name()` branch, which the mark-adding checklist requires.
+    assert_true(
+        Mark(Mark.COUNT).name().startswith("Mark("),
+        "a mark is named at Mark.COUNT -- raise COUNT to cover it (#648)",
+    )
+    assert_true(
+        not Mark(Mark.COUNT - 1).name().startswith("Mark("),
+        "Mark.COUNT is past the last named mark",
+    )
+
+
 def test_dendrogram_is_in_the_enumerated_registry() raises:
     assert_true(Mark.DENDROGRAM._value < Mark.COUNT)
     assert_equal(Mark.DENDROGRAM.name(), "Mark.DENDROGRAM")
