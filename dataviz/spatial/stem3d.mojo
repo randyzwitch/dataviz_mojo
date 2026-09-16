@@ -6,12 +6,13 @@ arrow points wherever its components say, and a ribbon joins two
 curves -- each is a line through the cube, with something on the end of
 it or another line beside it.
 
-**Neither is depth sorted, and neither can be usefully.** A stem is a
-line, and a line has no interior to hide anything behind: two stems
-that cross in projection cross visibly whichever is drawn second, which
-is the honest picture of two stems that cross. The markers on their
-ends *are* sorted, because a marker is a disc at a single depth and
-that sort is exact -- the same split `scatter3d` makes.
+**The lines are not depth sorted and cannot usefully be.** A line has
+no interior to hide anything behind, so two stems or two shafts that
+cross in projection cross visibly whichever went second, which is the
+honest picture of two that cross. The markers on a stem's end *are*
+sorted, because a marker is a disc at a single depth and ordering
+those is exact -- the same split `scatter3d` makes. The ribbon is a
+mesh and sorts like the surfaces do.
 
 **An arrowhead is built in screen space, not in the cube.** A cone in
 data space would need its own faces, its own depth sort against every
@@ -33,7 +34,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.camera3d import Camera3D
-from dataviz.core.frame3d import Frame3D, _Extent3D, _fit_frame3d
+from dataviz.core.frame3d import _Extent3D, _fit_frame3d
 from dataviz.core.scale import MinMax
 from dataviz.core.theme import Theme
 from dataviz.plot import (
@@ -215,10 +216,19 @@ def _render_stem3d[
     with a marker on the end.
 
     The stems are drawn first and all of them, then the markers in
-    depth order. Splitting it that way is what makes the markers'
-    occlusion exact -- a marker is a disc at one depth -- without
-    pretending the stems can be ordered, which they cannot: a line has
-    no interior to hide anything behind.
+    depth order. Splitting it that way orders exactly the part that can
+    be ordered -- a marker is a disc at one depth -- without pretending
+    the stems can be, which they cannot: a line has no interior to hide
+    anything behind.
+
+    With every marker the same color the sort changes little: two
+    overlapping discs of one color differ only in the blended pixels
+    along the overlap, since each disc is filled on its own and its
+    partial coverage composites against whatever is already there.
+    Reversing the order moves a measurable but small number of pixels.
+    The sort is here because the order is *right*, and because it
+    becomes the whole of the occlusion the moment markers differ in
+    color or size.
     """
     _validate_xyz(plot)
     var theme = plot._theme
@@ -407,6 +417,15 @@ def _render_fill_between3d[
     half -- so the fold is drawn as one flat piece. It is visible as a
     pinch in the ribbon, which is the honest picture of two curves that
     cross.
+
+    **The sort `_Mesh.draw` runs here currently changes nothing, and
+    that is checkable rather than assumed**: every quad takes one
+    color, and `fill_mesh` hands each sub-sample to exactly one face,
+    so the composite is the same in any order. Inverting it leaves the
+    raster bit-identical. It is kept because the order is right and
+    because a color channel on this mark would make it load-bearing
+    overnight -- but nothing here would notice if it broke, so do not
+    read the digest entry as covering it.
     """
     _validate_ribbon3d(plot)
     var theme = plot._theme

@@ -18,7 +18,6 @@ from canvas.color import Color
 from dataviz import (
     fill_between3d,
     quiver3d,
-    scatter3d,
     stem3d,
     surface3d,
     trisurf3d,
@@ -333,34 +332,146 @@ def test_a_stem_always_reaches_the_base_plane() raises:
     assert_equal(below.z.min, -9.0)
 
 
-def test_stem3d_draws_a_stem_under_every_marker() raises:
-    # The tether is the whole mark: without it a floating marker's
-    # height cannot be read, because nothing says where under it the
-    # plane is. Compare against the same points with no stems.
-    var xs: List[Float64] = [0.0, 1.0, 2.0]
-    var ys: List[Float64] = [0.0, 1.0, 0.0]
-    var zs: List[Float64] = [3.0, 5.0, 4.0]
-    var stems = render(stem3d(xs, ys, zs, width=_W, height=_H))
-    var bare = render(scatter3d(xs, ys, zs, width=_W, height=_H))
-    var bg = Theme().background
-    var stem_ink = 0
-    var bare_ink = 0
+def test_a_stem_hangs_straight_down_the_page_from_its_marker() raises:
+    # The tether is the whole mark: a floating marker's height cannot be
+    # read, because nothing says where under it the plane is.
+    #
+    # Found without reconstructing the frame, and without comparing two
+    # renders -- each chart fits its own box to its own data, so a
+    # stem3d and a scatter3d of the same points are drawn at different
+    # scales and their ink counts are not comparable.
+    #
+    # Instead this leans on an exact property of the projection:
+    # `horizontal` is `rx`, which has no z term, so a stem -- one x and
+    # y, a range of z -- lands on a single column of the page whatever
+    # the camera angle. The box is drawn in the gridline color, so
+    # mark-colored ink is the stem and its marker and nothing else.
+    #
+    # What this does *not* pin is where the foot lands: a stem stopping
+    # halfway shrinks its own bounding box, so the run still fills it.
+    # `test_a_stems_foot_lands_on_the_base_plane` covers that.
+    for azim in [-60.0, 20.0]:
+        var xs: List[Float64] = [0.0]
+        var ys: List[Float64] = [0.0]
+        var zs: List[Float64] = [5.0]
+        var c = render(stem3d(xs, ys, zs, azim=azim, width=_W, height=_H))
+        var mark = Theme().mark_color
+        var min_x = _W
+        var max_x = -1
+        var min_y = _H
+        var max_y = -1
+        for y in range(_H):
+            for x in range(_W):
+                var p = c.get_pixel(x, y)
+                if p.r == mark.r and p.g == mark.g and p.b == mark.b:
+                    if x < min_x:
+                        min_x = x
+                    if x > max_x:
+                        max_x = x
+                    if y < min_y:
+                        min_y = y
+                    if y > max_y:
+                        max_y = y
+        assert_true(max_x >= 0, "the stem drew nothing at azim " + String(azim))
+        # As wide as the marker and no wider: a stem that wandered off
+        # its column would widen this.
+        assert_true(
+            max_x - min_x <= 8,
+            (
+                "the mark-colored ink spans "
+                + String(max_x - min_x + 1)
+                + " columns at azim "
+                + String(azim)
+                + ", so it is not one vertical stem"
+            ),
+        )
+        # And it is a stem rather than a lone marker: tall, and
+        # unbroken from the marker all the way down.
+        assert_true(
+            max_y - min_y > 60,
+            "the ink is only " + String(max_y - min_y + 1) + " pixels tall",
+        )
+        var mid = (min_x + max_x) // 2
+        var run = 0
+        for y in range(_H):
+            var p = c.get_pixel(mid, y)
+            if p.r == mark.r and p.g == mark.g and p.b == mark.b:
+                run += 1
+        assert_equal(
+            run,
+            max_y - min_y + 1,
+            (
+                "the middle column has gaps at azim "
+                + String(azim)
+                + ", so the stem is not one unbroken line"
+            ),
+        )
+
+
+def test_a_stems_foot_lands_on_the_base_plane() raises:
+    # Two stems on one (x, y), at z=4 and z=2, so both share a column
+    # and the shorter one's marker sits inside the taller one's stem.
+    # That gives three landmarks down a single column -- z=4, z=2 and
+    # wherever the ink stops -- and equal steps in z have to come out as
+    # equal steps in pixels. If the ink stops at z=1 rather than z=0 the
+    # lower gap is half the upper one.
+    #
+    # Frame-free and scale-free on purpose: it compares two distances
+    # within one render rather than a distance against a number, so it
+    # holds whatever the margins and the fitted scale come to.
+    var xs: List[Float64] = [0.0, 0.0]
+    var ys: List[Float64] = [0.0, 0.0]
+    var zs: List[Float64] = [4.0, 2.0]
+    var c = render(stem3d(xs, ys, zs, width=_W, height=_H))
+    var mark = Theme().mark_color
+
+    # A marker is wider than the stem it caps, so the rows it covers are
+    # the wide ones.
+    var wide = List[Int]()
+    var bottom = -1
     for y in range(_H):
+        var w = 0
         for x in range(_W):
-            var p = stems.get_pixel(x, y)
-            if p.r != bg.r or p.g != bg.g or p.b != bg.b:
-                stem_ink += 1
-            var q = bare.get_pixel(x, y)
-            if q.r != bg.r or q.g != bg.g or q.b != bg.b:
-                bare_ink += 1
+            var p = c.get_pixel(x, y)
+            if p.r == mark.r and p.g == mark.g and p.b == mark.b:
+                w += 1
+        if w > 0:
+            bottom = y
+        if w >= 4:
+            wide.append(y)
+    assert_true(len(wide) > 0, "no marker rows found at all")
+
+    var upper_lo = wide[0]
+    var upper_hi = wide[0]
+    var lower_lo = -1
+    var lower_hi = -1
+    for k in range(1, len(wide)):
+        if wide[k] - wide[k - 1] > 1 and lower_lo < 0:
+            lower_lo = wide[k]
+        if lower_lo < 0:
+            upper_hi = wide[k]
+        else:
+            lower_hi = wide[k]
     assert_true(
-        stem_ink > bare_ink + 200,
+        lower_lo >= 0, "the two markers did not come out as two clusters"
+    )
+
+    var upper = Float64(upper_lo + upper_hi) / 2.0
+    var lower = Float64(lower_lo + lower_hi) / 2.0
+    var top_gap = lower - upper
+    var foot_gap = Float64(bottom) - lower
+    assert_true(top_gap > 20.0, "the two markers landed on top of each other")
+    var slack = top_gap - foot_gap
+    if slack < 0.0:
+        slack = -slack
+    assert_true(
+        slack <= 4.0,
         (
-            "stem3d drew about as much as a bare scatter ("
-            + String(stem_ink)
-            + " against "
-            + String(bare_ink)
-            + "), so the stems are missing"
+            "z=4 to z=2 is "
+            + String(top_gap)
+            + " pixels but z=2 to the end of the ink is "
+            + String(foot_gap)
+            + " -- the stem does not run down to the base plane"
         ),
     )
 
