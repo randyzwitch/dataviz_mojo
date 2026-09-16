@@ -256,6 +256,7 @@ from dataviz.multivariate.quiver import _render_quiver
 from dataviz.multivariate.streamplot import _StreamData, _render_streamplot
 from dataviz.spatial.scatter3d import _Xyz
 from dataviz.spatial.bar3d import _Bars3D, _Voxels
+from dataviz.spatial.stem3d import _Ribbon3D, _Vectors3D
 from dataviz.spatial.surface3d import _Surface
 from dataviz.binned.hist2d import _hist2d_counts
 from dataviz.distributions.boxen import (
@@ -749,6 +750,8 @@ struct Plot(Copyable, Movable):
     var _surface: _Surface
     var _bars3d: _Bars3D
     var _voxels: _Voxels
+    var _vectors3d: _Vectors3D
+    var _ribbon3d: _Ribbon3D
     var _image: _ImageData
     var _tricontour: _TriContourData
     var _triplot: _TriplotData
@@ -841,6 +844,8 @@ struct Plot(Copyable, Movable):
         self._surface = _Surface()
         self._bars3d = _Bars3D()
         self._voxels = _Voxels()
+        self._vectors3d = _Vectors3D()
+        self._ribbon3d = _Ribbon3D()
         self._image = _ImageData()
         self._tricontour = _TriContourData()
         self._triplot = _TriplotData()
@@ -2719,6 +2724,87 @@ struct Plot(Copyable, Movable):
         self._xyz.azim = azim
         return self^
 
+    def mark_stem3d(
+        var self, elev: Float64 = 30.0, azim: Float64 = -60.0
+    ) -> Self:
+        """Select `Mark.STEM3D`: a line from the base plane to each
+        point, with a marker on the end (#345).
+
+        Encoded via `encode_xyz()`. The tether is what a plain 3D
+        scatter lacks: a floating marker's height cannot be read,
+        because nothing says where under it the plane is.
+
+        Args:
+            elev: Degrees to look down on the scene from, above the
+                x-y plane.
+            azim: Degrees to turn the scene through, about the z axis.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.STEM3D
+        self._render_canvas_family = _callback_spatial[Canvas]
+        self._render_svg_family = _callback_spatial[SvgCanvas]
+        self._render_pdf_family = _callback_spatial[PdfCanvas]
+        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._xyz.elev = elev
+        self._xyz.azim = azim
+        return self^
+
+    def mark_quiver3d(
+        var self, elev: Float64 = 30.0, azim: Float64 = -60.0
+    ) -> Self:
+        """Select `Mark.QUIVER3D`: an arrow at each point, along its
+        own components (#345).
+
+        Encoded via `encode_vectors3d()`. The box is fitted to the
+        tips as well as the tails, since an arrow leaving it would read
+        as pointing at something outside the data.
+
+        Args:
+            elev: Degrees to look down on the scene from, above the
+                x-y plane.
+            azim: Degrees to turn the scene through, about the z axis.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.QUIVER3D
+        self._render_canvas_family = _callback_spatial[Canvas]
+        self._render_svg_family = _callback_spatial[SvgCanvas]
+        self._render_pdf_family = _callback_spatial[PdfCanvas]
+        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._vectors3d.elev = elev
+        self._vectors3d.azim = azim
+        return self^
+
+    def mark_fill_between3d(
+        var self, elev: Float64 = 30.0, azim: Float64 = -60.0
+    ) -> Self:
+        """Select `Mark.FILL_BETWEEN3D`: the ribbon joining two curves
+        through space (#345).
+
+        Encoded via `encode_ribbon3d()`. Sample `i` of one curve joins
+        sample `i` of the other, so the pairing is the caller's rather
+        than inferred.
+
+        Args:
+            elev: Degrees to look down on the scene from, above the
+                x-y plane.
+            azim: Degrees to turn the scene through, about the z axis.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.FILL_BETWEEN3D
+        self._render_canvas_family = _callback_spatial[Canvas]
+        self._render_svg_family = _callback_spatial[SvgCanvas]
+        self._render_pdf_family = _callback_spatial[PdfCanvas]
+        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._ribbon3d.elev = elev
+        self._ribbon3d.azim = azim
+        return self^
+
     def mark_bar3d(
         var self,
         bar_width: Float64 = 0.8,
@@ -2781,6 +2867,90 @@ struct Plot(Copyable, Movable):
         self._render_bounds_family = _callback_spatial[BoundsTarget]
         self._voxels.elev = elev
         self._voxels.azim = azim
+        return self^
+
+    def encode_vectors3d(
+        var self,
+        x: List[Float64],
+        y: List[Float64],
+        z: List[Float64],
+        u: List[Float64],
+        v: List[Float64],
+        w: List[Float64],
+    ) raises -> Self:
+        """Give `Mark.QUIVER3D` its arrow tails and components (#345).
+
+        The components are in the data's own units on each axis, so an
+        arrow's length is read against the axes rather than against a
+        separate legend.
+
+        Length agreement is checked at render time, like every other
+        encode method here.
+
+        Args:
+            x: The x coordinate of each arrow's tail.
+            y: The y coordinate of each tail, the same length.
+            z: The z coordinate of each tail, the same length.
+            u: The x component of each arrow, the same length.
+            v: The y component, the same length.
+            w: The z component, the same length.
+
+        Returns:
+            Self, for further chaining.
+        """
+        var _ok_encode_vectors3d = List[Mark]()
+        _ok_encode_vectors3d.append(Mark.QUIVER3D)
+        _require_mark(
+            self._mark,
+            "encode_vectors3d",
+            "mark_quiver3d()",
+            _ok_encode_vectors3d^,
+        )
+        self._vectors3d.x = x.copy()
+        self._vectors3d.y = y.copy()
+        self._vectors3d.z = z.copy()
+        self._vectors3d.u = u.copy()
+        self._vectors3d.v = v.copy()
+        self._vectors3d.w = w.copy()
+        return self^
+
+    def encode_ribbon3d(
+        var self,
+        x1: List[Float64],
+        y1: List[Float64],
+        z1: List[Float64],
+        x2: List[Float64],
+        y2: List[Float64],
+        z2: List[Float64],
+    ) raises -> Self:
+        """Give `Mark.FILL_BETWEEN3D` the two curves it fills between
+        (#345).
+
+        Args:
+            x1: The first curve's x column.
+            y1: The first curve's y column, the same length.
+            z1: The first curve's z column, the same length.
+            x2: The second curve's x column, the same length.
+            y2: The second curve's y column, the same length.
+            z2: The second curve's z column, the same length.
+
+        Returns:
+            Self, for further chaining.
+        """
+        var _ok_encode_ribbon3d = List[Mark]()
+        _ok_encode_ribbon3d.append(Mark.FILL_BETWEEN3D)
+        _require_mark(
+            self._mark,
+            "encode_ribbon3d",
+            "mark_fill_between3d()",
+            _ok_encode_ribbon3d^,
+        )
+        self._ribbon3d.x1 = x1.copy()
+        self._ribbon3d.y1 = y1.copy()
+        self._ribbon3d.z1 = z1.copy()
+        self._ribbon3d.x2 = x2.copy()
+        self._ribbon3d.y2 = y2.copy()
+        self._ribbon3d.z2 = z2.copy()
         return self^
 
     def encode_bars3d(
@@ -2905,6 +3075,7 @@ struct Plot(Copyable, Movable):
         _ok_encode_xyz.append(Mark.SCATTER3D)
         _ok_encode_xyz.append(Mark.PLOT3D)
         _ok_encode_xyz.append(Mark.TRISURF3D)
+        _ok_encode_xyz.append(Mark.STEM3D)
         _require_mark(
             self._mark, "encode_xyz", "mark_scatter3d()", _ok_encode_xyz^
         )

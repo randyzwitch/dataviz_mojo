@@ -120,6 +120,9 @@ def _titles() -> Dict[String, String]:
     d["trisurf3d"] = "3D Triangulated Surface"
     d["bar3d"] = "3D Bars"
     d["voxels"] = "Voxels"
+    d["stem3d"] = "3D Stems"
+    d["quiver3d"] = "3D Arrows"
+    d["fill_between3d"] = "3D Ribbon"
     d["pointplot"] = "Estimate Points"
     d["kdeplot"] = "Density Curve"
     d["rugplot"] = "Rug"
@@ -309,6 +312,9 @@ def _categories() -> List[Category]:
                 "trisurf3d",
                 "bar3d",
                 "voxels",
+                "stem3d",
+                "quiver3d",
+                "fill_between3d",
             ],
         )
     )

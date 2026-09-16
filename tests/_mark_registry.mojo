@@ -47,6 +47,9 @@ from dataviz import (
     rugplot,
     scatter3d,
     bar3d,
+    fill_between3d,
+    quiver3d,
+    stem3d,
     surface3d,
     trisurf3d,
     voxels,
@@ -530,6 +533,61 @@ def _representative_plot(mark: Mark) raises -> Plot:
                 rows.append(cols^)
             grid.append(rows^)
         return voxels(grid, width=_W, height=_H)
+
+    if mark == Mark.STEM3D:
+        # Heights that rise and fall around the track, so a stem drawn
+        # from the wrong foot or to the wrong head would show.
+        var sx = List[Float64]()
+        var sy = List[Float64]()
+        var sz = List[Float64]()
+        for i in range(16):
+            var a = Float64(i % 4)
+            var b = Float64((i * 3) % 5)
+            sx.append(a)
+            sy.append(b)
+            sz.append(Float64((i * 7) % 6) + 1.0)
+        return stem3d(sx, sy, sz, width=_W, height=_H)
+
+    if mark == Mark.QUIVER3D:
+        # A field that turns about z: every arrow points somewhere
+        # different, so a component dropped or swapped would show.
+        var qx = List[Float64]()
+        var qy = List[Float64]()
+        var qz = List[Float64]()
+        var qu = List[Float64]()
+        var qv = List[Float64]()
+        var qw = List[Float64]()
+        for k in range(2):
+            for j in range(3):
+                for i in range(3):
+                    var px = Float64(i) - 1.0
+                    var py = Float64(j) - 1.0
+                    qx.append(px)
+                    qy.append(py)
+                    qz.append(Float64(k))
+                    qu.append(-py * 0.4)
+                    qv.append(px * 0.4)
+                    qw.append(0.3)
+        return quiver3d(qx, qy, qz, qu, qv, qw, width=_W, height=_H)
+
+    if mark == Mark.FILL_BETWEEN3D:
+        # Two curves that stay apart, so the ribbon has a consistent
+        # width and a fold would be visible as a pinch.
+        var ax = List[Float64]()
+        var ay = List[Float64]()
+        var az = List[Float64]()
+        var bx = List[Float64]()
+        var by = List[Float64]()
+        var bz = List[Float64]()
+        for i in range(12):
+            var t = Float64(i)
+            ax.append(t)
+            ay.append(Float64(i % 3))
+            az.append(Float64((i * 5) % 7))
+            bx.append(t)
+            by.append(Float64(i % 3) + 2.0)
+            bz.append(Float64((i * 5) % 7) + 1.0)
+        return fill_between3d(ax, ay, az, bx, by, bz, width=_W, height=_H)
 
     raise Error(
         "test_backend_equivalence: no representative plot for mark value "

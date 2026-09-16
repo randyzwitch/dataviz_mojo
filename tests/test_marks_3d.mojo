@@ -1,10 +1,12 @@
-"""The three surface marks: `surface3d`, `wire3d` and `trisurf3d` (#345).
+"""The 3D marks that are not boxes: the three surfaces from step 4, and
+the stem, arrow and ribbon marks from step 5 (#345).
 
-Step 4 of #345. The camera and the frame they project through have
-their own unit tests in `test_primitives.mojo`; what is tested here is
-what the marks build on top of that -- the order faces are handed over
-in, the seamless fill that order feeds, and the grid rules the input has
-to satisfy.
+The camera and the frame they project through have their own unit tests
+in `test_primitives.mojo`, and the cuboid marks are in
+`test_marks_3d_boxes.mojo`. What is tested here is what these marks
+build on top of the frame -- the order faces are handed over in, the
+seamless fill that order feeds, where a mark anchors itself, and the
+rules each input has to satisfy.
 """
 
 from std.math import cos, sin
@@ -13,11 +15,24 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.buffer import Canvas
 from canvas.color import Color
 
-from dataviz import surface3d, trisurf3d, wire3d
+from dataviz import (
+    fill_between3d,
+    quiver3d,
+    scatter3d,
+    stem3d,
+    surface3d,
+    trisurf3d,
+    wire3d,
+)
 from dataviz.core.color_scale import _ColorDomainOverride, _color_scale_for
 from dataviz.core.mark import Mark
 from dataviz.core.theme import Theme
 from dataviz.plot import Plot, render, render_svg
+from dataviz.spatial.stem3d import (
+    _draw_arrowhead,
+    _stem3d_extent,
+    _vectors3d_extent,
+)
 from dataviz.spatial.surface3d import _depth_sorted_faces
 from _test_helpers import _attr_values, _count_color
 
@@ -293,6 +308,165 @@ def test_encode_xyz_accepts_trisurf3d() raises:
     var zs: List[Float64] = [0.0, 1.0, 2.0]
     var p = Plot().mark_trisurf3d().encode_xyz(xs, ys, zs)
     assert_true(p._mark == Mark.TRISURF3D)
+
+
+# ==== where a stem anchors ====
+
+
+def test_a_stem_always_reaches_the_base_plane() raises:
+    # A stem is read as a length from the plane, so a range starting at
+    # the lowest point would draw every stem from a floor that is not
+    # zero and make the short ones look shorter than they are.
+    var xs: List[Float64] = [0.0, 1.0]
+    var ys: List[Float64] = [0.0, 1.0]
+    var high: List[Float64] = [8.0, 9.0]
+    var plot = Plot().mark_stem3d().encode_xyz(xs, ys, high)
+    var extent = _stem3d_extent(plot)
+    assert_equal(extent.z.min, 0.0, "the base plane is not in the range")
+    assert_equal(extent.z.max, 9.0)
+    # And downward stems keep the plane too, rather than each direction
+    # getting its own floor.
+    var low: List[Float64] = [-8.0, -9.0]
+    var down = Plot().mark_stem3d().encode_xyz(xs, ys, low)
+    var below = _stem3d_extent(down)
+    assert_equal(below.z.max, 0.0, "the base plane is not in the range")
+    assert_equal(below.z.min, -9.0)
+
+
+def test_stem3d_draws_a_stem_under_every_marker() raises:
+    # The tether is the whole mark: without it a floating marker's
+    # height cannot be read, because nothing says where under it the
+    # plane is. Compare against the same points with no stems.
+    var xs: List[Float64] = [0.0, 1.0, 2.0]
+    var ys: List[Float64] = [0.0, 1.0, 0.0]
+    var zs: List[Float64] = [3.0, 5.0, 4.0]
+    var stems = render(stem3d(xs, ys, zs, width=_W, height=_H))
+    var bare = render(scatter3d(xs, ys, zs, width=_W, height=_H))
+    var bg = Theme().background
+    var stem_ink = 0
+    var bare_ink = 0
+    for y in range(_H):
+        for x in range(_W):
+            var p = stems.get_pixel(x, y)
+            if p.r != bg.r or p.g != bg.g or p.b != bg.b:
+                stem_ink += 1
+            var q = bare.get_pixel(x, y)
+            if q.r != bg.r or q.g != bg.g or q.b != bg.b:
+                bare_ink += 1
+    assert_true(
+        stem_ink > bare_ink + 200,
+        (
+            "stem3d drew about as much as a bare scatter ("
+            + String(stem_ink)
+            + " against "
+            + String(bare_ink)
+            + "), so the stems are missing"
+        ),
+    )
+
+
+# ==== arrows ====
+
+
+def test_the_box_reaches_an_arrows_tip_not_just_its_tail() raises:
+    # An arrow leaving the box would read as pointing at something
+    # outside the data.
+    var o: List[Float64] = [0.0]
+    var u: List[Float64] = [3.0]
+    var v: List[Float64] = [-2.0]
+    var w: List[Float64] = [5.0]
+    var plot = Plot().mark_quiver3d().encode_vectors3d(o, o, o, u, v, w)
+    var extent = _vectors3d_extent(plot)
+    assert_equal(extent.x.max, 3.0, "the box stops short of the tip in x")
+    assert_equal(extent.y.min, -2.0, "the box stops short of the tip in y")
+    assert_equal(extent.z.max, 5.0, "the box stops short of the tip in z")
+
+
+def _head_ink(tail_x: Float64, tip_x: Float64) raises -> Int:
+    """Pixels an arrowhead alone puts on a blank canvas."""
+    var bg = Color(255, 255, 255)
+    var c = Canvas(80, 80, bg)
+    _draw_arrowhead(c, tail_x, 40.0, tip_x, 40.0, 10.0, Color(0, 0, 0))
+    var ink = 0
+    for y in range(c.height):
+        for x in range(c.width):
+            var p = c.get_pixel(x, y)
+            if p.r != bg.r or p.g != bg.g or p.b != bg.b:
+                ink += 1
+    return ink
+
+
+def test_an_arrow_with_no_length_draws_no_head() raises:
+    # There is no direction to point it, and guessing one would draw an
+    # arrow the data does not support.
+    #
+    # Tested on the head alone rather than through two renders: each
+    # render fits its own box to its own data, so two quiver charts
+    # that differ in an arrow's length differ in scale as well, and
+    # comparing their ink compares the scaling too.
+    #
+    # The perturbation this catches is substituting a direction for the
+    # missing one. Dropping only the early return does *not* fail it --
+    # a unit length puts the head's three corners on the tip and fills
+    # nothing -- so that return is about the division, not about this.
+    assert_equal(
+        _head_ink(40.0, 40.0), 0, "a shaft with no length still got a head"
+    )
+    assert_true(
+        _head_ink(10.0, 60.0) > 20,
+        "a shaft with a direction got no head",
+    )
+
+
+def test_the_six_arrow_columns_must_agree() raises:
+    var three: List[Float64] = [0.0, 1.0, 2.0]
+    var two: List[Float64] = [0.0, 1.0]
+    with assert_raises(contains="w has 2"):
+        _ = render(quiver3d(three, three, three, three, three, two))
+
+
+# ==== ribbons ====
+
+
+def test_a_ribbon_fills_between_the_two_curves() raises:
+    # Two curves a constant distance apart, so the ribbon is a sheet
+    # rather than a line: it has to cover far more than the curves do.
+    var a = List[Float64]()
+    var b = List[Float64]()
+    var flat = List[Float64]()
+    var up = List[Float64]()
+    for i in range(12):
+        a.append(Float64(i))
+        b.append(Float64(i))
+        flat.append(0.0)
+        up.append(4.0)
+    var c = render(
+        fill_between3d(a, flat, flat, b, flat, up, width=_W, height=_H)
+    )
+    var bg = Theme().background
+    var ink = 0
+    for y in range(_H):
+        for x in range(_W):
+            var p = c.get_pixel(x, y)
+            if p.r != bg.r or p.g != bg.g or p.b != bg.b:
+                ink += 1
+    assert_true(
+        ink > 8000,
+        "the ribbon covered only " + String(ink) + " pixels, so it is a line",
+    )
+
+
+def test_a_ribbon_needs_two_samples_to_have_any_surface() raises:
+    var one: List[Float64] = [0.0]
+    with assert_raises(contains="at least 2 samples"):
+        _ = render(fill_between3d(one, one, one, one, one, one))
+
+
+def test_the_six_ribbon_columns_must_agree() raises:
+    var three: List[Float64] = [0.0, 1.0, 2.0]
+    var two: List[Float64] = [0.0, 1.0]
+    with assert_raises(contains="z2 has 2"):
+        _ = render(fill_between3d(three, three, three, three, three, two))
 
 
 def main() raises:
