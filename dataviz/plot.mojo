@@ -255,6 +255,7 @@ from dataviz.binned.hexbin import _HexbinData, _render_hexbin
 from dataviz.multivariate.quiver import _render_quiver
 from dataviz.multivariate.streamplot import _StreamData, _render_streamplot
 from dataviz.spatial.scatter3d import _Xyz
+from dataviz.spatial.surface3d import _Surface
 from dataviz.binned.hist2d import _hist2d_counts
 from dataviz.distributions.boxen import (
     _BoxenData,
@@ -744,6 +745,7 @@ struct Plot(Copyable, Movable):
     var _barbs: _BarbsData
     var _contour: _ContourData
     var _xyz: _Xyz
+    var _surface: _Surface
     var _image: _ImageData
     var _tricontour: _TriContourData
     var _triplot: _TriplotData
@@ -833,6 +835,7 @@ struct Plot(Copyable, Movable):
         self._barbs = _BarbsData()
         self._contour = _ContourData()
         self._xyz = _Xyz()
+        self._surface = _Surface()
         self._image = _ImageData()
         self._tricontour = _TriContourData()
         self._triplot = _TriplotData()
@@ -2578,17 +2581,17 @@ struct Plot(Copyable, Movable):
         """Select `Mark.SCATTER3D`: one marker per (x, y, z), drawn in
         an orthographic projection of a viewing cube (#345).
 
-        `elev` and `azim` are the view in degrees, matching `mplot3d`'s
-        `view_init(elev, azim)` so a reader who knows those numbers gets
-        the picture they expect. They live on the mark rather than on
-        `Theme` because a view angle belongs to this chart's data the
-        way a domain override does, not to a house style.
+        `elev` and `azim` are the view in degrees. They live on the
+        mark rather than on `Theme` because a view angle belongs to
+        this chart's data the way a domain override does, not to a
+        house style.
 
         Encoded via `encode_xyz()`.
 
         Args:
-            elev: Degrees above the x-y plane.
-            azim: Degrees of rotation about the z axis.
+            elev: Degrees to look down on the scene from, above the
+                x-y plane.
+            azim: Degrees to turn the scene through, about the z axis.
 
         Returns:
             Self, for further chaining.
@@ -2611,11 +2614,12 @@ struct Plot(Copyable, Movable):
         Not depth sorted, and it cannot be: a polyline is one connected
         path, so reordering its segments by depth would reorder the
         line. A segment passing behind another is drawn over it when it
-        comes later in the series, which is what `mplot3d` does too.
+        comes later in the series.
 
         Args:
-            elev: Degrees above the x-y plane.
-            azim: Degrees of rotation about the z axis.
+            elev: Degrees to look down on the scene from, above the
+                x-y plane.
+            azim: Degrees to turn the scene through, about the z axis.
 
         Returns:
             Self, for further chaining.
@@ -2627,6 +2631,127 @@ struct Plot(Copyable, Movable):
         self._render_bounds_family = _callback_spatial[BoundsTarget]
         self._xyz.elev = elev
         self._xyz.azim = azim
+        return self^
+
+    def mark_surface3d(
+        var self, elev: Float64 = 30.0, azim: Float64 = -60.0
+    ) -> Self:
+        """Select `Mark.SURFACE3D`: a height field over a regular grid,
+        drawn as filled faces shaded by height (#345).
+
+        Encoded via `encode_surface()`. `elev`/`azim` are the view in
+        degrees, as on `mark_scatter3d()`.
+
+        Args:
+            elev: Degrees to look down on the scene from, above the
+                x-y plane.
+            azim: Degrees to turn the scene through, about the z axis.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.SURFACE3D
+        self._render_canvas_family = _callback_spatial[Canvas]
+        self._render_svg_family = _callback_spatial[SvgCanvas]
+        self._render_pdf_family = _callback_spatial[PdfCanvas]
+        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._surface.elev = elev
+        self._surface.azim = azim
+        return self^
+
+    def mark_wire3d(
+        var self, elev: Float64 = 30.0, azim: Float64 = -60.0
+    ) -> Self:
+        """Select `Mark.WIRE3D`: the same height field as
+        `mark_surface3d()`, drawn as the lattice's lines with no fill
+        (#345).
+
+        Nothing is opaque, so nothing occludes anything and there is no
+        depth sort to get wrong. The far side of the surface stays
+        visible, which is the reason to pick this over a surface and
+        also why a dense lattice reads as a thicket.
+
+        Args:
+            elev: Degrees to look down on the scene from, above the
+                x-y plane.
+            azim: Degrees to turn the scene through, about the z axis.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.WIRE3D
+        self._render_canvas_family = _callback_spatial[Canvas]
+        self._render_svg_family = _callback_spatial[SvgCanvas]
+        self._render_pdf_family = _callback_spatial[PdfCanvas]
+        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._surface.elev = elev
+        self._surface.azim = azim
+        return self^
+
+    def mark_trisurf3d(
+        var self, elev: Float64 = 30.0, azim: Float64 = -60.0
+    ) -> Self:
+        """Select `Mark.TRISURF3D`: a surface over scattered points,
+        triangulated in the x-y plane and lifted to z (#345).
+
+        Encoded via `encode_xyz()`, not `encode_surface()`: the input is
+        three loose columns, not a grid.
+
+        Args:
+            elev: Degrees to look down on the scene from, above the
+                x-y plane.
+            azim: Degrees to turn the scene through, about the z axis.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._mark = Mark.TRISURF3D
+        self._render_canvas_family = _callback_spatial[Canvas]
+        self._render_svg_family = _callback_spatial[SvgCanvas]
+        self._render_pdf_family = _callback_spatial[PdfCanvas]
+        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._xyz.elev = elev
+        self._xyz.azim = azim
+        return self^
+
+    def encode_surface(
+        var self,
+        z: List[List[Float64]],
+        x: List[Float64] = List[Float64](),
+        y: List[Float64] = List[Float64](),
+    ) raises -> Self:
+        """Give a surface mark its height grid (#345).
+
+        The grid is row-major (`z[row][col]`), rows along y and columns
+        along x -- the same shape and the same optional coordinate
+        columns as `encode_contour()`, so a field can be drawn either
+        way without reshaping it.
+
+        Shape is checked at render time, like every other encode method
+        here.
+
+        Args:
+            z: The grid, rectangular and at least 2x2.
+            x: One x coordinate per column. Empty leaves the axis in
+                grid-index units.
+            y: One y coordinate per row. Empty leaves the axis in
+                grid-index units.
+
+        Returns:
+            Self, for further chaining.
+        """
+        var _ok_encode_surface = List[Mark]()
+        _ok_encode_surface.append(Mark.SURFACE3D)
+        _ok_encode_surface.append(Mark.WIRE3D)
+        _require_mark(
+            self._mark,
+            "encode_surface",
+            "mark_surface3d()",
+            _ok_encode_surface^,
+        )
+        self._surface.z = z.copy()
+        self._surface.x = x.copy()
+        self._surface.y = y.copy()
         return self^
 
     def encode_xyz(
@@ -2657,6 +2782,7 @@ struct Plot(Copyable, Movable):
         var _ok_encode_xyz = List[Mark]()
         _ok_encode_xyz.append(Mark.SCATTER3D)
         _ok_encode_xyz.append(Mark.PLOT3D)
+        _ok_encode_xyz.append(Mark.TRISURF3D)
         _require_mark(
             self._mark, "encode_xyz", "mark_scatter3d()", _ok_encode_xyz^
         )

@@ -635,3 +635,77 @@ def _check_step_smoothing(
             + step.name()
             + ")"
         )
+
+
+def _check_grid_coordinates(
+    coords: List[Float64],
+    n: Int,
+    name: String,
+    what: String,
+    caller: String,
+) raises:
+    """Raise unless `coords` is empty or names `n` strictly increasing
+    values.
+
+    Strictly increasing rather than merely monotone: a grid mark
+    interpolates between neighbors, and a repeated coordinate makes a
+    cell zero wide, so a whole column of the grid would collapse onto
+    one pixel with no way to say which of the two it belonged to.
+    Decreasing is not accepted either -- `scale_x_reverse()` is how an
+    axis is reversed, and accepting it here would give two ways to say
+    it that could disagree.
+
+    Args:
+        coords: The column to check; empty passes.
+        n: How many values the grid needs.
+        name: The argument's name, for the message.
+        what: What `n` counts, for the message.
+        caller: The encode method to name in the message, so a surface's
+            failure says `Plot.encode_surface()` rather than the contour
+            method that first needed this check.
+
+    Raises:
+        Error: Wrong length, non-finite, or not strictly increasing.
+    """
+    if len(coords) == 0:
+        return
+    if len(coords) != n:
+        raise Error(
+            caller
+            + ": "
+            + name
+            + " must have one value per "
+            + what
+            + " of z (got "
+            + String(len(coords))
+            + " for "
+            + String(n)
+            + " "
+            + what
+            + "s)"
+        )
+    for i in range(len(coords)):
+        if not isfinite(coords[i]):
+            raise Error(
+                "Plot.encode_contour(): "
+                + name
+                + " must be finite -- got "
+                + String(coords[i])
+                + " at index "
+                + String(i)
+            )
+    for i in range(1, len(coords)):
+        if not (coords[i] > coords[i - 1]):
+            raise Error(
+                "Plot.encode_contour(): "
+                + name
+                + " must be strictly increasing -- "
+                + String(coords[i])
+                + " at index "
+                + String(i)
+                + " does not exceed "
+                + String(coords[i - 1])
+                + " before it. Use Plot.scale_"
+                + ("x" if name == "x" else "y")
+                + "_reverse() to reverse the axis."
+            )
