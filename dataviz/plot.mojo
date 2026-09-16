@@ -58,19 +58,47 @@ shared continuous path. Copies and moves carry these pointers with the
 payloads. Mark changes must replace all four pointers, including changes
 back to a continuous mark, so a previous renderer cannot remain attached.
 
-Adding a mark:
-
-1. Add its `Mark` constant and `name()` entry, and update `Mark.COUNT`.
-2. Add its data/encoder and family render branch, then bind that family's
-   Canvas, SVG, PDF, and BoundsTarget adapters in the `mark_*()` setter.
-3. Add a representative constructor to `tests/_mark_registry.mojo` and
-   review its output digest. The normal test suite checks the registry's
-   marks through copying, moving, collections, and all three backends.
-
 Registering a family still references all four target specializations;
 it avoids unused families, not unused backends. The builder still imports
 the families and carries their payloads. Supporting another draw target
 requires extending the stored callback interface explicitly.
+
+## Mark-adding checklist
+
+The eleven `dataviz/<family>/dispatch.mojo` modules point here. Every
+step is needed, and three of them fail late or not at all when skipped,
+which is why they are written down rather than left to the compiler:
+
+1. **The value.** Add its `Mark` constant in `dataviz/core/mark.mojo`,
+   its `name()` branch, and raise `Mark.COUNT` to one past the new
+   value. Every sweep walks `Mark(0)` through `Mark(COUNT - 1)`, so a
+   `COUNT` left behind silently skips the new mark (#634) and nothing
+   fails yet (#648).
+2. **The data.** Its payload struct as a `Plot` field, initialized in
+   `__init__`; the `mark_*()` setter; and an `encode_*()` that calls
+   `_require_mark` with the marks it serves.
+3. **The render.** The `_render_*` function, and its arm in the family's
+   `_render_<family>_family` in `dataviz/<family>/dispatch.mojo`.
+4. **The registration.** In the `mark_*()` setter, bind all four of the
+   family's adapters: `_callback_<family>[Canvas]`, `[SvgCanvas]`,
+   `[PdfCanvas]` and `[BoundsTarget]`. *Fails late*: a setter that binds
+   nothing compiles, keeps the default `_callback_continuous`, and at
+   render time falls through to the continuous path and raises
+   `Plot.encode(): there is no data to draw` -- naming neither the mark
+   nor the missing registration.
+5. **The export.** Add the one-call function to `dataviz/__init__.mojo`.
+6. **The registry.** A representative constructor in
+   `tests/_mark_registry.mojo`, then `pixi run digest-update`, and check
+   the diff of `tests/output_digest.txt` adds the new mark's lines and
+   moves no others. The normal test suite checks the registry's marks
+   through copying, moving, collections, and all three backends.
+7. **The docs page.** An `ExamplePage` in
+   `scripts/_example_docstrings.mojo` -- its second field is the module
+   path such as `"spatial/stem3d"`, not the page name -- and a display
+   name and category entry in `scripts/gen_example_docs.mojo`. Then run
+   `pixi run example` and confirm the page's figure was written. *Fails
+   not at all*: an unregistered page generates no program, so the
+   pipeline reports every module clean with the figure simply absent.
 
 ## The one-call convenience functions
 
