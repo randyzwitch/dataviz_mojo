@@ -1,10 +1,12 @@
-"""The three surface marks: `surface3d`, `wire3d` and `trisurf3d` (#345).
+"""The 3D marks that are not boxes: the three surfaces from step 4, and
+the stem, arrow and ribbon marks from step 5 (#345).
 
-Step 4 of #345. The camera and the frame they project through have
-their own unit tests in `test_primitives.mojo`; what is tested here is
-what the marks build on top of that -- the order faces are handed over
-in, the seamless fill that order feeds, and the grid rules the input has
-to satisfy.
+The camera and the frame they project through have their own unit tests
+in `test_primitives.mojo`, and the cuboid marks are in
+`test_marks_3d_boxes.mojo`. What is tested here is what these marks
+build on top of the frame -- the order faces are handed over in, the
+seamless fill that order feeds, where a mark anchors itself, and the
+rules each input has to satisfy.
 """
 
 from std.math import cos, sin
@@ -13,11 +15,23 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.buffer import Canvas
 from canvas.color import Color
 
-from dataviz import surface3d, trisurf3d, wire3d
+from dataviz import (
+    fill_between3d,
+    quiver3d,
+    stem3d,
+    surface3d,
+    trisurf3d,
+    wire3d,
+)
 from dataviz.core.color_scale import _ColorDomainOverride, _color_scale_for
 from dataviz.core.mark import Mark
 from dataviz.core.theme import Theme
 from dataviz.plot import Plot, render, render_svg
+from dataviz.spatial.stem3d import (
+    _draw_arrowhead,
+    _stem3d_extent,
+    _vectors3d_extent,
+)
 from dataviz.spatial.surface3d import _depth_sorted_faces
 from _test_helpers import _attr_values, _count_color
 
@@ -293,6 +307,277 @@ def test_encode_xyz_accepts_trisurf3d() raises:
     var zs: List[Float64] = [0.0, 1.0, 2.0]
     var p = Plot().mark_trisurf3d().encode_xyz(xs, ys, zs)
     assert_true(p._mark == Mark.TRISURF3D)
+
+
+# ==== where a stem anchors ====
+
+
+def test_a_stem_always_reaches_the_base_plane() raises:
+    # A stem is read as a length from the plane, so a range starting at
+    # the lowest point would draw every stem from a floor that is not
+    # zero and make the short ones look shorter than they are.
+    var xs: List[Float64] = [0.0, 1.0]
+    var ys: List[Float64] = [0.0, 1.0]
+    var high: List[Float64] = [8.0, 9.0]
+    var plot = Plot().mark_stem3d().encode_xyz(xs, ys, high)
+    var extent = _stem3d_extent(plot)
+    assert_equal(extent.z.min, 0.0, "the base plane is not in the range")
+    assert_equal(extent.z.max, 9.0)
+    # And downward stems keep the plane too, rather than each direction
+    # getting its own floor.
+    var low: List[Float64] = [-8.0, -9.0]
+    var down = Plot().mark_stem3d().encode_xyz(xs, ys, low)
+    var below = _stem3d_extent(down)
+    assert_equal(below.z.max, 0.0, "the base plane is not in the range")
+    assert_equal(below.z.min, -9.0)
+
+
+def test_a_stem_hangs_straight_down_the_page_from_its_marker() raises:
+    # The tether is the whole mark: a floating marker's height cannot be
+    # read, because nothing says where under it the plane is.
+    #
+    # Found without reconstructing the frame, and without comparing two
+    # renders -- each chart fits its own box to its own data, so a
+    # stem3d and a scatter3d of the same points are drawn at different
+    # scales and their ink counts are not comparable.
+    #
+    # Instead this leans on an exact property of the projection:
+    # `horizontal` is `rx`, which has no z term, so a stem -- one x and
+    # y, a range of z -- lands on a single column of the page whatever
+    # the camera angle. The box is drawn in the gridline color, so
+    # mark-colored ink is the stem and its marker and nothing else.
+    #
+    # What this does *not* pin is where the foot lands: a stem stopping
+    # halfway shrinks its own bounding box, so the run still fills it.
+    # `test_a_stems_foot_lands_on_the_base_plane` covers that.
+    for azim in [-60.0, 20.0]:
+        var xs: List[Float64] = [0.0]
+        var ys: List[Float64] = [0.0]
+        var zs: List[Float64] = [5.0]
+        var c = render(stem3d(xs, ys, zs, azim=azim, width=_W, height=_H))
+        var mark = Theme().mark_color
+        var min_x = _W
+        var max_x = -1
+        var min_y = _H
+        var max_y = -1
+        for y in range(_H):
+            for x in range(_W):
+                var p = c.get_pixel(x, y)
+                if p.r == mark.r and p.g == mark.g and p.b == mark.b:
+                    if x < min_x:
+                        min_x = x
+                    if x > max_x:
+                        max_x = x
+                    if y < min_y:
+                        min_y = y
+                    if y > max_y:
+                        max_y = y
+        assert_true(max_x >= 0, "the stem drew nothing at azim " + String(azim))
+        # As wide as the marker and no wider: a stem that wandered off
+        # its column would widen this.
+        assert_true(
+            max_x - min_x <= 8,
+            (
+                "the mark-colored ink spans "
+                + String(max_x - min_x + 1)
+                + " columns at azim "
+                + String(azim)
+                + ", so it is not one vertical stem"
+            ),
+        )
+        # And it is a stem rather than a lone marker: tall, and
+        # unbroken from the marker all the way down.
+        assert_true(
+            max_y - min_y > 60,
+            "the ink is only " + String(max_y - min_y + 1) + " pixels tall",
+        )
+        var mid = (min_x + max_x) // 2
+        var run = 0
+        for y in range(_H):
+            var p = c.get_pixel(mid, y)
+            if p.r == mark.r and p.g == mark.g and p.b == mark.b:
+                run += 1
+        assert_equal(
+            run,
+            max_y - min_y + 1,
+            (
+                "the middle column has gaps at azim "
+                + String(azim)
+                + ", so the stem is not one unbroken line"
+            ),
+        )
+
+
+def test_a_stems_foot_lands_on_the_base_plane() raises:
+    # Two stems on one (x, y), at z=4 and z=2, so both share a column
+    # and the shorter one's marker sits inside the taller one's stem.
+    # That gives three landmarks down a single column -- z=4, z=2 and
+    # wherever the ink stops -- and equal steps in z have to come out as
+    # equal steps in pixels. If the ink stops at z=1 rather than z=0 the
+    # lower gap is half the upper one.
+    #
+    # Frame-free and scale-free on purpose: it compares two distances
+    # within one render rather than a distance against a number, so it
+    # holds whatever the margins and the fitted scale come to.
+    var xs: List[Float64] = [0.0, 0.0]
+    var ys: List[Float64] = [0.0, 0.0]
+    var zs: List[Float64] = [4.0, 2.0]
+    var c = render(stem3d(xs, ys, zs, width=_W, height=_H))
+    var mark = Theme().mark_color
+
+    # A marker is wider than the stem it caps, so the rows it covers are
+    # the wide ones.
+    var wide = List[Int]()
+    var bottom = -1
+    for y in range(_H):
+        var w = 0
+        for x in range(_W):
+            var p = c.get_pixel(x, y)
+            if p.r == mark.r and p.g == mark.g and p.b == mark.b:
+                w += 1
+        if w > 0:
+            bottom = y
+        if w >= 4:
+            wide.append(y)
+    assert_true(len(wide) > 0, "no marker rows found at all")
+
+    var upper_lo = wide[0]
+    var upper_hi = wide[0]
+    var lower_lo = -1
+    var lower_hi = -1
+    for k in range(1, len(wide)):
+        if wide[k] - wide[k - 1] > 1 and lower_lo < 0:
+            lower_lo = wide[k]
+        if lower_lo < 0:
+            upper_hi = wide[k]
+        else:
+            lower_hi = wide[k]
+    assert_true(
+        lower_lo >= 0, "the two markers did not come out as two clusters"
+    )
+
+    var upper = Float64(upper_lo + upper_hi) / 2.0
+    var lower = Float64(lower_lo + lower_hi) / 2.0
+    var top_gap = lower - upper
+    var foot_gap = Float64(bottom) - lower
+    assert_true(top_gap > 20.0, "the two markers landed on top of each other")
+    var slack = top_gap - foot_gap
+    if slack < 0.0:
+        slack = -slack
+    assert_true(
+        slack <= 4.0,
+        (
+            "z=4 to z=2 is "
+            + String(top_gap)
+            + " pixels but z=2 to the end of the ink is "
+            + String(foot_gap)
+            + " -- the stem does not run down to the base plane"
+        ),
+    )
+
+
+# ==== arrows ====
+
+
+def test_the_box_reaches_an_arrows_tip_not_just_its_tail() raises:
+    # An arrow leaving the box would read as pointing at something
+    # outside the data.
+    var o: List[Float64] = [0.0]
+    var u: List[Float64] = [3.0]
+    var v: List[Float64] = [-2.0]
+    var w: List[Float64] = [5.0]
+    var plot = Plot().mark_quiver3d().encode_vectors3d(o, o, o, u, v, w)
+    var extent = _vectors3d_extent(plot)
+    assert_equal(extent.x.max, 3.0, "the box stops short of the tip in x")
+    assert_equal(extent.y.min, -2.0, "the box stops short of the tip in y")
+    assert_equal(extent.z.max, 5.0, "the box stops short of the tip in z")
+
+
+def _head_ink(tail_x: Float64, tip_x: Float64) raises -> Int:
+    """Pixels an arrowhead alone puts on a blank canvas."""
+    var bg = Color(255, 255, 255)
+    var c = Canvas(80, 80, bg)
+    _draw_arrowhead(c, tail_x, 40.0, tip_x, 40.0, 10.0, Color(0, 0, 0))
+    var ink = 0
+    for y in range(c.height):
+        for x in range(c.width):
+            var p = c.get_pixel(x, y)
+            if p.r != bg.r or p.g != bg.g or p.b != bg.b:
+                ink += 1
+    return ink
+
+
+def test_an_arrow_with_no_length_draws_no_head() raises:
+    # There is no direction to point it, and guessing one would draw an
+    # arrow the data does not support.
+    #
+    # Tested on the head alone rather than through two renders: each
+    # render fits its own box to its own data, so two quiver charts
+    # that differ in an arrow's length differ in scale as well, and
+    # comparing their ink compares the scaling too.
+    #
+    # The perturbation this catches is substituting a direction for the
+    # missing one. Dropping only the early return does *not* fail it --
+    # a unit length puts the head's three corners on the tip and fills
+    # nothing -- so that return is about the division, not about this.
+    assert_equal(
+        _head_ink(40.0, 40.0), 0, "a shaft with no length still got a head"
+    )
+    assert_true(
+        _head_ink(10.0, 60.0) > 20,
+        "a shaft with a direction got no head",
+    )
+
+
+def test_the_six_arrow_columns_must_agree() raises:
+    var three: List[Float64] = [0.0, 1.0, 2.0]
+    var two: List[Float64] = [0.0, 1.0]
+    with assert_raises(contains="w has 2"):
+        _ = render(quiver3d(three, three, three, three, three, two))
+
+
+# ==== ribbons ====
+
+
+def test_a_ribbon_fills_between_the_two_curves() raises:
+    # Two curves a constant distance apart, so the ribbon is a sheet
+    # rather than a line: it has to cover far more than the curves do.
+    var a = List[Float64]()
+    var b = List[Float64]()
+    var flat = List[Float64]()
+    var up = List[Float64]()
+    for i in range(12):
+        a.append(Float64(i))
+        b.append(Float64(i))
+        flat.append(0.0)
+        up.append(4.0)
+    var c = render(
+        fill_between3d(a, flat, flat, b, flat, up, width=_W, height=_H)
+    )
+    var bg = Theme().background
+    var ink = 0
+    for y in range(_H):
+        for x in range(_W):
+            var p = c.get_pixel(x, y)
+            if p.r != bg.r or p.g != bg.g or p.b != bg.b:
+                ink += 1
+    assert_true(
+        ink > 8000,
+        "the ribbon covered only " + String(ink) + " pixels, so it is a line",
+    )
+
+
+def test_a_ribbon_needs_two_samples_to_have_any_surface() raises:
+    var one: List[Float64] = [0.0]
+    with assert_raises(contains="at least 2 samples"):
+        _ = render(fill_between3d(one, one, one, one, one, one))
+
+
+def test_the_six_ribbon_columns_must_agree() raises:
+    var three: List[Float64] = [0.0, 1.0, 2.0]
+    var two: List[Float64] = [0.0, 1.0]
+    with assert_raises(contains="z2 has 2"):
+        _ = render(fill_between3d(three, three, three, three, three, two))
 
 
 def main() raises:
