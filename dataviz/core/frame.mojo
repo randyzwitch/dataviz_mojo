@@ -16,7 +16,7 @@ marks, whose geometry stays in `Float64`.
 """
 
 from std.collections import Dict
-from std.math import cos, pi, sin
+from std.math import ceil, cos, pi, sin
 
 from canvas.color import Color
 from canvas.geometry import round_to_int
@@ -25,7 +25,12 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign, draw_text
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.core.mathtext import _label_requests
+from dataviz.core.mathtext import (
+    _label_requests,
+    _layout_label,
+    _needs_math,
+    _reserve_height,
+)
 from dataviz.core.text import _extend_text_requests
 from dataviz.core.axis_controls import _AxisControls, _override_ticks
 from dataviz.core.axis_position import AxisPosition
@@ -1366,6 +1371,20 @@ def _draw_categorical_axis_frame[
         ) if x_label_rotation
         > 0.0 else 0
     )
+    if x_label_rotation == 0.0:
+        # A label that stacks -- a fraction -- needs more than the one
+        # line the bottom margin allows for (#656). Reserve the tallest
+        # category's excess over that line; a plain label's excess is
+        # zero, so nothing moves for it.
+        var tallest = 0
+        for c in categories:
+            tallest = max(
+                tallest,
+                _reserve_height(
+                    c, sc.font_size, theme.font_family, False, cache=cache
+                ),
+            )
+        x_label_extra_bottom = max(0, tallest - Int(sc.font_size))
 
     var plot_y0 = oy0 + sc.margin_top
     var plot_y1 = oy1 - sc.margin_bottom - x_label_extra_bottom
@@ -1469,12 +1488,29 @@ def _draw_categorical_axis_frame[
                 ),
             )
         else:
+            # Seated by its own ascent when it is math, as the captions
+            # are, so what rises above the line stays under the tick.
+            var baseline = plot_y1 + sc.tick_length + sc.label_gap
+            if _needs_math(categories[i]):
+                baseline += Int(
+                    ceil(
+                        _layout_label(
+                            categories[i],
+                            sc.font_size,
+                            theme.font_family,
+                            False,
+                            cache=cache,
+                        ).ascent
+                    )
+                )
+            else:
+                baseline += Int(sc.font_size)
             _extend_text_requests(
                 text_requests,
                 _label_requests(
                     categories[i],
                     center_px,
-                    plot_y1 + sc.tick_length + sc.label_gap + Int(sc.font_size),
+                    baseline,
                     sc.font_size,
                     theme.text_color,
                     TextAlign.CENTER,
