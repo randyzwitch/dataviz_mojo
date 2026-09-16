@@ -46,8 +46,10 @@ from dataviz import (
     plot3d,
     rugplot,
     scatter3d,
+    bar3d,
     surface3d,
     trisurf3d,
+    voxels,
     wire3d,
     corrplot,
     ecdf,
@@ -499,6 +501,35 @@ def _representative_plot(mark: Mark) raises -> Plot:
         if mark == Mark.SURFACE3D:
             return surface3d(grid, width=_W, height=_H)
         return wire3d(grid, width=_W, height=_H)
+
+    if mark == Mark.BAR3D:
+        # Heights that differ across both axes, so a bar drawn at the
+        # wrong (x, y) or scaled off the wrong column would show. Two
+        # bars are deliberately the tallest and the shortest at
+        # opposite corners, which is what a broken depth sort scrambles.
+        var bx = List[Float64]()
+        var by = List[Float64]()
+        var bz = List[Float64]()
+        for r in range(3):
+            for c in range(4):
+                bx.append(Float64(c))
+                by.append(Float64(r))
+                bz.append(Float64((c * 2 + r * 3) % 5 + 1))
+        return bar3d(bx, by, bz, width=_W, height=_H)
+
+    if mark == Mark.VOXELS:
+        # A staircase, so every layer differs from the one below it and
+        # the culling has both interior and exterior faces to sort out.
+        var grid = List[List[List[Bool]]]()
+        for layer in range(4):
+            var rows = List[List[Bool]]()
+            for row in range(4):
+                var cols = List[Bool]()
+                for col in range(4):
+                    cols.append(col >= layer and row >= layer)
+                rows.append(cols^)
+            grid.append(rows^)
+        return voxels(grid, width=_W, height=_H)
 
     raise Error(
         "test_backend_equivalence: no representative plot for mark value "
