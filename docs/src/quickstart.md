@@ -110,7 +110,7 @@ def main() raises:
 ### Step 4: Changing Point Color and Size
 
 Visual styling lives on `Theme`, applied with `.theme()`. See the
-[`Theme` reference](../dataviz/theme/) for all options.
+[`Theme` reference](../dataviz/core/theme/) for all options.
 
 <div class="dvm-chart-preview"><img src="../examples/quickstart/out_step4.svg" alt="The same scatter plot, now colored seagreen with larger points" /></div>
 
