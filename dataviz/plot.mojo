@@ -6696,11 +6696,10 @@ def render_tight(plot: Plot) raises -> Canvas:
     figure size reserves for a longer title or a legend that is not
     there is trimmed away (#372).
 
-    matplotlib spells this `savefig(bbox_inches="tight")`. The figure is
-    laid out at its full `size()` and then cropped, rather than being
-    laid out smaller -- laying out smaller would change where everything
-    goes, and the crop would chase a moving target instead of framing
-    the figure the caller asked for.
+    The figure is laid out at its full `size()` and then cropped, rather
+    than being laid out smaller -- laying out smaller would change where
+    everything goes, and the crop would chase a moving target instead of
+    framing the figure the caller asked for.
 
     The ink is measured with `_tight_box`, which draws the figure into a
     `BoundsTarget` that paints nothing and keeps the union of the
@@ -7149,9 +7148,9 @@ def save(
 
     `tight=True` crops the output to the figure's ink, trimming the
     whitespace a fixed `size()` reserves for a longer title or an
-    absent legend -- matplotlib's `bbox_inches="tight"` (#372). It
-    applies to every format, because the measurement is taken from the
-    drawing rather than from pixels; see `render_tight()`.
+    absent legend (#372). It applies to every format, because the
+    measurement is taken from the drawing rather than from pixels; see
+    `render_tight()`.
 
     `dpi` applies to the raster formats and says how many pixels one
     inch of the figure gets. The figure's own size is in points, 1/72
