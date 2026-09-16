@@ -176,6 +176,15 @@ def test_the_footprint_follows_the_closest_pair_not_the_average() raises:
     assert_equal(_smallest_gap(spread), 0.25)
 
 
+def test_the_closest_pair_is_found_wherever_it_sits_in_the_input() raises:
+    # The pair need not be adjacent in the caller's order, and repeats
+    # are not a gap of zero.
+    var scattered: List[Float64] = [0.0, 10.0, 0.3, 5.0]
+    assert_equal(_smallest_gap(scattered), 0.3)
+    var repeats: List[Float64] = [2.0, 2.5, 2.0, 2.0]
+    assert_equal(_smallest_gap(repeats), 0.5)
+
+
 def test_one_position_leaves_the_footprint_a_unit_wide() raises:
     # No pair at all, so nothing to be a fraction of.
     var same: List[Float64] = [3.0, 3.0, 3.0]
