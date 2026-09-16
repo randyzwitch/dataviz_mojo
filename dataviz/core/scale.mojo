@@ -483,9 +483,8 @@ def _symlog_forward(value: Float64, linthresh: Float64) -> Float64:
 
     so `+/-t` maps to `+/-1` from both sides and zero maps to zero. The
     linear region therefore occupies exactly as much axis as one decade
-    of the logarithmic region, which is matplotlib's `linscale=1.0` and
-    the only choice that makes the two halves comparable without a
-    second knob.
+    of the logarithmic region. That equal share is the only choice that
+    makes the two halves comparable without a second knob.
 
     Signed data spanning orders of magnitude is the case this exists
     for (#368): a log axis cannot show zero or negative values at all,

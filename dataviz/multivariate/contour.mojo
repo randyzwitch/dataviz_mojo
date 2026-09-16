@@ -42,9 +42,9 @@ struct _ContourData(Copyable, Movable):
     `x`/`y` are the grid's coordinates, one per column and one per row.
     Left empty they *are* the grid indices, which is the behavior
     `contour(z)` has always had. Given, they put the grid on the
-    caller's own axes: `contour(x, y, z)` in matplotlib's terms, and
-    what lets a contour share a frame with a coordinate mark rather
-    than silently equating column 12 with the value 12 (#423).
+    caller's own axes, which is what lets a contour share a frame with
+    a coordinate mark rather than silently equating column 12 with the
+    value 12 (#423).
 
     `levels` empty means "choose them", which `_auto_levels` does from
     `level_count` once the data's range is known at render time.
