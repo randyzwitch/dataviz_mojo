@@ -1047,6 +1047,7 @@ def _render_contour[
         frame.px1,
         frame.py1,
         theme,
+        cache=cache,
     )
 
     return frame.result()
@@ -1155,6 +1156,7 @@ def _render_contourf[
         frame.px1,
         frame.py1,
         theme,
+        cache=cache,
     )
 
     return frame.result()

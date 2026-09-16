@@ -114,6 +114,7 @@ def _render_arc[
             plot_x1,
             plot_y1,
             theme,
+            cache=cache,
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)

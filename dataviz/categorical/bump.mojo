@@ -300,6 +300,7 @@ def _render_bump[
             frame.px1,
             frame.py1,
             theme,
+            cache=cache,
         )
 
     return frame.result()

@@ -243,6 +243,7 @@ def _render_stacked_bar[
             frame.px1,
             frame.py1,
             theme,
+            cache=cache,
         )
 
     return frame.result()
@@ -317,6 +318,7 @@ def _render_horizontal_stacked_bar[
             frame.px1,
             frame.py1,
             theme,
+            cache=cache,
         )
 
     return frame.result()

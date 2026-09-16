@@ -25,6 +25,8 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign, draw_text
 from canvas.vector.draw_target import DrawTarget
 
+from dataviz.core.mathtext import _label_requests
+from dataviz.core.text import _extend_text_requests
 from dataviz.core.axis_controls import _AxisControls, _override_ticks
 from dataviz.core.axis_position import AxisPosition
 from dataviz.basic.continuous import area, line
@@ -1155,16 +1157,20 @@ def _draw_continuous_axis_frame[
                 theme.axis_color,
                 width=sc.scale,
             )
-        text_requests.append(
-            _TextRequest(
+        _extend_text_requests(
+            text_requests,
+            _label_requests(
+                x_labels[i],
                 px,
                 x_axis_y + sc.tick_length + sc.label_gap + Int(sc.font_size),
-                x_labels[i],
-                theme.text_color,
                 sc.font_size,
+                theme.text_color,
                 TextAlign.CENTER,
                 theme.font_family,
-            )
+                False,
+                0.0,
+                cache=cache,
+            ),
         )
 
     # Baseline offset so a label's glyphs sit roughly vertically centered
@@ -1182,16 +1188,20 @@ def _draw_continuous_axis_frame[
                     theme.axis_color,
                     width=sc.scale,
                 )
-            text_requests.append(
-                _TextRequest(
+            _extend_text_requests(
+                text_requests,
+                _label_requests(
+                    y_labels[i],
                     y_axis_x - sc.tick_length - sc.label_gap,
                     py + y_label_baseline_offset,
-                    y_labels[i],
-                    theme.text_color,
                     sc.font_size,
+                    theme.text_color,
                     TextAlign.RIGHT,
                     theme.font_family,
-                )
+                    False,
+                    0.0,
+                    cache=cache,
+                ),
             )
 
     target.end_batch()
@@ -1410,16 +1420,20 @@ def _draw_categorical_axis_frame[
                 theme.axis_color,
                 width=sc.scale,
             )
-        text_requests.append(
-            _TextRequest(
+        _extend_text_requests(
+            text_requests,
+            _label_requests(
+                y_labels[i],
                 plot_x0 - sc.tick_length - sc.label_gap,
                 py + y_label_baseline_offset,
-                y_labels[i],
-                theme.text_color,
                 sc.font_size,
+                theme.text_color,
                 TextAlign.RIGHT,
                 theme.font_family,
-            )
+                False,
+                0.0,
+                cache=cache,
+            ),
         )
 
     for i in range(len(categories)):
@@ -1439,29 +1453,36 @@ def _draw_categorical_axis_frame[
             # character, so the label reads bottom-to-top running away
             # from the tick, the same convention ggplot2's `angle=45,
             # hjust=1` axis text produces.
-            text_requests.append(
-                _TextRequest(
+            _extend_text_requests(
+                text_requests,
+                _label_requests(
+                    categories[i],
                     center_px,
                     plot_y1 + sc.tick_length + sc.label_gap,
-                    categories[i],
-                    theme.text_color,
                     sc.font_size,
+                    theme.text_color,
                     TextAlign.RIGHT,
                     theme.font_family,
-                    rotation=-x_label_rotation,
-                )
+                    False,
+                    -x_label_rotation,
+                    cache=cache,
+                ),
             )
         else:
-            text_requests.append(
-                _TextRequest(
+            _extend_text_requests(
+                text_requests,
+                _label_requests(
+                    categories[i],
                     center_px,
                     plot_y1 + sc.tick_length + sc.label_gap + Int(sc.font_size),
-                    categories[i],
-                    theme.text_color,
                     sc.font_size,
+                    theme.text_color,
                     TextAlign.CENTER,
                     theme.font_family,
-                )
+                    False,
+                    0.0,
+                    cache=cache,
+                ),
             )
 
     target.end_batch()

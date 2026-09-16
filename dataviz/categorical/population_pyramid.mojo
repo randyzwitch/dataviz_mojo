@@ -244,6 +244,7 @@ def _render_population_pyramid[
             frame.px1,
             frame.py1,
             theme,
+            cache=cache,
         )
 
     return frame.result()

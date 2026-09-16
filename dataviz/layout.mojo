@@ -352,7 +352,9 @@ def _measure_alignment_insets(
         var cell_x1 = x_edges[c.col + c.col_span]
         var cell_y0 = y_edges[c.row]
         var cell_y1 = y_edges[c.row + c.row_span] - gutter
-        var frame = _apply_labels(plots[i], cell_x0, cell_y0, cell_x1, cell_y1)
+        var frame = _apply_labels(
+            plots[i], cell_x0, cell_y0, cell_x1, cell_y1, cache=scratch_cache
+        )
         var probe = _render_generic(
             scratch,
             plots[i],
@@ -614,7 +616,9 @@ def _render_cells_generic[
         var laid_x1 = cell_x1 - inset_right[i]
         var laid_y0 = cell_y0 + inset_top[i]
         var laid_y1 = cell_content_y1 - inset_bottom[i]
-        var frame = _apply_labels(plots[i], laid_x0, laid_y0, laid_x1, laid_y1)
+        var frame = _apply_labels(
+            plots[i], laid_x0, laid_y0, laid_x1, laid_y1, cache=cache
+        )
         var cell_result = _render_generic(
             target,
             plots[i],
@@ -638,6 +642,7 @@ def _render_cells_generic[
             cell_result.py0,
             cell_result.px1,
             cell_result.py1,
+            cache=cache,
         )
         # Each cell's annotations draw against that cell's own x/y scale,
         # in the same order a standalone render uses (areas and bands
@@ -646,24 +651,24 @@ def _render_cells_generic[
         var cell_area_requests = List[
             _TextRequest
         ]() if cell_under else _draw_annotation_areas(
-            target, plots[i], cell_result, plots[i]._theme
+            target, plots[i], cell_result, plots[i]._theme, cache=cache
         )
         var cell_band_requests = List[
             _TextRequest
         ]() if cell_under else _draw_annotation_bands(
-            target, plots[i], cell_result, plots[i]._theme
+            target, plots[i], cell_result, plots[i]._theme, cache=cache
         )
         var cell_vline_requests = _draw_annotation_vlines(
-            target, plots[i], cell_result, plots[i]._theme
+            target, plots[i], cell_result, plots[i]._theme, cache=cache
         )
         var cell_line_requests = _draw_annotation_lines(
-            target, plots[i], cell_result, plots[i]._theme
+            target, plots[i], cell_result, plots[i]._theme, cache=cache
         )
         var cell_point_requests = _draw_annotation_points(
-            target, plots[i], cell_result, plots[i]._theme
+            target, plots[i], cell_result, plots[i]._theme, cache=cache
         )
         var cell_best_fit_requests = _draw_annotation_best_fit(
-            target, plots[i], cell_result, plots[i]._theme
+            target, plots[i], cell_result, plots[i]._theme, cache=cache
         )
         _extend_text_requests(text_requests, label_requests)
         _extend_text_requests(text_requests, cell_area_requests)
@@ -867,7 +872,7 @@ def render_grid_svg(
         title,
         cache=cache,
     )
-    _replay_text_requests_svg(svg, text_requests)
+    _replay_text_requests_svg(svg, text_requests, cache)
     return svg^
 
 

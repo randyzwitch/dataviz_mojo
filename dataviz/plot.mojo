@@ -5374,6 +5374,20 @@ struct Plot(Copyable, Movable):
         back to `subtitle` when empty) automatically whenever `title` is set;
         see `accessible_svg_string()`'s own docstring for the full markup.
 
+        Any of the four drawn labels may hold mathematics between `$`
+        signs: `"$\\sigma^2$"`, `"Rate $\\frac{\\Delta y}{\\Delta x}$"`.
+        Inside the dollars, Latin letters are italic variables and
+        everything else upright; `^` and `_` attach scripts, `\\frac{}{}`
+        stacks a fraction, `\\mathrm{}` forces upright text, and
+        `\\alpha`...`\\Omega` and operators such as `\\times`, `\\leq`
+        and `\\sum` name symbols -- the full list is in
+        `dataviz/core/mathtext.mojo`. A lone `$` is a price and stays
+        plain; write `\\$` for a literal one beside math. The space an
+        expression needs above and below the line is measured and
+        reserved. A label that does not parse raises at render time,
+        naming the label and the character, rather than drawing a
+        guess.
+
         Args:
             title: The chart's title. Left empty (the default),
                 reserves no layout space for it.
@@ -6677,7 +6691,7 @@ def _draw_figure_into[
     """
     if fill_background:
         target.fill_rect(ox0, oy0, ox1 - ox0, oy1 - oy0, plot._theme.background)
-    var frame = _apply_labels(plot, ox0, oy0, ox1, oy1)
+    var frame = _apply_labels(plot, ox0, oy0, ox1, oy1, cache=cache)
     var result = _render_generic(
         target,
         plot,
@@ -6689,31 +6703,52 @@ def _draw_figure_into[
         vector_target=vector_target,
     )
     var text = _label_text_requests(
-        plot, ox0, oy0, ox1, oy1, result.px0, result.py0, result.px1, result.py1
+        plot,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        result.px0,
+        result.py0,
+        result.px1,
+        result.py1,
+        cache=cache,
     )
     var under_mark = _filled_annotations_go_under(plot._mark)
     if not under_mark:
         _extend_text_requests(
-            text, _draw_annotation_areas(target, plot, result, plot._theme)
+            text,
+            _draw_annotation_areas(
+                target, plot, result, plot._theme, cache=cache
+            ),
         )
         _extend_text_requests(
-            text, _draw_annotation_bands(target, plot, result, plot._theme)
+            text,
+            _draw_annotation_bands(
+                target, plot, result, plot._theme, cache=cache
+            ),
         )
     _extend_text_requests(
-        text, _draw_annotation_vlines(target, plot, result, plot._theme)
+        text,
+        _draw_annotation_vlines(target, plot, result, plot._theme, cache=cache),
     )
     _extend_text_requests(
-        text, _draw_annotation_lines(target, plot, result, plot._theme)
+        text,
+        _draw_annotation_lines(target, plot, result, plot._theme, cache=cache),
     )
     _extend_text_requests(
-        text, _draw_annotation_points(target, plot, result, plot._theme)
+        text,
+        _draw_annotation_points(target, plot, result, plot._theme, cache=cache),
     )
     _extend_text_requests(
         text,
         _draw_annotation_arrows(target, plot, result, plot._theme, cache=cache),
     )
     _extend_text_requests(
-        text, _draw_annotation_best_fit(target, plot, result, plot._theme)
+        text,
+        _draw_annotation_best_fit(
+            target, plot, result, plot._theme, cache=cache
+        ),
     )
     _extend_text_requests(text, result.text_requests)
     return _DrawnFigure(result.px0, result.py0, result.px1, result.py1, text^)
@@ -6831,6 +6866,16 @@ def _replay_text_requests_bounds(
         Error: Whatever `draw_text` raises.
     """
     for req in requests:
+        if req.is_rule():
+            probe.draw_line_aa(
+                req.x,
+                req.y,
+                req.rule_x2,
+                req.rule_y2,
+                req.color,
+                width=req.rule_thickness,
+            )
+            continue
         probe.draw_text(
             Float64(req.x),
             Float64(req.y),
@@ -6838,6 +6883,7 @@ def _replay_text_requests_bounds(
             req.color,
             req.size,
             family=req.family,
+            slant=req.slant,
             weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
             rotation=req.rotation,
             align=req.align,
@@ -6981,7 +7027,7 @@ def _render_svg_into(
     var drawn = _draw_figure_into(
         svg, plot, ox0, oy0, cx1, cy1, fill_background, True, cache
     )
-    _replay_text_requests_svg(svg, drawn.text)
+    _replay_text_requests_svg(svg, drawn.text, cache)
     return (drawn.px0, drawn.py0, drawn.px1, drawn.py1)
 
 
@@ -7658,10 +7704,14 @@ def _render_generic[
     # join the frame's text requests and are replayed with the rest.
     # Stroked and text annotations still draw after the mark.
     var under = frame.result()
-    var under_areas = _draw_annotation_areas(target, plot, under, theme)
+    var under_areas = _draw_annotation_areas(
+        target, plot, under, theme, cache=cache
+    )
     for k in range(len(under_areas)):
         frame.text_requests.append(under_areas[k].copy())
-    var under_bands = _draw_annotation_bands(target, plot, under, theme)
+    var under_bands = _draw_annotation_bands(
+        target, plot, under, theme, cache=cache
+    )
     for k in range(len(under_bands)):
         frame.text_requests.append(under_bands[k].copy())
 

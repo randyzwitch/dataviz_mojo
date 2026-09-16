@@ -708,6 +708,7 @@ def _draw_point_layer[
                 cursor,
                 legend_y,
                 theme,
+                cache=cache,
             )
         return legend_y
 
@@ -722,13 +723,20 @@ def _draw_point_layer[
             next_y,
             theme,
             shapes=ch.shapes,
+            cache=cache,
         )
         next_y += len(ch.cat.domain) * (
             sc.legend_swatch_size + sc.legend_row_gap
         )
     elif ch.has_color:
         next_y = _draw_continuous_color_legend(
-            target, text_requests, ch.color_scale, legend_x, next_y, theme
+            target,
+            text_requests,
+            ch.color_scale,
+            legend_x,
+            next_y,
+            theme,
+            cache=cache,
         )
     if ch.has_size:
         next_y = _draw_continuous_size_legend(
@@ -739,6 +747,7 @@ def _draw_point_layer[
             legend_x,
             next_y,
             theme,
+            cache=cache,
         )
     return next_y
 

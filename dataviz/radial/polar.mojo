@@ -247,6 +247,7 @@ def _render_polar[
                 plot_x1,
                 plot_y1,
                 theme,
+                cache=cache,
             )
     else:
         var max_r = 0.0

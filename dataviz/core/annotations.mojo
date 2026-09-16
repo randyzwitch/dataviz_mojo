@@ -26,6 +26,8 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign, measure_text
 from canvas.vector.draw_target import DrawTarget
 
+from dataviz.core.mathtext import _label_requests
+from dataviz.core.text import _extend_text_requests
 from dataviz.core.arrow import (
     _ARROW_HEAD_HALF_WIDTH,
     _ARROW_HEAD_LENGTH,
@@ -128,7 +130,12 @@ struct _AnnotationData(Copyable, Movable):
 def _draw_annotation_areas[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, result: _RenderResult, theme: Theme
+    mut target: T,
+    plot: Plot,
+    result: _RenderResult,
+    theme: Theme,
+    *,
+    mut cache: FontCache,
 ) raises -> List[_TextRequest]:
     """Draw every `Plot.annotate_area()` shaded band directly (a `fill_rect`
     needs no text machinery) and return each one's optional label as a
@@ -197,16 +204,20 @@ def _draw_annotation_areas[
         )
         var label = plot._annotations.area_labels[i]
         if label.byte_length() > 0:
-            text_requests.append(
-                _TextRequest(
+            _extend_text_requests(
+                text_requests,
+                _label_requests(
+                    label,
                     result.px1 - sc.label_gap,
                     round_to_int(draw_top) + Int(sc.font_size),
-                    label,
-                    theme.annotation_color,
                     sc.font_size,
+                    theme.annotation_color,
                     TextAlign.RIGHT,
                     theme.font_family,
-                )
+                    False,
+                    0.0,
+                    cache=cache,
+                ),
             )
     return text_requests^
 
@@ -214,7 +225,12 @@ def _draw_annotation_areas[
 def _draw_annotation_bands[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, result: _RenderResult, theme: Theme
+    mut target: T,
+    plot: Plot,
+    result: _RenderResult,
+    theme: Theme,
+    *,
+    mut cache: FontCache,
 ) raises -> List[_TextRequest]:
     """Draw every `Plot.annotate_band()` filled region with the same
     `fill_path_aa` closed-polygon technique `_draw_area_layer` uses,
@@ -323,16 +339,20 @@ def _draw_annotation_bands[
             # off the top would otherwise put its label off the canvas.
             var label_px = min(max(px_upper[mid], px_left), px_right)
             var label_py = min(max(py_upper[mid], py_top), py_bottom)
-            text_requests.append(
-                _TextRequest(
+            _extend_text_requests(
+                text_requests,
+                _label_requests(
+                    label,
                     Int(label_px),
                     Int(label_py) - sc.label_gap,
-                    label,
-                    theme.annotation_color,
                     sc.font_size,
+                    theme.annotation_color,
                     TextAlign.CENTER,
                     theme.font_family,
-                )
+                    False,
+                    0.0,
+                    cache=cache,
+                ),
             )
     return text_requests^
 
@@ -340,7 +360,12 @@ def _draw_annotation_bands[
 def _draw_annotation_lines[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, result: _RenderResult, theme: Theme
+    mut target: T,
+    plot: Plot,
+    result: _RenderResult,
+    theme: Theme,
+    *,
+    mut cache: FontCache,
 ) raises -> List[_TextRequest]:
     """Draw every `Plot.annotate_line()` reference line directly (a
     horizontal `draw_line_aa` needs no text machinery) and return each
@@ -398,16 +423,20 @@ def _draw_annotation_lines[
         )
         var label = plot._annotations.line_labels[i]
         if label.byte_length() > 0:
-            text_requests.append(
-                _TextRequest(
+            _extend_text_requests(
+                text_requests,
+                _label_requests(
+                    label,
                     result.px1 - sc.label_gap,
                     round_to_int(py) - sc.label_gap,
-                    label,
-                    theme.annotation_color,
                     sc.font_size,
+                    theme.annotation_color,
                     TextAlign.RIGHT,
                     theme.font_family,
-                )
+                    False,
+                    0.0,
+                    cache=cache,
+                ),
             )
     return text_requests^
 
@@ -415,7 +444,12 @@ def _draw_annotation_lines[
 def _draw_annotation_vlines[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, result: _RenderResult, theme: Theme
+    mut target: T,
+    plot: Plot,
+    result: _RenderResult,
+    theme: Theme,
+    *,
+    mut cache: FontCache,
 ) raises -> List[_TextRequest]:
     """`_draw_annotation_lines`'s mirror image for `Plot.annotate_vline()`:
     a vertical line at an x `value`, using `result.x_scale`/
@@ -457,16 +491,20 @@ def _draw_annotation_vlines[
         )
         var label = plot._annotations.vline_labels[i]
         if label.byte_length() > 0:
-            text_requests.append(
-                _TextRequest(
+            _extend_text_requests(
+                text_requests,
+                _label_requests(
+                    label,
                     round_to_int(px) + sc.label_gap,
                     py_top + Int(sc.font_size),
-                    label,
-                    theme.annotation_color,
                     sc.font_size,
+                    theme.annotation_color,
                     TextAlign.LEFT,
                     theme.font_family,
-                )
+                    False,
+                    0.0,
+                    cache=cache,
+                ),
             )
     return text_requests^
 
@@ -474,7 +512,12 @@ def _draw_annotation_vlines[
 def _draw_annotation_points[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, result: _RenderResult, theme: Theme
+    mut target: T,
+    plot: Plot,
+    result: _RenderResult,
+    theme: Theme,
+    *,
+    mut cache: FontCache,
 ) raises -> List[_TextRequest]:
     """Draw every `Plot.annotate_point()` marker directly and return each
     one's optional label as a `_TextRequest`. Called last among the
@@ -515,16 +558,20 @@ def _draw_annotation_points[
         target.fill_circle_aa(px, py, radius, theme.annotation_color)
         var label = plot._annotations.point_labels[i]
         if label.byte_length() > 0:
-            text_requests.append(
-                _TextRequest(
+            _extend_text_requests(
+                text_requests,
+                _label_requests(
+                    label,
                     round_to_int(px),
                     round_to_int(py - radius) - sc.label_gap,
-                    label,
-                    theme.annotation_color,
                     sc.font_size,
+                    theme.annotation_color,
                     TextAlign.CENTER,
                     theme.font_family,
-                )
+                    False,
+                    0.0,
+                    cache=cache,
+                ),
             )
     return text_requests^
 
@@ -656,16 +703,20 @@ def _draw_annotation_arrows[
             )
 
         if label_text.byte_length() > 0:
-            text_requests.append(
-                _TextRequest(
+            _extend_text_requests(
+                text_requests,
+                _label_requests(
+                    label_text,
                     round_to_int(lx),
                     round_to_int(ly),
-                    label_text,
-                    theme.annotation_color,
                     sc.font_size,
+                    theme.annotation_color,
                     TextAlign.CENTER,
                     theme.font_family,
-                )
+                    False,
+                    0.0,
+                    cache=cache,
+                ),
             )
     return text_requests^
 
@@ -673,7 +724,12 @@ def _draw_annotation_arrows[
 def _draw_annotation_best_fit[
     T: DrawTarget
 ](
-    mut target: T, plot: Plot, result: _RenderResult, theme: Theme
+    mut target: T,
+    plot: Plot,
+    result: _RenderResult,
+    theme: Theme,
+    *,
+    mut cache: FontCache,
 ) raises -> List[_TextRequest]:
     """Draw `Plot.annotate_best_fit()`'s ordinary-least-squares line and
     return its optional label/equation/R-squared text as `_TextRequest`s.
@@ -812,16 +868,20 @@ def _draw_annotation_best_fit[
     var text_x = max(result.px0, result.px1) - sc.label_gap
     var text_y = py_top + Int(sc.font_size)
     if plot._annotations.best_fit_label.byte_length() > 0:
-        text_requests.append(
-            _TextRequest(
+        _extend_text_requests(
+            text_requests,
+            _label_requests(
+                plot._annotations.best_fit_label,
                 text_x,
                 text_y,
-                plot._annotations.best_fit_label,
-                theme.annotation_color,
                 sc.font_size,
+                theme.annotation_color,
                 TextAlign.RIGHT,
                 theme.font_family,
-            )
+                False,
+                0.0,
+                cache=cache,
+            ),
         )
         text_y += Int(sc.font_size) + sc.label_gap
     if plot._annotations.best_fit_show_equation:
@@ -831,16 +891,20 @@ def _draw_annotation_best_fit[
             eq = "y = " + slope_str + "x + " + _format_fixed(intercept, 3)
         else:
             eq = "y = " + slope_str + "x - " + _format_fixed(-intercept, 3)
-        text_requests.append(
-            _TextRequest(
+        _extend_text_requests(
+            text_requests,
+            _label_requests(
+                eq,
                 text_x,
                 text_y,
-                eq,
-                theme.annotation_color,
                 sc.font_size,
+                theme.annotation_color,
                 TextAlign.RIGHT,
                 theme.font_family,
-            )
+                False,
+                0.0,
+                cache=cache,
+            ),
         )
         text_y += Int(sc.font_size) + sc.label_gap
     if plot._annotations.best_fit_show_r_squared:
@@ -855,16 +919,20 @@ def _draw_annotation_best_fit[
             var deviation = plot._continuous.y[i] - mean_y
             ss_tot += deviation * deviation
         var r_squared = 1.0 if ss_tot == 0.0 else 1.0 - ss_res / ss_tot
-        text_requests.append(
-            _TextRequest(
+        _extend_text_requests(
+            text_requests,
+            _label_requests(
+                "R² = " + _format_fixed(r_squared, 3),
                 text_x,
                 text_y,
-                "R² = " + _format_fixed(r_squared, 3),
-                theme.annotation_color,
                 sc.font_size,
+                theme.annotation_color,
                 TextAlign.RIGHT,
                 theme.font_family,
-            )
+                False,
+                0.0,
+                cache=cache,
+            ),
         )
     return text_requests^
 

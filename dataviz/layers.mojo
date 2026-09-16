@@ -243,14 +243,14 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
     canvas.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
     var sc = _Scaled(plots[0]._theme)
     var y2_title = _secondary_axis_y_title(plots)
-    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1)
+    # One lazily built FontCache for the whole figure; see _render_into.
+    var cache = FontCache()
+    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1, cache=cache)
     if y2_title.byte_length() > 0:
         # Mirrors _apply_labels's extra_left reservation for the primary
         # y_title, on the right edge; _apply_labels only sees plots[0], not the
         # layer that owns the secondary caption.
         frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
-    # One lazily built FontCache for the whole figure; see _render_into.
-    var cache = FontCache()
     var result = _render_layers_generic(
         canvas,
         plots,
@@ -270,6 +270,7 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
         result.py0,
         result.px1,
         result.py1,
+        cache=cache,
     )
     if y2_title.byte_length() > 0:
         # The mirror of _label_text_requests's primary y_title: rotated +pi/2
@@ -305,16 +306,25 @@ def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
     svg.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
     var sc = _Scaled(plots[0]._theme)
     var y2_title = _secondary_axis_y_title(plots)
-    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1)
-    if y2_title.byte_length() > 0:
-        frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
     # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
+    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1, cache=cache)
+    if y2_title.byte_length() > 0:
+        frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
     var result = _render_layers_generic(
         svg, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
     )
     var label_requests = _label_text_requests(
-        plots[0], 0, 0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
+        plots[0],
+        0,
+        0,
+        cx1,
+        cy1,
+        result.px0,
+        result.py0,
+        result.px1,
+        result.py1,
+        cache=cache,
     )
     if y2_title.byte_length() > 0:
         label_requests.append(
@@ -329,8 +339,8 @@ def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
                 rotation=pi / 2.0,
             )
         )
-    _replay_text_requests_svg(svg, label_requests)
-    _replay_text_requests_svg(svg, result.text_requests)
+    _replay_text_requests_svg(svg, label_requests, cache)
+    _replay_text_requests_svg(svg, result.text_requests, cache)
     return svg^
 
 
@@ -356,15 +366,24 @@ def render_layers_pdf(plots: List[Plot]) raises -> PdfCanvas:
     pdf.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
     var sc = _Scaled(plots[0]._theme)
     var y2_title = _secondary_axis_y_title(plots)
-    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1)
+    var cache = FontCache()
+    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1, cache=cache)
     if y2_title.byte_length() > 0:
         frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
-    var cache = FontCache()
     var result = _render_layers_generic(
         pdf, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
     )
     var label_requests = _label_text_requests(
-        plots[0], 0, 0, cx1, cy1, result.px0, result.py0, result.px1, result.py1
+        plots[0],
+        0,
+        0,
+        cx1,
+        cy1,
+        result.px0,
+        result.py0,
+        result.px1,
+        result.py1,
+        cache=cache,
     )
     if y2_title.byte_length() > 0:
         label_requests.append(
@@ -567,6 +586,7 @@ def _render_bar_combo_layers[
             frame.px1 + sc.margin_right,
             frame.py0,
             theme,
+            cache=cache,
         )
 
     _draw_bar_rects(
@@ -1458,6 +1478,7 @@ def _render_layers_generic[
             legend_x,
             legend_y,
             theme,
+            cache=cache,
         )
         legend_y += len(series_names) * (
             sc.legend_swatch_size + sc.legend_row_gap
@@ -1494,12 +1515,12 @@ def _render_layers_generic[
             True,
         )
         var under_areas = _draw_annotation_areas(
-            target, plots[j], under_result, plots[j]._theme
+            target, plots[j], under_result, plots[j]._theme, cache=cache
         )
         for k in range(len(under_areas)):
             text_requests.append(under_areas[k].copy())
         var under_bands = _draw_annotation_bands(
-            target, plots[j], under_result, plots[j]._theme
+            target, plots[j], under_result, plots[j]._theme, cache=cache
         )
         for k in range(len(under_bands)):
             text_requests.append(under_bands[k].copy())
@@ -1646,16 +1667,16 @@ def _render_layers_generic[
         var layer_area_requests = List[_TextRequest]()
         var layer_band_requests = List[_TextRequest]()
         var layer_vline_requests = _draw_annotation_vlines(
-            target, plots[j], layer_result, plots[j]._theme
+            target, plots[j], layer_result, plots[j]._theme, cache=cache
         )
         var layer_line_requests = _draw_annotation_lines(
-            target, plots[j], layer_result, plots[j]._theme
+            target, plots[j], layer_result, plots[j]._theme, cache=cache
         )
         var layer_point_requests = _draw_annotation_points(
-            target, plots[j], layer_result, plots[j]._theme
+            target, plots[j], layer_result, plots[j]._theme, cache=cache
         )
         var layer_best_fit_requests = _draw_annotation_best_fit(
-            target, plots[j], layer_result, plots[j]._theme
+            target, plots[j], layer_result, plots[j]._theme, cache=cache
         )
         _extend_text_requests(text_requests, layer_area_requests)
         _extend_text_requests(text_requests, layer_band_requests)
