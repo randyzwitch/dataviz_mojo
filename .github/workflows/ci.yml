@@ -27,7 +27,7 @@ jobs:
 
       - uses: prefix-dev/setup-pixi@v0.9.0
         with:
-          pixi-version: v0.76.2
+          pixi-version: v0.78.0
           cache: true
 
       - name: Check formatting
@@ -53,7 +53,7 @@ jobs:
 
       - uses: prefix-dev/setup-pixi@v0.9.0
         with:
-          pixi-version: v0.76.2
+          pixi-version: v0.78.0
           cache: true
 
       - name: Check the runner's module-timeout guard
@@ -74,7 +74,7 @@ jobs:
 
       - uses: prefix-dev/setup-pixi@v0.9.0
         with:
-          pixi-version: v0.76.2
+          pixi-version: v0.78.0
           cache: true
 
       # The consumer's path dependency below builds this package with the
@@ -110,9 +110,32 @@ jobs:
               print("consumer ok")
           EOF
 
-      - name: Compile and run the consumer
+      # The build backend runs here, so this is where its output can be
+      # read. Kept as one step for that reason: the backend only builds
+      # on the first `pixi run`, so splitting the assertions into a step
+      # of their own would find nothing to assert against.
+      - name: Compile and run the consumer, and check how it was packaged
         working-directory: ${{ runner.temp }}/consumer
-        run: pixi run mojo run consumer.mojo
+        run: |
+          set -o pipefail
+          pixi run mojo run consumer.mojo 2>&1 | tee build.log
+          # pixi-build-mojo below 0.2.6 packages with `mojo package` into
+          # a .mojopkg and warns twice while doing it (#603). Those
+          # warnings are the only symptom, so without this the backend
+          # can quietly fall back and nothing fails.
+          grep -q "mojo precompile" build.log || {
+            echo "the backend did not use 'mojo precompile' -- it resolved"
+            echo "an older pixi-build-mojo than intended. Check that the"
+            echo "pixi-version above is new enough for the backend's"
+            echo "pixi-build-api-version (7 needs pixi 0.77.0 or later)."
+            exit 1
+          }
+          if grep -qE "'package' is deprecated|'\.mojopkg' file extensions is deprecated" build.log; then
+            echo "the packaging deprecation warnings of #603 are back:"
+            grep -E "deprecated" build.log
+            exit 1
+          fi
+          echo "packaged with precompile, no packaging deprecation warnings"
 
       - name: Assert both outputs exist and are non-empty
         working-directory: ${{ runner.temp }}/consumer
@@ -142,7 +165,7 @@ jobs:
 
       - uses: prefix-dev/setup-pixi@v0.9.0
         with:
-          pixi-version: v0.76.2
+          pixi-version: v0.78.0
           cache: true
 
       - name: Render examples
