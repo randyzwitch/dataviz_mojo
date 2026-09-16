@@ -170,18 +170,53 @@ def test_a_fraction_stacks_around_a_rule_at_the_math_axis() raises:
     assert_true(box.ascent + box.descent > line.ascent + line.descent)
 
 
-def test_letters_are_italic_and_everything_else_upright() raises:
+def test_letters_and_lowercase_greek_are_italic_and_the_rest_upright() raises:
     var cache = FontCache()
     var box = _layout_label(
-        "$x2\\alpha\\mathrm{y}$", _SIZE, "Sans", False, cache=cache
+        "$x2\\alpha\\Omega\\mathrm{y}$", _SIZE, "Sans", False, cache=cache
     )
-    assert_equal(len(box.runs), 4)
+    assert_equal(len(box.runs), 5)
     assert_true(box.runs[0].slant == FontSlant.ITALIC, "a variable is italic")
     assert_true(box.runs[1].slant == FontSlant.NORMAL, "a digit is upright")
-    assert_true(box.runs[2].slant == FontSlant.NORMAL, "Greek is upright")
     assert_true(
-        box.runs[3].slant == FontSlant.NORMAL, "\\mathrm forces upright"
+        box.runs[2].slant == FontSlant.ITALIC, "lowercase Greek is italic"
     )
+    assert_true(
+        box.runs[3].slant == FontSlant.NORMAL, "capital Greek is upright"
+    )
+    assert_true(
+        box.runs[4].slant == FontSlant.NORMAL, "\\mathrm forces upright"
+    )
+
+
+def test_symbols_mean_what_their_names_say() raises:
+    # The three that are easy to get almost right: the ring operator is
+    # not a degree sign, and the two ellipses sit at different heights.
+    var cache = FontCache()
+    var box = _layout_label(
+        "$\\circ\\ldots\\cdots\\degree$", _SIZE, "Sans", False, cache=cache
+    )
+    assert_equal(box.runs[0].text, "∘")
+    assert_equal(box.runs[1].text, "…")
+    assert_equal(box.runs[2].text, "⋯")
+    assert_equal(box.runs[3].text, "°")
+
+
+def test_a_radical_rules_over_its_argument() raises:
+    var cache = FontCache()
+    var box = _layout_label("$\\sqrt{x}$", _SIZE, "Sans", False, cache=cache)
+    assert_equal(len(box.runs), 2)
+    assert_equal(len(box.rules), 1)
+    ref rule = box.rules[0]
+    ref arg = box.runs[1]
+    assert_true(rule.dy < arg.dy, "the rule is not above the argument")
+    assert_true(rule.dx < arg.dx, "the rule does not start over the sign")
+    assert_true(
+        rule.dx + rule.width >= arg.dx + _width("$x$", cache),
+        "the rule stops short of the argument's end",
+    )
+    var bare = _layout_label("$x$", _SIZE, "Sans", False, cache=cache)
+    assert_true(box.ascent > bare.ascent, "the rule did not raise the box")
 
 
 def test_relations_get_room_and_a_unary_minus_does_not() raises:

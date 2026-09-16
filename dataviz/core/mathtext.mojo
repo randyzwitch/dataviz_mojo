@@ -26,11 +26,13 @@ installed one, which is what makes `∑` and `∂` appear at all.
 
 Math is delimited by `$...$`. Inside it:
 
-- Latin letters are italic, as variables; digits, operators and Greek
-  are upright. `\\mathrm{...}` forces upright text.
+- Latin letters and lowercase Greek are italic, as variables; digits,
+  operators and capital Greek are upright. `\\mathrm{...}` forces
+  upright text.
 - `^` and `_` attach a superscript or subscript to the atom before
   them: `x^2`, `x_i`, `x_i^2`, `e^{-t}`.
-- `\\frac{num}{den}` stacks a fraction with a rule at the math axis.
+- `\\frac{num}{den}` stacks a fraction with a rule at the math axis;
+  `\\sqrt{x}` draws the sign with a rule over its argument.
 - `{...}` groups. `\\,` is a thin space. `\\$` is a literal dollar
   sign, inside or outside math.
 - Named symbols: the Greek alphabet (`\\alpha`...`\\omega`,
@@ -44,9 +46,9 @@ something that looks almost right.
 
 ## What is not here
 
-No radicals with a vinculum (`\\sqrt` gives the `√` glyph and nothing
-over its argument), no large operators with limits, no matrices, no
-line breaks inside math. Kerning applies within a run, not across the
+No large operators with limits (`\\sum_i` is a subscript, not a
+limit below), no matrices, no line breaks inside math, and a radical
+sign that does not grow with a tall argument. Kerning applies within a run, not across the
 boundary between a base and its script. Each run is anchored on a
 whole pixel, like every other label.
 """
@@ -96,11 +98,13 @@ stacks the same way a row of "H" does."""
 comptime _MIN_DESCENT = 0.2
 """A run is at least this deep below its baseline, for the same
 reason."""
-comptime _RELATION_SPACE = 0.25
-"""Space on each side of a relation such as `=` or `\\leq`."""
-comptime _BINARY_SPACE = 0.16
-"""Space on each side of a binary operator such as `+` or `\\times`
--- none when it is unary, as the minus in `e^{-t}` is."""
+comptime _RELATION_SPACE = 5.0 / 18.0
+"""Space on each side of a relation such as `=` or `\\leq`: a thick
+space, five eighteenths of an em."""
+comptime _BINARY_SPACE = 4.0 / 18.0
+"""Space on each side of a binary operator such as `+` or `\\times`: a
+medium space, four eighteenths of an em -- and none when it is unary,
+as the minus in `e^{-t}` is."""
 comptime _NO_SPACING = 0
 comptime _BINARY = 1
 comptime _RELATION = 2
@@ -109,6 +113,7 @@ comptime _ROW = 0
 comptime _TEXT = 1
 comptime _SCRIPTS = 2
 comptime _FRAC = 3
+comptime _SQRT = 4
 
 
 struct _Node(Copyable, Movable):
@@ -116,7 +121,7 @@ struct _Node(Copyable, Movable):
     position. `children` are indices into the same arena: a `_ROW`'s
     members in order; a `_SCRIPTS`'s `[base, superscript, subscript]`
     with `-1` for a missing script; a `_FRAC`'s `[numerator,
-    denominator]`. A `_TEXT` holds its run and whether it is forced
+    denominator]`; a `_SQRT`'s `[argument]`. A `_TEXT` holds its run and whether it is forced
     upright; an operator's `spacing` says how much room the row gives
     it on each side.
     """
@@ -371,15 +376,17 @@ def _symbol(name: String) -> String:
         return "∏"
     if name == "int":
         return "∫"
-    if name == "sqrt":
-        return "√"
     if name == "rightarrow" or name == "to":
         return "→"
     if name == "leftarrow":
         return "←"
-    if name == "cdots" or name == "ldots" or name == "dots":
+    if name == "cdots":
         return "⋯"
-    if name == "degree" or name == "circ":
+    if name == "ldots" or name == "dots":
+        return "…"
+    if name == "circ":
+        return "∘"
+    if name == "degree":
         return "°"
     if name == "hbar":
         return "ℏ"
@@ -391,8 +398,6 @@ def _symbol(name: String) -> String:
         return "⊥"
     if name == "parallel":
         return "∥"
-    if name == "minus":
-        return "−"
     return ""
 
 
@@ -642,6 +647,10 @@ struct _Parser(Movable):
             node.children.append(self.parse_argument(upright))
             node.children.append(self.parse_argument(upright))
             return self.add(node^)
+        if name == "sqrt":
+            var node = _Node(_SQRT)
+            node.children.append(self.parse_argument(upright))
+            return self.add(node^)
         if name == "mathrm" or name == "text":
             var c2 = self.peek()
             if c2 != "{":
@@ -654,8 +663,15 @@ struct _Parser(Movable):
         if glyph.byte_length() == 0:
             self.pos = start
             self.fail("unknown command \\" + name)
+        # Lowercase Greek is a variable and italic like a Latin letter;
+        # a capital, an operator or a relation is upright.
         return self.add(
-            _Node(_TEXT, glyph, True, spacing=_spacing_of_char(glyph))
+            _Node(
+                _TEXT,
+                glyph,
+                upright or not _is_lowercase_greek(glyph),
+                spacing=_spacing_of_char(glyph),
+            )
         )
 
 
@@ -674,6 +690,15 @@ def _spacing_of_char(c: String) -> Int:
         if c == op:
             return _BINARY
     return _NO_SPACING
+
+
+def _is_lowercase_greek(c: String) -> Bool:
+    """Whether `c` is a lowercase Greek letter, including the two
+    variant forms `\\epsilon` and `\\phi` produce."""
+    for cp in c.codepoints():
+        var v = Int(cp.to_u32())
+        return (v >= 0x3B1 and v <= 0x3C9) or v == 0x3F5 or v == 0x3D5
+    return False
 
 
 def _is_latin_letter(c: String) -> Bool:
@@ -801,6 +826,37 @@ def _layout(
             box.ascent = max(box.ascent, sub.ascent - drop)
             scripts_width = max(scripts_width, sub.width)
         box.width += kern + scripts_width
+        return box^
+
+    if node.kind == _SQRT:
+        # The sign, the argument beside it, and a rule over the argument
+        # meeting the sign's top. The sign is one glyph and does not
+        # grow with its argument, so a tall argument's rule sits above
+        # where the sign reaches; at one size that is a hair, not a gap.
+        var arg = _layout(
+            nodes, node.children[0], size, family, weight, cache=cache
+        )
+        var sign = _layout_run(
+            "√", size, FontSlant.NORMAL, family, weight, cache=cache
+        )
+        var thickness = max(1.0, _RULE * size)
+        var gap = _FRAC_GAP * size
+        var box = _MathBox()
+        box.place(sign, 0.0, 0.0)
+        box.place(arg, sign.width, 0.0)
+        var rule_dy = -max(arg.ascent + gap, sign.ascent - thickness / 2.0)
+        var overhang = _FRAC_PAD * size
+        box.rules.append(
+            _Rule(
+                sign.width * 0.9,
+                rule_dy,
+                arg.width * 0.1 + arg.width + overhang,
+                thickness,
+            )
+        )
+        box.width = sign.width + arg.width + overhang
+        box.ascent = -rule_dy + thickness / 2.0
+        box.descent = max(sign.descent, arg.descent)
         return box^
 
     # _FRAC

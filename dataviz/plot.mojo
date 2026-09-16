@@ -5376,9 +5376,10 @@ struct Plot(Copyable, Movable):
 
         Any of the four drawn labels may hold mathematics between `$`
         signs: `"$\\sigma^2$"`, `"Rate $\\frac{\\Delta y}{\\Delta x}$"`.
-        Inside the dollars, Latin letters are italic variables and
-        everything else upright; `^` and `_` attach scripts, `\\frac{}{}`
-        stacks a fraction, `\\mathrm{}` forces upright text, and
+        Inside the dollars, Latin letters and lowercase Greek are italic
+        variables and everything else upright; `^` and `_` attach
+        scripts, `\\frac{}{}` stacks a fraction, `\\sqrt{}` draws a
+        radical, `\\mathrm{}` forces upright text, and
         `\\alpha`...`\\Omega` and operators such as `\\times`, `\\leq`
         and `\\sum` name symbols -- the full list is in
         `dataviz/core/mathtext.mojo`. A lone `$` is a price and stays

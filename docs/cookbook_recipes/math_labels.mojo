@@ -1,9 +1,9 @@
 # title: Mathematical Labels
 """Write a title, axis caption, legend entry or annotation as an expression -- subscripts, superscripts, Greek letters and a fraction -- by wrapping it in `$...$`.
 
-Inside the dollars, Latin letters are set italic as variables and
-everything else upright; `^` and `_` attach scripts, `\\frac{a}{b}`
-stacks a fraction, and `\\alpha`, `\\sigma`, `\\Delta` and the like
+Inside the dollars, Latin letters and lowercase Greek are set italic
+as variables and everything else upright; `^` and `_` attach scripts,
+`\\frac{a}{b}` stacks a fraction, `\\sqrt{x}` draws a radical, and `\\alpha`, `\\sigma`, `\\Delta` and the like
 name Greek letters. A lone `$`, as in a price, is left alone; write
 `\\$` for a literal one next to math. Space a label needs above or
 below the line is measured and reserved, so a fraction in a title is
