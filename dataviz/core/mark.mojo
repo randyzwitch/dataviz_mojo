@@ -153,9 +153,13 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
 
     The layout, output-digest, and callback ownership sweeps read this.
     Each walks `Mark(0)` through `Mark(COUNT - 1)` and requires a
-    representative dataset for each, so a mark added without one fails
-    loudly instead of silently going untested. Bump it in the same edit
-    that adds the mark above.
+    representative dataset for each, so a mark *below* `COUNT` added
+    without one fails loudly instead of silently going untested.
+
+    That protection does not reach `COUNT` itself. A mark added at or
+    past it is never visited, so every sweep skips it and nothing fails
+    -- which is how #634 happened. Raise it in the same edit that adds
+    the mark above; #648 tracks a check that would catch forgetting.
     """
 
     def __init__(out self, value: Int):
