@@ -281,6 +281,7 @@ def _render_streamgraph[
             frame.px1,
             frame.py1,
             theme,
+            cache=cache,
         )
 
     return frame.result()

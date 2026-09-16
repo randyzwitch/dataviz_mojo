@@ -18,6 +18,8 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
+from dataviz.core.mathtext import _label_requests
+from dataviz.core.text import _extend_text_requests
 from dataviz.core.color_scale import ColorScale
 from dataviz.basic.continuous import _PointChannels
 from dataviz.core.legend_position import LegendPosition
@@ -255,6 +257,8 @@ def _draw_legend_at[
     plot_y1: Int,
     theme: Theme,
     shapes: List[PointShape] = List[PointShape](),
+    *,
+    mut cache: FontCache,
 ) raises:
     """Draw `labels` on whichever edge `layout` reserved, against a plot
     rect that already has that reserve taken out of it.
@@ -276,6 +280,7 @@ def _draw_legend_at[
         plot_y1: Final plot rect's bottom edge.
         theme: Supplies colors and font.
         shapes: Per-entry `PointShape`s, when the mark draws shapes.
+        cache: The render's shared font cache.
     """
     if not layout.active:
         return
@@ -284,7 +289,15 @@ def _draw_legend_at[
     if not layout.position.is_horizontal():
         var x = _legend_column_x(layout, plot_x0, plot_x1, sc)
         _draw_legend(
-            target, text_requests, labels, palette, x, plot_y0, theme, shapes
+            target,
+            text_requests,
+            labels,
+            palette,
+            x,
+            plot_y0,
+            theme,
+            shapes,
+            cache=cache,
         )
         return
 
@@ -320,16 +333,20 @@ def _draw_legend_at[
             target.fill_rect(
                 x, row_y, sc.legend_swatch_size, sc.legend_swatch_size, color
             )
-        text_requests.append(
-            _TextRequest(
+        _extend_text_requests(
+            text_requests,
+            _label_requests(
+                labels[i],
                 x + sc.legend_swatch_size + sc.label_gap,
                 row_y + sc.legend_swatch_size - 3,
-                labels[i],
-                theme.text_color,
                 sc.font_size,
+                theme.text_color,
                 TextAlign.LEFT,
                 theme.font_family,
-            )
+                False,
+                0.0,
+                cache=cache,
+            ),
         )
         x += layout.entry_widths[i]
 
@@ -345,6 +362,8 @@ def _draw_legend[
     y: Int,
     theme: Theme,
     shapes: List[PointShape] = List[PointShape](),
+    *,
+    mut cache: FontCache,
 ) raises:
     """A swatch+label legend, one row per entry in `labels`, starting at
     (x, y) and growing downward; shared by every mark with a categorical
@@ -374,16 +393,20 @@ def _draw_legend[
             target.fill_rect(
                 x, row_y, sc.legend_swatch_size, sc.legend_swatch_size, color
             )
-        text_requests.append(
-            _TextRequest(
+        _extend_text_requests(
+            text_requests,
+            _label_requests(
+                labels[i],
                 x + sc.legend_swatch_size + sc.label_gap,
                 row_y + sc.legend_swatch_size - 3,
-                labels[i],
-                theme.text_color,
                 sc.font_size,
+                theme.text_color,
                 TextAlign.LEFT,
                 theme.font_family,
-            )
+                False,
+                0.0,
+                cache=cache,
+            ),
         )
 
 
@@ -517,16 +540,20 @@ def _draw_continuous_color_legend_h[
     var high = _format_tick(color_scale.domain_max, 1, theme.y_tick_format)
 
     # Low label, then the bar, then the high label.
-    text_requests.append(
-        _TextRequest(
+    _extend_text_requests(
+        text_requests,
+        _label_requests(
+            low,
             x,
             baseline,
-            low,
-            theme.text_color,
             sc.font_size,
+            theme.text_color,
             TextAlign.LEFT,
             theme.font_family,
-        )
+            False,
+            0.0,
+            cache=cache,
+        ),
     )
     var bar_x = x + _text_advance(low, sc, cache=cache) + sc.label_gap
     # Out-of-range blocks take a slice off each end, under at the left
@@ -595,16 +622,20 @@ def _draw_continuous_color_legend_h[
                 )
 
     var high_x = bar_x + bar_length + sc.label_gap
-    text_requests.append(
-        _TextRequest(
+    _extend_text_requests(
+        text_requests,
+        _label_requests(
+            high,
             high_x,
             baseline,
-            high,
-            theme.text_color,
             sc.font_size,
+            theme.text_color,
             TextAlign.LEFT,
             theme.font_family,
-        )
+            False,
+            0.0,
+            cache=cache,
+        ),
     )
     return high_x + _text_advance(high, sc, cache=cache) + sc.legend_swatch_size
 
@@ -619,6 +650,8 @@ def _draw_continuous_size_legend_h[
     x: Int,
     y: Int,
     theme: Theme,
+    *,
+    mut cache: FontCache,
 ) raises -> Int:
     """`_draw_continuous_size_legend` laid out along a row, for
     `LegendPosition.TOP`/`BOTTOM`: the same three sample circles
@@ -633,6 +666,7 @@ def _draw_continuous_size_legend_h[
         x: Section's left edge.
         y: Section's top edge.
         theme: Supplies colors and font.
+        cache: The render's shared font cache.
 
     Returns:
         The x just past this section.
@@ -651,16 +685,20 @@ def _draw_continuous_size_legend_h[
         var center_x = cursor + max_radius
         var center_y = y + max_radius
         target.fill_circle_aa(center_x, center_y, radius, theme.mark_color)
-        text_requests.append(
-            _TextRequest(
+        _extend_text_requests(
+            text_requests,
+            _label_requests(
+                _format_tick(value, 1, theme.y_tick_format),
                 center_x,
                 center_y + max_radius + Int(sc.font_size),
-                _format_tick(value, 1, theme.y_tick_format),
-                theme.text_color,
                 sc.font_size,
+                theme.text_color,
                 TextAlign.CENTER,
                 theme.font_family,
-            )
+                False,
+                0.0,
+                cache=cache,
+            ),
         )
         cursor = center_x + max_radius + sc.label_gap
     return cursor
@@ -675,6 +713,8 @@ def _draw_continuous_color_legend[
     x: Int,
     y: Int,
     theme: Theme,
+    *,
+    mut cache: FontCache,
 ) raises -> Int:
     """A continuous color legend: a vertical gradient bar
     (`DrawTarget.fill_rect_gradient`) with `color_scale`'s high value at
@@ -769,27 +809,35 @@ def _draw_continuous_color_legend[
     # Labels attach to the ramp's ends, not the bar's: those are the two
     # values the numbers are true of.
     var label_baseline_offset = Int(sc.font_size * 0.35)
-    text_requests.append(
-        _TextRequest(
+    _extend_text_requests(
+        text_requests,
+        _label_requests(
+            _format_tick(color_scale.domain_max, 1, theme.y_tick_format),
             x + bar_width + sc.label_gap,
             ramp_y + label_baseline_offset,
-            _format_tick(color_scale.domain_max, 1, theme.y_tick_format),
-            theme.text_color,
             sc.font_size,
+            theme.text_color,
             TextAlign.LEFT,
             theme.font_family,
-        )
+            False,
+            0.0,
+            cache=cache,
+        ),
     )
-    text_requests.append(
-        _TextRequest(
+    _extend_text_requests(
+        text_requests,
+        _label_requests(
+            _format_tick(color_scale.domain_min, 1, theme.y_tick_format),
             x + bar_width + sc.label_gap,
             ramp_y + ramp_height + label_baseline_offset,
-            _format_tick(color_scale.domain_min, 1, theme.y_tick_format),
-            theme.text_color,
             sc.font_size,
+            theme.text_color,
             TextAlign.LEFT,
             theme.font_family,
-        )
+            False,
+            0.0,
+            cache=cache,
+        ),
     )
 
     if color_scale.has_center:
@@ -805,18 +853,22 @@ def _draw_continuous_color_legend[
                 center_y - ramp_y >= clearance
                 and ramp_y + ramp_height - center_y >= clearance
             ):
-                text_requests.append(
-                    _TextRequest(
-                        x + bar_width + sc.label_gap,
-                        center_y + label_baseline_offset,
+                _extend_text_requests(
+                    text_requests,
+                    _label_requests(
                         _format_tick(
                             color_scale.center, 1, theme.y_tick_format
                         ),
-                        theme.text_color,
+                        x + bar_width + sc.label_gap,
+                        center_y + label_baseline_offset,
                         sc.font_size,
+                        theme.text_color,
                         TextAlign.LEFT,
                         theme.font_family,
-                    )
+                        False,
+                        0.0,
+                        cache=cache,
+                    ),
                 )
     return y + bar_height + sc.legend_row_gap
 
@@ -927,7 +979,7 @@ def _draw_continuous_color_legend_at[
         )
     else:
         _ = _draw_continuous_color_legend(
-            target, text_requests, color_scale, x, y, theme
+            target, text_requests, color_scale, x, y, theme, cache=cache
         )
 
 
@@ -941,6 +993,8 @@ def _draw_continuous_size_legend[
     x: Int,
     y: Int,
     theme: Theme,
+    *,
+    mut cache: FontCache,
 ) raises -> Int:
     """A continuous size legend: three circles at the max, midpoint, and min
     of the size domain (evenly spaced values, not radii), each at
@@ -965,16 +1019,20 @@ def _draw_continuous_size_legend[
         var radius = round_to_int(size_scale.to_pixel(v))
         var center_y = top_y + radius
         target.fill_circle_aa(cx, center_y, radius, theme.mark_color)
-        text_requests.append(
-            _TextRequest(
+        _extend_text_requests(
+            text_requests,
+            _label_requests(
+                _format_tick(v, 1, theme.y_tick_format),
                 cx + radius + sc.label_gap,
                 center_y + label_baseline_offset,
-                _format_tick(v, 1, theme.y_tick_format),
-                theme.text_color,
                 sc.font_size,
+                theme.text_color,
                 TextAlign.LEFT,
                 theme.font_family,
-            )
+                False,
+                0.0,
+                cache=cache,
+            ),
         )
         top_y = center_y + radius + sc.legend_row_gap
     return top_y

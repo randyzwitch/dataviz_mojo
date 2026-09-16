@@ -53,8 +53,9 @@ from dataviz import (
     render_grid_svg,
     scatter,
 )
+from dataviz.plot import render, render_svg
 
-comptime _COMPOSITION_COUNT = 5
+comptime _COMPOSITION_COUNT = 6
 """How many entries `_composition_name` answers for."""
 
 
@@ -83,6 +84,8 @@ def _composition_name(index: Int) raises -> String:
         return "jointplot"
     if index == 4:
         return "clustermap"
+    if index == 5:
+        return "mathtext"
     raise Error("_composition_name(): no composition at index " + String(index))
 
 
@@ -152,6 +155,36 @@ def _matrix() -> List[List[Float64]]:
     return out^
 
 
+def _math_plot() raises -> Plot:
+    """A scatter whose every label is an expression (#371): a
+    superscript and a relation in the title, a fraction on the y
+    caption, a subscript on the x caption, Greek in the legend.
+
+    Not a mark, so the mark sweep never renders one; and every backend
+    lays the runs out from the same requests, so this is the one place
+    the raster and the vector output of an expression are pinned
+    against each other and across platforms. On the dark ground for the
+    reason the other compositions are: a change that only moves the
+    figure background is invisible on white.
+    """
+    var s = _series()
+    var cats = List[String]()
+    for i in range(len(s[0])):
+        cats.append("$\\mu$" if i % 2 == 0 else "$\\sigma^2$")
+    return (
+        Plot()
+        .mark_point()
+        .encode(x=s[0], y=s[1], color_categories=cats)
+        .theme(_dark_ground())
+        .size(360, 280)
+        .labels(
+            title="$E = mc^2$",
+            x_title="$x_i$ (s)",
+            y_title="$\\frac{\\Delta y}{\\Delta x}$",
+        )
+    )
+
+
 def _composition_raster(index: Int) raises -> Canvas:
     """Composition `index` rendered to pixels."""
     if index == 0:
@@ -168,6 +201,8 @@ def _composition_raster(index: Int) raises -> Canvas:
         return jointplot(s[0], s[1], width=360, height=360)
     if index == 4:
         return clustermap(_matrix(), width=420, height=360)
+    if index == 5:
+        return render(_math_plot())
     raise Error(
         "_composition_raster(): no composition at index " + String(index)
     )
@@ -195,4 +230,6 @@ def _composition_svg(index: Int) raises -> SvgCanvas:
         return jointplot_svg(s[0], s[1], width=360, height=360)
     if index == 4:
         return clustermap_svg(_matrix(), width=420, height=360)
+    if index == 5:
+        return render_svg(_math_plot())
     raise Error("_composition_svg(): no composition at index " + String(index))

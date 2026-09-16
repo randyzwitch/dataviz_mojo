@@ -139,6 +139,8 @@ def _draw_series_legend[
     plot_x1: Int,
     plot_y1: Int,
     theme: Theme,
+    *,
+    mut cache: FontCache,
 ) raises:
     """The one legend call `Mark.GROUPED_BAR`/`STACKED_BAR` make in both
     orientations, against the plot rect the legend was already reserved
@@ -155,6 +157,7 @@ def _draw_series_legend[
         plot_x1,
         plot_y1,
         theme,
+        cache=cache,
     )
 
 
@@ -365,6 +368,7 @@ def _render_grouped_bar[
             frame.px1,
             frame.py1,
             theme,
+            cache=cache,
         )
 
     return frame.result()
@@ -443,6 +447,7 @@ def _render_horizontal_grouped_bar[
             frame.px1,
             frame.py1,
             theme,
+            cache=cache,
         )
 
     return frame.result()

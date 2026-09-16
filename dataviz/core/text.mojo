@@ -5,6 +5,14 @@ from std.math import ceil, pi
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
+from canvas.text.font_discovery import FontSlant
+from dataviz.core.mathtext import (
+    _label_requests,
+    _label_width,
+    _layout_label,
+    _needs_math,
+    _reserve_height,
+)
 from canvas.text.render import FontWeight, TextAlign, draw_text, measure_text
 from canvas.vector.draw_target import DrawTarget
 from canvas.vector.pdf import PdfCanvas
@@ -98,11 +106,15 @@ def _max_label_width(
     labels: List[String], font_size: Float64, *, mut cache: FontCache
 ) raises -> Float64:
     """Return the widest rendered label at `font_size` using `cache`."""
+    # Measured in canvas's default face, as `measure_text` did here
+    # before, so a plain label's width is unchanged; a math label is
+    # laid out (#371). That default is not the theme's family, which is
+    # #655.
     var max_width = 0.0
     for label in labels:
-        var m = measure_text(label, font_size, cache=cache)
-        if m.width > max_width:
-            max_width = m.width
+        var w = _label_width(label, font_size, "Sans", False, cache=cache)
+        if w > max_width:
+            max_width = w
     return max_width
 
 
@@ -128,6 +140,10 @@ struct _TextRequest(Copyable, Movable):
     var family: String
     var bold: Bool
     var rotation: Float64
+    var slant: FontSlant
+    var rule_x2: Int
+    var rule_y2: Int
+    var rule_thickness: Float64
 
     def __init__(
         out self,
@@ -140,6 +156,7 @@ struct _TextRequest(Copyable, Movable):
         family: String,
         bold: Bool = False,
         rotation: Float64 = 0.0,
+        slant: FontSlant = FontSlant.NORMAL,
     ):
         self.x = x
         self.y = y
@@ -150,6 +167,44 @@ struct _TextRequest(Copyable, Movable):
         self.family = family
         self.bold = bold
         self.rotation = rotation
+        self.slant = slant
+        self.rule_x2 = 0
+        self.rule_y2 = 0
+        self.rule_thickness = 0.0
+
+    @staticmethod
+    def rule(
+        x: Int, y: Int, x2: Int, y2: Int, thickness: Float64, color: Color
+    ) -> Self:
+        """A fraction bar rather than text: a line from `(x, y)` to
+        `(x2, y2)`, `thickness` wide, replayed with each backend's
+        anti-aliased line rather than its text call (#371).
+
+        A request rather than a separate list because a bar belongs
+        between the runs above and below it in the one ordered list
+        every replay walks, and because the replays are where the
+        backend is known.
+
+        Args:
+            x: Start x.
+            y: Start y.
+            x2: End x.
+            y2: End y.
+            thickness: Line width in pixels.
+            color: Line color.
+
+        Returns:
+            The request.
+        """
+        var req = Self(x, y, "", color, 0.0, TextAlign.LEFT, "")
+        req.rule_x2 = x2
+        req.rule_y2 = y2
+        req.rule_thickness = thickness
+        return req^
+
+    def is_rule(self) -> Bool:
+        """Whether this request is a fraction bar, not text."""
+        return self.rule_thickness > 0.0
 
 
 def _text_advance(
@@ -204,7 +259,7 @@ struct _LabelsFrame(Movable):
 
 
 def _apply_labels(
-    plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int
+    plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int, *, mut cache: FontCache
 ) raises -> _LabelsFrame:
     """Reserve margin space for `Plot.labels()`'s chart/axis titles, given
     the original outer bounds. Called by `_render_into`/
@@ -232,27 +287,59 @@ def _apply_labels(
             " pie/donut chart"
         )
 
-    var sc = _Scaled(plot._theme)
-    var extra_top = (
-        Int(sc.title_font_size)
-        + sc.label_gap if plot._labels.title.byte_length()
-        > 0 else 0
-    )
-    extra_top += (
-        Int(sc.subtitle_font_size)
-        + sc.label_gap if plot._labels.subtitle.byte_length()
-        > 0 else 0
-    )
-    var extra_bottom = (
-        Int(sc.axis_title_font_size)
-        + sc.label_gap if plot._labels.x_title.byte_length()
-        > 0 else 0
-    )
-    var extra_left = (
-        Int(sc.axis_title_font_size)
-        + sc.label_gap if plot._labels.y_title.byte_length()
-        > 0 else 0
-    )
+    var theme = plot._theme
+    var sc = _Scaled(theme)
+    # Each band is the font size for a plain label, as it always was,
+    # and the expression's full height for a math one (#371): a
+    # fraction or a superscript reaches past a one-line band and would
+    # be clipped by it.
+    var extra_top = 0
+    if plot._labels.title.byte_length() > 0:
+        extra_top += (
+            _reserve_height(
+                plot._labels.title,
+                sc.title_font_size,
+                theme.font_family,
+                theme.title_bold,
+                cache=cache,
+            )
+            + sc.label_gap
+        )
+    if plot._labels.subtitle.byte_length() > 0:
+        extra_top += (
+            _reserve_height(
+                plot._labels.subtitle,
+                sc.subtitle_font_size,
+                theme.font_family,
+                False,
+                cache=cache,
+            )
+            + sc.label_gap
+        )
+    var extra_bottom = 0
+    if plot._labels.x_title.byte_length() > 0:
+        extra_bottom = (
+            _reserve_height(
+                plot._labels.x_title,
+                sc.axis_title_font_size,
+                theme.font_family,
+                False,
+                cache=cache,
+            )
+            + sc.label_gap
+        )
+    var extra_left = 0
+    if plot._labels.y_title.byte_length() > 0:
+        extra_left = (
+            _reserve_height(
+                plot._labels.y_title,
+                sc.axis_title_font_size,
+                theme.font_family,
+                False,
+                cache=cache,
+            )
+            + sc.label_gap
+        )
 
     return _LabelsFrame(
         ox0 + extra_left, oy0 + extra_top, ox1, oy1 - extra_bottom
@@ -269,6 +356,8 @@ def _label_text_requests(
     py0: Int,
     px1: Int,
     py1: Int,
+    *,
+    mut cache: FontCache,
 ) raises -> List[_TextRequest]:
     """Build `Plot.labels()`'s title/subtitle/x_title/y_title
     `_TextRequest`s after `_render_generic` returns. Each title's
@@ -281,65 +370,145 @@ def _label_text_requests(
     var sc = _Scaled(theme)
     var text_requests = List[_TextRequest]()
 
+    # A plain label's baseline sits where it always did -- 0.8 of the
+    # size below the top of its band, 0.25 above the bottom for the x
+    # caption. A math label's baseline is placed by its own ascent and
+    # descent instead, so what rises above or hangs below the line
+    # stays inside the band `_apply_labels` reserved for it (#371).
     if plot._labels.title.byte_length() > 0:
-        text_requests.append(
-            _TextRequest(
-                (px0 + px1) // 2,
-                oy0 + Int(sc.title_font_size * 0.8),
+        var baseline = Int(sc.title_font_size * 0.8)
+        if _needs_math(plot._labels.title):
+            baseline = Int(
+                ceil(
+                    _layout_label(
+                        plot._labels.title,
+                        sc.title_font_size,
+                        theme.font_family,
+                        theme.title_bold,
+                        cache=cache,
+                    ).ascent
+                )
+            )
+        _extend_text_requests(
+            text_requests,
+            _label_requests(
                 plot._labels.title,
-                theme.text_color,
+                (px0 + px1) // 2,
+                oy0 + baseline,
                 sc.title_font_size,
+                theme.text_color,
                 TextAlign.CENTER,
                 theme.font_family,
-                bold=theme.title_bold,
-            )
+                theme.title_bold,
+                0.0,
+                cache=cache,
+            ),
         )
 
     if plot._labels.subtitle.byte_length() > 0:
         # Stacks directly below the title's reserved band, which is 0 when
         # there is no title, so a lone subtitle draws at the very top.
-        var title_band = (
-            Int(sc.title_font_size)
-            + sc.label_gap if plot._labels.title.byte_length()
-            > 0 else 0
-        )
-        text_requests.append(
-            _TextRequest(
-                (px0 + px1) // 2,
-                oy0 + title_band + Int(sc.subtitle_font_size * 0.8),
+        var title_band = 0
+        if plot._labels.title.byte_length() > 0:
+            title_band = (
+                _reserve_height(
+                    plot._labels.title,
+                    sc.title_font_size,
+                    theme.font_family,
+                    theme.title_bold,
+                    cache=cache,
+                )
+                + sc.label_gap
+            )
+        var baseline = Int(sc.subtitle_font_size * 0.8)
+        if _needs_math(plot._labels.subtitle):
+            baseline = Int(
+                ceil(
+                    _layout_label(
+                        plot._labels.subtitle,
+                        sc.subtitle_font_size,
+                        theme.font_family,
+                        False,
+                        cache=cache,
+                    ).ascent
+                )
+            )
+        _extend_text_requests(
+            text_requests,
+            _label_requests(
                 plot._labels.subtitle,
-                theme.subtitle_color,
+                (px0 + px1) // 2,
+                oy0 + title_band + baseline,
                 sc.subtitle_font_size,
+                theme.subtitle_color,
                 TextAlign.CENTER,
                 theme.font_family,
-            )
+                False,
+                0.0,
+                cache=cache,
+            ),
         )
 
     if plot._labels.x_title.byte_length() > 0:
-        text_requests.append(
-            _TextRequest(
-                (px0 + px1) // 2,
-                oy1 - Int(sc.axis_title_font_size * 0.25),
+        var above_bottom = Int(sc.axis_title_font_size * 0.25)
+        if _needs_math(plot._labels.x_title):
+            above_bottom = Int(
+                ceil(
+                    _layout_label(
+                        plot._labels.x_title,
+                        sc.axis_title_font_size,
+                        theme.font_family,
+                        False,
+                        cache=cache,
+                    ).descent
+                )
+            )
+        _extend_text_requests(
+            text_requests,
+            _label_requests(
                 plot._labels.x_title,
-                theme.text_color,
+                (px0 + px1) // 2,
+                oy1 - above_bottom,
                 sc.axis_title_font_size,
+                theme.text_color,
                 TextAlign.CENTER,
                 theme.font_family,
-            )
+                False,
+                0.0,
+                cache=cache,
+            ),
         )
 
     if plot._labels.y_title.byte_length() > 0:
-        text_requests.append(
-            _TextRequest(
-                ox0 + Int(sc.axis_title_font_size * 0.8),
-                (py0 + py1) // 2,
+        # Rotated a quarter turn counterclockwise, the caption's ascent
+        # points left, so its anchor sits that far in from the edge.
+        var from_edge = Int(sc.axis_title_font_size * 0.8)
+        if _needs_math(plot._labels.y_title):
+            from_edge = Int(
+                ceil(
+                    _layout_label(
+                        plot._labels.y_title,
+                        sc.axis_title_font_size,
+                        theme.font_family,
+                        False,
+                        cache=cache,
+                    ).ascent
+                )
+            )
+        _extend_text_requests(
+            text_requests,
+            _label_requests(
                 plot._labels.y_title,
-                theme.text_color,
+                ox0 + from_edge,
+                (py0 + py1) // 2,
                 sc.axis_title_font_size,
+                theme.text_color,
                 TextAlign.CENTER,
                 theme.font_family,
-                rotation=-pi / 2.0,
-            )
+                False,
+                -pi / 2.0,
+                cache=cache,
+            ),
         )
 
     return text_requests^
@@ -353,6 +522,16 @@ def _replay_text_requests(
     labels. Shared by every raster entry point.
     """
     for req in requests:
+        if req.is_rule():
+            canvas.draw_line_aa(
+                req.x,
+                req.y,
+                req.rule_x2,
+                req.rule_y2,
+                req.color,
+                width=req.rule_thickness,
+            )
+            continue
         draw_text(
             canvas,
             req.x,
@@ -362,6 +541,7 @@ def _replay_text_requests(
             req.size,
             align=req.align,
             family=req.family,
+            slant=req.slant,
             weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
             rotation=req.rotation,
             cache=cache,
@@ -369,13 +549,46 @@ def _replay_text_requests(
 
 
 def _replay_text_requests_svg(
-    mut svg: SvgCanvas, requests: List[_TextRequest]
+    mut svg: SvgCanvas, requests: List[_TextRequest], mut cache: FontCache
 ) raises:
     """`_replay_text_requests`' counterpart for `SvgCanvas`, via
     `SvgCanvas.draw_text`. A separate function because `DrawTarget` has
     no `draw_text` to dispatch through.
+
+    Two forms of `draw_text` are used. An upright label takes the
+    whole-pixel form it always has, so its markup is unchanged. An
+    italic run -- a variable in a math label (#371) -- takes the
+    `DrawTarget` form, which is the only one with a `slant`; it anchors
+    at the same pixel and differs only in printing that coordinate
+    with decimals. `cache` is for that form's signature; SVG resolves
+    no fonts through it.
     """
     for req in requests:
+        if req.is_rule():
+            svg.draw_line_aa(
+                req.x,
+                req.y,
+                req.rule_x2,
+                req.rule_y2,
+                req.color,
+                width=req.rule_thickness,
+            )
+            continue
+        if req.slant != FontSlant.NORMAL:
+            svg.draw_text(
+                Float64(req.x),
+                Float64(req.y),
+                req.text,
+                req.color,
+                req.size,
+                family=req.family,
+                slant=req.slant,
+                weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+                rotation=req.rotation,
+                align=req.align,
+                cache=cache,
+            )
+            continue
         svg.draw_text(
             req.x,
             req.y,
@@ -399,6 +612,16 @@ def _replay_text_requests_pdf(
     dispatch through.
     """
     for req in requests:
+        if req.is_rule():
+            pdf.draw_line_aa(
+                req.x,
+                req.y,
+                req.rule_x2,
+                req.rule_y2,
+                req.color,
+                width=req.rule_thickness,
+            )
+            continue
         pdf.draw_text(
             Float64(req.x),
             Float64(req.y),
@@ -407,6 +630,7 @@ def _replay_text_requests_pdf(
             req.size,
             align=req.align,
             family=req.family,
+            slant=req.slant,
             weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
             rotation=req.rotation,
         )

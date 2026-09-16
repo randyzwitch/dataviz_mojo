@@ -386,6 +386,7 @@ def _cookbook_categories() -> List[Category]:
                 "annotation_colors",
                 "data_labels",
                 "point_labels",
+                "math_labels",
             ],
         )
     )

@@ -213,7 +213,7 @@ def render_facets_svg(
         title,
         cache=cache,
     )
-    _replay_text_requests_svg(svg, text_requests)
+    _replay_text_requests_svg(svg, text_requests, cache)
     return svg^
 
 
