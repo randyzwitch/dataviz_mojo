@@ -63,7 +63,8 @@ description = "Grammar-of-graphics-flavored chart building for Mojo, built on ca
 license = "MIT"
 
 [package.build]
-backend = { name = "pixi-build-mojo", version = "0.*" }
+# 0.2.7 uses both `mojo precompile` and `.mojoc` with Mojo 1.0 (#603).
+backend = { name = "pixi-build-mojo", version = ">=0.2.7,<1" }
 source = { path = "." }
 
 [package.build.config.pkg]
