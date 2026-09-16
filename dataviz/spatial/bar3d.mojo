@@ -319,13 +319,18 @@ def _smallest_gap(values: List[Float64]) -> Float64:
     pair -- one crowded row is what makes a figure unreadable, and the
     rest of it having room does not help.
     """
+    # Sorted, the closest pair is adjacent, so one pass finds it. The
+    # first version compared every pair -- quadratic in the bar count,
+    # twice per render -- which a 100-by-100 lattice turned into a
+    # hundred million comparisons for a number that takes one sort
+    # (#647). Equal neighbors are skipped, not counted as a gap of zero.
+    var sorted_values = values.copy()
+    sort(sorted_values)
     var gap = 0.0
-    for i in range(len(values)):
-        for j in range(i + 1, len(values)):
-            var d = values[i] - values[j]
-            var mag = -d if d < 0.0 else d
-            if mag > 0.0 and (gap == 0.0 or mag < gap):
-                gap = mag
+    for i in range(1, len(sorted_values)):
+        var d = sorted_values[i] - sorted_values[i - 1]
+        if d > 0.0 and (gap == 0.0 or d < gap):
+            gap = d
     return gap if gap > 0.0 else 1.0
 
 
