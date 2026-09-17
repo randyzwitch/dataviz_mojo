@@ -58,12 +58,7 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("scatter", "basic/continuous", "scatter"),
         ExamplePage("line", "basic/continuous", "line"),
         ExamplePage("slope", "basic/continuous", "line", block="Slope Chart"),
-        ExamplePage("step", "basic/continuous", "line", block="Step Chart"),
-        ExamplePage("line_time", "basic/continuous", "line", block="Time Axis"),
         ExamplePage("area", "basic/continuous", "area"),
-        ExamplePage(
-            "step_area", "basic/continuous", "area", block="Stepped Area Chart"
-        ),
         ExamplePage("bar", "basic/bar", "bar"),
         ExamplePage("pie", "basic/arc", "pie"),
         ExamplePage("lollipop", "categorical/lollipop", "lollipop"),
@@ -145,30 +140,6 @@ def _pages() -> List[ExamplePage]:
         ExamplePage("graph", "relationships/graph", "graph"),
         ExamplePage("sankey", "relationships/sankey", "sankey"),
         ExamplePage("histogram", "binned/histogram", "histogram"),
-        ExamplePage(
-            "histogram_shared",
-            "binned/histogram",
-            "histogram",
-            block="Shared Bins",
-        ),
-        ExamplePage(
-            "histogram_auto",
-            "binned/histogram",
-            "histogram",
-            block="Automatic Bins",
-        ),
-        ExamplePage(
-            "histogram_density",
-            "binned/histogram",
-            "histogram",
-            block="With a Density Curve",
-        ),
-        ExamplePage(
-            "histogram_horizontal",
-            "binned/histogram",
-            "histogram",
-            block="Horizontal",
-        ),
         ExamplePage("grouped_bar", "categorical/grouped_bar", "grouped_bar"),
         ExamplePage("stacked_bar", "categorical/stacked_bar", "stacked_bar"),
         # Cookbook recipes are discovered from docs/cookbook_recipes/.
