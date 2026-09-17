@@ -323,3 +323,67 @@ does not. At gridsize 30 on a 420x320 render, six channel values out of
 That is anti-aliased coverage being accumulated in a different order,
 which is a floating-point artifact rather than a geometry change. It is
 recorded because it is real, not because it is visible.
+
+### Plot's 36 payload fields as one Variant, compile time, copy cost, render time (2026-09-17)
+
+AMD Threadripper 3970X, Linux, Mojo 1.0.0, canvas_mojo v0.38.0. #223's
+option 2, prototyped on `proto/mark-data-variant-223` (`7de5d95`) against
+main at `a34d16f`: `Plot` carries one `_data: Variant[_NoData, ...]` over
+the 36 per-mark payload structs instead of a field per mark. The builder
+writes through `_slot[T]()`, which makes the payload fresh when the plot
+held another mark's; readers name the alternative, `plot._data[_BoxData]`.
+814 read sites, 188 builder writes, 14 "forgot `encode_*()`" guards, 23
+reader files that now import a payload type. Output digest unchanged,
+suite green.
+
+Harness in `benchmarks/issue223/`: the #607 compile harness with its tree
+guards changed. Three cold builds per program and tree, alternating,
+each tree's private cache cleared before every build, program stdout
+compared across all 36 builds.
+
+| case | main wall median [range], s | prototype wall median [range], s | main / prototype CPU median, s | main / prototype bytes |
+| --- | ---: | ---: | ---: | ---: |
+| line_both | 29.83 [29.54–49.57] | 29.27 [29.21–29.46] | 90.63 / 90.53 | 1,739,040 / 1,713,568 |
+| line_svg | 22.56 [22.38–22.65] | 22.19 [21.86–22.33] | 68.78 / 68.15 | 1,147,312 / 1,121,792 |
+| line_pdf | 24.54 [24.35–24.75] | 23.97 [23.81–24.43] | 70.86 / 72.17 | 1,282,912 / 1,257,392 |
+| hexbin_both | 31.48 [31.05–31.69] | 31.17 [30.56–31.50] | 92.51 / 95.19 | 1,928,744 / 1,908,160 |
+| hexbin_svg | 27.41 [27.34–27.70] | 27.24 [27.03–27.55] | 80.54 / 84.00 | 1,577,160 / 1,560,608 |
+| hexbin_pdf | 29.36 [29.04–29.98] | 29.03 [28.89–29.34] | 87.36 / 87.49 | 1,727,112 / 1,710,560 |
+
+**No measurable difference in compile time.** Wall medians are within
+0.6 s and the ranges overlap; CPU medians are within 4 s and cross sign.
+The baseline's 49.57 s is the environment's first-ever build and sits in
+the range column, not the median; its other two runs were 29.8 and 29.5 s.
+Binaries are 16 to 26 KB smaller (1 to 2%), the same size on every build
+of a side.
+
+`size_of[Plot]` falls from 6,912 to 3,840 bytes. Copying a small line
+plot takes 345 ns against 974, a small surface3d plot 431 against 1,014
+(median of five passes of 20,000 copies). A copy precedes a render of 1
+to 10 ms, so this is not visible end to end.
+
+Render time, 2,000 points or a 64x64 grid, 41 samples per process,
+three alternating processes per side, medians of the per-process
+medians:
+
+| mark | backend | main ms [range] | prototype ms [range] | change |
+| --- | --- | ---: | ---: | ---: |
+| line | raster | 2.699 [2.686–2.713] | 2.512 [2.507–2.519] | -6.9% |
+| line | svg | 1.252 [1.244–1.255] | 1.306 [1.267–1.310] | +4.3% |
+| hexbin | raster | 6.899 [6.766–6.930] | 6.919 [6.633–6.941] | +0.3% |
+| hexbin | svg | 2.745 [2.736–2.747] | 2.829 [2.799–2.862] | +3.1% |
+| scatter3d | raster | 9.366 [9.239–9.761] | 9.501 [9.462–9.619] | +1.4% |
+| scatter3d | svg | 1.640 [1.640–1.659] | 1.652 [1.644–1.664] | +0.7% |
+| heatmap | raster | 2.448 [2.443–2.494] | 2.474 [2.460–2.484] | +1.1% |
+| heatmap | svg | 2.623 [2.611–2.683] | 2.678 [2.658–2.691] | +2.1% |
+
+Within 7% with mixed sign. `line` holds no payload and moves as much as
+the marks that read one per point or per cell, so the tag check on every
+`_data[T]` read is not visible above the noise of the layout change.
+
+What the prototype found that a design discussion would not: a Variant
+read of an alternative the plot does not hold aborts the process
+(`get: wrong variant type`), where an empty default struct used to raise
+a catchable error. Fourteen "forgot `encode_*()`" guards had to check
+`isa` before reading, and any unguarded cross-payload read -- the suite
+found none -- becomes an abort rather than empty data.

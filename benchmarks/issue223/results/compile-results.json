@@ -1,0 +1,326 @@
+[
+  {
+    "case": "line_both",
+    "tree": "baseline",
+    "run": 1,
+    "wall_s": 49.57,
+    "cpu_s": 88.51,
+    "max_rss_kb": 1172240.0,
+    "bytes": 1739040
+  },
+  {
+    "case": "line_both",
+    "tree": "prototype",
+    "run": 1,
+    "wall_s": 29.46,
+    "cpu_s": 89.47,
+    "max_rss_kb": 1263824.0,
+    "bytes": 1713568
+  },
+  {
+    "case": "line_svg",
+    "tree": "baseline",
+    "run": 1,
+    "wall_s": 22.56,
+    "cpu_s": 67.97,
+    "max_rss_kb": 1015112.0,
+    "bytes": 1147312
+  },
+  {
+    "case": "line_svg",
+    "tree": "prototype",
+    "run": 1,
+    "wall_s": 22.33,
+    "cpu_s": 67.85,
+    "max_rss_kb": 1112736.0,
+    "bytes": 1121792
+  },
+  {
+    "case": "line_pdf",
+    "tree": "baseline",
+    "run": 1,
+    "wall_s": 24.54,
+    "cpu_s": 70.99000000000001,
+    "max_rss_kb": 1082432.0,
+    "bytes": 1282912
+  },
+  {
+    "case": "line_pdf",
+    "tree": "prototype",
+    "run": 1,
+    "wall_s": 24.43,
+    "cpu_s": 73.23,
+    "max_rss_kb": 1068044.0,
+    "bytes": 1257392
+  },
+  {
+    "case": "hexbin_both",
+    "tree": "baseline",
+    "run": 1,
+    "wall_s": 31.05,
+    "cpu_s": 92.02000000000001,
+    "max_rss_kb": 1376616.0,
+    "bytes": 1928744
+  },
+  {
+    "case": "hexbin_both",
+    "tree": "prototype",
+    "run": 1,
+    "wall_s": 31.5,
+    "cpu_s": 96.77,
+    "max_rss_kb": 1326332.0,
+    "bytes": 1908160
+  },
+  {
+    "case": "hexbin_svg",
+    "tree": "baseline",
+    "run": 1,
+    "wall_s": 27.7,
+    "cpu_s": 83.07000000000001,
+    "max_rss_kb": 1256744.0,
+    "bytes": 1577160
+  },
+  {
+    "case": "hexbin_svg",
+    "tree": "prototype",
+    "run": 1,
+    "wall_s": 27.24,
+    "cpu_s": 85.03,
+    "max_rss_kb": 1253776.0,
+    "bytes": 1560608
+  },
+  {
+    "case": "hexbin_pdf",
+    "tree": "baseline",
+    "run": 1,
+    "wall_s": 29.98,
+    "cpu_s": 87.81,
+    "max_rss_kb": 1280868.0,
+    "bytes": 1727112
+  },
+  {
+    "case": "hexbin_pdf",
+    "tree": "prototype",
+    "run": 1,
+    "wall_s": 29.34,
+    "cpu_s": 88.4,
+    "max_rss_kb": 1234740.0,
+    "bytes": 1710560
+  },
+  {
+    "case": "line_both",
+    "tree": "prototype",
+    "run": 2,
+    "wall_s": 29.21,
+    "cpu_s": 90.88999999999999,
+    "max_rss_kb": 1244232.0,
+    "bytes": 1713568
+  },
+  {
+    "case": "line_both",
+    "tree": "baseline",
+    "run": 2,
+    "wall_s": 29.83,
+    "cpu_s": 91.09,
+    "max_rss_kb": 1280076.0,
+    "bytes": 1739040
+  },
+  {
+    "case": "line_svg",
+    "tree": "prototype",
+    "run": 2,
+    "wall_s": 22.19,
+    "cpu_s": 69.86,
+    "max_rss_kb": 993312.0,
+    "bytes": 1121792
+  },
+  {
+    "case": "line_svg",
+    "tree": "baseline",
+    "run": 2,
+    "wall_s": 22.65,
+    "cpu_s": 69.39,
+    "max_rss_kb": 1000600.0,
+    "bytes": 1147312
+  },
+  {
+    "case": "line_pdf",
+    "tree": "prototype",
+    "run": 2,
+    "wall_s": 23.81,
+    "cpu_s": 70.94,
+    "max_rss_kb": 1077324.0,
+    "bytes": 1257392
+  },
+  {
+    "case": "line_pdf",
+    "tree": "baseline",
+    "run": 2,
+    "wall_s": 24.75,
+    "cpu_s": 70.78,
+    "max_rss_kb": 1005220.0,
+    "bytes": 1282912
+  },
+  {
+    "case": "hexbin_both",
+    "tree": "prototype",
+    "run": 2,
+    "wall_s": 30.56,
+    "cpu_s": 95.19,
+    "max_rss_kb": 1392068.0,
+    "bytes": 1908160
+  },
+  {
+    "case": "hexbin_both",
+    "tree": "baseline",
+    "run": 2,
+    "wall_s": 31.69,
+    "cpu_s": 93.01,
+    "max_rss_kb": 1337756.0,
+    "bytes": 1928744
+  },
+  {
+    "case": "hexbin_svg",
+    "tree": "prototype",
+    "run": 2,
+    "wall_s": 27.55,
+    "cpu_s": 84.0,
+    "max_rss_kb": 1203200.0,
+    "bytes": 1560608
+  },
+  {
+    "case": "hexbin_svg",
+    "tree": "baseline",
+    "run": 2,
+    "wall_s": 27.41,
+    "cpu_s": 80.41,
+    "max_rss_kb": 1225112.0,
+    "bytes": 1577160
+  },
+  {
+    "case": "hexbin_pdf",
+    "tree": "prototype",
+    "run": 2,
+    "wall_s": 28.89,
+    "cpu_s": 87.21000000000001,
+    "max_rss_kb": 1307996.0,
+    "bytes": 1710560
+  },
+  {
+    "case": "hexbin_pdf",
+    "tree": "baseline",
+    "run": 2,
+    "wall_s": 29.04,
+    "cpu_s": 85.14999999999999,
+    "max_rss_kb": 1301180.0,
+    "bytes": 1727112
+  },
+  {
+    "case": "line_both",
+    "tree": "baseline",
+    "run": 3,
+    "wall_s": 29.54,
+    "cpu_s": 90.63,
+    "max_rss_kb": 1213784.0,
+    "bytes": 1739040
+  },
+  {
+    "case": "line_both",
+    "tree": "prototype",
+    "run": 3,
+    "wall_s": 29.27,
+    "cpu_s": 90.53,
+    "max_rss_kb": 1265652.0,
+    "bytes": 1713568
+  },
+  {
+    "case": "line_svg",
+    "tree": "baseline",
+    "run": 3,
+    "wall_s": 22.38,
+    "cpu_s": 68.78,
+    "max_rss_kb": 983520.0,
+    "bytes": 1147312
+  },
+  {
+    "case": "line_svg",
+    "tree": "prototype",
+    "run": 3,
+    "wall_s": 21.86,
+    "cpu_s": 68.15,
+    "max_rss_kb": 1096924.0,
+    "bytes": 1121792
+  },
+  {
+    "case": "line_pdf",
+    "tree": "baseline",
+    "run": 3,
+    "wall_s": 24.35,
+    "cpu_s": 70.86,
+    "max_rss_kb": 1116696.0,
+    "bytes": 1282912
+  },
+  {
+    "case": "line_pdf",
+    "tree": "prototype",
+    "run": 3,
+    "wall_s": 23.97,
+    "cpu_s": 72.17,
+    "max_rss_kb": 1057756.0,
+    "bytes": 1257392
+  },
+  {
+    "case": "hexbin_both",
+    "tree": "baseline",
+    "run": 3,
+    "wall_s": 31.48,
+    "cpu_s": 92.50999999999999,
+    "max_rss_kb": 1321648.0,
+    "bytes": 1928744
+  },
+  {
+    "case": "hexbin_both",
+    "tree": "prototype",
+    "run": 3,
+    "wall_s": 31.17,
+    "cpu_s": 94.47,
+    "max_rss_kb": 1250572.0,
+    "bytes": 1908160
+  },
+  {
+    "case": "hexbin_svg",
+    "tree": "baseline",
+    "run": 3,
+    "wall_s": 27.34,
+    "cpu_s": 80.54,
+    "max_rss_kb": 1258088.0,
+    "bytes": 1577160
+  },
+  {
+    "case": "hexbin_svg",
+    "tree": "prototype",
+    "run": 3,
+    "wall_s": 27.03,
+    "cpu_s": 82.07,
+    "max_rss_kb": 1138900.0,
+    "bytes": 1560608
+  },
+  {
+    "case": "hexbin_pdf",
+    "tree": "baseline",
+    "run": 3,
+    "wall_s": 29.36,
+    "cpu_s": 87.36,
+    "max_rss_kb": 1172944.0,
+    "bytes": 1727112
+  },
+  {
+    "case": "hexbin_pdf",
+    "tree": "prototype",
+    "run": 3,
+    "wall_s": 29.03,
+    "cpu_s": 87.49000000000001,
+    "max_rss_kb": 1319628.0,
+    "bytes": 1710560
+  }
+]

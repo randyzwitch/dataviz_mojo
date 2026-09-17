@@ -1,0 +1,3 @@
+size_of[Plot]: 3840
+copy line plot, ns: 344.7872
+copy surface3d plot, ns: 431.02355
