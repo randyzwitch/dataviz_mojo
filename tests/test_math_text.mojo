@@ -38,7 +38,7 @@ from dataviz.plot import (
     render_svg,
     render_tight,
 )
-from _test_helpers import _count_color
+from _test_helpers import _attr_values, _count_color
 
 
 comptime _SIZE = 20.0
@@ -472,6 +472,50 @@ def test_cropping_to_the_measured_bounds_loses_no_text() raises:
         _count_color(tight, theme.text_color),
         _count_color(full, theme.text_color),
         "cropping to the measured bounds lost text ink",
+    )
+
+
+# ==== a fraction on a categorical axis ====
+
+
+def _lowest_right_aligned_text_y(svg: String) raises -> Int:
+    """The largest `y` among right-aligned `<text>` elements: the y
+    axis's bottom tick label, which sits on the plot's bottom edge.
+    Category labels are centered and so excluded."""
+    var anchors = _attr_values(svg, "text", "text-anchor")
+    var ys = _attr_values(svg, "text", "y")
+    assert_equal(len(anchors), len(ys), "every text element carries both")
+    var lowest = -1
+    for k in range(len(anchors)):
+        if anchors[k] == "end":
+            lowest = max(lowest, atol(ys[k]))
+    assert_true(lowest >= 0, "no right-aligned text element")
+    return lowest
+
+
+def test_a_fraction_category_gets_its_own_band_below_the_axis() raises:
+    # The band under a categorical axis was sized for one line of text,
+    # so a fraction's denominator ran to the canvas edge (#656). The
+    # tallest category's excess over one line is now reserved, and the
+    # plot lifts by exactly that -- read off the y axis's bottom tick
+    # label, whose row is the plot's bottom edge, in whole pixels
+    # computed from the same measurement the frame used.
+    var cats: List[String] = ["$\\frac{1}{2}$", "b"]
+    var plain: List[String] = ["a", "b"]
+    var vals: List[Float64] = [1.0, 0.5]
+    var math_svg = render_svg(bar(cats, vals)).to_string()
+    var plain_svg = render_svg(bar(plain, vals)).to_string()
+    var theme = Theme()
+    var cache = FontCache()
+    var excess = _reserve_height(
+        "$\\frac{1}{2}$", theme.font_size, theme.font_family, False, cache=cache
+    ) - Int(theme.font_size)
+    assert_true(excess > 0, "a fraction is not taller than one line")
+    assert_equal(
+        _lowest_right_aligned_text_y(plain_svg)
+        - _lowest_right_aligned_text_y(math_svg),
+        excess,
+        "the plot did not lift by the fraction's excess height",
     )
 
 
