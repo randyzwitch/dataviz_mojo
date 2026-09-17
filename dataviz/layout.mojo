@@ -925,7 +925,7 @@ def render_grid_pdf(
         title,
         cache=cache,
     )
-    _replay_text_requests_pdf(pdf, text_requests)
+    _replay_text_requests_pdf(pdf, text_requests, cache)
     return pdf^
 
 

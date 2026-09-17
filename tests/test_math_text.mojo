@@ -15,7 +15,12 @@ from canvas.bounds import BoundsTarget
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
 from canvas.text.font_discovery import FontSlant
-from canvas.text.render import TextAlign, measure_text, measure_text_block
+from canvas.text.render import (
+    TextAlign,
+    measure_text,
+    measure_text_block,
+    text_run_anchors,
+)
 
 from dataviz import Plot, bar
 from dataviz.core.mathtext import (
@@ -290,11 +295,11 @@ def test_a_plain_label_is_one_unchanged_request() raises:
     )
     assert_true(reqs[0].bold)
     assert_equal(reqs[0].rotation, 0.5)
-    assert_true(reqs[0].slant == FontSlant.NORMAL)
+    assert_true(not reqs[0].is_runs())
     assert_true(not reqs[0].is_rule())
 
 
-def test_a_centered_expression_straddles_its_anchor_as_left_runs() raises:
+def test_a_centered_expression_is_one_request_of_runs_straddling_its_anchor() raises:
     var cache = FontCache()
     var reqs = _label_requests(
         "$x^2$",
@@ -308,14 +313,21 @@ def test_a_centered_expression_straddles_its_anchor_as_left_runs() raises:
         0.0,
         cache=cache,
     )
-    assert_equal(len(reqs), 2)
-    for r in reqs:
-        assert_true(
-            r.align == TextAlign.LEFT, "each run is placed, not aligned"
-        )
-    assert_true(reqs[0].x < 100 and reqs[1].x > 100)
-    assert_true(reqs[0].slant == FontSlant.ITALIC)
-    assert_true(reqs[1].y < reqs[0].y, "the script sits above the baseline")
+    assert_equal(len(reqs), 1, "one label, one request")
+    assert_true(reqs[0].is_runs())
+    assert_equal(len(reqs[0].runs), 2)
+    assert_true(
+        reqs[0].align == TextAlign.LEFT, "placed by the layout, not aligned"
+    )
+    assert_true(reqs[0].runs[0].slant == FontSlant.ITALIC)
+    # Where the backend will land each run, from the same pen model it
+    # draws with: the base starts left of the anchor, the script ends
+    # right of it and sits above the baseline.
+    var at = text_run_anchors(
+        100.0, 50.0, reqs[0].runs, family="Sans", cache=cache
+    )
+    assert_true(at[0].x < 100.0 and at[1].x > 100.0)
+    assert_true(at[1].y < at[0].y, "the script sits above the baseline")
 
 
 def test_rotation_turns_the_script_with_the_baseline() raises:
@@ -334,11 +346,17 @@ def test_rotation_turns_the_script_with_the_baseline() raises:
         -pi / 2.0,
         cache=cache,
     )
-    assert_true(
-        reqs[1].y < reqs[0].y, "the script is further along the baseline"
+    assert_equal(reqs[0].rotation, -pi / 2.0)
+    var at = text_run_anchors(
+        100.0,
+        200.0,
+        reqs[0].runs,
+        family="Sans",
+        rotation=-pi / 2.0,
+        cache=cache,
     )
-    assert_true(reqs[1].x < reqs[0].x, "the script is on the ascent side")
-    assert_equal(reqs[1].rotation, -pi / 2.0)
+    assert_true(at[1].y < at[0].y, "the script is further along the baseline")
+    assert_true(at[1].x < at[0].x, "the script is on the ascent side")
 
 
 def test_a_rule_request_is_a_rule() raises:
@@ -348,12 +366,13 @@ def test_a_rule_request_is_a_rule() raises:
     assert_equal(rule.rule_thickness, 1.5)
     var text = _TextRequest(1, 2, "t", _INK, 10.0, TextAlign.LEFT, "Sans")
     assert_true(not text.is_rule())
+    assert_true(not text.is_runs())
 
 
 # ==== what reaches the page ====
 
 
-def test_a_math_title_becomes_one_text_element_per_run_in_svg() raises:
+def test_a_math_title_is_one_text_element_of_tspans_in_svg() raises:
     var d = _xy()
     var math = render_svg(
         Plot().mark_point().encode(x=d[0], y=d[1]).labels(title="$E = mc^2$")
@@ -361,8 +380,10 @@ def test_a_math_title_becomes_one_text_element_per_run_in_svg() raises:
     var plain = render_svg(
         Plot().mark_point().encode(x=d[0], y=d[1]).labels(title="E = mc2")
     ).to_string()
-    # E, =, mc, 2: four elements where the plain title is one.
-    assert_equal(_count(math, "<text") - _count(plain, "<text"), 3)
+    # One <text> either way -- the label stays one string to select --
+    # holding a <tspan> per run: E, =, mc, 2.
+    assert_equal(_count(math, "<text"), _count(plain, "<text"))
+    assert_equal(_count(math, "<tspan"), 4)
     assert_equal(_count(math, 'font-style="italic"'), 2, "E and mc are italic")
     assert_true('font-size="12.600"' in math, "the 2 is 0.7 of 18")
 
@@ -387,7 +408,9 @@ def test_math_reaches_legend_annotation_and_category_ticks() raises:
     assert_true(
         'font-size="8.400"' in svg, "the legend's superscript is 0.7 of 12"
     )
-    assert_true(">0</text>" in svg, "the annotation's subscript is its own run")
+    assert_true(
+        ">0</tspan>" in svg, "the annotation's subscript is its own run"
+    )
     var cats: List[String] = ["$\\alpha$", "b"]
     var vals: List[Float64] = [3.0, 1.0]
     var ticks = render_svg(bar(cats, vals)).to_string()
@@ -396,11 +419,11 @@ def test_math_reaches_legend_annotation_and_category_ticks() raises:
 
 def test_the_bounds_probe_sees_every_run_of_an_expression() raises:
     # The probe's box has to be the union of what each run will ink,
-    # measured the way the run will be drawn. Compared directly, with
-    # no crop in between: `_tight_box` adds no padding, but a figure
-    # has other ink around a label, and a probe that dropped one run
-    # of a caption could still sit inside the box the rest of the
-    # figure sets. At size 12 the scripts are 8.4, so a probe that
+    # measured the way the run will be drawn: at the anchor the shared
+    # pen model gives it. Compared directly, with no crop in between --
+    # a figure has other ink around a label, and a probe that dropped
+    # one run of a caption could still sit inside the box the rest of
+    # the figure sets. At size 12 the scripts are 8.4, so a probe that
     # skipped small runs, or italic ones, shrinks this by whole pixels.
     var cache = FontCache()
     var reqs = _label_requests(
@@ -424,15 +447,23 @@ def test_the_bounds_probe_sees_every_run_of_an_expression() raises:
     var x1 = -1.0e9
     var y1 = -1.0e9
     for r in reqs:
-        if r.is_rule():
+        if not r.is_runs():
             continue
-        var b = measure_text_block(
-            r.text, r.size, family="Sans", slant=r.slant, cache=cache
+        var at = text_run_anchors(
+            Float64(r.x), Float64(r.y), r.runs, family="Sans", cache=cache
         )
-        x0 = min(x0, Float64(r.x) + b.x)
-        y0 = min(y0, Float64(r.y) + b.y)
-        x1 = max(x1, Float64(r.x) + b.x + b.width)
-        y1 = max(y1, Float64(r.y) + b.y + b.height)
+        for k in range(len(r.runs)):
+            var b = measure_text_block(
+                r.runs[k].text,
+                r.runs[k].size,
+                family="Sans",
+                slant=r.runs[k].slant,
+                cache=cache,
+            )
+            x0 = min(x0, at[k].x + b.x)
+            y0 = min(y0, at[k].y + b.y)
+            x1 = max(x1, at[k].x + b.x + b.width)
+            y1 = max(y1, at[k].y + b.y + b.height)
     assert_true(
         abs(Float64(got[0]) - x0) <= 1.0, "the probe's left edge is off"
     )

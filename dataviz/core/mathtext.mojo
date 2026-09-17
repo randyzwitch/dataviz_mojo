@@ -50,7 +50,8 @@ No large operators with limits (`\\sum_i` is a subscript, not a
 limit below), no matrices, no line breaks inside math, and a radical
 sign that does not grow with a tall argument. Kerning applies within a run, not across the
 boundary between a base and its script. Each run is anchored on a
-whole pixel, like every other label.
+whole pixel, like every other label; on SVG the viewer's font, not
+this layout, advances the pen between runs.
 """
 
 from std.math import ceil, cos, floor, sin
@@ -58,6 +59,7 @@ from std.math import ceil, cos, floor, sin
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
 from canvas.text.font_discovery import FontSlant
+from canvas.text.text_run import TextRun
 from canvas.text.render import (
     FontWeight,
     TextAlign,
@@ -1011,9 +1013,9 @@ def _label_requests(
     fraction rule for a math label.
 
     Alignment moves the expression's origin so the whole expression is
-    left-, center- or right-anchored on `x`, and each run is then a
-    `TextAlign.LEFT` request at its own position. Rotation turns every
-    run's offset about the anchor and is passed on to each run, so a
+    left-, center- or right-anchored on `x`; the runs are then one
+    `TextAlign.LEFT` request of `TextRun`s at their own pen shifts and
+    baselines, and the backend rotates them about the anchor, so a
     rotated axis caption keeps its scripts where they belong.
 
     Args:
@@ -1029,7 +1031,8 @@ def _label_requests(
         cache: The render's shared font cache.
 
     Returns:
-        The requests, in drawing order.
+        The requests, in drawing order: one for the text, then one per
+        fraction or radical rule.
 
     Raises:
         Error: A math label does not parse, or measuring fails.
@@ -1063,24 +1066,40 @@ def _label_requests(
         c = cos(rotation)
         s = sin(rotation)
 
+    # One request for all the runs: each backend draws them as one
+    # label -- on SVG one `<text>` of `<tspan>`s -- and lands each run
+    # where that text drawn alone at its anchor lands (#664). The
+    # backend's pen model measures a run's `dx` from where the previous
+    # run's advance ended, so the whole-pixel positions this layout
+    # chose are turned back into pen shifts, and each baseline is
+    # rounded the way its y was before. Rotation is the backend's, about
+    # the same origin. Raster and PDF output are what they were; on SVG
+    # the viewer's own font advances the pen between runs, so a label's
+    # internal spacing there is the viewer's rather than this layout's.
+    var weight = FontWeight.BOLD if bold else FontWeight.NORMAL
+    var runs = List[TextRun]()
+    var pen = 0.0
     for r in box.runs:
-        var dx = origin + r.dx
-        var px = dx * c - r.dy * s
-        var py = dx * s + r.dy * c
-        out.append(
-            _TextRequest(
-                x + _round(px),
-                y + _round(py),
+        var target = Float64(_round(origin + r.dx))
+        var advance = measure_text(
+            r.text,
+            r.size,
+            family=family,
+            slant=r.slant,
+            weight=weight,
+            cache=cache,
+        ).advance
+        runs.append(
+            TextRun(
                 r.text,
-                color,
                 r.size,
-                TextAlign.LEFT,
-                family,
-                bold=bold,
-                rotation=rotation,
                 slant=r.slant,
+                dx=target - pen,
+                dy=Float64(_round(r.dy)),
             )
         )
+        pen = target + advance
+    out.append(_TextRequest.of_runs(x, y, runs^, color, family, bold, rotation))
     for rule in box.rules:
         var dx0 = origin + rule.dx
         var dx1 = dx0 + rule.width
