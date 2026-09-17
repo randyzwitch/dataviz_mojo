@@ -12,11 +12,10 @@ chain: `Plot().mark_point().encode(x=xs, y=ys).theme(t)`.
 `render_facets()`/`render_layers()` have their own per-cell/
 shared-canvas variants of that pattern.
 
-Everything shares one `[T: DrawTarget]` rendering core except text:
-`DrawTarget` has no `draw_text` (raster text needs `canvas.text`'s
-FreeType/fontconfig machinery, SVG text needs markup), so labels are
-collected as `_TextRequest`s during the generic pass and each entry
-point draws them afterward. Raster draws use the anti-aliased
+Everything shares one `[T: DrawTarget]` rendering core. Labels are
+collected as `_TextRequest`s during the generic pass and drawn
+afterward by `_replay_text_requests`, itself generic, so they land on
+top of every mark and annotation. Raster draws use the anti-aliased
 `Canvas` variants throughout.
 
 This file holds the `Plot` struct -- whose methods must live with its
@@ -212,8 +211,6 @@ from dataviz.core.text import (
     _label_text_requests,
     _max_label_width,
     _replay_text_requests,
-    _replay_text_requests_pdf,
-    _replay_text_requests_svg,
 )
 from dataviz.core.validate import (
     _check_line_smoothing,
@@ -6611,12 +6608,12 @@ struct _DrawnFigure(Movable):
     """What `_draw_figure_into` drew: the inner plot rect, and every
     label the pass collected, already in replay order.
 
-    The labels are handed back rather than drawn because `DrawTarget`
-    carries no `draw_text` this package can reach generically without
-    changing its SVG output (#578), so each backend still replays them
-    its own way. What the struct buys is that the *drawing* -- the
-    background, the labels' margins, the mark, and the seven annotation
-    passes -- is written once instead of once per backend.
+    The labels are handed back rather than drawn so that they go on
+    after every mark and annotation pass, on top; the caller hands
+    them to `_replay_text_requests`. What the struct buys is that the
+    *drawing* -- the background, the labels' margins, the mark, and
+    the seven annotation passes -- is written once instead of once per
+    backend.
     """
 
     var px0: Int
@@ -6658,10 +6655,9 @@ def _draw_figure_into[
 
     The shared body of `_render_into`, `_render_svg_into` and
     `_render_pdf_into`, which were three near-identical copies differing
-    only in the target's type, `vector_target`, and how they replay
-    text. Every piece they called was already generic over
-    `T: DrawTarget`; only the replay was not, so only the replay stayed
-    behind.
+    only in the target's type and `vector_target`. Every piece they
+    called was already generic over `T: DrawTarget`, and since #578 so
+    is the replay.
 
     It is also what lets a figure be *measured* rather than drawn:
     `_tight_box` runs this into a `BoundsTarget`, which keeps the union
@@ -6843,66 +6839,6 @@ def render_tight_pdf(plot: Plot) raises -> PdfCanvas:
     return pdf^
 
 
-def _replay_text_requests_bounds(
-    mut probe: BoundsTarget, requests: List[_TextRequest], mut cache: FontCache
-) raises:
-    """Draw every label into a `BoundsTarget` so the measured box covers
-    the text as well as the marks.
-
-    A fourth replay, and the only one that could not be avoided. The
-    other three exist because `DrawTarget` gained `draw_text` after this
-    package had already grown one per backend, and switching them to
-    the trait method changes the SVG output (#578). Nothing renders
-    from a `BoundsTarget`, so here the trait method is simply the
-    right call: it takes the same anchor, alignment and rotation the
-    real draw will, which is what makes the measured extent the one the
-    ink will have.
-
-    Args:
-        probe: The measuring target.
-        requests: The labels the draw pass collected.
-        cache: The render's shared font cache.
-
-    Raises:
-        Error: Whatever `draw_text` raises.
-    """
-    for req in requests:
-        if req.is_rule():
-            probe.draw_line_aa(
-                req.x,
-                req.y,
-                req.rule_x2,
-                req.rule_y2,
-                req.color,
-                width=req.rule_thickness,
-            )
-            continue
-        if req.is_runs():
-            probe.draw_text_runs(
-                Float64(req.x),
-                Float64(req.y),
-                req.runs,
-                req.color,
-                family=req.family,
-                weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-                rotation=req.rotation,
-                cache=cache,
-            )
-            continue
-        probe.draw_text(
-            Float64(req.x),
-            Float64(req.y),
-            req.text,
-            req.color,
-            req.size,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-            align=req.align,
-            cache=cache,
-        )
-
-
 def _tight_box(
     plot: Plot, vector_target: Bool
 ) raises -> Tuple[Int, Int, Int, Int]:
@@ -6942,7 +6878,7 @@ def _tight_box(
     var drawn = _draw_figure_into(
         probe, plot, 0, 0, plot.width, plot.height, False, vector_target, cache
     )
-    _replay_text_requests_bounds(probe, drawn.text, cache)
+    _replay_text_requests(probe, drawn.text, cache)
     if not probe.has_ink():
         return (0, 0, plot.width, plot.height)
     return probe.ink_pixels()
@@ -7039,7 +6975,7 @@ def _render_svg_into(
     var drawn = _draw_figure_into(
         svg, plot, ox0, oy0, cx1, cy1, fill_background, True, cache
     )
-    _replay_text_requests_svg(svg, drawn.text, cache)
+    _replay_text_requests(svg, drawn.text, cache)
     return (drawn.px0, drawn.py0, drawn.px1, drawn.py1)
 
 
@@ -7154,7 +7090,7 @@ def _render_pdf_into(
     """`_render_svg_into`'s counterpart for `PdfCanvas`: same bounds
     resolution, `_apply_labels`/`_render_generic` core and annotation
     passes, with the `_TextRequest`s drawn through
-    `_replay_text_requests_pdf`.
+    `_replay_text_requests`.
 
     Args:
         pdf: The document to draw into.
@@ -7179,7 +7115,7 @@ def _render_pdf_into(
     var drawn = _draw_figure_into(
         pdf, plot, ox0, oy0, cx1, cy1, fill_background, True, cache
     )
-    _replay_text_requests_pdf(pdf, drawn.text, cache)
+    _replay_text_requests(pdf, drawn.text, cache)
     return (drawn.px0, drawn.py0, drawn.px1, drawn.py1)
 
 

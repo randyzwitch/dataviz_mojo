@@ -182,8 +182,9 @@ def test_render_layers_annotate_vline_and_point_match_standalone_hand_derived_po
         "the vertical reference line itself",
     )
     assert_true(
-        '<text x="224" y="32" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="start">mid</text>'
+        '<text x="224.000" y="32.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696"'
+        ' text-anchor="start">mid</text>'
         in s,
         "the vline's label",
     )
@@ -192,8 +193,9 @@ def test_render_layers_annotate_vline_and_point_match_standalone_hand_derived_po
         "the point marker itself",
     )
     assert_true(
-        '<text x="133" y="127" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="middle">here</text>'
+        '<text x="133.000" y="127.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696"'
+        ' text-anchor="middle">here</text>'
         in s,
         "the point's label",
     )
@@ -235,8 +237,9 @@ def test_render_layers_svg_annotate_band_and_best_fit_draw_against_the_layers_fr
         "the best-fit line",
     )
     assert_true(
-        '<text x="376" y="32" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="end">y = 1.600x + 8.500</text>'
+        '<text x="376.000" y="32.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696" text-anchor="end">y = 1.600x'
+        " + 8.500</text>"
         in s,
         "the best-fit line's equation label",
     )
@@ -272,8 +275,8 @@ def test_render_layers_svg_title_from_plots0_centers_on_shared_inner_rect() rais
     var s = svg.to_string()
 
     assert_true(
-        '<text x="220" y="14" font-size="18.000" font-family="sans-serif"'
-        ' font-weight="bold" fill="#282828"'
+        '<text x="220.000" y="14.000" font-size="18.000"'
+        ' font-family="sans-serif" font-weight="bold" fill="#282828"'
         ' text-anchor="middle">Combined</text>'
         in s,
         "layered chart title, from plots[0], centered on the shared inner rect",
@@ -934,14 +937,16 @@ def test_render_layers_svg_bar_combo_supports_show_data_labels() raises:
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
-        '<text x="140" y="136" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">10</text>'
+        '<text x="140.000" y="136.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">10</text>'
         in s,
         "bar A's own data label",
     )
     assert_true(
-        '<text x="300" y="27" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">20</text>'
+        '<text x="300.000" y="27.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">20</text>'
         in s,
         "bar B's own data label",
     )
@@ -1370,8 +1375,9 @@ def test_render_facets_svg_each_cell_gets_its_own_independent_title() raises:
     var s = svg.to_string()
 
     assert_true(
-        '<text x="220" y="14" font-size="18.000" font-family="sans-serif"'
-        ' font-weight="bold" fill="#282828" text-anchor="middle">Left</text>'
+        '<text x="220.000" y="14.000" font-size="18.000"'
+        ' font-family="sans-serif" font-weight="bold" fill="#282828"'
+        ' text-anchor="middle">Left</text>'
         in s,
         "cell 0's title, centered on its inner plot rect",
     )
@@ -1652,8 +1658,8 @@ def test_render_layers_svg_secondary_axis_matches_hand_derived_position() raises
         "one of the secondary axis's ticks, pointing right instead of left",
     )
     assert_true(
-        '<text x="359" y="139" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="start">30</text>'
+        '<text x="359.000" y="139.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="start">30</text>'
         in s,
         (
             "that tick's label, left-aligned just past it -- the mirror of the"
@@ -1824,9 +1830,9 @@ def test_render_layers_svg_secondary_axis_caption_matches_hand_derived_position(
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
-        '<text x="389" y="135" font-size="14.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle" transform="rotate(90.000 389'
-        ' 135)">Growth</text>'
+        '<text x="389.000" y="135.000" font-size="14.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle"'
+        ' transform="rotate(90.000 389.000 135.000)">Growth</text>'
         in s,
         (
             "the secondary axis's caption, rotated the opposite way from the"

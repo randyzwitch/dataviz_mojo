@@ -98,8 +98,6 @@ from dataviz.core.text import (
     _label_text_requests,
     _max_label_width,
     _replay_text_requests,
-    _replay_text_requests_pdf,
-    _replay_text_requests_svg,
 )
 from dataviz.core.theme import Theme
 from dataviz.multivariate.contour import (
@@ -339,8 +337,8 @@ def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
                 rotation=pi / 2.0,
             )
         )
-    _replay_text_requests_svg(svg, label_requests, cache)
-    _replay_text_requests_svg(svg, result.text_requests, cache)
+    _replay_text_requests(svg, label_requests, cache)
+    _replay_text_requests(svg, result.text_requests, cache)
     return svg^
 
 
@@ -398,8 +396,8 @@ def render_layers_pdf(plots: List[Plot]) raises -> PdfCanvas:
                 rotation=pi / 2.0,
             )
         )
-    _replay_text_requests_pdf(pdf, label_requests, cache)
-    _replay_text_requests_pdf(pdf, result.text_requests, cache)
+    _replay_text_requests(pdf, label_requests, cache)
+    _replay_text_requests(pdf, result.text_requests, cache)
     return pdf^
 
 

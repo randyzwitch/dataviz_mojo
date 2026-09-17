@@ -66,8 +66,8 @@ def test_render_svg_annotate_line_matches_hand_derived_position() raises:
         "the reference line itself, spanning the full inner plot width",
     )
     assert_true(
-        '<text x="376" y="82" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="end">mid</text>'
+        '<text x="376.000" y="82.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696" text-anchor="end">mid</text>'
         in s,
         "the line's label, right-aligned just above it",
     )
@@ -199,8 +199,8 @@ def test_render_svg_annotate_area_matches_hand_derived_position() raises:
         "the band's fill, spanning the full inner plot width",
     )
     assert_true(
-        '<text x="376" y="85" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="end">band</text>'
+        '<text x="376.000" y="85.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696" text-anchor="end">band</text>'
         in s,
         "the band's label, right-aligned just inside its top edge",
     )
@@ -415,8 +415,9 @@ def test_render_svg_annotate_band_matches_hand_derived_path_and_label() raises:
     # The label centers above band_x[len // 2] = band_x[1]: px 365 (Int()
     # truncates 365.455), py = 20 - label_gap(4) = 16.
     assert_true(
-        '<text x="365" y="16" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="middle">CI</text>'
+        '<text x="365.000" y="16.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696"'
+        ' text-anchor="middle">CI</text>'
         in s,
         "the band's label, centered above its own middle-index point",
     )
@@ -563,20 +564,22 @@ def test_render_svg_annotate_best_fit_matches_hand_derived_fit_and_line() raises
         "the fitted line, spanning the full padded x-domain",
     )
     assert_true(
-        '<text x="376" y="32" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="end">Fit</text>'
+        '<text x="376.000" y="32.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696" text-anchor="end">Fit</text>'
         in s,
         "the label heading, right-aligned near the plot's top-right corner",
     )
     assert_true(
-        '<text x="376" y="48" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="end">y = 0.800x + 0.600</text>'
+        '<text x="376.000" y="48.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696" text-anchor="end">y = 0.800x'
+        " + 0.600</text>"
         in s,
         "the fitted equation, below the label",
     )
     assert_true(
-        '<text x="376" y="64" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="end">R² = 0.640</text>'
+        '<text x="376.000" y="64.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696" text-anchor="end">R² ='
+        " 0.640</text>"
         in s,
         "R-squared, below the equation",
     )
@@ -770,8 +773,8 @@ def test_render_facets_svg_each_cells_own_annotations_use_that_cells_own_scale()
         "cell 1's reference line, against its [0,20] domain",
     )
     assert_true(
-        '<text x="376" y="82" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="end">mid</text>'
+        '<text x="376.000" y="82.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696" text-anchor="end">mid</text>'
         in s,
         "cell 1's reference line label",
     )
@@ -785,8 +788,8 @@ def test_render_facets_svg_each_cells_own_annotations_use_that_cells_own_scale()
         ),
     )
     assert_true(
-        '<text x="776" y="87" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="end">band</text>'
+        '<text x="776.000" y="87.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696" text-anchor="end">band</text>'
         in s,
         "cell 2's reference band label",
     )
@@ -832,8 +835,9 @@ def test_render_layers_svg_each_layers_own_annotations_use_that_layers_own_scale
         ),
     )
     assert_true(
-        '<text x="346" y="194" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="end">primline</text>'
+        '<text x="346.000" y="194.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696"'
+        ' text-anchor="end">primline</text>'
         in s,
         "the primary layer's reference line label",
     )
@@ -847,8 +851,9 @@ def test_render_layers_svg_each_layers_own_annotations_use_that_layers_own_scale
         ),
     )
     assert_true(
-        '<text x="346" y="79" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="end">secline</text>'
+        '<text x="346.000" y="79.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696"'
+        ' text-anchor="end">secline</text>'
         in s,
         "the secondary layer's reference line label",
     )
@@ -886,8 +891,9 @@ def test_render_svg_annotate_vline_matches_hand_derived_position() raises:
         ),
     )
     assert_true(
-        '<text x="224" y="32" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="start">mid</text>'
+        '<text x="224.000" y="32.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696"'
+        ' text-anchor="start">mid</text>'
         in s,
         "the line's label, left-aligned just right of it, near the top edge",
     )
@@ -914,8 +920,9 @@ def test_render_svg_annotate_point_matches_hand_derived_position() raises:
         "the point marker itself, at the data coordinate's pixel position",
     )
     assert_true(
-        '<text x="133" y="127" font-size="12.000" font-family="sans-serif"'
-        ' fill="#969696" text-anchor="middle">here</text>'
+        '<text x="133.000" y="127.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#969696"'
+        ' text-anchor="middle">here</text>'
         in s,
         "the point's label, centered just above the marker",
     )

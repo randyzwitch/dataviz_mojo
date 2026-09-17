@@ -989,14 +989,16 @@ def test_render_svg_bar_data_labels_match_hand_derived_positions() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<text x="140" y="26" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">10</text>'
+        '<text x="140.000" y="26.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">10</text>'
         in s,
         "A's label, above the positive bar",
     )
     assert_true(
-        '<text x="300" y="256" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">-5.5</text>'
+        '<text x="300.000" y="256.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">-5.5</text>'
         in s,
         "B's label, below the negative bar, real decimal kept",
     )
@@ -1044,26 +1046,28 @@ def test_render_svg_grouped_bar_data_labels_match_hand_derived_positions() raise
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<text x="108" y="26" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">10</text>'
+        '<text x="108.000" y="26.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">10</text>'
         in s,
         "A/North's label",
     )
     assert_true(
-        '<text x="172" y="107" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">4</text>'
+        '<text x="172.000" y="107.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle">4</text>'
         in s,
         "A/South's label",
     )
     assert_true(
-        '<text x="268" y="256" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">-5.5</text>'
+        '<text x="268.000" y="256.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">-5.5</text>'
         in s,
         "B/North's label, below its negative sub-bar",
     )
     assert_true(
-        '<text x="332" y="53" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">8</text>'
+        '<text x="332.000" y="53.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle">8</text>'
         in s,
         "B/South's label",
     )
@@ -1093,26 +1097,28 @@ def test_render_svg_stacked_bar_data_labels_match_hand_derived_positions() raise
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<text x="140" y="131" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">10</text>'
+        '<text x="140.000" y="131.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">10</text>'
         in s,
         "A/North's label, centered inside its segment",
     )
     assert_true(
-        '<text x="140" y="56" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">4</text>'
+        '<text x="140.000" y="56.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle">4</text>'
         in s,
         "A/South's label, centered inside its segment",
     )
     assert_true(
-        '<text x="300" y="214" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">-5.5</text>'
+        '<text x="300.000" y="214.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">-5.5</text>'
         in s,
         "B/North's label, its own segment value, not a cumulative total",
     )
     assert_true(
-        '<text x="300" y="142" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">8</text>'
+        '<text x="300.000" y="142.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle">8</text>'
         in s,
         "B/South's label",
     )
@@ -1134,14 +1140,16 @@ def test_render_svg_lollipop_data_labels_match_hand_derived_positions() raises:
     )
     var s = render_svg(plot).to_string()
     assert_true(
-        '<text x="140" y="22" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">10</text>'
+        '<text x="140.000" y="22.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">10</text>'
         in s,
         "A's label, above the positive dot",
     )
     assert_true(
-        '<text x="300" y="260" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">-5.5</text>'
+        '<text x="300.000" y="260.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">-5.5</text>'
         in s,
         "B's label, below the negative dot",
     )
@@ -1162,14 +1170,16 @@ def test_render_svg_waterfall_data_labels_match_hand_derived_positions() raises:
     )
     var s = render_svg(plot).to_string()
     assert_true(
-        '<text x="140" y="27" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">10</text>'
+        '<text x="140.000" y="27.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">10</text>'
         in s,
         "A's label, its own delta above the rising bar",
     )
     assert_true(
-        '<text x="300" y="167" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">-5.5</text>'
+        '<text x="300.000" y="167.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">-5.5</text>'
         in s,
         "B's label, its own delta below the falling bar",
     )
@@ -1194,14 +1204,16 @@ def test_render_svg_bullet_data_labels_match_hand_derived_positions() raises:
     )
     var s = render_svg(plot).to_string()
     assert_true(
-        '<text x="140" y="76" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">10</text>'
+        '<text x="140.000" y="76.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">10</text>'
         in s,
         "A's measure label, above the positive bar",
     )
     assert_true(
-        '<text x="300" y="251" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">-5.5</text>'
+        '<text x="300.000" y="251.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">-5.5</text>'
         in s,
         "B's measure label, below the negative bar",
     )
@@ -1227,26 +1239,26 @@ def test_render_svg_population_pyramid_data_labels_match_hand_derived_positions(
     )
     var s = render_svg(plot).to_string()
     assert_true(
-        '<text x="140" y="82" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="end">10</text>'
+        '<text x="140.000" y="82.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="end">10</text>'
         in s,
         "A's left-side label, right-aligned just left of its bar",
     )
     assert_true(
-        '<text x="285" y="82" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="start">8</text>'
+        '<text x="285.000" y="82.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="start">8</text>'
         in s,
         "A's right-side label, left-aligned just right of its bar",
     )
     assert_true(
-        '<text x="64" y="197" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="end">20</text>'
+        '<text x="64.000" y="197.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="end">20</text>'
         in s,
         "B's left-side label",
     )
     assert_true(
-        '<text x="338" y="197" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="start">15</text>'
+        '<text x="338.000" y="197.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="start">15</text>'
         in s,
         "B's right-side label",
     )
@@ -1328,14 +1340,14 @@ def test_render_svg_point_labels_match_hand_derived_positions() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<text x="75" y="232" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">a</text>'
+        '<text x="75.000" y="232.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle">a</text>'
         in s,
         "first point's label",
     )
     assert_true(
-        '<text x="365" y="22" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">c</text>'
+        '<text x="365.000" y="22.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle">c</text>'
         in s,
         "third point's label",
     )
@@ -1372,14 +1384,14 @@ def test_render_svg_effect_scatter_supports_labels() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<text x="75" y="232" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">p</text>'
+        '<text x="75.000" y="232.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle">p</text>'
         in s,
         "first point's label",
     )
     assert_true(
-        '<text x="365" y="22" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">q</text>'
+        '<text x="365.000" y="22.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle">q</text>'
         in s,
         "second point's label",
     )
