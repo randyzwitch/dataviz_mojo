@@ -28,5 +28,5 @@ output. Presets provide coherent starting points: `dark()`, `minimal()`,
 attaching it when a preset needs an override.
 
 See the [theme recipes](../../cookbook/),
-[`Theme`](../../dataviz/theme/Theme/), and
-[theme presets](../../dataviz/themes/).
+[`Theme`](../../dataviz/core/theme/Theme/), and
+[theme presets](../../dataviz/core/themes/).

@@ -29,7 +29,7 @@ A Mojo script rather than Python, using `.strip()`/`.startswith()`/
 """
 
 from std.collections import Dict
-from std.os import listdir
+from std.os import listdir, makedirs
 
 from _example_docstrings import (
     ExamplePage,
@@ -134,14 +134,7 @@ def _titles() -> Dict[String, String]:
     d["graph"] = "Graph"
     d["sankey"] = "Sankey"
     d["histogram"] = "Histogram"
-    d["histogram_shared"] = "Shared Bins"
-    d["histogram_auto"] = "Automatic Bins"
-    d["histogram_density"] = "Histogram with Density Curve"
-    d["histogram_horizontal"] = "Horizontal Histogram"
     d["slope"] = "Slope"
-    d["line_time"] = "Time Axis"
-    d["step"] = "Step"
-    d["step_area"] = "Stepped Area"
     # Cookbook titles come from each recipe's filename or its `# title:`
     # override (see cookbook_recipes/README.md), not from here.
     return d^
@@ -151,107 +144,173 @@ struct Category(Copyable, Movable):
     var title: String
     var blurb: String
     var names: List[String]
+    var slug: String
+    """The folder under `docs/src/examples/` this section's pages live
+    in, and so their URL segment; a Hextra sidebar group. Empty for
+    the Cookbook's task categories, whose pages stay flat."""
 
     def __init__(
-        out self, title: String, blurb: String, var names: List[String]
+        out self,
+        title: String,
+        blurb: String,
+        var names: List[String],
+        slug: String = "",
     ):
         self.title = title
         self.blurb = blurb
         self.names = names^
+        self.slug = slug
 
 
 def _categories() -> List[Category]:
     # Feature demos live in the Cookbook; this list contains chart types.
+    # Each is a folder under docs/src/examples/ and a sidebar group, in
+    # this order (#671); a function's other Example blocks show as
+    # sections of its own page, not as pages of their own.
     var cats = List[Category]()
     cats.append(
         Category(
-            "Basic marks",
+            "Basic",
             (
-                "The core chart types -- one mark, default theme (donut is"
-                " pie's own ring variant, step is line's, and step_area"
-                " is area's)."
+                "The core chart types -- one mark, default theme. Line's page"
+                " also shows its step and time-axis forms, area's its stepped"
+                " form, and pie's its donut ring."
             ),
             [
                 "scatter",
                 "line",
-                "line_time",
-                "step",
-                "bar",
                 "area",
-                "step_area",
+                "bar",
                 "pie",
                 "single_axis",
                 "effect_scatter",
             ],
+            slug="basic",
         )
     )
     cats.append(
         Category(
-            "Categorical business charts",
+            "Categorical",
             (
-                "Chart types built around one categorical dimension: rankings,"
-                " timelines, progress, period-over-period comparisons, and"
-                " process stages."
+                "Chart types built around one categorical dimension:"
+                " rankings, timelines, progress, period-over-period"
+                " comparisons, process stages, and OHLC price data per"
+                " period."
             ),
             [
                 "lollipop",
-                "waterfall",
-                "gantt",
-                "span_chart",
-                "population_pyramid",
-                "bullet",
                 "grouped_bar",
                 "stacked_bar",
-                "slope",
+                "waterfall",
+                "bullet",
                 "funnel",
+                "slope",
                 "bump",
+                "population_pyramid",
+                "gantt",
+                "span_chart",
                 "streamgraph",
                 "stacked_area",
+                "candlestick",
             ],
+            slug="categorical",
         )
     )
     cats.append(
         Category(
-            "Statistical & financial",
+            "Distributions",
             (
-                "Distributions, event times, binned counts, grid/matrix data,"
-                " and OHLC price data."
+                "The shape of one or two numeric variables: binned counts,"
+                " summaries of spread, density estimates, and event times."
+                " Histogram's page also shows shared bins, automatic bins, a"
+                " density curve, and the horizontal form."
             ),
             [
+                "histogram",
                 "box",
                 "boxenplot",
-                "hist2d",
-                "hexbin",
-                "histogram",
-                "histogram_shared",
-                "histogram_auto",
-                "histogram_density",
-                "histogram_horizontal",
-                "heatmap",
-                "candlestick",
-                "beeswarm",
                 "violin",
+                "beeswarm",
                 "ridgeline",
                 "kdeplot",
                 "rugplot",
                 "ecdf",
-                "residplot",
+                "eventplot",
+                "hist2d",
+                "hexbin",
+            ],
+            slug="distributions",
+        )
+    )
+    cats.append(
+        Category(
+            "Estimates & compositions",
+            (
+                "Charts that summarize or combine other charts: a bar, line,"
+                " or point per group with an aggregate and its error, the"
+                " residuals of a fit, and figures assembled from several"
+                " panels."
+            ),
+            [
                 "barplot",
                 "lineplot",
                 "pointplot",
-                "pairplot",
+                "residplot",
                 "jointplot",
+                "pairplot",
                 "clustermap",
-                "dendrogram",
-                "eventplot",
             ],
+            slug="estimates",
+        )
+    )
+    cats.append(
+        Category(
+            "Grid & matrix",
+            (
+                "A value per cell of a grid. Mostly two categorical"
+                " dimensions; imshow and pcolormesh are the continuous-axis"
+                " pair, for an array rather than a table."
+            ),
+            [
+                "heatmap",
+                "imshow",
+                "pcolormesh",
+                "calendar_heatmap",
+                "corrplot",
+                "punchcard",
+                "marimekko",
+            ],
+            slug="grid",
         )
     )
     cats.append(
         Category(
             "Relationships & flows",
             "Weighted connections between entities, not a value per category.",
-            ["chord", "arc_diagram", "graph", "sankey"],
+            [
+                "chord",
+                "arc_diagram",
+                "graph",
+                "sankey",
+            ],
+            slug="relationships",
+        )
+    )
+    cats.append(
+        Category(
+            "Hierarchical",
+            (
+                "A tree, not a value per category -- one flattened"
+                " id/parent_id/value row per node (see"
+                " Plot.encode_hierarchy()), or a clustering's merge tree."
+            ),
+            [
+                "sunburst",
+                "tree",
+                "treemap",
+                "dendrogram",
+            ],
+            slug="hierarchical",
         )
     )
     cats.append(
@@ -269,14 +328,16 @@ def _categories() -> List[Category]:
                 "radar",
                 "gauge",
             ],
+            slug="radial",
         )
     )
     cats.append(
         Category(
-            "Multivariate",
+            "Fields & multivariate",
             (
-                "Several numeric dimensions compared at once on one shared"
-                " layout, not a single value per category."
+                "Several numeric dimensions on one shared layout, or a value"
+                " defined over a plane: vector fields, contours, and"
+                " triangulated meshes."
             ),
             [
                 "parallel",
@@ -290,6 +351,7 @@ def _categories() -> List[Category]:
                 "triplot",
                 "tripcolor",
             ],
+            slug="fields",
         )
     )
     cats.append(
@@ -297,12 +359,12 @@ def _categories() -> List[Category]:
             "Three dimensions",
             (
                 "A third axis projected onto the page. Orthographic, so"
-                " parallel stays parallel and a tick spacing means one"
-                " thing across the whole picture -- but a single view"
-                " still collapses three dimensions onto two, and two"
-                " points that look adjacent may be far apart along the"
-                " view direction. Where the question is about two"
-                " variables, the 2D charts above answer it better."
+                " parallel stays parallel and a tick spacing means one thing"
+                " across the whole picture -- but a single view still"
+                " collapses three dimensions onto two, and two points that"
+                " look adjacent may be far apart along the view direction."
+                " Where the question is about two variables, the 2D charts"
+                " above answer it better."
             ),
             [
                 "scatter3d",
@@ -316,35 +378,7 @@ def _categories() -> List[Category]:
                 "quiver3d",
                 "fill_between3d",
             ],
-        )
-    )
-    cats.append(
-        Category(
-            "Grid & matrix",
-            (
-                "A value per cell of a grid, extending Mark.HEATMAP's own"
-                " grid-cell idea. Mostly two categorical dimensions;"
-                " imshow and pcolormesh are the continuous-axis pair, for"
-                " an array rather than a table."
-            ),
-            [
-                "imshow",
-                "pcolormesh",
-                "calendar_heatmap",
-                "corrplot",
-                "punchcard",
-                "marimekko",
-            ],
-        )
-    )
-    cats.append(
-        Category(
-            "Hierarchical data",
-            (
-                "A tree, not a value per category -- one flattened"
-                " id/parent_id/value row per node, see Plot.encode_hierarchy()."
-            ),
-            ["sunburst", "tree", "treemap"],
+            slug="three_d",
         )
     )
     return cats^
@@ -526,12 +560,12 @@ def _cookbook_api_links(category: String) -> String:
     if category == "Axes, scales, and orientation":
         return (
             "[Plot](../../dataviz/plot/Plot/) · "
-            "[Theme](../../dataviz/theme/Theme/)"
+            "[Theme](../../dataviz/core/theme/Theme/)"
         )
     if category == "Color and accessibility":
         return (
-            "[Theme](../../dataviz/theme/Theme/) · "
-            "[Colors](../../dataviz/colors/)"
+            "[Theme](../../dataviz/core/theme/Theme/) · "
+            "[Colors](../../dataviz/core/colors/)"
         )
     if category == "Layout, facets, and layers":
         return "[Rendering and composition](../../dataviz/plot/)"
@@ -539,8 +573,8 @@ def _cookbook_api_links(category: String) -> String:
         return "[Plot encodings](../../dataviz/plot/Plot/)"
     if category == "Export and presentation":
         return (
-            "[Theme](../../dataviz/theme/Theme/) · "
-            "[OutputFormat](../../dataviz/output_format/OutputFormat/)"
+            "[Theme](../../dataviz/core/theme/Theme/) · "
+            "[OutputFormat](../../dataviz/core/output_format/OutputFormat/)"
         )
     return "[Data shapes](../../data-shapes/)"
 
@@ -556,6 +590,24 @@ def _use_when(hook: String) -> String:
     )
 
 
+def _folded_into(name: String) -> List[String]:
+    """The old page names whose content is now a section of `name`'s
+    page -- another Example block of the same function (#671) -- so
+    their URLs can redirect there."""
+    var out = List[String]()
+    if name == "line":
+        out.append("step")
+        out.append("line_time")
+    elif name == "area":
+        out.append("step_area")
+    elif name == "histogram":
+        out.append("histogram_shared")
+        out.append("histogram_auto")
+        out.append("histogram_density")
+        out.append("histogram_horizontal")
+    return out^
+
+
 def _example_category(
     name: String, categories: List[Category]
 ) raises -> Category:
@@ -566,13 +618,16 @@ def _example_category(
     raise Error("Example has no chart-family category: " + name)
 
 
-def _example_api_link(page: ExamplePage) -> String:
-    """Markdown link from an Example page to its generated API entry."""
+def _example_api_link(page: ExamplePage, root: String) -> String:
+    """Markdown link from an Example page to its generated API entry;
+    `root` is the relative path from the page up to the site root."""
     if page.is_method:
         return (
             "["
             + page.fn_name
-            + "](../../dataviz/"
+            + "]("
+            + root
+            + "dataviz/"
             + page.file
             + "/Plot/#"
             + page.fn_name
@@ -581,7 +636,9 @@ def _example_api_link(page: ExamplePage) -> String:
     return (
         "["
         + page.fn_name
-        + "](../../dataviz/"
+        + "]("
+        + root
+        + "dataviz/"
         + page.file
         + "/"
         + page.fn_name
@@ -596,7 +653,16 @@ def _build_page(
     category: Category,
     titles: Dict[String, String],
     image_prefix: String = "",
+    root: String = "../../",
+    weight: Int = 0,
+    aliases: List[String] = List[String](),
 ) raises -> String:
+    """One page's Markdown. `image_prefix` reaches the SVGs from the
+    page's content folder (Hextra resolves images against it), `root`
+    reaches the site root from the page's URL (plain links resolve
+    against that), `weight` orders the page in its sidebar group, and
+    `aliases` are old URLs Hugo redirects to this page (#671).
+    """
     var hook_overrides = _hook_overrides()
     var hook: String
     if name in hook_overrides:
@@ -631,6 +697,12 @@ def _build_page(
     var out = List[String]()
     out.append("---")
     out.append("title: " + title)
+    if weight > 0:
+        out.append("weight: " + String(weight))
+    if len(aliases) > 0:
+        out.append("aliases:")
+        for old_url in aliases:
+            out.append("  - " + old_url)
     out.append("---")
     out.append("")
     out.append(hook)
@@ -659,8 +731,9 @@ def _build_page(
 
     if len(args_lines) > 0:
         out.append(
-            "See [Data shapes](../../data-shapes/) for shared input "
-            "conventions."
+            "See [Data shapes]("
+            + root
+            + "data-shapes/) for shared input conventions."
         )
         out.append("")
         out.append("**Args:**")
@@ -689,7 +762,7 @@ def _build_page(
     if len(related) > 0:
         out.append("**Related charts:** " + String(" · ").join(related))
         out.append("")
-    out.append("**Relevant API:** " + _example_api_link(page))
+    out.append("**Relevant API:** " + _example_api_link(page, root))
     out.append("")
 
     return String("\n").join(out)
@@ -853,6 +926,8 @@ def main() raises:
         if n not in titles:
             raise Error("Example has no title: " + n)
 
+    for cat in categories:
+        makedirs(_OUT_DIR + "/" + cat.slug, exist_ok=True)
     for p in pages:
         _validate_page(p)
         var category = _example_category(p.name, categories)
@@ -868,10 +943,28 @@ def main() raises:
             )
             _write_file(_COOKBOOK_OUT_DIR + "/" + p.name + ".md", page_md)
         else:
+            var position = 0
+            for i in range(len(category.names)):
+                if category.names[i] == p.name:
+                    position = i + 1
+            var aliases = List[String]()
+            aliases.append("/examples/" + p.name + "/")
+            for old in _folded_into(p.name):
+                aliases.append("/examples/" + old + "/")
             var page_md = _build_page(
-                p.name, titles[p.name], p, category, titles
+                p.name,
+                titles[p.name],
+                p,
+                category,
+                titles,
+                image_prefix="../../",
+                root="../../../",
+                weight=position,
+                aliases=aliases,
             )
-            _write_file(_OUT_DIR + "/" + p.name + ".md", page_md)
+            _write_file(
+                _OUT_DIR + "/" + category.slug + "/" + p.name + ".md", page_md
+            )
 
     # Discover recipes on each run and reject output-name collisions.
     var recipe_entries = listdir(_RECIPES_DIR)
@@ -954,14 +1047,29 @@ def main() raises:
         "The [Glossary](../glossary/) defines chart terminology."
     )
     idx.append("")
-    for cat in categories:
+    for ci in range(len(categories)):
+        ref cat = categories[ci]
         idx.append("## " + cat.title)
         idx.append("")
         idx.append(cat.blurb)
         idx.append("")
         for n in cat.names:
-            idx.append("- [" + titles[n] + "](" + n + "/)")
+            idx.append("- [" + titles[n] + "](" + cat.slug + "/" + n + "/)")
         idx.append("")
+        # The section's own index: what the sidebar group opens to.
+        var sec = List[String]()
+        sec.append("---")
+        sec.append("title: " + cat.title)
+        sec.append("weight: " + String(10 * (ci + 1)))
+        sec.append("---")
+        sec.append("")
+        sec.append(cat.blurb)
+        sec.append("")
+        for n in cat.names:
+            sec.append("- [" + titles[n] + "](" + n + "/)")
+        _write_file(
+            _OUT_DIR + "/" + cat.slug + "/_index.md", String("\n").join(sec)
+        )
     _write_file(_OUT_DIR + "/_index.md", String("\n").join(idx))
 
     # Weight 300 sits between Examples (200) and modo's API reference

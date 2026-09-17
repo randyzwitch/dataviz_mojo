@@ -173,10 +173,10 @@ simple does not lock you in.
 
 | Your data or question | Start with | Example |
 | --- | --- | --- |
-| Two numeric variables | `scatter(x, y)` or `line(x, y)` | [Scatter](../examples/scatter/) · [Line](../examples/line/) |
-| Categories and values | `bar(categories, values)` | [Bar](../examples/bar/) |
-| Distribution of numeric values | `histogram(data)` or `box(categories, values)` | [Histogram](../examples/histogram/) · [Box](../examples/box/) |
-| Values on a two-dimensional grid | `heatmap(x, y, value)` | [Heatmap](../examples/heatmap/) |
+| Two numeric variables | `scatter(x, y)` or `line(x, y)` | [Scatter](../examples/basic/scatter/) · [Line](../examples/basic/line/) |
+| Categories and values | `bar(categories, values)` | [Bar](../examples/basic/bar/) |
+| Distribution of numeric values | `histogram(data)` or `box(categories, values)` | [Histogram](../examples/distributions/histogram/) · [Box](../examples/distributions/box/) |
+| Values on a two-dimensional grid | `heatmap(x, y, value)` | [Heatmap](../examples/grid/heatmap/) |
 | Multiple layers or panels | `Plot()` | [Cookbook](../cookbook/) |
 
 Each linked page includes runnable source beside its rendered output. The

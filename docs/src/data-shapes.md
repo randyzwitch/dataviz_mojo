@@ -28,7 +28,7 @@ var plot = bar(day, revenue)
 
 Here `day[i]` and `revenue[i]` describe one row. The same rule applies to
 `scatter(x, y)`, line data, labels, sizes, groups, and other paired channels.
-See the [Bar](../examples/bar/) and [Scatter](../examples/scatter/) examples.
+See the [Bar](../examples/basic/bar/) and [Scatter](../examples/basic/scatter/) examples.
 
 ## Nested lists
 
@@ -58,9 +58,9 @@ var values: List[List[Int]] = [
 var plot = grouped_bar(categories, series, values)
 ```
 
-Compare the [Grouped bar](../examples/grouped_bar/),
-[Box plot](../examples/box/), [Radar](../examples/radar/), and
-[Parallel coordinates](../examples/parallel/) pages for complete programs.
+Compare the [Grouped bar](../examples/categorical/grouped_bar/),
+[Box plot](../examples/distributions/box/), [Radar](../examples/radial/radar/), and
+[Parallel coordinates](../examples/fields/parallel/) pages for complete programs.
 
 ## Grids and matrices
 
@@ -79,9 +79,9 @@ Grid APIs use long-form columns or nested row-major matrices:
 - `corrplot(variables, matrix)` requires a square matrix with one row and
   column per variable.
 
-See [Heatmap](../examples/heatmap/), [Image](../examples/imshow/),
-[Pseudocolor mesh](../examples/pcolormesh/), and
-[Contour](../examples/contour/).
+See [Heatmap](../examples/grid/heatmap/), [Image](../examples/grid/imshow/),
+[Pseudocolor mesh](../examples/grid/pcolormesh/), and
+[Contour](../examples/fields/contour/).
 
 ## Edge lists
 
@@ -94,8 +94,8 @@ from_categories[i] -> to_categories[i], weighted by values[i]
 Every referenced node is inferred from the source and destination columns.
 Values must be non-negative. Sankey data must also form a directed acyclic
 graph; cycles are rejected when layout is computed. See
-[Graph](../examples/graph/), [Sankey](../examples/sankey/),
-[Chord](../examples/chord/), and [Arc diagram](../examples/arc_diagram/).
+[Graph](../examples/relationships/graph/), [Sankey](../examples/relationships/sankey/),
+[Chord](../examples/relationships/chord/), and [Arc diagram](../examples/relationships/arc_diagram/).
 
 ## Hierarchy rows
 
@@ -109,8 +109,8 @@ nested node objects. The three lists have one entry per node:
 
 Every non-root parent must appear in `ids`, and every node must be reachable
 from the root. Duplicate IDs, missing parents, multiple roots, and cycles are
-invalid. See [Sunburst](../examples/sunburst/), [Tree](../examples/tree/), and
-[Treemap](../examples/treemap/).
+invalid. See [Sunburst](../examples/hierarchical/sunburst/), [Tree](../examples/hierarchical/tree/), and
+[Treemap](../examples/hierarchical/treemap/).
 
 ## NumPy, pandas, and custom containers
 
