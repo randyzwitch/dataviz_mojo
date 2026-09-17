@@ -945,7 +945,11 @@ def _draw_continuous_axis_frame[
     ) if controls.y_ticks.has else y_scale.ticks()
     var y_labels = y_ticks.labels(theme.y_tick_format)
     var dynamic_left_margin = (
-        Int(_max_label_width(y_labels, sc.font_size, cache=cache))
+        Int(
+            _max_label_width(
+                y_labels, sc.font_size, family=theme.font_family, cache=cache
+            )
+        )
         + sc.tick_length
         + sc.label_gap
         + sc.margin_buffer
@@ -1346,7 +1350,11 @@ def _draw_categorical_axis_frame[
     var y_ticks = y_scale.ticks()
     var y_labels = y_ticks.labels(theme.y_tick_format)
     var dynamic_left_margin = (
-        Int(_max_label_width(y_labels, sc.font_size, cache=cache))
+        Int(
+            _max_label_width(
+                y_labels, sc.font_size, family=theme.font_family, cache=cache
+            )
+        )
         + sc.tick_length
         + sc.label_gap
         + sc.margin_buffer
@@ -1360,7 +1368,7 @@ def _draw_categorical_axis_frame[
     )
 
     var x_label_max_width = _max_label_width(
-        categories, sc.font_size, cache=cache
+        categories, sc.font_size, family=theme.font_family, cache=cache
     )
     var x_label_rotation = _resolve_x_label_rotation(
         theme.x_label_rotation, x_label_max_width, x_scale.step()

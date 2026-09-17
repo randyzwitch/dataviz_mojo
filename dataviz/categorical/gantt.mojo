@@ -85,7 +85,11 @@ def _draw_horizontal_categorical_axis_frame[
     var sc = _Scaled(theme)
 
     var dynamic_left_margin = (
-        Int(_max_label_width(categories, sc.font_size, cache=cache))
+        Int(
+            _max_label_width(
+                categories, sc.font_size, family=theme.font_family, cache=cache
+            )
+        )
         + sc.tick_length
         + sc.label_gap
         + sc.margin_buffer

@@ -10,7 +10,8 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
 from canvas.text.render import measure_text
-from dataviz import LegendPosition, Plot, Theme, render_svg, scatter
+from dataviz import LegendPosition, Plot, Theme, bar, render_svg, scatter
+from dataviz.core.text import _max_label_width
 from dataviz.core.legend_position import LegendPosition
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
@@ -675,6 +676,53 @@ def test_a_level_key_stacks_in_a_column_and_runs_along_a_row() raises:
         if x != row[0]:
             moved = True
     assert_true(moved, "every BOTTOM swatch sits at one x: still a column")
+
+
+# ==== widths follow the theme's family (#655) ====
+
+
+def test_label_widths_are_measured_in_the_family_they_draw_in() raises:
+    # Serif and sans faces set the same string at different widths. A
+    # gutter sized from the wrong one is too narrow or too wide by the
+    # difference, which nothing showed while only the default was used.
+    var cache = FontCache()
+    var labels: List[String] = ["Wide label WWW iii"]
+    var sans = _max_label_width(labels, 12.0, family="Sans", cache=cache)
+    var serif = _max_label_width(labels, 12.0, family="Serif", cache=cache)
+    assert_true(sans > 0.0 and serif > 0.0)
+    assert_true(
+        abs(sans - serif) > 1.0,
+        "Sans and Serif measured the same: "
+        + String(sans)
+        + " vs "
+        + String(serif),
+    )
+
+
+def test_a_serif_theme_gets_a_gutter_sized_for_serif() raises:
+    # A horizontal bar's left gutter is the widest category label. With
+    # the theme in Serif the bars must start where Serif's width puts
+    # them, not where Sans's would.
+    var cats: List[String] = ["Wide label WWW iii", "b"]
+    var vals: List[Float64] = [3.0, 1.0]
+    var sans = render_svg(bar(cats, vals, horizontal=True)).to_string()
+    var serif = render_svg(
+        bar(cats, vals, horizontal=True, theme=Theme(font_family="Serif"))
+    ).to_string()
+    # The leftmost rect that is not the background, which sits at 0 in
+    # both: the first bar starts at the gutter's right edge.
+    var sans_x = 1.0e9
+    for v in _attr_values(sans, "rect", "x"):
+        if atof(v) > 0.0:
+            sans_x = min(sans_x, atof(v))
+    var serif_x = 1.0e9
+    for v in _attr_values(serif, "rect", "x"):
+        if atof(v) > 0.0:
+            serif_x = min(serif_x, atof(v))
+    assert_true(
+        serif_x != sans_x,
+        "the bars start at the same x in Serif and Sans: " + String(sans_x),
+    )
 
 
 def main() raises:

@@ -219,7 +219,11 @@ def _render_calendar_heatmap[
     # The render's shared cache serves both measurements: the y-axis day labels
     # here and the legend's labels below.
     var dynamic_left_margin = (
-        Int(_max_label_width(day_labels, sc.font_size, cache=cache))
+        Int(
+            _max_label_width(
+                day_labels, sc.font_size, family=theme.font_family, cache=cache
+            )
+        )
         + sc.tick_length
         + sc.label_gap
         + sc.margin_buffer
@@ -273,7 +277,7 @@ def _render_calendar_heatmap[
         )
 
     var needed = _max_label_width(
-        month_labels, sc.font_size, cache=cache
+        month_labels, sc.font_size, family=theme.font_family, cache=cache
     ) + Float64(sc.label_gap)
     var stride = _month_label_stride(month_cx, needed)
 
