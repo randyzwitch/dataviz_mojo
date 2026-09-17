@@ -14,6 +14,7 @@ tests/_test_*.png
 # committed.
 .tools/
 docs/src/*.json
+docs/src/feature-support.md
 
 # Generated example pages, programs, and images. Keep handwritten quickstart
 # programs by re-including their directory one level at a time.

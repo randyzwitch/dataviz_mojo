@@ -41,7 +41,7 @@ format-check = "mojo format dataviz tests scripts docs/cookbook_recipes docs/src
 bench = "mojo run -I . -I scripts scripts/bench.mojo"
 # Regenerate untracked site content after `pixi run example`.
 docs-install = "bash scripts/install-modo.sh"
-docs-build = { cmd = "rm -rf docs/site/content docs/site/public && mkdir -p docs/src/examples && rm -f docs/src/examples/*.md docs/src/examples/*/*.md docs/src/*.json && mojo run -I . -I scripts scripts/gen_example_docs.mojo && mojo doc -I . -o docs/src/dataviz.json dataviz && .tools/modo build docs -c modo.yaml && sed -i 's/^title: dataviz$/title: API Reference/' docs/site/content/dataviz/_index.md && bash scripts/check_docs_links.sh", depends-on = [
+docs-build = { cmd = "rm -rf docs/site/content docs/site/public && mkdir -p docs/src/examples && rm -f docs/src/examples/*.md docs/src/examples/*/*.md docs/src/feature-support.md docs/src/*.json && mojo run -I . -I scripts scripts/gen_example_docs.mojo && mojo doc -I . -o docs/src/dataviz.json dataviz && .tools/modo build docs -c modo.yaml && sed -i 's/^title: dataviz$/title: API Reference/' docs/site/content/dataviz/_index.md && bash scripts/check_docs_links.sh", depends-on = [
     "docs-install",
 ] }
 # Build the deployable site.

@@ -10,7 +10,7 @@ from dataviz.basic.continuous import (
 )
 from dataviz.layers import _render_layers_generic, render_layers
 from dataviz.core.axis_controls import _TickOverride
-from dataviz.core.mark import Mark
+from dataviz.core.mark import Feature, Mark, _supporting_names
 from dataviz.plot import (
     Plot,
     _DomainOverride,
@@ -221,14 +221,13 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             + ")"
         )
     if (has_color or has_color_categories or has_size) and not (
-        plot._mark == Mark.POINT
-        or plot._mark == Mark.SINGLE_AXIS
-        or plot._mark == Mark.EFFECT_SCATTER
+        plot._mark.supports(Feature.COLOR_SIZE)
     ):
         raise Error(
             context
-            + ": color/size encoding is only supported for"
-            " Mark.POINT/SINGLE_AXIS/EFFECT_SCATTER today"
+            + ": color/size encoding is only supported for "
+            + _supporting_names(Feature.COLOR_SIZE)
+            + " today"
         )
     var has_y_err = len(plot._y_err.symmetric) > 0
     if has_y_err and len(plot._y_err.symmetric) != len(plot._continuous.x):

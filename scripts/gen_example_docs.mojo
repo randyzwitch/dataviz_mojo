@@ -31,6 +31,8 @@ A Mojo script rather than Python, using `.strip()`/`.startswith()`/
 from std.collections import Dict
 from std.os import listdir, makedirs
 
+from dataviz.core.mark import Feature, Mark, _marks_supporting
+
 from _example_docstrings import (
     ExamplePage,
     _ExampleBlock,
@@ -48,6 +50,7 @@ from _example_docstrings import (
 )
 
 comptime _OUT_DIR = "docs/src/examples"
+comptime _FEATURE_PAGE = "docs/src/feature-support.md"
 comptime _COOKBOOK_OUT_DIR = "docs/src/cookbook"
 comptime _RECIPES_DIR = "docs/cookbook_recipes"
 
@@ -382,6 +385,56 @@ def _categories() -> List[Category]:
         )
     )
     return cats^
+
+
+def _feature_support_page() -> String:
+    """The per-mark feature-support matrix, from `Mark.supports()`: one
+    row per mark, one column per `Feature` (#213). Generated so it
+    cannot drift from the table; tests/test_feature_support.mojo keeps
+    the table honest against the code.
+    """
+    var out = List[String]()
+    out.append("---")
+    out.append("title: Feature support")
+    out.append("type: docs")
+    out.append("weight: 130")
+    out.append("---")
+    out.append("")
+    out.append(
+        "Which `Theme` flags and `Plot` settings each mark honors. A blank"
+        " cell means the mark ignores the flag today or raises on the call;"
+        " the column's small print says which. Generated from"
+        " `Mark.supports()` in `dataviz/core/mark.mojo` by `pixi run docs`,"
+        " and checked against every mark's rendered output by"
+        " `tests/test_feature_support.mojo`, so the page and the code cannot"
+        " disagree."
+    )
+    out.append("")
+    var header = String("| Mark |")
+    var rule = String("| --- |")
+    for f in range(Feature.COUNT):
+        header += " " + Feature(f).label() + " |"
+        rule += " :---: |"
+    out.append(header)
+    out.append(rule)
+    for value in range(Mark.COUNT):
+        var mark = Mark(value)
+        var row = "| `" + mark.name() + "` |"
+        for f in range(Feature.COUNT):
+            row += " ✓ |" if mark.supports(Feature(f)) else "  |"
+        out.append(row)
+    out.append("")
+    out.append("## Notes")
+    out.append("")
+    for f in range(Feature.COUNT):
+        out.append("- " + Feature(f).label() + ": " + Feature(f).summary())
+    out.append("")
+    out.append(
+        "Supported marks per feature, for the same table from code:"
+        " `Mark.supports(Feature.TOOLTIPS)` and the rest of `Feature`."
+    )
+    out.append("")
+    return String("\n").join(out)
 
 
 def _cookbook() -> Category:
@@ -1071,6 +1124,7 @@ def main() raises:
             _OUT_DIR + "/" + cat.slug + "/_index.md", String("\n").join(sec)
         )
     _write_file(_OUT_DIR + "/_index.md", String("\n").join(idx))
+    _write_file(_FEATURE_PAGE, _feature_support_page())
 
     # Weight 300 sits between Examples (200) and modo's API reference
     # (400), placing Cookbook after Examples in the sidebar/top nav.

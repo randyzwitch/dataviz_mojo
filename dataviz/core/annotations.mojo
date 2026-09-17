@@ -26,6 +26,7 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign, measure_text
 from canvas.vector.draw_target import DrawTarget
 
+from dataviz.core.mark import Feature, _supporting_names
 from dataviz.core.mathtext import _label_requests
 from dataviz.core.text import _extend_text_requests
 from dataviz.core.arrow import (
@@ -158,12 +159,8 @@ def _draw_annotation_areas[
     if not result.has_y_scale:
         raise Error(
             "Plot.annotate_area(): this mark has no continuous y-axis to place"
-            " a shaded band"
-            " against. Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER and"
-            " every mark sharing"
-            " _CategoricalFrame"
-            " (BAR/LOLLIPOP/WATERFALL/BOX/CANDLESTICK/BULLET/GROUPED_BAR/"
-            "STACKED_BAR/STREAMGRAPH)"
+            " a shaded band against. Supported today: "
+            + _supporting_names(Feature.ANNOTATIONS_Y)
         )
 
     var sc = _Scaled(theme)
@@ -260,8 +257,8 @@ def _draw_annotation_bands[
     if not result.has_x_scale or not result.has_y_scale:
         raise Error(
             "Plot.annotate_band(): this mark has no continuous x/y axes to"
-            " place a band against. Supported today:"
-            " Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
+            " place a band against. Supported today: "
+            + _supporting_names(Feature.ANNOTATIONS_XY)
         )
 
     var sc = _Scaled(theme)
@@ -389,12 +386,8 @@ def _draw_annotation_lines[
     if not result.has_y_scale:
         raise Error(
             "Plot.annotate_line(): this mark has no continuous y-axis to place"
-            " a reference line"
-            " against. Supported today: Mark.POINT/LINE/AREA/EFFECT_SCATTER and"
-            " every mark sharing"
-            " _CategoricalFrame"
-            " (BAR/LOLLIPOP/WATERFALL/BOX/CANDLESTICK/BULLET/GROUPED_BAR/"
-            "STACKED_BAR/STREAMGRAPH)"
+            " a reference line against. Supported today: "
+            + _supporting_names(Feature.ANNOTATIONS_Y)
         )
 
     var sc = _Scaled(theme)
@@ -463,8 +456,8 @@ def _draw_annotation_vlines[
     if not result.has_x_scale:
         raise Error(
             "Plot.annotate_vline(): this mark has no continuous x-axis to place"
-            " a reference line against. Supported today:"
-            " Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
+            " a reference line against. Supported today: "
+            + _supporting_names(Feature.ANNOTATIONS_XY)
         )
 
     var sc = _Scaled(theme)
@@ -535,8 +528,8 @@ def _draw_annotation_points[
     if not result.has_x_scale or not result.has_y_scale:
         raise Error(
             "Plot.annotate_point(): this mark has no continuous x/y axes to"
-            " place a point against. Supported today:"
-            " Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
+            " place a point against. Supported today: "
+            + _supporting_names(Feature.ANNOTATIONS_XY)
         )
 
     var sc = _Scaled(theme)
