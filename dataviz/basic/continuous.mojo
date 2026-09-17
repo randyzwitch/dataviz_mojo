@@ -686,7 +686,12 @@ def _draw_point_layer[
                 )
                 cursor = (
                     label_x
-                    + _text_advance(ch.cat.domain[i], sc_row, cache=cache)
+                    + _text_advance(
+                        ch.cat.domain[i],
+                        sc_row,
+                        family=theme.font_family,
+                        cache=cache,
+                    )
                     + sc_row.legend_swatch_size
                 )
         elif ch.has_color:

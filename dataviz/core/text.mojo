@@ -103,16 +103,23 @@ struct _Scaled(Movable):
 
 
 def _max_label_width(
-    labels: List[String], font_size: Float64, *, mut cache: FontCache
+    labels: List[String],
+    font_size: Float64,
+    *,
+    family: String,
+    mut cache: FontCache,
 ) raises -> Float64:
-    """Return the widest rendered label at `font_size` using `cache`."""
-    # Measured in canvas's default face, as `measure_text` did here
-    # before, so a plain label's width is unchanged; a math label is
-    # laid out (#371). That default is not the theme's family, which is
-    # #655.
+    """The widest label at `font_size` in `family`, which must be the
+    family the labels will draw in.
+
+    It used to measure in canvas's default face whatever the theme
+    said (#655). The two coincide for the default theme, so nothing
+    showed; a serif or condensed theme got every gutter and legend
+    column sized for a face its text was not set in.
+    """
     var max_width = 0.0
     for label in labels:
-        var w = _label_width(label, font_size, "Sans", False, cache=cache)
+        var w = _label_width(label, font_size, family, False, cache=cache)
         if w > max_width:
             max_width = w
     return max_width
@@ -264,7 +271,7 @@ struct _TextRequest(Copyable, Movable):
 
 
 def _text_advance(
-    text: String, sc: _Scaled, *, mut cache: FontCache
+    text: String, sc: _Scaled, *, family: String, mut cache: FontCache
 ) raises -> Int:
     """The rendered width of `text`, for spacing a row legend's sections.
 
@@ -283,6 +290,7 @@ def _text_advance(
     Args:
         text: The label.
         sc: The render's scaled layout metrics.
+        family: The family the label draws in.
         cache: The render's shared font cache.
 
     Returns:
@@ -292,7 +300,9 @@ def _text_advance(
     Raises:
         Error: Whatever `measure_text()` raises.
     """
-    return Int(ceil(measure_text(text, sc.font_size, cache=cache).width))
+    return Int(
+        ceil(measure_text(text, sc.font_size, family=family, cache=cache).width)
+    )
 
 
 struct _LabelsFrame(Movable):

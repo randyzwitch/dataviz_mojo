@@ -41,6 +41,7 @@ def _dynamic_legend_width(
     content_width: Int,
     sc: _Scaled,
     *,
+    family: String,
     mut cache: FontCache,
 ) raises -> Int:
     """How wide a legend column needs to be to fit `labels` next to
@@ -56,7 +57,9 @@ def _dynamic_legend_width(
         sc.legend_width,
         content_width
         + sc.label_gap
-        + Int(_max_label_width(labels, sc.font_size, cache=cache))
+        + Int(
+            _max_label_width(labels, sc.font_size, family=family, cache=cache)
+        )
         + sc.margin_buffer,
     )
 
@@ -134,7 +137,7 @@ def _legend_layout(
 
     if not theme.legend_position.is_horizontal():
         var width = _dynamic_legend_width(
-            labels, content_width, sc, cache=cache
+            labels, content_width, sc, family=theme.font_family, cache=cache
         )
         if theme.legend_position == LegendPosition.LEFT:
             layout.left = width
@@ -153,7 +156,11 @@ def _legend_layout(
         var entry = (
             content_width
             + sc.label_gap
-            + Int(_max_label_width(one, sc.font_size, cache=cache))
+            + Int(
+                _max_label_width(
+                    one, sc.font_size, family=theme.font_family, cache=cache
+                )
+            )
             + gap
         )
         if used > 0 and used + entry > available_width:
@@ -555,7 +562,11 @@ def _draw_continuous_color_legend_h[
             cache=cache,
         ),
     )
-    var bar_x = x + _text_advance(low, sc, cache=cache) + sc.label_gap
+    var bar_x = (
+        x
+        + _text_advance(low, sc, family=theme.font_family, cache=cache)
+        + sc.label_gap
+    )
     # Out-of-range blocks take a slice off each end, under at the left
     # where the low values are and over at the right, inside the bar's
     # own length so the row costs what it did before (#370).
@@ -637,7 +648,11 @@ def _draw_continuous_color_legend_h[
             cache=cache,
         ),
     )
-    return high_x + _text_advance(high, sc, cache=cache) + sc.legend_swatch_size
+    return (
+        high_x
+        + _text_advance(high, sc, family=theme.font_family, cache=cache)
+        + sc.legend_swatch_size
+    )
 
 
 def _draw_continuous_size_legend_h[
@@ -915,6 +930,7 @@ def _continuous_color_legend_layout(
             _continuous_legend_labels(color_scale, theme),
             sc.continuous_legend_bar_width,
             sc,
+            family=theme.font_family,
             cache=cache,
         )
         if theme.legend_position == LegendPosition.LEFT:
@@ -1098,7 +1114,11 @@ def _legend_reserve_for(
         reserve = max(
             reserve,
             _dynamic_legend_width(
-                ch.cat.domain, sc.legend_swatch_size, sc, cache=cache
+                ch.cat.domain,
+                sc.legend_swatch_size,
+                sc,
+                family=plot._theme.font_family,
+                cache=cache,
             ),
         )
     elif ch.has_color:
@@ -1108,7 +1128,11 @@ def _legend_reserve_for(
         reserve = max(
             reserve,
             _dynamic_legend_width(
-                color_labels, sc.continuous_legend_bar_width, sc, cache=cache
+                color_labels,
+                sc.continuous_legend_bar_width,
+                sc,
+                family=plot._theme.font_family,
+                cache=cache,
             ),
         )
     if ch.has_size:
@@ -1130,7 +1154,11 @@ def _legend_reserve_for(
         reserve = max(
             reserve,
             _dynamic_legend_width(
-                size_labels, circle_content_width, sc, cache=cache
+                size_labels,
+                circle_content_width,
+                sc,
+                family=plot._theme.font_family,
+                cache=cache,
             ),
         )
 

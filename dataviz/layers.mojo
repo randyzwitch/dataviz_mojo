@@ -561,7 +561,11 @@ def _render_bar_combo_layers[
             series_colors.append(plots[i]._theme.mark_color)
     var legend_reserve = (
         _dynamic_legend_width(
-            series_names, sc.legend_swatch_size, sc, cache=cache
+            series_names,
+            sc.legend_swatch_size,
+            sc,
+            family=theme.font_family,
+            cache=cache,
         ) if len(series_names)
         > 0 else 0
     )
@@ -1352,7 +1356,10 @@ def _render_layers_generic[
         secondary_axis_reserve = (
             Int(
                 _max_label_width(
-                    y2_labels_for_margin, sc.font_size, cache=cache
+                    y2_labels_for_margin,
+                    sc.font_size,
+                    family=theme.font_family,
+                    cache=cache,
                 )
             )
             + sc.tick_length
@@ -1391,7 +1398,11 @@ def _render_layers_generic[
         legend_width = max(
             legend_width,
             _dynamic_legend_width(
-                series_names, sc.legend_swatch_size, sc, cache=cache
+                series_names,
+                sc.legend_swatch_size,
+                sc,
+                family=theme.font_family,
+                cache=cache,
             ),
         )
 

@@ -103,7 +103,11 @@ def _draw_bump_axis_frame[
     for r in range(1, n_series + 1):
         rank_labels.append(String(r))
     var dynamic_left_margin = (
-        Int(_max_label_width(rank_labels, sc.font_size, cache=cache))
+        Int(
+            _max_label_width(
+                rank_labels, sc.font_size, family=theme.font_family, cache=cache
+            )
+        )
         + sc.tick_length
         + sc.label_gap
         + sc.margin_buffer
