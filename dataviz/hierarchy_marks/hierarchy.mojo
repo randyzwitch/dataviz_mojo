@@ -3,7 +3,7 @@
 from std.collections import Dict
 
 
-struct _HierarchyData(Copyable, Movable):
+struct _HierarchyData(Copyable, Defaultable, Movable):
     """A flattened hierarchy, one (id, parent_id, value) row per node, for
     `Mark.SUNBURST`/`TREE`/`TREEMAP`. See `encode_hierarchy()`. Stored on
     `Plot._hierarchy`.

@@ -21,6 +21,7 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
+from dataviz.plot import _DistributionData
 
 
 def _draw_violin_silhouettes[
@@ -52,7 +53,7 @@ def _draw_violin_silhouettes[
     """
     var theme = plot._theme
     var max_n = 0
-    for series in plot._distribution.values:
+    for series in plot._data[_DistributionData].values:
         if len(series) > max_n:
             max_n = len(series)
     var half_extent = (
@@ -60,14 +61,17 @@ def _draw_violin_silhouettes[
     )
 
     for i in range(len(plot._categorical.x)):
-        var values = plot._distribution.values[i].copy()
+        var values = plot._data[_DistributionData].values[i].copy()
         var center = band_scale.center(i)
         var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
-            plot._distribution.kde_scale_by_count and max_n > 0
+            plot._data[_DistributionData].kde_scale_by_count and max_n > 0
         ) else 1.0
-        var bandwidth = (
-            plot._distribution.kde_bandwidth_override if plot._distribution.kde_bandwidth_override
-            > 0.0 else _kde_bandwidth(values)
+        var bandwidth = plot._data[
+            _DistributionData
+        ].kde_bandwidth_override if plot._data[
+            _DistributionData
+        ].kde_bandwidth_override > 0.0 else _kde_bandwidth(
+            values
         )
         var mm = _min_max(values)
 
@@ -150,15 +154,15 @@ def _render_violin[
     `BEESWARM` make.
     """
     var theme = plot._theme
-    if plot._distribution.kde_bandwidth_override < 0.0:
+    if plot._data[_DistributionData].kde_bandwidth_override < 0.0:
         raise Error(
             "Plot.mark_violin(): bandwidth must be positive (got "
-            + String(plot._distribution.kde_bandwidth_override)
+            + String(plot._data[_DistributionData].kde_bandwidth_override)
             + ")"
         )
 
     var all_values = List[Float64]()
-    for series in plot._distribution.values:
+    for series in plot._data[_DistributionData].values:
         for v in series:
             all_values.append(v)
     var value_scale = _data_extent(all_values)
@@ -204,15 +208,15 @@ def _render_horizontal_violin[
     `_render_horizontal_bar`'s docstring (bar.mojo).
     """
     var theme = plot._theme
-    if plot._distribution.kde_bandwidth_override < 0.0:
+    if plot._data[_DistributionData].kde_bandwidth_override < 0.0:
         raise Error(
             "Plot.mark_violin(): bandwidth must be positive (got "
-            + String(plot._distribution.kde_bandwidth_override)
+            + String(plot._data[_DistributionData].kde_bandwidth_override)
             + ")"
         )
 
     var all_values = List[Float64]()
-    for series in plot._distribution.values:
+    for series in plot._data[_DistributionData].values:
         for v in series:
             all_values.append(v)
     var value_scale = _data_extent(all_values)

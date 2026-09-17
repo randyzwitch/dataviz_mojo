@@ -21,7 +21,7 @@ from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
 
 
-struct _BarbsData(Copyable, Movable):
+struct _BarbsData(Copyable, Defaultable, Movable):
     """One (x, y, u, v) row per vector, plus the knobs `mark_barbs()`
     and `mark_quiver()` set. Shared by `Mark.BARBS` and `Mark.QUIVER`,
     which differ in the glyph they draw rather than in the data they
@@ -224,8 +224,8 @@ def _render_barbs[
     var theme = plot._theme
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(plot._barbs.x),
-        _data_extent(plot._barbs.y),
+        _data_extent(plot._data[_BarbsData].x),
+        _data_extent(plot._data[_BarbsData].y),
         theme,
         _LegendLayout(),
         ox0,
@@ -244,22 +244,22 @@ def _validate_vector_field(plot: Plot, context: String) raises:
     four channels shares: equal-length columns and at least one point.
     `context` names the encoder in the message.
     """
-    var n = len(plot._barbs.x)
+    var n = len(plot._data[_BarbsData].x)
     if (
-        len(plot._barbs.y) != n
-        or len(plot._barbs.u) != n
-        or len(plot._barbs.v) != n
+        len(plot._data[_BarbsData].y) != n
+        or len(plot._data[_BarbsData].u) != n
+        or len(plot._data[_BarbsData].v) != n
     ):
         raise Error(
             context
             + ": x, y, u, and v must all have the same length (got "
             + String(n)
             + " x values, "
-            + String(len(plot._barbs.y))
+            + String(len(plot._data[_BarbsData].y))
             + " y values, "
-            + String(len(plot._barbs.u))
+            + String(len(plot._data[_BarbsData].u))
             + " u values, "
-            + String(len(plot._barbs.v))
+            + String(len(plot._data[_BarbsData].v))
             + " v values)"
         )
     _require_non_empty(n, context)
@@ -276,10 +276,10 @@ def _validate_barbs(plot: Plot) raises:
     to be caught there rather than inside the drawing.
     """
     _validate_vector_field(plot, "Plot.encode_barbs()")
-    if plot._barbs.length <= 0.0:
+    if plot._data[_BarbsData].length <= 0.0:
         raise Error(
             "Plot.mark_barbs(): length must be positive (got "
-            + String(plot._barbs.length)
+            + String(plot._data[_BarbsData].length)
             + ")"
         )
 
@@ -311,9 +311,9 @@ def _draw_barbs_layer[
         y_scale: The y-scale this layer draws against.
         sc: This layer's scaled theme metrics.
     """
-    var n = len(plot._barbs.x)
+    var n = len(plot._data[_BarbsData].x)
     var theme = plot._theme
-    var length = plot._barbs.length * sc.scale
+    var length = plot._data[_BarbsData].length * sc.scale
     var stroke_width = sc.scale
     var empty_radius = _EMPTY_RADIUS * length
 
@@ -325,13 +325,13 @@ def _draw_barbs_layer[
     var pennants = List[Path]()
 
     for i in range(n):
-        var u = plot._barbs.u[i]
-        var v = plot._barbs.v[i]
+        var u = plot._data[_BarbsData].u[i]
+        var v = plot._data[_BarbsData].v[i]
         var speed = sqrt(u * u + v * v)
         var counts = _barb_counts(speed)
 
-        var px = x_scale.to_pixel(plot._barbs.x[i])
-        var py = y_scale.to_pixel(plot._barbs.y[i])
+        var px = x_scale.to_pixel(plot._data[_BarbsData].x[i])
+        var py = y_scale.to_pixel(plot._data[_BarbsData].y[i])
 
         if counts.calm:
             # Exactly where every other glyph goes: the barbs below are
@@ -352,7 +352,9 @@ def _draw_barbs_layer[
                 slot = k
                 break
         if slot < 0:
-            _barb_glyph(strokes, pennants, counts, length, plot._barbs.flip)
+            _barb_glyph(
+                strokes, pennants, counts, length, plot._data[_BarbsData].flip
+            )
             keys.append(key)
             slot = len(keys) - 1
 

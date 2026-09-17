@@ -22,6 +22,7 @@ from dataviz.plot import (
     _require_non_negative,
 )
 from dataviz.core.theme import Theme
+from dataviz.hierarchy_marks.hierarchy import _HierarchyData
 
 
 def _assign_leaf_positions(
@@ -118,27 +119,31 @@ def _render_tree[
     before nodes, colors follow top-level branches, and values must be
     non-negative.
     """
-    if len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids) or len(
-        plot._hierarchy.values
-    ) != len(plot._hierarchy.ids):
+    if len(plot._data[_HierarchyData].parent_ids) != len(
+        plot._data[_HierarchyData].ids
+    ) or len(plot._data[_HierarchyData].values) != len(
+        plot._data[_HierarchyData].ids
+    ):
         raise Error(
             "Plot.encode_hierarchy(): ids, parent_ids, and values must all have"
             " the same length (got "
-            + String(len(plot._hierarchy.ids))
+            + String(len(plot._data[_HierarchyData].ids))
             + " ids, "
-            + String(len(plot._hierarchy.parent_ids))
+            + String(len(plot._data[_HierarchyData].parent_ids))
             + " parent_ids, "
-            + String(len(plot._hierarchy.values))
+            + String(len(plot._data[_HierarchyData].values))
             + " values)"
         )
 
     var theme = plot._theme
-    _require_non_negative(plot._hierarchy.values, "Mark.TREE")
+    _require_non_negative(plot._data[_HierarchyData].values, "Mark.TREE")
 
     var idx = _build_hierarchy_index(
-        plot._hierarchy.ids, plot._hierarchy.parent_ids, plot._hierarchy.values
+        plot._data[_HierarchyData].ids,
+        plot._data[_HierarchyData].parent_ids,
+        plot._data[_HierarchyData].values,
     )
-    var n = len(plot._hierarchy.ids)
+    var n = len(plot._data[_HierarchyData].ids)
 
     var parent_row = List[Int](capacity=n)
     for _ in range(n):
@@ -162,7 +167,7 @@ def _render_tree[
     var text_requests = List[_TextRequest]()
     var legend_labels = List[String]()
     for c in root_children:
-        legend_labels.append(plot._hierarchy.ids[c])
+        legend_labels.append(plot._data[_HierarchyData].ids[c])
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
@@ -218,7 +223,7 @@ def _render_tree[
                 + sc.tick_length
                 + sc.label_gap
                 + Int(sc.font_size),
-                plot._hierarchy.ids[row],
+                plot._data[_HierarchyData].ids[row],
                 theme.text_color,
                 sc.font_size,
                 TextAlign.CENTER,

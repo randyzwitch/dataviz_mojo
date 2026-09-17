@@ -25,6 +25,8 @@ from dataviz.plot import (
     render_layers_svg,
     render_svg,
 )
+from dataviz.binned.histogram import _HistogramData
+from dataviz.grid.image import _ImageData
 from _test_helpers import (
     _assert_same_canvas,
     _attr_values,
@@ -179,8 +181,8 @@ def test_encode_histogram_bins_keeps_the_staircase_columns_for_the_domains() rai
         len(p._continuous.y), 3, "step_y(): values plus the last repeated"
     )
     assert_equal(p._continuous.y[2], 1.0)
-    assert_equal(len(p._histogram.edges), 3)
-    assert_equal(p._histogram.values[0], 3.0)
+    assert_equal(len(p._data[_HistogramData].edges), 3)
+    assert_equal(p._data[_HistogramData].values[0], 3.0)
 
 
 def test_dtype_overload_matches_the_float64_path() raises:
@@ -428,12 +430,12 @@ def test_hist2d_bins_each_axis_over_its_own_range() raises:
     var x: List[Float64] = [0.0, 1.0, 2.0, 3.0, 4.0]
     var y: List[Float64] = [10.0, 10.0, 10.0, 10.0, 30.0]
     var p = hist2d(x, y, bins=2)
-    assert_equal(len(p._image.x_edges), 3)
-    assert_equal(p._image.x_edges[1], 2.0)
-    assert_equal(p._image.y_edges[1], 20.0)
-    assert_equal(p._image.z[0][0], 2.0)
-    assert_equal(p._image.z[1][1], 1.0)
-    assert_true(p._image.blank_zero, "empty bins are left undrawn")
+    assert_equal(len(p._data[_ImageData].x_edges), 3)
+    assert_equal(p._data[_ImageData].x_edges[1], 2.0)
+    assert_equal(p._data[_ImageData].y_edges[1], 20.0)
+    assert_equal(p._data[_ImageData].z[0][0], 2.0)
+    assert_equal(p._data[_ImageData].z[1][1], 1.0)
+    assert_true(p._data[_ImageData].blank_zero, "empty bins are left undrawn")
 
 
 def test_empty_bins_draw_as_background_not_the_bottom_of_the_ramp() raises:
@@ -485,14 +487,14 @@ def test_rule_overload_bins_each_axis_by_the_rule() raises:
     var p = hist2d(x, y)
     var ex = bin_edges(x, BinRule.AUTO)
     var ey = bin_edges(y, BinRule.AUTO)
-    assert_equal(len(p._image.x_edges), len(ex))
-    assert_equal(len(p._image.y_edges), len(ey))
-    assert_equal(p._image.x_edges[1], ex[1])
-    assert_equal(p._image.y_edges[1], ey[1])
+    assert_equal(len(p._data[_ImageData].x_edges), len(ex))
+    assert_equal(len(p._data[_ImageData].y_edges), len(ey))
+    assert_equal(p._data[_ImageData].x_edges[1], ex[1])
+    assert_equal(p._data[_ImageData].y_edges[1], ey[1])
     var total = 0.0
-    for r in range(len(p._image.z)):
-        for c in range(len(p._image.z[r])):
-            total += p._image.z[r][c]
+    for r in range(len(p._data[_ImageData].z)):
+        for c in range(len(p._data[_ImageData].z[r])):
+            total += p._data[_ImageData].z[r][c]
     assert_equal(total, 200.0, "every point lands in exactly one bin")
 
 

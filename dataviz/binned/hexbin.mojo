@@ -31,7 +31,7 @@ from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
 
 
-struct _HexbinData(Copyable, Movable):
+struct _HexbinData(Copyable, Defaultable, Movable):
     """The points `Mark.HEXBIN` bins and the lattice size, from
     `encode_hexbin()`. Stored on `Plot._hexbin`. Binning happens at
     render time through `_hexbin_bins`, so the lattice is always the
@@ -393,7 +393,9 @@ def _render_hexbin[
         Error: As `_hexbin_bins`.
     """
     var bins = _hexbin_bins(
-        plot._hexbin.x, plot._hexbin.y, plot._hexbin.gridsize
+        plot._data[_HexbinData].x,
+        plot._data[_HexbinData].y,
+        plot._data[_HexbinData].gridsize,
     )
     var theme = plot._theme
     var sc = _Scaled(theme)

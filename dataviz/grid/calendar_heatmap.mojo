@@ -21,7 +21,7 @@ from dataviz.plot import (
 from dataviz.core.theme import Theme
 
 
-struct _CalendarData(Copyable, Movable):
+struct _CalendarData(Copyable, Defaultable, Movable):
     """One (`"YYYY-MM-DD"` date, value) row per day, for
     `Mark.CALENDAR_HEATMAP`. See `encode_calendar()`. Stored on
     `Plot._calendar`.
@@ -180,21 +180,27 @@ def _render_calendar_heatmap[
     domain is a fixed 7-day week and the column domain is a computed week
     index with no per-column label.
     """
-    if len(plot._calendar.dates) != len(plot._calendar.values):
+    if len(plot._data[_CalendarData].dates) != len(
+        plot._data[_CalendarData].values
+    ):
         raise Error(
             "Plot.encode_calendar(): dates and values must have the same length"
             " (got "
-            + String(len(plot._calendar.dates))
+            + String(len(plot._data[_CalendarData].dates))
             + " and "
-            + String(len(plot._calendar.values))
+            + String(len(plot._data[_CalendarData].values))
             + ")"
         )
 
     var theme = plot._theme
-    _require_non_empty(len(plot._calendar.dates), "Plot.encode_calendar()")
+    if not plot._data.isa[_CalendarData]():
+        _require_non_empty(0, "Plot.encode_calendar()")
+    _require_non_empty(
+        len(plot._data[_CalendarData].dates), "Plot.encode_calendar()"
+    )
 
     var parsed = List[_Date]()
-    for d in plot._calendar.dates:
+    for d in plot._data[_CalendarData].dates:
         parsed.append(_parse_date(d))
     var year = parsed[0].year
     for date in parsed:
@@ -229,7 +235,7 @@ def _render_calendar_heatmap[
         + sc.margin_buffer
     )
 
-    var value_mm = _min_max(plot._calendar.values)
+    var value_mm = _min_max(plot._data[_CalendarData].values)
     var color_scale = _color_scale_for(
         theme, plot._color_domain, value_mm.min, value_mm.max
     )
@@ -326,7 +332,7 @@ def _render_calendar_heatmap[
         var y_stop = Float64(plot_y0) - 0.5 + Float64(row + 1) * cell_height
         var cell_x = snap_to_pixel_edge(x_start)
         var cell_y = snap_to_pixel_edge(y_start)
-        var color = color_scale.color_at(plot._calendar.values[i])
+        var color = color_scale.color_at(plot._data[_CalendarData].values[i])
         target.fill_rect(
             cell_x,
             cell_y,

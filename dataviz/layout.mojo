@@ -68,6 +68,7 @@ from dataviz.plot import (
     _svg_output_string,
     _zero_baseline_y_extent,
 )
+from dataviz.binned.histogram import _HistogramData
 
 
 struct GridCell(Copyable, ImplicitlyCopyable, Movable):
@@ -534,7 +535,7 @@ def _render_cells_generic[
         for i in range(len(plots)):
             if plots[i]._mark == Mark.AREA or (
                 plots[i]._mark == Mark.HISTOGRAM
-                and not plots[i]._histogram.horizontal
+                and not plots[i]._data[_HistogramData].horizontal
             ):
                 any_area = True
         var domain = _log_data_extent(combined_y) if shared_y_is_log else (

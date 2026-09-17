@@ -23,6 +23,7 @@ from dataviz.plot import (
     _finished,
 )
 from dataviz.core.theme import Theme
+from dataviz.plot import _GroupedBarData
 
 
 def _bump_rank_pixel(rank: Int, n_series: Int, py0: Int, py1: Int) -> Int:
@@ -229,7 +230,7 @@ def _render_bump[
     var theme = plot._theme
     _check_line_smoothing(theme)
 
-    var n_series = len(plot._grouped_bar.series_names)
+    var n_series = len(plot._data[_GroupedBarData].series_names)
     var n_categories = len(plot._categorical.x)
 
     var sc = _Scaled(theme)
@@ -239,7 +240,7 @@ def _render_bump[
     # names here, then the rank-axis labels inside _draw_bump_axis_frame.
 
     var legend = _legend_layout(
-        plot._grouped_bar.series_names,
+        plot._data[_GroupedBarData].series_names,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -266,7 +267,7 @@ def _render_bump[
     for i in range(n_categories):
         var values_at_i = List[Float64]()
         for j in range(n_series):
-            values_at_i.append(plot._grouped_bar.values[j][i])
+            values_at_i.append(plot._data[_GroupedBarData].values[j][i])
         var order = _descending_value_order(values_at_i)
         var rank_at_i = List[Int]()
         for _ in range(n_series):
@@ -296,7 +297,7 @@ def _render_bump[
         _draw_legend_at(
             target,
             frame.text_requests,
-            plot._grouped_bar.series_names,
+            plot._data[_GroupedBarData].series_names,
             palette,
             legend,
             frame.px0,

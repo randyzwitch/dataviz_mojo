@@ -21,6 +21,7 @@ from dataviz.plot import (
 from dataviz.core.scale import LinearScale
 from dataviz.core.step_style import StepStyle
 from dataviz.core.theme import Theme
+from dataviz.plot import _DistributionData
 
 
 struct _EcdfCurve(Movable):
@@ -174,12 +175,16 @@ def _render_ecdf[
     # An empty outer list means no `encode_ecdf()` call happened at all,
     # which is distinct from an empty column (`encode_ecdf()` rejects
     # that itself) and has to be checked before indexing into it.
-    _require_non_empty(len(plot._distribution.values), "Plot.encode_ecdf()")
-    var values = plot._distribution.values[0].copy()
+    if not plot._data.isa[_DistributionData]():
+        _require_non_empty(0, "Plot.encode_ecdf()")
+    _require_non_empty(
+        len(plot._data[_DistributionData].values), "Plot.encode_ecdf()"
+    )
+    var values = plot._data[_DistributionData].values[0].copy()
     _require_non_empty(len(values), "Plot.encode_ecdf()")
 
     var theme = plot._theme
-    var complementary = plot._distribution.ecdf_complementary
+    var complementary = plot._data[_DistributionData].ecdf_complementary
     var curve = _ecdf_points(values, complementary)
 
     var frame = _draw_continuous_axis_frame(
@@ -244,7 +249,9 @@ def _draw_ecdf_layer[
     # every observation by construction (one vertex per distinct value,
     # doubled by the expansion) and never bins any of them away.
     var stepped = _step_points(
-        px, py, _ecdf_step_style(plot._distribution.ecdf_complementary)
+        px,
+        py,
+        _ecdf_step_style(plot._data[_DistributionData].ecdf_complementary),
     )
     var thinned = _decimate_to_pixel_columns(stepped.px, stepped.py)
     var path = _build_line_path(thinned.px, thinned.py, 0.0)

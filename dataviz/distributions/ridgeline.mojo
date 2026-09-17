@@ -17,6 +17,7 @@ from dataviz.plot import (
 )
 from dataviz.core.theme import Theme
 from dataviz.distributions.kde import _KDE_SAMPLES, _kde_bandwidth, _kde_density
+from dataviz.plot import _DistributionData
 
 
 def _render_ridgeline[
@@ -38,16 +39,16 @@ def _render_ridgeline[
     override applies to every category.
     """
     var theme = plot._theme
-    if plot._distribution.kde_bandwidth_override < 0.0:
+    if plot._data[_DistributionData].kde_bandwidth_override < 0.0:
         raise Error(
             "Plot.mark_ridgeline(): bandwidth must be positive (got "
-            + String(plot._distribution.kde_bandwidth_override)
+            + String(plot._data[_DistributionData].kde_bandwidth_override)
             + ")"
         )
 
     var all_values = List[Float64]()
     var max_n = 0
-    for series in plot._distribution.values:
+    for series in plot._data[_DistributionData].values:
         if len(series) > max_n:
             max_n = len(series)
         for v in series:
@@ -71,17 +72,20 @@ def _render_ridgeline[
     var max_rise = row_height * plot._mark_style.ridgeline_overlap
 
     for i in range(len(plot._categorical.x)):
-        var values = plot._distribution.values[i].copy()
+        var values = plot._data[_DistributionData].values[i].copy()
         var baseline_y = frame.y_scale.band_start(i) + row_height
         # Keep the bottom curve's closing edge off the axis line.
         if abs(baseline_y - Float64(frame.py1)) < 0.5:
             baseline_y -= 1.0
         var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
-            plot._distribution.kde_scale_by_count and max_n > 0
+            plot._data[_DistributionData].kde_scale_by_count and max_n > 0
         ) else 1.0
-        var bandwidth = (
-            plot._distribution.kde_bandwidth_override if plot._distribution.kde_bandwidth_override
-            > 0.0 else _kde_bandwidth(values)
+        var bandwidth = plot._data[
+            _DistributionData
+        ].kde_bandwidth_override if plot._data[
+            _DistributionData
+        ].kde_bandwidth_override > 0.0 else _kde_bandwidth(
+            values
         )
         var mm = _min_max(values)
 

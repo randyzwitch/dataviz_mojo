@@ -47,7 +47,7 @@ from dataviz.core.theme import Theme
 from canvas.text.render import TextAlign
 
 
-struct _Xyz(Copyable, Movable):
+struct _Xyz(Copyable, Defaultable, Movable):
     """Three equal-length columns, for `Mark.SCATTER3D`/`PLOT3D`. See
     `encode_xyz()`. Stored on `Plot._xyz`.
 
@@ -76,15 +76,15 @@ def _validate_xyz(plot: Plot) raises:
     Raises:
         Error: The columns disagree in length, or there are no points.
     """
-    var n = len(plot._xyz.x)
-    if len(plot._xyz.y) != n or len(plot._xyz.z) != n:
+    var n = len(plot._data[_Xyz].x)
+    if len(plot._data[_Xyz].y) != n or len(plot._data[_Xyz].z) != n:
         raise Error(
             "Plot.encode_xyz(): x, y and z must all have the same length (got "
             + String(n)
             + ", "
-            + String(len(plot._xyz.y))
+            + String(len(plot._data[_Xyz].y))
             + " and "
-            + String(len(plot._xyz.z))
+            + String(len(plot._data[_Xyz].z))
             + ")"
         )
     _require_non_empty(n, "Plot.encode_xyz()")
@@ -95,11 +95,11 @@ def _frame_for(
 ) raises -> Frame3D:
     """The fitted frame for this plot's data and view."""
     return _fit_frame3d(
-        Camera3D(plot._xyz.elev, plot._xyz.azim),
+        Camera3D(plot._data[_Xyz].elev, plot._data[_Xyz].azim),
         _Extent3D(
-            _min_max(plot._xyz.x),
-            _min_max(plot._xyz.y),
-            _min_max(plot._xyz.z),
+            _min_max(plot._data[_Xyz].x),
+            _min_max(plot._data[_Xyz].y),
+            _min_max(plot._data[_Xyz].z),
         ),
         px0,
         py0,
@@ -118,11 +118,15 @@ def _depth_order(plot: Plot, frame: Frame3D) -> List[Int]:
     because its keys are small integers and its counts are large;
     neither is true here.
     """
-    var n = len(plot._xyz.x)
+    var n = len(plot._data[_Xyz].x)
     var depths = List[Float64](capacity=n)
     for i in range(n):
         depths.append(
-            frame.depth(plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i])
+            frame.depth(
+                plot._data[_Xyz].x[i],
+                plot._data[_Xyz].y[i],
+                plot._data[_Xyz].z[i],
+            )
         )
     var order = List[Int](capacity=n)
     for i in range(n):
@@ -264,7 +268,9 @@ def _render_scatter3d[
     var radius = sc.point_radius
     for k in range(len(order)):
         var i = order[k]
-        var at = frame.to_pixel(plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i])
+        var at = frame.to_pixel(
+            plot._data[_Xyz].x[i], plot._data[_Xyz].y[i], plot._data[_Xyz].z[i]
+        )
         # A circle, not `Theme.shape_by_category`'s cycle: shapes there
         # encode a category, and this mark has no category channel yet.
         target.fill_circle_aa(at[0], at[1], radius, theme.mark_color)
@@ -304,16 +310,18 @@ def _render_plot3d[
     var text = List[_TextRequest]()
     _tick_labels(frame, theme, sc, text)
 
-    var n = len(plot._xyz.x)
+    var n = len(plot._data[_Xyz].x)
     if n >= 2:
         var path = Path()
         var first = frame.to_pixel(
-            plot._xyz.x[0], plot._xyz.y[0], plot._xyz.z[0]
+            plot._data[_Xyz].x[0], plot._data[_Xyz].y[0], plot._data[_Xyz].z[0]
         )
         path.move_to(first[0], first[1])
         for i in range(1, n):
             var at = frame.to_pixel(
-                plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i]
+                plot._data[_Xyz].x[i],
+                plot._data[_Xyz].y[i],
+                plot._data[_Xyz].z[i],
             )
             path.line_to(at[0], at[1])
         target.stroke_path_aa(path, theme.mark_color, width=sc.line_width)

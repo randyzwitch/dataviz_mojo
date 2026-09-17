@@ -27,6 +27,7 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.core.theme import Theme
+from dataviz.plot import _GroupedBarData
 
 
 def _stacked_bar_domain(plot: Plot, n_series: Int) raises -> LinearScale:
@@ -36,14 +37,14 @@ def _stacked_bar_domain(plot: Plot, n_series: Int) raises -> LinearScale:
     positive and negative running totals, the most extreme point each
     direction reaches.
     """
-    if plot._grouped_bar.percent:
+    if plot._data[_GroupedBarData].percent:
         return LinearScale(0.0, 100.0, 0.0, 1.0)
     var domain_data = List[Float64]()
     for i in range(len(plot._categorical.x)):
         var pos_total = 0.0
         var neg_total = 0.0
         for j in range(n_series):
-            var v = plot._grouped_bar.values[j][i]
+            var v = plot._data[_GroupedBarData].values[j][i]
             if v >= 0.0:
                 pos_total += v
             else:
@@ -56,10 +57,10 @@ def _stacked_bar_domain(plot: Plot, n_series: Int) raises -> LinearScale:
 def _validate_stacked_bar_percent(plot: Plot, n_series: Int) raises:
     """`percent=True` needs every value non-negative -- a negative
     share has no meaning. Orientation-independent."""
-    if not plot._grouped_bar.percent:
+    if not plot._data[_GroupedBarData].percent:
         return
     for j in range(n_series):
-        for v in plot._grouped_bar.values[j]:
+        for v in plot._data[_GroupedBarData].values[j]:
             if v < 0.0:
                 raise Error(
                     "Plot.mark_stacked_bar(percent=True): every value must be"
@@ -103,7 +104,7 @@ def _draw_stacked_segments[
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
-    var n_series = len(plot._grouped_bar.series_names)
+    var n_series = len(plot._data[_GroupedBarData].series_names)
     var band_size = band_scale.bandwidth()
 
     for i in range(len(plot._categorical.x)):
@@ -112,10 +113,10 @@ def _draw_stacked_segments[
         # all-zero category gets a 0.0 factor and draws an empty column rather
         # than NaN.
         var scale_factor = 1.0
-        if plot._grouped_bar.percent:
+        if plot._data[_GroupedBarData].percent:
             var category_total = 0.0
             for j in range(n_series):
-                category_total += plot._grouped_bar.values[j][i]
+                category_total += plot._data[_GroupedBarData].values[j][i]
             scale_factor = (
                 100.0 / category_total if category_total > 0.0 else 0.0
             )
@@ -123,7 +124,7 @@ def _draw_stacked_segments[
         var pos_running = 0.0
         var neg_running = 0.0
         for j in range(n_series):
-            var v = plot._grouped_bar.values[j][i] * scale_factor
+            var v = plot._data[_GroupedBarData].values[j][i] * scale_factor
             var seg_near: Float64
             var seg_far: Float64
             if v >= 0.0:
@@ -143,7 +144,7 @@ def _draw_stacked_segments[
                 target.begin_annotated_group(
                     _series_tooltip_label(
                         plot._categorical.x[i],
-                        plot._grouped_bar.series_names[j],
+                        plot._data[_GroupedBarData].series_names[j],
                         v,
                     )
                 )
@@ -200,7 +201,7 @@ def _render_stacked_bar[
     _validate_grouped_bar_series(plot)
 
     var theme = plot._theme
-    var n_series = len(plot._grouped_bar.series_names)
+    var n_series = len(plot._data[_GroupedBarData].series_names)
     _validate_stacked_bar_percent(plot, n_series)
     var y_scale = _stacked_bar_domain(plot, n_series)
 
@@ -275,7 +276,7 @@ def _render_horizontal_stacked_bar[
     _validate_grouped_bar_series(plot)
 
     var theme = plot._theme
-    var n_series = len(plot._grouped_bar.series_names)
+    var n_series = len(plot._data[_GroupedBarData].series_names)
     _validate_stacked_bar_percent(plot, n_series)
     var x_scale = _stacked_bar_domain(plot, n_series)
 

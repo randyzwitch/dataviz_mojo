@@ -27,6 +27,7 @@ from dataviz.plot import (
     _require_non_empty,
 )
 from dataviz.core.theme import Theme
+from dataviz.plot import _DistributionData
 
 
 def _render_eventplot[
@@ -87,7 +88,7 @@ def _render_eventplot[
             non-positive `line_length`.
     """
     var labels = plot._categorical.x.copy()
-    var rows = plot._distribution.values.copy()
+    var rows = plot._data[_DistributionData].values.copy()
     _require_non_empty(len(labels), "Plot.encode_eventplot()")
     if len(rows) != len(labels):
         raise Error(

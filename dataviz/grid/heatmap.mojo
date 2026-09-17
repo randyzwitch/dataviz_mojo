@@ -24,7 +24,7 @@ from dataviz.plot import (
 from dataviz.core.theme import Theme
 
 
-struct _HeatmapData(Copyable, Movable):
+struct _HeatmapData(Copyable, Defaultable, Movable):
     """One (x category, y category, value) row per grid cell, for
     `Mark.HEATMAP`. See `encode_heatmap()`. Stored on `Plot._heatmap`.
     """
@@ -238,27 +238,29 @@ def _render_heatmap[
     names when `Theme.show_legend` is on, sized and placed by
     `_continuous_color_legend_layout`/`_draw_continuous_color_legend_at`.
     """
-    if len(plot._heatmap.x) != len(plot._heatmap.y) or len(
-        plot._heatmap.value
-    ) != len(plot._heatmap.x):
+    if len(plot._data[_HeatmapData].x) != len(
+        plot._data[_HeatmapData].y
+    ) or len(plot._data[_HeatmapData].value) != len(plot._data[_HeatmapData].x):
         raise Error(
             "Plot.encode_heatmap(): x, y, and value must all have the same"
             " length (got "
-            + String(len(plot._heatmap.x))
+            + String(len(plot._data[_HeatmapData].x))
             + " x values, "
-            + String(len(plot._heatmap.y))
+            + String(len(plot._data[_HeatmapData].y))
             + " y values, "
-            + String(len(plot._heatmap.value))
+            + String(len(plot._data[_HeatmapData].value))
             + " values)"
         )
 
     var theme = plot._theme
-    _require_non_empty(len(plot._heatmap.x), "Plot.encode_heatmap()")
-    var x_idx = _categorical_indices(plot._heatmap.x)
-    var y_idx = _categorical_indices(plot._heatmap.y)
+    if not plot._data.isa[_HeatmapData]():
+        _require_non_empty(0, "Plot.encode_heatmap()")
+    _require_non_empty(len(plot._data[_HeatmapData].x), "Plot.encode_heatmap()")
+    var x_idx = _categorical_indices(plot._data[_HeatmapData].x)
+    var y_idx = _categorical_indices(plot._data[_HeatmapData].y)
 
     var sc = _Scaled(theme)
-    var value_mm = _min_max(plot._heatmap.value)
+    var value_mm = _min_max(plot._data[_HeatmapData].value)
     var color_scale = _color_scale_for(
         theme, plot._color_domain, value_mm.min, value_mm.max
     )
@@ -308,14 +310,14 @@ def _render_heatmap[
     # and a column's geometry starts half a pixel before its index, so
     # the grid's outer edge lines up with the plot rect instead of
     # sitting a pixel inside it.
-    for i in range(len(plot._heatmap.x)):
+    for i in range(len(plot._data[_HeatmapData].x)):
         var x_start = frame.x_scale.band_start(x_idx.indices[i]) - 0.5
         var y_start = frame.y_scale.band_start(y_idx.indices[i]) - 0.5
         var x_stop = frame.x_scale.band_end(x_idx.indices[i]) - 0.5
         var y_stop = frame.y_scale.band_end(y_idx.indices[i]) - 0.5
         var cell_x = snap_to_pixel_edge(x_start)
         var cell_y = snap_to_pixel_edge(y_start)
-        var color = color_scale.color_at(plot._heatmap.value[i])
+        var color = color_scale.color_at(plot._data[_HeatmapData].value[i])
         target.fill_rect(
             cell_x,
             cell_y,

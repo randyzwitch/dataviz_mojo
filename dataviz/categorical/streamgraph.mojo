@@ -27,6 +27,7 @@ from dataviz.core.stack_baseline import StackBaseline
 from dataviz.core.step_style import StepStyle
 from dataviz.core.theme import Theme
 from dataviz.core.validate import _check_step_smoothing
+from dataviz.plot import _GroupedBarData
 
 
 def _symmetric_zero_baseline_y_extent(
@@ -161,10 +162,10 @@ def _render_streamgraph[
     # say so rather than being reported as a step conflict.
     _check_line_smoothing(theme)
     _check_step_smoothing(theme, step, Mark.STREAMGRAPH)
-    var n_series = len(plot._grouped_bar.series_names)
+    var n_series = len(plot._data[_GroupedBarData].series_names)
     var n_categories = len(plot._categorical.x)
 
-    for series in plot._grouped_bar.values:
+    for series in plot._data[_GroupedBarData].values:
         for v in series:
             if v < 0.0:
                 raise Error(
@@ -176,7 +177,7 @@ def _render_streamgraph[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend = _legend_layout(
-        plot._grouped_bar.series_names,
+        plot._data[_GroupedBarData].series_names,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -189,7 +190,7 @@ def _render_streamgraph[
     var totals = List[Float64](capacity=n_categories)
     for i in range(n_categories):
         var total = 0.0
-        for series in plot._grouped_bar.values:
+        for series in plot._data[_GroupedBarData].values:
             total += series[i]
         totals.append(total)
 
@@ -198,7 +199,7 @@ def _render_streamgraph[
     )
     var y_scale = _zero_baseline_y_extent(totals) if zero_baseline else (
         _symmetric_zero_baseline_y_extent(
-            plot._grouped_bar.values, n_categories
+            plot._data[_GroupedBarData].values, n_categories
         )
     )
     var frame = _draw_categorical_axis_frame(
@@ -227,7 +228,7 @@ def _render_streamgraph[
         var bottom = List[Float64](capacity=n_categories)
         for i in range(n_categories):
             bottom.append(running[i])
-            running[i] += plot._grouped_bar.values[j][i]
+            running[i] += plot._data[_GroupedBarData].values[j][i]
             top.append(running[i])
 
         # Top edge in category order, then bottom edge in reverse, so the path
@@ -273,7 +274,7 @@ def _render_streamgraph[
         _draw_legend_at(
             target,
             frame.text_requests,
-            plot._grouped_bar.series_names,
+            plot._data[_GroupedBarData].series_names,
             palette,
             legend,
             frame.px0,

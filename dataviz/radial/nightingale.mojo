@@ -20,6 +20,7 @@ from dataviz.plot import (
     _require_some_positive,
 )
 from dataviz.core.theme import Theme
+from dataviz.plot import _NightingaleData
 
 
 def _render_nightingale[
@@ -76,7 +77,7 @@ def _render_nightingale[
         var end = start + span
         var frac = plot._continuous.y[i] / max_v
         var radius = max_radius * (
-            sqrt(frac) if plot._nightingale.area else frac
+            sqrt(frac) if plot._data[_NightingaleData].area else frac
         )
         var color = palette[i % len(palette)]
         target.fill_arc_aa(cx, cy, radius, start, end, color)

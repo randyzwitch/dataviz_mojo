@@ -23,7 +23,7 @@ from dataviz.core.scale import _format_tick, _label_decimals
 from dataviz.core.theme import Theme
 
 
-struct _WaterfallData(Copyable, Movable):
+struct _WaterfallData(Copyable, Defaultable, Movable):
     """The running-total bounds `encode_waterfall()` computes from each
     category's signed delta (`_continuous.y`), for `Mark.WATERFALL`. See that
     method. Stored on `Plot._waterfall`.
@@ -104,13 +104,13 @@ def _render_waterfall[
             + String(len(plot._continuous.y))
             + ")"
         )
-    if len(plot._waterfall.is_total) > 0 and len(
-        plot._waterfall.is_total
+    if len(plot._data[_WaterfallData].is_total) > 0 and len(
+        plot._data[_WaterfallData].is_total
     ) != len(plot._categorical.x):
         raise Error(
             "Plot.encode_waterfall(): is_total, if given, must have the"
             " same length as categories (got "
-            + String(len(plot._waterfall.is_total))
+            + String(len(plot._data[_WaterfallData].is_total))
             + " and "
             + String(len(plot._categorical.x))
             + ")"
@@ -119,9 +119,9 @@ def _render_waterfall[
     var theme = plot._theme
     _require_non_empty(len(plot._categorical.x), "Plot.encode_waterfall()")
     var combined = List[Float64]()
-    for v in plot._waterfall.y0:
+    for v in plot._data[_WaterfallData].y0:
         combined.append(v)
-    for v in plot._waterfall.y1:
+    for v in plot._data[_WaterfallData].y1:
         combined.append(v)
     var y_scale = _zero_baseline_y_extent(combined)
 
@@ -139,7 +139,7 @@ def _render_waterfall[
 
     # Delta bars only narrow when is_total is in use; otherwise every bar
     # stays full band width.
-    var using_totals = len(plot._waterfall.is_total) > 0
+    var using_totals = len(plot._data[_WaterfallData].is_total) > 0
     var sc = _Scaled(theme)
     var orient = _Orientation(False)  # Mark.WATERFALL has no horizontal variant
 
@@ -153,8 +153,8 @@ def _render_waterfall[
     for i in range(len(plot._categorical.x)):
         var band_start = frame.x_scale.band_start(i)
         var row_is_total = (
-            plot._waterfall.is_total[i] if i
-            < len(plot._waterfall.is_total) else False
+            plot._data[_WaterfallData].is_total[i] if i
+            < len(plot._data[_WaterfallData].is_total) else False
         )
         # The bar's two geometric edges. `fill_rect` below snaps each to
         # a whole pixel and takes the width from the pair, rather than
@@ -175,8 +175,12 @@ def _render_waterfall[
             bar_x_list.append(bar_x)
             bar_x1_list.append(bar_x1)
 
-        var y0_py = _axis_pixel_f(frame.y_scale, plot._waterfall.y0[i])
-        var y1_py = _axis_pixel_f(frame.y_scale, plot._waterfall.y1[i])
+        var y0_py = _axis_pixel_f(
+            frame.y_scale, plot._data[_WaterfallData].y0[i]
+        )
+        var y1_py = _axis_pixel_f(
+            frame.y_scale, plot._data[_WaterfallData].y1[i]
+        )
         var rect = _pull_off_axis_line_f(y0_py, y1_py, Float64(frame.py1))
         var bar_color = theme.waterfall_total_color if row_is_total else (
             theme.mark_color_negative if plot._continuous.y[i]
@@ -190,7 +194,7 @@ def _render_waterfall[
             target.begin_annotated_group(
                 _tooltip_label(
                     plot._categorical.x[i],
-                    plot._waterfall.y1[
+                    plot._data[_WaterfallData].y1[
                         i
                     ] if row_is_total else plot._continuous.y[i],
                 )
@@ -228,7 +232,9 @@ def _render_waterfall[
 
         if i > 0:
             var prev_end_py = snap_to_pixel_center(
-                _axis_pixel_f(frame.y_scale, plot._waterfall.y1[i - 1])
+                _axis_pixel_f(
+                    frame.y_scale, plot._data[_WaterfallData].y1[i - 1]
+                )
             )
             # With no totals, the edge comes from the band geometry (band_start +
             # bandwidth, summed then rounded once) since every bar is full band

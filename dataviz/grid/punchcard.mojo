@@ -15,7 +15,7 @@ from dataviz.plot import (
 from dataviz.core.theme import Theme
 
 
-struct _PunchcardData(Copyable, Movable):
+struct _PunchcardData(Copyable, Defaultable, Movable):
     """One (x category, y category, bubble size) row per cell, plus the
     size-to-radius divisor, for `Mark.PUNCHCARD`. See
     `encode_punchcard()`. Stored on `Plot._punchcard`.
@@ -50,23 +50,29 @@ def _render_punchcard[
     Radius is `size / scale` in theme-scaled pixels. Duplicate coordinates
     draw multiple bubbles, and large bubbles may exceed their cells.
     """
-    if len(plot._punchcard.x) != len(plot._punchcard.y) or len(
-        plot._punchcard.sizes
-    ) != len(plot._punchcard.x):
+    if len(plot._data[_PunchcardData].x) != len(
+        plot._data[_PunchcardData].y
+    ) or len(plot._data[_PunchcardData].sizes) != len(
+        plot._data[_PunchcardData].x
+    ):
         raise Error(
             "Plot.encode_punchcard(): x, y, and sizes must all have the same"
             " length (got "
-            + String(len(plot._punchcard.x))
+            + String(len(plot._data[_PunchcardData].x))
             + " x values, "
-            + String(len(plot._punchcard.y))
+            + String(len(plot._data[_PunchcardData].y))
             + " y values, "
-            + String(len(plot._punchcard.sizes))
+            + String(len(plot._data[_PunchcardData].sizes))
             + " sizes)"
         )
 
     var theme = plot._theme
-    _require_non_empty(len(plot._punchcard.x), "Plot.encode_punchcard()")
-    for s in plot._punchcard.sizes:
+    if not plot._data.isa[_PunchcardData]():
+        _require_non_empty(0, "Plot.encode_punchcard()")
+    _require_non_empty(
+        len(plot._data[_PunchcardData].x), "Plot.encode_punchcard()"
+    )
+    for s in plot._data[_PunchcardData].sizes:
         if s < 0.0:
             raise Error(
                 "Plot: Mark.PUNCHCARD sizes must be non-negative (got "
@@ -74,8 +80,8 @@ def _render_punchcard[
                 + ")"
             )
 
-    var x_idx = _categorical_indices(plot._punchcard.x)
-    var y_idx = _categorical_indices(plot._punchcard.y)
+    var x_idx = _categorical_indices(plot._data[_PunchcardData].x)
+    var y_idx = _categorical_indices(plot._data[_PunchcardData].y)
 
     var frame = _draw_grid_axis_frame(
         target,
@@ -89,7 +95,7 @@ def _render_punchcard[
         cache=cache,
     )
 
-    for i in range(len(plot._punchcard.x)):
+    for i in range(len(plot._data[_PunchcardData].x)):
         # Same rule as corrplot: a disk has no crisp position to snap
         # to, and the radius is the encoding -- rounding it to whole
         # pixels collapsed a continuous size scale into as many steps as
@@ -98,7 +104,9 @@ def _render_punchcard[
         var cx = frame.x_scale.center(x_idx.indices[i])
         var cy = frame.y_scale.center(y_idx.indices[i])
         var radius = (
-            plot._punchcard.sizes[i] / plot._punchcard.scale * frame.sc.scale
+            plot._data[_PunchcardData].sizes[i]
+            / plot._data[_PunchcardData].scale
+            * frame.sc.scale
         )
         target.fill_circle_aa(cx, cy, radius, theme.mark_color)
 

@@ -113,6 +113,7 @@ would. Facets, layering, and `color`/`size` encoding still need the
 """
 
 from std.collections import Dict
+from std.utils import Variant
 from std.math import cos, log10, pi, sin
 
 from canvas.bounds import BoundsTarget
@@ -348,7 +349,7 @@ from dataviz.categorical.waterfall import (
 )
 
 
-struct _GanttData(Copyable, Movable):
+struct _GanttData(Copyable, Defaultable, Movable):
     """One start/end span per category, for `Mark.GANTT`/`SPAN_CHART`. See
     `encode_gantt()`. Stored on `Plot._gantt`.
     """
@@ -457,7 +458,7 @@ struct _ErrorBarData(Copyable, Movable):
         self.upper = List[Float64]()
 
 
-struct _NightingaleData(Copyable, Movable):
+struct _NightingaleData(Copyable, Defaultable, Movable):
     """Which of ECharts' two `rose_type` radius formulas each wedge of a
     `Mark.NIGHTINGALE` uses. See `mark_nightingale()`. Stored on
     `Plot._nightingale`.
@@ -474,7 +475,7 @@ struct _NightingaleData(Copyable, Movable):
         self.area = False
 
 
-struct _GroupedBarData(Copyable, Movable):
+struct _GroupedBarData(Copyable, Defaultable, Movable):
     """One name per series and one value per (series, category) pair, for
     `Mark.GROUPED_BAR`/`STACKED_BAR`/`BUMP`/`STREAMGRAPH`. See
     `encode_grouped_bar()`. Stored on `Plot._grouped_bar`.
@@ -499,7 +500,7 @@ struct _GroupedBarData(Copyable, Movable):
         self.percent = False
 
 
-struct _DistributionData(Copyable, Movable):
+struct _DistributionData(Copyable, Defaultable, Movable):
     """One list of raw values per category, kept unsummarized, for
     `Mark.BEESWARM`/`VIOLIN`/`RIDGELINE`. See `encode_distribution()`.
     Stored on `Plot._distribution`.
@@ -697,6 +698,58 @@ struct _LabelData(Copyable, Movable):
         self.series_name = ""
 
 
+struct _NoData(Copyable, Defaultable, Movable):
+    """The payload of a `Plot` that has no mark yet."""
+
+    def __init__(out self):
+        pass
+
+
+comptime _MarkData = Variant[
+    _NoData,
+    _WaterfallData,
+    _BoxData,
+    _BoxenData,
+    _HexbinData,
+    _StreamData,
+    _HistogramData,
+    _CandleData,
+    _BulletData,
+    _GanttData,
+    _GroupedBarData,
+    _PyramidData,
+    _HeatmapData,
+    _EdgeData,
+    _DistributionData,
+    _NightingaleData,
+    _PolarData,
+    _RadarData,
+    _GaugeData,
+    _ParallelData,
+    _CalendarData,
+    _CorrplotData,
+    _PunchcardData,
+    _BarbsData,
+    _ContourData,
+    _Xyz,
+    _Surface,
+    _Bars3D,
+    _Voxels,
+    _Vectors3D,
+    _Ribbon3D,
+    _ImageData,
+    _TriContourData,
+    _TriplotData,
+    _DendrogramData,
+    _MarimekkoData,
+    _HierarchyData,
+]
+"""One mark's data payload (#223, option 2). A chart uses one mark,
+so `Plot` carries one payload rather than a field per mark; the
+family renderer that reads it names the alternative it expects.
+"""
+
+
 struct Plot(Copyable, Movable):
     """One chart's mark, theme, labels and data, built through the fluent
     `mark_*()`/`encode_*()`/`labels()`/`theme()` chain and consumed by
@@ -750,42 +803,7 @@ struct Plot(Copyable, Movable):
     var _categorical: _CategoricalData
     var _channels: _ChannelData
     var _y_err: _ErrorBarData
-    var _waterfall: _WaterfallData
-    var _box: _BoxData
-    var _boxen: _BoxenData
-    var _hexbin: _HexbinData
-    var _stream: _StreamData
-    var _histogram: _HistogramData
-    var _candle: _CandleData
-    var _bullet: _BulletData
-    var _gantt: _GanttData
-    var _grouped_bar: _GroupedBarData
-    var _pyramid: _PyramidData
-    var _heatmap: _HeatmapData
-    var _edges: _EdgeData
-    var _distribution: _DistributionData
-    var _nightingale: _NightingaleData
-    var _polar: _PolarData
-    var _radar: _RadarData
-    var _gauge: _GaugeData
-    var _parallel: _ParallelData
-    var _calendar: _CalendarData
-    var _corrplot: _CorrplotData
-    var _punchcard: _PunchcardData
-    var _barbs: _BarbsData
-    var _contour: _ContourData
-    var _xyz: _Xyz
-    var _surface: _Surface
-    var _bars3d: _Bars3D
-    var _voxels: _Voxels
-    var _vectors3d: _Vectors3D
-    var _ribbon3d: _Ribbon3D
-    var _image: _ImageData
-    var _tricontour: _TriContourData
-    var _triplot: _TriplotData
-    var _dendrogram: _DendrogramData
-    var _marimekko: _MarimekkoData
-    var _hierarchy: _HierarchyData
+    var _data: _MarkData
     var _labels: _LabelData
     var _annotations: _AnnotationData
     var _mark_style: _MarkStyle
@@ -839,47 +857,20 @@ struct Plot(Copyable, Movable):
     var height: Int
     """Pixel height; see `width`."""
 
+    def _slot[T: Copyable & Defaultable](mut self) -> ref[self._data] T:
+        """The payload as a `T`, made fresh if the plot held another
+        mark's (or none): the builder writes fields one call at a time,
+        so the first write of a mark's data has to create it."""
+        if not self._data.isa[T]():
+            self._data = _MarkData(T())
+        return self._data.unsafe_get[T]()
+
     def __init__(out self):
         self._continuous = _ContinuousData()
         self._categorical = _CategoricalData()
         self._channels = _ChannelData()
         self._y_err = _ErrorBarData()
-        self._waterfall = _WaterfallData()
-        self._box = _BoxData()
-        self._boxen = _BoxenData()
-        self._hexbin = _HexbinData()
-        self._stream = _StreamData()
-        self._histogram = _HistogramData()
-        self._candle = _CandleData()
-        self._bullet = _BulletData()
-        self._gantt = _GanttData()
-        self._grouped_bar = _GroupedBarData()
-        self._pyramid = _PyramidData()
-        self._heatmap = _HeatmapData()
-        self._edges = _EdgeData()
-        self._distribution = _DistributionData()
-        self._nightingale = _NightingaleData()
-        self._polar = _PolarData()
-        self._radar = _RadarData()
-        self._gauge = _GaugeData()
-        self._parallel = _ParallelData()
-        self._calendar = _CalendarData()
-        self._corrplot = _CorrplotData()
-        self._punchcard = _PunchcardData()
-        self._barbs = _BarbsData()
-        self._contour = _ContourData()
-        self._xyz = _Xyz()
-        self._surface = _Surface()
-        self._bars3d = _Bars3D()
-        self._voxels = _Voxels()
-        self._vectors3d = _Vectors3D()
-        self._ribbon3d = _Ribbon3D()
-        self._image = _ImageData()
-        self._tricontour = _TriContourData()
-        self._triplot = _TriplotData()
-        self._dendrogram = _DendrogramData()
-        self._marimekko = _MarimekkoData()
-        self._hierarchy = _HierarchyData()
+        self._data = _MarkData(_NoData())
         self._labels = _LabelData()
         self._annotations = _AnnotationData()
         self._mark_style = _MarkStyle()
@@ -1124,7 +1115,7 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_continuous[SvgCanvas]
         self._render_pdf_family = _callback_continuous[PdfCanvas]
         self._render_bounds_family = _callback_continuous[BoundsTarget]
-        self._histogram.horizontal = horizontal
+        self._slot[_HistogramData]().horizontal = horizontal
         return self^
 
     def mark_arc(var self, inner_radius_fraction: Float64 = 0.0) -> Self:
@@ -1163,7 +1154,7 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_radial[SvgCanvas]
         self._render_pdf_family = _callback_radial[PdfCanvas]
         self._render_bounds_family = _callback_radial[BoundsTarget]
-        self._nightingale.area = area
+        self._slot[_NightingaleData]().area = area
         return self^
 
     def mark_polar_bar(var self, padding: Float64 = 0.2) -> Self:
@@ -1442,9 +1433,9 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_grid[SvgCanvas]
         self._render_pdf_family = _callback_grid[PdfCanvas]
         self._render_bounds_family = _callback_grid[BoundsTarget]
-        self._corrplot.layout = layout
-        self._corrplot.diag = diag
-        self._corrplot.labels = labels
+        self._slot[_CorrplotData]().layout = layout
+        self._slot[_CorrplotData]().diag = diag
+        self._slot[_CorrplotData]().labels = labels
         self._mark_style.corrplot_bubble_fraction = bubble_fraction
         return self^
 
@@ -1467,7 +1458,7 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_grid[SvgCanvas]
         self._render_pdf_family = _callback_grid[PdfCanvas]
         self._render_bounds_family = _callback_grid[BoundsTarget]
-        self._punchcard.scale = scale
+        self._slot[_PunchcardData]().scale = scale
         return self^
 
     def mark_barbs(
@@ -1492,8 +1483,8 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_multivariate[SvgCanvas]
         self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._render_bounds_family = _callback_multivariate[BoundsTarget]
-        self._barbs.length = length
-        self._barbs.flip = flip
+        self._slot[_BarbsData]().length = length
+        self._slot[_BarbsData]().flip = flip
         return self^
 
     def mark_quiver(
@@ -1518,8 +1509,8 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_multivariate[SvgCanvas]
         self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._render_bounds_family = _callback_multivariate[BoundsTarget]
-        self._barbs.scale = scale
-        self._barbs.color_by_magnitude = color_by_magnitude
+        self._slot[_BarbsData]().scale = scale
+        self._slot[_BarbsData]().color_by_magnitude = color_by_magnitude
         return self^
 
     def mark_contour(var self, levels: Int = 8) -> Self:
@@ -1541,7 +1532,7 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_multivariate[SvgCanvas]
         self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._render_bounds_family = _callback_multivariate[BoundsTarget]
-        self._contour.level_count = levels
+        self._slot[_ContourData]().level_count = levels
         return self^
 
     def mark_contourf(var self, levels: Int = 8) -> Self:
@@ -1564,7 +1555,7 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_multivariate[SvgCanvas]
         self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._render_bounds_family = _callback_multivariate[BoundsTarget]
-        self._contour.level_count = levels
+        self._slot[_ContourData]().level_count = levels
         return self^
 
     def mark_imshow(var self) -> Self:
@@ -1666,9 +1657,9 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_multivariate[SvgCanvas]
         self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._render_bounds_family = _callback_multivariate[BoundsTarget]
-        self._stream.density = density
-        self._stream.arrows = arrows
-        self._stream.color_by_magnitude = color_by_magnitude
+        self._slot[_StreamData]().density = density
+        self._slot[_StreamData]().arrows = arrows
+        self._slot[_StreamData]().color_by_magnitude = color_by_magnitude
         return self^
 
     def mark_tricontour(var self, levels: Int = 8) -> Self:
@@ -1690,7 +1681,7 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_multivariate[SvgCanvas]
         self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._render_bounds_family = _callback_multivariate[BoundsTarget]
-        self._tricontour.level_count = levels
+        self._slot[_TriContourData]().level_count = levels
         return self^
 
     def mark_tricontourf(var self, levels: Int = 8) -> Self:
@@ -1713,7 +1704,7 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_multivariate[SvgCanvas]
         self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._render_bounds_family = _callback_multivariate[BoundsTarget]
-        self._tricontour.level_count = levels
+        self._slot[_TriContourData]().level_count = levels
         return self^
 
     def mark_dendrogram(var self, horizontal: Bool = False) -> Self:
@@ -1735,7 +1726,7 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_hierarchy_marks[SvgCanvas]
         self._render_pdf_family = _callback_hierarchy_marks[PdfCanvas]
         self._render_bounds_family = _callback_hierarchy_marks[BoundsTarget]
-        self._dendrogram.horizontal = horizontal
+        self._slot[_DendrogramData]().horizontal = horizontal
         return self^
 
     def encode_dendrogram(
@@ -1783,11 +1774,11 @@ struct Plot(Copyable, Movable):
             left.append(position_of[m.left] if m.left < n else m.left)
             right.append(position_of[m.right] if m.right < n else m.right)
             height.append(m.height)
-        self._dendrogram.left = left^
-        self._dendrogram.right = right^
-        self._dendrogram.height = height^
-        self._dendrogram.labels = labels.copy()
-        self._dendrogram.horizontal = horizontal
+        self._slot[_DendrogramData]().left = left^
+        self._slot[_DendrogramData]().right = right^
+        self._slot[_DendrogramData]().height = height^
+        self._slot[_DendrogramData]().labels = labels.copy()
+        self._slot[_DendrogramData]().horizontal = horizontal
         return self^
 
     def mark_triplot(var self, show_points: Bool = True) -> Self:
@@ -1808,7 +1799,7 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_multivariate[SvgCanvas]
         self._render_pdf_family = _callback_multivariate[PdfCanvas]
         self._render_bounds_family = _callback_multivariate[BoundsTarget]
-        self._triplot.show_points = show_points
+        self._slot[_TriplotData]().show_points = show_points
         return self^
 
     def mark_tripcolor(var self) -> Self:
@@ -1923,7 +1914,7 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_categorical[SvgCanvas]
         self._render_pdf_family = _callback_categorical[PdfCanvas]
         self._render_bounds_family = _callback_categorical[BoundsTarget]
-        self._grouped_bar.percent = percent
+        self._slot[_GroupedBarData]().percent = percent
         self._horizontal = horizontal
         return self^
 
@@ -2172,8 +2163,8 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_distributions[SvgCanvas]
         self._render_pdf_family = _callback_distributions[PdfCanvas]
         self._render_bounds_family = _callback_distributions[BoundsTarget]
-        self._distribution.kde_bandwidth_override = bandwidth
-        self._distribution.kde_scale_by_count = scale_by_count
+        self._slot[_DistributionData]().kde_bandwidth_override = bandwidth
+        self._slot[_DistributionData]().kde_scale_by_count = scale_by_count
         self._horizontal = horizontal
         self._mark_style.violin_width_fraction = width_fraction
         return self^
@@ -2215,9 +2206,9 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_distributions[SvgCanvas]
         self._render_pdf_family = _callback_distributions[PdfCanvas]
         self._render_bounds_family = _callback_distributions[BoundsTarget]
-        self._distribution.kde_bandwidth_override = bandwidth
-        self._distribution.kde_fill = fill
-        self._distribution.kde_rug = rug
+        self._slot[_DistributionData]().kde_bandwidth_override = bandwidth
+        self._slot[_DistributionData]().kde_fill = fill
+        self._slot[_DistributionData]().kde_rug = rug
         return self^
 
     def mark_rug(var self) -> Self:
@@ -2269,7 +2260,7 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_distributions[SvgCanvas]
         self._render_pdf_family = _callback_distributions[PdfCanvas]
         self._render_bounds_family = _callback_distributions[BoundsTarget]
-        self._distribution.ecdf_complementary = complementary
+        self._slot[_DistributionData]().ecdf_complementary = complementary
         return self^
 
     def mark_eventplot(var self, line_length: Float64 = 1.0) -> Self:
@@ -2334,8 +2325,8 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_distributions[SvgCanvas]
         self._render_pdf_family = _callback_distributions[PdfCanvas]
         self._render_bounds_family = _callback_distributions[BoundsTarget]
-        self._distribution.kde_bandwidth_override = bandwidth
-        self._distribution.kde_scale_by_count = scale_by_count
+        self._slot[_DistributionData]().kde_bandwidth_override = bandwidth
+        self._slot[_DistributionData]().kde_scale_by_count = scale_by_count
         self._mark_style.ridgeline_overlap = overlap
         return self^
 
@@ -2639,8 +2630,8 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_spatial[SvgCanvas]
         self._render_pdf_family = _callback_spatial[PdfCanvas]
         self._render_bounds_family = _callback_spatial[BoundsTarget]
-        self._xyz.elev = elev
-        self._xyz.azim = azim
+        self._slot[_Xyz]().elev = elev
+        self._slot[_Xyz]().azim = azim
         return self^
 
     def mark_plot3d(
@@ -2667,8 +2658,8 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_spatial[SvgCanvas]
         self._render_pdf_family = _callback_spatial[PdfCanvas]
         self._render_bounds_family = _callback_spatial[BoundsTarget]
-        self._xyz.elev = elev
-        self._xyz.azim = azim
+        self._slot[_Xyz]().elev = elev
+        self._slot[_Xyz]().azim = azim
         return self^
 
     def mark_surface3d(
@@ -2693,8 +2684,8 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_spatial[SvgCanvas]
         self._render_pdf_family = _callback_spatial[PdfCanvas]
         self._render_bounds_family = _callback_spatial[BoundsTarget]
-        self._surface.elev = elev
-        self._surface.azim = azim
+        self._slot[_Surface]().elev = elev
+        self._slot[_Surface]().azim = azim
         return self^
 
     def mark_wire3d(
@@ -2722,8 +2713,8 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_spatial[SvgCanvas]
         self._render_pdf_family = _callback_spatial[PdfCanvas]
         self._render_bounds_family = _callback_spatial[BoundsTarget]
-        self._surface.elev = elev
-        self._surface.azim = azim
+        self._slot[_Surface]().elev = elev
+        self._slot[_Surface]().azim = azim
         return self^
 
     def mark_trisurf3d(
@@ -2748,8 +2739,8 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_spatial[SvgCanvas]
         self._render_pdf_family = _callback_spatial[PdfCanvas]
         self._render_bounds_family = _callback_spatial[BoundsTarget]
-        self._xyz.elev = elev
-        self._xyz.azim = azim
+        self._slot[_Xyz]().elev = elev
+        self._slot[_Xyz]().azim = azim
         return self^
 
     def mark_stem3d(
@@ -2775,8 +2766,8 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_spatial[SvgCanvas]
         self._render_pdf_family = _callback_spatial[PdfCanvas]
         self._render_bounds_family = _callback_spatial[BoundsTarget]
-        self._xyz.elev = elev
-        self._xyz.azim = azim
+        self._slot[_Xyz]().elev = elev
+        self._slot[_Xyz]().azim = azim
         return self^
 
     def mark_quiver3d(
@@ -2802,8 +2793,8 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_spatial[SvgCanvas]
         self._render_pdf_family = _callback_spatial[PdfCanvas]
         self._render_bounds_family = _callback_spatial[BoundsTarget]
-        self._vectors3d.elev = elev
-        self._vectors3d.azim = azim
+        self._slot[_Vectors3D]().elev = elev
+        self._slot[_Vectors3D]().azim = azim
         return self^
 
     def mark_fill_between3d(
@@ -2829,8 +2820,8 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_spatial[SvgCanvas]
         self._render_pdf_family = _callback_spatial[PdfCanvas]
         self._render_bounds_family = _callback_spatial[BoundsTarget]
-        self._ribbon3d.elev = elev
-        self._ribbon3d.azim = azim
+        self._slot[_Ribbon3D]().elev = elev
+        self._slot[_Ribbon3D]().azim = azim
         return self^
 
     def mark_bar3d(
@@ -2864,10 +2855,10 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_spatial[SvgCanvas]
         self._render_pdf_family = _callback_spatial[PdfCanvas]
         self._render_bounds_family = _callback_spatial[BoundsTarget]
-        self._bars3d.bar_width = bar_width
-        self._bars3d.bar_depth = bar_depth
-        self._bars3d.elev = elev
-        self._bars3d.azim = azim
+        self._slot[_Bars3D]().bar_width = bar_width
+        self._slot[_Bars3D]().bar_depth = bar_depth
+        self._slot[_Bars3D]().elev = elev
+        self._slot[_Bars3D]().azim = azim
         return self^
 
     def mark_voxels(
@@ -2893,8 +2884,8 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_spatial[SvgCanvas]
         self._render_pdf_family = _callback_spatial[PdfCanvas]
         self._render_bounds_family = _callback_spatial[BoundsTarget]
-        self._voxels.elev = elev
-        self._voxels.azim = azim
+        self._slot[_Voxels]().elev = elev
+        self._slot[_Voxels]().azim = azim
         return self^
 
     def encode_vectors3d(
@@ -2934,12 +2925,12 @@ struct Plot(Copyable, Movable):
             "mark_quiver3d()",
             _ok_encode_vectors3d^,
         )
-        self._vectors3d.x = x.copy()
-        self._vectors3d.y = y.copy()
-        self._vectors3d.z = z.copy()
-        self._vectors3d.u = u.copy()
-        self._vectors3d.v = v.copy()
-        self._vectors3d.w = w.copy()
+        self._slot[_Vectors3D]().x = x.copy()
+        self._slot[_Vectors3D]().y = y.copy()
+        self._slot[_Vectors3D]().z = z.copy()
+        self._slot[_Vectors3D]().u = u.copy()
+        self._slot[_Vectors3D]().v = v.copy()
+        self._slot[_Vectors3D]().w = w.copy()
         return self^
 
     def encode_ribbon3d(
@@ -2973,12 +2964,12 @@ struct Plot(Copyable, Movable):
             "mark_fill_between3d()",
             _ok_encode_ribbon3d^,
         )
-        self._ribbon3d.x1 = x1.copy()
-        self._ribbon3d.y1 = y1.copy()
-        self._ribbon3d.z1 = z1.copy()
-        self._ribbon3d.x2 = x2.copy()
-        self._ribbon3d.y2 = y2.copy()
-        self._ribbon3d.z2 = z2.copy()
+        self._slot[_Ribbon3D]().x1 = x1.copy()
+        self._slot[_Ribbon3D]().y1 = y1.copy()
+        self._slot[_Ribbon3D]().z1 = z1.copy()
+        self._slot[_Ribbon3D]().x2 = x2.copy()
+        self._slot[_Ribbon3D]().y2 = y2.copy()
+        self._slot[_Ribbon3D]().z2 = z2.copy()
         return self^
 
     def encode_bars3d(
@@ -3009,9 +3000,9 @@ struct Plot(Copyable, Movable):
         _require_mark(
             self._mark, "encode_bars3d", "mark_bar3d()", _ok_encode_bars3d^
         )
-        self._bars3d.x = x.copy()
-        self._bars3d.y = y.copy()
-        self._bars3d.z = z.copy()
+        self._slot[_Bars3D]().x = x.copy()
+        self._slot[_Bars3D]().y = y.copy()
+        self._slot[_Bars3D]().z = z.copy()
         return self^
 
     def encode_voxels(var self, filled: List[List[List[Bool]]]) raises -> Self:
@@ -3031,7 +3022,7 @@ struct Plot(Copyable, Movable):
         _require_mark(
             self._mark, "encode_voxels", "mark_voxels()", _ok_encode_voxels^
         )
-        self._voxels.filled = filled.copy()
+        self._slot[_Voxels]().filled = filled.copy()
         return self^
 
     def encode_surface(
@@ -3069,9 +3060,9 @@ struct Plot(Copyable, Movable):
             "mark_surface3d()",
             _ok_encode_surface^,
         )
-        self._surface.z = z.copy()
-        self._surface.x = x.copy()
-        self._surface.y = y.copy()
+        self._slot[_Surface]().z = z.copy()
+        self._slot[_Surface]().x = x.copy()
+        self._slot[_Surface]().y = y.copy()
         return self^
 
     def encode_xyz(
@@ -3107,9 +3098,9 @@ struct Plot(Copyable, Movable):
         _require_mark(
             self._mark, "encode_xyz", "mark_scatter3d()", _ok_encode_xyz^
         )
-        self._xyz.x = x.copy()
-        self._xyz.y = y.copy()
-        self._xyz.z = z.copy()
+        self._slot[_Xyz]().x = x.copy()
+        self._slot[_Xyz]().y = y.copy()
+        self._slot[_Xyz]().z = z.copy()
         return self^
 
     def encode_categorical(
@@ -3383,10 +3374,10 @@ struct Plot(Copyable, Movable):
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = deltas.copy()
-        self._waterfall.is_total = is_total.copy()
+        self._slot[_WaterfallData]().is_total = is_total.copy()
         var bars = _waterfall_running_totals(deltas, is_total)
-        self._waterfall.y0 = bars.y0.copy()
-        self._waterfall.y1 = bars.y1.copy()
+        self._slot[_WaterfallData]().y0 = bars.y0.copy()
+        self._slot[_WaterfallData]().y1 = bars.y1.copy()
         return self^
 
     def encode_boxenplot(
@@ -3442,7 +3433,7 @@ struct Plot(Copyable, Movable):
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._boxen = data^
+        self._data = _MarkData(data^)
         return self^
 
     def encode_boxenplot[
@@ -3522,13 +3513,13 @@ struct Plot(Copyable, Movable):
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._box.q1 = q1^
-        self._box.median = median^
-        self._box.q3 = q3^
-        self._box.low = low^
-        self._box.high = high^
-        self._box.outlier_cat = outlier_cat^
-        self._box.outlier_value = outlier_value^
+        self._slot[_BoxData]().q1 = q1^
+        self._slot[_BoxData]().median = median^
+        self._slot[_BoxData]().q3 = q3^
+        self._slot[_BoxData]().low = low^
+        self._slot[_BoxData]().high = high^
+        self._slot[_BoxData]().outlier_cat = outlier_cat^
+        self._slot[_BoxData]().outlier_value = outlier_value^
         return self^
 
     def encode_boxplot[
@@ -3589,10 +3580,10 @@ struct Plot(Copyable, Movable):
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._candle.open_price = open.copy()
-        self._candle.high = high.copy()
-        self._candle.low = low.copy()
-        self._candle.close_price = close.copy()
+        self._slot[_CandleData]().open_price = open.copy()
+        self._slot[_CandleData]().high = high.copy()
+        self._slot[_CandleData]().low = low.copy()
+        self._slot[_CandleData]().close_price = close.copy()
         return self^
 
     def encode_bullet(
@@ -3626,9 +3617,9 @@ struct Plot(Copyable, Movable):
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._bullet.measure = measures.copy()
-        self._bullet.target = targets.copy()
-        self._bullet.ranges = ranges.copy()
+        self._slot[_BulletData]().measure = measures.copy()
+        self._slot[_BulletData]().target = targets.copy()
+        self._slot[_BulletData]().ranges = ranges.copy()
         return self^
 
     def encode_gantt(
@@ -3664,8 +3655,8 @@ struct Plot(Copyable, Movable):
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._gantt.start = start.copy()
-        self._gantt.end = end.copy()
+        self._slot[_GanttData]().start = start.copy()
+        self._slot[_GanttData]().end = end.copy()
         return self^
 
     def encode_grouped_bar(
@@ -3716,9 +3707,9 @@ struct Plot(Copyable, Movable):
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._grouped_bar.series_names = series_names.copy()
-        self._grouped_bar.values = values.copy()
-        self._grouped_bar.errors = errors.copy()
+        self._slot[_GroupedBarData]().series_names = series_names.copy()
+        self._slot[_GroupedBarData]().values = values.copy()
+        self._slot[_GroupedBarData]().errors = errors.copy()
         return self^
 
     def encode_grouped_bar[
@@ -3827,10 +3818,10 @@ struct Plot(Copyable, Movable):
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._pyramid.left = left_values.copy()
-        self._pyramid.right = right_values.copy()
-        self._pyramid.left_name = left_name
-        self._pyramid.right_name = right_name
+        self._slot[_PyramidData]().left = left_values.copy()
+        self._slot[_PyramidData]().right = right_values.copy()
+        self._slot[_PyramidData]().left_name = left_name
+        self._slot[_PyramidData]().right_name = right_name
         return self^
 
     def encode_heatmap(
@@ -3858,9 +3849,9 @@ struct Plot(Copyable, Movable):
         self._categorical.x = List[String]()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._heatmap.x = x.copy()
-        self._heatmap.y = y.copy()
-        self._heatmap.value = value.copy()
+        self._slot[_HeatmapData]().x = x.copy()
+        self._slot[_HeatmapData]().y = y.copy()
+        self._slot[_HeatmapData]().value = value.copy()
         return self^
 
     def encode_calendar(
@@ -3892,8 +3883,8 @@ struct Plot(Copyable, Movable):
         self._categorical.x = List[String]()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._calendar.dates = dates.copy()
-        self._calendar.values = values.copy()
+        self._slot[_CalendarData]().dates = dates.copy()
+        self._slot[_CalendarData]().values = values.copy()
         return self^
 
     def encode_corrplot(
@@ -3916,8 +3907,8 @@ struct Plot(Copyable, Movable):
         _require_mark(
             self._mark, "encode_corrplot", "mark_corrplot()", Mark.CORRPLOT
         )
-        self._corrplot.variables = variables.copy()
-        self._corrplot.matrix = matrix.copy()
+        self._slot[_CorrplotData]().variables = variables.copy()
+        self._slot[_CorrplotData]().matrix = matrix.copy()
         return self^
 
     def encode_corrplot[
@@ -3966,9 +3957,9 @@ struct Plot(Copyable, Movable):
         self._categorical.x = List[String]()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._punchcard.x = x.copy()
-        self._punchcard.y = y.copy()
-        self._punchcard.sizes = sizes.copy()
+        self._slot[_PunchcardData]().x = x.copy()
+        self._slot[_PunchcardData]().y = y.copy()
+        self._slot[_PunchcardData]().sizes = sizes.copy()
         return self^
 
     def encode_barbs(
@@ -4005,10 +3996,10 @@ struct Plot(Copyable, Movable):
         self._categorical.x = List[String]()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._barbs.x = x.copy()
-        self._barbs.y = y.copy()
-        self._barbs.u = u.copy()
-        self._barbs.v = v.copy()
+        self._slot[_BarbsData]().x = x.copy()
+        self._slot[_BarbsData]().y = y.copy()
+        self._slot[_BarbsData]().u = u.copy()
+        self._slot[_BarbsData]().v = v.copy()
         return self^
 
     def encode_barbs[
@@ -4084,10 +4075,10 @@ struct Plot(Copyable, Movable):
         _require_mark(
             self._mark, "encode_contour", "mark_contour()", _ok_encode_contour^
         )
-        self._contour.z = z.copy()
-        self._contour.levels = levels.copy()
-        self._contour.x = x.copy()
-        self._contour.y = y.copy()
+        self._slot[_ContourData]().z = z.copy()
+        self._slot[_ContourData]().levels = levels.copy()
+        self._slot[_ContourData]().x = x.copy()
+        self._slot[_ContourData]().y = y.copy()
         return self^
 
     def encode_imshow(var self, z: List[List[Float64]]) raises -> Self:
@@ -4112,7 +4103,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         _require_mark(self._mark, "encode_imshow", "mark_imshow()", Mark.IMSHOW)
-        self._image.z = z.copy()
+        self._slot[_ImageData]().z = z.copy()
         return self^
 
     def encode_pcolormesh(
@@ -4148,12 +4139,12 @@ struct Plot(Copyable, Movable):
             "mark_pcolormesh()",
             Mark.PCOLORMESH,
         )
-        self._image.z = z.copy()
-        self._image.x_edges = x_edges.copy()
-        self._image.y_edges = y_edges.copy()
+        self._slot[_ImageData]().z = z.copy()
+        self._slot[_ImageData]().x_edges = x_edges.copy()
+        self._slot[_ImageData]().y_edges = y_edges.copy()
         # The two forms are exclusive; see the curvilinear overload.
-        self._image.x_corners = List[List[Float64]]()
-        self._image.y_corners = List[List[Float64]]()
+        self._slot[_ImageData]().x_corners = List[List[Float64]]()
+        self._slot[_ImageData]().y_corners = List[List[Float64]]()
         return self^
 
     def encode_pcolormesh(
@@ -4202,13 +4193,13 @@ struct Plot(Copyable, Movable):
             "mark_pcolormesh()",
             Mark.PCOLORMESH,
         )
-        self._image.z = z.copy()
-        self._image.x_corners = x_corners.copy()
-        self._image.y_corners = y_corners.copy()
+        self._slot[_ImageData]().z = z.copy()
+        self._slot[_ImageData]().x_corners = x_corners.copy()
+        self._slot[_ImageData]().y_corners = y_corners.copy()
         # Exclusive with the rectilinear form: a plot carrying both would
         # leave the renderer to guess which the caller meant.
-        self._image.x_edges = List[Float64]()
-        self._image.y_edges = List[Float64]()
+        self._slot[_ImageData]().x_edges = List[Float64]()
+        self._slot[_ImageData]().y_edges = List[Float64]()
         return self^
 
     def encode_time(var self, x: List[Morrow], y: List[Float64]) raises -> Self:
@@ -4281,14 +4272,14 @@ struct Plot(Copyable, Movable):
             Mark.HISTOGRAM,
         )
         self._categorical.x = List[String]()
-        if self._histogram.horizontal:
+        if self._slot[_HistogramData]().horizontal:
             self._continuous.x = bins.step_y()
             self._continuous.y = bins.step_x()
         else:
             self._continuous.x = bins.step_x()
             self._continuous.y = bins.step_y()
-        self._histogram.edges = bins.edges.copy()
-        self._histogram.values = bins.values.copy()
+        self._slot[_HistogramData]().edges = bins.edges.copy()
+        self._slot[_HistogramData]().values = bins.values.copy()
         return self^
 
     def encode_hist2d(
@@ -4322,10 +4313,10 @@ struct Plot(Copyable, Movable):
                 shorter than 2.
         """
         _require_mark(self._mark, "encode_hist2d", "mark_hist2d()", Mark.HIST2D)
-        self._image.z = _hist2d_counts(x, y, x_edges, y_edges)
-        self._image.x_edges = x_edges.copy()
-        self._image.y_edges = y_edges.copy()
-        self._image.blank_zero = True
+        self._slot[_ImageData]().z = _hist2d_counts(x, y, x_edges, y_edges)
+        self._slot[_ImageData]().x_edges = x_edges.copy()
+        self._slot[_ImageData]().y_edges = y_edges.copy()
+        self._slot[_ImageData]().blank_zero = True
         return self^
 
     def encode_streamplot(
@@ -4363,10 +4354,10 @@ struct Plot(Copyable, Movable):
         self._categorical.x = List[String]()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._stream.x = x.copy()
-        self._stream.y = y.copy()
-        self._stream.u = u.copy()
-        self._stream.v = v.copy()
+        self._slot[_StreamData]().x = x.copy()
+        self._slot[_StreamData]().y = y.copy()
+        self._slot[_StreamData]().u = u.copy()
+        self._slot[_StreamData]().v = v.copy()
         return self^
 
     def encode_hexbin(
@@ -4385,9 +4376,9 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         _require_mark(self._mark, "encode_hexbin", "mark_hexbin()", Mark.HEXBIN)
-        self._hexbin.x = x.copy()
-        self._hexbin.y = y.copy()
-        self._hexbin.gridsize = gridsize
+        self._slot[_HexbinData]().x = x.copy()
+        self._slot[_HexbinData]().y = y.copy()
+        self._slot[_HexbinData]().gridsize = gridsize
         return self^
 
     def encode_quiver(
@@ -4478,10 +4469,10 @@ struct Plot(Copyable, Movable):
             "mark_tricontour()",
             _ok_encode_tricontour^,
         )
-        self._tricontour.x = x.copy()
-        self._tricontour.y = y.copy()
-        self._tricontour.z = z.copy()
-        self._tricontour.levels = levels.copy()
+        self._slot[_TriContourData]().x = x.copy()
+        self._slot[_TriContourData]().y = y.copy()
+        self._slot[_TriContourData]().z = z.copy()
+        self._slot[_TriContourData]().levels = levels.copy()
         return self^
 
     def encode_triplot(
@@ -4547,12 +4538,12 @@ struct Plot(Copyable, Movable):
         _require_mark(
             self._mark, "encode_triplot", "mark_triplot()", _ok_encode_triplot^
         )
-        self._triplot.x = x.copy()
-        self._triplot.y = y.copy()
-        self._triplot.z = z.copy()
-        self._triplot.triangulation = triangulation.copy()
-        self._triplot.facecolors = facecolors.copy()
-        self._triplot.gouraud = gouraud
+        self._slot[_TriplotData]().x = x.copy()
+        self._slot[_TriplotData]().y = y.copy()
+        self._slot[_TriplotData]().z = z.copy()
+        self._slot[_TriplotData]().triangulation = triangulation.copy()
+        self._slot[_TriplotData]().facecolors = facecolors.copy()
+        self._slot[_TriplotData]().gouraud = gouraud
         return self^
 
     def encode_marimekko(
@@ -4582,9 +4573,9 @@ struct Plot(Copyable, Movable):
         _require_mark(
             self._mark, "encode_marimekko", "mark_marimekko()", Mark.MARIMEKKO
         )
-        self._marimekko.categories = categories.copy()
-        self._marimekko.subcategories = subcategories.copy()
-        self._marimekko.values = values.copy()
+        self._slot[_MarimekkoData]().categories = categories.copy()
+        self._slot[_MarimekkoData]().subcategories = subcategories.copy()
+        self._slot[_MarimekkoData]().values = values.copy()
         return self^
 
     def encode_marimekko[
@@ -4652,9 +4643,9 @@ struct Plot(Copyable, Movable):
             "mark_treemap()",
             _ok_encode_hierarchy^,
         )
-        self._hierarchy.ids = ids.copy()
-        self._hierarchy.parent_ids = parent_ids.copy()
-        self._hierarchy.values = values.copy()
+        self._slot[_HierarchyData]().ids = ids.copy()
+        self._slot[_HierarchyData]().parent_ids = parent_ids.copy()
+        self._slot[_HierarchyData]().values = values.copy()
         return self^
 
     def encode_chord(
@@ -4692,9 +4683,9 @@ struct Plot(Copyable, Movable):
         self._categorical.x = List[String]()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._edges.from_categories = from_categories.copy()
-        self._edges.to_categories = to_categories.copy()
-        self._edges.values = values.copy()
+        self._slot[_EdgeData]().from_categories = from_categories.copy()
+        self._slot[_EdgeData]().to_categories = to_categories.copy()
+        self._slot[_EdgeData]().values = values.copy()
         return self^
 
     def encode_polar(
@@ -4715,10 +4706,10 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         _require_mark(self._mark, "encode_polar", "mark_polar()", Mark.POLAR)
-        self._polar.angle = angle.copy()
-        self._polar.radius = radius.copy()
-        self._polar.series_names = List[String]()
-        self._polar.series_radius = List[List[Float64]]()
+        self._slot[_PolarData]().angle = angle.copy()
+        self._slot[_PolarData]().radius = radius.copy()
+        self._slot[_PolarData]().series_names = List[String]()
+        self._slot[_PolarData]().series_radius = List[List[Float64]]()
         return self^
 
     def encode_polar_series(
@@ -4748,10 +4739,10 @@ struct Plot(Copyable, Movable):
         _require_mark(
             self._mark, "encode_polar_series", "mark_polar()", Mark.POLAR
         )
-        self._polar.angle = angle.copy()
-        self._polar.radius = List[Float64]()
-        self._polar.series_names = series_names.copy()
-        self._polar.series_radius = series_values.copy()
+        self._slot[_PolarData]().angle = angle.copy()
+        self._slot[_PolarData]().radius = List[Float64]()
+        self._slot[_PolarData]().series_names = series_names.copy()
+        self._slot[_PolarData]().series_radius = series_values.copy()
         return self^
 
     def encode_polar_series[
@@ -4841,10 +4832,10 @@ struct Plot(Copyable, Movable):
                     + String(len(values))
                     + ")"
                 )
-        self._radar.indicators = indicators.copy()
-        self._radar.max_values = max_values.copy()
-        self._radar.series_names = series_names.copy()
-        self._radar.series_values = series_values.copy()
+        self._slot[_RadarData]().indicators = indicators.copy()
+        self._slot[_RadarData]().max_values = max_values.copy()
+        self._slot[_RadarData]().series_names = series_names.copy()
+        self._slot[_RadarData]().series_values = series_values.copy()
         return self^
 
     def encode_radar[
@@ -4959,11 +4950,11 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         _require_mark(self._mark, "encode_gauge", "mark_gauge()", Mark.GAUGE)
-        self._gauge.value = value
-        self._gauge.min_value = min_value
-        self._gauge.max_value = max_value
-        self._gauge.breakpoints = breakpoints.copy()
-        self._gauge.band_colors = band_colors.copy()
+        self._slot[_GaugeData]().value = value
+        self._slot[_GaugeData]().min_value = min_value
+        self._slot[_GaugeData]().max_value = max_value
+        self._slot[_GaugeData]().breakpoints = breakpoints.copy()
+        self._slot[_GaugeData]().band_colors = band_colors.copy()
         return self^
 
     def encode_parallel(
@@ -5014,9 +5005,9 @@ struct Plot(Copyable, Movable):
                     + String(len(row))
                     + ")"
                 )
-        self._parallel.dims = dims.copy()
-        self._parallel.row_names = row_names.copy()
-        self._parallel.data = data.copy()
+        self._slot[_ParallelData]().dims = dims.copy()
+        self._slot[_ParallelData]().row_names = row_names.copy()
+        self._slot[_ParallelData]().data = data.copy()
         return self^
 
     def encode_parallel[
@@ -5082,7 +5073,7 @@ struct Plot(Copyable, Movable):
         # axis, so there is no category to name.
         var one = List[List[Float64]]()
         one.append(values.copy())
-        self._distribution.values = one^
+        self._slot[_DistributionData]().values = one^
         return self^
 
     def encode_eventplot(
@@ -5152,7 +5143,7 @@ struct Plot(Copyable, Movable):
         self._categorical.x = labels.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._distribution.values = positions.copy()
+        self._slot[_DistributionData]().values = positions.copy()
         return self^
 
     def encode_eventplot[
@@ -5257,7 +5248,7 @@ struct Plot(Copyable, Movable):
         self._categorical.x = categories.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = List[Float64]()
-        self._distribution.values = values.copy()
+        self._slot[_DistributionData]().values = values.copy()
         return self^
 
     def encode_distribution[
@@ -7661,7 +7652,7 @@ def _render_generic[
                         plot._mark == Mark.AREA
                         or (
                             plot._mark == Mark.HISTOGRAM
-                            and not plot._histogram.horizontal
+                            and not plot._data[_HistogramData].horizontal
                         )
                     ) else _data_extent(y_domain_data)
                 )
@@ -7678,7 +7669,8 @@ def _render_generic[
                 plot._continuous.x, plot._x_symlog_linthresh
             ) if plot._x_symlog else (
                 _zero_baseline_y_extent(plot._continuous.x) if (
-                    plot._mark == Mark.HISTOGRAM and plot._histogram.horizontal
+                    plot._mark == Mark.HISTOGRAM
+                    and plot._data[_HistogramData].horizontal
                 ) else _data_extent(plot._continuous.x)
             )
         )

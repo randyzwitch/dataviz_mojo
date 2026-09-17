@@ -553,7 +553,7 @@ struct HistogramBins(Copyable, Movable, Sized):
         return ys^
 
 
-struct _HistogramData(Copyable, Movable):
+struct _HistogramData(Copyable, Defaultable, Movable):
     """The bins `Mark.HISTOGRAM` draws as one rectangle each, from
     `encode_histogram_bins()`: the `HistogramBins` columns, stored on
     `Plot._histogram`. The same bins go into `Plot._continuous.x`/`_continuous.y` as
@@ -606,26 +606,30 @@ def _draw_histogram_layer[
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
-    var n = len(plot._histogram.values)
+    var n = len(plot._data[_HistogramData].values)
     if n == 0:
         return
     _push_plot_clip(target, x_scale, y_scale)
     # `along` runs over the bins (x when vertical, y when horizontal)
     # and `across` over the values; the geometry below is written once
     # in those terms and emitted either way round.
-    var horizontal = plot._histogram.horizontal
+    var horizontal = plot._data[_HistogramData].horizontal
     var along = y_scale if horizontal else x_scale
     var across = x_scale if horizontal else y_scale
     var baseline = snap_to_pixel_edge(across.to_pixel(0.0) - 0.5)
     var ep = List[Float64](capacity=n + 1)
     for i in range(n + 1):
         ep.append(
-            snap_to_pixel_edge(along.to_pixel(plot._histogram.edges[i]) - 0.5)
+            snap_to_pixel_edge(
+                along.to_pixel(plot._data[_HistogramData].edges[i]) - 0.5
+            )
         )
     var vp = List[Float64](capacity=n)
     for i in range(n):
         vp.append(
-            snap_to_pixel_edge(across.to_pixel(plot._histogram.values[i]) - 0.5)
+            snap_to_pixel_edge(
+                across.to_pixel(plot._data[_HistogramData].values[i]) - 0.5
+            )
         )
     # A bar that starts on an axis line would paint over the line's
     # column: give it back, the way `Mark.BAR` pulls a bar off the axis.

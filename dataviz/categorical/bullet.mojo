@@ -23,7 +23,7 @@ from dataviz.core.scale import _format_fixed, _format_tick, _label_decimals
 from dataviz.core.theme import Theme
 
 
-struct _BulletData(Copyable, Movable):
+struct _BulletData(Copyable, Defaultable, Movable):
     """One measure/target pair plus a list of ascending qualitative-range
     thresholds per category, for `Mark.BULLET`. See `encode_bullet()`.
     Stored on `Plot._bullet`.
@@ -86,32 +86,37 @@ def _render_bullet[
     3. The target tick (`theme.axis_color`, full band width), drawn last.
     """
     if (
-        len(plot._categorical.x) != len(plot._bullet.measure)
-        or len(plot._bullet.target) != len(plot._bullet.measure)
-        or len(plot._bullet.ranges) != len(plot._bullet.measure)
+        len(plot._categorical.x) != len(plot._data[_BulletData].measure)
+        or len(plot._data[_BulletData].target)
+        != len(plot._data[_BulletData].measure)
+        or len(plot._data[_BulletData].ranges)
+        != len(plot._data[_BulletData].measure)
     ):
         raise Error(
             "Plot.encode_bullet(): categories, measures, targets, and"
             " ranges must all have the same length (got "
             + String(len(plot._categorical.x))
             + " categories, "
-            + String(len(plot._bullet.measure))
+            + String(len(plot._data[_BulletData].measure))
             + " measures, "
-            + String(len(plot._bullet.target))
+            + String(len(plot._data[_BulletData].target))
             + " targets, "
-            + String(len(plot._bullet.ranges))
+            + String(len(plot._data[_BulletData].ranges))
             + " ranges)"
         )
-    for i in range(len(plot._bullet.ranges)):
-        if len(plot._bullet.ranges[i]) == 0:
+    for i in range(len(plot._data[_BulletData].ranges)):
+        if len(plot._data[_BulletData].ranges[i]) == 0:
             raise Error(
                 "Plot.encode_bullet(): category '"
                 + plot._categorical.x[i]
                 + "' has no range thresholds -- a bullet chart needs at"
                 " least one qualitative range"
             )
-        for j in range(1, len(plot._bullet.ranges[i])):
-            if plot._bullet.ranges[i][j] < plot._bullet.ranges[i][j - 1]:
+        for j in range(1, len(plot._data[_BulletData].ranges[i])):
+            if (
+                plot._data[_BulletData].ranges[i][j]
+                < plot._data[_BulletData].ranges[i][j - 1]
+            ):
                 raise Error(
                     "Plot.encode_bullet(): category '"
                     + plot._categorical.x[i]
@@ -125,10 +130,12 @@ def _render_bullet[
     for i in range(len(plot._categorical.x)):
         domain_data.append(0.0)
         domain_data.append(
-            plot._bullet.ranges[i][len(plot._bullet.ranges[i]) - 1]
+            plot._data[_BulletData].ranges[i][
+                len(plot._data[_BulletData].ranges[i]) - 1
+            ]
         )
-        domain_data.append(plot._bullet.measure[i])
-        domain_data.append(plot._bullet.target[i])
+        domain_data.append(plot._data[_BulletData].measure[i])
+        domain_data.append(plot._data[_BulletData].target[i])
     var y_scale = _zero_baseline_y_extent(domain_data)
 
     var frame = _draw_categorical_axis_frame(
@@ -163,7 +170,7 @@ def _render_bullet[
     for i in range(len(plot._categorical.x)):
         var band_x = frame.x_scale.band_start(i)
         var band_x1 = band_x + bandwidth
-        var band_count = len(plot._bullet.ranges[i])
+        var band_count = len(plot._data[_BulletData].ranges[i])
 
         var prev_threshold = 0.0
         for j in range(band_count):
@@ -171,7 +178,9 @@ def _render_bullet[
                 Float64(j) / Float64(band_count - 1) if band_count > 1 else 0.0
             )
             var band_color = range_color_scale.color_at(t)
-            var top_py = _axis_pixel_f(frame.y_scale, plot._bullet.ranges[i][j])
+            var top_py = _axis_pixel_f(
+                frame.y_scale, plot._data[_BulletData].ranges[i][j]
+            )
             var bottom_py = _axis_pixel_f(frame.y_scale, prev_threshold)
             var band_rect = _pull_off_axis_line_f(
                 top_py, bottom_py, Float64(frame.py1)
@@ -181,10 +190,12 @@ def _render_bullet[
             var by0 = snap_to_pixel_edge(band_rect.y)
             var by1 = snap_to_pixel_edge(band_rect.y + band_rect.height)
             target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, band_color)
-            prev_threshold = plot._bullet.ranges[i][j]
+            prev_threshold = plot._data[_BulletData].ranges[i][j]
 
         var measure_x = frame.x_scale.center(i) - measure_inset
-        var measure_py = _axis_pixel_f(frame.y_scale, plot._bullet.measure[i])
+        var measure_py = _axis_pixel_f(
+            frame.y_scale, plot._data[_BulletData].measure[i]
+        )
         var measure_rect = _pull_off_axis_line_f(
             baseline_py, measure_py, Float64(frame.py1)
         )
@@ -196,8 +207,8 @@ def _render_bullet[
             target.begin_annotated_group(
                 _bullet_tooltip_label(
                     plot._categorical.x[i],
-                    plot._bullet.measure[i],
-                    plot._bullet.target[i],
+                    plot._data[_BulletData].measure[i],
+                    plot._data[_BulletData].target[i],
                 )
             )
         var mx0 = snap_to_pixel_edge(measure_x)
@@ -206,7 +217,7 @@ def _render_bullet[
         var my1 = snap_to_pixel_edge(measure_rect.y + measure_rect.height)
         target.fill_rect(mx0, my0, mx1 - mx0, my1 - my0, theme.mark_color)
         if theme.show_data_labels:
-            var measure = plot._bullet.measure[i]
+            var measure = plot._data[_BulletData].measure[i]
             var at = orient.outside_band_label(
                 measure_rect,
                 band_x,
@@ -229,7 +240,9 @@ def _render_bullet[
                 )
             )
 
-        var target_py = _axis_pixel_f(frame.y_scale, plot._bullet.target[i])
+        var target_py = _axis_pixel_f(
+            frame.y_scale, plot._data[_BulletData].target[i]
+        )
         var target_row = snap_to_pixel_center(target_py)
         target.draw_line_aa(
             band_x,

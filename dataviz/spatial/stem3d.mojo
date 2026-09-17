@@ -53,9 +53,10 @@ from dataviz.spatial.scatter3d import (
     _tick_labels,
     _validate_xyz,
 )
+from dataviz.spatial.scatter3d import _Xyz
 
 
-struct _Vectors3D(Copyable, Movable):
+struct _Vectors3D(Copyable, Defaultable, Movable):
     """Points with a direction each, for `Mark.QUIVER3D`.
 
     `u`/`v`/`w` are the components of the arrow at each `(x, y, z)`, in
@@ -89,13 +90,13 @@ def _validate_vectors3d(plot: Plot) raises:
     Raises:
         Error: The columns disagree in length, or there are no arrows.
     """
-    var n = len(plot._vectors3d.x)
+    var n = len(plot._data[_Vectors3D].x)
     for pair in [
-        (len(plot._vectors3d.y), String("y")),
-        (len(plot._vectors3d.z), String("z")),
-        (len(plot._vectors3d.u), String("u")),
-        (len(plot._vectors3d.v), String("v")),
-        (len(plot._vectors3d.w), String("w")),
+        (len(plot._data[_Vectors3D].y), String("y")),
+        (len(plot._data[_Vectors3D].z), String("z")),
+        (len(plot._data[_Vectors3D].u), String("u")),
+        (len(plot._data[_Vectors3D].v), String("v")),
+        (len(plot._data[_Vectors3D].w), String("w")),
     ]:
         if pair[0] != n:
             raise Error(
@@ -119,13 +120,13 @@ def _vectors3d_extent(plot: Plot) raises -> _Extent3D:
     var xs = List[Float64]()
     var ys = List[Float64]()
     var zs = List[Float64]()
-    for i in range(len(plot._vectors3d.x)):
-        xs.append(plot._vectors3d.x[i])
-        xs.append(plot._vectors3d.x[i] + plot._vectors3d.u[i])
-        ys.append(plot._vectors3d.y[i])
-        ys.append(plot._vectors3d.y[i] + plot._vectors3d.v[i])
-        zs.append(plot._vectors3d.z[i])
-        zs.append(plot._vectors3d.z[i] + plot._vectors3d.w[i])
+    for i in range(len(plot._data[_Vectors3D].x)):
+        xs.append(plot._data[_Vectors3D].x[i])
+        xs.append(plot._data[_Vectors3D].x[i] + plot._data[_Vectors3D].u[i])
+        ys.append(plot._data[_Vectors3D].y[i])
+        ys.append(plot._data[_Vectors3D].y[i] + plot._data[_Vectors3D].v[i])
+        zs.append(plot._data[_Vectors3D].z[i])
+        zs.append(plot._data[_Vectors3D].z[i] + plot._data[_Vectors3D].w[i])
     return _Extent3D(_min_max(xs), _min_max(ys), _min_max(zs))
 
 
@@ -190,10 +191,10 @@ def _stem3d_extent(plot: Plot) raises -> _Extent3D:
     the lowest point would draw every stem from a floor that is not
     zero -- the same reason a bar's base is fixed.
     """
-    var zs = _min_max(plot._xyz.z)
+    var zs = _min_max(plot._data[_Xyz].z)
     return _Extent3D(
-        _min_max(plot._xyz.x),
-        _min_max(plot._xyz.y),
+        _min_max(plot._data[_Xyz].x),
+        _min_max(plot._data[_Xyz].y),
         MinMax(
             zs.min if zs.min < 0.0 else 0.0, zs.max if zs.max > 0.0 else 0.0
         ),
@@ -238,7 +239,7 @@ def _render_stem3d[
     var px1 = ox1 - sc.margin_right
     var py1 = oy1 - sc.margin_bottom
     var frame = _fit_frame3d(
-        Camera3D(plot._xyz.elev, plot._xyz.azim),
+        Camera3D(plot._data[_Xyz].elev, plot._data[_Xyz].azim),
         _stem3d_extent(plot),
         px0,
         py0,
@@ -249,11 +250,13 @@ def _render_stem3d[
     var text = List[_TextRequest]()
     _tick_labels(frame, theme, sc, text)
 
-    var n = len(plot._xyz.x)
+    var n = len(plot._data[_Xyz].x)
     for i in range(n):
-        var foot = frame.to_pixel(plot._xyz.x[i], plot._xyz.y[i], 0.0)
+        var foot = frame.to_pixel(
+            plot._data[_Xyz].x[i], plot._data[_Xyz].y[i], 0.0
+        )
         var head = frame.to_pixel(
-            plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i]
+            plot._data[_Xyz].x[i], plot._data[_Xyz].y[i], plot._data[_Xyz].z[i]
         )
         var stem = Path()
         stem.move_to(foot[0], foot[1])
@@ -263,7 +266,9 @@ def _render_stem3d[
     var order = _depth_order(plot, frame)
     for k in range(len(order)):
         var i = order[k]
-        var at = frame.to_pixel(plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i])
+        var at = frame.to_pixel(
+            plot._data[_Xyz].x[i], plot._data[_Xyz].y[i], plot._data[_Xyz].z[i]
+        )
         target.fill_circle_aa(at[0], at[1], sc.point_radius, theme.mark_color)
     return _RenderResult(text^, px0, py0, px1, py1)
 
@@ -295,7 +300,7 @@ def _render_quiver3d[
     var px1 = ox1 - sc.margin_right
     var py1 = oy1 - sc.margin_bottom
     var frame = _fit_frame3d(
-        Camera3D(plot._vectors3d.elev, plot._vectors3d.azim),
+        Camera3D(plot._data[_Vectors3D].elev, plot._data[_Vectors3D].azim),
         _vectors3d_extent(plot),
         px0,
         py0,
@@ -307,14 +312,16 @@ def _render_quiver3d[
     _tick_labels(frame, theme, sc, text)
 
     var head_size = sc.point_radius * 2.4
-    for i in range(len(plot._vectors3d.x)):
+    for i in range(len(plot._data[_Vectors3D].x)):
         var tail = frame.to_pixel(
-            plot._vectors3d.x[i], plot._vectors3d.y[i], plot._vectors3d.z[i]
+            plot._data[_Vectors3D].x[i],
+            plot._data[_Vectors3D].y[i],
+            plot._data[_Vectors3D].z[i],
         )
         var tip = frame.to_pixel(
-            plot._vectors3d.x[i] + plot._vectors3d.u[i],
-            plot._vectors3d.y[i] + plot._vectors3d.v[i],
-            plot._vectors3d.z[i] + plot._vectors3d.w[i],
+            plot._data[_Vectors3D].x[i] + plot._data[_Vectors3D].u[i],
+            plot._data[_Vectors3D].y[i] + plot._data[_Vectors3D].v[i],
+            plot._data[_Vectors3D].z[i] + plot._data[_Vectors3D].w[i],
         )
         var shaft = Path()
         shaft.move_to(tail[0], tail[1])
@@ -332,7 +339,7 @@ def _render_quiver3d[
     return _RenderResult(text^, px0, py0, px1, py1)
 
 
-struct _Ribbon3D(Copyable, Movable):
+struct _Ribbon3D(Copyable, Defaultable, Movable):
     """Two curves through the cube and the surface between them, for
     `Mark.FILL_BETWEEN3D`.
 
@@ -368,13 +375,13 @@ def _validate_ribbon3d(plot: Plot) raises:
         Error: The columns disagree, or there are fewer than two
             samples to make a quad from.
     """
-    var n = len(plot._ribbon3d.x1)
+    var n = len(plot._data[_Ribbon3D].x1)
     for pair in [
-        (len(plot._ribbon3d.y1), String("y1")),
-        (len(plot._ribbon3d.z1), String("z1")),
-        (len(plot._ribbon3d.x2), String("x2")),
-        (len(plot._ribbon3d.y2), String("y2")),
-        (len(plot._ribbon3d.z2), String("z2")),
+        (len(plot._data[_Ribbon3D].y1), String("y1")),
+        (len(plot._data[_Ribbon3D].z1), String("z1")),
+        (len(plot._data[_Ribbon3D].x2), String("x2")),
+        (len(plot._data[_Ribbon3D].y2), String("y2")),
+        (len(plot._data[_Ribbon3D].z2), String("z2")),
     ]:
         if pair[0] != n:
             raise Error(
@@ -437,15 +444,15 @@ def _render_fill_between3d[
     var xs = List[Float64]()
     var ys = List[Float64]()
     var zs = List[Float64]()
-    for i in range(len(plot._ribbon3d.x1)):
-        xs.append(plot._ribbon3d.x1[i])
-        xs.append(plot._ribbon3d.x2[i])
-        ys.append(plot._ribbon3d.y1[i])
-        ys.append(plot._ribbon3d.y2[i])
-        zs.append(plot._ribbon3d.z1[i])
-        zs.append(plot._ribbon3d.z2[i])
+    for i in range(len(plot._data[_Ribbon3D].x1)):
+        xs.append(plot._data[_Ribbon3D].x1[i])
+        xs.append(plot._data[_Ribbon3D].x2[i])
+        ys.append(plot._data[_Ribbon3D].y1[i])
+        ys.append(plot._data[_Ribbon3D].y2[i])
+        zs.append(plot._data[_Ribbon3D].z1[i])
+        zs.append(plot._data[_Ribbon3D].z2[i])
     var frame = _fit_frame3d(
-        Camera3D(plot._ribbon3d.elev, plot._ribbon3d.azim),
+        Camera3D(plot._data[_Ribbon3D].elev, plot._data[_Ribbon3D].azim),
         _Extent3D(_min_max(xs), _min_max(ys), _min_max(zs)),
         px0,
         py0,
@@ -458,28 +465,28 @@ def _render_fill_between3d[
 
     var mesh = _Mesh()
     var color = theme.mark_color
-    for i in range(len(plot._ribbon3d.x1) - 1):
+    for i in range(len(plot._data[_Ribbon3D].x1) - 1):
         mesh.add_quad(
             frame,
             _Vertex(
-                plot._ribbon3d.x1[i],
-                plot._ribbon3d.y1[i],
-                plot._ribbon3d.z1[i],
+                plot._data[_Ribbon3D].x1[i],
+                plot._data[_Ribbon3D].y1[i],
+                plot._data[_Ribbon3D].z1[i],
             ),
             _Vertex(
-                plot._ribbon3d.x2[i],
-                plot._ribbon3d.y2[i],
-                plot._ribbon3d.z2[i],
+                plot._data[_Ribbon3D].x2[i],
+                plot._data[_Ribbon3D].y2[i],
+                plot._data[_Ribbon3D].z2[i],
             ),
             _Vertex(
-                plot._ribbon3d.x2[i + 1],
-                plot._ribbon3d.y2[i + 1],
-                plot._ribbon3d.z2[i + 1],
+                plot._data[_Ribbon3D].x2[i + 1],
+                plot._data[_Ribbon3D].y2[i + 1],
+                plot._data[_Ribbon3D].z2[i + 1],
             ),
             _Vertex(
-                plot._ribbon3d.x1[i + 1],
-                plot._ribbon3d.y1[i + 1],
-                plot._ribbon3d.z1[i + 1],
+                plot._data[_Ribbon3D].x1[i + 1],
+                plot._data[_Ribbon3D].y1[i + 1],
+                plot._data[_Ribbon3D].z1[i + 1],
             ),
             color,
         )

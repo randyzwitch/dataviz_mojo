@@ -127,6 +127,12 @@ from dataviz.core.validate import (
     _validate_categorical_encoding,
     _validate_continuous_encoding,
 )
+from dataviz.multivariate.barbs import _BarbsData
+from dataviz.multivariate.contour import _ContourData
+from dataviz.plot import _DistributionData
+from dataviz.multivariate.tricontour import _TriContourData
+from dataviz.multivariate.triplot import _TriplotData
+from dataviz.binned.histogram import _HistogramData
 
 
 def save_layers(plots: List[Plot], path: String) raises:
@@ -878,7 +884,7 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
     if mark == Mark.KDE:
         var values = _kde_observations(plot)
         var curve = _kde_curve(
-            values, plot._distribution.kde_bandwidth_override
+            values, plot._data[_DistributionData].kde_bandwidth_override
         )
         return _LayerDomain(curve[0].copy(), curve[1].copy(), True)
     if mark == Mark.ECDF:
@@ -888,18 +894,26 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
         # ECDF shares a group with another mark, and a group that is
         # all ECDFs pins the axis to [0, 1] outright (see the scale
         # block in _render_layers_generic).
-        _require_non_empty(len(plot._distribution.values), "Plot.encode_ecdf()")
-        var observations = plot._distribution.values[0].copy()
+        if not plot._data.isa[_DistributionData]():
+            _require_non_empty(0, "Plot.encode_ecdf()")
+        _require_non_empty(
+            len(plot._data[_DistributionData].values), "Plot.encode_ecdf()"
+        )
+        var observations = plot._data[_DistributionData].values[0].copy()
         _require_non_empty(len(observations), "Plot.encode_ecdf()")
         var curve = _ecdf_points(
-            observations, plot._distribution.ecdf_complementary
+            observations, plot._data[_DistributionData].ecdf_complementary
         )
         return _LayerDomain(curve.x.copy(), curve.y.copy(), True)
     if mark == Mark.RUG:
         return _LayerDomain(_kde_observations(plot), List[Float64](), False)
     if mark == Mark.BARBS:
         _validate_barbs(plot)
-        return _LayerDomain(plot._barbs.x.copy(), plot._barbs.y.copy(), False)
+        return _LayerDomain(
+            plot._data[_BarbsData].x.copy(),
+            plot._data[_BarbsData].y.copy(),
+            False,
+        )
     if mark == Mark.TRICONTOUR or mark == Mark.TRICONTOURF:
         _validate_tricontour(
             plot,
@@ -907,7 +921,9 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
             == Mark.TRICONTOUR else "Plot.mark_tricontourf()",
         )
         return _LayerDomain(
-            plot._tricontour.x.copy(), plot._tricontour.y.copy(), False
+            plot._data[_TriContourData].x.copy(),
+            plot._data[_TriContourData].y.copy(),
+            False,
         )
     if mark == Mark.CONTOUR or mark == Mark.CONTOURF:
         var shape = _validate_contour(
@@ -918,9 +934,12 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
         # The grid's own coordinates, or its indices when it has none.
         # Either way these are the two columns the standalone frame is
         # sized from, so a lone contour layer reproduces it exactly.
-        var unpadded = len(plot._contour.x) == 0 and len(plot._contour.y) == 0
-        var xs = plot._contour.x.copy()
-        var ys = plot._contour.y.copy()
+        var unpadded = (
+            len(plot._data[_ContourData].x) == 0
+            and len(plot._data[_ContourData].y) == 0
+        )
+        var xs = plot._data[_ContourData].x.copy()
+        var ys = plot._data[_ContourData].y.copy()
         if len(xs) == 0:
             for c in range(shape[1]):
                 xs.append(Float64(c))
@@ -931,12 +950,16 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
     if mark == Mark.TRIPLOT:
         _validate_triplot(plot)
         return _LayerDomain(
-            plot._triplot.x.copy(), plot._triplot.y.copy(), False
+            plot._data[_TriplotData].x.copy(),
+            plot._data[_TriplotData].y.copy(),
+            False,
         )
     if mark == Mark.TRIPCOLOR:
         _validate_tripcolor(plot)
         return _LayerDomain(
-            plot._triplot.x.copy(), plot._triplot.y.copy(), False
+            plot._data[_TriplotData].x.copy(),
+            plot._data[_TriplotData].y.copy(),
+            False,
         )
 
     # Mark.POINT/LINE/AREA/EFFECT_SCATTER: Plot.encode()'s own columns.
@@ -955,7 +978,7 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
     else:
         for v in plot._continuous.y:
             ys.append(v)
-    if mark == Mark.HISTOGRAM and plot._histogram.horizontal:
+    if mark == Mark.HISTOGRAM and plot._data[_HistogramData].horizontal:
         raise Error(
             "render_layers(): a horizontal Mark.HISTOGRAM layer isn't"
             " supported -- the combined domain zero-baselines y, not x."

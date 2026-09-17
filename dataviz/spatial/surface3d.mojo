@@ -55,9 +55,10 @@ from dataviz.spatial.scatter3d import (
     _validate_xyz,
 )
 from dataviz.core.theme import Theme
+from dataviz.spatial.scatter3d import _Xyz
 
 
-struct _Surface(Copyable, Movable):
+struct _Surface(Copyable, Defaultable, Movable):
     """A height field: `z` row-major over a lattice, plus the view.
 
     `x`/`y` are the lattice's coordinates, one per column and per row.
@@ -84,7 +85,7 @@ def _surface_shape(plot: Plot) raises -> Tuple[Int, Int]:
     least 2x2 -- a surface is built from cells, and a grid with one row
     or column has none.
     """
-    var rows = len(plot._surface.z)
+    var rows = len(plot._data[_Surface].z)
     if rows < 2:
         raise Error(
             "Plot.encode_surface(): z needs at least 2 rows to have any"
@@ -92,7 +93,7 @@ def _surface_shape(plot: Plot) raises -> Tuple[Int, Int]:
             + String(rows)
             + ")"
         )
-    var cols = len(plot._surface.z[0])
+    var cols = len(plot._data[_Surface].z[0])
     if cols < 2:
         raise Error(
             "Plot.encode_surface(): z needs at least 2 columns to have any"
@@ -101,12 +102,12 @@ def _surface_shape(plot: Plot) raises -> Tuple[Int, Int]:
             + ")"
         )
     for r in range(1, rows):
-        if len(plot._surface.z[r]) != cols:
+        if len(plot._data[_Surface].z[r]) != cols:
             raise Error(
                 "Plot.encode_surface(): z must be rectangular -- row "
                 + String(r)
                 + " has "
-                + String(len(plot._surface.z[r]))
+                + String(len(plot._data[_Surface].z[r]))
                 + " values against "
                 + String(cols)
                 + " in row 0"
@@ -116,10 +117,10 @@ def _surface_shape(plot: Plot) raises -> Tuple[Int, Int]:
     # meaning, and one column silently ignored for being the wrong
     # length is the failure this catches.
     _check_grid_coordinates(
-        plot._surface.x, cols, "x", "column", "Plot.encode_surface()"
+        plot._data[_Surface].x, cols, "x", "column", "Plot.encode_surface()"
     )
     _check_grid_coordinates(
-        plot._surface.y, rows, "y", "row", "Plot.encode_surface()"
+        plot._data[_Surface].y, rows, "y", "row", "Plot.encode_surface()"
     )
     return (rows, cols)
 
@@ -128,14 +129,14 @@ def _surface_extent(plot: Plot, rows: Int, cols: Int) raises -> _Extent3D:
     """The three data ranges: the lattice's own coordinates when it has
     them, its indices otherwise, and the grid's height range for z."""
     var flat = List[Float64]()
-    for row in plot._surface.z:
+    for row in plot._data[_Surface].z:
         for v in row:
             flat.append(v)
-    var x_span = _min_max(plot._surface.x) if len(
-        plot._surface.x
+    var x_span = _min_max(plot._data[_Surface].x) if len(
+        plot._data[_Surface].x
     ) > 0 else MinMax(0.0, Float64(cols - 1))
-    var y_span = _min_max(plot._surface.y) if len(
-        plot._surface.y
+    var y_span = _min_max(plot._data[_Surface].y) if len(
+        plot._data[_Surface].y
     ) > 0 else MinMax(0.0, Float64(rows - 1))
     return _Extent3D(x_span, y_span, _min_max(flat))
 
@@ -149,11 +150,11 @@ def _lattice_at(plot: Plot, axis: Int, index: Int) -> Float64:
     non-empty one is known to reach `index`.
     """
     if axis == 0:
-        if len(plot._surface.x) > 0:
-            return plot._surface.x[index]
+        if len(plot._data[_Surface].x) > 0:
+            return plot._data[_Surface].x[index]
         return Float64(index)
-    if len(plot._surface.y) > 0:
-        return plot._surface.y[index]
+    if len(plot._data[_Surface].y) > 0:
+        return plot._data[_Surface].y[index]
     return Float64(index)
 
 
@@ -207,7 +208,7 @@ def _render_surface3d[
     var sc = _Scaled(theme)
     var extent = _surface_extent(plot, rows, cols)
     var frame = _fit_frame3d(
-        Camera3D(plot._surface.elev, plot._surface.azim),
+        Camera3D(plot._data[_Surface].elev, plot._data[_Surface].azim),
         extent,
         ox0 + sc.margin_left,
         oy0 + sc.margin_top,
@@ -230,7 +231,7 @@ def _render_surface3d[
             var at = frame.to_pixel(
                 _lattice_at(plot, 0, c),
                 _lattice_at(plot, 1, r),
-                plot._surface.z[r][c],
+                plot._data[_Surface].z[r][c],
             )
             points.append(FPoint(at[0], at[1]))
 
@@ -255,9 +256,9 @@ def _render_surface3d[
                 faces.append(a)
                 faces.append(b)
                 faces.append(cc)
-                var za = plot._surface.z[a // cols][a % cols]
-                var zb = plot._surface.z[b // cols][b % cols]
-                var zc = plot._surface.z[cc // cols][cc % cols]
+                var za = plot._data[_Surface].z[a // cols][a % cols]
+                var zb = plot._data[_Surface].z[b // cols][b % cols]
+                var zc = plot._data[_Surface].z[cc // cols][cc % cols]
                 colors.append(color_scale.color_at((za + zb + zc) / 3.0))
                 depths.append(
                     (
@@ -326,7 +327,7 @@ def _render_wire3d[
     var theme = plot._theme
     var sc = _Scaled(theme)
     var frame = _fit_frame3d(
-        Camera3D(plot._surface.elev, plot._surface.azim),
+        Camera3D(plot._data[_Surface].elev, plot._data[_Surface].azim),
         _surface_extent(plot, rows, cols),
         ox0 + sc.margin_left,
         oy0 + sc.margin_top,
@@ -346,7 +347,7 @@ def _render_wire3d[
             var at = frame.to_pixel(
                 _lattice_at(plot, 0, c),
                 _lattice_at(plot, 1, r),
-                plot._surface.z[r][c],
+                plot._data[_Surface].z[r][c],
             )
             if c == 0:
                 path.move_to(at[0], at[1])
@@ -359,7 +360,7 @@ def _render_wire3d[
             var at = frame.to_pixel(
                 _lattice_at(plot, 0, c),
                 _lattice_at(plot, 1, r),
-                plot._surface.z[r][c],
+                plot._data[_Surface].z[r][c],
             )
             if r == 0:
                 path.move_to(at[0], at[1])
@@ -409,14 +410,16 @@ def _render_trisurf3d[
     var text = List[_TextRequest]()
     _tick_labels(frame, theme, sc, text)
 
-    var tri = delaunay(plot._xyz.x, plot._xyz.y)
-    var n = len(plot._xyz.x)
+    var tri = delaunay(plot._data[_Xyz].x, plot._data[_Xyz].y)
+    var n = len(plot._data[_Xyz].x)
     var points = List[FPoint](capacity=n)
     for i in range(n):
-        var at = frame.to_pixel(plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i])
+        var at = frame.to_pixel(
+            plot._data[_Xyz].x[i], plot._data[_Xyz].y[i], plot._data[_Xyz].z[i]
+        )
         points.append(FPoint(at[0], at[1]))
 
-    var z_span = _min_max(plot._xyz.z)
+    var z_span = _min_max(plot._data[_Xyz].z)
     var color_scale = _color_scale_for(
         theme, plot._color_domain, z_span.min, z_span.max
     )
@@ -429,14 +432,31 @@ def _render_trisurf3d[
         var c = tri.triangles[f * 3 + 2]
         colors.append(
             color_scale.color_at(
-                (plot._xyz.z[a] + plot._xyz.z[b] + plot._xyz.z[c]) / 3.0
+                (
+                    plot._data[_Xyz].z[a]
+                    + plot._data[_Xyz].z[b]
+                    + plot._data[_Xyz].z[c]
+                )
+                / 3.0
             )
         )
         depths.append(
             (
-                frame.depth(plot._xyz.x[a], plot._xyz.y[a], plot._xyz.z[a])
-                + frame.depth(plot._xyz.x[b], plot._xyz.y[b], plot._xyz.z[b])
-                + frame.depth(plot._xyz.x[c], plot._xyz.y[c], plot._xyz.z[c])
+                frame.depth(
+                    plot._data[_Xyz].x[a],
+                    plot._data[_Xyz].y[a],
+                    plot._data[_Xyz].z[a],
+                )
+                + frame.depth(
+                    plot._data[_Xyz].x[b],
+                    plot._data[_Xyz].y[b],
+                    plot._data[_Xyz].z[b],
+                )
+                + frame.depth(
+                    plot._data[_Xyz].x[c],
+                    plot._data[_Xyz].y[c],
+                    plot._data[_Xyz].z[c],
+                )
             )
             / 3.0
         )

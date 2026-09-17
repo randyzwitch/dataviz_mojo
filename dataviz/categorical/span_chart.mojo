@@ -14,6 +14,7 @@ from dataviz.plot import (
     _span_tooltip_label,
 )
 from dataviz.core.theme import Theme
+from dataviz.plot import _GanttData
 
 
 def _render_span_chart[
@@ -33,26 +34,26 @@ def _render_span_chart[
     Endpoint order does not matter. Bars use the full category bandwidth, and
     zero-length spans remain visible as one-pixel bars.
     """
-    if len(plot._categorical.x) != len(plot._gantt.start) or len(
-        plot._gantt.end
-    ) != len(plot._gantt.start):
+    if len(plot._categorical.x) != len(plot._data[_GanttData].start) or len(
+        plot._data[_GanttData].end
+    ) != len(plot._data[_GanttData].start):
         raise Error(
             "Plot.encode_gantt(): categories, start, and end must all have"
             " the same length (got "
             + String(len(plot._categorical.x))
             + " categories, "
-            + String(len(plot._gantt.start))
+            + String(len(plot._data[_GanttData].start))
             + " start values, "
-            + String(len(plot._gantt.end))
+            + String(len(plot._data[_GanttData].end))
             + " end values)"
         )
 
     var theme = plot._theme
     _require_non_empty(len(plot._categorical.x), "Plot.encode_gantt()")
     var domain_data = List[Float64]()
-    for v in plot._gantt.start:
+    for v in plot._data[_GanttData].start:
         domain_data.append(v)
-    for v in plot._gantt.end:
+    for v in plot._data[_GanttData].end:
         domain_data.append(v)
     var y_scale = _data_extent(domain_data)
 
@@ -71,8 +72,12 @@ def _render_span_chart[
     var bandwidth = frame.x_scale.bandwidth()
     for i in range(len(plot._categorical.x)):
         var band_start = frame.x_scale.band_start(i)
-        var low_py = _axis_pixel_f(frame.y_scale, plot._gantt.start[i])
-        var high_py = _axis_pixel_f(frame.y_scale, plot._gantt.end[i])
+        var low_py = _axis_pixel_f(
+            frame.y_scale, plot._data[_GanttData].start[i]
+        )
+        var high_py = _axis_pixel_f(
+            frame.y_scale, plot._data[_GanttData].end[i]
+        )
         # Snap all edges, then preserve a one-pixel minimum height.
         var bx0 = snap_to_pixel_edge(band_start)
         var bx1 = snap_to_pixel_edge(band_start + bandwidth)
@@ -84,8 +89,8 @@ def _render_span_chart[
             target.begin_annotated_group(
                 _span_tooltip_label(
                     plot._categorical.x[i],
-                    plot._gantt.start[i],
-                    plot._gantt.end[i],
+                    plot._data[_GanttData].start[i],
+                    plot._data[_GanttData].end[i],
                 )
             )
         target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, theme.mark_color)

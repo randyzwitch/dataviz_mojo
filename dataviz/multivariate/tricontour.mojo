@@ -22,7 +22,7 @@ from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
 
 
-struct _TriContourData(Copyable, Movable):
+struct _TriContourData(Copyable, Defaultable, Movable):
     """Scattered `(x, y, z)` samples and the level list, for
     `Mark.TRICONTOUR`. See `encode_tricontour()`. Stored on
     `Plot._tricontour`.
@@ -335,8 +335,8 @@ def _render_tricontour[
     var theme = plot._theme
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(plot._tricontour.x),
-        _data_extent(plot._tricontour.y),
+        _data_extent(plot._data[_TriContourData].x),
+        _data_extent(plot._data[_TriContourData].y),
         theme,
         _LegendLayout(),
         ox0,
@@ -363,24 +363,27 @@ def _validate_tricontour(plot: Plot, mark_context: String) raises:
     domain before any frame exists, so a mismatched `encode_tricontour()`
     has to be caught there rather than inside the drawing.
     """
-    var n = len(plot._tricontour.x)
-    if len(plot._tricontour.y) != n or len(plot._tricontour.z) != n:
+    var n = len(plot._data[_TriContourData].x)
+    if (
+        len(plot._data[_TriContourData].y) != n
+        or len(plot._data[_TriContourData].z) != n
+    ):
         raise Error(
             "Plot.encode_tricontour(): x, y and z must have the same length"
             " (got "
             + String(n)
             + ", "
-            + String(len(plot._tricontour.y))
+            + String(len(plot._data[_TriContourData].y))
             + " and "
-            + String(len(plot._tricontour.z))
+            + String(len(plot._data[_TriContourData].z))
             + ")"
         )
     _require_non_empty(n, "Plot.encode_tricontour()")
-    if plot._tricontour.level_count <= 0:
+    if plot._data[_TriContourData].level_count <= 0:
         raise Error(
             mark_context
             + ": levels must be positive (got "
-            + String(plot._tricontour.level_count)
+            + String(plot._data[_TriContourData].level_count)
             + ")"
         )
 
@@ -418,15 +421,17 @@ def _draw_tricontour_layer[
         sc: This layer's scaled theme metrics.
     """
     var theme = plot._theme
-    var levels = plot._tricontour.levels.copy() if len(
-        plot._tricontour.levels
+    var levels = plot._data[_TriContourData].levels.copy() if len(
+        plot._data[_TriContourData].levels
     ) > 0 else _auto_levels_from(
-        plot._tricontour.z, plot._tricontour.level_count
+        plot._data[_TriContourData].z, plot._data[_TriContourData].level_count
     )
     if len(levels) == 0:
         return
 
-    var tri = delaunay(plot._tricontour.x, plot._tricontour.y)
+    var tri = delaunay(
+        plot._data[_TriContourData].x, plot._data[_TriContourData].y
+    )
     if tri.count() == 0:
         return
 
@@ -442,7 +447,9 @@ def _draw_tricontour_layer[
     for li in range(len(levels)):
         var level = levels[li]
         var color = color_scale.color_at(level)
-        var segs = _tricontour_segments(tri, plot._tricontour.z, level)
+        var segs = _tricontour_segments(
+            tri, plot._data[_TriContourData].z, level
+        )
         var lines = _chain_segments(segs)
         for k in range(len(lines)):
             ref line = lines[k]
@@ -511,8 +518,8 @@ def _render_tricontourf[
     var theme = plot._theme
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(plot._tricontour.x),
-        _data_extent(plot._tricontour.y),
+        _data_extent(plot._data[_TriContourData].x),
+        _data_extent(plot._data[_TriContourData].y),
         theme,
         _LegendLayout(),
         ox0,
@@ -544,15 +551,17 @@ def _draw_tricontourf_layer[
         y_scale: The y-scale this layer draws against.
     """
     var theme = plot._theme
-    var levels = plot._tricontour.levels.copy() if len(
-        plot._tricontour.levels
+    var levels = plot._data[_TriContourData].levels.copy() if len(
+        plot._data[_TriContourData].levels
     ) > 0 else _auto_levels_from(
-        plot._tricontour.z, plot._tricontour.level_count
+        plot._data[_TriContourData].z, plot._data[_TriContourData].level_count
     )
     if len(levels) == 0:
         return
 
-    var tri = delaunay(plot._tricontour.x, plot._tricontour.y)
+    var tri = delaunay(
+        plot._data[_TriContourData].x, plot._data[_TriContourData].y
+    )
     if tri.count() == 0:
         return
 
@@ -577,14 +586,14 @@ def _draw_tricontourf_layer[
     # The band below the first level: every triangle, in the lowest
     # color. `_fill_region_above` at -inf would do it, but every
     # triangle is trivially above, so say so directly.
-    var zmin = plot._tricontour.z[0]
-    for v in plot._tricontour.z:
+    var zmin = plot._data[_TriContourData].z[0]
+    for v in plot._data[_TriContourData].z:
         if v < zmin:
             zmin = v
     _fill_region_above(
         target,
         tri,
-        plot._tricontour.z,
+        plot._data[_TriContourData].z,
         zmin,
         color_scale.color_at(lo),
         x_scale,
@@ -596,7 +605,7 @@ def _draw_tricontourf_layer[
         _fill_region_above(
             target,
             tri,
-            plot._tricontour.z,
+            plot._data[_TriContourData].z,
             level,
             color_scale.color_at(level),
             x_scale,

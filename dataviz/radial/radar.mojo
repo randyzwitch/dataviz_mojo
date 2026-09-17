@@ -26,7 +26,7 @@ from dataviz.radial.polar import _polar_point
 from dataviz.core.theme import Theme
 
 
-struct _RadarData(Copyable, Movable):
+struct _RadarData(Copyable, Defaultable, Movable):
     """One named indicator (axis) per entry with its max, plus one or more
     named series each with a value per indicator, for `Mark.RADAR`. See
     `encode_radar()`. Stored on `Plot._radar`.
@@ -101,7 +101,11 @@ def _render_radar[
     Spokes begin at 12 o'clock and each uses its own maximum. Values are not
     clamped, so values above an axis maximum extend beyond the outer ring.
     """
-    _require_non_empty(len(plot._radar.indicators), "Plot.encode_radar()")
+    if not plot._data.isa[_RadarData]():
+        _require_non_empty(0, "Plot.encode_radar()")
+    _require_non_empty(
+        len(plot._data[_RadarData].indicators), "Plot.encode_radar()"
+    )
 
     var theme = plot._theme
     var text_requests = List[_TextRequest]()
@@ -109,7 +113,7 @@ def _render_radar[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend = _legend_layout(
-        plot._radar.series_names,
+        plot._data[_RadarData].series_names,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -127,7 +131,7 @@ def _render_radar[
         Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
     )
 
-    var n = len(plot._radar.indicators)
+    var n = len(plot._data[_RadarData].indicators)
     if theme.show_gridlines:
         _draw_radar_grid(
             target,
@@ -140,15 +144,17 @@ def _render_radar[
         )
 
     var palette = categorical_palette_for(theme)
-    for s in range(len(plot._radar.series_values)):
-        var values = plot._radar.series_values[s].copy()
+    for s in range(len(plot._data[_RadarData].series_values)):
+        var values = plot._data[_RadarData].series_values[s].copy()
         var color = palette[s % len(palette)]
         var poly = Path()
         for i in range(n):
             var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
             var frac = (
                 values[i]
-                / plot._radar.max_values[i] if plot._radar.max_values[i]
+                / plot._data[_RadarData]
+                .max_values[i] if plot._data[_RadarData]
+                .max_values[i]
                 > 0.0 else 0.0
             )
             var pt = _polar_point(cx, cy, angle, max_radius * frac)
@@ -182,7 +188,7 @@ def _render_radar[
             _TextRequest(
                 Int(tip.x),
                 Int(tip.y),
-                plot._radar.indicators[i],
+                plot._data[_RadarData].indicators[i],
                 theme.text_color,
                 sc.font_size,
                 align,
@@ -194,7 +200,7 @@ def _render_radar[
         _draw_legend_at(
             target,
             text_requests,
-            plot._radar.series_names,
+            plot._data[_RadarData].series_names,
             palette,
             legend,
             plot_x0,

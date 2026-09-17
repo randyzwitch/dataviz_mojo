@@ -51,7 +51,7 @@ from dataviz.spatial.scatter3d import _draw_box, _tick_labels
 from dataviz.spatial.surface3d import _depth_sorted_faces
 
 
-struct _Bars3D(Copyable, Movable):
+struct _Bars3D(Copyable, Defaultable, Movable):
     """Bars standing on the x-y plane, for `Mark.BAR3D`.
 
     `x`/`y` are each bar's center on the base plane and `z` its height,
@@ -79,7 +79,7 @@ struct _Bars3D(Copyable, Movable):
         self.azim = -60.0
 
 
-struct _Voxels(Copyable, Movable):
+struct _Voxels(Copyable, Defaultable, Movable):
     """A solid occupancy grid, for `Mark.VOXELS`.
 
     `filled[layer][row][col]` is `True` where a cell of the grid is
@@ -342,22 +342,22 @@ def _validate_bars3d(plot: Plot) raises:
         Error: The columns disagree in length, there are no bars, or a
             footprint fraction is outside (0, 1].
     """
-    var n = len(plot._bars3d.x)
-    if len(plot._bars3d.y) != n or len(plot._bars3d.z) != n:
+    var n = len(plot._data[_Bars3D].x)
+    if len(plot._data[_Bars3D].y) != n or len(plot._data[_Bars3D].z) != n:
         raise Error(
             "Plot.encode_bars3d(): x, y and z must all have the same length"
             " (got "
             + String(n)
             + ", "
-            + String(len(plot._bars3d.y))
+            + String(len(plot._data[_Bars3D].y))
             + " and "
-            + String(len(plot._bars3d.z))
+            + String(len(plot._data[_Bars3D].z))
             + ")"
         )
     _require_non_empty(n, "Plot.encode_bars3d()")
     for pair in [
-        (plot._bars3d.bar_width, String("bar_width")),
-        (plot._bars3d.bar_depth, String("bar_depth")),
+        (plot._data[_Bars3D].bar_width, String("bar_width")),
+        (plot._data[_Bars3D].bar_depth, String("bar_depth")),
     ]:
         if not (pair[0] > 0.0) or pair[0] > 1.0:
             raise Error(
@@ -379,11 +379,19 @@ def _bars3d_extent(plot: Plot) raises -> Tuple[_Extent3D, Float64, Float64]:
     draw every bar from a floor that is not zero and make the short
     ones look shorter than they are.
     """
-    var half_w = _smallest_gap(plot._bars3d.x) * plot._bars3d.bar_width / 2.0
-    var half_d = _smallest_gap(plot._bars3d.y) * plot._bars3d.bar_depth / 2.0
-    var xs = _min_max(plot._bars3d.x)
-    var ys = _min_max(plot._bars3d.y)
-    var zs = _min_max(plot._bars3d.z)
+    var half_w = (
+        _smallest_gap(plot._data[_Bars3D].x)
+        * plot._data[_Bars3D].bar_width
+        / 2.0
+    )
+    var half_d = (
+        _smallest_gap(plot._data[_Bars3D].y)
+        * plot._data[_Bars3D].bar_depth
+        / 2.0
+    )
+    var xs = _min_max(plot._data[_Bars3D].x)
+    var ys = _min_max(plot._data[_Bars3D].y)
+    var zs = _min_max(plot._data[_Bars3D].z)
     return (
         _Extent3D(
             MinMax(xs.min - half_w, xs.max + half_w),
@@ -426,7 +434,7 @@ def _render_bar3d[
     var py1 = oy1 - sc.margin_bottom
     var measured = _bars3d_extent(plot)
     var frame = _fit_frame3d(
-        Camera3D(plot._bars3d.elev, plot._bars3d.azim),
+        Camera3D(plot._data[_Bars3D].elev, plot._data[_Bars3D].azim),
         measured[0],
         px0,
         py0,
@@ -440,10 +448,10 @@ def _render_bar3d[
     var half_w = measured[1]
     var half_d = measured[2]
     var mesh = _Mesh()
-    for i in range(len(plot._bars3d.x)):
-        var cx = plot._bars3d.x[i]
-        var cy = plot._bars3d.y[i]
-        var h = plot._bars3d.z[i]
+    for i in range(len(plot._data[_Bars3D].x)):
+        var cx = plot._data[_Bars3D].x[i]
+        var cy = plot._data[_Bars3D].y[i]
+        var h = plot._data[_Bars3D].z[i]
         _box(
             mesh,
             frame,
@@ -464,26 +472,26 @@ def _voxel_shape(plot: Plot) raises -> Tuple[Int, Int, Int]:
     built, and filling in the gap would invent cells the caller never
     described.
     """
-    var layers = len(plot._voxels.filled)
+    var layers = len(plot._data[_Voxels].filled)
     _require_non_empty(layers, "Plot.encode_voxels()")
-    var rows = len(plot._voxels.filled[0])
+    var rows = len(plot._data[_Voxels].filled[0])
     _require_non_empty(rows, "Plot.encode_voxels()")
-    var cols = len(plot._voxels.filled[0][0])
+    var cols = len(plot._data[_Voxels].filled[0][0])
     _require_non_empty(cols, "Plot.encode_voxels()")
     for l in range(layers):
-        if len(plot._voxels.filled[l]) != rows:
+        if len(plot._data[_Voxels].filled[l]) != rows:
             raise Error(
                 "Plot.encode_voxels(): every layer needs the same number of"
                 " rows -- layer "
                 + String(l)
                 + " has "
-                + String(len(plot._voxels.filled[l]))
+                + String(len(plot._data[_Voxels].filled[l]))
                 + " against "
                 + String(rows)
                 + " in layer 0"
             )
         for r in range(rows):
-            if len(plot._voxels.filled[l][r]) != cols:
+            if len(plot._data[_Voxels].filled[l][r]) != cols:
                 raise Error(
                     "Plot.encode_voxels(): every row needs the same number"
                     " of columns -- layer "
@@ -491,7 +499,7 @@ def _voxel_shape(plot: Plot) raises -> Tuple[Int, Int, Int]:
                     + " row "
                     + String(r)
                     + " has "
-                    + String(len(plot._voxels.filled[l][r]))
+                    + String(len(plot._data[_Voxels].filled[l][r]))
                     + " against "
                     + String(cols)
                     + " in layer 0 row 0"
@@ -508,7 +516,7 @@ def _occupied(
         return False
     if l >= shape[0] or r >= shape[1] or c >= shape[2]:
         return False
-    return plot._voxels.filled[l][r][c]
+    return plot._data[_Voxels].filled[l][r][c]
 
 
 def _voxel_mesh(
@@ -543,7 +551,7 @@ def _voxel_mesh(
     for l in range(shape[0]):
         for r in range(shape[1]):
             for c in range(shape[2]):
-                if not plot._voxels.filled[l][r][c]:
+                if not plot._data[_Voxels].filled[l][r][c]:
                     continue
                 var lo = _Vertex(Float64(c), Float64(r), Float64(l))
                 var hi = _Vertex(Float64(c + 1), Float64(r + 1), Float64(l + 1))
@@ -605,7 +613,7 @@ def _render_voxels[
     var px1 = ox1 - sc.margin_right
     var py1 = oy1 - sc.margin_bottom
     var frame = _fit_frame3d(
-        Camera3D(plot._voxels.elev, plot._voxels.azim),
+        Camera3D(plot._data[_Voxels].elev, plot._data[_Voxels].azim),
         _Extent3D(
             MinMax(0.0, Float64(cols)),
             MinMax(0.0, Float64(rows)),

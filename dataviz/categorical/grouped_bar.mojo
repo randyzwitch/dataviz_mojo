@@ -27,6 +27,7 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.core.theme import Theme
+from dataviz.plot import _GroupedBarData
 
 
 def _validate_grouped_bar_series(plot: Plot) raises:
@@ -39,63 +40,74 @@ def _validate_grouped_bar_series(plot: Plot) raises:
     bump.mojo, and streamgraph.mojo, which
     draw from the same data.
     """
-    if len(plot._grouped_bar.series_names) != len(plot._grouped_bar.values):
+    if len(plot._data[_GroupedBarData].series_names) != len(
+        plot._data[_GroupedBarData].values
+    ):
         raise Error(
             "Plot.encode_grouped_bar(): series_names and values must have"
             " the same length (got "
-            + String(len(plot._grouped_bar.series_names))
+            + String(len(plot._data[_GroupedBarData].series_names))
             + " and "
-            + String(len(plot._grouped_bar.values))
+            + String(len(plot._data[_GroupedBarData].values))
             + ")"
         )
-    for j in range(len(plot._grouped_bar.values)):
-        if len(plot._grouped_bar.values[j]) != len(plot._categorical.x):
+    for j in range(len(plot._data[_GroupedBarData].values)):
+        if len(plot._data[_GroupedBarData].values[j]) != len(
+            plot._categorical.x
+        ):
             raise Error(
                 "Plot.encode_grouped_bar(): every series' values must"
                 " have the same length as categories (series "
                 + String(j)
                 + " has "
-                + String(len(plot._grouped_bar.values[j]))
+                + String(len(plot._data[_GroupedBarData].values[j]))
                 + ", categories has "
                 + String(len(plot._categorical.x))
                 + ")"
             )
     _require_non_empty(len(plot._categorical.x), "Plot.encode_grouped_bar()")
+    if not plot._data.isa[_GroupedBarData]():
+        _require_non_empty(0, "Plot.encode_grouped_bar()")
     _require_non_empty(
-        len(plot._grouped_bar.series_names), "Plot.encode_grouped_bar()"
+        len(plot._data[_GroupedBarData].series_names),
+        "Plot.encode_grouped_bar()",
     )
 
     # errors: shaped like values, Mark.GROUPED_BAR only among the
     # marks that share this validator.
-    if len(plot._grouped_bar.errors) == 0:
+    if len(plot._data[_GroupedBarData].errors) == 0:
         return
     if not (plot._mark == Mark.GROUPED_BAR):
         raise Error(
             "Plot.encode_grouped_bar(): errors is only supported for"
             " Mark.GROUPED_BAR today"
         )
-    if len(plot._grouped_bar.errors) != len(plot._grouped_bar.values):
+    if len(plot._data[_GroupedBarData].errors) != len(
+        plot._data[_GroupedBarData].values
+    ):
         raise Error(
             "Plot.encode_grouped_bar(): errors and values must have the"
             " same length (got "
-            + String(len(plot._grouped_bar.errors))
+            + String(len(plot._data[_GroupedBarData].errors))
             + " and "
-            + String(len(plot._grouped_bar.values))
+            + String(len(plot._data[_GroupedBarData].values))
             + ")"
         )
-    for j in range(len(plot._grouped_bar.errors)):
-        if len(plot._grouped_bar.errors[j]) != len(plot._categorical.x):
+    for j in range(len(plot._data[_GroupedBarData].errors)):
+        if len(plot._data[_GroupedBarData].errors[j]) != len(
+            plot._categorical.x
+        ):
             raise Error(
                 "Plot.encode_grouped_bar(): every series' errors must have"
                 " the same length as categories (series "
                 + String(j)
                 + " has "
-                + String(len(plot._grouped_bar.errors[j]))
+                + String(len(plot._data[_GroupedBarData].errors[j]))
                 + ", categories has "
                 + String(len(plot._categorical.x))
                 + ")"
             )
-        for v in plot._grouped_bar.errors[j]:
+        for v in plot._data[_GroupedBarData].errors[j]:
             if v < 0.0:
                 raise Error(
                     "Plot.encode_grouped_bar(): errors values must be >= 0"
@@ -116,7 +128,7 @@ def _series_legend_reserve(
     if not plot._theme.show_legend:
         return _LegendLayout()
     return _legend_layout(
-        plot._grouped_bar.series_names,
+        plot._data[_GroupedBarData].series_names,
         sc.legend_swatch_size,
         sc,
         plot._theme,
@@ -149,7 +161,7 @@ def _draw_series_legend[
     _draw_legend_at(
         target,
         text_requests,
-        plot._grouped_bar.series_names,
+        plot._data[_GroupedBarData].series_names,
         palette,
         legend,
         plot_x0,
@@ -162,19 +174,19 @@ def _draw_series_legend[
 
 
 def _grouped_bar_domain_data(plot: Plot) -> List[Float64]:
-    """Every `plot._grouped_bar.values[j][i]`, widened to that series'
+    """Every `plot._data[_GroupedBarData].values[j][i]`, widened to that series'
     error-bar endpoints (`values[j][i] +/- errors[j][i]`) when `errors`
     is set -- so the y-domain spans everything `_draw_grouped_bars`
     actually draws, the same pattern `_bar_y_domain_data` (bar.mojo) uses
     for `Mark.BAR`.
     """
-    var has_errors = len(plot._grouped_bar.errors) > 0
+    var has_errors = len(plot._data[_GroupedBarData].errors) > 0
     var domain_data = List[Float64]()
-    for j in range(len(plot._grouped_bar.values)):
-        for i in range(len(plot._grouped_bar.values[j])):
-            var v = plot._grouped_bar.values[j][i]
+    for j in range(len(plot._data[_GroupedBarData].values)):
+        for i in range(len(plot._data[_GroupedBarData].values[j])):
+            var v = plot._data[_GroupedBarData].values[j][i]
             if has_errors:
-                var err = plot._grouped_bar.errors[j][i]
+                var err = plot._data[_GroupedBarData].errors[j][i]
                 domain_data.append(v - err)
                 domain_data.append(v + err)
             else:
@@ -216,10 +228,10 @@ def _draw_grouped_bars[
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
-    var n_series = len(plot._grouped_bar.series_names)
+    var n_series = len(plot._data[_GroupedBarData].series_names)
     var baseline = _axis_pixel_f(value_scale, 0.0)
     var sub_size = band_scale.bandwidth() / Float64(n_series)
-    var has_errors = len(plot._grouped_bar.errors) > 0
+    var has_errors = len(plot._data[_GroupedBarData].errors) > 0
     var cap_half = sc.error_bar_cap_width
 
     for i in range(len(plot._categorical.x)):
@@ -227,7 +239,7 @@ def _draw_grouped_bars[
         for j in range(n_series):
             var near = band_start + Float64(j) * sub_size
             var far = band_start + Float64(j + 1) * sub_size
-            var value = plot._grouped_bar.values[j][i]
+            var value = plot._data[_GroupedBarData].values[j][i]
             var extent = _pull_off_axis_line_f(
                 baseline,
                 _axis_pixel_f(value_scale, value),
@@ -238,12 +250,12 @@ def _draw_grouped_bars[
                 target.begin_annotated_group(
                     _series_tooltip_label(
                         plot._categorical.x[i],
-                        plot._grouped_bar.series_names[j],
+                        plot._data[_GroupedBarData].series_names[j],
                         value,
                     )
                 )
             if has_errors:
-                var err = plot._grouped_bar.errors[j][i]
+                var err = plot._data[_GroupedBarData].errors[j][i]
                 var center_j = (near + far) / 2.0
                 var py_hi = _axis_pixel_f(value_scale, value + err)
                 var py_lo = _axis_pixel_f(value_scale, value - err)

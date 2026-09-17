@@ -120,7 +120,7 @@ struct _Field(Copyable, Movable):
         self.vj = vj^
 
 
-struct _StreamData(Copyable, Movable):
+struct _StreamData(Copyable, Defaultable, Movable):
     """The grid `Mark.STREAMPLOT` integrates, from `encode_streamplot()`.
     Stored on `Plot._stream`.
 
@@ -573,7 +573,7 @@ def _render_streamplot[
     Raises:
         Error: The grid is malformed; see `_even_spacing`/`_build_field`.
     """
-    ref data = plot._stream
+    ref data = plot._data[_StreamData]
     var lines = _streamlines(data)
     var theme = plot._theme
     var sc = _Scaled(theme)

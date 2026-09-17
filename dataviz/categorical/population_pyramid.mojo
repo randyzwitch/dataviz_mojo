@@ -24,7 +24,7 @@ from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.core.theme import Theme
 
 
-struct _PyramidData(Copyable, Movable):
+struct _PyramidData(Copyable, Defaultable, Movable):
     """One magnitude per side per category, plus each side's legend name,
     for `Mark.POPULATION_PYRAMID`. See `encode_population_pyramid()`.
     Stored on `Plot._pyramid`.
@@ -73,17 +73,17 @@ def _render_population_pyramid[
     Both sides share a symmetric domain. Zero values draw no bar, and the
     optional legend names the two sides.
     """
-    if len(plot._categorical.x) != len(plot._pyramid.left) or len(
-        plot._pyramid.right
-    ) != len(plot._pyramid.left):
+    if len(plot._categorical.x) != len(plot._data[_PyramidData].left) or len(
+        plot._data[_PyramidData].right
+    ) != len(plot._data[_PyramidData].left):
         raise Error(
             "Plot.encode_population_pyramid(): categories, left_values, and"
             " right_values must all have the same length (got "
             + String(len(plot._categorical.x))
             + " categories, "
-            + String(len(plot._pyramid.left))
+            + String(len(plot._data[_PyramidData].left))
             + " left_values, "
-            + String(len(plot._pyramid.right))
+            + String(len(plot._data[_PyramidData].right))
             + " right_values)"
         )
 
@@ -94,11 +94,15 @@ def _render_population_pyramid[
     var sc = _Scaled(theme)
     # Tooltips need side names even when the legend is hidden.
     var left_name = (
-        plot._pyramid.left_name if plot._pyramid.left_name.byte_length()
+        plot._data[_PyramidData]
+        .left_name if plot._data[_PyramidData]
+        .left_name.byte_length()
         > 0 else "Left"
     )
     var right_name = (
-        plot._pyramid.right_name if plot._pyramid.right_name.byte_length()
+        plot._data[_PyramidData]
+        .right_name if plot._data[_PyramidData]
+        .right_name.byte_length()
         > 0 else "Right"
     )
     var legend_names = List[String]()
@@ -115,7 +119,7 @@ def _render_population_pyramid[
     ) if theme.show_legend else _LegendLayout()
 
     var x_scale = _symmetric_zero_baseline_x_extent(
-        plot._pyramid.left, plot._pyramid.right
+        plot._data[_PyramidData].left, plot._data[_PyramidData].right
     )
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
@@ -137,7 +141,11 @@ def _render_population_pyramid[
         var row_y = frame.y_scale.band_start(i)
 
         var left_edge_px = _axis_pixel_f(
-            frame.x_scale, -max(plot._pyramid.left[i], -plot._pyramid.left[i])
+            frame.x_scale,
+            -max(
+                plot._data[_PyramidData].left[i],
+                -plot._data[_PyramidData].left[i],
+            ),
         )
         var left_x = min(left_edge_px, center_px)
         var left_w = max(left_edge_px, center_px) - min(left_edge_px, center_px)
@@ -147,7 +155,7 @@ def _render_population_pyramid[
                     _series_tooltip_label(
                         plot._categorical.x[i],
                         left_name,
-                        plot._pyramid.left[i],
+                        plot._data[_PyramidData].left[i],
                     )
                 )
             var lx0 = snap_to_pixel_edge(left_x)
@@ -158,7 +166,7 @@ def _render_population_pyramid[
             if theme.svg_tooltips:
                 target.end_annotated_group()
             if theme.show_data_labels:
-                var left_value = plot._pyramid.left[i]
+                var left_value = plot._data[_PyramidData].left[i]
                 var at = orient.outside_band_label(
                     _BaselineRectF(left_x, left_w),
                     row_y,
@@ -184,7 +192,11 @@ def _render_population_pyramid[
                 )
 
         var right_edge_px = _axis_pixel_f(
-            frame.x_scale, max(plot._pyramid.right[i], -plot._pyramid.right[i])
+            frame.x_scale,
+            max(
+                plot._data[_PyramidData].right[i],
+                -plot._data[_PyramidData].right[i],
+            ),
         )
         var right_x = min(center_px, right_edge_px)
         var right_w = max(center_px, right_edge_px) - min(
@@ -196,7 +208,7 @@ def _render_population_pyramid[
                     _series_tooltip_label(
                         plot._categorical.x[i],
                         right_name,
-                        plot._pyramid.right[i],
+                        plot._data[_PyramidData].right[i],
                     )
                 )
             var rx0 = snap_to_pixel_edge(right_x)
@@ -207,7 +219,7 @@ def _render_population_pyramid[
             if theme.svg_tooltips:
                 target.end_annotated_group()
             if theme.show_data_labels:
-                var right_value = plot._pyramid.right[i]
+                var right_value = plot._data[_PyramidData].right[i]
                 var at2 = orient.outside_band_label(
                     _BaselineRectF(right_x, right_w),
                     row_y,

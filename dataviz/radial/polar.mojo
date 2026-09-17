@@ -24,7 +24,7 @@ from dataviz.plot import (
 from dataviz.core.theme import Theme
 
 
-struct _PolarData(Copyable, Movable):
+struct _PolarData(Copyable, Defaultable, Movable):
     """One (angle, radius) pair per row (`encode_polar()`), or a shared
     `angle` plus one or more named series (`encode_polar_series()`;
     `series_names` non-empty is what `_render_polar` branches on, and
@@ -120,25 +120,27 @@ def _render_polar[
     share one radius scale with `max(radius)` computed across every
     series.
     """
-    var is_multi = len(plot._polar.series_names) > 0
+    var is_multi = len(plot._data[_PolarData].series_names) > 0
     if is_multi:
-        if len(plot._polar.series_radius) != len(plot._polar.series_names):
+        if len(plot._data[_PolarData].series_radius) != len(
+            plot._data[_PolarData].series_names
+        ):
             raise Error(
                 "Plot.encode_polar_series(): series_names and series_values"
                 " must have the same length (got "
-                + String(len(plot._polar.series_names))
+                + String(len(plot._data[_PolarData].series_names))
                 + " and "
-                + String(len(plot._polar.series_radius))
+                + String(len(plot._data[_PolarData].series_radius))
                 + ")"
             )
-        for values in plot._polar.series_radius:
-            if len(values) != len(plot._polar.angle):
+        for values in plot._data[_PolarData].series_radius:
+            if len(values) != len(plot._data[_PolarData].angle):
                 raise Error(
                     "Plot.encode_polar_series(): every series must have the"
                     " same length as angle (got "
                     + String(len(values))
                     + " and "
-                    + String(len(plot._polar.angle))
+                    + String(len(plot._data[_PolarData].angle))
                     + ")"
                 )
             for r in values:
@@ -150,16 +152,18 @@ def _render_polar[
                         + ")"
                     )
     else:
-        if len(plot._polar.angle) != len(plot._polar.radius):
+        if len(plot._data[_PolarData].angle) != len(
+            plot._data[_PolarData].radius
+        ):
             raise Error(
                 "Plot.encode_polar(): angle and radius must have the same"
                 " length (got "
-                + String(len(plot._polar.angle))
+                + String(len(plot._data[_PolarData].angle))
                 + " and "
-                + String(len(plot._polar.radius))
+                + String(len(plot._data[_PolarData].radius))
                 + ")"
             )
-        for r in plot._polar.radius:
+        for r in plot._data[_PolarData].radius:
             if r < 0.0:
                 raise Error(
                     "Plot: Mark.POLAR radius values must be non-negative (got "
@@ -168,14 +172,17 @@ def _render_polar[
                 )
 
     var theme = plot._theme
+    if not plot._data.isa[_PolarData]():
+        _require_non_empty(0, "Plot.encode_polar()/encode_polar_series()")
     _require_non_empty(
-        len(plot._polar.angle), "Plot.encode_polar()/encode_polar_series()"
+        len(plot._data[_PolarData].angle),
+        "Plot.encode_polar()/encode_polar_series()",
     )
     var text_requests = List[_TextRequest]()
     var sc = _Scaled(theme)
     var show_legend = is_multi and theme.show_legend
     var legend = _legend_layout(
-        plot._polar.series_names,
+        plot._data[_PolarData].series_names,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -206,31 +213,35 @@ def _render_polar[
 
     if is_multi:
         var max_r = 0.0
-        for values in plot._polar.series_radius:
+        for values in plot._data[_PolarData].series_radius:
             for r in values:
                 if r > max_r:
                     max_r = r
 
         var palette = categorical_palette_for(theme)
-        for s in range(len(plot._polar.series_radius)):
-            var values = plot._polar.series_radius[s].copy()
+        for s in range(len(plot._data[_PolarData].series_radius)):
+            var values = plot._data[_PolarData].series_radius[s].copy()
             var color = palette[s % len(palette)]
             var path = Path()
-            for i in range(len(plot._polar.angle)):
+            for i in range(len(plot._data[_PolarData].angle)):
                 var radius_px = (
                     max_radius * (values[i] / max_r) if max_r > 0.0 else 0.0
                 )
-                var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
+                var pt = _polar_point(
+                    cx, cy, plot._data[_PolarData].angle[i], radius_px
+                )
                 if i == 0:
                     path.move_to(pt.x, pt.y)
                 else:
                     path.line_to(pt.x, pt.y)
             target.stroke_path_aa(path, color, sc.line_width)
-            for i in range(len(plot._polar.angle)):
+            for i in range(len(plot._data[_PolarData].angle)):
                 var radius_px = (
                     max_radius * (values[i] / max_r) if max_r > 0.0 else 0.0
                 )
-                var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
+                var pt = _polar_point(
+                    cx, cy, plot._data[_PolarData].angle[i], radius_px
+                )
                 target.fill_circle_aa(
                     Int(pt.x), Int(pt.y), Int(sc.point_radius), color
                 )
@@ -239,7 +250,7 @@ def _render_polar[
             _draw_legend_at(
                 target,
                 text_requests,
-                plot._polar.series_names,
+                plot._data[_PolarData].series_names,
                 palette,
                 legend,
                 plot_x0,
@@ -251,29 +262,33 @@ def _render_polar[
             )
     else:
         var max_r = 0.0
-        for r in plot._polar.radius:
+        for r in plot._data[_PolarData].radius:
             if r > max_r:
                 max_r = r
 
         var path = Path()
-        for i in range(len(plot._polar.angle)):
+        for i in range(len(plot._data[_PolarData].angle)):
             var radius_px = (
-                max_radius * (plot._polar.radius[i] / max_r) if max_r
+                max_radius * (plot._data[_PolarData].radius[i] / max_r) if max_r
                 > 0.0 else 0.0
             )
-            var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
+            var pt = _polar_point(
+                cx, cy, plot._data[_PolarData].angle[i], radius_px
+            )
             if i == 0:
                 path.move_to(pt.x, pt.y)
             else:
                 path.line_to(pt.x, pt.y)
         target.stroke_path_aa(path, theme.mark_color, sc.line_width)
 
-        for i in range(len(plot._polar.angle)):
+        for i in range(len(plot._data[_PolarData].angle)):
             var radius_px = (
-                max_radius * (plot._polar.radius[i] / max_r) if max_r
+                max_radius * (plot._data[_PolarData].radius[i] / max_r) if max_r
                 > 0.0 else 0.0
             )
-            var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
+            var pt = _polar_point(
+                cx, cy, plot._data[_PolarData].angle[i], radius_px
+            )
             target.fill_circle_aa(
                 Int(pt.x), Int(pt.y), Int(sc.point_radius), theme.mark_color
             )

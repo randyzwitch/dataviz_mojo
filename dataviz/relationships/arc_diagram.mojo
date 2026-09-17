@@ -21,6 +21,7 @@ from dataviz.relationships.edges import (
     _validate_edge_encoding,
 )
 from dataviz.core.theme import Theme
+from dataviz.relationships.edges import _EdgeData
 
 
 def _render_arc_diagram[
@@ -44,7 +45,8 @@ def _render_arc_diagram[
 
     var theme = plot._theme
     var edges = _edge_node_index(
-        plot._edges.from_categories, plot._edges.to_categories
+        plot._data[_EdgeData].from_categories,
+        plot._data[_EdgeData].to_categories,
     )
     ref nodes = edges.nodes
     var n = len(nodes)
@@ -62,12 +64,12 @@ def _render_arc_diagram[
         node_x.append(Float64(plot_x0) + frac * Float64(plot_x1 - plot_x0))
 
     var palette = categorical_palette_for(theme)
-    var value_mm = _min_max(plot._edges.values)
+    var value_mm = _min_max(plot._data[_EdgeData].values)
     var max_value = value_mm.max
 
     var text_requests = List[_TextRequest]()
 
-    for row in range(len(plot._edges.from_categories)):
+    for row in range(len(plot._data[_EdgeData].from_categories)):
         var from_idx = edges.from_idx[row]
         var to_idx = edges.to_idx[row]
         if from_idx == to_idx:
@@ -77,7 +79,8 @@ def _render_arc_diagram[
         var cx = (left_x + right_x) / 2.0
         var radius = (right_x - left_x) / 2.0
         var frac = (
-            plot._edges.values[row] / max_value if max_value > 0.0 else 0.0
+            plot._data[_EdgeData].values[row] / max_value if max_value
+            > 0.0 else 0.0
         )
         var width = sc.line_width + sc.line_width * 2.0 * frac
         var color = palette[from_idx % len(palette)]

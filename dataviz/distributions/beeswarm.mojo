@@ -18,6 +18,7 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
+from dataviz.plot import _DistributionData
 
 
 def _beeswarm_offsets(y_pixels: List[Int], spacing: Int) -> List[Int]:
@@ -77,7 +78,7 @@ def _distribution_domain(plot: Plot) raises -> LinearScale:
     orientation-independent, and the same choice `Mark.BOX` makes.
     """
     var all_values = List[Float64]()
-    for series in plot._distribution.values:
+    for series in plot._data[_DistributionData].values:
         for v in series:
             all_values.append(v)
     return _data_extent(all_values)
@@ -106,7 +107,7 @@ def _draw_beeswarm_points[
     for i in range(len(plot._categorical.x)):
         var center = round_to_int(band_scale.center(i))
         var value_pixels = List[Int]()
-        for v in plot._distribution.values[i]:
+        for v in plot._data[_DistributionData].values[i]:
             value_pixels.append(_axis_pixel(value_scale, v))
         var offsets = _beeswarm_offsets(value_pixels, spacing)
         var tooltip = theme.svg_tooltips and plot._mark_style.point_tooltips
@@ -114,7 +115,8 @@ def _draw_beeswarm_points[
             if tooltip:
                 target.begin_annotated_group(
                     _tooltip_label(
-                        plot._categorical.x[i], plot._distribution.values[i][j]
+                        plot._categorical.x[i],
+                        plot._data[_DistributionData].values[i][j],
                     )
                 )
             orient.band_point(

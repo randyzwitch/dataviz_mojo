@@ -24,6 +24,7 @@ from dataviz.plot import (
 )
 from dataviz.core.theme import Theme
 from dataviz.hierarchy_marks.tree import _assign_branch_colors
+from dataviz.hierarchy_marks.hierarchy import _HierarchyData
 
 
 def _draw_treemap_node[
@@ -137,25 +138,29 @@ def _render_treemap[
     Every value must be non-negative and the root's subtree total
     positive, the same validation `Mark.SUNBURST` applies.
     """
-    if len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids) or len(
-        plot._hierarchy.values
-    ) != len(plot._hierarchy.ids):
+    if len(plot._data[_HierarchyData].parent_ids) != len(
+        plot._data[_HierarchyData].ids
+    ) or len(plot._data[_HierarchyData].values) != len(
+        plot._data[_HierarchyData].ids
+    ):
         raise Error(
             "Plot.encode_hierarchy(): ids, parent_ids, and values must all have"
             " the same length (got "
-            + String(len(plot._hierarchy.ids))
+            + String(len(plot._data[_HierarchyData].ids))
             + " ids, "
-            + String(len(plot._hierarchy.parent_ids))
+            + String(len(plot._data[_HierarchyData].parent_ids))
             + " parent_ids, "
-            + String(len(plot._hierarchy.values))
+            + String(len(plot._data[_HierarchyData].values))
             + " values)"
         )
 
     var theme = plot._theme
-    _require_non_negative(plot._hierarchy.values, "Mark.TREEMAP")
+    _require_non_negative(plot._data[_HierarchyData].values, "Mark.TREEMAP")
 
     var idx = _build_hierarchy_index(
-        plot._hierarchy.ids, plot._hierarchy.parent_ids, plot._hierarchy.values
+        plot._data[_HierarchyData].ids,
+        plot._data[_HierarchyData].parent_ids,
+        plot._data[_HierarchyData].values,
     )
     if idx.subtree_value[idx.root] <= 0.0:
         raise Error(
@@ -165,7 +170,7 @@ def _render_treemap[
             + ")"
         )
 
-    var n = len(plot._hierarchy.ids)
+    var n = len(plot._data[_HierarchyData].ids)
     var branch = List[Int](capacity=n)
     for _ in range(n):
         branch.append(-1)
@@ -176,7 +181,7 @@ def _render_treemap[
     var text_requests = List[_TextRequest]()
     var legend_labels = List[String]()
     for c in root_children:
-        legend_labels.append(plot._hierarchy.ids[c])
+        legend_labels.append(plot._data[_HierarchyData].ids[c])
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
@@ -199,7 +204,7 @@ def _render_treemap[
         plot_y1,
         0,
         idx,
-        plot._hierarchy.ids,
+        plot._data[_HierarchyData].ids,
         branch,
         palette,
         theme,

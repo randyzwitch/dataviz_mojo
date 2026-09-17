@@ -32,6 +32,7 @@ from dataviz.plot import (
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
+from dataviz.multivariate.barbs import _BarbsData
 
 
 comptime _AUTO_SCALE_DIVISOR = 1.8
@@ -85,19 +86,19 @@ def _draw_quiver_layer[
     `v` is positive up the page and pixel y grows downward, so the
     pixel direction is `(u, -v)`.
     """
-    var n = len(plot._barbs.x)
+    var n = len(plot._data[_BarbsData].x)
     var theme = plot._theme
     var head_len = _ARROW_HEAD_LENGTH * sc.scale
     var head_half = _ARROW_HEAD_HALF_WIDTH * sc.scale
     var width = sc.line_width
     for i in range(n):
-        var u = plot._barbs.u[i]
-        var v = plot._barbs.v[i]
+        var u = plot._data[_BarbsData].u[i]
+        var v = plot._data[_BarbsData].v[i]
         var mag = sqrt(u * u + v * v)
         if mag <= 0.0:
             continue
-        var px = x_scale.to_pixel(plot._barbs.x[i])
-        var py = y_scale.to_pixel(plot._barbs.y[i])
+        var px = x_scale.to_pixel(plot._data[_BarbsData].x[i])
+        var py = y_scale.to_pixel(plot._data[_BarbsData].y[i])
         var ux = u / mag
         var uy = -v / mag
         var length = mag * pixels_per_unit
@@ -162,31 +163,31 @@ def _render_quiver[
             scale.
     """
     _validate_vector_field(plot, "Plot.encode_quiver()")
-    if plot._barbs.scale < 0.0:
+    if plot._data[_BarbsData].scale < 0.0:
         raise Error(
             "Plot.mark_quiver(): scale must be 0 (automatic) or positive (got "
-            + String(plot._barbs.scale)
+            + String(plot._data[_BarbsData].scale)
             + ")"
         )
     var theme = plot._theme
     var sc = _Scaled(theme)
     var top = 0.0
-    for i in range(len(plot._barbs.u)):
-        var u = plot._barbs.u[i]
-        var v = plot._barbs.v[i]
+    for i in range(len(plot._data[_BarbsData].u)):
+        var u = plot._data[_BarbsData].u[i]
+        var v = plot._data[_BarbsData].v[i]
         top = max(top, sqrt(u * u + v * v))
     var color_scale = _color_scale_for(theme, plot._color_domain, 0.0, top)
 
     var legend = _LegendLayout()
-    if plot._barbs.color_by_magnitude:
+    if plot._data[_BarbsData].color_by_magnitude:
         legend = _continuous_color_legend_layout(
             color_scale, theme, sc, cache=cache
         )
 
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(plot._barbs.x),
-        _data_extent(plot._barbs.y),
+        _data_extent(plot._data[_BarbsData].x),
+        _data_extent(plot._data[_BarbsData].y),
         theme,
         legend,
         ox0,
@@ -195,11 +196,11 @@ def _render_quiver[
         oy1,
         cache=cache,
     )
-    var pixels_per_unit = plot._barbs.scale * sc.scale
-    if plot._barbs.scale == 0.0:
+    var pixels_per_unit = plot._data[_BarbsData].scale * sc.scale
+    if plot._data[_BarbsData].scale == 0.0:
         pixels_per_unit = _auto_pixels_per_unit(
-            plot._barbs.u,
-            plot._barbs.v,
+            plot._data[_BarbsData].u,
+            plot._data[_BarbsData].v,
             abs(frame.x_scale.range_max - frame.x_scale.range_min),
         )
     _draw_quiver_layer(
@@ -210,7 +211,7 @@ def _render_quiver[
         frame.sc,
         pixels_per_unit,
         color_scale,
-        plot._barbs.color_by_magnitude,
+        plot._data[_BarbsData].color_by_magnitude,
     )
     _draw_continuous_color_legend_at(
         target,

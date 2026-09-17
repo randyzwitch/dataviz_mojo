@@ -20,7 +20,7 @@ from dataviz.core.scale import _min_max
 from dataviz.core.theme import Theme
 
 
-struct _ParallelData(Copyable, Movable):
+struct _ParallelData(Copyable, Defaultable, Movable):
     """One named axis per dimension, one named row per observation, and one
     value per (row, dimension) pair, for `Mark.PARALLEL`. See
     `encode_parallel()`. Stored on `Plot._parallel`.
@@ -83,7 +83,11 @@ def _render_parallel[
     Zero-span dimensions center their values. Dimension names label the axes,
     and row names key the optional legend.
     """
-    _require_non_empty(len(plot._parallel.dims), "Plot.encode_parallel()")
+    if not plot._data.isa[_ParallelData]():
+        _require_non_empty(0, "Plot.encode_parallel()")
+    _require_non_empty(
+        len(plot._data[_ParallelData].dims), "Plot.encode_parallel()"
+    )
 
     var theme = plot._theme
     var text_requests = List[_TextRequest]()
@@ -91,7 +95,7 @@ def _render_parallel[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend = _legend_layout(
-        plot._parallel.row_names,
+        plot._data[_ParallelData].row_names,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -104,14 +108,14 @@ def _render_parallel[
     var plot_x1 = ox1 - sc.margin_right - legend.right
     var plot_y1 = oy1 - sc.margin_bottom - legend.bottom
 
-    var n = len(plot._parallel.dims)
+    var n = len(plot._data[_ParallelData].dims)
 
     # Compute an independent domain for each dimension.
     var dim_min = List[Float64]()
     var dim_max = List[Float64]()
     for d in range(n):
         var column = List[Float64]()
-        for row in plot._parallel.data:
+        for row in plot._data[_ParallelData].data:
             column.append(row[d])
         var mm = _min_max(column)
         dim_min.append(mm.min)
@@ -125,7 +129,7 @@ def _render_parallel[
                 _TextRequest(
                     x,
                     plot_y1 + sc.label_gap + Int(sc.font_size),
-                    plot._parallel.dims[d],
+                    plot._data[_ParallelData].dims[d],
                     theme.text_color,
                     sc.font_size,
                     TextAlign.CENTER,
@@ -134,8 +138,8 @@ def _render_parallel[
             )
 
     var palette = categorical_palette_for(theme)
-    for r in range(len(plot._parallel.data)):
-        var row = plot._parallel.data[r].copy()
+    for r in range(len(plot._data[_ParallelData].data)):
+        var row = plot._data[_ParallelData].data[r].copy()
         var color = palette[r % len(palette)]
         var path = Path()
         for d in range(n):
@@ -151,7 +155,7 @@ def _render_parallel[
         _draw_legend_at(
             target,
             text_requests,
-            plot._parallel.row_names,
+            plot._data[_ParallelData].row_names,
             palette,
             legend,
             plot_x0,

@@ -24,6 +24,7 @@ from dataviz.relationships.edges import (
     _validate_edge_encoding,
 )
 from dataviz.core.theme import Theme
+from dataviz.relationships.edges import _EdgeData
 
 
 def _draw_chord_ribbon[
@@ -100,7 +101,8 @@ def _render_chord[
 
     var theme = plot._theme
     var edges = _edge_node_index(
-        plot._edges.from_categories, plot._edges.to_categories
+        plot._data[_EdgeData].from_categories,
+        plot._data[_EdgeData].to_categories,
     )
     ref nodes = edges.nodes
     ref from_idx = edges.from_idx
@@ -110,9 +112,9 @@ def _render_chord[
     var node_total = List[Float64]()
     for _ in range(n):
         node_total.append(0.0)
-    for i in range(len(plot._edges.from_categories)):
-        node_total[from_idx[i]] += plot._edges.values[i]
-        node_total[to_idx[i]] += plot._edges.values[i]
+    for i in range(len(plot._data[_EdgeData].from_categories)):
+        node_total[from_idx[i]] += plot._data[_EdgeData].values[i]
+        node_total[to_idx[i]] += plot._data[_EdgeData].values[i]
 
     var grand_total = 0.0
     for t in node_total:
@@ -152,10 +154,10 @@ def _render_chord[
 
     var palette = categorical_palette_for(theme)
 
-    for i in range(len(plot._edges.from_categories)):
+    for i in range(len(plot._data[_EdgeData].from_categories)):
         var fi = from_idx[i]
         var ti = to_idx[i]
-        var value = plot._edges.values[i]
+        var value = plot._data[_EdgeData].values[i]
         var f0 = node_cursor[fi]
         var f1 = f0 + (value / grand_total) * 2.0 * pi
         node_cursor[fi] = f1

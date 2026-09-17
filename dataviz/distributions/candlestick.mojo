@@ -17,7 +17,7 @@ from dataviz.core.scale import _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 
 
-struct _CandleData(Copyable, Movable):
+struct _CandleData(Copyable, Defaultable, Movable):
     """One open/high/low/close value per category, for `Mark.CANDLESTICK`.
     See `encode_candlestick()`. Stored on `Plot._candle`.
     """
@@ -75,43 +75,46 @@ def _render_candlestick[
     Wicks span low to high. Bodies span open to close and use positive or
     negative mark colors; equal open and close values draw a one-pixel body.
     """
-    if len(plot._categorical.x) != len(plot._candle.open_price):
+    if len(plot._categorical.x) != len(plot._data[_CandleData].open_price):
         raise Error(
             "Plot.encode_candlestick(): categories and open/high/low/close"
             " must all have the same length (got "
             + String(len(plot._categorical.x))
             + " categories and "
-            + String(len(plot._candle.open_price))
+            + String(len(plot._data[_CandleData].open_price))
             + " open values)"
         )
     if (
-        len(plot._candle.high) != len(plot._candle.open_price)
-        or len(plot._candle.low) != len(plot._candle.open_price)
-        or len(plot._candle.close_price) != len(plot._candle.open_price)
+        len(plot._data[_CandleData].high)
+        != len(plot._data[_CandleData].open_price)
+        or len(plot._data[_CandleData].low)
+        != len(plot._data[_CandleData].open_price)
+        or len(plot._data[_CandleData].close_price)
+        != len(plot._data[_CandleData].open_price)
     ):
         raise Error(
             "Plot.encode_candlestick(): open, high, low, and close must"
             " all have the same length (got "
-            + String(len(plot._candle.open_price))
+            + String(len(plot._data[_CandleData].open_price))
             + ", "
-            + String(len(plot._candle.high))
+            + String(len(plot._data[_CandleData].high))
             + ", "
-            + String(len(plot._candle.low))
+            + String(len(plot._data[_CandleData].low))
             + ", "
-            + String(len(plot._candle.close_price))
+            + String(len(plot._data[_CandleData].close_price))
             + ")"
         )
 
     var theme = plot._theme
     _require_non_empty(len(plot._categorical.x), "Plot.encode_candlestick()")
     var domain_data = List[Float64]()
-    for v in plot._candle.open_price:
+    for v in plot._data[_CandleData].open_price:
         domain_data.append(v)
-    for v in plot._candle.high:
+    for v in plot._data[_CandleData].high:
         domain_data.append(v)
-    for v in plot._candle.low:
+    for v in plot._data[_CandleData].low:
         domain_data.append(v)
-    for v in plot._candle.close_price:
+    for v in plot._data[_CandleData].close_price:
         domain_data.append(v)
     var y_scale = _data_extent(domain_data)
 
@@ -129,18 +132,22 @@ def _render_candlestick[
 
     for i in range(len(plot._categorical.x)):
         var center_px = snap_to_pixel_center(frame.x_scale.center(i))
-        var high_py = _axis_pixel_f(frame.y_scale, plot._candle.high[i])
-        var low_py = _axis_pixel_f(frame.y_scale, plot._candle.low[i])
+        var high_py = _axis_pixel_f(
+            frame.y_scale, plot._data[_CandleData].high[i]
+        )
+        var low_py = _axis_pixel_f(
+            frame.y_scale, plot._data[_CandleData].low[i]
+        )
         if theme.svg_tooltips:
             # Wick and body in one group: they are two halves of a single
             # datum, so hovering either should name the same candle.
             target.begin_annotated_group(
                 _candle_tooltip_label(
                     plot._categorical.x[i],
-                    plot._candle.open_price[i],
-                    plot._candle.high[i],
-                    plot._candle.low[i],
-                    plot._candle.close_price[i],
+                    plot._data[_CandleData].open_price[i],
+                    plot._data[_CandleData].high[i],
+                    plot._data[_CandleData].low[i],
+                    plot._data[_CandleData].close_price[i],
                 )
             )
         target.draw_line_aa(
@@ -152,8 +159,12 @@ def _render_candlestick[
             width=theme.scale,
         )
 
-        var open_py = _axis_pixel_f(frame.y_scale, plot._candle.open_price[i])
-        var close_py = _axis_pixel_f(frame.y_scale, plot._candle.close_price[i])
+        var open_py = _axis_pixel_f(
+            frame.y_scale, plot._data[_CandleData].open_price[i]
+        )
+        var close_py = _axis_pixel_f(
+            frame.y_scale, plot._data[_CandleData].close_price[i]
+        )
         # Snap the body's four edges, then keep a 1px floor so a doji
         # (open == close, and any candle whose two prices land in the
         # same pixel) still draws a line rather than nothing. The floor
@@ -168,8 +179,10 @@ def _render_candlestick[
         if by1 - by0 < 1.0:
             by1 = by0 + 1.0
         var body_color = (
-            theme.mark_color if plot._candle.close_price[i]
-            >= plot._candle.open_price[i] else theme.mark_color_negative
+            theme.mark_color if plot._data[_CandleData].close_price[i]
+            >= plot._data[_CandleData].open_price[
+                i
+            ] else theme.mark_color_negative
         )
         target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, body_color)
         if theme.svg_tooltips:

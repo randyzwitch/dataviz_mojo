@@ -21,6 +21,7 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
+from dataviz.plot import _GanttData
 
 
 struct _HorizontalCategoricalFrame(Movable):
@@ -222,26 +223,26 @@ def _render_gantt[
     No dependency arrows between bars; `encode_gantt()`'s data has no
     notion of dependencies.
     """
-    if len(plot._categorical.x) != len(plot._gantt.start) or len(
-        plot._gantt.end
-    ) != len(plot._gantt.start):
+    if len(plot._categorical.x) != len(plot._data[_GanttData].start) or len(
+        plot._data[_GanttData].end
+    ) != len(plot._data[_GanttData].start):
         raise Error(
             "Plot.encode_gantt(): categories, start, and end must all have"
             " the same length (got "
             + String(len(plot._categorical.x))
             + " categories, "
-            + String(len(plot._gantt.start))
+            + String(len(plot._data[_GanttData].start))
             + " start values, "
-            + String(len(plot._gantt.end))
+            + String(len(plot._data[_GanttData].end))
             + " end values)"
         )
 
     var theme = plot._theme
     _require_non_empty(len(plot._categorical.x), "Plot.encode_gantt()")
     var domain_data = List[Float64]()
-    for v in plot._gantt.start:
+    for v in plot._data[_GanttData].start:
         domain_data.append(v)
-    for v in plot._gantt.end:
+    for v in plot._data[_GanttData].end:
         domain_data.append(v)
     var x_scale = _data_extent(domain_data)
 
@@ -260,8 +261,10 @@ def _render_gantt[
     var row_height = frame.y_scale.bandwidth()
     for i in range(len(plot._categorical.x)):
         var row_y = frame.y_scale.band_start(i)
-        var start_px = _axis_pixel_f(frame.x_scale, plot._gantt.start[i])
-        var end_px = _axis_pixel_f(frame.x_scale, plot._gantt.end[i])
+        var start_px = _axis_pixel_f(
+            frame.x_scale, plot._data[_GanttData].start[i]
+        )
+        var end_px = _axis_pixel_f(frame.x_scale, plot._data[_GanttData].end[i])
         # Snap the four edges, then floor the width at a pixel so a
         # zero-length task still draws a mark. The floor comes after the
         # snap: two equal edges snap to one boundary, which is exactly

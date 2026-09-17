@@ -25,7 +25,7 @@ from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
 
 
-struct _BoxenData(Copyable, Movable):
+struct _BoxenData(Copyable, Defaultable, Movable):
     """The letter values `encode_boxenplot()` computes per category, for
     `Mark.BOXENPLOT`. Level `k` of category `i` spans `lower[i][k]` to
     `upper[i][k]`; level 0 is the quartile box and each deeper level
@@ -138,14 +138,16 @@ def _draw_boxen_glyphs[
     var half = band_size / 2.0
     for i in range(len(plot._categorical.x)):
         var center = band_scale.center(i)
-        var depth = len(plot._boxen.lower[i])
+        var depth = len(plot._data[_BoxenData].lower[i])
         var scale = ColorScale.from_theme(
             theme, 0.0, Float64(max(depth - 1, 1))
         )
         var k = depth - 1
         while k >= 0:
-            var near_v = value_scale.to_pixel(plot._boxen.lower[i][k])
-            var far_v = value_scale.to_pixel(plot._boxen.upper[i][k])
+            var near_v = value_scale.to_pixel(
+                plot._data[_BoxenData].lower[i][k]
+            )
+            var far_v = value_scale.to_pixel(plot._data[_BoxenData].upper[i][k])
             var near = min(near_v, far_v)
             var span = max(near_v, far_v) - near
             var width = band_size
@@ -161,17 +163,17 @@ def _draw_boxen_glyphs[
             k -= 1
         orient.band_line(
             target,
-            value_scale.to_pixel(plot._boxen.median[i]),
+            value_scale.to_pixel(plot._data[_BoxenData].median[i]),
             center - half,
             center + half,
             theme.axis_color,
             theme.scale,
         )
-    for j in range(len(plot._boxen.outlier_value)):
+    for j in range(len(plot._data[_BoxenData].outlier_value)):
         orient.band_point(
             target,
-            _axis_pixel_f(value_scale, plot._boxen.outlier_value[j]),
-            band_scale.center(plot._boxen.outlier_cat[j]),
+            _axis_pixel_f(value_scale, plot._data[_BoxenData].outlier_value[j]),
+            band_scale.center(plot._data[_BoxenData].outlier_cat[j]),
             Float64(point_radius),
             theme.mark_color,
         )
@@ -180,21 +182,21 @@ def _draw_boxen_glyphs[
 def _boxen_domain_data(plot: Plot) raises -> List[Float64]:
     """The deepest level's ends and every outlier -- exactly the values
     drawn -- for `_data_extent`."""
-    if len(plot._categorical.x) != len(plot._boxen.median):
+    if len(plot._categorical.x) != len(plot._data[_BoxenData].median):
         raise Error(
             "Plot.encode_boxenplot(): categories and values must have the"
             " same length (got "
             + String(len(plot._categorical.x))
             + " and "
-            + String(len(plot._boxen.median))
+            + String(len(plot._data[_BoxenData].median))
             + ")"
         )
     var domain_data = List[Float64]()
-    for i in range(len(plot._boxen.lower)):
-        var d = len(plot._boxen.lower[i]) - 1
-        domain_data.append(plot._boxen.lower[i][d])
-        domain_data.append(plot._boxen.upper[i][d])
-    for v in plot._boxen.outlier_value:
+    for i in range(len(plot._data[_BoxenData].lower)):
+        var d = len(plot._data[_BoxenData].lower[i]) - 1
+        domain_data.append(plot._data[_BoxenData].lower[i][d])
+        domain_data.append(plot._data[_BoxenData].upper[i][d])
+    for v in plot._data[_BoxenData].outlier_value:
         domain_data.append(v)
     return domain_data^
 

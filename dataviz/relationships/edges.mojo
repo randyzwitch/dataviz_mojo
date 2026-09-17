@@ -20,7 +20,7 @@ from dataviz.plot import (
 )
 
 
-struct _EdgeData(Copyable, Movable):
+struct _EdgeData(Copyable, Defaultable, Movable):
     """One (from node, to node, value) flow per row, for `Mark.CHORD`/
     `ARC_DIAGRAM`/`GRAPH`/`SANKEY`. See `encode_chord()`. Stored on
     `Plot._edges`.
@@ -95,21 +95,25 @@ def _validate_edge_encoding(plot: Plot, mark_name: String) raises:
     empty-data check (`_require_non_empty`), shared by `Mark.CHORD`/
     `ARC_DIAGRAM`/`GRAPH`/`SANKEY`.
     """
-    if len(plot._edges.from_categories) != len(
-        plot._edges.to_categories
-    ) or len(plot._edges.values) != len(plot._edges.from_categories):
+    if len(plot._data[_EdgeData].from_categories) != len(
+        plot._data[_EdgeData].to_categories
+    ) or len(plot._data[_EdgeData].values) != len(
+        plot._data[_EdgeData].from_categories
+    ):
         raise Error(
             "Plot.encode_chord(): from_categories, to_categories, and"
             " values must all have the same length (got "
-            + String(len(plot._edges.from_categories))
+            + String(len(plot._data[_EdgeData].from_categories))
             + " from_categories, "
-            + String(len(plot._edges.to_categories))
+            + String(len(plot._data[_EdgeData].to_categories))
             + " to_categories, "
-            + String(len(plot._edges.values))
+            + String(len(plot._data[_EdgeData].values))
             + " values)"
         )
+    if not plot._data.isa[_EdgeData]():
+        _require_non_empty(0, "Plot.encode_chord() (")
     _require_non_empty(
-        len(plot._edges.from_categories),
+        len(plot._data[_EdgeData].from_categories),
         "Plot.encode_chord() (" + mark_name + ")",
     )
-    _require_non_negative(plot._edges.values, mark_name)
+    _require_non_negative(plot._data[_EdgeData].values, mark_name)

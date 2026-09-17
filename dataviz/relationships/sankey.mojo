@@ -21,6 +21,7 @@ from dataviz.relationships.edges import (
     _validate_edge_encoding,
 )
 from dataviz.core.theme import Theme
+from dataviz.relationships.edges import _EdgeData
 
 
 def _render_sankey[
@@ -45,28 +46,33 @@ def _render_sankey[
 
     var theme = plot._theme
     var edges = _edge_node_index(
-        plot._edges.from_categories, plot._edges.to_categories
+        plot._data[_EdgeData].from_categories,
+        plot._data[_EdgeData].to_categories,
     )
     ref nodes = edges.nodes
     var n = len(nodes)
 
     # Filter self-loops before building the layout columns.
-    var from_idx = List[Int](capacity=len(plot._edges.from_categories))
-    var to_idx = List[Int](capacity=len(plot._edges.from_categories))
-    var edge_value = List[Float64](capacity=len(plot._edges.from_categories))
+    var from_idx = List[Int](
+        capacity=len(plot._data[_EdgeData].from_categories)
+    )
+    var to_idx = List[Int](capacity=len(plot._data[_EdgeData].from_categories))
+    var edge_value = List[Float64](
+        capacity=len(plot._data[_EdgeData].from_categories)
+    )
     var children = List[List[Int]]()
     var in_degree = List[Int]()
     for _ in range(n):
         children.append(List[Int]())
         in_degree.append(0)
-    for row in range(len(plot._edges.from_categories)):
+    for row in range(len(plot._data[_EdgeData].from_categories)):
         var fi = edges.from_idx[row]
         var ti = edges.to_idx[row]
         if fi == ti:
             continue
         from_idx.append(fi)
         to_idx.append(ti)
-        edge_value.append(plot._edges.values[row])
+        edge_value.append(plot._data[_EdgeData].values[row])
         children[fi].append(ti)
         in_degree[ti] += 1
 

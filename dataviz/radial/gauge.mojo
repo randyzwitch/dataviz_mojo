@@ -11,7 +11,7 @@ from dataviz.core.scale import _format_fixed
 from dataviz.core.theme import Theme
 
 
-struct _GaugeData(Copyable, Movable):
+struct _GaugeData(Copyable, Defaultable, Movable):
     """A single value plus its dial range and optional custom breakpoint
     bands (empty means ECharts' 20%/80%/100% default), for `Mark.GAUGE`.
     See `encode_gauge()`. Stored on `Plot._gauge`.
@@ -61,21 +61,25 @@ def _render_gauge[
     and endpoints must increase within `(0, 1]`.
     """
     var theme = plot._theme
-    if plot._gauge.min_value >= plot._gauge.max_value:
+    if plot._data[_GaugeData].min_value >= plot._data[_GaugeData].max_value:
         raise Error(
             "Plot.encode_gauge(): min_value must be less than max_value (got "
-            + String(plot._gauge.min_value)
+            + String(plot._data[_GaugeData].min_value)
             + " and "
-            + String(plot._gauge.max_value)
+            + String(plot._data[_GaugeData].max_value)
             + ")"
         )
 
     var breakpoints = (
-        plot._gauge.breakpoints.copy() if len(plot._gauge.breakpoints)
+        plot._data[_GaugeData].breakpoints.copy() if len(
+            plot._data[_GaugeData].breakpoints
+        )
         > 0 else _gauge_breakpoints()
     )
     var colors = (
-        plot._gauge.band_colors.copy() if len(plot._gauge.band_colors)
+        plot._data[_GaugeData].band_colors.copy() if len(
+            plot._data[_GaugeData].band_colors
+        )
         > 0 else _gauge_band_colors()
     )
     if len(breakpoints) != len(colors):
@@ -125,13 +129,13 @@ def _render_gauge[
         )
         band_start = band_end
 
-    var value = plot._gauge.value
-    if value < plot._gauge.min_value:
-        value = plot._gauge.min_value
-    if value > plot._gauge.max_value:
-        value = plot._gauge.max_value
-    var frac = (value - plot._gauge.min_value) / (
-        plot._gauge.max_value - plot._gauge.min_value
+    var value = plot._data[_GaugeData].value
+    if value < plot._data[_GaugeData].min_value:
+        value = plot._data[_GaugeData].min_value
+    if value > plot._data[_GaugeData].max_value:
+        value = plot._data[_GaugeData].max_value
+    var frac = (value - plot._data[_GaugeData].min_value) / (
+        plot._data[_GaugeData].max_value - plot._data[_GaugeData].min_value
     )
     var needle_angle = (
         plot._mark_style.gauge_start_angle
@@ -159,7 +163,7 @@ def _render_gauge[
         _TextRequest(
             Int(cx),
             Int(cy) + Int(inner_radius * 0.5),
-            _format_fixed(plot._gauge.value, 1),
+            _format_fixed(plot._data[_GaugeData].value, 1),
             theme.text_color,
             sc.title_font_size,
             TextAlign.CENTER,

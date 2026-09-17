@@ -24,6 +24,7 @@ from dataviz.distributions.boxen import (
     boxenplot,
 )
 from dataviz.plot import Plot, render_svg
+from dataviz.distributions.boxen import _BoxenData
 from _test_helpers import _count_tag
 
 
@@ -380,7 +381,7 @@ def test_boxenplot_draws_one_rect_per_level_and_a_median_per_category() raises:
         b.append(Float64(i) * 2.0)
     var vals: List[List[Float64]] = [a^, b^]
     var p = boxenplot(cats, vals, width=400, height=300)
-    assert_equal(len(p._boxen.lower[0]), 2)
+    assert_equal(len(p._data[_BoxenData].lower[0]), 2)
     var s = render_svg(p).to_string()
     # Two levels per category, so four boxes (the background rect
     # excluded); eight outliers per category, so sixteen points.

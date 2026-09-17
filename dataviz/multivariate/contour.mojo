@@ -31,7 +31,7 @@ from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
 
 
-struct _ContourData(Copyable, Movable):
+struct _ContourData(Copyable, Defaultable, Movable):
     """The grid and level list for `Mark.CONTOUR`. See
     `encode_contour()`/`mark_contour()`. Stored on `Plot._contour`.
 
@@ -224,30 +224,40 @@ def _validate_contour(
             count is not positive, or a coordinate column is the wrong
             length, non-finite, or not strictly increasing.
     """
-    var shape = _grid_shape(plot._contour.z)
-    if plot._contour.level_count <= 0:
+    var shape = _grid_shape(plot._data[_ContourData].z)
+    if plot._data[_ContourData].level_count <= 0:
         raise Error(
             mark_context
             + ": levels must be positive (got "
-            + String(plot._contour.level_count)
+            + String(plot._data[_ContourData].level_count)
             + ")"
         )
     # Both or neither. One alone would leave the grid padded on one
     # axis and unpadded on the other, which is a frame nothing else in
     # the package draws and which no caller has asked for; matplotlib's
     # `contour(X, Y, Z)` takes both together for the same reason.
-    if (len(plot._contour.x) == 0) != (len(plot._contour.y) == 0):
+    if (len(plot._data[_ContourData].x) == 0) != (
+        len(plot._data[_ContourData].y) == 0
+    ):
         raise Error(
             "Plot.encode_contour(): give both x and y or neither -- got "
-            + ("x" if len(plot._contour.x) > 0 else "y")
+            + ("x" if len(plot._data[_ContourData].x) > 0 else "y")
             + " alone, which would put one axis in the caller's units and"
             " the other in grid-index units"
         )
     _check_grid_coordinates(
-        plot._contour.x, shape[1], "x", "column", "Plot.encode_contour()"
+        plot._data[_ContourData].x,
+        shape[1],
+        "x",
+        "column",
+        "Plot.encode_contour()",
     )
     _check_grid_coordinates(
-        plot._contour.y, shape[0], "y", "row", "Plot.encode_contour()"
+        plot._data[_ContourData].y,
+        shape[0],
+        "y",
+        "row",
+        "Plot.encode_contour()",
     )
     return shape
 
@@ -276,13 +286,17 @@ def _contour_axes(
         Error: Whatever `_data_extent` raises.
     """
     var x_axis = _GridAxis(
-        plot._contour.x.copy(),
-        _data_extent(plot._contour.x) if len(plot._contour.x)
+        plot._data[_ContourData].x.copy(),
+        _data_extent(plot._data[_ContourData].x) if len(
+            plot._data[_ContourData].x
+        )
         > 0 else LinearScale(0.0, Float64(cols - 1), 0.0, 1.0),
     )
     var y_axis = _GridAxis(
-        plot._contour.y.copy(),
-        _data_extent(plot._contour.y) if len(plot._contour.y)
+        plot._data[_ContourData].y.copy(),
+        _data_extent(plot._data[_ContourData].y) if len(
+            plot._data[_ContourData].y
+        )
         > 0 else LinearScale(0.0, Float64(rows - 1), 0.0, 1.0),
     )
     return (x_axis^, y_axis^)
@@ -806,9 +820,11 @@ def _contour_levels(plot: Plot) raises -> List[Float64]:
     Raises:
         Error: Whatever `_auto_levels` raises.
     """
-    if len(plot._contour.levels) > 0:
-        return plot._contour.levels.copy()
-    return _auto_levels(plot._contour.z, plot._contour.level_count)
+    if len(plot._data[_ContourData].levels) > 0:
+        return plot._data[_ContourData].levels.copy()
+    return _auto_levels(
+        plot._data[_ContourData].z, plot._data[_ContourData].level_count
+    )
 
 
 def _level_span(levels: List[Float64]) -> Tuple[Float64, Float64]:
@@ -863,13 +879,15 @@ def _draw_contour_layer[
     var color_scale = _color_scale_for(
         plot._theme, plot._color_domain, span[0], span[1]
     )
-    var x_axis = _GridAxis(plot._contour.x.copy(), x_scale)
-    var y_axis = _GridAxis(plot._contour.y.copy(), y_scale)
+    var x_axis = _GridAxis(plot._data[_ContourData].x.copy(), x_scale)
+    var y_axis = _GridAxis(plot._data[_ContourData].y.copy(), y_scale)
 
     for li in range(len(levels)):
         var level = levels[li]
         var color = color_scale.color_at(level)
-        var segs = _contour_segments(plot._contour.z, shape[0], shape[1], level)
+        var segs = _contour_segments(
+            plot._data[_ContourData].z, shape[0], shape[1], level
+        )
         var lines = _chain_segments(segs)
         for k in range(len(lines)):
             ref line = lines[k]
@@ -918,8 +936,8 @@ def _draw_contourf_layer[
     var color_scale = _color_scale_for(
         plot._theme, plot._color_domain, span[0], span[1]
     )
-    var x_axis = _GridAxis(plot._contour.x.copy(), x_scale)
-    var y_axis = _GridAxis(plot._contour.y.copy(), y_scale)
+    var x_axis = _GridAxis(plot._data[_ContourData].x.copy(), x_scale)
+    var y_axis = _GridAxis(plot._data[_ContourData].y.copy(), y_scale)
 
     var gx0 = x_axis.to_pixel(0.0)
     var gx1 = x_axis.to_pixel(Float64(cols - 1))
@@ -937,7 +955,7 @@ def _draw_contourf_layer[
         var level = levels[li]
         var path = Path()
         var appended = _append_above_region(
-            path, plot._contour.z, rows, cols, level, x_axis, y_axis
+            path, plot._data[_ContourData].z, rows, cols, level, x_axis, y_axis
         )
         if appended > 0:
             target.fill_path_aa(
@@ -984,9 +1002,11 @@ def _render_contour[
     var cols = shape[1]
     var axes = _contour_axes(plot, rows, cols)
 
-    var levels = plot._contour.levels.copy() if len(
-        plot._contour.levels
-    ) > 0 else _auto_levels(plot._contour.z, plot._contour.level_count)
+    var levels = plot._data[_ContourData].levels.copy() if len(
+        plot._data[_ContourData].levels
+    ) > 0 else _auto_levels(
+        plot._data[_ContourData].z, plot._data[_ContourData].level_count
+    )
 
     var theme = plot._theme
     # Every level is a band or a line of its own, so the key is one
@@ -1093,9 +1113,11 @@ def _render_contourf[
     var cols = shape[1]
     var axes = _contour_axes(plot, rows, cols)
 
-    var levels = plot._contour.levels.copy() if len(
-        plot._contour.levels
-    ) > 0 else _auto_levels(plot._contour.z, plot._contour.level_count)
+    var levels = plot._data[_ContourData].levels.copy() if len(
+        plot._data[_ContourData].levels
+    ) > 0 else _auto_levels(
+        plot._data[_ContourData].z, plot._data[_ContourData].level_count
+    )
 
     var theme = plot._theme
     # Every level is a band or a line of its own, so the key is one

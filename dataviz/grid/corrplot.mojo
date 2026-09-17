@@ -21,7 +21,7 @@ from dataviz.core.scale import _format_fixed
 from dataviz.core.theme import Theme
 
 
-struct _CorrplotData(Copyable, Movable):
+struct _CorrplotData(Copyable, Defaultable, Movable):
     """A square correlation matrix over a shared variable list, plus display
     options, for `Mark.CORRPLOT`. See `encode_corrplot()`. Stored on
     `Plot._corrplot`.
@@ -59,29 +59,35 @@ def _render_corrplot[
     scale. Layout selects the full, lower, or upper triangle; diagonal cells
     and value labels are optional.
     """
-    if len(plot._corrplot.matrix) != len(plot._corrplot.variables):
+    if len(plot._data[_CorrplotData].matrix) != len(
+        plot._data[_CorrplotData].variables
+    ):
         raise Error(
             "Plot.encode_corrplot(): matrix must have one row per variable"
             " (expected "
-            + String(len(plot._corrplot.variables))
+            + String(len(plot._data[_CorrplotData].variables))
             + " rows, got "
-            + String(len(plot._corrplot.matrix))
+            + String(len(plot._data[_CorrplotData].matrix))
             + ")"
         )
-    for row in plot._corrplot.matrix:
-        if len(row) != len(plot._corrplot.variables):
+    for row in plot._data[_CorrplotData].matrix:
+        if len(row) != len(plot._data[_CorrplotData].variables):
             raise Error(
                 "Plot.encode_corrplot(): matrix must be square, one value per"
                 " variable in every row (expected "
-                + String(len(plot._corrplot.variables))
+                + String(len(plot._data[_CorrplotData].variables))
                 + ", got "
                 + String(len(row))
                 + ")"
             )
 
     var theme = plot._theme
-    _require_non_empty(len(plot._corrplot.variables), "Plot.encode_corrplot()")
-    for row in plot._corrplot.matrix:
+    if not plot._data.isa[_CorrplotData]():
+        _require_non_empty(0, "Plot.encode_corrplot()")
+    _require_non_empty(
+        len(plot._data[_CorrplotData].variables), "Plot.encode_corrplot()"
+    )
+    for row in plot._data[_CorrplotData].matrix:
         for v in row:
             if v < -1.0 or v > 1.0:
                 raise Error(
@@ -101,8 +107,8 @@ def _render_corrplot[
 
     var frame = _draw_grid_axis_frame(
         target,
-        plot._corrplot.variables,
-        plot._corrplot.variables,
+        plot._data[_CorrplotData].variables,
+        plot._data[_CorrplotData].variables,
         theme,
         ox0 + legend.left,
         oy0 + legend.top,
@@ -118,17 +124,17 @@ def _render_corrplot[
         / 2.0
         * plot._mark_style.corrplot_bubble_fraction
     )
-    var n = len(plot._corrplot.variables)
+    var n = len(plot._data[_CorrplotData].variables)
 
     for row in range(n):
         for col in range(n):
-            if row == col and not plot._corrplot.diag:
+            if row == col and not plot._data[_CorrplotData].diag:
                 continue
-            if plot._corrplot.layout == "lower" and col > row:
+            if plot._data[_CorrplotData].layout == "lower" and col > row:
                 continue
-            if plot._corrplot.layout == "upper" and col < row:
+            if plot._data[_CorrplotData].layout == "upper" and col < row:
                 continue
-            var value = plot._corrplot.matrix[row][col]
+            var value = plot._data[_CorrplotData].matrix[row][col]
             # Neither the center nor the radius rounds. A disk is
             # antialiased on every side wherever it sits, so rounding
             # its center bought no crispness -- and rounding the radius
@@ -142,7 +148,7 @@ def _render_corrplot[
             var cy = frame.y_scale.center(row)
             var radius = max_radius * abs(value)
             target.fill_circle_aa(cx, cy, radius, color_scale.color_at(value))
-            if plot._corrplot.labels:
+            if plot._data[_CorrplotData].labels:
                 frame.text_requests.append(
                     _TextRequest(
                         round_to_int(cx),

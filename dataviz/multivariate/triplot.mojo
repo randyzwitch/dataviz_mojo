@@ -34,7 +34,7 @@ from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
 
 
-struct _TriplotData(Copyable, Movable):
+struct _TriplotData(Copyable, Defaultable, Movable):
     """Data shared by `Mark.TRIPLOT` and `Mark.TRIPCOLOR`.
 
     `z` is empty for `TRIPLOT` and required for `TRIPCOLOR`.
@@ -220,8 +220,8 @@ def _render_triplot[
     var theme = plot._theme
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(plot._triplot.x),
-        _data_extent(plot._triplot.y),
+        _data_extent(plot._data[_TriplotData].x),
+        _data_extent(plot._data[_TriplotData].y),
         theme,
         _LegendLayout(),
         ox0,
@@ -245,13 +245,13 @@ def _validate_triplot(plot: Plot) raises:
     domain before any frame exists, so a mismatched `encode_triplot()`
     has to be caught there rather than inside the drawing.
     """
-    var n = len(plot._triplot.x)
-    if len(plot._triplot.y) != n:
+    var n = len(plot._data[_TriplotData].x)
+    if len(plot._data[_TriplotData].y) != n:
         raise Error(
             "Plot.encode_triplot(): x and y must have the same length (got "
             + String(n)
             + " and "
-            + String(len(plot._triplot.y))
+            + String(len(plot._data[_TriplotData].y))
             + ")"
         )
     _require_non_empty(n, "Plot.encode_triplot()")
@@ -290,8 +290,10 @@ def _draw_triplot_layer[
     # second triangulation a layered chart pays for, it is the only way
     # the triangle order can be known outside this package, which is
     # what makes `facecolors` indexable.
-    var tri = plot._triplot.triangulation.copy() if plot._triplot.triangulation.count() > 0 else delaunay(
-        plot._triplot.x, plot._triplot.y
+    var tri = plot._data[_TriplotData].triangulation.copy() if plot._data[
+        _TriplotData
+    ].triangulation.count() > 0 else delaunay(
+        plot._data[_TriplotData].x, plot._data[_TriplotData].y
     )
     var edges = _triplot_edges(tri)
     if len(edges[0]) > 0:
@@ -303,12 +305,12 @@ def _draw_triplot_layer[
             mesh.line_to(x_scale.to_pixel(tri.x[b]), y_scale.to_pixel(tri.y[b]))
         target.stroke_path_aa(mesh, theme.mark_color, width=sc.scale)
 
-    if plot._triplot.show_points:
+    if plot._data[_TriplotData].show_points:
         var radius = sc.point_radius * _POINT_RADIUS_FRACTION
-        for i in range(len(plot._triplot.x)):
+        for i in range(len(plot._data[_TriplotData].x)):
             target.fill_circle_aa(
-                x_scale.to_pixel(plot._triplot.x[i]),
-                y_scale.to_pixel(plot._triplot.y[i]),
+                x_scale.to_pixel(plot._data[_TriplotData].x[i]),
+                y_scale.to_pixel(plot._data[_TriplotData].y[i]),
                 radius,
                 theme.mark_color,
             )
@@ -389,8 +391,8 @@ def _render_tripcolor[
     var theme = plot._theme
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(plot._triplot.x),
-        _data_extent(plot._triplot.y),
+        _data_extent(plot._data[_TriplotData].x),
+        _data_extent(plot._data[_TriplotData].y),
         theme,
         _LegendLayout(),
         ox0,
@@ -411,15 +413,18 @@ def _validate_tripcolor(plot: Plot) raises:
     A free function for the same reason as `_validate_triplot` -- see
     that docstring.
     """
-    var n = len(plot._triplot.x)
-    if len(plot._triplot.y) != n or len(plot._triplot.z) != n:
+    var n = len(plot._data[_TriplotData].x)
+    if (
+        len(plot._data[_TriplotData].y) != n
+        or len(plot._data[_TriplotData].z) != n
+    ):
         raise Error(
             "Plot.encode_triplot(): x, y and z must have the same length (got "
             + String(n)
             + ", "
-            + String(len(plot._triplot.y))
+            + String(len(plot._data[_TriplotData].y))
             + " and "
-            + String(len(plot._triplot.z))
+            + String(len(plot._data[_TriplotData].z))
             + ") -- Mark.TRIPCOLOR needs a value at every sample"
         )
     _require_non_empty(n, "Plot.encode_triplot()")
@@ -467,8 +472,10 @@ def _draw_tripcolor_layer[
     # second triangulation a layered chart pays for, it is the only way
     # the triangle order can be known outside this package, which is
     # what makes `facecolors` indexable.
-    var tri = plot._triplot.triangulation.copy() if plot._triplot.triangulation.count() > 0 else delaunay(
-        plot._triplot.x, plot._triplot.y
+    var tri = plot._data[_TriplotData].triangulation.copy() if plot._data[
+        _TriplotData
+    ].triangulation.count() > 0 else delaunay(
+        plot._data[_TriplotData].x, plot._data[_TriplotData].y
     )
     if tri.count() == 0:
         return
@@ -477,23 +484,23 @@ def _draw_tripcolor_layer[
     # vertex values; flat shading reads it per face and normalizes over
     # the face values. Different domains for different questions, and
     # matplotlib does the same.
-    if plot._triplot.gouraud:
-        if len(plot._triplot.facecolors) > 0:
+    if plot._data[_TriplotData].gouraud:
+        if len(plot._data[_TriplotData].facecolors) > 0:
             raise Error(
                 "Plot.encode_triplot(facecolors=...) is one value per"
                 " triangle, so there is nothing to interpolate between."
                 " Drop facecolors, or drop gouraud=True"
             )
-        if len(plot._triplot.z) != len(tri.x):
+        if len(plot._data[_TriplotData].z) != len(tri.x):
             raise Error(
                 "Mark.TRIPCOLOR with gouraud=True: needs one z per vertex, so "
                 + String(len(tri.x))
                 + " for this triangulation -- got "
-                + String(len(plot._triplot.z))
+                + String(len(plot._data[_TriplotData].z))
             )
-        var lo_v = plot._triplot.z[0]
-        var hi_v = plot._triplot.z[0]
-        for v in plot._triplot.z:
+        var lo_v = plot._data[_TriplotData].z[0]
+        var hi_v = plot._data[_TriplotData].z[0]
+        for v in plot._data[_TriplotData].z:
             if v < lo_v:
                 lo_v = v
             if v > hi_v:
@@ -507,17 +514,20 @@ def _draw_tripcolor_layer[
             vpoints.append(
                 FPoint(x_scale.to_pixel(tri.x[i]), y_scale.to_pixel(tri.y[i]))
             )
-            vcolors.append(vertex_scale.color_at(plot._triplot.z[i]))
+            vcolors.append(vertex_scale.color_at(plot._data[_TriplotData].z[i]))
         target.fill_mesh_shaded(vpoints, tri.triangles, vcolors)
         return
 
     # One value per triangle if the caller supplied them, else the mean
     # of each triangle's three vertex values, which is what this mark
     # did before `facecolors` existed.
-    var means = plot._triplot.facecolors.copy() if len(
-        plot._triplot.facecolors
-    ) > 0 else _triangle_means(tri, plot._triplot.z)
-    if len(plot._triplot.facecolors) > 0 and len(means) != tri.count():
+    var means = plot._data[_TriplotData].facecolors.copy() if len(
+        plot._data[_TriplotData].facecolors
+    ) > 0 else _triangle_means(tri, plot._data[_TriplotData].z)
+    if (
+        len(plot._data[_TriplotData].facecolors) > 0
+        and len(means) != tri.count()
+    ):
         raise Error(
             "Plot.encode_triplot(facecolors=...): needs one value per"
             " triangle, so "

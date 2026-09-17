@@ -30,6 +30,7 @@ from canvas.geometry import snap_to_pixel_center
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
+from dataviz.plot import _DistributionData
 
 
 comptime _KDE_SAMPLES = 30
@@ -153,7 +154,9 @@ def _render_kde[
     """
     var values = _kde_observations(plot)
 
-    var curve = _kde_curve(values, plot._distribution.kde_bandwidth_override)
+    var curve = _kde_curve(
+        values, plot._data[_DistributionData].kde_bandwidth_override
+    )
     var theme = plot._theme
 
     var y_max = 0.0
@@ -209,8 +212,12 @@ def _kde_observations(plot: Plot) raises -> List[Float64]:
     # process -- no traceback into user code, and nothing a caller can
     # recover from. The guard has to come before the subscript, not
     # after it.
-    _require_non_empty(len(plot._distribution.values), "Plot.encode_kde()")
-    var values = plot._distribution.values[0].copy()
+    if not plot._data.isa[_DistributionData]():
+        _require_non_empty(0, "Plot.encode_kde()")
+    _require_non_empty(
+        len(plot._data[_DistributionData].values), "Plot.encode_kde()"
+    )
+    var values = plot._data[_DistributionData].values[0].copy()
     _require_non_empty(len(values), "Plot.encode_kde()")
     return values^
 
@@ -264,7 +271,7 @@ def _draw_kde_layer[
     path.move_to(x_scale.to_pixel(curve_x[0]), y_scale.to_pixel(curve_y[0]))
     for i in range(1, len(curve_x)):
         path.line_to(x_scale.to_pixel(curve_x[i]), y_scale.to_pixel(curve_y[i]))
-    if plot._distribution.kde_fill:
+    if plot._data[_DistributionData].kde_fill:
         # Its own path rather than a copy of the stroke's: the fill needs
         # the two closing segments down to density zero, and the stroke
         # must not have them -- a stroked baseline would read as an axis.
@@ -286,15 +293,15 @@ def _draw_kde_layer[
         )
     target.stroke_path_aa(path, theme.mark_color, width=sc.line_width)
 
-    if plot._distribution.kde_rug:
+    if plot._data[_DistributionData].kde_rug:
         # Over a filled curve the ticks would be mark_color on
         # mark_color and invisible, so they are cut in the background
         # color instead -- notches out of the fill rather than marks on
         # top of it. Unfilled, they are the mark's own color, because a
         # rug is data.
-        var tick_color = (
-            theme.background if plot._distribution.kde_fill else theme.mark_color
-        )
+        var tick_color = theme.background if plot._data[
+            _DistributionData
+        ].kde_fill else theme.mark_color
         _draw_rug_ticks(target, values, x_scale, baseline_py, sc, tick_color)
 
 

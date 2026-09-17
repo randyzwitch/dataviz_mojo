@@ -34,7 +34,7 @@ from dataviz.core.theme import Theme
 from dataviz.plot import Plot, _RenderResult, _finished
 
 
-struct _DendrogramData(Copyable, Movable):
+struct _DendrogramData(Copyable, Defaultable, Movable):
     """`Mark.DENDROGRAM`'s tree, flattened.
 
     `labels` names the leaves in the order they are drawn, so it is
@@ -128,7 +128,7 @@ def _render_dendrogram[
     Raises:
         Error: The tree is empty or malformed.
     """
-    ref data = plot._dendrogram
+    ref data = plot._data[_DendrogramData]
     _validate_dendrogram(plot)
     var theme = plot._theme
     var tallest = 0.0
@@ -280,7 +280,7 @@ def _validate_dendrogram(plot: Plot) raises:
         Error: No leaves, a merge count that does not match, or a node
             id outside the tree.
     """
-    ref data = plot._dendrogram
+    ref data = plot._data[_DendrogramData]
     var n = len(data.labels)
     if n < 2:
         raise Error(

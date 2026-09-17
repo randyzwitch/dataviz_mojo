@@ -20,7 +20,7 @@ from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 
 
-struct _BoxData(Copyable, Movable):
+struct _BoxData(Copyable, Defaultable, Movable):
     """The five-number summary `encode_boxplot()` computes per category, plus
     every outlier tagged with its category index, for `Mark.BOX`. See
     that method for the quartile/whisker/outlier math. Stored on
@@ -163,11 +163,11 @@ def _draw_box_glyphs[
 
     for i in range(len(plot._categorical.x)):
         var center = band_scale.center(i)
-        var q1 = value_scale.to_pixel(plot._box.q1[i])
-        var q3 = value_scale.to_pixel(plot._box.q3[i])
-        var median = value_scale.to_pixel(plot._box.median[i])
-        var low = value_scale.to_pixel(plot._box.low[i])
-        var high = value_scale.to_pixel(plot._box.high[i])
+        var q1 = value_scale.to_pixel(plot._data[_BoxData].q1[i])
+        var q3 = value_scale.to_pixel(plot._data[_BoxData].q3[i])
+        var median = value_scale.to_pixel(plot._data[_BoxData].median[i])
+        var low = value_scale.to_pixel(plot._data[_BoxData].low[i])
+        var high = value_scale.to_pixel(plot._data[_BoxData].high[i])
 
         if theme.svg_tooltips:
             # The five-number summary is what the shape encodes, so that's the
@@ -176,23 +176,28 @@ def _draw_box_glyphs[
                 plot._categorical.x[i]
                 + ": median "
                 + _format_fixed(
-                    plot._box.median[i], _label_decimals(plot._box.median[i])
+                    plot._data[_BoxData].median[i],
+                    _label_decimals(plot._data[_BoxData].median[i]),
                 )
                 + ", Q1 "
                 + _format_fixed(
-                    plot._box.q1[i], _label_decimals(plot._box.q1[i])
+                    plot._data[_BoxData].q1[i],
+                    _label_decimals(plot._data[_BoxData].q1[i]),
                 )
                 + ", Q3 "
                 + _format_fixed(
-                    plot._box.q3[i], _label_decimals(plot._box.q3[i])
+                    plot._data[_BoxData].q3[i],
+                    _label_decimals(plot._data[_BoxData].q3[i]),
                 )
                 + ", range "
                 + _format_fixed(
-                    plot._box.low[i], _label_decimals(plot._box.low[i])
+                    plot._data[_BoxData].low[i],
+                    _label_decimals(plot._data[_BoxData].low[i]),
                 )
                 + "-"
                 + _format_fixed(
-                    plot._box.high[i], _label_decimals(plot._box.high[i])
+                    plot._data[_BoxData].high[i],
+                    _label_decimals(plot._data[_BoxData].high[i]),
                 )
             )
         # Whiskers: high -> q3 and q1 -> low, along the value axis.
@@ -252,19 +257,19 @@ def _draw_box_glyphs[
 
     # Outliers sit outside the per-category groups: each is its own datum
     # with its own title.
-    for j in range(len(plot._box.outlier_value)):
+    for j in range(len(plot._data[_BoxData].outlier_value)):
         if theme.svg_tooltips:
             target.begin_annotated_group(
                 _tooltip_label(
-                    plot._categorical.x[plot._box.outlier_cat[j]],
-                    plot._box.outlier_value[j],
+                    plot._categorical.x[plot._data[_BoxData].outlier_cat[j]],
+                    plot._data[_BoxData].outlier_value[j],
                 )
                 + " (outlier)"
             )
         orient.band_point(
             target,
-            _axis_pixel_f(value_scale, plot._box.outlier_value[j]),
-            band_scale.center(plot._box.outlier_cat[j]),
+            _axis_pixel_f(value_scale, plot._data[_BoxData].outlier_value[j]),
+            band_scale.center(plot._data[_BoxData].outlier_cat[j]),
             Float64(point_radius),
             theme.mark_color,
         )
@@ -295,23 +300,23 @@ def _render_box[
     Outliers are drawn in one final pass after every category's box so no
     outlier is occluded by a neighboring box.
     """
-    if len(plot._categorical.x) != len(plot._box.q1):
+    if len(plot._categorical.x) != len(plot._data[_BoxData].q1):
         raise Error(
             "Plot.encode_boxplot(): categories and values must have the"
             " same length (got "
             + String(len(plot._categorical.x))
             + " and "
-            + String(len(plot._box.q1))
+            + String(len(plot._data[_BoxData].q1))
             + ")"
         )
 
     var theme = plot._theme
     var domain_data = List[Float64]()
-    for v in plot._box.low:
+    for v in plot._data[_BoxData].low:
         domain_data.append(v)
-    for v in plot._box.high:
+    for v in plot._data[_BoxData].high:
         domain_data.append(v)
-    for v in plot._box.outlier_value:
+    for v in plot._data[_BoxData].outlier_value:
         domain_data.append(v)
     var y_scale = _data_extent(domain_data)
 
@@ -361,23 +366,23 @@ def _render_horizontal_box[
         rather than an orientation flag, for the reasons in
         `_render_horizontal_bar`'s docstring (bar.mojo).
     """
-    if len(plot._categorical.x) != len(plot._box.q1):
+    if len(plot._categorical.x) != len(plot._data[_BoxData].q1):
         raise Error(
             "Plot.encode_boxplot(): categories and values must have the"
             " same length (got "
             + String(len(plot._categorical.x))
             + " and "
-            + String(len(plot._box.q1))
+            + String(len(plot._data[_BoxData].q1))
             + ")"
         )
 
     var theme = plot._theme
     var domain_data = List[Float64]()
-    for v in plot._box.low:
+    for v in plot._data[_BoxData].low:
         domain_data.append(v)
-    for v in plot._box.high:
+    for v in plot._data[_BoxData].high:
         domain_data.append(v)
-    for v in plot._box.outlier_value:
+    for v in plot._data[_BoxData].outlier_value:
         domain_data.append(v)
     var x_scale = _data_extent(domain_data)
 
