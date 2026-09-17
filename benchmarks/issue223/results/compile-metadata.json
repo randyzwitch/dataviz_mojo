@@ -1,0 +1,30 @@
+{
+  "hashes": {
+    "baseline": "8d205fd27b93ab28cb2d9a0263f98eee6117eb20d6fc23396d2e6b8537e2cbd5",
+    "prototype": "0712c1b06c349566d56d1c04bb238226800e5a0035586f339c2e3a238830f6aa"
+  },
+  "case_hashes": {
+    "line_both": "b9ca0e071979b5a0e5dc7e16d75d6f381f90b1e1510dd463954de51be0b143db",
+    "line_svg": "fcfdeafa2244e411ffdb9d6420cc1c396c922ed5dcba16b5ae16ca5bcba4fa8d",
+    "line_pdf": "f62ecf97b5c5b071de9b7a25141deaa3e209dac6187d879c59bd41583fd21b1a",
+    "hexbin_both": "381d1bc2361ee13d5028282a2f308e1362e58025df76002a8f950375398307d6",
+    "hexbin_svg": "897393e0de61423ca7812d1639e2da54cb90de3562cbf0de6fe5c79a5fbeaa96",
+    "hexbin_pdf": "11e44a0fb181d711947d82110d69d75ea413cd3f961552b67378eca629297b0f"
+  },
+  "trees": {
+    "baseline": "/tmp/claude-1000/-home-randyzwitch-GitHub-dataviz-mojo/cf1472d9-6215-487a-a035-c39016931e0e/scratchpad/b223",
+    "prototype": "/tmp/claude-1000/-home-randyzwitch-GitHub-dataviz-mojo/cf1472d9-6215-487a-a035-c39016931e0e/scratchpad/p223"
+  },
+  "prototype_commit": "7de5d95387ddf92be1b3986c6d528fe0aec61759",
+  "baseline_commit": "a34d16f96f40fb715e4a9ea87ffc8ce9e3c9a622",
+  "uname": [
+    "Linux",
+    "randyzwitch-linux",
+    "7.0.0-31-generic",
+    "#31~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Mon Aug 10 09:38:02 UTC 2",
+    "x86_64"
+  ],
+  "cpu": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           43 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  64\nOn-line CPU(s) list:                     0-63\nVendor ID:                               AuthenticAMD\nModel name:                              AMD Ryzen Threadripper 3970X 32-Core Processor\nCPU family:                              23\nModel:                                   49\nThread(s) per core:                      2\nCore(s) per socket:                      32\nSocket(s):                               1\nStepping:                                0\nFrequency boost:                         enabled\nCPU(s) scaling MHz:                      52%\nCPU max MHz:                             4549.1211\nCPU min MHz:                             2200.0000\nBogoMIPS:                                7400.76\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate ssbd mba ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local clzero irperf xsaveerptr rdpru wbnoinvd arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif v_spec_ctrl umip rdpid overflow_recov succor smca sev sev_es\nVirtualization:                          AMD-V\nL1d cache:                               1 MiB (32 instances)\nL1i cache:                               1 MiB (32 instances)\nL2 cache:                                16 MiB (32 instances)\nL3 cache:                                128 MiB (8 instances)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-63\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Mitigation; untrained return thunk; SMT enabled with STIBP protection\nVulnerability Spec rstack overflow:      Mitigation; Safe RET\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Retpolines; IBPB conditional; STIBP always-on; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB before exit to userspace\n",
+  "baseline_mojo": "Mojo 1.0.0 (ed45d567)\n",
+  "prototype_mojo": "Mojo 1.0.0 (ed45d567)\n"
+}
