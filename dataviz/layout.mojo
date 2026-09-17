@@ -52,8 +52,6 @@ from dataviz.core.text import (
     _extend_text_requests,
     _label_text_requests,
     _replay_text_requests,
-    _replay_text_requests_pdf,
-    _replay_text_requests_svg,
 )
 from dataviz.plot import (
     Plot,
@@ -872,7 +870,7 @@ def render_grid_svg(
         title,
         cache=cache,
     )
-    _replay_text_requests_svg(svg, text_requests, cache)
+    _replay_text_requests(svg, text_requests, cache)
     return svg^
 
 
@@ -925,7 +923,7 @@ def render_grid_pdf(
         title,
         cache=cache,
     )
-    _replay_text_requests_pdf(pdf, text_requests, cache)
+    _replay_text_requests(pdf, text_requests, cache)
     return pdf^
 
 

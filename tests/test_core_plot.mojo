@@ -743,22 +743,23 @@ def test_render_svg_labels_matches_hand_derived_title_and_axis_titles() raises:
     var s = svg.to_string()
 
     assert_true(
-        '<text x="229" y="14" font-size="18.000" font-family="sans-serif"'
-        ' font-weight="bold" fill="#282828" text-anchor="middle">My'
-        " Title</text>"
+        '<text x="229.000" y="14.000" font-size="18.000"'
+        ' font-family="sans-serif" font-weight="bold" fill="#282828"'
+        ' text-anchor="middle">My Title</text>'
         in s,
         "chart title -- centered over the inner plot rect, no rotation",
     )
     assert_true(
-        '<text x="229" y="297" font-size="14.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">X Axis</text>'
+        '<text x="229.000" y="297.000" font-size="14.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle">X'
+        " Axis</text>"
         in s,
         "x_title -- centered over the inner plot rect, near the bottom edge",
     )
     assert_true(
-        '<text x="11" y="137" font-size="14.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle" transform="rotate(-90.000 11'
-        ' 137)">Y Axis</text>'
+        '<text x="11.000" y="137.000" font-size="14.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle"'
+        ' transform="rotate(-90.000 11.000 137.000)">Y Axis</text>'
         in s,
         (
             "y_title -- rotated -90 degrees (reads bottom-to-top), vertically"
@@ -792,9 +793,9 @@ def test_render_svg_title_centers_on_inner_plot_rect_not_outer_bounds() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<text x="137" y="14" font-size="18.000" font-family="sans-serif"'
-        ' font-weight="bold" fill="#282828" text-anchor="middle">Sales by'
-        " Region</text>"
+        '<text x="137.000" y="14.000" font-size="18.000"'
+        ' font-family="sans-serif" font-weight="bold" fill="#282828"'
+        ' text-anchor="middle">Sales by Region</text>'
         in s,
         (
             "title centers on the legend-narrowed inner plot rect (137), not"
@@ -880,15 +881,16 @@ def test_render_svg_subtitle_matches_hand_derived_position() raises:
     var s = svg.to_string()
 
     assert_true(
-        '<text x="229" y="14" font-size="18.000" font-family="sans-serif"'
-        ' font-weight="bold" fill="#282828" text-anchor="middle">My'
-        " Title</text>"
+        '<text x="229.000" y="14.000" font-size="18.000"'
+        ' font-family="sans-serif" font-weight="bold" fill="#282828"'
+        ' text-anchor="middle">My Title</text>'
         in s,
         "title -- unaffected by the subtitle's reserved band",
     )
     assert_true(
-        '<text x="229" y="33" font-size="14.000" font-family="sans-serif"'
-        ' fill="#6e6e6e" text-anchor="middle">A subtitle</text>'
+        '<text x="229.000" y="33.000" font-size="14.000"'
+        ' font-family="sans-serif" fill="#6e6e6e" text-anchor="middle">A'
+        " subtitle</text>"
         in s,
         "subtitle -- directly below the title, muted gray, normal weight",
     )
@@ -917,8 +919,9 @@ def test_render_svg_subtitle_without_title_draws_at_the_top() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<text x="220" y="11" font-size="14.000" font-family="sans-serif"'
-        ' fill="#6e6e6e" text-anchor="middle">Only a subtitle</text>'
+        '<text x="220.000" y="11.000" font-size="14.000"'
+        ' font-family="sans-serif" fill="#6e6e6e" text-anchor="middle">Only a'
+        " subtitle</text>"
         in s,
         "a lone subtitle draws at the top, no title above it to make room for",
     )
@@ -1040,7 +1043,7 @@ def test_render_theme_font_family_reaches_svg_output() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<text x="60" y="271" font-size="12.000" font-family="Georgia"'
+        '<text x="60.000" y="271.000" font-size="12.000" font-family="Georgia"'
         ' fill="#282828" text-anchor="middle">4.0</text>'
         in s,
         "a y-axis tick label, carrying the custom font_family",
@@ -1105,8 +1108,9 @@ def test_render_theme_title_bold_default_emits_font_weight_bold() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<text x="220" y="14" font-size="18.000" font-family="sans-serif"'
-        ' font-weight="bold" fill="#282828" text-anchor="middle">Hi</text>'
+        '<text x="220.000" y="14.000" font-size="18.000"'
+        ' font-family="sans-serif" font-weight="bold" fill="#282828"'
+        ' text-anchor="middle">Hi</text>'
         in s,
         "the title, bold by default",
     )
@@ -1127,8 +1131,9 @@ def test_render_theme_title_bold_false_reproduces_the_old_no_bold_output() raise
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<text x="220" y="14" font-size="18.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="middle">Hi</text>'
+        '<text x="220.000" y="14.000" font-size="18.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">Hi</text>'
         in s,
         "the title, title_bold=False reproduces the old un-bolded output",
     )
@@ -1927,14 +1932,16 @@ def test_render_svg_continuous_color_legend_matches_hand_derived_gradient() rais
         "the gradient bar itself, filled by reference to that gradient",
     )
     assert_true(
-        '<text x="288" y="24" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="start">10.0</text>'
+        '<text x="288.000" y="24.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="start">10.0</text>'
         in s,
         "domain max label, at the bar's top",
     )
     assert_true(
-        '<text x="288" y="124" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="start">0.0</text>'
+        '<text x="288.000" y="124.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="start">0.0</text>'
         in s,
         "domain min label, at the bar's bottom",
     )
@@ -1971,20 +1978,23 @@ def test_render_svg_continuous_size_legend_matches_hand_derived_circles() raises
         "min (2.0) -> radius 3",
     )
     assert_true(
-        '<text x="304" y="39" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="start">8.0</text>'
+        '<text x="304.000" y="39.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="start">8.0</text>'
         in s,
         "max circle's label",
     )
     assert_true(
-        '<text x="298" y="71" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="start">5.0</text>'
+        '<text x="298.000" y="71.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="start">5.0</text>'
         in s,
         "midpoint circle's label",
     )
     assert_true(
-        '<text x="292" y="91" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="start">2.0</text>'
+        '<text x="292.000" y="91.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="start">2.0</text>'
         in s,
         "min circle's label",
     )

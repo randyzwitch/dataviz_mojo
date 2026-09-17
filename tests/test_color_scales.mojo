@@ -103,7 +103,7 @@ def _text_y(svg: String, label: String) raises -> Int:
         raise Error("no y attribute on the <text> for " + label)
     var v = k + key.byte_length()
     var end = element.find('"', v)
-    return Int(String(element[byte=v:end]))
+    return Int(Float64(String(element[byte=v:end])))
 
 
 def _assert_same_color(got: Color, want: Color, label: String) raises:

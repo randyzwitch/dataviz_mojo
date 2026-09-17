@@ -61,7 +61,7 @@ def test_render_svg_horizontal_bar_matches_hand_derived_rectangles() raises:
         "bar B, extending left",
     )
     assert_true(
-        '<text x="255" y="391"' in s and ">0</text>" in s,
+        '<text x="255.000" y="391.000"' in s and ">0</text>" in s,
         "the 0 tick lands where the baseline math predicts",
     )
 
@@ -125,14 +125,14 @@ def test_render_svg_horizontal_bar_supports_show_data_labels() raises:
     )
     var s = render_svg(plot).to_string()
     assert_true(
-        '<text x="599" y="112" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="start">10</text>'
+        '<text x="599.000" y="112.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="start">10</text>'
         in s,
         "bar A's label, right of the bar, left-aligned",
     )
     assert_true(
-        '<text x="81" y="287" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="end">-5</text>'
+        '<text x="81.000" y="287.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="end">-5</text>'
         in s,
         "bar B's label, left of the bar, right-aligned",
     )
@@ -417,8 +417,8 @@ def test_render_svg_horizontal_grouped_bar_supports_show_data_labels_with_mixed_
         "A/North (10)",
     )
     assert_true(
-        '<text x="176" y="59" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="start">10</text>'
+        '<text x="176.000" y="59.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="start">10</text>'
         in s,
         "A/North's label, right of its own bar, left-aligned",
     )
@@ -427,8 +427,8 @@ def test_render_svg_horizontal_grouped_bar_supports_show_data_labels_with_mixed_
         "B/North (-5)",
     )
     assert_true(
-        '<text x="65" y="174" font-size="12.000" font-family="sans-serif"'
-        ' fill="#282828" text-anchor="end">-5</text>'
+        '<text x="65.000" y="174.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="end">-5</text>'
         in s,
         "B/North's label, left of its own bar (negative), right-aligned",
     )
@@ -518,7 +518,7 @@ def test_render_svg_horizontal_lollipop_matches_hand_derived_positions() raises:
         "point B, on its stem's endpoint",
     )
     assert_true(
-        '<text x="255" y="391"' in s and ">0</text>" in s,
+        '<text x="255.000" y="391.000"' in s and ">0</text>" in s,
         "the 0 tick lands where the baseline math predicts",
     )
 
@@ -659,7 +659,7 @@ def test_render_svg_horizontal_stacked_bar_percent_fixes_x_axis_to_0_100() raise
     var s = render_svg(plot).to_string()
 
     assert_true(
-        '<text x="250" y="271"' in s and ">100</text>" in s,
+        '<text x="250.000" y="271.000"' in s and ">100</text>" in s,
         "the x-axis is fixed to end at exactly 100",
     )
     assert_true(

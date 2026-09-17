@@ -2,7 +2,6 @@
 
 from std.math import ceil, pi
 
-from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
 from canvas.text.text_run import TextRun
@@ -13,10 +12,8 @@ from dataviz.core.mathtext import (
     _needs_math,
     _reserve_height,
 )
-from canvas.text.render import FontWeight, TextAlign, draw_text, measure_text
+from canvas.text.render import FontWeight, TextAlign, measure_text
 from canvas.vector.draw_target import DrawTarget
-from canvas.vector.pdf import PdfCanvas
-from canvas.vector.svg import SvgCanvas
 
 from dataviz.basic.continuous import area, line
 from dataviz.facets import render_facets
@@ -127,9 +124,9 @@ def _max_label_width(
 
 struct _TextRequest(Copyable, Movable):
     """One deferred `draw_text()` call, collected while the
-    `DrawTarget`-generic rendering pass runs (`DrawTarget` has no
-    `draw_text`). `render()`/`render_svg()` each replay the list their own
-    way afterward, via `canvas.text.draw_text` or `SvgCanvas.draw_text`.
+    `DrawTarget`-generic rendering pass runs and drawn afterward by
+    `_replay_text_requests`, after every mark and annotation pass, so a
+    label is never painted over.
 
     `family` is baked in at construction from whichever `Theme` built the
     request, since `render_facets()`/`render_layers()` combine several
@@ -142,7 +139,7 @@ struct _TextRequest(Copyable, Movable):
     most common; a label of several `TextRun`s, which is a math label
     (#371) and draws through `draw_text_runs` (#664); and a fraction or
     radical rule, a line. One list rather than three because the
-    replays walk one ordered list, and a rule belongs between the runs
+    replay walks one ordered list, and a rule belongs between the runs
     above and below it.
     """
 
@@ -580,16 +577,40 @@ def _label_text_requests(
     return text_requests^
 
 
-def _replay_text_requests(
-    mut canvas: Canvas, requests: List[_TextRequest], mut cache: FontCache
-) raises:
-    """Draw every `_TextRequest` in `requests` into `canvas` via
-    `canvas.text.draw_text`, the raster half of replaying the deferred
-    labels. Shared by every raster entry point.
+def _replay_text_requests[
+    T: DrawTarget
+](mut target: T, requests: List[_TextRequest], mut cache: FontCache) raises:
+    """Draw every `_TextRequest` in `requests` into `target`: the second
+    half of every render, after the generic pass has drawn the marks
+    and collected the labels.
+
+    One function for every backend, through the trait's `draw_text`,
+    `draw_text_runs` and `draw_line_aa`. It replaced a copy per
+    backend plus a fourth for `BoundsTarget` (#578): those predated
+    `draw_text` on the trait, and once it existed they stayed only
+    because the trait form writes an SVG anchor at the backend's fixed
+    precision (`x="140.000"`) where the whole-pixel form wrote
+    `x="140"`. Same picture; the tests that pinned the markup follow
+    the backend. On raster and PDF the trait form is the same code as
+    the whole-pixel one, so their output did not move.
+
+    A plain label is `draw_text`; a math label (#371) is one
+    `draw_text_runs` call, which on SVG is one `<text>` of `<tspan>`s
+    so it stays one string to select or announce (#664); a fraction or
+    radical rule is a line. `cache` is read by the raster backend and
+    ignored by the vector ones, which resolve no glyphs.
+
+    Args:
+        target: Where to draw.
+        requests: The labels, in draw order.
+        cache: The render's shared font cache.
+
+    Raises:
+        Error: Whatever the target's text calls raise.
     """
     for req in requests:
         if req.is_rule():
-            canvas.draw_line_aa(
+            target.draw_line_aa(
                 req.x,
                 req.y,
                 req.rule_x2,
@@ -598,125 +619,30 @@ def _replay_text_requests(
                 width=req.rule_thickness,
             )
             continue
+        var weight = FontWeight.BOLD if req.bold else FontWeight.NORMAL
         if req.is_runs():
-            canvas.draw_text_runs(
+            target.draw_text_runs(
                 Float64(req.x),
                 Float64(req.y),
                 req.runs,
                 req.color,
                 family=req.family,
-                weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+                weight=weight,
                 rotation=req.rotation,
                 cache=cache,
             )
             continue
-        draw_text(
-            canvas,
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            align=req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-            cache=cache,
-        )
-
-
-def _replay_text_requests_svg(
-    mut svg: SvgCanvas, requests: List[_TextRequest], mut cache: FontCache
-) raises:
-    """`_replay_text_requests`' counterpart for `SvgCanvas`, via
-    `SvgCanvas.draw_text`. A separate function because `DrawTarget` has
-    no `draw_text` to dispatch through.
-
-    A plain label takes the whole-pixel `draw_text` it always has, so
-    its markup is unchanged. A math label (#371) is one
-    `draw_text_runs` call, which writes one `<text>` element with a
-    `<tspan>` per run, so the label stays one string to select or
-    announce (#664). `cache` is for that call's signature; SVG resolves
-    no fonts through it.
-    """
-    for req in requests:
-        if req.is_rule():
-            svg.draw_line_aa(
-                req.x,
-                req.y,
-                req.rule_x2,
-                req.rule_y2,
-                req.color,
-                width=req.rule_thickness,
-            )
-            continue
-        if req.is_runs():
-            svg.draw_text_runs(
-                Float64(req.x),
-                Float64(req.y),
-                req.runs,
-                req.color,
-                family=req.family,
-                weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-                rotation=req.rotation,
-                cache=cache,
-            )
-            continue
-        svg.draw_text(
-            req.x,
-            req.y,
-            req.text,
-            req.color,
-            req.size,
-            req.align,
-            family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-            rotation=req.rotation,
-        )
-
-
-def _replay_text_requests_pdf(
-    mut pdf: PdfCanvas, requests: List[_TextRequest], mut cache: FontCache
-) raises:
-    """`_replay_text_requests`' counterpart for `PdfCanvas`, via
-    `PdfCanvas.draw_text`, which embeds a subset of the font so a label
-    is selectable and searchable in the document. A separate function
-    for the reason the SVG one is: `DrawTarget` has no `draw_text` to
-    dispatch through.
-    """
-    for req in requests:
-        if req.is_rule():
-            pdf.draw_line_aa(
-                req.x,
-                req.y,
-                req.rule_x2,
-                req.rule_y2,
-                req.color,
-                width=req.rule_thickness,
-            )
-            continue
-        if req.is_runs():
-            pdf.draw_text_runs(
-                Float64(req.x),
-                Float64(req.y),
-                req.runs,
-                req.color,
-                family=req.family,
-                weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
-                rotation=req.rotation,
-                cache=cache,
-            )
-            continue
-        pdf.draw_text(
+        target.draw_text(
             Float64(req.x),
             Float64(req.y),
             req.text,
             req.color,
             req.size,
-            align=req.align,
             family=req.family,
-            weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+            weight=weight,
             rotation=req.rotation,
+            align=req.align,
+            cache=cache,
         )
 
 

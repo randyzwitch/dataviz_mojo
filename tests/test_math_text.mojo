@@ -38,7 +38,7 @@ from dataviz.core.mathtext import (
 from dataviz.core.text import _TextRequest
 from dataviz.core.theme import Theme
 from dataviz.plot import (
-    _replay_text_requests_bounds,
+    _replay_text_requests,
     render,
     render_svg,
     render_tight,
@@ -439,7 +439,7 @@ def test_the_bounds_probe_sees_every_run_of_an_expression() raises:
         cache=cache,
     )
     var probe = BoundsTarget(300, 120)
-    _replay_text_requests_bounds(probe, reqs, cache)
+    _replay_text_requests(probe, reqs, cache)
     assert_true(probe.has_ink())
     var got = probe.ink_pixels()
     var x0 = 1.0e9
@@ -519,7 +519,7 @@ def _lowest_right_aligned_text_y(svg: String) raises -> Int:
     var lowest = -1
     for k in range(len(anchors)):
         if anchors[k] == "end":
-            lowest = max(lowest, atol(ys[k]))
+            lowest = max(lowest, Int(Float64(ys[k])))
     assert_true(lowest >= 0, "no right-aligned text element")
     return lowest
 

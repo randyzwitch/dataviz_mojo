@@ -706,7 +706,7 @@ def test_a_grid_title_is_centered_on_the_figure() raises:
     # any cell runs.
     var xs = _attr_values(svg, "text", "x")
     var anchors = _attr_values(svg, "text", "text-anchor")
-    assert_equal(xs[0], "200", "centered on the 400-wide figure")
+    assert_equal(Float64(xs[0]), 200.0, "centered on the 400-wide figure")
     assert_equal(anchors[0], "middle")
 
 
