@@ -78,7 +78,9 @@ def effect_scatter[
     """
     var x_f = _materialize_scalar_list(x)
     var y_f = _materialize_scalar_list(y)
-    var plot = Plot().mark_effect_scatter().encode(x=x_f, y=y_f)
+    var plot = (
+        Plot().mark_effect_scatter(tooltips=tooltips).encode(x=x_f, y=y_f)
+    )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )

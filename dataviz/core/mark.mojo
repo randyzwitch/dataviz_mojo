@@ -170,6 +170,25 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
     def __eq__(self, other: Self) -> Bool:
         return self._value == other._value
 
+    def supports(self, feature: Feature) -> Bool:
+        """Whether this mark honors `feature`, a `Theme` flag or `Plot`
+        setting that only some marks do (#213). One table,
+        `_marks_supporting()`, answers this, drives the validators'
+        error messages and the docs' feature-support page, and is
+        checked against every mark's rendered output by
+        tests/test_feature_support.mojo.
+
+        Args:
+            feature: The flag or setting.
+
+        Returns:
+            True when this mark honors it.
+        """
+        for mark in _marks_supporting(feature):
+            if mark == self:
+                return True
+        return False
+
     def name(self) -> String:
         """Return the qualified constant name used in error messages.
 
@@ -393,3 +412,295 @@ def _require_mark(
     var one = List[Mark]()
     one.append(accepted)
     _require_mark(mark, encoder, builder, one)
+
+
+struct Feature(Copyable, ImplicitlyCopyable, Movable):
+    """A `Theme` flag or `Plot` setting that only some marks honor, so
+    that which ones is written down once (#213).
+
+    `Mark.supports(feature)` reads `_marks_supporting()` below, and so
+    do the validators' error messages, the docs' feature-support page
+    (scripts/gen_example_docs.mojo) and tests/test_feature_support.mojo,
+    which renders every mark with each feature turned on and checks the
+    table against what the code does. Before this table the same lists
+    were restated in five docstrings and error strings, and two of them
+    had gone stale within a few PRs of being written.
+
+    Same small-struct-with-comptime-constants-and-`__eq__` pattern as
+    `Mark`.
+    """
+
+    var _value: Int
+
+    comptime TOOLTIPS = Self(0)
+    """`Theme.svg_tooltips`: each datum gets an SVG `<title>`. The
+    point-per-datum marks also need their own function's
+    `tooltips=True`, since a title roughly doubles a dense scatter's
+    SVG."""
+    comptime DATA_LABELS = Self(1)
+    """`Theme.show_data_labels`: each value drawn as text."""
+    comptime HORIZONTAL = Self(2)
+    """`horizontal=True` on the mark's function or `mark_*()` setter,
+    swapping the axes. GANTT, SPAN_CHART and EVENTPLOT are horizontal
+    by construction and take no flag."""
+    comptime ANNOTATIONS_Y = Self(3)
+    """`annotate_line()` and `annotate_area()`: the mark has a
+    continuous y axis to place a reference line or band against."""
+    comptime ANNOTATIONS_X = Self(4)
+    """`annotate_vline()`: the mark has a continuous x axis."""
+    comptime ANNOTATIONS_XY = Self(5)
+    """`annotate_band()`, `annotate_point()`, `annotate_arrow()` and
+    `annotate_best_fit()`: the mark has continuous x and y axes, so
+    the marks in both `ANNOTATIONS_X` and `ANNOTATIONS_Y`."""
+    comptime LOG_X = Self(6)
+    """`scale_x_log()`."""
+    comptime LOG_Y = Self(7)
+    """`scale_y_log()`. AREA and HISTOGRAM take `scale_x_log()` but not
+    this: their y domain is forced through a zero baseline, and zero
+    has no logarithm."""
+    comptime COLOR_SIZE = Self(8)
+    """`encode(color=, color_categories=, size=)` and
+    `encode_single_axis()`'s same channels: a value or category per
+    point drives its color or size."""
+    comptime COUNT = 9
+
+    def __init__(out self, value: Int):
+        self._value = value
+
+    def __eq__(self, other: Self) -> Bool:
+        return self._value == other._value
+
+    def name(self) -> String:
+        """The constant's qualified name, `"Feature.TOOLTIPS"`."""
+        if self == Self.TOOLTIPS:
+            return "Feature.TOOLTIPS"
+        if self == Self.DATA_LABELS:
+            return "Feature.DATA_LABELS"
+        if self == Self.HORIZONTAL:
+            return "Feature.HORIZONTAL"
+        if self == Self.ANNOTATIONS_Y:
+            return "Feature.ANNOTATIONS_Y"
+        if self == Self.ANNOTATIONS_X:
+            return "Feature.ANNOTATIONS_X"
+        if self == Self.ANNOTATIONS_XY:
+            return "Feature.ANNOTATIONS_XY"
+        if self == Self.LOG_X:
+            return "Feature.LOG_X"
+        if self == Self.LOG_Y:
+            return "Feature.LOG_Y"
+        if self == Self.COLOR_SIZE:
+            return "Feature.COLOR_SIZE"
+        return "Feature(" + String(self._value) + ")"
+
+    def label(self) -> String:
+        """What a user sets: the column heading on the feature-support
+        page, in Markdown."""
+        if self == Self.TOOLTIPS:
+            return "`Theme.svg_tooltips`"
+        if self == Self.DATA_LABELS:
+            return "`Theme.show_data_labels`"
+        if self == Self.HORIZONTAL:
+            return "`horizontal=True`"
+        if self == Self.ANNOTATIONS_Y:
+            return "`annotate_line()`, `annotate_area()`"
+        if self == Self.ANNOTATIONS_X:
+            return "`annotate_vline()`"
+        if self == Self.ANNOTATIONS_XY:
+            return "`annotate_band()`, `point`, `arrow`, `best_fit`"
+        if self == Self.LOG_X:
+            return "`scale_x_log()`"
+        if self == Self.LOG_Y:
+            return "`scale_y_log()`"
+        if self == Self.COLOR_SIZE:
+            return "`encode(color=, size=)`"
+        return self.name()
+
+    def summary(self) -> String:
+        """One line for the feature-support page's notes: what the
+        feature does, and what an unsupported mark does with it."""
+        if self == Self.TOOLTIPS:
+            return (
+                "each datum gets an SVG `<title>`, shown as a hover tooltip;"
+                " other marks ignore the flag. POINT, EFFECT_SCATTER and"
+                " BEESWARM also need their own function's `tooltips=True`."
+            )
+        if self == Self.DATA_LABELS:
+            return "each value is drawn as text; other marks ignore the flag."
+        if self == Self.HORIZONTAL:
+            return (
+                "the axes swap; other marks ignore the flag. GANTT,"
+                " SPAN_CHART and EVENTPLOT are horizontal by construction"
+                " and take no flag."
+            )
+        if self == Self.ANNOTATIONS_Y:
+            return (
+                "a reference line or shaded band across a continuous y"
+                " axis; the call raises on other marks."
+            )
+        if self == Self.ANNOTATIONS_X:
+            return (
+                "a reference line across a continuous x axis; the call"
+                " raises on other marks."
+            )
+        if self == Self.ANNOTATIONS_XY:
+            return (
+                "overlays placed on continuous x and y axes; the call"
+                " raises on other marks."
+            )
+        if self == Self.LOG_X:
+            return "a logarithmic x axis; the call raises on other marks."
+        if self == Self.LOG_Y:
+            return (
+                "a logarithmic y axis; the call raises on other marks."
+                " AREA and HISTOGRAM force their y domain through zero,"
+                " which has no logarithm."
+            )
+        if self == Self.COLOR_SIZE:
+            return (
+                "a value or category per point drives its color or size;"
+                " the call raises on other marks."
+            )
+        return ""
+
+
+def _marks_supporting(feature: Feature) -> List[Mark]:
+    """The marks that honor `feature`, in `Mark` order: the one table
+    behind `Mark.supports()`, the validators' messages and the docs.
+
+    The annotation and log-scale rows are what the render's frame
+    reports (`_RenderResult.has_x_scale`/`has_y_scale`) and what the
+    scale validators accept; tests/test_feature_support.mojo fails if
+    either side moves without this table.
+    """
+    var out = List[Mark]()
+    if feature == Feature.TOOLTIPS:
+        out = [
+            Mark.POINT,
+            Mark.BAR,
+            Mark.LOLLIPOP,
+            Mark.WATERFALL,
+            Mark.BOX,
+            Mark.CANDLESTICK,
+            Mark.BULLET,
+            Mark.GROUPED_BAR,
+            Mark.STACKED_BAR,
+            Mark.POPULATION_PYRAMID,
+            Mark.EFFECT_SCATTER,
+            Mark.FUNNEL,
+            Mark.BEESWARM,
+            Mark.VIOLIN,
+            Mark.SPAN_CHART,
+        ]
+    elif feature == Feature.DATA_LABELS:
+        out = [
+            Mark.BAR,
+            Mark.LOLLIPOP,
+            Mark.WATERFALL,
+            Mark.BULLET,
+            Mark.GROUPED_BAR,
+            Mark.STACKED_BAR,
+            Mark.POPULATION_PYRAMID,
+        ]
+    elif feature == Feature.HORIZONTAL:
+        out = [
+            Mark.BAR,
+            Mark.LOLLIPOP,
+            Mark.BOX,
+            Mark.GROUPED_BAR,
+            Mark.STACKED_BAR,
+            Mark.BEESWARM,
+            Mark.VIOLIN,
+            Mark.BOXENPLOT,
+            Mark.HISTOGRAM,
+        ]
+    elif feature == Feature.ANNOTATIONS_Y:
+        out = [
+            Mark.POINT,
+            Mark.LINE,
+            Mark.BAR,
+            Mark.AREA,
+            Mark.LOLLIPOP,
+            Mark.WATERFALL,
+            Mark.BOX,
+            Mark.CANDLESTICK,
+            Mark.BULLET,
+            Mark.GROUPED_BAR,
+            Mark.STACKED_BAR,
+            Mark.EFFECT_SCATTER,
+            Mark.STREAMGRAPH,
+            Mark.BEESWARM,
+            Mark.VIOLIN,
+            Mark.SPAN_CHART,
+            Mark.BARBS,
+            Mark.CONTOUR,
+            Mark.CONTOURF,
+            Mark.TRICONTOUR,
+            Mark.TRICONTOURF,
+            Mark.KDE,
+            Mark.TRIPLOT,
+            Mark.TRIPCOLOR,
+            Mark.ECDF,
+            Mark.IMSHOW,
+            Mark.PCOLORMESH,
+            Mark.POINTPLOT,
+            Mark.BOXENPLOT,
+            Mark.HIST2D,
+            Mark.HEXBIN,
+            Mark.QUIVER,
+            Mark.HISTOGRAM,
+            Mark.STREAMPLOT,
+            Mark.DENDROGRAM,
+        ]
+    elif feature == Feature.ANNOTATIONS_X:
+        out = [
+            Mark.POINT,
+            Mark.LINE,
+            Mark.AREA,
+            Mark.EFFECT_SCATTER,
+            Mark.BARBS,
+            Mark.CONTOUR,
+            Mark.CONTOURF,
+            Mark.TRICONTOUR,
+            Mark.TRICONTOURF,
+            Mark.KDE,
+            Mark.RUG,
+            Mark.TRIPLOT,
+            Mark.TRIPCOLOR,
+            Mark.ECDF,
+            Mark.IMSHOW,
+            Mark.PCOLORMESH,
+            Mark.HIST2D,
+            Mark.HEXBIN,
+            Mark.QUIVER,
+            Mark.HISTOGRAM,
+            Mark.STREAMPLOT,
+        ]
+    elif feature == Feature.ANNOTATIONS_XY:
+        for mark in _marks_supporting(Feature.ANNOTATIONS_X):
+            if mark.supports(Feature.ANNOTATIONS_Y):
+                out.append(mark)
+    elif feature == Feature.LOG_X:
+        out = [
+            Mark.POINT,
+            Mark.LINE,
+            Mark.AREA,
+            Mark.EFFECT_SCATTER,
+            Mark.HISTOGRAM,
+        ]
+    elif feature == Feature.LOG_Y:
+        out = [Mark.POINT, Mark.LINE, Mark.EFFECT_SCATTER]
+    elif feature == Feature.COLOR_SIZE:
+        out = [Mark.POINT, Mark.SINGLE_AXIS, Mark.EFFECT_SCATTER]
+    return out^
+
+
+def _supporting_names(feature: Feature) -> String:
+    """`"Mark.POINT, Mark.LINE or Mark.AREA"`: the supporting marks for
+    an error message, so the message cannot disagree with the table."""
+    var marks = _marks_supporting(feature)
+    var names = String("")
+    for i in range(len(marks)):
+        if i > 0:
+            names += " or " if i == len(marks) - 1 else ", "
+        names += marks[i].name()
+    return names

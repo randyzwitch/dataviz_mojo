@@ -9,7 +9,9 @@ that makes the comparison visible. Each example link shows runnable source and
 rendered output; each API link gives the exact parameters and constraints.
 
 If terms such as mark, encoding, or domain are unfamiliar, see the
-[Glossary](../glossary/).
+[Glossary](../glossary/). Which `Theme` flags and `Plot` settings each mark honors -- tooltips,
+data labels, horizontal orientation, annotations, log scales, color and
+size channels -- is on [Feature support](../feature-support/).
 
 If one convenience function describes the result, use it. Reach for `Plot()`
 when you need layers, facets, or additional encodings. Both approaches return

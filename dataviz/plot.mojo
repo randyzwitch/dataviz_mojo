@@ -243,7 +243,7 @@ from dataviz.core.step_style import StepStyle
 from morrow import Morrow
 
 from dataviz.core.delaunay import Triangulation, delaunay
-from dataviz.core.mark import Mark, _require_mark
+from dataviz.core.mark import Feature, Mark, _require_mark, _supporting_names
 from dataviz.core.marker import PointShape
 from dataviz.basic.dispatch import _callback_basic
 from dataviz.categorical.dispatch import _callback_categorical
@@ -7421,26 +7421,19 @@ def _render_generic[
         )
     if (
         plot._y_log or plot._x_log or plot._y_symlog or plot._x_symlog
-    ) and not (
-        plot._mark == Mark.POINT
-        or plot._mark == Mark.LINE
-        or plot._mark == Mark.AREA
-        or plot._mark == Mark.HISTOGRAM
-        or plot._mark == Mark.EFFECT_SCATTER
-    ):
+    ) and not plot._mark.supports(Feature.LOG_X):
         raise Error(
-            "Plot.scale_y_log()/scale_x_log() only apply to"
-            " Mark.POINT/LINE/AREA/EFFECT_SCATTER -- a categorical-x-axis (or"
-            " other non-continuous) mark has no continuous domain for a log"
-            " scale to mean anything against"
+            "Plot.scale_y_log()/scale_x_log() only apply to "
+            + _supporting_names(Feature.LOG_X)
+            + " -- a categorical-x-axis (or other non-continuous) mark has"
+            " no continuous domain for a log scale to mean anything against"
         )
-    if plot._y_log and (
-        plot._mark == Mark.AREA or plot._mark == Mark.HISTOGRAM
-    ):
+    if plot._y_log and not plot._mark.supports(Feature.LOG_Y):
         raise Error(
-            "Plot.scale_y_log(): not supported on Mark.AREA/HISTOGRAM -- the"
-            " y-domain is"
-            " always forced through a zero baseline (see"
+            "Plot.scale_y_log(): only "
+            + _supporting_names(Feature.LOG_Y)
+            + " -- the other marks with a continuous x axis force their"
+            " y-domain through a zero baseline (see"
             " _zero_baseline_y_extent()'s docstring), and zero has no logarithm"
         )
     if (plot._x_domain.has or plot._y_domain.has) and not (
