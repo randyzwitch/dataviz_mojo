@@ -1,0 +1,338 @@
+[
+  {
+    "tree": "baseline",
+    "run": 1,
+    "mark": "line",
+    "backend": "raster",
+    "median_ms": 2.6985539589077234
+  },
+  {
+    "tree": "baseline",
+    "run": 1,
+    "mark": "line",
+    "backend": "svg",
+    "median_ms": 1.2435500975698233
+  },
+  {
+    "tree": "baseline",
+    "run": 1,
+    "mark": "hexbin",
+    "backend": "raster",
+    "median_ms": 6.9301200564950705
+  },
+  {
+    "tree": "baseline",
+    "run": 1,
+    "mark": "hexbin",
+    "backend": "svg",
+    "median_ms": 2.7466032188385725
+  },
+  {
+    "tree": "baseline",
+    "run": 1,
+    "mark": "scatter3d",
+    "backend": "raster",
+    "median_ms": 9.238524129614234
+  },
+  {
+    "tree": "baseline",
+    "run": 1,
+    "mark": "scatter3d",
+    "backend": "svg",
+    "median_ms": 1.6395100392401218
+  },
+  {
+    "tree": "baseline",
+    "run": 1,
+    "mark": "heatmap",
+    "backend": "raster",
+    "median_ms": 2.448179991915822
+  },
+  {
+    "tree": "baseline",
+    "run": 1,
+    "mark": "heatmap",
+    "backend": "svg",
+    "median_ms": 2.6234660763293505
+  },
+  {
+    "tree": "prototype",
+    "run": 1,
+    "mark": "line",
+    "backend": "raster",
+    "median_ms": 2.511698054149747
+  },
+  {
+    "tree": "prototype",
+    "run": 1,
+    "mark": "line",
+    "backend": "svg",
+    "median_ms": 1.3099981006234884
+  },
+  {
+    "tree": "prototype",
+    "run": 1,
+    "mark": "hexbin",
+    "backend": "raster",
+    "median_ms": 6.9406600669026375
+  },
+  {
+    "tree": "prototype",
+    "run": 1,
+    "mark": "hexbin",
+    "backend": "svg",
+    "median_ms": 2.829240867868066
+  },
+  {
+    "tree": "prototype",
+    "run": 1,
+    "mark": "scatter3d",
+    "backend": "raster",
+    "median_ms": 9.618734009563923
+  },
+  {
+    "tree": "prototype",
+    "run": 1,
+    "mark": "scatter3d",
+    "backend": "svg",
+    "median_ms": 1.6522789373993874
+  },
+  {
+    "tree": "prototype",
+    "run": 1,
+    "mark": "heatmap",
+    "backend": "raster",
+    "median_ms": 2.4838889949023724
+  },
+  {
+    "tree": "prototype",
+    "run": 1,
+    "mark": "heatmap",
+    "backend": "svg",
+    "median_ms": 2.690613968297839
+  },
+  {
+    "tree": "prototype",
+    "run": 2,
+    "mark": "line",
+    "backend": "raster",
+    "median_ms": 2.5191681925207376
+  },
+  {
+    "tree": "prototype",
+    "run": 2,
+    "mark": "line",
+    "backend": "svg",
+    "median_ms": 1.2671889271587133
+  },
+  {
+    "tree": "prototype",
+    "run": 2,
+    "mark": "hexbin",
+    "backend": "raster",
+    "median_ms": 6.9189309142529964
+  },
+  {
+    "tree": "prototype",
+    "run": 2,
+    "mark": "hexbin",
+    "backend": "svg",
+    "median_ms": 2.8617391362786293
+  },
+  {
+    "tree": "prototype",
+    "run": 2,
+    "mark": "scatter3d",
+    "backend": "raster",
+    "median_ms": 9.462348185479641
+  },
+  {
+    "tree": "prototype",
+    "run": 2,
+    "mark": "scatter3d",
+    "backend": "svg",
+    "median_ms": 1.664069015532732
+  },
+  {
+    "tree": "prototype",
+    "run": 2,
+    "mark": "heatmap",
+    "backend": "raster",
+    "median_ms": 2.474128967151046
+  },
+  {
+    "tree": "prototype",
+    "run": 2,
+    "mark": "heatmap",
+    "backend": "svg",
+    "median_ms": 2.677784999832511
+  },
+  {
+    "tree": "baseline",
+    "run": 2,
+    "mark": "line",
+    "backend": "raster",
+    "median_ms": 2.712933113798499
+  },
+  {
+    "tree": "baseline",
+    "run": 2,
+    "mark": "line",
+    "backend": "svg",
+    "median_ms": 1.2551089748740196
+  },
+  {
+    "tree": "baseline",
+    "run": 2,
+    "mark": "hexbin",
+    "backend": "raster",
+    "median_ms": 6.765545113012195
+  },
+  {
+    "tree": "baseline",
+    "run": 2,
+    "mark": "hexbin",
+    "backend": "svg",
+    "median_ms": 2.735982881858945
+  },
+  {
+    "tree": "baseline",
+    "run": 2,
+    "mark": "scatter3d",
+    "backend": "raster",
+    "median_ms": 9.365940932184458
+  },
+  {
+    "tree": "baseline",
+    "run": 2,
+    "mark": "scatter3d",
+    "backend": "svg",
+    "median_ms": 1.6404399648308754
+  },
+  {
+    "tree": "baseline",
+    "run": 2,
+    "mark": "heatmap",
+    "backend": "raster",
+    "median_ms": 2.4434910155832767
+  },
+  {
+    "tree": "baseline",
+    "run": 2,
+    "mark": "heatmap",
+    "backend": "svg",
+    "median_ms": 2.6114957872778177
+  },
+  {
+    "tree": "baseline",
+    "run": 3,
+    "mark": "line",
+    "backend": "raster",
+    "median_ms": 2.6861638762056828
+  },
+  {
+    "tree": "baseline",
+    "run": 3,
+    "mark": "line",
+    "backend": "svg",
+    "median_ms": 1.252229092642665
+  },
+  {
+    "tree": "baseline",
+    "run": 3,
+    "mark": "hexbin",
+    "backend": "raster",
+    "median_ms": 6.898620864376426
+  },
+  {
+    "tree": "baseline",
+    "run": 3,
+    "mark": "hexbin",
+    "backend": "svg",
+    "median_ms": 2.7454730588942766
+  },
+  {
+    "tree": "baseline",
+    "run": 3,
+    "mark": "scatter3d",
+    "backend": "raster",
+    "median_ms": 9.761310182511806
+  },
+  {
+    "tree": "baseline",
+    "run": 3,
+    "mark": "scatter3d",
+    "backend": "svg",
+    "median_ms": 1.6594890039414167
+  },
+  {
+    "tree": "baseline",
+    "run": 3,
+    "mark": "heatmap",
+    "backend": "raster",
+    "median_ms": 2.494469052180648
+  },
+  {
+    "tree": "baseline",
+    "run": 3,
+    "mark": "heatmap",
+    "backend": "svg",
+    "median_ms": 2.682955004274845
+  },
+  {
+    "tree": "prototype",
+    "run": 3,
+    "mark": "line",
+    "backend": "raster",
+    "median_ms": 2.5070991832762957
+  },
+  {
+    "tree": "prototype",
+    "run": 3,
+    "mark": "line",
+    "backend": "svg",
+    "median_ms": 1.3057179749011993
+  },
+  {
+    "tree": "prototype",
+    "run": 3,
+    "mark": "hexbin",
+    "backend": "raster",
+    "median_ms": 6.633226992562413
+  },
+  {
+    "tree": "prototype",
+    "run": 3,
+    "mark": "hexbin",
+    "backend": "svg",
+    "median_ms": 2.7990119997411966
+  },
+  {
+    "tree": "prototype",
+    "run": 3,
+    "mark": "scatter3d",
+    "backend": "raster",
+    "median_ms": 9.50134708546102
+  },
+  {
+    "tree": "prototype",
+    "run": 3,
+    "mark": "scatter3d",
+    "backend": "svg",
+    "median_ms": 1.6435198485851288
+  },
+  {
+    "tree": "prototype",
+    "run": 3,
+    "mark": "heatmap",
+    "backend": "raster",
+    "median_ms": 2.4595691356807947
+  },
+  {
+    "tree": "prototype",
+    "run": 3,
+    "mark": "heatmap",
+    "backend": "svg",
+    "median_ms": 2.65784515067935
+  }
+]
