@@ -5,7 +5,7 @@ from std.math import ceil, pi
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
-from canvas.text.font_discovery import FontSlant
+from canvas.text.text_run import TextRun
 from dataviz.core.mathtext import (
     _label_requests,
     _label_width,
@@ -129,6 +129,14 @@ struct _TextRequest(Copyable, Movable):
     independently themed `Plot`s into one draw pass (see
     `Theme.font_family`). `bold` defaults to `False` everywhere except
     `_label_text_requests`'s chart title.
+
+    Three kinds share the struct, told apart by `is_runs()` and
+    `is_rule()`: a plain label, which is the original and by far the
+    most common; a label of several `TextRun`s, which is a math label
+    (#371) and draws through `draw_text_runs` (#664); and a fraction or
+    radical rule, a line. One list rather than three because the
+    replays walk one ordered list, and a rule belongs between the runs
+    above and below it.
     """
 
     var x: Int
@@ -140,7 +148,7 @@ struct _TextRequest(Copyable, Movable):
     var family: String
     var bold: Bool
     var rotation: Float64
-    var slant: FontSlant
+    var runs: List[TextRun]
     var rule_x2: Int
     var rule_y2: Int
     var rule_thickness: Float64
@@ -156,7 +164,6 @@ struct _TextRequest(Copyable, Movable):
         family: String,
         bold: Bool = False,
         rotation: Float64 = 0.0,
-        slant: FontSlant = FontSlant.NORMAL,
     ):
         self.x = x
         self.y = y
@@ -167,7 +174,7 @@ struct _TextRequest(Copyable, Movable):
         self.family = family
         self.bold = bold
         self.rotation = rotation
-        self.slant = slant
+        self.runs = List[TextRun]()
         self.rule_x2 = 0
         self.rule_y2 = 0
         self.rule_thickness = 0.0
@@ -201,6 +208,55 @@ struct _TextRequest(Copyable, Movable):
         req.rule_y2 = y2
         req.rule_thickness = thickness
         return req^
+
+    @staticmethod
+    def of_runs(
+        x: Int,
+        y: Int,
+        var runs: List[TextRun],
+        color: Color,
+        family: String,
+        bold: Bool,
+        rotation: Float64,
+    ) -> Self:
+        """One label made of several runs -- a math label (#371) --
+        drawn by each backend's `draw_text_runs`, which on SVG is one
+        `<text>` of `<tspan>`s rather than one element per run (#664).
+
+        `(x, y)` is the label's origin and the runs carry their own
+        pen shifts and baselines, so the request is `TextAlign.LEFT`:
+        the layout that built the runs has already placed them for
+        whatever alignment the label asked for.
+
+        Args:
+            x: The label's origin x.
+            y: The label's baseline y.
+            runs: The runs, in reading order.
+            color: Text color.
+            family: Font family, shared by every run.
+            bold: Whether every run draws bold.
+            rotation: Radians, clockwise on screen, about the origin.
+
+        Returns:
+            The request.
+        """
+        var req = Self(
+            x,
+            y,
+            "",
+            color,
+            0.0,
+            TextAlign.LEFT,
+            family,
+            bold=bold,
+            rotation=rotation,
+        )
+        req.runs = runs^
+        return req^
+
+    def is_runs(self) -> Bool:
+        """Whether this request is a label of several runs."""
+        return len(self.runs) > 0
 
     def is_rule(self) -> Bool:
         """Whether this request is a fraction bar, not text."""
@@ -532,6 +588,18 @@ def _replay_text_requests(
                 width=req.rule_thickness,
             )
             continue
+        if req.is_runs():
+            canvas.draw_text_runs(
+                Float64(req.x),
+                Float64(req.y),
+                req.runs,
+                req.color,
+                family=req.family,
+                weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+                rotation=req.rotation,
+                cache=cache,
+            )
+            continue
         draw_text(
             canvas,
             req.x,
@@ -541,7 +609,6 @@ def _replay_text_requests(
             req.size,
             align=req.align,
             family=req.family,
-            slant=req.slant,
             weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
             rotation=req.rotation,
             cache=cache,
@@ -555,12 +622,11 @@ def _replay_text_requests_svg(
     `SvgCanvas.draw_text`. A separate function because `DrawTarget` has
     no `draw_text` to dispatch through.
 
-    Two forms of `draw_text` are used. An upright label takes the
-    whole-pixel form it always has, so its markup is unchanged. An
-    italic run -- a variable in a math label (#371) -- takes the
-    `DrawTarget` form, which is the only one with a `slant`; it anchors
-    at the same pixel and differs only in printing that coordinate
-    with decimals. `cache` is for that form's signature; SVG resolves
+    A plain label takes the whole-pixel `draw_text` it always has, so
+    its markup is unchanged. A math label (#371) is one
+    `draw_text_runs` call, which writes one `<text>` element with a
+    `<tspan>` per run, so the label stays one string to select or
+    announce (#664). `cache` is for that call's signature; SVG resolves
     no fonts through it.
     """
     for req in requests:
@@ -574,18 +640,15 @@ def _replay_text_requests_svg(
                 width=req.rule_thickness,
             )
             continue
-        if req.slant != FontSlant.NORMAL:
-            svg.draw_text(
+        if req.is_runs():
+            svg.draw_text_runs(
                 Float64(req.x),
                 Float64(req.y),
-                req.text,
+                req.runs,
                 req.color,
-                req.size,
                 family=req.family,
-                slant=req.slant,
                 weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
                 rotation=req.rotation,
-                align=req.align,
                 cache=cache,
             )
             continue
@@ -603,7 +666,7 @@ def _replay_text_requests_svg(
 
 
 def _replay_text_requests_pdf(
-    mut pdf: PdfCanvas, requests: List[_TextRequest]
+    mut pdf: PdfCanvas, requests: List[_TextRequest], mut cache: FontCache
 ) raises:
     """`_replay_text_requests`' counterpart for `PdfCanvas`, via
     `PdfCanvas.draw_text`, which embeds a subset of the font so a label
@@ -622,6 +685,18 @@ def _replay_text_requests_pdf(
                 width=req.rule_thickness,
             )
             continue
+        if req.is_runs():
+            pdf.draw_text_runs(
+                Float64(req.x),
+                Float64(req.y),
+                req.runs,
+                req.color,
+                family=req.family,
+                weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+                rotation=req.rotation,
+                cache=cache,
+            )
+            continue
         pdf.draw_text(
             Float64(req.x),
             Float64(req.y),
@@ -630,7 +705,6 @@ def _replay_text_requests_pdf(
             req.size,
             align=req.align,
             family=req.family,
-            slant=req.slant,
             weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
             rotation=req.rotation,
         )

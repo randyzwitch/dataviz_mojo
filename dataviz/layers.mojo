@@ -398,8 +398,8 @@ def render_layers_pdf(plots: List[Plot]) raises -> PdfCanvas:
                 rotation=pi / 2.0,
             )
         )
-    _replay_text_requests_pdf(pdf, label_requests)
-    _replay_text_requests_pdf(pdf, result.text_requests)
+    _replay_text_requests_pdf(pdf, label_requests, cache)
+    _replay_text_requests_pdf(pdf, result.text_requests, cache)
     return pdf^
 
 

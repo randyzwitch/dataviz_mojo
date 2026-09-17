@@ -6877,6 +6877,18 @@ def _replay_text_requests_bounds(
                 width=req.rule_thickness,
             )
             continue
+        if req.is_runs():
+            probe.draw_text_runs(
+                Float64(req.x),
+                Float64(req.y),
+                req.runs,
+                req.color,
+                family=req.family,
+                weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
+                rotation=req.rotation,
+                cache=cache,
+            )
+            continue
         probe.draw_text(
             Float64(req.x),
             Float64(req.y),
@@ -6884,7 +6896,6 @@ def _replay_text_requests_bounds(
             req.color,
             req.size,
             family=req.family,
-            slant=req.slant,
             weight=FontWeight.BOLD if req.bold else FontWeight.NORMAL,
             rotation=req.rotation,
             align=req.align,
@@ -7168,7 +7179,7 @@ def _render_pdf_into(
     var drawn = _draw_figure_into(
         pdf, plot, ox0, oy0, cx1, cy1, fill_background, True, cache
     )
-    _replay_text_requests_pdf(pdf, drawn.text)
+    _replay_text_requests_pdf(pdf, drawn.text, cache)
     return (drawn.px0, drawn.py0, drawn.px1, drawn.py1)
 
 
