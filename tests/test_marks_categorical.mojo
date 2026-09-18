@@ -25,6 +25,7 @@ from canvas.color import Color
 from canvas.path import PathOp
 from canvas.vector.svg import SvgCanvas
 from dataviz import (
+    bump,
     calendar_heatmap,
     corrplot,
     eventplot,
@@ -37,8 +38,10 @@ from dataviz import (
     pcolormesh,
     population_pyramid,
     punchcard,
+    pie,
     span_chart,
     stacked_bar,
+    streamgraph,
 )
 from dataviz.core.color_scale import ColorScale, default_categorical_palette
 from dataviz.grid.image import _draw_cells_as_image, _edge_pixels, _fill_cells
@@ -2729,6 +2732,77 @@ def test_grid_tooltips_follow_the_theme_flag() raises:
     var off = render_svg(
         heatmap(
             xs, ys, vals, theme=Theme(svg_tooltips=False), width=300, height=200
+        )
+    ).to_string()
+    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+
+
+# ---------------------------------------------------------------
+# Tooltips on the rest of the categorical family (#677)
+
+
+def test_a_gantt_bar_is_titled_by_its_task_and_span() raises:
+    # Both ends, because the bar's length is the datum: either one
+    # alone loses half of what the shape says.
+    var cats: List[String] = ["design", "build"]
+    var start: List[Float64] = [0.0, 2.5]
+    var end: List[Float64] = [3.0, 7.0]
+    var titles = _grid_titles(
+        render_svg(gantt(cats, start, end, width=400, height=200)).to_string()
+    )
+    assert_equal(len(titles), 2, "one title per task")
+    assert_equal(titles[0], "design: 0 to 3")
+    assert_equal(titles[1], "build: 2.5 to 7")
+
+
+def test_a_bump_line_and_a_stream_band_are_titled_by_their_series() raises:
+    # Per series, not per step: a title per vertex would put one on
+    # every category the line crosses.
+    var cats: List[String] = ["Q1", "Q2", "Q3"]
+    var names: List[String] = ["alpha", "beta"]
+    var values = List[List[Float64]]()
+    var a: List[Float64] = [1.0, 3.0, 2.0]
+    var b: List[Float64] = [2.0, 1.0, 3.0]
+    values.append(a^)
+    values.append(b^)
+    var bump_titles = _grid_titles(
+        render_svg(bump(cats, names, values, width=400, height=300)).to_string()
+    )
+    assert_equal(len(bump_titles), 2, "one title per series line")
+    assert_equal(bump_titles[0], "alpha")
+
+    var stream_titles = _grid_titles(
+        render_svg(
+            streamgraph(cats, names, values, width=400, height=300)
+        ).to_string()
+    )
+    assert_equal(len(stream_titles), 2, "one title per band")
+    assert_equal(stream_titles[1], "beta")
+
+
+def test_a_pie_slice_is_titled_by_its_category_and_value() raises:
+    var cats: List[String] = ["North", "South"]
+    var vals: List[Float64] = [12.0, 3.5]
+    var titles = _grid_titles(
+        render_svg(pie(cats, vals, width=300, height=300)).to_string()
+    )
+    assert_equal(len(titles), 2, "one title per slice")
+    assert_equal(titles[0], "North: 12")
+    assert_equal(titles[1], "South: 3.5")
+
+
+def test_categorical_tooltips_follow_the_theme_flag() raises:
+    var cats: List[String] = ["design", "build"]
+    var start: List[Float64] = [0.0, 2.5]
+    var end: List[Float64] = [3.0, 7.0]
+    var off = render_svg(
+        gantt(
+            cats,
+            start,
+            end,
+            theme=Theme(svg_tooltips=False),
+            width=400,
+            height=200,
         )
     ).to_string()
     assert_true("<title>" not in off, "svg_tooltips=False removes them")

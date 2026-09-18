@@ -9,6 +9,7 @@ from dataviz.plot import (
     _draw_axis_spines,
     Plot,
     _RenderResult,
+    _span_tooltip_label,
     _Scaled,
     _TextRequest,
     _axis_pixel,
@@ -288,7 +289,17 @@ def _render_gantt[
             bx1 = bx0 + 1.0
         var by0 = snap_to_pixel_edge(row_y)
         var by1 = snap_to_pixel_edge(row_y + row_height)
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _span_tooltip_label(
+                    plot._categorical.x[i],
+                    plot._gantt.start[i],
+                    plot._gantt.end[i],
+                )
+            )
         target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, theme.mark_color)
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     return frame.result()
 

@@ -6466,21 +6466,6 @@ def _series_tooltip_label(
     )
 
 
-def _span_tooltip_label(
-    category: String, low: Float64, high: Float64
-) -> String:
-    """A span's hover text: `"Berlin: -4 to 23"`. Both ends, since a
-    span mark encodes the interval rather than any single value.
-    """
-    return (
-        category
-        + ": "
-        + _format_fixed(low, _label_decimals(low))
-        + " to "
-        + _format_fixed(high, _label_decimals(high))
-    )
-
-
 def _point_tooltip_label(plot: Plot, i: Int) -> String:
     """One scatter point's hover text: the row's `encode(labels=...)` entry
     when it has one, otherwise its coordinates, `"3.5, 12"`.
@@ -6544,6 +6529,23 @@ def _cell_tooltip_label(
         + second
         + ": "
         + _format_fixed(value, _label_decimals(value))
+    )
+
+
+def _span_tooltip_label(
+    category: String, start: Float64, end: Float64
+) -> String:
+    """A bar that spans two values rather than reaching one, as a
+    Gantt row does: `"deploy: 3 to 7"` (#677). `_tooltip_label`'s
+    single number cannot say what this bar encodes -- its length is
+    the datum, and either end alone loses half of it.
+    """
+    return (
+        category
+        + ": "
+        + _format_fixed(start, _label_decimals(start))
+        + " to "
+        + _format_fixed(end, _label_decimals(end))
     )
 
 

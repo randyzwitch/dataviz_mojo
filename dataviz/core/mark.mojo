@@ -614,6 +614,14 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             Mark.RADAR,
             Mark.GAUGE,
             Mark.RADIALBAR,
+            # The rest of the categorical family (#677). BUMP and
+            # STREAMGRAPH are titled per series, not per step: the line
+            # or band is the shape a reader points at, and its value
+            # changes at every category it crosses.
+            Mark.ARC,
+            Mark.GANTT,
+            Mark.BUMP,
+            Mark.STREAMGRAPH,
         ]
     elif feature == Feature.DATA_LABELS:
         out = [
