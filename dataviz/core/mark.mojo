@@ -604,6 +604,16 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             Mark.CORRPLOT,
             Mark.PUNCHCARD,
             Mark.MARIMEKKO,
+            # The radial family (#680), under the theme flag alone:
+            # one title per wedge, ring row or point. RADAR's unit is
+            # the series, not the vertex -- the shape a reader points
+            # at is the whole ring -- and GAUGE draws one value.
+            Mark.NIGHTINGALE,
+            Mark.POLAR_BAR,
+            Mark.POLAR,
+            Mark.RADAR,
+            Mark.GAUGE,
+            Mark.RADIALBAR,
         ]
     elif feature == Feature.DATA_LABELS:
         out = [

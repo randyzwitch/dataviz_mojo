@@ -10,9 +10,11 @@ from dataviz.core.array_like import (
 )
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.core.mark import Mark
+from dataviz.core.scale import _format_fixed, _label_decimals
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _tooltip_label,
     _Scaled,
     _TextRequest,
     _LegendLayout,
@@ -231,9 +233,15 @@ def _render_polar[
                     max_radius * (values[i] / max_r) if max_r > 0.0 else 0.0
                 )
                 var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
+                if theme.svg_tooltips:
+                    target.begin_annotated_group(
+                        _tooltip_label(plot._polar.series_names[s], values[i])
+                    )
                 target.fill_circle_aa(
                     Int(pt.x), Int(pt.y), Int(sc.point_radius), color
                 )
+                if theme.svg_tooltips:
+                    target.end_annotated_group()
 
         if show_legend:
             _draw_legend_at(
@@ -274,9 +282,20 @@ def _render_polar[
                 > 0.0 else 0.0
             )
             var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
+            # The single-series path: the radius is the whole datum, so
+            # the title is the value with no series name to qualify it.
+            if theme.svg_tooltips:
+                target.begin_annotated_group(
+                    _format_fixed(
+                        plot._polar.radius[i],
+                        _label_decimals(plot._polar.radius[i]),
+                    )
+                )
             target.fill_circle_aa(
                 Int(pt.x), Int(pt.y), Int(sc.point_radius), theme.mark_color
             )
+            if theme.svg_tooltips:
+                target.end_annotated_group()
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
