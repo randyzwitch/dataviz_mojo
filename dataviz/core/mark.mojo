@@ -674,6 +674,16 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             Mark.QUIVER,
             Mark.HISTOGRAM,
             Mark.STREAMPLOT,
+            # Drawn through `_draw_horizontal_categorical_axis_frame`,
+            # whose continuous axis is x (#688). The marks that reach
+            # that frame only under `horizontal=True` -- BAR, BOX,
+            # VIOLIN and the rest of Feature.HORIZONTAL -- gain a vline
+            # in that orientation too; this table describes each mark's
+            # default orientation.
+            Mark.GANTT,
+            Mark.POPULATION_PYRAMID,
+            Mark.RIDGELINE,
+            Mark.EVENTPLOT,
         ]
     elif feature == Feature.ANNOTATIONS_XY:
         for mark in _marks_supporting(Feature.ANNOTATIONS_X):

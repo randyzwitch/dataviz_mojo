@@ -56,9 +56,25 @@ struct _HorizontalCategoricalFrame(Movable):
         self.py1 = py1
 
     def result(self) -> _RenderResult:
-        """Return this layout as a render result."""
+        """This layout as the `_RenderResult` its caller returns.
+
+        Passes `x_scale` through with `has_x_scale=True`: on this frame
+        the *x* axis is the continuous one, so `Plot.annotate_vline()`
+        places a value against the same scale the data went through --
+        a deadline on a Gantt's time axis, the center of a population
+        pyramid. It reported neither scale until #688, which is why a
+        vline on those marks raised. `y_scale` stays absent: the y axis
+        here is categorical and has no numeric domain for
+        `annotate_line()` to mean anything against.
+        """
         return _RenderResult(
-            self.text_requests.copy(), self.px0, self.py0, self.px1, self.py1
+            self.text_requests.copy(),
+            self.px0,
+            self.py0,
+            self.px1,
+            self.py1,
+            x_scale=self.x_scale,
+            has_x_scale=True,
         )
 
 
