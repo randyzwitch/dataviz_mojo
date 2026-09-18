@@ -25,6 +25,7 @@ from dataviz.plot import (
     _finished,
     _require_non_negative,
 )
+from dataviz.core.scale import _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 
 
@@ -65,6 +66,20 @@ def _fill_ring_sector[
         target.fill_ring_sector_aa(cx, cy, inner, outer, a0, a1, color)
 
 
+def _sunburst_node_label(
+    ids: List[String], idx: _HierarchyIndex, node: Int
+) -> String:
+    """One node's hover text (#681): `"id: subtree total"`, the number
+    its angular share encodes and nothing on the chart states."""
+    return (
+        ids[node]
+        + ": "
+        + _format_fixed(
+            idx.subtree_value[node], _label_decimals(idx.subtree_value[node])
+        )
+    )
+
+
 def _draw_sunburst_node[
     T: DrawTarget
 ](
@@ -73,6 +88,7 @@ def _draw_sunburst_node[
     start_angle: Float64,
     end_angle: Float64,
     idx: _HierarchyIndex,
+    ids: List[String],
     cx: Float64,
     cy: Float64,
     ring_width: Float64,
@@ -80,6 +96,7 @@ def _draw_sunburst_node[
     background: Color,
     separator: Color,
     separator_width: Float64,
+    svg_tooltips: Bool,
 ) raises:
     """Draw a node sector and recursively divide it among its children.
 
@@ -94,6 +111,8 @@ def _draw_sunburst_node[
     var fade = 255 - _DEPTH_FADE * (depth - 1)
     if fade < _MIN_DEPTH_ALPHA:
         fade = _MIN_DEPTH_ALPHA
+    if svg_tooltips:
+        target.begin_annotated_group(_sunburst_node_label(ids, idx, node))
     _fill_ring_sector(
         target,
         cx,
@@ -115,6 +134,8 @@ def _draw_sunburst_node[
         separator,
         width=separator_width,
     )
+    if svg_tooltips:
+        target.end_annotated_group()
 
     var total = idx.subtree_value[node]
     if total <= 0.0:
@@ -129,6 +150,7 @@ def _draw_sunburst_node[
             a,
             a_end,
             idx,
+            ids,
             cx,
             cy,
             ring_width,
@@ -136,6 +158,7 @@ def _draw_sunburst_node[
             background,
             separator,
             separator_width,
+            svg_tooltips,
         )
         a = a_end
 
@@ -230,6 +253,7 @@ def _render_sunburst[
             start,
             end,
             idx,
+            plot._hierarchy.ids,
             cx,
             cy,
             ring_width,
@@ -237,6 +261,7 @@ def _render_sunburst[
             theme.background,
             theme.background,
             sc.scale,
+            theme.svg_tooltips,
         )
         start = end
 

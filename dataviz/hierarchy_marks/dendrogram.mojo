@@ -29,9 +29,15 @@ from dataviz.categorical.gantt import (
 )
 from dataviz.core.frame import _draw_categorical_axis_frame
 from dataviz.core.ordinal_scale import OrdinalScale
-from dataviz.core.scale import LinearScale
+from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 from dataviz.plot import Plot, _RenderResult, _finished
+
+
+def _dendrogram_bracket_label(height: Float64) -> String:
+    """One merge's hover text (#681): the linkage distance the bracket's
+    crossbar sits at -- the one number the axis only gives approximately."""
+    return "height: " + _format_fixed(height, _label_decimals(height))
 
 
 struct _DendrogramData(Copyable, Movable):
@@ -169,9 +175,15 @@ def _render_dendrogram[
                 bar,
                 swap=True,
             )
+            if theme.svg_tooltips:
+                target.begin_annotated_group(
+                    _dendrogram_bracket_label(data.height[k])
+                )
             target.stroke_path_aa(
                 bracket, theme.mark_color, width=hframe.sc.line_width
             )
+            if theme.svg_tooltips:
+                target.end_annotated_group()
         return hframe.result()
     var frame = _draw_categorical_axis_frame(
         target,
@@ -195,9 +207,15 @@ def _render_dendrogram[
             frame.y_scale.to_pixel(hgt[r]),
             bar,
         )
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _dendrogram_bracket_label(data.height[k])
+            )
         target.stroke_path_aa(
             bracket, theme.mark_color, width=frame.sc.line_width
         )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
     return frame.result()
 
 

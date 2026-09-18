@@ -22,8 +22,24 @@ from dataviz.plot import (
     _finished,
     _require_non_negative,
 )
+from dataviz.core.scale import _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 from dataviz.hierarchy_marks.tree import _assign_branch_colors
+
+
+def _treemap_leaf_label(
+    ids: List[String], idx: _HierarchyIndex, node: Int
+) -> String:
+    """One leaf rect's hover text (#681): `"id: value"` -- a small rect's
+    label is often elided for space, so this is sometimes the only way
+    to read it."""
+    return (
+        ids[node]
+        + ": "
+        + _format_fixed(
+            idx.subtree_value[node], _label_decimals(idx.subtree_value[node])
+        )
+    )
 
 
 def _draw_treemap_node[
@@ -54,7 +70,11 @@ def _draw_treemap_node[
             palette[branch[node] % len(palette)] if branch[node]
             >= 0 else theme.mark_color
         )
+        if theme.svg_tooltips:
+            target.begin_annotated_group(_treemap_leaf_label(ids, idx, node))
         target.fill_rect(x0, y0, x1 - x0, y1 - y0, color)
+        if theme.svg_tooltips:
+            target.end_annotated_group()
         text_requests.append(
             _TextRequest(
                 (x0 + x1) // 2,
