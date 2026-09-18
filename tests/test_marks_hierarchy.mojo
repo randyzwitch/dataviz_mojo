@@ -1003,5 +1003,88 @@ def test_dendrogram_wants_one_label_per_row() raises:
         _ = dendrogram(_rain(), two)
 
 
+# ---------------------------------------------------------------
+# Relationship-mark tooltips (#682)
+
+
+def _titles_in(svg: String) -> List[String]:
+    var out = List[String]()
+    var at = 0
+    while True:
+        var open_at = svg.find("<title>", at)
+        if open_at < 0:
+            return out^
+        var start = open_at + 7
+        var close_at = svg.find("</title>", start)
+        out.append(String(svg[byte=start:close_at]))
+        at = close_at
+
+
+def test_every_relationship_edge_is_titled_by_its_pair_and_weight() raises:
+    # The title goes on the edges, not the nodes: every node's name is
+    # already drawn as visible text, and what no edge shows is its
+    # weight -- which is the whole of what its thickness encodes.
+    var src: List[String] = ["Coal", "Gas"]
+    var dst: List[String] = ["Power", "Power"]
+    var vals: List[Float64] = [42.0, 7.5]
+    var svgs: List[String] = [
+        render_svg(chord(src, dst, vals, width=320, height=320)).to_string(),
+        render_svg(
+            arc_diagram(src, dst, vals, width=320, height=240)
+        ).to_string(),
+        render_svg(graph(src, dst, vals, width=320, height=320)).to_string(),
+        render_svg(sankey(src, dst, vals, width=360, height=240)).to_string(),
+    ]
+    for svg in svgs:
+        var titles = _titles_in(svg)
+        assert_equal(len(titles), 2, "one title per edge, none on the nodes")
+        # canvas_mojo escapes the markup, so the ">" arrives as &gt;
+        assert_equal(titles[0], "Coal -&gt; Power: 42")
+        assert_equal(
+            titles[1], "Gas -&gt; Power: 7.5", "the decimals the weight has"
+        )
+
+
+def test_relationship_tooltips_follow_the_theme_flag() raises:
+    var src: List[String] = ["Coal", "Gas"]
+    var dst: List[String] = ["Power", "Power"]
+    var vals: List[Float64] = [42.0, 7.5]
+    var off = render_svg(
+        sankey(
+            src,
+            dst,
+            vals,
+            theme=Theme(svg_tooltips=False),
+            width=360,
+            height=240,
+        )
+    ).to_string()
+    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+
+
+def test_a_sankey_flow_that_skips_a_column_is_titled_by_its_real_ends() raises:
+    # A flow spanning more than one column is routed through dummy
+    # nodes, and `final_from`/`final_to` then name indices past the
+    # node list. Titling from those read out of bounds and aborted the
+    # render -- with tooltips on by default, so every such chart. The
+    # segments carry their original endpoints instead, which also means
+    # hovering any part of a routed flow names the whole flow.
+    var src: List[String] = ["A", "B", "A"]
+    var dst: List[String] = ["B", "C", "C"]
+    var vals: List[Float64] = [5.0, 5.0, 3.0]
+    var svg = render_svg(
+        sankey(src, dst, vals, width=420, height=240)
+    ).to_string()
+    var titles = _titles_in(svg)
+    var routed = 0
+    for t in titles:
+        if t == "A -&gt; C: 3":
+            routed += 1
+    assert_true(
+        routed >= 1,
+        "the skipping flow is titled by A and C, not by a dummy node",
+    )
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

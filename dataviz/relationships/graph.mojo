@@ -11,6 +11,7 @@ from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _edge_tooltip_label,
     _Scaled,
     _TextRequest,
     _min_max,
@@ -82,6 +83,14 @@ def _render_graph[
         var width = sc.line_width + sc.line_width * 2.0 * frac
         var color = palette[from_idx % len(palette)]
         # Preserve exact node endpoints for diagonal edges.
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _edge_tooltip_label(
+                    plot._edges.from_categories[row],
+                    plot._edges.to_categories[row],
+                    plot._edges.values[row],
+                )
+            )
         target.draw_line_aa(
             node_x[from_idx],
             node_y[from_idx],
@@ -90,6 +99,8 @@ def _render_graph[
             color,
             width,
         )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     var text_requests = List[_TextRequest]()
     for i in range(n):

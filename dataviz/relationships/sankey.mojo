@@ -12,6 +12,7 @@ from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _edge_tooltip_label,
     _Scaled,
     _TextRequest,
     _finished,
@@ -109,6 +110,11 @@ def _render_sankey[
     var final_to = List[Int]()
     var final_value = List[Float64]()
     var edge_origin = List[Int]()
+    # The original endpoints of each drawn segment. A flow that
+    # spans more than one column is routed through dummy nodes, so
+    # `final_from`/`final_to` can name an index past `nodes`; these
+    # two always name the real endpoints a reader asked about (#682).
+    var edge_dest = List[Int]()
     var all_column = column.copy()
     for e in range(len(from_idx)):
         var fi = from_idx[e]
@@ -119,6 +125,7 @@ def _render_sankey[
             final_to.append(ti)
             final_value.append(edge_value[e])
             edge_origin.append(fi)
+            edge_dest.append(ti)
         else:
             var prev = fi
             for step in range(1, gap):
@@ -128,11 +135,13 @@ def _render_sankey[
                 final_to.append(dummy_idx)
                 final_value.append(edge_value[e])
                 edge_origin.append(fi)
+                edge_dest.append(ti)
                 prev = dummy_idx
             final_from.append(prev)
             final_to.append(ti)
             final_value.append(edge_value[e])
             edge_origin.append(fi)
+            edge_dest.append(ti)
     var n_total = len(all_column)
 
     var total_in = List[Float64](capacity=n_total)
@@ -223,6 +232,14 @@ def _render_sankey[
         path.line_to(tgt_x, tgt_bottom)
         path.line_to(tgt_x, tgt_top)
         path.close()
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _edge_tooltip_label(
+                    nodes[edge_origin[e]],
+                    nodes[edge_dest[e]],
+                    final_value[e],
+                )
+            )
         target.fill_path_aa(
             path,
             palette[edge_origin[e] % len(palette)].with_alpha(
@@ -230,6 +247,8 @@ def _render_sankey[
             ),
             fill_rule=FillRule.NONZERO,
         )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     var text_requests = List[_TextRequest]()
     for i in range(n):
