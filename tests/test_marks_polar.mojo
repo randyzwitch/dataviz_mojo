@@ -12,6 +12,7 @@ Mark.SINGLE_AXIS (every point on one row).
 from _test_helpers import (
     BG,
     _assert_color,
+    _attr_values,
     _assert_same_canvas,
     _bbox_of_color,
     _count_color,
@@ -1294,6 +1295,73 @@ def test_radial_tooltips_follow_the_theme_flag() raises:
         )
     ).to_string()
     assert_true("<title>" not in off, "svg_tooltips=False removes them")
+
+
+# ---------------------------------------------------------------
+# Radial data labels (#685)
+
+
+def test_the_radial_value_marks_draw_their_values_on_request() raises:
+    # Off by default and on with the flag, like every other mark that
+    # honors it; the label is the value, formatted as the axis would.
+    var cats: List[String] = ["North", "South"]
+    var vals: List[Float64] = [12.0, 3.5]
+    var svgs_off: List[String] = [
+        render_svg(nightingale(cats, vals, width=300, height=300)).to_string(),
+        render_svg(polarbar(cats, vals, width=300, height=300)).to_string(),
+        render_svg(radialbar(cats, vals, width=300, height=300)).to_string(),
+    ]
+    for svg in svgs_off:
+        assert_true(">12</text>" not in svg, "no value label without the flag")
+    var t = Theme(show_data_labels=True)
+    var svgs_on: List[String] = [
+        render_svg(
+            nightingale(cats, vals, theme=t, width=300, height=300)
+        ).to_string(),
+        render_svg(
+            polarbar(cats, vals, theme=t, width=300, height=300)
+        ).to_string(),
+        render_svg(
+            radialbar(cats, vals, theme=t, width=300, height=300)
+        ).to_string(),
+    ]
+    for svg in svgs_on:
+        assert_true(">12</text>" in svg, "the first value, drawn")
+        assert_true(
+            ">3.5</text>" in svg, "the second, keeping the decimal it has"
+        )
+
+
+def test_a_wedge_label_sits_outside_its_wedge() raises:
+    # Outside rather than inside, because a wedge narrows toward the
+    # center: with two categories the wedges bisect at 0 and pi, so the
+    # labels land left and right of the center, past the radius.
+    var cats: List[String] = ["North", "South"]
+    var vals: List[Float64] = [12.0, 12.0]
+    var svg = render_svg(
+        nightingale(
+            cats,
+            vals,
+            theme=Theme(show_data_labels=True, show_legend=False),
+            width=300,
+            height=300,
+        )
+    ).to_string()
+    var xs = List[Float64]()
+    var texts = _attr_values(svg, "text", "x")
+    for v in texts:
+        xs.append(Float64(v))
+    var lo = xs[0]
+    var hi = xs[0]
+    for x in xs:
+        if x < lo:
+            lo = x
+        if x > hi:
+            hi = x
+    assert_true(
+        hi - lo > 40.0,
+        "the two equal wedges' labels sit on opposite sides of the center",
+    )
 
 
 def main() raises:
