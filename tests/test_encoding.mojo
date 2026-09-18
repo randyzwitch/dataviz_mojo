@@ -7,9 +7,11 @@ Covers:
   whisker endpoints, and the raise paths.
 - y_err_lower/y_err_upper: an asymmetric whisker, mutually exclusive
   with y_err, given together or not at all.
-- y_err on Mark.LINE: a whisker per original data point in
-  Theme.mark_color, independent of the path decimation; Mark.AREA
-  still raises.
+- y_err/y_err_lower/y_err_upper on Mark.LINE: a whisker per original
+  data point in Theme.mark_color, independent of the path decimation,
+  equivalent whether given as y_err or an equal y_err_lower/
+  y_err_upper, and identical standalone, layered and faceted (#702);
+  Mark.AREA still raises for either form.
 - Plot.encode_categorical()'s y_err channel on Mark.BAR, and
   encode_grouped_bar()'s errors channel on Mark.GROUPED_BAR:
   whisker placement in the bar's/sub-bar's own resolved color, the
@@ -53,6 +55,7 @@ from dataviz.plot import (
     render_svg,
     save_layers,
 )
+from _test_helpers import _attr_values
 
 
 # ---------------------------------------------------------------
@@ -252,13 +255,18 @@ def test_render_raises_on_a_negative_asymmetric_value() raises:
 
 
 def test_render_raises_on_asymmetric_bounds_with_an_incompatible_mark() raises:
+    # Mark.AREA is the excluded one (#702): its zero-baseline forcing is
+    # a separate concern, same as test_render_raises_on_y_err_with_mark_area
+    # below. Mark.LINE takes y_err_lower/y_err_upper now, matching
+    # Mark.POINT/EFFECT_SCATTER -- see the "from tests/test_error_bars_on_line"
+    # block for its own positive-path tests.
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var lower: List[Float64] = [1.0, 1.0]
     var upper: List[Float64] = [1.0, 1.0]
     var plot = (
         Plot()
-        .mark_line()
+        .mark_area()
         .encode(x=x, y=y, y_err_lower=lower, y_err_upper=upper)
     )
     with assert_raises():
@@ -309,6 +317,140 @@ def test_render_svg_line_error_bar_uses_theme_mark_color() raises:
     assert_true(
         'stroke="#ff6347"' in s,
         "the whisker uses the chart's own Theme.mark_color",
+    )
+
+
+def _has_whisker_at_row(svg: String, row: String) -> Bool:
+    """Whether some `<line>` in `svg` has `y1` (or `y2`) equal to `row`
+    and `stroke="#1e64b4"` (mark_color), correlated on the same
+    element (#702).
+
+    A plain `'y1="144"' in svg` substring check is blind to *which*
+    element carries it: a gridline or an axis tick can land on the
+    exact same row as a whisker (this module's domains do, more than
+    once), and the line's own path stroke also puts `#1e64b4` in the
+    document regardless of whether a whisker drew at all -- so an
+    independent `'stroke="#1e64b4"' in svg` check passes even when the
+    whisker loop never runs. Zipping `_attr_values` by index keeps the
+    two attributes on the one `<line>` they came from; canvas_mojo
+    writes every `<line>`'s attributes in the same order, so the
+    indices line up.
+    """
+    var y1s = _attr_values(svg, "line", "y1")
+    var y2s = _attr_values(svg, "line", "y2")
+    var strokes = _attr_values(svg, "line", "stroke")
+    for i in range(len(strokes)):
+        if strokes[i] != "#1e64b4":
+            continue
+        if y1s[i] == row or y2s[i] == row:
+            return True
+    return False
+
+
+def test_render_svg_asymmetric_line_error_bar_matches_hand_derived_positions() raises:
+    # Two points, x=[1,2], y=[10,10], y_err_lower=[2,2], y_err_upper=[6,6]:
+    # domain data [8, 16] at each point (#702). Padded 5% (0.4) ->
+    # [7.6, 16.4]. Canvas 400x200 -> plot_y0=20, plot_y1=150 -- the same
+    # domain the Mark.POINT asymmetric test above derives, so the same
+    # pixel rows apply.
+    #
+    # scale() = (20-150)/(16.4-7.6) = -14.7727...
+    # translate() = 150 - 7.6*scale() = 262.2727...
+    # to_pixel(8) = 144.09 -> 144 (lower)
+    # to_pixel(16) = 25.91 -> 26 (upper)
+    # to_pixel(10) = 114.545... (the line's own row)
+    var x: List[Float64] = [1.0, 2.0]
+    var y: List[Float64] = [10.0, 10.0]
+    var lower: List[Float64] = [2.0, 2.0]
+    var upper: List[Float64] = [6.0, 6.0]
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y, y_err_lower=lower, y_err_upper=upper)
+        .size(400, 200)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true(
+        _has_whisker_at_row(s, "144"),
+        "the lower whisker/cap sits at y-2's hand-derived row, in mark_color",
+    )
+    assert_true(
+        _has_whisker_at_row(s, "26"),
+        "the upper whisker/cap sits at y+6's hand-derived row, in mark_color",
+    )
+    assert_true("114.545" in s, "the line itself passes through y=10's own row")
+
+
+def test_symmetric_and_equal_asymmetric_line_errors_render_identically() raises:
+    # The acceptance test for #702: y_err=e and y_err_lower=e,
+    # y_err_upper=e describe the same whisker, so they must produce the
+    # same document -- not merely the same numbers, the same bytes.
+    var x: List[Float64] = [1.0, 2.0, 3.0]
+    var y: List[Float64] = [2.0, 4.0, 3.0]
+    var err: List[Float64] = [0.5, 1.0, 0.25]
+    var symmetric = (
+        Plot().mark_line().encode(x=x, y=y, y_err=err).size(300, 200)
+    )
+    var asymmetric = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y, y_err_lower=err, y_err_upper=err)
+        .size(300, 200)
+    )
+    assert_equal(
+        render_svg(symmetric).to_string(),
+        render_svg(asymmetric).to_string(),
+        "y_err=e and y_err_lower=e/y_err_upper=e are the same whisker",
+    )
+
+
+def test_a_line_with_asymmetric_errors_renders_the_same_layered_and_faceted() raises:
+    # #702's "standalone, layered, and faceted rendering use the same
+    # behavior" criterion: the same asymmetric line, drawn standalone
+    # and as the one layer of a render_layers()/render_facets() call,
+    # produces the identical whisker geometry each time. Same rows and
+    # mark_color as the hand-derived test above, checked the same
+    # structural way -- see _has_whisker_at_row for why a plain
+    # substring check isn't enough here.
+    var x: List[Float64] = [1.0, 2.0]
+    var y: List[Float64] = [10.0, 10.0]
+    var lower: List[Float64] = [2.0, 2.0]
+    var upper: List[Float64] = [6.0, 6.0]
+    var plot = (
+        Plot()
+        .mark_line()
+        .encode(x=x, y=y, y_err_lower=lower, y_err_upper=upper)
+        .size(400, 200)
+    )
+    var standalone = render_svg(plot).to_string()
+    assert_true(
+        _has_whisker_at_row(standalone, "144")
+        and _has_whisker_at_row(standalone, "26"),
+        "sanity: the standalone whisker rows are present, in mark_color",
+    )
+
+    var one_layer = List[Plot]()
+    one_layer.append(plot.copy())
+    var layered = render_layers_svg(one_layer).to_string()
+    assert_true(
+        _has_whisker_at_row(layered, "144"),
+        "the lower whisker survives in the layered render, in mark_color",
+    )
+    assert_true(
+        _has_whisker_at_row(layered, "26"),
+        "the upper whisker survives in the layered render, in mark_color",
+    )
+
+    var one_cell = List[Plot]()
+    one_cell.append(plot.copy())
+    var faceted = render_facets_svg(one_cell, 1).to_string()
+    assert_true(
+        _has_whisker_at_row(faceted, "144"),
+        "the lower whisker survives in the faceted render, in mark_color",
+    )
+    assert_true(
+        _has_whisker_at_row(faceted, "26"),
+        "the upper whisker survives in the faceted render, in mark_color",
     )
 
 
