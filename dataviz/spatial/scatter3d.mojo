@@ -364,6 +364,10 @@ def scatter3d[
         elev: Degrees to look down on the scene from, above the x-y
             plane.
         azim: Degrees to turn the scene through, about the z axis.
+        tooltips: Whether each point carries a hover `<title>` naming
+            its x, y and z; defaults to `False`, since a title per
+            point roughly doubles a dense chart's SVG.
+            `Theme.svg_tooltips` gates it as well.
         theme: Full styling knobs beyond this function's own
             parameters -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot` (`.size()`).

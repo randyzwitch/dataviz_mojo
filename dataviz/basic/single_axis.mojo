@@ -238,6 +238,10 @@ def single_axis[
             point uses `Theme.mark_color`.
         size: Optional point-size channel. Left empty (the default),
             every point uses `Theme.point_radius`.
+        tooltips: Whether each point carries a hover `<title>` naming
+            its value; defaults to `False`, since a title per point
+            roughly doubles a dense chart's SVG. `Theme.svg_tooltips`
+            gates it as well.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
