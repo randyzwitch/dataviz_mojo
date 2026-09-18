@@ -17,6 +17,9 @@ the one thing that makes a thin vertical line legible.
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
+from canvas.color import Color
+from canvas.geometry import snap_to_pixel_center
+
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.distributions.kde import _draw_snapped_ticks
 from dataviz.plot import (
@@ -26,7 +29,37 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
+from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
+
+
+def _eventplot_tick_label(row: String, v: Float64) -> String:
+    """One event's hover text (#678): `"row: position"`."""
+    return row + ": " + _format_fixed(v, _label_decimals(v))
+
+
+def _draw_annotated_ticks[
+    T: DrawTarget
+](
+    mut target: T,
+    row: String,
+    values: List[Float64],
+    x_scale: LinearScale,
+    y_top: Float64,
+    y_bottom: Float64,
+    color: Color,
+    width: Float64,
+) raises:
+    """`_draw_snapped_ticks`, titled per event (#678). Kept local rather
+    than added to the shared helper: `_draw_snapped_ticks` also draws
+    `Mark.RUG`'s ticks (kde.mojo), and this must not change what RUG
+    renders.
+    """
+    for v in values:
+        var px = snap_to_pixel_center(x_scale.to_pixel(v))
+        target.begin_annotated_group(_eventplot_tick_label(row, v))
+        target.draw_line_aa(px, y_bottom, px, y_top, color, width=width)
+        target.end_annotated_group()
 
 
 def _render_eventplot[
@@ -132,15 +165,27 @@ def _render_eventplot[
     var half = frame.y_scale.bandwidth() * line_length / 2.0
     for i in range(len(rows)):
         var center = frame.y_scale.center(i)
-        _draw_snapped_ticks(
-            target,
-            rows[i],
-            frame.x_scale,
-            center - half,
-            center + half,
-            theme.mark_color,
-            frame.sc.scale,
-        )
+        if theme.svg_tooltips:
+            _draw_annotated_ticks(
+                target,
+                labels[i],
+                rows[i],
+                frame.x_scale,
+                center - half,
+                center + half,
+                theme.mark_color,
+                frame.sc.scale,
+            )
+        else:
+            _draw_snapped_ticks(
+                target,
+                rows[i],
+                frame.x_scale,
+                center - half,
+                center + half,
+                theme.mark_color,
+                frame.sc.scale,
+            )
     return frame.result()
 
 

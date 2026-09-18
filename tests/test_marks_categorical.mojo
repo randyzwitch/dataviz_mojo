@@ -2990,5 +2990,41 @@ def test_a_horizontal_bullet_keeps_its_target_marker() raises:
     assert_equal(tr_vertical, 2, "turned: one vertical tick per category")
 
 
+# ---------------------------------------------------------------
+# Eventplot tooltips (#678)
+
+
+def test_an_eventplot_tick_is_titled_by_its_row_and_position() raises:
+    var titles = _grid_titles(
+        render_svg(
+            eventplot(
+                _eventplot_labels(),
+                _eventplot_positions(),
+                width=400,
+                height=300,
+            )
+        ).to_string()
+    )
+    assert_equal(len(titles), 5, "one title per event, none for the empty row")
+    assert_equal(titles[0], "a: 1")
+    assert_equal(titles[1], "a: 2")
+    assert_equal(titles[2], "a: 5")
+    assert_equal(titles[3], "c: 3")
+    assert_equal(titles[4], "c: 4")
+
+
+def test_eventplot_tooltips_follow_the_theme_flag() raises:
+    var off = render_svg(
+        eventplot(
+            _eventplot_labels(),
+            _eventplot_positions(),
+            theme=Theme(svg_tooltips=False),
+            width=400,
+            height=300,
+        )
+    ).to_string()
+    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

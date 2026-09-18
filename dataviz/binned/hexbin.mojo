@@ -287,6 +287,7 @@ def _draw_hexbin_layer[
     x_scale: LinearScale,
     y_scale: LinearScale,
     sc: _Scaled,
+    svg_tooltips: Bool,
 ) raises:
     """Fill every nonempty hexagon, one path per distinct count.
 
@@ -296,6 +297,13 @@ def _draw_hexbin_layer[
     along antialiased edges, so each path is then stroked in its own
     color at the theme's line width:
     the stroke covers the hairline the two fills leave between them.
+
+    Titled by count, not by cell (#678): the merge above is exact --
+    every hexagon folded into one path shares the identical count `c`
+    -- so `"count: 7"` on the compound path is true everywhere a reader
+    hovers it, unlike a run merged by rendered color (`Mark.HIST2D`'s
+    cells, still excluded), where two different counts can share one
+    color and a title on the run would be wrong for some of it.
     """
     var n = len(bins.count)
     if n == 0:
@@ -349,8 +357,12 @@ def _draw_hexbin_layer[
             )
             at += 1
         var color = color_scale.color_at(Float64(c))
+        if svg_tooltips:
+            target.begin_annotated_group("count: " + String(c))
         target.fill_path_aa(path, color, fill_rule=FillRule.NONZERO)
         target.stroke_path_aa(path, color, width=sc.line_width)
+        if svg_tooltips:
+            target.end_annotated_group()
 
 
 def _render_hexbin[
@@ -428,7 +440,13 @@ def _render_hexbin[
         cache=cache,
     )
     _draw_hexbin_layer(
-        target, bins, color_scale, frame.x_scale, frame.y_scale, sc
+        target,
+        bins,
+        color_scale,
+        frame.x_scale,
+        frame.y_scale,
+        sc,
+        theme.svg_tooltips,
     )
     _draw_continuous_color_legend_at(
         target,

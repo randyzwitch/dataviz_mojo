@@ -23,6 +23,7 @@ from dataviz.distributions.boxen import (
     _letter_values,
     boxenplot,
 )
+from dataviz.core.theme import Theme
 from dataviz.plot import Plot, render_svg
 from _test_helpers import _count_tag
 
@@ -425,6 +426,69 @@ def test_boxenplot_raises_on_bad_input() raises:
     var empty: List[List[Float64]] = [List[Float64]()]
     with assert_raises():
         _ = boxenplot(c1, empty)
+
+
+# ---------------------------------------------------------------
+# Tooltips on pointplot and boxenplot (#678)
+
+
+def _titles_in(svg: String) -> List[String]:
+    var out = List[String]()
+    var at = 0
+    while True:
+        var open_at = svg.find("<title>", at)
+        if open_at < 0:
+            return out^
+        var start = open_at + 7
+        var close_at = svg.find("</title>", start)
+        out.append(String(svg[byte=start:close_at]))
+        at = close_at
+
+
+def test_a_boxenplot_glyph_is_titled_by_its_median_and_widest_box() raises:
+    # n=9, depth 1: Q1/median/Q3 via numpy-style linear interpolation
+    # are the values at sorted index 2/4/6 -- 3, 5, 7.
+    var cats: List[String] = ["a", "b"]
+    var av: List[Float64] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    var bv: List[Float64] = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+    var values: List[List[Float64]] = [av^, bv^]
+    var titles = _titles_in(
+        render_svg(boxenplot(cats, values, width=400, height=300)).to_string()
+    )
+    assert_equal(len(titles), 2, "one title per category's glyph")
+    assert_equal(titles[0], "a: median 5, box 3-7")
+    assert_equal(titles[1], "b: median 50, box 30-70")
+
+
+def test_a_pointplot_point_and_whisker_are_titled_by_category_and_value() raises:
+    # Two identical observations per category give sd=0, so the
+    # closed-form whisker's lo/hi collapse onto the mean exactly --
+    # no bootstrap or percentile formula to reproduce by hand.
+    var cats: List[String] = ["a", "a", "b", "b"]
+    var vals: List[Float64] = [5.0, 5.0, 10.0, 10.0]
+    var titles = _titles_in(
+        render_svg(
+            pointplot(
+                cats, vals, errorbar=ErrorBar.sd(1.0), width=400, height=300
+            )
+        ).to_string()
+    )
+    assert_equal(
+        len(titles), 4, "one whisker title and one point title per category"
+    )
+    assert_equal(titles[0], "a: 5-5")
+    assert_equal(titles[1], "b: 10-10")
+    assert_equal(titles[2], "a: 5")
+    assert_equal(titles[3], "b: 10")
+
+
+def test_pointplot_and_boxenplot_tooltips_follow_the_theme_flag() raises:
+    var cats: List[String] = ["a", "a"]
+    var vals: List[Float64] = [5.0, 5.0]
+    var off = render_svg(
+        pointplot(cats, vals, theme=Theme(svg_tooltips=False))
+    ).to_string()
+    assert_true("<title>" not in off, "svg_tooltips=False removes them")
 
 
 def main() raises:

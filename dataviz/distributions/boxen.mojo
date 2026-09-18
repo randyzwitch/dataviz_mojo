@@ -21,7 +21,7 @@ from dataviz.plot import (
     _draw_categorical_axis_frame,
     _finished,
 )
-from dataviz.core.scale import LinearScale
+from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 
 
@@ -111,6 +111,27 @@ def _letter_values(values: List[Float64]) raises -> _LetterValues:
     )
 
 
+def _boxen_tooltip_label(plot: Plot, i: Int) raises -> String:
+    """One category's letter-value glyph, titled by its median and the
+    widest box's bounds (#678), the same shape `Mark.BOX`'s tooltip
+    uses: the depth-0 level is the full band width, drawn last (see
+    `_draw_boxen_glyphs`), so its `lower`/`upper` are the one box a
+    reader would call "the box" if there were only one.
+    """
+    var median = plot._boxen.median[i]
+    var lo = plot._boxen.lower[i][0]
+    var hi = plot._boxen.upper[i][0]
+    return (
+        plot._categorical.x[i]
+        + ": median "
+        + _format_fixed(median, _label_decimals(median))
+        + ", box "
+        + _format_fixed(lo, _label_decimals(lo))
+        + "-"
+        + _format_fixed(hi, _label_decimals(hi))
+    )
+
+
 def _draw_boxen_glyphs[
     T: DrawTarget
 ](
@@ -142,6 +163,8 @@ def _draw_boxen_glyphs[
         var scale = ColorScale.from_theme(
             theme, 0.0, Float64(max(depth - 1, 1))
         )
+        if theme.svg_tooltips:
+            target.begin_annotated_group(_boxen_tooltip_label(plot, i))
         var k = depth - 1
         while k >= 0:
             var near_v = value_scale.to_pixel(plot._boxen.lower[i][k])
@@ -167,6 +190,8 @@ def _draw_boxen_glyphs[
             theme.axis_color,
             theme.scale,
         )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
     for j in range(len(plot._boxen.outlier_value)):
         orient.band_point(
             target,

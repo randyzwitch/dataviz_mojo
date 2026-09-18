@@ -764,5 +764,68 @@ def test_hexbin_raises_with_names() raises:
         _ = render(hexbin(List[Float64](), List[Float64]()))
 
 
+# ---------------------------------------------------------------
+# Tooltips on histogram and hexbin (#678)
+
+
+def _titles_in(svg: String) -> List[String]:
+    var out = List[String]()
+    var at = 0
+    while True:
+        var open_at = svg.find("<title>", at)
+        if open_at < 0:
+            return out^
+        var start = open_at + 7
+        var close_at = svg.find("</title>", start)
+        out.append(String(svg[byte=start:close_at]))
+        at = close_at
+
+
+def test_a_histogram_bar_is_titled_by_its_bin_edges_and_count() raises:
+    # bins=3 over data spanning 0..3 gives integer edges [0,1,2,3];
+    # the last bin is closed on the right, so its 3.0 lands inside it.
+    var d: List[Float64] = [
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        2.0,
+        2.0,
+        2.0,
+        2.0,
+        3.0,
+    ]
+    var titles = _titles_in(
+        render_svg(histogram(d, bins=3, width=300, height=200)).to_string()
+    )
+    assert_equal(len(titles), 3, "one title per bin")
+    assert_equal(titles[0], "[0, 1): 2")
+    assert_equal(titles[1], "[1, 2): 3")
+    assert_equal(titles[2], "[2, 3): 5")
+
+
+def test_a_hexbin_cell_is_titled_by_its_count() raises:
+    # Three points collapse onto one cell (count 3); the fourth, far
+    # away, lands alone in a different cell (count 1) -- no adjacent
+    # equal-count cells to merge, so each title is unambiguous.
+    var x: List[Float64] = [0.0, 0.0, 0.0, 5.0]
+    var y: List[Float64] = [0.0, 0.0, 0.0, 5.0]
+    var titles = _titles_in(
+        render_svg(hexbin(x, y, gridsize=4, width=200, height=200)).to_string()
+    )
+    assert_equal(len(titles), 2, "one title per occupied cell")
+    assert_equal(titles[0], "count: 1")
+    assert_equal(titles[1], "count: 3")
+
+
+def test_binned_tooltips_follow_the_theme_flag() raises:
+    var d: List[Float64] = [0.0, 1.0, 2.0]
+    var off = render_svg(
+        histogram(d, bins=3, theme=Theme(svg_tooltips=False))
+    ).to_string()
+    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
