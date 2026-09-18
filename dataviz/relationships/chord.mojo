@@ -12,6 +12,7 @@ from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _edge_tooltip_label,
     _Scaled,
     _TextRequest,
     _LegendLayout,
@@ -162,6 +163,14 @@ def _render_chord[
         var t0 = node_cursor[ti]
         var t1 = t0 + (value / grand_total) * 2.0 * pi
         node_cursor[ti] = t1
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _edge_tooltip_label(
+                    plot._edges.from_categories[i],
+                    plot._edges.to_categories[i],
+                    value,
+                )
+            )
         _draw_chord_ribbon(
             target,
             cx,
@@ -173,6 +182,8 @@ def _render_chord[
             t1,
             palette[fi % len(palette)],
         )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     for i in range(n):
         target.fill_ring_sector_aa(

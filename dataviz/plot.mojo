@@ -6559,6 +6559,29 @@ def _span_tooltip_label(
     )
 
 
+def _edge_tooltip_label(
+    source: String, target_name: String, value: Float64
+) -> String:
+    """One edge's hover text, `"Coal -> Power: 42"` (#682).
+
+    The relationship marks draw every node's name as visible text
+    already; what no edge shows is its weight, and the weight is the
+    whole of what the ribbon's thickness encodes. So the title goes on
+    the edges rather than repeating a name that is on the page a
+    centimetre away.
+
+    An ASCII arrow, matching the plain-text style the rest of the
+    package writes in.
+    """
+    return (
+        source
+        + " -> "
+        + target_name
+        + ": "
+        + _format_fixed(value, _label_decimals(value))
+    )
+
+
 def _require_positive_supersample(factor: Int, context: String) raises:
     """Raise unless `factor >= 1`, naming the caller (`context`). Guards
     `Theme.raster_supersample` at each of its three read sites

@@ -11,6 +11,7 @@ from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _edge_tooltip_label,
     _Scaled,
     _TextRequest,
     _min_max,
@@ -85,7 +86,17 @@ def _render_arc_diagram[
         var path = Path()
         path.move_to(left_x, baseline)
         path.arc_to(cx, baseline, radius, pi, 2.0 * pi)
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _edge_tooltip_label(
+                    plot._edges.from_categories[row],
+                    plot._edges.to_categories[row],
+                    plot._edges.values[row],
+                )
+            )
         target.stroke_path_aa(path, color, width)
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     for i in range(n):
         var color = palette[i % len(palette)]

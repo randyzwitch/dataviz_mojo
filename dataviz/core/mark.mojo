@@ -622,6 +622,14 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             Mark.GANTT,
             Mark.BUMP,
             Mark.STREAMGRAPH,
+            # The relationship marks (#682), titled on their *edges*:
+            # every node's name is already drawn as visible text, and
+            # what no edge shows is its weight -- which is the whole of
+            # what its thickness encodes.
+            Mark.CHORD,
+            Mark.ARC_DIAGRAM,
+            Mark.GRAPH,
+            Mark.SANKEY,
         ]
     elif feature == Feature.DATA_LABELS:
         out = [
