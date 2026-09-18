@@ -37,9 +37,10 @@ def barplot[
 
     A bar of an estimate hides its sample size: a mean of three points
     and a mean of three thousand look the same apart from the whisker.
-    So the estimator is named on the y-axis by default (`y_title` empty
-    draws "Mean", "Median", "Count" or "Sum"), and the whisker is on by
-    default rather than opt-in.
+    So the estimator is named on the value axis by default -- the y-axis,
+    or the x-axis with `horizontal=True` (an empty `y_title`, or
+    `x_title`, draws "Mean", "Median", "Count" or "Sum") -- and the
+    whisker is on by default rather than opt-in.
 
     Args:
         categories: The group each observation belongs to, one per
@@ -58,8 +59,10 @@ def barplot[
         height: Canvas height in pixels.
         title: Chart title; empty for none.
         subtitle: Chart subtitle; empty for none.
-        x_title: X-axis title; empty for none.
-        y_title: Y-axis title; empty (the default) names the estimator.
+        x_title: X-axis title; empty for none, or for the estimator's
+            name with `horizontal=True`.
+        y_title: Y-axis title; empty (the default) names the estimator,
+            or none with `horizontal=True`.
         horizontal: Draw categories top-to-bottom with bars running
             left-to-right.
 
@@ -124,14 +127,21 @@ def barplot[
             y_err_lower=lower,
             y_err_upper=upper,
         )
-    var resolved_y = y_title if y_title.byte_length() > 0 else estimator.label()
+    # The estimator names the value axis, which is x when horizontal.
+    var resolved_x = x_title
+    var resolved_y = y_title
+    if horizontal:
+        if resolved_x.byte_length() == 0:
+            resolved_x = estimator.label()
+    elif resolved_y.byte_length() == 0:
+        resolved_y = estimator.label()
     return _finished(
         plot^,
         theme,
         width,
         height,
         title,
-        x_title,
+        resolved_x,
         resolved_y,
         subtitle=subtitle,
     )
