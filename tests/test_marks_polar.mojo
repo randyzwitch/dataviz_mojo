@@ -1223,5 +1223,78 @@ def test_single_axis_tooltips_report_the_value_alone() raises:
     assert_true("<title>1, 0</title>" not in on, "no phantom y coordinate")
 
 
+# ---------------------------------------------------------------
+# Radial-family tooltips (#680)
+
+
+def _titles_of(svg: String) -> List[String]:
+    """Every `<title>` element's text, in document order."""
+    var out = List[String]()
+    var at = 0
+    while True:
+        var open_at = svg.find("<title>", at)
+        if open_at < 0:
+            return out^
+        var start = open_at + 7
+        var close_at = svg.find("</title>", start)
+        out.append(String(svg[byte=start:close_at]))
+        at = close_at
+
+
+def test_a_wedge_is_titled_by_its_category_and_value() raises:
+    var cats: List[String] = ["North", "South"]
+    var vals: List[Float64] = [12.0, 3.5]
+    var svgs: List[String] = [
+        render_svg(nightingale(cats, vals, width=300, height=300)).to_string(),
+        render_svg(polarbar(cats, vals, width=300, height=300)).to_string(),
+        render_svg(radialbar(cats, vals, width=300, height=300)).to_string(),
+    ]
+    for svg in svgs:
+        var titles = _titles_of(svg)
+        assert_equal(len(titles), 2, "one title per category")
+        assert_equal(titles[0], "North: 12")
+        assert_equal(titles[1], "South: 3.5", "the decimals the value has")
+
+
+def test_a_gauge_is_titled_by_its_one_value() raises:
+    var titles = _titles_of(
+        render_svg(gauge(42.0, width=300, height=300)).to_string()
+    )
+    assert_equal(len(titles), 1, "one value, one title")
+    assert_equal(titles[0], "42")
+
+
+def test_a_radar_ring_is_titled_by_its_series() raises:
+    # The unit here is the series, not the vertex: the shape a reader
+    # points at is the whole ring.
+    var indicators: List[String] = ["speed", "power", "range"]
+    var maxima: List[Float64] = [10.0, 10.0, 10.0]
+    var names: List[String] = ["alpha", "beta"]
+    var series = List[List[Float64]]()
+    var a: List[Float64] = [5.0, 6.0, 7.0]
+    var b: List[Float64] = [8.0, 4.0, 6.0]
+    series.append(a^)
+    series.append(b^)
+    var titles = _titles_of(
+        render_svg(
+            radar(indicators, maxima, names, series, width=320, height=320)
+        ).to_string()
+    )
+    assert_equal(len(titles), 2, "one title per series ring")
+    assert_equal(titles[0], "alpha")
+    assert_equal(titles[1], "beta")
+
+
+def test_radial_tooltips_follow_the_theme_flag() raises:
+    var cats: List[String] = ["North", "South"]
+    var vals: List[Float64] = [12.0, 3.5]
+    var off = render_svg(
+        nightingale(
+            cats, vals, theme=Theme(svg_tooltips=False), width=300, height=300
+        )
+    ).to_string()
+    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

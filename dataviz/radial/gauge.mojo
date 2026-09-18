@@ -7,7 +7,7 @@ from canvas.text.render import TextAlign
 
 from dataviz.plot import Plot, _RenderResult, _Scaled, _TextRequest, _finished
 from dataviz.radial.polar import _polar_point
-from dataviz.core.scale import _format_fixed
+from dataviz.core.scale import _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 
 
@@ -143,6 +143,10 @@ def _render_gauge[
         needle_angle,
         max_radius * plot._mark_style.gauge_needle_fraction,
     )
+    if theme.svg_tooltips:
+        target.begin_annotated_group(
+            _format_fixed(value, _label_decimals(value))
+        )
     target.draw_line_aa(
         Int(cx),
         Int(cy),

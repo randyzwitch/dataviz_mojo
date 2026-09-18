@@ -157,12 +157,16 @@ def _render_radar[
             else:
                 poly.line_to(pt.x, pt.y)
         poly.close()
+        if theme.svg_tooltips:
+            target.begin_annotated_group(plot._radar.series_names[s])
         target.fill_path_aa(
             poly,
             color.with_alpha(theme.radar_fill_alpha),
             fill_rule=FillRule.NONZERO,
         )
         target.stroke_path_aa(poly, color, sc.line_width)
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     # Axis labels just outside each spoke's tip, aligned by which side of
     # center the tip falls on (LEFT for the right half, RIGHT for the left

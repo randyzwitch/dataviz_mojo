@@ -10,6 +10,7 @@ from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _tooltip_label,
     _Scaled,
     _TextRequest,
     _LegendLayout,
@@ -78,6 +79,13 @@ def _render_radialbar[
         var outer = max_radius - ring_slot * Float64(i) - gap / 2.0
         var inner = max_radius - ring_slot * Float64(i + 1) + gap / 2.0
         var color = palette[i % len(palette)]
+        # The group spans the track as well as the value arc: the whole
+        # ring row is that category, and a reader hovering the empty
+        # part of a row is asking about the same datum.
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _tooltip_label(plot._categorical.x[i], plot._continuous.y[i])
+            )
         target.fill_ring_sector_aa(
             cx,
             cy,
@@ -98,6 +106,8 @@ def _render_radialbar[
                 start_angle + 2.0 * pi * frac,
                 color,
             )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     if show_legend:
         _draw_legend_at(
