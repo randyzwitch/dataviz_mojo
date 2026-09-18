@@ -8,6 +8,7 @@ from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _cell_tooltip_label,
     _categorical_indices,
     _finished,
     _require_non_empty,
@@ -100,7 +101,17 @@ def _render_punchcard[
         var radius = (
             plot._punchcard.sizes[i] / plot._punchcard.scale * frame.sc.scale
         )
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _cell_tooltip_label(
+                    plot._punchcard.x[i],
+                    plot._punchcard.y[i],
+                    plot._punchcard.sizes[i],
+                )
+            )
         target.fill_circle_aa(cx, cy, radius, theme.mark_color)
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     return frame.result()
 

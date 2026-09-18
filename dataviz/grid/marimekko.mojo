@@ -9,6 +9,7 @@ from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _cell_tooltip_label,
     _Scaled,
     _TextRequest,
     _LegendLayout,
@@ -147,6 +148,14 @@ def _render_marimekko[
                     plot._marimekko.values[i][j] / col_totals[j]
                 )
                 var seg_top = round_to_int(Float64(plot_y1) - y_cum)
+                if theme.svg_tooltips:
+                    target.begin_annotated_group(
+                        _cell_tooltip_label(
+                            plot._marimekko.categories[j],
+                            plot._marimekko.subcategories[i],
+                            plot._marimekko.values[i][j],
+                        )
+                    )
                 target.fill_rect(
                     col_x0,
                     seg_top,
@@ -154,6 +163,8 @@ def _render_marimekko[
                     seg_bottom - seg_top,
                     palette[i % len(palette)],
                 )
+                if theme.svg_tooltips:
+                    target.end_annotated_group()
 
         text_requests.append(
             _TextRequest(

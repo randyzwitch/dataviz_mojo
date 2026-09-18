@@ -596,6 +596,14 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             # they depth-sort every face and emit one `fill_mesh`.
             Mark.SINGLE_AXIS,
             Mark.SCATTER3D,
+            # One cell, one title, under the theme flag alone (#679):
+            # a grid encodes its value as a color or a radius, so the
+            # title is the only way to read the number back.
+            Mark.HEATMAP,
+            Mark.CALENDAR_HEATMAP,
+            Mark.CORRPLOT,
+            Mark.PUNCHCARD,
+            Mark.MARIMEKKO,
         ]
     elif feature == Feature.DATA_LABELS:
         out = [

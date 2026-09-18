@@ -6525,6 +6525,28 @@ def _xyz_tooltip_label(x: Float64, y: Float64, z: Float64) -> String:
     )
 
 
+def _cell_tooltip_label(
+    first: String, second: String, value: Float64
+) -> String:
+    """One grid cell's hover text, `"Mon / 09:00: 42"`: both keys and
+    the value, formatted like `_tooltip_label`'s single key (#679).
+
+    A grid mark encodes its value as a color or a radius, so the cell
+    is the one shape in the library a reader cannot get a number out of
+    by looking. The title is what makes it readable, which is why these
+    marks carry one under `Theme.svg_tooltips` alone rather than an
+    opt-in flag: there is one title per cell, not one per data point in
+    a dense scatter.
+    """
+    return (
+        first
+        + " / "
+        + second
+        + ": "
+        + _format_fixed(value, _label_decimals(value))
+    )
+
+
 def _require_positive_supersample(factor: Int, context: String) raises:
     """Raise unless `factor >= 1`, naming the caller (`context`). Guards
     `Theme.raster_supersample` at each of its three read sites
