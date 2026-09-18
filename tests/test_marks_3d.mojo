@@ -17,6 +17,7 @@ from canvas.color import Color
 
 from dataviz import (
     fill_between3d,
+    scatter3d,
     quiver3d,
     stem3d,
     surface3d,
@@ -578,6 +579,41 @@ def test_the_six_ribbon_columns_must_agree() raises:
     var two: List[Float64] = [0.0, 1.0]
     with assert_raises(contains="z2 has 2"):
         _ = render(fill_between3d(three, three, three, three, three, two))
+
+
+# ---------------------------------------------------------------
+# scatter3d tooltips (#683)
+
+
+def _scatter3d_svg(tooltips: Bool) raises -> String:
+    var x: List[Float64] = [1.0, 2.5]
+    var y: List[Float64] = [3.0, 4.0]
+    var z: List[Float64] = [5.0, 6.5]
+    return render_svg(
+        scatter3d(x, y, z, tooltips=tooltips, width=300, height=300)
+    ).to_string()
+
+
+def test_scatter3d_tooltips_are_off_until_asked_for() raises:
+    # Opt-in for the reason POINT's are: a title per point roughly
+    # doubles a dense chart's SVG.
+    assert_true(
+        "<title>" not in _scatter3d_svg(False),
+        "no titles without tooltips=True",
+    )
+
+
+def test_scatter3d_tooltips_carry_all_three_coordinates() raises:
+    # All three, because the projection is what makes them necessary:
+    # two points that look adjacent on the page can be far apart along
+    # the view direction, and the title is the only way to tell them
+    # apart.
+    var svg = _scatter3d_svg(True)
+    assert_true("<title>1, 3, 5</title>" in svg, "the first point's x, y, z")
+    assert_true(
+        "<title>2.5, 4, 6.5</title>" in svg,
+        "the second point's, with the decimals its values have",
+    )
 
 
 def main() raises:

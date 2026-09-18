@@ -1999,12 +1999,23 @@ struct Plot(Copyable, Movable):
         self._mark_style.sankey_node_width = node_width
         return self^
 
-    def mark_single_axis(var self) -> Self:
+    def mark_single_axis(var self, tooltips: Bool = False) -> Self:
         """A single-axis chart: every value plotted along one horizontal axis
         with no y-axis. Encoded via `encode_single_axis()`, with the same
         optional `color`/`color_categories`/`size` channels as `Mark.POINT`.
+
+        `tooltips` works as in `mark_point()`, and for the same reason:
+        this mark draws through `_draw_point_layer`, so a title per
+        point doubles a dense chart's SVG and is opt-in (#683).
+
+        Args:
+            tooltips: Whether each point carries a hover `<title>`.
+
+        Returns:
+            Self, for further chaining.
         """
         self._mark = Mark.SINGLE_AXIS
+        self._mark_style.point_tooltips = tooltips
         self._render_canvas_family = _callback_basic[Canvas]
         self._render_svg_family = _callback_basic[SvgCanvas]
         self._render_pdf_family = _callback_basic[PdfCanvas]
@@ -2611,7 +2622,10 @@ struct Plot(Copyable, Movable):
         )
 
     def mark_scatter3d(
-        var self, elev: Float64 = 30.0, azim: Float64 = -60.0
+        var self,
+        elev: Float64 = 30.0,
+        azim: Float64 = -60.0,
+        tooltips: Bool = False,
     ) -> Self:
         """Select `Mark.SCATTER3D`: one marker per (x, y, z), drawn in
         an orthographic projection of a viewing cube (#345).
@@ -2638,6 +2652,7 @@ struct Plot(Copyable, Movable):
         self._render_bounds_family = _callback_spatial[BoundsTarget]
         self._xyz.elev = elev
         self._xyz.azim = azim
+        self._mark_style.point_tooltips = tooltips
         return self^
 
     def mark_plot3d(
@@ -6469,20 +6484,44 @@ def _span_tooltip_label(
 def _point_tooltip_label(plot: Plot, i: Int) -> String:
     """One scatter point's hover text: the row's `encode(labels=...)` entry
     when it has one, otherwise its coordinates, `"3.5, 12"`.
+
+    `Mark.SINGLE_AXIS` gets the value alone. It draws through this same
+    layer but has no y channel -- `encode_single_axis()` leaves that
+    column zero -- so the pair form read `"3.5, 0"` and reported a
+    coordinate the chart does not have (#683).
     """
     if (
         len(plot._channels.point_labels) > 0
         and plot._channels.point_labels[i] != ""
     ):
         return plot._channels.point_labels[i]
+    var x = _format_fixed(
+        plot._continuous.x[i], _label_decimals(plot._continuous.x[i])
+    )
+    if plot._mark == Mark.SINGLE_AXIS:
+        return x
     return (
-        _format_fixed(
-            plot._continuous.x[i], _label_decimals(plot._continuous.x[i])
-        )
+        x
         + ", "
         + _format_fixed(
             plot._continuous.y[i], _label_decimals(plot._continuous.y[i])
         )
+    )
+
+
+def _xyz_tooltip_label(x: Float64, y: Float64, z: Float64) -> String:
+    """One 3D datum's hover text, `"1, 2, 3"`: the same shape as
+    `_point_tooltip_label`'s coordinate fallback with the third axis
+    added (#683). A projected point is the case that needs a tooltip
+    most -- two points that look adjacent on the page can be far apart
+    along the view direction, and the title is the only way to tell.
+    """
+    return (
+        _format_fixed(x, _label_decimals(x))
+        + ", "
+        + _format_fixed(y, _label_decimals(y))
+        + ", "
+        + _format_fixed(z, _label_decimals(z))
     )
 
 
