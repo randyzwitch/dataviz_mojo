@@ -265,9 +265,15 @@ def _render_streamgraph[
         )  # the straight "cap" at the last category
         _append_smoothed_edge(path, bottom_px, bottom_py, theme.line_smoothing)
         path.close()  # the straight "cap" at the first category
+        # Per series, as on bump: the band is the shape, and its
+        # value changes at every category it spans.
+        if theme.svg_tooltips:
+            target.begin_annotated_group(plot._grouped_bar.series_names[j])
         target.fill_path_aa(
             path, palette[j % len(palette)], fill_rule=FillRule.NONZERO
         )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     if show_legend:
         _draw_legend_at(

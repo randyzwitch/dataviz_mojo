@@ -9,6 +9,7 @@ from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _tooltip_label,
     _Scaled,
     _TextRequest,
     _LegendLayout,
@@ -94,12 +95,18 @@ def _render_arc[
         var span = (plot._continuous.y[i] / total) * 2.0 * pi
         var end = start + span
         var color = palette[i % len(palette)]
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _tooltip_label(plot._categorical.x[i], plot._continuous.y[i])
+            )
         if is_donut:
             target.fill_ring_sector_aa(
                 cx, cy, inner_radius, radius, start, end, color
             )
         else:
             target.fill_arc_aa(cx, cy, radius, start, end, color)
+        if theme.svg_tooltips:
+            target.end_annotated_group()
         start = end
 
     if show_legend:

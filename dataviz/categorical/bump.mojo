@@ -288,9 +288,16 @@ def _render_bump[
                 )
             )
         var path = _build_line_path(px, py, theme.line_smoothing)
+        # Per series, not per step: the line is the shape a reader
+        # points at, and a title per vertex would put one on every
+        # category it crosses.
+        if theme.svg_tooltips:
+            target.begin_annotated_group(plot._grouped_bar.series_names[j])
         target.stroke_path_aa(
             path, palette[j % len(palette)], width=sc.line_width
         )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     if show_legend:
         _draw_legend_at(
