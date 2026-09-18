@@ -661,6 +661,19 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             Mark.NIGHTINGALE,
             Mark.POLAR_BAR,
             Mark.RADIALBAR,
+            # The next ring of categorical/binned gaps (#684): FUNNEL
+            # and ARC label inside the shape, in theme.background for
+            # contrast against their palette fill, the way TREEMAP's
+            # leaf label does; GANTT and SPAN_CHART label the *span*,
+            # not either endpoint, past the bar's far edge; CANDLESTICK
+            # labels only close, the value its body color already
+            # signals the direction of.
+            Mark.FUNNEL,
+            Mark.GANTT,
+            Mark.SPAN_CHART,
+            Mark.CANDLESTICK,
+            Mark.ARC,
+            Mark.HISTOGRAM,
         ]
     elif feature == Feature.HORIZONTAL:
         out = [

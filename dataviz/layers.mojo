@@ -1569,7 +1569,7 @@ def _render_layers_generic[
             if len(plots[j]._continuous.x) == 0:
                 continue
             _draw_histogram_layer(
-                target, plots[j], frame.x_scale, layer_y_scale
+                target, plots[j], frame.x_scale, layer_y_scale, text_requests
             )
         elif mark == Mark.KDE:
             # domains[j].xs/ys are the density curve `_layer_domain`

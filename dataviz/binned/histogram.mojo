@@ -17,14 +17,15 @@ The binning behavior matches `numpy.histogram`:
 from std.math import cbrt, ceil, log2, pi, sqrt
 
 from canvas.color import Color
+from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
-from canvas.geometry import snap_to_pixel_edge
+from canvas.geometry import round_to_int, snap_to_pixel_edge
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.distributions.box import _percentile
-from dataviz.plot import Plot, _finished, _push_plot_clip
+from dataviz.plot import Plot, _TextRequest, _finished, _push_plot_clip
 from dataviz.core.scale import _format_fixed, _label_decimals, _min_max
 from dataviz.core.step_style import StepStyle
 from dataviz.core.theme import Theme
@@ -603,6 +604,7 @@ def _draw_histogram_layer[
     plot: Plot,
     x_scale: LinearScale,
     y_scale: LinearScale,
+    mut text_requests: List[_TextRequest],
 ) raises:
     """Draw one `Mark.HISTOGRAM` plot's rectangles into an already-laid-out
     continuous axis frame: for each bin, a rect from `edges[i]` to
@@ -694,6 +696,35 @@ def _draw_histogram_layer[
             )
         if theme.svg_tooltips:
             target.end_annotated_group()
+        if theme.show_data_labels:
+            var label = _format_fixed(
+                plot._histogram.values[i],
+                _label_decimals(plot._histogram.values[i]),
+            )
+            if horizontal:
+                text_requests.append(
+                    _TextRequest(
+                        round_to_int(vp[i]) + sc.label_gap,
+                        round_to_int((lo + hi) / 2.0 + sc.font_size * 0.35),
+                        label,
+                        theme.text_color,
+                        sc.font_size,
+                        TextAlign.LEFT,
+                        theme.font_family,
+                    )
+                )
+            else:
+                text_requests.append(
+                    _TextRequest(
+                        round_to_int((lo + hi) / 2.0),
+                        round_to_int(vp[i]) - sc.label_gap,
+                        label,
+                        theme.text_color,
+                        sc.font_size,
+                        TextAlign.CENTER,
+                        theme.font_family,
+                    )
+                )
     var edge = theme.histogram_edge_color
     if edge.a == 0:
         target.pop_clip()

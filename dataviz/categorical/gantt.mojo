@@ -20,7 +20,7 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
-from dataviz.core.scale import LinearScale
+from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 
 
@@ -300,6 +300,19 @@ def _render_gantt[
         target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, theme.mark_color)
         if theme.svg_tooltips:
             target.end_annotated_group()
+        if theme.show_data_labels:
+            var span = abs(plot._gantt.end[i] - plot._gantt.start[i])
+            frame.text_requests.append(
+                _TextRequest(
+                    round_to_int(bx1) + frame.sc.label_gap,
+                    round_to_int((by0 + by1) / 2.0 + frame.sc.font_size * 0.35),
+                    _format_fixed(span, _label_decimals(span)),
+                    theme.text_color,
+                    frame.sc.font_size,
+                    TextAlign.LEFT,
+                    theme.font_family,
+                )
+            )
 
     return frame.result()
 
