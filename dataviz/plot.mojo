@@ -6384,10 +6384,13 @@ struct _RenderResult(Movable):
     `_draw_annotation_areas`) place values with the same `to_pixel` the
     data went through. `has_y_scale` defaults `False` with an inert
     placeholder scale; only the frames that support annotations pass a
-    real one. `x_scale`/`has_x_scale` mirror that for the x-axis, set
-    only by `_ContinuousFrame.result()` since a categorical x-axis has no
-    numeric domain; `annotate_vline()`/`annotate_point()` therefore
-    support only `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER`.
+    real one. `x_scale`/`has_x_scale` mirror that for the x-axis, set by
+    `_ContinuousFrame.result()` and by
+    `_HorizontalCategoricalFrame.result()`, whose continuous axis is the
+    x one (#688); a vertical categorical frame sets neither, since its
+    x-axis has no numeric domain. Which marks that leaves is
+    `Mark.supports(Feature.ANNOTATIONS_X)` and `ANNOTATIONS_XY`
+    (mark.mojo), not a list restated here.
     """
 
     var text_requests: List[_TextRequest]

@@ -20,7 +20,7 @@ Covers:
 
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.color import Color
-from dataviz import Theme, bar, kdeplot, line, rugplot
+from dataviz import Theme, bar, gantt, kdeplot, line, rugplot
 from dataviz.core.theme import Theme
 from dataviz.plot import (
     Plot,
@@ -1400,6 +1400,104 @@ def test_a_band_inside_the_domain_is_unchanged() raises:
         not _painted(outside.r, outside.g, outside.b),
         "and stops where its own upper curve is, not at the rect's top",
     )
+
+
+# ---------------------------------------------------------------
+# annotate_vline() on the horizontal categorical frame (#688)
+
+
+def _x_of_text(svg: String, content: String) raises -> Float64:
+    """The `x` of the `<text>` element whose content is exactly
+    `content` -- here an x-axis tick label, so the axis's own placement
+    of that value."""
+    var needle = ">" + content + "</text>"
+    var at = svg.find(needle)
+    if at < 0:
+        raise Error("no <text> element with content " + content)
+    var head = String(svg[byte=0:at])
+    var open_at = head.rfind("<text")
+    if open_at < 0:
+        raise Error("malformed <text> around " + content)
+    var element = String(head[byte=open_at:])
+    var key = ' x="'
+    var k = element.find(key)
+    var v = k + key.byte_length()
+    var end = element.find('"', v)
+    return Float64(String(element[byte=v:end]))
+
+
+def _x_of_annotation_line(svg: String) raises -> Float64:
+    """The `x1` of the reference line, found by its annotation color so
+    it is not confused with an axis or tick line."""
+    var at = svg.find('stroke="#969696"')
+    if at < 0:
+        raise Error("no annotation-colored line in the document")
+    var head = String(svg[byte=0:at])
+    var open_at = head.rfind("<line")
+    var element = String(head[byte=open_at:])
+    var key = ' x1="'
+    var k = element.find(key)
+    var v = k + key.byte_length()
+    var end = element.find('"', v)
+    return Float64(String(element[byte=v:end]))
+
+
+def _gantt_at(value: Float64) raises -> String:
+    """One task spanning 2 to 6, with a reference line at `value`."""
+    var cats: List[String] = ["build"]
+    var start: List[Float64] = [2.0]
+    var end: List[Float64] = [6.0]
+    return render_svg(
+        gantt(
+            cats,
+            start,
+            end,
+            theme=Theme(show_gridlines=False),
+            width=400,
+            height=300,
+        ).annotate_vline(value, label="t")
+    ).to_string()
+
+
+def test_a_vline_on_a_gantt_lands_where_the_axis_puts_that_value() raises:
+    # The horizontal categorical frame reported neither scale until #688,
+    # so this raised rather than drawing. The oracle is the axis's own
+    # tick for the same value, read from the same document: if the
+    # annotation went through a different scale than the data, the two
+    # would not coincide.
+    var values: List[Float64] = [2.0, 4.0, 6.0]
+    for value in values:
+        var svg = _gantt_at(value)
+        var label = String(Int(value))
+        assert_equal(
+            _x_of_annotation_line(svg),
+            _x_of_text(svg, label),
+            "the reference line at "
+            + label
+            + " sits on that value's x-axis tick",
+        )
+
+
+def test_a_vline_on_a_gantt_spans_the_plot_height() raises:
+    var svg = _gantt_at(4.0)
+    var x = String(Int(_x_of_annotation_line(svg))) + ".000"
+    assert_true(
+        '<line x1="' + x + '" y1="20.000" x2="' + x + '" y2="250.000"' in svg,
+        (
+            "the line spans the inner plot rect top to bottom, as on a"
+            " continuous frame"
+        ),
+    )
+
+
+def test_a_vline_on_a_vertical_categorical_mark_still_raises() raises:
+    # The two categorical frames stay distinct: the vertical one's x-axis
+    # is the category axis and has no numeric domain, so a vline against
+    # it means nothing and says so.
+    var cats: List[String] = ["a", "b"]
+    var vals: List[Float64] = [1.0, 2.0]
+    with assert_raises(contains="no continuous x-axis"):
+        _ = render_svg(bar(cats, vals).annotate_vline(1.0))
 
 
 def main() raises:
