@@ -7323,6 +7323,56 @@ def save(
             write_bmp(render(bmp_scaled), path)
 
 
+def _reject_mismatched_extension(
+    path: String,
+    because: String,
+    accepted: String,
+    wrong: List[String],
+) raises:
+    """Raise before opening `path` when its extension names a format
+    this canvas cannot produce (#696).
+
+    Before this, `save(canvas, "chart.pdf")` wrote PNG bytes and
+    `save(svg, "chart.pdf")` wrote markup: each overload rejected only
+    the extensions someone had thought of, and everything else fell
+    through to the default writer. A file that says `.pdf` and holds a
+    PNG is worse than a failed save, because nothing reports it.
+
+    Checked before the file is opened, so a rejected path is left
+    untouched rather than created and truncated. An unrecognized or
+    absent extension is allowed through to the caller's chosen writer,
+    which is what lets `save(canvas, "out")` still work.
+
+    `because` is the canvas's own explanation of why it cannot, kept
+    per-canvas rather than generated, so a caller gets the same
+    sentence that told them something useful before this was
+    centralized.
+
+    Args:
+        path: The destination.
+        because: Why this canvas cannot write that format.
+        accepted: The extension this canvas writes.
+        wrong: The recognized extensions it cannot.
+
+    Raises:
+        Error: `path` ends in one of `wrong`.
+    """
+    var lower = path.lower()
+    for ext in wrong:
+        if lower.endswith(ext):
+            raise Error(
+                "save(): cannot write a "
+                + ext
+                + " file here -- "
+                + because
+                + " Save it as "
+                + accepted
+                + ", or build the chart as a Plot and call"
+                + " save(plot, path), which renders whatever format the"
+                + " extension asks for."
+            )
+
+
 def save(svg: SvgCanvas, path: String) raises:
     """Write an already-rendered `SvgCanvas` to `path` (#620).
 
@@ -7342,13 +7392,13 @@ def save(svg: SvgCanvas, path: String) raises:
     Raises:
         Error: A `.png` or `.bmp` path, or the write fails.
     """
-    var lower = path.lower()
-    if lower.endswith(".png") or lower.endswith(".bmp"):
-        raise Error(
-            "save(): an SvgCanvas is vector markup, not pixels -- render"
-            " the Plot it came from with render() and save that, which"
-            " lets you choose the size and resolution the raster gets."
-        )
+    var wrong: List[String] = [".png", ".bmp", ".pdf"]
+    _reject_mismatched_extension(
+        path,
+        "an SvgCanvas is vector markup, not pixels.",
+        ".svg",
+        wrong,
+    )
     var f = open(path, "w")
     f.write(svg.to_string())
     f.close()
@@ -7359,17 +7409,49 @@ def save(canvas: Canvas, path: String) raises:
     extension, PNG otherwise. A `.svg` path raises, since raster pixels
     can't become vector markup.
     """
-    var lower = path.lower()
-    if lower.endswith(".svg"):
-        raise Error(
-            "save(): a Canvas is already-rendered raster pixels -- write_svg"
-            " can't produce real vector markup from it. Build the chart as a"
-            " Plot and call save(plot, path) instead."
-        )
-    elif lower.endswith(".bmp"):
+    var wrong: List[String] = [".svg", ".pdf"]
+    _reject_mismatched_extension(
+        path,
+        "a Canvas is already-rendered raster pixels.",
+        ".png or .bmp",
+        wrong,
+    )
+    if path.lower().endswith(".bmp"):
         write_bmp(canvas, path)
     else:
         write_png(canvas, path)
+
+
+def save(var pdf: PdfCanvas, path: String) raises:
+    """Write an already-rendered `PdfCanvas` to `path` (#696).
+
+    The third rendered-canvas overload, completing the set: before it,
+    a caller holding a `PdfCanvas` had no `save()` at all and had to
+    reach for `canvas.vector.pdf.write_pdf` while every other canvas
+    type saved through this function.
+
+    Takes the document by value rather than by `mut`, so
+    `save(render_pdf(plot), path)` compiles inline the way
+    `save(scatter(x, y), path)` does; `write_pdf` needs a mutable
+    document because writing finalizes it, and an owned parameter is
+    mutable without forcing the caller to bind a temporary first.
+
+    Args:
+        pdf: The rendered document.
+        path: Where to write it; the extension must be `.pdf`, or
+            absent.
+
+    Raises:
+        Error: A `.png`, `.bmp` or `.svg` path, or the write fails.
+    """
+    var wrong: List[String] = [".png", ".bmp", ".svg"]
+    _reject_mismatched_extension(
+        path,
+        "a PdfCanvas is a finished PDF document.",
+        ".pdf",
+        wrong,
+    )
+    write_pdf(pdf, path)
 
 
 def accessible_svg_string(

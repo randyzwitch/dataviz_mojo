@@ -1329,5 +1329,94 @@ def test_all_three_backends_crop_to_the_same_box() raises:
     )
 
 
+# ---------------------------------------------------------------
+# save() format contract for rendered canvases (#696)
+
+
+def _write_sentinel(path: String) raises:
+    """Put a known byte sequence at `path` so a later read can say
+    whether a refused save touched it."""
+    var f = open(path, "w")
+    f.write("SENTINEL")
+    f.close()
+
+
+def _still_sentinel(path: String) raises -> Bool:
+    """Whether `path` still holds exactly what `_write_sentinel` put
+    there -- that is, the refused save neither truncated nor rewrote
+    it."""
+    var f = open(path, "r")
+    var text = f.read()
+    f.close()
+    return text == "SENTINEL"
+
+
+def test_each_rendered_canvas_saves_to_its_own_format() raises:
+    # The signature, not the extension: the bug this guards produced
+    # files whose name and contents disagreed.
+    var p = _tiny_plot(_clear_theme())
+    var png = "/tmp/dataviz_test_contract.png"
+    save(render(p), png)
+    var a = _file_bytes(png)
+    assert_equal(Int(a[1]), 80, "PNG's second byte is 'P'")
+
+    var svg = "/tmp/dataviz_test_contract.svg"
+    save(render_svg(p), svg)
+    var b = _file_bytes(svg)
+    assert_equal(Int(b[0]), 60, "SVG starts with '<'")
+
+    var pdf = "/tmp/dataviz_test_contract.pdf"
+    save(render_pdf(p), pdf)
+    var c = _file_bytes(pdf)
+    assert_equal(Int(c[0]), 37, "PDF starts with '%'")
+
+
+def test_a_rendered_canvas_refuses_a_path_it_cannot_honor() raises:
+    # save(canvas, "chart.pdf") wrote PNG bytes and save(svg, "chart.pdf")
+    # wrote markup: each overload rejected only the extensions someone
+    # had thought of, and the rest fell through to the default writer
+    # (#696). The rejection happens before the file is opened, so a
+    # refused path is left untouched rather than created and truncated.
+    # Each destination is seeded first, so the assertion is that the
+    # refused save left it exactly as it found it -- stronger than "no
+    # file appeared", and independent of what an earlier run left in
+    # /tmp.
+    var p = _tiny_plot(_clear_theme())
+    var raster_to_pdf = "/tmp/dataviz_test_refuse_a.pdf"
+    _write_sentinel(raster_to_pdf)
+    with assert_raises(contains="cannot write a .pdf"):
+        save(render(p), raster_to_pdf)
+    assert_true(_still_sentinel(raster_to_pdf), "and left the file alone")
+
+    var svg_to_pdf = "/tmp/dataviz_test_refuse_b.pdf"
+    _write_sentinel(svg_to_pdf)
+    with assert_raises(contains="vector markup, not pixels"):
+        save(render_svg(p), svg_to_pdf)
+    assert_true(_still_sentinel(svg_to_pdf), "and left the file alone")
+
+    var pdf_to_png = "/tmp/dataviz_test_refuse_c.png"
+    _write_sentinel(pdf_to_png)
+    with assert_raises(contains="cannot write a .png"):
+        save(render_pdf(p), pdf_to_png)
+    assert_true(_still_sentinel(pdf_to_png), "and left the file alone")
+
+    var pdf_to_svg = "/tmp/dataviz_test_refuse_d.svg"
+    _write_sentinel(pdf_to_svg)
+    with assert_raises(contains="cannot write a .svg"):
+        save(render_pdf(p), pdf_to_svg)
+    assert_true(_still_sentinel(pdf_to_svg), "and left the file alone")
+
+
+def test_an_unrecognized_extension_still_takes_the_canvas_default() raises:
+    # Only a *recognized* extension that the canvas cannot produce is
+    # refused; an unknown or absent one goes to that canvas's own
+    # writer, which is what keeps save(canvas, "out") working.
+    var p = _tiny_plot(_clear_theme())
+    var path = "/tmp/dataviz_test_contract_noext"
+    save(render(p), path)
+    var a = _file_bytes(path)
+    assert_equal(Int(a[1]), 80, "still a PNG")
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
