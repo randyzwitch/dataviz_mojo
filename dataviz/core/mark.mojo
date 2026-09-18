@@ -677,6 +677,7 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             # is what a vertical categorical axis crowds.
             Mark.WATERFALL,
             Mark.BULLET,
+            Mark.POINTPLOT,
         ]
     elif feature == Feature.ANNOTATIONS_Y:
         out = [

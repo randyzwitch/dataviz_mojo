@@ -10,6 +10,7 @@ from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.basic.bar import _bar_y_domain_data
 from dataviz.plot import (
     Plot,
+    _Orientation,
     _RenderResult,
     _Scaled,
     _axis_pixel_f,
@@ -20,7 +21,9 @@ from dataviz.plot import (
 )
 from dataviz.core.stats import ErrorBar, Estimator, _Aggregate, _aggregate
 from dataviz.core.theme import Theme
-from dataviz.core.scale import _format_fixed, _label_decimals
+from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
+from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
+from dataviz.core.ordinal_scale import OrdinalScale
 
 
 def _pointplot_value_label(plot: Plot, i: Int) -> String:
@@ -49,55 +52,48 @@ def _pointplot_interval_label(
     )
 
 
-def _render_pointplot[
+def _pointplot_value_extent(plot: Plot) raises -> LinearScale:
+    """The value axis's domain: `_data_extent` over the values and
+    whisker ends, not a zero baseline -- an estimate's position is what
+    the chart encodes, and forcing zero onto the axis would compress a
+    set of means that all sit far from it, the same reason `Mark.POINT`
+    does not baseline. Shared by both orientations."""
+    return _data_extent(_bar_y_domain_data(plot))
+
+
+def _draw_pointplot_marks[
     T: DrawTarget
 ](
     mut target: T,
     plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """Render a `Mark.POINTPLOT` plot: `_render_bar`'s categorical x-axis
-    (`_draw_categorical_axis_frame`) with, at each category's band
-    center, a whisker from `y_err_lower` to `y_err_upper` when
-    `Plot.encode_categorical()` set them, a line joining consecutive
-    values, and a point on the value -- drawn in that order so the
-    point sits on top of everything at its own position.
+    value_scale: LinearScale,
+    band_scale: OrdinalScale,
+    orient: _Orientation,
+) raises:
+    """At each category's band center: a whisker from `y_err_lower` to
+    `y_err_upper` when `Plot.encode_categorical()` set them, a line
+    joining consecutive values, and a point on the value -- drawn in
+    that order so the point sits on top of everything at its own
+    position -- in whichever orientation `orient` names (#686).
 
-    The y-domain is `_data_extent` over the values and whisker ends,
-    not a zero baseline: an estimate's position is what the chart
-    encodes, and forcing zero onto the axis would compress a set of
-    means that all sit far from it -- the same reason `Mark.POINT`
-    does not baseline.
+    Its own function, as `_draw_bullet_rows` is, so the vertical and
+    horizontal renders share the geometry. Everything goes through
+    `_Orientation`: the points through `band_point`, and the whisker,
+    its caps and the joining line through `point_line`, which does not
+    snap -- the vertical render is byte-identical to the one before
+    this split.
     """
-    _validate_categorical_encoding(plot)
     var theme = plot._theme
-    var y_scale = _data_extent(_bar_y_domain_data(plot))
-    var frame = _draw_categorical_axis_frame(
-        target,
-        plot._categorical.x,
-        y_scale,
-        theme,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
     var sc = _Scaled(theme)
     var n = len(plot._categorical.x)
     var has_err = len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
     var cap_half = sc.error_bar_cap_width
 
-    var cxs = List[Float64](capacity=n)
-    var pys = List[Float64](capacity=n)
+    var bands = List[Float64](capacity=n)
+    var values = List[Float64](capacity=n)
     for i in range(n):
-        cxs.append(frame.x_scale.center(i))
-        pys.append(_axis_pixel_f(frame.y_scale, plot._continuous.y[i]))
+        bands.append(band_scale.center(i))
+        values.append(_axis_pixel_f(value_scale, plot._continuous.y[i]))
 
     if has_err:
         for i in range(n):
@@ -110,52 +106,132 @@ def _render_pointplot[
             else:
                 lo = value - plot._y_err.lower[i]
                 hi = value + plot._y_err.upper[i]
-            var py_lo = _axis_pixel_f(frame.y_scale, lo)
-            var py_hi = _axis_pixel_f(frame.y_scale, hi)
+            var at_lo = _axis_pixel_f(value_scale, lo)
+            var at_hi = _axis_pixel_f(value_scale, hi)
             if theme.svg_tooltips:
                 target.begin_annotated_group(
                     _pointplot_interval_label(plot, i, lo, hi)
                 )
-            target.draw_line_aa(
-                cxs[i], py_hi, cxs[i], py_lo, theme.mark_color, width=sc.scale
-            )
-            target.draw_line_aa(
-                cxs[i] - cap_half,
-                py_hi,
-                cxs[i] + cap_half,
-                py_hi,
+            orient.point_line(
+                target,
+                at_hi,
+                bands[i],
+                at_lo,
+                bands[i],
                 theme.mark_color,
-                width=sc.scale,
+                sc.scale,
             )
-            target.draw_line_aa(
-                cxs[i] - cap_half,
-                py_lo,
-                cxs[i] + cap_half,
-                py_lo,
+            orient.point_line(
+                target,
+                at_hi,
+                bands[i] - cap_half,
+                at_hi,
+                bands[i] + cap_half,
                 theme.mark_color,
-                width=sc.scale,
+                sc.scale,
+            )
+            orient.point_line(
+                target,
+                at_lo,
+                bands[i] - cap_half,
+                at_lo,
+                bands[i] + cap_half,
+                theme.mark_color,
+                sc.scale,
             )
             if theme.svg_tooltips:
                 target.end_annotated_group()
 
     for i in range(1, n):
-        target.draw_line_aa(
-            cxs[i - 1],
-            pys[i - 1],
-            cxs[i],
-            pys[i],
+        orient.point_line(
+            target,
+            values[i - 1],
+            bands[i - 1],
+            values[i],
+            bands[i],
             theme.mark_color,
-            width=sc.line_width,
+            sc.line_width,
         )
 
     var radius = Float64(round_to_int(sc.point_radius))
     for i in range(n):
         if theme.svg_tooltips:
             target.begin_annotated_group(_pointplot_value_label(plot, i))
-        target.fill_circle_aa(cxs[i], pys[i], radius, theme.mark_color)
+        orient.band_point(target, values[i], bands[i], radius, theme.mark_color)
         if theme.svg_tooltips:
             target.end_annotated_group()
 
+
+def _render_pointplot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """Render a `Mark.POINTPLOT` plot on `_render_bar`'s categorical
+    x-axis (`_draw_categorical_axis_frame`), the values running up the
+    page; `_draw_pointplot_marks` draws the whiskers, joining line and
+    points, and `_pointplot_value_extent` says why the value axis does
+    not start at zero.
+    """
+    _validate_categorical_encoding(plot)
+    var frame = _draw_categorical_axis_frame(
+        target,
+        plot._categorical.x,
+        _pointplot_value_extent(plot),
+        plot._theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+    _draw_pointplot_marks(
+        target, plot, frame.y_scale, frame.x_scale, _Orientation(False)
+    )
+    return frame.result()
+
+
+def _render_horizontal_pointplot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_pointplot`'s mirror image for
+    `Plot.mark_pointplot(horizontal=True)` (#686): the categories run
+    down the page and the estimates rightward, on
+    `_draw_horizontal_categorical_axis_frame` (gantt.mojo) -- the
+    orientation for long category names, which a vertical categorical
+    axis crowds.
+    """
+    _validate_categorical_encoding(plot)
+    var frame = _draw_horizontal_categorical_axis_frame(
+        target,
+        plot._categorical.x,
+        _pointplot_value_extent(plot),
+        plot._theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+    _draw_pointplot_marks(
+        target, plot, frame.x_scale, frame.y_scale, _Orientation(True)
+    )
     return frame.result()
 
 
@@ -174,6 +250,7 @@ def pointplot[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    horizontal: Bool = False,
 ) raises -> Plot:
     """One point per distinct category at an *estimate* of that category's
     values -- the mean by default -- with a whisker for its uncertainty
@@ -187,8 +264,9 @@ def pointplot[
     order they are first seen in.
 
     An estimate hides its sample size, so the estimator is named on
-    the y-axis by default (`y_title` empty draws "Mean", "Median",
-    "Count" or "Sum") and the whisker is on by default.
+    the value axis by default -- the y-axis, or the x-axis with
+    `horizontal=True` (an empty `y_title`, or `x_title`, draws "Mean",
+    "Median", "Count" or "Sum") -- and the whisker is on by default.
 
     Args:
         categories: The group each observation belongs to, one per
@@ -206,8 +284,12 @@ def pointplot[
         height: Canvas height in pixels.
         title: Chart title; empty for none.
         subtitle: Chart subtitle; empty for none.
-        x_title: X-axis title; empty for none.
-        y_title: Y-axis title; empty (the default) names the estimator.
+        x_title: X-axis title; empty for none, or for the estimator's
+            name with `horizontal=True`.
+        y_title: Y-axis title; empty (the default) names the estimator,
+            or none with `horizontal=True`.
+        horizontal: Run the categories down the page and the estimates
+            rightward, for long category names.
 
     Returns:
         The finished `Plot`, ready to `render()` or `save()`.
@@ -255,7 +337,7 @@ def pointplot[
         )
     except e:
         raise Error("pointplot(): " + String(e))
-    var plot = Plot().mark_pointplot()
+    var plot = Plot().mark_pointplot(horizontal=horizontal)
     if errorbar.is_none() or estimator == Estimator.COUNT:
         plot = plot^.encode_categorical(x=agg.categories, y=agg.estimates)
     else:
@@ -270,14 +352,22 @@ def pointplot[
             y_err_lower=lower,
             y_err_upper=upper,
         )
-    var resolved_y = y_title if y_title.byte_length() > 0 else estimator.label()
+    # The estimator names the value axis, which is x when horizontal
+    # (#709 is the same rule for barplot()).
+    var resolved_x = x_title
+    var resolved_y = y_title
+    if horizontal:
+        if resolved_x.byte_length() == 0:
+            resolved_x = estimator.label()
+    elif resolved_y.byte_length() == 0:
+        resolved_y = estimator.label()
     return _finished(
         plot^,
         theme,
         width,
         height,
         title,
-        x_title,
+        resolved_x,
         resolved_y,
         subtitle=subtitle,
     )

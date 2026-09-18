@@ -16,7 +16,10 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.mark import Mark
 from dataviz.plot import Plot, _RenderResult
-from dataviz.aggregation.pointplot import _render_pointplot
+from dataviz.aggregation.pointplot import (
+    _render_horizontal_pointplot,
+    _render_pointplot,
+)
 
 
 def _render_aggregation_family[
@@ -51,6 +54,12 @@ def _render_aggregation_family[
         to another family.
     """
     if plot._mark == Mark.POINTPLOT:
+        if plot._horizontal:
+            return Optional(
+                _render_horizontal_pointplot(
+                    target, plot, ox0, oy0, ox1, oy1, cache=cache
+                )
+            )
         return Optional(
             _render_pointplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
         )

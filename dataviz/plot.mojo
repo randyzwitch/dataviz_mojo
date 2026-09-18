@@ -1263,17 +1263,22 @@ struct Plot(Copyable, Movable):
         self._render_bounds_family = _callback_multivariate[BoundsTarget]
         return self^
 
-    def mark_pointplot(var self) -> Self:
+    def mark_pointplot(var self, horizontal: Bool = False) -> Self:
         """Use `Mark.POINTPLOT`: one point per category at its value, with
         `encode_categorical()`'s `y_err_lower`/`y_err_upper` as a whisker
         and a line joining the points -- the glyph `pointplot()` draws
-        for an estimate per category. The y-axis follows the data
-        rather than starting at zero; see `_render_pointplot`.
+        for an estimate per category. The value axis follows the data
+        rather than starting at zero; see `_pointplot_value_extent`.
+
+        Args:
+            horizontal: Run the categories down the page and the values
+                rightward, for long category names.
 
         Returns:
             Self, for further chaining.
         """
         self._mark = Mark.POINTPLOT
+        self._horizontal = horizontal
         self._render_canvas_family = _callback_aggregation[Canvas]
         self._render_svg_family = _callback_aggregation[SvgCanvas]
         self._render_pdf_family = _callback_aggregation[PdfCanvas]
