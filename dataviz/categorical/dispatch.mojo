@@ -16,7 +16,10 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.mark import Mark
 from dataviz.plot import Plot, _RenderResult
-from dataviz.categorical.bullet import _render_bullet
+from dataviz.categorical.bullet import (
+    _render_bullet,
+    _render_horizontal_bullet,
+)
 from dataviz.categorical.bump import _render_bump
 from dataviz.categorical.funnel import _render_funnel
 from dataviz.categorical.gantt import _render_gantt
@@ -93,6 +96,12 @@ def _render_categorical_family[
             _render_waterfall(target, plot, ox0, oy0, ox1, oy1, cache=cache)
         )
     if plot._mark == Mark.BULLET:
+        if plot._horizontal:
+            return Optional(
+                _render_horizontal_bullet(
+                    target, plot, ox0, oy0, ox1, oy1, cache=cache
+                )
+            )
         return Optional(
             _render_bullet(target, plot, ox0, oy0, ox1, oy1, cache=cache)
         )
