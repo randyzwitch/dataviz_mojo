@@ -1201,5 +1201,27 @@ def test_render_single_axis_raises_on_no_data() raises:
         _ = render(_hoisted4)
 
 
+# ---------------------------------------------------------------
+# single_axis tooltips (#683)
+
+
+def test_single_axis_tooltips_report_the_value_alone() raises:
+    # This mark draws through Mark.POINT's layer, which had the whole
+    # tooltip mechanism already -- only the opt-in parameter was
+    # missing, so the capability was unreachable through the public API.
+    # Its label is the value alone: encode_single_axis() leaves the y
+    # column zero, and the pair form reported a "0" coordinate the
+    # chart does not have.
+    var xs: List[Float64] = [1.0, 2.5]
+    var off = render_svg(single_axis(xs, width=300, height=200)).to_string()
+    assert_true("<title>" not in off, "no titles without tooltips=True")
+    var on = render_svg(
+        single_axis(xs, tooltips=True, width=300, height=200)
+    ).to_string()
+    assert_true("<title>1</title>" in on, "the first value, alone")
+    assert_true("<title>2.5</title>" in on, "the second, keeping its decimal")
+    assert_true("<title>1, 0</title>" not in on, "no phantom y coordinate")
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

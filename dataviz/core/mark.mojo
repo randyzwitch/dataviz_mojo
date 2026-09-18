@@ -590,6 +590,12 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             Mark.BEESWARM,
             Mark.VIOLIN,
             Mark.SPAN_CHART,
+            # Opt-in, like POINT and EFFECT_SCATTER: each draws one
+            # primitive per datum, so a group can wrap it (#683). The
+            # mesh marks (BAR3D, VOXELS, SURFACE3D, TRISURF3D) cannot:
+            # they depth-sort every face and emit one `fill_mesh`.
+            Mark.SINGLE_AXIS,
+            Mark.SCATTER3D,
         ]
     elif feature == Feature.DATA_LABELS:
         out = [

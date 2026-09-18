@@ -19,7 +19,13 @@ first one per feature.
 from std.testing import TestSuite, assert_equal, assert_false, assert_true
 
 from _mark_registry import _H, _W, _representative_plot
-from dataviz import beeswarm, effect_scatter, scatter
+from dataviz import (
+    beeswarm,
+    effect_scatter,
+    scatter,
+    scatter3d,
+    single_axis,
+)
 from dataviz.core.mark import Feature, Mark, _marks_supporting
 from dataviz.core.theme import Theme
 from dataviz.plot import Plot, render_svg
@@ -48,14 +54,19 @@ def _every_mark() -> List[Mark]:
 
 
 def _with_tooltips_opt_in(mark: Mark) raises -> Plot:
-    """The three point-per-datum marks, built with their own
-    `tooltips=True`; `_representative_plot` builds them without it."""
+    """The point-per-datum marks, built with their own `tooltips=True`;
+    `_representative_plot` builds them without it."""
     var xs: List[Float64] = [1.0, 2.0, 3.0]
     var ys: List[Float64] = [3.0, 1.0, 2.0]
+    var zs: List[Float64] = [2.0, 3.0, 1.0]
     if mark == Mark.POINT:
         return scatter(xs, ys, tooltips=True, width=_W, height=_H)
     if mark == Mark.EFFECT_SCATTER:
         return effect_scatter(xs, ys, tooltips=True, width=_W, height=_H)
+    if mark == Mark.SINGLE_AXIS:
+        return single_axis(xs, tooltips=True, width=_W, height=_H)
+    if mark == Mark.SCATTER3D:
+        return scatter3d(xs, ys, zs, tooltips=True, width=_W, height=_H)
     var cats: List[String] = ["a", "b"]
     var values = List[List[Float64]]()
     var a: List[Float64] = [1.0, 2.0, 3.0, 4.0]
@@ -139,6 +150,8 @@ def test_every_mark_matches_the_table() raises:
             mark == Mark.POINT
             or mark == Mark.EFFECT_SCATTER
             or mark == Mark.BEESWARM
+            or mark == Mark.SINGLE_AXIS
+            or mark == Mark.SCATTER3D
         )
         if opt_in:
             if has_title:

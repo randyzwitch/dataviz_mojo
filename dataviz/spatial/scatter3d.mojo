@@ -41,6 +41,7 @@ from dataviz.plot import (
     _finished,
     _min_max,
     _require_non_empty,
+    _xyz_tooltip_label,
 )
 from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
@@ -262,12 +263,21 @@ def _render_scatter3d[
 
     var order = _depth_order(plot, frame)
     var radius = sc.point_radius
+    var tooltips = theme.svg_tooltips and plot._mark_style.point_tooltips
     for k in range(len(order)):
         var i = order[k]
         var at = frame.to_pixel(plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i])
+        if tooltips:
+            target.begin_annotated_group(
+                _xyz_tooltip_label(
+                    plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i]
+                )
+            )
         # A circle, not `Theme.shape_by_category`'s cycle: shapes there
         # encode a category, and this mark has no category channel yet.
         target.fill_circle_aa(at[0], at[1], radius, theme.mark_color)
+        if tooltips:
+            target.end_annotated_group()
     return _RenderResult(text^, px0, py0, px1, py1)
 
 
@@ -328,6 +338,7 @@ def scatter3d[
     z: List[Scalar[dtype]],
     elev: Float64 = 30.0,
     azim: Float64 = -60.0,
+    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 480,
@@ -391,7 +402,7 @@ def scatter3d[
     """
     var plot = (
         Plot()
-        .mark_scatter3d(elev=elev, azim=azim)
+        .mark_scatter3d(elev=elev, azim=azim, tooltips=tooltips)
         .encode_xyz(
             _materialize_scalar_list(x),
             _materialize_scalar_list(y),

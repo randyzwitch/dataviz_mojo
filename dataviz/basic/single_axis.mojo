@@ -207,6 +207,7 @@ def single_axis[
     color: List[Float64] = List[Float64](),
     color_categories: List[String] = List[String](),
     size: List[Float64] = List[Float64](),
+    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -275,7 +276,7 @@ def single_axis[
     var x_f = _materialize_scalar_list(x)
     var plot = (
         Plot()
-        .mark_single_axis()
+        .mark_single_axis(tooltips=tooltips)
         .encode_single_axis(
             x=x_f, color=color, color_categories=color_categories, size=size
         )
