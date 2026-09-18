@@ -26,6 +26,7 @@ from canvas.path import PathOp
 from canvas.vector.svg import SvgCanvas
 from dataviz import (
     bump,
+    bullet,
     calendar_heatmap,
     corrplot,
     eventplot,
@@ -2906,6 +2907,87 @@ def test_a_horizontal_waterfall_still_joins_its_bars() raises:
         len(cats) - 1,
         "one vertical connector between each pair of neighboring bars",
     )
+
+
+# ---------------------------------------------------------------
+# Horizontal bullet (#686)
+
+
+def _bullet_plots() raises -> Tuple[String, String]:
+    """The same bullet chart upright and turned."""
+    var cats: List[String] = ["revenue", "margin"]
+    var ranges = List[List[Float64]]()
+    var r0: List[Float64] = [50.0, 80.0, 100.0]
+    var r1: List[Float64] = [50.0, 80.0, 100.0]
+    ranges.append(r0^)
+    ranges.append(r1^)
+    var measures: List[Float64] = [75.0, 60.0]
+    var targets: List[Float64] = [90.0, 70.0]
+    var t = Theme(show_gridlines=False)
+    var upright = render_svg(
+        bullet(cats, measures, targets, ranges, theme=t, width=420, height=220)
+    ).to_string()
+    var turned = render_svg(
+        bullet(
+            cats,
+            measures,
+            targets,
+            ranges,
+            horizontal=True,
+            theme=t,
+            width=420,
+            height=220,
+        )
+    ).to_string()
+    return (upright, turned)
+
+
+def test_a_horizontal_bullet_turns_its_axes() raises:
+    # Same property as the horizontal waterfall: upright, a row's bands
+    # and measure share one band width and differ in height; turned,
+    # they share one band height and differ in width.
+    var both = _bullet_plots()
+    assert_true(both[1] != both[0], "horizontal=True changes the picture")
+    var up_w = _spread(_attr_values(both[0], "rect", "width"))
+    var up_h = _spread(_attr_values(both[0], "rect", "height"))
+    var tr_w = _spread(_attr_values(both[1], "rect", "width"))
+    var tr_h = _spread(_attr_values(both[1], "rect", "height"))
+    # A bullet row draws bands at full band width and a narrower measure
+    # bar, so both extents vary in either orientation; what separates
+    # them is which extent carries the *values*, and that is the one
+    # whose spread grows when the chart turns.
+    assert_true(up_h > 1.0, "upright, the values are the heights")
+    assert_true(tr_w > 1.0, "turned, the values are the widths")
+    assert_true(up_h > tr_h, "the value extent left the height when turned")
+    assert_true(tr_w > up_w, "and arrived on the width")
+
+
+def test_a_horizontal_bullet_keeps_its_target_marker() raises:
+    # The target tick runs across the band at a fixed value, which is
+    # `_Orientation.band_line`: horizontal when the bands run along x,
+    # vertical when they run down the page. One per category either way.
+    var both = _bullet_plots()
+    var up_x1 = _attr_values(both[0], "line", "x1")
+    var up_x2 = _attr_values(both[0], "line", "x2")
+    var up_y1 = _attr_values(both[0], "line", "y1")
+    var up_horizontal = 0
+    for i in range(len(up_x1)):
+        if (
+            up_y1[i] == _attr_values(both[0], "line", "y2")[i]
+            and up_x1[i] != up_x2[i]
+            and "." in up_y1[i]
+        ):
+            up_horizontal += 1
+    var tr_x1 = _attr_values(both[1], "line", "x1")
+    var tr_x2 = _attr_values(both[1], "line", "x2")
+    var tr_y1 = _attr_values(both[1], "line", "y1")
+    var tr_y2 = _attr_values(both[1], "line", "y2")
+    var tr_vertical = 0
+    for i in range(len(tr_x1)):
+        if tr_x1[i] == tr_x2[i] and tr_y1[i] != tr_y2[i] and "." in tr_x1[i]:
+            tr_vertical += 1
+    assert_equal(up_horizontal, 2, "upright: one horizontal tick per category")
+    assert_equal(tr_vertical, 2, "turned: one vertical tick per category")
 
 
 def main() raises:

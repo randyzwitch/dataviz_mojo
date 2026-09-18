@@ -298,24 +298,14 @@ def _draw_waterfall_bars[
                 )
                 + band_scale.bandwidth()
             )
-            if orient.horizontal:
-                target.draw_line_aa(
-                    prev_end_py,
-                    prev_x1,
-                    prev_end_py,
-                    bar_x,
-                    theme.axis_color,
-                    width=theme.scale,
-                )
-            else:
-                target.draw_line_aa(
-                    prev_x1,
-                    prev_end_py,
-                    bar_x,
-                    prev_end_py,
-                    theme.axis_color,
-                    width=theme.scale,
-                )
+            orient.band_line(
+                target,
+                prev_end_py,
+                prev_x1,
+                bar_x,
+                theme.axis_color,
+                theme.scale,
+            )
 
 
 def _render_horizontal_waterfall[

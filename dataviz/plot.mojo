@@ -1362,7 +1362,11 @@ struct Plot(Copyable, Movable):
         self._render_bounds_family = _callback_distributions[BoundsTarget]
         return self^
 
-    def mark_bullet(var self, measure_width_fraction: Float64 = 0.35) -> Self:
+    def mark_bullet(
+        var self,
+        measure_width_fraction: Float64 = 0.35,
+        horizontal: Bool = False,
+    ) -> Self:
         """A bullet chart (Stephen Few's design): a measure bar, a target tick,
         and qualitative-range bands per category. Encoded via
         `encode_bullet()`. `measure_width_fraction` is the measure bar's
@@ -1374,6 +1378,7 @@ struct Plot(Copyable, Movable):
         self._render_pdf_family = _callback_categorical[PdfCanvas]
         self._render_bounds_family = _callback_categorical[BoundsTarget]
         self._mark_style.bullet_measure_width_fraction = measure_width_fraction
+        self._horizontal = horizontal
         return self^
 
     def mark_gantt(var self) -> Self:
