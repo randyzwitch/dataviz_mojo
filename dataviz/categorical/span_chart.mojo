@@ -1,10 +1,13 @@
+from canvas.geometry import round_to_int
 from canvas.text.font_cache import FontCache
+from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _TextRequest,
     _axis_pixel_f,
     snap_to_pixel_edge,
     _data_extent,
@@ -13,6 +16,7 @@ from dataviz.plot import (
     _require_non_empty,
     _span_tooltip_label,
 )
+from dataviz.core.scale import _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 
 
@@ -91,6 +95,19 @@ def _render_span_chart[
         target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, theme.mark_color)
         if theme.svg_tooltips:
             target.end_annotated_group()
+        if theme.show_data_labels:
+            var span = abs(plot._gantt.end[i] - plot._gantt.start[i])
+            frame.text_requests.append(
+                _TextRequest(
+                    round_to_int((bx0 + bx1) / 2.0),
+                    round_to_int(by0) - frame.sc.label_gap,
+                    _format_fixed(span, _label_decimals(span)),
+                    theme.text_color,
+                    frame.sc.font_size,
+                    TextAlign.CENTER,
+                    theme.font_family,
+                )
+            )
 
     return frame.result()
 

@@ -1,7 +1,9 @@
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.fill_rule import FillRule
+from canvas.geometry import round_to_int
 from canvas.path import Path
+from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
@@ -20,6 +22,7 @@ from dataviz.plot import (
     _require_non_negative,
     _tooltip_label,
 )
+from dataviz.core.scale import _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 
 
@@ -118,6 +121,7 @@ def _render_funnel[
     for i in range(n):
         top_width.append((plot._continuous.y[order[i]] / largest) * max_width)
 
+    var text_requests = List[_TextRequest]()
     for i in range(n):
         var bottom_width = top_width[i + 1] if i < n - 1 else top_width[i]
         var y0 = plot_y0 + Int(Float64(i) * row_height)
@@ -142,8 +146,24 @@ def _render_funnel[
         )
         if theme.svg_tooltips:
             target.end_annotated_group()
+        if theme.show_data_labels:
+            var value = plot._continuous.y[order[i]]
+            text_requests.append(
+                _TextRequest(
+                    round_to_int(cx),
+                    round_to_int(Float64(y0 + y1) / 2.0 + sc.font_size * 0.35),
+                    _format_fixed(value, _label_decimals(value)),
+                    # Rows are filled from the categorical palette, the
+                    # same arbitrary-color problem TREEMAP's leaf label
+                    # has -- `theme.background` reads against any of
+                    # them the way SUNBURST's separator line does.
+                    theme.background,
+                    sc.font_size,
+                    TextAlign.CENTER,
+                    theme.font_family,
+                )
+            )
 
-    var text_requests = List[_TextRequest]()
     if show_legend:
         _draw_legend_at(
             target,

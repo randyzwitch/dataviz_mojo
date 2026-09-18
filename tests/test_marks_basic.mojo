@@ -5360,5 +5360,52 @@ def test_the_y_axis_uses_its_own_constant() raises:
     )
 
 
+# ---------------------------------------------------------------
+# show_data_labels on CANDLESTICK (#684)
+
+
+def test_a_candle_draws_only_its_close_value_above_the_wick() raises:
+    # Open, high, and low are not drawn -- close is the number a
+    # candlestick's body color already encodes the direction of, so it
+    # is the one worth reading exactly. Y-axis ticks already draw "1"
+    # through "4" (the domain), so a close-only check cannot be a bare
+    # `">1</text>" not in svg` substring test -- it would be true by
+    # coincidence even with a bug. Counting `text-anchor="middle"`
+    # elements (axis ticks are `"end"`) isolates just the category
+    # label and, once the flag is on, the one new close label.
+    var cats: List[String] = ["a"]
+    var open: List[Float64] = [1.0]
+    var high: List[Float64] = [4.0]
+    var low: List[Float64] = [0.5]
+    var close: List[Float64] = [3.0]
+    var off = render_svg(
+        candlestick(cats, open, high, low, close, width=300, height=200)
+    ).to_string()
+    var off_centered = 0
+    for a in _attr_values(off, "text", "text-anchor"):
+        if a == "middle":
+            off_centered += 1
+    assert_equal(off_centered, 1, "only the category label without the flag")
+    var t = Theme(show_data_labels=True)
+    var on = render_svg(
+        candlestick(
+            cats, open, high, low, close, theme=t, width=300, height=200
+        )
+    ).to_string()
+    var on_centered = 0
+    for a in _attr_values(on, "text", "text-anchor"):
+        if a == "middle":
+            on_centered += 1
+    assert_equal(
+        on_centered, 2, "the category label plus exactly one close label"
+    )
+    assert_true(
+        '<text x="170.000" y="22.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle">3</text>'
+        in on,
+        "the close value, above the wick",
+    )
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

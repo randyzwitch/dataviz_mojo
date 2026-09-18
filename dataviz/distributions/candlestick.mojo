@@ -1,10 +1,13 @@
+from canvas.geometry import round_to_int
 from canvas.text.font_cache import FontCache
+from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _TextRequest,
     _axis_pixel_f,
     snap_to_pixel_center,
     snap_to_pixel_edge,
@@ -174,6 +177,19 @@ def _render_candlestick[
         target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, body_color)
         if theme.svg_tooltips:
             target.end_annotated_group()
+        if theme.show_data_labels:
+            var close = plot._candle.close_price[i]
+            frame.text_requests.append(
+                _TextRequest(
+                    round_to_int(center_px),
+                    round_to_int(high_py) - frame.sc.label_gap,
+                    _format_fixed(close, _label_decimals(close)),
+                    theme.text_color,
+                    frame.sc.font_size,
+                    TextAlign.CENTER,
+                    theme.font_family,
+                )
+            )
 
     return frame.result()
 

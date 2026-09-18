@@ -3026,5 +3026,87 @@ def test_eventplot_tooltips_follow_the_theme_flag() raises:
     assert_true("<title>" not in off, "svg_tooltips=False removes them")
 
 
+# ---------------------------------------------------------------
+# show_data_labels on FUNNEL, GANTT, SPAN_CHART and ARC (#684)
+
+
+def test_a_funnel_row_draws_its_value_in_a_contrasting_color() raises:
+    # Off by default; on, each row's value in theme.background rather
+    # than text_color, since a row is filled from the categorical
+    # palette and needs to read against any of them (the reason
+    # SUNBURST's separator line makes the same choice).
+    var cats: List[String] = ["Visit", "Signup"]
+    var vals: List[Float64] = [100.0, 40.0]
+    var off = render_svg(funnel(cats, vals, width=300, height=300)).to_string()
+    assert_true(">100</text>" not in off, "no value label without the flag")
+    var t = Theme(show_data_labels=True, show_legend=False)
+    var on = render_svg(
+        funnel(cats, vals, theme=t, width=300, height=300)
+    ).to_string()
+    assert_true(">100</text>" in on and ">40</text>" in on)
+    assert_true(
+        '<text x="170.000" y="82.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#ffffff"'
+        ' text-anchor="middle">100</text>'
+        in on,
+        "the label sits in theme.background, not theme.text_color",
+    )
+
+
+def test_a_gantt_label_is_its_span_beyond_the_bars_end() raises:
+    # "design" spans 0 to 3: the label is the *span* (3), not either
+    # endpoint, past the bar's far edge. The x-axis already draws a "3"
+    # tick regardless of the flag, so a bare `">3</text>" not in svg`
+    # check would pass even if this were broken -- the full element
+    # (position, anchor and all) is what a span label alone produces.
+    var cats: List[String] = ["design"]
+    var start: List[Float64] = [0.0]
+    var end: List[Float64] = [3.0]
+    var label = (
+        '<text x="275.000" y="90.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="start">3</text>'
+    )
+    var off = render_svg(
+        gantt(cats, start, end, width=300, height=200)
+    ).to_string()
+    assert_true(label not in off, "no span label without the flag")
+    var t = Theme(show_data_labels=True)
+    var on = render_svg(
+        gantt(cats, start, end, theme=t, width=300, height=200)
+    ).to_string()
+    assert_true(label in on, "the span, past the bar's right edge")
+
+
+def test_a_span_chart_label_is_its_span_above_the_bar() raises:
+    var cats: List[String] = ["design"]
+    var start: List[Float64] = [0.0]
+    var end: List[Float64] = [3.0]
+    var label = (
+        '<text x="171.000" y="22.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle">3</text>'
+    )
+    var off = render_svg(
+        span_chart(cats, start, end, width=300, height=200)
+    ).to_string()
+    assert_true(label not in off, "no span label without the flag")
+    var t = Theme(show_data_labels=True)
+    var on = render_svg(
+        span_chart(cats, start, end, theme=t, width=300, height=200)
+    ).to_string()
+    assert_true(label in on, "the span, above the bar's top edge")
+
+
+def test_a_pie_slice_draws_its_share_as_a_percentage() raises:
+    var cats: List[String] = ["North", "South"]
+    var vals: List[Float64] = [75.0, 25.0]
+    var off = render_svg(pie(cats, vals, width=300, height=300)).to_string()
+    assert_true(">75%</text>" not in off, "no share label without the flag")
+    var t = Theme(show_data_labels=True, show_legend=False)
+    var on = render_svg(
+        pie(cats, vals, theme=t, width=300, height=300)
+    ).to_string()
+    assert_true(">75%</text>" in on and ">25%</text>" in on)
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

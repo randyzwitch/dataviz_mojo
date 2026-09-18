@@ -827,5 +827,39 @@ def test_binned_tooltips_follow_the_theme_flag() raises:
     assert_true("<title>" not in off, "svg_tooltips=False removes them")
 
 
+# ---------------------------------------------------------------
+# show_data_labels on HISTOGRAM (#684)
+
+
+def test_a_histogram_bar_draws_its_count_above_the_bar() raises:
+    # bins=3 over [0, 2]: edges [0, 0.667, 1.333, 2], counts 2/3/1. The
+    # y-axis already draws "0" through "3" as ticks regardless of the
+    # flag, so a bare `">2</text>" not in svg` check would pass even if
+    # this were broken -- the full element (position and all) is what
+    # a bin's own count label alone produces.
+    var d: List[Float64] = [0.0, 0.0, 1.0, 1.0, 1.0, 2.0]
+    var bin0 = (
+        '<text x="97.000" y="63.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle">2</text>'
+    )
+    var bin1 = (
+        '<text x="170.000" y="22.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle">3</text>'
+    )
+    var bin2 = (
+        '<text x="243.000" y="105.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="middle">1</text>'
+    )
+    var off = render_svg(
+        histogram(d, bins=3, width=300, height=200)
+    ).to_string()
+    assert_true(bin0 not in off and bin1 not in off and bin2 not in off)
+    var t = Theme(show_data_labels=True)
+    var on = render_svg(
+        histogram(d, bins=3, theme=t, width=300, height=200)
+    ).to_string()
+    assert_true(bin0 in on and bin1 in on and bin2 in on)
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

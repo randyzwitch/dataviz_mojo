@@ -1,6 +1,8 @@
-from std.math import pi
+from std.math import cos, pi, sin
 
+from canvas.geometry import round_to_int
 from canvas.text.font_cache import FontCache
+from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
@@ -19,7 +21,42 @@ from dataviz.plot import (
     _validate_categorical_encoding,
     _require_non_negative,
 )
+from dataviz.core.scale import _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
+
+
+def _arc_share_label(
+    cx: Float64,
+    cy: Float64,
+    angle: Float64,
+    radius: Float64,
+    share: Float64,
+    theme: Theme,
+    sc: _Scaled,
+    mut text_requests: List[_TextRequest],
+):
+    """One wedge's share of the whole, as a percentage, at the angle
+    that bisects it and halfway from the center to the outer edge
+    (#684). Inside, not beyond the edge like the radial marks'
+    `_radial_value_label`: a full circle's wedges are edge-to-edge with
+    no gap to place a label in, unlike a partial ring.
+    """
+    var x = cx + radius * cos(angle)
+    var y = cy + radius * sin(angle)
+    text_requests.append(
+        _TextRequest(
+            round_to_int(x),
+            round_to_int(y + sc.font_size * 0.35),
+            _format_fixed(share, _label_decimals(share)) + "%",
+            # A wedge is filled from the categorical palette, so the
+            # label needs to read against any of them -- the same
+            # reason SUNBURST's separator line uses theme.background.
+            theme.background,
+            sc.font_size,
+            TextAlign.CENTER,
+            theme.font_family,
+        )
+    )
 
 
 def _render_arc[
@@ -107,6 +144,17 @@ def _render_arc[
             target.fill_arc_aa(cx, cy, radius, start, end, color)
         if theme.svg_tooltips:
             target.end_annotated_group()
+        if theme.show_data_labels:
+            _arc_share_label(
+                cx,
+                cy,
+                (start + end) / 2.0,
+                (inner_radius + radius) / 2.0,
+                (plot._continuous.y[i] / total) * 100.0,
+                theme,
+                sc,
+                text_requests,
+            )
         start = end
 
     if show_legend:
