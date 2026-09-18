@@ -9,6 +9,7 @@ from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _tooltip_label,
     _Scaled,
     _TextRequest,
     _continuous_color_legend_layout,
@@ -327,6 +328,12 @@ def _render_calendar_heatmap[
         var cell_x = snap_to_pixel_edge(x_start)
         var cell_y = snap_to_pixel_edge(y_start)
         var color = color_scale.color_at(plot._calendar.values[i])
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _tooltip_label(
+                    plot._calendar.dates[i], plot._calendar.values[i]
+                )
+            )
         target.fill_rect(
             cell_x,
             cell_y,

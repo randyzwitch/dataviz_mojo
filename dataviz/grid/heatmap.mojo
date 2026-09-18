@@ -11,6 +11,7 @@ from dataviz.plot import (
     _draw_axis_spines,
     Plot,
     _RenderResult,
+    _cell_tooltip_label,
     _Scaled,
     _TextRequest,
     _categorical_indices,
@@ -316,6 +317,14 @@ def _render_heatmap[
         var cell_x = snap_to_pixel_edge(x_start)
         var cell_y = snap_to_pixel_edge(y_start)
         var color = color_scale.color_at(plot._heatmap.value[i])
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _cell_tooltip_label(
+                    plot._heatmap.x[i],
+                    plot._heatmap.y[i],
+                    plot._heatmap.value[i],
+                )
+            )
         target.fill_rect(
             cell_x,
             cell_y,
@@ -323,6 +332,8 @@ def _render_heatmap[
             snap_to_pixel_edge(y_stop) - cell_y,
             color,
         )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     _draw_continuous_color_legend_at(
         target,

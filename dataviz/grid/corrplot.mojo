@@ -10,6 +10,7 @@ from dataviz.core.mark import Mark
 from dataviz.plot import (
     Plot,
     _RenderResult,
+    _cell_tooltip_label,
     _Scaled,
     _TextRequest,
     _continuous_color_legend_layout,
@@ -141,7 +142,17 @@ def _render_corrplot[
             var cx = frame.x_scale.center(col)
             var cy = frame.y_scale.center(row)
             var radius = max_radius * abs(value)
+            if theme.svg_tooltips:
+                target.begin_annotated_group(
+                    _cell_tooltip_label(
+                        plot._corrplot.variables[row],
+                        plot._corrplot.variables[col],
+                        value,
+                    )
+                )
             target.fill_circle_aa(cx, cy, radius, color_scale.color_at(value))
+            if theme.svg_tooltips:
+                target.end_annotated_group()
             if plot._corrplot.labels:
                 frame.text_requests.append(
                     _TextRequest(

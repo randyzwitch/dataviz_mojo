@@ -2634,5 +2634,105 @@ def test_render_eventplot_raises_on_bad_encodings() raises:
         _ = render(_hoisted_ev)
 
 
+# ---------------------------------------------------------------
+# Grid-family tooltips (#679)
+
+
+def _grid_titles(svg: String) -> List[String]:
+    """Every `<title>` element's text, in document order."""
+    var out = List[String]()
+    var at = 0
+    while True:
+        var open_at = svg.find("<title>", at)
+        if open_at < 0:
+            return out^
+        var start = open_at + 7
+        var close_at = svg.find("</title>", start)
+        out.append(String(svg[byte=start:close_at]))
+        at = close_at
+
+
+def test_grid_cells_carry_both_keys_and_the_value() raises:
+    # A grid encodes its value as a color or a radius, so the cell is
+    # the one shape here a reader cannot get a number out of by looking.
+    # Both keys, so a cell is identified as well as valued.
+    var xs: List[String] = ["Mon", "Tue"]
+    var ys: List[String] = ["09:00", "09:00"]
+    var vals: List[Float64] = [42.0, 7.5]
+    var titles = _grid_titles(
+        render_svg(heatmap(xs, ys, vals, width=300, height=200)).to_string()
+    )
+    assert_equal(len(titles), 2, "one title per cell, not per primitive")
+    assert_equal(titles[0], "Mon / 09:00: 42")
+    assert_equal(titles[1], "Tue / 09:00: 7.5", "decimals the value has")
+
+    var counts: List[Float64] = [3.0, 1.0]
+    var punch = _grid_titles(
+        render_svg(punchcard(xs, ys, counts, width=300, height=200)).to_string()
+    )
+    assert_equal(len(punch), 2, "one title per punch")
+    assert_equal(punch[0], "Mon / 09:00: 3")
+
+
+def test_a_calendar_cell_is_titled_by_its_date() raises:
+    # One key, not two: a day is the whole of a calendar cell's identity.
+    var dates: List[String] = ["2026-01-01", "2026-01-02"]
+    var vals: List[Float64] = [5.0, 2.0]
+    var titles = _grid_titles(
+        render_svg(
+            calendar_heatmap(dates, vals, width=400, height=200)
+        ).to_string()
+    )
+    assert_equal(titles[0], "2026-01-01: 5")
+    assert_equal(titles[1], "2026-01-02: 2")
+
+
+def test_a_corrplot_circle_is_titled_by_its_variable_pair() raises:
+    var names: List[String] = ["height", "weight"]
+    var m = List[List[Float64]]()
+    var r0: List[Float64] = [1.0, 0.8]
+    var r1: List[Float64] = [0.8, 1.0]
+    m.append(r0^)
+    m.append(r1^)
+    var titles = _grid_titles(
+        render_svg(corrplot(names, m, width=300, height=300)).to_string()
+    )
+    assert_true(
+        "height / weight: 0.8" in titles[1]
+        or "height / weight: 0.8" in titles[0],
+        "the off-diagonal circle names both variables and its coefficient",
+    )
+
+
+def test_a_marimekko_segment_is_titled_by_category_and_subcategory() raises:
+    var cats: List[String] = ["North", "South"]
+    var subs: List[String] = ["new", "repeat"]
+    var vals = List[List[Float64]]()
+    var a: List[Float64] = [10.0, 20.0]
+    var b: List[Float64] = [30.0, 40.0]
+    vals.append(a^)
+    vals.append(b^)
+    var titles = _grid_titles(
+        render_svg(
+            marimekko(cats, subs, vals, width=400, height=300)
+        ).to_string()
+    )
+    assert_equal(titles[0], "North / new: 10")
+
+
+def test_grid_tooltips_follow_the_theme_flag() raises:
+    # Under svg_tooltips alone, with no per-mark opt-in: there is one
+    # title per cell, not one per point of a dense scatter.
+    var xs: List[String] = ["Mon", "Tue"]
+    var ys: List[String] = ["09:00", "09:00"]
+    var vals: List[Float64] = [42.0, 7.5]
+    var off = render_svg(
+        heatmap(
+            xs, ys, vals, theme=Theme(svg_tooltips=False), width=300, height=200
+        )
+    ).to_string()
+    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
