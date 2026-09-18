@@ -8,9 +8,14 @@ from dataviz.core.array_like import (
     _materialize_nested_scalar_list,
     _materialize_scalar_list,
 )
+from canvas.text.render import TextAlign
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.core.mark import Mark
-from dataviz.core.scale import _format_fixed, _label_decimals
+from dataviz.core.scale import (
+    _format_fixed,
+    _format_tick,
+    _label_decimals,
+)
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -66,6 +71,50 @@ def _polar_point(
     distance from `(cx, cy)`, already scaled by the caller.
     """
     return _PolarPoint(cx + radius * cos(angle), cy + radius * sin(angle))
+
+
+def _radial_value_label(
+    cx: Float64,
+    cy: Float64,
+    angle: Float64,
+    radius: Float64,
+    value: Float64,
+    theme: Theme,
+    sc: _Scaled,
+    mut text_requests: List[_TextRequest],
+):
+    """Place one wedge's value just beyond its outer edge, along the
+    angle that bisects it (#685).
+
+    Outside rather than inside: a wedge narrows toward the center, so
+    an inside label collides with its neighbour as soon as two values
+    are close. Centered rather than left- or right-aligned, because
+    which side of the circle a label falls on changes with the angle,
+    and one fixed alignment would run half of them into the figure's
+    edge.
+
+    Args:
+        cx: Center x.
+        cy: Center y.
+        angle: The angle to place along, radians.
+        radius: The distance from the center to place at, in pixels.
+        value: The number to draw.
+        theme: The chart's theme.
+        sc: The render's scaled metrics.
+        text_requests: Collects the label.
+    """
+    var at = _polar_point(cx, cy, angle, radius + Float64(sc.label_gap))
+    text_requests.append(
+        _TextRequest(
+            Int(at.x),
+            Int(at.y),
+            _format_tick(value, _label_decimals(value), theme.y_tick_format),
+            theme.text_color,
+            sc.font_size,
+            TextAlign.CENTER,
+            theme.font_family,
+        )
+    )
 
 
 def _draw_polar_grid[

@@ -632,6 +632,14 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             Mark.GROUPED_BAR,
             Mark.STACKED_BAR,
             Mark.POPULATION_PYRAMID,
+            # The radial value marks (#685): the label sits just beyond
+            # the wedge's outer edge, on the angle that bisects it.
+            # GAUGE is absent on purpose -- it draws its value under
+            # the hub unconditionally, which is the point of that
+            # chart, not something this flag turns on.
+            Mark.NIGHTINGALE,
+            Mark.POLAR_BAR,
+            Mark.RADIALBAR,
         ]
     elif feature == Feature.HORIZONTAL:
         out = [

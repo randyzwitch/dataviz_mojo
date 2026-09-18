@@ -21,6 +21,8 @@ from dataviz.plot import (
     _require_non_negative,
     _require_some_positive,
 )
+from dataviz.core.scale import _format_tick, _label_decimals
+from dataviz.radial.polar import _radial_value_label
 from dataviz.core.theme import Theme
 
 
@@ -105,6 +107,20 @@ def _render_radialbar[
                 start_angle,
                 start_angle + 2.0 * pi * frac,
                 color,
+            )
+        if theme.show_data_labels:
+            # At the end of this row's filled arc, on the ring's own
+            # mid-radius: a radial bar's rows are concentric, so a label
+            # beyond the outer edge would sit on the row above it.
+            _radial_value_label(
+                cx,
+                cy,
+                start_angle + 2.0 * pi * frac,
+                (inner + outer) / 2.0,
+                plot._continuous.y[i],
+                theme,
+                sc,
+                text_requests,
             )
         if theme.svg_tooltips:
             target.end_annotated_group()

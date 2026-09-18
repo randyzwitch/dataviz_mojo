@@ -20,6 +20,8 @@ from dataviz.plot import (
     _require_non_negative,
     _require_some_positive,
 )
+from dataviz.core.scale import _format_tick, _label_decimals
+from dataviz.radial.polar import _radial_value_label
 from dataviz.core.theme import Theme
 
 
@@ -86,6 +88,17 @@ def _render_polar_bar[
         target.fill_arc_aa(cx, cy, radius, start, end, color)
         if theme.svg_tooltips:
             target.end_annotated_group()
+        if theme.show_data_labels:
+            _radial_value_label(
+                cx,
+                cy,
+                (start + end) / 2.0,
+                radius,
+                plot._continuous.y[i],
+                theme,
+                sc,
+                text_requests,
+            )
         slot_start += slot
 
     if show_legend:
