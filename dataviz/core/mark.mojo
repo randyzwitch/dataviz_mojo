@@ -643,6 +643,14 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             Mark.POINTPLOT,
             Mark.EVENTPLOT,
             Mark.RIDGELINE,
+            # The rest of the hierarchy family (#681), titled by id and
+            # subtree total (a merge's height for DENDROGRAM, which has
+            # no id) -- SUNBURST and TREEMAP skip the root, since
+            # neither draws a shape for it.
+            Mark.SUNBURST,
+            Mark.TREE,
+            Mark.TREEMAP,
+            Mark.DENDROGRAM,
         ]
     elif feature == Feature.DATA_LABELS:
         out = [

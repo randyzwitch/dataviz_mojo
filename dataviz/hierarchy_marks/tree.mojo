@@ -21,7 +21,22 @@ from dataviz.plot import (
     _finished,
     _require_non_negative,
 )
+from dataviz.core.scale import _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
+
+
+def _tree_node_label(
+    ids: List[String], idx: _HierarchyIndex, row: Int
+) -> String:
+    """One node's hover text (#681): `"id: subtree total"` -- the id is
+    already drawn beneath the node, but its value is not."""
+    return (
+        ids[row]
+        + ": "
+        + _format_fixed(
+            idx.subtree_value[row], _label_decimals(idx.subtree_value[row])
+        )
+    )
 
 
 def _assign_leaf_positions(
@@ -208,9 +223,15 @@ def _render_tree[
         # whole chart.
         var px = _tree_node_x(leaf_x[row], num_leaves, plot_x0, plot_x1)
         var py = _tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1)
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                _tree_node_label(plot._hierarchy.ids, idx, row)
+            )
         target.fill_circle_aa(
             px, py, Float64(round_to_int(sc.point_radius)), color
         )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
         text_requests.append(
             _TextRequest(
                 round_to_int(px),

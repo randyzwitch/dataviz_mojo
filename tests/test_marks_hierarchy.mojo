@@ -1086,5 +1086,111 @@ def test_a_sankey_flow_that_skips_a_column_is_titled_by_its_real_ends() raises:
     )
 
 
+# ---------------------------------------------------------------
+# Hierarchy-mark tooltips (#681)
+
+
+def _ids() -> List[String]:
+    var v: List[String] = ["root", "North", "South"]
+    return v^
+
+
+def _parent_ids() -> List[String]:
+    var v: List[String] = ["", "root", "root"]
+    return v^
+
+
+def _hierarchy_values() -> List[Float64]:
+    var v: List[Float64] = [0.0, 12.0, 3.5]
+    return v^
+
+
+def test_a_sunburst_sector_is_titled_by_its_id_and_subtree_total() raises:
+    var titles = _titles_in(
+        render_svg(
+            sunburst(
+                _ids(),
+                _parent_ids(),
+                _hierarchy_values(),
+                width=300,
+                height=300,
+            )
+        ).to_string()
+    )
+    assert_equal(len(titles), 2, "one title per node, none for the root")
+    assert_equal(titles[0], "North: 12")
+    assert_equal(titles[1], "South: 3.5")
+
+
+def test_a_tree_node_is_titled_by_its_id_and_subtree_total() raises:
+    # The id is already drawn as a label beneath the node; the total is
+    # not, and is what a tooltip adds -- including the root, whose
+    # circle is drawn even though its edge is skipped.
+    var titles = _titles_in(
+        render_svg(
+            tree(
+                _ids(),
+                _parent_ids(),
+                _hierarchy_values(),
+                width=300,
+                height=300,
+            )
+        ).to_string()
+    )
+    assert_equal(len(titles), 3, "one title per node, root included")
+    assert_equal(titles[0], "root: 15.5")
+    assert_equal(titles[1], "North: 12")
+    assert_equal(titles[2], "South: 3.5")
+
+
+def test_a_treemap_leaf_is_titled_by_its_id_and_value() raises:
+    var titles = _titles_in(
+        render_svg(
+            treemap(
+                _ids(),
+                _parent_ids(),
+                _hierarchy_values(),
+                width=300,
+                height=300,
+            )
+        ).to_string()
+    )
+    assert_equal(len(titles), 2, "one title per leaf, none for the root")
+    assert_equal(titles[0], "North: 12")
+    assert_equal(titles[1], "South: 3.5")
+
+
+def test_a_dendrogram_bracket_is_titled_by_its_merge_height() raises:
+    # 1D rows [0, 1, 5]: the first merge joins 0 and 1 at distance 1;
+    # average linkage then joins {0, 1} to 5 at (|5-0| + |5-1|) / 2 = 4.5.
+    var rows = List[List[Float64]]()
+    var r0: List[Float64] = [0.0]
+    var r1: List[Float64] = [1.0]
+    var r2: List[Float64] = [5.0]
+    rows.append(r0^)
+    rows.append(r1^)
+    rows.append(r2^)
+    var titles = _titles_in(
+        render_svg(dendrogram(rows, width=300, height=300)).to_string()
+    )
+    assert_equal(len(titles), 2, "one title per merge")
+    assert_equal(titles[0], "height: 1")
+    assert_equal(titles[1], "height: 4.5")
+
+
+def test_hierarchy_mark_tooltips_follow_the_theme_flag() raises:
+    var off = render_svg(
+        treemap(
+            _ids(),
+            _parent_ids(),
+            _hierarchy_values(),
+            theme=Theme(svg_tooltips=False),
+            width=300,
+            height=300,
+        )
+    ).to_string()
+    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
