@@ -20,6 +20,33 @@ from dataviz.plot import (
 )
 from dataviz.core.stats import ErrorBar, Estimator, _Aggregate, _aggregate
 from dataviz.core.theme import Theme
+from dataviz.core.scale import _format_fixed, _label_decimals
+
+
+def _pointplot_value_label(plot: Plot, i: Int) -> String:
+    """One category's estimate (#678): `"category: value"`, the same
+    shape `_boxen_tooltip_label` uses for its median line."""
+    var value = plot._continuous.y[i]
+    return (
+        plot._categorical.x[i]
+        + ": "
+        + _format_fixed(value, _label_decimals(value))
+    )
+
+
+def _pointplot_interval_label(
+    plot: Plot, i: Int, lo: Float64, hi: Float64
+) -> String:
+    """One category's whisker (#678): `"category: LO-HI"`, mirroring
+    `_boxen_tooltip_label`'s `"box LO-HI"` for the same kind of
+    interval glyph."""
+    return (
+        plot._categorical.x[i]
+        + ": "
+        + _format_fixed(lo, _label_decimals(lo))
+        + "-"
+        + _format_fixed(hi, _label_decimals(hi))
+    )
 
 
 def _render_pointplot[
@@ -85,6 +112,10 @@ def _render_pointplot[
                 hi = value + plot._y_err.upper[i]
             var py_lo = _axis_pixel_f(frame.y_scale, lo)
             var py_hi = _axis_pixel_f(frame.y_scale, hi)
+            if theme.svg_tooltips:
+                target.begin_annotated_group(
+                    _pointplot_interval_label(plot, i, lo, hi)
+                )
             target.draw_line_aa(
                 cxs[i], py_hi, cxs[i], py_lo, theme.mark_color, width=sc.scale
             )
@@ -104,6 +135,8 @@ def _render_pointplot[
                 theme.mark_color,
                 width=sc.scale,
             )
+            if theme.svg_tooltips:
+                target.end_annotated_group()
 
     for i in range(1, n):
         target.draw_line_aa(
@@ -117,7 +150,11 @@ def _render_pointplot[
 
     var radius = Float64(round_to_int(sc.point_radius))
     for i in range(n):
+        if theme.svg_tooltips:
+            target.begin_annotated_group(_pointplot_value_label(plot, i))
         target.fill_circle_aa(cxs[i], pys[i], radius, theme.mark_color)
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     return frame.result()
 

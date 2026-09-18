@@ -107,6 +107,10 @@ def _render_ridgeline[
             path.line_to(xs[s], baseline_y - densities[s] * scale)
         path.line_to(xs[_KDE_SAMPLES - 1], baseline_y)
         path.close()
+        if theme.svg_tooltips:
+            target.begin_annotated_group(
+                plot._categorical.x[i] + ": n=" + String(len(values))
+            )
         target.fill_path_aa(path, theme.mark_color, fill_rule=FillRule.NONZERO)
         # Outline the curve in the background color. Rows deliberately
         # overlap, and every row is the same mark_color, so without an
@@ -120,6 +124,8 @@ def _render_ridgeline[
         for s in range(1, _KDE_SAMPLES):
             outline.line_to(xs[s], baseline_y - densities[s] * scale)
         target.stroke_path_aa(outline, theme.background, width=frame.sc.scale)
+        if theme.svg_tooltips:
+            target.end_annotated_group()
 
     return frame.result()
 

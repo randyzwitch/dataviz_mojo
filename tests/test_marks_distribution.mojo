@@ -2104,5 +2104,55 @@ def test_a_layered_kde_without_data_raises_instead_of_aborting() raises:
         _ = render_layers(plots)
 
 
+# ---------------------------------------------------------------
+# Ridgeline tooltips (#678)
+
+
+def _titles_in(svg: String) -> List[String]:
+    var out = List[String]()
+    var at = 0
+    while True:
+        var open_at = svg.find("<title>", at)
+        if open_at < 0:
+            return out^
+        var start = open_at + 7
+        var close_at = svg.find("</title>", start)
+        out.append(String(svg[byte=start:close_at]))
+        at = close_at
+
+
+def test_a_ridgeline_row_is_titled_by_its_category_and_count() raises:
+    var cats: List[String] = ["A", "B", "C"]
+    var vals: List[List[Float64]] = [
+        [1.0, 2.0, 3.0, 4.0, 5.0],
+        [1.0, 2.0, 3.0, 4.0, 5.0],
+        [1.0, 2.0, 3.0, 4.0, 5.0],
+    ]
+    var titles = _titles_in(
+        render_svg(
+            ridgeline(
+                cats,
+                vals,
+                theme=Theme(show_gridlines=False),
+                width=400,
+                height=300,
+            )
+        ).to_string()
+    )
+    assert_equal(len(titles), 3, "one title per row")
+    assert_equal(titles[0], "A: n=5")
+    assert_equal(titles[1], "B: n=5")
+    assert_equal(titles[2], "C: n=5")
+
+
+def test_ridgeline_tooltips_follow_the_theme_flag() raises:
+    var cats: List[String] = ["A"]
+    var vals: List[List[Float64]] = [[1.0, 2.0, 3.0]]
+    var off = render_svg(
+        ridgeline(cats, vals, theme=Theme(svg_tooltips=False))
+    ).to_string()
+    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

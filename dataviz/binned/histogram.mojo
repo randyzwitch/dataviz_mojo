@@ -25,7 +25,7 @@ from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.distributions.box import _percentile
 from dataviz.plot import Plot, _finished, _push_plot_clip
-from dataviz.core.scale import _format_fixed, _min_max
+from dataviz.core.scale import _format_fixed, _label_decimals, _min_max
 from dataviz.core.step_style import StepStyle
 from dataviz.core.theme import Theme
 
@@ -573,6 +573,29 @@ struct _HistogramData(Copyable, Movable):
         self.horizontal = False
 
 
+def _histogram_bin_tooltip_label(plot: Plot, i: Int) -> String:
+    """One bin's hover text, `"[1, 2): 42"` (#678): the half-open
+    interval its two edges span, and the count or normalized value it
+    holds -- the two numbers the bar's position and height encode.
+    """
+    return (
+        "["
+        + _format_fixed(
+            plot._histogram.edges[i], _label_decimals(plot._histogram.edges[i])
+        )
+        + ", "
+        + _format_fixed(
+            plot._histogram.edges[i + 1],
+            _label_decimals(plot._histogram.edges[i + 1]),
+        )
+        + "): "
+        + _format_fixed(
+            plot._histogram.values[i],
+            _label_decimals(plot._histogram.values[i]),
+        )
+    )
+
+
 def _draw_histogram_layer[
     T: DrawTarget
 ](
@@ -659,6 +682,8 @@ def _draw_histogram_layer[
         var hi = max(ep[i], ep[i + 1])
         if hi <= lo or ext[i] <= 0.0:
             continue
+        if theme.svg_tooltips:
+            target.begin_annotated_group(_histogram_bin_tooltip_label(plot, i))
         if horizontal:
             target.fill_rect(
                 baseline, lo, vp[i] - baseline, hi - lo, theme.mark_color
@@ -667,6 +692,8 @@ def _draw_histogram_layer[
             target.fill_rect(
                 lo, vp[i], hi - lo, baseline - vp[i], theme.mark_color
             )
+        if theme.svg_tooltips:
+            target.end_annotated_group()
     var edge = theme.histogram_edge_color
     if edge.a == 0:
         target.pop_clip()

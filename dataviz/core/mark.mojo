@@ -630,6 +630,19 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             Mark.ARC_DIAGRAM,
             Mark.GRAPH,
             Mark.SANKEY,
+            # The distribution/binned family (#678). HIST2D is absent:
+            # it shares `_fill_grid_cells` (grid/image.mojo) with
+            # IMSHOW/PCOLORMESH, which merges adjacent cells by
+            # *rendered color*, not by value, and falls back to one
+            # bulk `<image>` element with no per-cell draw call at all
+            # above `_IMAGE_MAX_RECT_CELLS` -- the same architectural
+            # gap BAR3D/VOXELS/SURFACE3D/TRISURF3D have above.
+            Mark.HISTOGRAM,
+            Mark.HEXBIN,
+            Mark.BOXENPLOT,
+            Mark.POINTPLOT,
+            Mark.EVENTPLOT,
+            Mark.RIDGELINE,
         ]
     elif feature == Feature.DATA_LABELS:
         out = [
