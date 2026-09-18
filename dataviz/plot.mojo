@@ -1295,7 +1295,11 @@ struct Plot(Copyable, Movable):
         self._horizontal = horizontal
         return self^
 
-    def mark_waterfall(var self, delta_width_fraction: Float64 = 0.6) -> Self:
+    def mark_waterfall(
+        var self,
+        delta_width_fraction: Float64 = 0.6,
+        horizontal: Bool = False,
+    ) -> Self:
         """A waterfall chart: one floating bar per category, each running from
         the previous running total to the next. Encoded via
         `encode_waterfall()` (a category plus a signed delta).
@@ -1308,6 +1312,7 @@ struct Plot(Copyable, Movable):
         self._render_pdf_family = _callback_categorical[PdfCanvas]
         self._render_bounds_family = _callback_categorical[BoundsTarget]
         self._mark_style.waterfall_delta_width_fraction = delta_width_fraction
+        self._horizontal = horizontal
         return self^
 
     def mark_boxenplot(var self, horizontal: Bool = False) -> Self:

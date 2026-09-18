@@ -41,6 +41,7 @@ from dataviz import (
     pie,
     span_chart,
     stacked_bar,
+    waterfall,
     streamgraph,
 )
 from dataviz.core.color_scale import ColorScale, default_categorical_palette
@@ -2806,6 +2807,105 @@ def test_categorical_tooltips_follow_the_theme_flag() raises:
         )
     ).to_string()
     assert_true("<title>" not in off, "svg_tooltips=False removes them")
+
+
+# ---------------------------------------------------------------
+# Horizontal waterfall (#686)
+
+
+def _spread(values: List[String]) raises -> Float64:
+    """The max-minus-min of an attribute's values, skipping the first
+    (the background rect)."""
+    var lo = Float64(values[1])
+    var hi = lo
+    for i in range(2, len(values)):
+        var v = Float64(values[i])
+        if v < lo:
+            lo = v
+        if v > hi:
+            hi = v
+    return hi - lo
+
+
+def test_a_horizontal_waterfall_turns_its_axes() raises:
+    # What defines the orientation, and does not depend on the plot
+    # rect's proportions: upright, every bar is one band wide and its
+    # height is its delta; turned, every bar is one band tall and its
+    # width is its delta. (A transpose of pixel values would only hold
+    # on a square rect, which this is not.) Bands snap to whole pixels
+    # and do not divide the rect evenly, so "one band" means within a
+    # pixel; a delta's extent varies by far more.
+    var cats: List[String] = ["start", "gain", "loss"]
+    var deltas: List[Float64] = [100.0, 40.0, -30.0]
+    var upright = render_svg(
+        waterfall(
+            cats,
+            deltas,
+            theme=Theme(show_gridlines=False),
+            width=420,
+            height=260,
+        )
+    ).to_string()
+    var turned = render_svg(
+        waterfall(
+            cats,
+            deltas,
+            horizontal=True,
+            theme=Theme(show_gridlines=False),
+            width=420,
+            height=260,
+        )
+    ).to_string()
+    assert_true(turned != upright, "horizontal=True changes the picture")
+
+    var up_w = _spread(_attr_values(upright, "rect", "width"))
+    var up_h = _spread(_attr_values(upright, "rect", "height"))
+    var tr_w = _spread(_attr_values(turned, "rect", "width"))
+    var tr_h = _spread(_attr_values(turned, "rect", "height"))
+    assert_true(
+        up_w <= 1.0,
+        "upright, every bar is one band wide (got " + String(up_w) + ")",
+    )
+    assert_true(up_h > 1.0, "upright, the deltas are the heights")
+    assert_true(
+        tr_h <= 1.0,
+        "turned, every bar is one band tall (got " + String(tr_h) + ")",
+    )
+    assert_true(tr_w > 1.0, "turned, the deltas are the widths")
+
+
+def test_a_horizontal_waterfall_still_joins_its_bars() raises:
+    # The connector runs across bands at the previous bar's end value:
+    # a horizontal line when the bands run along x, a vertical one when
+    # they run down the page. Losing it would leave the deltas floating
+    # with nothing to read them against. Connectors are drawn in
+    # Float64 geometry, so their coordinates carry decimals where the
+    # axis and tick lines are whole pixels.
+    var cats: List[String] = ["start", "gain", "loss"]
+    var deltas: List[Float64] = [100.0, 40.0, -30.0]
+    var svg = render_svg(
+        waterfall(
+            cats,
+            deltas,
+            horizontal=True,
+            theme=Theme(show_gridlines=False),
+            width=420,
+            height=260,
+        )
+    ).to_string()
+    var x1s = _attr_values(svg, "line", "x1")
+    var x2s = _attr_values(svg, "line", "x2")
+    var y1s = _attr_values(svg, "line", "y1")
+    var y2s = _attr_values(svg, "line", "y2")
+    var connectors = 0
+    for i in range(len(x1s)):
+        if x1s[i] == x2s[i] and y1s[i] != y2s[i] and "." in x1s[i]:
+            connectors += 1
+    assert_equal(
+        connectors,
+        len(cats) - 1,
+        "one vertical connector between each pair of neighboring bars",
+    )
 
 
 def main() raises:

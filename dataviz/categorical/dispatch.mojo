@@ -35,7 +35,10 @@ from dataviz.categorical.stacked_bar import (
     _render_stacked_bar,
 )
 from dataviz.categorical.streamgraph import _render_streamgraph
-from dataviz.categorical.waterfall import _render_waterfall
+from dataviz.categorical.waterfall import (
+    _render_horizontal_waterfall,
+    _render_waterfall,
+)
 
 
 def _render_categorical_family[
@@ -80,6 +83,12 @@ def _render_categorical_family[
             _render_lollipop(target, plot, ox0, oy0, ox1, oy1, cache=cache)
         )
     if plot._mark == Mark.WATERFALL:
+        if plot._horizontal:
+            return Optional(
+                _render_horizontal_waterfall(
+                    target, plot, ox0, oy0, ox1, oy1, cache=cache
+                )
+            )
         return Optional(
             _render_waterfall(target, plot, ox0, oy0, ox1, oy1, cache=cache)
         )
