@@ -314,12 +314,14 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
                     + ")"
                 )
     if (has_y_err_lower or has_y_err_upper) and not (
-        plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER
+        plot._mark == Mark.POINT
+        or plot._mark == Mark.LINE
+        or plot._mark == Mark.EFFECT_SCATTER
     ):
         raise Error(
             context
             + ": y_err_lower/y_err_upper are only supported for"
-            " Mark.POINT/EFFECT_SCATTER today"
+            " Mark.POINT/LINE/EFFECT_SCATTER today"
         )
 
     if len(plot._channels.color_map) > 0 and not has_color_categories:

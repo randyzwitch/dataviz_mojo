@@ -546,15 +546,9 @@ def _draw_point_layer[
             # Whisker first, point on top, in this point's own resolved `color`.
             # y_err and y_err_lower/y_err_upper are mutually exclusive, so exactly
             # one branch has data.
-            var lo: Float64
-            var hi: Float64
-            if len(plot._y_err.symmetric) > 0:
-                var err = plot._y_err.symmetric[i]
-                lo = plot._continuous.y[i] - err
-                hi = plot._continuous.y[i] + err
-            else:
-                lo = plot._continuous.y[i] - plot._y_err.lower[i]
-                hi = plot._continuous.y[i] + plot._y_err.upper[i]
+            var extent = _y_err_extent(plot, i)
+            var lo = extent[0]
+            var hi = extent[1]
             # Snap the hairline and caps to matching pixel centers.
             var bar_x = snap_to_pixel_center(px)
             var py_hi = snap_to_pixel_center(_axis_pixel_f(y_scale, hi))
@@ -757,6 +751,34 @@ def _draw_point_layer[
     return next_y
 
 
+def _y_err_extent(plot: Plot, i: Int) -> Tuple[Float64, Float64]:
+    """One point's error-bar span in data units, `(lo, hi)` around
+    `plot._continuous.y[i]` (#702).
+
+    `y_err` and `y_err_lower`/`y_err_upper` are mutually exclusive
+    (validate.mojo), so exactly one of `plot._y_err.symmetric` and
+    `plot._y_err.lower`/`.upper` is populated; this is the one place
+    that resolves either into the pair every drawing site actually
+    wants, shared between `_draw_point_layer` and `_draw_line_layer`
+    so a symmetric `y_err=e` and an equal `y_err_lower=e,
+    y_err_upper=e` reach the same two pixels.
+
+    Args:
+        plot: The chart, already validated.
+        i: The point's index.
+
+    Returns:
+        `(lo, hi)` in data units.
+    """
+    if len(plot._y_err.symmetric) > 0:
+        var err = plot._y_err.symmetric[i]
+        return (plot._continuous.y[i] - err, plot._continuous.y[i] + err)
+    return (
+        plot._continuous.y[i] - plot._y_err.lower[i],
+        plot._continuous.y[i] + plot._y_err.upper[i],
+    )
+
+
 def _draw_line_layer[
     T: DrawTarget
 ](
@@ -772,11 +794,14 @@ def _draw_line_layer[
     Shared by the standalone and layered paths so both honor smoothing,
     stepping and their checks identically.
 
-    `Plot.encode()`'s `y_err` whisker, when set, draws once per original
-    data point before the line (whisker first, line on top), over the
-    untouched `plot._continuous.x`/`_continuous.y` rather than the decimated path, in
-    `theme.mark_color` (`Mark.LINE` has no per-point color). Stepping
-    does not move a whisker: it belongs to a sample, not to the segment
+    `Plot.encode()`'s `y_err`/`y_err_lower`/`y_err_upper` whisker, when
+    set, draws once per original data point before the line (whisker
+    first, line on top), over the untouched
+    `plot._continuous.x`/`_continuous.y` rather than the decimated
+    path, in `theme.mark_color` (`Mark.LINE` has no per-point color).
+    `_y_err_extent` resolves whichever form was given; symmetric and
+    an equal lower/upper draw the same whisker (#702). Stepping does
+    not move a whisker: it belongs to a sample, not to the segment
     between two of them.
     """
     var theme = plot._theme
@@ -784,13 +809,13 @@ def _draw_line_layer[
     _check_line_smoothing(theme)
     _check_step_smoothing(theme, plot._mark_style.step)
     _push_plot_clip(target, x_scale, y_scale)
-    if len(plot._y_err.symmetric) > 0:
+    if len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0:
         var cap_half = round_to_int(sc.error_bar_cap_width)
         for i in range(len(plot._continuous.x)):
             var px_i = round_to_int(x_scale.to_pixel(plot._continuous.x[i]))
-            var err = plot._y_err.symmetric[i]
-            var py_hi = _axis_pixel(y_scale, plot._continuous.y[i] + err)
-            var py_lo = _axis_pixel(y_scale, plot._continuous.y[i] - err)
+            var extent = _y_err_extent(plot, i)
+            var py_hi = _axis_pixel(y_scale, extent[1])
+            var py_lo = _axis_pixel(y_scale, extent[0])
             target.draw_line_aa(
                 px_i, py_hi, px_i, py_lo, theme.mark_color, width=sc.scale
             )
