@@ -644,6 +644,9 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             Mark.VIOLIN,
             Mark.BOXENPLOT,
             Mark.HISTOGRAM,
+            # #686: a waterfall's stage names are the long ones, which
+            # is what a vertical categorical axis crowds.
+            Mark.WATERFALL,
         ]
     elif feature == Feature.ANNOTATIONS_Y:
         out = [

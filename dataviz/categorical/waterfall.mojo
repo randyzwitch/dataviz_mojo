@@ -19,7 +19,15 @@ from dataviz.plot import (
     _tooltip_label,
     _zero_baseline_y_extent,
 )
-from dataviz.core.scale import _format_tick, _label_decimals
+from dataviz.categorical.gantt import (
+    _draw_horizontal_categorical_axis_frame,
+)
+from dataviz.core.ordinal_scale import OrdinalScale
+from dataviz.core.scale import (
+    LinearScale,
+    _format_tick,
+    _label_decimals,
+)
 from dataviz.core.theme import Theme
 
 
@@ -95,29 +103,8 @@ def _render_waterfall[
     Delta color follows sign; checkpoint bars use the total color. The y-domain
     covers all running-total bounds and includes zero.
     """
-    if len(plot._categorical.x) != len(plot._continuous.y):
-        raise Error(
-            "Plot.encode_waterfall(): categories and deltas must have the"
-            " same length (got "
-            + String(len(plot._categorical.x))
-            + " and "
-            + String(len(plot._continuous.y))
-            + ")"
-        )
-    if len(plot._waterfall.is_total) > 0 and len(
-        plot._waterfall.is_total
-    ) != len(plot._categorical.x):
-        raise Error(
-            "Plot.encode_waterfall(): is_total, if given, must have the"
-            " same length as categories (got "
-            + String(len(plot._waterfall.is_total))
-            + " and "
-            + String(len(plot._categorical.x))
-            + ")"
-        )
-
+    _validate_waterfall_encoding(plot)
     var theme = plot._theme
-    _require_non_empty(len(plot._categorical.x), "Plot.encode_waterfall()")
     var combined = List[Float64]()
     for v in plot._waterfall.y0:
         combined.append(v)
@@ -139,9 +126,84 @@ def _render_waterfall[
 
     # Delta bars only narrow when is_total is in use; otherwise every bar
     # stays full band width.
-    var using_totals = len(plot._waterfall.is_total) > 0
+    _draw_waterfall_bars(
+        target,
+        plot,
+        frame.y_scale,
+        frame.x_scale,
+        Float64(frame.py1),
+        _Orientation(False),
+        frame.text_requests,
+    )
+    return frame.result()
+
+
+def _validate_waterfall_encoding(plot: Plot) raises:
+    """The length checks both waterfall renders make before laying
+    anything out: categories against deltas, and is_total against
+    categories when it is given (#686 split this out so the horizontal
+    render makes the same checks rather than a copy of them)."""
+    if len(plot._categorical.x) != len(plot._continuous.y):
+        raise Error(
+            "Plot.encode_waterfall(): categories and deltas must have the"
+            " same length (got "
+            + String(len(plot._categorical.x))
+            + " and "
+            + String(len(plot._continuous.y))
+            + ")"
+        )
+    if len(plot._waterfall.is_total) > 0 and len(
+        plot._waterfall.is_total
+    ) != len(plot._categorical.x):
+        raise Error(
+            "Plot.encode_waterfall(): is_total, if given, must have the"
+            " same length as categories (got "
+            + String(len(plot._waterfall.is_total))
+            + " and "
+            + String(len(plot._categorical.x))
+            + ")"
+        )
+    _require_non_empty(len(plot._categorical.x), "Plot.encode_waterfall()")
+
+
+def _draw_waterfall_bars[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    value_scale: LinearScale,
+    band_scale: OrdinalScale,
+    baseline: Float64,
+    orient: _Orientation,
+    mut text_requests: List[_TextRequest],
+) raises:
+    """Draw one floating bar per category plus the connectors between
+    them, in whichever orientation `orient` names (#686).
+
+    Its own function, as `_draw_lollipop_stems` is, so the vertical and
+    horizontal renders share the geometry rather than keeping two copies
+    of the delta-width inset, the totals rule and the connector.
+
+    `value_scale` maps a running total to the value axis and
+    `band_scale` a category to its band, whichever way round the frame
+    puts them; `baseline` is the pixel of the zero line the bars are
+    pulled off.
+
+    Args:
+        target: Where to draw.
+        plot: The chart.
+        value_scale: The continuous scale for running totals.
+        band_scale: The ordinal scale for categories.
+        baseline: The zero line's pixel on the value axis.
+        orient: Which way the bands run.
+        text_requests: Collects the data labels.
+
+    Raises:
+        Error: Whatever the target's draw calls raise.
+    """
+    var theme = plot._theme
     var sc = _Scaled(theme)
-    var orient = _Orientation(False)  # Mark.WATERFALL has no horizontal variant
+    var using_totals = len(plot._waterfall.is_total) > 0
 
     # Only recorded when is_total is in use: that's the only case the
     # connector pass reads them back (a delta bar can be narrower than its
@@ -149,9 +211,9 @@ def _render_waterfall[
     # directly.
     var bar_x_list = List[Float64]()
     var bar_x1_list = List[Float64]()
-    var bandwidth = frame.x_scale.bandwidth()
+    var bandwidth = band_scale.bandwidth()
     for i in range(len(plot._categorical.x)):
-        var band_start = frame.x_scale.band_start(i)
+        var band_start = band_scale.band_start(i)
         var row_is_total = (
             plot._waterfall.is_total[i] if i
             < len(plot._waterfall.is_total) else False
@@ -175,9 +237,9 @@ def _render_waterfall[
             bar_x_list.append(bar_x)
             bar_x1_list.append(bar_x1)
 
-        var y0_py = _axis_pixel_f(frame.y_scale, plot._waterfall.y0[i])
-        var y1_py = _axis_pixel_f(frame.y_scale, plot._waterfall.y1[i])
-        var rect = _pull_off_axis_line_f(y0_py, y1_py, Float64(frame.py1))
+        var y0_py = _axis_pixel_f(value_scale, plot._waterfall.y0[i])
+        var y1_py = _axis_pixel_f(value_scale, plot._waterfall.y1[i])
+        var rect = _pull_off_axis_line_f(y0_py, y1_py, baseline)
         var bar_color = theme.waterfall_total_color if row_is_total else (
             theme.mark_color_negative if plot._continuous.y[i]
             < 0.0 else theme.mark_color
@@ -195,11 +257,7 @@ def _render_waterfall[
                     ] if row_is_total else plot._continuous.y[i],
                 )
             )
-        var rx0 = snap_to_pixel_edge(bar_x)
-        var rx1 = snap_to_pixel_edge(bar_x1)
-        var ry0 = snap_to_pixel_edge(rect.y)
-        var ry1 = snap_to_pixel_edge(rect.y + rect.height)
-        target.fill_rect(rx0, ry0, rx1 - rx0, ry1 - ry0, bar_color)
+        orient.fill_band_rect(target, rect, bar_x, bar_x1 - bar_x, bar_color)
         if theme.svg_tooltips:
             target.end_annotated_group()
         if theme.show_data_labels:
@@ -212,7 +270,7 @@ def _render_waterfall[
                 sc.label_gap,
                 sc.font_size,
             )
-            frame.text_requests.append(
+            text_requests.append(
                 _TextRequest(
                     at.x,
                     at.y,
@@ -228,27 +286,90 @@ def _render_waterfall[
 
         if i > 0:
             var prev_end_py = snap_to_pixel_center(
-                _axis_pixel_f(frame.y_scale, plot._waterfall.y1[i - 1])
+                _axis_pixel_f(value_scale, plot._waterfall.y1[i - 1])
             )
             # With no totals, the edge comes from the band geometry (band_start +
             # bandwidth, summed then rounded once) since every bar is full band
             # width. With totals, ask the previous bar what it actually drew, since
             # a delta bar can be narrower than its band.
             var prev_x1 = (
-                bar_x1_list[
+                bar_x1_list[i - 1] if using_totals else band_scale.band_start(
                     i - 1
-                ] if using_totals else frame.x_scale.band_start(i - 1)
-                + frame.x_scale.bandwidth()
+                )
+                + band_scale.bandwidth()
             )
-            target.draw_line_aa(
-                prev_x1,
-                prev_end_py,
-                bar_x,
-                prev_end_py,
-                theme.axis_color,
-                width=theme.scale,
-            )
+            if orient.horizontal:
+                target.draw_line_aa(
+                    prev_end_py,
+                    prev_x1,
+                    prev_end_py,
+                    bar_x,
+                    theme.axis_color,
+                    width=theme.scale,
+                )
+            else:
+                target.draw_line_aa(
+                    prev_x1,
+                    prev_end_py,
+                    bar_x,
+                    prev_end_py,
+                    theme.axis_color,
+                    width=theme.scale,
+                )
 
+
+def _render_horizontal_waterfall[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_waterfall`'s mirror image for
+    `Plot.mark_waterfall(horizontal=True)` (#686): the categorical axis
+    runs down the page and the running totals run rightward, on
+    `_draw_horizontal_categorical_axis_frame` (gantt.mojo).
+
+    A waterfall is the chart most likely to carry long stage names --
+    "returns and refunds", "channel partner discount" -- and those are
+    what a vertical categorical axis crowds. Its own function rather
+    than a flag inside `_render_waterfall`, for the reason
+    `_render_horizontal_bar` gives (bar.mojo): the two frames report
+    their scales under different names and types.
+    """
+    _validate_waterfall_encoding(plot)
+    var theme = plot._theme
+    var combined = List[Float64]()
+    for v in plot._waterfall.y0:
+        combined.append(v)
+    for v in plot._waterfall.y1:
+        combined.append(v)
+    var value_scale = _zero_baseline_y_extent(combined)
+    var frame = _draw_horizontal_categorical_axis_frame(
+        target,
+        plot._categorical.x,
+        value_scale,
+        theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+    _draw_waterfall_bars(
+        target,
+        plot,
+        frame.x_scale,
+        frame.y_scale,
+        Float64(frame.px0),
+        _Orientation(True),
+        frame.text_requests,
+    )
     return frame.result()
 
 
@@ -259,6 +380,7 @@ def waterfall[
     deltas: List[Scalar[dtype]],
     is_total: List[Bool] = List[Bool](),
     delta_width_fraction: Float64 = 0.6,
+    horizontal: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -290,6 +412,10 @@ def waterfall[
             original behavior.
         delta_width_fraction: A delta bar's width as a fraction of the band width;
             defaults to `0.6`.
+        horizontal: Whether the categories run down the page and the
+            running totals rightward; defaults to `False`. The form to
+            reach for when the stage names are long, as a bar chart's
+            are.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -328,7 +454,9 @@ def waterfall[
     var deltas_f = _materialize_scalar_list(deltas)
     var plot = (
         Plot()
-        .mark_waterfall(delta_width_fraction=delta_width_fraction)
+        .mark_waterfall(
+            delta_width_fraction=delta_width_fraction, horizontal=horizontal
+        )
         .encode_waterfall(
             categories=categories, deltas=deltas_f, is_total=is_total
         )
