@@ -117,6 +117,56 @@ def test_supports_agrees_with_the_table() raises:
             )
 
 
+def _check_raises_or_changes(
+    mut mismatches: List[String],
+    mark: Mark,
+    feature: Feature,
+    var turned_on: Plot,
+    base: String,
+    count_tag: String,
+):
+    """The oracle for a flag that raises where it is not honored.
+
+    Supported: the plot with the flag on renders, and differs from
+    `base` -- by more `count_tag` elements when one is given, otherwise
+    in any way. Not supported: it raises. Rendering unchanged fails
+    either way, since that is the silent no-op #676 removed.
+    """
+    var rendered = True
+    var svg = String("")
+    try:
+        svg = _svg(turned_on^)
+    except:
+        rendered = False
+    if not mark.supports(feature):
+        if rendered:
+            mismatches.append(
+                mark.name()
+                + " "
+                + feature.name()
+                + ": unsupported, but rendered instead of raising"
+            )
+        return
+    if not rendered:
+        mismatches.append(
+            mark.name() + " " + feature.name() + ": supported, but raised"
+        )
+        return
+    var changed = (
+        _count(svg, count_tag)
+        > _count(base, count_tag) if count_tag.byte_length()
+        > 0 else svg
+        != base
+    )
+    if not changed:
+        mismatches.append(
+            mark.name()
+            + " "
+            + feature.name()
+            + ": supported, but the render did not change"
+        )
+
+
 def _check(
     mut mismatches: List[String], mark: Mark, feature: Feature, found: Bool
 ):
@@ -162,21 +212,33 @@ def test_every_mark_matches_the_table() raises:
             has_title = "<title>" in _svg(_with_tooltips_opt_in(mark))
         _check(mismatches, mark, Feature.TOOLTIPS, has_title)
 
-        var labeled = _svg(plot.copy().theme(Theme(show_data_labels=True)))
-        _check(
+        # Data labels and horizontal raise on a mark that ignores them
+        # (#676), so the oracle is two-sided: a supporting mark must
+        # render and show the difference, and every other mark must
+        # raise. Rendering unchanged is now a failure on both sides.
+        _check_raises_or_changes(
             mismatches,
             mark,
             Feature.DATA_LABELS,
-            _count(labeled, "<text") > _count(base, "<text"),
+            plot.copy().theme(Theme(show_data_labels=True)),
+            base,
+            "<text",
         )
 
         var turned = plot.copy()
         if mark == Mark.HISTOGRAM:
             # Its own flag: the histogram encoder carries orientation.
             turned._histogram.horizontal = True
+        elif mark == Mark.DENDROGRAM:
+            # Likewise. Flipping Plot._horizontal alone could not see a
+            # dendrogram turn, which is how the table came to say it
+            # could not.
+            turned._dendrogram.horizontal = True
         else:
             turned._horizontal = True
-        _check(mismatches, mark, Feature.HORIZONTAL, _svg(turned) != base)
+        _check_raises_or_changes(
+            mismatches, mark, Feature.HORIZONTAL, turned^, base, ""
+        )
 
         _check(
             mismatches,

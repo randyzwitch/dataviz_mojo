@@ -710,3 +710,49 @@ def _check_grid_coordinates(
                 + ("x" if name == "x" else "y")
                 + "_reverse() to reverse the axis."
             )
+
+
+def _check_unsupported_flags(plot: Plot) raises:
+    """Raise when `Theme.show_data_labels` or `horizontal=True` is set on
+    a mark that ignores it (#676).
+
+    Of the flags in the feature-support table, the annotation passes, the
+    log scales and the color/size channels already raised on a mark that
+    cannot honor them. These two did nothing: data labels on a funnel
+    drew no labels and said nothing, which reads as a bug in the chart
+    rather than in the call.
+
+    `Theme.svg_tooltips` is deliberately not checked. It defaults to
+    `True`, so a raise could not tell a caller's explicit request from
+    the default without `Theme` recording which fields were set, and how
+    tooltips are switched on at all is open in #700. Deciding it here
+    would decide #700 first.
+
+    Only `Plot._horizontal` is read. HISTOGRAM and DENDROGRAM carry
+    orientation in their own encoders' data, and both support it.
+
+    Args:
+        plot: The chart about to render.
+
+    Raises:
+        Error: Either flag set on a mark that does not support it, naming
+            the mark and the marks that do.
+    """
+    if plot._theme.show_data_labels and not plot._mark.supports(
+        Feature.DATA_LABELS
+    ):
+        raise Error(
+            "Theme.show_data_labels: "
+            + plot._mark.name()
+            + " draws no data labels. It is supported for "
+            + _supporting_names(Feature.DATA_LABELS)
+            + " today"
+        )
+    if plot._horizontal and not plot._mark.supports(Feature.HORIZONTAL):
+        raise Error(
+            "horizontal=True: "
+            + plot._mark.name()
+            + " has no horizontal form. It is supported for "
+            + _supporting_names(Feature.HORIZONTAL)
+            + " today"
+        )

@@ -214,6 +214,7 @@ from dataviz.core.text import (
 )
 from dataviz.core.validate import (
     _check_line_smoothing,
+    _check_unsupported_flags,
     _domain_override_scale,
     _require_non_empty,
     _require_non_negative,
@@ -7763,6 +7764,7 @@ def _render_generic[
     against calling this directly with an inconsistent combination rather
     than a real per-cell decision point.
     """
+    _check_unsupported_flags(plot)
     if plot._secondary_axis:
         raise Error(
             "Plot.secondary_axis() only applies inside render_layers()/"
