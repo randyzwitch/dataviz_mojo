@@ -214,13 +214,25 @@ def test_symlog_y_on_a_position_mark_raises() raises:
         _ = render(rugplot(_decades()).scale_y_symlog())
 
 
-def test_the_estimated_marks_still_refuse_a_log_axis() raises:
-    # KDE is estimated in linear x; the decision is no until it can be
-    # estimated in log space.
-    from dataviz.distributions.kde import kdeplot
+def test_the_marks_decided_against_still_refuse_a_log_axis() raises:
+    """The "no" half of the decision is as much a claim as the "yes".
 
-    with assert_raises(contains="only apply to"):
-        _ = render(kdeplot(_decades()).scale_x_log())
+    KDE was on this list until #718 estimated it in log space. What
+    stays refused is where a log axis would misstate the data outright:
+    a vector's direction and length are in data units, and a grid
+    index has no logarithm.
+    """
+    from dataviz.core.mark import Mark
+    from _mark_registry import _representative_plot
+
+    var refused = List[Mark]()
+    refused.append(Mark.QUIVER)
+    refused.append(Mark.STREAMPLOT)
+    refused.append(Mark.CONTOUR)
+    refused.append(Mark.IMSHOW)
+    for m in refused:
+        with assert_raises(contains="only apply to"):
+            _ = render(_representative_plot(m).scale_x_log())
 
 
 def main() raises:
