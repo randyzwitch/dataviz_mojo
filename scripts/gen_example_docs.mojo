@@ -603,6 +603,16 @@ def _cookbook_categories() -> List[Category]:
             ],
         )
     )
+    cats.append(
+        Category(
+            "End-to-end workflows",
+            "Whole analyses, from data to figure, that check what they claim.",
+            [
+                "workflow_distribution_comparison",
+                "workflow_publication_figure",
+            ],
+        )
+    )
     return cats^
 
 
