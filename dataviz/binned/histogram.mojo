@@ -1161,7 +1161,7 @@ def histogram_bins(
 
 struct _HistogramLabels(Movable):
     """One bin-range label plus count per bin, in bin order: the
-    `(x_categories, y_data)` pair `Plot.encode_histogram()` assigns once
+    `(x_categories, y_data)` pair `Plot.encode_binned_categories()` assigns once
     `_bin_histogram()` returns.
     """
 
@@ -1180,13 +1180,13 @@ struct _HistogramLabels(Movable):
 
 
 def _bin_histogram(data: List[Float64], bins: Int) raises -> _HistogramLabels:
-    """`Plot.encode_histogram()`'s categorical view of `histogram_bins()`:
+    """`Plot.encode_binned_categories()`'s view of `histogram_bins()`:
     the same counts, with each bin's numeric interval formatted to one
     decimal place as a category label.
 
     Kept as a thin wrapper rather than its own binning loop so there is
     one boundary rule in this module rather than two that can drift.
-    Validates up front so its messages can name `encode_histogram()`
+    Validates up front so its messages can name `encode_binned_categories()`
     -- the caller a user of this path actually typed -- instead of the
     engine underneath.
 
@@ -1203,10 +1203,10 @@ def _bin_histogram(data: List[Float64], bins: Int) raises -> _HistogramLabels:
             `NaN`/infinite.
     """
     if len(data) == 0:
-        raise Error("Plot.encode_histogram(): data must not be empty")
+        raise Error("Plot.encode_binned_categories(): data must not be empty")
     if bins <= 0:
         raise Error(
-            "Plot.encode_histogram(): bins must be positive (got "
+            "Plot.encode_binned_categories(): bins must be positive (got "
             + String(bins)
             + ")"
         )
@@ -1232,7 +1232,7 @@ def _bin_histogram(
         Error: `data` is empty, or any value is `NaN`/infinite.
     """
     if len(data) == 0:
-        raise Error("Plot.encode_histogram(): data must not be empty")
+        raise Error("Plot.encode_binned_categories(): data must not be empty")
     return _label_bins(data, bin_edges(data, rule))
 
 
@@ -1279,7 +1279,7 @@ def histogram(
 
     The chart uses a filled `StepStyle.POST` area over the bin edges and
     pins the x-domain to the first and last edge. For categorical range
-    labels, use `Plot().mark_bar().encode_histogram(...)` instead.
+    labels, use `Plot().mark_bar().encode_binned_categories(...)` instead.
 
     The pinned x-domain has one cost worth knowing before building on
     it: `render_layers()` refuses any layer carrying an explicit domain
@@ -1716,7 +1716,7 @@ def histogram(
     consumes, where a stable count is a stability guarantee; this is a
     chart, and ten bins is a guess that is wrong in both directions -- a
     comb over fourteen readings, a smear over five thousand.
-    `Plot.encode_histogram()`'s categorical path
+    `Plot.encode_binned_categories()`
     keeps 10, since its bins are range labels a reader expects to be
     stable.
 

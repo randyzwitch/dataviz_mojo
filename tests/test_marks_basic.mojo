@@ -4,7 +4,7 @@ colors, color/size encoding, categorical color, SVG coordinates),
 Mark.LINE (drawing, line_smoothing, _build_line_path, step), Mark.AREA
 (fill region, smoothing and step), Mark.BAR (rectangles, negative values,
 color_by_sign), the histogram binning engine and `histogram()`'s numeric
-axis plus `encode_histogram()`'s categorical one, Mark.LOLLIPOP,
+axis plus `encode_binned_categories()`' categorical one, Mark.LOLLIPOP,
 Mark.BOX, Mark.CANDLESTICK, Mark.WATERFALL, and Mark.BULLET, each
 raster + SVG.
 """
@@ -1663,7 +1663,7 @@ def test_encode_histogram_bins_match_hand_derived_counts() raises:
     # Bin 3 ([5.8,7.4)) is empty and still a 0-count category. 9.0 (the
     # max) lands in the last bin.
     var data: List[Float64] = [1.0, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 8.0, 9.0]
-    var plot = Plot().mark_bar().encode_histogram(data, bins=5)
+    var plot = Plot().mark_bar().encode_binned_categories(data, bins=5)
     assert_equal(len(plot._categorical.x), 5)
     assert_equal(plot._categorical.x[0], "1.0-2.6")
     assert_equal(plot._categorical.x[1], "2.6-4.2")
@@ -1684,7 +1684,7 @@ def test_encode_histogram_rule_matches_hand_derived_bins() raises:
     var data = List[Float64]()
     for i in range(16):
         data.append(Float64(i) * 0.8)
-    var plot = Plot().mark_bar().encode_histogram(data, BinRule.SQRT)
+    var plot = Plot().mark_bar().encode_binned_categories(data, BinRule.SQRT)
     assert_equal(len(plot._categorical.x), 4)
     assert_equal(plot._categorical.x[0], "0.0-3.0")
     assert_equal(plot._categorical.x[3], "9.0-12.0")
@@ -1697,7 +1697,7 @@ def test_encode_histogram_rule_agrees_with_the_numeric_path() raises:
     # caller may ask for. With a rule, the categorical path must draw the
     # bins the numeric path would -- same count, same counts per bin.
     var data: List[Float64] = [1.0, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 8.0, 9.0]
-    var plot = Plot().mark_bar().encode_histogram(data, BinRule.AUTO)
+    var plot = Plot().mark_bar().encode_binned_categories(data, BinRule.AUTO)
     var numeric = histogram_bins(data, bin_edges(data, BinRule.AUTO))
     assert_equal(len(plot._continuous.y), len(numeric.values))
     for i in range(len(numeric.values)):
@@ -1707,19 +1707,19 @@ def test_encode_histogram_rule_agrees_with_the_numeric_path() raises:
 def test_encode_histogram_rule_raises_on_empty_data() raises:
     var data = List[Float64]()
     with assert_raises():
-        _ = Plot().mark_bar().encode_histogram(data, BinRule.AUTO)
+        _ = Plot().mark_bar().encode_binned_categories(data, BinRule.AUTO)
 
 
 def test_encode_histogram_raises_on_empty_data() raises:
     var data = List[Float64]()
     with assert_raises():
-        _ = Plot().mark_bar().encode_histogram(data, bins=5)
+        _ = Plot().mark_bar().encode_binned_categories(data, bins=5)
 
 
 def test_encode_histogram_raises_on_non_positive_bins() raises:
     var data: List[Float64] = [1.0, 2.0, 3.0]
     with assert_raises():
-        _ = Plot().mark_bar().encode_histogram(data, bins=0)
+        _ = Plot().mark_bar().encode_binned_categories(data, bins=0)
 
 
 def test_encode_histogram_centers_bins_on_a_constant_sample() raises:
@@ -1730,7 +1730,7 @@ def test_encode_histogram_centers_bins_on_a_constant_sample() raises:
     # numpy.histogram([5,5,5], bins=5) -> edges 4.5..5.5 step 0.2,
     # counts [0, 0, 3, 0, 0].
     var data: List[Float64] = [5.0, 5.0, 5.0]
-    var plot = Plot().mark_bar().encode_histogram(data, bins=5)
+    var plot = Plot().mark_bar().encode_binned_categories(data, bins=5)
     assert_equal(len(plot._categorical.x), 5)
     assert_equal(plot._categorical.x[0], "4.5-4.7")
     assert_equal(plot._categorical.x[2], "4.9-5.1")
@@ -1749,7 +1749,7 @@ def test_render_histogram_draws_as_an_ordinary_bar_chart() raises:
     var plot = (
         Plot()
         .mark_bar()
-        .encode_histogram(data, bins=3)
+        .encode_binned_categories(data, bins=3)
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
