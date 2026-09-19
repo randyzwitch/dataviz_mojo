@@ -12,13 +12,14 @@ name: Polar crash diagnostic (#732)
 #  2. Runs several copies at once. Every observed crash came from the
 #     parallel suite, so contention is part of the recipe; a single
 #     quiet run may never fail.
-#  3. Runs each copy under a pseudo-terminal (`script`). Redirected to
-#     a file, the module's stdout is block-buffered and a crash throws
-#     it all away: killing a healthy run nine seconds in leaves an
-#     empty file, though it has run most of its tests by then. That is
-#     why the original CI logs showed no test output, and it is not
-#     evidence about when the crash happens. A pty makes the stream
-#     line-buffered, so the last test printed survives the crash.
+#  3. Runs tests/zz_polar_probe.mojo, which calls the module's 71 tests
+#     one at a time and names each on **stderr** before running it.
+#     The module's own runner holds its stdout until the end, so a
+#     crash takes every PASS line with it -- killing a healthy run
+#     partway through leaves an empty file even on a pty, which is why
+#     the original logs showed no test output. stderr is unbuffered
+#     and survives a SIGKILL, so the last `START` line is the test that
+#     was running when the process went down.
 #  4. Also runs an ahead-of-time build with line tables, which is what
 #     the toolchain's own crash message asks for and the only way to
 #     turn the addresses into function names. That build is a different
@@ -42,8 +43,8 @@ on:
         description: "Concurrent copies per round"
         default: "4"
       mode:
-        description: "jit (mojo run, matches CI), aot (built binary), or both"
-        default: "both"
+        description: "jit (mojo run, matches CI), aot (built binary), probe (per-test stderr), or all"
+        default: "all"
 
 permissions:
   contents: read
@@ -70,7 +71,7 @@ jobs:
           sw_vers
 
       - name: Build with line tables
-        if: inputs.mode != 'jit'  # empty on a push, so the build runs
+        if: inputs.mode == '' || inputs.mode == 'aot' || inputs.mode == 'all'
         run: |
           mkdir -p build
           pixi run mojo build -debug-level=line-tables -I . -I tests \
@@ -85,22 +86,23 @@ jobs:
           # A push carries no inputs, so the defaults live here too.
           ITERATIONS="${ITERATIONS:-20}"
           COPIES="${COPIES:-4}"
-          MODE="${MODE:-both}"
+          MODE="${MODE:-all}"
           mkdir -p crashes
           crashed=0
           ran=0
           for i in $(seq 1 "$ITERATIONS"); do
             for c in $(seq 1 "$COPIES"); do
-              if [ "$MODE" != "aot" ]; then
-                # `script -q /dev/null CMD` runs CMD on a pty (BSD form,
-                # which is what macOS ships), so its output is line
-                # buffered and survives the crash.
-                ( script -q /dev/null \
-                    pixi run mojo run -I . -I tests tests/test_marks_polar.mojo \
+              if [ "$MODE" = "jit" ] || [ "$MODE" = "all" ]; then
+                ( pixi run mojo run -I . -I tests tests/test_marks_polar.mojo \
                     > "crashes/jit_${i}_${c}.out" 2>&1 \
                   || echo "$?" > "crashes/jit_${i}_${c}.code" ) &
               fi
-              if [ "$MODE" != "jit" ]; then
+              if [ "$MODE" = "probe" ] || [ "$MODE" = "all" ]; then
+                ( pixi run mojo run -I . -I tests tests/zz_polar_probe.mojo \
+                    > "crashes/probe_${i}_${c}.out" 2>&1 \
+                  || echo "$?" > "crashes/probe_${i}_${c}.code" ) &
+              fi
+              if [ "$MODE" = "aot" ] || [ "$MODE" = "all" ]; then
                 ( ./build/test_marks_polar \
                     > "crashes/aot_${i}_${c}.out" 2>&1 \
                   || echo "$?" > "crashes/aot_${i}_${c}.code" ) &
@@ -109,17 +111,21 @@ jobs:
             wait
             echo "round $i done"
           done
-          # A run that exits nonzero, or that never printed its summary,
-          # is a failure -- the crash prints no summary at all, which is
-          # the signature in #732.
+          # A run that exits nonzero, or that finished neither with a
+          # test summary (the module) nor with ALL DONE (the probe), is
+          # a failure. The crash prints no summary at all, which is the
+          # signature in #732.
           for f in crashes/*.out; do
             ran=$((ran + 1))
-            if [ -f "${f%.out}.code" ] || ! grep -q "tests run:" "$f"; then
+            if [ -f "${f%.out}.code" ] \
+              || ! grep -qE "tests run:|ALL DONE" "$f"; then
               crashed=$((crashed + 1))
               echo "=== FAILED: $f (exit $(cat "${f%.out}.code" 2>/dev/null || echo 0))"
               tail -40 "$f"
-              echo "--- last test line: $(grep -E '(PASS|FAIL) \[' "$f" | tail -1)"
-              echo "--- tests printed: $(grep -cE '(PASS|FAIL) \[' "$f")"
+              # For a probe run this is the whole point: the last test
+              # started, and whether it ever finished.
+              echo "--- last START: $(grep '^START ' "$f" | tail -1)"
+              echo "--- last DONE:  $(grep '^DONE ' "$f" | tail -1)"
             else
               rm -f "$f"
             fi
