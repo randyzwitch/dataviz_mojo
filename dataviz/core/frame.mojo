@@ -350,6 +350,36 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
                 across_a, fixed, across_b, fixed, color, width=width
             )
 
+    def point_line[
+        T: DrawTarget
+    ](
+        self,
+        mut target: T,
+        along_a: Float64,
+        across_a: Float64,
+        along_b: Float64,
+        across_b: Float64,
+        color: Color,
+        width: Float64,
+    ):
+        """A line between two (value, band) points, in any direction --
+        a pointplot's segment joining one category's estimate to the
+        next, which neither `value_line` nor `band_line` can draw.
+
+        Not snapped, unlike the `Float64` `value_line`/`band_line`: a
+        diagonal has no hard edge to keep, and a mark that draws its
+        whiskers through this too keeps them exactly where its points
+        are.
+        """
+        if self.horizontal:
+            target.draw_line_aa(
+                along_a, across_a, along_b, across_b, color, width=width
+            )
+        else:
+            target.draw_line_aa(
+                across_a, along_a, across_b, along_b, color, width=width
+            )
+
     def baseline_pull(self) -> Float64:
         """Which direction is into the plot area, away from the categorical
         axis line: `-1.0` vertically (that line is the frame's bottom) and

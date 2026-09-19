@@ -22,10 +22,13 @@ from dataviz import (
     box,
     grouped_bar,
     lollipop,
+    pointplot,
     stacked_bar,
     violin,
 )
+from dataviz.core.stats import ErrorBar
 from dataviz.plot import Plot, render_layers_svg, render_svg
+from _test_helpers import _attr_values
 from dataviz.core.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
@@ -829,6 +832,91 @@ def test_render_horizontal_violin_raises_on_negative_bandwidth() raises:
             .encode_distribution(categories=cats, values=values)
         )
         _ = render_svg(plot)
+
+
+# ---------------------------------------------------------------
+# Horizontal pointplot (#686)
+
+
+def _pointplot_svg(horizontal: Bool) raises -> String:
+    # a = [2, 4], b = [6, 10]: means 3 and 8; pi(0.5) is the 25th-75th
+    # percentile, 2.5-3.5 and 7-9 by linear interpolation.
+    var c: List[String] = ["a", "a", "b", "b"]
+    var v: List[Float64] = [2.0, 4.0, 6.0, 10.0]
+    return render_svg(
+        pointplot(
+            c,
+            v,
+            errorbar=ErrorBar.pi(0.5),
+            theme=Theme(show_gridlines=False),
+            horizontal=horizontal,
+            width=400,
+            height=300,
+        )
+    ).to_string()
+
+
+def test_render_svg_horizontal_pointplot_matches_hand_derived_positions() raises:
+    # The value domain is _data_extent over the means and whisker ends,
+    # [2.5, 9] padded 5% to [2.175, 9.325], across x 60..380: 3 lands at
+    # 96.923, 8 at 320.699, and the whiskers run 74.545..119.301 and
+    # 275.944..365.455. The rows are the categories' band centers, 73
+    # and 179 -- the y each axis label sits at, less its 4px baseline
+    # nudge.
+    var svg = _pointplot_svg(True)
+    var cx = _attr_values(svg, "circle", "cx")
+    var cy = _attr_values(svg, "circle", "cy")
+    assert_equal(len(cx), 2)
+    assert_equal(cx[0], "96.923")
+    assert_equal(cy[0], "73.000")
+    assert_equal(cx[1], "320.699")
+    assert_equal(cy[1], "179.000")
+    assert_true(
+        '<text x="51.000" y="77.000" font-size="12.000"'
+        ' font-family="sans-serif" fill="#282828" text-anchor="end">a</text>'
+        in svg,
+        "a's label on the left, on the same row as its point",
+    )
+
+    # A whisker runs along x at its row: y1 == y2 at the row, x1 and x2
+    # the interval's ends. Zipped by index, so each check is one line.
+    var x1 = _attr_values(svg, "line", "x1")
+    var y1 = _attr_values(svg, "line", "y1")
+    var x2 = _attr_values(svg, "line", "x2")
+    var y2 = _attr_values(svg, "line", "y2")
+    var found_a = False
+    var found_b = False
+    for i in range(len(x1)):
+        if y1[i] != y2[i]:
+            continue
+        if y1[i] == "73.000" and x1[i] == "119.301" and x2[i] == "74.545":
+            found_a = True
+        if y1[i] == "179.000" and x1[i] == "365.455" and x2[i] == "275.944":
+            found_b = True
+    assert_true(found_a, "a's whisker, 2.5..3.5, along its row")
+    assert_true(found_b, "b's whisker, 7..9, along its row")
+
+
+def test_horizontal_pointplot_names_the_estimator_on_the_value_axis() raises:
+    # The estimator names the value axis, which is x when horizontal:
+    # an unrotated bottom title, not a rotated one on the category axis
+    # (#709 is the same defect in barplot()).
+    var turned = _pointplot_svg(True)
+    assert_true(
+        '<text x="220.000" y="297.000" font-size="14.000"'
+        ' font-family="sans-serif" fill="#282828"'
+        ' text-anchor="middle">Mean</text>'
+        in turned
+    )
+    var upright = _pointplot_svg(False)
+    var at = upright.find(">Mean</text>")
+    assert_true(at >= 0)
+    var before = String(upright[byte=0:at])
+    var element = String(before[byte = before.rfind("<text") :])
+    assert_true(
+        "rotate(-90.000" in element,
+        "upright, Mean is the rotated left title",
+    )
 
 
 def main() raises:
