@@ -1,4 +1,4 @@
-from std.math import cos, pi, sin
+from std.math import cos, pi, sin, sqrt
 
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
@@ -18,10 +18,79 @@ from dataviz.plot import (
     _finished,
 )
 from dataviz.relationships.edges import (
+    GraphLayout,
     _edge_node_index,
     _validate_edge_encoding,
 )
 from dataviz.core.theme import Theme
+
+
+def _force_layout(
+    n: Int, from_idx: List[Int], to_idx: List[Int]
+) -> Tuple[List[Float64], List[Float64]]:
+    """Node positions in the unit square by a force-directed layout
+    (#157), Fruchterman and Reingold's spring embedder.
+
+    Every pair of nodes repels with force `k^2 / d` and every edge
+    attracts its ends with `d^2 / k`, where `k = sqrt(1 / n)` is the
+    ideal spacing; each step moves a node along its net force, by no
+    more than a temperature that cools linearly to zero over 300 steps.
+    A weak pull toward the center keeps disconnected pieces from
+    drifting apart without bound.
+
+    It starts from the circle `GraphLayout.CIRCLE` draws rather than
+    from random positions, so the result is the same on every render
+    with no seed to carry. Self-loops exert no force.
+    """
+    var xs = List[Float64](capacity=n)
+    var ys = List[Float64](capacity=n)
+    for i in range(n):
+        var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
+        xs.append(0.5 + 0.5 * cos(angle))
+        ys.append(0.5 + 0.5 * sin(angle))
+    if n < 2:
+        return (xs^, ys^)
+    var k = sqrt(1.0 / Float64(n))
+    var steps = 300
+    var t0 = 0.1
+    for step in range(steps):
+        var dx = List[Float64](capacity=n)
+        var dy = List[Float64](capacity=n)
+        for i in range(n):
+            # Gravity toward the center, proportional to distance.
+            dx.append((0.5 - xs[i]) * k)
+            dy.append((0.5 - ys[i]) * k)
+        for i in range(n):
+            for j in range(i + 1, n):
+                var ex = xs[i] - xs[j]
+                var ey = ys[i] - ys[j]
+                var d = max(sqrt(ex * ex + ey * ey), 1e-9)
+                var f = k * k / d
+                dx[i] += ex / d * f
+                dy[i] += ey / d * f
+                dx[j] -= ex / d * f
+                dy[j] -= ey / d * f
+        for e in range(len(from_idx)):
+            var u = from_idx[e]
+            var v = to_idx[e]
+            if u == v:
+                continue
+            var ex = xs[u] - xs[v]
+            var ey = ys[u] - ys[v]
+            var d = max(sqrt(ex * ex + ey * ey), 1e-9)
+            var f = d * d / k
+            dx[u] -= ex / d * f
+            dy[u] -= ey / d * f
+            dx[v] += ex / d * f
+            dy[v] += ey / d * f
+        var temp = t0 * (1.0 - Float64(step) / Float64(steps))
+        for i in range(n):
+            var m = sqrt(dx[i] * dx[i] + dy[i] * dy[i])
+            if m > 0.0:
+                var move = min(m, temp)
+                xs[i] += dx[i] / m * move
+                ys[i] += dy[i] / m * move
+    return (xs^, ys^)
 
 
 def _render_graph[
@@ -36,10 +105,14 @@ def _render_graph[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render an edge list with nodes fixed around a circle.
+    """Render an edge list as nodes joined by straight edges, placed
+    around a circle or by `_force_layout` (`GraphLayout`, #157).
 
     Edges are straight, their width scales with value, and their color follows
-    the source node. Self-loops are skipped and labels sit outside the circle.
+    the source node. Self-loops are skipped. Around a circle the labels sit
+    outside it; in a force layout, which has no outside, each sits centered
+    under its node, and the layout is scaled to fill the plot area with room
+    left for the labels below.
     """
     _validate_edge_encoding(plot, "Mark.GRAPH")
 
@@ -61,12 +134,41 @@ def _render_graph[
         Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
     )
 
+    var force = plot._mark_style.graph_layout == GraphLayout.FORCE
     var node_x = List[Float64](capacity=n)
     var node_y = List[Float64](capacity=n)
-    for i in range(n):
-        var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
-        node_x.append(cx + max_radius * cos(angle))
-        node_y.append(cy + max_radius * sin(angle))
+    if force:
+        var unit = _force_layout(n, edges.from_idx, edges.to_idx)
+        var lo_x = unit[0][0]
+        var hi_x = unit[0][0]
+        var lo_y = unit[1][0]
+        var hi_y = unit[1][0]
+        for i in range(n):
+            lo_x = min(lo_x, unit[0][i])
+            hi_x = max(hi_x, unit[0][i])
+            lo_y = min(lo_y, unit[1][i])
+            hi_y = max(hi_y, unit[1][i])
+        # Inset by a node radius on every side, and by a label's height
+        # more at the bottom, so neither is clipped by the frame.
+        var pad = Float64(round_to_int(sc.point_radius)) + 1.0
+        var fx0 = Float64(plot_x0) + pad
+        var fx1 = Float64(plot_x1) - pad
+        var fy0 = Float64(plot_y0) + pad
+        var fy1 = Float64(plot_y1) - pad - Float64(sc.label_gap) - sc.font_size
+        for i in range(n):
+            var tx = 0.5 if hi_x == lo_x else (unit[0][i] - lo_x) / (
+                hi_x - lo_x
+            )
+            var ty = 0.5 if hi_y == lo_y else (unit[1][i] - lo_y) / (
+                hi_y - lo_y
+            )
+            node_x.append(fx0 + (fx1 - fx0) * tx)
+            node_y.append(fy0 + (fy1 - fy0) * ty)
+    else:
+        for i in range(n):
+            var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
+            node_x.append(cx + max_radius * cos(angle))
+            node_y.append(cy + max_radius * sin(angle))
 
     var palette = categorical_palette_for(theme)
     var value_mm = _min_max(plot._edges.values)
@@ -120,7 +222,14 @@ def _render_graph[
         var label_y = cy + (max_radius + Float64(sc.label_gap)) * sin(angle)
         var c = cos(angle)
         var align = TextAlign.CENTER
-        if c > 0.3:
+        if force:
+            label_x = px
+            label_y = (
+                py
+                + Float64(round_to_int(sc.point_radius) + sc.label_gap)
+                + sc.font_size * 0.65
+            )
+        elif c > 0.3:
             align = TextAlign.LEFT
         elif c < -0.3:
             align = TextAlign.RIGHT
@@ -152,13 +261,16 @@ def graph[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
+    layout: GraphLayout = GraphLayout.CIRCLE,
 ) raises -> Plot:
-    """A network graph: nodes connected by edges and laid out to minimize
-    crossings, for visualizing relationships without the ordering
-    constraints an arc diagram or chord diagram impose.
+    """A network graph: nodes connected by edges, for visualizing
+    relationships without the ordering constraints an arc diagram or
+    chord diagram impose.
 
     `Mark.GRAPH`: `Mark.CHORD`'s edge list (`Plot.encode_chord()`) drawn
-    as nodes evenly spaced around a circle, connected by straight lines.
+    as nodes joined by straight lines -- evenly spaced around a circle
+    by default, or with `layout=GraphLayout.FORCE` placed by a
+    force-directed layout that gathers connected nodes together (#157).
     See `_render_graph`.
 
     Args:
@@ -176,6 +288,8 @@ def graph[
         subtitle: A secondary line shown under the title.
         x_title: The x-axis caption.
         y_title: The y-axis caption.
+        layout: Where the nodes go: `GraphLayout.CIRCLE` (the default)
+            or `GraphLayout.FORCE`.
 
     Returns:
         The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
@@ -213,7 +327,7 @@ def graph[
     var values_f = _materialize_scalar_list(values)
     var plot = (
         Plot()
-        .mark_graph()
+        .mark_graph(layout=layout)
         .encode_chord(
             from_categories=from_categories,
             to_categories=to_categories,

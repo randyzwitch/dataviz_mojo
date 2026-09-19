@@ -83,6 +83,7 @@ from dataviz.multivariate.tricontour import tricontour, tricontourf
 from dataviz.multivariate.triplot import tripcolor, triplot
 from dataviz.relationships.chord import chord
 from dataviz.relationships.arc_diagram import arc_diagram
+from dataviz.relationships.edges import GraphLayout
 from dataviz.relationships.graph import graph
 from dataviz.relationships.sankey import sankey
 from dataviz.basic.effect_scatter import effect_scatter
