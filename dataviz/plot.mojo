@@ -6994,9 +6994,7 @@ def _tight_box(
         probe, plot, 0, 0, plot.width, plot.height, False, vector_target, cache
     )
     _replay_text_requests(probe, drawn.text, cache)
-    if not probe.has_ink():
-        return (0, 0, plot.width, plot.height)
-    return probe.ink_pixels()
+    return _ink_box(probe, plot.width, plot.height)
 
 
 def _render_into(
@@ -7234,7 +7232,7 @@ def _render_pdf_into(
     return (drawn.px0, drawn.py0, drawn.px1, drawn.py1)
 
 
-def _at_dpi(plot: Plot, dpi: Float64) raises -> Plot:
+def _at_dpi(plot: Plot, dpi: Float64, caller: String = "save") raises -> Plot:
     """`plot` laid out for a raster export at `dpi` (#372).
 
     The figure's size is in points, 1/72 inch, so a raster at `dpi`
@@ -7248,6 +7246,7 @@ def _at_dpi(plot: Plot, dpi: Float64) raises -> Plot:
     Args:
         plot: The chart, sized in points.
         dpi: Pixels per inch for the export.
+        caller: The public function to name in the error.
 
     Returns:
         A copy sized and scaled for that resolution; `plot` itself at
@@ -7257,7 +7256,9 @@ def _at_dpi(plot: Plot, dpi: Float64) raises -> Plot:
         Error: `dpi` is not positive.
     """
     if dpi <= 0.0:
-        raise Error("save(): dpi must be positive (got " + String(dpi) + ")")
+        raise Error(
+            caller + "(): dpi must be positive (got " + String(dpi) + ")"
+        )
     var factor = dpi / 72.0
     var out = plot.copy()
     if factor == 1.0:
@@ -7266,6 +7267,57 @@ def _at_dpi(plot: Plot, dpi: Float64) raises -> Plot:
     out.height = Int(Float64(plot.height) * factor + 0.5)
     out._theme.scale = plot._theme.scale * factor
     return out^
+
+
+def _all_at_dpi(
+    plots: List[Plot], dpi: Float64, caller: String
+) raises -> List[Plot]:
+    """`_at_dpi` over every plot of a composition (#701).
+
+    Every plot gets the same factor, so a layered chart's layers, a
+    facet grid's cells and a grid's cells all keep their proportions to
+    each other as well as to the page. The composition's own geometry --
+    a figure title band, the gap under it -- comes from `plots[0]`'s
+    `Theme` through `_Scaled`, so it scales with them.
+
+    Args:
+        plots: The composition's charts.
+        dpi: Pixels per inch for the export.
+        caller: The public function to name in the error.
+
+    Returns:
+        A scaled copy of each.
+
+    Raises:
+        Error: `dpi` is not positive.
+    """
+    var out = List[Plot](capacity=len(plots))
+    for p in plots:
+        out.append(_at_dpi(p, dpi, caller))
+    return out^
+
+
+def _dpi_factor(dpi: Float64, caller: String) raises -> Float64:
+    """`dpi / 72`, the pixels per point `_at_dpi` scales a figure by,
+    validated the same way -- for a figure whose size is given in the
+    call rather than read from its plots (`save_grid()`)."""
+    if dpi <= 0.0:
+        raise Error(
+            caller + "(): dpi must be positive (got " + String(dpi) + ")"
+        )
+    return dpi / 72.0
+
+
+def _ink_box(
+    probe: BoundsTarget, width: Int, height: Int
+) -> Tuple[Int, Int, Int, Int]:
+    """What `probe` measured, as `(x, y, width, height)`: the figure's
+    full `width` by `height` when nothing was drawn, since a zero-sized
+    canvas is not usable. The tail of `_tight_box`, shared with the
+    compositions' tight exports (#701)."""
+    if not probe.has_ink():
+        return (0, 0, width, height)
+    return probe.ink_pixels()
 
 
 def save(
