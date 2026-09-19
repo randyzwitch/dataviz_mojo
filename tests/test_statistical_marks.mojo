@@ -201,6 +201,34 @@ def test_barplot_names_the_estimator_on_the_y_axis_by_default() raises:
     assert_true(">Latency (ms)<" in named and ">Mean<" not in named)
 
 
+def test_a_horizontal_barplot_names_the_estimator_on_the_value_axis() raises:
+    # #709: horizontal, the value axis is x, so "Mean" is the unrotated
+    # bottom title; before, it was drawn rotated on the left, labeling
+    # the category axis, and the value axis had no title at all.
+    var s = render_svg(
+        barplot(_groups(), _values(), horizontal=True, width=300, height=200)
+    ).to_string()
+    var at = s.find(">Mean</text>")
+    assert_true(at >= 0, "the estimator is still named")
+    var before = String(s[byte=0:at])
+    var element = String(before[byte = before.rfind("<text") :])
+    assert_true("rotate(" not in element, "Mean is the unrotated bottom title")
+    var named = render_svg(
+        barplot(
+            _groups(),
+            _values(),
+            horizontal=True,
+            x_title="Latency (ms)",
+            width=300,
+            height=200,
+        )
+    ).to_string()
+    assert_true(
+        ">Latency (ms)<" in named and ">Mean<" not in named,
+        "an explicit x_title replaces the default",
+    )
+
+
 def test_barplot_with_no_errorbar_has_no_whiskers() raises:
     var p = barplot(_groups(), _values(), errorbar=ErrorBar.none())
     assert_equal(len(p._y_err.lower), 0)
