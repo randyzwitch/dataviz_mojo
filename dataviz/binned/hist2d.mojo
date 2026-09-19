@@ -4,7 +4,14 @@ cells, so a point cloud too dense to read as a scatter shows where it
 concentrates."""
 
 from dataviz.core.array_like import _materialize_scalar_list
-from dataviz.binned.histogram import BinRule, _bin_index, bin_edges
+from std.math import log10
+
+from dataviz.binned.histogram import (
+    BinRule,
+    _bin_index,
+    bin_edges,
+    log_bin_edges,
+)
 from dataviz.plot import Plot, _finished
 from dataviz.core.theme import Theme
 
@@ -79,11 +86,40 @@ def _hist2d_counts(
     return counts^
 
 
+def _edges_for(
+    values: List[Float64], bins: Int, log: Bool
+) raises -> List[Float64]:
+    """`bins` edges over `values`, even in log space when `log` is set."""
+    return log_bin_edges(values, bins) if log else bin_edges(values, bins)
+
+
+def _edges_for(
+    values: List[Float64], rule: BinRule, log: Bool
+) raises -> List[Float64]:
+    """Edges with the count chosen by `rule`. On a log axis the rule is
+    applied to `log10(values)`, since that is the space being binned,
+    and the edges are then even in it.
+    """
+    if not log:
+        return bin_edges(values, rule)
+    var logged = List[Float64](capacity=len(values))
+    for v in values:
+        if v <= 0.0:
+            raise Error(
+                "hist2d(): every value must be > 0 to bin on a log axis -- got "
+                + String(v)
+            )
+        logged.append(log10(v))
+    return log_bin_edges(values, len(bin_edges(logged, rule)) - 1)
+
+
 def _hist2d_plot(
     x: List[Float64],
     y: List[Float64],
     x_edges: List[Float64],
     y_edges: List[Float64],
+    log_x: Bool,
+    log_y: Bool,
     theme: Theme,
     width: Int,
     height: Int,
@@ -93,6 +129,15 @@ def _hist2d_plot(
     y_title: String,
 ) raises -> Plot:
     var plot = Plot().mark_hist2d().encode_hist2d(x, y, x_edges, y_edges)
+    # Which axes this function binned evenly in linear units, so that a
+    # later .scale_x_log() on one of them raises instead of drawing
+    # bins that are wildly unequal on screen (#718).
+    plot._image.linear_auto_x = not log_x
+    plot._image.linear_auto_y = not log_y
+    if log_x:
+        plot = plot^.scale_x_log()
+    if log_y:
+        plot = plot^.scale_y_log()
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
@@ -102,6 +147,8 @@ def hist2d(
     x: List[Float64],
     y: List[Float64],
     bins: Int,
+    log_x: Bool = False,
+    log_y: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -139,6 +186,9 @@ def hist2d(
         x: The horizontal coordinates.
         y: The vertical coordinates, one per `x`.
         bins: Bins per axis, at least 1.
+        log_x: Bin x evenly in log space and put it on a log axis, so
+            every cell is the same width on screen (#718).
+        log_y: The same for y.
         theme: Visual theme.
         width: Canvas width in pixels.
         height: Canvas height in pixels.
@@ -208,8 +258,10 @@ def hist2d(
     return _hist2d_plot(
         x,
         y,
-        bin_edges(x, bins),
-        bin_edges(y, bins),
+        _edges_for(x, bins, log_x),
+        _edges_for(y, bins, log_y),
+        log_x,
+        log_y,
         theme,
         width,
         height,
@@ -224,6 +276,8 @@ def hist2d(
     x: List[Float64],
     y: List[Float64],
     rule: BinRule = BinRule.AUTO,
+    log_x: Bool = False,
+    log_y: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -241,6 +295,9 @@ def hist2d(
         x: The horizontal coordinates.
         y: The vertical coordinates, one per `x`.
         rule: How to pick each axis's bin count from its data.
+        log_x: Bin x evenly in log space and put it on a log axis, so
+            every cell is the same width on screen (#718).
+        log_y: The same for y.
         theme: Visual theme.
         width: Canvas width in pixels.
         height: Canvas height in pixels.
@@ -267,8 +324,10 @@ def hist2d(
     return _hist2d_plot(
         x,
         y,
-        bin_edges(x, rule),
-        bin_edges(y, rule),
+        _edges_for(x, rule, log_x),
+        _edges_for(y, rule, log_y),
+        log_x,
+        log_y,
         theme,
         width,
         height,
@@ -285,6 +344,8 @@ def hist2d[
     x: List[Scalar[dtype]],
     y: List[Scalar[dtype]],
     bins: Int,
+    log_x: Bool = False,
+    log_y: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -304,6 +365,9 @@ def hist2d[
         x: The horizontal coordinates.
         y: The vertical coordinates, one per `x`.
         bins: Bins per axis, at least 1.
+        log_x: Bin x evenly in log space and put it on a log axis, so
+            every cell is the same width on screen (#718).
+        log_y: The same for y.
         theme: Visual theme.
         width: Canvas width in pixels.
         height: Canvas height in pixels.
@@ -322,6 +386,8 @@ def hist2d[
         _materialize_scalar_list(x),
         _materialize_scalar_list(y),
         bins,
+        log_x=log_x,
+        log_y=log_y,
         theme=theme,
         width=width,
         height=height,
@@ -338,6 +404,8 @@ def hist2d[
     x: List[Scalar[dtype]],
     y: List[Scalar[dtype]],
     rule: BinRule = BinRule.AUTO,
+    log_x: Bool = False,
+    log_y: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -356,6 +424,9 @@ def hist2d[
         x: The horizontal coordinates.
         y: The vertical coordinates, one per `x`.
         rule: How to pick each axis's bin count from its data.
+        log_x: Bin x evenly in log space and put it on a log axis, so
+            every cell is the same width on screen (#718).
+        log_y: The same for y.
         theme: Visual theme.
         width: Canvas width in pixels.
         height: Canvas height in pixels.
@@ -374,6 +445,8 @@ def hist2d[
         _materialize_scalar_list(x),
         _materialize_scalar_list(y),
         rule,
+        log_x=log_x,
+        log_y=log_y,
         theme=theme,
         width=width,
         height=height,

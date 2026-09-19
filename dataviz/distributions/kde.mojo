@@ -7,7 +7,7 @@ the de-facto shared home without anything saying so. Moved here
 unchanged; the estimator is the same one violins have always drawn.
 """
 
-from std.math import exp, pi, sqrt
+from std.math import exp, log10, pi, sqrt
 
 from canvas.color import Color
 from canvas.fill_rule import FillRule
@@ -21,6 +21,7 @@ from dataviz.plot import (
     _LegendLayout,
     _RenderResult,
     _data_extent,
+    _log_data_extent,
     _position_x_extent,
     _draw_continuous_axis_frame,
     _finished,
@@ -154,7 +155,7 @@ def _render_kde[
     """
     var values = _kde_observations(plot)
 
-    var curve = _kde_curve(values, plot._distribution.kde_bandwidth_override)
+    var curve = _kde_curve_for_axis(plot, values)
     var theme = plot._theme
 
     var y_max = 0.0
@@ -167,7 +168,7 @@ def _render_kde[
 
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(curve[0]),
+        _log_data_extent(curve[0]) if plot._x_log else _data_extent(curve[0]),
         y_scale,
         theme,
         _LegendLayout(),
@@ -190,6 +191,64 @@ def _render_kde[
         Float64(frame.py1),
     )
     return frame.result()
+
+
+def _kde_curve_for_axis(
+    plot: Plot, values: List[Float64]
+) raises -> Tuple[List[Float64], List[Float64]]:
+    """The density curve, estimated in the space the x axis shows (#718).
+
+    On a linear axis this is `_kde_curve()` as it always was. On a log
+    axis the estimate is of `log10(x)`: the kernel is a fixed width in
+    decades rather than in data units, the grid is even in log space,
+    and the curve's x values are mapped back through `10^x` so the log
+    scale places them where they were estimated. The density then
+    integrates to one over log x, which is what a reader of a log axis
+    is measuring by eye.
+
+    Estimating in linear x and drawing on a log axis was why KDE refused
+    the log scale until now: a fixed-width kernel stretched unevenly
+    across decades, and the area under the curve stopped reading as
+    probability, worst on the heavy-tailed samples a log axis is for.
+
+    A bandwidth passed to `kdeplot()` is in the space of the estimate,
+    so under `scale_x_log()` it is measured in decades.
+
+    Args:
+        plot: The chart, for its scale flags and bandwidth.
+        values: The observations.
+
+    Returns:
+        `(x, density)` columns, `x` in data units.
+
+    Raises:
+        Error: `scale_x_symlog()` or `scale_y_symlog()`, neither of which
+            a density has a meaning for, or a value at or below zero
+            under `scale_x_log()`.
+    """
+    if plot._x_symlog or plot._y_symlog:
+        raise Error(
+            "Plot.scale_x_symlog()/scale_y_symlog(): Mark.KDE takes"
+            " scale_x_log() only. A density is estimated in one space, and"
+            " symlog is two spaces joined at a threshold"
+        )
+    var bandwidth = plot._distribution.kde_bandwidth_override
+    if not plot._x_log:
+        return _kde_curve(values, bandwidth)
+    var logged = List[Float64](capacity=len(values))
+    for v in values:
+        if v <= 0.0:
+            raise Error(
+                "scale_x_log(): every value must be > 0 for a log-scaled"
+                " axis (log10(0) and log10(negative) are undefined) -- got "
+                + String(v)
+            )
+        logged.append(log10(v))
+    var curve = _kde_curve(logged, bandwidth)
+    var xs = List[Float64](capacity=len(curve[0]))
+    for g in curve[0]:
+        xs.append(10.0**g)
+    return (xs^, curve[1].copy())
 
 
 def _kde_observations(plot: Plot) raises -> List[Float64]:

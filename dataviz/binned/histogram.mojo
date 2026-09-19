@@ -14,7 +14,7 @@ The binning behavior matches `numpy.histogram`:
 
 """
 
-from std.math import cbrt, ceil, log2, pi, sqrt
+from std.math import cbrt, ceil, log10, log2, pi, sqrt
 
 from canvas.color import Color
 from canvas.text.render import TextAlign
@@ -857,6 +857,49 @@ def uniform_bin_edges(
                 " distinct Float64 boundaries"
             )
     return edges^
+
+
+def log_bin_edges(data: List[Float64], bins: Int = 10) raises -> List[Float64]:
+    """`bins + 1` boundaries even in log10 space over `data`'s range: the
+    log-axis counterpart of `bin_edges()` (#718).
+
+    On a log axis, bins of equal width in data units come out wildly
+    unequal on screen, so a bin's area stops meaning anything. These are
+    equal on screen instead: each one spans the same ratio.
+
+    Args:
+        data: The observations, all positive.
+        bins: How many bins.
+
+    Returns:
+        The edges, in data units.
+
+    Raises:
+        Error: Empty data, a value at or below zero, or a non-positive
+            `bins`.
+    """
+    if len(data) == 0:
+        raise Error("log_bin_edges(): data must not be empty")
+    var lo = data[0]
+    var hi = data[0]
+    for v in data:
+        if v <= 0.0:
+            raise Error(
+                "log_bin_edges(): every value must be > 0 to bin on a log"
+                " axis -- got "
+                + String(v)
+            )
+        if v < lo:
+            lo = v
+        if v > hi:
+            hi = v
+    var even = uniform_bin_edges(
+        log10(lo), log10(hi) if hi > lo else log10(lo) + 1.0, bins
+    )
+    var out = List[Float64](capacity=len(even))
+    for e in even:
+        out.append(10.0**e)
+    return out^
 
 
 def bin_edges(data: List[Float64], bins: Int = 10) raises -> List[Float64]:

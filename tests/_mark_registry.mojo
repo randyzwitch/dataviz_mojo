@@ -91,6 +91,7 @@ from dataviz import (
 from dataviz.core.colors import WHITE
 from dataviz.core.cluster import linkage
 from dataviz.core.mark import Mark
+from dataviz.binned.histogram import bin_edges
 from dataviz.plot import (
     Plot,
     area,
@@ -336,16 +337,28 @@ def _representative_plot(mark: Mark) raises -> Plot:
         var hy = List[Float64]()
         for i in range(400):
             var t = Float64(i)
-            hx.append((t * 7.0) % 23.0 + (t * 3.0) % 5.0)
-            hy.append((t * 11.0) % 17.0 + (t * 2.0) % 3.0)
-        return hist2d(hx, hy, bins=8, width=_W, height=_H)
+            # Plus 1 so every value is positive and the same plot can be
+            # asked for a log axis (#718).
+            hx.append((t * 7.0) % 23.0 + (t * 3.0) % 5.0 + 1.0)
+            hy.append((t * 11.0) % 17.0 + (t * 2.0) % 3.0 + 1.0)
+        # Explicit edges rather than hist2d(bins=8): hist2d() refuses a
+        # log axis added afterwards over bins it chose in linear units,
+        # while edges a caller gives are drawn as given (#718).
+        return (
+            Plot()
+            .mark_hist2d()
+            .encode_hist2d(hx, hy, bin_edges(hx, 8), bin_edges(hy, 8))
+            .size(_W, _H)
+        )
     if mark == Mark.HEXBIN:
         var bx = List[Float64]()
         var by = List[Float64]()
         for i in range(400):
             var t = Float64(i)
-            bx.append((t * 7.0) % 23.0 + (t * 3.0) % 5.0)
-            by.append((t * 11.0) % 17.0 + (t * 2.0) % 3.0)
+            # Plus 1 so every value is positive and the same plot can be
+            # asked for a log axis (#718).
+            bx.append((t * 7.0) % 23.0 + (t * 3.0) % 5.0 + 1.0)
+            by.append((t * 11.0) % 17.0 + (t * 2.0) % 3.0 + 1.0)
         return hexbin(bx, by, gridsize=8, width=_W, height=_H)
     if mark == Mark.TRICONTOUR:
         var tx = List[Float64]()
