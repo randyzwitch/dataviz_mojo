@@ -1,0 +1,118 @@
+name: Polar crash diagnostic (#732)
+
+# Throwaway workflow for #732: tests/test_marks_polar.mojo crashes on
+# macos-latest in roughly one CI run in five, printing a stack of raw
+# addresses and no test output, so the log never says which test faults.
+#
+# Run it by hand from the Actions tab. It does three things the normal
+# test job cannot:
+#
+#  1. Runs *only* that module, many times, so a run is minutes rather
+#     than the 25 the full macOS job takes.
+#  2. Runs several copies at once. Every observed crash came from the
+#     parallel suite, so contention is part of the recipe; a single
+#     quiet run may never fail.
+#  3. Also runs an ahead-of-time build with line tables, which is what
+#     the toolchain's own crash message asks for and the only way to
+#     turn the addresses into function names. That build is a different
+#     execution path from `mojo run`'s JIT, so it may not reproduce the
+#     crash at all -- which is itself worth knowing, and why both are
+#     here.
+#
+# Delete this file once #732 is understood.
+
+on:
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: "Rounds to run (each round runs `copies` processes at once)"
+        default: "20"
+      copies:
+        description: "Concurrent copies per round"
+        default: "4"
+      mode:
+        description: "jit (mojo run, matches CI), aot (built binary), or both"
+        default: "both"
+
+permissions:
+  contents: read
+
+jobs:
+  hammer:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install libfontconfig
+        run: brew install fontconfig && brew install --cask font-dejavu && fc-cache -f
+
+      - uses: prefix-dev/setup-pixi@v0.9.0
+        with:
+          pixi-version: v0.78.0
+          cache: true
+
+      - name: Record the toolchain and machine
+        run: |
+          pixi run mojo --version
+          sysctl -n machdep.cpu.brand_string hw.ncpu hw.memsize
+          sw_vers
+
+      - name: Build with line tables
+        if: inputs.mode != 'jit'
+        run: |
+          mkdir -p build
+          pixi run mojo build -debug-level=line-tables -I . -I tests \
+            tests/test_marks_polar.mojo -o build/test_marks_polar
+
+      - name: Hammer it
+        env:
+          ITERATIONS: ${{ inputs.iterations }}
+          COPIES: ${{ inputs.copies }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          mkdir -p crashes
+          crashed=0
+          ran=0
+          for i in $(seq 1 "$ITERATIONS"); do
+            for c in $(seq 1 "$COPIES"); do
+              if [ "$MODE" != "aot" ]; then
+                ( pixi run mojo run -I . -I tests tests/test_marks_polar.mojo \
+                    > "crashes/jit_${i}_${c}.out" 2>&1 \
+                  || echo "$?" > "crashes/jit_${i}_${c}.code" ) &
+              fi
+              if [ "$MODE" != "jit" ]; then
+                ( ./build/test_marks_polar \
+                    > "crashes/aot_${i}_${c}.out" 2>&1 \
+                  || echo "$?" > "crashes/aot_${i}_${c}.code" ) &
+              fi
+            done
+            wait
+            echo "round $i done"
+          done
+          # A run that exits nonzero, or that never printed its summary,
+          # is a failure -- the crash prints no summary at all, which is
+          # the signature in #732.
+          for f in crashes/*.out; do
+            ran=$((ran + 1))
+            if [ -f "${f%.out}.code" ] || ! grep -q "tests run:" "$f"; then
+              crashed=$((crashed + 1))
+              echo "=== FAILED: $f (exit $(cat "${f%.out}.code" 2>/dev/null || echo 0))"
+              tail -40 "$f"
+            else
+              rm -f "$f"
+            fi
+          done
+          echo "ran=$ran crashed=$crashed"
+          echo "ran=$ran crashed=$crashed" >> "$GITHUB_STEP_SUMMARY"
+          # The point is the evidence, not a red X: a clean sweep and a
+          # reproduced crash are both results, so the job passes either
+          # way and the artifact carries whatever was caught.
+          exit 0
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: polar-crash-logs
+          path: crashes/
+          if-no-files-found: ignore
