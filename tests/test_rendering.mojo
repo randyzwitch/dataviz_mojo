@@ -86,11 +86,12 @@ from dataviz.core.colors import CRIMSON, WHITE
 from dataviz.core.mark import Mark
 from dataviz.core.theme import Theme
 from dataviz.core.validate import _step_setter_name
-from dataviz.layout import GridCell, save_grid
-from dataviz.facets import save_facets
-from dataviz.layers import save_layers
+from dataviz.layout import GridCell, _render_grid_tight, render_grid, save_grid
+from dataviz.facets import _render_facets_tight, render_facets, save_facets
+from dataviz.layers import _render_layers_tight, save_layers
 from dataviz.plot import (
     Plot,
+    _all_at_dpi,
     _at_dpi,
     _render_generic,
     _render_into,
@@ -1416,6 +1417,188 @@ def test_an_unrecognized_extension_still_takes_the_canvas_default() raises:
     save(render(p), path)
     var a = _file_bytes(path)
     assert_equal(Int(a[1]), 80, "still a PNG")
+
+
+# ---------------------------------------------------------------
+# dpi and tight on the composite savers (#701)
+
+
+def _png_dims(path: String) raises -> Tuple[Int, Int]:
+    """A PNG's width and height from its IHDR chunk: big-endian at bytes
+    16 and 20, right after the 8-byte signature and the chunk header."""
+    var b = _file_bytes(path)
+    var w = (
+        (Int(b[16]) << 24) | (Int(b[17]) << 16) | (Int(b[18]) << 8) | Int(b[19])
+    )
+    var h = (
+        (Int(b[20]) << 24) | (Int(b[21]) << 16) | (Int(b[22]) << 8) | Int(b[23])
+    )
+    return (w, h)
+
+
+def _file_text(path: String) raises -> String:
+    var f = open(path, "r")
+    var s = f.read()
+    f.close()
+    return s^
+
+
+def _svg_root(svg: String) -> String:
+    """The opening `<svg ...>` tag, where the document's own size is."""
+    return String(svg[byte = 0 : svg.find(">") + 1])
+
+
+def _roomy_pair() raises -> List[Plot]:
+    """Two small charts on oversized figures -- whitespace for a crop to
+    remove -- with titles and axis titles, so a crop that shaved text
+    would lose ink."""
+    var xs: List[Float64] = [1.0, 2.0, 3.0]
+    var ys: List[Float64] = [1.0, 4.0, 2.0]
+    var out = List[Plot]()
+    out.append(
+        line(xs, ys, title="Left", x_title="x", y_title="y").size(400, 300)
+    )
+    out.append(
+        line(xs, ys, title="Right", x_title="x", y_title="y").size(400, 300)
+    )
+    return out^
+
+
+def _two_cells() -> List[GridCell]:
+    var cells: List[GridCell] = [GridCell(0, 0), GridCell(0, 1)]
+    return cells^
+
+
+def _inked(c: Canvas, bg: Color) -> Int:
+    var n = 0
+    for y in range(c.height):
+        for x in range(c.width):
+            var p = c.get_pixel(x, y)
+            if p.r != bg.r or p.g != bg.g or p.b != bg.b:
+                n += 1
+    return n
+
+
+def test_the_composite_savers_take_dpi_as_save_does() raises:
+    # 144 dpi is two pixels per point: each saver's PNG doubles in both
+    # directions, where the default of 72 leaves it at the figure size.
+    var plots = _roomy_pair()
+    save_layers(plots, "/tmp/dv701_l72.png")
+    save_layers(plots, "/tmp/dv701_l144.png", dpi=144.0)
+    assert_equal(_png_dims("/tmp/dv701_l72.png")[0], 400)
+    assert_equal(_png_dims("/tmp/dv701_l144.png")[0], 800)
+    assert_equal(_png_dims("/tmp/dv701_l144.png")[1], 600)
+
+    save_facets(plots, 2, "/tmp/dv701_f72.png")
+    save_facets(plots, 2, "/tmp/dv701_f144.png", dpi=144.0)
+    assert_equal(_png_dims("/tmp/dv701_f72.png")[0], 800, "two cells across")
+    assert_equal(_png_dims("/tmp/dv701_f144.png")[0], 1600)
+    assert_equal(_png_dims("/tmp/dv701_f144.png")[1], 600)
+
+    # A grid's size is given in the call, in points, so dpi scales that.
+    save_grid(plots, _two_cells(), 700, 250, "/tmp/dv701_g72.png")
+    save_grid(plots, _two_cells(), 700, 250, "/tmp/dv701_g144.png", dpi=144.0)
+    assert_equal(_png_dims("/tmp/dv701_g72.png")[0], 700)
+    assert_equal(_png_dims("/tmp/dv701_g144.png")[0], 1400)
+    assert_equal(_png_dims("/tmp/dv701_g144.png")[1], 500)
+
+
+def test_dpi_keeps_a_composite_figure_the_same_figure() raises:
+    # The same claim `test_dpi_multiplies_the_pixels_and_keeps_the_figure`
+    # makes for one plot: more pixels, the same share of them inked --
+    # which only holds if the text, strokes and title band scaled too.
+    var plots = _roomy_pair()
+    var bg = plots[0]._theme.background
+    var low = render_facets(plots, 2)
+    var high = render_facets(_all_at_dpi(plots, 288.0, "test"), 2)
+    assert_equal(high.width, 4 * low.width)
+    var a = Float64(_inked(low, bg)) / Float64(low.width * low.height)
+    var b = Float64(_inked(high, bg)) / Float64(high.width * high.height)
+    assert_true(
+        abs(a - b) < 0.02,
+        "the inked share moved: " + String(a) + " against " + String(b),
+    )
+
+
+def test_the_vector_formats_ignore_dpi_on_the_composite_savers() raises:
+    var plots = _roomy_pair()
+    save_layers(plots, "/tmp/dv701_v72.svg")
+    save_layers(plots, "/tmp/dv701_v300.svg", dpi=300.0)
+    assert_equal(
+        _file_text("/tmp/dv701_v72.svg"), _file_text("/tmp/dv701_v300.svg")
+    )
+
+
+def test_a_bad_dpi_names_the_composite_saver() raises:
+    var plots = _roomy_pair()
+    with assert_raises(contains="save_layers(): dpi must be positive"):
+        save_layers(plots, "/tmp/dv701_bad.png", dpi=0.0)
+    with assert_raises(contains="save_facets(): dpi must be positive"):
+        save_facets(plots, 2, "/tmp/dv701_bad.png", dpi=-1.0)
+    with assert_raises(contains="save_grid(): dpi must be positive"):
+        save_grid(plots, _two_cells(), 700, 250, "/tmp/dv701_bad.png", dpi=0.0)
+
+
+def test_tight_shrinks_every_composite_saver_in_every_format() raises:
+    var plots = _roomy_pair()
+    save_layers(plots, "/tmp/dv701_lt.png", tight=True)
+    var l = _png_dims("/tmp/dv701_lt.png")
+    assert_true(l[0] < 400 and l[1] < 300, "layers PNG did not crop")
+    save_facets(plots, 2, "/tmp/dv701_ft.png", tight=True)
+    var f = _png_dims("/tmp/dv701_ft.png")
+    assert_true(f[0] < 800 and f[1] < 300, "facets PNG did not crop")
+    save_grid(plots, _two_cells(), 900, 400, "/tmp/dv701_gt.png", tight=True)
+    var g = _png_dims("/tmp/dv701_gt.png")
+    assert_true(g[0] <= 900 and g[1] < 400, "grid PNG did not crop")
+
+    # The vector formats crop too. Read the root element alone: the
+    # full-size background rect is still drawn, translated, inside the
+    # cropped document, so its width="400" is in both files.
+    save_layers(plots, "/tmp/dv701_lt.svg", tight=True)
+    var root = _svg_root(_file_text("/tmp/dv701_lt.svg"))
+    assert_true('width="400"' not in root, "layers SVG did not crop: " + root)
+    assert_true('height="300"' not in root, "layers SVG did not crop: " + root)
+    save_layers(plots, "/tmp/dv701_lt.pdf", tight=True)
+    assert_true(
+        not _bytes_have(
+            _file_bytes("/tmp/dv701_lt.pdf"), "/MediaBox [0 0 400 300]"
+        ),
+        "layers PDF page did not crop",
+    )
+
+
+def test_a_tight_composite_keeps_all_of_its_ink() raises:
+    # Cropping must not shave what it cropped to -- the figure title a
+    # grid draws above its cells, each cell's title and axis titles.
+    var plots = _roomy_pair()
+    var bg = plots[0]._theme.background
+    var full_l = render_layers(plots)
+    var tight_l = _render_layers_tight(plots)
+    assert_true(_inked(tight_l, bg) >= _inked(full_l, bg), "layers lost ink")
+    var full_f = render_facets(plots, 2)
+    var tight_f = _render_facets_tight(plots, 2, False)
+    assert_true(_inked(tight_f, bg) >= _inked(full_f, bg), "facets lost ink")
+    var cells = _two_cells()
+    var no_weights = List[Float64]()
+    var full_g = render_grid(plots, cells, 900, 400, title="A figure title")
+    var tight_g = _render_grid_tight(
+        plots,
+        cells,
+        900,
+        400,
+        no_weights,
+        no_weights,
+        False,
+        False,
+        "A figure title",
+    )
+    assert_true(
+        tight_g.width < 900 or tight_g.height < 400, "grid did not crop"
+    )
+    assert_true(
+        _inked(tight_g, bg) >= _inked(full_g, bg),
+        "grid lost ink, e.g. its figure title",
+    )
 
 
 def main() raises:

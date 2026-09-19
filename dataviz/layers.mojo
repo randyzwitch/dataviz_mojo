@@ -71,8 +71,11 @@ from dataviz.core.legend import (
 from dataviz.core.legend_position import LegendPosition
 from dataviz.core.mark import Mark
 from dataviz.core.output_format import OutputFormat
+from canvas.bounds import BoundsTarget
 from dataviz.plot import (
     _DomainOverride,
+    _all_at_dpi,
+    _ink_box,
     _require_non_empty,
     _resolve_supersample,
     Plot,
@@ -127,10 +130,18 @@ from dataviz.core.validate import (
 )
 
 
-def save_layers(plots: List[Plot], path: String) raises:
+def save_layers(
+    plots: List[Plot], path: String, dpi: Float64 = 72.0, tight: Bool = False
+) raises:
     """`save()`'s `render_layers()`/`render_layers_svg()` counterpart. The
     format comes from `plots[0]`'s theme when the path's extension
     doesn't decide it. Raises on an empty `plots`.
+
+    `dpi` and `tight` mean what they do for `save()` (#701): `dpi` sets
+    a raster export's pixels per inch, scaling every layer's size and
+    `Theme.scale` together so the text and strokes stay the same
+    fraction of the page, and the vector formats ignore it; `tight`
+    crops every format to the figure's ink, measured from the drawing.
 
     SVG output writes accessible markup automatically from
     `plots[0]`'s `.labels()`, the same one whose title/subtitle
@@ -139,18 +150,42 @@ def save_layers(plots: List[Plot], path: String) raises:
     """
     if len(plots) == 0:
         raise Error("save_layers(): plots must not be empty")
+    _require_uniform_size(plots, "save_layers")
     var format = _resolve_output_format(plots[0]._theme.output_format, path)
     if format == OutputFormat.SVG:
         var f = open(path, "w")
-        f.write(_svg_output_string(render_layers_svg(plots), plots[0]._labels))
+        if tight:
+            var box = _layers_tight_box(plots)
+            var svg = SvgCanvas(box[2], box[3])
+            svg.translate(-Float64(box[0]), -Float64(box[1]))
+            var cache = FontCache()
+            _draw_layers_figure(svg, plots, True, cache)
+            f.write(_svg_output_string(svg^, plots[0]._labels))
+        else:
+            f.write(
+                _svg_output_string(render_layers_svg(plots), plots[0]._labels)
+            )
         f.close()
     elif format == OutputFormat.PDF:
-        var doc = render_layers_pdf(plots)
-        write_pdf(doc, path)
-    elif format == OutputFormat.PNG:
-        write_png(render_layers(plots), path)
+        if tight:
+            var box = _layers_tight_box(plots)
+            var doc = PdfCanvas(box[2], box[3])
+            doc.translate(-Float64(box[0]), -Float64(box[1]))
+            var cache = FontCache()
+            _draw_layers_figure(doc, plots, True, cache)
+            write_pdf(doc, path)
+        else:
+            var doc = render_layers_pdf(plots)
+            write_pdf(doc, path)
     else:
-        write_bmp(render_layers(plots), path)
+        var scaled = _all_at_dpi(plots, dpi, "save_layers")
+        var canvas = _render_layers_tight(scaled) if tight else render_layers(
+            scaled
+        )
+        if format == OutputFormat.PNG:
+            write_png(canvas, path)
+        else:
+            write_bmp(canvas, path)
 
 
 def _secondary_axis_y_title(plots: List[Plot]) -> String:
@@ -166,6 +201,126 @@ def _secondary_axis_y_title(plots: List[Plot]) -> String:
         ):
             return plots[i]._labels.y_title
     return ""
+
+
+def _draw_layers_figure[
+    T: DrawTarget
+](
+    mut target: T,
+    plots: List[Plot],
+    fill_background: Bool,
+    mut cache: FontCache,
+) raises:
+    """Draw a layered figure into `target` at its full size: background,
+    the shared frame and every layer, `plots[0]`'s titles, and a
+    secondary-axis caption on the right edge when a layer asks for one.
+
+    The one body behind `render_layers()`, `render_layers_svg()` and
+    `render_layers_pdf()`, which differ only in the target they build
+    (#701). The tight export draws it twice: into a `BoundsTarget`
+    without the background, to measure the ink, then into the cropped
+    canvas.
+
+    Args:
+        target: Where to draw; raster, vector or a measuring target.
+        plots: The layers, all the same size.
+        fill_background: Whether to paint `plots[0]`'s background over
+            the figure first. Off while measuring, since the background
+            covers the whole page and would make every crop a no-op.
+        cache: The render's font cache.
+
+    Raises:
+        Error: Whatever a layer's render raises.
+    """
+    var cx1 = plots[0].width
+    var cy1 = plots[0].height
+    if fill_background:
+        target.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
+    var sc = _Scaled(plots[0]._theme)
+    var y2_title = _secondary_axis_y_title(plots)
+    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1, cache=cache)
+    if y2_title.byte_length() > 0:
+        # Mirrors _apply_labels's extra_left reservation for the primary
+        # y_title, on the right edge; _apply_labels only sees plots[0], not the
+        # layer that owns the secondary caption.
+        frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
+    var result = _render_layers_generic(
+        target,
+        plots,
+        frame.ox0,
+        frame.oy0,
+        frame.ox1,
+        frame.oy1,
+        cache=cache,
+    )
+    var label_requests = _label_text_requests(
+        plots[0],
+        0,
+        0,
+        cx1,
+        cy1,
+        result.px0,
+        result.py0,
+        result.px1,
+        result.py1,
+        cache=cache,
+    )
+    if y2_title.byte_length() > 0:
+        # The mirror of _label_text_requests's primary y_title: rotated +pi/2
+        # (reading top-to-bottom, the right-side convention) and anchored to
+        # the outer right edge.
+        label_requests.append(
+            _TextRequest(
+                cx1 - Int(sc.axis_title_font_size * 0.8),
+                (result.py0 + result.py1) // 2,
+                y2_title,
+                plots[0]._theme.text_color,
+                sc.axis_title_font_size,
+                TextAlign.CENTER,
+                plots[0]._theme.font_family,
+                rotation=pi / 2.0,
+            )
+        )
+    _replay_text_requests(target, label_requests, cache)
+    _replay_text_requests(target, result.text_requests, cache)
+
+
+def _layers_supersample(plots: List[Plot], caller: String) raises -> Int:
+    """The raster supersampling factor for a layered figure: the largest
+    any layer asks for, since one canvas has one factor and a curved mark
+    beside a bar chart must not be drawn at the bar's."""
+    var factor = _resolve_supersample(plots[0], caller)
+    for i in range(1, len(plots)):
+        var f = _resolve_supersample(plots[i], caller)
+        if f > factor:
+            factor = f
+    return factor
+
+
+def _layers_tight_box(plots: List[Plot]) raises -> Tuple[Int, Int, Int, Int]:
+    """`_tight_box` for a layered figure (#701): the box around its ink,
+    as `(x, y, width, height)`, measured by drawing it into a
+    `BoundsTarget` without the background."""
+    var probe = BoundsTarget(plots[0].width, plots[0].height)
+    var cache = FontCache()
+    _draw_layers_figure(probe, plots, False, cache)
+    return _ink_box(probe, plots[0].width, plots[0].height)
+
+
+def _render_layers_tight(plots: List[Plot]) raises -> Canvas:
+    """`render_layers()` cropped to the figure's ink; `render_tight()`'s
+    layered counterpart. Laid out at full size and cropped, not laid out
+    smaller, so the crop frames the figure the caller asked for."""
+    _require_uniform_size(plots, "save_layers")
+    var box = _layers_tight_box(plots)
+    var factor = _layers_supersample(plots, "save_layers")
+    var canvas = Canvas(box[2], box[3], plots[0]._theme.background)
+    canvas.begin_supersampled(factor, plots[0]._theme.background)
+    canvas.translate(-Float64(box[0]), -Float64(box[1]))
+    var cache = FontCache()
+    _draw_layers_figure(canvas, plots, True, cache)
+    canvas.end_supersampled()
+    return canvas^
 
 
 def render_layers(plots: List[Plot]) raises -> Canvas:
@@ -221,73 +376,16 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
        borrow).
     """
     _require_uniform_size(plots, "render_layers")
-    # One canvas, so one factor must serve every plot on it: take the
-    # largest any of them asks for rather than the first plot's, or a
-    # curved mark beside a bar chart would be drawn at the bar's factor.
-    var factor = _resolve_supersample(plots[0], "render_layers")
-    for i in range(1, len(plots)):
-        var f = _resolve_supersample(plots[i], "render_layers")
-        if f > factor:
-            factor = f
+    var factor = _layers_supersample(plots, "render_layers")
     var canvas = Canvas(plots[0].width, plots[0].height)
     # `begin_supersampled` owns the half-pixel shift box downsampling
     # costs and the scale, and replays the recorded shapes one output
     # band at a time, so the enlarged buffer never exists whole. Byte
     # identical to the two-step recipe it replaces (canvas_mojo#391).
     canvas.begin_supersampled(factor)
-    # Logical bounds; the transform maps them up. See render().
-    var cx1 = plots[0].width
-    var cy1 = plots[0].height
-    canvas.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
-    var sc = _Scaled(plots[0]._theme)
-    var y2_title = _secondary_axis_y_title(plots)
     # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
-    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1, cache=cache)
-    if y2_title.byte_length() > 0:
-        # Mirrors _apply_labels's extra_left reservation for the primary
-        # y_title, on the right edge; _apply_labels only sees plots[0], not the
-        # layer that owns the secondary caption.
-        frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
-    var result = _render_layers_generic(
-        canvas,
-        plots,
-        frame.ox0,
-        frame.oy0,
-        frame.ox1,
-        frame.oy1,
-        cache=cache,
-    )
-    var label_requests = _label_text_requests(
-        plots[0],
-        0,
-        0,
-        cx1,
-        cy1,
-        result.px0,
-        result.py0,
-        result.px1,
-        result.py1,
-        cache=cache,
-    )
-    if y2_title.byte_length() > 0:
-        # The mirror of _label_text_requests's primary y_title: rotated +pi/2
-        # (reading top-to-bottom, the right-side convention) and anchored to
-        # the outer right edge.
-        label_requests.append(
-            _TextRequest(
-                cx1 - Int(sc.axis_title_font_size * 0.8),
-                (result.py0 + result.py1) // 2,
-                y2_title,
-                plots[0]._theme.text_color,
-                sc.axis_title_font_size,
-                TextAlign.CENTER,
-                plots[0]._theme.font_family,
-                rotation=pi / 2.0,
-            )
-        )
-    _replay_text_requests(canvas, label_requests, cache)
-    _replay_text_requests(canvas, result.text_requests, cache)
+    _draw_layers_figure(canvas, plots, True, cache)
     canvas.end_supersampled()
     return canvas^
 
@@ -299,46 +397,8 @@ def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
     """
     _require_uniform_size(plots, "render_layers_svg")
     var svg = SvgCanvas(plots[0].width, plots[0].height)
-    var cx1 = svg.width
-    var cy1 = svg.height
-    svg.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
-    var sc = _Scaled(plots[0]._theme)
-    var y2_title = _secondary_axis_y_title(plots)
-    # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
-    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1, cache=cache)
-    if y2_title.byte_length() > 0:
-        frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
-    var result = _render_layers_generic(
-        svg, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
-    )
-    var label_requests = _label_text_requests(
-        plots[0],
-        0,
-        0,
-        cx1,
-        cy1,
-        result.px0,
-        result.py0,
-        result.px1,
-        result.py1,
-        cache=cache,
-    )
-    if y2_title.byte_length() > 0:
-        label_requests.append(
-            _TextRequest(
-                cx1 - Int(sc.axis_title_font_size * 0.8),
-                (result.py0 + result.py1) // 2,
-                y2_title,
-                plots[0]._theme.text_color,
-                sc.axis_title_font_size,
-                TextAlign.CENTER,
-                plots[0]._theme.font_family,
-                rotation=pi / 2.0,
-            )
-        )
-    _replay_text_requests(svg, label_requests, cache)
-    _replay_text_requests(svg, result.text_requests, cache)
+    _draw_layers_figure(svg, plots, True, cache)
     return svg^
 
 
@@ -359,45 +419,8 @@ def render_layers_pdf(plots: List[Plot]) raises -> PdfCanvas:
     """
     _require_uniform_size(plots, "render_layers_pdf")
     var pdf = PdfCanvas(plots[0].width, plots[0].height)
-    var cx1 = pdf.width
-    var cy1 = pdf.height
-    pdf.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
-    var sc = _Scaled(plots[0]._theme)
-    var y2_title = _secondary_axis_y_title(plots)
     var cache = FontCache()
-    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1, cache=cache)
-    if y2_title.byte_length() > 0:
-        frame.ox1 -= Int(sc.axis_title_font_size) + sc.label_gap
-    var result = _render_layers_generic(
-        pdf, plots, frame.ox0, frame.oy0, frame.ox1, frame.oy1, cache=cache
-    )
-    var label_requests = _label_text_requests(
-        plots[0],
-        0,
-        0,
-        cx1,
-        cy1,
-        result.px0,
-        result.py0,
-        result.px1,
-        result.py1,
-        cache=cache,
-    )
-    if y2_title.byte_length() > 0:
-        label_requests.append(
-            _TextRequest(
-                cx1 - Int(sc.axis_title_font_size * 0.8),
-                (result.py0 + result.py1) // 2,
-                y2_title,
-                plots[0]._theme.text_color,
-                sc.axis_title_font_size,
-                TextAlign.CENTER,
-                plots[0]._theme.font_family,
-                rotation=pi / 2.0,
-            )
-        )
-    _replay_text_requests(pdf, label_requests, cache)
-    _replay_text_requests(pdf, result.text_requests, cache)
+    _draw_layers_figure(pdf, plots, True, cache)
     return pdf^
 
 

@@ -25,6 +25,7 @@ folding it into the grid model would distort both. It shares nothing
 with the cell core beyond the two render helpers `render()` itself uses.
 """
 
+from canvas.bounds import BoundsTarget
 from canvas.buffer import Canvas
 from canvas.io.bmp import write_bmp
 from canvas.io.png import write_png
@@ -55,7 +56,10 @@ from dataviz.core.text import (
 )
 from dataviz.plot import (
     Plot,
+    _all_at_dpi,
     _data_extent,
+    _dpi_factor,
+    _ink_box,
     _filled_annotations_go_under,
     _log_data_extent,
     _render_generic,
@@ -418,6 +422,7 @@ def _render_cells_generic[
     title: String = "",
     *,
     mut cache: FontCache,
+    fill_cell_backgrounds: Bool = True,
 ) raises -> List[_TextRequest]:
     """The one cell-layout core. `render_facets()` and `render_grid()`
     both call it; a uniform facet grid is the degenerate case of one cell
@@ -472,6 +477,8 @@ def _render_cells_generic[
             `_figure_title_band` reserves; the cells share what is left
             of `height`. Empty draws nothing and reserves nothing.
         cache: The figure's shared font cache.
+        fill_cell_backgrounds: Paint each cell's background before its
+            chart. Off only while a tight export measures the ink.
 
     Returns:
         Every text request the cells produced, for one replay pass.
@@ -599,14 +606,17 @@ def _render_cells_generic[
         var cell_y0 = y_edges[c.row]
         var cell_y1 = y_edges[c.row + c.row_span]
         # Each cell's full rect is filled with that cell's background,
-        # including the strip a title's margin reserves.
-        target.fill_rect(
-            cell_x0,
-            cell_y0,
-            cell_x1 - cell_x0,
-            cell_y1 - cell_y0,
-            plots[i]._theme.background,
-        )
+        # including the strip a title's margin reserves -- except while
+        # a tight export measures the ink, where a background covering
+        # every cell would make the crop the whole figure (#701).
+        if fill_cell_backgrounds:
+            target.fill_rect(
+                cell_x0,
+                cell_y0,
+                cell_x1 - cell_x0,
+                cell_y1 - cell_y0,
+                plots[i]._theme.background,
+            )
         var cell_content_y1 = cell_y1 - gutter
         # The inset rect the cell actually lays out in. Identical to the
         # cell rect unless align_axes asked for shared edges.
@@ -938,6 +948,8 @@ def save_grid(
     shared_y_scale: Bool = False,
     align_axes: Bool = False,
     title: String = "",
+    dpi: Float64 = 72.0,
+    tight: Bool = False,
 ) raises:
     """`render_grid()`'s counterpart that writes a file, picking the
     format from `plots[0]`'s theme or the path's extension.
@@ -957,6 +969,11 @@ def save_grid(
         shared_y_scale: Give every cell one y-domain.
         align_axes: Share plot-rect edges, as `render_grid()`.
         title: A figure title above the cells, as `render_grid()`.
+        dpi: Pixels per inch for a raster export, as `save()`'s (#701):
+            `width` and `height` are points, so 300 scales the figure,
+            every cell's `Theme.scale` and the title band together. The
+            vector formats ignore it.
+        tight: Crop every format to the figure's ink, as `save()`'s.
 
     Raises:
         Error: Whatever `render_grid()` raises, or a write failure.
@@ -965,66 +982,244 @@ def save_grid(
     var format = _resolve_output_format(plots[0]._theme.output_format, path)
     if format == OutputFormat.SVG:
         var f = open(path, "w")
-        f.write(
-            _svg_output_string(
-                render_grid_svg(
-                    plots,
-                    cells,
-                    width,
-                    height,
-                    row_weights,
-                    col_weights,
-                    shared_y_scale,
-                    align_axes,
-                    title,
-                ),
-                plots[0]._labels,
+        if tight:
+            var box = _grid_tight_box(
+                plots,
+                cells,
+                width,
+                height,
+                row_weights,
+                col_weights,
+                shared_y_scale,
+                align_axes,
+                title,
             )
-        )
+            var svg = SvgCanvas(box[2], box[3])
+            svg.translate(-Float64(box[0]), -Float64(box[1]))
+            _draw_grid_figure(
+                svg,
+                plots,
+                cells,
+                width,
+                height,
+                row_weights,
+                col_weights,
+                shared_y_scale,
+                align_axes,
+                title,
+                True,
+            )
+            f.write(_svg_output_string(svg^, plots[0]._labels))
+        else:
+            f.write(
+                _svg_output_string(
+                    render_grid_svg(
+                        plots,
+                        cells,
+                        width,
+                        height,
+                        row_weights,
+                        col_weights,
+                        shared_y_scale,
+                        align_axes,
+                        title,
+                    ),
+                    plots[0]._labels,
+                )
+            )
         f.close()
     elif format == OutputFormat.PDF:
-        var doc = render_grid_pdf(
-            plots,
+        if tight:
+            var box = _grid_tight_box(
+                plots,
+                cells,
+                width,
+                height,
+                row_weights,
+                col_weights,
+                shared_y_scale,
+                align_axes,
+                title,
+            )
+            var doc = PdfCanvas(box[2], box[3])
+            doc.translate(-Float64(box[0]), -Float64(box[1]))
+            _draw_grid_figure(
+                doc,
+                plots,
+                cells,
+                width,
+                height,
+                row_weights,
+                col_weights,
+                shared_y_scale,
+                align_axes,
+                title,
+                True,
+            )
+            write_pdf(doc, path)
+        else:
+            var doc = render_grid_pdf(
+                plots,
+                cells,
+                width,
+                height,
+                row_weights,
+                col_weights,
+                shared_y_scale,
+                align_axes,
+                title,
+            )
+            write_pdf(doc, path)
+    else:
+        var factor = _dpi_factor(dpi, "save_grid")
+        var scaled = _all_at_dpi(plots, dpi, "save_grid")
+        var w = Int(Float64(width) * factor + 0.5)
+        var h = Int(Float64(height) * factor + 0.5)
+        var canvas = _render_grid_tight(
+            scaled,
             cells,
-            width,
-            height,
+            w,
+            h,
+            row_weights,
+            col_weights,
+            shared_y_scale,
+            align_axes,
+            title,
+        ) if tight else render_grid(
+            scaled,
+            cells,
+            w,
+            h,
             row_weights,
             col_weights,
             shared_y_scale,
             align_axes,
             title,
         )
-        write_pdf(doc, path)
-    elif format == OutputFormat.PNG:
-        write_png(
-            render_grid(
-                plots,
-                cells,
-                width,
-                height,
-                row_weights,
-                col_weights,
-                shared_y_scale,
-                align_axes,
-                title,
-            ),
-            path,
-        )
-    else:
-        write_bmp(
-            render_grid(
-                plots,
-                cells,
-                width,
-                height,
-                row_weights,
-                col_weights,
-                shared_y_scale,
-                align_axes,
-                title,
-            ),
-            path,
-        )
+        if format == OutputFormat.PNG:
+            write_png(canvas, path)
+        else:
+            write_bmp(canvas, path)
+
+
+def _draw_grid_figure[
+    T: DrawTarget
+](
+    mut target: T,
+    plots: List[Plot],
+    cells: List[GridCell],
+    width: Int,
+    height: Int,
+    row_weights: List[Float64],
+    col_weights: List[Float64],
+    shared_y_scale: Bool,
+    align_axes: Bool,
+    title: String,
+    fill_background: Bool,
+) raises:
+    """Draw a grid figure into `target` at its full size, background and
+    text included -- what every grid export draws, measured or not
+    (#701). `fill_background` is off while measuring, or the crop would
+    be the whole page.
+    """
+    if fill_background:
+        target.fill_rect(0, 0, width, height, plots[0]._theme.background)
+    var cache = FontCache()
+    var text_requests = _render_cells_generic(
+        target,
+        width,
+        height,
+        plots,
+        cells,
+        row_weights,
+        col_weights,
+        shared_y_scale,
+        align_axes,
+        title,
+        cache=cache,
+        fill_cell_backgrounds=fill_background,
+    )
+    _replay_text_requests(target, text_requests, cache)
+
+
+def _grid_tight_box(
+    plots: List[Plot],
+    cells: List[GridCell],
+    width: Int,
+    height: Int,
+    row_weights: List[Float64],
+    col_weights: List[Float64],
+    shared_y_scale: Bool,
+    align_axes: Bool,
+    title: String,
+) raises -> Tuple[Int, Int, Int, Int]:
+    """`_tight_box` for a grid figure (#701): the box around its ink,
+    measured by drawing it into a `BoundsTarget` without the background.
+    """
+    var probe = BoundsTarget(width, height)
+    _draw_grid_figure(
+        probe,
+        plots,
+        cells,
+        width,
+        height,
+        row_weights,
+        col_weights,
+        shared_y_scale,
+        align_axes,
+        title,
+        False,
+    )
+    return _ink_box(probe, width, height)
+
+
+def _render_grid_tight(
+    plots: List[Plot],
+    cells: List[GridCell],
+    width: Int,
+    height: Int,
+    row_weights: List[Float64],
+    col_weights: List[Float64],
+    shared_y_scale: Bool,
+    align_axes: Bool,
+    title: String,
+) raises -> Canvas:
+    """`render_grid()` cropped to the figure's ink, laid out at full size
+    and then cropped, as `render_tight()` does for one plot."""
+    var box = _grid_tight_box(
+        plots,
+        cells,
+        width,
+        height,
+        row_weights,
+        col_weights,
+        shared_y_scale,
+        align_axes,
+        title,
+    )
+    var factor = _resolve_supersample(plots[0], "save_grid")
+    for i in range(1, len(plots)):
+        var f = _resolve_supersample(plots[i], "save_grid")
+        if f > factor:
+            factor = f
+    var canvas = Canvas(box[2], box[3], plots[0]._theme.background)
+    canvas.begin_supersampled(factor, plots[0]._theme.background)
+    canvas.translate(-Float64(box[0]), -Float64(box[1]))
+    _draw_grid_figure(
+        canvas,
+        plots,
+        cells,
+        width,
+        height,
+        row_weights,
+        col_weights,
+        shared_y_scale,
+        align_axes,
+        title,
+        True,
+    )
+    canvas.end_supersampled()
+    return canvas^
 
 
 def _inset_rect(

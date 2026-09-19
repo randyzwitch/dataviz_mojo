@@ -7,6 +7,7 @@ interface to it: `cols` instead of a cell list, and a canvas size derived
 from the plots rather than given.
 """
 
+from canvas.bounds import BoundsTarget
 from canvas.buffer import Canvas
 from canvas.io.bmp import write_bmp
 from canvas.io.png import write_png
@@ -23,6 +24,8 @@ from dataviz.layout import (
 from dataviz.core.output_format import OutputFormat
 from dataviz.plot import (
     Plot,
+    _all_at_dpi,
+    _ink_box,
     _resolve_output_format,
     _resolve_supersample,
     _svg_output_string,
@@ -34,7 +37,12 @@ from dataviz.core.text import (
 
 
 def save_facets(
-    plots: List[Plot], cols: Int, path: String, shared_y_scale: Bool = False
+    plots: List[Plot],
+    cols: Int,
+    path: String,
+    shared_y_scale: Bool = False,
+    dpi: Float64 = 72.0,
+    tight: Bool = False,
 ) raises:
     """`save()`'s `render_facets()`/`render_facets_svg()` counterpart; see
     `save_layers()` for the shared format/empty behavior.
@@ -46,6 +54,11 @@ def save_facets(
     pass the list. `shared_y_scale` makes every cell share one y-domain
     (see `_render_facets_generic` for its `Mark.POINT`/`LINE`/
     `EFFECT_SCATTER`-only scope).
+
+    `dpi` and `tight` mean what they do for `save()` (#701): `dpi` sets
+    a raster export's pixels per inch, scaling every cell together so
+    the grid keeps its proportions, and the vector formats ignore it;
+    `tight` crops every format to the figure's ink.
 
     See the Cookbook's "Facets" and "Shared Facet Scale" recipes
     (docs/cookbook_recipes/).
@@ -59,22 +72,135 @@ def save_facets(
     """
     if len(plots) == 0:
         raise Error("save_facets(): plots must not be empty")
+    if cols <= 0:
+        raise Error(
+            "save_facets(): cols must be positive (got " + String(cols) + ")"
+        )
+    _require_uniform_size(plots, "save_facets")
     var format = _resolve_output_format(plots[0]._theme.output_format, path)
     if format == OutputFormat.SVG:
         var f = open(path, "w")
-        f.write(
-            _svg_output_string(
-                render_facets_svg(plots, cols, shared_y_scale), plots[0]._labels
+        if tight:
+            var box = _facets_tight_box(plots, cols, shared_y_scale)
+            var svg = SvgCanvas(box[2], box[3])
+            svg.translate(-Float64(box[0]), -Float64(box[1]))
+            _draw_facets_figure(svg, plots, cols, shared_y_scale, "", True)
+            f.write(_svg_output_string(svg^, plots[0]._labels))
+        else:
+            f.write(
+                _svg_output_string(
+                    render_facets_svg(plots, cols, shared_y_scale),
+                    plots[0]._labels,
+                )
             )
-        )
         f.close()
     elif format == OutputFormat.PDF:
-        var doc = render_facets_pdf(plots, cols, shared_y_scale)
-        write_pdf(doc, path)
-    elif format == OutputFormat.PNG:
-        write_png(render_facets(plots, cols, shared_y_scale), path)
+        if tight:
+            var box = _facets_tight_box(plots, cols, shared_y_scale)
+            var doc = PdfCanvas(box[2], box[3])
+            doc.translate(-Float64(box[0]), -Float64(box[1]))
+            _draw_facets_figure(doc, plots, cols, shared_y_scale, "", True)
+            write_pdf(doc, path)
+        else:
+            var doc = render_facets_pdf(plots, cols, shared_y_scale)
+            write_pdf(doc, path)
     else:
-        write_bmp(render_facets(plots, cols, shared_y_scale), path)
+        var scaled = _all_at_dpi(plots, dpi, "save_facets")
+        var canvas = _render_facets_tight(
+            scaled, cols, shared_y_scale
+        ) if tight else render_facets(scaled, cols, shared_y_scale)
+        if format == OutputFormat.PNG:
+            write_png(canvas, path)
+        else:
+            write_bmp(canvas, path)
+
+
+def _facets_size(
+    plots: List[Plot], cols: Int, title: String
+) -> Tuple[Int, Int]:
+    """A facet grid's figure size: `cols` cells across, as many rows as
+    `plots` fills, each cell a plot's own size, plus the band a `title`
+    reserves above them."""
+    var rows = (len(plots) + cols - 1) // cols
+    return (
+        cols * plots[0].width,
+        rows * plots[0].height + _figure_title_band(plots[0]._theme, title),
+    )
+
+
+def _draw_facets_figure[
+    T: DrawTarget
+](
+    mut target: T,
+    plots: List[Plot],
+    cols: Int,
+    shared_y_scale: Bool,
+    title: String,
+    fill_background: Bool,
+) raises:
+    """Draw a facet grid into `target` at its full size, background and
+    text included -- what every facet export draws, measured or not
+    (#701).
+
+    Args:
+        target: Where to draw; raster, vector or a measuring target.
+        plots: The charts, one per cell.
+        cols: Cells per row.
+        shared_y_scale: Give every cell one y-domain.
+        title: A figure title above the cells.
+        fill_background: Whether to paint `plots[0]`'s background first;
+            off while measuring, or the crop would be the whole page.
+
+    Raises:
+        Error: Whatever a cell's render raises.
+    """
+    var size = _facets_size(plots, cols, title)
+    if fill_background:
+        target.fill_rect(0, 0, size[0], size[1], plots[0]._theme.background)
+    var cache = FontCache()
+    var text_requests = _render_facets_generic(
+        target,
+        size[0],
+        size[1],
+        plots,
+        cols,
+        shared_y_scale,
+        title,
+        cache=cache,
+        fill_cell_backgrounds=fill_background,
+    )
+    _replay_text_requests(target, text_requests, cache)
+
+
+def _facets_tight_box(
+    plots: List[Plot], cols: Int, shared_y_scale: Bool
+) raises -> Tuple[Int, Int, Int, Int]:
+    """`_tight_box` for a facet grid (#701): the box around its ink,
+    measured by drawing it into a `BoundsTarget` without the background.
+    """
+    var size = _facets_size(plots, cols, "")
+    var probe = BoundsTarget(size[0], size[1])
+    _draw_facets_figure(probe, plots, cols, shared_y_scale, "", False)
+    return _ink_box(probe, size[0], size[1])
+
+
+def _render_facets_tight(
+    plots: List[Plot], cols: Int, shared_y_scale: Bool
+) raises -> Canvas:
+    """`render_facets()` cropped to the figure's ink, laid out at full
+    size and then cropped, as `render_tight()` does for one plot."""
+    var box = _facets_tight_box(plots, cols, shared_y_scale)
+    var factor = _resolve_supersample(plots[0], "save_facets")
+    for i in range(1, len(plots)):
+        var f = _resolve_supersample(plots[i], "save_facets")
+        if f > factor:
+            factor = f
+    var canvas = Canvas(box[2], box[3], plots[0]._theme.background)
+    canvas.begin_supersampled(factor, plots[0]._theme.background)
+    canvas.translate(-Float64(box[0]), -Float64(box[1]))
+    _draw_facets_figure(canvas, plots, cols, shared_y_scale, "", True)
+    canvas.end_supersampled()
+    return canvas^
 
 
 def _require_uniform_size(plots: List[Plot], caller: String) raises:
@@ -278,6 +404,7 @@ def _render_facets_generic[
     title: String = "",
     *,
     mut cache: FontCache,
+    fill_cell_backgrounds: Bool = True,
 ) raises -> List[_TextRequest]:
     """A uniform grid, expressed as cells and handed to
     `_render_cells_generic()`. `width`/`height` are passed in because
@@ -313,4 +440,5 @@ def _render_facets_generic[
         shared_y_scale,
         title=title,
         cache=cache,
+        fill_cell_backgrounds=fill_cell_backgrounds,
     )
