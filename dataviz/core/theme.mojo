@@ -404,7 +404,9 @@ struct Theme(ImplicitlyCopyable, Movable):
     var show_data_labels: Bool
     """Whether a mark draws each value as text, in `text_color` at
     `font_size`; defaults to `False`. Which marks honor it is
-    `Mark.supports(Feature.DATA_LABELS)` (mark.mojo); the rest ignore it.
+    `Mark.supports(Feature.DATA_LABELS)` (mark.mojo); rendering any
+    other mark with it on raises, rather than drawing no labels and
+    saying nothing (#676).
     Formatted via `_label_decimals()` (scale.mojo), the fewest decimal
     places that represent the value exactly, rather than the y-axis's
     coarser `Ticks.decimals`. A `Theme` flag rather than an `encode()`
