@@ -782,15 +782,42 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             if mark.supports(Feature.ANNOTATIONS_Y):
                 out.append(mark)
     elif feature == Feature.LOG_X:
+        # Decided per mark in #687, over the 21 marks with a continuous
+        # x axis (`ANNOTATIONS_X`). The rule: yes where the mark only
+        # places positions, since the scale takes the log itself; no
+        # where something is computed in linear x first, because
+        # showing that on a log axis misstates it.
+        #
+        # Yes: RUG and ECDF place each observation, and PCOLORMESH
+        # places each cell between its real edges, so a log axis is a
+        # pure change of spacing.
+        #
+        # No, pending estimation or binning in log space: KDE (the
+        # density is estimated in linear x, and stretched onto a log
+        # axis its area no longer reads as probability), HEXBIN and
+        # HIST2D (linear-width bins become unequal on a log axis).
+        #
+        # No: BARBS, QUIVER, STREAMPLOT (a vector's direction and length
+        # are in data units, and compressing x distorts both);
+        # CONTOUR, CONTOURF and IMSHOW (x is a grid index);
+        # TRICONTOUR, TRICONTOURF, TRIPLOT and TRIPCOLOR (triangulated
+        # and interpolated in linear x, then drawn with straight edges
+        # between log-placed vertices, which is neither).
         out = [
             Mark.POINT,
             Mark.LINE,
             Mark.AREA,
             Mark.EFFECT_SCATTER,
             Mark.HISTOGRAM,
+            Mark.RUG,
+            Mark.ECDF,
+            Mark.PCOLORMESH,
         ]
     elif feature == Feature.LOG_Y:
-        out = [Mark.POINT, Mark.LINE, Mark.EFFECT_SCATTER]
+        # PCOLORMESH for the same reason as on x: a log frequency axis
+        # is what a spectrogram is usually drawn on. RUG has no y axis
+        # and ECDF's is a fraction running from 0 (#687).
+        out = [Mark.POINT, Mark.LINE, Mark.EFFECT_SCATTER, Mark.PCOLORMESH]
     elif feature == Feature.COLOR_SIZE:
         out = [Mark.POINT, Mark.SINGLE_AXIS, Mark.EFFECT_SCATTER]
     return out^

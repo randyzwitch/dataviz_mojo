@@ -6500,6 +6500,43 @@ def _symlog_data_extent(
     )
 
 
+def _position_x_extent(plot: Plot, values: List[Float64]) raises -> LinearScale:
+    """The x domain for a mark that only places positions: log, symlog or
+    linear, the same choice `_render_generic` makes for POINT (#687).
+
+    RUG and ECDF use it. Neither computes anything from x's spacing, so
+    once the domain is in the right space the scale does the rest:
+    `to_pixel()` takes the log itself.
+
+    Those marks have no y transform to honor, and `scale_y_symlog()` is
+    gated by the same table entry as `scale_x_log()`, so it would pass
+    validation and then change nothing. It raises here instead.
+
+    Args:
+        plot: The chart, for its scale flags.
+        values: The observations.
+
+    Returns:
+        The x domain.
+
+    Raises:
+        Error: `scale_y_symlog()` was set, or a value is not positive
+            under `scale_x_log()`.
+    """
+    if plot._y_symlog:
+        raise Error(
+            "Plot.scale_y_symlog(): "
+            + plot._mark.name()
+            + " has no y axis to transform. scale_x_log() and"
+            " scale_x_symlog() apply to its x axis"
+        )
+    if plot._x_log:
+        return _log_data_extent(values)
+    if plot._x_symlog:
+        return _symlog_data_extent(values, plot._x_symlog_linthresh)
+    return _data_extent(values)
+
+
 def _log_data_extent(data: List[Float64]) raises -> LinearScale:
     """`_data_extent()`'s log10 counterpart for `Plot.scale_y_log()`/
     `scale_x_log()`. Raises if any value isn't strictly positive. The

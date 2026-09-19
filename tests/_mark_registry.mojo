@@ -319,8 +319,11 @@ def _representative_plot(mark: Mark) raises -> Plot:
         # Deliberately uneven: a regular mesh would lay out the same as
         # Mark.IMSHOW and prove nothing this sweep does not already
         # cover.
+        # Starting at 1 rather than 0 so every edge is positive and the
+        # same mesh can be asked for a log axis (#687). The y edges below
+        # already start at 1.
         var mesh_x = List[Float64]()
-        var mesh_acc = 0.0
+        var mesh_acc = 1.0
         for c in range(8):
             mesh_x.append(mesh_acc)
             mesh_acc += 1.0 + Float64(c) * 0.4

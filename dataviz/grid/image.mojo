@@ -7,6 +7,8 @@ draws category labels.
 
 from std.utils.numerics import isfinite
 
+from std.math import log10
+
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
@@ -619,6 +621,44 @@ def _fill_quad_cells[
     target.fill_mesh(points, faces, colors)
 
 
+def _edge_scale(
+    lo: Float64, hi: Float64, log: Bool, axis: String
+) raises -> LinearScale:
+    """An axis whose domain is exactly the outermost cell edges, linear or
+    log.
+
+    Not `_log_data_extent()`, which pads: a pcolormesh's outer edges are
+    the extent of its data, not an estimate of it, so the cells meet the
+    axis ends either way (#687). Every cell is then placed through
+    `to_pixel()`, which takes the log itself, so a log axis needs nothing
+    beyond this.
+
+    Args:
+        lo: The lowest edge or vertex.
+        hi: The highest.
+        log: Whether the axis is logarithmic.
+        axis: "x" or "y", for the error message.
+
+    Returns:
+        The scale, with `is_log` set when asked for.
+
+    Raises:
+        Error: A log axis with an edge at or below zero.
+    """
+    if not log:
+        return LinearScale(lo, hi, 0.0, 1.0)
+    if lo <= 0.0:
+        raise Error(
+            "scale_"
+            + axis
+            + "_log(): every "
+            + axis
+            + " edge must be > 0 on a log axis -- the lowest is "
+            + String(lo)
+        )
+    return LinearScale(log10(lo), log10(hi), 0.0, 1.0, is_log=True)
+
+
 def _render_image[
     T: DrawTarget
 ](
@@ -752,14 +792,22 @@ def _render_image[
         color_scale, theme, sc, cache=cache
     )
 
+    if plot._x_symlog or plot._y_symlog:
+        raise Error(
+            "Plot.scale_x_symlog()/scale_y_symlog(): "
+            + mark.name()
+            + " takes scale_x_log() and scale_y_log(), not symlog. A cell's"
+            " edges are its data, and a symlog axis would redraw the cells"
+            " that cross the linear threshold at a different width"
+        )
     var frame = _draw_continuous_axis_frame(
         target,
-        LinearScale(x_values[0], x_values[cols], 0.0, 1.0),
-        LinearScale(
+        _edge_scale(x_values[0], x_values[cols], plot._x_log, "x"),
+        _edge_scale(
             min(y_values[0], y_values[rows]),
             max(y_values[0], y_values[rows]),
-            0.0,
-            1.0,
+            plot._y_log,
+            "y",
         ),
         theme,
         legend,
