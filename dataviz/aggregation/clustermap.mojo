@@ -14,20 +14,12 @@ draws the matrix, and `render_grid(align_axes=True)` is what makes a
 leaf sit over the column it names.
 """
 
-from canvas.buffer import Canvas
 
 from dataviz.core.cluster import DistanceMetric, Linkage, linkage
 from dataviz.core.theme import Theme
 from dataviz.grid.heatmap import heatmap
-from canvas.vector.pdf import PdfCanvas
-from canvas.vector.svg import SvgCanvas
 
-from dataviz.layout import (
-    GridCell,
-    render_grid,
-    render_grid_pdf,
-    render_grid_svg,
-)
+from dataviz.layout import Figure, GridCell
 from dataviz.plot import Plot
 
 
@@ -108,9 +100,9 @@ def _clustermap_panels(
     for both the raster and the vector form (#620).
 
     Everything that decides what the figure says -- the two clusterings,
-    the reordered matrix, which panels exist at all -- is here, so the
-    two entry points differ only in which `render_grid` they hand the
-    result to and cannot drift into drawing different figures.
+    the reordered matrix, which panels exist at all -- is here;
+    `clustermap()` only wraps the result in a `Figure`, and every
+    export format draws that one figure.
 
     Args:
         values: The matrix, one list per row.
@@ -242,14 +234,15 @@ def clustermap(
     cluster_rows: Bool = True,
     cluster_cols: Bool = True,
     title: String = "",
-) raises -> Canvas:
+) raises -> Figure:
     """A heatmap with its rows and columns reordered by hierarchical
     clustering, and the merge tree drawn along each reordered edge
     (#355).
 
-    Returns a rendered `Canvas` rather than a `Plot`, for the reason
-    `jointplot()` does: the result is several charts in a grid, and a
-    `Plot` is one chart.
+    Returns a `Figure` rather than a `Plot`, because the result is
+    several charts in a grid and a `Plot` is one chart. Like a `Plot`,
+    it is not rendered until it is exported: `save()`, `render()`,
+    `render_svg()` and `render_pdf()` all take it (#697).
 
     The column tree sits above the matrix and the row tree to its
     *right*, where a horizontal dendrogram's leaves land against the
@@ -269,7 +262,7 @@ def clustermap(
 
     Example:
         ```mojo
-        from dataviz import clustermap_svg, save
+        from dataviz import clustermap, save
 
         def main() raises:
             # Illustrative monthly rainfall for six places, in mm, two
@@ -298,7 +291,7 @@ def clustermap(
                 "Sep",
                 "Nov",
             ]
-            var c = clustermap_svg(
+            var c = clustermap(
                 values,
                 places,
                 months,
@@ -325,7 +318,7 @@ def clustermap(
             none.
 
     Returns:
-        The rendered figure.
+        The unrendered figure.
 
     Raises:
         Error: An empty or ragged matrix, a label count that does not
@@ -352,154 +345,13 @@ def clustermap(
         row_weights,
         col_weights,
     )
-    return render_grid(
-        plots,
-        cells,
+    return Figure(
+        plots^,
+        cells^,
         width,
         height,
-        row_weights=row_weights,
-        col_weights=col_weights,
-        align_axes=True,
-        title=title,
-    )
-
-
-def clustermap_svg(
-    values: List[List[Float64]],
-    row_labels: List[String] = List[String](),
-    col_labels: List[String] = List[String](),
-    metric: DistanceMetric = DistanceMetric.EUCLIDEAN,
-    method: Linkage = Linkage.AVERAGE,
-    theme: Theme = Theme(),
-    width: Int = 720,
-    height: Int = 620,
-    ratio: Float64 = 4.0,
-    cluster_rows: Bool = True,
-    cluster_cols: Bool = True,
-    title: String = "",
-) raises -> SvgCanvas:
-    """`clustermap()`'s vector counterpart, over the same panels (#620).
-
-    Args:
-        values: The matrix, one list per row, every row the same length.
-        row_labels: One name per row; empty numbers them.
-        col_labels: One name per column; empty numbers them.
-        metric: How far apart two rows (or columns) are.
-        method: How far apart two clusters are.
-        theme: Applied to every panel.
-        width: Figure width in points.
-        height: Figure height in points.
-        ratio: How many times a dendrogram panel's size the matrix is.
-        cluster_rows: Cluster and reorder the rows.
-        cluster_cols: Cluster and reorder the columns.
-        title: A figure title above the whole thing.
-
-    Returns:
-        The rendered figure.
-
-    Raises:
-        Error: As `clustermap()`.
-    """
-    var plots = List[Plot]()
-    var cells = List[GridCell]()
-    var row_weights = List[Float64]()
-    var col_weights = List[Float64]()
-    _clustermap_panels(
-        values,
-        row_labels,
-        col_labels,
-        metric,
-        method,
-        theme,
-        ratio,
-        cluster_rows,
-        cluster_cols,
-        plots,
-        cells,
-        row_weights,
-        col_weights,
-    )
-    return render_grid_svg(
-        plots,
-        cells,
-        width,
-        height,
-        row_weights=row_weights,
-        col_weights=col_weights,
-        align_axes=True,
-        title=title,
-    )
-
-
-def clustermap_pdf(
-    values: List[List[Float64]],
-    row_labels: List[String] = List[String](),
-    col_labels: List[String] = List[String](),
-    metric: DistanceMetric = DistanceMetric.EUCLIDEAN,
-    method: Linkage = Linkage.AVERAGE,
-    theme: Theme = Theme(),
-    width: Int = 720,
-    height: Int = 620,
-    ratio: Float64 = 4.0,
-    cluster_rows: Bool = True,
-    cluster_cols: Bool = True,
-    title: String = "",
-) raises -> PdfCanvas:
-    """`clustermap()`'s one-page PDF counterpart, over the same
-    panels (#372).
-
-    One layout unit is one PDF point, 1/72 inch, so `width` by
-    `height` is the page: a 640 by 640 figure is 8.89 inches square.
-    Paths stay paths and text stays text, embedded as a font subset,
-    so a panel's labels are selectable rather than a picture of
-    themselves.
-
-    Args:
-        values: The matrix, one list per row, every row the same length.
-        row_labels: One name per row; empty numbers them.
-        col_labels: One name per column; empty numbers them.
-        metric: How far apart two rows (or columns) are.
-        method: How far apart two clusters are.
-        theme: Applied to every panel.
-        width: Figure width in points.
-        height: Figure height in points.
-        ratio: How many times a dendrogram panel's size the matrix is.
-        cluster_rows: Cluster and reorder the rows.
-        cluster_cols: Cluster and reorder the columns.
-        title: A figure title above the whole thing.
-
-    Returns:
-        The rendered figure.
-
-    Raises:
-        Error: As `clustermap()`.
-    """
-    var plots = List[Plot]()
-    var cells = List[GridCell]()
-    var row_weights = List[Float64]()
-    var col_weights = List[Float64]()
-    _clustermap_panels(
-        values,
-        row_labels,
-        col_labels,
-        metric,
-        method,
-        theme,
-        ratio,
-        cluster_rows,
-        cluster_cols,
-        plots,
-        cells,
-        row_weights,
-        col_weights,
-    )
-    return render_grid_pdf(
-        plots,
-        cells,
-        width,
-        height,
-        row_weights=row_weights,
-        col_weights=col_weights,
+        row_weights=row_weights^,
+        col_weights=col_weights^,
         align_axes=True,
         title=title,
     )

@@ -41,12 +41,9 @@ from dataviz import (
     Plot,
     Theme,
     clustermap,
-    clustermap_svg,
     jointplot,
-    jointplot_svg,
     line,
     pairplot,
-    pairplot_svg,
     render_facets,
     render_facets_svg,
     render_grid,
@@ -195,12 +192,12 @@ def _composition_raster(index: Int) raises -> Canvas:
         )
     if index == 2:
         var c = _columns()
-        return pairplot(c[0], c[1], cell_width=140, cell_height=120)
+        return render(pairplot(c[0], c[1], cell_width=140, cell_height=120))
     if index == 3:
         var s = _series()
-        return jointplot(s[0], s[1], width=360, height=360)
+        return render(jointplot(s[0], s[1], width=360, height=360))
     if index == 4:
-        return clustermap(_matrix(), width=420, height=360)
+        return render(clustermap(_matrix(), width=420, height=360))
     if index == 5:
         return render(_math_plot())
     raise Error(
@@ -212,9 +209,9 @@ def _composition_svg(index: Int) raises -> SvgCanvas:
     """Composition `index` rendered to vector, the same figure as
     `_composition_raster`.
 
-    Two functions rather than one returning both, because each backend's
-    entry point takes its own arguments and building the figure twice is
-    what the pair of entry points is for.
+    Two functions rather than one returning both, because the facet and
+    grid entries render through their own backend-specific functions;
+    the composite figures build one `Figure` and render it either way.
     """
     if index == 0:
         return render_facets_svg(_facet_plots(), 2, title="Facets")
@@ -224,12 +221,12 @@ def _composition_svg(index: Int) raises -> SvgCanvas:
         )
     if index == 2:
         var c = _columns()
-        return pairplot_svg(c[0], c[1], cell_width=140, cell_height=120)
+        return render_svg(pairplot(c[0], c[1], cell_width=140, cell_height=120))
     if index == 3:
         var s = _series()
-        return jointplot_svg(s[0], s[1], width=360, height=360)
+        return render_svg(jointplot(s[0], s[1], width=360, height=360))
     if index == 4:
-        return clustermap_svg(_matrix(), width=420, height=360)
+        return render_svg(clustermap(_matrix(), width=420, height=360))
     if index == 5:
         return render_svg(_math_plot())
     raise Error("_composition_svg(): no composition at index " + String(index))

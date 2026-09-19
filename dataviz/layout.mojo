@@ -739,6 +739,80 @@ def _check_grid_args(
         )
 
 
+struct Figure(Copyable, Movable):
+    """A composite chart -- several `Plot`s laid out in grid cells --
+    that has not been rendered yet (#697).
+
+    What `Plot` is for one chart: construction stores the layout and
+    draws nothing, and the same value exports to any format through
+    `render()`, `render_svg()`, `render_pdf()` or `save()`, exactly as
+    a `Plot` does. `jointplot()`, `pairplot()` and `clustermap()`
+    return one, so `save(pairplot(...), "pairs.svg")` works the way
+    `save(scatter(x, y), "chart.svg")` does.
+
+    It holds `render_grid()`'s arguments, and rendering one is
+    `render_grid()` over them; a uniform facet grid is the case of one
+    cell per plot with equal tracks, which is how `pairplot()` builds
+    its figure.
+    """
+
+    var plots: List[Plot]
+    """The charts, one per cell."""
+    var cells: List[GridCell]
+    """Where each plot goes."""
+    var width: Int
+    """Figure width, in points (1/72 inch), as `Plot.size()`."""
+    var height: Int
+    """Figure height, in points."""
+    var row_weights: List[Float64]
+    """Relative row heights, empty for equal rows."""
+    var col_weights: List[Float64]
+    """Relative column widths, empty for equal columns."""
+    var shared_y_scale: Bool
+    """Give every cell one y-domain."""
+    var align_axes: Bool
+    """Share plot-rect edges down each column and across each row."""
+    var title: String
+    """A figure title above the cells; empty for none."""
+
+    def __init__(
+        out self,
+        var plots: List[Plot],
+        var cells: List[GridCell],
+        width: Int,
+        height: Int,
+        var row_weights: List[Float64] = List[Float64](),
+        var col_weights: List[Float64] = List[Float64](),
+        shared_y_scale: Bool = False,
+        align_axes: Bool = False,
+        title: String = "",
+    ):
+        """Store a layout; nothing is drawn or checked until it is
+        rendered, as with `Plot`.
+
+        Args:
+            plots: The charts, one per cell.
+            cells: Where each plot goes.
+            width: Figure width in points.
+            height: Figure height in points.
+            row_weights: Relative row heights, empty for equal rows.
+            col_weights: Relative column widths, empty for equal
+                columns.
+            shared_y_scale: Give every cell one y-domain.
+            align_axes: Share plot-rect edges, as `render_grid()`.
+            title: A figure title above the cells; empty for none.
+        """
+        self.plots = plots^
+        self.cells = cells^
+        self.width = width
+        self.height = height
+        self.row_weights = row_weights^
+        self.col_weights = col_weights^
+        self.shared_y_scale = shared_y_scale
+        self.align_axes = align_axes
+        self.title = title
+
+
 def render_grid(
     plots: List[Plot],
     cells: List[GridCell],

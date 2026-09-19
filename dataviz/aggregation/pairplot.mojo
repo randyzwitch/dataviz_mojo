@@ -19,20 +19,14 @@ correlation of 0.0 looks the same for independent data and for a perfect
 parabola; the scatter is where you see which one you have.
 """
 
-from canvas.buffer import Canvas
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.scale import MinMax
 from dataviz.core.theme import Theme
 from dataviz.binned.histogram import bin_edges, histogram_bins
-from canvas.vector.pdf import PdfCanvas
-from canvas.vector.svg import SvgCanvas
 
-from dataviz.facets import (
-    render_facets,
-    render_facets_pdf,
-    render_facets_svg,
-)
+from dataviz.facets import _facets_figure
+from dataviz.layout import Figure
 from dataviz.plot import Plot
 
 
@@ -81,9 +75,8 @@ def _pairplot_panels[
 
     Everything that decides what the figure *says* -- the shared
     domains, the histogram diagonal, the panel titles -- is here;
-    the two entry points differ only in which `render_facets` they hand
-    the result to, so the two can never drift into drawing different
-    charts.
+    `pairplot()` only wraps the result in a `Figure`, and every export
+    format draws that one figure.
 
     Args:
         columns: One list per variable.
@@ -176,13 +169,14 @@ def pairplot[
     cell_height: Int = 180,
     bins: Int = 10,
     title: String = "",
-) raises -> Canvas:
+) raises -> Figure:
     """Every variable against every other, with distributions down the
     diagonal (#353).
 
-    Returns a rendered `Canvas` rather than a `Plot`, because a pairplot
-    is a *figure* of n-squared panels and `Plot` is one chart. That is
-    the same reason `render_facets()` returns a canvas.
+    Returns a `Figure` rather than a `Plot`, because the result is
+    several charts in a grid and a `Plot` is one chart. Like a `Plot`,
+    it is not rendered until it is exported: `save()`, `render()`,
+    `render_svg()` and `render_pdf()` all take it (#697).
 
     Column `j` shares one x-domain and row `i` shares one y-domain, both
     taken from the variable's own padded range, so every panel showing a
@@ -200,7 +194,7 @@ def pairplot[
 
     Example:
         ```mojo
-        from dataviz import pairplot_svg, save
+        from dataviz import pairplot, save
 
         def main() raises:
             # Illustrative measurements for a dozen sedans: engine size
@@ -210,7 +204,7 @@ def pairplot[
                 [118, 132, 140, 158, 170, 185, 203, 255, 268, 290, 335, 375],
                 [38, 36, 34, 31, 30, 28, 27, 24, 23, 21, 19, 17],
             ]
-            var c = pairplot_svg(
+            var c = pairplot(
                 columns,
                 ["Engine (L)", "Horsepower", "MPG"],
                 title="Sedan specifications, pairwise",
@@ -230,98 +224,13 @@ def pairplot[
             for none.
 
     Returns:
-        The rendered figure, `len(columns)` panels across.
+        The unrendered figure, `len(columns)` panels across.
 
     Raises:
         Error: Fewer than two variables, a name count that does not match,
             columns of differing length, or an empty column.
     """
-    return render_facets(
-        _pairplot_panels(columns, names, theme, cell_width, cell_height, bins),
-        len(columns),
-        title=title,
-    )
-
-
-def pairplot_svg[
-    dtype: DType
-](
-    columns: List[List[Scalar[dtype]]],
-    names: List[String],
-    theme: Theme = Theme(),
-    cell_width: Int = 220,
-    cell_height: Int = 180,
-    bins: Int = 10,
-    title: String = "",
-) raises -> SvgCanvas:
-    """`pairplot()`'s vector counterpart, over the same panels (#620).
-
-    A pair plot is the figure most likely to end up in a paper, and the
-    raster form is either large or soft at print resolution. This gives
-    it the same vector output every single-chart function has had.
-
-    Args:
-        columns: One list per variable, all the same length.
-        names: One label per variable, used as each panel's axis title.
-        theme: Applied to every panel.
-        cell_width: Each panel's width in points.
-        cell_height: Each panel's height.
-        bins: Histogram bins on the diagonal.
-        title: A figure title above the whole grid.
-
-    Returns:
-        The rendered figure, `len(columns)` panels across.
-
-    Raises:
-        Error: As `pairplot()`.
-    """
-    return render_facets_svg(
-        _pairplot_panels(columns, names, theme, cell_width, cell_height, bins),
-        len(columns),
-        title=title,
-    )
-
-
-def pairplot_pdf[
-    dtype: DType
-](
-    columns: List[List[Scalar[dtype]]],
-    names: List[String],
-    theme: Theme = Theme(),
-    cell_width: Int = 220,
-    cell_height: Int = 180,
-    bins: Int = 10,
-    title: String = "",
-) raises -> PdfCanvas:
-    """`pairplot()`'s one-page PDF counterpart, over the same
-    panels (#372).
-
-    One layout unit is one PDF point, 1/72 inch, so `width` by
-    `height` is the page: a 640 by 640 figure is 8.89 inches square.
-    Paths stay paths and text stays text, embedded as a font subset,
-    so a panel's labels are selectable rather than a picture of
-    themselves.
-
-    A pair plot is the figure most likely to end up in a paper, and the
-    raster form is either large or soft at print resolution. This gives
-    it the same vector output every single-chart function has had.
-
-    Args:
-        columns: One list per variable, all the same length.
-        names: One label per variable, used as each panel's axis title.
-        theme: Applied to every panel.
-        cell_width: Each panel's width in points.
-        cell_height: Each panel's height.
-        bins: Histogram bins on the diagonal.
-        title: A figure title above the whole grid.
-
-    Returns:
-        The rendered figure, `len(columns)` panels across.
-
-    Raises:
-        Error: As `pairplot()`.
-    """
-    return render_facets_pdf(
+    return _facets_figure(
         _pairplot_panels(columns, names, theme, cell_width, cell_height, bins),
         len(columns),
         title=title,

@@ -157,6 +157,13 @@ from dataviz.basic.continuous import (
     line,
     scatter,
 )
+from dataviz.layout import (
+    Figure,
+    render_grid,
+    render_grid_pdf,
+    render_grid_svg,
+    save_grid,
+)
 from dataviz.facets import (
     _render_facets_generic,
     render_facets,
@@ -7592,13 +7599,123 @@ def _reject_mismatched_extension(
             )
 
 
+def render(figure: Figure) raises -> Canvas:
+    """Render a composite `Figure` to a raster `Canvas`; `render(plot)`'s
+    counterpart, over `render_grid()` (#697).
+
+    Args:
+        figure: The composite chart.
+
+    Returns:
+        The rendered figure.
+
+    Raises:
+        Error: Whatever `render_grid()` raises for its layout.
+    """
+    return render_grid(
+        figure.plots,
+        figure.cells,
+        figure.width,
+        figure.height,
+        figure.row_weights,
+        figure.col_weights,
+        figure.shared_y_scale,
+        figure.align_axes,
+        figure.title,
+    )
+
+
+def render_svg(figure: Figure) raises -> SvgCanvas:
+    """Render a composite `Figure` to vector markup; `render_svg(plot)`'s
+    counterpart, over `render_grid_svg()` (#697).
+
+    Args:
+        figure: The composite chart.
+
+    Returns:
+        The rendered figure.
+
+    Raises:
+        Error: Whatever `render_grid_svg()` raises for its layout.
+    """
+    return render_grid_svg(
+        figure.plots,
+        figure.cells,
+        figure.width,
+        figure.height,
+        figure.row_weights,
+        figure.col_weights,
+        figure.shared_y_scale,
+        figure.align_axes,
+        figure.title,
+    )
+
+
+def render_pdf(figure: Figure) raises -> PdfCanvas:
+    """Render a composite `Figure` to a one-page PDF; `render_pdf(plot)`'s
+    counterpart, over `render_grid_pdf()` (#697).
+
+    Args:
+        figure: The composite chart.
+
+    Returns:
+        The finished document.
+
+    Raises:
+        Error: Whatever `render_grid_pdf()` raises for its layout.
+    """
+    return render_grid_pdf(
+        figure.plots,
+        figure.cells,
+        figure.width,
+        figure.height,
+        figure.row_weights,
+        figure.col_weights,
+        figure.shared_y_scale,
+        figure.align_axes,
+        figure.title,
+    )
+
+
+def save(
+    figure: Figure, path: String, dpi: Float64 = 72.0, tight: Bool = False
+) raises:
+    """Render a composite `Figure` and write it to `path`; `save(plot)`'s
+    counterpart (#697), with the same format rule and the same `dpi`
+    and `tight` (see `save_grid()`, which this delegates to).
+
+    Args:
+        figure: The composite chart.
+        path: Where to write; the extension picks the format.
+        dpi: Pixels per inch for a raster export; ignored by vector.
+        tight: Crop every format to the figure's ink.
+
+    Raises:
+        Error: Whatever `save_grid()` raises.
+    """
+    save_grid(
+        figure.plots,
+        figure.cells,
+        figure.width,
+        figure.height,
+        path,
+        figure.row_weights,
+        figure.col_weights,
+        figure.shared_y_scale,
+        figure.align_axes,
+        figure.title,
+        dpi=dpi,
+        tight=tight,
+    )
+
+
 def save(svg: SvgCanvas, path: String) raises:
     """Write an already-rendered `SvgCanvas` to `path` (#620).
 
-    The vector counterpart of the `Canvas` overload below, so a
-    composite figure that renders to vector -- `jointplot_svg()`,
-    `pairplot_svg()` -- is saved the same way every other chart is
-    rather than reaching for canvas's own writer. A raster extension
+    The vector counterpart of the `Canvas` overload below, so a document
+    already rendered through `render_svg()` -- a `Plot`'s or a
+    `Figure`'s -- is saved the same way every other chart is rather
+    than reaching for canvas's own writer. A raster extension
     raises: this is markup, and turning it into pixels is `render()`'s
     job from the `Plot` it came from, at whatever size and resolution
     that caller wants.

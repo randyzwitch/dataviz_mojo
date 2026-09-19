@@ -8,21 +8,16 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.buffer import Canvas
 from canvas.color import Color
 from dataviz import (
+    GridCell,
+    Plot,
     Theme,
+    Figure,
     clustermap,
-    clustermap_pdf,
-    clustermap_svg,
     jointplot,
-    jointplot_pdf,
-    jointplot_svg,
     pairplot,
-    pairplot_pdf,
-    pairplot_svg,
     save,
 )
-from dataviz.core.cluster import linkage
-from dataviz.grid.heatmap import heatmap
-from dataviz.plot import render_svg
+from dataviz.plot import render, render_pdf, render_svg
 from _test_helpers import _attr_values, _count_tag
 
 
@@ -116,7 +111,7 @@ def test_the_top_marginal_sits_over_the_panel_it_describes() raises:
     misreports where the mass is.
     """
     var s = _samples(400)
-    var c = jointplot(s[0], s[1], width=640, height=640, theme=_theme())
+    var c = render(jointplot(s[0], s[1], width=640, height=640, theme=_theme()))
     assert_equal(c.width, 640, "figure width")
     assert_equal(c.height, 640, "figure height")
 
@@ -142,7 +137,7 @@ def test_the_right_marginal_lines_up_with_the_panel() raises:
     # The other axis: the panel and the right strip are the two cells of
     # row 1, so they must share a bottom edge.
     var s = _samples(400)
-    var c = jointplot(s[0], s[1], width=640, height=640, theme=_theme())
+    var c = render(jointplot(s[0], s[1], width=640, height=640, theme=_theme()))
     var panel_bottom = _axis_row(c, 150, 450, True)
     var strip_bottom = _axis_row(c, 560, 620, True)
     assert_true(panel_bottom > 0, "no bottom spine in the main panel")
@@ -163,7 +158,7 @@ def test_the_empty_corner_is_the_figure_background() raises:
     # Top-right has no cell, as seaborn leaves it. It must not show the
     # canvas's white default through (#568/#576's sibling).
     var s = _samples(400)
-    var c = jointplot(s[0], s[1], width=640, height=640, theme=_theme())
+    var c = render(jointplot(s[0], s[1], width=640, height=640, theme=_theme()))
     var p = c.get_pixel(600, 40)
     assert_true(
         p.r == _BG.r and p.g == _BG.g and p.b == _BG.b,
@@ -185,11 +180,11 @@ def test_the_ratio_moves_the_divider() raises:
     # spine sits vertically: with a thinner top strip the panel starts
     # higher.
     var s = _samples(400)
-    var thin = jointplot(
-        s[0], s[1], width=640, height=640, ratio=8.0, theme=_theme()
+    var thin = render(
+        jointplot(s[0], s[1], width=640, height=640, ratio=8.0, theme=_theme())
     )
-    var thick = jointplot(
-        s[0], s[1], width=640, height=640, ratio=2.0, theme=_theme()
+    var thick = render(
+        jointplot(s[0], s[1], width=640, height=640, ratio=2.0, theme=_theme())
     )
     var thin_top = _axis_row(thin, 150, 450, False)
     var thick_top = _axis_row(thick, 150, 450, False)
@@ -209,17 +204,17 @@ def test_jointplot_raises_with_names() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0]
     var y: List[Float64] = [1.0, 2.0]
     with assert_raises(contains="same length"):
-        _ = jointplot(x, y)
+        _ = render(jointplot(x, y))
 
     var empty = List[Float64]()
     with assert_raises(contains="no values"):
-        _ = jointplot(empty, empty)
+        _ = render(jointplot(empty, empty))
 
     var ok: List[Float64] = [1.0, 2.0, 3.0]
     with assert_raises(contains="bins must be positive"):
-        _ = jointplot(ok, ok, bins=0)
+        _ = render(jointplot(ok, ok, bins=0))
     with assert_raises(contains="ratio must be above zero"):
-        _ = jointplot(ok, ok, ratio=0.0)
+        _ = render(jointplot(ok, ok, ratio=0.0))
 
 
 # ==== from test_pairplot.mojo ====
@@ -293,9 +288,11 @@ def _ink_rows(c: Canvas, y0: Int, y1: Int, theme: Theme) -> Int:
 def test_pairplot_title_sits_in_a_band_above_the_panels() raises:
     # The figure grows by the band; the panels underneath do not move.
     var data = _three()
-    var plain = pairplot(data[0], data[1], theme=_theme_pairplot())
-    var titled = pairplot(
-        data[0], data[1], theme=_theme_pairplot(), title="Three variables"
+    var plain = render(pairplot(data[0], data[1], theme=_theme_pairplot()))
+    var titled = render(
+        pairplot(
+            data[0], data[1], theme=_theme_pairplot(), title="Three variables"
+        )
     )
     var band = titled.height - plain.height
     assert_true(band > 0, "a title adds a band")
@@ -313,8 +310,10 @@ def test_pairplot_title_sits_in_a_band_above_the_panels() raises:
 
 def test_the_figure_is_n_by_n_cells() raises:
     var d = _three()
-    var c = pairplot(
-        d[0], d[1], theme=_theme_pairplot(), cell_width=160, cell_height=120
+    var c = render(
+        pairplot(
+            d[0], d[1], theme=_theme_pairplot(), cell_width=160, cell_height=120
+        )
     )
     assert_equal(c.width, 160 * 3, "three cells across")
     assert_equal(c.height, 120 * 3, "three cells down")
@@ -327,8 +326,14 @@ def test_two_variables_is_the_smallest_pairplot() raises:
     var names = List[String]()
     names.append("a")
     names.append("b")
-    var c = pairplot(
-        cols, names, theme=_theme_pairplot(), cell_width=140, cell_height=110
+    var c = render(
+        pairplot(
+            cols,
+            names,
+            theme=_theme_pairplot(),
+            cell_width=140,
+            cell_height=110,
+        )
     )
     assert_equal(c.width, 280, "two cells across")
     assert_equal(c.height, 220, "two cells down")
@@ -347,16 +352,24 @@ def test_a_variable_is_drawn_at_the_same_scale_wherever_it_appears() raises:
     column 0's x-domain comes from variable 0 and nothing else.
     """
     var d = _three()
-    var a = pairplot(
-        d[0], d[1], theme=_theme_pairplot(), cell_width=160, cell_height=120
+    var a = render(
+        pairplot(
+            d[0], d[1], theme=_theme_pairplot(), cell_width=160, cell_height=120
+        )
     )
 
     var changed = List[List[Float64]]()
     changed.append(d[0][0].copy())
     changed.append(d[0][1].copy())
     changed.append(d[0][1].copy())  # was "falling"
-    var b = pairplot(
-        changed, d[1], theme=_theme_pairplot(), cell_width=160, cell_height=120
+    var b = render(
+        pairplot(
+            changed,
+            d[1],
+            theme=_theme_pairplot(),
+            cell_width=160,
+            cell_height=120,
+        )
     )
 
     # Cell (0, 0) is the diagonal histogram of variable 0, whose domain
@@ -382,15 +395,23 @@ def test_changing_a_variable_does_change_the_cells_that_show_it() raises:
     # The control for the test above: if nothing ever changed, that test
     # would pass on a blank canvas.
     var d = _three()
-    var a = pairplot(
-        d[0], d[1], theme=_theme_pairplot(), cell_width=160, cell_height=120
+    var a = render(
+        pairplot(
+            d[0], d[1], theme=_theme_pairplot(), cell_width=160, cell_height=120
+        )
     )
     var changed = List[List[Float64]]()
     changed.append(d[0][0].copy())
     changed.append(d[0][1].copy())
     changed.append(d[0][1].copy())
-    var b = pairplot(
-        changed, d[1], theme=_theme_pairplot(), cell_width=160, cell_height=120
+    var b = render(
+        pairplot(
+            changed,
+            d[1],
+            theme=_theme_pairplot(),
+            cell_width=160,
+            cell_height=120,
+        )
     )
     var diff = 0
     for y in range(a.height):
@@ -410,7 +431,9 @@ def test_the_figure_draws_something_in_every_cell() raises:
     # renders one panel and leaves the rest blank.
     var d = _three()
     var theme = _theme_pairplot()
-    var c = pairplot(d[0], d[1], theme=theme, cell_width=160, cell_height=120)
+    var c = render(
+        pairplot(d[0], d[1], theme=theme, cell_width=160, cell_height=120)
+    )
     for row in range(3):
         for col in range(3):
             var bg = theme.background
@@ -440,19 +463,19 @@ def test_bad_input_raises() raises:
     var one_name = List[String]()
     one_name.append("only")
     with assert_raises(contains="at least two variables"):
-        _ = pairplot(one, one_name)
+        _ = render(pairplot(one, one_name))
 
     var two_names = List[String]()
     two_names.append("a")
     two_names.append("b")
     with assert_raises(contains="one name per variable"):
-        _ = pairplot(d[0], two_names)
+        _ = render(pairplot(d[0], two_names))
 
     var ragged = List[List[Float64]]()
     ragged.append(_col(8, 1.0, 0.0))
     ragged.append(_col(5, 1.0, 0.0))
     with assert_raises(contains="same number of rows"):
-        _ = pairplot(ragged, two_names)
+        _ = render(pairplot(ragged, two_names))
 
 
 def test_integer_columns_work_like_float_ones() raises:
@@ -468,8 +491,14 @@ def test_integer_columns_work_like_float_ones() raises:
     var names = List[String]()
     names.append("a")
     names.append("b")
-    var c = pairplot(
-        cols, names, theme=_theme_pairplot(), cell_width=140, cell_height=110
+    var c = render(
+        pairplot(
+            cols,
+            names,
+            theme=_theme_pairplot(),
+            cell_width=140,
+            cell_height=110,
+        )
     )
     assert_true(
         _ink(c, _theme_pairplot()) > 100, "the integer pairplot drew nothing"
@@ -507,8 +536,10 @@ def _col_names() -> List[String]:
 
 
 def test_a_clustermap_is_the_size_it_was_asked_for() raises:
-    var c = clustermap(
-        _interleaved(), _row_names(), _col_names(), width=700, height=600
+    var c = render(
+        clustermap(
+            _interleaved(), _row_names(), _col_names(), width=700, height=600
+        )
     )
     assert_equal(c.width, 700)
     assert_equal(c.height, 600)
@@ -542,41 +573,38 @@ def test_a_clustermap_reorders_its_rows_into_groups() raises:
 
 
 def render_grid_svg_of_clustermap() raises -> String:
-    """The clustermap's SVG, for reading its label order.
+    """The clustermap's own SVG, for reading its label order.
 
-    A helper rather than a test: `clustermap()` returns a raster canvas,
-    so the labels are read from an equivalent figure rendered to vector.
+    Before #697 `clustermap()` returned a raster canvas, so this rebuilt
+    the ordering by hand -- `linkage()` and a `heatmap()` -- and the test
+    checked that reconstruction rather than the chart. A `Figure` renders
+    to vector directly, so it reads the real one.
     """
-    var tree = linkage(_interleaved())
-    var xs = List[String]()
-    var ys = List[String]()
-    var vals = List[Float64]()
-    var rows = _interleaved()
-    var names = _row_names()
-    var cols = _col_names()
-    for r in range(6):
-        var source = tree.leaf_order[r]
-        for c in range(4):
-            xs.append(cols[c])
-            ys.append(names[source])
-            vals.append(rows[source][c])
-    return render_svg(heatmap(xs, ys, vals)).to_string()
+    return render_svg(
+        clustermap(
+            _interleaved(), _row_names(), _col_names(), width=700, height=600
+        )
+    ).to_string()
 
 
 def test_not_clustering_an_axis_keeps_its_order() raises:
     # Both figures are the same size, so the one difference is the
     # order; a matrix that already has a meaningful order down one axis
     # should be able to keep it.
-    var clustered = clustermap(
-        _interleaved(), _row_names(), _col_names(), width=700, height=600
+    var clustered = render(
+        clustermap(
+            _interleaved(), _row_names(), _col_names(), width=700, height=600
+        )
     )
-    var rows_only = clustermap(
-        _interleaved(),
-        _row_names(),
-        _col_names(),
-        width=700,
-        height=600,
-        cluster_cols=False,
+    var rows_only = render(
+        clustermap(
+            _interleaved(),
+            _row_names(),
+            _col_names(),
+            width=700,
+            height=600,
+            cluster_cols=False,
+        )
     )
     assert_equal(rows_only.width, clustered.width)
     var different = 0
@@ -595,14 +623,16 @@ def test_not_clustering_an_axis_keeps_its_order() raises:
 def test_a_clustermap_checks_its_input() raises:
     var empty = List[List[Float64]]()
     with assert_raises(contains="must not be empty"):
-        _ = clustermap(empty)
+        _ = render(clustermap(empty))
 
     var two: List[String] = ["a", "b"]
     with assert_raises(contains="one row label per row"):
-        _ = clustermap(_interleaved(), two)
+        _ = render(clustermap(_interleaved(), two))
 
     with assert_raises(contains="ratio must be above zero"):
-        _ = clustermap(_interleaved(), _row_names(), _col_names(), ratio=0.0)
+        _ = render(
+            clustermap(_interleaved(), _row_names(), _col_names(), ratio=0.0)
+        )
 
 
 # ==== vector output for the composite figures (#620) ====
@@ -615,9 +645,9 @@ def test_a_vector_pairplot_draws_the_same_panels() raises:
     # the caller asked for, so the two forms cannot drift. The check:
     # the same number of cells with the same axis titles.
     var data = _three()
-    var raster = pairplot(data[0], data[1], theme=_theme_pairplot())
-    var svg = pairplot_svg(
-        data[0], data[1], theme=_theme_pairplot()
+    var raster = render(pairplot(data[0], data[1], theme=_theme_pairplot()))
+    var svg = render_svg(
+        pairplot(data[0], data[1], theme=_theme_pairplot())
     ).to_string()
     assert_equal(
         Int(Float64(_attr_values(svg, "svg", "width")[0])),
@@ -639,9 +669,13 @@ def test_a_vector_pairplot_draws_the_same_panels() raises:
 
 def test_a_vector_jointplot_draws_the_same_panels() raises:
     var s = _samples(120)
-    var raster = jointplot(s[0], s[1], theme=_theme(), width=400, height=400)
-    var svg = jointplot_svg(
-        s[0], s[1], theme=_theme(), width=400, height=400, title="Joint"
+    var raster = render(
+        jointplot(s[0], s[1], theme=_theme(), width=400, height=400)
+    )
+    var svg = render_svg(
+        jointplot(
+            s[0], s[1], theme=_theme(), width=400, height=400, title="Joint"
+        )
     ).to_string()
     assert_equal(Int(Float64(_attr_values(svg, "svg", "width")[0])), 400)
     assert_equal(
@@ -655,7 +689,9 @@ def test_saving_a_vector_figure_writes_markup() raises:
     var s = _samples(120)
     var path = "/tmp/dataviz_test_jointplot.svg"
     save(
-        jointplot_svg(s[0], s[1], theme=_theme(), width=300, height=300),
+        render_svg(
+            jointplot(s[0], s[1], theme=_theme(), width=300, height=300)
+        ),
         path,
     )
     var f = open(path, "r")
@@ -670,23 +706,29 @@ def test_saving_vector_markup_to_a_raster_path_raises() raises:
     var s = _samples(120)
     with assert_raises(contains="vector markup, not pixels"):
         save(
-            jointplot_svg(s[0], s[1], theme=_theme(), width=300, height=300),
+            render_svg(
+                jointplot(s[0], s[1], theme=_theme(), width=300, height=300)
+            ),
             "/tmp/dataviz_test_jointplot.png",
         )
 
 
 def test_a_vector_clustermap_draws_the_same_figure() raises:
     # The third composite figure, split the same way.
-    var raster = clustermap(
-        _interleaved(), _row_names(), _col_names(), width=700, height=600
+    var raster = render(
+        clustermap(
+            _interleaved(), _row_names(), _col_names(), width=700, height=600
+        )
     )
-    var svg = clustermap_svg(
-        _interleaved(),
-        _row_names(),
-        _col_names(),
-        width=700,
-        height=600,
-        title="Clustered",
+    var svg = render_svg(
+        clustermap(
+            _interleaved(),
+            _row_names(),
+            _col_names(),
+            width=700,
+            height=600,
+            title="Clustered",
+        )
     ).to_string()
     assert_equal(Int(Float64(_attr_values(svg, "svg", "width")[0])), 700)
     assert_equal(
@@ -721,23 +763,27 @@ def _is_pdf(data: List[UInt8]) -> Bool:
 
 def test_a_jointplot_renders_to_pdf() raises:
     var xy = _samples(40)
-    var doc = jointplot_pdf(xy[0], xy[1], width=360, height=360)
+    var doc = render_pdf(jointplot(xy[0], xy[1], width=360, height=360))
     assert_equal(doc.width, 360, "the page is not the figure's width")
     assert_equal(doc.height, 360, "the page is not the figure's height")
-    assert_true(_is_pdf(doc.to_bytes()), "jointplot_pdf wrote no PDF")
+    assert_true(_is_pdf(doc.to_bytes()), "render_pdf(jointplot()) wrote no PDF")
 
 
 def test_a_pairplot_renders_to_pdf() raises:
     var cols = _three()
-    var doc = pairplot_pdf(cols[0], cols[1], cell_width=140, cell_height=120)
+    var doc = render_pdf(
+        pairplot(cols[0], cols[1], cell_width=140, cell_height=120)
+    )
     assert_true(doc.width > 0, "the page has no width")
-    assert_true(_is_pdf(doc.to_bytes()), "pairplot_pdf wrote no PDF")
+    assert_true(_is_pdf(doc.to_bytes()), "render_pdf(pairplot()) wrote no PDF")
 
 
 def test_a_clustermap_renders_to_pdf() raises:
-    var doc = clustermap_pdf(_interleaved(), width=420, height=360)
+    var doc = render_pdf(clustermap(_interleaved(), width=420, height=360))
     assert_equal(doc.width, 420, "the page is not the figure's width")
-    assert_true(_is_pdf(doc.to_bytes()), "clustermap_pdf wrote no PDF")
+    assert_true(
+        _is_pdf(doc.to_bytes()), "render_pdf(clustermap()) wrote no PDF"
+    )
 
 
 def test_the_same_figure_gives_the_same_pdf_twice() raises:
@@ -745,8 +791,8 @@ def test_the_same_figure_gives_the_same_pdf_twice() raises:
     # caller re-exporting the same chart. Cross-machine is a different
     # question and an open one -- see #631.
     var xy = _samples(40)
-    var a = jointplot_pdf(xy[0], xy[1], width=360, height=360)
-    var b = jointplot_pdf(xy[0], xy[1], width=360, height=360)
+    var a = render_pdf(jointplot(xy[0], xy[1], width=360, height=360))
+    var b = render_pdf(jointplot(xy[0], xy[1], width=360, height=360))
     var ab = a.to_bytes()
     var bb = b.to_bytes()
     assert_equal(len(ab), len(bb), "two renders gave different byte counts")
@@ -756,6 +802,84 @@ def test_the_same_figure_gives_the_same_pdf_twice() raises:
             same = False
             break
     assert_true(same, "the same figure gave two different PDFs")
+
+
+# ---------------------------------------------------------------
+# Composite figures are unrendered values, like Plot (#697)
+
+
+def _starts_with(path: String, at: Int, text: String) raises -> Bool:
+    """Whether the file's raw bytes from `at` spell `text` -- compared as
+    bytes, since a PNG's first byte is not valid UTF-8 text."""
+    var f = open(path, "r")
+    var b = f.read_bytes()
+    f.close()
+    var want = text.as_bytes()
+    if len(b) < at + len(want):
+        return False
+    for i in range(len(want)):
+        if b[at + i] != want[i]:
+            return False
+    return True
+
+
+def _png_width(path: String) raises -> Int:
+    var f = open(path, "r")
+    var b = f.read_bytes()
+    f.close()
+    return (
+        (Int(b[16]) << 24) | (Int(b[17]) << 16) | (Int(b[18]) << 8) | Int(b[19])
+    )
+
+
+def test_one_composite_figure_exports_to_every_format() raises:
+    # Built once, saved three ways -- no format-specific constructor.
+    var xy = _samples(80)
+    var fig = jointplot(xy[0], xy[1], width=360, height=360)
+    save(fig, "/tmp/dv697_joint.png")
+    save(fig, "/tmp/dv697_joint.svg")
+    save(fig, "/tmp/dv697_joint.pdf")
+    assert_true(_starts_with("/tmp/dv697_joint.png", 1, "PNG"))
+    assert_true(_starts_with("/tmp/dv697_joint.svg", 0, "<svg"))
+    assert_true(_starts_with("/tmp/dv697_joint.pdf", 0, "%PDF"))
+    # And rendering it twice draws the same figure: nothing about the
+    # value changed by being exported.
+    assert_equal(render_svg(fig).to_string(), render_svg(fig).to_string())
+
+
+def test_constructing_a_figure_does_not_render() raises:
+    # A layout that cannot render -- two cells for one plot -- builds
+    # without complaint, as an unrendered Plot with no data does, and
+    # raises only when exported.
+    var cols = _three()
+    var panels = pairplot(cols[0], cols[1], cell_width=140, cell_height=120)
+    var cells: List[GridCell] = [GridCell(0, 0), GridCell(0, 1)]
+    var one = List[Plot]()
+    one.append(panels.plots[0].copy())
+    var bad = Figure(
+        one^,
+        cells^,
+        panels.width,
+        panels.height,
+    )
+    with assert_raises():
+        _ = render(bad)
+
+
+def test_a_composite_figure_takes_save_dpi_and_tight() raises:
+    var cols = _three()
+    var fig = pairplot(cols[0], cols[1], cell_width=140, cell_height=120)
+    save(fig, "/tmp/dv697_pairs72.png")
+    save(fig, "/tmp/dv697_pairs144.png", dpi=144.0)
+    assert_equal(
+        _png_width("/tmp/dv697_pairs144.png"),
+        2 * _png_width("/tmp/dv697_pairs72.png"),
+    )
+    save(fig, "/tmp/dv697_pairs_tight.png", tight=True)
+    assert_true(
+        _png_width("/tmp/dv697_pairs_tight.png")
+        < _png_width("/tmp/dv697_pairs72.png")
+    )
 
 
 def main() raises:
