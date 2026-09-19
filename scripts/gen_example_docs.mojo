@@ -609,6 +609,7 @@ def _cookbook_categories() -> List[Category]:
             "Whole analyses, from data to figure, that check what they claim.",
             [
                 "workflow_distribution_comparison",
+                "workflow_scatter_marginals",
                 "workflow_publication_figure",
             ],
         )
