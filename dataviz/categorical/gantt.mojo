@@ -20,6 +20,7 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
+from dataviz.core.frame import _fitting_ticks
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 
@@ -125,7 +126,15 @@ def _draw_horizontal_categorical_axis_frame[
         categories.copy(), Float64(plot_y0), Float64(plot_y1), padding
     )
 
-    var x_ticks = out_x_scale.ticks()
+    var x_ticks = _fitting_ticks(
+        out_x_scale,
+        Float64(plot_x1 - plot_x0),
+        True,
+        theme.x_tick_format,
+        sc,
+        theme.font_family,
+        cache,
+    )
     var x_labels = x_ticks.labels(theme.x_tick_format)
 
     if theme.show_gridlines:
