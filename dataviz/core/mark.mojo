@@ -23,8 +23,8 @@ describes the drawing. By data shape:
 - `encode_categorical()` (category + value): BAR, LOLLIPOP, POINTPLOT,
   ARC
   (pie/donut), FUNNEL, NIGHTINGALE, POLAR_BAR, RADIALBAR. WATERFALL
-  takes `encode_waterfall()` (signed deltas); `histogram()` feeds BAR
-  through `encode_histogram()`.
+  takes `encode_waterfall()` (signed deltas); `encode_binned_categories()`
+  bins raw values into BAR's labeled categories.
 - Category + several values: BOX (`encode_boxplot()`), BEESWARM/
   VIOLIN/RIDGELINE (`encode_distribution()`), CANDLESTICK
   (`encode_candlestick()`), BULLET (`encode_bullet()`), GANTT and

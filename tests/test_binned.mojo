@@ -145,7 +145,7 @@ def test_stepfilled_keeps_the_staircase() raises:
 def test_unequal_bin_widths_draw_proportional_rects() raises:
     # Edges 0, 1, 3, 7: widths 1, 2 and 4 over a 320 px plot area,
     # so the rects are about 46, 91 and 183 px wide, in a 1:2:4 ratio
-    # to within the pixel snapping. The categorical encode_histogram()
+    # to within the pixel snapping. The categorical encode_binned_categories()
     # would draw them equal, which is the lie #435 names.
     var data: List[Float64] = [0.5, 2.0, 5.0]
     var edges: List[Float64] = [0.0, 1.0, 3.0, 7.0]
@@ -871,7 +871,8 @@ def _sample() -> List[Float64]:
 
 
 def test_the_builder_chain_draws_what_histogram_draws() raises:
-    # The chain used to raise -- encode_histogram() took Mark.BAR only.
+    # The chain used to raise -- encode_histogram() took Mark.BAR only;
+    # that categorical chart is encode_binned_categories() now.
     # It now bins through bin_edges() and histogram_bins(), the path
     # histogram() takes, so the two render the same bytes.
     var d = _sample()
@@ -967,24 +968,20 @@ def test_builder_chain_histograms_layer_as_histogram_ones_do() raises:
     )
 
 
-def test_the_categorical_path_refuses_what_it_cannot_draw() raises:
-    # mark_bar().encode_histogram() still draws labeled counts, and says
-    # so rather than silently dropping an option it has no way to show.
+def test_each_histogram_encoder_names_the_mark_it_needs() raises:
+    # Two encoders, two charts: encode_histogram() for the numeric
+    # Mark.HISTOGRAM, encode_binned_categories() for Mark.BAR's labeled
+    # intervals. Each points at the other's mark rather than silently
+    # drawing the wrong chart.
     var d = _sample()
-    var w: List[Float64] = [1.0, 2.0, 1.0, 1.0, 3.0, 1.0, 1.0, 2.0, 1.0]
-    with assert_raises(contains="need mark_histogram()"):
-        _ = Plot().mark_bar().encode_histogram(d, bins=4, weights=w)
-    with assert_raises(contains="need mark_histogram()"):
-        _ = Plot().mark_bar().encode_histogram(d, bins=4, stat=HistStat.DENSITY)
-    with assert_raises(contains="need mark_histogram()"):
-        _ = Plot().mark_bar().encode_histogram(d, BinRule.AUTO, cumulative=True)
-    var legacy = Plot().mark_bar().encode_histogram(d, bins=4)
-    assert_equal(len(legacy._categorical.x), 4, "four labeled bars, as before")
-
-
-def test_encode_histogram_on_another_mark_points_at_mark_histogram() raises:
     with assert_raises(contains="mark_histogram()"):
-        _ = Plot().mark_point().encode_histogram(_sample(), bins=4)
+        _ = Plot().mark_bar().encode_histogram(d, bins=4)
+    with assert_raises(contains="mark_bar()"):
+        _ = Plot().mark_histogram().encode_binned_categories(d, bins=4)
+    with assert_raises(contains="mark_histogram()"):
+        _ = Plot().mark_point().encode_histogram(d, BinRule.AUTO)
+    var bars = Plot().mark_bar().encode_binned_categories(d, bins=4)
+    assert_equal(len(bars._categorical.x), 4, "four labeled bars")
 
 
 def main() raises:
