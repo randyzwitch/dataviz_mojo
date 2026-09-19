@@ -12,7 +12,7 @@ diagnosis changes from slow to instant; nothing is tolerated that was
 not tolerated before.
 """
 
-from std.testing import assert_equal, assert_raises, TestSuite
+from std.testing import assert_equal, assert_raises, assert_true, TestSuite
 from std.python import Python, PythonObject
 
 from dataviz.core.numpy_interop import _materialize_python_floats
@@ -128,6 +128,26 @@ def test_encode_accepts_a_numpy_array_matching_the_list_float64_path() raises:
     var svg_from_list = render_svg(plot_from_list).to_string()
 
     assert_equal(svg_from_numpy, svg_from_list)
+
+
+def test_encode_labels_work_for_numpy_input_of_mixed_dtypes() raises:
+    # #699: the PythonObject overload had no labels= at all. An int64 x
+    # against a float32 y (exact values) with labels renders the same
+    # bytes as the List[Float64] call with the same labels.
+    var np = _import_or_explain("numpy")
+    var x = np.array(Python.evaluate("[1, 2, 3]"), dtype="int64")
+    var y = np.array(Python.evaluate("[0.5, 2.25, 4.0]"), dtype="float32")
+    var labels: List[String] = ["one", "two", "three"]
+    var from_numpy = render_svg(
+        Plot().mark_point().encode(x=x, y=y, labels=labels).size(400, 300)
+    ).to_string()
+    var xf: List[Float64] = [1.0, 2.0, 3.0]
+    var yf: List[Float64] = [0.5, 2.25, 4.0]
+    var from_list = render_svg(
+        Plot().mark_point().encode(x=xf, y=yf, labels=labels).size(400, 300)
+    ).to_string()
+    assert_equal(from_numpy, from_list)
+    assert_true(">two</text>" in from_numpy, "the labels are drawn")
 
 
 def test_encode_categorical_accepts_a_pandas_series_y_matching_the_list_float64_path() raises:

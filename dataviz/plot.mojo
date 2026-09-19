@@ -2469,11 +2469,11 @@ struct Plot(Copyable, Movable):
         return self^
 
     def encode[
-        T: Float64Sequence
+        TX: Float64Sequence, TY: Float64Sequence
     ](
         var self,
-        x: T,
-        y: T,
+        x: TX,
+        y: TY,
         color: List[Float64] = List[Float64](),
         color_categories: List[String] = List[String](),
         size: List[Float64] = List[Float64](),
@@ -2482,21 +2482,23 @@ struct Plot(Copyable, Movable):
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
         shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
+        labels: List[String] = List[String](),
     ) raises -> Self:
         """`encode()`'s `x`/`y` generalized to anything conforming to
         `Float64Sequence` (array_like.mojo), for data in a custom buffer
         wrapper or a dataframe column type. A type's author has to declare
         the conformance; `List` itself and numpy arrays can't be retrofitted,
         which is why the concrete overload above still exists. `x` and `y`
-        share one type parameter `T`, so both must be the same concrete type.
-        Materializes both via `_materialize_floats` and delegates to the
-        concrete `encode()`.
+        each take their own type parameter, so they need not be the same
+        container type (#699). Materializes both via `_materialize_floats`
+        and delegates to the concrete `encode()`.
 
         Args:
             x: The continuous x column, one entry per point --
                 anything conforming to `Float64Sequence`.
-            y: The continuous y column, one entry per point -- the
-                same concrete type as `x`.
+            y: The continuous y column, one entry per point --
+                anything conforming to `Float64Sequence`, not necessarily
+                `x`'s type.
             color: See `encode()`'s own docstring -- unchanged here,
                 still a concrete `List[Float64]`.
             color_categories: See `encode()`'s own docstring.
@@ -2506,6 +2508,7 @@ struct Plot(Copyable, Movable):
             y_err_upper: See `encode()`'s own docstring.
             color_map: See `encode()`'s own docstring.
             shape_map: See `encode()`'s own docstring.
+            labels: See `encode()`'s own docstring.
 
         Returns:
             Self, for further chaining.
@@ -2521,14 +2524,15 @@ struct Plot(Copyable, Movable):
             y_err_upper=y_err_upper,
             color_map=color_map,
             shape_map=shape_map,
+            labels=labels,
         )
 
     def encode[
-        dtype: DType
+        x_dtype: DType, y_dtype: DType
     ](
         var self,
-        x: List[Scalar[dtype]],
-        y: List[Scalar[dtype]],
+        x: List[Scalar[x_dtype]],
+        y: List[Scalar[y_dtype]],
         color: List[Float64] = List[Float64](),
         color_categories: List[String] = List[String](),
         size: List[Float64] = List[Float64](),
@@ -2537,21 +2541,23 @@ struct Plot(Copyable, Movable):
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
         shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
+        labels: List[String] = List[String](),
     ) raises -> Self:
         """`encode()`'s `x`/`y` generalized over numeric element type
         (`List[Int]`, `List[Float32]`, any `List[Scalar[dtype]]`), a
         different axis from the `Float64Sequence` overload (element type
         rather than container type; see array_like.mojo for why this uses
-        `DType` genericity rather than a trait). `x`/`y` share one `dtype`.
-        Materializes both via `_materialize_scalar_list` and delegates to the
-        concrete `encode()`, which Mojo still picks directly for a plain
-        `List[Float64]`.
+        `DType` genericity rather than a trait). `x` and `y` each take their
+        own element type, so `List[Int]` x against `List[Float64]` y works
+        (#699). Materializes both via `_materialize_scalar_list` and
+        delegates to the concrete `encode()`, which Mojo still picks
+        directly when both are `List[Float64]`.
 
         Args:
             x: The continuous x column, one entry per point -- any
                 numeric `List[Scalar[dtype]]`.
-            y: The continuous y column, one entry per point -- the
-                same element type as `x`.
+            y: The continuous y column, one entry per point -- any
+                numeric `List[Scalar[dtype]]`, not necessarily `x`'s.
             color: See `encode()`'s own docstring -- unchanged here,
                 still a concrete `List[Float64]`.
             color_categories: See `encode()`'s own docstring.
@@ -2561,6 +2567,7 @@ struct Plot(Copyable, Movable):
             y_err_upper: See `encode()`'s own docstring.
             color_map: See `encode()`'s own docstring.
             shape_map: See `encode()`'s own docstring.
+            labels: See `encode()`'s own docstring.
 
         Returns:
             Self, for further chaining.
@@ -2576,6 +2583,7 @@ struct Plot(Copyable, Movable):
             y_err_upper=y_err_upper,
             color_map=color_map,
             shape_map=shape_map,
+            labels=labels,
         )
 
     def encode(
@@ -2590,6 +2598,7 @@ struct Plot(Copyable, Movable):
         y_err_upper: List[Float64] = List[Float64](),
         color_map: Dict[String, Color] = Dict[String, Color](),
         shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
+        labels: List[String] = List[String](),
     ) raises -> Self:
         """`encode()`'s `x`/`y` generalized to a numpy `ndarray`, a pandas
         `Series`, or a plain Python list of numbers (see numpy_interop.mojo).
@@ -2613,6 +2622,7 @@ struct Plot(Copyable, Movable):
             y_err_upper: See `encode()`'s own docstring.
             color_map: See `encode()`'s own docstring.
             shape_map: See `encode()`'s own docstring.
+            labels: See `encode()`'s own docstring.
 
         Returns:
             Self, for further chaining.
@@ -2634,6 +2644,7 @@ struct Plot(Copyable, Movable):
             y_err_upper=y_err_upper,
             color_map=color_map,
             shape_map=shape_map,
+            labels=labels,
         )
 
     def mark_scatter3d(

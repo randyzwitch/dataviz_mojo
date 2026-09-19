@@ -12,7 +12,7 @@ Int conversion up to 2^53, whole-number labels from List[Int]).
 
 from _test_helpers import Lcg, _count_color
 from canvas.color import Color
-from dataviz import bar
+from dataviz import area, bar, line, scatter
 from dataviz.core.camera3d import Camera3D
 from dataviz.core.frame3d import (
     Frame3D,
@@ -997,6 +997,115 @@ def test_encode_accepts_a_custom_float64sequence_matching_the_list_path() raises
     var svg_from_list = render_svg(plot_from_list).to_string()
 
     assert_equal(svg_from_buffer, svg_from_list)
+
+
+struct _OtherFloatBuffer(Copyable, Float64Sequence, Movable):
+    """A second, distinct `Float64Sequence` type, so a test can pass `x`
+    and `y` as two different container types (#699)."""
+
+    var data: List[Float64]
+
+    def __init__(out self, var data: List[Float64]):
+        self.data = data^
+
+    def __len__(self) -> Int:
+        return len(self.data)
+
+    def __getitem__(self, idx: Int) -> Float64:
+        return self.data[idx]
+
+
+def _labeled_svg(var plot: Plot) raises -> String:
+    return render_svg(plot^.size(400, 300)).to_string()
+
+
+def test_encode_labels_work_for_every_non_python_input_kind() raises:
+    # #699: labels= was on the concrete List[Float64] overload only, so
+    # switching the data to List[Int32] or a custom container removed
+    # the feature. Every overload now takes it, and each renders the
+    # same bytes as the List[Float64] call. (The PythonObject overload
+    # is covered in test_numpy_interop.mojo, which has numpy.)
+    var labels: List[String] = ["one", "two", "three"]
+    var xf: List[Float64] = [1.0, 2.0, 3.0]
+    var yf: List[Float64] = [10.0, 20.0, 30.0]
+    var expected = _labeled_svg(
+        Plot().mark_point().encode(x=xf, y=yf, labels=labels)
+    )
+    assert_true(
+        ">one</text>" in expected and ">three</text>" in expected,
+        "the Float64 path draws the labels at all",
+    )
+    var xi: List[Int32] = [1, 2, 3]
+    var yi: List[Int32] = [10, 20, 30]
+    assert_equal(
+        _labeled_svg(Plot().mark_point().encode(x=xi, y=yi, labels=labels)),
+        expected,
+        "a List[Int32] column keeps its labels",
+    )
+    assert_equal(
+        _labeled_svg(
+            Plot()
+            .mark_point()
+            .encode(
+                x=_FloatBuffer([1.0, 2.0, 3.0]),
+                y=_FloatBuffer([10.0, 20.0, 30.0]),
+                labels=labels,
+            )
+        ),
+        expected,
+        "a custom Float64Sequence keeps its labels",
+    )
+
+
+def test_encode_accepts_x_and_y_of_different_numeric_types() raises:
+    # Every value here is exact in Float32 and Int32, so converting by
+    # hand and letting encode() convert must draw the same bytes.
+    var xi: List[Int32] = [1, 2, 3]
+    var yf32: List[Float32] = [0.5, 2.25, 4.0]
+    var xf: List[Float64] = [1.0, 2.0, 3.0]
+    var yf: List[Float64] = [0.5, 2.25, 4.0]
+    assert_equal(
+        _labeled_svg(Plot().mark_point().encode(x=xi, y=yf32)),
+        _labeled_svg(Plot().mark_point().encode(x=xf, y=yf)),
+    )
+
+
+def test_encode_accepts_x_and_y_of_different_container_types() raises:
+    var xf: List[Float64] = [1.0, 2.0, 3.0]
+    var yf: List[Float64] = [10.0, 20.0, 30.0]
+    assert_equal(
+        _labeled_svg(
+            Plot()
+            .mark_point()
+            .encode(
+                x=_FloatBuffer([1.0, 2.0, 3.0]),
+                y=_OtherFloatBuffer([10.0, 20.0, 30.0]),
+            )
+        ),
+        _labeled_svg(Plot().mark_point().encode(x=xf, y=yf)),
+    )
+
+
+def test_scatter_line_and_area_accept_x_and_y_of_different_types() raises:
+    # The quickplot DType overloads had the same shared-dtype limit as
+    # encode()'s. A List[Int32] x against a List[Float32] y now renders
+    # exactly what the converted List[Float64] pair does.
+    var xi: List[Int32] = [1, 2, 3]
+    var yf32: List[Float32] = [0.5, 2.25, 4.0]
+    var xf: List[Float64] = [1.0, 2.0, 3.0]
+    var yf: List[Float64] = [0.5, 2.25, 4.0]
+    assert_equal(
+        render_svg(scatter(xi, yf32)).to_string(),
+        render_svg(scatter(xf, yf)).to_string(),
+    )
+    assert_equal(
+        render_svg(line(xi, yf32)).to_string(),
+        render_svg(line(xf, yf)).to_string(),
+    )
+    assert_equal(
+        render_svg(area(xi, yf32)).to_string(),
+        render_svg(area(xf, yf)).to_string(),
+    )
 
 
 def test_encode_plain_list_path_is_unaffected() raises:

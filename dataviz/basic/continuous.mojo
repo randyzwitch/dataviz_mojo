@@ -983,10 +983,10 @@ def scatter(
 
 
 def scatter[
-    dtype: DType
+    x_dtype: DType, y_dtype: DType
 ](
-    x: List[Scalar[dtype]],
-    y: List[Scalar[dtype]],
+    x: List[Scalar[x_dtype]],
+    y: List[Scalar[y_dtype]],
     tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -995,8 +995,9 @@ def scatter[
     x_title: String = "",
     y_title: String = "",
 ) raises -> Plot:
-    """`scatter()` generalized over numeric element type (`List[Int]`,
-    `List[Float32]`, ...); see `Plot.encode()`'s `DType` overload and
+    """`scatter()` generalized over numeric element type (`List[Int32]`,
+    `List[Float32]`, ...), `x` and `y` each their own, so they need not
+    match (#699); see `Plot.encode()`'s `DType` overload and
     array_like.mojo. Delegates to the concrete overload above.
     """
     return scatter(
@@ -1148,10 +1149,10 @@ def line(
 
 
 def line[
-    dtype: DType
+    x_dtype: DType, y_dtype: DType
 ](
-    x: List[Scalar[dtype]],
-    y: List[Scalar[dtype]],
+    x: List[Scalar[x_dtype]],
+    y: List[Scalar[y_dtype]],
     step: StepStyle = StepStyle.NONE,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -1283,10 +1284,10 @@ def area(
 
 
 def area[
-    dtype: DType
+    x_dtype: DType, y_dtype: DType
 ](
-    x: List[Scalar[dtype]],
-    y: List[Scalar[dtype]],
+    x: List[Scalar[x_dtype]],
+    y: List[Scalar[y_dtype]],
     step: StepStyle = StepStyle.NONE,
     theme: Theme = Theme(),
     width: Int = 640,
