@@ -630,3 +630,286 @@ def _aggregate_by_x(
         lows.append(iv[0])
         highs.append(iv[1])
     return _NumericAggregate(xs^, estimates^, lows^, highs^)
+
+
+struct SmoothMethod(Copyable, ImplicitlyCopyable, Movable):
+    """Which curve `Plot.annotate_smooth()` fits (#147).
+
+    - `SmoothMethod.LOESS` -- locally weighted regression: at each point
+      along x, a polynomial fitted to the nearest `span` share of the
+      data, weighted so the nearest count most. It follows whatever
+      shape the data has, which is what makes it the default trend line
+      for exploring data.
+    - `SmoothMethod.POLYNOMIAL` -- one least-squares polynomial of a
+      given degree over all the data: a single formula, for when the
+      shape is known to be, say, quadratic.
+    """
+
+    var _value: Int
+
+    comptime LOESS = Self(0)
+    comptime POLYNOMIAL = Self(1)
+
+    def __init__(out self, value: Int):
+        self._value = value
+
+    def __eq__(self, other: Self) -> Bool:
+        return self._value == other._value
+
+
+def _solve_linear(
+    var a: List[List[Float64]], var b: List[Float64]
+) raises -> List[Float64]:
+    """Solve `a * x = b` for a small square system by Gaussian
+    elimination with partial pivoting (#147).
+
+    Only ever handed a normal-equations system of a few rows -- a
+    polynomial fit's or a LOESS window's -- so there is no call for a
+    general linear-algebra dependency. A pivot that vanishes relative to
+    the matrix's largest entry means the data cannot determine the fit
+    (too few distinct x values for the degree), and raises.
+
+    Args:
+        a: The coefficient matrix, `n` rows of `n`.
+        b: The right-hand side, `n` long.
+
+    Returns:
+        The solution, `n` long.
+
+    Raises:
+        Error: The system is singular to working precision.
+    """
+    var n = len(b)
+    var scale = 0.0
+    for row in a:
+        for v in row:
+            scale = max(scale, abs(v))
+    if scale == 0.0:
+        raise Error("the fit's system is singular")
+    for col in range(n):
+        var pivot = col
+        for r in range(col + 1, n):
+            if abs(a[r][col]) > abs(a[pivot][col]):
+                pivot = r
+        if abs(a[pivot][col]) <= 1e-12 * scale:
+            raise Error(
+                "the fit's system is singular -- too few distinct x values"
+                " for the degree"
+            )
+        if pivot != col:
+            var tmp_row = a[col].copy()
+            a[col] = a[pivot].copy()
+            a[pivot] = tmp_row^
+            var tmp_b = b[col]
+            b[col] = b[pivot]
+            b[pivot] = tmp_b
+        for r in range(col + 1, n):
+            var f = a[r][col] / a[col][col]
+            if f == 0.0:
+                continue
+            for c in range(col, n):
+                a[r][c] -= f * a[col][c]
+            b[r] -= f * b[col]
+    var x = List[Float64](capacity=n)
+    for _ in range(n):
+        x.append(0.0)
+    for r in range(n - 1, -1, -1):
+        var acc = b[r]
+        for c in range(r + 1, n):
+            acc -= a[r][c] * x[c]
+        x[r] = acc / a[r][r]
+    return x^
+
+
+def _weighted_poly_intercept(
+    t: List[Float64], y: List[Float64], w: List[Float64], degree: Int
+) raises -> Float64:
+    """The constant term of the weighted least-squares polynomial of
+    `degree` in `t`: the fitted value at `t = 0`.
+
+    Builds the normal equations `sum w t^(j+k) * c_k = sum w t^j y`
+    and solves them with `_solve_linear`.
+    """
+    var size = degree + 1
+    var a = List[List[Float64]](capacity=size)
+    var b = List[Float64](capacity=size)
+    for _ in range(size):
+        var row = List[Float64](capacity=size)
+        for _ in range(size):
+            row.append(0.0)
+        a.append(row^)
+        b.append(0.0)
+    for i in range(len(t)):
+        if w[i] == 0.0:
+            continue
+        var powers = List[Float64](capacity=2 * size)
+        var p = 1.0
+        for _ in range(2 * size - 1):
+            powers.append(p)
+            p *= t[i]
+        for j in range(size):
+            b[j] += w[i] * powers[j] * y[i]
+            for k in range(size):
+                a[j][k] += w[i] * powers[j + k]
+    return _solve_linear(a^, b^)[0]
+
+
+struct _PolyFit(Copyable, Movable):
+    """A least-squares polynomial in the centered, scaled variable
+    `(x - center) / spread`, which keeps the normal equations well
+    conditioned when x is large or the degree is high."""
+
+    var center: Float64
+    var spread: Float64
+    var coefficients: List[Float64]
+    """Lowest power first, in the scaled variable."""
+
+    def __init__(
+        out self,
+        center: Float64,
+        spread: Float64,
+        var coefficients: List[Float64],
+    ):
+        self.center = center
+        self.spread = spread
+        self.coefficients = coefficients^
+
+    def predict(self, x: Float64) -> Float64:
+        var t = (x - self.center) / self.spread
+        var acc = 0.0
+        for k in range(len(self.coefficients) - 1, -1, -1):
+            acc = acc * t + self.coefficients[k]
+        return acc
+
+
+def _poly_fit(
+    x: List[Float64], y: List[Float64], degree: Int
+) raises -> _PolyFit:
+    """The least-squares polynomial of `degree` through `(x, y)` (#147).
+
+    Fitted in `(x - mean) / max|x - mean|` rather than in x itself: the
+    normal equations raise x to the power `2 * degree`, and for years or
+    timestamps that loses every significant digit. The same fit, better
+    conditioned; `_PolyFit.predict` undoes the transform.
+
+    Raises:
+        Error: `degree` is below 1, the columns differ in length, or
+            there are not more distinct x values than `degree`.
+    """
+    if degree < 1:
+        raise Error("degree must be at least 1 (got " + String(degree) + ")")
+    if len(x) != len(y):
+        raise Error("x and y must be the same length")
+    if len(x) <= degree:
+        raise Error(
+            "a degree-"
+            + String(degree)
+            + " polynomial needs more than "
+            + String(degree)
+            + " points (got "
+            + String(len(x))
+            + ")"
+        )
+    var center = 0.0
+    for v in x:
+        center += v
+    center /= Float64(len(x))
+    var spread = 0.0
+    for v in x:
+        spread = max(spread, abs(v - center))
+    if spread == 0.0:
+        raise Error("every x value is the same, so no curve fits")
+    var t = List[Float64](capacity=len(x))
+    var w = List[Float64](capacity=len(x))
+    for v in x:
+        t.append((v - center) / spread)
+        w.append(1.0)
+    # The full coefficient vector, not just the intercept: solve the
+    # same normal equations _weighted_poly_intercept builds.
+    var size = degree + 1
+    var a = List[List[Float64]](capacity=size)
+    var b = List[Float64](capacity=size)
+    for _ in range(size):
+        var row = List[Float64](capacity=size)
+        for _ in range(size):
+            row.append(0.0)
+        a.append(row^)
+        b.append(0.0)
+    for i in range(len(t)):
+        var p = 1.0
+        var powers = List[Float64](capacity=2 * size)
+        for _ in range(2 * size - 1):
+            powers.append(p)
+            p *= t[i]
+        for j in range(size):
+            b[j] += powers[j] * y[i]
+            for k in range(size):
+                a[j][k] += powers[j + k]
+    return _PolyFit(center, spread, _solve_linear(a^, b^))
+
+
+def _loess_at(
+    x: List[Float64],
+    y: List[Float64],
+    x0: Float64,
+    span: Float64,
+    degree: Int,
+) raises -> Float64:
+    """The LOESS estimate at `x0` (#147): a weighted least-squares
+    polynomial of `degree` fitted to the `floor(span * n)` points
+    nearest `x0`, evaluated at `x0`.
+
+    Each point in the window is weighted by the tricube kernel of its
+    distance over the window's radius `h` -- the distance to the
+    `q`-th nearest point -- so `(1 - (d/h)^3)^3`, one at `x0` and
+    falling to zero at the window's edge. This is Cleveland's local
+    regression, without the robustness iterations that down-weight
+    outliers.
+
+    Raises:
+        Error: `span` is outside `(0, 1]`, `degree` is not 1 or 2, or
+            the window holds too few distinct x values for the degree.
+    """
+    if span <= 0.0 or span > 1.0:
+        raise Error("span must be in (0, 1] (got " + String(span) + ")")
+    if degree != 1 and degree != 2:
+        raise Error(
+            "a LOESS degree must be 1 or 2 (got " + String(degree) + ")"
+        )
+    var n = len(x)
+    var q = Int(span * Float64(n))
+    if q < degree + 2:
+        raise Error(
+            "span "
+            + String(span)
+            + " of "
+            + String(n)
+            + " points leaves "
+            + String(q)
+            + " in each window, too few for a degree-"
+            + String(degree)
+            + " fit"
+        )
+    var d = List[Float64](capacity=n)
+    for v in x:
+        d.append(abs(v - x0))
+    var sorted_d = d.copy()
+    sort(sorted_d)
+    var h = sorted_d[q - 1]
+    if h == 0.0:
+        raise Error(
+            "the nearest "
+            + String(q)
+            + " points all sit at one x value, so no local curve fits"
+        )
+    var t = List[Float64](capacity=n)
+    var w = List[Float64](capacity=n)
+    for i in range(n):
+        var u = d[i] / h
+        var wt = 0.0
+        if u < 1.0:
+            var c = 1.0 - u * u * u
+            wt = c * c * c
+        w.append(wt)
+        t.append((x[i] - x0) / h)
+    return _weighted_poly_intercept(t, y, w, degree)

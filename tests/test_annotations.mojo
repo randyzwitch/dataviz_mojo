@@ -18,9 +18,16 @@ Covers:
   and the narrower mark support (LINE yes, BAR no).
 """
 
-from std.testing import TestSuite, assert_equal, assert_raises, assert_true
+from std.testing import (
+    TestSuite,
+    assert_almost_equal,
+    assert_equal,
+    assert_raises,
+    assert_true,
+)
 from canvas.color import Color
-from dataviz import Theme, bar, gantt, kdeplot, line, rugplot
+from dataviz import SmoothMethod, Theme, bar, gantt, kdeplot, line, rugplot
+from dataviz.core.stats import _loess_at, _poly_fit
 from dataviz.core.theme import Theme
 from dataviz.plot import (
     Plot,
@@ -30,6 +37,7 @@ from dataviz.plot import (
     render_svg,
 )
 from _test_helpers import (
+    _attr_values,
     _assert_color,
     _assert_near_color,
     _assert_same_canvas,
@@ -1498,6 +1506,159 @@ def test_a_vline_on_a_vertical_categorical_mark_still_raises() raises:
     var vals: List[Float64] = [1.0, 2.0]
     with assert_raises(contains="no continuous x-axis"):
         _ = render_svg(bar(cats, vals).annotate_vline(1.0))
+
+
+# ---------------------------------------------------------------
+# annotate_smooth(): LOESS and polynomial trend lines (#147)
+
+
+def _hump_x() -> List[Float64]:
+    var v: List[Float64] = [
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0,
+        9.0,
+        10.0,
+        11.0,
+        12.0,
+    ]
+    return v^
+
+
+def _hump_y() -> List[Float64]:
+    var v: List[Float64] = [
+        2.1,
+        3.9,
+        6.2,
+        7.8,
+        9.1,
+        9.8,
+        9.9,
+        9.5,
+        8.7,
+        7.2,
+        5.8,
+        3.9,
+    ]
+    return v^
+
+
+def test_the_polynomial_fit_matches_numpy_polyfit() raises:
+    # Reference values from numpy.polyfit/polyval on the same twelve
+    # points -- an independent least-squares solve (QR, not normal
+    # equations), so agreement checks the method, not a transcription.
+    var quad = _poly_fit(_hump_x(), _hump_y(), 2)
+    assert_almost_equal(quad.predict(1.0), 1.8074175824175653, atol=1e-9)
+    assert_almost_equal(quad.predict(4.5), 8.470048701298692, atol=1e-9)
+    assert_almost_equal(quad.predict(12.0), 3.718956043956041, atol=1e-9)
+    var cubic = _poly_fit(_hump_x(), _hump_y(), 3)
+    assert_almost_equal(cubic.predict(7.0), 9.766822066822069, atol=1e-9)
+
+
+def test_loess_matches_an_independent_numpy_fit() raises:
+    # The reference is a separate numpy implementation of the same
+    # definition: the floor(span * n) nearest points, tricube weights
+    # on distance over the q-th nearest distance, and a weighted
+    # polynomial solved with numpy.linalg.lstsq.
+    var x = _hump_x()
+    var y = _hump_y()
+    assert_almost_equal(
+        _loess_at(x, y, 1.0, 0.75, 2), 1.8956097217998957, atol=1e-9
+    )
+    assert_almost_equal(
+        _loess_at(x, y, 4.5, 0.75, 2), 8.499263578906193, atol=1e-9
+    )
+    assert_almost_equal(
+        _loess_at(x, y, 6.0, 0.75, 2), 9.764384152369772, atol=1e-9
+    )
+    assert_almost_equal(
+        _loess_at(x, y, 12.0, 0.75, 2), 3.841889256036575, atol=1e-9
+    )
+    assert_almost_equal(
+        _loess_at(x, y, 6.0, 0.5, 1), 9.416044520298163, atol=1e-9
+    )
+
+
+def test_loess_reproduces_the_shape_its_degree_can_express() raises:
+    # A local line fitted to a line, or a local quadratic to a
+    # quadratic, is exact whatever the weights -- by hand, not numpy.
+    var x = _hump_x()
+    var line_y = List[Float64]()
+    var quad_y = List[Float64]()
+    for v in x:
+        line_y.append(3.0 * v - 2.0)
+        quad_y.append(0.5 * v * v - v + 4.0)
+    assert_almost_equal(_loess_at(x, line_y, 4.5, 0.5, 1), 11.5, atol=1e-9)
+    assert_almost_equal(
+        _loess_at(x, quad_y, 7.25, 0.75, 2),
+        0.5 * 7.25 * 7.25 - 7.25 + 4.0,
+        atol=1e-9,
+    )
+
+
+def _count_stroke(svg: String, color: Color) -> Int:
+    var digits = String("0123456789abcdef")
+    var hex = String("#")
+    for c in [color.r, color.g, color.b]:
+        var hi = Int(c) // 16
+        var lo = Int(c) % 16
+        hex += String(digits[byte = hi : hi + 1])
+        hex += String(digits[byte = lo : lo + 1])
+    var n = 0
+    for v in _attr_values(svg, "path", "stroke"):
+        if v == hex:
+            n += 1
+    return n
+
+
+def test_annotate_smooth_draws_one_curve_in_the_annotation_color() raises:
+    var t = Theme()
+    var base = (
+        Plot().mark_point().encode(x=_hump_x(), y=_hump_y()).size(400, 300)
+    )
+    var plain = render_svg(base.copy()).to_string()
+    var loess = render_svg(base.copy().annotate_smooth()).to_string()
+    var poly = render_svg(
+        base.copy().annotate_smooth(SmoothMethod.POLYNOMIAL, degree=2)
+    ).to_string()
+    var before = _count_stroke(plain, t.annotation_color)
+    assert_equal(_count_stroke(loess, t.annotation_color), before + 1)
+    assert_equal(_count_stroke(poly, t.annotation_color), before + 1)
+    assert_true(loess != poly, "the two methods draw different curves")
+
+
+def test_annotate_smooth_refuses_what_it_cannot_fit() raises:
+    with assert_raises(contains="annotate_smooth(): span must be in (0, 1]"):
+        _ = render(
+            Plot()
+            .mark_point()
+            .encode(x=_hump_x(), y=_hump_y())
+            .annotate_smooth(span=1.5)
+        )
+    with assert_raises(contains="annotate_smooth(): a LOESS degree"):
+        _ = render(
+            Plot()
+            .mark_point()
+            .encode(x=_hump_x(), y=_hump_y())
+            .annotate_smooth(degree=3)
+        )
+    var three: List[Float64] = [1.0, 2.0, 3.0]
+    with assert_raises(contains="annotate_smooth(): a degree-3 polynomial"):
+        _ = render(
+            Plot()
+            .mark_point()
+            .encode(x=three, y=three)
+            .annotate_smooth(SmoothMethod.POLYNOMIAL, degree=3)
+        )
+    var cats: List[String] = ["a", "b"]
+    var vals: List[Float64] = [1.0, 2.0]
+    with assert_raises(contains="annotate_smooth(): this mark has no"):
+        _ = render(bar(cats, vals).annotate_smooth())
 
 
 def main() raises:
